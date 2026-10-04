@@ -76,7 +76,7 @@ fn load(program: &ResolvedProgram, ty: &ResolvedType) -> Result<(u8, u32), Diagn
 
 impl Emitter<'_> {
     pub(super) fn closure_profile(&self) -> bool {
-        crate::hir::closure::requires_closures(self.program)
+        crate::hir::closure::requires_runtime_closures(self.program)
     }
 
     fn closure_destination(&self, expression: &ResolvedExpr) -> Result<Pointer, Diagnostic> {
@@ -130,6 +130,9 @@ impl Emitter<'_> {
             self.get_scalar(&snapshot);
             self.store_scalar(&capture.binding.ty);
         }
+        if expression.ty.is_once_function() {
+            self.apply_call_commit(&expression.id)?;
+        }
         Ok(value)
     }
 }
@@ -149,8 +152,40 @@ module test.wasm_closure_failure;
 }
 @id("app.main") fn main()->i64 { probe(2) }
 "#;
+        closure_failure_probe(source, 21, None);
+    }
+
+    #[test]
+    fn wasm_mutable_closures_failure_retains_output_and_restores_frames() {
+        let source = r#"
+module test.wasm_mutable_failure;
+@id("closure.divide") fn divide(state:i64,divisor:i64)->i64 { state/divisor }
+@id("closure.probe") fn probe(divisor:i64)->i64 {
+    let state=42;
+    let mut callback=mut fn(value:i64)->i64 { divide(state,value) };
+    let first=callback(2);
+    callback(divisor)
+}
+@id("app.main") fn main()->i64 { probe(2) }
+"#;
+        closure_failure_probe(source, 10, Some(21));
+    }
+
+    fn closure_failure_probe(source: &str, expected: i64, prior_state: Option<i64>) {
         let checked = crate::check(source, "closure-failure.spx").unwrap();
         let program = crate::hir::resolve(&checked).unwrap();
+        let receiver_check = prior_state.map(|expected| {
+            let function = program.functions.iter().find(|f| f.id.as_str() == "closure.probe").unwrap();
+            let ResolvedExprKind::Block { statements, .. } = &function.body.kind else { panic!() };
+            let binding = statements.iter().find_map(|s| match s {
+                ResolvedStatement::Let { binding, .. } if binding.ty.is_mut_function() => Some(binding),
+                _ => None,
+            }).unwrap();
+            let layouts = VariantLayoutCache::build(&program, VariantTarget::Wasm32).unwrap();
+            let plan = FunctionPlan::build(&program, function, &layouts).unwrap();
+            let offset = plan.aggregate_bindings[&binding.id];
+            format!("const receiver=top-{}+{}; if(view.getBigInt64(receiver+8,true)!=={}n)throw Error('failed transition committed receiver state'); if(view.getUint32(receiver+4,true)!==0)throw Error('failure retained active guard');", plan.frame_size, offset, expected)
+        }).unwrap_or_default();
         let bytes = emit_profile(&program, true, false).unwrap();
         assert_eq!(bytes, emit_profile(&program, true, false).unwrap());
         let available = Command::new("node").arg("--version").output().is_ok();
@@ -158,8 +193,10 @@ module test.wasm_closure_failure;
         if !available {
             return;
         }
-        let root =
-            std::env::temp_dir().join(format!("semaprax-closure-failure-{}", std::process::id()));
+        let root = std::env::temp_dir().join(format!(
+            "semaprax-closure-failure-{}-{expected}",
+            std::process::id()
+        ));
         std::fs::create_dir_all(&root).unwrap();
         std::fs::write(root.join("module.wasm"), bytes).unwrap();
         let name = function_value::hex_identity(&DeclarationId::new("closure.probe"));
@@ -175,13 +212,15 @@ for(let run=0;run<3;run++){{
   new Uint8Array(memory.buffer,output,8).fill(0xa5);
   const status=instance.exports.__spx_test_{name}(0n,output);
   if(status!=={status})throw Error(`wrong closure failure status ${{status}}`);
+  {receiver_check}
   for(const byte of new Uint8Array(memory.buffer,output,8))if(byte!==0xa5)throw Error('failure published provisional result');
   if(instance.exports.__spx_test_shadow_stack.value!==top)throw Error('failure leaked closure frame');
-  if(instance.exports.__spx_test_{name}(2n,output)!==0||view.getBigInt64(output,true)!==21n)throw Error('success after failure changed');
+  if(instance.exports.__spx_test_{name}(2n,output)!==0||view.getBigInt64(output,true)!=={expected}n)throw Error('success after failure changed');
   if(instance.exports.__spx_test_shadow_stack.value!==top)throw Error('success leaked closure frame');
 }}
 "#,
-            status = STATUS_DIV_ZERO
+            status = STATUS_DIV_ZERO,
+            expected = expected
         );
         std::fs::write(root.join("probe.mjs"), script).unwrap();
         let output = Command::new("node")

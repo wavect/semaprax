@@ -4,7 +4,7 @@ use crate::hir::{
     DeclarationId, ResolvedFunction, ResolvedProgram, ResolvedType, ResolvedTypeDeclarationKind,
 };
 
-use super::{replay_error, type_needs_drop};
+use super::replay_error;
 use crate::cleanup_plan::{
     CLEANUP_PLAN_SCHEMA_V10, CLEANUP_PLAN_SCHEMA_V11, CLEANUP_PLAN_SCHEMA_V12,
     CLEANUP_PLAN_SCHEMA_V13, CLEANUP_PLAN_SCHEMA_V14, CLEANUP_PLAN_SCHEMA_V7,
@@ -373,4 +373,13 @@ fn charge_fields(
         ));
     }
     Ok(())
+}
+
+pub(super) fn type_needs_drop(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    ty: &ResolvedType,
+) -> Result<bool, Diagnostic> {
+    crate::cleanup::type_needs_resource_cleanup(program, ty)
+        .map_err(|message| replay_error(function, message))
 }

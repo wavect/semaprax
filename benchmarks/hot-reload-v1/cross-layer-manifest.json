@@ -1,0 +1,392 @@
+{
+  "schema": "semaprax.hot-reload-cross-layer-acceptance.v1",
+  "scope": "local-selector-timing",
+  "subject": {
+    "revision": "git-head-at-run",
+    "binary_digest": "captured-per-selector-in-report"
+  },
+  "cells": [
+    {
+      "id": "interpreter-a-b",
+      "availability": "runnable-with-prebuilt-semaprax",
+      "selector": "benchmarks/hot-reload-v1/run.py",
+      "requires": [
+        "A returns 42",
+        "B returns 48",
+        "one interpreter child spans A to B"
+      ]
+    },
+    {
+      "id": "watcher-a-b-invalid-c",
+      "availability": "selector-required",
+      "selector": "project::hot_reload_watcher::tests::invalid_c_rejects_after_b_without_replacing_active_a_or_admitting_stale_b",
+      "requires": [
+        "B candidate admission",
+        "invalid C refusal",
+        "A remains active",
+        "stale B cannot activate"
+      ]
+    },
+    {
+      "id": "watcher-invalid-c-repair",
+      "availability": "selector-required",
+      "selector": "project::hot_reload_watcher::tests::valid_repair_after_invalid_c_admits_once",
+      "requires": [
+        "invalid C refusal",
+        "valid repair admission",
+        "one admission after repair",
+        "next poll is idle"
+      ]
+    },
+    {
+      "id": "source-agent-a-b",
+      "availability": "selector-required",
+      "selector": "source_agent_hot_reload::full_dev_source_agent_migrates_real_journal_a_to_b_with_local_opencode_stub",
+      "requires": [
+        "source-built semaprax-full child",
+        "A checkpoint",
+        "B destination journal",
+        "one local OpenCode stub"
+      ]
+    },
+    {
+      "id": "source-agent-a-b-c",
+      "availability": "selector-required",
+      "selector": "source_live_cli::tests::hr04_state_handoff_tests::retained_a_to_b_to_c_handoff_carries_state_without_initialize_or_redispatch",
+      "requires": [
+        "retained A checkpoint",
+        "B suspend",
+        "C complete",
+        "forged B refusal before provider dispatch",
+        "B to C replay without redispatch"
+      ]
+    },
+    {
+      "id": "prepared-worker-a-b-c-identity",
+      "availability": "selector-required",
+      "selector": "project::hot_reload::tests::real_a_to_b_to_c_keeps_one_worker_and_binds_each_trace_to_its_revision",
+      "requires": [
+        "same opaque in-process worker identity",
+        "A/B/C revision-bound traces"
+      ]
+    },
+    {
+      "id": "watcher-stop-resource-release",
+      "availability": "selector-required",
+      "selector": "project::hot_reload_watcher::tests::external_stop_during_admission_clears_pending_work_and_releases_the_fixture",
+      "requires": [
+        "Stop during admission",
+        "pending work cleared",
+        "active revision retained",
+        "fixture resource released"
+      ]
+    },
+    {
+      "id": "native-process-identity",
+      "availability": "unavailable",
+      "selector": null,
+      "requires": [
+        "a process identity emitted by the source-Agent control protocol",
+        "identity continuity asserted across activation"
+      ]
+    },
+    {
+      "id": "native-or-wasm-state-swap",
+      "availability": "unavailable",
+      "selector": null,
+      "requires": [
+        "a native or Wasm source-Agent state replacement implementation",
+        "physical migration timing"
+      ]
+    },
+    {
+      "id": "watcher-source-race",
+      "availability": "selector-required",
+      "selector": "project::hot_reload_watcher::tests::controlled_b_to_c_save_between_admission_and_commit_never_submits_b",
+      "requires": [
+        "controlled B-to-C save during admission",
+        "B is never submitted after source drift"
+      ]
+    },
+    {
+      "id": "watcher-stale-plan",
+      "availability": "selector-required",
+      "selector": "project::hot_reload_watcher::tests::pre_activation_edit_rejects_historical_plan_and_queues_current_revision",
+      "requires": [
+        "historical plan rejected after edit",
+        "current revision queued"
+      ]
+    },
+    {
+      "id": "watcher-path-escape",
+      "availability": "selector-required",
+      "selector": "project::hot_reload_watcher::tests::derived_outputs_and_lexically_escaping_hints_do_not_start_a_rescan_loop",
+      "requires": [
+        "lexically escaping hints ignored",
+        "no rescan loop"
+      ]
+    },
+    {
+      "id": "watcher-manifest-membership",
+      "availability": "selector-required",
+      "selector": "project::hot_reload_watcher::tests::manifest_membership_failure_is_reauthenticated_and_reported",
+      "requires": [
+        "manifest membership reauthenticated",
+        "invalid membership reported"
+      ]
+    },
+    {
+      "id": "watcher-overflow-and-coalescing",
+      "availability": "selector-required",
+      "selector": "project::hot_reload_watcher::tests::real_directory_burst_atomic_save_overflow_and_stop_are_coalesced",
+      "requires": [
+        "real directory event burst",
+        "overflow rescan",
+        "atomic save coalescing",
+        "Stop"
+      ]
+    },
+    {
+      "id": "watcher-event-generation-exhaustion",
+      "availability": "selector-required",
+      "selector": "project::hot_reload_watcher::tests::event_generation_exhaustion_is_explicit_and_terminal",
+      "requires": [
+        "event generation exhaustion is terminal"
+      ]
+    },
+    {
+      "id": "watcher-input-resource-cap",
+      "availability": "selector-required",
+      "selector": "project::hot_reload_watcher::tests::watcher_input_inventory_rejects_empty_and_first_over_bound",
+      "requires": [
+        "empty inventory refused",
+        "first over-bound inventory refused"
+      ]
+    },
+    {
+      "id": "prepared-worker-outstanding-invocation",
+      "availability": "selector-required",
+      "selector": "project::hot_reload::tests::held_real_invocation_waits_for_a_safe_boundary_then_activates_the_same_candidate",
+      "requires": [
+        "held invocation blocks pivot",
+        "same candidate activates at safe boundary"
+      ]
+    },
+    {
+      "id": "prepared-worker-duplicate-activation",
+      "availability": "selector-required",
+      "selector": "project::hot_reload::tests::checked_plan_is_separate_from_activation_and_two_plans_cannot_both_commit",
+      "requires": [
+        "two plans cannot both commit"
+      ]
+    },
+    {
+      "id": "prepared-worker-post-pivot-ack-loss",
+      "availability": "selector-required",
+      "selector": "project::hot_reload::tests::post_pivot_acknowledgement_loss_is_terminal_and_never_retries_the_candidate",
+      "requires": [
+        "post-pivot acknowledgement loss is terminal",
+        "candidate is never retried"
+      ]
+    },
+    {
+      "id": "source-agent-journal-ack-loss",
+      "availability": "selector-required",
+      "selector": "source_live_cli::tests::hr04_state_handoff_tests::physical_journal_ack_loss_and_unknown_effect_outcome_keep_source_handoff_terminal_and_block_c_dispatch",
+      "requires": [
+        "physical journal acknowledgement loss is terminal",
+        "successor dispatch blocked",
+        "effect adapter dispatches once before outcome acknowledgement loss",
+        "retained effect_intent has no effect_observed outcome",
+        "no retry and no successor effect dispatch"
+      ]
+    },
+    {
+      "id": "source-agent-claim-and-reservation-faults",
+      "availability": "selector-required",
+      "selector": "source_live_cli::tests::hr04_handoff_fault_tests::physical_migration_reservation_and_handoff_claim_faults_block_successor_dispatch",
+      "requires": [
+        "migration reservation and handoff claim faults",
+        "successor dispatch blocked"
+      ]
+    },
+    {
+      "id": "source-agent-capacity-and-path-refusal",
+      "availability": "selector-required",
+      "selector": "source_live_cli::tests::exact_config_refuses_duplicate_unknown_negative_and_oversized_capacity",
+      "requires": [
+        "duplicate and unknown fields refused",
+        "oversized capacity refused",
+        "path escape refused"
+      ]
+    },
+    {
+      "id": "vscode-oversized-response-frame",
+      "availability": "selector-required",
+      "selector": "oversized control response is terminal and bounded",
+      "requires": [
+        "oversized JSONL response makes the editor session terminal",
+        "child process is killed"
+      ]
+    },
+    {
+      "id": "vscode-worker-process-exit",
+      "availability": "selector-required",
+      "selector": "unexpected child exit makes the active session unknown",
+      "requires": [
+        "unexpected child exit makes the editor session unknown",
+        "child process is killed"
+      ]
+    },
+    {
+      "id": "vscode-interrupted-activation-stop",
+      "availability": "selector-required",
+      "selector": "stop marks an unacknowledged activation unknown before bounded forced termination",
+      "requires": [
+        "unacknowledged activation becomes unknown on Stop",
+        "forced termination remains bounded"
+      ]
+    }
+  ],
+  "nonclaims": [
+    "committed timing samples",
+    "native process identity evidence",
+    "native-or-Wasm state swap",
+    "provider latency",
+    "universal-millisecond-target",
+    "production rollout",
+    "Linux and Windows execution"
+  ],
+  "fault_categories": [
+    {
+      "id": "watcher-a-b-invalid-c",
+      "availability": "selector-required",
+      "selector": "project::hot_reload_watcher::tests::invalid_c_rejects_after_b_without_replacing_active_a_or_admitting_stale_b"
+    },
+    {
+      "id": "watcher-invalid-c-repair",
+      "availability": "selector-required",
+      "selector": "project::hot_reload_watcher::tests::valid_repair_after_invalid_c_admits_once"
+    },
+    {
+      "id": "source-agent-a-b",
+      "availability": "selector-required",
+      "selector": "source_agent_hot_reload::full_dev_source_agent_migrates_real_journal_a_to_b_with_local_opencode_stub"
+    },
+    {
+      "id": "source-agent-a-b-c",
+      "availability": "selector-required",
+      "selector": "source_live_cli::tests::hr04_state_handoff_tests::retained_a_to_b_to_c_handoff_carries_state_without_initialize_or_redispatch"
+    },
+    {
+      "id": "prepared-worker-a-b-c-identity",
+      "availability": "selector-required",
+      "selector": "project::hot_reload::tests::real_a_to_b_to_c_keeps_one_worker_and_binds_each_trace_to_its_revision"
+    },
+    {
+      "id": "watcher-stop-resource-release",
+      "availability": "selector-required",
+      "selector": "project::hot_reload_watcher::tests::external_stop_during_admission_clears_pending_work_and_releases_the_fixture"
+    },
+    {
+      "id": "watcher-source-race",
+      "availability": "selector-required",
+      "selector": "project::hot_reload_watcher::tests::controlled_b_to_c_save_between_admission_and_commit_never_submits_b"
+    },
+    {
+      "id": "watcher-stale-plan",
+      "availability": "selector-required",
+      "selector": "project::hot_reload_watcher::tests::pre_activation_edit_rejects_historical_plan_and_queues_current_revision"
+    },
+    {
+      "id": "watcher-path-escape",
+      "availability": "selector-required",
+      "selector": "project::hot_reload_watcher::tests::derived_outputs_and_lexically_escaping_hints_do_not_start_a_rescan_loop"
+    },
+    {
+      "id": "watcher-manifest-membership",
+      "availability": "selector-required",
+      "selector": "project::hot_reload_watcher::tests::manifest_membership_failure_is_reauthenticated_and_reported"
+    },
+    {
+      "id": "watcher-overflow-and-coalescing",
+      "availability": "selector-required",
+      "selector": "project::hot_reload_watcher::tests::real_directory_burst_atomic_save_overflow_and_stop_are_coalesced"
+    },
+    {
+      "id": "watcher-event-generation-exhaustion",
+      "availability": "selector-required",
+      "selector": "project::hot_reload_watcher::tests::event_generation_exhaustion_is_explicit_and_terminal"
+    },
+    {
+      "id": "watcher-input-resource-cap",
+      "availability": "selector-required",
+      "selector": "project::hot_reload_watcher::tests::watcher_input_inventory_rejects_empty_and_first_over_bound"
+    },
+    {
+      "id": "prepared-worker-outstanding-invocation",
+      "availability": "selector-required",
+      "selector": "project::hot_reload::tests::held_real_invocation_waits_for_a_safe_boundary_then_activates_the_same_candidate"
+    },
+    {
+      "id": "prepared-worker-duplicate-activation",
+      "availability": "selector-required",
+      "selector": "project::hot_reload::tests::checked_plan_is_separate_from_activation_and_two_plans_cannot_both_commit"
+    },
+    {
+      "id": "prepared-worker-post-pivot-ack-loss",
+      "availability": "selector-required",
+      "selector": "project::hot_reload::tests::post_pivot_acknowledgement_loss_is_terminal_and_never_retries_the_candidate"
+    },
+    {
+      "id": "source-agent-journal-ack-loss",
+      "availability": "selector-required",
+      "selector": "source_live_cli::tests::hr04_state_handoff_tests::physical_journal_ack_loss_and_unknown_effect_outcome_keep_source_handoff_terminal_and_block_c_dispatch"
+    },
+    {
+      "id": "source-agent-claim-and-reservation-faults",
+      "availability": "selector-required",
+      "selector": "source_live_cli::tests::hr04_handoff_fault_tests::physical_migration_reservation_and_handoff_claim_faults_block_successor_dispatch"
+    },
+    {
+      "id": "source-agent-capacity-and-path-refusal",
+      "availability": "selector-required",
+      "selector": "source_live_cli::tests::exact_config_refuses_duplicate_unknown_negative_and_oversized_capacity"
+    },
+    {
+      "id": "vscode-oversized-response-frame",
+      "availability": "selector-required",
+      "selector": "oversized control response is terminal and bounded"
+    },
+    {
+      "id": "vscode-worker-process-exit",
+      "availability": "selector-required",
+      "selector": "unexpected child exit makes the active session unknown"
+    },
+    {
+      "id": "vscode-interrupted-activation-stop",
+      "availability": "selector-required",
+      "selector": "stop marks an unacknowledged activation unknown before bounded forced termination"
+    }
+  ],
+  "platform_lanes": {
+    "macOS": {
+      "status": "measured-by-this-runner",
+      "lanes": [
+        "interpreter",
+        "watcher",
+        "prepared-worker",
+        "source-agent",
+        "vscode-editor-control"
+      ]
+    },
+    "Linux": {
+      "status": "unavailable",
+      "reason": "This evidence runner is macOS-only."
+    },
+    "Windows": {
+      "status": "unavailable",
+      "reason": "This evidence runner is macOS-only."
+    }
+  }
+}

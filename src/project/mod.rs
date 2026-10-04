@@ -29,10 +29,21 @@ mod external_dependencies;
 mod filesystem;
 mod flat_owned_record;
 pub(crate) mod host_policy;
+mod hot_reload;
+mod hot_reload_watcher;
 pub use host_policy::{
     install_host_strict_law_policy, with_authenticated_project_inspection,
     with_selected_law_diagnostics, with_strict_authenticated_project, ProjectInspection,
     StrictProjectSession, HOST_STRICT_LAW_DIRECTORY, HOST_STRICT_LAW_SCHEMA,
+};
+pub use hot_reload::{
+    HotReloadDecision, HotReloadFailure, HotReloadPlan, HotReloadReason, HotReloadSession,
+    HotReloadSourceAgentHandoff, HotReloadSourceAgentHandoffStatus, HOT_RELOAD_PLAN_SCHEMA,
+    HOT_RELOAD_SOURCE_AGENT_HANDOFF_SCHEMA,
+};
+pub use hot_reload_watcher::{
+    HotReloadAdmissionTimings, HotReloadWatchControl, HotReloadWatchEvent, HotReloadWatchState, HotReloadWatcher,
+    HotReloadWatcherFailure, HotReloadWatcherUpdate,
 };
 mod image;
 mod image_coverage;
@@ -311,6 +322,12 @@ pub use candidate::{
     MAX_PROJECT_HOLE_NAVIGATION_BYTES, MAX_PROJECT_HOLE_NAVIGATION_ITEMS, PROJECT_HOLE_PAGE_SCHEMA,
     PROJECT_HOLE_SUMMARY_SCHEMA,
 };
+pub use candidate::{
+    ProjectPatchReceiptComparisonInput, ProjectPatchReceiptEvidencePageOptions,
+    MAX_PROJECT_PATCH_RECEIPT_BYTES, MAX_PROJECT_PATCH_RECEIPT_COMPARISON_BYTES,
+    MAX_PROJECT_PATCH_RECEIPT_COMPARISON_INPUTS, PROJECT_PATCH_RECEIPT_SCHEMA,
+    PROJECT_PATCH_RECEIPT_SET_COMPARISON_SCHEMA, PROJECT_PATCH_RECEIPT_VERIFICATION_SCHEMA,
+};
 pub use canonical_workspace_revision::{
     AgentDefinitions, AuthorityPolicies, ContractsAndTests, DependencyClosure, ProjectionMetadata,
     SemanticProgram, SemanticWorkspaceRevision, SourceProjection, StableIdentityIndex,
@@ -404,8 +421,8 @@ pub use manifest::{
     PROJECT_SCHEMA_V10, PROJECT_SCHEMA_V11, PROJECT_SCHEMA_V12, PROJECT_SCHEMA_V13,
     PROJECT_SCHEMA_V14, PROJECT_SCHEMA_V15, PROJECT_SCHEMA_V16, PROJECT_SCHEMA_V17,
     PROJECT_SCHEMA_V18, PROJECT_SCHEMA_V19, PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V20,
-    PROJECT_SCHEMA_V3, PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5, PROJECT_SCHEMA_V6, PROJECT_SCHEMA_V7,
-    PROJECT_SCHEMA_V8, PROJECT_SCHEMA_V9,
+    PROJECT_SCHEMA_V21, PROJECT_SCHEMA_V3, PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5, PROJECT_SCHEMA_V6,
+    PROJECT_SCHEMA_V7, PROJECT_SCHEMA_V8, PROJECT_SCHEMA_V9,
 };
 pub use native_sdk::{
     with_native_owned_data_sdk_subject, ProjectNativeRustPackage, ProjectNativeRustPackageMode,
@@ -476,6 +493,7 @@ pub use semantic_service::{
     MAX_SEMANTIC_WORKSPACE_SERVICE_HISTORY_QUERY_BYTES,
     MAX_SEMANTIC_WORKSPACE_SERVICE_HISTORY_QUERY_LIMIT,
     MAX_SEMANTIC_WORKSPACE_SERVICE_HISTORY_RESULT_BYTES,
+    MAX_SEMANTIC_WORKSPACE_SERVICE_PATCH_RECEIPT_COMPARISON_INPUTS,
     MAX_SEMANTIC_WORKSPACE_SERVICE_RECEIPT_BYTES, SEMANTIC_WORKSPACE_SERVICE_HISTORY_ENTRY_SCHEMA,
     SEMANTIC_WORKSPACE_SERVICE_HISTORY_QUERY_SCHEMA,
     SEMANTIC_WORKSPACE_SERVICE_HISTORY_RESULT_SCHEMA, SEMANTIC_WORKSPACE_SERVICE_REFRESH_SCHEMA,
@@ -563,9 +581,9 @@ pub use profile::{
     PROJECT_PROFILE_NESTED_OWNED_RECORD_API_V1, PROJECT_PROFILE_NETWORK_COMMAND_IO_V1,
     PROJECT_PROFILE_OWNED_DATA_API_V1, PROJECT_PROFILE_OWNED_UTF8_API_V1,
     PROJECT_PROFILE_PROCESS_IO_V1, PROJECT_PROFILE_PUBLIC_GENERIC_WASM_PROVIDER_V1,
-    PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2,
-    PROJECT_PROFILE_USEFUL_DATA_V1, PROJECT_PROFILE_USEFUL_DATA_V2,
-    PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
+    PROJECT_PROFILE_SOURCE_LOCAL_FUTURE_V1, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1,
+    PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2, PROJECT_PROFILE_USEFUL_DATA_V1,
+    PROJECT_PROFILE_USEFUL_DATA_V2, PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
 };
 pub use public_api::{
     derive_public_api_descriptor, replay_public_api_descriptor, PublicApiDescriptor,
@@ -700,6 +718,18 @@ impl ProjectSnapshot {
 
     pub fn sources(&self) -> &[ProjectSource] {
         self.revision.sources()
+    }
+
+    /// Exact canonical paths authenticated for this invocation.
+    ///
+    /// This inventory is descriptive only. It does not retain or transfer the
+    /// held file authority; callers that read these paths must acquire their
+    /// own authority and reauthenticate through the Project loader.
+    pub fn authoritative_input_paths(&self) -> Vec<PathBuf> {
+        self.declared_inputs
+            .iter()
+            .map(|input| input.canonical_path.clone())
+            .collect()
     }
 
     pub fn workspace_manifest(&self) -> &str {
@@ -903,6 +933,12 @@ impl ProjectSnapshot {
     /// Build the authenticated project entry closure as its profile-selected
     /// Web product.
     pub fn build_web(&mut self, output: &Path) -> Result<(), Vec<Diagnostic>> {
+        if self.manifest.project_profile() == ProjectProfile::SourceLocalFutureV1 {
+            return Err(vec![Diagnostic::io(
+                "SPX-W120",
+                "source-local-future.v1 has no Web emitter",
+            )]);
+        }
         if self.manifest.project_profile() == ProjectProfile::PublicGenericWasmProviderV1 {
             return Err(vec![Diagnostic::io(
                 "SPX-W120",
@@ -950,6 +986,12 @@ impl ProjectSnapshot {
 
     /// Build and publish the exact installable schema-selected npm package.
     pub fn build_npm(&mut self, output: &Path) -> Result<(), Vec<Diagnostic>> {
+        if self.manifest.project_profile() == ProjectProfile::SourceLocalFutureV1 {
+            return Err(vec![Diagnostic::io(
+                "SPX-W120",
+                "source-local-future.v1 has no npm emitter",
+            )]);
+        }
         if self.manifest.project_profile() == ProjectProfile::PublicGenericWasmProviderV1 {
             return Err(vec![Diagnostic::io(
                 "SPX-W120",
@@ -1048,6 +1090,12 @@ impl ProjectSnapshot {
     /// destination must not exist, so publication never clobbers a file the
     /// caller did not create for this exact operation.
     pub fn build_native(&mut self, output: &Path) -> Result<(), Vec<Diagnostic>> {
+        if self.manifest.project_profile() == ProjectProfile::SourceLocalFutureV1 {
+            return Err(vec![Diagnostic::io(
+                "SPX-B116",
+                "source-local-future.v1 has no ordinary native emitter",
+            )]);
+        }
         if self.manifest.project_profile() == ProjectProfile::PublicGenericWasmProviderV1 {
             return Err(vec![Diagnostic::io(
                 "SPX-B104",

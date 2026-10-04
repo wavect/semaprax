@@ -1,0 +1,54 @@
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MutableCallbackError {
+    Creation,
+    Checked { class: u32, code: u32 },
+    Reentered,
+    AdapterRejected,
+}
+mod mutable_ffi {
+    use std::ffi::c_void;
+    extern "C" {
+        pub fn spx_mutable_create(initial: i64) -> *mut c_void;
+        pub fn spx_mutable_invoke(owner: *mut c_void, argument: i64, out: *mut i64,
+            status_class: *mut u32, status_code: *mut u32) -> u32;
+        pub fn spx_mutable_state(owner: *mut c_void, out: *mut i64) -> u32;
+        pub fn spx_mutable_destroy(owner: *mut c_void);
+    }
+}
+/// Owns the actual source-created receiver. State survives factory return,
+/// each successful call commits once, and checked failure preserves its state.
+/// The owner is same-thread and its mutable callable borrow cannot escape it.
+pub struct MutableCallback {
+    owner: std::ptr::NonNull<std::ffi::c_void>,
+    same_thread: std::marker::PhantomData<std::rc::Rc<()>>,
+}
+impl MutableCallback {
+    pub fn new(initial: i64) -> Result<Self, MutableCallbackError> {
+        let owner = std::ptr::NonNull::new(unsafe { mutable_ffi::spx_mutable_create(initial) })
+            .ok_or(MutableCallbackError::Creation)?;
+        Ok(Self { owner, same_thread: std::marker::PhantomData })
+    }
+    pub fn state(&self) -> Result<i64, MutableCallbackError> {
+        let mut out = 0;
+        match unsafe { mutable_ffi::spx_mutable_state(self.owner.as_ptr(), &mut out) } {
+            0 => Ok(out),
+            2 => Err(MutableCallbackError::Reentered),
+            _ => Err(MutableCallbackError::AdapterRejected),
+        }
+    }
+    pub fn call(&mut self, argument: i64) -> Result<i64, MutableCallbackError> {
+        let (mut out, mut class, mut code) = (0, 0, 0);
+        match unsafe { mutable_ffi::spx_mutable_invoke(self.owner.as_ptr(), argument, &mut out, &mut class, &mut code) } {
+            0 => Ok(out),
+            1 if code != 0 => Err(MutableCallbackError::Checked { class, code }),
+            2 => Err(MutableCallbackError::Reentered),
+            _ => Err(MutableCallbackError::AdapterRejected),
+        }
+    }
+    pub fn as_fn_mut(&mut self) -> impl FnMut(i64) -> Result<i64, MutableCallbackError> + '_ {
+        move |argument| self.call(argument)
+    }
+}
+impl Drop for MutableCallback {
+    fn drop(&mut self) { unsafe { mutable_ffi::spx_mutable_destroy(self.owner.as_ptr()) } }
+}

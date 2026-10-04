@@ -1,0 +1,26 @@
+module interop.fixture;
+
+permit { host.math }
+
+@id("host.math")
+interface HostMath
+    permits { host.math }
+{
+    @id("host.add")
+    import rust selected fn host_add from "fixture_math::add"
+        effects { host.math }
+        failure status "host.math.v1";
+}
+
+@id("interop.add")
+fn add(left: i64, right: i64) -> i64
+    uses { host.math }
+{
+    host_add(left, right)
+}
+
+@id("interop.main")
+fn main() -> i64
+{
+    0
+}

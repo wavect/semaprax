@@ -21,6 +21,8 @@ pub use untraced::UntracedPreparedProjectExecution;
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
+pub(crate) use replacement::TestHook as PreparedReplacementTestHook;
 use replacement::{ReplacementRequest, WorkerState};
 
 pub(super) const MAX_PREPARED_PROJECT_INTERPRETER_WORKERS: usize = 8;
@@ -31,6 +33,8 @@ struct ExecutionRequest {
     options: PreparedProjectExecutionOptions,
     cancellation: Arc<AtomicBool>,
     reply: mpsc::SyncSender<Result<PreparedProjectExecution, Vec<Diagnostic>>>,
+    #[cfg(test)]
+    hook: Option<ExecutionTestHook>,
 }
 
 enum WorkerMessage {
@@ -50,9 +54,42 @@ pub struct PreparedProjectInterpreter {
     _worker_permit: PreparedWorkerPermit,
     #[cfg(test)]
     replacement_hook: std::sync::Mutex<Option<replacement::TestHook>>,
+    #[cfg(test)]
+    execution_hook: std::sync::Mutex<Option<ExecutionTestHook>>,
 }
 
 impl PreparedProjectInterpreter {
+    #[cfg(test)]
+    pub(crate) fn set_execution_for_test(&self, active: bool) {
+        self.executing.store(active, Ordering::Release);
+    }
+
+    #[cfg(test)]
+    pub(crate) fn install_replacement_hook(&self, hook: PreparedReplacementTestHook) {
+        *self
+            .replacement_hook
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(hook);
+    }
+
+    #[cfg(test)]
+    pub(crate) fn install_execution_hook(&self, hook: ExecutionTestHook) {
+        *self
+            .execution_hook
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(hook);
+    }
+
+    /// Opaque identity of the one retained worker thread. Local development
+    /// coordinators use it only to observe worker continuity.
+    pub fn worker_id(&self) -> std::thread::ThreadId {
+        self.worker
+            .as_ref()
+            .expect("prepared interpreter retains its worker handle")
+            .thread()
+            .id()
+    }
+
     /// Replace the retained subject on this worker after exact stale-base
     /// comparison and complete candidate preparation. Ordinary admission
     /// rejection preserves the old state; a terminal worker error does not
@@ -116,6 +153,12 @@ impl PreparedProjectInterpreter {
                 options: *options,
                 cancellation: Arc::clone(&cancellation.cancelled),
                 reply,
+                #[cfg(test)]
+                hook: self
+                    .execution_hook
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner())
+                    .take(),
             }))
             .map_err(|_| vec![worker_error("prepared interpreter worker is closed")])?;
         response.recv().map_err(|_| {
@@ -150,11 +193,11 @@ impl Drop for PreparedProjectInterpreter {
 }
 
 #[derive(Debug)]
-pub(super) struct ExecutionAdmission<'a> {
+pub(crate) struct ExecutionAdmission<'a> {
     executing: &'a AtomicBool,
 }
 impl<'a> ExecutionAdmission<'a> {
-    pub(super) fn acquire(executing: &'a AtomicBool) -> Result<Self, Vec<Diagnostic>> {
+    pub(crate) fn acquire(executing: &'a AtomicBool) -> Result<Self, Vec<Diagnostic>> {
         executing
             .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
             .map_err(|_| {
@@ -239,6 +282,8 @@ pub fn prepare_project_interpreter(
         _worker_permit: worker_permit,
         #[cfg(test)]
         replacement_hook: std::sync::Mutex::new(None),
+        #[cfg(test)]
+        execution_hook: std::sync::Mutex::new(None),
     })
 }
 
@@ -265,6 +310,10 @@ fn worker_loop(
             }
             WorkerMessage::Shutdown => break,
         };
+        #[cfg(test)]
+        if let Some(hook) = &request.hook {
+            hook.before_execute();
+        }
         let evaluated = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             execute_request(&state.revision, &state.closures, &request)
         }));
@@ -279,6 +328,26 @@ fn worker_loop(
                     "prepared interpreter worker panicked and is now terminal",
                 )]));
                 break;
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+pub(crate) enum ExecutionTestHook {
+    Pause {
+        entered: mpsc::SyncSender<std::thread::ThreadId>,
+        resume: mpsc::Receiver<()>,
+    },
+}
+
+#[cfg(test)]
+impl ExecutionTestHook {
+    fn before_execute(&self) {
+        match self {
+            Self::Pause { entered, resume } => {
+                entered.send(std::thread::current().id()).unwrap();
+                resume.recv().unwrap();
             }
         }
     }

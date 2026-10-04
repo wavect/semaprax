@@ -66,6 +66,9 @@ pub(super) fn target_backend_identity(
 struct LiveDispatch<'a> {
     dispatch: Dispatch<'a>,
     proposal: Option<String>,
+    replayed_calls: u32,
+    replayed_arguments: usize,
+    replayed_results: usize,
 }
 
 struct LiveEffectPlan {
@@ -325,6 +328,15 @@ impl LiveDispatch<'_> {
         self.dispatch.dispatched += 1;
         self.dispatch.arguments = arguments;
         self.dispatch.results = results;
+        self.replayed_calls += 1;
+        self.replayed_arguments = self
+            .replayed_arguments
+            .checked_add(plan.argument_bytes)
+            .ok_or_else(|| error("live.replay_argument_overflow"))?;
+        self.replayed_results = self
+            .replayed_results
+            .checked_add(result_bytes)
+            .ok_or_else(|| error("live.replay_result_overflow"))?;
         self.proposal = None;
         Ok(())
     }
@@ -350,6 +362,26 @@ impl IterativeDriver for LiveDispatch<'_> {
         observation: Option<&[u8]>,
     ) -> Result<(), Vec<Diagnostic>> {
         self.restore_replayed_effect(authorization, observation)
+    }
+
+    fn effect_accounting(
+        &self,
+    ) -> Option<crate::agent_lifecycle::iterative::driver::EffectAccounting> {
+        Some(
+            crate::agent_lifecycle::iterative::driver::EffectAccounting {
+                max_calls: self.dispatch.budget.max_calls,
+                max_argument_bytes: self.dispatch.budget.max_argument_bytes,
+                max_result_bytes: self.dispatch.budget.max_result_bytes,
+                max_total_bytes: self.dispatch.budget.max_total_bytes,
+                dispatched_calls: u32::try_from(self.dispatch.dispatched).ok()?,
+                argument_bytes: self.dispatch.arguments,
+                result_bytes: self.dispatch.results,
+                replayed_calls: self.replayed_calls,
+                replayed_argument_bytes: self.replayed_arguments,
+                replayed_result_bytes: self.replayed_results,
+                failure: self.dispatch.failure,
+            },
+        )
     }
 
     fn read(
@@ -668,6 +700,9 @@ impl CompiledTypedEffects {
                 failure: None,
             },
             proposal: None,
+            replayed_calls: 0,
+            replayed_arguments: 0,
+            replayed_results: 0,
         };
         let stages = IterativeBudget {
             max_iterations: stages.max_iterations.min(self.max_iterations),
@@ -735,6 +770,9 @@ impl CompiledTypedEffects {
                 failure: None,
             },
             proposal: None,
+            replayed_calls: 0,
+            replayed_arguments: 0,
+            replayed_results: 0,
         };
         self.lifecycle
             .run_live_durable_with_driver(request, source, &mut dispatch, store)
@@ -771,6 +809,9 @@ impl CompiledTypedEffects {
                 failure: None,
             },
             proposal: None,
+            replayed_calls: 0,
+            replayed_arguments: 0,
+            replayed_results: 0,
         };
         self.lifecycle.run_live_durable_with_model_policy(
             request,
@@ -813,6 +854,9 @@ impl CompiledTypedEffects {
                 failure: None,
             },
             proposal: None,
+            replayed_calls: 0,
+            replayed_arguments: 0,
+            replayed_results: 0,
         };
         self.lifecycle
             .run_live_durable_with_model_policy_and_io_limits(
@@ -858,6 +902,9 @@ impl CompiledTypedEffects {
                 failure: None,
             },
             proposal: None,
+            replayed_calls: 0,
+            replayed_arguments: 0,
+            replayed_results: 0,
         };
         prepared.run_with_driver(source, &mut dispatch, store, clock, cancellation)
     }

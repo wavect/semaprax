@@ -27,7 +27,7 @@ use super::{
 };
 use super::{
     PROJECT_SCHEMA_V14, PROJECT_SCHEMA_V15, PROJECT_SCHEMA_V16, PROJECT_SCHEMA_V19,
-    PROJECT_SCHEMA_V20,
+    PROJECT_SCHEMA_V20, PROJECT_SCHEMA_V21,
 };
 use crate::diagnostic::Diagnostic;
 use crate::package_range;
@@ -41,8 +41,9 @@ use crate::project::profile::{
     PROJECT_PROFILE_NESTED_OWNED_RECORD_API_V1, PROJECT_PROFILE_NETWORK_COMMAND_IO_V1,
     PROJECT_PROFILE_OWNED_DATA_API_V1, PROJECT_PROFILE_OWNED_UTF8_API_V1,
     PROJECT_PROFILE_PROCESS_IO_V1, PROJECT_PROFILE_PUBLIC_GENERIC_WASM_PROVIDER_V1,
-    PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2,
-    PROJECT_PROFILE_USEFUL_DATA_V1, PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
+    PROJECT_PROFILE_SOURCE_LOCAL_FUTURE_V1, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1,
+    PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2, PROJECT_PROFILE_USEFUL_DATA_V1,
+    PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
 };
 use crate::project::profile::{
     PROJECT_FILESYSTEM_CAPABILITIES_V1, PROJECT_PROFILE_FILESYSTEM_IO_V1,
@@ -189,6 +190,7 @@ pub(super) struct TableParts {
     pub(super) sources: Vec<String>,
     pub(super) law_sources: Vec<String>,
     pub(super) web_exports: Vec<String>,
+    pub(super) rust_async_exports: Vec<String>,
     pub(super) command: Option<String>,
     pub(super) command_input: Option<String>,
     pub(super) capabilities: Vec<String>,
@@ -311,6 +313,7 @@ pub(super) fn parse(lines: &[&str], law_layout: bool) -> Result<TableParts, Vec<
 
     let mut exports = require_table(&tables, "exports")?;
     let web_exports = exports.list("web")?;
+    let rust_async_exports = exports.optional_list("rust_async")?.unwrap_or_default();
     exports.finish()?;
 
     let (command, command_input) = match optional_table(&tables, "command") {
@@ -385,6 +388,7 @@ pub(super) fn parse(lines: &[&str], law_layout: bool) -> Result<TableParts, Vec<
         sources,
         law_sources,
         web_exports,
+        rust_async_exports,
         command,
         command_input,
         capabilities,
@@ -588,6 +592,7 @@ fn structural_diagnostics(tables: &[Table<'_>], law_layout: bool) -> Vec<Diagnos
     if let Some(exports) = table_list(tables, "exports", "web") {
         if exports.len() > super::MAX_WEB_EXPORTS
             || (exports.is_empty()
+                && profile != PROJECT_PROFILE_SOURCE_LOCAL_FUTURE_V1
                 && profile != PROJECT_PROFILE_OWNED_DATA_API_V1
                 && profile != PROJECT_PROFILE_USEFUL_DATA_V2
                 && !matches!(
@@ -634,6 +639,20 @@ fn structural_diagnostics(tables: &[Table<'_>], law_layout: bool) -> Vec<Diagnos
             }
         }
     }
+    if let Some(exports) = table_list(tables, "exports", "rust_async") {
+        if profile != PROJECT_PROFILE_SOURCE_LOCAL_FUTURE_V1
+            || exports.len() != 1
+            || !super::valid_stable_id(&exports[0])
+        {
+            diagnostics.push(scaffold_diagnostic(format!(
+                "{LABEL} rust_async requires source-local-future.v1 and one valid stable ID"
+            )));
+        }
+    } else if profile == PROJECT_PROFILE_SOURCE_LOCAL_FUTURE_V1 {
+        diagnostics.push(scaffold_diagnostic(format!(
+            "{LABEL} source-local-future.v1 requires `[exports] rust_async`"
+        )));
+    }
     if let Some(tests) = table_list(tables, "modules", "tests") {
         if tests.len() != 1 || !tests.first().is_some_and(|name| super::valid_module(name)) {
             diagnostics.push(scaffold_diagnostic(format!(
@@ -654,7 +673,7 @@ fn structural_diagnostics(tables: &[Table<'_>], law_layout: bool) -> Vec<Diagnos
             "package" => &["name", "version", "profile"],
             "modules" if law_layout => &["entry", "sources", "law_sources", "tests"],
             "modules" => &["entry", "sources", "tests"],
-            "exports" => &["web"],
+            "exports" => &["web", "rust_async"],
             "command" => &["function", "input"],
             "capabilities" => &["required"],
             "dependencies" => continue,
@@ -770,6 +789,7 @@ fn lower_profile(
             ProjectProfile::OwnedUtf8ApiV1 => (PROJECT_SCHEMA_V10, None, &[]),
             ProjectProfile::NestedOwnedRecordApiV1 => (PROJECT_SCHEMA_V11, None, &[]),
             ProjectProfile::PublicGenericWasmProviderV1 => (PROJECT_SCHEMA_V20, None, &[]),
+            ProjectProfile::SourceLocalFutureV1 => (PROJECT_SCHEMA_V21, None, &[]),
             ProjectProfile::NetworkCommandIoV1 => (
                 PROJECT_SCHEMA_V12,
                 Some(PROJECT_LANGUAGE_COMMAND_INPUT_V1),
@@ -1064,10 +1084,17 @@ pub(super) fn render(manifest: &ProjectManifest) -> String {
     }
     modules.push_str(&format!("tests = [\"{}\"]\n", manifest.test_module));
     blocks.push(modules);
-    blocks.push(format!(
+    let mut exports = format!(
         "[exports]\nweb = {}\n",
         super::render_array(&manifest.web_exports)
-    ));
+    );
+    if !manifest.rust_async_exports.is_empty() {
+        exports.push_str(&format!(
+            "rust_async = {}\n",
+            super::render_array(&manifest.rust_async_exports)
+        ));
+    }
+    blocks.push(exports);
     if let Some(command) = &manifest.command {
         let mut block = format!("[command]\nfunction = \"{command}\"\n");
         if let Some(input) = &manifest.command_input {
@@ -1265,6 +1292,17 @@ impl<'a> TableReader<'a> {
         }
     }
 
+    fn optional_list(&mut self, key: &str) -> Result<Option<Vec<String>>, Vec<Diagnostic>> {
+        match self.take(key) {
+            Some(Value::List(values)) => Ok(Some(values)),
+            Some(Value::Text(_)) => Err(grammar(format!(
+                "{LABEL} `[{}] {key}` must be an array of strings",
+                self.name
+            ))),
+            None => Ok(None),
+        }
+    }
+
     fn finish(self) -> Result<(), Vec<Diagnostic>> {
         let Some((key, _)) = self.entries.first() else {
             return Ok(());
@@ -1385,6 +1423,7 @@ fn profile_by_name(name: &str) -> Option<ProjectProfile> {
         PROJECT_PROFILE_PUBLIC_GENERIC_WASM_PROVIDER_V1 => {
             ProjectProfile::PublicGenericWasmProviderV1
         }
+        PROJECT_PROFILE_SOURCE_LOCAL_FUTURE_V1 => ProjectProfile::SourceLocalFutureV1,
         PROJECT_PROFILE_NETWORK_COMMAND_IO_V1 => ProjectProfile::NetworkCommandIoV1,
         PROJECT_PROFILE_HTTPS_COMMAND_IO_V1 => ProjectProfile::HttpsCommandIoV1,
         PROJECT_PROFILE_ENVIRONMENT_IO_V1 => ProjectProfile::EnvironmentIoV1,

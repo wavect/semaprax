@@ -467,7 +467,8 @@ fn validate_expression_profile(
     while let Some(expression) = pending.pop() {
         if expression.ownership != OwnershipMode::Value
             || (scalar_type(&expression.ty).is_none()
-                && !hir::function_value::is_signature(&expression.ty))
+                && !hir::function_value::is_signature(&expression.ty)
+                && !expression.ty.is_mut_function())
         {
             return Err(admission(format!(
                 "Public Scalar Export Profile v1 function `{function_id}` contains a non-value scalar expression"
@@ -613,6 +614,10 @@ fn scalar_type(ty: &ResolvedType) -> Option<ScalarType> {
         | ResolvedType::Bytes
         | ResolvedType::TypeParameter { .. }
         | ResolvedType::Nominal { .. }
+        | ResolvedType::OnceFunction
+        | ResolvedType::OnceFunctionI64
+        | ResolvedType::OnceFunctionI64Pair
+        | ResolvedType::MutFunctionI64
         | ResolvedType::Function { .. } => None,
     }
 }

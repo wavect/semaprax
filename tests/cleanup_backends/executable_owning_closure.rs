@@ -39,6 +39,9 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use semaprax::interpreter::{self, InterpreterOptions};
 use semaprax::{codegen, parse, verify, wasm};
 
+#[path = "affine_capture.rs"]
+mod affine_capture;
+
 static NEXT_ID: AtomicU64 = AtomicU64::new(0);
 
 /// `checksum` ignores its payload's content -- this bounded profile's body
@@ -320,7 +323,13 @@ const imports = { env: {
     frees += 1;
   },
 } };
-const { instance } = await WebAssembly.instantiate(bytes, imports);
+const module = await WebAssembly.compile(bytes);
+for (const item of WebAssembly.Module.imports(module)) {
+  if (item.module === "env" && item.kind === "function" && !(item.name in imports.env)) {
+    imports.env[item.name] = fail(item.name);
+  }
+}
+const instance = await WebAssembly.instantiate(module, imports);
 const result = instance.exports.semaprax_main();
 process.stdout.write(`${result.toString()} ${allocations} ${frees}\n`);
 "#,

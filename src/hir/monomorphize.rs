@@ -57,6 +57,12 @@ pub(crate) fn substitute_type(
                 ResolvedType::F64 => resolved.push(ResolvedType::F64),
                 ResolvedType::Bool => resolved.push(ResolvedType::Bool),
                 ResolvedType::String => resolved.push(ResolvedType::String),
+                ResolvedType::OnceFunction => resolved.push(ResolvedType::OnceFunction),
+                ResolvedType::OnceFunctionI64 => resolved.push(ResolvedType::OnceFunctionI64),
+                ResolvedType::MutFunctionI64 => resolved.push(ResolvedType::MutFunctionI64),
+                ResolvedType::OnceFunctionI64Pair => {
+                    resolved.push(ResolvedType::OnceFunctionI64Pair)
+                }
                 ResolvedType::Bytes => resolved.push(ResolvedType::Bytes),
                 ResolvedType::Str => resolved.push(ResolvedType::Str),
                 ResolvedType::SliceU8 => resolved.push(ResolvedType::SliceU8),
@@ -155,6 +161,10 @@ pub(super) fn substitute_source_function_type(
                 Type::F64 => resolved.push(Type::F64),
                 Type::Bool => resolved.push(Type::Bool),
                 Type::String => resolved.push(Type::String),
+                Type::OnceFunction => resolved.push(Type::OnceFunction),
+                Type::OnceFunctionI64 => resolved.push(Type::OnceFunctionI64),
+                Type::OnceFunctionI64Pair => resolved.push(Type::OnceFunctionI64Pair),
+                Type::MutFunctionI64 => resolved.push(Type::MutFunctionI64),
                 Type::Bytes => resolved.push(Type::Bytes),
                 Type::Str => resolved.push(Type::Str),
                 Type::SliceU8 => resolved.push(Type::SliceU8),

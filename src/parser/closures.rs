@@ -34,6 +34,8 @@ impl Parser {
                 return_type,
                 body: Box::new(body),
                 owning: false,
+                retained: false,
+                mutable: false,
             },
             span,
         })
@@ -51,8 +53,25 @@ impl Parser {
         value: String,
         span: Span,
     ) -> Result<Expr, Diagnostic> {
-        if value == "own" && self.at_keyword("fn") {
-            return self.own_closure(span);
+        if matches!(value.as_str(), "own" | "once" | "mut") && self.at_keyword("fn") {
+            let mut expression = if value == "mut" {
+                self.keyword("fn")?;
+                self.closure_expression(span)?
+            } else {
+                self.own_closure(span)?
+            };
+            if let ExprKind::Closure {
+                owning,
+                retained,
+                mutable,
+                ..
+            } = &mut expression.kind
+            {
+                *owning = value != "mut";
+                *retained = value == "once";
+                *mutable = value == "mut";
+            }
+            return Ok(expression);
         }
         Ok(Expr {
             kind: ExprKind::Var(value),
@@ -85,6 +104,8 @@ impl Parser {
                 return_type,
                 body: Box::new(body),
                 owning: true,
+                retained: false,
+                mutable: false,
             },
             span,
         })

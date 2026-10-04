@@ -8,6 +8,7 @@ static HOST: driver::PrivateHost = driver::PrivateHost {
     },
     build_rust: semaprax_toolchain::build_rust,
     source_live: semaprax_toolchain::source_live_cli::run,
+    source_agent_dev: Some(semaprax_toolchain::source_live_cli::run_hot_reload_migration),
     native_authority_check: semaprax_toolchain::rich_native_cli::run,
     // No private override: signed release material uses the same pure,
     // built-in offline Sigstore verifier as the public executable.

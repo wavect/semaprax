@@ -1,0 +1,1 @@
+{"schema":"semaprax.bend2-law-benchmark.fixture.v1","id":"scalar-contract-bug-v1","numeric_domain":"bool exact","success":[{"input":false,"output":true}],"attacks":{"weakened-postcondition":[{"input":false,"output":false}]}}

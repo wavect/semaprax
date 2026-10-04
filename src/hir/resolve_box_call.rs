@@ -5,12 +5,14 @@ use super::ids::{DeclarationId, ExpressionId, FunctionExecutionId};
 use super::nodes::{OwnershipMode, ResolvedType};
 use super::resolve_expr_frame::Frame;
 mod iterator;
+mod list;
 
 #[derive(Clone, Copy)]
 pub(super) enum OwnedGenericCallSite {
     Vec(crate::vec_ops::VecOp),
     Box(crate::box_ops::BoxOp),
     Iterator(crate::iterator_ops::IteratorOp),
+    List(crate::list_ops::ListOp),
 }
 
 #[cfg(test)]
@@ -50,6 +52,7 @@ impl OwnedGenericCallSite {
             .map(Self::Vec)
             .or_else(|| crate::box_ops::by_name(name).map(Self::Box))
             .or_else(|| crate::iterator_ops::by_name(name).map(Self::Iterator))
+            .or_else(|| crate::list_ops::by_name(name).map(Self::List))
     }
     #[allow(clippy::too_many_arguments)]
     pub(super) fn schedule<'expr>(
@@ -64,6 +67,7 @@ impl OwnedGenericCallSite {
         span: Span,
     ) -> Result<(), Diagnostic> {
         match self {
+            Self::List(op) => list::schedule(resolver, function, frames, type_arguments, args, bindings, path, span, op),
             Self::Iterator(op) => iterator::schedule(
                 resolver,
                 function,
@@ -106,6 +110,7 @@ impl OwnedGenericCallSite {
         call: ReferenceCall<'_>,
     ) -> Result<ResolvedExpr, Diagnostic> {
         match self {
+            Self::List(op) => list::reference(resolver, function, call, op),
             Self::Vec(op) => {
                 super::resolve_vec_call::resolve_reference(resolver, function, call, op)
             }
@@ -132,6 +137,7 @@ pub(super) fn finish_owned(
         OwnedGenericCallSite::Iterator(op) => {
             iterator::finish(function, path, span, op, element, args)
         }
+        OwnedGenericCallSite::List(op) => list::finish(function, path, span, op, element, args),
     }
 }
 use super::{Binding, Resolver};

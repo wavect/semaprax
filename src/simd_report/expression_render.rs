@@ -312,3 +312,23 @@ pub(super) fn pattern_value_text(value: hir::PatternValue) -> String {
         hir::PatternValue::Bool(value) => value.to_string(),
     }
 }
+
+pub(super) fn scalar_type_name(ty: &Type) -> Option<&'static str> {
+    match ty {
+        Type::I64 => Some("i64"),
+        Type::I32 => Some("i32"),
+        Type::U8 => Some("u8"),
+        Type::Usize => None,
+        Type::F32 => Some("f32"),
+        Type::F64 => Some("f64"),
+        Type::Bool => Some("bool"),
+        Type::Char => Some("char"),
+        Type::String | Type::Str | Type::SliceU8 | Type::ArrayU8(_) | Type::Bytes => None,
+        Type::OnceFunction
+        | Type::OnceFunctionI64
+        | Type::OnceFunctionI64Pair
+        | Type::MutFunctionI64
+        | Type::Function { .. }
+        | Type::Named { .. } => None,
+    }
+}

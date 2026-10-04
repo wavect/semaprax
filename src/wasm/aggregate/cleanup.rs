@@ -8,6 +8,15 @@ impl Emitter<'_> {
         actions: &[crate::cleanup_plan::FinalizeAction],
     ) -> Result<(), Diagnostic> {
         for action in actions {
+            if matches!(
+                action.lifecycle_id.as_str(),
+                crate::hir::closure::once::DROP_ID
+                    | crate::hir::closure::once::MIXED_DROP_ID
+                    | crate::hir::closure::once::PAIR_DROP_ID
+            ) {
+                self.emit_once_cleanup(action)?;
+                continue;
+            }
             let string_leaf =
                 action.lifecycle_id.as_str() == crate::cleanup::STRING_DROP_LIFECYCLE_ID;
             let vec_leaf = action.lifecycle_id.as_str() == crate::cleanup::VEC_DROP_LIFECYCLE_ID;
@@ -424,5 +433,51 @@ impl Emitter<'_> {
             .map(|exit| exit.finalize_in_order.clone())
             .ok_or_else(|| error("CleanupPlan normal-scope exit id is not canonical"))?;
         self.emit_cleanup_actions(&actions)
+    }
+}
+
+impl Emitter<'_> {
+    fn emit_once_cleanup(
+        &mut self,
+        action: &crate::cleanup_plan::FinalizeAction,
+    ) -> Result<(), Diagnostic> {
+        let value = self.cleanup_value_at(&action.source)?;
+        let Value::Aggregate {
+            pointer,
+            ty:
+                ResolvedType::OnceFunction
+                | ResolvedType::OnceFunctionI64
+                | ResolvedType::OnceFunctionI64Pair
+                | ResolvedType::MutFunctionI64,
+        } = value
+        else {
+            return Err(error(
+                "affine finalizer requires its exact aggregate carrier",
+            ));
+        };
+        let flag = *self
+            .plan
+            .cleanup_flags
+            .get(&action.guard_flag)
+            .ok_or_else(|| error("affine finalizer lacks canonical liveness flag"))?;
+        self.output.push(0x20);
+        write_u32(self.output, flag);
+        self.output.extend([0x04, 0x40]);
+        self.emit_pointer(Pointer {
+            offset: pointer.offset + 8,
+            ..pointer
+        });
+        self.load_scalar(&ResolvedType::Bytes);
+        self.output.push(0x10);
+        write_u32(self.output, BYTE_DROP_IMPORT);
+        self.emit_pointer(pointer);
+        self.output.extend([0x41, 0x00, 0x41]);
+        write_i64(self.output, 80);
+        self.output.extend([0xfc, 0x0b, 0x00]);
+        self.semantic_cleanup_event(action.guard_flag.0)?;
+        self.output.extend([0x41, 0x00, 0x21]);
+        write_u32(self.output, flag);
+        self.output.push(0x0b);
+        Ok(())
     }
 }

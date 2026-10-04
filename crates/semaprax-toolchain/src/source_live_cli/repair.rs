@@ -81,6 +81,130 @@ const RECEIPT_SCHEMA_V2: &str = "semaprax.source-live-cli.repair-receipt.v2";
 const CONFIG_SCHEMA_V1: &str = "semaprax.source-live-cli.repair-config.v1";
 const CONFIG_SCHEMA_V2: &str = "semaprax.source-live-cli.repair-config.v2";
 const MAX_ONE_PROVIDER_CALL_MS: i64 = 30_000;
+const TERMINAL_PATCH_RECEIPT_SCHEMA: &str =
+    "semaprax.source-live-cli.repair-terminal-patch-receipt.v2";
+
+struct TerminalPatchReceipt {
+    document: String,
+    receipt: String,
+    receipt_digest: String,
+    runtime_effect_accounting: Option<Value>,
+}
+
+impl TerminalPatchReceipt {
+    fn derive(
+        preview: &semaprax::agent_runtime_v2::OfflineRepairPreview,
+        checkpoint: &semaprax::live_invocation::source_journal::RecoveredSourceCheckpoint,
+        runtime_effect_accounting: Value,
+    ) -> Result<Self, CliError> {
+        let candidate = preview.candidate();
+        let candidate_digest = candidate.candidate_digest();
+        let receipt = candidate
+            .patch_receipt(candidate_digest)
+            .map_err(|_| CliError::refused("repair patch receipt derivation refused"))?;
+        let receipt_value: Value = serde_json::from_str(&receipt)
+            .map_err(|_| CliError::refused("repair patch receipt is not compiler JSON"))?;
+        let receipt_digest = receipt_value["receipt_digest"]
+            .as_str()
+            .ok_or(CliError::refused("repair patch receipt digest is absent"))?;
+        let document = serde_json::to_string(&json!({
+            "schema": TERMINAL_PATCH_RECEIPT_SCHEMA,
+            "journal_binding": {
+                "invocation": checkpoint.invocation(),
+                "chain": checkpoint.chain(),
+                "generation": checkpoint.generation(),
+            },
+            "candidate_digest": candidate_digest,
+            "receipt_digest": receipt_digest,
+            "receipt": receipt,
+            "runtime_effect_accounting": runtime_effect_accounting,
+        }))
+        .map(|document| format!("{document}\n"))
+        .map_err(|_| CliError::refused("repair terminal patch receipt cannot be rendered"))?;
+        Ok(Self {
+            document,
+            receipt,
+            receipt_digest: receipt_digest.to_owned(),
+            runtime_effect_accounting: Some(runtime_effect_accounting),
+        })
+    }
+
+    fn recover(
+        document: String,
+        checkpoint: &semaprax::live_invocation::source_journal::RecoveredSourceCheckpoint,
+        commitment: &str,
+    ) -> Result<Self, CliError> {
+        let value: Value = serde_json::from_str(&document)
+            .map_err(|_| CliError::refused("terminal patch receipt is malformed"))?;
+        let object = value
+            .as_object()
+            .ok_or(CliError::refused("terminal patch receipt is malformed"))?;
+        let keys = object.keys().map(String::as_str).collect::<Vec<_>>();
+        let v1 = "semaprax.source-live-cli.repair-terminal-patch-receipt.v1";
+        let is_v1 = value["schema"] == v1
+            && keys.as_slice()
+                == [
+                    "candidate_digest",
+                    "journal_binding",
+                    "receipt",
+                    "receipt_digest",
+                    "schema",
+                ];
+        let is_v2 = value["schema"] == TERMINAL_PATCH_RECEIPT_SCHEMA
+            && keys.as_slice()
+                == [
+                    "candidate_digest",
+                    "journal_binding",
+                    "receipt",
+                    "receipt_digest",
+                    "runtime_effect_accounting",
+                    "schema",
+                ];
+        if (!is_v1 && !is_v2)
+            || value["journal_binding"]["invocation"] != checkpoint.invocation()
+            || value["journal_binding"]["chain"] != checkpoint.chain()
+            || value["journal_binding"]["generation"] != checkpoint.generation()
+        {
+            return Err(CliError::refused(
+                "terminal patch receipt binding is stale or mismatched",
+            ));
+        }
+        let receipt = value["receipt"]
+            .as_str()
+            .ok_or(CliError::refused("terminal patch receipt is malformed"))?
+            .to_owned();
+        let receipt_value: Value = serde_json::from_str(&receipt)
+            .map_err(|_| CliError::refused("terminal patch receipt is malformed"))?;
+        if receipt_value["receipt_digest"] != value["receipt_digest"] {
+            return Err(CliError::refused("terminal patch receipt digest is stale"));
+        }
+        let commitment: Value = serde_json::from_str(commitment)
+            .map_err(|_| CliError::refused("terminal patch receipt commitment is malformed"))?;
+        if commitment["receipt_digest"] != value["receipt_digest"] {
+            return Err(CliError::refused(
+                "terminal patch receipt commitment is stale or mismatched",
+            ));
+        }
+        let receipt_digest = value["receipt_digest"]
+            .as_str()
+            .ok_or(CliError::refused("terminal patch receipt is malformed"))?;
+        Ok(Self {
+            document,
+            receipt,
+            receipt_digest: receipt_digest.to_owned(),
+            runtime_effect_accounting: is_v2.then(|| value["runtime_effect_accounting"].clone()),
+        })
+    }
+
+    fn value(&self) -> Result<Value, CliError> {
+        serde_json::from_str(&self.receipt)
+            .map_err(|_| CliError::refused("terminal patch receipt is malformed"))
+    }
+
+    fn runtime_effect_accounting(&self) -> Option<&Value> {
+        self.runtime_effect_accounting.as_ref()
+    }
+}
 
 #[cfg(test)]
 std::thread_local! {
@@ -303,6 +427,11 @@ pub(super) enum Command {
         checkpoint: PathBuf,
         provider: Option<OpenCodeOperands>,
     },
+    Receipt {
+        config: PathBuf,
+        checkpoint: PathBuf,
+        provider: Option<OpenCodeOperands>,
+    },
 }
 
 pub(super) struct OpenCodeOperands {
@@ -351,7 +480,7 @@ impl Command {
             }
             _ => {
                 return Err(CliError::usage(
-                    "repair requires run|resume <config.json> <checkpoint-dir> [--opencode ABS --scratch EMPTY_ABS [--pause-after-settled]]",
+                    "repair requires run|resume|receipt <config.json> <checkpoint-dir> [--opencode ABS --scratch EMPTY_ABS [--pause-after-settled]]",
                 ));
             }
         };
@@ -368,7 +497,12 @@ impl Command {
                 checkpoint,
                 provider,
             }),
-            _ => Err(CliError::usage("repair expected run or resume")),
+            "receipt" => Ok(Self::Receipt {
+                config,
+                checkpoint,
+                provider,
+            }),
+            _ => Err(CliError::usage("repair expected run, resume, or receipt")),
         }
     }
 }
@@ -704,21 +838,32 @@ pub(super) fn execute_with_runner_and_candidate_test<
     mut candidate_test: Option<&'host mut CandidateTestHost<'observer>>,
 ) -> Result<String, CliError> {
     let candidate_test_selected = candidate_test.is_some();
-    let (config_path, checkpoint_path, fresh, provider_operands) = match command {
-        Command::Run {
-            config,
-            checkpoint,
-            provider,
-        } => (config, checkpoint, true, provider),
-        Command::Resume {
-            config,
-            checkpoint,
-            provider,
-        } => (config, checkpoint, false, provider),
-    };
+    let (config_path, checkpoint_path, fresh, terminal_receipt_only, provider_operands) =
+        match command {
+            Command::Run {
+                config,
+                checkpoint,
+                provider,
+            } => (config, checkpoint, true, false, provider),
+            Command::Resume {
+                config,
+                checkpoint,
+                provider,
+            } => (config, checkpoint, false, false, provider),
+            Command::Receipt {
+                config,
+                checkpoint,
+                provider,
+            } => (config, checkpoint, false, true, provider),
+        };
     let pause_after_settled = provider_operands
         .as_ref()
         .is_some_and(|operands| operands.pause_after_settled);
+    if terminal_receipt_only && pause_after_settled {
+        return Err(CliError::usage(
+            "repair receipt does not accept --pause-after-settled",
+        ));
+    }
     let config = RepairConfig::load(&config_path)?;
     if matches!(&config.provider, RepairProvider::Claude)
         != provider_operands.as_ref().is_some_and(|value| value.claude)
@@ -934,6 +1079,25 @@ pub(super) fn execute_with_runner_and_candidate_test<
             })?;
         store.set_generation(recovered.generation());
         if recovered.terminal_snapshot().is_some() {
+            let terminal_patch_receipt = matches!(
+                &config.provider,
+                RepairProvider::OpenCode | RepairProvider::Claude
+            )
+            .then(|| {
+                let document = store
+                    .terminal_patch_receipt()?
+                    .ok_or(CliError::refused("terminal patch receipt is unavailable"))?;
+                let commitment = store
+                    .terminal_patch_receipt_commitment(
+                        &document,
+                        latest.as_deref().expect("resume mode has a latest journal"),
+                    )?
+                    .ok_or(CliError::refused(
+                        "terminal patch receipt commitment is unavailable",
+                    ))?;
+                TerminalPatchReceipt::recover(document, &recovered, &commitment)
+            })
+            .transpose()?;
             let replayed_candidate_test_evidence = replayed_candidate_test_evidence(
                 &recovered,
                 &config.corrected_operation_id,
@@ -948,10 +1112,16 @@ pub(super) fn execute_with_runner_and_candidate_test<
                 replayed_candidate_test_evidence,
                 candidate_test_selected,
                 receipt_context.as_ref(),
+                terminal_patch_receipt.as_ref(),
                 &recovered,
                 0,
                 0,
             );
+        }
+        if terminal_receipt_only {
+            return Err(CliError::refused(
+                "repair receipt requires a terminal checkpoint",
+            ));
         }
         barrier::marker_for_recovered_checkpoint(&recovered)
     } else {
@@ -1103,6 +1273,7 @@ pub(super) fn execute_with_runner_and_candidate_test<
             )
         })?;
     drop(source);
+    drop(barrier_store);
 
     if handler.candidate_test_refused() {
         return Err(CliError::refused(
@@ -1125,6 +1296,40 @@ pub(super) fn execute_with_runner_and_candidate_test<
     verify_checked_source_snapshot(&source_disk_path, source_before)?;
 
     let preview = handler.latest_preview();
+    let runtime_effect_accounting = receipt_impl::effect_accounting(
+        &complete.run().checkpoint,
+        model_dispatches,
+        effect_dispatches,
+        complete.run().effect_accounting.as_ref(),
+    )?;
+    let terminal_patch_receipt = matches!(
+        &config.provider,
+        RepairProvider::OpenCode | RepairProvider::Claude
+    )
+    .then(|| {
+        preview
+            .ok_or(CliError::refused(
+                "repair terminal candidate preview is unavailable",
+            ))
+            .and_then(|preview| {
+                TerminalPatchReceipt::derive(
+                    preview,
+                    &complete.run().checkpoint,
+                    runtime_effect_accounting.clone(),
+                )
+            })
+    })
+    .transpose()?;
+    if let Some(terminal_patch_receipt) = &terminal_patch_receipt {
+        let checkpoint_document = store.latest()?.ok_or(CliError::refused(
+            "terminal repair checkpoint is unavailable",
+        ))?;
+        store.retain_terminal_patch_receipt(
+            &terminal_patch_receipt.document,
+            &terminal_patch_receipt.receipt_digest,
+            &checkpoint_document,
+        )?;
+    }
     let rejection_count = handler.rejection_count();
     let candidate_test_evidence = handler.candidate_test_evidence();
     // A resumed invocation may execute new candidate tests. Its live evidence
@@ -1148,6 +1353,7 @@ pub(super) fn execute_with_runner_and_candidate_test<
         replayed_candidate_test_evidence,
         candidate_test_selected,
         receipt_context.as_ref(),
+        terminal_patch_receipt.as_ref(),
         &complete.run().checkpoint,
         model_dispatches,
         effect_dispatches,
@@ -1163,6 +1369,7 @@ fn receipt_with_preview(
     replayed_candidate_test_evidence: Option<ReplayedCandidateTestEvidence>,
     candidate_test_selected: bool,
     receipt_context: Option<&RepairReceiptContext>,
+    terminal_patch_receipt: Option<&TerminalPatchReceipt>,
     checkpoint: &semaprax::live_invocation::source_journal::RecoveredSourceCheckpoint,
     model_dispatches: u32,
     effect_dispatches: u32,
@@ -1174,6 +1381,7 @@ fn receipt_with_preview(
         replayed_candidate_test_evidence,
         candidate_test_selected,
         receipt_context,
+        terminal_patch_receipt,
         checkpoint,
         model_dispatches,
         effect_dispatches,

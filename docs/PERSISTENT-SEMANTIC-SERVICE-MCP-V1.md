@@ -68,6 +68,13 @@ authority-free instructions.
 | `workspace__validate_transaction` | `workspace/validate-transaction` | `{transaction: string}` |
 | `workspace__validate_transaction_v2` | `workspace/validate-transaction-v2` | `{transaction: string}` |
 | `workspace__validate_transaction_v2_workflow` | `workspace/validate-transaction-v2-workflow` | `{steps: [string, ...]}` |
+| `workspace__patch_receipt` | `workspace/patch-receipt` | `{transaction, candidate_digest}` |
+| `workspace__verify_patch_receipt` | `workspace/verify-patch-receipt` | `{transaction, candidate_digest, receipt}` |
+| `workspace__patch_receipt_refusal` | `workspace/patch-receipt-refusal` | `{transaction, requested_candidate_digest}` |
+| `workspace__verify_patch_receipt_refusal` | `workspace/verify-patch-receipt-refusal` | `{transaction, requested_candidate_digest, receipt}` |
+| `workspace__patch_receipt_evidence_summary` | `workspace/patch-receipt-evidence-summary` | `{transaction, candidate_digest}` |
+| `workspace__patch_receipt_evidence_page` | `workspace/patch-receipt-evidence-page` | `{transaction, candidate_digest, evidence_id, handle, cursor, page_size, max_bytes}` |
+| `workspace__compare_patch_receipts` | `workspace/compare-patch-receipts` | `{left_transaction, left_candidate_digest, left_receipt, right_transaction, right_candidate_digest, right_receipt}` |
 | `workspace__compact_projection` | `workspace/compact-projection` | `{expected_workspace_revision: string, profile: closed compact-v1 profile, encoding: text|binary, source_path?: retained source label, root?: string, candidate_capsule?: canonical bytes, agent_id?: string}` |
 | `workspace__refresh` | `workspace/refresh` | `{expected_workspace_revision: string, manifest: string, sources: [{path: string, source: string}]}` |
 
@@ -84,6 +91,13 @@ Its source label only selects exact bytes already retained in that
 generation, never a host path; its candidate capsule is restored against the
 same retained revision. It returns an authority-free compact envelope over
 existing kernels, as text or binary hex.
+
+Patch-receipt tools rebuild candidates only from the already retained active
+generation and canonical v1 transaction bytes. Verification and comparison
+perform the candidate layer's independent replay before comparing receipts.
+Evidence paging exposes only compiler-selected retained families and requires
+the derived handle and cursor; it never treats an argument as a host path or
+external evidence locator. These read-only calls do not append service history.
 
 `tools/call` forwards one private inner request with ID zero. Its MCP result has
 one text content item containing the complete existing service JSON-RPC

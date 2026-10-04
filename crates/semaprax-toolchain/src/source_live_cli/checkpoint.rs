@@ -57,21 +57,110 @@ mod platform {
     use rustix::fs::{flock, mkdirat, open, openat, renameat, FlockOperation, Mode, OFlags};
     use rustix::io::Errno;
     use semaprax::agent_lifecycle::{CheckpointStore, CheckpointStoreError};
+    use semaprax::digest_hex::LowerHex;
     use semaprax::live_invocation::source_journal::MAX_SOURCE_DOCUMENT_BYTES;
+    use serde_json::Value;
+    use sha2::{Digest, Sha256};
     use std::fs::File;
     use std::io::Write;
     use std::os::unix::fs::{MetadataExt, PermissionsExt};
     use std::path::{Component, Path, PathBuf};
 
+    #[cfg(test)]
+    use std::cell::RefCell;
+
     const DOCUMENT: &str = "checkpoint.json";
     const LOCK: &str = "writer.lock";
     const CLAIM: &str = "handoff.claim";
+    const TERMINAL_PATCH_RECEIPT: &str = "terminal-patch-receipt.json";
+    const TERMINAL_PATCH_RECEIPT_COMMITMENT: &str = "terminal-patch-receipt-commitment.json";
+    const TERMINAL_PATCH_RECEIPT_COMMITMENT_SCHEMA: &str =
+        "semaprax.source-live-cli.terminal-patch-receipt-commitment.v1";
+    const TERMINAL_PATCH_RECEIPT_DOCUMENT_DOMAIN: &[u8] =
+        b"semaprax.source-live-cli.terminal-patch-receipt-document.v1\0";
+    const CHECKPOINT_DOCUMENT_DOMAIN: &[u8] =
+        b"semaprax.source-live-cli.terminal-patch-receipt-checkpoint.v1\0";
     const READ: OFlags = OFlags::RDONLY
         .union(OFlags::NOFOLLOW)
         .union(OFlags::NONBLOCK)
         .union(OFlags::CLOEXEC);
     const DIRECTORY: OFlags = READ.union(OFlags::DIRECTORY);
     const PRIVATE: Mode = Mode::RUSR.union(Mode::WUSR);
+
+    /// A test-only physical commit fault. The matching document has already
+    /// been rendered by the real journal and is still written by the held
+    /// directory store; this controls only which durability boundary loses its
+    /// acknowledgement.
+    #[cfg(test)]
+    #[derive(Clone, Copy)]
+    pub(in crate::source_live_cli) enum CommitFault {
+        BeforeWrite(&'static str),
+        AfterRename(&'static str),
+    }
+
+    /// A test-only predecessor-claim fault. This is separate from journal
+    /// commit faults because the claim is a one-way handoff exclusion record,
+    /// not a checkpoint generation.
+    #[cfg(test)]
+    #[derive(Clone, Copy)]
+    pub(in crate::source_live_cli) enum HandoffClaimFault {
+        BeforeWrite,
+        BeforeSync,
+    }
+
+    #[cfg(test)]
+    thread_local! {
+        static COMMIT_FAULT: RefCell<Option<CommitFault>> = const { RefCell::new(None) };
+        static HANDOFF_CLAIM_FAULT: RefCell<Option<HandoffClaimFault>> = const { RefCell::new(None) };
+    }
+
+    #[cfg(test)]
+    pub(in crate::source_live_cli) fn inject_commit_fault(fault: CommitFault) {
+        COMMIT_FAULT.with(|slot| *slot.borrow_mut() = Some(fault));
+    }
+
+    #[cfg(test)]
+    pub(in crate::source_live_cli) fn commit_fault_pending() -> bool {
+        COMMIT_FAULT.with(|slot| slot.borrow().is_some())
+    }
+
+    #[cfg(test)]
+    pub(in crate::source_live_cli) fn inject_handoff_claim_fault(fault: HandoffClaimFault) {
+        HANDOFF_CLAIM_FAULT.with(|slot| *slot.borrow_mut() = Some(fault));
+    }
+
+    #[cfg(test)]
+    fn take_handoff_claim_fault(expected: HandoffClaimFault) -> bool {
+        HANDOFF_CLAIM_FAULT.with(|slot| {
+            let actual = slot.borrow_mut().take();
+            match actual {
+                Some(actual)
+                    if std::mem::discriminant(&actual) == std::mem::discriminant(&expected) =>
+                {
+                    true
+                }
+                other => {
+                    *slot.borrow_mut() = other;
+                    false
+                }
+            }
+        })
+    }
+
+    #[cfg(test)]
+    fn take_commit_fault(document: &str, after_rename: bool) -> bool {
+        COMMIT_FAULT.with(|slot| {
+            let matched = match *slot.borrow() {
+                Some(CommitFault::BeforeWrite(kind)) => !after_rename && document.contains(kind),
+                Some(CommitFault::AfterRename(kind)) => after_rename && document.contains(kind),
+                None => false,
+            };
+            if matched {
+                *slot.borrow_mut() = None;
+            }
+            matched
+        })
+    }
 
     pub(in crate::source_live_cli) struct CheckpointDir {
         path: PathBuf,
@@ -132,6 +221,40 @@ mod platform {
             Err(Errno::NOENT) => Ok(None),
             Err(_) => Err(CliError::refused("cannot open physical checkpoint input")),
         }
+    }
+
+    fn document_digest(domain: &[u8], bytes: &[u8]) -> String {
+        let mut hash = Sha256::new();
+        hash.update(domain);
+        hash.update((bytes.len() as u64).to_le_bytes());
+        hash.update(bytes);
+        format!("sha256:{:x}", LowerHex(hash.finalize()))
+    }
+
+    fn terminal_receipt_commitment(
+        receipt_document: &str,
+        receipt_digest: &str,
+        checkpoint_document: &str,
+    ) -> Result<String, CliError> {
+        let document = serde_json::to_string(&serde_json::json!({
+            "schema": TERMINAL_PATCH_RECEIPT_COMMITMENT_SCHEMA,
+            "checkpoint_document_digest": document_digest(
+                CHECKPOINT_DOCUMENT_DOMAIN,
+                checkpoint_document.as_bytes(),
+            ),
+            "terminal_receipt_document_digest": document_digest(
+                TERMINAL_PATCH_RECEIPT_DOCUMENT_DOMAIN,
+                receipt_document.as_bytes(),
+            ),
+            "receipt_digest": receipt_digest,
+        }))
+        .map(|document| format!("{document}\n"))
+        .map_err(|_| CliError::refused("terminal patch receipt commitment cannot be rendered"))?;
+        (document.len() <= 2048)
+            .then_some(document)
+            .ok_or(CliError::refused(
+                "terminal patch receipt commitment exceeds limit",
+            ))
     }
 
     impl CheckpointDir {
@@ -224,6 +347,135 @@ mod platform {
             self.generation = generation;
         }
 
+        fn retain_terminal_document(
+            &self,
+            name: &str,
+            document: &str,
+            maximum: usize,
+            label: &str,
+        ) -> Result<(), CliError> {
+            if document.len() > maximum {
+                return Err(CliError::detail(format!("{label} exceeds limit")));
+            }
+            if let Some(existing) = read_at(&self.directory, name, maximum)? {
+                if existing != document.as_bytes() {
+                    return Err(CliError::detail(format!(
+                        "{label} conflicts with retained checkpoint",
+                    )));
+                }
+                let retained = File::from(
+                    openat(&self.directory, name, READ, Mode::empty())
+                        .map_err(|_| CliError::detail(format!("cannot reopen {label}")))?,
+                );
+                retained
+                    .sync_all()
+                    .and_then(|_| self.directory.sync_all())
+                    .map_err(|_| CliError::detail(format!("cannot acknowledge {label}")))?;
+                return Ok(());
+            }
+            let scratch = format!(".{name}.{}.tmp", std::process::id());
+            let mut staged = File::from(
+                openat(
+                    &self.directory,
+                    scratch.as_str(),
+                    OFlags::WRONLY
+                        | OFlags::CREATE
+                        | OFlags::EXCL
+                        | OFlags::NOFOLLOW
+                        | OFlags::CLOEXEC,
+                    PRIVATE,
+                )
+                .map_err(|_| CliError::detail(format!("cannot stage {label}")))?,
+            );
+            staged
+                .write_all(document.as_bytes())
+                .and_then(|_| staged.sync_all())
+                .map_err(|_| CliError::detail(format!("cannot retain {label}")))?;
+            renameat(&self.directory, scratch.as_str(), &self.directory, name)
+                .map_err(|_| CliError::detail(format!("cannot retain {label}")))?;
+            self.directory
+                .sync_all()
+                .map_err(|_| CliError::detail(format!("cannot retain {label}")))
+        }
+
+        /// Retains the exact compiler-owned patch receipt produced alongside a
+        /// terminal repair checkpoint. The held checkpoint directory and its
+        /// writer lock also retain a separate commitment to the receipt bytes
+        /// and the exact journal document that admitted the terminal state.
+        pub(in crate::source_live_cli) fn retain_terminal_patch_receipt(
+            &self,
+            document: &str,
+            receipt_digest: &str,
+            checkpoint_document: &str,
+        ) -> Result<(), CliError> {
+            self.retain_terminal_document(
+                TERMINAL_PATCH_RECEIPT,
+                document,
+                16 * 1024,
+                "terminal patch receipt",
+            )?;
+            let commitment =
+                terminal_receipt_commitment(document, receipt_digest, checkpoint_document)?;
+            self.retain_terminal_document(
+                TERMINAL_PATCH_RECEIPT_COMMITMENT,
+                &commitment,
+                2048,
+                "terminal patch receipt commitment",
+            )
+        }
+
+        pub(in crate::source_live_cli) fn terminal_patch_receipt(
+            &self,
+        ) -> Result<Option<String>, CliError> {
+            read_at(&self.directory, TERMINAL_PATCH_RECEIPT, 16 * 1024)?
+                .map(|bytes| {
+                    String::from_utf8(bytes)
+                        .map_err(|_| CliError::refused("terminal patch receipt is not UTF-8"))
+                })
+                .transpose()
+        }
+
+        pub(in crate::source_live_cli) fn terminal_patch_receipt_commitment(
+            &self,
+            receipt_document: &str,
+            checkpoint_document: &str,
+        ) -> Result<Option<String>, CliError> {
+            let Some(document) = read_at(&self.directory, TERMINAL_PATCH_RECEIPT_COMMITMENT, 2048)?
+            else {
+                return Ok(None);
+            };
+            let document = String::from_utf8(document)
+                .map_err(|_| CliError::refused("terminal patch receipt commitment is not UTF-8"))?;
+            let value: Value = serde_json::from_str(&document)
+                .map_err(|_| CliError::refused("terminal patch receipt commitment is malformed"))?;
+            let object = value.as_object().ok_or(CliError::refused(
+                "terminal patch receipt commitment is malformed",
+            ))?;
+            let keys = object.keys().map(String::as_str).collect::<Vec<_>>();
+            if keys.as_slice()
+                != [
+                    "checkpoint_document_digest",
+                    "receipt_digest",
+                    "schema",
+                    "terminal_receipt_document_digest",
+                ]
+                || value["schema"] != TERMINAL_PATCH_RECEIPT_COMMITMENT_SCHEMA
+                || value["receipt_digest"].as_str().is_none()
+                || value["checkpoint_document_digest"]
+                    != document_digest(CHECKPOINT_DOCUMENT_DOMAIN, checkpoint_document.as_bytes())
+                || value["terminal_receipt_document_digest"]
+                    != document_digest(
+                        TERMINAL_PATCH_RECEIPT_DOCUMENT_DOMAIN,
+                        receipt_document.as_bytes(),
+                    )
+            {
+                return Err(CliError::refused(
+                    "terminal patch receipt commitment is stale or mismatched",
+                ));
+            }
+            Ok(Some(document))
+        }
+
         pub(in crate::source_live_cli) fn claim_handoff(
             &self,
             handoff: &str,
@@ -269,7 +521,18 @@ mod platform {
                 )
                 .map_err(|_| CliError::refused("cannot create handoff claim"))?,
             );
+            #[cfg(test)]
+            if take_handoff_claim_fault(HandoffClaimFault::BeforeWrite) {
+                return Err(CliError::refused("injected handoff claim write loss"));
+            }
             file.write_all(expected.as_bytes())
+                .and_then(|_| {
+                    #[cfg(test)]
+                    if take_handoff_claim_fault(HandoffClaimFault::BeforeSync) {
+                        return Err(std::io::Error::other("injected handoff claim sync loss"));
+                    }
+                    Ok(())
+                })
                 .and_then(|_| file.sync_all())
                 .and_then(|_| self.directory.sync_all())
                 .map_err(|_| CliError::refused("cannot acknowledge handoff claim"))
@@ -301,12 +564,20 @@ mod platform {
                 )
                 .map_err(|_| CheckpointStoreError)?,
             );
+            #[cfg(test)]
+            if take_commit_fault(document, false) {
+                return Err(CheckpointStoreError);
+            }
             staged
                 .write_all(document.as_bytes())
                 .and_then(|_| staged.sync_all())
                 .map_err(|_| CheckpointStoreError)?;
             renameat(&self.directory, scratch.as_str(), &self.directory, DOCUMENT)
                 .map_err(|_| CheckpointStoreError)?;
+            #[cfg(test)]
+            if take_commit_fault(document, true) {
+                return Err(CheckpointStoreError);
+            }
             self.directory
                 .sync_all()
                 .map_err(|_| CheckpointStoreError)?;
@@ -359,3 +630,8 @@ mod platform {
     }
 }
 pub(super) use platform::CheckpointDir;
+#[cfg(all(test, unix))]
+pub(super) use platform::{
+    commit_fault_pending, inject_commit_fault, inject_handoff_claim_fault, CommitFault,
+    HandoffClaimFault,
+};

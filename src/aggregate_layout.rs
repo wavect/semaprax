@@ -262,7 +262,11 @@ fn layout_type(
             let (size, align) = scalar_size_align(target, ty)?;
             scalar_layout(target, ty, size, align)
         }
-        ResolvedType::Function { .. } => Err(layout_error(
+        ResolvedType::OnceFunction
+        | ResolvedType::OnceFunctionI64
+        | ResolvedType::OnceFunctionI64Pair
+        | ResolvedType::MutFunctionI64
+        | ResolvedType::Function { .. } => Err(layout_error(
             "function values cannot appear in executable aggregate layouts v1",
         )),
         ResolvedType::ArrayU8(length) => Ok(ValueLayout {
@@ -550,6 +554,10 @@ fn concrete_layout_instance_is_admitted(
                 | ResolvedType::Str
                 | ResolvedType::SliceU8
                 | ResolvedType::TypeParameter { .. }
+                | ResolvedType::OnceFunction
+                | ResolvedType::OnceFunctionI64
+                | ResolvedType::OnceFunctionI64Pair
+                | ResolvedType::MutFunctionI64
                 | ResolvedType::Function { .. },
                 _,
             ) => return false,
@@ -672,6 +680,9 @@ fn collect_record_type(
     ty: &ResolvedType,
     instances: &mut BTreeSet<ResolvedType>,
 ) -> Result<(), Diagnostic> {
+    if crate::list_ops::is_list(ty) {
+        return Ok(());
+    }
     let ResolvedType::Nominal {
         declaration,
         arguments,

@@ -1,0 +1,7 @@
+module ri13.m3.tests;
+
+@id("ri13.m3.tests.main")
+fn main() -> i64
+{
+    0
+}

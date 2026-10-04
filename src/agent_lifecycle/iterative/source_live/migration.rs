@@ -15,7 +15,9 @@ use crate::live_invocation::source_journal::{
     PricedMigrationCarryV4, SourceJournalEntry, SourceMigrationCarry, SourceMigrationFailure,
     SourcePolicyBindingV6, MAX_SOURCE_CARRIER_BYTES,
 };
-use crate::project::ProjectRevision;
+use crate::project::{
+    HotReloadPlan, HotReloadSession, HotReloadSourceAgentHandoff, ProjectRevision,
+};
 use serde_json::Value;
 
 /// The retained Project and compiled source lifecycle at one side of a handoff.
@@ -52,6 +54,14 @@ pub(crate) enum InvocationRootProfile {
         previous_program_root: String,
         destination_program_root: String,
     },
+}
+
+/// A supervisor failure is distinct from a migration failure. The supervisor
+/// never turns a source-journal refusal into a new execution authority.
+#[derive(Debug)]
+pub enum SourceAgentHandoffFailure {
+    Supervisor(crate::project::HotReloadFailure),
+    Migration(SourceLiveFailure),
 }
 
 pub struct PreparedSourceLiveMigration<'a> {
@@ -232,6 +242,81 @@ pub fn prepare_source_live_migration<'a>(
     request: SourceLiveMigrationRequest<'a>,
 ) -> Result<PreparedSourceLiveMigration<'a>, SourceLiveFailure> {
     prepare_source_live_migration_inner(request, None, None, None, InvocationRootProfile::Source)
+}
+
+/// Consumes compiler-derived hot-reload selection facts through the ordinary
+/// authenticated source migration path. The facts restrict endpoint selection;
+/// they never provide checkpoint, store, or dispatch authority.
+pub fn prepare_source_live_migration_from_hot_reload_handoff<'a>(
+    request: SourceLiveMigrationRequest<'a>,
+    handoff: &HotReloadSourceAgentHandoff,
+) -> Result<PreparedSourceLiveMigration<'a>, SourceLiveFailure> {
+    if !handoff.matches_endpoints(
+        request.previous.project,
+        request.destination.project,
+        request.previous.agent_id,
+        request.destination.agent_id,
+    ) {
+        return Err(refused("migration.hot_reload_selection"));
+    }
+    prepare_source_live_migration(request)
+}
+
+/// Runs one source-Agent handoff under the retained hot-reload supervisor.
+///
+/// The supervisor only retains lifecycle state. It first replays the opaque
+/// selection row, then this function delegates preparation and dispatch to the
+/// ordinary authenticated source migration and its supplied checkpoint stores.
+/// A journal uncertainty terminalizes the supervisor; an ordinary refusal
+/// leaves the candidate pending for a later explicitly prepared attempt.
+pub fn run_source_live_migration_from_hot_reload_session<'a>(
+    supervisor: &mut HotReloadSession,
+    plan: HotReloadPlan,
+    request: SourceLiveMigrationRequest<'a>,
+    source: &mut dyn driver::ProposalSource,
+    read: &mut dyn AgentReadOperation,
+    store: &mut dyn CheckpointStore,
+    clock: &dyn SourceInvocationClock,
+    cancellation: &AgentCancellation,
+) -> Result<SourceLiveOutcome, SourceAgentHandoffFailure> {
+    let handoff = supervisor
+        .wait_for_source_agent_handoff(&plan, request.previous.agent_id)
+        .map_err(SourceAgentHandoffFailure::Supervisor)?;
+    let prepared = match prepare_source_live_migration_from_hot_reload_handoff(request, &handoff) {
+        Ok(prepared) => prepared,
+        Err(error) => {
+            supervisor.refuse_source_agent_handoff(false);
+            return Err(SourceAgentHandoffFailure::Migration(error));
+        }
+    };
+    if let Err(error) = supervisor.require_source_agent_migration(&plan, &handoff) {
+        supervisor.refuse_source_agent_handoff(true);
+        return Err(SourceAgentHandoffFailure::Supervisor(error));
+    }
+    let destination_binding = prepared.binding().clone();
+    match prepared.run(source, read, store, clock, cancellation) {
+        Ok(outcome) => {
+            match supervisor.activate_source_agent_handoff(plan, &handoff, destination_binding) {
+                Ok(()) => Ok(outcome),
+                Err(error) => {
+                    supervisor.refuse_source_agent_handoff(true);
+                    Err(SourceAgentHandoffFailure::Supervisor(error))
+                }
+            }
+        }
+        Err(error) => {
+            // An append acknowledgement loss is ambiguous to this supervisor.
+            // Direct source-journal recovery remains an explicit, freshly
+            // authenticated operation; this in-memory session never retries it.
+            let uncertainty = error.journal_error.is_some()
+                || error
+                    .checkpoint
+                    .as_ref()
+                    .is_some_and(RecoveredSourceCheckpoint::is_uncertain);
+            supervisor.refuse_source_agent_handoff(uncertainty);
+            Err(SourceAgentHandoffFailure::Migration(error))
+        }
+    }
 }
 
 /// Preserves checked monetary history through the existing migration evaluator.
@@ -749,6 +834,7 @@ impl<'a> PreparedSourceLiveMigration<'a> {
                     checkpoint: checkpoint.clone(),
                     model_dispatches: 0,
                     effect_dispatches: 0,
+                    effect_accounting: None,
                 });
             }
             if checkpoint.is_uncertain() {
@@ -976,12 +1062,14 @@ impl<'a> PreparedSourceLiveMigration<'a> {
             Some(&seed),
             false,
         ) {
-            Ok(run) => session.complete(Some(run), None, Vec::new()),
-            Err(driver::DriverFailure::Diagnostics(errors)) => session.complete(None, None, errors),
+            Ok(run) => session.complete(Some(run), None, Vec::new(), None),
+            Err(driver::DriverFailure::Diagnostics(errors)) => {
+                session.complete(None, None, errors, None)
+            }
             Err(driver::DriverFailure::Persistence {
                 terminal,
                 diagnostics,
-            }) => session.complete(Some(*terminal), None, diagnostics),
+            }) => session.complete(Some(*terminal), None, diagnostics, None),
         }
     }
 }

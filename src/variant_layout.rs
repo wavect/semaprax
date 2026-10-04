@@ -355,7 +355,22 @@ fn layout_case(
         let compiler_iterator_item = variant.as_str() == crate::iterator_ops::STEP_ID
             && case.id.as_str() == crate::iterator_ops::YIELD_ID
             && field.id.as_str() == crate::iterator_ops::ITEM_ID;
-        let (size, field_align, value_kind) = if concrete_ty == ResolvedType::Bytes {
+        let (size, field_align, value_kind) = if crate::list_ops::is_step_tail_field(
+            variant, &case.id, field,
+        ) && crate::list_ops::is_list(&concrete_ty)
+        {
+            (
+                match target {
+                    VariantTarget::Native64 => 8,
+                    VariantTarget::Wasm32 => 4,
+                },
+                match target {
+                    VariantTarget::Native64 => 8,
+                    VariantTarget::Wasm32 => 4,
+                },
+                VariantFieldValueKind::Copy,
+            )
+        } else if concrete_ty == ResolvedType::Bytes {
             let (size, align) = owned_bytes_size_align(target);
             (size, align, VariantFieldValueKind::OwnedBytes)
         } else if concrete_ty == ResolvedType::String {

@@ -449,7 +449,11 @@ fn resolved_type_owned_capacity(ty: &ResolvedType) -> usize {
                     .sum::<usize>()
                 + resolved_type_owned_capacity(result)
         }
-        ResolvedType::Unit
+        ResolvedType::OnceFunction
+        | ResolvedType::OnceFunctionI64
+        | ResolvedType::OnceFunctionI64Pair
+        | ResolvedType::MutFunctionI64
+        | ResolvedType::Unit
         | ResolvedType::I64
         | ResolvedType::I32
         | ResolvedType::Char
@@ -2447,8 +2451,14 @@ impl<'a> PlanBuilder<'a> {
                     block,
                     state,
                 } => match &expression.kind {
-                    ResolvedExprKind::Closure { .. }
-                    | ResolvedExprKind::FunctionReference { .. }
+                    ResolvedExprKind::Closure { .. } if !expression.ty.is_once_function() => {
+                        results.push(EvalResult {
+                            block,
+                            state,
+                            owned_source: None,
+                        })
+                    }
+                    ResolvedExprKind::FunctionReference { .. }
                     | ResolvedExprKind::Int(_)
                     | ResolvedExprKind::Int32(_)
                     | ResolvedExprKind::Char(_)
@@ -2643,11 +2653,12 @@ impl<'a> PlanBuilder<'a> {
                             },
                         });
                     }
-                    ResolvedExprKind::Invoke { args, .. } => {
-                        let params = crate::hir::function_value::invocation_params(expression)?;
+                    ResolvedExprKind::Invoke { .. } | ResolvedExprKind::Closure { .. } => {
+                        let (callee, args, params) =
+                            crate::hir::function_value::cleanup_call(expression)?;
                         frames.push(Frame::CallNext {
                             expression,
-                            callee: &crate::hir::function_value::INVOKE_ID,
+                            callee,
                             args,
                             params,
                             index: 0,
@@ -2719,6 +2730,17 @@ impl<'a> PlanBuilder<'a> {
                                 )));
                             }
                             crate::host_io_ops::resolved_params(op)
+                        } else if let Some(op) = crate::list_ops::by_id(callee.as_str()) {
+                            if instance.is_some()
+                                || !type_arguments.is_empty()
+                                || args.len() != op.argument_count()
+                            {
+                                return Err(plan_error(format!(
+                                    "cleanup immutable list call `{}` has inconsistent shape",
+                                    expression.id
+                                )));
+                            }
+                            op.resolved_params()
                         } else if let Some(op) = crate::iterator_ops::by_id(callee.as_str()) {
                             iterator::resolved_params(
                                 op,
@@ -3874,7 +3896,11 @@ impl<'a> PlanBuilder<'a> {
                             .declarations
                             .declaration(declaration)
                             .is_some_and(|item| item.kind == DeclarationKind::Record),
-                        ResolvedType::Unit
+                        ResolvedType::OnceFunction
+                        | ResolvedType::OnceFunctionI64
+                        | ResolvedType::OnceFunctionI64Pair
+                        | ResolvedType::MutFunctionI64
+                        | ResolvedType::Unit
                         | ResolvedType::I64
                         | ResolvedType::I32
                         | ResolvedType::Char
@@ -3889,6 +3915,10 @@ impl<'a> PlanBuilder<'a> {
                         | ResolvedType::Str
                         | ResolvedType::SliceU8
                         | ResolvedType::TypeParameter { .. }
+                        | ResolvedType::OnceFunction
+                        | ResolvedType::OnceFunctionI64
+                        | ResolvedType::OnceFunctionI64Pair
+                        | ResolvedType::MutFunctionI64
                         | ResolvedType::Function { .. } => false,
                     };
                     if is_record {
@@ -4747,20 +4777,22 @@ impl<'a> PlanBuilder<'a> {
                     owned_source: None,
                 })
             }
-            ResolvedExprKind::Closure { .. } | ResolvedExprKind::FunctionReference { .. } => {
+            ResolvedExprKind::Closure { .. } if !expression.ty.is_once_function() => {
                 Ok(EvalResult {
                     block,
                     state,
                     owned_source: None,
                 })
             }
-            ResolvedExprKind::Invoke { args, .. } => self.lower_call(
-                expression,
-                &crate::hir::function_value::INVOKE_ID,
-                None,
-                args,
-                (block, state, region),
-            ),
+            ResolvedExprKind::FunctionReference { .. } => Ok(EvalResult {
+                block,
+                state,
+                owned_source: None,
+            }),
+            ResolvedExprKind::Invoke { .. } | ResolvedExprKind::Closure { .. } => {
+                let (callee, args, _) = crate::hir::function_value::cleanup_call(expression)?;
+                self.lower_call(expression, callee, None, args, (block, state, region))
+            }
             ResolvedExprKind::Call {
                 callee,
                 instance,
@@ -6051,7 +6083,11 @@ impl<'a> PlanBuilder<'a> {
                 .declarations
                 .declaration(declaration)
                 .is_some_and(|item| item.kind == DeclarationKind::Record),
-            ResolvedType::Unit
+            ResolvedType::OnceFunction
+            | ResolvedType::OnceFunctionI64
+            | ResolvedType::OnceFunctionI64Pair
+            | ResolvedType::MutFunctionI64
+            | ResolvedType::Unit
             | ResolvedType::I64
             | ResolvedType::I32
             | ResolvedType::Char
@@ -6066,6 +6102,10 @@ impl<'a> PlanBuilder<'a> {
             | ResolvedType::Str
             | ResolvedType::SliceU8
             | ResolvedType::TypeParameter { .. }
+            | ResolvedType::OnceFunction
+            | ResolvedType::OnceFunctionI64
+            | ResolvedType::OnceFunctionI64Pair
+            | ResolvedType::MutFunctionI64
             | ResolvedType::Function { .. } => false,
         };
         if is_record {

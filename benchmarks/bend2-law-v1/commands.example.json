@@ -1,0 +1,28 @@
+{
+  "schema": "semaprax.bend2-law-benchmark.commands.v1",
+  "semaprax": {"root": "/absolute/path/to/semaprax", "commit": "exact-commit-under-test"},
+  "bend": {"root": "/absolute/path/to/bend", "commit": "947db722640c86247849343657bf2f7ef01cb7f1"},
+  "environment": {
+    "hardware": "machine model, CPU, RAM, storage and governor/power mode",
+    "os": "exact operating system and kernel/build",
+    "bend_toolchain": "exact Bend build toolchain and dependency lock identity",
+    "semaprax_toolchain": "exact SEMAPRAX build toolchain and dependency lock identity",
+    "backend": "selected backend/target for every path",
+    "optimization_flags": "exact optimization flags for every path",
+    "inputs": "sha256 identities of the checked source fixtures and inputs"
+  },
+  "numeric_domains": {
+    "bend_normal": ["bool exact", "u32 checked"],
+    "bend_verdict": ["bool exact", "u32 checked"],
+    "semaprax_smt": [],
+    "semaprax_lean": [],
+    "semaprax_runtime": ["bool exact"]
+  },
+  "commands": {
+    "bend_normal": ["/absolute/path/to/bend-fixture-driver", "--fixture", "{fixture}", "--cell", "{cell}", "--case", "{case}"],
+    "bend_verdict": ["/absolute/path/to/bend-fixture-driver", "--verdict", "--fixture", "{fixture}", "--cell", "{cell}", "--case", "{case}"],
+    "semaprax_smt": ["/absolute/path/to/semaprax-fixture-driver", "--smt", "--fixture", "{fixture}", "--cell", "{cell}", "--case", "{case}"],
+    "semaprax_lean": ["/absolute/path/to/semaprax-fixture-driver", "--lean", "--fixture", "{fixture}", "--cell", "{cell}", "--case", "{case}"],
+    "semaprax_runtime": ["/absolute/path/to/semaprax-fixture-driver", "--runtime", "--fixture", "{fixture}", "--cell", "{cell}", "--case", "{case}"]
+  }
+}

@@ -134,6 +134,12 @@ pub(super) fn emit_invoke<O: COutput>(
     callable: &ResolvedExpr,
     args: &[ResolvedExpr],
 ) -> Result<CValue, Diagnostic> {
+    if callable.ty.is_mut_function() {
+        return super::mutable::invoke(emitter, expr, callable, args);
+    }
+    if callable.ty.is_once_function() {
+        return super::once::invoke(emitter, expr, callable);
+    }
     hir::function_value::validate_invocation(expr)?;
     let callable_value = emitter.emit_expr(callable)?;
     emitter.require_type(

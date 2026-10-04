@@ -3,7 +3,9 @@
 Status: implemented private Copy-scalar snapshot profile; **HOSTED GREEN** under
 the [v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md), including its admitted
 Graph v37, SemanticProgram v5/ProgramRoot and interpreter/C11/Core-Wasm corpus.
-Public callable ABI and owning captures remain separate.
+Public callable ABI and owning captures remain separate. The additive
+[Synchronous Borrowed Text Closures v1](CLOSURES-BORROWED-V1.md) owns the
+parameter-rooted, nonescaping borrowed-text exception to scalar snapshots.
 
 Audience: language users, compiler contributors, backend implementers, and
 workspace-service authors.

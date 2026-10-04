@@ -3,9 +3,11 @@ use super::super::migration::durable;
 use super::*;
 use semaprax::agent_lifecycle::iterative::driver::{ProposalRequest, ProposalSource};
 use semaprax::agent_lifecycle::iterative::source_live::{
-    prepare_source_live_migration, prepare_source_live_priced_migration, SourceAttemptIdentity,
-    SourceLiveMigrationEndpoint, SourceLiveMigrationRequest, SourceLivePolicy, SourceLivePricing,
-    SourceLiveRequest, SourceProposalOutcome, SourceProposalPolicy,
+    prepare_source_live_migration, prepare_source_live_migration_from_hot_reload_handoff,
+    prepare_source_live_priced_migration, run_source_live_migration_from_hot_reload_session,
+    SourceAgentHandoffFailure, SourceAttemptIdentity, SourceLiveMigrationEndpoint,
+    SourceLiveMigrationRequest, SourceLivePolicy, SourceLivePricing, SourceLiveRequest,
+    SourceProposalOutcome, SourceProposalPolicy,
 };
 use semaprax::agent_lifecycle::iterative::{
     compile_project_agent_lifecycle_v2, CompiledIterativeLifecycle,
@@ -20,6 +22,10 @@ use semaprax::live_invocation::source_journal::{
     SourceInvocationBinding, SourceJournalEntry, SourceJournalError, SourceTerminalStatus,
 };
 use semaprax::live_invocation::{CumulativeBudgetLedger, InvocationClock, SourceInvocationClock};
+use semaprax::project::{
+    HotReloadDecision, HotReloadSession, HotReloadSourceAgentHandoffStatus,
+    PreparedProjectInterpreterOptions,
+};
 use sha2::{Digest, Sha256};
 use std::cell::Cell;
 use std::rc::Rc;
@@ -344,6 +350,297 @@ fn suspended(a: &Fixture) -> Suspended {
         binding,
         committed_stage_fuel: result.checkpoint.committed_stage_fuel(),
         store,
+    }
+}
+
+#[test]
+fn source_migration_consumes_hot_reload_selection_only_through_authenticated_handoff() {
+    let a = durable::first();
+    let b = durable::successor(&a, "State", "StateB", "b", &["marker"], false);
+    let c = durable::successor(&b, "StateB", "StateC", "c", &["marker", "extra"], false);
+    let old = suspended(&a);
+    let project_b = retained(&b);
+    let life_b = compiled(&project_b);
+    let policy_b = policy(&project_b);
+
+    let mut plan_session = HotReloadSession::new(
+        Arc::clone(&old.project),
+        PreparedProjectInterpreterOptions::default(),
+    )
+    .unwrap();
+    plan_session
+        .admit_candidate(Arc::clone(&project_b))
+        .unwrap();
+    let plan = plan_session.plan().unwrap();
+    assert_eq!(
+        plan.decision(),
+        HotReloadDecision::EligibleSourceAgentCheckpointHandoff
+    );
+    let handoff = plan
+        .source_agent_handoffs()
+        .iter()
+        .find(|handoff| handoff.agent_id() == "fixture.agent")
+        .expect("the checked Project plan must select the source Agent");
+
+    let prepared = prepare_source_live_migration_from_hot_reload_handoff(
+        SourceLiveMigrationRequest {
+            previous: endpoint(&old.project, &old.life, &old.policy),
+            previous_binding: &old.binding,
+            previous_checkpoint: &old.store.document,
+            destination: endpoint(&project_b, &life_b, &policy_b),
+            task: &old.task,
+            migration_function: "fixture.agent.fn.migrate_b",
+            max_migration_steps: 10_000,
+            expected_handoff_digest: None,
+        },
+        handoff,
+    )
+    .unwrap();
+    let mut destination_store = Store::default();
+    let mut model = Model::new(&life_b);
+    let mut read = Read::default();
+    let outcome = prepared
+        .run(
+            &mut model,
+            &mut read,
+            &mut destination_store,
+            &Clock::at(0),
+            &AgentCancellation::new(),
+        )
+        .unwrap();
+    assert_eq!(outcome.model_dispatches, 3);
+    assert!(outcome
+        .checked_run
+        .unwrap()
+        .stages()
+        .iter()
+        .all(|stage| stage.role() != "initialize"));
+
+    let project_c = retained(&c);
+    let mut wrong_plan_session = HotReloadSession::new(
+        Arc::clone(&project_b),
+        PreparedProjectInterpreterOptions::default(),
+    )
+    .unwrap();
+    wrong_plan_session
+        .admit_candidate(Arc::clone(&project_c))
+        .unwrap();
+    let wrong_plan = wrong_plan_session.plan().unwrap();
+    let wrong_handoff = wrong_plan
+        .source_agent_handoffs()
+        .iter()
+        .find(|handoff| handoff.agent_id() == "fixture.agent")
+        .expect("the checked Project plan must select the source Agent");
+    let checkpoint_before_refusal = destination_store.document.clone();
+    let error = match prepare_source_live_migration_from_hot_reload_handoff(
+        SourceLiveMigrationRequest {
+            previous: endpoint(&old.project, &old.life, &old.policy),
+            previous_binding: &old.binding,
+            previous_checkpoint: &old.store.document,
+            destination: endpoint(&project_b, &life_b, &policy_b),
+            task: &old.task,
+            migration_function: "fixture.agent.fn.migrate_b",
+            max_migration_steps: 10_000,
+            expected_handoff_digest: None,
+        },
+        wrong_handoff,
+    ) {
+        Ok(_) => panic!("a handoff row for a different retained Project pair must refuse"),
+        Err(error) => error,
+    };
+    assert_eq!(error.diagnostics[0].code, "SPX-G582");
+    assert_eq!(
+        error.diagnostics[0].message,
+        "Agent iterative lifecycle invariant failed: migration.hot_reload_selection"
+    );
+    assert_eq!(error.model_dispatches, 0);
+    assert_eq!(destination_store.document, checkpoint_before_refusal);
+}
+
+#[test]
+fn source_agent_handoff_supervisor_activates_once_and_terminalizes_lost_ack() {
+    let a = durable::first();
+    let b = durable::successor(&a, "State", "StateB", "b", &["marker"], false);
+    let old = suspended(&a);
+    let project_b = retained(&b);
+    let life_b = compiled(&project_b);
+    let policy_b = policy(&project_b);
+    let clock = Clock::at(0);
+    let cancel = AgentCancellation::new();
+    let request = || SourceLiveMigrationRequest {
+        previous: endpoint(&old.project, &old.life, &old.policy),
+        previous_binding: &old.binding,
+        previous_checkpoint: &old.store.document,
+        destination: endpoint(&project_b, &life_b, &policy_b),
+        task: &old.task,
+        migration_function: "fixture.agent.fn.migrate_b",
+        max_migration_steps: 10_000,
+        expected_handoff_digest: None,
+    };
+    let plan = |session: &mut HotReloadSession| {
+        session.admit_candidate(Arc::clone(&project_b)).unwrap();
+        let plan = session.plan().unwrap();
+        assert_eq!(
+            plan.decision(),
+            HotReloadDecision::EligibleSourceAgentCheckpointHandoff
+        );
+        plan
+    };
+
+    #[derive(Clone, Copy)]
+    enum Transition {
+        WaitForCheckpoint,
+        Activate,
+        Refuse,
+        Uncertain,
+    }
+
+    // These rows share the same compiler-derived handoff and exercise every
+    // source-Agent coordinator state: checkpoint waiting, authenticated
+    // activation, a clean migration refusal, and an ambiguous journal
+    // acknowledgement.
+    for transition in [
+        Transition::WaitForCheckpoint,
+        Transition::Activate,
+        Transition::Refuse,
+        Transition::Uncertain,
+    ] {
+        let mut session = HotReloadSession::new(
+            Arc::clone(&old.project),
+            PreparedProjectInterpreterOptions::default(),
+        )
+        .unwrap();
+        let mut store = match transition {
+            Transition::Uncertain => Store {
+                lose_ack_on: Some(2),
+                ..Store::default()
+            },
+            Transition::Activate | Transition::Refuse => Store::default(),
+        };
+        let mut model = Model::new(&life_b);
+        let mut read = Read::default();
+        let mut migration_request = request();
+        if matches!(transition, Transition::Refuse) {
+            migration_request.migration_function = "fixture.agent.fn.migrate_c";
+        }
+        let selected_plan = plan(&mut session);
+        if matches!(transition, Transition::WaitForCheckpoint) {
+            let handoff = session
+                .wait_for_source_agent_handoff(&selected_plan, "fixture.agent")
+                .unwrap();
+            assert_eq!(handoff.agent_id(), "fixture.agent");
+            assert_eq!(
+                session.source_agent_handoff_status(),
+                HotReloadSourceAgentHandoffStatus::WaitingForCheckpoint
+            );
+            assert_eq!(
+                session.observation().lifecycle(),
+                semaprax::project::HotReloadLifecycle::WaitingForSafePoint
+            );
+            assert_eq!(session.generation(), 0);
+            assert_eq!(
+                session.active_project_revision(),
+                old.project.project_revision()
+            );
+            assert!(session.retained_source_agent_binding().is_none());
+            assert_eq!((model.calls, read.calls), (0, 0));
+            assert!(store.document.is_empty());
+            continue;
+        }
+        let result = run_source_live_migration_from_hot_reload_session(
+            &mut session,
+            selected_plan,
+            migration_request,
+            &mut model,
+            &mut read,
+            &mut store,
+            &clock,
+            &cancel,
+        );
+
+        match transition {
+            Transition::WaitForCheckpoint => unreachable!("handled before migration"),
+            Transition::Activate => {
+                let outcome = result.unwrap();
+                assert_eq!(
+                    session.source_agent_handoff_status(),
+                    HotReloadSourceAgentHandoffStatus::Activated
+                );
+                assert_eq!(
+                    session.observation().lifecycle(),
+                    semaprax::project::HotReloadLifecycle::Activated
+                );
+                assert_eq!(session.generation(), 1);
+                assert_eq!(
+                    session.active_project_revision(),
+                    project_b.project_revision()
+                );
+                let binding = session
+                    .retained_source_agent_binding()
+                    .expect("acknowledged migration retains its destination binding");
+                let recovered = recover_source_checkpoint(&store.document, binding).unwrap();
+                assert_eq!(recovered.generation(), outcome.checkpoint.generation());
+                assert_eq!(
+                    recovered.last_checked_millis(),
+                    outcome.checkpoint.last_checked_millis()
+                );
+                assert_eq!((model.calls, read.calls), (3, 3));
+                assert!(outcome
+                    .checked_run
+                    .as_ref()
+                    .unwrap()
+                    .stages()
+                    .iter()
+                    .all(|stage| stage.role() != "initialize"));
+                assert!(session
+                    .execute_entry(
+                        &semaprax::project::PreparedProjectExecutionOptions::default(),
+                        &semaprax::project::ProjectExecutionCancellation::new(),
+                    )
+                    .is_err());
+            }
+            Transition::Refuse => {
+                assert!(matches!(
+                    result,
+                    Err(SourceAgentHandoffFailure::Migration(_))
+                ));
+                assert_eq!(
+                    session.source_agent_handoff_status(),
+                    HotReloadSourceAgentHandoffStatus::MigrationRequired
+                );
+                assert_eq!(
+                    session.observation().lifecycle(),
+                    semaprax::project::HotReloadLifecycle::Refused
+                );
+                assert_eq!(session.generation(), 0);
+                assert_eq!(
+                    session.active_project_revision(),
+                    old.project.project_revision()
+                );
+                assert!(session.retained_source_agent_binding().is_none());
+                assert_eq!((model.calls, read.calls), (0, 0));
+                assert!(store.document.is_empty());
+            }
+            Transition::Uncertain => {
+                assert!(matches!(
+                    result,
+                    Err(SourceAgentHandoffFailure::Migration(_))
+                ));
+                assert_eq!(
+                    session.source_agent_handoff_status(),
+                    HotReloadSourceAgentHandoffStatus::TerminalUncertainty
+                );
+                assert_eq!(
+                    session.observation().lifecycle(),
+                    semaprax::project::HotReloadLifecycle::TerminalUncertainty
+                );
+                assert!(session.terminal());
+                assert_eq!(session.generation(), 0);
+                assert!(session.retained_source_agent_binding().is_none());
+                assert_eq!((model.calls, read.calls), (0, 0));
+                assert!(store.document.contains("migration_evaluation_intent"));
+            }
+        }
     }
 }
 
@@ -846,7 +1143,7 @@ fn failed_checked_evaluation_samples_clock_and_regression_keeps_intent_charged()
 }
 
 #[test]
-fn actual_source_a_to_b_to_c_preserves_charges_and_skips_initialize() {
+fn actual_source_a_to_b_to_c_replays_selected_handoffs_and_preserves_accumulated_state() {
     let a = durable::first();
     let b = durable::successor(&a, "State", "StateB", "b", &["marker"], true);
     let c = durable::successor(&b, "StateB", "StateC", "c", &["marker", "extra"], false);
@@ -886,17 +1183,38 @@ fn actual_source_a_to_b_to_c_preserves_charges_and_skips_initialize() {
     assert_eq!((a_model.calls, a_read.calls), (3, 3));
     let binding_a = policy_a.binding(&life_a, &task, budget()).unwrap();
     let mut b_store = Store::default();
-    let prepared_b = prepare_source_live_migration(SourceLiveMigrationRequest {
-        previous: endpoint(&project_a, &life_a, &policy_a),
-        previous_binding: &binding_a,
-        previous_checkpoint: &a_store.document,
-        destination: endpoint(&project_b, &life_b, &policy_b),
-        task: &task,
-        migration_function: "fixture.agent.fn.migrate_b",
-        max_migration_steps: 10_000,
-        expected_handoff_digest: None,
-    })
-    .unwrap();
+    let prepared_b = {
+        let mut session = HotReloadSession::new(
+            Arc::clone(&project_a),
+            PreparedProjectInterpreterOptions::default(),
+        )
+        .unwrap();
+        session.admit_candidate(Arc::clone(&project_b)).unwrap();
+        let plan = session.plan().unwrap();
+        assert_eq!(
+            plan.decision(),
+            HotReloadDecision::EligibleSourceAgentCheckpointHandoff
+        );
+        let selection = plan
+            .source_agent_handoffs()
+            .iter()
+            .find(|selection| selection.agent_id() == "fixture.agent")
+            .expect("A-to-B plan must select the retained Agent");
+        prepare_source_live_migration_from_hot_reload_handoff(
+            SourceLiveMigrationRequest {
+                previous: endpoint(&project_a, &life_a, &policy_a),
+                previous_binding: &binding_a,
+                previous_checkpoint: &a_store.document,
+                destination: endpoint(&project_b, &life_b, &policy_b),
+                task: &task,
+                migration_function: "fixture.agent.fn.migrate_b",
+                max_migration_steps: 10_000,
+                expected_handoff_digest: None,
+            },
+            selection,
+        )
+        .unwrap()
+    };
     let binding_b: SourceInvocationBinding = prepared_b.binding().clone();
     let mut b_model = Model::new(&life_b);
     let mut b_read = Read::default();
@@ -928,6 +1246,8 @@ fn actual_source_a_to_b_to_c_preserves_charges_and_skips_initialize() {
         .iter()
         .all(|stage| stage.role() != "initialize"));
     assert_eq!(b_run.checkpoint.committed_reserved_units(), 6);
+    assert_eq!(b_run.checkpoint.deadline_millis(), DEADLINE);
+    assert_eq!(b_run.checkpoint.last_checked_millis(), 0);
     assert!(
         b_run.checkpoint.committed_stage_fuel() >= a_run.checkpoint.committed_stage_fuel() + 20_000
     );
@@ -959,17 +1279,38 @@ fn actual_source_a_to_b_to_c_preserves_charges_and_skips_initialize() {
     assert_eq!((no_b_model.calls, no_b_read.calls), (0, 0));
     assert_eq!(recovered_b.checkpoint.committed_reserved_units(), 6);
     let mut c_store = Store::default();
-    let prepared_c = prepare_source_live_migration(SourceLiveMigrationRequest {
-        previous: endpoint(&project_b, &life_b, &policy_b),
-        previous_binding: &binding_b,
-        previous_checkpoint: &b_store.document,
-        destination: endpoint(&project_c, &life_c, &policy_c),
-        task: &task,
-        migration_function: "fixture.agent.fn.migrate_c",
-        max_migration_steps: 10_000,
-        expected_handoff_digest: None,
-    })
-    .unwrap();
+    let prepared_c = {
+        let mut session = HotReloadSession::new(
+            Arc::clone(&project_b),
+            PreparedProjectInterpreterOptions::default(),
+        )
+        .unwrap();
+        session.admit_candidate(Arc::clone(&project_c)).unwrap();
+        let plan = session.plan().unwrap();
+        assert_eq!(
+            plan.decision(),
+            HotReloadDecision::EligibleSourceAgentCheckpointHandoff
+        );
+        let selection = plan
+            .source_agent_handoffs()
+            .iter()
+            .find(|selection| selection.agent_id() == "fixture.agent")
+            .expect("B-to-C plan must select the retained Agent");
+        prepare_source_live_migration_from_hot_reload_handoff(
+            SourceLiveMigrationRequest {
+                previous: endpoint(&project_b, &life_b, &policy_b),
+                previous_binding: &binding_b,
+                previous_checkpoint: &b_store.document,
+                destination: endpoint(&project_c, &life_c, &policy_c),
+                task: &task,
+                migration_function: "fixture.agent.fn.migrate_c",
+                max_migration_steps: 10_000,
+                expected_handoff_digest: None,
+            },
+            selection,
+        )
+        .unwrap()
+    };
     let mut c_model = Model::new(&life_c);
     let mut c_read = Read::default();
     let c_run = prepared_c
@@ -1004,6 +1345,8 @@ fn actual_source_a_to_b_to_c_preserves_charges_and_skips_initialize() {
         .iter()
         .all(|stage| stage.role() != "initialize"));
     assert_eq!(c_run.checkpoint.committed_reserved_units(), 9);
+    assert_eq!(c_run.checkpoint.deadline_millis(), DEADLINE);
+    assert_eq!(c_run.checkpoint.last_checked_millis(), 0);
     assert!(
         c_run.checkpoint.committed_stage_fuel() >= b_run.checkpoint.committed_stage_fuel() + 20_000
     );

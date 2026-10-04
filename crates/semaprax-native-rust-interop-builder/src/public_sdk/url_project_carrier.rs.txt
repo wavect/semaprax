@@ -18,6 +18,10 @@ struct Context { id: u64, slots: Vec<Slot> }
 thread_local! {
     static CONTEXTS: RefCell<Vec<Context>> = const { RefCell::new(Vec::new()) };
     static TARGET_CALLS: Cell<usize> = const { Cell::new(0) };
+    // This counts only byte buffers copied by this generated carrier. `Url::parse`
+    // is a foreign implementation and its internal ownership is intentionally not
+    // attributed to the adapter.
+    static ADAPTER_COPIED_BYTES: Cell<u64> = const { Cell::new(0) };
     static LAST_VIEW_POINTER: Cell<usize> = const { Cell::new(0) };
 }
 static NEXT_CONTEXT: AtomicU64 = AtomicU64::new(1);
@@ -139,6 +143,7 @@ pub unsafe extern "C" fn spx_result_owner_drop(context: u64, owner: SpxOwner) ->
 }
 pub fn target_call_count() -> usize { TARGET_CALLS.with(Cell::get) }
 pub fn adapter_copy_count() -> usize { 0 }
+pub fn adapter_copied_bytes() -> u64 { ADAPTER_COPIED_BYTES.with(Cell::get) }
 pub fn target_view_pointer() -> usize { LAST_VIEW_POINTER.with(Cell::get) }
 pub fn live_owner_count() -> usize { CONTEXTS.with(|contexts| contexts.borrow().iter().flat_map(|context| &context.slots).filter(|slot| slot.value.is_some() || slot.exclusive).count()) }
 pub fn live_view_count() -> usize { CONTEXTS.with(|contexts| contexts.borrow().iter().flat_map(|context| &context.slots).filter(|slot| slot.view.is_some()).count()) }

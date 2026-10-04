@@ -1,0 +1,19 @@
+module archclaims.core;
+
+@id("archclaims.a")
+fn a() -> i64
+{
+    b()
+}
+
+@id("archclaims.b")
+fn b() -> i64
+{
+    1
+}
+
+@id("archclaims.c")
+fn c() -> i64
+{
+    2
+}

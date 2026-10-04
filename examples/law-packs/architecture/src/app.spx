@@ -1,0 +1,8 @@
+module archclaims.app;
+use function @id("archclaims.a") from archclaims.core as a;
+
+@id("archclaims.app.main")
+fn main() -> i64
+{
+    a()
+}

@@ -1,0 +1,7 @@
+module interop.tests;
+
+@id("interop.tests.main")
+fn main() -> i64
+{
+    0
+}

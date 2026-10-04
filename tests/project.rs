@@ -65,6 +65,8 @@ mod borrowed_bytes_call_interpreter;
 mod class_project;
 #[path = "project/command_argument_borrow.rs"]
 mod command_argument_borrow;
+#[path = "project/hot_reload_cli.rs"]
+mod hot_reload_cli;
 #[path = "project/concrete_generic_project_prerequisites.rs"]
 mod concrete_generic_project_prerequisites;
 #[path = "project/cxx_owned_data_package.rs"]
@@ -171,6 +173,8 @@ mod project_lock_v1;
 mod public_generic_wasm_provider;
 #[path = "project/resource_free_record_evolution.rs"]
 mod resource_free_record_evolution;
+#[path = "project/ri13_m3.rs"]
+mod ri13_m3;
 #[path = "project/retained_owned_api.rs"]
 mod retained_owned_api;
 #[path = "project/scaffold.rs"]
@@ -195,6 +199,8 @@ mod signature_nominal_arguments;
 mod signature_nominal_rebase;
 #[path = "project/signature_owned_values.rs"]
 mod signature_owned_values;
+#[path = "project/source_local_future.rs"]
+mod source_local_future;
 #[path = "project/source_protocol_law.rs"]
 mod source_protocol_law;
 #[path = "project/standard_library.rs"]

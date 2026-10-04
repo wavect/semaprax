@@ -6,6 +6,7 @@
 //! mutation authority.
 
 mod foreign_law;
+mod source_local_future_sdk;
 pub use foreign_law::ForeignCallerCertificate;
 
 use crate::diagnostic::Diagnostic;
@@ -130,6 +131,62 @@ impl ProjectRevision {
     /// owns executable entry semantics and cleanup ordering.
     pub fn public_api_program(&self) -> &crate::hir::ResolvedProgram {
         &self.public_api_program
+    }
+
+    /// Return the interpreter-only Rust Future selection admitted when this
+    /// immutable Project revision was constructed.
+    ///
+    /// Project construction already performs the complete profile admission
+    /// against `public_api_program`; an immutable revision cannot acquire a
+    /// different program afterward. Re-deriving the lowering here made each
+    /// generated registration and call replay the same pure admission work.
+    /// Generated modules still bind this retained signature to their exact
+    /// revision, function identity, and plan identity before accepting a
+    /// callback.
+    pub fn source_local_future_signature(
+        &self,
+    ) -> Result<&crate::resumable_effects::source_signature::SourceEffectSignature, Vec<Diagnostic>>
+    {
+        if self.manifest.project_profile() != ProjectProfile::SourceLocalFutureV1 {
+            return Err(vec![Diagnostic::io(
+                "SPX-H006",
+                "source-local-future.v1 Project profile is not selected",
+            )]);
+        }
+        let signature = self
+            .profile_admission
+            .source_local_future_signature()
+            .ok_or_else(|| {
+                vec![Diagnostic::io(
+                    "SPX-H006",
+                    "source-local-future.v1 admission is absent",
+                )]
+            })?;
+        Ok(signature)
+    }
+
+    /// Refuse a generated local-Future module whose retained binding does not
+    /// name this exact immutable Project revision and admitted suspension.
+    ///
+    /// This is deliberately a comparison against construction-bound facts;
+    /// it neither reads source files nor replays lowering during invocation.
+    pub fn require_source_local_future_binding(
+        &self,
+        expected_project_revision: &str,
+        expected_function_id: &str,
+        expected_plan_identity: &[u8; 32],
+    ) -> Result<(), Vec<Diagnostic>> {
+        let signature = self.source_local_future_signature()?;
+        if self.project_revision != expected_project_revision
+            || signature.function_id() != expected_function_id
+            || signature.plan_identity() != expected_plan_identity
+        {
+            return Err(vec![Diagnostic::io(
+                "SPX-H006",
+                "generated local Future module does not match selected Project revision",
+            )]);
+        }
+        Ok(())
     }
 
     /// Re-derive and independently verify the exact compiler-owned endpoint
@@ -372,6 +429,12 @@ impl ProjectRevision {
 
     /// Build Project v1 as one deterministic pathless scalar-Web carrier.
     pub fn build_web_inline(&self, max_bytes: usize) -> Result<ProjectWebBuild, Vec<Diagnostic>> {
+        if self.manifest.project_profile() == ProjectProfile::SourceLocalFutureV1 {
+            return Err(vec![Diagnostic::io(
+                "SPX-W120",
+                "source-local-future.v1 has no Web emitter",
+            )]);
+        }
         if self.manifest.project_profile() != ProjectProfile::ScalarV1 {
             let version = match self.manifest.project_profile() {
                 ProjectProfile::ScalarV1 => unreachable!("scalar profile returned above"),
@@ -394,6 +457,7 @@ impl ProjectRevision {
                 ProjectProfile::EnvironmentIoV1 => "v17",
                 ProjectProfile::ProcessIoV1 => "v18",
                 ProjectProfile::PublicGenericWasmProviderV1 => "v20",
+                ProjectProfile::SourceLocalFutureV1 => "v21",
             };
             return Err(vec![Diagnostic::io(
                 "SPX-W120",
@@ -429,6 +493,12 @@ impl ProjectRevision {
 
     /// Build one deterministic, pathless, context-bound npm carrier.
     pub fn build_npm_inline(&self, max_bytes: usize) -> Result<ProjectNpmBuild, Vec<Diagnostic>> {
+        if self.manifest.project_profile() == ProjectProfile::SourceLocalFutureV1 {
+            return Err(vec![Diagnostic::io(
+                "SPX-W120",
+                "source-local-future.v1 has no npm/Web emitter",
+            )]);
+        }
         if self.manifest.project_profile() == ProjectProfile::PublicGenericWasmProviderV1 {
             return Err(vec![Diagnostic::io(
                 "SPX-W120",

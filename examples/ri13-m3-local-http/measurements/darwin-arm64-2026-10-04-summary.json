@@ -1,0 +1,34 @@
+{
+  "generated_vs_handwritten_throughput_ratio": 0.1242,
+  "input": "examples/ri13-m3-local-http/measurements/darwin-arm64-2026-10-04.csv",
+  "interpretation": "This tiny loopback HTTP comparison includes source preparation; it does not establish the nontrivial batch-work threshold.",
+  "investigate_over_10_percent_slower": true,
+  "paired_bootstrap_95_percent_ratio": [
+    0.1207,
+    0.1276
+  ],
+  "routes": {
+    "direct_rust": {
+      "mean_ns": 302966.7,
+      "p50_ns": 308479.0,
+      "p90_ns": 352716.7,
+      "p99_ns": 446251.5,
+      "serialized_calls_per_second": 3300.69
+    },
+    "generated_semaprax": {
+      "mean_ns": 2351391.3,
+      "p50_ns": 2301063.0,
+      "p90_ns": 2573767.0,
+      "p99_ns": 2854826.6,
+      "serialized_calls_per_second": 425.28
+    },
+    "handwritten_adapter": {
+      "mean_ns": 291971.7,
+      "p50_ns": 306937.5,
+      "p90_ns": 330753.6,
+      "p99_ns": 356482.1,
+      "serialized_calls_per_second": 3424.99
+    }
+  },
+  "samples_per_route": 90
+}

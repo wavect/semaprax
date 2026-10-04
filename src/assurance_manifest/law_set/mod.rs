@@ -46,6 +46,12 @@ pub enum LawSelector {
         binders: Vec<RelationalBinder>,
         proposition: String,
     },
+    /// One fixed LAW-08 theorem over exact checked Project source. The
+    /// separate authored proof module is supplied to the installed Lean route.
+    ListInduction {
+        declaration_id: String,
+        theorem: String,
+    },
     ForbidReaches {
         claim_id: String,
         from: String,
@@ -400,6 +406,21 @@ fn normalize(law: &mut LawDefinition) -> Result<()> {
                 invalid("relational proposition is not a typed boolean scalar expression")
             })?;
             *proposition = crate::format::expr(expression, 0);
+        }
+        LawSelector::ListInduction {
+            declaration_id,
+            theorem,
+        } => {
+            text_id(declaration_id)?;
+            text_id(theorem)?;
+            if !matches!(law.evidence, EvidenceRequirement::TheoremProved)
+                || crate::proof_export::list_induction::declaration_for_theorem(theorem)
+                    != Some(declaration_id.as_str())
+            {
+                return Err(invalid(
+                    "list induction selector requires one fixed theorem, declaration and theorem_proved evidence",
+                ));
+            }
         }
         LawSelector::ForbidReaches { claim_id, from, to } => {
             crate::architecture_claims::ArchitectureClaim::forbid_reaches(

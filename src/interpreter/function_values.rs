@@ -19,6 +19,7 @@ impl Evaluator<'_> {
             Value::Bytes(value) => Value::Bytes(value.clone()),
             Value::Vec(value) => Value::Vec(Arc::clone(value)),
             Value::Iter(value) => Value::Iter(Arc::clone(value)),
+            Value::List(value) => Value::List(value.clone()),
             Value::Box(value) => Value::Box(Arc::clone(value)),
             Value::String(value) => Value::String(self.materialize_utf8_copy(value)?),
             Value::BorrowedStr(value) => Value::BorrowedStr(value.clone()),
@@ -29,7 +30,11 @@ impl Evaluator<'_> {
             Value::Record(value) => Value::Record(Arc::clone(value)),
             Value::Variant(value) => Value::Variant(Arc::clone(value)),
             Value::Function(target) => Value::Function(target.clone()),
+            Value::Closure(value) if value.mutable.is_some() => {
+                return Err(Flow::Guard("mutable callback cannot be copied"))
+            }
             Value::Closure(value) => Value::Closure(Arc::clone(value)),
+            Value::OnceClosure(_) => return Err(Flow::Guard("affine callable cannot be copied")),
             Value::Moved => Value::Moved,
         })
     }
@@ -53,8 +58,26 @@ impl Evaluator<'_> {
                 Ok(Value::Function(target.clone()))
             }
             ResolvedExprKind::Invoke { callable, args } => {
+                if callable.ty.is_mut_function() {
+                    return self.evaluate_mutable_invocation(
+                        expression,
+                        callable,
+                        args,
+                        environment,
+                        depth,
+                    );
+                }
                 // Capture the operand before any argument is evaluated.
                 let callable_value = self.evaluate(callable, environment, depth)?;
+                if let Value::OnceClosure(closure) = callable_value {
+                    if !callable.ty.is_once_function()
+                        || !args.is_empty()
+                        || expression.ty != ResolvedType::I64
+                    {
+                        return Err(Flow::Guard("affine invocation signature mismatch"));
+                    }
+                    return self.call_frame(&closure.function, closure.captures, depth + 1);
+                }
                 if let Value::Closure(closure) = callable_value {
                     if closure.result != expression.ty || closure.parameters.len() != args.len() {
                         return Err(Flow::Guard("closure invocation signature mismatch"));

@@ -208,3 +208,31 @@ pub(super) fn function_has_closure(function: &ResolvedFunction) -> bool {
     });
     found
 }
+
+pub(super) fn type_has_usize(ty: &ResolvedType) -> bool {
+    match ty {
+        ResolvedType::Function { parameters, result } => {
+            parameters.iter().any(type_has_usize) || type_has_usize(result)
+        }
+        ResolvedType::OnceFunction
+        | ResolvedType::OnceFunctionI64
+        | ResolvedType::OnceFunctionI64Pair
+        | ResolvedType::MutFunctionI64
+        | ResolvedType::Usize
+        | ResolvedType::ArrayU8(_)
+        | ResolvedType::Bytes
+        | ResolvedType::SliceU8 => true,
+        ResolvedType::Nominal { arguments, .. } => arguments.iter().any(type_has_usize),
+        ResolvedType::Unit
+        | ResolvedType::I64
+        | ResolvedType::I32
+        | ResolvedType::Char
+        | ResolvedType::U8
+        | ResolvedType::F32
+        | ResolvedType::F64
+        | ResolvedType::Bool
+        | ResolvedType::String
+        | ResolvedType::Str
+        | ResolvedType::TypeParameter { .. } => false,
+    }
+}

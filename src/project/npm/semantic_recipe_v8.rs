@@ -441,7 +441,11 @@ fn recipe_type(
     parameter_owner: Option<&DeclarationId>,
 ) -> Result<String, Diagnostic> {
     match ty {
-        ResolvedType::Function { .. } => Err(package_error(
+        ResolvedType::OnceFunction
+        | ResolvedType::OnceFunctionI64
+        | ResolvedType::OnceFunctionI64Pair
+        | ResolvedType::MutFunctionI64
+        | ResolvedType::Function { .. } => Err(package_error(
             "function values are outside semantic recipe v8",
         )),
         ResolvedType::I64 => Ok("i64".to_owned()),

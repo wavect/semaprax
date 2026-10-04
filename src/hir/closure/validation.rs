@@ -13,6 +13,28 @@ pub(crate) fn validate_shape_scoped(
     expression: &ResolvedExpr,
     owner: Option<&DeclarationId>,
 ) -> Result<(), Diagnostic> {
+    if expression.ty.is_mut_function() {
+        if owner.is_some() {
+            return Err(hir_error(
+                "generic mutable closures are outside the closed profile",
+            ));
+        }
+        return super::mutable::validate(program, expression);
+    }
+    if expression.ty.is_once_function() {
+        if owner.is_some() {
+            return Err(hir_error(
+                "generic affine closures are outside the closed profile",
+            ));
+        }
+        return super::once::validate(program, expression);
+    }
+    if super::borrowed::is_borrowed(expression) {
+        if owner.is_some() {
+            return Err(hir_error("generic borrowed closures are not admitted"));
+        }
+        return super::borrowed::validate(program, expression);
+    }
     let count = owner
         .and_then(|owner| {
             program

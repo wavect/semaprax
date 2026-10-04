@@ -252,7 +252,13 @@ pub(super) fn check_native_rust_imports<'p>(
                 }
                 if matches!(
                     param.ty,
-                    Type::ArrayU8(_) | Type::Bytes | Type::Function { .. }
+                    Type::ArrayU8(_)
+                        | Type::Bytes
+                        | Type::OnceFunction
+                        | Type::OnceFunctionI64
+                        | Type::OnceFunctionI64Pair
+                        | Type::MutFunctionI64
+                        | Type::Function { .. }
                 ) {
                     diagnostics.push(error(
                         program,
@@ -499,7 +505,14 @@ pub(super) fn check_declared_fields<'p>(
                 .collect::<HashSet<_>>();
             let is_class = matches!(declaration.kind, TypeDeclarationKind::Class { .. });
             for field in fields {
-                if matches!(field.ty, Type::Function { .. }) {
+                if matches!(
+                    field.ty,
+                    Type::OnceFunction
+                        | Type::OnceFunctionI64
+                        | Type::OnceFunctionI64Pair
+                        | Type::MutFunctionI64
+                        | Type::Function { .. }
+                ) {
                     diagnostics.push(error(
                         program,
                         "SPX-T287",

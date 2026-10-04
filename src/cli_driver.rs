@@ -22,6 +22,8 @@ use semaprax::{
 mod cli;
 #[path = "cli_driver/context_dispatch.rs"]
 mod context_dispatch;
+#[path = "cli_driver/hot_reload.rs"]
+mod hot_reload;
 #[path = "native_scratch.rs"]
 mod native_scratch;
 #[path = "cli_driver/options.rs"]
@@ -59,11 +61,21 @@ pub type NewProjectHook = fn(&[String]) -> Result<(PathBuf, &'static str), (Stri
 /// reported as cryptographic success.
 pub type OfflineReleaseVerifier =
     &'static (dyn semaprax::release_provenance::OfflineBundleVerificationCapability + Sync);
+/// The unpublished source-live host's explicit bridge for one checked
+/// source-Agent handoff. The control adapter supplies its retained supervisor
+/// and compiler-derived plan; the host still owns every provider, checkpoint,
+/// policy, and journal input in `arguments`.
+pub type SourceAgentDevHook = fn(
+    &mut project::HotReloadSession,
+    project::HotReloadPlan,
+    &[String],
+) -> Result<(), (String, u8)>;
 
 #[allow(clippy::type_complexity)]
 pub struct PrivateHost {
     pub new_project: NewProjectHook,
     pub source_live: fn(&[String]) -> Result<String, (String, u8)>,
+    pub source_agent_dev: Option<SourceAgentDevHook>,
     pub native_authority_check: fn(&[String]) -> Result<String, (String, u8)>,
     pub build_rust: fn(&mut project::ProjectSnapshot, &Path) -> Result<(), Vec<Diagnostic>>,
     pub offline_release_verifier: Option<OfflineReleaseVerifier>,
@@ -132,6 +144,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
     };
     use cli::help::CommandId;
     match command_id {
+        CommandId::Dev => hot_reload::run(&args[1..], host.and_then(|host| host.source_agent_dev)),
         CommandId::SourceLive => {
             let host = require_private_host(host, "source-live")?;
             let output = (host.source_live)(&args[1..]).map_err(|(error, code)| {
@@ -491,6 +504,10 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
         CommandId::Service => {
             let options = cli::service::parse(&args[1..])?;
             cli::service::run(options, |errors| report(errors, false))
+        }
+        CommandId::PatchReceipt => {
+            let command = cli::patch_receipt::parse(&args[1..])?;
+            cli::patch_receipt::run(command, |errors| report(errors, false))
         }
         CommandId::ServeImage
         | CommandId::ServeCandidates

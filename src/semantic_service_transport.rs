@@ -5,12 +5,13 @@ mod compact;
 use std::io::{self, BufRead, Write};
 use std::sync::Arc;
 
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
 
 use crate::diagnostic::Diagnostic;
 use crate::project::{
+    MAX_SEMANTIC_TRANSACTION_V2_WORKFLOW_STEPS,
+    MAX_SEMANTIC_WORKSPACE_SERVICE_PATCH_RECEIPT_COMPARISON_INPUTS, MAX_SOURCES,
     ProjectFrontendSource, ProjectManifest, ProjectRevision, SemanticWorkspaceService,
-    MAX_SEMANTIC_TRANSACTION_V2_WORKFLOW_STEPS, MAX_SOURCES,
 };
 use crate::project_transport::codec::{self, RequestId, RequestKind, RpcRequest};
 
@@ -196,6 +197,185 @@ impl SemanticWorkspaceStdioSession {
                     "value": exact_json(workflow.to_json())?,
                 }))
             }
+            "workspace/patch-receipt" => {
+                self.require_open()?;
+                let mut params =
+                    closed_params(request.params, &["transaction", "candidate_digest"])?;
+                let transaction = take_string(&mut params, "transaction")?;
+                let candidate = take_string(&mut params, "candidate_digest")?;
+                let receipt = self
+                    .service
+                    .patch_receipt(transaction.as_bytes(), &candidate)?;
+                self.wrap(json!({"value": exact_json(&receipt)?}))
+            }
+            "workspace/verify-patch-receipt" => {
+                self.require_open()?;
+                let mut params = closed_params(
+                    request.params,
+                    &["transaction", "candidate_digest", "receipt"],
+                )?;
+                let transaction = take_string(&mut params, "transaction")?;
+                let candidate = take_string(&mut params, "candidate_digest")?;
+                let receipt = take_string(&mut params, "receipt")?;
+                let verified = self.service.verify_patch_receipt(
+                    transaction.as_bytes(),
+                    &candidate,
+                    receipt.as_bytes(),
+                )?;
+                self.wrap(json!({"value": exact_json(&verified)?}))
+            }
+            "workspace/patch-receipt-refusal" => {
+                self.require_open()?;
+                let mut params = closed_params(
+                    request.params,
+                    &["transaction", "requested_candidate_digest"],
+                )?;
+                let transaction = take_string(&mut params, "transaction")?;
+                let candidate = take_string(&mut params, "requested_candidate_digest")?;
+                let receipt = self
+                    .service
+                    .patch_receipt_refusal(transaction.as_bytes(), &candidate)?;
+                self.wrap(json!({"value": exact_json(&receipt)?}))
+            }
+            "workspace/verify-patch-receipt-refusal" => {
+                self.require_open()?;
+                let mut params = closed_params(
+                    request.params,
+                    &["transaction", "requested_candidate_digest", "receipt"],
+                )?;
+                let transaction = take_string(&mut params, "transaction")?;
+                let candidate = take_string(&mut params, "requested_candidate_digest")?;
+                let receipt = take_string(&mut params, "receipt")?;
+                let verified = self.service.verify_patch_receipt_refusal(
+                    transaction.as_bytes(),
+                    &candidate,
+                    receipt.as_bytes(),
+                )?;
+                self.wrap(json!({"value": exact_json(&verified)?}))
+            }
+            "workspace/patch-receipt-evidence-summary" => {
+                self.require_open()?;
+                let mut params =
+                    closed_params(request.params, &["transaction", "candidate_digest"])?;
+                let transaction = take_string(&mut params, "transaction")?;
+                let candidate = take_string(&mut params, "candidate_digest")?;
+                let summary = self
+                    .service
+                    .patch_receipt_evidence_summary(transaction.as_bytes(), &candidate)?;
+                self.wrap(json!({"value": exact_json(&summary)?}))
+            }
+            "workspace/patch-receipt-evidence-page" => {
+                self.require_open()?;
+                let mut params = closed_params(
+                    request.params,
+                    &[
+                        "transaction",
+                        "candidate_digest",
+                        "evidence_id",
+                        "handle",
+                        "cursor",
+                        "page_size",
+                        "max_bytes",
+                    ],
+                )?;
+                let transaction = take_string(&mut params, "transaction")?;
+                let candidate = take_string(&mut params, "candidate_digest")?;
+                let evidence_id = take_string(&mut params, "evidence_id")?;
+                let handle = take_string(&mut params, "handle")?;
+                let cursor = match params.remove("cursor") {
+                    Some(Value::Null) => None,
+                    Some(Value::String(value)) => Some(value),
+                    _ => return Err(invalid("cursor must be a string or null")),
+                };
+                let page_size = take_usize(&mut params, "page_size")?;
+                let max_bytes = take_usize(&mut params, "max_bytes")?;
+                let page = self.service.patch_receipt_evidence_page(
+                    transaction.as_bytes(),
+                    &candidate,
+                    &evidence_id,
+                    &handle,
+                    cursor.as_deref(),
+                    page_size,
+                    max_bytes,
+                )?;
+                self.wrap(json!({"value": exact_json(&page)?}))
+            }
+            "workspace/compare-patch-receipts" => {
+                self.require_open()?;
+                let mut params = closed_params(
+                    request.params,
+                    &[
+                        "left_transaction",
+                        "left_candidate_digest",
+                        "left_receipt",
+                        "right_transaction",
+                        "right_candidate_digest",
+                        "right_receipt",
+                    ],
+                )?;
+                let left_transaction = take_string(&mut params, "left_transaction")?;
+                let left_candidate = take_string(&mut params, "left_candidate_digest")?;
+                let left_receipt = take_string(&mut params, "left_receipt")?;
+                let right_transaction = take_string(&mut params, "right_transaction")?;
+                let right_candidate = take_string(&mut params, "right_candidate_digest")?;
+                let right_receipt = take_string(&mut params, "right_receipt")?;
+                let comparison = self.service.compare_patch_receipts(
+                    left_transaction.as_bytes(),
+                    &left_candidate,
+                    left_receipt.as_bytes(),
+                    right_transaction.as_bytes(),
+                    &right_candidate,
+                    right_receipt.as_bytes(),
+                )?;
+                self.wrap(json!({"value": exact_json(&comparison)?}))
+            }
+            "workspace/compare-patch-receipt-set" => {
+                self.require_open()?;
+                let mut params = closed_params(request.params, &["receipts"])?;
+                let receipts = params
+                    .remove("receipts")
+                    .and_then(|value| value.as_array().cloned())
+                    .ok_or_else(|| invalid("receipts must be an array"))?;
+                if receipts.len() < 2
+                    || receipts.len()
+                        > MAX_SEMANTIC_WORKSPACE_SERVICE_PATCH_RECEIPT_COMPARISON_INPUTS
+                {
+                    return Err(capacity("receipts exceed transport comparison count limit"));
+                }
+                let entries = receipts
+                    .into_iter()
+                    .map(|receipt| {
+                        let mut receipt = receipt
+                            .as_object()
+                            .cloned()
+                            .ok_or_else(|| invalid("each receipt must be an object"))?;
+                        if receipt.len() != 3
+                            || !receipt.contains_key("transaction")
+                            || !receipt.contains_key("candidate_digest")
+                            || !receipt.contains_key("receipt")
+                        {
+                            return Err(invalid("receipt has missing or unknown members"));
+                        }
+                        Ok((
+                            take_string(&mut receipt, "transaction")?,
+                            take_string(&mut receipt, "candidate_digest")?,
+                            take_string(&mut receipt, "receipt")?,
+                        ))
+                    })
+                    .collect::<Result<Vec<_>>>()?;
+                let inputs = entries
+                    .iter()
+                    .map(|(transaction, candidate, receipt)| {
+                        (
+                            transaction.as_bytes(),
+                            candidate.as_str(),
+                            receipt.as_bytes(),
+                        )
+                    })
+                    .collect::<Vec<_>>();
+                let comparison = self.service.compare_patch_receipt_set(&inputs)?;
+                self.wrap(json!({"value": exact_json(&comparison)?}))
+            }
             "workspace/compact-projection" => {
                 self.require_open()?;
                 self.wrap(compact::project(&self.service, request.params)?)
@@ -365,6 +545,10 @@ fn protocol() -> Value {
             "service/protocol", "workspace/open", "workspace/status", "workspace/query",
             "workspace/index-query", "workspace/history-query", "workspace/validate-transaction",
             "workspace/validate-transaction-v2", "workspace/validate-transaction-v2-workflow",
+            "workspace/patch-receipt", "workspace/verify-patch-receipt",
+            "workspace/patch-receipt-refusal", "workspace/verify-patch-receipt-refusal",
+            "workspace/patch-receipt-evidence-summary", "workspace/patch-receipt-evidence-page",
+            "workspace/compare-patch-receipts", "workspace/compare-patch-receipt-set",
             "workspace/compact-projection",
             "workspace/refresh", "shutdown"
         ],
@@ -403,6 +587,14 @@ fn take_string(params: &mut Map<String, Value>, key: &str) -> Result<String> {
         Some(Value::String(value)) if !value.as_bytes().contains(&0) => Ok(value),
         _ => Err(invalid("parameter must be a string without NUL bytes")),
     }
+}
+
+fn take_usize(params: &mut Map<String, Value>, key: &str) -> Result<usize> {
+    params
+        .remove(key)
+        .and_then(|value| value.as_u64())
+        .and_then(|value| usize::try_from(value).ok())
+        .ok_or_else(|| invalid("parameter must be a nonnegative bounded integer"))
 }
 
 /// Take `steps` as a bounded array of canonical v2 transaction strings, each

@@ -92,6 +92,22 @@ canonical .spx source or held Project inputs
 Every backend passes source verification and validated HIR. Cleanup-plan vectors
 are canonical runtime order; projections and backends must never sort or repair them.
 
+`ast/type_properties.rs` owns primitive type formatting and classification.
+The reserved mutable callable type has independent source and retained-HIR
+admission guards in `source_verify/declared_type.rs`, `source_verify/closure.rs`
+and `hir/validation/callable_types.rs`. Leaf type helpers remain under their
+existing graph, Wasm, capacity and workspace owners; `properties/scalar_types.rs`
+owns the property analyzer's scalar spelling projection.
+
+The staged transactional carrier is owned by `hir/closure/mutable.rs` (fixed
+state/argument body product and independent receiver checks),
+`interpreter/mutable_closure.rs` (copied state and scoped invocation guard),
+`codegen/native_emit/mutable.rs` (success-only native publication), and
+`wasm/aggregate/function_value.rs` (guarded indirect call and state commit).
+The Rust interop builder's `public_sdk/mutable_callback` renderer retains the
+actual source-created native carrier behind an exclusive safe Rust owner.
+These internal products do not remove the source or HIR admission guards.
+
 ### Agent and generic owners
 
 The additive `agent_lifecycle/iterative` module owns checked Step transitions,
@@ -958,6 +974,12 @@ closed canonical wire; revision-bound replay additionally matches every event
 to retained HIR and authenticated source facts. It does not independently
 re-execute the dynamic path and grants no debugger, target, I/O, build, or
 publication authority.
+
+`src/project/hot_reload.rs` owns the bounded local session above that worker:
+one checked active revision, one checked pending candidate, a generation-bound
+opaque plan and a terminal-uncertainty state. It reads compiler-owned Project
+facts and delegates the whole-state pivot to prepared interpreter replacement.
+It does not own source observation, Agent checkpoint migration or target swap.
 
 Within the retained Project lane, `model.rs` owns the public prepared options,
 outcomes, cancellation handle, and worker-slot model; `origin.rs` owns exact
@@ -3020,7 +3042,31 @@ These areas are deliberately outside the public compiler contract:
   Result bodies, projects terminal constructors into private scalar result
   staging, and publishes the tag/payload only after boundary/postcondition
   success. `callback_runtime.rs` shares lifecycle guards while keeping authored
-  signed domain errors distinct from native status failures;
+  signed domain errors distinct from native status failures. `indexed_callback.rs`
+  replays exact selected package/index identities and derives the local safe
+  Result trait impl from a bounded mutable method and associated Error; actual
+  rustc compilation remains mandatory for safety/coherence obligations absent
+  from partial metadata;
+- `src/hir/closure/once.rs` authenticates the closed source-owned affine
+  capture and its constructor/invoke identities. Ordinary CleanupPlan owns
+  staging, commit and finalization; `src/codegen/native_emit/once.rs` and the
+  Wasm aggregate lane execute the retained carrier. `public_sdk/affine_callback.rs`
+  renders an inert Rust unique owner around the actual source-created native
+  environment. Its v2 `FnOnceI64` scalar snapshot may read a mutable binding at
+  construction, but it admits no state-retaining mutable environment, borrowed
+  capture or registry authority;
+- `src/source_verify/borrowed_closure.rs` and `src/hir/closure/borrowed.rs`
+  authenticate the synchronous parameter-rooted borrowed-text capture and its
+  nonescaping local uses. Native closure cells retain the existing pointer and
+  length; interpreter and Wasm retain their established borrowed descriptors.
+  `public_sdk/borrowed_callback.rs` binds a scoped generated Rust callback to
+  the checked source entry that creates and invokes the actual source closure.
+- `src/hir/closure/mutable.rs` authenticates the noncopyable scalar state and
+  direct transition profile. `src/interpreter/mutable_closure.rs`,
+  `src/codegen/native_emit/mutable.rs` and the Wasm aggregate invocation lane
+  own guarded success-only state commit. `public_sdk/mutable_callback.rs`
+  renders a same-thread unique Rust owner and FnMut adapter for the actual
+  source-created native receiver; each call owns a fresh checked status context;
 - `crates/semaprax-native-rust-interop-builder/src/public_sdk/indexed.rs`:
   narrow public RI-04 admission for one checked scalar Rust import. It replays
   the selected RI-03 index and exact caller-supplied package source bytes
@@ -3088,6 +3134,16 @@ These areas are deliberately outside the public compiler contract:
   source-interpreter Future adapter for one checked scalar yield. It retains
   only an in-memory suspension binding and caller-owned host Future. It has
   no Project lock admission, native SDK emission, journal or effect authority;
+- `src/project/admission/source_local_future.rs` owns the opt-in Project
+  Phase-A signature check for one manifest-selected Rust-only async export.
+  `ProjectRevision` retains the admitted signature and the local Future
+  constructor replays it against the selected linked HIR. This route has no
+  Web/npm/native publication target and grants no host effect authority;
+- `src/project/revision/source_local_future_sdk.rs` renders an inert Rust
+  module from the admitted revision and compiler-owned source plan. Its
+  one-shot registration checks those exact facts before accepting a callback;
+  execution still uses the ephemeral source-interpreter Future. The host owns
+  package staging, compilation, executor and network authority;
 - `src/project/indexed_rust.rs` and
   `crates/semaprax-native-rust-interop-builder/src/public_sdk/indexed_project.rs`:
   explicit source-bound indexed Project admission and authenticated SDK
@@ -3196,6 +3252,8 @@ child and exercises the package across the three execution lanes.
 | Source-bound protocol safety | `src/assurance_manifest/model_checking/source_protocol.rs` derives a complete finite transition table by executing checked pure HIR for every protocol state/event pair, compares it with retained session `via` declarations, and reuses the bounded model-checker with concrete source replay of found traces. The authenticated Project diagnostic route stays read-only. [Source-bound protocol safety v1](SOURCE-BOUND-PROTOCOL-SAFETY-V1.md) owns the finite claim and nonclaims. |
 | Project assurance evidence | `src/project/` owns authenticated Project snapshot, canonical workspace revision, ProgramRoot, complete source inventory, shared entry/public/test HIR obligation derivation, and exact architecture-claim result binding for the additive Project Assurance Manifest v1; [Project Assurance Manifest v1](PROJECT-ASSURANCE-MANIFEST-V1.md) owns the schema and replay boundary, while [Assurance Manifest v1](ASSURANCE-MANIFEST-V1.md) remains the unchanged single-file profile. |
 | Protected law inventory | `src/assurance_manifest/law_set/` owns explicit typed law-module admission, persistent law identities, versioned semantic digests, immutable Project/ProgramRoot/profile binding, independent protected-baseline policy, complete expected rows and counts, and exact canonical replay. It reuses existing assurance obligation IDs, architecture evaluation and bounded reference-model checking; reference-model results describe only those models. [LawSet v1](LAW-SET-V1.md) owns selection, capacities and nonclaims. `law_set/protected.rs` owns independently held intent baselines, conservative specification closure and opaque host-approved change binding; `project/candidate/protected_laws.rs` joins the review to the existing publication lock through `publication.rs`. [Protected Law Intent v1](PROTECTED-LAW-INTENT-V1.md) owns the additive review schema and host boundary. `law_set/strict.rs` joins the independent inventory to derived Project evidence and method-specific requirements; `project/candidate/strict_law_assurance.rs` binds exact candidate/policy/proof reports to managed publication under the ordinary lock. `law_vc.rs` owns the backend-neutral typed scalar subject and operation/path inventory lowered directly by SMT and Lean without granting solver authority; `law_set/native_proof.rs` owns opaque exact-inventory typed scalar evidence; `proof_export/installed.rs` uses the bounded registered process provider for explicit installed Lean/Z3 execution, while `installed_project.rs` binds selected postconditions and `cli/project_proof.rs` exposes read-only checks. The additive `cli/project_proof_workflow.rs` route obtains the host-selected protected baseline through `project/host_policy.rs` before acquiring an installed tool. `law_set/installed_workflow.rs` shares complete strict summary/detail and checked Z3 model replay with CLI and selected-law transport; `proof_export/installed.rs` exposes monotone held-process reservation counts for the v2 diagnostic envelope. A local work count or diagnostic view grants no proof, source, publication, model-cost, or billing authority. [Strict Law Assurance v1](STRICT-LAW-ASSURANCE-V1.md) records the remaining protected-route matrix; [Installed Proof Tools v1](INSTALLED-PROOF-TOOLS-V1.md) owns explicit tool authority, bounds and confinement refusal. |
+| Source-bound list induction | `src/source_verify/declared_type/generic_variant.rs` and `src/hir/generic_variant.rs` narrowly admit a pure monomorphic `Iter<i64>` tail match returning `Vec<i64>`; ordinary interpreter/native/Wasm paths lower the checked match. `src/proof_export/list_induction.rs` independently recognizes exact append/reverse source bodies, fixes five theorem statements, binds a separate proof module and complete declaration coverage into a versioned certificate, and replays binding before a caller-held pinned `LeanKernel`. [Source-bound list induction v1](LIST-INDUCTION-V1.md) owns the mathematical-list/runtime boundary; this direct API does not attach protected Project publication authority. |
+| Collection law pack | `src/proof_export/list_sort.rs` fixes sorting/permutation/multiplicity statements, separately held proof modules, inert certificates and concrete source counterexample reports. `list_sort/source.rs` rechecks source/HIR and translates every admitted immutable-List body expression, with direct-tail recursion and exact core List identity. The shared `source_verify/declared_type/generic_variant.rs` predicate admits one i64 insertion key beside a required List input. Existing pinned installed Lean execution supplies physical proof evidence; no certificate grants Project publication or runtime authority. [Collection law pack v1](COLLECTION-LAW-PACK-V1.md) owns versions, limits and trust; `tests/language/collection_law_pack.rs` binds saved correct/mutated/repaired sources to the owning gate. |
 | Project dependency admission | `src/project/external_dependencies.rs` for exact ordinary Subject-v3 closure replay, including cross-package evidence for the provenance-independent ScalarV1 internal generic-owned body profile behind scalar calls/exports, and `src/project/standard_dependencies.rs` for compiler-bundled packages |
 | Effect-free package build and fixed-inventory publication | `src/package_build.rs`, `src/package_build/`, `src/package_build_v2.rs`, `src/package_build_v2/`, `crates/semaprax-offline-wasm-package/` |
 | Private host/runtime evidence | `crates/semaprax-native-*`, `platform-tests/` |

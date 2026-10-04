@@ -86,6 +86,7 @@ pub(super) fn check_function_declarations<'p>(
         }
         if crate::box_ops::by_name(&function.name).is_some()
             || crate::iterator_ops::by_name(&function.name).is_some()
+            || crate::list_ops::by_name(&function.name).is_some()
         {
             diagnostics.push(error(
                 program,

@@ -19,6 +19,7 @@ use super::{
 mod box_ops;
 mod host_command;
 mod iterator_ops;
+mod list_ops;
 mod nested_owned;
 mod owned_buffer;
 mod owned_try;
@@ -26,14 +27,12 @@ mod owned_values;
 mod unary;
 mod variant_if;
 mod vec_ops;
-
 #[derive(Clone)]
 struct RecordMatchBindingMode<'a> {
     mode: hir::ResolvedMatchMode,
     source_storage: Option<&'a crate::cleanup_plan::StorageId>,
     source_path: Vec<DeclarationId>,
 }
-
 // `format!` resolves to the bounded codegen macro declared before
 // `mod native_emit`; it must never fall back to `std::format!` here.
 impl<'a, O: COutput> CEmitter<'a, O> {
@@ -166,7 +165,6 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             ty: expr.ty.clone(),
         })
     }
-
     fn emit_str_op(
         &mut self,
         op: crate::str_ops::StrOp,
@@ -285,7 +283,6 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         }
         Ok(())
     }
-
     fn emit_byte_op(
         &mut self,
         op: crate::byte_ops::ByteOp,
@@ -727,32 +724,10 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             } => self.emit_byte_range_expr(expr, operation, source, start, end),
             ResolvedExprKind::HostCommandCall(_) => self.emit_host_command_expr(expr),
             ResolvedExprKind::Call { .. } => self.emit_call_expr(expr),
-            ResolvedExprKind::Closure { captures, .. } => {
-                if !super::closure::enabled(self.program) {
-                    return Err(backend_error(
-                        "capturing closure lowering requires the closure native profile",
-                    ));
-                }
-                let carrier = self.temporary(&expr.ty)?;
-                self.line(&format!(
-                    "{carrier}.entry = {};",
-                    super::closure::thunk_symbol(&expr.id)
-                ));
-                for (slot, capture) in captures.iter().enumerate() {
-                    let value = self.emit_expr(&capture.value)?;
-                    self.require_type(&value.ty, &capture.binding.ty, "closure capture")?;
-                    let staged = self.temporary(&value.ty)?;
-                    self.line(&format!("{staged} = {};", value.code));
-                    self.line(&format!(
-                        "{carrier}.cells[{slot}] = {};",
-                        super::closure::pack(&value.ty, &staged)?
-                    ));
-                }
-                Ok(CValue {
-                    code: carrier,
-                    ty: expr.ty.clone(),
-                })
+            ResolvedExprKind::Closure { .. } if expr.ty.is_once_function() => {
+                super::once::construct(self, expr)
             }
+            ResolvedExprKind::Closure { captures, .. } => super::closure::construct(self, expr, captures),
             ResolvedExprKind::FunctionReference { .. } => {
                 super::function_value::emit_reference(self, expr)
             }
@@ -841,6 +816,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 type_arguments,
             } => {
                 if instance.is_none() {
+                    if let Some(op) = crate::list_ops::by_id(callee.as_str()) {
+                        return self.emit_list_op(expr, op, type_arguments, args);
+                    }
                     if let Some(op) = crate::vec_ops::by_id(callee.as_str()) {
                         return self.emit_vec_op(expr, op, type_arguments, args);
                     }
@@ -1019,6 +997,8 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             format!("spx_box_move(spx_ctx, &{value})")
                         } else if is_vec {
                             format!("spx_vec_move(spx_ctx, &{value})")
+                        } else if expected.is_once_function() {
+                            super::owned_moves::owned_move(expected, &value)
                         } else if matches!(expected, ResolvedType::String) {
                             value.to_owned()
                         } else {
@@ -2060,12 +2040,17 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     let value = self.emit_expr(&arm.value)?;
                     self.require_type(&value.ty, &expr.ty, "match arm result")?;
                     if is_direct_plan_owned(self.program, &expr.ty) {
-                        let transitions = self
-                            .bytes_plan
-                            .expect("checked above")
-                            .apply_at(&arm.value.id)?;
-                        for line in transitions.lines() {
-                            self.line(line);
+                        // An owned place needs its arm-to-join transfer here.
+                        // Producers replay that same transition in `emit_expr`;
+                        // replaying it again would move from a dead source.
+                        if matches!(arm.value.kind, ResolvedExprKind::Place(_)) {
+                            let transitions = self
+                                .bytes_plan
+                                .expect("checked above")
+                                .apply_at(&arm.value.id)?;
+                            for line in transitions.lines() {
+                                self.line(line);
+                            }
                         }
                     } else if aggregate_result && expr.ownership == hir::OwnershipMode::Own {
                         self.copy_variant_join_carrier(&result, &value.code, &expr.ty)?;

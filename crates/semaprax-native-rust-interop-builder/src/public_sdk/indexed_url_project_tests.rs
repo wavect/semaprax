@@ -183,6 +183,7 @@ fn indexed_real_url_project_executes_receiver_tied_view_and_cleanup() {
     assert_eq!(ri06_url_owner::run(), Ok(41));
     assert!(ri06_url_owner::projected_borrow_matches_target());
     assert_eq!(ri06_url_owner::adapter_copy_count(), 0);
+    assert_eq!(ri06_url_owner::adapter_copied_bytes(), 0);
     assert_eq!(ri06_url_owner::string_constructions(), 1);
     assert_eq!(ri06_url_owner::live_string_count(), 0);
     assert_eq!(ri06_url_owner::live_owner_count(), 0);

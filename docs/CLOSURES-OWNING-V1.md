@@ -1,5 +1,9 @@
 # Bounded Owning-Capture Closures v1
 
+For the separate retained `once fn` carrier and spellable `FnOnce() -> i64`
+type, see [Retained affine callback v1](AFFINE-CALLBACK-V1.md). This document
+continues to specify the legacy lexical `own fn` profile.
+
 Audience: language users, compiler contributors, backend implementers, and
 reviewers deciding whether to admit this profile beyond source checking.
 

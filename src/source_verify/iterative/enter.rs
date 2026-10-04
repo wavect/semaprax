@@ -165,6 +165,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     type_arguments,
                     args,
                     expression.span,
+                    self.allow_moves,
                     &mut self.scopes[scope].bindings,
                     self.types,
                     self.diagnostics,
@@ -178,10 +179,17 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     .iter()
                     .flat_map(|interface| &interface.imports)
                     .find(|import| import.native_rust && import.name == *name);
-                let callable_binding = self.scopes[scope]
-                    .bindings
-                    .get(name)
-                    .map(|binding| binding.ty.clone());
+                let callable_binding = self.scopes[scope].bindings.get(name).map(|binding| {
+                    crate::source_verify::mutable_closure::invocation_signature(
+                        self.program,
+                        binding,
+                        name,
+                        args,
+                        self.allow_moves,
+                        expression.span,
+                        self.diagnostics,
+                    )
+                });
                 let target = if let Some(binding_type) = callable_binding {
                     match binding_type {
                         Type::Function { parameters, result } => {
@@ -374,6 +382,15 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             return_type: op.ast_return_type(element),
                             implicit_unique_ownership: false,
                         }
+                    }))
+                } else if let Some(op) = crate::list_ops::by_name(name) {
+                    if !type_arguments.is_empty() || args.len() != op.argument_count() {
+                        self.diagnostics.push(error(self.program, "SPX-T291", format!("immutable list operation `{name}` requires {} arguments and no type arguments", op.argument_count()), expression.span));
+                    }
+                    VerifierCallTarget::Ordinary(Some(VerifierFunctionSignature::Specialized {
+                        params: op.ast_params(),
+                        return_type: op.ast_return_type(),
+                        implicit_unique_ownership: false,
                     }))
                 } else if let Some(op) = crate::iterator_ops::by_name(name) {
                     let element = type_arguments.first();

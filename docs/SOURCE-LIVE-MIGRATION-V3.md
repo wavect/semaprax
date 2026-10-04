@@ -20,6 +20,14 @@ function; the checked linked closure admits only its pure signature
 identity and leaf type are checked against the predecessor and destination
 lifecycles. Submitted HIR and caller-asserted roots cannot select code.
 
+A `semaprax.hot-reload-source-agent-handoff.v2` row may restrict this
+selection when it replays against both retained Projects. It commits each
+endpoint's AgentDefinition, AgentGraph, Runtime profile, Proposal and
+Observation facts but carries no checkpoint, writer, provider, capability, or
+dispatch authority. After it matches, this protocol still performs every
+ordinary predecessor-binding, checkpoint, State-schema, pure-migration and
+destination-journal check before it can dispatch a successor.
+
 The predecessor must have an actual committed Suspend terminal with a retained
 canonical State carrier. The carrier is decoded under the exact predecessor
 flat State schema, then re-encoded byte-for-byte. Its terminal chain and
@@ -83,11 +91,13 @@ intent/settlement ordering, carried fuel, ACK loss, cross-version refusal and
 canonical recovery. The `source_live` selector passed 19 local unit tests,
 including the checked State decoder's non-ASCII hostile input. The
 `agent_runtime_v1` `source_migration` selector passed seven retained-Project
-tests: A→B→C execution, binding and budget refusals, lost-ACK charged retry and
-uncertain model refusal, post-ACK deadline, failed-evaluator clock regression,
-post-ACK cancellation, and independently schema-checked recovered settlement.
-The chain recovers B's Suspend before C and C's terminal after expiry without
-redispatch, and inspects each successor's first model request for its migrated
+tests: A→B→C execution through replayed hot-reload selection rows, binding and
+budget refusals, lost-ACK charged retry and uncertain model refusal, post-ACK
+deadline, failed-evaluator clock regression, post-ACK cancellation, and
+independently schema-checked recovered settlement. The chain recovers B's
+Suspend before C and C's terminal after expiry without redispatch, preserves
+the carried State marker and cumulative reservations, retains the same absolute
+deadline, and inspects each successor's first model request for its migrated
 State and destination schema. These are local injected host/store gates;
 fixed reservation units and unknown attempts are charged, not verified provider
 billing. Predecessor response text stays under its original journal binding;

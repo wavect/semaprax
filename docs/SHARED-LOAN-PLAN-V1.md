@@ -27,7 +27,12 @@ requires no ownership-conflict attachment and preserves its legacy Graph
 schema. The borrowed value is used synchronously and cannot be returned,
 stored in an aggregate, captured, exported, sent to another task, or cross a
 function boundary except through an already admitted synchronous borrow
-parameter whose result contains no borrow.
+parameter whose result contains no borrow. The additive
+[Synchronous Borrowed Text Closures v1](CLOSURES-BORROWED-V1.md) permits one
+direct `borrow str` parameter descriptor to be captured by a closure that is
+created and invoked only in that same synchronous frame. Its independent
+source/HIR scope proof forbids aliases and escape; it does not permit capturing
+an own-root local view or shorten the caller's owner loan.
 
 Every attached loan has a dense resolved-function-local identity
 `0..loan_count` and an authenticated expression `site` recorded separately

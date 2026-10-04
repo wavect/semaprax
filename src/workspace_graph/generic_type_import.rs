@@ -27,9 +27,15 @@ pub(super) fn template_is_admitted(declaration: &TypeDeclaration) -> bool {
             Type::Named { name, arguments } => {
                 arguments.is_empty() && parameters.contains(name.as_str())
             }
-            Type::String | Type::Str | Type::SliceU8 | Type::ArrayU8(_) | Type::Function { .. } => {
-                false
-            }
+            Type::String
+            | Type::Str
+            | Type::SliceU8
+            | Type::ArrayU8(_)
+            | Type::OnceFunction
+            | Type::OnceFunctionI64
+            | Type::OnceFunctionI64Pair
+            | Type::MutFunctionI64
+            | Type::Function { .. } => false,
         })
 }
 

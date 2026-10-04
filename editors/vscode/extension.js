@@ -16,6 +16,7 @@ const { SourceIndex } = require('./positions');
 const { openExplorer, stableId } = require('./explorer');
 const { revealCurrentSource } = require('./explorer-reveal');
 const tokenReport = require('./token-report');
+const { HotReload } = require('./hot-reload');
 let stopActive = () => {};
 // Check-on-save: run the user-selected compiler's read-only `check --json` on
 // the saved file's project and publish the result as editor diagnostics. It
@@ -525,6 +526,7 @@ function activateChecks(context, testMode) {
   return { checkProject, goToDeclaration, showReferences, showDocumentation, showOwnership, inspectAgent, safeRename, showCleanupPlan, runAgentTranscript, test: testMode ? { check, ledger, collection, lensProvider } : undefined };
 }
 function activate(context) {
+  let hotReload;
   let client, config, image, candidate, target, stale = true, epoch = 0, busy = false;
   let holes, selectedHole, holeNavigation;
   let imageProject, candidateHandle, repairs;
@@ -563,6 +565,7 @@ function activate(context) {
     status.text = `SEMAPRAX: ${label}`;
   };
   const stop = () => {
+    hotReload?.stop(); hotReload = undefined;
     const old = client; client = undefined; image = undefined; imageProject = undefined;
     for (const watcher of watchers) watcher.dispose(); watchers = [];
     clear('stopped'); documents.clear(); scratch.clear(); if (old) old.stop();
@@ -765,6 +768,19 @@ function activate(context) {
     return response.payload;
   }
   const commands = {
+    async startHotReload() {
+      saved(); if (!vscode.workspace.isTrusted || vscode.workspace.workspaceFolders?.some(folder => folder.uri.scheme !== 'file')) throw new Error('Hot reload requires a trusted local filesystem workspace'); const selected = configured();
+      hotReload?.stop(); hotReload = new HotReload(spawn, selected.compiler, selected.manifest);
+      hotReload.on('status', value => { status.text = `SEMAPRAX hot reload: ${value.event} · ${String(value.active || '').slice(7,19)}`; });
+      hotReload.on('terminal', reason => { status.text = `SEMAPRAX hot reload: terminal · ${reason}`; });
+      hotReload.start();
+    },
+    async stopHotReload() { const controller = hotReload; controller?.stop(); const detail = controller?.detail(); hotReload = undefined; status.text = detail?.event === 'unknown' ? `SEMAPRAX hot reload: unknown · ${detail.detail}` : 'SEMAPRAX hot reload: stopped'; },
+    async hotReloadStatus() { if (!hotReload) throw new Error('Start Hot Reload first'); hotReload.request('status'); },
+    async hotReloadDetail() { if (!hotReload) throw new Error('Start Hot Reload first'); const detail = hotReload.detail(); void vscode.window.showInformationMessage(`Hot reload ${detail.event}: ${detail.detail}. Active: ${detail.active || 'none'}; pending: ${detail.pending || 'none'}; editor dirty: ${detail.dirty ? 'yes' : 'no'}; saved source changed: ${detail.sourceChanged ? 'yes' : 'no'}`); return detail; },
+    async hotReloadPlan() { if (!hotReload) throw new Error('Start Hot Reload first'); hotReload.request('plan'); },
+    async hotReloadActivate() { if (!hotReload) throw new Error('Start Hot Reload first'); hotReload.request('activate'); },
+    async hotReloadInvoke() { if (!hotReload) throw new Error('Start Hot Reload first'); saved(); hotReload.request('invoke'); },
     async showTokenReport() { return showTokenReport(); },
     async openExplorer() {
       if (!await requireExplorerSession()) return;
@@ -1116,7 +1132,12 @@ function activate(context) {
     onDidChange: tokenChanged.event,
     provideTextDocumentContent(uri) { if (!tokenDocuments.has(uri.toString())) throw new Error('Unknown token report reference'); return tokenDocuments.get(uri.toString()); }
   }), vscode.workspace.onDidChangeTextDocument(event => {
-    if (event.document.isDirty && (event.document.uri.path.endsWith('.spx') || path.basename(event.document.uri.path) === 'semaprax.toml')) clear('unsaved source');
+    if (event.document.uri.path.endsWith('.spx') || path.basename(event.document.uri.path) === 'semaprax.toml') {
+      hotReload?.markDirty();
+      if (event.document.isDirty) clear('unsaved source');
+    }
+  }), vscode.workspace.onDidSaveTextDocument(document => {
+    if (document.uri.path.endsWith('.spx') || path.basename(document.uri.path) === 'semaprax.toml') hotReload?.markSaved();
   }), vscode.workspace.onDidCloseTextDocument(doc => {
     holeScratch.delete(doc.uri.toString()); scratch.delete(doc.uri.toString());
   }), vscode.workspace.onDidChangeConfiguration(event => { if (event.affectsConfiguration('semaprax')) stop(); }), { dispose: stop });
@@ -1142,7 +1163,7 @@ function activate(context) {
     state() {
       return {
         running: Boolean(client && !client.closed), stale, image: image || null, candidate: candidate || null,
-        target: target || null, status: status.text, scratch: [...scratch],
+        target: target || null, status: status.text, scratch: [...scratch], hotReload: hotReload ? hotReload.detail() : null,
         tools: client ? [...client.tools].sort() : [],
         testTask: testTask ? { taskRevision: testTask.taskRevision, state: testTask.state, cancellationRequested: testTask.cancellationRequested } : null,
         testTaskUsed,

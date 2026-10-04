@@ -1,0 +1,34 @@
+module payment.machine;
+
+@id("payment.protocol")
+session protocol "payment-command-v1" {
+    states { Idle, Pending, Succeeded, Retry, Failed }
+    initial Idle;
+    terminal Succeeded cleanup { release_receipt }
+    terminal Failed cleanup { release_receipt }
+    on Idle charge: call ChargeCommand via "payment.dispatch" -> Pending;
+    on Pending success: receive ChargeAccepted via "payment.dispatch" -> Succeeded;
+    on Pending failure: receive ChargeRejected via "payment.dispatch" -> Retry;
+    on Retry retry: call RetryDecision via "payment.dispatch" -> Idle;
+    on Retry abort: fail Unit via "payment.dispatch" -> Failed;
+    on Idle cancel: cancel Unit via "payment.dispatch" -> Failed;
+    on Pending timeout: timeout Unit via "payment.dispatch" -> Failed;
+}
+
+@id("payment.dispatch")
+fn dispatch(state: i64, event: i64) -> i64
+{
+    if state == 0 && event == 0 { 3 } else { if state == 1 && event == 1 { 4 } else { if state == 1 && event == 2 { 6 } else { if state == 3 && event == 3 { 0 } else { if state == 3 && event == 4 { 8 } else { if state == 0 && event == 5 { 8 } else { if state == 1 && event == 6 { 8 } else { -1 } } } } } } }
+}
+
+@id("payment.main")
+fn main() -> i64
+{
+    0
+}
+
+@id("payment.step")
+fn step(state: i64, event: i64) -> i64
+{
+    dispatch(state, event)
+}

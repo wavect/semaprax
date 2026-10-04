@@ -19,14 +19,19 @@ pub(super) fn resolved_call_params(
     type_arguments: &[ResolvedType],
 ) -> Result<Vec<ResolvedParam>, Diagnostic> {
     if instance.is_none() {
+        if let Some(params) = crate::hir::closure::once::params(callee) {
+            if !type_arguments.is_empty() {
+                return Err(replay_error(function, "affine call has type arguments"));
+            }
+            return Ok(params);
+        }
         if callee == &*crate::hir::function_value::INVOKE_ID {
-            let [signature @ ResolvedType::Function { parameters, .. }] = type_arguments else {
-                return Err(replay_error(
-                    function,
-                    "indirect call lacks exact callable signature",
-                ));
+            let (signature, parameters): (&ResolvedType, &[ResolvedType]) = match type_arguments {
+                [signature @ ResolvedType::Function { parameters, .. }] => (signature, parameters),
+                [signature @ ResolvedType::MutFunctionI64] => (signature, &[ResolvedType::I64]),
+                _ => return Err(replay_error(function, "indirect call lacks exact callable signature")),
             };
-            if !crate::hir::function_value::is_signature(signature) {
+            if !signature.is_mut_function() && !crate::hir::function_value::is_signature(signature) {
                 return Err(replay_error(
                     function,
                     "indirect call signature is not admitted",
@@ -58,6 +63,15 @@ pub(super) fn resolved_call_params(
         }
         if let Some(op) = crate::command_io_ops::by_id(callee.as_str()) {
             return Ok(crate::command_io_ops::resolved_params(op));
+        }
+        if let Some(op) = crate::list_ops::by_id(callee.as_str()) {
+            if !type_arguments.is_empty() {
+                return Err(replay_error(
+                    function,
+                    "immutable list call has incorrect type arity",
+                ));
+            }
+            return Ok(op.resolved_params());
         }
         if let Some(op) = crate::iterator_ops::by_id(callee.as_str()) {
             let [element] = type_arguments else {

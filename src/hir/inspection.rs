@@ -162,7 +162,11 @@ fn audit_resolved_type(root: &ResolvedType) -> Result<(), Diagnostic> {
                 pending.extend(parameters);
                 pending.push(result);
             }
-            ResolvedType::Unit
+            ResolvedType::OnceFunction
+            | ResolvedType::OnceFunctionI64
+            | ResolvedType::OnceFunctionI64Pair
+            | ResolvedType::MutFunctionI64
+            | ResolvedType::Unit
             | ResolvedType::I64
             | ResolvedType::I32
             | ResolvedType::Char

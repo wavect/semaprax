@@ -1,0 +1,7 @@
+module calculator.app;
+
+@id("calculator.app.main")
+fn main() -> i64
+{
+    broken(
+}

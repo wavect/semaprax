@@ -1,0 +1,17 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "ri13-regex-url"
+version = "0.1.0"
+
+[modules]
+entry = "ri13.regex_url"
+sources = ["src/app.spx", "src/tests.spx"]
+tests = ["ri13.regex_url_tests"]
+
+[exports]
+web = ["regex.run", "url.run"]
+
+[rust-dependencies]
+regex = ["=1.13.1"]
+url = ["=2.5.8"]

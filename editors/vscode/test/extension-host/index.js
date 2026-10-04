@@ -11,7 +11,9 @@ const vscode = require('vscode');
 // A removed, renamed, added or reordered command fails here, and every entry
 // must also be registered with VS Code; neither half is a count alone.
 const CONTRIBUTED = [
-  'semaprax.start', 'semaprax.stop', 'semaprax.openCandidate', 'semaprax.selectTarget',
+  'semaprax.start', 'semaprax.startHotReload', 'semaprax.stopHotReload', 'semaprax.hotReloadStatus',
+  'semaprax.hotReloadDetail', 'semaprax.hotReloadPlan', 'semaprax.hotReloadActivate', 'semaprax.hotReloadInvoke',
+  'semaprax.stop', 'semaprax.openCandidate', 'semaprax.selectTarget',
   'semaprax.changeCatalog', 'semaprax.newIntent', 'semaprax.applyIntent', 'semaprax.tryIntent',
   'semaprax.attemptSummary', 'semaprax.attemptDiagnostics', 'semaprax.repairCatalog',
   'semaprax.applyRepair', 'semaprax.discardAttempt', 'semaprax.previewSourceDiff',
@@ -51,6 +53,14 @@ async function waitForExplorerRender(api, expected) {
     await new Promise(resolve => setTimeout(resolve, 50));
   }
   assert.fail(`Explorer webview did not render ${JSON.stringify(expected)}; actions=${JSON.stringify(api.state().explorerActions)}; replies=${JSON.stringify(api.state().explorerReplies)}`);
+}
+async function waitForHotReload(api, event, accept = () => true) {
+  for (let attempt = 0; attempt < 100; attempt++) {
+    const detail = api.state().hotReload;
+    if (detail?.event === event && accept(detail)) return detail;
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  assert.fail(`Hot reload did not report ${event}: ${JSON.stringify(api.state().hotReload)}`);
 }
 
 async function run() {
@@ -101,6 +111,98 @@ async function run() {
   // Every registered `semaprax.` command must be one this manifest declares:
   // an unlisted registration is as much an inventory break as a missing one.
   assert.deepEqual([...registered].filter(name => name.startsWith('semaprax.')).sort(), [...CONTRIBUTED].sort());
+
+  // The installed Extension Host starts the source-built interpreter route
+  // directly. The fixture exercises the actual child before any mocked
+  // protocol row below, so a route/configuration mismatch cannot hide behind
+  // the controller tests.
+  await api.execute('startHotReload');
+  const startedReload = await waitForHotReload(api, 'started');
+  assert.match(startedReload.active, /^sha256:[0-9a-f]{64}$/);
+  const startedDetail = await api.execute('hotReloadDetail');
+  assert.equal(startedDetail.dirty, false);
+  assert.equal(startedDetail.sourceChanged, false);
+  const app = path.join(folder.uri.fsPath, 'src', 'app.spx');
+  const originalApp = fs.readFileSync(app, 'utf8');
+  try {
+    // B preserves the public callable shape and checked behavior while changing
+    // its source; C is deliberately malformed and must leave B active.
+    fs.writeFileSync(app, originalApp.replace('multiply(6, 7)', 'multiply(6, 8)'));
+    await api.execute('hotReloadPlan');
+    const admittedB = await waitForHotReload(api, 'candidate_admitted');
+    assert.match(admittedB.pending, /^sha256:[0-9a-f]{64}$/);
+    assert.notEqual(admittedB.pending, startedReload.active);
+    await api.execute('hotReloadActivate');
+    const activatedB = await waitForHotReload(api, 'activated');
+    assert.equal(activatedB.active, admittedB.pending);
+    fs.writeFileSync(app, 'not valid SEMAPRAX source\n');
+    await api.execute('hotReloadPlan');
+    const rejectedC = await waitForHotReload(api, 'candidate_rejected');
+    assert.equal(rejectedC.active, activatedB.active);
+    assert.equal(rejectedC.pending, null);
+  } finally {
+    fs.writeFileSync(app, originalApp);
+  }
+  await api.execute('stopHotReload');
+  assert.equal(api.state().hotReload, null);
+
+  // Source-Agent is intentionally not selectable by this editor. This
+  // scripted protocol child covers the adapter's visible refusal/migration,
+  // safe-point wait, and terminal uncertainty states without claiming that
+  // the unavailable lane ran.
+const fakeCli = path.join(os.tmpdir(), `semaprax-hot-reload-${process.pid}.js`);
+fs.writeFileSync(fakeCli, `#!/usr/bin/env node
+const readline=require('node:readline');
+const revision='sha256:${'f'.repeat(64)}';
+let session=0,lastPlan;
+const output=value=>console.log(JSON.stringify(value));
+readline.createInterface({input:process.stdin}).on('line',line=>{const row=JSON.parse(line);if(row.op==='start')session++;let value={schema:'semaprax.hot-reload-control.v1',id:row.id,event:'started',generation:0,active_project_revision:revision,terminal_uncertainty:false};if(row.op==='status')value={schema:value.schema,id:row.id,event:'rejected',message:'source-Agent development sessions require the authenticated source-live migration adapter'};if(row.op==='plan'&&session===2){lastPlan=row.id;return;}if(row.op==='plan')value={...value,event:'waiting_safe_point'};if(row.op==='activate')value={...value,event:'terminal_uncertainty',terminal_uncertainty:true};if(row.op==='stop')value={schema:value.schema,id:row.id,event:'stopped'};output(value);});
+process.on('SIGTERM',()=>{if(lastPlan)output({schema:'semaprax.hot-reload-control.v1',id:lastPlan,event:'status',generation:0,active_project_revision:revision,terminal_uncertainty:false});setTimeout(()=>process.exit(0),25);});
+`, { mode: 0o700 });
+  try {
+    await settings.update('compilerPath', fakeCli, vscode.ConfigurationTarget.Global);
+    await api.execute('startHotReload');
+    await waitForHotReload(api, 'started');
+    const dirtyFile = path.join(folder.uri.fsPath, 'hot-reload-dirty.spx');
+    fs.writeFileSync(dirtyFile, 'module hot.reload;\n@id("hot.reload.main") fn main() -> i64 { 0 }\n');
+    try {
+      const dirtyDocument = await vscode.workspace.openTextDocument(vscode.Uri.file(dirtyFile));
+      const dirtyEditor = await vscode.window.showTextDocument(dirtyDocument, { preview: false });
+      assert.equal(await dirtyEditor.edit(edit => edit.insert(dirtyDocument.lineAt(0).range.end, ' ')), true);
+      assert.equal((await waitForHotReload(api, 'started', detail => detail.dirty)).dirty, true);
+      await vscode.commands.executeCommand('workbench.action.files.save');
+      assert.equal((await waitForHotReload(api, 'started', detail => detail.sourceChanged)).sourceChanged, true);
+    } finally {
+      await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+      fs.rmSync(dirtyFile, { force: true });
+    }
+    await api.execute('hotReloadStatus');
+    const migration = await waitForHotReload(api, 'migration_required');
+    assert.match(migration.detail, /interpreter sessions only/);
+    assert.equal((await api.execute('hotReloadDetail')).event, 'migration_required');
+    await api.execute('hotReloadPlan');
+    assert.equal((await waitForHotReload(api, 'waiting_safe_point')).dirty, false);
+    await api.execute('hotReloadActivate');
+    assert.equal((await waitForHotReload(api, 'terminal_uncertainty')).event, 'terminal_uncertainty');
+    await api.execute('stopHotReload');
+    assert.match(api.state().status, /unknown/);
+    // A planning/check reply may arrive after Stop. The controller has already
+    // discarded the child, so the late response cannot recreate the session.
+    await api.execute('startHotReload');
+    await waitForHotReload(api, 'started');
+    await api.execute('hotReloadPlan');
+    await new Promise(resolve => setTimeout(resolve, 25));
+    await api.execute('stopHotReload');
+    await new Promise(resolve => setTimeout(resolve, 100));
+    assert.equal(api.state().hotReload, null);
+    assert.equal(api.state().status, 'SEMAPRAX hot reload: stopped');
+    await settings.update('compilerPath', compiler, vscode.ConfigurationTarget.Global);
+    assert.equal(api.state().hotReload, null, 'settings change keeps the stopped reload session disposed');
+    assert.equal(api.state().status, 'SEMAPRAX: stopped');
+  } finally {
+    await settings.update('compilerPath', compiler, vscode.ConfigurationTarget.Global);
+    fs.rmSync(fakeCli, { force: true });
+  }
 
   // VS Code's real hover provider consumes the compiler's bounded selected
   // import context, even when no prepared index was selected by the host.
@@ -424,7 +526,16 @@ async function run() {
       publication: false
     },
     dirty_buffer_invalidated: true,
-    source_bytes_unchanged: true
+    source_bytes_unchanged: true,
+    hot_reload: {
+      interpreter_child: true,
+      migration_required: true,
+      waiting_safe_point: true,
+      terminal_unknown: true,
+      stale_after_stop: true,
+      stop_while_plan_pending: true,
+      source_agent_selected: false
+    }
   }));
 }
 

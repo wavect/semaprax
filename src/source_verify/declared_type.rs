@@ -142,6 +142,17 @@ pub(super) fn check_declared_type(
 ) {
     let mut pending = vec![ty];
     while let Some(ty) = pending.pop() {
+        if *ty == Type::MutFunctionI64 {
+            if !parameters.is_empty() {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T308",
+                    "mutable callables require monomorphic declarations",
+                    span,
+                ));
+            }
+            continue;
+        }
         let Type::Named { name, arguments } = ty else {
             if let Type::Function {
                 parameters: slots,
@@ -216,7 +227,19 @@ pub(super) fn check_declared_type(
             name: name.clone(),
             arguments: arguments.clone(),
         };
-        if crate::iterator_ops::ast_is_iterator(&instance)
+        if matches!(name.as_str(), "List" | "ListStep") && !crate::list_ops::ast_is_list(&instance)
+        {
+            diagnostics.push(error(
+                program,
+                "SPX-T291",
+                "immutable list profile admits only `List<i64>` and `ListStep<i64>`",
+                span,
+            ));
+            pending.extend(arguments.iter().rev());
+            continue;
+        }
+        if crate::list_ops::ast_is_list(&instance)
+            || crate::iterator_ops::ast_is_iterator(&instance)
             || (matches!(
                 (name.as_str(), declaration.stable_id.as_str()),
                 ("Iter", crate::iterator_ops::ITER_ID) | ("IterStep", crate::iterator_ops::STEP_ID)
@@ -342,6 +365,10 @@ pub(super) fn generic_function_signature_slot(ty: &Type, parameters: &HashSet<&s
         | Type::Bytes
         | Type::Str
         | Type::SliceU8
+        | Type::OnceFunction
+        | Type::OnceFunctionI64
+        | Type::OnceFunctionI64Pair
+        | Type::MutFunctionI64
         | Type::Function { .. } => false,
         Type::Named { name, arguments } => {
             arguments.is_empty() && parameters.contains(name.as_str())
@@ -513,6 +540,10 @@ pub(super) fn substitute_function_type(
                 Type::F64 => resolved.push(Type::F64),
                 Type::Bool => resolved.push(Type::Bool),
                 Type::String => resolved.push(Type::String),
+                Type::OnceFunction => resolved.push(Type::OnceFunction),
+                Type::OnceFunctionI64 => resolved.push(Type::OnceFunctionI64),
+                Type::OnceFunctionI64Pair => resolved.push(Type::OnceFunctionI64Pair),
+                Type::MutFunctionI64 => resolved.push(Type::MutFunctionI64),
                 Type::Bytes => resolved.push(Type::Bytes),
                 Type::Str => resolved.push(Type::Str),
                 Type::SliceU8 => resolved.push(Type::SliceU8),
@@ -935,6 +966,26 @@ pub(super) fn check_ownership_mode(
     types: &TypeTable<'_>,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
+    if param.ty == Type::MutFunctionI64 {
+        diagnostics.push(error(
+            program,
+            "SPX-T308",
+            "mutable callback parameters are outside the local receiver profile",
+            param.span,
+        ));
+        return;
+    }
+    if param.ty.is_once_function() {
+        if param.mode != ParamMode::Own || !function.type_parameters.is_empty() {
+            diagnostics.push(error(
+                program,
+                "SPX-T308",
+                "affine callable parameters require monomorphic `own FnOnce() -> i64`",
+                param.span,
+            ));
+        }
+        return;
+    }
     if param.ty == Type::Str {
         if param.mode != ParamMode::Borrow {
             diagnostics.push(

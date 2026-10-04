@@ -15,16 +15,29 @@ pub fn is_signature(ty: &ResolvedType) -> bool {
 /// Internal helpers may transport scalar callable values; this does not admit
 /// those signatures at an imported or selected public boundary.
 pub(crate) fn private_helper_signature(function: &ResolvedFunction) -> bool {
-    let slot = |ty: &ResolvedType| scalar(ty) || is_signature(ty);
+    let slot = |ty: &ResolvedType| {
+        scalar(ty) || is_signature(ty) || ty.is_once_function() || ty.is_mut_function()
+    };
     function.effects.is_empty()
         && function.params.len() <= 8
-        && function
-            .params
-            .iter()
-            .all(|p| p.ownership == OwnershipMode::Value && slot(&p.ty))
+        && function.params.iter().all(|p| {
+            slot(&p.ty)
+                && p.ownership
+                    == if p.ty.is_once_function() || p.ty.is_mut_function() {
+                        OwnershipMode::Own
+                    } else {
+                        OwnershipMode::Value
+                    }
+        })
         && slot(&function.return_type)
         && (function.params.iter().any(|p| is_signature(&p.ty))
-            || is_signature(&function.return_type))
+            || is_signature(&function.return_type)
+            || function.return_type.is_once_function()
+            || function.return_type.is_mut_function()
+            || function
+                .params
+                .iter()
+                .any(|p| p.ty.is_once_function() || p.ty.is_mut_function()))
 }
 pub fn signature(function: &ResolvedFunction) -> Option<ResolvedType> {
     (function.effects.is_empty()
@@ -122,6 +135,32 @@ pub(crate) fn validate_invocation_scoped(
     let ResolvedExprKind::Invoke { callable, args } = &expression.kind else {
         return Err(error("expected invocation"));
     };
+    if callable.ty.is_mut_function() {
+        return if callable.ownership == OwnershipMode::Own
+            && matches!(args.as_slice(), [argument] if argument.ty == ResolvedType::I64 && argument.ownership == OwnershipMode::Value)
+            && expression.ty == ResolvedType::I64
+            && expression.ownership == OwnershipMode::Value
+            && matches!(&callable.kind, ResolvedExprKind::Place(p) if p.projections.is_empty())
+        {
+            Ok(())
+        } else {
+            Err(error(
+                "mutable invocation requires its direct unique receiver and one i64 argument",
+            ))
+        };
+    }
+    if callable.ty.is_once_function() {
+        return if callable.ownership == OwnershipMode::Own
+            && args.is_empty()
+            && expression.ty == ResolvedType::I64
+            && expression.ownership == OwnershipMode::Value
+            && matches!(&callable.kind, ResolvedExprKind::Place(p) if p.projections.is_empty())
+        {
+            Ok(())
+        } else {
+            Err(error("affine invocation must consume its exact owner once"))
+        };
+    }
     let ResolvedType::Function { parameters, result } = &callable.ty else {
         return Err(error("invocation target is not a function value"));
     };
@@ -158,8 +197,10 @@ pub(crate) fn invocation_params(
     let ResolvedExprKind::Invoke { callable, .. } = &expression.kind else {
         unreachable!()
     };
-    let ResolvedType::Function { parameters, .. } = &callable.ty else {
-        unreachable!()
+    let parameters: &[ResolvedType] = match &callable.ty {
+        ResolvedType::Function { parameters, .. } => parameters,
+        ResolvedType::MutFunctionI64 => &[ResolvedType::I64],
+        _ => unreachable!(),
     };
     Ok(parameters
         .iter()
@@ -175,6 +216,8 @@ pub(crate) fn invocation_params(
 }
 
 pub(crate) fn validate_program(program: &ResolvedProgram) -> Result<(), Diagnostic> {
+    super::closure::mutable::validate_uses(program)?;
+    super::closure::borrowed::validate_uses(program)?;
     if !requires_function_values(program) {
         return Ok(());
     }
@@ -260,10 +303,23 @@ pub(crate) fn validate_program(program: &ResolvedProgram) -> Result<(), Diagnost
 }
 
 pub(crate) fn function_uses_value(f: &ResolvedFunction) -> bool {
-    let mut found = matches!(f.return_type, ResolvedType::Function { .. })
-        || f.params
-            .iter()
-            .any(|p| matches!(p.ty, ResolvedType::Function { .. }));
+    let mut found = matches!(
+        f.return_type,
+        ResolvedType::Function { .. }
+            | ResolvedType::OnceFunction
+            | ResolvedType::OnceFunctionI64
+            | ResolvedType::OnceFunctionI64Pair
+            | ResolvedType::MutFunctionI64
+    ) || f.params.iter().any(|p| {
+        matches!(
+            p.ty,
+            ResolvedType::Function { .. }
+                | ResolvedType::OnceFunction
+                | ResolvedType::OnceFunctionI64
+                | ResolvedType::OnceFunctionI64Pair
+                | ResolvedType::MutFunctionI64
+        )
+    });
     walk(f, |e| {
         found |= matches!(
             e.kind,
@@ -286,10 +342,16 @@ pub(crate) fn template_uses_value(template: &super::ResolvedFunctionTemplate) ->
         .chain(&template.ensures)
         .collect::<Vec<_>>();
     if matches!(template.return_type, ResolvedType::Function { .. })
-        || template
-            .params
-            .iter()
-            .any(|p| matches!(p.ty, ResolvedType::Function { .. }))
+        || template.params.iter().any(|p| {
+            matches!(
+                p.ty,
+                ResolvedType::Function { .. }
+                    | ResolvedType::OnceFunction
+                    | ResolvedType::OnceFunctionI64
+                    | ResolvedType::OnceFunctionI64Pair
+                    | ResolvedType::MutFunctionI64
+            )
+        })
     {
         return true;
     }
@@ -305,4 +367,27 @@ pub(crate) fn template_uses_value(template: &super::ResolvedFunctionTemplate) ->
         super::push_resolved_expression_children_in_authored_order(expression, &mut pending);
     }
     false
+}
+
+pub(crate) fn cleanup_call(
+    expression: &ResolvedExpr,
+) -> Result<
+    (
+        &'static DeclarationId,
+        &[ResolvedExpr],
+        Vec<super::ResolvedParam>,
+    ),
+    Diagnostic,
+> {
+    if let Some((callee, args)) = super::closure::once::call(expression) {
+        return Ok((
+            callee,
+            args,
+            super::closure::once::params(callee).expect("closed affine call"),
+        ));
+    }
+    let ResolvedExprKind::Invoke { args, .. } = &expression.kind else {
+        return Err(error("missing callable cleanup boundary"));
+    };
+    Ok((&INVOKE_ID, args, invocation_params(expression)?))
 }

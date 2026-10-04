@@ -23,9 +23,9 @@ pub struct ResolvedExpr {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ResolvedClosureCapture {
-    /// Private body parameter receiving this scalar snapshot.
+    /// Private body parameter receiving an admitted snapshot or borrowed view.
     pub binding: ResolvedBinding,
-    /// Exact outer-scope scalar place read when the closure is constructed.
+    /// Exact outer-scope place read when the closure is constructed.
     pub value: ResolvedExpr,
 }
 

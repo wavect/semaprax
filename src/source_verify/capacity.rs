@@ -1,5 +1,4 @@
 //! Source-level byte-data storage, call-path, and transcript capacity projection.
-
 use super::*;
 
 mod command_io;
@@ -205,7 +204,6 @@ pub(super) fn source_transcript_frame_scratch_peak() -> (usize, usize) {
         SOURCE_TRANSCRIPT_ROOT_REF_PEAK.with(std::cell::Cell::get),
     )
 }
-
 fn source_array_payload(types: &TypeTable<'_>, ty: &Type) -> Result<u32, ()> {
     let mut total = 0_u32;
     let mut pending = vec![ty.clone()];
@@ -236,6 +234,10 @@ fn source_array_payload(types: &TypeTable<'_>, ty: &Type) -> Result<u32, ()> {
             | Type::Bytes
             | Type::Str
             | Type::SliceU8
+            | Type::OnceFunction
+            | Type::OnceFunctionI64
+            | Type::OnceFunctionI64Pair
+            | Type::MutFunctionI64
             | Type::Function { .. } => {}
         }
     }
@@ -510,23 +512,7 @@ pub(super) fn source_capacity_expr_type(
     }
 }
 
-fn source_capacity_slot(
-    slots: &mut Vec<crate::byte_data_capacity::ArrayStorageSlot>,
-    types: &TypeTable<'_>,
-    identity: String,
-    kind: crate::byte_data_capacity::ArrayStorageKind,
-    ty: &Type,
-) -> Result<(), ()> {
-    let length = source_array_payload(types, ty)?;
-    if length != 0 || matches!(ty, Type::ArrayU8(0)) {
-        slots.push(crate::byte_data_capacity::ArrayStorageSlot {
-            identity,
-            kind,
-            length,
-        });
-    }
-    Ok(())
-}
+use functions::source_capacity_slot;
 
 pub(super) fn source_transcript_source_from_roots(
     expression: &Expr,

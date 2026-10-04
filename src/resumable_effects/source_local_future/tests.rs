@@ -2,6 +2,7 @@ use super::*;
 use std::cell::Cell;
 use std::future::poll_fn;
 use std::rc::Rc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::task::{Wake, Waker};
 
@@ -24,6 +25,52 @@ fn canonical() -> String {
 struct NoopWake;
 impl Wake for NoopWake {
     fn wake(self: Arc<Self>) {}
+}
+
+struct CountingWake(AtomicUsize);
+impl Wake for CountingWake {
+    fn wake(self: Arc<Self>) {
+        self.0.fetch_add(1, Ordering::SeqCst);
+    }
+    fn wake_by_ref(self: &Arc<Self>) {
+        self.0.fetch_add(1, Ordering::SeqCst);
+    }
+}
+
+#[test]
+fn rust_consumer_awaits_checked_source_export_which_waits_for_rust() {
+    let host_polls = Rc::new(Cell::new(0));
+    let selected = SourceLocalFuture::prepare(
+        &canonical(),
+        Path::new("local-future.spx"),
+        "app.ask",
+        41,
+        10_000,
+        {
+            let host_polls = host_polls.clone();
+            move |request| {
+                poll_fn(move |context| {
+                    let polls = host_polls.get();
+                    host_polls.set(polls + 1);
+                    if polls == 0 {
+                        context.waker().wake_by_ref();
+                        Poll::Pending
+                    } else {
+                        Poll::Ready(Ok::<i64, ()>(request + 1))
+                    }
+                })
+            }
+        },
+    )
+    .unwrap();
+    let mut caller = Box::pin(async move { selected.await });
+    let wake = Arc::new(CountingWake(AtomicUsize::new(0)));
+    let waker = Waker::from(wake.clone());
+    let mut context = Context::from_waker(&waker);
+    assert_eq!(caller.as_mut().poll(&mut context), Poll::Pending);
+    assert_eq!(wake.0.load(Ordering::SeqCst), 1);
+    assert_eq!(caller.as_mut().poll(&mut context), Poll::Ready(Ok(84)));
+    assert_eq!(host_polls.get(), 2);
 }
 
 #[test]

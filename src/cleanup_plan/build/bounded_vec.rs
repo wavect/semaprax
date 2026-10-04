@@ -93,7 +93,9 @@ fn resolved_params(
 #[cfg(test)]
 pub(super) fn type_arguments(expression: &ResolvedExpr) -> Result<&[ResolvedType], Diagnostic> {
     match &expression.kind {
-        ResolvedExprKind::Invoke { .. } | ResolvedExprKind::NativeRustImportCall(_) => Ok(&[]),
+        ResolvedExprKind::Invoke { .. }
+        | ResolvedExprKind::Closure { .. }
+        | ResolvedExprKind::NativeRustImportCall(_) => Ok(&[]),
         ResolvedExprKind::Call { type_arguments, .. } => Ok(type_arguments),
         _ => Err(plan_error("cleanup call expression has inconsistent shape")),
     }

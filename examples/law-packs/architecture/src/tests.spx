@@ -1,0 +1,7 @@
+module archclaims.tests;
+
+@id("archclaims.tests.main")
+fn main() -> i64
+{
+    0
+}

@@ -1,0 +1,8 @@
+{
+  "schema": "semaprax.list-induction-proof-module.v1",
+  "append_eq": "induction suffix generalizing left with\n| nil => simp [append]\n| cons item rest ih =>\n  simp [append, ih, List.append_assoc]",
+  "append_empty": "simp [append_eq]",
+  "reverse_eq": "induction input with\n| nil => simp [reverse]\n| cons item rest ih =>\n  simp [reverse, ih]",
+  "reverse_length": "simp [reverse_eq]",
+  "reverse_involution": "simp [reverse_eq]"
+}

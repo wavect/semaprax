@@ -11,6 +11,7 @@ mod native_callback;
 mod nested_record;
 mod owned;
 mod public_generic_wasm;
+mod source_local_future;
 
 #[cfg(test)]
 mod tests;
@@ -56,6 +57,7 @@ pub(super) enum PreparedProjectAdmission {
     OwnedUtf8ApiV1(Box<PublicApiDescriptor>),
     NestedOwnedRecordApiV1(Box<NestedOwnedRecordApiDescriptor>),
     PublicGenericWasmProviderV1(Box<AdmittedPublicGenericEndpointV1>),
+    SourceLocalFutureV1(Box<crate::resumable_effects::source_signature::SourceEffectSignature>),
 }
 
 impl PreparedProjectAdmission {
@@ -81,6 +83,7 @@ impl PreparedProjectAdmission {
             Self::OwnedUtf8ApiV1(_descriptor) => ProjectProfile::OwnedUtf8ApiV1,
             Self::NestedOwnedRecordApiV1(_descriptor) => ProjectProfile::NestedOwnedRecordApiV1,
             Self::PublicGenericWasmProviderV1(_) => ProjectProfile::PublicGenericWasmProviderV1,
+            Self::SourceLocalFutureV1(_) => ProjectProfile::SourceLocalFutureV1,
         }
     }
 
@@ -119,6 +122,15 @@ impl PreparedProjectAdmission {
     ) -> Option<&AdmittedPublicGenericEndpointV1> {
         match self {
             Self::PublicGenericWasmProviderV1(endpoint) => Some(endpoint.as_ref()),
+            _ => None,
+        }
+    }
+
+    pub(super) fn source_local_future_signature(
+        &self,
+    ) -> Option<&crate::resumable_effects::source_signature::SourceEffectSignature> {
+        match self {
+            Self::SourceLocalFutureV1(signature) => Some(signature),
             _ => None,
         }
     }
@@ -241,5 +253,8 @@ pub(super) fn prepare(
                 .map(Box::new)
                 .map(PreparedProjectAdmission::PublicGenericWasmProviderV1)
         }
+        ProjectProfile::SourceLocalFutureV1 => source_local_future::prepare(program, manifest)
+            .map(Box::new)
+            .map(PreparedProjectAdmission::SourceLocalFutureV1),
     }
 }

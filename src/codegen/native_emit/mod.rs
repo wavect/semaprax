@@ -24,6 +24,8 @@ use std::fmt::Write as _;
 mod closure;
 mod compiler;
 mod contract_status;
+mod once;
+mod mutable;
 use contract_status::{contract_label, emit_contract_status};
 mod expression;
 mod filesystem_io;
@@ -34,6 +36,7 @@ mod generic_record;
 mod generic_variant;
 mod http_io;
 mod literals;
+mod native_list;
 mod nested_owned;
 mod network_io;
 mod output_profile;
@@ -172,7 +175,7 @@ fn emit_hir_c_with_options(
         &record_layouts,
         &variant_layouts,
     )?;
-    if hir::closure::requires_closures(program) {
+    if hir::closure::requires_runtime_closures(program) {
         closure::emit_carrier_declarations(&mut output, program, &resource_abi)?;
     }
     function_value::emit_typedefs(&mut output, program, &resource_abi)?;
@@ -434,6 +437,7 @@ fn emit_native_prelude_inner(
         native_vec::program_uses_vec(program) || native_iter::program_uses_iterator(program),
         native_box::program_uses_box(program),
         crate::iterator_ops::resolved_program_uses_owned_iterator(program),
+        crate::list_ops::resolved_program_uses_list(program),
     );
     output.push_str(&resource_abi.declarations);
     output.push_str("#include <stdio.h>\n\n");
@@ -447,6 +451,7 @@ fn emit_native_prelude_inner(
     } else {
         output.push_str(NATIVE_SCALAR_RUNTIME_C);
     }
+    native_list::emit_runtime(output, program);
     if closure::enabled(program) || program_uses_u8_arithmetic(program) {
         // Checked u8 helpers stay out of programs that cannot reach them, so
         // existing projections keep their exact committed bytes.
@@ -518,11 +523,11 @@ fn emit_native_prelude_inner(
     }
 }
 fn program_uses_byte_data(program: &ResolvedProgram) -> bool {
-    if crate::iterator_ops::resolved_program_uses_owned_iterator(program) {
+    let affine = hir::closure::once::requires_bytes(program);
+    if affine || crate::iterator_ops::resolved_program_uses_owned_iterator(program) {
         return true;
     }
-    // The owned-record element owns two `Bytes` leaves, so its carrier runtime
-    // needs the byte-data runtime even in a program that never names `Bytes`.
+    // Owned-record elements require byte runtime even without a named Bytes slot.
     if crate::hir::owned_record_collection::program_uses_profile(program) {
         return true;
     }
@@ -1006,34 +1011,7 @@ fn emit_variant_declaration(
     Ok(())
 }
 
-fn c_value_type(
-    program: &ResolvedProgram,
-    resource_abi: &native_resource::NativeResourceAbi,
-    ty: &ResolvedType,
-) -> Result<String, Diagnostic> {
-    if matches!(ty, ResolvedType::Function { .. }) {
-        function_value::c_type(program, ty)
-    } else if let Some(iterator) = native_iter::c_type(ty) {
-        Ok(iterator.to_owned())
-    } else if is_native_owned_vec_type(program, ty) {
-        Ok("spx_vec_v1".to_owned())
-    } else if crate::cleanup::is_owned_bounded_box_type(ty) {
-        Ok("spx_box_v1".to_owned())
-    } else if matches!(ty, ResolvedType::ArrayU8(0)) {
-        // ISO C11 has no zero-sized value type. Ordinary internal calls use
-        // one byte as a non-semantic ABI carrier while all actual array
-        // storage and element access remain erased.
-        Ok("uint8_t".to_owned())
-    } else if let ResolvedType::ArrayU8(length) = ty {
-        Ok(format!("struct spx_array_u8_{length}"))
-    } else if record_declaration_id(program, ty)?.is_some() {
-        Ok(format!("struct {}", c_record_symbol(ty)))
-    } else if variant_declaration_id(program, ty)?.is_some() {
-        Ok(format!("struct {}", c_variant_symbol(ty)))
-    } else {
-        resource_abi.c_type(program, ty).map(str::to_owned)
-    }
-}
+use owned_carrier::c_value_type;
 
 fn is_aggregate_type(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic> {
     Ok(matches!(ty, ResolvedType::ArrayU8(length) if *length != 0)
@@ -1053,7 +1031,8 @@ fn record_declaration_id<'a>(
     else {
         return Ok(None);
     };
-    if crate::iterator_ops::is_iter(ty)
+    if crate::list_ops::is_list(ty)
+        || crate::iterator_ops::is_iter(ty)
         || is_native_owned_vec_type(program, ty)
         || crate::cleanup::is_owned_bounded_box_type(ty)
     {
@@ -2096,6 +2075,9 @@ fn emit_function(
     }
     output.push_str("spx_epilogue:\n");
     output.push_str("    if (spx_call_entered) {\n        if (spx_ctx->call_depth == UINT32_C(0)) spx_runtime_invariant_failure(\"call depth underflow\");\n        --spx_ctx->call_depth;\n    }\n");
+    if crate::list_ops::resolved_program_uses_list(program) {
+        output.push_str("    if (spx_call_entered && spx_ctx->call_depth == UINT32_C(0)) spx_list_release(spx_ctx);\n");
+    }
     if !borrowed_params.is_empty() || !borrowed_byte_params.is_empty() {
         output.push_str("    if (spx_ctx->borrowed_str_depth == UINT32_C(0)) spx_runtime_invariant_failure(\"borrowed str call depth underflow\");\n");
         output.push_str("    --spx_ctx->borrowed_str_depth;\n");

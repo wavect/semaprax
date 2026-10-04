@@ -10,17 +10,18 @@ TIMEOUT = 180
 BUILD_TIMEOUT = 600
 FILES = [
     "Cargo.toml", "Cargo.lock", "editors/vscode/package.json",
-    "editors/vscode/extension.js", "editors/vscode/protocol.js", "editors/vscode/review.js",
+    "editors/vscode/extension.js", "editors/vscode/hot-reload.js", "editors/vscode/protocol.js", "editors/vscode/review.js",
     "editors/vscode/tasks.js",
     "editors/vscode/holes.js", "editors/vscode/repairs.js",
     "editors/vscode/diagnostics.js", "editors/vscode/navigation.js", "editors/vscode/positions.js",
     "editors/vscode/explorer.js", "editors/vscode/explorer-assets.manifest.json",
-    "editors/vscode/test/extension-host/index.js",
+    "editors/vscode/test/extension-host/index.js", "editors/vscode/test/hot-reload.test.js",
     "ui/semantic-explorer/model.js", "ui/semantic-explorer/layout.js",
     "ui/semantic-explorer/cache.js", "ui/semantic-explorer/changes.js",
     "ui/semantic-explorer/evidence.js", "ui/semantic-explorer/hosts.js",
     "ui/semantic-explorer/view.js", "ui/semantic-explorer/explorer.css",
     "docs/SEMANTIC-EXPLORER-V1.md",
+    "docs/COMPLETION-MATRIX.md", "docs/VSCODE-SAVED-SOURCE-ADAPTER-V1.md",
     "examples/calculator-project/semaprax.toml", "examples/calculator-project/src/app.spx",
     "examples/calculator-project/src/core.spx", "examples/calculator-project/src/tests.spx",
 ]
@@ -29,9 +30,10 @@ NODE_TESTS = [
     "editors/vscode/test/holes.test.js", "editors/vscode/test/holes-suggestions.test.js",
     "editors/vscode/test/repairs.test.js", "editors/vscode/test/tasks.test.js",
     "editors/vscode/test/diagnostics.test.js", "editors/vscode/test/navigation.test.js",
+    "editors/vscode/test/hot-reload.test.js",
 ]
-NODE_TEST_COUNT = 99
-CONTRIBUTED_COMMANDS = 41
+NODE_TEST_COUNT = 108
+CONTRIBUTED_COMMANDS = 48
 POLICY = {"schema":"semaprax.workspace-host-policy.v7","candidate_prepare":True,
  "diagnostics":False,"build_enabled":False,"test_policy":{"max_steps":100000,"max_execution_bytes":65536,"max_report_bytes":262144},"git_commit":None,
  "frontend_cache":False,"candidate_archives":[],"semantic_cache":False,
@@ -143,7 +145,7 @@ def verify_viewer_assets(vsix, installed, standalone):
                 raise Failure(f"guide standalone HTML omits the exact Explorer asset: {name}")
 
 def main():
-    ap=argparse.ArgumentParser(); ap.add_argument("--vscode-app",required=True); ap.add_argument("--node"); ap.add_argument("--output"); ap.add_argument("--build-target")
+    ap=argparse.ArgumentParser(); ap.add_argument("--vscode-app",required=True); ap.add_argument("--node"); ap.add_argument("--output"); ap.add_argument("--build-target"); ap.add_argument("--compiler")
     ns=ap.parse_args(); clean()
     commit=git("rev-parse","HEAD^{commit}"); tree=git("rev-parse","HEAD^{tree}"); tags=git("tag","--points-at",commit).splitlines()
     inputs=[repo_row(x) for x in FILES]
@@ -167,11 +169,16 @@ def main():
     for name,expected in ((b"tests",NODE_TEST_COUNT),(b"pass",NODE_TEST_COUNT),(b"fail",0),(b"skipped",0)):
         rows=re.findall(rb"^# "+name+rb" ([0-9]+)$",node_log,re.MULTILINE)
         if rows != [str(expected).encode()]: raise Failure(f"unexpected Node controller {name.decode()} inventory: {rows!r}")
-    build_temp=None if ns.build_target else tempfile.TemporaryDirectory(prefix="semaprax-vscode-build-",dir="/private/tmp")
-    build_target=Path(ns.build_target).resolve() if ns.build_target else Path(build_temp.name)/"target"
-    build_env=os.environ.copy(); build_env.update({"CARGO_NET_OFFLINE":"true","CARGO_INCREMENTAL":"0","CARGO_TERM_COLOR":"never","RUSTC":rustc,"CARGO_TARGET_DIR":str(build_target)})
-    build_log=command([cargo,"build","--locked","--offline","-p","semaprax","--bin","semaprax"],"compiler build",env=build_env,timeout=BUILD_TIMEOUT)
-    compiler=(build_target/"debug/semaprax").resolve(strict=True); compiler_before=file_row(compiler)
+    if ns.compiler:
+        compiler=Path(ns.compiler).resolve(strict=True)
+        build_log=b"reused selected compiler; no Cargo build\n"
+    else:
+        build_temp=None if ns.build_target else tempfile.TemporaryDirectory(prefix="semaprax-vscode-build-",dir="/private/tmp")
+        build_target=Path(ns.build_target).resolve() if ns.build_target else Path(build_temp.name)/"target"
+        build_env=os.environ.copy(); build_env.update({"CARGO_NET_OFFLINE":"true","CARGO_INCREMENTAL":"0","CARGO_TERM_COLOR":"never","RUSTC":rustc,"CARGO_TARGET_DIR":str(build_target)})
+        build_log=command([cargo,"build","--locked","--offline","-p","semaprax","--bin","semaprax"],"compiler build",env=build_env,timeout=BUILD_TIMEOUT)
+        compiler=(build_target/"debug/semaprax").resolve(strict=True)
+    compiler_before=file_row(compiler)
     with tempfile.TemporaryDirectory(prefix="semaprax-vscode-host-",dir="/private/tmp") as td:
         area=Path(td); workspace=area/"workspace"; shutil.copytree(ROOT/"examples/calculator-project",workspace)
         policy=area/"policy.json"; policy.write_bytes(canonical(POLICY))
@@ -209,7 +216,7 @@ def main():
         matches=MARKER.findall(host_log)
         if len(matches)!=1: raise Failure("expected one Extension Host result")
         observation=json.loads(matches[0])
-        expected_keys={"schema","vscode_version","app_name","extension_host_exec_path","extension_version","registered_commands","image_revision","candidate_revision","webview_rendered_views","source_sha256","typed_intent","target","verified_virtual_diff","startup_test_grant","discovered_task_tools","explicit_cooperative_cancellation","cancellation","test_task_authority","pending_task_dirty_buffer_invalidated","authority","dirty_buffer_invalidated","source_bytes_unchanged"}
+        expected_keys={"schema","vscode_version","app_name","extension_host_exec_path","extension_version","registered_commands","image_revision","candidate_revision","webview_rendered_views","source_sha256","typed_intent","target","verified_virtual_diff","startup_test_grant","discovered_task_tools","explicit_cooperative_cancellation","cancellation","test_task_authority","pending_task_dirty_buffer_invalidated","authority","dirty_buffer_invalidated","source_bytes_unchanged","hot_reload"}
         if set(observation)!=expected_keys: raise Failure("unexpected Extension Host observation schema")
         if observation["schema"]!="semaprax.vscode-extension-host-result.v2" or observation["vscode_version"]!=cli_version[0] or observation["app_name"]!="Visual Studio Code" or observation["registered_commands"]!=CONTRIBUTED_COMMANDS: raise Failure(f"Extension Host identity mismatch: schema={observation['schema']!r}, version={observation['vscode_version']!r}, app={observation['app_name']!r}, commands={observation['registered_commands']!r}")
         for key in ("image_revision","candidate_revision"):
@@ -219,6 +226,7 @@ def main():
         if observation["cancellation"] != {"state":"cancelled","before_step":1,"steps_used":0,"report_released":False,"source_authority":False}: raise Failure("host cancellation boundary mismatch")
         if observation["test_task_authority"] != {"source_write":False,"process":False,"network":False,"target_runtime":False,"publication":False}: raise Failure("candidate test task authority widened")
         if observation["authority"] != {"source_write":False,"build":False,"commit":False,"publication":False}: raise Failure("editor authority widened")
+        if observation["hot_reload"] != {"interpreter_child":True,"migration_required":True,"waiting_safe_point":True,"terminal_unknown":True,"stale_after_stop":True,"stop_while_plan_pending":True,"source_agent_selected":False}: raise Failure("hot reload Extension Host coverage is incomplete")
         rendered=observation["webview_rendered_views"]
         expected_renders=[
             {"mode":"overview","target":None,"side":"current","loaded":["declarations","modules"]},

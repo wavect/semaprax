@@ -1,0 +1,38 @@
+{
+  "schema": "semaprax.hot-reload-acceptance.v1",
+  "scope": "interpreter-only",
+  "compiler": {"revision": "git-head-at-run", "binary_digest": "captured-in-report"},
+  "lanes": [
+    {"id": "interpreter-save-to-ack", "availability": "local", "command": "dev --jsonl --interpreter"},
+    {"id": "full-restart", "availability": "local", "command": "dev --jsonl --interpreter"},
+    {"id": "authenticated-warm-restart", "availability": "local", "command": "semantic-cache-refresh + semantic-cache-warm-open"},
+    {"id": "source-agent", "availability": "migration-required", "command": null}
+  ],
+  "fixture": {
+    "manifest": "fixtures/semaprax.toml",
+    "sources": [
+      {"path": "fixtures/a/src/app.spx", "sha256": "sha256:ddfedb62ccb63930d411bff62716583f075c703b72f8d5434816ff45e1469fcc"},
+      {"path": "fixtures/b/src/app.spx", "sha256": "sha256:389ef5da349e6d3d6537947845ceda784b201b56e1f11c49df5618c24de3ea28"},
+      {"path": "fixtures/shared/src/core.spx", "sha256": "sha256:415255f8628535606dcecd8d7459639014d4a3437dc1199ecf7f9cc8074d801e"},
+      {"path": "fixtures/shared/src/tests.spx", "sha256": "sha256:373d4bc3cc3b292da6fdf69c15778c363573af42dde0dc213c23360f499a7b11"},
+      {"path": "fixtures/c/src/core.spx", "sha256": "sha256:66348b8c67132e1079a1b2a25527ad38104199f354115eca9c805db9013aba89"},
+      {"path": "fixtures/c/src/tests.spx", "sha256": "sha256:bfbe0ec81ffbcc4afafb488b317a5a12f49e983dc3c5bcc49d0a02267aaaa527"},
+      {"path": "fixtures/invalid/src/app.spx", "sha256": "sha256:75baec7fbdcdbede32ad5620d2a1aeb85e36a5239a87c246ece9d4ce008d2917"}
+    ]
+  },
+  "transitions": [
+    {"id": "a-invokes", "expected": {"kind": "returned", "value": 42}},
+    {"id": "save-b-plan", "expected_event": "candidate_admitted"},
+    {"id": "activate-b", "expected_event": "activated"},
+    {"id": "b-invokes", "expected": {"kind": "returned", "value": 48}}
+  ],
+  "scenario_matrix": [
+    {"id": "cold-small-a-to-b", "availability": "local", "description": "fresh interpreter session applies the small app A-to-B edit"},
+    {"id": "warm-repeated-a-b-a", "availability": "local", "description": "one interpreter session applies B then returns to A"},
+    {"id": "no-op", "availability": "local", "description": "saving identical source bytes returns the watcher unchanged event"},
+    {"id": "multi-module-import-closure", "availability": "local", "description": "core and test module changes together require restart when the callable closure is incompatible; active A remains usable"},
+    {"id": "failed-edit-repair", "availability": "local", "description": "an invalid app edit is rejected, preserves A, then admits repaired B"}
+  ],
+  "required_test_counts": {"interpreter-save-to-ack": 1, "full-restart": 1, "authenticated-warm-restart": 1},
+  "nonclaims": ["source-Agent journey", "native-or-Wasm-swap", "production-rollout", "universal-millisecond-target"]
+}

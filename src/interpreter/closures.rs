@@ -11,6 +11,7 @@ pub(super) struct ClosureValue {
     pub(super) captures: Vec<(ValueId, Value)>,
     pub(super) function: ResolvedFunction,
     pub(super) result: ResolvedType,
+    pub(super) mutable: Option<super::mutable_closure::MutableState>,
 }
 
 impl Evaluator<'_> {
@@ -34,10 +35,22 @@ impl Evaluator<'_> {
         let mut values = Vec::with_capacity(captures.len());
         for capture in captures {
             let value = self.evaluate(&capture.value, environment, depth)?;
-            values.push((capture.binding.id.clone(), self.clone_value(&value)?));
+            values.push((
+                capture.binding.id.clone(),
+                if expression.ty.is_once_function() {
+                    value
+                } else {
+                    self.clone_value(&value)?
+                },
+            ));
         }
-        let ResolvedType::Function { result, .. } = &expression.ty else {
-            return Err(Flow::Guard("closure type"));
+        let result = match &expression.ty {
+            ResolvedType::Function { result, .. } => *result.clone(),
+            ResolvedType::OnceFunction
+            | ResolvedType::OnceFunctionI64
+            | ResolvedType::OnceFunctionI64Pair
+            | ResolvedType::MutFunctionI64 => ResolvedType::I64,
+            _ => return Err(Flow::Guard("closure type")),
         };
         let function = self
             .closure_functions
@@ -45,13 +58,27 @@ impl Evaluator<'_> {
             .ok_or(Flow::Guard("closure product outside checked inventory"))?
             .clone();
         let target = function.id.clone();
-        Ok(Value::Closure(Arc::new(ClosureValue {
+        let mutable = if expression.ty.is_mut_function() {
+            let Some((_, Value::Int(state))) = values.first() else {
+                return Err(Flow::Guard("mutable capture is not i64"));
+            };
+            Some(super::mutable_closure::MutableState::new(*state))
+        } else {
+            None
+        };
+        let value = ClosureValue {
             target,
             parameters: parameters.clone(),
             captures: values,
             function,
-            result: *result.clone(),
-        })))
+            result,
+            mutable,
+        };
+        Ok(if expression.ty.is_once_function() {
+            Value::OnceClosure(Box::new(value))
+        } else {
+            Value::Closure(Arc::new(value))
+        })
     }
 }
 

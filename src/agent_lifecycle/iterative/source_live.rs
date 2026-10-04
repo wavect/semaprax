@@ -19,9 +19,10 @@ use crate::live_invocation::{
     CumulativeBudgetLedger, SourceInvocationClock,
 };
 pub use migration::{
-    prepare_source_live_migration, prepare_source_live_migration_with_io_limits,
-    prepare_source_live_priced_migration, PreparedSourceLiveMigration, SourceLiveMigrationEndpoint,
-    SourceLiveMigrationRequest,
+    prepare_source_live_migration, prepare_source_live_migration_from_hot_reload_handoff,
+    prepare_source_live_migration_with_io_limits, prepare_source_live_priced_migration,
+    run_source_live_migration_from_hot_reload_session, PreparedSourceLiveMigration,
+    SourceAgentHandoffFailure, SourceLiveMigrationEndpoint, SourceLiveMigrationRequest,
 };
 pub(crate) use migration::{
     prepare_source_live_policy_migration_profiled,
@@ -151,6 +152,8 @@ pub struct SourceLiveOutcome {
     pub checkpoint: RecoveredSourceCheckpoint,
     pub model_dispatches: u32,
     pub effect_dispatches: u32,
+    /// Present only when the checked typed dispatcher owns exact accounting.
+    pub effect_accounting: Option<driver::EffectAccounting>,
 }
 
 /// Failure retains the last acknowledged prefix and this traversal's partial
@@ -263,6 +266,7 @@ impl CompiledIterativeLifecycle {
                     checkpoint: checkpoint.clone(),
                     model_dispatches: 0,
                     effect_dispatches: 0,
+                    effect_accounting: None,
                 });
             }
             if let Some(SourceJournalEntry::Stop { turn, status, .. }) = checkpoint.entries().last()
@@ -301,6 +305,7 @@ impl CompiledIterativeLifecycle {
                         .map_err(|error| SourceLiveFailure::initial(error, recovered.clone()))?,
                     model_dispatches: 0,
                     effect_dispatches: 0,
+                    effect_accounting: None,
                 });
             }
             if checkpoint.is_uncertain() {
@@ -351,25 +356,29 @@ impl CompiledIterativeLifecycle {
             session.sink.journal().entries().last()
         {
             let selected = (*status).into();
-            return session.complete(None, Some(selected), Vec::new());
+            return session.complete(None, Some(selected), Vec::new(), None);
         }
         if let Err(errors) = session.opened() {
             return Err(session.failure(None, errors));
         }
-        match self.run_with_driver_live_session(
+        let run = self.run_with_driver_live_session(
             request.task,
             source,
             driver,
             request.budget,
             request.cancellation,
             Some(&mut session),
-        ) {
-            Ok(run) => session.complete(Some(run), None, Vec::new()),
-            Err(driver::DriverFailure::Diagnostics(errors)) => session.complete(None, None, errors),
+        );
+        let effect_accounting = driver.effect_accounting();
+        match run {
+            Ok(run) => session.complete(Some(run), None, Vec::new(), effect_accounting),
+            Err(driver::DriverFailure::Diagnostics(errors)) => {
+                session.complete(None, None, errors, effect_accounting)
+            }
             Err(driver::DriverFailure::Persistence {
                 terminal,
                 diagnostics,
-            }) => session.complete(Some(*terminal), None, diagnostics),
+            }) => session.complete(Some(*terminal), None, diagnostics, effect_accounting),
         }
     }
 }

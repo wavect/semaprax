@@ -1,0 +1,44 @@
+struct spx_mutable_owner {
+    spx_mut_i64_v1 callback;
+};
+void *spx_mutable_create(int64_t initial) {
+    struct spx_mutable_owner *owner = calloc(1, sizeof *owner);
+    if (!owner) return NULL;
+    struct spx_context context = {0};
+    struct spx_status_entry entries[8] = {{0}};
+    if (!spx_context_init(&context, UINT64_C(366), entries, UINT32_C(8), NULL, NULL, NULL)) {
+        free(owner); return NULL;
+    }
+    spx_status_token status = FACTORY_SYMBOL(&context, initial, &owner->callback);
+    if (status != SPX_STATUS_SUCCESS) { free(owner); return NULL; }
+    return owner;
+}
+uint32_t spx_mutable_invoke(void *opaque, int64_t argument, int64_t *out,
+    uint32_t *status_class, uint32_t *status_code) {
+    struct spx_mutable_owner *owner = opaque;
+    if (!owner || !owner->callback.entry || owner->callback.active) return UINT32_C(2);
+    struct spx_context context = {0};
+    struct spx_status_entry entries[8] = {{0}};
+    if (!spx_context_init(&context, UINT64_C(366), entries, UINT32_C(8), NULL, NULL, NULL))
+        return UINT32_C(3);
+    spx_status_token token = spx_mut_i64_invoke_v1(&context, &owner->callback, argument, out);
+    if (token == SPX_STATUS_SUCCESS) return UINT32_C(0);
+    const struct spx_normalized_status *status = spx_status_resolve(&context, token);
+    if (!status) return UINT32_C(3);
+    *status_class = status->status_class;
+    *status_code = status->code;
+    return UINT32_C(1);
+}
+uint32_t spx_mutable_state(void *opaque, int64_t *out) {
+    struct spx_mutable_owner *owner = opaque;
+    if (!owner || !owner->callback.entry || owner->callback.active) return UINT32_C(2);
+    *out = owner->callback.state;
+    return UINT32_C(0);
+}
+void spx_mutable_destroy(void *opaque) {
+    struct spx_mutable_owner *owner = opaque;
+    if (!owner || owner->callback.active)
+        spx_runtime_invariant_failure("active mutable owner destruction");
+    owner->callback.entry = NULL;
+    free(owner);
+}

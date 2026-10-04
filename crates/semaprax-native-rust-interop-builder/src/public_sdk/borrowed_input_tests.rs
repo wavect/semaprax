@@ -141,7 +141,7 @@ fn borrowed_regex_adapters_execute_physically_at_o0_o2_and_reject_guard_copy_con
     fs::remove_dir_all(target_root).unwrap();
 }
 
-fn private_target_root() -> PathBuf {
+pub(super) fn private_target_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .and_then(Path::parent)
@@ -150,7 +150,7 @@ fn private_target_root() -> PathBuf {
         .join(format!("ri06-borrowed-input-{}", std::process::id()))
 }
 
-fn require_disk_space(target: &Path) {
+pub(super) fn require_disk_space(target: &Path) {
     let checkout = target
         .parent()
         .expect("private target has checkout target parent");

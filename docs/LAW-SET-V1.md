@@ -36,6 +36,7 @@ The admitted selectors are:
 | --- | --- | --- |
 | `contract` | Persistent function ID, precondition/postcondition, parsed scalar proposition | Existing Project assurance obligation |
 | `scalar_relational` | Explicit typed scalar binders and a separately stated pure proposition | Open until an independently verified relational proof attachment exists |
+| `list_induction` | Fixed LAW-08 theorem name and its exact checked Project function ID (`list.append` or `list.reverse`) | Current separately authored proof module, exact Project/LawSet replay and installed pinned Lean; opaque law proof only |
 | `forbid_reaches` | Claim ID and persistent `from`/`to` declaration IDs | Existing architecture evaluator |
 | `protocol_realizers_bound` | Claim ID and persistent protocol ID | Existing architecture evaluator; realizer binding only |
 | `model_property` | Closed `authorization`/`handle` reference model and exact registered invariant | Existing bounded model checker and model descriptor |
@@ -56,6 +57,17 @@ types are part of the proposition identity. The checker validates the typed
 boolean expression and refuses calls, effects, undeclared variables, and
 unsupported quantification. Merely naming an SMT or theorem evidence class
 leaves the coverage row open; no proof filename supplies evidence.
+
+`list_induction` accepts only the five fixed theorem/declaration associations
+in [Source-bound list induction v1](LIST-INDUCTION-V1.md). The selected law
+module path must be the retained checked Project source. An installed Lean
+invocation checks the current separately held proof module against that source
+and returns an opaque proof bound to the exact Project revision, ProgramRoot,
+LawSet and proof-module digest. Certificate replay repeats those checks and
+the kernel invocation. Strict coverage uses the distinct
+`pinned_list_induction_lean` requirement with an exact proof-module digest and
+accepted axiom inventory. A certificate, law report, or authored file alone
+cannot satisfy the protected law.
 
 Model selectors bind only registered invariants of the two existing reference
 models. The checker actually explores the selected reference model under its

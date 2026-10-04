@@ -34,6 +34,9 @@ impl CompiledTypedEffects {
                 failure: None,
             },
             proposal: None,
+            replayed_calls: 0,
+            replayed_arguments: 0,
+            replayed_results: 0,
         };
         self.lifecycle.run_live_durable_with_model_wait(
             request,

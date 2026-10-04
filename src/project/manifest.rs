@@ -67,6 +67,8 @@ pub const PROJECT_SCHEMA_V19: &str = "semaprax.project.v19";
 /// Additive contract selected only by Package Manifest v1's closed profile
 /// catalog. No frozen whole-file Project manifest is widened by this target.
 pub const PROJECT_SCHEMA_V20: &str = "semaprax.project.v20";
+/// Additive interpreter-only contract selected through Package Manifest tables.
+pub const PROJECT_SCHEMA_V21: &str = "semaprax.project.v21";
 pub const PROJECT_SCHEMA_V16: &str = "semaprax.project.v16";
 pub const PROJECT_SCHEMA_V15: &str = "semaprax.project.v15";
 pub const PROJECT_SCHEMA_V14: &str = "semaprax.project.v14";
@@ -95,6 +97,7 @@ pub struct ProjectManifest {
     sources: Vec<String>,
     law_sources: Vec<String>,
     web_exports: Vec<String>,
+    rust_async_exports: Vec<String>,
     command: Option<String>,
     command_input: Option<String>,
     capabilities: Vec<String>,
@@ -128,6 +131,7 @@ impl ProjectManifest {
         let mut rust_dependencies = Vec::new();
         let mut target_matrix = None;
         let mut law_sources = Vec::new();
+        let mut rust_async_exports = Vec::new();
         let (
             schema,
             name,
@@ -149,6 +153,7 @@ impl ProjectManifest {
                 ManifestLayout::Tables
             };
             law_sources = parts.law_sources;
+            rust_async_exports = parts.rust_async_exports;
             dependencies = parts.dependencies;
             dependency_sources = parts.dependency_sources;
             rust_dependencies = parts.rust_dependencies;
@@ -861,6 +866,7 @@ impl ProjectManifest {
             && profile != ProjectProfile::EnvironmentIoV1
             && profile != ProjectProfile::ProcessIoV1
             && profile != ProjectProfile::UsefulDataV2
+            && profile != ProjectProfile::SourceLocalFutureV1
         {
             return Err(grammar(format!(
                 "{version_label} requires 1..=32 explicit web export identities"
@@ -870,6 +876,15 @@ impl ProjectManifest {
             return Err(capacity("web_exports", MAX_WEB_EXPORTS));
         }
         require_strict_order(&web_exports, "web export identities")?;
+        if profile == ProjectProfile::SourceLocalFutureV1 {
+            if rust_async_exports.len() != 1 || !valid_stable_id(&rust_async_exports[0]) {
+                return Err(grammar(
+                    "source-local-future.v1 requires exactly one valid rust_async stable ID",
+                ));
+            }
+        } else if !rust_async_exports.is_empty() {
+            return Err(grammar("rust_async exports require source-local-future.v1"));
+        }
         if web_exports.iter().any(|id| !valid_stable_id(id)) {
             return Err(grammar(format!(
                 "{version_label} web exports must use bounded lowercase [a-z0-9._-] stable IDs"
@@ -912,6 +927,7 @@ impl ProjectManifest {
             sources,
             law_sources,
             web_exports,
+            rust_async_exports,
             command,
             command_input,
             capabilities,
@@ -1015,6 +1031,11 @@ impl ProjectManifest {
 
     pub fn web_exports(&self) -> &[String] {
         &self.web_exports
+    }
+
+    /// Selected interpreter-backed Rust Future entry, separate from Web exports.
+    pub fn rust_async_exports(&self) -> &[String] {
+        &self.rust_async_exports
     }
 
     pub(crate) fn is_no_export_std_collections(&self) -> bool {

@@ -23,6 +23,7 @@ pub(crate) const SCHEMA_V5: &str = "semaprax.prelude.v5";
 pub(crate) const SCHEMA_V6: &str = "semaprax.prelude.v6";
 pub(crate) const SCHEMA_V7: &str = "semaprax.prelude.v7";
 pub(crate) const SCHEMA_V8: &str = "semaprax.prelude.v8";
+pub(crate) const SCHEMA_V9: &str = "semaprax.prelude.v9";
 
 pub(crate) const OPTION_ID: &str = "core.option";
 pub(crate) const OPTION_NONE_ID: &str = "core.option.none";
@@ -47,6 +48,8 @@ pub(crate) fn declarations() -> &'static [TypeDeclaration] {
             owned_box(),
             owned_iter(),
             iter_step(),
+            immutable_list(),
+            list_step(),
         ]
     })
 }
@@ -54,8 +57,10 @@ pub(crate) fn declarations() -> &'static [TypeDeclaration] {
 pub(crate) fn declarations_for_program(
     program: &crate::ast::Program,
 ) -> &'static [TypeDeclaration] {
-    if crate::iterator_ops::program_uses_iterator(program) {
+    if crate::list_ops::program_uses_list(program) {
         declarations()
+    } else if crate::iterator_ops::program_uses_iterator(program) {
+        &declarations()[..6]
     } else if crate::box_ops::program_uses_owned_payload(program) || program_uses_box(program) {
         &declarations()[..4]
     } else if program_uses_vec(program) {
@@ -66,7 +71,10 @@ pub(crate) fn declarations_for_program(
 }
 
 pub(crate) fn is_reserved_type_name(name: &str) -> bool {
-    matches!(name, "Option" | "Result" | "Vec" | "Iter" | "IterStep")
+    matches!(
+        name,
+        "Option" | "Result" | "Vec" | "Iter" | "IterStep" | "List" | "ListStep"
+    )
 }
 
 pub(crate) fn is_compiler_owned_id(id: &str) -> bool {
@@ -89,6 +97,12 @@ pub(crate) fn is_compiler_owned_id(id: &str) -> bool {
             | crate::iterator_ops::YIELD_ID
             | crate::iterator_ops::ITEM_ID
             | crate::iterator_ops::REST_ID
+            | crate::list_ops::LIST_ID
+            | crate::list_ops::STEP_ID
+            | crate::list_ops::NIL_CASE_ID
+            | crate::list_ops::CONS_CASE_ID
+            | crate::list_ops::HEAD_ID
+            | crate::list_ops::TAIL_ID
     )
 }
 
@@ -157,7 +171,22 @@ pub(crate) fn all_type_ids_v7() -> [&'static str; 17] {
     ]
 }
 
-pub(crate) fn all_reserved_ids() -> [&'static str; 30] {
+pub(crate) fn all_type_ids_v9() -> [&'static str; 23] {
+    let mut ids = [""; 23];
+    let earlier = all_type_ids_v7();
+    ids[..17].copy_from_slice(&earlier);
+    ids[17..].copy_from_slice(&[
+        crate::list_ops::LIST_ID,
+        crate::list_ops::STEP_ID,
+        crate::list_ops::NIL_CASE_ID,
+        crate::list_ops::CONS_CASE_ID,
+        crate::list_ops::HEAD_ID,
+        crate::list_ops::TAIL_ID,
+    ]);
+    ids
+}
+
+pub(crate) fn all_reserved_ids() -> [&'static str; 39] {
     [
         OPTION_ID,
         OPTION_NONE_ID,
@@ -189,6 +218,15 @@ pub(crate) fn all_reserved_ids() -> [&'static str; 30] {
         crate::iterator_ops::REST_ID,
         crate::iterator_ops::INTO_ITER_ID,
         crate::iterator_ops::NEXT_ID,
+        crate::list_ops::LIST_ID,
+        crate::list_ops::STEP_ID,
+        crate::list_ops::NIL_CASE_ID,
+        crate::list_ops::CONS_CASE_ID,
+        crate::list_ops::HEAD_ID,
+        crate::list_ops::TAIL_ID,
+        crate::list_ops::NIL_ID,
+        crate::list_ops::CONS_ID,
+        crate::list_ops::UNCONS_ID,
     ]
 }
 
@@ -271,6 +309,18 @@ pub(crate) fn contract_bytes_v8() -> Vec<u8> {
     let mut output = legacy.replacen(SCHEMA_V7, SCHEMA_V8, 1).into_bytes();
     output.extend_from_slice(b"profile core.iter.owned-bytes.v2 element:Bytes\noperation core.vec.into-iter vec_into_iter <Bytes>(own:Vec<Bytes>)->own:Iter<Bytes>\noperation core.iter.next iter_next <Bytes>(own:Iter<Bytes>)->own:IterStep<Bytes>\nrule owned_iter distinct_authority initialized_window:[cursor,length) detached_prefix:[0,cursor)\nrule owned_iter_next validation_before_commit atomic_item_and_remainder_transfer\nrule owned_iter_drop suffix_index_order_then_backing\nrule owned_iter_yield owners:item,rest\ncleanup_plan semaprax.cleanup-plan.v13\nwasm_import env.spx_iter_bytes_into_v2 (i64,i32)->i32\nwasm_import env.spx_iter_bytes_next_v2 (i64,i64,i32)->i32\nwasm_import env.spx_iter_bytes_drop_v2 (i64,i64)->void\n");
     output
+}
+pub(crate) fn contract_bytes_v9() -> Vec<u8> {
+    let legacy = String::from_utf8(contract_bytes_v8()).expect("prelude contract is UTF-8");
+    let mut output = legacy.replacen(SCHEMA_V8, SCHEMA_V9, 1).into_bytes();
+    output.extend_from_slice(b"record core.list List<i64>\nrepresentation core.list immutable Nil|Cons(head:i64,tail:List<i64>)\nvariant core.list-step ListStep<i64>\n0 core.list-step.nil Nil\n1 core.list-step.cons Cons core.list-step.cons.head:head:i64 core.list-step.cons.tail:tail:List<i64>\noperation core.list.nil list_nil ()->List<i64>\noperation core.list.cons list_cons (head:i64,tail:List<i64>)->List<i64>\noperation core.list.uncons list_uncons (list:List<i64>)->ListStep<i64>\nlimit max_length:8192\nrule constructor_failure_leaves_input_unchanged\nrule uncons_shares_immutable_tail\n");
+    output
+}
+pub(crate) fn digest_text_v9() -> String {
+    format!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(Sha256::digest(contract_bytes_v9()))
+    )
 }
 pub(crate) fn digest_text_v8() -> String {
     format!(
@@ -576,7 +626,9 @@ pub(crate) fn selected_for_source(source: &str) -> (&'static str, Vec<u8>, Strin
 pub(crate) fn selected_for_program(
     program: &crate::ast::Program,
 ) -> (&'static str, Vec<u8>, String) {
-    if crate::iterator_ops::program_uses_owned_iterator(program) {
+    if crate::list_ops::program_uses_list(program) {
+        (SCHEMA_V9, contract_bytes_v9(), digest_text_v9())
+    } else if crate::iterator_ops::program_uses_owned_iterator(program) {
         (SCHEMA_V8, contract_bytes_v8(), digest_text_v8())
     } else if crate::iterator_ops::program_uses_iterator(program) {
         (SCHEMA_V7, contract_bytes_v7(), digest_text_v7())
@@ -738,6 +790,45 @@ fn iter_step() -> TypeDeclaration {
                             "rest",
                             Type::Named {
                                 name: "Iter".into(),
+                                arguments: vec![parameter_type("T")],
+                            },
+                        ),
+                    ],
+                ),
+            ],
+        },
+        extends: None,
+        span: Span::default(),
+    }
+}
+
+fn immutable_list() -> TypeDeclaration {
+    let mut declaration = owned_vec();
+    declaration.stable_id = crate::list_ops::LIST_ID.into();
+    declaration.name = "List".into();
+    declaration
+}
+
+fn list_step() -> TypeDeclaration {
+    TypeDeclaration {
+        stable_id: crate::list_ops::STEP_ID.into(),
+        explicit_id: true,
+        name: "ListStep".into(),
+        name_span: Span::default(),
+        type_parameters: vec![parameter("T")],
+        kind: TypeDeclarationKind::Variant {
+            cases: vec![
+                case(crate::list_ops::NIL_CASE_ID, "Nil", Vec::new()),
+                case(
+                    crate::list_ops::CONS_CASE_ID,
+                    "Cons",
+                    vec![
+                        field(crate::list_ops::HEAD_ID, "head", parameter_type("T")),
+                        field(
+                            crate::list_ops::TAIL_ID,
+                            "tail",
+                            Type::Named {
+                                name: "List".into(),
                                 arguments: vec![parameter_type("T")],
                             },
                         ),

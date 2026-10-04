@@ -21,8 +21,10 @@ semaprax-full source-live repair run REPAIR_CONFIG REPAIR_CHECKPOINT
 semaprax-full source-live repair resume REPAIR_CONFIG REPAIR_CHECKPOINT
 semaprax-full source-live repair run REPAIR_CONFIG REPAIR_CHECKPOINT --opencode ABS --scratch EMPTY_ABS [--pause-after-settled]
 semaprax-full source-live repair resume REPAIR_CONFIG REPAIR_CHECKPOINT --opencode ABS --scratch EMPTY_ABS [--pause-after-settled]
+semaprax-full source-live repair receipt REPAIR_CONFIG REPAIR_CHECKPOINT --opencode ABS --scratch EMPTY_ABS
 semaprax-full source-live repair-tested run REPAIR_CONFIG REPAIR_CHECKPOINT --opencode ABS --scratch EMPTY_ABS [--pause-after-settled]
 semaprax-full source-live repair-tested resume REPAIR_CONFIG REPAIR_CHECKPOINT --opencode ABS --scratch EMPTY_ABS [--pause-after-settled]
+semaprax-full source-live repair-tested receipt REPAIR_CONFIG REPAIR_CHECKPOINT --opencode ABS --scratch EMPTY_ABS
 ```
 
 All operands are absolute except the stable migration function identity and
@@ -219,6 +221,50 @@ response digests and byte counts, decode/refusal outcome, and provider-reported
 usage only when the adapter actually recorded it. Missing usage remains `null`;
 the receipt does not manufacture zero tokens, cost, timing or delivery. Terminal
 replay recomputes the identical projection without starting the provider.
+For V2 and V3, the live terminal invocation also derives the existing compact
+compiler-owned patch receipt once and retains its exact bytes in the held
+checkpoint directory as `terminal-patch-receipt.json`. That document binds the
+receipt digest and candidate digest to the retained journal invocation, chain,
+and generation. A terminal `resume` verifies that binding before it creates an
+adapter, candidate, test host, or effect handler, then returns the same patch
+receipt content and digest with zero model, test, or effect redispatch. A
+missing, malformed, or foreign-bound terminal receipt refuses; recovery never
+derives a replacement receipt from caller paths or stale configuration.
+After the terminal journal has committed, the held checkpoint owner persists
+the receipt sidecar and then a separate commitment containing the receipt
+digest, exact sidecar-byte digest, and exact checkpoint-document digest. Both
+records are fsynced before the receipt is returned. Recovery first checks that
+commitment against the already authenticated journal document, then accepts the
+sidecar. A crash before the commitment is durable leaves receipt evidence
+explicitly unavailable; recovery never creates a commitment from an unbound
+sidecar. This is a versioned checkpoint-owner extension, not a source-journal
+schema change.
+The terminal-only `receipt` verb uses the same configuration and checkpoint
+binding, but refuses a nonterminal journal before it creates a provider or
+effect handler. It accepts no receipt or evidence document operand. Its bounded
+output is the retained runtime/test/effect observation projection already
+admitted by the journal; it does not attach caller-supplied evidence or grant
+test, effect, source, or publication authority.
+`runtime_effect_accounting` is a separate bounded projection of the validated
+terminal journal fold. It reports cumulative model attempts, typed-effect
+dispatches, stages, committed model units and stage fuel alongside the
+dispatches performed by the current CLI invocation. A terminal `resume`
+therefore retains the cumulative effect count while its current-invocation
+count is zero and `replayed_without_dispatch` is true. The projection is
+accepted only after normal journal binding and execution-fold replay; malformed
+or counter-inconsistent terminal evidence refuses before rendering. It does
+not prove provider delivery, external-effect completion, or monetary cost. The
+versioned terminal patch-receipt sidecar also binds the typed dispatcher's
+effective call limit, per-call argument/result limits, aggregate charged-byte
+limit, and exact charged argument/result/total byte counters. It separates the
+terminal cumulative values from the producing invocation and historical replay,
+and records a failure or `uncertain` state explicitly. Older authenticated
+sidecars have `effect_budget.status: "absent"`; recovery never derives bytes
+from request digests, count limits, or provider billing data.
+When a terminal `receipt` or `resume` performs no live dispatch, its
+`this_invocation` charges are zero and the complete retained charge ledger is
+reported as `historical_replay`; the limits and cumulative charges remain the
+checkpoint-authenticated values.
 The hash chain supplies integrity and causal shape, not freshness or external
 authentication; a storage controller can replay an older same-binding journal,
 so consumers must not treat this receipt as proof that it is the newest state.
@@ -231,6 +277,12 @@ host observation document is not retained in the current journal, and no new
 observation is fabricated. Neither receipt is a cost proof,
 provider-delivery proof, source/Git mutation, or approval to publish the
 candidate.
+The accompanying `receipt_policy` uses the shared patch-receipt policy schema
+to make this coverage explicit: candidate-test evidence is absent, a partial
+live observation, or partial replayed feedback only. Its runtime-effect entry
+keeps the current invocation's model/effect dispatches separate from cumulative
+validated terminal-journal totals. Rendering the policy is read-only and cannot
+grant test, effect, source, or publication authority.
 
 Priced migration requires both predecessor and destination config v2 pricing
 with exactly matching work unit, currency, minor-unit exponent and integer
@@ -317,8 +369,13 @@ The CLI uses Unix epoch milliseconds as one restart-stable clock domain,
 with origin zero for a fresh v2 run and an absolute `deadline_millis` supplied
 in CONFIG. A v3 migration's origin is the authenticated predecessor latest
 checkpoint's last checked clock floor; repeating the same handoff derives the
-same origin from that predecessor terminal. Recovery does not reset that
-deadline. A regressed or expired continuation
+same origin from that predecessor terminal. In a same-supervisor source-Agent
+handoff, the supervisor retains the acknowledged destination's complete
+`SourceInvocationBinding`; B-to-C reuses it only after rechecking B's current
+checked lifecycle and all host-selected task, deployment, limit, clock-domain,
+and deadline facts. This preserves the migrated v3 profile as well as its clock
+origin without treating retained state as policy or checkpoint authority.
+Recovery does not reset that deadline. A regressed or expired continuation
 refuses; an already committed terminal is a read-only receipt and can be
 retrieved after expiry with zero model/effect dispatches. The OpenCode
 process timeout is no greater than 30 seconds or the invocation time

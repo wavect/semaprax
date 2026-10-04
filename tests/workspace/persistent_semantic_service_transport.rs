@@ -2,21 +2,21 @@ use std::collections::BTreeMap;
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use semaprax::project::{
-    with_authenticated_project, ProjectCandidate, ProjectFrontendSource, ProjectManifest,
-    ProjectRevision, SemanticQuery, SemanticServiceIndexQuery, SemanticTransaction,
-    SemanticTransactionRenameDisplayName, SemanticTransactionReplaceExpression,
-    SemanticTransactionV2, SemanticWorkspaceService, SemanticWorkspaceServiceHistoryQuery,
+    ProjectCandidate, ProjectFrontendSource, ProjectManifest, ProjectRevision, SemanticQuery,
+    SemanticServiceIndexQuery, SemanticTransaction, SemanticTransactionRenameDisplayName,
+    SemanticTransactionReplaceExpression, SemanticTransactionV2, SemanticWorkspaceService,
+    SemanticWorkspaceServiceHistoryQuery, with_authenticated_project,
 };
 use semaprax::semantic_service_transport::{
-    SemanticWorkspaceStdioSession, MAX_SEMANTIC_SERVICE_REQUEST_BYTES,
-    MAX_SEMANTIC_SERVICE_RESPONSE_BYTES, SEMANTIC_SERVICE_TRANSPORT_ERROR_SCHEMA,
-    SEMANTIC_SERVICE_TRANSPORT_RESULT_SCHEMA, SEMANTIC_SERVICE_TRANSPORT_SCHEMA,
+    MAX_SEMANTIC_SERVICE_REQUEST_BYTES, MAX_SEMANTIC_SERVICE_RESPONSE_BYTES,
+    SEMANTIC_SERVICE_TRANSPORT_ERROR_SCHEMA, SEMANTIC_SERVICE_TRANSPORT_RESULT_SCHEMA,
+    SEMANTIC_SERVICE_TRANSPORT_SCHEMA, SemanticWorkspaceStdioSession,
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 const PATHS: [&str; 3] = ["src/app.spx", "src/core.spx", "src/tests.spx"];
@@ -192,6 +192,14 @@ fn one_session_retains_one_generation_and_delegates_exact_query_and_transaction_
             "workspace/validate-transaction",
             "workspace/validate-transaction-v2",
             "workspace/validate-transaction-v2-workflow",
+            "workspace/patch-receipt",
+            "workspace/verify-patch-receipt",
+            "workspace/patch-receipt-refusal",
+            "workspace/verify-patch-receipt-refusal",
+            "workspace/patch-receipt-evidence-summary",
+            "workspace/patch-receipt-evidence-page",
+            "workspace/compare-patch-receipts",
+            "workspace/compare-patch-receipt-set",
             "workspace/compact-projection",
             "workspace/refresh",
             "shutdown"
@@ -471,7 +479,7 @@ fn refresh_is_atomic_reusable_cold_equivalent_and_rolls_back_stale_or_failed_inp
             "workspace/query",
             json!({"query":old_query.to_json()}),
         )),
-        "SPX-G533"
+        "SPX-G530"
     );
     let status = result(&call(&mut session, json!(7), "workspace/status", json!({}))).clone();
     assert_eq!(status["workspace_revision"], current);
@@ -521,9 +529,11 @@ fn malformed_unknown_oversized_and_lifecycle_inputs_fail_closed_without_mutation
     let closed = call(&mut session, json!(5), "shutdown", json!({}));
     assert_eq!(result(&closed)["payload"]["shutdown"], true);
     assert!(session.is_terminal());
-    assert!(session
-        .handle_frame(br#"{"jsonrpc":"2.0","method":"shutdown","params":{}}"#)
-        .is_none());
+    assert!(
+        session
+            .handle_frame(br#"{"jsonrpc":"2.0","method":"shutdown","params":{}}"#)
+            .is_none()
+    );
     assert_eq!(inventory(&fixture.0), before);
 }
 
@@ -614,5 +624,139 @@ fn real_service_cli_retains_the_same_process_generation_across_multiple_requests
     assert_eq!(
         semaprax::image_transport::VNEXT_PROTOCOL_SCHEMA,
         "semaprax.image-agent-protocol.v5"
+    );
+}
+
+#[test]
+fn patch_receipt_adapters_replay_retained_candidates_without_history_or_path_inputs() {
+    let fixture = Fixture::new();
+    let revision = fixture.revision();
+    let direct = SemanticWorkspaceService::open(Arc::clone(&revision)).unwrap();
+    let workspace = direct.active_generation().workspace_revision().to_owned();
+    let transaction = transaction(&workspace).to_json().to_owned();
+    let candidate = direct
+        .validate_transaction(transaction.as_bytes())
+        .unwrap()
+        .candidate()
+        .candidate_digest()
+        .to_owned();
+    let mut session = SemanticWorkspaceStdioSession::open(revision).unwrap();
+    result(&call(&mut session, json!(1), "workspace/open", json!({})));
+
+    let receipt = result(&call(
+        &mut session,
+        json!(2),
+        "workspace/patch-receipt",
+        json!({"transaction":transaction,"candidate_digest":candidate}),
+    ))["payload"]["value"]
+        .clone();
+    assert_eq!(receipt["schema"], "semaprax.patch-receipt.v1");
+    let receipt_text = format!("{}\n", receipt);
+    let verified_response = call(
+        &mut session,
+        json!(3),
+        "workspace/verify-patch-receipt",
+        json!({"transaction":transaction,"candidate_digest":candidate,"receipt":receipt_text}),
+    );
+    let verified = result(&verified_response);
+    assert_eq!(
+        verified["payload"]["value"]["result"],
+        "exact_recomputation"
+    );
+
+    let summary = result(&call(
+        &mut session,
+        json!(4),
+        "workspace/patch-receipt-evidence-summary",
+        json!({"transaction":transaction,"candidate_digest":candidate}),
+    ))["payload"]["value"]
+        .clone();
+    let catalog = summary["evidence"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|entry| entry["id"] == "declaration_catalog")
+        .unwrap();
+    let page_response = call(
+        &mut session,
+        json!(5),
+        "workspace/patch-receipt-evidence-page",
+        json!({"transaction":transaction,"candidate_digest":candidate,"evidence_id":"declaration_catalog","handle":catalog["handle"],"cursor":null,"page_size":1,"max_bytes":65536}),
+    );
+    let page = result(&page_response);
+    assert_eq!(
+        page["payload"]["value"]["schema"],
+        "semaprax.patch-receipt-evidence-page.v1"
+    );
+
+    let stale = "sha256:1111111111111111111111111111111111111111111111111111111111111111";
+    let refusal = result(&call(
+        &mut session,
+        json!(6),
+        "workspace/patch-receipt-refusal",
+        json!({"transaction":transaction,"requested_candidate_digest":stale}),
+    ))["payload"]["value"]
+        .clone();
+    assert_eq!(
+        refusal["content"]["attempt"]["status"],
+        "refused_stale_candidate_selector"
+    );
+    let refusal_text = format!("{}\n", refusal);
+    assert_eq!(
+        result(&call(
+            &mut session,
+            json!(7),
+            "workspace/verify-patch-receipt-refusal",
+            json!({"transaction":transaction,"requested_candidate_digest":stale,"receipt":refusal_text}),
+        ))["payload"]["value"]["result"],
+        "exact_refusal_recomputation"
+    );
+    assert_eq!(
+        result(&call(
+            &mut session,
+            json!(8),
+            "workspace/compare-patch-receipts",
+            json!({"left_transaction":transaction,"left_candidate_digest":candidate,"left_receipt":receipt_text,"right_transaction":transaction,"right_candidate_digest":candidate,"right_receipt":receipt_text}),
+        ))["payload"]["value"]["result"],
+        "comparable"
+    );
+    assert_eq!(
+        result(&call(
+            &mut session,
+            json!(9),
+            "workspace/compare-patch-receipt-set",
+            json!({"receipts":[
+                {"transaction":transaction,"candidate_digest":candidate,"receipt":receipt_text},
+                {"transaction":transaction,"candidate_digest":candidate,"receipt":receipt_text},
+                {"transaction":transaction,"candidate_digest":candidate,"receipt":receipt_text}
+            ]}),
+        ))["payload"]["value"]["result"],
+        "comparable"
+    );
+
+    let history = SemanticWorkspaceServiceHistoryQuery::new(&workspace, 0, 64).unwrap();
+    assert!(
+        result(&call(
+            &mut session,
+            json!(10),
+            "workspace/history-query",
+            json!({"query":history.to_json()}),
+        ))["payload"]["value"]["items"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+    let stale_transaction = transaction.replace(
+        &workspace,
+        "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    );
+    assert_eq!(
+        error_code(&call(
+            &mut session,
+            json!(10),
+            "workspace/patch-receipt",
+            json!({"transaction":stale_transaction,"candidate_digest":candidate}),
+        )),
+        "SPX-G530"
     );
 }

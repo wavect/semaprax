@@ -1,0 +1,1 @@
+{"schema":"semaprax.bend2-law-benchmark.fixture.v1","id":"law-breaking-agent-edit-v1","numeric_domain":"u32 checked","success":[{"input":5,"output":10,"law_inventory":["double"]}],"attacks":{"agent-law-gaming":[{"input":5,"output":5,"law_inventory":[]}]}}

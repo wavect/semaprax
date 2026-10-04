@@ -424,6 +424,18 @@ impl DeclarationIndex {
                         ResolvedType::Bool => Some((true, false, false, "scalar:bool")),
                         ResolvedType::String => Some((false, false, true, "owned:string")),
                         ResolvedType::Bytes => Some((false, false, true, "owned:bytes")),
+                        ResolvedType::OnceFunctionI64 => {
+                            Some((false, false, true, "owned:fn-once:bytes+i64:i64:v2"))
+                        }
+                        ResolvedType::MutFunctionI64 => {
+                            Some((false, false, false, "owned:fn-mut:i64+i64:i64:v1"))
+                        }
+                        ResolvedType::OnceFunctionI64Pair => {
+                            Some((false, false, true, "owned:fn-once:bytes+i64+i64:i64:v3"))
+                        }
+                        ResolvedType::OnceFunction => {
+                            Some((false, false, true, "owned:fn-once:bytes:i64:v1"))
+                        }
                         ResolvedType::Str => Some((false, false, false, "borrowed:str")),
                         ResolvedType::SliceU8 => Some((false, false, false, "borrowed:slice-u8")),
                         ResolvedType::TypeParameter { .. } | ResolvedType::Nominal { .. } => None,
@@ -1411,6 +1423,10 @@ impl DeclarationIndex {
                     Type::Bool => resolved.push(ResolvedType::Bool),
                     Type::String => resolved.push(ResolvedType::String),
                     Type::Bytes => resolved.push(ResolvedType::Bytes),
+                    Type::OnceFunction => resolved.push(ResolvedType::OnceFunction),
+                    Type::OnceFunctionI64 => resolved.push(ResolvedType::OnceFunctionI64),
+                    Type::OnceFunctionI64Pair => resolved.push(ResolvedType::OnceFunctionI64Pair),
+                    Type::MutFunctionI64 => resolved.push(ResolvedType::MutFunctionI64),
                     Type::Str => resolved.push(ResolvedType::Str),
                     Type::SliceU8 => resolved.push(ResolvedType::SliceU8),
                     Type::Named { name, arguments } => {

@@ -68,6 +68,8 @@ mod function_values;
 mod generic_owned;
 pub mod internal_strings;
 mod iterator;
+mod list;
+mod mutable_closure;
 mod nested_owned;
 pub(crate) mod network;
 pub(crate) mod process;
@@ -88,7 +90,9 @@ mod semantic_work;
 use api_admission::{
     owned_utf8_api_result_matches, public_api_argument_matches, public_api_parameter_type_matches,
     public_api_result_is_admitted, require_acyclic_public_api_closure,
-    resolved_owned_utf8_signature_is_admitted, validate_flat_owned_record_result_shape,
+    resolved_data_parameter_is_admitted, resolved_data_result_is_admitted,
+    resolved_data_signature_is_admitted, resolved_owned_utf8_signature_is_admitted,
+    resolved_signature_is_admitted, validate_flat_owned_record_result_shape,
     validate_public_api_borrowed_input_bound,
 };
 use expression_children::child_expressions;
@@ -2301,12 +2305,13 @@ fn variant_pattern_is_admitted(
     ty: &ResolvedType,
     arms: &[hir::ResolvedMatchArm],
 ) -> bool {
-    if !is_admitted_owned_variant(declarations, ty)
+    let list_step = crate::list_ops::step_shape(declarations, ty);
+    if !(is_admitted_owned_variant(declarations, ty) || list_step)
         || !(matches!(
             mode,
             hir::ResolvedMatchMode::Own | hir::ResolvedMatchMode::Borrow
         ) || (mode == hir::ResolvedMatchMode::Value
-            && is_admitted_fieldless_variant(declarations, ty)))
+            && (is_admitted_fieldless_variant(declarations, ty) || list_step)))
         || arms.is_empty()
     {
         return false;
@@ -2554,6 +2559,7 @@ fn scan_closure(
                     || crate::vec_ops::by_id(callee.as_str()).is_some()
                     || crate::box_ops::by_id(callee.as_str()).is_some()
                     || crate::iterator_ops::by_id(callee.as_str()).is_some()
+                    || crate::list_ops::by_id(callee.as_str()).is_some()
                     || crate::host_io_ops::by_id(callee.as_str()).is_some();
                 let execution = instance
                     .as_ref()
@@ -2773,71 +2779,6 @@ fn admitted_resolved_functions_with_profile(
         );
     }
     admitted
-}
-
-fn resolved_signature_is_admitted(
-    function: &ResolvedFunction,
-    declarations: &hir::DeclarationIndex,
-) -> bool {
-    function.effects.is_empty() && resolved_data_signature_is_admitted(function, declarations)
-}
-
-fn resolved_data_signature_is_admitted(
-    function: &ResolvedFunction,
-    declarations: &hir::DeclarationIndex,
-) -> bool {
-    function.params.iter().all(|parameter| {
-        resolved_data_parameter_is_admitted(&parameter.ty, parameter.ownership, declarations)
-    }) && (resolved_data_result_is_admitted(&function.return_type, declarations)
-        || nested_owned::owned_input_copy_result_is_admitted(function, declarations))
-}
-
-fn resolved_data_parameter_is_admitted(
-    ty: &ResolvedType,
-    ownership: hir::OwnershipMode,
-    declarations: &hir::DeclarationIndex,
-) -> bool {
-    match (ty, ownership) {
-        (ty, hir::OwnershipMode::Value)
-            if is_admitted_resolved_scalar(ty)
-                || hir::function_value::is_signature(ty)
-                || matches!(ty, ResolvedType::ArrayU8(_)) =>
-        {
-            true
-        }
-        (ty @ ResolvedType::Nominal { declaration, .. }, hir::OwnershipMode::Value)
-            if declarations
-                .declaration(declaration)
-                .is_some_and(|item| item.kind == hir::DeclarationKind::Class)
-                && record_construction_is_admitted(declarations, ty) =>
-        {
-            true
-        }
-        (ResolvedType::Bytes, hir::OwnershipMode::Own)
-        | (ResolvedType::Bytes, hir::OwnershipMode::Borrow)
-        | (ResolvedType::Str, hir::OwnershipMode::Borrow)
-        | (ResolvedType::SliceU8, hir::OwnershipMode::Borrow)
-        | (ResolvedType::ArrayU8(_), hir::OwnershipMode::Borrow) => true,
-        (ty, hir::OwnershipMode::Own | hir::OwnershipMode::Borrow)
-            if owned_vec::is_collection_type(ty)
-                || is_admitted_owned_byte_record(declarations, ty)
-                || is_admitted_owned_variant(declarations, ty) =>
-        {
-            true
-        }
-        _ => false,
-    }
-}
-fn resolved_data_result_is_admitted(
-    ty: &ResolvedType,
-    declarations: &hir::DeclarationIndex,
-) -> bool {
-    is_admitted_resolved_scalar(ty)
-        || hir::function_value::is_signature(ty)
-        || matches!(ty, ResolvedType::ArrayU8(_) | ResolvedType::Bytes)
-        || owned_vec::is_collection_type(ty)
-        || is_admitted_owned_byte_record(declarations, ty)
-        || is_admitted_owned_variant(declarations, ty)
 }
 
 pub(crate) fn evaluate_resolved_stdout_transcript(
@@ -3115,10 +3056,12 @@ enum Value {
     Bool(bool),
     Function(hir::DeclarationId),
     Closure(Arc<closures::ClosureValue>),
+    OnceClosure(Box<closures::ClosureValue>),
     ArrayU8(Arc<[u8]>),
     Bytes(OwnedBytesValue),
     Vec(Arc<owned_vec::OwnedVecValue>),
     Iter(Arc<iterator::IteratorValue>),
+    List(crate::immutable_list::ImmutableList),
     Box(Arc<owned_box::OwnedBoxValue>),
     String(String),
     BorrowedStr(BorrowedStrValue),
@@ -3752,13 +3695,21 @@ impl Evaluator<'_> {
             | (Value::Float32(_), ResolvedType::F32)
             | (Value::Float64(_), ResolvedType::F64)
             | (Value::Bool(_), ResolvedType::Bool)
+            | (
+                Value::OnceClosure(_),
+                ResolvedType::OnceFunction
+                | ResolvedType::OnceFunctionI64
+                | ResolvedType::OnceFunctionI64Pair,
+            )
             | (Value::Bytes(_), ResolvedType::Bytes)
             | (Value::String(_), ResolvedType::String) => true,
+            (Value::Closure(value), ResolvedType::MutFunctionI64) => value.mutable.is_some(),
             (Value::Variant(carrier), expected) => &carrier.ty == expected,
             (Value::Iter(carrier), expected) => {
                 crate::iterator_ops::is_iter(expected)
                     && crate::iterator_ops::element(expected) == Some(&carrier.vector.element)
             }
+            (Value::List(_), expected) => crate::list_ops::is_list(expected),
             (Value::Record(carrier), ResolvedType::Nominal { declaration, .. }) => {
                 &carrier.record == declaration
                     && (is_admitted_owned_byte_record(self.declarations, ty)
@@ -3889,12 +3840,19 @@ impl Evaluator<'_> {
             }
         }
         self.set_trace_phase(ResolvedTracePhase::Body);
-        let value = match self.evaluate(&function.body, &mut frame, depth) {
+        let mut value = match self.evaluate(&function.body, &mut frame, depth) {
             Ok(value) | Err(Flow::Residual(value)) => value,
             Err(flow) => return Err(flow),
         };
+        let retained_result = !function.ensures.is_empty()
+            && (matches!(value, Value::OnceClosure(_))
+                || matches!(&value, Value::Closure(closure) if closure.mutable.is_some()));
         if !function.ensures.is_empty() {
-            let result_value = self.clone_value(&value)?;
+            let result_value = if retained_result {
+                std::mem::replace(&mut value, Value::Moved)
+            } else {
+                self.clone_value(&value)?
+            };
             frame.push((function.result_id.clone(), result_value));
         }
         self.set_trace_phase(ResolvedTracePhase::Ensures);
@@ -3913,7 +3871,20 @@ impl Evaluator<'_> {
                 _ => return Err(Flow::Guard("non-boolean ensures clause")),
             }
         }
-        Ok(value)
+        if retained_result {
+            take_owned_place(
+                &mut frame,
+                &crate::hir::Place {
+                    root: function.result_id.clone(),
+                    projections: Vec::new(),
+                },
+            )
+            .ok_or(Flow::Guard(
+                "affine provisional result was consumed by a contract",
+            ))
+        } else {
+            Ok(value)
+        }
     }
 
     fn evaluate(
@@ -3957,7 +3928,12 @@ impl Evaluator<'_> {
                 let moves_storage = expression.ownership == hir::OwnershipMode::Own
                     && matches!(
                         &expression.ty,
-                        ResolvedType::Bytes | ResolvedType::Nominal { .. }
+                        ResolvedType::Bytes
+                            | ResolvedType::OnceFunction
+                            | ResolvedType::OnceFunctionI64
+                            | ResolvedType::OnceFunctionI64Pair
+                            | ResolvedType::MutFunctionI64
+                            | ResolvedType::Nominal { .. }
                     );
                 if moves_storage {
                     take_owned_place(environment, place)
@@ -4548,6 +4524,9 @@ impl Evaluator<'_> {
                 if let Some(op) = crate::iterator_ops::by_id(callee.as_str()) {
                     return self.evaluate_iterator_op(op, type_arguments, args, environment, depth);
                 }
+                if let Some(op) = crate::list_ops::by_id(callee.as_str()) {
+                    return self.evaluate_list_op(op, type_arguments, args, environment, depth);
+                }
                 if let Some(op) = crate::vec_ops::by_id(callee.as_str()) {
                     return self.evaluate_vec_op(op, type_arguments, args, environment, depth);
                 }
@@ -4807,7 +4786,8 @@ impl Evaluator<'_> {
                     return outcome;
                 }
                 if let Value::Variant(variant) = staged {
-                    let agg = nested_owned::bc_match(self.declarations, *mode, &scrutinee.ty, arms);
+                    let agg = nested_owned::bc_match(self.declarations, *mode, &scrutinee.ty, arms)
+                        || crate::list_ops::is_step(&scrutinee.ty);
                     if !nested_owned::variant_ok(self.declarations, *mode, &scrutinee.ty, arms) {
                         return Err(Flow::Guard(
                             "owned byte variant match is outside the authenticated profile",

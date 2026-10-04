@@ -63,7 +63,7 @@ pub(super) fn table_plan(program: &ResolvedProgram) -> Result<TablePlan, Diagnos
     }
     targets.sort_by(|left, right| left.id.cmp(&right.id));
     Ok(TablePlan {
-        closure_profile: !bodies.is_empty(),
+        closure_profile: crate::hir::closure::requires_runtime_closures(program),
         targets,
         bodies,
         captures,
@@ -75,6 +75,18 @@ pub(super) fn abi_signature(
     program: &ResolvedProgram,
     signature: &ResolvedType,
 ) -> Result<Signature, Diagnostic> {
+    if signature.is_mut_function() {
+        return Ok(Signature {
+            params: vec![super::I64, I32],
+            results: vec![I32],
+        });
+    }
+    if signature.is_once_function() {
+        return Ok(Signature {
+            params: vec![I32],
+            results: vec![I32],
+        });
+    }
     let ResolvedType::Function { parameters, .. } = signature else {
         return Err(error(
             "function invocation has a non-function callable type",
@@ -134,7 +146,11 @@ pub(super) fn execution_target(target: &ResolvedFunction) -> FunctionExecutionId
 
 pub(super) fn callable_signature(expr: &ResolvedExpr) -> Result<&ResolvedType, Diagnostic> {
     match &expr.ty {
-        ResolvedType::Function { .. } => Ok(&expr.ty),
+        ResolvedType::Function { .. }
+        | ResolvedType::OnceFunction
+        | ResolvedType::OnceFunctionI64
+        | ResolvedType::OnceFunctionI64Pair
+        | ResolvedType::MutFunctionI64 => Ok(&expr.ty),
         _ => Err(error(
             "aggregate function invocation callable is not a function",
         )),
@@ -173,15 +189,31 @@ impl super::Emitter<'_> {
     ) -> Result<super::Value, Diagnostic> {
         crate::hir::function_value::validate_invocation(expr)?;
         let signature = callable_signature(callable)?;
-        let ResolvedType::Function { parameters, result } = signature else {
-            unreachable!()
+        let (parameters, result) = match signature {
+            ResolvedType::Function { parameters, result } => {
+                (parameters.as_slice(), result.as_ref())
+            }
+            ResolvedType::OnceFunction
+            | ResolvedType::OnceFunctionI64
+            | ResolvedType::OnceFunctionI64Pair => (&[][..], &ResolvedType::I64),
+            ResolvedType::MutFunctionI64 => (&[ResolvedType::I64][..], &ResolvedType::I64),
+            _ => unreachable!(),
         };
-        if parameters.len() != args.len() || **result != expr.ty {
+        if parameters.len() != args.len() || *result != expr.ty {
             return Err(error(
                 "aggregate function invocation disagrees with its signature",
             ));
         }
-        let callable_value = self.emit_expr(callable)?;
+        let callable_value = if signature.is_mut_function() {
+            let ResolvedExprKind::Place(place) = &callable.kind else {
+                unreachable!()
+            };
+            // Invocation borrows the unique receiver storage; it does not
+            // materialize or transfer the callback owner.
+            self.place_value(place)?
+        } else {
+            self.emit_expr(callable)?
+        };
         if !self.closure_profile() {
             self.require_scalar(&callable_value, signature, "function invocation callable")?;
         }
@@ -201,6 +233,14 @@ impl super::Emitter<'_> {
         self.output.push(0x21);
         super::write_u32(self.output, scratch);
 
+        if signature.is_mut_function() {
+            // Reject active entry before argument evaluation. The independent
+            // use checker prevents an argument from entering this receiver.
+            self.output.push(0x20);
+            super::write_u32(self.output, scratch);
+            self.output
+                .extend([0x28, 0x02, 0x04, 0x04, 0x40, 0x00, 0x0b]);
+        }
         // Each argument snapshots into its dedicated local before the next
         // expression executes, preserving left-to-right value evaluation even
         // when a later argument mutates a binding read by an earlier one.
@@ -219,6 +259,17 @@ impl super::Emitter<'_> {
             stages.push(stage);
         }
         self.apply_call_commit(&expr.id)?;
+        if signature.is_mut_function() {
+            // The guard occupies the carrier's padding word; capture zero
+            // remains the state cell at byte offset eight.
+            self.output.push(0x20);
+            super::write_u32(self.output, scratch);
+            self.output
+                .extend([0x28, 0x02, 0x04, 0x04, 0x40, 0x00, 0x0b]);
+            self.output.push(0x20);
+            super::write_u32(self.output, scratch);
+            self.output.extend([0x41, 0x01, 0x36, 0x02, 0x04]);
+        }
         if self.closure_profile() {
             self.output.push(0x20);
             super::write_u32(self.output, scratch);
@@ -255,6 +306,13 @@ impl super::Emitter<'_> {
         self.output.push(0x00);
         self.output.push(0x22);
         super::write_u32(self.output, self.plan.status);
+        if signature.is_mut_function() {
+            // Keep the selected status on the operand stack while releasing
+            // the receiver, including every ordinary checked failure.
+            self.output.push(0x20);
+            super::write_u32(self.output, scratch);
+            self.output.extend([0x41, 0x00, 0x36, 0x02, 0x04]);
+        }
         self.output.extend([0x04, 0x40]);
         self.emit_failure_cleanup(&expr.id, crate::cleanup_plan::StatusLane::OperationFailure)?;
         self.output.push(0x0c);
@@ -268,6 +326,13 @@ impl super::Emitter<'_> {
         self.load_scalar(&expr.ty);
         self.output.push(0x21);
         super::write_u32(self.output, local);
+        if signature.is_mut_function() {
+            self.output.push(0x20);
+            super::write_u32(self.output, scratch);
+            self.output.push(0x20);
+            super::write_u32(self.output, local);
+            self.output.extend([0x37, 0x03, 0x08]);
+        }
         Ok(super::Value::Scalar {
             local,
             ty: expr.ty.clone(),
@@ -395,4 +460,25 @@ pub(super) fn executable_functions(
             )
         }))
         .collect()
+}
+
+pub(super) fn value_type(value: &super::Value) -> &ResolvedType {
+    match value {
+        super::Value::Scalar { ty, .. }
+        | super::Value::ScalarMemory { ty, .. }
+        | super::Value::Aggregate { ty, .. } => ty,
+    }
+}
+
+pub(super) fn value_at(
+    pointer: super::Pointer,
+    ty: ResolvedType,
+    program: &ResolvedProgram,
+) -> Result<super::Value, Diagnostic> {
+    if super::is_aggregate(program, &ty)? {
+        Ok(super::Value::Aggregate { pointer, ty })
+    } else {
+        scalar_wasm_type(program, &ty)?;
+        Ok(super::Value::ScalarMemory { pointer, ty })
+    }
 }

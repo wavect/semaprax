@@ -129,7 +129,6 @@ pub(crate) use source_result_component_v4::{
     CANONICAL_EXPORT as SOURCE_RESULT_COMPONENT_CANONICAL_EXPORT_V4,
     STATUS_OUT_EXPORT as SOURCE_RESULT_COMPONENT_STATUS_OUT_EXPORT_V4,
 };
-
 const I32: u8 = 0x7f;
 const I64: u8 = 0x7e;
 const F32: u8 = 0x7d;
@@ -712,7 +711,6 @@ impl ByteOutput for crate::bounded_output::CappedVec {
         self.extend_from_slice(values);
     }
 }
-
 pub fn emit_module(program: &Program) -> Result<Vec<u8>, Diagnostic> {
     reject_native_rust_imports(program)?;
     // SPX-AI-021 bounded owning closures: same pre-resolution substitution the
@@ -950,21 +948,22 @@ pub(crate) fn emit_resolved_line_command_io_v1(
     let plan = command_io::prepare(program, command_id, CommandOperationProfile::LineV1)?;
     aggregate::emit_language_command_io(program, &plan)
 }
-
 pub use network_io::emit_language_network_io_v1;
-
 fn emit_resolved_module_internal(
     program: &ResolvedProgram,
     scalar_exports: &[scalar_exports::ScalarExportPlan],
     text_exports: &[text_exports::TextExportPlan],
 ) -> Result<Vec<u8>, Diagnostic> {
+    let has_public_profile = !scalar_exports.is_empty() || !text_exports.is_empty();
+    if crate::list_ops::resolved_program_uses_list(program) {
+        return aggregate::list_ops::emit_closed_list(program, has_public_profile);
+    }
     if !scalar_exports.is_empty() && !text_exports.is_empty() {
         return Err(Diagnostic::io(
             "SPX-W119",
             "scalar-v1 and borrowed-text-v1 exports cannot share one module",
         ));
     }
-    let has_public_profile = !scalar_exports.is_empty() || !text_exports.is_empty();
     if program
         .interfaces
         .iter()
@@ -977,7 +976,7 @@ fn emit_resolved_module_internal(
         ));
     }
     hir::validate(program)?;
-    if hir::closure::requires_closures(program) {
+    if hir::closure::requires_runtime_closures(program) {
         if !text_exports.is_empty() {
             return Err(Diagnostic::io(
                 "SPX-W115",
@@ -4629,40 +4628,7 @@ fn emit_i32_checked_binary(
     output.push(0xa7);
     Ok(())
 }
-
-fn wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
-    match ty {
-        ResolvedType::Unit => Err(Diagnostic::io(
-            "SPX-W101",
-            "unit is not a WebAssembly value type",
-        )),
-        ResolvedType::I64 => Ok(I64),
-        ResolvedType::I32 => Ok(I32),
-        ResolvedType::Char => Ok(I32),
-        ResolvedType::U8 => Ok(I32),
-        ResolvedType::Usize => Ok(I64),
-        ResolvedType::F32 => Ok(F32),
-        ResolvedType::F64 => Ok(F64),
-        ResolvedType::Bool | ResolvedType::Nominal { .. } | ResolvedType::Function { .. } => {
-            Ok(I32)
-        }
-        // Owned strings lower to an abstract host handle riding the i64 lane.
-        ResolvedType::String | ResolvedType::Str | ResolvedType::SliceU8 | ResolvedType::Bytes => {
-            Ok(I64)
-        }
-        ResolvedType::ArrayU8(_) => Err(Diagnostic::io(
-            "SPX-W101",
-            "fixed byte arrays require the aggregate WebAssembly path",
-        )),
-        ResolvedType::TypeParameter { .. } => Err(Diagnostic::io(
-            "SPX-W109",
-            format!(
-                "unresolved generic type `{}` cannot be lowered to WebAssembly",
-                ty.identity_key()
-            ),
-        )),
-    }
-}
+use function_value::wasm_type;
 
 use function_value::intern_type;
 fn function_import(output: &mut impl ByteOutput, module: &str, name: &str, type_index: u32) {

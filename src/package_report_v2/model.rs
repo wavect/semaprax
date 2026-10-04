@@ -619,6 +619,18 @@ fn ownership_text(ownership: OwnershipMode) -> &'static str {
 
 pub(super) fn type_json(ty: &ResolvedType) -> String {
     match ty {
+        ResolvedType::OnceFunctionI64 => bounded_output::budgeted_clone(
+            "{\"kind\":\"affine_function\",\"profile\":\"bytes-i64-to-i64.v2\"}",
+        ),
+        ResolvedType::MutFunctionI64 => bounded_output::budgeted_clone(
+            "{\"kind\":\"mutable_function\",\"profile\":\"i64-i64-to-i64.v1\"}",
+        ),
+        ResolvedType::OnceFunctionI64Pair => bounded_output::budgeted_clone(
+            "{\"kind\":\"affine_function\",\"profile\":\"bytes-i64-i64-to-i64.v3\"}",
+        ),
+        ResolvedType::OnceFunction => bounded_output::budgeted_clone(
+            "{\"kind\":\"affine_function\",\"profile\":\"bytes-to-i64.v1\"}",
+        ),
         ResolvedType::Function { parameters, result } => bf!(
             "{{\"kind\":\"function\",\"parameters\":[{}],\"result\":{}}}",
             parameters

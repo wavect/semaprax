@@ -50,6 +50,9 @@ pub(crate) fn variant_leaf_lifecycle<'a>(
 /// Compiler-owned primitive cleanup identities, independently derived from type.
 pub(crate) fn primitive_leaf_lifecycle(ty: &ResolvedType) -> Option<&'static str> {
     match ty {
+        ResolvedType::OnceFunction => Some(crate::hir::closure::once::DROP_ID),
+        ResolvedType::OnceFunctionI64 => Some(crate::hir::closure::once::MIXED_DROP_ID),
+        ResolvedType::OnceFunctionI64Pair => Some(crate::hir::closure::once::PAIR_DROP_ID),
         ResolvedType::Bytes => Some(super::BYTES_DROP_LIFECYCLE_ID),
         ResolvedType::String => Some(super::STRING_DROP_LIFECYCLE_ID),
         _ => None,

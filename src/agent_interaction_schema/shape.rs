@@ -86,7 +86,11 @@ impl Representation {
             ResolvedType::Usize => Some(Self::U64),
             ResolvedType::String => Some(Self::Text),
             ResolvedType::Bytes => Some(Self::Bytes),
-            ResolvedType::Function { .. }
+            ResolvedType::OnceFunction
+            | ResolvedType::OnceFunctionI64
+            | ResolvedType::OnceFunctionI64Pair
+            | ResolvedType::MutFunctionI64
+            | ResolvedType::Function { .. }
             | ResolvedType::Unit
             | ResolvedType::Char
             | ResolvedType::ArrayU8(_)

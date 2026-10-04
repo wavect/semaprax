@@ -52,7 +52,11 @@ fn resolved_type_owned_capacity(ty: &ResolvedType) -> usize {
                     .sum::<usize>()
                 + resolved_type_owned_capacity(result)
         }
-        ResolvedType::Unit
+        ResolvedType::OnceFunction
+        | ResolvedType::OnceFunctionI64
+        | ResolvedType::OnceFunctionI64Pair
+        | ResolvedType::MutFunctionI64
+        | ResolvedType::Unit
         | ResolvedType::I64
         | ResolvedType::I32
         | ResolvedType::Char
@@ -491,7 +495,12 @@ pub(crate) fn type_needs_resource_cleanup(
             continue;
         }
         match ty {
-            ResolvedType::Bytes | ResolvedType::String => return Ok(true),
+            ResolvedType::Bytes
+            | ResolvedType::String
+            | ResolvedType::OnceFunction
+            | ResolvedType::OnceFunctionI64
+            | ResolvedType::OnceFunctionI64Pair => return Ok(true),
+            ResolvedType::MutFunctionI64 => {},
             ResolvedType::Function { .. } | ResolvedType::Str | ResolvedType::SliceU8 => {}
             ResolvedType::Nominal {
                 declaration,
@@ -567,7 +576,11 @@ pub(crate) fn type_needs_resource_cleanup(
             // Preserve the existing unsupported-generic cleanup path: the
             // shape builder will issue its more specific diagnostic.
             ResolvedType::TypeParameter { .. } => return Ok(true),
-            ResolvedType::Unit
+            ResolvedType::OnceFunction
+            | ResolvedType::OnceFunctionI64
+            | ResolvedType::OnceFunctionI64Pair
+            | ResolvedType::MutFunctionI64
+            | ResolvedType::Unit
             | ResolvedType::I64
             | ResolvedType::I32
             | ResolvedType::Char

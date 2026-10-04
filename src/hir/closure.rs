@@ -23,8 +23,13 @@ pub fn closure_function(
     else {
         return Err(hir_error("expected closure expression"));
     };
-    let ResolvedType::Function { result, .. } = &expression.ty else {
-        return Err(hir_error("closure has no callable signature"));
+    let result = match &expression.ty {
+        ResolvedType::Function { result, .. } => result.as_ref(),
+        ResolvedType::OnceFunction
+        | ResolvedType::OnceFunctionI64
+        | ResolvedType::OnceFunctionI64Pair
+        | ResolvedType::MutFunctionI64 => &ResolvedType::I64,
+        _ => return Err(hir_error("closure has no callable signature")),
     };
     let id = closure_id(&expression.id);
     let execution = FunctionExecutionId::Monomorphic(id.clone());
@@ -45,7 +50,7 @@ pub fn closure_function(
         name: "closure".to_owned(),
         params,
         result_id: ValueId::result(&execution),
-        return_type: *result.clone(),
+        return_type: result.clone(),
         effects: Vec::new(),
         yields: None,
         requires: Vec::new(),
@@ -80,6 +85,12 @@ pub fn inventory(program: &ResolvedProgram) -> Vec<&ResolvedExpr> {
     }
     found.sort_by(|left, right| left.id.cmp(&right.id));
     found
+}
+
+pub(crate) fn requires_runtime_closures(program: &ResolvedProgram) -> bool {
+    requires_closures(program)
+        || once::requires_bytes(program)
+        || once::uses_type(program, &ResolvedType::MutFunctionI64)
 }
 
 pub fn requires_closures(program: &ResolvedProgram) -> bool {
@@ -127,3 +138,7 @@ mod tests;
 
 mod materialize;
 pub(super) use materialize::materialize;
+
+pub(crate) mod mutable;
+pub(crate) mod borrowed;
+pub(crate) mod once;

@@ -50,6 +50,14 @@ pub enum Type {
     SliceU8,
     /// A noncapturing source-level callable signature. The resolved function
     /// reference retains its declaration identity separately from this type.
+    /// Affine zero-argument callable with one owned Bytes capture and i64 result.
+    OnceFunction,
+    OnceFunctionI64,
+    /// Affine zero-argument callable with one owned Bytes and two i64 snapshots.
+    OnceFunctionI64Pair,
+    /// Same-thread transactional callback with one persistent i64 state and
+    /// one i64 invocation argument.
+    MutFunctionI64,
     Function {
         parameters: Vec<Type>,
         result: Box<Type>,
@@ -60,83 +68,8 @@ pub enum Type {
     },
 }
 
-impl fmt::Display for Type {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        enum Frame<'a> {
-            Type(&'a Type),
-            Arguments(&'a [Type], usize),
-            FunctionParameters(&'a [Type], usize),
-            FunctionResult(&'a Type),
-        }
-        let mut frames = vec![Frame::Type(self)];
-        while let Some(frame) = frames.pop() {
-            match frame {
-                Frame::Type(Type::I64) => f.write_str("i64")?,
-                Frame::Type(Type::I32) => f.write_str("i32")?,
-                Frame::Type(Type::Char) => f.write_str("char")?,
-                Frame::Type(Type::U8) => f.write_str("u8")?,
-                Frame::Type(Type::Usize) => f.write_str("usize")?,
-                Frame::Type(Type::ArrayU8(length)) => write!(f, "[u8; {length}]")?,
-                Frame::Type(Type::F32) => f.write_str("f32")?,
-                Frame::Type(Type::F64) => f.write_str("f64")?,
-                Frame::Type(Type::Bool) => f.write_str("bool")?,
-                Frame::Type(Type::String) => f.write_str("string")?,
-                Frame::Type(Type::Bytes) => f.write_str("Bytes")?,
-                Frame::Type(Type::Str) => f.write_str("str")?,
-                Frame::Type(Type::SliceU8) => f.write_str("Slice<u8>")?,
-                Frame::Type(Type::Function { parameters, result }) => {
-                    f.write_str("fn(")?;
-                    frames.push(Frame::FunctionResult(result));
-                    frames.push(Frame::FunctionParameters(parameters, 0));
-                }
-                Frame::Type(Type::Named { name, arguments }) => {
-                    f.write_str(name)?;
-                    if !arguments.is_empty() {
-                        f.write_str("<")?;
-                        frames.push(Frame::Arguments(arguments, 0));
-                    }
-                }
-                Frame::Arguments(arguments, index) => {
-                    if let Some(argument) = arguments.get(index) {
-                        if index != 0 {
-                            f.write_str(", ")?;
-                        }
-                        frames.push(Frame::Arguments(arguments, index + 1));
-                        frames.push(Frame::Type(argument));
-                    } else {
-                        f.write_str(">")?;
-                    }
-                }
-                Frame::FunctionParameters(parameters, index) => {
-                    if let Some(parameter) = parameters.get(index) {
-                        if index != 0 {
-                            f.write_str(", ")?;
-                        }
-                        frames.push(Frame::FunctionParameters(parameters, index + 1));
-                        frames.push(Frame::Type(parameter));
-                    }
-                }
-                Frame::FunctionResult(result) => {
-                    f.write_str(") -> ")?;
-                    frames.push(Frame::Type(result));
-                }
-            }
-        }
-        Ok(())
-    }
-}
 
-impl Type {
-    pub fn is_named(&self) -> bool {
-        matches!(self, Type::Named { .. })
-    }
-
-    /// Canonical ownership predicate. `Bytes` transfers uniquely without
-    /// being misclassified as a user resource.
-    pub fn is_uniquely_owned(&self) -> bool {
-        matches!(self, Type::String | Type::Bytes)
-    }
-}
+mod type_properties;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum ParamMode {
@@ -276,6 +209,8 @@ impl Drop for Program {
                     return_type,
                     body,
                     owning: _,
+                    retained: _,
+                    mutable: _,
                 } => {
                     types.extend(params.into_iter().map(|param| param.ty));
                     types.push(return_type);
@@ -422,7 +357,11 @@ impl Drop for Program {
                     types.extend(parameters);
                     types.push(*result);
                 }
-                Type::I64
+                Type::OnceFunction
+                | Type::OnceFunctionI64
+                | Type::OnceFunctionI64Pair
+                | Type::MutFunctionI64
+                | Type::I64
                 | Type::I32
                 | Type::Char
                 | Type::U8
@@ -624,7 +563,9 @@ impl AgentDeclaration {
                     })
                 })
             {
-                return Err("Agent model wait helper must be a unique non-generic top-level explicit function");
+                return Err(
+                    "Agent model wait helper must be a unique non-generic top-level explicit function",
+                );
             }
         }
         Ok(())
@@ -899,6 +840,11 @@ pub enum ExprKind {
         /// snapshot profile (Closures v1/v2), unchanged. See
         /// `docs/CLOSURES-OWNING-V1.md`.
         owning: bool,
+        /// A retained affine carrier (`once fn`), distinct from lexical `own fn`.
+        retained: bool,
+        /// A transactional mutable carrier (`mut fn`), distinct from both
+        /// immutable snapshot and consuming affine closures.
+        mutable: bool,
     },
     Int(i64),
     /// An `i32` literal stored as its exact value.

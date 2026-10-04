@@ -426,7 +426,14 @@ fn ast_resource_leaf_count(
                 values[value_len] = 0;
                 value_len += 1;
             }
-            Frame::Enter(crate::ast::Type::Bytes, _) => {
+            Frame::Enter(
+                crate::ast::Type::Bytes
+                | crate::ast::Type::OnceFunction
+                | crate::ast::Type::OnceFunctionI64
+                | crate::ast::Type::OnceFunctionI64Pair
+                | crate::ast::Type::MutFunctionI64,
+                _,
+            ) => {
                 // Bytes is one compiler-owned cleanup leaf even though this
                 // native-rust interop profile rejects it at admission.
                 values[value_len] = 1;

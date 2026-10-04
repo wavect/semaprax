@@ -71,7 +71,7 @@ pub(super) fn process(state: &mut WorkerState, request: ReplacementRequest) -> b
 }
 
 #[cfg(test)]
-pub(super) enum TestHook {
+pub(crate) enum TestHook {
     Pause {
         entered: mpsc::SyncSender<std::thread::ThreadId>,
         resume: mpsc::Receiver<()>,

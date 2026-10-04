@@ -1347,6 +1347,7 @@ pub(super) fn project_linker_name(profile: crate::project::ProjectProfile) -> &'
         P::OwnedUtf8ApiV1 => "Owned UTF-8 API v1 linker",
         P::NestedOwnedRecordApiV1 => "Nested Owned Record API v1 linker",
         P::PublicGenericWasmProviderV1 => "Public Generic Wasm Provider v1 linker",
+        P::SourceLocalFutureV1 => "Source Local Future v1 linker",
     }
 }
 

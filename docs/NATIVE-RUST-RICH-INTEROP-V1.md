@@ -786,6 +786,20 @@ instruction; no full-profile pass is claimed.
 
 ## RI-08 checked callbacks and source-driven registry evidence
 
+The additive [retained affine callback profile](AFFINE-CALLBACK-V1.md) now
+executes a real source-owned `FnOnce() -> i64` carrier with one Bytes capture.
+It moves through checked source helper results and consuming parameters. Its
+inert generated Rust owner retains the native environment after factory return;
+physical iterator/consuming-trait use, unused drop, changed-body controls,
+postcondition failure cleanup and cross-crate ownership refusals are covered.
+This is a separate closed profile from the scalar state adapters below. Its
+generated Rust owner can now be retained by one same-thread foreign registry
+through an opaque lease that invokes once or unregisters before Drop. The
+separate mixed profile admits one copied scalar snapshot, including a snapshot
+from a mutable outer binding. The separate noncopyable scalar mutable profile
+below retains state across calls. The synchronous borrowed-text profile below
+adds one parameter-rooted borrowed source capture.
+
 The additive `prepare_native_rust_callbacks` renderer selects a checked
 `fn(i64) -> fn(i64) -> i64` factory with one immutable scalar snapshot capture,
 plus an explicit `fn(i64, i64) -> i64` next-state function. It authenticates the
@@ -845,6 +859,35 @@ retained environments after uncertain teardown; and compiled teardown/depth
 mutants. Canonical source/graph and unsupported selection diagnostics remain
 in the owning harness.
 
+### Transactional scalar mutable callbacks
+
+The [mutable callback v1](MUTABLE-CALLBACK-V1.md) profile admits the distinct
+noncopyable `FnMutI64(i64) -> i64` type and exact literal
+`mut fn(value:i64)->i64 { transition(state,value) }`. It snapshots one available
+scalar state and invokes a local monomorphic pure transition in state/argument
+order. Invocation borrows its unique mutable local receiver and publishes the
+candidate state/result only on checked success. Copying, aliases, escaping
+receiver reads, contracts, and same-receiver entry during argument staging are
+refused by source verification and independently reconstructed HIR rules. The
+scalar receiver has no resource finalizer.
+
+The `mutable_closures` language selector executes repeated state changes and
+snapshot isolation through the interpreter, native C at O0/O2 and Core Wasm,
+plus canonical source/graph replay and hostile source/HIR controls. The core
+`mutable_` selector covers transactional guards, foreign-thread interpreter
+refusal and a Wasm probe that inspects the actual receiver state and active bit
+after a failed call. Factory postconditions preserve the unique provisional
+result; interpreter success and contract-failure cases are exercised directly.
+
+`prepare_native_rust_mutable_callback` renders the actual source-created native
+receiver and a same-thread Rust owner. `as_fn_mut(&mut self)` borrows that owner
+exclusively. The `mutable_callback` selector compiles a separate Rust iterator
+consumer, executes native C at O0/O2, and checks repeated contract/arithmetic
+failure rollback, source-body and factory-failure controls, and drop accounting.
+Cross-crate Copy, Clone, Send, Sync, overlapping-borrow and adapter-escape cases
+must fail rustc. This profile neither borrows Semaprax captures nor provides a
+retained registry lease; those capabilities require their own admission.
+
 ### Checked source Result callbacks
 
 `prepare_native_rust_result_callback` selects a pure named
@@ -882,11 +925,27 @@ failed/ignored, 210 filtered; 1.75s). Tools were Rust 1.98.0 and Apple Clang
 21.0.0 on aarch64 macOS, offline/locked Cargo, one job, debug0 and incremental0,
 with a private target. No hosted or whole-repository full-profile run is claimed.
 
-RI-08 remains open for source-level mutable/once receiver modes, RI-06-proven
-borrowed Semaprax capture scopes and retained affine owned captures, broader
-callback Result shapes, and automatic selected-index trait admission. Explicit
-next-state functions and a borrowed generated Rust closure do not establish
-those broader source semantics.
+The additive [Synchronous Borrowed Text Closures v1](CLOSURES-BORROWED-V1.md)
+profile admits an ordinary source literal capturing exactly one direct
+`borrow str` parameter in its synchronous creator frame. Source and independent
+HIR checking forbid escape, aliases and local owned-view captures. Native C
+retains the original pointer/length; interpreter and Core Wasm retain their
+existing borrowed descriptors. `prepare_native_rust_borrowed_callback` selects a
+checked `(borrow str, i64) -> i64` entry that creates and immediately invokes the
+actual source closure on each Rust invocation. Its higher-ranked same-thread
+Rust scope composes with RI-06's typed URL owner-view guard.
+
+The `borrowed_closures` language selector covers canonical/graph replay,
+source/HIR refusals and interpreter/native O0/O2/Core Wasm parity. The
+`borrowed_callback` builder selector binds the actual checked source body to a
+physical pinned URL consumer and real iterator, verifies borrowed pointer
+identity, catches introduced-copy and changed-body controls, preserves failed
+result slots, and exercises panic release and pre-call reentry refusal. Rust
+refuses callback/function/view/async escape, thread transfer and owner
+move/mutation while the view is live. This is a synchronous parameter-rooted
+capture profile; arbitrary borrowed captures, broader mutable environments and
+callback Result shapes remain separate. Selected-index trait admission is
+below.
 
 The gates ran serially in the builder library harness, with
 `RUSTC=/opt/homebrew/bin/rustc`, `CLANG=/usr/bin/clang`,
@@ -946,3 +1005,52 @@ publication or a hosted gate. Url inspection/owner-tied returned-view integratio
 remaining source escape/exclusivity controls and complete RI-06 safety acceptance
 remain open. This selector does not add new Miri or sanitizer evidence, and the
 full quality profile was not rerun for this slice.
+
+### Selected-index Result callback trait adapter
+
+`prepare_indexed_native_rust_result_callback` adds exact index selection for the
+named Result callback route. The caller supplies the checked source identity,
+method and associated-error paths, expected canonical index digest, and exact
+package/alias/target/features/stable-compiler identity. Replay precedes trait
+selection. Both selected members must belong to one public monomorphic trait;
+the method must have `&mut self`, one i64 argument, and `Result<i64, Self::Error>`.
+The sole associated type must have no bounds or default. Known extra members,
+generic obligations, private/sealed items, unknown incomplete closure, incompatible
+receivers and signature shapes fail with source-located `SPX-B154`.
+
+The general index still marks external standard `Result` incomplete. This route
+admits only the exact `Result<i64, Self::Error>` signature with the retained
+trait/error graph and one standard Result leaf; it does not rewrite index facts
+or widen ordinary index support.
+
+The adapter derives its Rust impl tokens from those selected members and binds
+the source revision plus selected index/member identities into a deterministic
+binding digest. This is inert metadata and generated source, with no loader,
+compiler, publication or host authority. The selected index can be partial and
+does not encode every Rust trait property: the real stable compiler must still
+prove the local **safe** impl against the actual crate. An unsafe trait, sealed
+supertrait or missing method therefore cannot acquire an implementation merely
+by presenting misleading metadata. Scalar ABI admission is unchanged.
+
+The owning `indexed_trait_callback_` gate uses a genuine pinned nightly rustdoc
+capture of the unchanged safe-trait fixture, verifies its source digest, then
+compiles the actual fixture and generated adapter as separate Rust crates.
+Its C O2 consumer retains a non-zero-sized proxy beyond the installer return,
+invokes it through a real iterator and trait object, preserves a domain failure
+without committing state, and returns the live environment count to zero on
+teardown. Exact identity/shape refusals and real unsafe/sealed/extra-method/wrong
+signature compiler controls accompany affine once, mutable-borrow and thread
+transfer compile failures. This adds selected-trait admission; it does not
+reinterpret scalar state transitions as source mutable/owned captures. Borrowed source captures are limited to the synchronous parameter-rooted
+profile above; mutable environments beyond the fixed scalar FnMutI64 profile
+remain open under RI-08.
+
+Local evidence: the physical safe-impl/retention case passed in the two-case
+selector; after correcting only canonical JSON in a negative metadata fixture,
+the exact `indexed_trait_callback_exact_identity_and_shape_refusals` retry
+passed 1/1 (0 failed/ignored, 213 filtered; 0.30s). Production code and the
+physical fixture were unchanged for that retry. Tools were stable Rust 1.98.0,
+Apple Clang 21.0.0 and pinned rustdoc 1.101.0-nightly (2026-10-01 commit,
+nightly-2026-10-02 toolchain; JSON format 61). Cargo was offline/locked, jobs1,
+debug0/incremental0, with a private target. No full-profile or hosted gate is
+claimed.

@@ -4,6 +4,7 @@ use crate::assurance_manifest::modular_law::cache::{self, ProofTaskCache, WorkMe
 use crate::assurance_manifest::{smt_discharge as smt, AssuranceClass, MethodRecord};
 use crate::project::ProjectRevision;
 use crate::proof_export::installed::{InstalledProofTool, ToolKind};
+use crate::proof_export::list_induction::{self, Certificate as ListCertificate, ProofModule};
 use serde_json::{json, Value};
 use std::path::Path;
 
@@ -16,6 +17,185 @@ pub struct VerifiedLawProof {
     program_root: String,
     class: AssuranceClass,
     evidence: Value,
+}
+
+fn list_subject(
+    revision: &ProjectRevision,
+    laws: &LawSet,
+    law_id: &str,
+    tool: &InstalledProofTool,
+) -> Result<(LawSet, super::LawRow, crate::ast::Program)> {
+    if tool.kind() != ToolKind::Lean {
+        return Err(invalid("list induction requires installed pinned Lean"));
+    }
+    let laws = LawSet::replay(revision, &laws.payload.proof_profile, laws.to_json())?;
+    let row = laws
+        .payload
+        .laws
+        .iter()
+        .find(|row| row.definition.law_id == law_id)
+        .ok_or_else(|| invalid("list induction law is absent from selected inventory"))?
+        .clone();
+    let LawSelector::ListInduction {
+        declaration_id,
+        theorem,
+    } = &row.definition.selector
+    else {
+        return Err(invalid("selected law is outside list induction profile"));
+    };
+    if row.source_digest.is_none()
+        || list_induction::declaration_for_theorem(theorem) != Some(declaration_id.as_str())
+    {
+        return Err(invalid(
+            "list induction source or fixed theorem association is absent",
+        ));
+    }
+    let selected = [
+        revision.entry_program(),
+        revision.public_api_program(),
+        revision.test_program(),
+    ]
+    .iter()
+    .any(|program| {
+        program
+            .functions
+            .iter()
+            .any(|function| function.id.as_str() == declaration_id)
+    });
+    if !selected {
+        return Err(invalid(
+            "list induction declaration is outside selected Project HIR",
+        ));
+    }
+    let source = revision
+        .sources()
+        .iter()
+        .find(|source| source.path() == row.source_path)
+        .ok_or_else(|| invalid("list induction source is absent from retained Project"))?;
+    if source.source_graph_schema() == "semaprax.native-law.v1" {
+        return Err(invalid("list induction needs checked function source"));
+    }
+    let program = crate::check(source.source(), source.path())?;
+    Ok((laws, row, program))
+}
+
+fn attached_list_proof(
+    revision: &ProjectRevision,
+    laws: &LawSet,
+    row: &super::LawRow,
+    certificate: &ListCertificate,
+    document: &str,
+) -> Result<VerifiedLawProof> {
+    let LawSelector::ListInduction { theorem, .. } = &row.definition.selector else {
+        return Err(invalid("list law selector changed during attachment"));
+    };
+    let name = format!("SemapraxLaw08.{theorem}");
+    if !certificate
+        .theorem_law_ids
+        .iter()
+        .any(|(found, declaration)| {
+            found == &name && list_induction::declaration_for_theorem(theorem) == Some(declaration)
+        })
+    {
+        return Err(invalid(
+            "certified theorem is not associated with selected source",
+        ));
+    }
+    let evidence_digest = wire::digest(
+        b"semaprax.list-induction-law-proof.v1\0",
+        &wire::canonical(&json!({
+            "project_revision":revision.project_revision(),
+            "program_root":laws.payload.program_root,
+            "law_digest":laws.digest(),
+            "law_id":row.definition.law_id,
+            "semantic_digest":row.semantic_digest,
+            "source_path":row.source_path,
+            "source_digest":row.source_digest,
+            "certificate":document,
+        }))?,
+    );
+    let mut method = MethodRecord::new(
+        AssuranceClass::TheoremProved,
+        crate::proof_export::KERNEL_IDENTITY,
+        crate::proof_export::PINNED_TOOLCHAIN,
+    );
+    method.proof_ref = Some(evidence_digest.clone());
+    method.bounds = Some(certificate.profile.clone());
+    method.inputs = vec![
+        laws.digest().into(),
+        row.semantic_digest.clone(),
+        certificate.source_sha256.clone(),
+        certificate.proof_module_sha256.clone(),
+    ];
+    let method: Value =
+        serde_json::from_str(&crate::assurance_manifest::render::render_method(&method))
+            .map_err(|_| invalid("list induction method rendering failed"))?;
+    Ok(VerifiedLawProof {
+        law_id: row.definition.law_id.clone(),
+        law_digest: laws.digest().into(),
+        semantic_digest: row.semantic_digest.clone(),
+        project_revision: revision.project_revision().into(),
+        program_root: laws.payload.program_root.clone(),
+        class: AssuranceClass::TheoremProved,
+        evidence: json!({
+            "schema":"semaprax.list-induction-law-proof.v1",
+            "proof_digest":evidence_digest,
+            "proof_module_sha256":certificate.proof_module_sha256,
+            "profile":certificate.profile,
+            "source_sha256":certificate.source_sha256,
+            "theorem":name,
+            "coverage":certificate.coverage,
+            "axioms":certificate.axioms,
+            "methods":[method],
+            "proved_lowering":false,
+            "publication_authority":false,
+            "source_authority":false,
+        }),
+    })
+}
+
+/// Independently replay a selected Project/LawSet, then run the real pinned
+/// Lean kernel over the caller's separate current proof module. The returned
+/// opaque law proof can be consumed by strict Project coverage.
+pub fn prove_list_induction_law(
+    revision: &ProjectRevision,
+    laws: &LawSet,
+    law_id: &str,
+    current_proofs: &ProofModule,
+    tool: &InstalledProofTool,
+) -> Result<(String, VerifiedLawProof)> {
+    let (laws, row, program) = list_subject(revision, laws, law_id, tool)?;
+    let certificate =
+        list_induction::prove(&program, current_proofs, tool).map_err(|error| vec![error])?;
+    let document = serde_json::to_string(&certificate)
+        .map_err(|_| invalid("list induction certificate serialization failed"))?;
+    let proof = attached_list_proof(revision, &laws, &row, &certificate, &document)?;
+    Ok((document, proof))
+}
+
+/// A certificate cannot mint law evidence by itself. Replay reconstructs the
+/// exact current Project subject and separately held proof module, then reruns
+/// the installed Lean kernel before returning a fresh opaque proof.
+pub fn replay_list_induction_law(
+    document: &str,
+    revision: &ProjectRevision,
+    laws: &LawSet,
+    law_id: &str,
+    current_proofs: &ProofModule,
+    tool: &InstalledProofTool,
+) -> Result<VerifiedLawProof> {
+    if document.len() > 262_144 {
+        return Err(invalid("list induction certificate exceeds byte bound"));
+    }
+    let certificate: ListCertificate = serde_json::from_str(document)
+        .map_err(|_| invalid("list induction certificate schema is invalid"))?;
+    if serde_json::to_string(&certificate).ok().as_deref() != Some(document) {
+        return Err(invalid("list induction certificate is noncanonical"));
+    }
+    let (laws, row, program) = list_subject(revision, laws, law_id, tool)?;
+    list_induction::verify_against_module(&program, current_proofs, &certificate, tool)
+        .map_err(|error| vec![error])?;
+    attached_list_proof(revision, &laws, &row, &certificate, document)
 }
 
 /// Generate only from a replayed typed law and a real installed-tool capability.

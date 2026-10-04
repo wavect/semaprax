@@ -139,6 +139,7 @@ pub(in crate::wasm) fn lower_public_generic_provider_closure(
                 None,
                 None,
                 None,
+                None,
             )
         })
         .collect::<Result<Vec<_>, _>>()?;

@@ -1,0 +1,1 @@
+{"schema":"semaprax.bend2-law-benchmark.fixture.v1","id":"project-incremental-edit-v1","numeric_domain":"u32 checked","success":[{"changed":"core","unchanged":"api","rechecked":["core"],"reused":["api"],"output":9}],"attacks":{"stale-cache-reuse":[{"changed":"core","unchanged":"api","rechecked":[],"reused":["core","api"],"output":7}]}}

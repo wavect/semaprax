@@ -90,17 +90,20 @@ pub(super) fn workspace_compiler_prelude(
 pub(super) fn workspace_compiler_prelude_for_vec(
     include_vec: bool,
 ) -> Result<(DeclarationIndex, Vec<ResolvedTypeDeclaration>), Diagnostic> {
-    workspace_compiler_prelude_for(include_vec, false, false)
+    workspace_compiler_prelude_for(include_vec, false, false, false)
 }
 
 pub(super) fn workspace_compiler_prelude_for(
     include_vec: bool,
     include_box: bool,
     include_iterator: bool,
+    include_list: bool,
 ) -> Result<(DeclarationIndex, Vec<ResolvedTypeDeclaration>), Diagnostic> {
     let prelude_program = workspace_linker_prelude_program();
-    let compiler_declarations = if include_iterator {
+    let compiler_declarations = if include_list {
         crate::prelude::declarations()
+    } else if include_iterator {
+        &crate::prelude::declarations()[..6]
     } else if include_box {
         &crate::prelude::declarations()[..4]
     } else if include_vec {
@@ -108,7 +111,7 @@ pub(super) fn workspace_compiler_prelude_for(
     } else {
         crate::prelude::declarations_for_program(&prelude_program)
     };
-    let declarations = if include_iterator {
+    let declarations = if include_iterator || include_list {
         DeclarationIndex::from_verified_with_prelude(&prelude_program, compiler_declarations)?
     } else {
         compiler_prelude_declarations_for(include_vec, include_box)?

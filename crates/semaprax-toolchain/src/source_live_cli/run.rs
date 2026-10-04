@@ -8,8 +8,9 @@ use crate::opencode_host::{
     ProcessOpenCodeRunner, OPENCODE_MODEL,
 };
 use semaprax::agent_lifecycle::iterative::source_live::{
-    prepare_source_live_migration, prepare_source_live_migration_with_io_limits,
-    prepare_source_live_priced_migration, SourceIoLimits, SourceLiveFailure,
+    prepare_source_live_migration, prepare_source_live_migration_from_hot_reload_handoff,
+    prepare_source_live_migration_with_io_limits, prepare_source_live_priced_migration,
+    run_source_live_migration_from_hot_reload_session, SourceIoLimits, SourceLiveFailure,
     SourceLiveMigrationEndpoint, SourceLiveMigrationRequest, SourceLiveOutcome, SourceLivePolicy,
     SourceLiveRequest,
 };
@@ -24,7 +25,9 @@ use semaprax::live_invocation::source_journal::{
     MAX_SOURCE_EFFECT_BYTES, MAX_SOURCE_REQUEST_BYTES,
 };
 use semaprax::live_invocation::{InvocationClock, ModelInvokeCapability, SourceInvocationClock};
-use semaprax::project::{with_authenticated_project, ProjectRevision};
+use semaprax::project::{
+    with_authenticated_project, HotReloadPlan, HotReloadSession, ProjectRevision,
+};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 
@@ -53,8 +56,22 @@ impl SourceInvocationClock for UnixClock {
 }
 
 struct ReadSnapshot(Vec<u8>);
+#[cfg(test)]
+thread_local! {
+    static READ_CALLS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+#[cfg(test)]
+pub(super) fn reset_read_calls() {
+    READ_CALLS.with(|calls| calls.set(0));
+}
+#[cfg(test)]
+pub(super) fn read_calls() -> usize {
+    READ_CALLS.with(std::cell::Cell::get)
+}
 impl AgentReadOperation for ReadSnapshot {
     fn read(&mut self, _: &AuthorizedRequest) -> Option<Vec<u8>> {
+        #[cfg(test)]
+        READ_CALLS.with(|calls| calls.set(calls.get() + 1));
         Some(self.0.clone())
     }
 }
@@ -83,6 +100,32 @@ impl Endpoint {
         let project =
             with_authenticated_project(&manifest, |snapshot| Ok(snapshot.retain_revision()))
                 .map_err(|_| CliError::refused("Project authentication refused"))?;
+        Self::from_authenticated(config, project_root, project)
+    }
+
+    /// Reuses the hot-reload supervisor's retained checked predecessor. The
+    /// config still provides every host-selected file and policy input; only
+    /// the source revision comes from the opaque in-process supervisor.
+    fn load_retained(
+        config: SessionConfig,
+        project: Arc<ProjectRevision>,
+    ) -> Result<Self, CliError> {
+        let manifest = config
+            .manifest
+            .canonicalize()
+            .map_err(|_| CliError::refused("Project manifest is unavailable"))?;
+        let project_root = manifest
+            .parent()
+            .ok_or(CliError::refused("Project manifest has no root"))?
+            .to_owned();
+        Self::from_authenticated(config, project_root, project)
+    }
+
+    fn from_authenticated(
+        config: SessionConfig,
+        project_root: PathBuf,
+        project: Arc<ProjectRevision>,
+    ) -> Result<Self, CliError> {
         let compiled = compile_project_agent_lifecycle_v2(
             &project,
             &config.source_path,
@@ -142,6 +185,28 @@ impl Endpoint {
             budget,
             policy,
         })
+    }
+
+    /// Checks the retained migrated binding against the current checked
+    /// predecessor and host-selected policy before it can authenticate a
+    /// predecessor journal. The carried migration profile stays opaque.
+    fn matches_retained_binding(&self, binding: &SourceInvocationBinding) -> bool {
+        binding.matches_proposal_source(
+            self.compiled.source_revision(),
+            &self.policy.deployment_binding,
+            &self.task.objective,
+            self.task.budget,
+            self.compiled.proposal_schema().schema().digest(),
+        ) && binding.response_limit() == self.policy.response_limit
+            && binding.ceiling() == self.policy.ceiling
+            && binding.reservation_units() == self.policy.reservation_units
+            && binding.unit() == self.policy.unit
+            && binding.clock_domain() == self.policy.clock_domain
+            && binding.deadline_millis() == self.policy.deadline_millis
+            && binding.max_iterations() == self.budget.max_iterations as u32
+            && binding.max_stages() == self.budget.max_stages as u32
+            && binding.max_steps_per_stage() == Some(self.budget.max_steps_per_stage)
+            && binding.max_total_steps() == Some(self.policy.max_total_steps)
     }
 
     fn binding(&self) -> Result<SourceInvocationBinding, CliError> {
@@ -402,6 +467,151 @@ pub(super) fn execute_with_runner<R: OpenCodeRunner>(
     }
 }
 
+/// Executes an explicitly configured source-live migration through the
+/// retained hot-reload supervisor. This is private-host glue: the public CLI
+/// cannot construct the hook or gain its provider authority.
+pub(super) fn execute_hot_reload_migration(
+    supervisor: &mut HotReloadSession,
+    plan: HotReloadPlan,
+    arguments: &[String],
+) -> Result<(), CliError> {
+    execute_hot_reload_migration_with_runner(supervisor, plan, arguments, ProcessOpenCodeRunner)
+        .map(|_| ())
+}
+
+pub(super) fn execute_hot_reload_migration_with_runner<R: OpenCodeRunner>(
+    supervisor: &mut HotReloadSession,
+    plan: HotReloadPlan,
+    arguments: &[String],
+    runner: R,
+) -> Result<SourceLiveOutcome, CliError> {
+    let command = Command::parse(arguments)?;
+    let Command::Migrate {
+        previous_config,
+        previous_checkpoint,
+        destination_config,
+        destination_checkpoint,
+        function,
+        steps,
+        executable,
+        scratch,
+    } = command
+    else {
+        return Err(CliError::usage(
+            "source-Agent dev requires explicit source-live migrate operands",
+        ));
+    };
+    let previous = Endpoint::load_retained(
+        SessionConfig::load(&previous_config)?,
+        supervisor.retained_active_project(),
+    )?;
+    let mut destination = Endpoint::load(SessionConfig::load(&destination_config)?)?;
+    if previous.config.pricing.is_some()
+        || destination.config.pricing.is_some()
+        || previous.io_limits().is_some()
+        || destination.io_limits().is_some()
+    {
+        return Err(CliError::refused(
+            "source-Agent dev migration requires the unpriced source-live profile",
+        ));
+    }
+    if previous.task.objective != destination.task.objective
+        || previous.task.budget != destination.task.budget
+    {
+        return Err(CliError::refused("migration task changed"));
+    }
+    let previous_binding = match supervisor.retained_source_agent_binding() {
+        Some(binding) => {
+            if !previous.matches_retained_binding(binding) {
+                return Err(CliError::refused(
+                    "retained source-Agent binding no longer matches predecessor authority",
+                ));
+            }
+            binding.clone()
+        }
+        None => previous.binding()?,
+    };
+    let previous_store = CheckpointDir::existing(&previous_checkpoint, &previous.project_root)?;
+    let previous_document = previous_store
+        .latest()?
+        .ok_or(CliError::refused("predecessor has no latest checkpoint"))?;
+    let predecessor = recover_source_checkpoint(&previous_document, &previous_binding)
+        .map_err(|_| CliError::refused("predecessor checkpoint refused"))?;
+    destination.policy.initial_millis = predecessor.last_checked_millis();
+    let request = SourceLiveMigrationRequest {
+        previous: previous.migration_endpoint(),
+        previous_binding: &previous_binding,
+        previous_checkpoint: &previous_document,
+        destination: destination.migration_endpoint(),
+        task: &destination.task,
+        migration_function: &function,
+        max_migration_steps: steps,
+        expected_handoff_digest: None,
+    };
+    let handoff = supervisor
+        .wait_for_source_agent_handoff(&plan, previous.config.agent_id.as_str())
+        .map_err(|_| CliError::refused("hot-reload source-Agent handoff refused"))?;
+    let prepared = prepare_source_live_migration_from_hot_reload_handoff(request, &handoff)
+        .map_err(source_error)?;
+    let path_was_new = !destination_checkpoint.exists();
+    let mut destination_store = if path_was_new {
+        CheckpointDir::fresh(&destination_checkpoint, &destination.project_root)?
+    } else {
+        CheckpointDir::existing(&destination_checkpoint, &destination.project_root)?
+    };
+    if destination_store.path() == previous_store.path() {
+        return Err(CliError::refused(
+            "migration destination equals predecessor store",
+        ));
+    }
+    if destination_store.latest()?.is_some() {
+        return Err(CliError::refused(
+            "source-Agent dev requires a fresh destination checkpoint",
+        ));
+    }
+    let clock = UnixClock;
+    let (mut handler, grammar, capability) =
+        provider(&destination, executable, scratch, runner, &clock)?;
+    previous_store.claim_handoff(
+        prepared.handoff_digest(),
+        destination_store.path(),
+        prepared.binding().invocation(),
+    )?;
+    drop(prepared);
+    let request = SourceLiveMigrationRequest {
+        previous: previous.migration_endpoint(),
+        previous_binding: &previous_binding,
+        previous_checkpoint: &previous_document,
+        destination: destination.migration_endpoint(),
+        task: &destination.task,
+        migration_function: &function,
+        max_migration_steps: steps,
+        expected_handoff_digest: None,
+    };
+    let mut source = OpenCodeDurableProposalSource::new(
+        &mut handler,
+        &capability,
+        destination.policy.deployment_binding.clone(),
+        grammar,
+        destination.policy.response_limit,
+        destination.policy.reservation_units,
+    )
+    .map_err(|_| CliError::refused("durable OpenCode source refused"))?;
+    let mut read = ReadSnapshot(destination.read.clone());
+    let cancellation = AgentCancellation::new();
+    run_source_live_migration_from_hot_reload_session(
+        supervisor,
+        plan,
+        request,
+        &mut source,
+        &mut read,
+        &mut destination_store,
+        &clock,
+        &cancellation,
+    )
+    .map_err(|_| CliError::refused("source-Agent hot-reload migration refused"))
+}
+
 fn execute_run<R: OpenCodeRunner>(
     config: PathBuf,
     checkpoint: PathBuf,
@@ -433,6 +643,7 @@ fn execute_run<R: OpenCodeRunner>(
                 checkpoint: recovered,
                 model_dispatches: 0,
                 effect_dispatches: 0,
+                effect_accounting: None,
             });
         }
     }
@@ -596,6 +807,7 @@ fn execute_migrate<R: OpenCodeRunner>(
             checkpoint,
             model_dispatches: 0,
             effect_dispatches: 0,
+            effect_accounting: None,
         });
     }
     let (mut handler, grammar, capability) = prepared_provider.expect("nonterminal prepared");

@@ -139,3 +139,7 @@ pub(super) fn validate_replay_size_budget(function: &ResolvedFunction) -> Result
     }
     Ok(())
 }
+
+pub(super) fn has_active_paths(paths: &[ExprSkeletonPath]) -> bool {
+    paths.iter().any(|path| !path.failed && !path.residual)
+}

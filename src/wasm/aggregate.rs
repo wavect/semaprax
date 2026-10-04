@@ -27,6 +27,7 @@ mod host_command;
 mod http_io;
 pub(super) mod internal_strings;
 mod iterator_ops;
+pub(in crate::wasm) mod list_ops;
 mod nested_owned;
 mod network_io;
 mod owned_buffer;
@@ -150,6 +151,8 @@ pub(super) const STATUS_VEC_GET_OUT_OF_BOUNDS: i32 = 14;
 pub(super) const STATUS_VEC_ALLOCATION_FAILURE: i32 = 15;
 pub(super) const STATUS_BYTE_BUFFER_INDEX_OUT_OF_BOUNDS: i32 = 16;
 pub(super) const STATUS_BOX_ALLOCATION_FAILURE: i32 = 17;
+pub(super) const STATUS_LIST_LENGTH_LIMIT: i32 = 19;
+pub(super) const STATUS_LIST_MEMORY_LIMIT: i32 = 20;
 pub(super) const STATUS_INTERNAL_INVALID_TAG: i32 = -1;
 
 pub(in crate::wasm) struct SelectedAggregateLowering {
@@ -326,7 +329,6 @@ impl FunctionPlan {
     ) -> Result<Self, Diagnostic> {
         Self::build_profile(program, function, variant_layouts, false)
     }
-
     fn build_profile(
         program: &ResolvedProgram,
         function: &ResolvedFunction,
@@ -413,6 +415,9 @@ impl FunctionPlan {
                         && lifecycle.as_str() != crate::cleanup::VEC_DROP_LIFECYCLE_ID
                         && lifecycle.as_str() != crate::cleanup::BOX_DROP_LIFECYCLE_ID
                         && lifecycle.as_str() != crate::cleanup::ITER_DROP_LIFECYCLE_ID
+                        && lifecycle.as_str() != crate::hir::closure::once::DROP_ID
+                        && lifecycle.as_str() != crate::hir::closure::once::MIXED_DROP_ID
+                        && lifecycle.as_str() != crate::hir::closure::once::PAIR_DROP_ID
                     {
                         return Err(error("CleanupPlan leaf has an unsupported lifecycle"));
                     }
@@ -434,6 +439,7 @@ impl FunctionPlan {
                         )
                         && !crate::iterator_ops::is_iter(&slot.ty)
                         && !crate::iterator_ops::is_step(&slot.ty)
+                        && !slot.ty.is_once_function()
                     {
                         let carrier = add_local(I64)?;
                         if cleanup_call_argument_carriers
@@ -1038,6 +1044,9 @@ fn resource_gate() -> Diagnostic {
 }
 
 fn is_record(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic> {
+    if crate::list_ops::is_list(ty) {
+        return Ok(false);
+    }
     let ResolvedType::Nominal {
         declaration,
         arguments,
@@ -1106,8 +1115,14 @@ fn is_variant(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diag
 }
 
 fn is_aggregate(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic> {
-    if matches!(ty, ResolvedType::Function { .. })
-        && crate::hir::closure::requires_closures(program)
+    if matches!(
+        ty,
+        ResolvedType::Function { .. }
+            | ResolvedType::OnceFunction
+            | ResolvedType::OnceFunctionI64
+            | ResolvedType::OnceFunctionI64Pair
+            | ResolvedType::MutFunctionI64
+    ) && crate::hir::closure::requires_runtime_closures(program)
     {
         return Ok(true);
     }
@@ -1142,8 +1157,14 @@ fn aggregate_size_align(
     variant_layouts: &VariantLayoutCache,
     ty: &ResolvedType,
 ) -> Result<(u32, u32), Diagnostic> {
-    if matches!(ty, ResolvedType::Function { .. })
-        && crate::hir::closure::requires_closures(program)
+    if matches!(
+        ty,
+        ResolvedType::Function { .. }
+            | ResolvedType::OnceFunction
+            | ResolvedType::OnceFunctionI64
+            | ResolvedType::OnceFunctionI64Pair
+            | ResolvedType::MutFunctionI64
+    ) && crate::hir::closure::requires_runtime_closures(program)
     {
         return Ok((80, 8));
     }
@@ -1243,6 +1264,7 @@ pub(super) fn lower_selected_functions(
             &HashMap::new(),
             &HashMap::new(),
             &variant_layouts,
+            None,
             None,
             None,
             None,
@@ -1350,6 +1372,7 @@ pub(super) fn lower_selected_function_instances(
                 &HashMap::new(),
                 &HashMap::new(),
                 &variant_layouts,
+                None,
                 None,
                 None,
                 None,
@@ -1950,7 +1973,6 @@ fn emit_byte_exports_profile(
     let call_admission_base = global_base + semantic_work::global_count();
     let _call_admission = call_admission::activate(call_admission_base)?;
     section(&mut module, 6, globals);
-
     let mut exports = Vec::new();
     write_u32(
         &mut exports,
@@ -2118,6 +2140,7 @@ fn emit_byte_exports_profile(
             range_bindings.as_ref(),
             has_owned_utf8.then_some(&mut owned_utf8_literals),
             environment_utf8_index,
+            None,
         )?;
         write_u32(&mut code, body.len() as u32);
         code.extend(body);
@@ -2221,6 +2244,7 @@ fn emit_profile_with_scalar_exports(
     let uses_vec_record = super::vec_ops::program_uses_record_vec(program);
     let uses_owned_iterator = crate::iterator_ops::resolved_program_uses_owned_iterator(program);
     let uses_box = super::program_uses_box(program);
+    let uses_list = crate::list_ops::resolved_program_uses_list(program);
     target_gates::reject_unsupported_profiles(program)?;
     let variant_layouts = VariantLayoutCache::build(program, VariantTarget::Wasm32)?;
     let record_layouts = AggregateLayoutCache::build(program, AggregateTarget::Wasm32)?;
@@ -2745,6 +2769,7 @@ fn emit_profile_with_scalar_exports(
                     .map_err(|_| error("byte-range private global count overflows u32"))?,
             )
             .and_then(|count| count.checked_add(call_admission::GLOBAL_COUNT))
+            .and_then(|count| count.checked_add(u32::from(uses_list)))
             .ok_or_else(|| error("byte-range global count overflows u32"))?,
     );
     globals.extend([I32, 0x01, 0x41]);
@@ -2766,6 +2791,8 @@ fn emit_profile_with_scalar_exports(
     call_admission::append_globals(&mut globals);
     let call_admission_base = public_global_count + private_range_global_count as u32;
     let _call_admission = call_admission::activate(call_admission_base)?;
+    let list_heap_global =
+        list_ops::append_heap_global(&mut globals, uses_list, call_admission_base);
     section(&mut module, 6, globals);
 
     let mut exports = Vec::new();
@@ -2929,6 +2956,7 @@ fn emit_profile_with_scalar_exports(
             range_bindings.as_ref(),
             owned_utf8.then_some(&mut utf8_literals),
             None,
+            list_heap_global,
         )?;
         write_u32(&mut code, body.len() as u32);
         code.extend(body);
@@ -2938,6 +2966,7 @@ fn emit_profile_with_scalar_exports(
             .get(&FunctionExecutionId::Monomorphic(main.id.clone()))
             .ok_or_else(|| error("aggregate main function is not indexed"))?,
         host_output,
+        list_heap_global,
     );
     write_u32(&mut code, wrapper.len() as u32);
     code.extend(wrapper);
@@ -2970,6 +2999,7 @@ fn emit_function(
     range_bindings: Option<&RangeBindings>,
     owned_utf8_literals: Option<&mut OwnedUtf8Literals>,
     environment_utf8_index: Option<u32>,
+    list_heap_global: Option<u32>,
 ) -> Result<Vec<u8>, Diagnostic> {
     emit_function_profile(
         program,
@@ -2982,6 +3012,7 @@ fn emit_function(
         range_bindings,
         owned_utf8_literals,
         environment_utf8_index,
+        list_heap_global,
         false,
     )
 }
@@ -2998,8 +3029,15 @@ fn emit_function_profile(
     range_bindings: Option<&RangeBindings>,
     owned_utf8_literals: Option<&mut OwnedUtf8Literals>,
     environment_utf8_index: Option<u32>,
+    list_heap_global: Option<u32>,
     standalone_strings: bool,
 ) -> Result<Vec<u8>, Diagnostic> {
+    if crate::list_ops::resolved_program_uses_list(program) && list_heap_global.is_none() {
+        return Err(Diagnostic::io(
+            "SPX-W130",
+            "List carrier requires the closed Core Wasm profile",
+        ));
+    }
     let owned_string_profile = owned_utf8_literals.is_some();
     let plan = FunctionPlan::build_profile(program, function, variant_layouts, standalone_strings)?;
     let mut body = Vec::new();
@@ -3008,7 +3046,6 @@ fn emit_function_profile(
         write_u32(&mut body, 1);
         body.push(*ty);
     }
-
     body.push(0x23);
     write_u32(&mut body, 0);
     body.push(0x21);
@@ -3161,6 +3198,7 @@ fn emit_function_profile(
         range_bindings,
         owned_utf8_literals,
         environment_utf8_index,
+        list_heap_global,
         standalone_strings,
     };
     emitter.call_depth_admission()?;
@@ -3393,6 +3431,7 @@ struct Emitter<'a> {
     range_bindings: Option<&'a RangeBindings>,
     owned_utf8_literals: Option<&'a mut OwnedUtf8Literals>,
     environment_utf8_index: Option<u32>,
+    list_heap_global: Option<u32>,
     standalone_strings: bool,
 }
 
@@ -3491,7 +3530,8 @@ impl Emitter<'_> {
             .flat_map(|statement| {
                 let mut anchors = Vec::with_capacity(2);
                 if let ResolvedStatement::Let { binding, .. } = statement {
-                    if binding.ty == ResolvedType::Bytes
+                    if binding.ty.is_once_function()
+                        || binding.ty == ResolvedType::Bytes
                         || binding.ty == ResolvedType::String
                         || owned_vec(self.program, &binding.ty)
                         || crate::cleanup::is_owned_bounded_box_type(&binding.ty)
@@ -3508,7 +3548,8 @@ impl Emitter<'_> {
                     ResolvedStatement::While { .. } => None,
                 };
                 if let Some(value) = value.filter(|value| {
-                    value.ty == ResolvedType::Bytes
+                    value.ty.is_once_function()
+                        || value.ty == ResolvedType::Bytes
                         || value.ty == ResolvedType::String
                         || owned_vec(self.program, &value.ty)
                         || crate::cleanup::is_owned_bounded_box_type(&value.ty)
@@ -5924,6 +5965,9 @@ impl Emitter<'_> {
             }
         }
         if instance.is_none() {
+            if let Some(op) = crate::list_ops::by_id(callee.as_str()) {
+                return self.emit_list_op(expr, op, type_arguments, args);
+            }
             if let Some(operation) = crate::string_ops::by_id(callee.as_str()) {
                 return self.emit_aggregate_string_operation(expr, operation, args);
             }
@@ -8328,6 +8372,7 @@ impl Emitter<'_> {
                 self.output.extend([0x28, 0x02, 0x00])
             }
             ty if owned_vec(self.program, ty) => self.output.extend([0x29, 0x03, 0x00]),
+            ty if crate::list_ops::is_list(ty) => self.output.extend([0x28, 0x02, 0x00]),
             ty if crate::cleanup::is_owned_bounded_box_type(ty) => {
                 self.output.extend([0x29, 0x03, 0x00])
             }
@@ -8349,6 +8394,7 @@ impl Emitter<'_> {
                 self.output.extend([0x36, 0x02, 0x00])
             }
             ty if owned_vec(self.program, ty) => self.output.extend([0x37, 0x03, 0x00]),
+            ty if crate::list_ops::is_list(ty) => self.output.extend([0x36, 0x02, 0x00]),
             ty if crate::cleanup::is_owned_bounded_box_type(ty) => {
                 self.output.extend([0x37, 0x03, 0x00])
             }
@@ -8408,26 +8454,9 @@ fn borrow_place_shape_is_admitted(operation: &DeclarationId, place: &crate::hir:
     operation.as_str() == crate::byte_ops::BYTES_AS_SLICE_ID
 }
 
-fn value_type(value: &Value) -> &ResolvedType {
-    match value {
-        Value::Scalar { ty, .. } | Value::ScalarMemory { ty, .. } | Value::Aggregate { ty, .. } => {
-            ty
-        }
-    }
-}
+use function_value::value_type;
 
-fn value_at(
-    pointer: Pointer,
-    ty: ResolvedType,
-    program: &ResolvedProgram,
-) -> Result<Value, Diagnostic> {
-    if is_aggregate(program, &ty)? {
-        Ok(Value::Aggregate { pointer, ty })
-    } else {
-        scalar_wasm_type(program, &ty)?;
-        Ok(Value::ScalarMemory { pointer, ty })
-    }
-}
+use function_value::value_at;
 
 fn require_type(
     actual: &ResolvedType,
@@ -8558,7 +8587,7 @@ fn emit_aggregate_status_traps(body: &mut Vec<u8>, status: u32) {
     body.push(0x0b);
 }
 
-fn emit_wrapper(main_index: u32, host_output: bool) -> Vec<u8> {
+fn emit_wrapper(main_index: u32, host_output: bool, list_heap_global: Option<u32>) -> Vec<u8> {
     let old_stack = 0_u32;
     let frame_base = 1_u32;
     let status = 2_u32;
@@ -8570,7 +8599,7 @@ fn emit_wrapper(main_index: u32, host_output: bool) -> Vec<u8> {
     body.push(I32);
     write_u32(&mut body, 1);
     body.push(I32);
-
+    list_ops::emit_heap_reset(&mut body, list_heap_global);
     if host_output {
         super::host_output::emit_reset(&mut body, super::host_output::ROOT_GLOBALS);
     }

@@ -1,5 +1,76 @@
 # Changelog
 
+- RI-08: admit one synchronous parameter-rooted borrowed-text source capture.
+  Source/HIR scope validation rejects aliases and escape; interpreter, native C
+  and Core Wasm preserve the borrowed descriptor. The generated Rust scope
+  executes the actual source closure under an RI-06 URL owner-view guard, with
+  real iterator, pointer/copy controls, contract and lifetime regression gates.
+
+- HR-07: complete the macOS arm64 cross-layer hot reload evidence at
+  `9a9db7a81`. Twenty-two exact selectors and a real installed VS Code
+  Extension Host gate pass; 11 raw samples distinguish save-to-ack, full
+  restart, and authenticated warm restart. The observed interpreter reload is
+  slower than full restart on this fixture. Other platforms, native/Wasm state
+  swap, and production rollout remain unclaimed.
+
+- RI-08: admit the narrow noncopyable `FnMutI64(i64) -> i64` receiver with the
+  specified direct transition literal. Source/HIR ownership and alias refusals,
+  success-only state commit, interpreter/native/Core Wasm parity, generated Rust
+  FnMut consumers and failure/drop controls cover the transactional profile.
+
+- RI-08: stage the transactional scalar mutable carrier across HIR, interpreter,
+  native C, Wasm and the generated Rust owner. State commits only on checked
+  success; internal guard/copy tests and Rust borrow/thread-bound negatives
+  cover the carrier seams. Source and retained-HIR admission stay closed.
+
+- RI-08: reserve distinct `FnMutI64(i64) -> i64` and `mut fn` syntax with
+  canonical source preservation, private AST/HIR codec tags, exhaustive leaf
+  classifications and independent source/HIR refusal. The mutable runtime
+  remains unadmitted; this foundation does not claim stateful execution.
+
+- RI-08: permit a direct mutable `i64` binding as the scalar half of the
+  private retained `FnOnceI64() -> i64` profile. Construction copies the value
+  into the existing environment, so later source mutation cannot alias the
+  callback; interpreter, C, Core Wasm and generated Rust regressions cover the
+  snapshot boundary.
+- Add an RI-13 combined application measurement gate. It runs the existing
+  locked M1 Regex/Url, M2 Serde record/iterator callback, and M3 local HTTP
+  generated consumers in one ordered receipt; it separately records each
+  Cargo build-and-run stage, M3 route timing and M3 allocator requests. The
+  receipt explicitly preserves the separate source-profile boundary and does
+  not claim copied bytes, a nontrivial batch result, Linux evidence, or one
+  linked M1/M2/M3 Project.
+- Add the LAW-16 Bend 2 benchmark harness. It pins Bend's reviewed revision,
+  keeps ordinary and `--verdict` execution separate, requires separately
+  declared SEMAPRAX SMT/Lean/runtime paths, and retains raw cold/warm timing
+  and seeded law-gaming controls under exact local source/environment inputs.
+  No Bend fixture or result is claimed: missing, drifted, timed-out, or
+  semantically mismatched cells remain unavailable or failed.
+
+- Bind six checked-`u32` semantic fixture corpora into LAW-16 benchmark
+  results, including distinct acceptance and law-gaming inputs. SEMAPRAX's
+  admitted scalar profile lacks `u32`, so an `i32` substitute is explicitly
+  unavailable rather than represented as an equal implementation.
+
+- RI-08: add a distinct private `FnOnceI64() -> i64` source profile for retained
+  owned Bytes plus immutable i64 captures, with graph v63, versioned cleanup
+  identities, and aligned interpreter, C, Core Wasm and generated Rust carriers.
+
+- Add a bounded RI-08 same-thread foreign-registration lease to the generated
+  affine FnOnce() -> i64 Rust projection. A physical Rust consumer retains
+  the source-created environment inside a stateful safe registry, dispatches it
+  once, and proves unregister drops an uncalled owner before later dispatch
+  reaches callback state. The generated lease remains !Send and reports a
+  closed registration rather than entering C after teardown. Mutable, borrowed
+  and mixed source capture modes remain open.
+
+- Save an RI-13 M1 mixed Regex/Url application. One held, canonical Project
+  source authenticates four selected imports and two exports, then generates
+  separate source-bound SDK carriers with distinct C owner symbols. Exact
+  admission and stale-lock/source controls pass 1/1; locked offline prepare
+  and a single-process Rust/C consumer pass locally on macOS arm64. The
+  general Project SDK CLI, fresh-checkout/Linux run, and wider RI-13 acceptance
+  remain open.
 - Repair the current main CI fixtures for owned-byte Wasm imports, constructor
   schema counts, the pinned iOS action, and authenticated Everyday Agent
   examples. Regenerate the Agent skill bundle, refresh exact workspace
@@ -17,6 +88,20 @@
 - Scope the linked agent migration test's backend-only import to macOS and
   Linux so the Windows Clippy build has no unused import.
 
+- **LAW-15 collection laws and unchanged-law repair:** added a saved immutable-list insertion-sort pack with source-authenticated pinned Lean sortedness, permutation and multiplicity proofs; empty-output and length-preserving duplicate mutants refuse, while separate kernel-checked counterexamples expose their lost multiplicity. Certificates bind source, proof/semantics versions, complete coverage and standard axiom reports; runtime resources and lowering remain explicit limits. The money/state gate now restores body-only no-op edits and reproves all three original clauses.
+
+- Bind LAW-08 structural induction to checked immutable `List<i64>` append/reverse source and a separate authored Lean proof module. A selected Project/LawSet gate replays exact v9 prelude, source, proof, theorem association and strict evidence through installed Lean 4.34.0 (1/1); wrong reverse and stale proof controls refuse. The workspace linker now retains List compiler-owned declarations and operations without treating proof as lowering authority.
+
+- Save an RI-13 M2 record/iterator Rust application. An opt-in native builder
+  projects one checked record and scalar callback from the same source revision;
+  the locked offline consumer parses and serializes generated Serde records and
+  executes generated `Fn`/`FnMut` adapters under `std::Iterator`. Ordinary
+  callback admission still refuses record declarations. This is source-local
+  projection, with selected Project publication and broader RI-13 acceptance
+  still open.
+
+- Add the bounded RI-08 affine `FnOnce() -> i64` source profile: one owned Bytes capture survives helper returns, moves and single invocation across interpreter, native C and Core Wasm. A generated Rust owner executes the checked callback body with physical drop/failure controls and rustc move/Clone/Send refusals. Mutable, borrowed and foreign-retained registrations remain open.
+
 - Canonicalize the checked money/state law-pack source, list both new example
   directories in the index, and check selected native-law modules with their
   own parser and canonical formatter in the example inventory gate.
@@ -24,6 +109,112 @@
 - Remove redundant proof clones in the workspace law tests and simplify the
   remaining test-only types for the Ubuntu Clippy job.
 
+- Record an exploratory RI-13 M3 local HTTP comparison with 90 raw samples
+  each for direct Rust, equivalent handwritten checks, and generated checked
+  source, plus a 30-call preparation/await attribution probe. Generated versus
+  handwritten normalized throughput was 0.1242 (paired bootstrap 95%
+  interval [0.1207, 0.1276]); measured registration/preparation accounted
+  for 52.26% of generated total time in the separate probe. This triggers
+  investigation. The tiny loopback workload cannot satisfy the nontrivial
+  batch threshold; copied bytes and allocations remain unmeasured.
+
+- Lower checked immutable `List<i64>` / `ListStep<i64>` source to native C11
+  using invocation-scoped persistent cons cells. Shared tails stay immutable;
+  each list has the same 8192-node success bound as the interpreter, and a
+  root call releases every allocated node. Focused source/interpreter and
+  real C11 O0/O2 gates passed 2/2, including shared-tail and bound controls.
+  Core Wasm and List-bound Lean proof export remain open under LAW-08.
+
+- Admit a narrow checked `List<i64>` / `ListStep<i64>` immutable source profile
+  through a versioned prelude, HIR, graph and interpreter. Exact `list_nil`,
+  `list_cons` and `list_uncons` calls use a persistent cons carrier. Native C
+  and Core Wasm explicitly refuse until physical lowering is implemented;
+  the existing LAW-08 Lean theorems remain bound to the older `Iter` source.
+
+- Save a bounded RI-13 M3 local HTTP application with canonical checked
+  Project source, a generated Rust Future registration module, pinned offline
+  Cargo inputs, and an explicit Tokio/reqwest host effect. The focused Project
+  gate runs real local requests for success, typed 503/parse/timeout failures,
+  source postcondition failure, timeout omission, cancellation, no retry, and
+  held source drift (1/1 on macOS arm64). The standalone generated-module
+  application also prepared and executed under locked offline Cargo, while
+  timeout-omission and stale-registration mutants produced the expected
+  results. M1/M2 integration, measurements, and Linux evidence remain open
+  for RI-13.
+- Add a bounded HR-01 prepared-Project hot reload session with checked candidate
+  admission, read-only compatibility planning, opaque generation-bound plans,
+  and activation through the existing whole-state worker pivot. This is a
+  partial local profile: source-Agent checkpoint handoff and complete
+  compiler-derived closure/state compatibility remain open.
+
+- Add an internal persistent `Nil`/`Cons` list value with immutable shared tails,
+  a failure-before-commit 8192-element limit, and iterative cleanup. Its exact
+  unit gate passed 1/1. This is a LAW-08 source-carrier prerequisite; `.spx`
+  syntax, source/HIR admission, native C and Core Wasm lowering remain open.
+
+- Close the bounded RI-09 Future bridge lifecycle with a real executor
+  shutdown control. A pending local Future drops exactly once when the
+  caller-owned Tokio `LocalSet` and runtime shut down, and its cloned late
+  waker becomes inert. The matrix records the focused acceptance evidence
+  while keeping public package and authored import expansion explicit.
+
+- Add a LAW-15 finite request-identity Project using the existing LAW-10
+  source checker. An active request 101 may retry; mismatched request 202
+  reaches a terminal refusal. A body-only erased identity check fails exact
+  protocol coverage with a concrete wrong-return witness; restoring the body
+  repairs the unchanged law, and version-only drift invalidates cached evidence.
+  The example states its finite identity domain and no external exactly-once claim.
+
+- Render an exact Project-selected Rust async module and compile its one-shot
+  source-yield callback registration in a locked local consumer. The generated
+  code pins Project revision, function identity and suspension plan, and
+  refuses a changed source before invoking the callback. Public SDK package
+  publication and authored native Rust import syntax remain open.
+
+- Bind the LAW-15 foreign-boundary pack to the real guarded indexed Project
+  SDK harness. Saved canonical source and explicit versioned assumptions drive
+  correct, bad-return and repaired native consumers under one unchanged range
+  law; a zero-return control exposes that law's limited strength. The report
+  walkthrough separates checked caller routing, accepted foreign assumptions
+  and observed native results without claiming a foreign-body theorem. The
+  exact physical gate passed 1/1; the bounded LAW-09 profile satisfies its
+  stated frontier criteria, with managed ACTIVE and foreign theorem tokens
+  outside its admitted route.
+
+- Exercise the selected interpreter-backed Project async export through a
+  real locked local `reqwest` request under an explicit Tokio current-thread
+  runtime. The resumed checked source computes `84` from a server-returned
+  `43`; a second request is cancelled after server receipt without a retry or
+  rollback claim. Generated Rust SDK publication remains open.
+
+- Start LAW-08's source-bound list induction lane: an exact pure monomorphic
+  `Iter<i64>` tail match may return `Vec<i64>`, and a separate proof module
+  discharges fixed append/reverse laws with real pinned Lean. A versioned
+  certificate replays source, definitions, proof text and law associations;
+  a wrong-reverse control refutes the selected order law and generated native
+  C11 executes the admitted source at O0 and O2. Runtime capacity, call depth,
+  Core Wasm execution and public aggregate ABI remain outside the theorem.
+
+- Add an interpreter-only Project async selection with a distinct
+  `rust_async` manifest inventory, Phase-A source signature, retained
+  revision and explicit Web/npm/native refusals. The focused held-Project
+  gate covers checked Rust Future completion, source drift and wrong export.
+  Generated async SDK publication remains open.
+
+- Bind the experimental Result callback adapter to exact selected Rust
+  trait/index/package identities. A captured rustdoc fixture and a separately
+  compiled safe implementation exercise retained state; unsafe, sealed,
+  incomplete and mismatched trait obligations refuse. Source mutable and
+  owned capture modes remain open.
+
+- Add a canonical finite retry Project to the LAW-15 examples and bind the
+  LAW-10 positive model test to its checked source. The retained negative
+  mutation replays `charge, success, charge` from changed source. The example
+  states the finite command-safety boundary and leaves request identity and
+  external provider effects open. Add a second architecture Project whose
+  unchanged `forbid_reaches` claim flips from held to a three-node violated
+  path under a saved call-edge mutation. The source protocol gate passed 7/7
+  and the architecture gate passed 8/8.
 - Remove a redundant formatting call in the explorer Markdown export so the
   macOS Rust build passes Clippy with warnings denied.
 

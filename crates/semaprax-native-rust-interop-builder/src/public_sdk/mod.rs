@@ -603,15 +603,23 @@ fn full_hash(value: &str) -> String {
     )
 }
 
+mod affine_callback;
 mod authentication;
 mod authority;
 #[cfg(test)]
 mod borrowed_input;
 mod build;
+pub use affine_callback::{prepare_native_rust_affine_callback, NativeAffineCallbackProjection};
 mod callback;
+mod borrowed_callback;
+pub use borrowed_callback::{prepare_native_rust_borrowed_callback, NativeBorrowedCallbackProjection};
+mod mutable_callback;
+pub use mutable_callback::{prepare_native_rust_mutable_callback, NativeMutableCallbackProjection};
 mod registered_callback;
 pub use callback::{
-    prepare_native_rust_callbacks, NativeCallbackProjection, NativeCallbackSelection,
+    prepare_native_rust_callbacks, prepare_native_rust_serde_callbacks,
+    prepare_native_rust_serde_iterator_callbacks, NativeCallbackProjection,
+    NativeCallbackSelection, NativeSerdeCallbackProjection,
 };
 pub use registered_callback::{
     prepare_registered_native_rust_callbacks, NativeRegisteredCallbackProjection,
@@ -630,6 +638,7 @@ pub use foreign_law::GuardedForeignCallerEvidence;
 mod indexed_multiple;
 mod indexed_owner;
 mod indexed_project;
+mod indexed_regex_url_project;
 mod indexed_url_project;
 mod regex_project_native;
 mod regex_project_package;
@@ -641,6 +650,9 @@ pub use indexed_project::{
     build_indexed_project_native_rust_sdk, prepare_indexed_regex_project_package,
     GuardedForeignLawSelection, IndexedProjectRegexRegistrySelection,
     IndexedProjectScalarSelection,
+};
+pub use indexed_regex_url_project::{
+    prepare_indexed_regex_url_project_packages, PreparedRegexUrlProjectPackages,
 };
 pub use indexed_url_project::{
     prepare_indexed_url_project_package, IndexedProjectUrlRegistrySelection,
@@ -696,3 +708,15 @@ pub use result_callback::{
     prepare_native_rust_result_callback, NativeResultCallbackProjection,
     NativeResultCallbackSelection,
 };
+
+mod indexed_callback;
+pub use indexed_callback::{
+    prepare_indexed_native_rust_result_callback, IndexedResultCallbackProjection,
+    IndexedResultCallbackSelection,
+};
+
+#[cfg(test)]
+mod mutable_callback_tests;
+
+#[cfg(test)]
+mod borrowed_callback_tests;

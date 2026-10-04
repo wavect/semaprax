@@ -1,4 +1,4 @@
-//! Native scalar-snapshot closure carrier and thunk emission.
+//! Native scalar-snapshot and scoped borrowed-view closure carriers.
 //!
 //! This module is selected only by the resolved closure inventory.  Its fixed
 //! eight-cell representation is caller-owned, so a returned closure requires
@@ -13,7 +13,7 @@ use super::{backend_error, c_value_type, COutput, NativeEmissionContext};
 pub(super) const CAPTURE_SLOTS: usize = 8;
 
 pub(super) fn enabled(program: &hir::ResolvedProgram) -> bool {
-    hir::closure::requires_closures(program)
+    hir::closure::requires_runtime_closures(program)
 }
 
 pub(super) fn carrier_type(ty: &ResolvedType) -> Result<String, Diagnostic> {
@@ -63,6 +63,18 @@ pub(super) fn emit_carrier_declarations(
     output.push_str("static __attribute__((unused)) float spx_closure_unpack_f32(uint64_t cell) { float value; memcpy(&value, &cell, sizeof value); return value; }\n");
     output.push_str("static __attribute__((unused)) uint64_t spx_closure_pack_f64(double value) { uint64_t cell; memcpy(&cell, &value, sizeof value); return cell; }\n");
     output.push_str("static __attribute__((unused)) double spx_closure_unpack_f64(uint64_t cell) { double value; memcpy(&value, &cell, sizeof value); return value; }\n\n");
+    if hir::closure::once::uses_type(program, &ResolvedType::OnceFunction) {
+        super::once::declarations(output);
+    }
+    if hir::closure::once::uses_type(program, &ResolvedType::OnceFunctionI64) {
+        super::once::mixed_declarations(output);
+    }
+    if hir::closure::once::uses_type(program, &ResolvedType::OnceFunctionI64Pair) {
+        super::once::pair_declarations(output);
+    }
+    if hir::closure::once::uses_type(program, &ResolvedType::MutFunctionI64) {
+        super::mutable::declarations(output);
+    }
     let mut signatures = std::collections::BTreeMap::new();
     for function in program
         .functions
@@ -136,6 +148,17 @@ pub(super) fn pack(ty: &ResolvedType, value: &str) -> Result<String, Diagnostic>
 }
 
 fn unpack(ty: &ResolvedType, cell: usize) -> Result<String, Diagnostic> {
+    if *ty == ResolvedType::Str {
+        if cell != 0 {
+            return Err(backend_error(
+                "borrowed closure has a noncanonical capture slot",
+            ));
+        }
+        return Ok(
+            "(spx_str_v1){ .data = (const uint8_t *)(uintptr_t)spx_cells[0], .len = spx_cells[1] }"
+                .into(),
+        );
+    }
     let helper = match ty {
         ResolvedType::I64 => "i64",
         ResolvedType::Usize => "u64",
@@ -183,6 +206,14 @@ fn write_thunk_signature(
     ty: &ResolvedType,
     names: bool,
 ) -> Result<(), Diagnostic> {
+    if ty.is_mut_function() {
+        super::mutable::signature(output, symbol);
+        return Ok(());
+    }
+    if ty.is_once_function() {
+        super::once::signature(output, symbol, ty);
+        return Ok(());
+    }
     let ResolvedType::Function { parameters, result } = ty else {
         return Err(backend_error("closure thunk has no function signature"));
     };
@@ -270,6 +301,14 @@ pub(super) fn emit_thunks(
     emission: &NativeEmissionContext<'_>,
 ) -> Result<(), Diagnostic> {
     for expression in hir::closure::inventory(program) {
+        if expression.ty.is_mut_function() {
+            super::mutable::thunk(output, expression, emission)?;
+            continue;
+        }
+        if expression.ty.is_once_function() {
+            super::once::thunk(output, expression, emission)?;
+            continue;
+        }
         let ResolvedType::Function {
             parameters,
             result: _,
@@ -402,4 +441,43 @@ pub(super) fn emit_thunks(
         }
     }
     Ok(())
+}
+
+pub(super) fn construct<O: COutput>(
+    emitter: &mut super::CEmitter<'_, O>,
+    expr: &hir::ResolvedExpr,
+    captures: &[hir::ResolvedClosureCapture],
+) -> Result<super::CValue, Diagnostic> {
+    if expr.ty.is_mut_function() {
+        return super::mutable::construct(emitter, expr);
+    }
+    if !enabled(emitter.program) {
+        return Err(backend_error(
+            "capturing closure lowering requires the closure native profile",
+        ));
+    }
+    let carrier = emitter.temporary(&expr.ty)?;
+    emitter.line(&format!("{carrier}.entry = {};", thunk_symbol(&expr.id)));
+    for (slot, capture) in captures.iter().enumerate() {
+        let value = emitter.emit_expr(&capture.value)?;
+        emitter.require_type(&value.ty, &capture.binding.ty, "closure capture")?;
+        let staged = emitter.temporary(&value.ty)?;
+        emitter.line(&format!("{staged} = {};", value.code));
+        if capture.binding.ty == ResolvedType::Str {
+            hir::closure::borrowed::validate(emitter.program, expr)?;
+            emitter.line(&format!(
+                "{carrier}.cells[0] = (uint64_t)(uintptr_t){staged}.data;"
+            ));
+            emitter.line(&format!("{carrier}.cells[1] = {staged}.len;"));
+            continue;
+        }
+        emitter.line(&format!(
+            "{carrier}.cells[{slot}] = {};",
+            pack(&value.ty, &staged)?
+        ));
+    }
+    Ok(super::CValue {
+        code: carrier,
+        ty: expr.ty.clone(),
+    })
 }

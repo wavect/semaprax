@@ -105,6 +105,9 @@ pub(crate) fn match_result(
     ty: &ResolvedType,
     ownership: OwnershipMode,
 ) -> bool {
+    if monomorphic_list_result(function, mode, ty, ownership) {
+        return true;
+    }
     if iterator_match_result(program, mode, ty, ownership) {
         return true;
     }
@@ -122,6 +125,16 @@ pub(crate) fn match_result_execution(
     ty: &ResolvedType,
     ownership: OwnershipMode,
 ) -> bool {
+    if let FunctionExecutionId::Monomorphic(id) = execution {
+        if program
+            .functions
+            .iter()
+            .find(|function| &function.id == id)
+            .is_some_and(|function| monomorphic_list_result(function, mode, ty, ownership))
+        {
+            return true;
+        }
+    }
     if iterator_match_result(program, mode, ty, ownership) {
         return true;
     }
@@ -141,6 +154,33 @@ pub(crate) fn match_result_execution(
                             && ownership == OwnershipMode::Own
                             && concrete(&program.declarations, ty)))
             })
+        })
+}
+
+fn monomorphic_list_result(
+    function: &ResolvedFunction,
+    mode: ResolvedMatchMode,
+    ty: &ResolvedType,
+    ownership: OwnershipMode,
+) -> bool {
+    let sequence = |ty: &ResolvedType, name: &str| {
+        matches!(ty, ResolvedType::Nominal { declaration, arguments }
+            if declaration.as_str() == name && arguments.as_slice() == [ResolvedType::I64])
+    };
+    mode == ResolvedMatchMode::Own
+        && ownership == OwnershipMode::Own
+        && sequence(ty, crate::prelude::VEC_ID)
+        && function.effects.is_empty()
+        && &function.return_type == ty
+        && function.params.len() <= 2
+        && function.params.iter().any(|parameter| {
+            parameter.ownership == OwnershipMode::Own
+                && sequence(&parameter.ty, crate::iterator_ops::ITER_ID)
+        })
+        && function.params.iter().all(|parameter| {
+            parameter.ownership == OwnershipMode::Own
+                && (sequence(&parameter.ty, crate::iterator_ops::ITER_ID)
+                    || sequence(&parameter.ty, crate::prelude::VEC_ID))
         })
 }
 

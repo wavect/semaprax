@@ -3,14 +3,14 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, OnceLock};
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use crate::ast::Program;
 use crate::diagnostic::Diagnostic;
 use crate::semantic_workspace::SemanticWorkspaceSource;
 use crate::workspace_analysis::{WorkspaceAnalysisTargetKind, WorkspaceImpactOptions};
 
-use super::{build, ProjectRevision, MAX_TOTAL_SOURCE_BYTES};
+use super::{MAX_TOTAL_SOURCE_BYTES, ProjectRevision, build};
 
 mod abi_delta;
 mod analysis_artifact_evidence;
@@ -21,6 +21,7 @@ mod analysis_evidence;
 mod analysis_runtime_evidence;
 mod archive;
 mod artifact_delta;
+mod assurance_selection;
 mod candidate_assurance;
 mod catalog;
 mod cleanup_dependencies;
@@ -58,6 +59,16 @@ mod movement;
 mod multi_agent_coordination;
 mod owned_workflow_approval;
 mod ownership_delta;
+mod patch_receipt;
+pub use patch_receipt::{
+    MAX_PROJECT_PATCH_RECEIPT_BYTES, MAX_PROJECT_PATCH_RECEIPT_COMPARISON_BYTES,
+    MAX_PROJECT_PATCH_RECEIPT_COMPARISON_INPUTS, MAX_PROJECT_PATCH_RECEIPT_EVIDENCE_PAGE_BYTES,
+    MAX_PROJECT_PATCH_RECEIPT_EVIDENCE_SUMMARY_BYTES, PROJECT_PATCH_RECEIPT_COMPARISON_SCHEMA,
+    PROJECT_PATCH_RECEIPT_EVIDENCE_PAGE_SCHEMA, PROJECT_PATCH_RECEIPT_EVIDENCE_SUMMARY_SCHEMA,
+    PROJECT_PATCH_RECEIPT_SCHEMA, PROJECT_PATCH_RECEIPT_SET_COMPARISON_SCHEMA,
+    PROJECT_PATCH_RECEIPT_VERIFICATION_SCHEMA, ProjectPatchReceiptComparisonInput,
+    ProjectPatchReceiptEvidence, ProjectPatchReceiptEvidencePageOptions,
+};
 mod package_consumer_replay;
 mod protected_laws;
 mod public_generic_delta;
@@ -70,8 +81,8 @@ mod schemas;
 mod source_review;
 mod strict_law_assurance;
 pub use strict_law_assurance::{
-    apply_strict_law_publication, prepare_strict_law_publication, StrictCandidateLawInputs,
-    StrictLawPublication, STRICT_CANDIDATE_LAW_SCHEMA, STRICT_LAW_PUBLICATION_SCHEMA,
+    STRICT_CANDIDATE_LAW_SCHEMA, STRICT_LAW_PUBLICATION_SCHEMA, StrictCandidateLawInputs,
+    StrictLawPublication, apply_strict_law_publication, prepare_strict_law_publication,
 };
 mod testing;
 mod type_declaration;
@@ -115,11 +126,15 @@ pub use analysis_runtime_evidence::{
     PROJECT_CANDIDATE_ANALYSIS_RUNTIME_EVIDENCE_SCHEMA,
 };
 pub use archive::{
-    ProjectCandidateArchive, MAX_PROJECT_CANDIDATE_ARCHIVE_BYTES, PROJECT_CANDIDATE_ARCHIVE_SCHEMA,
+    MAX_PROJECT_CANDIDATE_ARCHIVE_BYTES, PROJECT_CANDIDATE_ARCHIVE_SCHEMA, ProjectCandidateArchive,
 };
 pub use artifact_delta::{
     MAX_PROJECT_CANDIDATE_ARTIFACT_DELTA_BYTES, PROJECT_CANDIDATE_ARTIFACT_DELTA_SCHEMA,
     PROJECT_CANDIDATE_ARTIFACT_DELTA_VERIFICATION_SCHEMA,
+};
+pub use assurance_selection::{
+    MAX_PROJECT_CANDIDATE_ASSURANCE_SELECTION_BYTES, PROJECT_CANDIDATE_ASSURANCE_SELECTION_SCHEMA,
+    PROJECT_CANDIDATE_ASSURANCE_SELECTION_VERIFICATION_SCHEMA,
 };
 pub use candidate_assurance::{
     CandidateAssuranceInput, MAX_CANDIDATE_ACCEPTANCE_IDENTITY_BYTES,
@@ -141,8 +156,8 @@ pub use dependency_navigation::{
     PROJECT_CANDIDATE_DEPENDENCY_PAGE_SCHEMA, PROJECT_CANDIDATE_DEPENDENCY_SUMMARY_SCHEMA,
 };
 pub use deployment_contract_evidence::{
-    MAX_PROJECT_CANDIDATE_DEPLOYMENT_CONFIGURATION_KEYS,
     MAX_PROJECT_CANDIDATE_DEPLOYMENT_CONFIGURATION_KEY_BYTES,
+    MAX_PROJECT_CANDIDATE_DEPLOYMENT_CONFIGURATION_KEYS,
     MAX_PROJECT_CANDIDATE_DEPLOYMENT_CONTRACT_DECLARATION_BYTES,
     MAX_PROJECT_CANDIDATE_DEPLOYMENT_CONTRACT_EVIDENCE_BYTES,
     PROJECT_CANDIDATE_DEPLOYMENT_CONTRACT_DECLARATION_SCHEMA,
@@ -184,9 +199,10 @@ pub use generated_file_provenance::{
     PROJECT_CANDIDATE_GENERATED_FILE_PROVENANCE_EVIDENCE_SCHEMA,
 };
 pub use owned_workflow_approval::{
-    apply_approved_owned_workflow_publication, prepare_approved_owned_workflow_publication,
-    require_owned_targets_unchanged, reselect_owned_workflow, OwnedWorkflowApproval,
-    OwnedWorkflowCandidate, MAX_OWNED_WORKFLOW_APPROVAL_BYTES, OWNED_WORKFLOW_APPROVAL_SCHEMA,
+    MAX_OWNED_WORKFLOW_APPROVAL_BYTES, OWNED_WORKFLOW_APPROVAL_SCHEMA, OwnedWorkflowApproval,
+    OwnedWorkflowCandidate, apply_approved_owned_workflow_publication,
+    prepare_approved_owned_workflow_publication, require_owned_targets_unchanged,
+    reselect_owned_workflow,
 };
 pub use ownership_delta::{
     MAX_PROJECT_CANDIDATE_OWNERSHIP_DELTA_BYTES, PROJECT_CANDIDATE_OWNERSHIP_DELTA_SCHEMA,
@@ -203,15 +219,15 @@ pub use package_consumer_replay::{
 };
 
 pub use testing::{
-    CandidateTestPolicy, CandidateTestReport, ProjectCandidateTestTaskOutcome,
-    MAX_CANDIDATE_TEST_STEPS, MAX_PROJECT_CANDIDATE_TEST_PLAN_BYTES,
-    MAX_PROJECT_CANDIDATE_TEST_REPORT_BYTES, PROJECT_CANDIDATE_TEST_PLAN_SCHEMA,
-    PROJECT_CANDIDATE_TEST_REPORT_SCHEMA,
+    CandidateTestPolicy, CandidateTestReport, MAX_CANDIDATE_TEST_STEPS,
+    MAX_PROJECT_CANDIDATE_TEST_PLAN_BYTES, MAX_PROJECT_CANDIDATE_TEST_REPORT_BYTES,
+    PROJECT_CANDIDATE_TEST_PLAN_SCHEMA, PROJECT_CANDIDATE_TEST_REPORT_SCHEMA,
+    ProjectCandidateTestTaskOutcome,
 };
 
 pub use diagnostics::{
-    ProjectCandidateAttempt, ProjectCandidateAttemptOutcome, PROJECT_CANDIDATE_ATTEMPT_SCHEMA,
-    PROJECT_CANDIDATE_REPAIR_CATALOG_SCHEMA,
+    PROJECT_CANDIDATE_ATTEMPT_SCHEMA, PROJECT_CANDIDATE_REPAIR_CATALOG_SCHEMA,
+    ProjectCandidateAttempt, ProjectCandidateAttemptOutcome,
 };
 
 pub use delta::{
@@ -230,25 +246,25 @@ pub use interface_delta::{
 };
 
 pub use draft::{
-    ProjectCandidateDraft, ProjectCandidateDraftArchive, ProjectCandidateDraftMerge,
-    ProjectCandidateDraftRebase, MAX_PROJECT_CANDIDATE_DRAFT_ARCHIVE_BYTES,
-    MAX_PROJECT_CANDIDATE_DRAFT_LINEAGE, MAX_PROJECT_CANDIDATE_DRAFT_MERGE_BYTES,
-    MAX_PROJECT_CANDIDATE_DRAFT_REBASE_BYTES, MAX_PROJECT_CANDIDATE_DRAFT_RECOVERY_BYTES,
-    MAX_PROJECT_CANDIDATE_HOLES, MAX_PROJECT_DRAFT_EXPRESSION_CATALOG_BYTES,
-    PROJECT_CANDIDATE_DRAFT_ARCHIVE_COMPATIBILITY, PROJECT_CANDIDATE_DRAFT_ARCHIVE_SCHEMA,
-    PROJECT_CANDIDATE_DRAFT_LINEAGE_MERGE_SCHEMA, PROJECT_CANDIDATE_DRAFT_LINEAGE_REBASE_SCHEMA,
+    MAX_PROJECT_CANDIDATE_DRAFT_ARCHIVE_BYTES, MAX_PROJECT_CANDIDATE_DRAFT_LINEAGE,
+    MAX_PROJECT_CANDIDATE_DRAFT_MERGE_BYTES, MAX_PROJECT_CANDIDATE_DRAFT_REBASE_BYTES,
+    MAX_PROJECT_CANDIDATE_DRAFT_RECOVERY_BYTES, MAX_PROJECT_CANDIDATE_HOLES,
+    MAX_PROJECT_DRAFT_EXPRESSION_CATALOG_BYTES, PROJECT_CANDIDATE_DRAFT_ARCHIVE_COMPATIBILITY,
+    PROJECT_CANDIDATE_DRAFT_ARCHIVE_SCHEMA, PROJECT_CANDIDATE_DRAFT_LINEAGE_MERGE_SCHEMA,
+    PROJECT_CANDIDATE_DRAFT_LINEAGE_REBASE_SCHEMA,
     PROJECT_CANDIDATE_DRAFT_LINEAGE_RECOVERY_COMPATIBILITY,
     PROJECT_CANDIDATE_DRAFT_LINEAGE_RECOVERY_SCHEMA, PROJECT_CANDIDATE_DRAFT_LINEAGE_SCHEMA,
     PROJECT_CANDIDATE_DRAFT_MERGE_SCHEMA, PROJECT_CANDIDATE_DRAFT_REBASE_SCHEMA,
     PROJECT_CANDIDATE_DRAFT_RECOVERY_COMPATIBILITY, PROJECT_CANDIDATE_DRAFT_RECOVERY_SCHEMA,
     PROJECT_CANDIDATE_DRAFT_SCHEMA, PROJECT_CANDIDATE_HOLE_CONTEXT_SCHEMA,
-    PROJECT_DRAFT_EXPRESSION_CATALOG_SCHEMA,
+    PROJECT_DRAFT_EXPRESSION_CATALOG_SCHEMA, ProjectCandidateDraft, ProjectCandidateDraftArchive,
+    ProjectCandidateDraftMerge, ProjectCandidateDraftRebase,
 };
 pub use git_publication::{
-    apply_candidate_git_publication, CandidateGitAuthority, CandidateGitCommitMetadata,
-    CandidateGitObject, CandidateGitObjectKind, CandidateGitProcessAuthority,
-    CandidateGitRefUpdate, CandidateGitRepository, CandidateGitTarget, GitObjectFormat,
-    PROJECT_CANDIDATE_GIT_PUBLICATION_SCHEMA,
+    CandidateGitAuthority, CandidateGitCommitMetadata, CandidateGitObject, CandidateGitObjectKind,
+    CandidateGitProcessAuthority, CandidateGitRefUpdate, CandidateGitRepository,
+    CandidateGitTarget, GitObjectFormat, PROJECT_CANDIDATE_GIT_PUBLICATION_SCHEMA,
+    apply_candidate_git_publication,
 };
 pub use public_generic_delta::{
     MAX_PROJECT_CANDIDATE_PUBLIC_GENERIC_DELTA_BYTES,
@@ -256,8 +272,8 @@ pub use public_generic_delta::{
     PROJECT_CANDIDATE_PUBLIC_GENERIC_DELTA_VERIFICATION_SCHEMA,
 };
 pub use publication::{
-    apply_candidate_publication, prepare_candidate_publication, ProjectCandidatePublication,
     MAX_PROJECT_CANDIDATE_PUBLICATION_BYTES, PROJECT_CANDIDATE_PUBLICATION_SCHEMA,
+    ProjectCandidatePublication, apply_candidate_publication, prepare_candidate_publication,
 };
 
 pub use draft_navigation::{
@@ -272,14 +288,14 @@ pub use merge_preview::{
     PROJECT_CANDIDATE_MERGE_PREVIEW_VERIFICATION_SCHEMA,
 };
 pub use multi_agent_coordination::{
-    record_scheduling_comparison, AgentProposal, CoordinationParticipant, OperationClass,
-    SchedulingObservation, COORDINATION_EVALUATION_SCHEMA, COORDINATION_SESSION_SCHEMA,
-    MAX_COORDINATION_EVALUATION_BYTES, MAX_COORDINATION_IDENTITY_BYTES,
+    AgentProposal, COORDINATION_EVALUATION_SCHEMA, COORDINATION_SESSION_SCHEMA,
+    CoordinationParticipant, MAX_COORDINATION_EVALUATION_BYTES, MAX_COORDINATION_IDENTITY_BYTES,
     MAX_COORDINATION_PARTICIPANTS, MAX_COORDINATION_SESSION_BYTES, MAX_INTENTION_BYTES,
     MAX_PROPOSALS, MAX_SCHEDULING_COMPARISON_BYTES, MAX_SCHEDULING_METRIC,
-    MAX_SCOPE_IDS_PER_PARTICIPANT, MAX_TARGET_IDS_PER_PROPOSAL, SCHEDULING_COMPARISON_SCHEMA,
+    MAX_SCOPE_IDS_PER_PARTICIPANT, MAX_TARGET_IDS_PER_PROPOSAL, OperationClass,
+    SCHEDULING_COMPARISON_SCHEMA, SchedulingObservation, record_scheduling_comparison,
 };
-pub use rebase::{ProjectCandidateRebase, PROJECT_CANDIDATE_REBASE_SCHEMA};
+pub use rebase::{PROJECT_CANDIDATE_REBASE_SCHEMA, ProjectCandidateRebase};
 pub use recovery::{
     MAX_PROJECT_CANDIDATE_RECOVERY_BYTES, PROJECT_CANDIDATE_RECOVERY_COMPATIBILITY,
     PROJECT_CANDIDATE_RECOVERY_SCHEMA,

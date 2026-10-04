@@ -1,5 +1,4 @@
 //! Independent structural validation of attached cleanup plans without invoking the builder.
-
 mod expression_children;
 use expression_children::replay_expression_child;
 
@@ -59,6 +58,7 @@ mod schema;
 #[cfg(test)]
 mod schema_tests;
 use nested_shape::expected_shape_for_type;
+use nested_shape::type_needs_drop;
 use path_join::validate_path_states;
 use record_destructure::finish_owned_match_result as finish_owned;
 use resolved_call::resolved_call_params;
@@ -624,6 +624,9 @@ fn expression_path_counts_with_while(
     expression: &ResolvedExpr,
 ) -> Result<HirPathCounts, Diagnostic> {
     fn child(expression: &ResolvedExpr, mut index: usize) -> Option<&ResolvedExpr> {
+        if let Some((_, args)) = crate::hir::closure::once::call(expression) {
+            return args.get(index);
+        }
         match &expression.kind {
             ResolvedExprKind::Closure { .. }
             | ResolvedExprKind::FunctionReference { .. }
@@ -755,6 +758,13 @@ fn expression_path_counts_with_while(
                         .fold(HirPathCounts::ONE, sequence_path_counts)
                 };
                 let counts = match &expression.kind {
+                    _ if crate::hir::closure::once::call(expression).is_some() => {
+                        let accumulator = sequence(children);
+                        HirPathCounts {
+                            failed: accumulator.failed.saturating_add(accumulator.normal),
+                            ..accumulator
+                        }
+                    }
                     ResolvedExprKind::Closure { .. }
                     | ResolvedExprKind::FunctionReference { .. }
                     | ResolvedExprKind::Int(_)
@@ -1039,6 +1049,7 @@ fn expression_skeleton_work_upper(
                 // Eval plus strings::paths: temporary, two identities,
                 // initialization observation, and the singleton path.
                 _ if strings::owns_clone(expression) => 6,
+                _ if crate::hir::closure::once::call(expression).is_some() => 20,
                 ResolvedExprKind::Closure { .. }
                 | ResolvedExprKind::FunctionReference { .. }
                 | ResolvedExprKind::Int(_)
@@ -1561,15 +1572,6 @@ fn inventory_storage_id(origin: &CleanupStorageOrigin) -> StorageId {
     }
 }
 
-fn type_needs_drop(
-    program: &ResolvedProgram,
-    function: &ResolvedFunction,
-    ty: &ResolvedType,
-) -> Result<bool, Diagnostic> {
-    crate::cleanup::type_needs_resource_cleanup(program, ty)
-        .map_err(|message| replay_error(function, message))
-}
-
 fn validate_required_status_sources(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
@@ -1650,7 +1652,8 @@ fn collect_expression_statuses(
             });
         }
         match &expression.kind {
-            ResolvedExprKind::Closure { .. } | ResolvedExprKind::FunctionReference { .. } => {}
+            ResolvedExprKind::Closure { .. } if !expression.ty.is_once_function() => {}
+            ResolvedExprKind::FunctionReference { .. } => {}
             ResolvedExprKind::ByteRange { operation, .. } => {
                 if operation.as_str() != crate::byte_ops::RANGE_ID {
                     return Err(replay_error(
@@ -1668,14 +1671,16 @@ fn collect_expression_statuses(
                     },
                 });
             }
-            ResolvedExprKind::Invoke { .. } => {
+            ResolvedExprKind::Invoke { .. } | ResolvedExprKind::Closure { .. } => {
                 statuses.push(StatusSource {
                     id: StatusSourceId {
                         expression: expression.id.clone(),
                         lane: StatusLane::OperationFailure,
                     },
                     producer: StatusProducer::PropagatedCall {
-                        callee: crate::hir::function_value::INVOKE_ID.clone(),
+                        callee: crate::hir::function_value::cleanup_call(expression)?
+                            .0
+                            .clone(),
                     },
                 });
             }
@@ -1709,6 +1714,7 @@ fn collect_expression_statuses(
                         || crate::str_ops::by_id(callee.as_str()).is_some()
                         || crate::vec_ops::by_id(callee.as_str()).is_some()
                         || crate::iterator_ops::by_id(callee.as_str()).is_some()
+                        || crate::list_ops::by_id(callee.as_str()).is_some()
                         || crate::box_ops::by_id(callee.as_str()).is_some()
                         || crate::byte_ops::by_id(callee.as_str()).is_some())
                 {
@@ -2732,7 +2738,12 @@ fn validate_exits(
                 CleanupResultSource::Owned { storage: result } => {
                     if !matches!(
                         function.return_type,
-                        ResolvedType::Nominal { .. } | ResolvedType::Bytes | ResolvedType::String
+                        ResolvedType::Nominal { .. }
+                            | ResolvedType::Bytes
+                            | ResolvedType::String
+                            | ResolvedType::OnceFunction
+                            | ResolvedType::OnceFunctionI64
+                            | ResolvedType::OnceFunctionI64Pair
                     ) || !type_needs_drop(program, function, &function.return_type)?
                         || result.storage != StorageId::ProvisionalResult
                         || !result.projections.is_empty()
@@ -3027,9 +3038,7 @@ fn sequence_skeleton_paths(
     Ok(combined)
 }
 
-fn has_active_paths(paths: &[ExprSkeletonPath]) -> bool {
-    paths.iter().any(|path| !path.failed && !path.residual)
-}
+use path_summary::has_active_paths;
 
 fn expression_skeleton(
     program: &ResolvedProgram,
@@ -3289,8 +3298,12 @@ fn expression_skeleton(
                 }
 
                 match &expression.kind {
-                    ResolvedExprKind::Closure { .. }
-                    | ResolvedExprKind::FunctionReference { .. }
+                    ResolvedExprKind::Closure { .. } if !expression.ty.is_once_function() => {
+                        produced = Some(
+                            work.singleton_path(empty_expr_path(), "copy closure skeleton path")?,
+                        );
+                    }
+                    ResolvedExprKind::FunctionReference { .. }
                     | ResolvedExprKind::Int(_)
                     | ResolvedExprKind::Int32(_)
                     | ResolvedExprKind::Char(_)
@@ -3396,8 +3409,9 @@ fn expression_skeleton(
                         );
                         push_frame!(frames, Frame::Eval(left));
                     }
-                    ResolvedExprKind::Invoke { args, .. } => {
-                        let params = crate::hir::function_value::invocation_params(expression)?;
+                    ResolvedExprKind::Invoke { .. } | ResolvedExprKind::Closure { .. } => {
+                        let (_, args, params) =
+                            crate::hir::function_value::cleanup_call(expression)?;
                         work.charge(1, "indirect call skeleton root state")?;
                         let states = vec![(empty_expr_path(), Vec::new())];
                         if let Some(argument) = args.first() {
@@ -3457,7 +3471,8 @@ fn expression_skeleton(
                         } else if let Some(op) = host_io_intrinsic {
                             crate::host_io_ops::resolved_params(op)
                         } else if instance.is_none()
-                            && crate::iterator_ops::by_id(callee.as_str()).is_some()
+                            && (crate::iterator_ops::by_id(callee.as_str()).is_some()
+                                || crate::list_ops::by_id(callee.as_str()).is_some())
                         {
                             resolved_call_params(program, function, callee, None, type_arguments)?
                         } else if let Some(op) = vec_intrinsic {
@@ -4889,6 +4904,10 @@ fn validate_match_skeleton_shape(
         | ResolvedType::Str
         | ResolvedType::SliceU8
         | ResolvedType::TypeParameter { .. }
+        | ResolvedType::OnceFunction
+        | ResolvedType::OnceFunctionI64
+        | ResolvedType::OnceFunctionI64Pair
+        | ResolvedType::MutFunctionI64
         | ResolvedType::Function { .. } => false,
     };
     let is_variant = match &scrutinee.ty {
@@ -7817,6 +7836,15 @@ fn collect_expression_facts(
         let (current, next_child) = stack[len].take().expect("expression-fact frame retained");
         if next_child == 0 {
             let fact = match &current.kind {
+                _ if crate::hir::closure::once::call(current).is_some() => {
+                    let (callee, args, _) = crate::hir::function_value::cleanup_call(current)?;
+                    Some(CallFact {
+                        callee: callee.clone(),
+                        instance: None,
+                        arguments: args.iter().map(|a| a.id.clone()).collect(),
+                        type_arguments: vec![],
+                    })
+                }
                 ResolvedExprKind::Invoke { callable, args } => Some(CallFact {
                     callee: crate::hir::function_value::INVOKE_ID.clone(),
                     instance: None,

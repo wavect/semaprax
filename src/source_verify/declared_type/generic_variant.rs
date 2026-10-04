@@ -155,6 +155,52 @@ pub(in crate::source_verify) fn match_result(
     ty: &Type,
     ownership: ParamMode,
 ) -> bool {
+    // The immutable LAW-08 carrier may return a List from a value-mode
+    // ListStep match. Keep this monomorphic and effect-free; the source-bound
+    // Lean exporter further authenticates the exact structural bodies. One
+    // additional i64 value parameter supports insertion into the List; an
+    // actual List input remains required, with at most two value parameters.
+    if mode == crate::ast::MatchMode::Value
+        && ownership == ParamMode::Value
+        && matches!(ty, Type::Named { name, arguments }
+            if name == "List" && arguments.as_slice() == [Type::I64])
+        && template.is_some_and(|function| {
+            function.type_parameters.is_empty()
+                && function.effects.is_empty()
+                && &function.return_type == ty
+                && (1..=2).contains(&function.params.len())
+                && function.params.iter().any(|parameter| &parameter.ty == ty)
+                && function.params.iter().all(|parameter| {
+                    parameter.mode == ParamMode::Value
+                        && (&parameter.ty == ty || parameter.ty == Type::I64)
+                })
+        })
+    {
+        return true;
+    }
+    // LAW-08's monomorphic list carrier is the consuming Iter<i64> tail.
+    // Restrict aggregate arm results to a pure function that owns that exact
+    // carrier and returns its compiler-owned Vec<i64> sequence result.
+    if mode == crate::ast::MatchMode::Own
+        && ownership == ParamMode::Own
+        && matches!(ty, Type::Named { name, arguments } if name == "Vec" && arguments.as_slice() == [Type::I64])
+        && template.is_some_and(|function| {
+            function.type_parameters.is_empty()
+                && function.effects.is_empty()
+                && &function.return_type == ty
+                && function.params.len() <= 2
+                && function.params.iter().any(|parameter| {
+                    parameter.mode == ParamMode::Own
+                        && matches!(&parameter.ty, Type::Named { name, arguments } if name == "Iter" && arguments.as_slice() == [Type::I64])
+                })
+                && function.params.iter().all(|parameter| {
+                    parameter.mode == ParamMode::Own
+                        && matches!(&parameter.ty, Type::Named { name, arguments } if matches!(name.as_str(), "Iter" | "Vec") && arguments.as_slice() == [Type::I64])
+                })
+        })
+    {
+        return true;
+    }
     if mode == crate::ast::MatchMode::Own
         && ownership == ParamMode::Own
         && matches!(ty, Type::Named { name, arguments } if name == "IterStep"

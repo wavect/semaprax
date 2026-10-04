@@ -10,18 +10,55 @@ use crate::diagnostic::Diagnostic;
 use crate::hir::{self, ResolvedType};
 use crate::interpreter::resumable::{resume_resumable_effect, run_resumable_effect, ResumableStep};
 use crate::interpreter::{ArgumentValue, MAX_STEPS_LIMIT};
-use crate::resumable_effects::source_signature::derive_source_effect_signature;
+use crate::project::{ProjectProfile, ProjectRevision};
+use crate::resumable_effects::source_signature::{
+    derive_source_effect_signature, SourceEffectSignature,
+};
 use std::future::Future;
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::path::Path;
 use std::pin::Pin;
 use std::rc::Rc;
+use std::sync::Arc;
 use std::task::{Context, Poll};
 
 const INVALID: &str = "SPX-H006";
 
 fn invalid(message: &str) -> Vec<Diagnostic> {
-    vec![Diagnostic::io(INVALID, message)]
+    vec![profile_error(message)]
+}
+
+fn profile_error(message: &str) -> Diagnostic {
+    Diagnostic::io(INVALID, message)
+}
+
+/// The exact compiler-owned one-site shape shared by Project Phase-A and the
+/// interpreter adapter. This check grants no host or publication authority.
+pub(crate) fn admitted_source_future_signature(
+    program: &hir::ResolvedProgram,
+    function_id: &str,
+) -> Result<SourceEffectSignature, Diagnostic> {
+    hir::validate(program)?;
+    let signature = derive_source_effect_signature(program, function_id)?;
+    let function = program
+        .functions
+        .iter()
+        .find(|f| f.id.as_str() == function_id)
+        .ok_or_else(|| profile_error("local Future selected function is absent"))?;
+    if signature.yield_count() != 1
+        || signature.is_control_dependent()
+        || signature.is_aggregate_channel()
+        || function.params.len() != 1
+        || function.params[0].ty != ResolvedType::I64
+        || function.return_type != ResolvedType::I64
+        || !matches!(function.yields.as_ref(), Some(y)
+            if y.request_type == ResolvedType::I64 && y.response_type == ResolvedType::I64)
+    {
+        return Err(profile_error(
+            "local Future requires one direct i64 yield, one i64 argument, and an i64 result",
+        ));
+    }
+    Ok(signature)
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -36,8 +73,25 @@ pub enum SourceLocalFutureFailure {
 
 /// A one-shot, thread-local host future serving exactly one source request.
 /// The opaque suspension binding is held in memory and never serialized.
+enum SourceLocalFutureProgram {
+    /// A standalone checked source invocation owns its resolved program.
+    Detached(hir::ResolvedProgram),
+    /// A Project invocation retains its immutable admission and borrows its
+    /// already-linked public API program for the lifetime of the future.
+    Revision(Arc<ProjectRevision>),
+}
+
+impl SourceLocalFutureProgram {
+    fn program(&self) -> &hir::ResolvedProgram {
+        match self {
+            Self::Detached(program) => program,
+            Self::Revision(revision) => revision.public_api_program(),
+        }
+    }
+}
+
 pub struct SourceLocalFuture<F, H> {
-    program: hir::ResolvedProgram,
+    program: SourceLocalFutureProgram,
     function_id: String,
     seed: i64,
     request: i64,
@@ -79,29 +133,56 @@ where
             return Err(invalid("local Future source changed during checking"));
         }
         let program = hir::resolve(&checked)?;
-        hir::validate(&program).map_err(|e| vec![e])?;
-        let signature =
-            derive_source_effect_signature(&program, function_id).map_err(|e| vec![e])?;
-        let function = program
-            .functions
-            .iter()
-            .find(|f| f.id.as_str() == function_id)
-            .ok_or_else(|| invalid("local Future selected function is absent"))?;
-        if signature.yield_count() != 1
-            || signature.is_control_dependent()
-            || signature.is_aggregate_channel()
-            || function.params.len() != 1
-            || function.params[0].ty != ResolvedType::I64
-            || function.return_type != ResolvedType::I64
-            || !matches!(function.yields.as_ref(), Some(y)
-                if y.request_type == ResolvedType::I64 && y.response_type == ResolvedType::I64)
-        {
+        admitted_source_future_signature(&program, function_id).map_err(|e| vec![e])?;
+        Self::prepare_program(
+            SourceLocalFutureProgram::Detached(program),
+            function_id,
+            seed,
+            max_steps,
+            handler,
+        )
+    }
+
+    /// Consume only a retained, Phase-A admitted Project revision. A caller
+    /// needing filesystem provenance obtains it through an authenticated
+    /// Project snapshot; this constructor cannot recheck the original files.
+    /// No caller-supplied digest or source text selects the exported function.
+    pub fn prepare_revision(
+        revision: Arc<ProjectRevision>,
+        seed: i64,
+        max_steps: usize,
+        handler: H,
+    ) -> Result<Self, Vec<Diagnostic>> {
+        if revision.manifest().project_profile() != ProjectProfile::SourceLocalFutureV1 {
+            return Err(invalid("local Future Project profile is not selected"));
+        }
+        let function_id = revision
+            .source_local_future_signature()?
+            .function_id()
+            .to_owned();
+        Self::prepare_program(
+            SourceLocalFutureProgram::Revision(revision),
+            &function_id,
+            seed,
+            max_steps,
+            handler,
+        )
+    }
+
+    fn prepare_program(
+        program: SourceLocalFutureProgram,
+        function_id: &str,
+        seed: i64,
+        max_steps: usize,
+        handler: H,
+    ) -> Result<Self, Vec<Diagnostic>> {
+        if !(1..=MAX_STEPS_LIMIT).contains(&max_steps) {
             return Err(invalid(
-                "local Future requires one direct i64 yield, one i64 argument, and an i64 result",
+                "local Future interpreter fuel is outside its bounds",
             ));
         }
         let step = run_resumable_effect(
-            &program,
+            program.program(),
             function_id,
             &[ArgumentValue::Int(seed)],
             max_steps,
@@ -172,7 +253,7 @@ where
         this.pending = None;
         let answer = answer.map_err(|_| SourceLocalFutureFailure::HandlerFailed)?;
         let step = resume_resumable_effect(
-            &this.program,
+            this.program.program(),
             &this.function_id,
             &[ArgumentValue::Int(this.seed)],
             &this.state,

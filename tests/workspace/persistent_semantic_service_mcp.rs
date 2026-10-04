@@ -4,15 +4,15 @@ use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use semaprax::project::{
-    with_authenticated_project, ProjectCandidate, ProjectFrontendSource, ProjectManifest,
-    SemanticQuery, SemanticServiceIndexQuery, SemanticTransaction,
-    SemanticTransactionRenameDisplayName, SemanticTransactionReplaceExpression,
-    SemanticTransactionV2, SemanticWorkspaceServiceHistoryQuery,
+    ProjectCandidate, ProjectFrontendSource, ProjectManifest, SemanticQuery,
+    SemanticServiceIndexQuery, SemanticTransaction, SemanticTransactionRenameDisplayName,
+    SemanticTransactionReplaceExpression, SemanticTransactionV2,
+    SemanticWorkspaceServiceHistoryQuery, with_authenticated_project,
 };
 use semaprax::semantic_service_mcp::{
-    SemanticWorkspaceMcpSession, SEMANTIC_SERVICE_MCP_PROTOCOL_VERSION, SEMANTIC_SERVICE_MCP_SCHEMA,
+    SEMANTIC_SERVICE_MCP_PROTOCOL_VERSION, SEMANTIC_SERVICE_MCP_SCHEMA, SemanticWorkspaceMcpSession,
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 
@@ -85,9 +85,11 @@ fn initialize(session: &mut SemanticWorkspaceMcpSession) {
         initialized["result"]["protocolVersion"],
         SEMANTIC_SERVICE_MCP_PROTOCOL_VERSION
     );
-    assert!(session
-        .handle_frame(br#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#)
-        .is_none());
+    assert!(
+        session
+            .handle_frame(br#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#)
+            .is_none()
+    );
 }
 
 fn tool(session: &mut SemanticWorkspaceMcpSession, id: u64, name: &str, arguments: Value) -> Value {
@@ -140,6 +142,14 @@ fn lifecycle_catalogue_and_tools_share_the_retained_authority_free_generation() 
             "workspace__validate_transaction",
             "workspace__validate_transaction_v2",
             "workspace__validate_transaction_v2_workflow",
+            "workspace__patch_receipt",
+            "workspace__verify_patch_receipt",
+            "workspace__patch_receipt_refusal",
+            "workspace__verify_patch_receipt_refusal",
+            "workspace__patch_receipt_evidence_summary",
+            "workspace__patch_receipt_evidence_page",
+            "workspace__compare_patch_receipts",
+            "workspace__compare_patch_receipt_set",
             "workspace__compact_projection",
             "workspace__refresh",
         ]

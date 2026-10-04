@@ -1,4 +1,5 @@
 //! Deterministic, read-only Property-Test Generation v1.
+mod scalar_types;
 
 use crate::ast::{
     BinaryOp, Expr, ExprKind, Function, ParamMode, Program, Statement, Type, UnaryOp,
@@ -1141,7 +1142,12 @@ impl ScalarKind {
             | Type::SliceU8
             | Type::ArrayU8(_)
             | Type::Bytes
-            | Type::Function { .. } | Type::Named { .. } => unreachable!(
+            | Type::OnceFunction
+            | Type::OnceFunctionI64
+            | Type::OnceFunctionI64Pair
+            | Type::MutFunctionI64
+            | Type::Function { .. }
+            | Type::Named { .. } => unreachable!(
                 "ScalarKind::of called for unsupported type `{:?}`; admitted scalars are the seven primitive Copy types",
                 ty
             ),
@@ -1161,27 +1167,7 @@ impl ScalarKind {
     }
 }
 
-fn scalar_type_text(ty: &Type) -> &'static str {
-    match ty {
-        Type::I64 => "i64",
-        Type::I32 => "i32",
-        Type::U8 => "u8",
-        Type::Char => "char",
-        Type::F32 => "f32",
-        Type::F64 => "f64",
-        Type::Bool => "bool",
-        Type::Usize
-        | Type::String
-        | Type::Str
-        | Type::SliceU8
-        | Type::ArrayU8(_)
-        | Type::Bytes
-        | Type::Function { .. } | Type::Named { .. } => unreachable!(
-            "scalar_type_text called for unsupported type `{:?}`; admitted scalars are the seven primitive Copy types",
-            ty
-        ),
-    }
-}
+use scalar_types::scalar_type_text;
 
 /// Deterministic per-kind candidate values. The first cases walk the fixed
 /// boundary lattice; later cases draw from the parameter's xorshift64* stream.

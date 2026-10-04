@@ -16,7 +16,7 @@ mod ast {
         0 => I64, 1 => I32, 2 => Char, 3 => U8, 4 => Usize,
         5 => ArrayU8(length), 6 => F32, 7 => F64, 8 => Bool,
         9 => String, 10 => Bytes, 11 => Str, 12 => SliceU8,
-        13 => Named { name, arguments }, 14 => Function { parameters, result }
+        13 => Named { name, arguments }, 14 => Function { parameters, result }, 15 => OnceFunction, 16 => OnceFunctionI64, 17 => OnceFunctionI64Pair, 18 => MutFunctionI64
     });
     codec_enum!(ParamMode { 0 => Value, 1 => Own, 2 => Borrow, 3 => Shared });
     codec_enum!(MatchMode { 0 => Value, 1 => Own, 2 => Borrow });
@@ -250,7 +250,7 @@ mod ast {
         20 => ConstructVariant { type_name, type_span, type_arguments, case_name, case_span, fields },
         21 => Match { mode, scrutinee, arms }, 22 => Try { operand },
         23 => UpdateRecord { base, fields }, 24 => Project { base, field, field_span },
-        25 => Closure { params, return_type, body, owning },
+        25 => Closure { params, return_type, body, owning, retained, mutable },
         26 => Yield { request }
     });
     codec_struct!(MatchArm {

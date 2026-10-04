@@ -1,0 +1,7 @@
+module ri13.m2_record_iterator_tests;
+
+@id("ri13.m2_record_iterator_tests.main")
+fn main() -> i64
+{
+    0
+}

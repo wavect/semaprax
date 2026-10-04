@@ -76,6 +76,23 @@ complete inner v5 result envelope, including the fixed inner ID `0`, protocol
 versions and revision digest fields. Compiler semantic errors remain errors;
 they cannot become candidate handles or permission to retry publication.
 
+## Opt-in hot reload
+
+`SEMAPRAX: Start Hot Reload` is separate from the saved-source MCP session. It
+requires the same trusted workspace, saved buffers, and machine-scoped absolute
+compiler and manifest settings, then directly starts `dev <manifest> --jsonl`.
+It never starts on save or workspace open. The extension sends only the closed
+CLI operations and displays the CLI-owned active revision and terminal state;
+it never writes source or activates a candidate itself. Stop and any setting or
+saved-source session change terminate this controller. At most 64 control
+requests may await replies. If Stop interrupts an unacknowledged activation,
+the detail view reports the active state as unknown, sends the bounded Stop
+request, and force-terminates the child after its one-second grace period.
+The detail view keeps an unsaved editor buffer distinct from a saved source
+change awaiting planning: neither is cleared by a CLI reply. Source-Agent
+execution is not offered by the editor control. A migration-required refusal
+is displayed as such; it does not select or emulate the unavailable lane.
+
 ## Workflow
 
 1. Start the saved-source session and open an immutable candidate.

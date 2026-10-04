@@ -580,11 +580,45 @@ fn migrate_b(old: own State) -> StateB {{
     )
 }
 
+fn successor_c_source() -> String {
+    // C deliberately preserves StateB's nominal schema. The A -> B handoff is
+    // the one schema migration in the chain; B -> C still has to select and
+    // evaluate an explicit checked migration function before it can seed C.
+    let source = successor_source().replace("epoch: 1, marker: 7 }", "epoch: 1, marker: 8 }");
+    assert!(source.contains("fn initialize(task: own Task) -> StateB"));
+    format!(
+        r#"{source}
+@id("fixture.agent.fn.migrate_c")
+fn migrate_c(old: own StateB) -> StateB {{
+    StateB {{ objective: old.objective, budget: old.budget, epoch: old.epoch, marker: old.marker }}
+}}
+"#
+    )
+}
+
 fn migrate_command(
     previous_config: &std::path::Path,
     previous_checkpoint: &std::path::Path,
     destination_config: &std::path::Path,
     destination_checkpoint: &std::path::Path,
+    scratch: &std::path::Path,
+) -> Command {
+    migrate_command_with_function(
+        previous_config,
+        previous_checkpoint,
+        destination_config,
+        destination_checkpoint,
+        "fixture.agent.fn.migrate_b",
+        scratch,
+    )
+}
+
+fn migrate_command_with_function(
+    previous_config: &std::path::Path,
+    previous_checkpoint: &std::path::Path,
+    destination_config: &std::path::Path,
+    destination_checkpoint: &std::path::Path,
+    function: &str,
     scratch: &std::path::Path,
 ) -> Command {
     fs::create_dir(scratch).unwrap();
@@ -594,7 +628,7 @@ fn migrate_command(
         previous_checkpoint.display().to_string(),
         destination_config.display().to_string(),
         destination_checkpoint.display().to_string(),
-        "fixture.agent.fn.migrate_b".into(),
+        function.into(),
         "1000".into(),
         "--opencode".into(),
         "/usr/bin/true".into(),
@@ -702,6 +736,102 @@ fn suspended_retained_project_migrates_once_and_recovers_destination_without_dis
 }
 
 #[cfg(unix)]
+#[test]
+fn headless_hot_reload_agent_bridge_migrates_retained_a_to_b_with_recorded_provider() {
+    use semaprax::project::{
+        with_authenticated_project, HotReloadDecision, HotReloadSession,
+        PreparedProjectInterpreterOptions,
+    };
+
+    let fixture = Fixture::new();
+    let suspended_source = source_fixture::SOURCE.replace(
+        "Step::Complete { summary: state.objective, budget: state.budget, status: state.epoch }",
+        "Step::Suspend { objective: state.objective, budget: state.budget, epoch: state.epoch }",
+    );
+    let old_manifest = source_project(
+        &fixture.0.join("project-a"),
+        &suspended_source,
+        "fixture.agent.type.state",
+    );
+    let old_config = source_config(&fixture, &old_manifest);
+    let saved_old_config = fixture.0.join("config-a.json");
+    fs::rename(&old_config, &saved_old_config).unwrap();
+    let old_checkpoint = fixture.0.join("checkpoint-a");
+    let old_calls = Rc::new(Cell::new(0));
+    let old_answer = recorded_answer(&old_manifest);
+    let first = super::run::execute_with_runner(
+        run_command(
+            "run",
+            &saved_old_config,
+            &old_checkpoint,
+            &fixture.0.join("scratch-a"),
+        ),
+        runner(old_answer, &old_calls),
+    )
+    .unwrap();
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&first).unwrap()["status"],
+        "suspend"
+    );
+    assert_eq!(old_calls.get(), 1);
+    let old_project =
+        with_authenticated_project(&old_manifest, |snapshot| Ok(snapshot.retain_revision()))
+            .unwrap();
+
+    // Rewrite the same admitted Project after A has checkpointed. The
+    // supervisor retains A while destination admission reads saved B.
+    let new_manifest = source_project(
+        old_manifest.parent().unwrap(),
+        &successor_source(),
+        "fixture.agent.type.state_b",
+    );
+    let new_config = source_config(&fixture, &new_manifest);
+    let new_project =
+        with_authenticated_project(&new_manifest, |snapshot| Ok(snapshot.retain_revision()))
+            .unwrap();
+    let mut supervisor =
+        HotReloadSession::new(old_project, PreparedProjectInterpreterOptions::default()).unwrap();
+    supervisor.admit_candidate(new_project.clone()).unwrap();
+    let plan = supervisor.plan().unwrap();
+    assert_eq!(
+        plan.decision(),
+        HotReloadDecision::EligibleSourceAgentCheckpointHandoff
+    );
+
+    let new_checkpoint = fixture.0.join("checkpoint-b");
+    let scratch = fixture.0.join("scratch-b");
+    fs::create_dir(&scratch).unwrap();
+    let arguments = vec![
+        "migrate".into(),
+        saved_old_config.display().to_string(),
+        old_checkpoint.display().to_string(),
+        new_config.display().to_string(),
+        new_checkpoint.display().to_string(),
+        "fixture.agent.fn.migrate_b".into(),
+        "1000".into(),
+        "--opencode".into(),
+        "/usr/bin/true".into(),
+        "--scratch".into(),
+        scratch.display().to_string(),
+    ];
+    let new_calls = Rc::new(Cell::new(0));
+    super::run::execute_hot_reload_migration_with_runner(
+        &mut supervisor,
+        plan,
+        &arguments,
+        runner(recorded_answer(&new_manifest), &new_calls),
+    )
+    .unwrap();
+    assert_eq!(new_calls.get(), 1);
+    assert_eq!(supervisor.generation(), 1);
+    assert_eq!(
+        supervisor.active_project_revision(),
+        new_project.project_revision()
+    );
+    assert!(new_checkpoint.join("checkpoint.json").is_file());
+}
+
+#[cfg(unix)]
 #[path = "priced_tests.rs"]
 mod priced_tests;
 
@@ -716,3 +846,11 @@ mod priced_adapter_boundaries;
 #[cfg(unix)]
 #[path = "io_tests.rs"]
 mod io_tests;
+
+#[cfg(unix)]
+#[path = "hr04_state_handoff_tests.rs"]
+mod hr04_state_handoff_tests;
+
+#[cfg(unix)]
+#[path = "hr04_handoff_fault_tests.rs"]
+mod hr04_handoff_fault_tests;

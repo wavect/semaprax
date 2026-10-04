@@ -1,0 +1,15 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "ri13-m3-local-http"
+version = "1.0.0"
+profile = "source-local-future.v1"
+
+[modules]
+entry = "ri13.m3.app"
+sources = ["src/app.spx", "src/tests.spx"]
+tests = ["ri13.m3.tests"]
+
+[exports]
+web = []
+rust_async = ["ri13.m3.score"]

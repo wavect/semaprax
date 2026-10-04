@@ -18,7 +18,11 @@ pub(super) fn key_for_type(program: &Program, ty: &crate::ast::Type) -> CleanupT
         | crate::ast::Type::ArrayU8(_)
         | crate::ast::Type::SliceU8
         | crate::ast::Type::Function { .. } => CleanupTypeKey::Scalar,
-        crate::ast::Type::Bytes => CleanupTypeKey::Unknown,
+        crate::ast::Type::Bytes
+        | crate::ast::Type::OnceFunction
+        | crate::ast::Type::OnceFunctionI64
+        | crate::ast::Type::OnceFunctionI64Pair
+        | crate::ast::Type::MutFunctionI64 => CleanupTypeKey::Unknown,
         crate::ast::Type::Named { name, .. } => {
             if let Some(index) = program
                 .types

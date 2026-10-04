@@ -14,7 +14,11 @@ impl Parser {
         if let Some(diagnostic) = self.unit_type() {
             return Err(diagnostic);
         }
-        if self.at_keyword("fn") {
+        let pair = self.at_keyword("FnOnceI64Pair");
+        let mixed = pair || self.at_keyword("FnOnceI64");
+        let once = mixed || self.at_keyword("FnOnce");
+        let mutable = self.at_keyword("FnMutI64");
+        if once || mutable || self.at_keyword("fn") {
             self.bump();
             self.expect(&TokenKind::LParen, "`(` after `fn` in function type")?;
             let mut parameters = Vec::new();
@@ -34,9 +38,35 @@ impl Parser {
             }
             self.expect(&TokenKind::RParen, "`)` after function type parameters")?;
             self.expect(&TokenKind::Arrow, "`->` after function type parameters")?;
+            let result = self.ty()?;
+            if once || mutable {
+                let expected_parameters = if mutable { 1 } else { 0 };
+                if parameters.len() != expected_parameters
+                    || parameters.iter().any(|parameter| *parameter != Type::I64)
+                    || result != Type::I64
+                {
+                    return Err(self.error_here(
+                        "SPX-T308",
+                        if mutable {
+                            "the mutable callable profile requires `FnMutI64(i64) -> i64`"
+                        } else {
+                            "the affine callable profile requires `FnOnce() -> i64`"
+                        },
+                    ));
+                }
+                return Ok(if mutable {
+                    Type::MutFunctionI64
+                } else if pair {
+                    Type::OnceFunctionI64Pair
+                } else if mixed {
+                    Type::OnceFunctionI64
+                } else {
+                    Type::OnceFunction
+                });
+            }
             return Ok(Type::Function {
                 parameters,
-                result: Box::new(self.ty()?),
+                result: Box::new(result),
             });
         }
         if self.take(&TokenKind::LBracket) {

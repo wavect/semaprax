@@ -67,7 +67,11 @@ pub(in crate::implementation) fn type_identity_metrics(
                     return Err(b109("max_builder_bytes", MAX_BUILDER_BYTES));
                 }
                 let metric = match ty {
-                    ResolvedType::Function { .. } => {
+                    ResolvedType::Function { .. }
+                    | ResolvedType::OnceFunction
+                    | ResolvedType::OnceFunctionI64
+                    | ResolvedType::OnceFunctionI64Pair
+                    | ResolvedType::MutFunctionI64 => {
                         return Err(b107("scalar value signature required"));
                     }
                     ResolvedType::Unit => Some(leaf("unit".len())),
@@ -217,7 +221,11 @@ pub(in crate::implementation) fn fingerprint_type_identity(
     while let Some(frame) = frames.pop() {
         match frame {
             TypeIdentityFrame::Enter(ty) => match ty {
-                ResolvedType::Function { .. } => {
+                ResolvedType::Function { .. }
+                | ResolvedType::OnceFunction
+                | ResolvedType::OnceFunctionI64
+                | ResolvedType::OnceFunctionI64Pair
+                | ResolvedType::MutFunctionI64 => {
                     return Err(b107("scalar value signature required"));
                 }
                 ResolvedType::Unit

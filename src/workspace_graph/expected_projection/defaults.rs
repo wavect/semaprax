@@ -46,7 +46,13 @@ pub(super) fn default_expr_expanded_cost(
             string_bytes: crate::byte_ops::ZEROED_NAME.len(),
             identity_slots: 7,
         }),
-        Type::ArrayU8(_) | Type::Bytes | Type::Function { .. } => Err(vec![graph_error(
+        Type::ArrayU8(_)
+        | Type::Bytes
+        | Type::OnceFunction
+        | Type::OnceFunctionI64
+        | Type::OnceFunctionI64Pair
+        | Type::MutFunctionI64
+        | Type::Function { .. } => Err(vec![graph_error(
             "SPX-G173",
             "internal byte-data types have no synthesizable workspace default",
         )]),
@@ -230,7 +236,13 @@ pub(super) fn default_expr(
                 }],
             }
         }
-        Type::ArrayU8(_) | Type::Bytes | Type::Function { .. } => {
+        Type::ArrayU8(_)
+        | Type::Bytes
+        | Type::OnceFunction
+        | Type::OnceFunctionI64
+        | Type::OnceFunctionI64Pair
+        | Type::MutFunctionI64
+        | Type::Function { .. } => {
             return Err(vec![graph_error(
                 "SPX-G173",
                 "internal byte-data types have no synthesizable workspace default",

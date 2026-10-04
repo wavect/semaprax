@@ -3,8 +3,11 @@ use super::*;
 pub(super) fn reject_reserved_identities(program: &ResolvedProgram) -> Result<(), Diagnostic> {
     super::vec_intrinsic::reject_reserved_identities(program)?;
     crate::iterator_ops::validate_declarations(program)?;
+    crate::list_ops::validate_declarations(program)?;
     for declaration in program.declarations.declarations() {
-        if crate::iterator_ops::by_id(declaration.id.as_str()).is_some()
+        if crate::list_ops::by_id(declaration.id.as_str()).is_some()
+            || crate::list_ops::by_name(&declaration.name).is_some()
+            || crate::iterator_ops::by_id(declaration.id.as_str()).is_some()
             || crate::iterator_ops::by_name(&declaration.name).is_some()
             || crate::box_ops::by_id(declaration.id.as_str()).is_some()
             || crate::box_ops::by_name(&declaration.name).is_some()
@@ -19,7 +22,9 @@ pub(super) fn reject_reserved_identities(program: &ResolvedProgram) -> Result<()
         reject_function(function)?;
     }
     for template in &program.function_templates {
-        if crate::iterator_ops::by_id(template.id.as_str()).is_some()
+        if crate::list_ops::by_id(template.id.as_str()).is_some()
+            || crate::list_ops::by_name(&template.name).is_some()
+            || crate::iterator_ops::by_id(template.id.as_str()).is_some()
             || crate::iterator_ops::by_name(&template.name).is_some()
             || crate::box_ops::by_id(template.id.as_str()).is_some()
             || crate::box_ops::by_name(&template.name).is_some()
@@ -45,7 +50,9 @@ pub(super) fn authenticate_owned_wrapper(
     )
 }
 fn reject_function(function: &ResolvedFunction) -> Result<(), Diagnostic> {
-    if crate::iterator_ops::by_id(function.id.as_str()).is_some()
+    if crate::list_ops::by_id(function.id.as_str()).is_some()
+        || crate::list_ops::by_name(&function.name).is_some()
+        || crate::iterator_ops::by_id(function.id.as_str()).is_some()
         || crate::iterator_ops::by_name(&function.name).is_some()
         || crate::box_ops::by_id(function.id.as_str()).is_some()
         || crate::box_ops::by_name(&function.name).is_some()
@@ -62,9 +69,11 @@ pub(super) fn is_call(callee: &DeclarationId, instance: &Option<FunctionInstance
         || (instance.is_none()
             && (crate::box_ops::by_id(callee.as_str()).is_some()
                 || crate::iterator_ops::by_id(callee.as_str()).is_some()))
+        || (instance.is_none() && crate::list_ops::by_id(callee.as_str()).is_some())
 }
 pub(super) fn is_intrinsic_id(callee: &DeclarationId) -> bool {
-    crate::iterator_ops::by_id(callee.as_str()).is_some()
+    crate::list_ops::by_id(callee.as_str()).is_some()
+        || crate::iterator_ops::by_id(callee.as_str()).is_some()
         || crate::vec_ops::by_id(callee.as_str()).is_some()
         || crate::box_ops::by_id(callee.as_str()).is_some()
 }
@@ -75,8 +84,12 @@ pub(super) fn is_type(
 ) -> bool {
     (matches!(
         declaration.as_str(),
-        crate::iterator_ops::ITER_ID | crate::iterator_ops::STEP_ID
-    ) && matches!(arguments,[element] if crate::iterator_ops::resolved_element_is_admitted(element)))
+        crate::list_ops::LIST_ID | crate::list_ops::STEP_ID
+    ) && arguments == [ResolvedType::I64])
+        || (matches!(
+            declaration.as_str(),
+            crate::iterator_ops::ITER_ID | crate::iterator_ops::STEP_ID
+        ) && matches!(arguments,[element] if crate::iterator_ops::resolved_element_is_admitted(element)))
         || super::vec_intrinsic::is_type(declarations, declaration, arguments)
         || (declaration.as_str() == crate::prelude::BOX_ID
             && matches!(arguments, [element] if crate::box_ops::resolved_box_element_is_admitted(element)))
@@ -112,6 +125,12 @@ pub(super) fn signature(
         super::vec_intrinsic::signature(declarations, callee, type_arguments, instance, args)?
     {
         return Ok(Some(signature));
+    }
+    if let Some(op) = crate::list_ops::by_id(callee.as_str()) {
+        if instance.is_some() || !type_arguments.is_empty() || args.len() != op.argument_count() {
+            return Err(hir_error("invalid immutable list operation call shape"));
+        }
+        return Ok(Some((op.resolved_params(), op.resolved_return_type())));
     }
     if let Some(op) = crate::iterator_ops::by_id(callee.as_str()) {
         if instance.is_some()

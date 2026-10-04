@@ -34,6 +34,15 @@ pub struct NativeCallbackProjection {
     pub adapter_rust: String,
 }
 
+/// One source revision projects both a bounded nominal Serde record and a
+/// local stateful callback. This is inert source, not an installed package.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NativeSerdeCallbackProjection {
+    pub source_revision: String,
+    pub record: SerdeRecordProjection,
+    pub callback: NativeCallbackProjection,
+}
+
 fn refusal(message: impl Into<String>, span: Span) -> Diagnostic {
     Diagnostic::error("SPX-B154", message, span)
 }
@@ -48,33 +57,100 @@ pub fn prepare_native_rust_callbacks(
     path: &Path,
     selection: &NativeCallbackSelection,
 ) -> Result<NativeCallbackProjection, Vec<Diagnostic>> {
-    prepare(source, path, selection)
+    prepare(source, path, selection, None, true)
         .map_err(|error| vec![error.at_path(path.display().to_string())])
+}
+
+/// Project one supported record and one scalar-snapshot callback from the
+/// identical checked source. Ordinary callback admission stays scalar-only;
+/// this opt-in route requires an exact selected record identity from the
+/// fully checked source.
+pub fn prepare_native_rust_serde_callbacks(
+    source: &str,
+    path: &Path,
+    record_id: &str,
+    selection: &NativeCallbackSelection,
+) -> Result<NativeSerdeCallbackProjection, Vec<Diagnostic>> {
+    prepare_serde_callbacks(source, path, record_id, selection, true)
+}
+
+/// Project the same record/callback source for a real standard-library
+/// `Iterator` consumer, without requesting a nominal Rust trait impl.
+pub fn prepare_native_rust_serde_iterator_callbacks(
+    source: &str,
+    path: &Path,
+    record_id: &str,
+    factory_id: &str,
+    transition_id: &str,
+) -> Result<NativeSerdeCallbackProjection, Vec<Diagnostic>> {
+    let selection = NativeCallbackSelection {
+        factory_id: factory_id.into(),
+        transition_id: transition_id.into(),
+        trait_path: String::new(),
+        method: String::new(),
+        error_type: String::new(),
+    };
+    prepare_serde_callbacks(source, path, record_id, &selection, false)
+}
+
+fn prepare_serde_callbacks(
+    source: &str,
+    path: &Path,
+    record_id: &str,
+    selection: &NativeCallbackSelection,
+    trait_impl: bool,
+) -> Result<NativeSerdeCallbackProjection, Vec<Diagnostic>> {
+    let located =
+        |message| vec![refusal(message, Span::default()).at_path(path.display().to_string())];
+    let parsed = semaprax::check(source, path)?;
+    if !parsed.types.iter().any(|ty| ty.stable_id == record_id) {
+        return Err(located(
+            "Serde callback source requires its selected record",
+        ));
+    }
+    let resolved = semaprax::hir::resolve(&parsed)?;
+    let record = prepare_serde_record_projection(&resolved, record_id)
+        .map_err(|error| vec![error.at_path(path.display().to_string())])?;
+    let callback = prepare(source, path, selection, Some(record_id), trait_impl)
+        .map_err(|error| vec![error.at_path(path.display().to_string())])?;
+    Ok(NativeSerdeCallbackProjection {
+        source_revision: callback.source_revision.clone(),
+        record,
+        callback,
+    })
 }
 
 fn prepare(
     source: &str,
     path: &Path,
     selection: &NativeCallbackSelection,
+    allowed_record_id: Option<&str>,
+    trait_impl: bool,
 ) -> Result<NativeCallbackProjection, Diagnostic> {
     let fail = |message| refusal(message, Span::default());
     if source.len() > MAX_SOURCE_BYTES {
         return Err(fail("callback source exceeds its bound"));
     }
-    let trait_path = semaprax::native_rust_binding::rust_api_path_tokens(&selection.trait_path)
-        .ok_or_else(|| fail("callback trait path must be a bounded Rust item path"))?;
-    if selection.trait_path.len() > 256
-        || !identifier(&selection.method)
-        || !identifier(&selection.error_type)
-    {
-        return Err(fail(
-            "callback trait method/associated error names are unsupported",
-        ));
-    }
-    let method_token = semaprax::native_rust_binding::rust_api_path_tokens(&selection.method)
-        .ok_or_else(|| fail("callback trait method token is unsupported"))?;
-    let error_token = semaprax::native_rust_binding::rust_api_path_tokens(&selection.error_type)
-        .ok_or_else(|| fail("callback associated error token is unsupported"))?;
+    let trait_tokens = if trait_impl {
+        let trait_path = semaprax::native_rust_binding::rust_api_path_tokens(&selection.trait_path)
+            .ok_or_else(|| fail("callback trait path must be a bounded Rust item path"))?;
+        if selection.trait_path.len() > 256
+            || !identifier(&selection.method)
+            || !identifier(&selection.error_type)
+        {
+            return Err(fail(
+                "callback trait method/associated error names are unsupported",
+            ));
+        }
+        let method_token = semaprax::native_rust_binding::rust_api_path_tokens(&selection.method)
+            .ok_or_else(|| fail("callback trait method token is unsupported"))?;
+        let error_token =
+            semaprax::native_rust_binding::rust_api_path_tokens(&selection.error_type)
+                .ok_or_else(|| fail("callback associated error token is unsupported"))?;
+        Some((trait_path, method_token, error_token))
+    } else {
+        None
+    };
     let mut program = semaprax::check(source, path).map_err(|mut errors| errors.remove(0))?;
     let canonical = semaprax::format::canonical(&program);
     let source_revision =
@@ -98,8 +174,9 @@ fn prepare(
         || !factory.ensures.is_empty()
         || factory.yields.is_some()
         || factory.follows.is_some()
-        || !program.interfaces.is_empty()
-        || !program.types.is_empty()
+        || (!program.types.is_empty()
+            && !allowed_record_id
+                .is_some_and(|id| program.types.iter().any(|ty| ty.stable_id == id)))
     {
         return Err(at(
             "callback factory requires one scalar snapshot parameter and no effects/contracts",
@@ -118,6 +195,8 @@ fn prepare(
         return_type,
         body,
         owning: false,
+        retained: false,
+        mutable: false,
     } = &tail.kind
     else {
         return Err(at(
@@ -186,13 +265,25 @@ fn prepare(
     });
     lifted.return_type = Type::I64;
     lifted.body = *body.clone();
+    // The projection keeps only declarations selected by its checked source
+    // evidence. Other Project declarations remain authenticated by the caller
+    // but cannot enter this scalar callback renderer or its generated ABI.
+    program.interfaces.clear();
+    program.functions.retain(|function| {
+        function.stable_id == selection.factory_id || function.stable_id == selection.transition_id
+    });
     program
         .functions
         .retain(|f| f.stable_id != selection.factory_id);
     program.functions.push(lifted);
     // Rechecking the synthetic ordinary source prevents a renderer from
     // granting semantics/cleanup that its original checked closure lacked.
-    let lifted_source = semaprax::format::canonical(&program);
+    let mut lifted_source = semaprax::format::canonical(&program);
+    // The standalone checker requires an entry even though this private
+    // projection exports only the selected callback and transition. Give the
+    // synthetic source a trivial checked entry; it conveys no Project export
+    // or authority and cannot depend on declarations removed above.
+    lifted_source.push_str("\n@id(\"semaprax.callback.synthetic_main\")\nfn main() -> i64 { 0 }\n");
     let program = semaprax::check(&lifted_source, path).map_err(|mut errors| errors.remove(0))?;
     let options = NativeRustSdkOptions {
         exports: canonical_values(
@@ -219,13 +310,16 @@ fn prepare(
             .and_then(|row| row["rust_method"].as_str())
             .ok_or_else(|| fail("callback export method is absent"))
     };
-    let adapter_rust = runtime::render(
-        method(&lifted_id)?,
-        method(&selection.transition_id)?,
-        &trait_path,
-        &method_token,
-        &error_token,
-    );
+    let adapter_rust = match trait_tokens {
+        Some((trait_path, method_token, error_token)) => runtime::render(
+            method(&lifted_id)?,
+            method(&selection.transition_id)?,
+            &trait_path,
+            &method_token,
+            &error_token,
+        ),
+        None => runtime::render_iterator(method(&lifted_id)?, method(&selection.transition_id)?),
+    };
     Ok(NativeCallbackProjection {
         closure_identity,
         source_revision,

@@ -49,25 +49,11 @@ const APP: &str = concat!(
 );
 
 fn core(b_calls_c: bool) -> String {
-    let b_body = if b_calls_c { "c()" } else { "1" };
-    format!(
-        "module archclaims.core;\n\n\
-@id(\"archclaims.a\")\n\
-fn a() -> i64\n\
-{{\n\
-    b()\n\
-}}\n\n\
-@id(\"archclaims.b\")\n\
-fn b() -> i64\n\
-{{\n\
-    {b_body}\n\
-}}\n\n\
-@id(\"archclaims.c\")\n\
-fn c() -> i64\n\
-{{\n\
-    2\n\
-}}\n"
-    )
+    if b_calls_c {
+        include_str!("../../examples/law-packs/architecture/mutants/core-calls-c.spx").to_owned()
+    } else {
+        include_str!("../../examples/law-packs/architecture/src/core.spx").to_owned()
+    }
 }
 
 impl Fixture {

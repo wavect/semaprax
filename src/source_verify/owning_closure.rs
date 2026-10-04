@@ -10,12 +10,10 @@
 //! The construction and the one admitted call are both checked here, at the
 //! source level, entirely through the existing move/availability lattice
 //! (`Availability`, `SPX-O101`) that already governs every other owned
-//! value in this language: the closure literal never becomes an owning
-//! runtime carrier. Its checked type is the reserved sentinel below, which
-//! cannot be spelled by any authored declaration, so a constructed value can
-//! never escape through a function parameter, field, or return-type
-//! annotation -- the only way to use one, other than moving it into a fresh
-//! binding, is the direct zero-argument call this module recognizes.
+//! value in this language. The legacy `own fn` remains a lexical sentinel.
+//! The distinct `once fn` profile produces an owned `FnOnce() -> i64` carrier
+//! that can move through monomorphic helper parameters and results. Its one
+//! Bytes capture is settled by the canonical retained-closure cleanup plan.
 use super::binding::{Availability, Binding, CheckedValue};
 use super::diagnostics::error;
 use super::loans::has_active_overlapping_loan;
@@ -84,6 +82,23 @@ pub(super) fn check_construction(
     variables: &mut HashMap<String, Binding>,
     diagnostics: &mut Vec<Diagnostic>,
 ) -> Option<CheckedValue> {
+    let retained = matches!(
+        expression.kind,
+        ExprKind::Closure {
+            retained: true,
+            owning: true,
+            ..
+        }
+    );
+    if retained && *return_type != Type::I64 {
+        diagnostics.push(error(
+            program,
+            "SPX-T308",
+            "retained affine closures require an i64 result",
+            expression.span,
+        ));
+        return None;
+    }
     if !current.type_parameters.is_empty() {
         diagnostics.push(error(
             program,
@@ -123,7 +138,9 @@ pub(super) fn check_construction(
         ));
         return None;
     };
-    if !type_arguments.is_empty() || args.len() != 1 {
+    let mixed = retained && args.len() == 2;
+    let pair = retained && args.len() == 3;
+    if !type_arguments.is_empty() || (!mixed && !pair && args.len() != 1) {
         diagnostics.push(error(
             program,
             "SPX-T292",
@@ -154,10 +171,11 @@ pub(super) fn check_construction(
         return None;
     };
     if !target.type_parameters.is_empty()
-        || target.params.len() != 1
+        || target.params.len() != args.len()
         || target.params[0].mode != ParamMode::Own
         || target.params[0].ty != Type::Bytes
         || target.return_type != *return_type
+        || (retained && !target.effects.is_empty())
     {
         diagnostics.push(error(
             program,
@@ -168,6 +186,22 @@ pub(super) fn check_construction(
             body.span,
         ));
         return None;
+    }
+    if mixed || pair {
+        let valid = args[1..].iter().enumerate().all(|(offset, argument)| {
+            matches!(&argument.kind, ExprKind::Var(name) if variables.get(name).is_some_and(|binding| binding.ty == Type::I64 && binding.mode == ParamMode::Value && binding.availability == Availability::Available))
+                && target.params[offset + 1].ty == Type::I64
+                && target.params[offset + 1].mode == ParamMode::Value
+        });
+        if !valid {
+            diagnostics.push(error(
+                program,
+                "SPX-T308",
+                "mixed affine capture requires a direct available i64 value after own Bytes",
+                args[1].span,
+            ));
+            return None;
+        }
     }
     let Some(binding) = variables.get(captured_name) else {
         diagnostics.push(error(
@@ -227,7 +261,15 @@ pub(super) fn check_construction(
         .expect("checked above")
         .availability = Availability::Moved;
     Some(CheckedValue {
-        ty: sentinel_type(target_name, return_type),
+        ty: if pair {
+            Type::OnceFunctionI64Pair
+        } else if mixed {
+            Type::OnceFunctionI64
+        } else if retained {
+            Type::OnceFunction
+        } else {
+            sentinel_type(target_name, return_type)
+        },
         mode: ParamMode::Own,
         native_unit: false,
     })
@@ -246,13 +288,26 @@ pub(super) fn check_call(
     type_arguments: &[Type],
     args: &[Expr],
     span: Span,
+    allow_moves: bool,
     variables: &mut HashMap<String, Binding>,
     types: &TypeTable<'_>,
     diagnostics: &mut Vec<Diagnostic>,
 ) -> Option<Option<CheckedValue>> {
     let binding_ty = variables.get(name).map(|binding| binding.ty.clone())?;
-    let (_target, result) = sentinel_parts(&binding_ty)?;
-    let result = result.clone();
+    let result = if binding_ty.is_once_function() {
+        Type::I64
+    } else {
+        sentinel_parts(&binding_ty)?.1.clone()
+    };
+    if !allow_moves || variables[name].mode != ParamMode::Own {
+        diagnostics.push(error(
+            program,
+            "SPX-O119",
+            "an affine callable invocation must transfer its owner outside contracts",
+            span,
+        ));
+        return Some(None);
+    }
     if !type_arguments.is_empty() || !args.is_empty() {
         diagnostics.push(error(
             program,
@@ -306,6 +361,15 @@ pub(super) fn reject_escaping_read(
     span: Span,
     diagnostics: &mut Vec<Diagnostic>,
 ) -> bool {
+    if *ty == Type::MutFunctionI64 {
+        diagnostics.push(error(
+            program,
+            "SPX-T308",
+            format!("mutable callback `{name}` is noncopyable and may only be invoked directly"),
+            span,
+        ));
+        return true;
+    }
     if !is_sentinel(ty) {
         return false;
     }

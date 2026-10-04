@@ -53,48 +53,111 @@ pub(crate) fn capture_names_scoped(
         }
         match item {
             Item::Block(statements, next, tail, mut locals) => {
-                let Some(statement) = statements.get(next) else { pending.push(Item::Expr(tail, locals)); continue; };
+                let Some(statement) = statements.get(next) else {
+                    pending.push(Item::Expr(tail, locals));
+                    continue;
+                };
                 match statement {
-                    Statement::Let { name, declared, value, .. } => {
-                        if declared.as_ref().is_some_and(|ty| !scalar(ty)) { return Err(reject("closure locals must be Copy scalars")); }
-                        let prior = locals.clone(); locals.insert(name);
+                    Statement::Let {
+                        name,
+                        declared,
+                        value,
+                        ..
+                    } => {
+                        if declared.as_ref().is_some_and(|ty| !scalar(ty)) {
+                            return Err(reject("closure locals must be Copy scalars"));
+                        }
+                        let prior = locals.clone();
+                        locals.insert(name);
                         pending.push(Item::Block(statements, next + 1, tail, locals));
                         pending.push(Item::Expr(value, prior));
                     }
-                    Statement::Assign { name, field, value, .. } => {
-                        if field.is_some() || !locals.contains(name.as_str()) { return Err(reject("closure snapshots cannot be mutated")); }
+                    Statement::Assign {
+                        name, field, value, ..
+                    } => {
+                        if field.is_some() || !locals.contains(name.as_str()) {
+                            return Err(reject("closure snapshots cannot be mutated"));
+                        }
                         pending.push(Item::Block(statements, next + 1, tail, locals.clone()));
                         pending.push(Item::Expr(value, locals));
                     }
-                    Statement::While { condition, body, .. } => {
+                    Statement::While {
+                        condition, body, ..
+                    } => {
                         pending.push(Item::Block(statements, next + 1, tail, locals.clone()));
-                        pending.push(Item::Expr(body, locals.clone())); pending.push(Item::Expr(condition, locals));
+                        pending.push(Item::Expr(body, locals.clone()));
+                        pending.push(Item::Expr(condition, locals));
                     }
                     _ => return Err(reject("closure body contains an unsupported statement")),
                 }
             }
             Item::Expr(expression, locals) => match &expression.kind {
-                ExprKind::Int(_) | ExprKind::Int32(_) | ExprKind::Char(_) | ExprKind::Uint8(_) | ExprKind::Usize(_) | ExprKind::Float32(_) | ExprKind::Float64(_) | ExprKind::Bool(_) => {}
+                ExprKind::Int(_)
+                | ExprKind::Int32(_)
+                | ExprKind::Char(_)
+                | ExprKind::Uint8(_)
+                | ExprKind::Usize(_)
+                | ExprKind::Float32(_)
+                | ExprKind::Float64(_)
+                | ExprKind::Bool(_) => {}
                 ExprKind::Var(name) => {
-                    if locals.contains(name.as_str()) { continue; }
-                    if name == "result" || outer.get(name.as_str()).is_none_or(|ty| !scalar(ty)) { return Err(reject("closures capture only lexical Copy scalar values")); }
+                    if locals.contains(name.as_str()) {
+                        continue;
+                    }
+                    if name == "result" || outer.get(name.as_str()).is_none_or(|ty| !scalar(ty)) {
+                        return Err(reject("closures capture only lexical Copy scalar values"));
+                    }
                     captures.insert(name.clone());
-                    if captures.len() > 8 { return Err(reject("closure capture inventory exceeds eight scalar snapshots")); }
+                    if captures.len() > 8 {
+                        return Err(reject(
+                            "closure capture inventory exceeds eight scalar snapshots",
+                        ));
+                    }
                 }
                 ExprKind::Unary { value, .. } => pending.push(Item::Expr(value, locals)),
-                ExprKind::Binary { left, right, .. } => { pending.push(Item::Expr(right, locals.clone())); pending.push(Item::Expr(left, locals)); }
-                ExprKind::If { condition, then_branch, else_branch } => {
-                    pending.push(Item::Expr(else_branch, locals.clone())); pending.push(Item::Expr(then_branch, locals.clone())); pending.push(Item::Expr(condition, locals));
+                ExprKind::Binary { left, right, .. } => {
+                    pending.push(Item::Expr(right, locals.clone()));
+                    pending.push(Item::Expr(left, locals));
                 }
-                ExprKind::Block { statements, tail } => pending.push(Item::Block(statements, 0, tail, locals)),
-                ExprKind::Call { name, type_arguments, args } => {
-                    if locals.contains(name.as_str()) || outer.contains_key(name.as_str()) || !type_arguments.is_empty() || program.functions.iter().find(|f| f.name == *name).and_then(function_value_signature).is_none() {
-                        return Err(reject("closure bodies call only ordinary local scalar functions"));
+                ExprKind::If {
+                    condition,
+                    then_branch,
+                    else_branch,
+                } => {
+                    pending.push(Item::Expr(else_branch, locals.clone()));
+                    pending.push(Item::Expr(then_branch, locals.clone()));
+                    pending.push(Item::Expr(condition, locals));
+                }
+                ExprKind::Block { statements, tail } => {
+                    pending.push(Item::Block(statements, 0, tail, locals))
+                }
+                ExprKind::Call {
+                    name,
+                    type_arguments,
+                    args,
+                } => {
+                    if locals.contains(name.as_str())
+                        || outer.contains_key(name.as_str())
+                        || !type_arguments.is_empty()
+                        || program
+                            .functions
+                            .iter()
+                            .find(|f| f.name == *name)
+                            .and_then(function_value_signature)
+                            .is_none()
+                    {
+                        return Err(reject(
+                            "closure bodies call only ordinary local scalar functions",
+                        ));
                     }
                     pending.extend(args.iter().rev().map(|arg| Item::Expr(arg, locals.clone())));
                 }
-                _ => return Err(reject("closure bodies admit scalar expressions only; nested closures and owning values are excluded")),
-            }
+                _ => {
+                    return Err(reject(
+                        "closure bodies admit scalar expressions only; nested closures and owning values are excluded",
+                    ));
+                }
+            },
         }
     }
     Ok(captures.into_iter().collect())
@@ -125,6 +188,8 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             return_type,
             body,
             owning,
+            retained: _,
+            mutable,
         } = &expression.kind
         else {
             unreachable!()
@@ -141,6 +206,24 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 self.diagnostics,
             );
             self.values.push(value);
+            return Ok(());
+        }
+        if *mutable {
+            self.values.push(Some(super::mutable_closure::construction(
+                self.program,
+                self.current,
+                expression,
+                &self.scopes[scope].bindings,
+            )?));
+            return Ok(());
+        }
+        if let Some(value) = super::borrowed_closure::construction(
+            self.program,
+            self.current,
+            expression,
+            &self.scopes[scope].bindings,
+        )? {
+            self.values.push(Some(value));
             return Ok(());
         }
         if !self.current.type_parameters.is_empty()
@@ -248,11 +331,30 @@ pub(super) fn oracle(
     types: &super::type_table::TypeTable<'_>,
     diagnostics: &mut Vec<Diagnostic>,
 ) -> Option<CheckedValue> {
+    if matches!(expression.kind, ExprKind::Closure { mutable: true, .. }) {
+        return match super::mutable_closure::construction(program, current, expression, outer) {
+            Ok(value) => Some(value),
+            Err(error) => {
+                diagnostics.push(error);
+                None
+            }
+        };
+    }
+    match super::borrowed_closure::construction(program, current, expression, outer) {
+        Ok(Some(value)) => return Some(value),
+        Err(error) => {
+            diagnostics.push(error);
+            return None;
+        }
+        Ok(None) => {}
+    }
     let ExprKind::Closure {
         params,
         return_type,
         body,
         owning: _,
+        retained: _,
+        mutable: _,
     } = &expression.kind
     else {
         unreachable!()
@@ -366,6 +468,8 @@ pub(super) fn validate_generic_syntax(
             return_type,
             body,
             owning: false,
+            retained: false,
+            mutable: false,
         } = &expression.kind
         {
             let scalar = |ty: &Type| {

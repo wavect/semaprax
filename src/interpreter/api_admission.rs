@@ -297,3 +297,85 @@ pub(super) fn require_acyclic_public_api_closure(
 
     visit(entry_id, admitted, &mut BTreeMap::new())
 }
+
+pub(super) fn resolved_signature_is_admitted(
+    function: &ResolvedFunction,
+    declarations: &hir::DeclarationIndex,
+) -> bool {
+    function.effects.is_empty() && resolved_data_signature_is_admitted(function, declarations)
+}
+
+pub(super) fn resolved_data_signature_is_admitted(
+    function: &ResolvedFunction,
+    declarations: &hir::DeclarationIndex,
+) -> bool {
+    function.params.iter().all(|parameter| {
+        resolved_data_parameter_is_admitted(&parameter.ty, parameter.ownership, declarations)
+    }) && (resolved_data_result_is_admitted(&function.return_type, declarations)
+        || nested_owned::owned_input_copy_result_is_admitted(function, declarations))
+}
+
+pub(super) fn resolved_data_parameter_is_admitted(
+    ty: &ResolvedType,
+    ownership: hir::OwnershipMode,
+    declarations: &hir::DeclarationIndex,
+) -> bool {
+    match (ty, ownership) {
+        (ty, hir::OwnershipMode::Value)
+            if is_admitted_resolved_scalar(ty)
+                || crate::list_ops::is_list(ty)
+                || hir::function_value::is_signature(ty)
+                || matches!(ty, ResolvedType::ArrayU8(_)) =>
+        {
+            true
+        }
+        (ty @ ResolvedType::Nominal { declaration, .. }, hir::OwnershipMode::Value)
+            if declarations
+                .declaration(declaration)
+                .is_some_and(|item| item.kind == hir::DeclarationKind::Class)
+                && record_construction_is_admitted(declarations, ty) =>
+        {
+            true
+        }
+        (
+            ResolvedType::OnceFunction
+            | ResolvedType::OnceFunctionI64
+            | ResolvedType::OnceFunctionI64Pair
+            | ResolvedType::MutFunctionI64,
+            hir::OwnershipMode::Own,
+        )
+        | (ResolvedType::Bytes, hir::OwnershipMode::Own)
+        | (ResolvedType::Bytes, hir::OwnershipMode::Borrow)
+        | (ResolvedType::Str, hir::OwnershipMode::Borrow)
+        | (ResolvedType::SliceU8, hir::OwnershipMode::Borrow)
+        | (ResolvedType::ArrayU8(_), hir::OwnershipMode::Borrow) => true,
+        (ty, hir::OwnershipMode::Own | hir::OwnershipMode::Borrow)
+            if owned_vec::is_collection_type(ty)
+                || is_admitted_owned_byte_record(declarations, ty)
+                || is_admitted_owned_variant(declarations, ty) =>
+        {
+            true
+        }
+        _ => false,
+    }
+}
+pub(super) fn resolved_data_result_is_admitted(
+    ty: &ResolvedType,
+    declarations: &hir::DeclarationIndex,
+) -> bool {
+    is_admitted_resolved_scalar(ty)
+        || crate::list_ops::is_list(ty)
+        || hir::function_value::is_signature(ty)
+        || matches!(
+            ty,
+            ResolvedType::ArrayU8(_)
+                | ResolvedType::Bytes
+                | ResolvedType::OnceFunction
+                | ResolvedType::OnceFunctionI64
+                | ResolvedType::OnceFunctionI64Pair
+                | ResolvedType::MutFunctionI64
+        )
+        || owned_vec::is_collection_type(ty)
+        || is_admitted_owned_byte_record(declarations, ty)
+        || is_admitted_owned_variant(declarations, ty)
+}

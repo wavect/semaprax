@@ -37,16 +37,24 @@ pub(super) fn oracle_call(
         type_arguments,
         args,
         expr.span,
+        allow_moves,
         variables,
         types,
         diagnostics,
     ) {
         return result;
     }
-    if let Some(binding_type) = variables
-        .get(name.as_str())
-        .map(|binding| binding.ty.clone())
-    {
+    if let Some(binding_type) = variables.get(name.as_str()).map(|binding| {
+        crate::source_verify::mutable_closure::invocation_signature(
+            program,
+            binding,
+            name,
+            args,
+            allow_moves,
+            expr.span,
+            diagnostics,
+        )
+    }) {
         let Type::Function { parameters, result } = binding_type else {
             diagnostics.push(error(
                 program,
@@ -233,6 +241,62 @@ pub(super) fn oracle_call(
         return element.map(|element| {
             CheckedValue::returned(op.ast_return_type(element), op.returns_owner())
         });
+    }
+    if let Some(op) = crate::list_ops::by_name(name) {
+        if !type_arguments.is_empty() || args.len() != op.argument_count() {
+            diagnostics.push(error(
+                program,
+                "SPX-T291",
+                format!(
+                    "immutable list operation `{name}` requires {} arguments and no type arguments",
+                    op.argument_count()
+                ),
+                expr.span,
+            ));
+        }
+        let params = op.ast_params();
+        for (index, arg) in args.iter().enumerate() {
+            let actual = check_expr(
+                program,
+                current,
+                arg,
+                variables,
+                functions,
+                types,
+                result_type,
+                allow_moves,
+                diagnostics,
+            );
+            let Some(param) = params.get(index) else {
+                continue;
+            };
+            if let Some(actual) = actual.as_ref().filter(|actual| actual.ty != param.ty) {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T205",
+                    format!(
+                        "argument `{}` to `{name}` expects {}, received {}",
+                        param.name, param.ty, actual.ty
+                    ),
+                    arg.span,
+                ));
+            }
+            check_argument_ownership(
+                program,
+                current,
+                name,
+                arg,
+                param,
+                actual.as_ref(),
+                variables,
+                types,
+                allow_moves,
+                false,
+                false,
+                diagnostics,
+            );
+        }
+        return Some(CheckedValue::returned(op.ast_return_type(), false));
     }
     if let Some(op) = crate::iterator_ops::by_name(name) {
         let element = type_arguments.first();

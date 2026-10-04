@@ -1,0 +1,1 @@
+{"schema":"semaprax.bend2-law-benchmark.fixture.v1","id":"structured-balance-transfer-v1","numeric_domain":"u32 checked","success":[{"before":[9,4],"amount":3,"after":[6,7]}],"attacks":{"no-op-transfer":[{"before":[9,4],"amount":3,"after":[9,4]}]}}

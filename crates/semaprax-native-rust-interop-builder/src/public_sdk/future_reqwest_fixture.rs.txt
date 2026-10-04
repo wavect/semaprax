@@ -20,6 +20,26 @@ async fn drive(handle: Rc<LocalFuture<Vec<u8>>>) -> Result<Vec<u8>, FutureBridge
     (&*handle).await
 }
 
+struct PendingUntilShutdown {
+    polls: Arc<AtomicUsize>,
+    drops: Arc<AtomicUsize>,
+}
+
+impl Future for PendingUntilShutdown {
+    type Output = Vec<u8>;
+
+    fn poll(self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<Self::Output> {
+        self.polls.fetch_add(1, Ordering::SeqCst);
+        Poll::Pending
+    }
+}
+
+impl Drop for PendingUntilShutdown {
+    fn drop(&mut self) {
+        self.drops.fetch_add(1, Ordering::SeqCst);
+    }
+}
+
 fn main() {
     rustls::crypto::ring::default_provider()
         .install_default()
@@ -111,6 +131,35 @@ fn main() {
         drop(second);
         assert_eq!(limit.live(), 0);
     });
+    // A pending local waiter and its Rust future settle when the explicit
+    // executor shuts down. A cloned adapter waker outliving both is inert.
+    let shutdown_limit = LocalFutureLimit::new(1);
+    let polls = Arc::new(AtomicUsize::new(0));
+    let drops = Arc::new(AtomicUsize::new(0));
+    let pending = Rc::new(
+        shutdown_limit
+            .start(
+                PendingUntilShutdown {
+                    polls: polls.clone(),
+                    drops: drops.clone(),
+                },
+                8,
+                Vec::len,
+            )
+            .unwrap(),
+    );
+    let late_waker = pending.notification_waker();
+    let waiter = local.spawn_local(drive(pending.clone()));
+    local.block_on(&runtime, async { tokio::task::yield_now().await });
+    assert_eq!(polls.load(Ordering::SeqCst), 1);
+    drop(waiter);
+    drop(pending);
+    drop(local);
+    drop(runtime);
+    assert_eq!(drops.load(Ordering::SeqCst), 1);
+    assert_eq!(shutdown_limit.live(), 0);
+    late_waker.wake_by_ref();
+    assert_eq!(polls.load(Ordering::SeqCst), 1);
     server.join().unwrap();
     assert_eq!(count.load(Ordering::SeqCst), 2);
 }

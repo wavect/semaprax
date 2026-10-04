@@ -1282,6 +1282,13 @@ mod index_adoption_tests {
             })
             .collect();
         for n in 2..=25 {
+            // Interleave readers with every swap (bounded wait) so the read
+            // count does not depend on runner speed.
+            let before = reads.load(Ordering::Relaxed);
+            let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+            while reads.load(Ordering::Relaxed) == before && std::time::Instant::now() < deadline {
+                std::thread::yield_now();
+            }
             put(n);
         }
         stop.store(true, Ordering::Relaxed);

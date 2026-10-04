@@ -82,12 +82,14 @@ from urllib.request import urlopen
 
 package, expected, destination = sys.argv[1:]
 url = f'https://static.rust-lang.org/dist/2026-10-02/{package}-nightly-x86_64-unknown-linux-gnu.tar.xz'
-with urlopen(url) as response:
-    data = response.read()
-observed = hashlib.sha256(data).hexdigest()
+digest = hashlib.sha256()
+with urlopen(url) as response, Path(destination).open('wb') as output:
+    while chunk := response.read(1024 * 1024):
+        digest.update(chunk)
+        output.write(chunk)
+observed = digest.hexdigest()
 if observed != expected:
     raise SystemExit(f'{package} checksum mismatch: expected {expected}, got {observed}')
-Path(destination).write_bytes(data)
 PY
     mkdir "$extract"
     python3 - "$archive" "$extract" <<'PY'

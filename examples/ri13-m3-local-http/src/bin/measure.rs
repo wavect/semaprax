@@ -15,6 +15,9 @@ use std::time::{Duration, Instant};
 
 const WARMUP: usize = 9;
 const SAMPLES: usize = 90;
+const BATCH_WARMUP: usize = 3;
+const BATCH_SAMPLES: usize = 15;
+const BATCH_OPERATIONS: usize = 64;
 
 #[derive(Clone, Copy, Default)]
 struct AllocationMetrics {
@@ -199,6 +202,46 @@ fn execute(
     }
 }
 
+fn run_batch_measurement(
+    runtime: &tokio::runtime::Runtime,
+    client: &reqwest::Client,
+    revision: &Arc<ProjectRevision>,
+) {
+    let routes = [Route::Direct, Route::Handwritten, Route::Generated];
+    let (endpoint, server) =
+        local_server((BATCH_WARMUP + BATCH_SAMPLES) * routes.len() * BATCH_OPERATIONS);
+    println!("route,iteration,operations,elapsed_ns,body_bytes,allocation_calls,deallocation_calls,reallocation_calls,allocated_bytes,deallocated_bytes");
+    for iteration in 0..(BATCH_WARMUP + BATCH_SAMPLES) {
+        for shift in 0..routes.len() {
+            let route = routes[(iteration + shift) % routes.len()];
+            let start = Instant::now();
+            let ((completed, _), allocations) = measure_allocations(|| {
+                let mut completed = 0usize;
+                for _ in 0..BATCH_OPERATIONS {
+                    assert_eq!(execute(route, runtime, client, &endpoint, revision).0, 84);
+                    completed += 1;
+                }
+                (completed, ())
+            });
+            if iteration >= BATCH_WARMUP {
+                println!(
+                    "{},{},{},{},2,{},{},{},{},{}",
+                    route.label(),
+                    iteration - BATCH_WARMUP,
+                    completed,
+                    start.elapsed().as_nanos(),
+                    allocations.allocation_calls,
+                    allocations.deallocation_calls,
+                    allocations.reallocation_calls,
+                    allocations.allocated_bytes,
+                    allocations.deallocated_bytes,
+                );
+            }
+        }
+    }
+    server.join().unwrap();
+}
+
 fn main() {
     rustls::crypto::ring::default_provider()
         .install_default()
@@ -218,8 +261,12 @@ fn main() {
         .timeout(Duration::from_secs(2))
         .build()
         .unwrap();
-    let probe = std::env::args().nth(1).as_deref() == Some("probe");
-    if probe {
+    let mode = std::env::args().nth(1);
+    if mode.as_deref() == Some("batch") {
+        run_batch_measurement(&runtime, &client, &revision);
+        return;
+    }
+    if mode.as_deref() == Some("probe") {
         let (endpoint, server) = local_server(33);
         println!("iteration,total_ns,prepare_ns,await_ns");
         for iteration in 0..33 {

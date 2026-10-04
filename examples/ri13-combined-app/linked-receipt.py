@@ -33,10 +33,36 @@ def main():
         'SpxStatefulProxy::new',
         '.map(stateful.as_fn_mut())',
         'm3::register',
+        'Ok::<i64, ()>(43)',
     ]:
         assert fragment in consumer_source
     prepare = (ROOT / "linked/prepare/Cargo.toml").read_text()
     assert 'path = "../src/bin_prepare.rs"' in prepare
-    receipt = {"schema": "semaprax.ri13.linked-project-receipt.v1", "inputs": {str(path.relative_to(ROOT)): digest(path) for path in TRACKED}, "project_profile": "source-local-future.v1", "selected_identities": REQUIRED, "stages": ["prepare", "consumer"], "consumer_marker": "ri13-linked-project-ok"}
+    receipt = {
+        "schema": "semaprax.ri13.linked-project-receipt.v1",
+        "inputs": {str(path.relative_to(ROOT)): digest(path) for path in TRACKED},
+        "project_profile": "source-local-future.v1",
+        "selected_identities": REQUIRED,
+        "stages": ["prepare", "consumer"],
+        "consumer_marker": "ri13-linked-project-ok",
+        "copied_byte_ledger": {
+            "schema": "semaprax.ri13.linked-copy-ledger.v1",
+            "m3_generated_boundary": {
+                "status": "exact",
+                "copied_bytes_per_invocation": 0,
+                "shape": "i64-to-i64",
+            },
+            "m3_host_callback_payload": {
+                "status": "exact",
+                "copied_bytes_per_invocation": 0,
+                "shape": "i64-to-Future<Result<i64,()>>",
+            },
+            "m3_foreign_http_body": {
+                "status": "not_exercised",
+                "copied_bytes_per_invocation": None,
+                "reason": "the linked consumer's scalar callback performs no HTTP body transfer",
+            },
+        },
+    }
     print(json.dumps(receipt, indent=2, sort_keys=True))
 if __name__ == "__main__": main()

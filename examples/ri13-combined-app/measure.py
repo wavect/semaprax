@@ -105,6 +105,48 @@ def parse_m3_samples(text):
     return result
 
 
+def parse_m3_batch_samples(text):
+    rows = list(csv.DictReader(text.splitlines()))
+    required = {"route", "iteration", "operations", "elapsed_ns", "body_bytes", *ALLOCATION_COLUMNS}
+    if not rows or set(rows[0]) != required:
+        raise ValueError("M3 batch output must have exactly the batch timing and allocator-request columns")
+    by_route = {route: [] for route in ROUTES}
+    for row in rows:
+        route = row["route"]
+        if route not in by_route:
+            raise ValueError(f"unknown M3 batch route {route!r}")
+        sample = {key: int(value) for key, value in row.items() if key != "route"}
+        if sample["operations"] <= 1 or sample["body_bytes"] != 2 or sample["elapsed_ns"] <= 0:
+            raise ValueError(f"invalid M3 batch sample {row!r}")
+        by_route[route].append(sample)
+    counts = {route: len(samples) for route, samples in by_route.items()}
+    if len(set(counts.values())) != 1 or not next(iter(counts.values())):
+        raise ValueError(f"unbalanced M3 batch samples {counts}")
+    result = {"raw_csv_sha256": digest(text), "samples_per_route": next(iter(counts.values())), "routes": {}}
+    for route, samples in by_route.items():
+        operations = {sample["operations"] for sample in samples}
+        body_bytes = {sample["body_bytes"] for sample in samples}
+        if len(operations) != 1 or len(body_bytes) != 1:
+            raise ValueError(f"M3 batch route {route} changed its operation or body size")
+        elapsed = [sample["elapsed_ns"] for sample in samples]
+        operation_count = operations.pop()
+        result["routes"][route] = {
+            "operations_per_sample": operation_count,
+            "total_operations": operation_count * len(samples),
+            "body_bytes_per_operation": body_bytes.pop(),
+            "mean_batch_ns": round(statistics.mean(elapsed), 1),
+            "p50_batch_ns": round(percentile(elapsed, 50), 1),
+            "p90_batch_ns": round(percentile(elapsed, 90), 1),
+            "p99_batch_ns": round(percentile(elapsed, 99), 1),
+            "normalized_operations_per_second": round(operation_count * 1e9 / statistics.mean(elapsed), 2),
+            "allocator_requests_per_batch": {
+                column: round(statistics.mean(sample[column] for sample in samples), 1)
+                for column in ALLOCATION_COLUMNS
+            },
+        }
+    return result
+
+
 def m3_copy_ledger(measurement):
     """Render the byte facts the scalar M3 route can establish exactly.
 
@@ -121,6 +163,11 @@ def m3_copy_ledger(measurement):
             "response_wire_bytes": samples * body_bytes,
             "generated_boundary_copied_bytes": 0,
             "generated_boundary_shape": "i64-to-i64",
+            "host_callback_payload_copied_bytes": 0,
+            "host_callback_payload_shape": "i64-to-Future<Result<i64,String>>",
+            "host_callback_capture_copied_bytes": None,
+            "foreign_response_body_copied_bytes": None,
+            "foreign_response_body_shape": "reqwest Response::text to parsed i64",
         }
     return {
         "schema": M3_COPY_LEDGER_SCHEMA,
@@ -129,7 +176,11 @@ def m3_copy_ledger(measurement):
             "reqwest response buffering",
             "HTTP decoding",
             "Response::text UTF-8 handling",
-            "caller-owned host callback",
+            "host callback captures (reqwest Client and endpoint String)",
+        ],
+        "exact_copy_domains": [
+            "generated i64 boundary",
+            "host callback invocation payload",
         ],
     }
 
@@ -167,7 +218,20 @@ def self_test():
         "response_wire_bytes": 4,
         "generated_boundary_copied_bytes": 0,
         "generated_boundary_shape": "i64-to-i64",
+        "host_callback_payload_copied_bytes": 0,
+        "host_callback_payload_shape": "i64-to-Future<Result<i64,String>>",
+        "host_callback_capture_copied_bytes": None,
+        "foreign_response_body_copied_bytes": None,
+        "foreign_response_body_shape": "reqwest Response::text to parsed i64",
     }
+    batch_header = ["route", "iteration", "operations", "elapsed_ns", "body_bytes", *ALLOCATION_COLUMNS]
+    batch_rows = [batch_header]
+    for iteration in range(2):
+        for route in ROUTES:
+            batch_rows.append([route, str(iteration), "64", "6400", "2", "8", "8", "0", "128", "128"])
+    batch = parse_m3_batch_samples("\n".join(",".join(row) for row in batch_rows))
+    assert batch["routes"]["generated_semaprax"]["total_operations"] == 128
+    assert batch["routes"]["generated_semaprax"]["normalized_operations_per_second"] == 10_000_000.0
     print("ri13-combined-measure-self-test-ok")
 
 
@@ -248,6 +312,10 @@ def main():
     measure_result, samples = run(measure_command, environment, "generated_semaprax")
     measure_result["stage"] = "m3_route_measurement"
     route_measurement = parse_m3_samples(samples)
+    batch_command = cargo_command("examples/ri13-m3-local-http/Cargo.toml", "measure") + ["--", "batch"]
+    batch_result, batch_samples = run(batch_command, environment, "generated_semaprax")
+    batch_result["stage"] = "m3_batch_throughput_measurement"
+    batch_measurement = parse_m3_batch_samples(batch_samples)
     report = {
         "schema": "semaprax.ri13.combination-measurement.v1",
         "checkout": current_text(["git", "rev-parse", "HEAD"]),
@@ -258,12 +326,14 @@ def main():
         "full_build_and_consumer_stages": stages,
         "route_measurement_command": measure_result,
         "route_timing_and_allocator_requests": route_measurement,
+        "batch_throughput_measurement_command": batch_result,
+        "batch_throughput": batch_measurement,
         "m3_copy_ledger": m3_copy_ledger(route_measurement),
         "limits": [
             "M1, M2 and M3 remain separately admitted source profiles; this receipt does not claim one linked Project.",
             "Build-and-consumer stage elapsed times include Cargo work and process startup; they are not route latency.",
-            "Route timings include loopback HTTP and two-byte response parsing; they do not establish nontrivial batch overhead.",
-            "Allocator values count current-thread requests around each M3 route. The copy ledger records the scalar generated boundary and response payload bytes, but not copies inside reqwest, decoding, or the host callback.",
+            "Scalar route timings include loopback HTTP and two-byte response parsing; the separate 64-operation batch rows retain their own normalized throughput and remain local evidence.",
+            "Allocator values count current-thread requests and do not infer copies. The ledger records exact zero-byte scalar generated and host-callback payload boundaries, response wire bytes, and explicit unavailable cells for reqwest/HTTP/text/capture copies.",
         ],
     }
     arguments.output.parent.mkdir(parents=True, exist_ok=True)

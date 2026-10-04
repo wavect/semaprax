@@ -46,6 +46,13 @@ exited 101 at the timeout assertion. Changing `response + seed` to
 `ri13-m3-stale-refused`; the source was restored afterward. These are local
 receipts from the detached checkout, not fresh-checkout or Linux evidence.
 
+The owning Project selector also runs the local HTTP route with a test-only
+wrong host return and with its HTTP-status guard removed. The first produces
+the checked-source result `83` rather than `84`; the second accepts a numeric
+503 body rather than returning the typed `HttpStatus(503)` failure. Both differ
+from the authentic integration oracle. These are mutation controls for the
+selected route, not claims about arbitrary host capabilities.
+
 The [local M3 measurement protocol](measurements/README.md) compares direct
 Rust, an equivalent handwritten checked adapter, and the generated route
 using raw per-request samples. It reports the narrow signature and copy

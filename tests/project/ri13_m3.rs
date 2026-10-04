@@ -30,6 +30,20 @@ struct CopyMetrics {
     host_callback_captured_bytes: u64,
 }
 
+/// Test-only controls for proving that the integration oracle notices a host
+/// callback that returns the wrong value or omits its status guard. Production
+/// calls always use `AUTHENTIC_HOST_CONTROLS` below.
+#[derive(Clone, Copy)]
+struct HostMutationControls {
+    check_http_status: bool,
+    return_adjustment: i64,
+}
+
+const AUTHENTIC_HOST_CONTROLS: HostMutationControls = HostMutationControls {
+    check_http_status: true,
+    return_adjustment: 0,
+};
+
 /// Exact fixture-owned copies only. reqwest and HTTP internals stay outside
 /// this observation because the host does not expose their copy operations.
 #[derive(Clone, Default)]
@@ -121,11 +135,12 @@ fn local_server(
     (endpoint, received_rx, server)
 }
 
-fn selected_call(
+fn selected_call_with_controls(
     revision: Arc<ProjectRevision>,
     endpoint: String,
     timeout: Option<Duration>,
     copies: CopyLedger,
+    controls: HostMutationControls,
 ) -> Result<
     impl Future<Output = (Result<i64, SourceLocalFutureFailure>, Option<HostError>)>,
     Vec<semaprax::diagnostic::Diagnostic>,
@@ -145,7 +160,7 @@ fn selected_call(
                 let url = reqwest::Url::parse(&format!("{endpoint}/value/{request}"))
                     .map_err(|_| HostError::Transport)?;
                 let response = client.get(url).send().await.map_err(transport)?;
-                if !response.status().is_success() {
+                if controls.check_http_status && !response.status().is_success() {
                     return Err(HostError::HttpStatus(response.status().as_u16()));
                 }
                 let body = response.bytes().await.map_err(transport)?;
@@ -154,7 +169,9 @@ fn selected_call(
                 std::str::from_utf8(&captured)
                     .map_err(|_| HostError::InvalidBody)?
                     .parse::<i64>()
-                    .map_err(|_| HostError::InvalidBody)
+                    .map_err(|_| HostError::InvalidBody)?
+                    .checked_add(controls.return_adjustment)
+                    .ok_or(HostError::InvalidBody)
             }
             .await;
             match request_result {
@@ -171,6 +188,18 @@ fn selected_call(
         let host_error = error.borrow_mut().take();
         (result, host_error)
     })
+}
+
+fn selected_call(
+    revision: Arc<ProjectRevision>,
+    endpoint: String,
+    timeout: Option<Duration>,
+    copies: CopyLedger,
+) -> Result<
+    impl Future<Output = (Result<i64, SourceLocalFutureFailure>, Option<HostError>)>,
+    Vec<semaprax::diagnostic::Diagnostic>,
+> {
+    selected_call_with_controls(revision, endpoint, timeout, copies, AUTHENTIC_HOST_CONTROLS)
 }
 
 fn run_case(
@@ -273,6 +302,61 @@ fn saved_m3_application_runs_offline_and_refuses_timeout_and_stale_binding_mutan
             foreign_response_body_copied_bytes: 2,
             host_callback_captured_bytes: 2,
         }
+    );
+
+    // A host callback that returns 42 rather than the actual HTTP body 43
+    // produces 83 through the checked source body, rather than the admitted
+    // 84. The normal success oracle would therefore fail this real route.
+    let (endpoint, _received, server) = local_server(200, "43", Duration::ZERO);
+    let wrong_return = local.block_on(
+        &runtime,
+        selected_call_with_controls(
+            Arc::clone(&revision),
+            endpoint,
+            Some(Duration::from_millis(100)),
+            CopyLedger::default(),
+            HostMutationControls {
+                check_http_status: true,
+                return_adjustment: -1,
+            },
+        )
+        .unwrap(),
+    );
+    server.join().unwrap();
+    assert_eq!(wrong_return, (Ok(83), None));
+    assert_ne!(
+        wrong_return,
+        (Ok(84), None),
+        "wrong return escaped the oracle"
+    );
+
+    // Removing the explicit HTTP-status capability guard lets a 503 carrying
+    // a numeric body reach the source callback. The authentic route below
+    // would return the typed status failure, so this mutant is observable.
+    let (endpoint, _received, server) = local_server(503, "43", Duration::ZERO);
+    let dropped_status_guard = local.block_on(
+        &runtime,
+        selected_call_with_controls(
+            Arc::clone(&revision),
+            endpoint,
+            Some(Duration::from_millis(100)),
+            CopyLedger::default(),
+            HostMutationControls {
+                check_http_status: false,
+                return_adjustment: 0,
+            },
+        )
+        .unwrap(),
+    );
+    server.join().unwrap();
+    assert_eq!(dropped_status_guard, (Ok(84), None));
+    assert_ne!(
+        dropped_status_guard,
+        (
+            Err(SourceLocalFutureFailure::HandlerFailed),
+            Some(HostError::HttpStatus(503))
+        ),
+        "dropped HTTP-status guard escaped the typed-error oracle"
     );
     assert!(matches!(
         run_case(

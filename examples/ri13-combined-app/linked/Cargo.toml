@@ -1,0 +1,24 @@
+[package]
+name = "semaprax-ri13-linked"
+version = "0.1.0"
+edition = "2021"
+publish = false
+build = "build.rs"
+
+[workspace]
+
+[[bin]]
+name = "prepare"
+path = "src/bin_prepare.rs"
+
+[[bin]]
+name = "consumer"
+path = "src/main.rs"
+
+[dependencies]
+semaprax = { path = "../../..", version = "=0.7.0" }
+semaprax-native-rust-interop = { path = "../../../crates/semaprax-native-rust-interop-builder", version = "=0.1.0" }
+semaprax-rust-api-index = { path = "../../../crates/semaprax-rust-api-index", version = "=0.1.0" }
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.151"
+tokio = { version = "=1.53.1", features = ["rt"] }

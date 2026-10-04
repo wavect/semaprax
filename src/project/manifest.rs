@@ -877,11 +877,10 @@ impl ProjectManifest {
         }
         require_strict_order(&web_exports, "web export identities")?;
         if profile == ProjectProfile::SourceLocalFutureV1 {
-            if !web_exports.is_empty()
-                || rust_async_exports.len() != 1
-                || !valid_stable_id(&rust_async_exports[0])
-            {
-                return Err(grammar("source-local-future.v1 requires empty web exports and exactly one valid rust_async stable ID"));
+            if rust_async_exports.len() != 1 || !valid_stable_id(&rust_async_exports[0]) {
+                return Err(grammar(
+                    "source-local-future.v1 requires exactly one valid rust_async stable ID",
+                ));
             }
         } else if !rust_async_exports.is_empty() {
             return Err(grammar("rust_async exports require source-local-future.v1"));

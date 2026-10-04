@@ -643,10 +643,9 @@ fn structural_diagnostics(tables: &[Table<'_>], law_layout: bool) -> Vec<Diagnos
         if profile != PROJECT_PROFILE_SOURCE_LOCAL_FUTURE_V1
             || exports.len() != 1
             || !super::valid_stable_id(&exports[0])
-            || table_list(tables, "exports", "web").is_none_or(|web| !web.is_empty())
         {
             diagnostics.push(scaffold_diagnostic(format!(
-                "{LABEL} rust_async requires source-local-future.v1, one valid stable ID, and empty web exports"
+                "{LABEL} rust_async requires source-local-future.v1 and one valid stable ID"
             )));
         }
     } else if profile == PROJECT_PROFILE_SOURCE_LOCAL_FUTURE_V1 {

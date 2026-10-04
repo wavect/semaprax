@@ -7,8 +7,11 @@ remains refused.
 ## Selection and authority
 
 An extensible `semaprax.manifest.v1` Project may select
-`profile = "source-local-future.v1"` with `[exports] web = []` and exactly one
-`rust_async = ["stable.id"]`. The selector is separate from Web exports.
+`profile = "source-local-future.v1"` with exactly one
+`rust_async = ["stable.id"]`. The selector is separate from Web exports. A
+Project may also carry bounded Web export identities for a separately selected,
+held native-Rust SDK package; those identities do not make this profile a Web
+emitter or change the selected Future signature.
 The Phase-A Project loader links the entry and selected declaration, validates
 the checked HIR, derives the compiler-owned source effect signature, and
 admits only one direct `i64` request and answer, one `i64` input, and one

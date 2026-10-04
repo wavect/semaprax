@@ -69,3 +69,29 @@ links all three categories, copy measurement for the foreign body and host
 callback paths, a nontrivial batch comparison that meets its acceptance target,
 and fresh Linux x86_64 evidence. The receipt makes those gaps explicit rather
 than converting one local run into a portability or performance claim.
+
+## Linked Project fixture
+
+`project/` is one held `source-local-future.v1` Project that carries all three
+selected identities: the two M1 indexed native-Rust exports, the M2 record and
+callback declarations, and the single M3 Rust Future export. Its
+`linked/` package has a `prepare` binary that derives all four generated
+packages/modules from that Project source, then a `consumer` binary links the
+M1 owner crates, M2 C/Rust callback module, and M3 generated Future module in
+one process. The consumer emits `ri13-linked-project-ok` only after all three
+routes return their checked values.
+
+The prepare result is intentionally untracked. Reproduce the linked route with
+its own private target directory:
+
+```sh
+CLANG=/usr/bin/clang CARGO_TARGET_DIR="$PWD/target/ri13-linked" \
+  cargo run --locked --offline --manifest-path examples/ri13-combined-app/linked/Cargo.toml --bin prepare
+CLANG=/usr/bin/clang CARGO_TARGET_DIR="$PWD/target/ri13-linked" \
+  cargo run --locked --offline --manifest-path examples/ri13-combined-app/linked/Cargo.toml --bin consumer
+```
+
+`linked-receipt.py` performs the no-Cargo structural assertion for the route:
+it checks the canonical manifest selections, every required source identity,
+the linked prepare/consumer command order, and emits a deterministic receipt
+whose inputs are SHA-256 hashes of the tracked fixture files.

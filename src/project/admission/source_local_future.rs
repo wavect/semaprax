@@ -17,11 +17,5 @@ pub(super) fn prepare(
             "source-local-future.v1 requires exactly one selected Rust async export",
         ));
     };
-    if !manifest.web_exports().is_empty() {
-        return Err(Diagnostic::io(
-            "SPX-H006",
-            "source-local-future.v1 has no Web exports",
-        ));
-    }
     admitted_source_future_signature(program, function_id)
 }

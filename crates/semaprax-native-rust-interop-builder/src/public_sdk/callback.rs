@@ -173,7 +173,6 @@ fn prepare(
         || !factory.ensures.is_empty()
         || factory.yields.is_some()
         || factory.follows.is_some()
-        || !program.interfaces.is_empty()
         || (!program.types.is_empty()
             && !(program.types.len() == 1
                 && allowed_record_id.is_some_and(|id| program.types[0].stable_id == id)))
@@ -264,6 +263,13 @@ fn prepare(
     });
     lifted.return_type = Type::I64;
     lifted.body = *body.clone();
+    // The projection keeps only declarations selected by its checked source
+    // evidence. Other Project declarations remain authenticated by the caller
+    // but cannot enter this scalar callback renderer or its generated ABI.
+    program.interfaces.clear();
+    program.functions.retain(|function| {
+        function.stable_id == selection.factory_id || function.stable_id == selection.transition_id
+    });
     program
         .functions
         .retain(|f| f.stable_id != selection.factory_id);

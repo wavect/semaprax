@@ -59,7 +59,11 @@ def boolean_synthesis_effort(pilot, campaign):
 
 def render():
     remaining = REMAINING.review()
-    rss = RSS.review(ROOT / "evidence/law16-boolean-negation-peak-rss-v1")
+    try:
+        historical_rss = {"status": "authenticated", "review": RSS.review(ROOT / "evidence/law16-boolean-negation-peak-rss-v1")}
+    except ValueError as error:
+        historical_rss = {"status": "unavailable", "reason": str(error), "scope": "historical absolute-path evidence is not rebound to this checkout"}
+    rss = RSS.review_current(ROOT / "evidence/law16-boolean-negation-peak-rss-v2")
     nonproof = NONPROOF.review(ROOT / "evidence/law16-boolean-negation-nonproof-process-v1")
     proof_verdict = PROOFVERDICT.review(ROOT / "evidence/law16-boolean-negation-proof-verdict-v1")
     pilot = PILOT.review(ROOT / "evidence/law16-boolean-negation-agent-pilot-v1")
@@ -115,6 +119,7 @@ def render():
                 },
             },
             "peak_rss": rss["routes"],
+            "historical_peak_rss": historical_rss,
             "timing_interpretation": (
                 "ordinary Bend, Bend verdict, SEMAPRAX check, and installed-Z3 p50/p95 "
                 "and RSS are separate local process-provisioning observations; no cross-route "

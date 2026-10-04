@@ -1575,3 +1575,87 @@ mod hn {
         assert!(!read(&r, "src/report.spx").contains("discount"));
     }
 }
+
+fn skill_state(w: &World) -> Value {
+    let o = w.harness(&["skills", "status", "--json"]);
+    assert_eq!(o.code, 0, "{}", o.stderr);
+    let v: Value = serde_json::from_str(o.stdout.trim()).unwrap();
+    v["skills"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|s| s["id"] == "ponytail")
+        .unwrap()
+        .clone()
+}
+
+#[test]
+#[ignore = "provisioned: needs SEMAPRAX_COMPILER"]
+fn hn_hn04_real_run_delivers_official_ponytail_by_task_family_and_honors_the_switch() {
+    let _ = NEEDS;
+    let task_file = |w: &World, family: &str| {
+        write(
+            &w.root,
+            &format!("host/task-{family}.json"),
+            &json!({"schema": "semaprax.harness-task.v1", "goal": "fix ledger.line_total so the contract holds",
+                    "task_family": family, "external_context": "always"})
+            .to_string(),
+        )
+        .to_string_lossy()
+        .into_owned()
+    };
+    let w = world();
+    // A coding task: official Ponytail is selected, loaded, applied, locked and counted.
+    let (code, v) = w.run(&[
+        "--task",
+        &task_file(&w, "mechanical"),
+        "--proposal",
+        &prop("valid"),
+    ]);
+    assert_eq!(code, 0, "{v}");
+    let skills = &v["context"]["skills"];
+    let entry = skills["loaded"][0].as_str().unwrap();
+    assert!(entry.starts_with("ponytail@v4.10.3:full:sha256:"), "{v}");
+    assert!(
+        skills["model_visible_bytes"].as_u64().unwrap() > 5000,
+        "{v}"
+    );
+    let st = skill_state(&w);
+    assert_eq!(st["selected"], true);
+    assert_eq!(st["applied_to_model"], true);
+    assert!(entry.ends_with(st["locked_revision"].as_str().unwrap()));
+    // A prose task in the same project: no skill bytes, and status follows the latest turn.
+    let (_, v) = w.run(&[
+        "--task",
+        &task_file(&w, "translation"),
+        "--proposal",
+        &prop("valid"),
+    ]);
+    assert!(v["context"].get("skills").is_none(), "{v}");
+    let st = skill_state(&w);
+    assert_eq!(st["selected"], false);
+    assert_eq!(st["applied_to_model"], false);
+    // The project switch disables it and keeps it out of the prompt.
+    let w2 = world();
+    write(
+        &w2.project,
+        "semaprax.harness.toml",
+        "schema = \"semaprax.harness-config.v1\"\n[skills]\nofficial = false\n",
+    );
+    let (_, v) = w2.run(&[
+        "--task",
+        &task_file(&w2, "mechanical"),
+        "--proposal",
+        &prop("valid"),
+    ]);
+    assert!(v["context"].get("skills").is_none(), "{v}");
+    let st = skill_state(&w2);
+    assert!(
+        st["disabled"]
+            .as_str()
+            .unwrap()
+            .starts_with("official-skills-switch-off"),
+        "{st}"
+    );
+    assert_eq!(st["applied_to_model"], false);
+}

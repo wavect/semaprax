@@ -68,10 +68,14 @@ pub fn publish(
         let _ = std::fs::remove_dir_all(&tmp);
         return open(store, &digest);
     }
-    std::fs::rename(&tmp, &final_dir).map_err(|e| {
+    if let Err(e) = std::fs::rename(&tmp, &final_dir) {
         let _ = std::fs::remove_dir_all(&tmp);
-        io("cannot publish the snapshot", e)
-    })?;
+        // A concurrent publisher of the same digest won the race: use its snapshot.
+        if final_dir.exists() {
+            return open(store, &digest);
+        }
+        return Err(io("cannot publish the snapshot", e));
+    }
     open(store, &digest)
 }
 

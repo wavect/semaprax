@@ -1,0 +1,11 @@
+[package]
+name = "semaprax-ri13-m1-prepare"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+semaprax-native-rust-interop = { path = "../../../crates/semaprax-native-rust-interop-builder", version = "=0.1.0" }
+semaprax-rust-api-index = { path = "../../../crates/semaprax-rust-api-index", version = "=0.1.0" }

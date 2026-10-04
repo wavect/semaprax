@@ -1,0 +1,11 @@
+[package]
+name = "semaprax-ri13-m1-consumer"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+ri06-regex-owner = { path = "../generated/regex", version = "=0.1.0" }
+ri06-url-owner = { path = "../generated/url", version = "=0.1.0" }

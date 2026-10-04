@@ -1,5 +1,13 @@
 # Changelog
 
+- Save an RI-13 M1 mixed Regex/Url application. One held, canonical Project
+  source authenticates four selected imports and two exports, then generates
+  separate source-bound SDK carriers with distinct C owner symbols. Exact
+  admission and stale-lock/source controls pass 1/1; locked offline prepare
+  and a single-process Rust/C consumer pass locally on macOS arm64. The
+  general Project SDK CLI, fresh-checkout/Linux run, and wider RI-13 acceptance
+  remain open.
+
 - Scope the linked agent migration test's backend-only import to macOS and
   Linux so the Windows Clippy build has no unused import.
 

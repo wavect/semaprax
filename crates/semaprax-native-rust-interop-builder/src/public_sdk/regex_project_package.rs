@@ -83,6 +83,7 @@ pub(crate) fn prepare_regex_project_package(
     target: &str,
     stable_rustc_version: &str,
     cargo_lock: &[u8],
+    mixed_project: bool,
 ) -> Result<PreparedRegexProjectPackage, Vec<Diagnostic>> {
     if subject_canonical.is_empty()
         || !subject_digest.starts_with("sha256:")
@@ -97,14 +98,29 @@ pub(crate) fn prepare_regex_project_package(
         )]);
     }
     let manifest = ProjectManifest::parse(manifest)?;
-    if manifest.rust_dependencies().len() != 1
-        || manifest.rust_dependencies()[0].name() != REGEX_PACKAGE
-        || manifest.rust_dependencies()[0].version() != REGEX_VERSION
-        || !manifest.rust_dependencies()[0].features().is_empty()
+    let dependencies = manifest.rust_dependencies();
+    let exact_regex = dependencies.iter().any(|dependency| {
+        dependency.name() == REGEX_PACKAGE
+            && dependency.version() == REGEX_VERSION
+            && dependency.features().is_empty()
+    });
+    let exact_url = dependencies.iter().any(|dependency| {
+        dependency.name() == "url"
+            && dependency.version() == "=2.5.8"
+            && dependency.features().is_empty()
+    });
+    if !exact_regex
+        || if mixed_project {
+            dependencies.len() != 2 || !exact_url
+        } else {
+            dependencies.len() != 1
+        }
     {
-        return Err(vec![sdk_error(
-            "selected Regex Project package requires exact regex =1.13.1",
-        )]);
+        return Err(vec![sdk_error(if mixed_project {
+            "mixed Regex Project package requires exact regex/url dependencies"
+        } else {
+            "selected Regex Project package requires exact regex =1.13.1"
+        })]);
     }
     let index = RustApiIndex::replay(index_bytes)
         .map_err(|_| vec![sdk_error("selected Regex Project index replay failed")])?;

@@ -634,6 +634,7 @@ pub use foreign_law::GuardedForeignCallerEvidence;
 mod indexed_multiple;
 mod indexed_owner;
 mod indexed_project;
+mod indexed_regex_url_project;
 mod indexed_url_project;
 mod regex_project_native;
 mod regex_project_package;
@@ -645,6 +646,9 @@ pub use indexed_project::{
     build_indexed_project_native_rust_sdk, prepare_indexed_regex_project_package,
     GuardedForeignLawSelection, IndexedProjectRegexRegistrySelection,
     IndexedProjectScalarSelection,
+};
+pub use indexed_regex_url_project::{
+    prepare_indexed_regex_url_project_packages, PreparedRegexUrlProjectPackages,
 };
 pub use indexed_url_project::{
     prepare_indexed_url_project_package, IndexedProjectUrlRegistrySelection,

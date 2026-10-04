@@ -1,0 +1,7 @@
+module ri13.regex_url_tests;
+
+@id("ri13.tests.main")
+fn main() -> i64
+{
+    0
+}

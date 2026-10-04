@@ -449,11 +449,16 @@ pub struct IndexedProjectRegexRegistrySelection<'a> {
     pub package: crate::indexed_binding::SelectedPackage<'a>,
 }
 
-pub fn prepare_indexed_regex_project_package(
-    manifest_path: &std::path::Path,
-    selections: &[IndexedProjectRegexRegistrySelection<'_>],
-    cargo_lock: &[u8],
-) -> Result<PreparedRegexProjectPackage, Vec<semaprax::diagnostic::Diagnostic>> {
+pub(super) fn indexed_regex_project_bindings<'a>(
+    selections: &[IndexedProjectRegexRegistrySelection<'a>],
+) -> Result<
+    (
+        IndexedProjectRegexRegistrySelection<'a>,
+        Vec<semaprax::project::ProjectIndexedRustImport>,
+        Vec<String>,
+    ),
+    Vec<semaprax::diagnostic::Diagnostic>,
+> {
     use semaprax::project::ProjectIndexedRustImport;
     use semaprax_rust_api_index::RustApiIndex;
     if selections.len() != 2
@@ -573,6 +578,15 @@ pub fn prepare_indexed_regex_project_package(
         });
     }
     ids.sort();
+    Ok((first, bindings, ids))
+}
+
+pub fn prepare_indexed_regex_project_package(
+    manifest_path: &std::path::Path,
+    selections: &[IndexedProjectRegexRegistrySelection<'_>],
+    cargo_lock: &[u8],
+) -> Result<PreparedRegexProjectPackage, Vec<semaprax::diagnostic::Diagnostic>> {
+    let (first, bindings, ids) = indexed_regex_project_bindings(selections)?;
     semaprax::project::with_authenticated_indexed_rust_project(
         manifest_path,
         &bindings,
@@ -603,6 +617,7 @@ pub fn prepare_indexed_regex_project_package(
                     first.package.target,
                     first.package.stable_rustc_version,
                     cargo_lock,
+                    false,
                 )
             })
         },

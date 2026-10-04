@@ -44,6 +44,8 @@ macro_rules! unix_checkpoint_host {
 mod fixed_candidate_test;
 #[path = "repair_tests/post_settled_barrier.rs"]
 mod post_settled_barrier;
+#[path = "repair_tests/receipt_comparison.rs"]
+mod receipt_comparison;
 #[path = "repair_tests/terminal_patch_receipt.rs"]
 mod terminal_patch_receipt;
 

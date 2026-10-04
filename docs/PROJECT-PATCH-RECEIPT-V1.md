@@ -104,6 +104,26 @@ workspace context, and policy/accounting scope. Otherwise it returns
 `not_comparable` with stable reasons. It never calculates a universal best
 patch score and grants no merge, execution, source, or publication authority.
 
+### Repair alternatives from one base
+
+The durable repair route can reject an attempted candidate before it retains a
+final candidate receipt. Compare the two independently verified **final
+candidate** receipts from the same retained base. The runnable regression uses
+one V2 repair run that rejects its first proposal and retains the corrected
+candidate, then constructs a second admitted replacement from that same base:
+
+```sh
+CARGO_BUILD_JOBS=1 cargo test --locked -p semaprax-toolchain source_live_cli::repair::tests::receipt_comparison::repair_route_with_rejected_attempt_compares_final_candidates -- --exact
+```
+
+The repair report's `runtime_effect_accounting` is cumulative execution
+evidence for the whole repair invocation. It includes the rejected attempt and
+the final candidate-producing attempt. It is not part of either candidate
+receipt: both receipts have `effect_usage.status: "not_applicable"` and the
+same `effect_accounting_scope`. The comparison is therefore a candidate-scope
+comparison only. A caller must keep runtime totals outside that comparison; a
+receipt with a different policy or accounting scope returns `not_comparable`.
+
 ## Retained evidence retrieval
 
 ```rust

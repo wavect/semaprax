@@ -108,7 +108,7 @@ impl Outcome {
 }
 
 pub const USAGE: &str = "usage: semaprax harness <verb> [args]\n\
-verbs: status explain resolve adopt trust revoke inspect run apply context exec recover decide endpoints skills updates bridge report conformance bench setup\n";
+verbs: status explain resolve adopt trust revoke inspect run apply context exec recover decide endpoints skills updates bridge report conformance bench setup evolve\n";
 
 pub type Verb = fn(&[String], &Environment) -> Outcome;
 
@@ -135,6 +135,7 @@ pub const VERBS: &[(&str, Verb)] = &[
     ("conformance", crate::conformance::cli_conformance),
     ("bench", crate::bench::cli_bench),
     ("setup", crate::profile::cli_setup),
+    ("evolve", crate::evolution::cli::cli_evolve),
 ];
 
 pub fn run(args: &[String], env: &Environment) -> Outcome {

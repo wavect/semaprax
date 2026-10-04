@@ -5,6 +5,7 @@
 pub mod command;
 pub mod context;
 pub mod decision;
+pub mod evolve;
 pub mod model;
 pub mod skill;
 

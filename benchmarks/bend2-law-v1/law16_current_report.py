@@ -1,0 +1,18 @@
+#!/usr/bin/env python3
+"""Render the current LAW-16 evidence state from authenticated local capsules."""
+import argparse, importlib.util, json, pathlib
+ROOT=pathlib.Path(__file__).parent
+
+def module(name):
+ s=importlib.util.spec_from_file_location(name,ROOT/f'{name}.py');m=importlib.util.module_from_spec(s);s.loader.exec_module(m);return m
+PILOT=module('law16_boolean_negation_agent_pilot');CAMPAIGN=module('law16_boolean_negation_agent_campaign_capsule');PROCESS=module('law16_boolean_negation_process_capsule')
+SCHEMA='semaprax.bend2-law-benchmark.current-report.v1'
+def read(p):return json.loads(p.read_text())
+def render():
+ pilot=PILOT.review(ROOT/'evidence/law16-boolean-negation-agent-pilot-v1'); campaign=CAMPAIGN.review(ROOT/'evidence/law16-boolean-negation-agent-campaign-v1'); process=PROCESS.review(ROOT/'evidence/law16-boolean-negation-process-v1')
+ return {'schema':SCHEMA,'status':'incomplete','scope':'local pinned Boolean-negation evidence only','matched_boolean':{'semantic_contract':process['semantic_contract'],'process_routes':process['process_states'],'candidate_and_attack_controls':process['observations'],'agent_pairs':{'pilot_pairs':1,'continuation_pairs':campaign['aggregate']['pairs'],'total_pairs':10,'bend_candidate_acceptances':10,'bend_attack_rejections':10,'semaprax_candidate_discharges':10,'semaprax_attack_rejections':10,'pilot_tokens':{k:{'chargeable_tokens':v['chargeable_tokens'],'cached_input_tokens':v['cached_input_tokens']} for k,v in pilot['lanes'].items()},'cost_usage':{'status':'unavailable','reason':'all retained Codex JSON events omit monetary charge'}},'timing_interpretation':'p50/p95 are separate local process-provisioning observations; no cross-route ratio or winner'},'pins_and_trust':{'bend':'local historical commit 947db722640c86247849343657bf2f7ef01cb7f1; verdict output is retained tool evidence','semaprax':'local historical executable commit 9a9db7a8117ac8d292b24ffd5671ec3333272290; installed-Z3 source proof discharges selected app.negate ensures[0]','current_head':'unavailable: retained local executable observations are not current-head evidence','boundaries':['Bend verdict and SEMAPRAX installed-Z3 have distinct trusted computing bases','SEMAPRAX source proof does not prove lowering or execution','fresh/repeat paths do not isolate OS, executable, solver, or tool caches']},'unavailable_or_unsupported':{'checked_u32':'unsupported_by_pinned_parser: SPX-P003 admits i32, u8, usize literal suffixes, not u32','cold_cache':'unavailable: no retained reproducible clean cache isolation','Lean':'unavailable: no retained admitted Lean export/kernel route','cost':'unavailable: no Codex JSON monetary charge event','project_sized':'unavailable: Boolean microcell is not project-sized/incremental evidence','list_refactor_incremental':'unsupported/unavailable: no matched admitted routes'},'closure':'no: the matched Boolean cell and ten agent pairs do not satisfy checked-u32, Lean, cold-cache, project-sized, list/refactor/incremental, current-head, or cost acceptance requirements','nonclaims':['no cross-route timing ratio, winner, or superiority claim','no full LAW-16 closure','no checked-u32 substitute from i32/i64/u8/usize']}
+def main(argv=None):
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',required=True,type=pathlib.Path);a=p.parse_args(argv)
+ if a.output.exists() or not a.output.parent.is_dir():p.error('output must be new')
+ a.output.write_text(json.dumps(render(),indent=2,sort_keys=True)+'\n')
+if __name__=='__main__':main()

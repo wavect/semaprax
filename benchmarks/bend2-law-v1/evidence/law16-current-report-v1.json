@@ -1,0 +1,119 @@
+{
+  "closure": "no: the matched Boolean cell and ten agent pairs do not satisfy checked-u32, Lean, cold-cache, project-sized, list/refactor/incremental, current-head, or cost acceptance requirements",
+  "matched_boolean": {
+    "agent_pairs": {
+      "bend_attack_rejections": 10,
+      "bend_candidate_acceptances": 10,
+      "continuation_pairs": 9,
+      "cost_usage": {
+        "reason": "all retained Codex JSON events omit monetary charge",
+        "status": "unavailable"
+      },
+      "pilot_pairs": 1,
+      "pilot_tokens": {
+        "bend2": {
+          "cached_input_tokens": 11008,
+          "chargeable_tokens": 16626
+        },
+        "semaprax-scalar-v1": {
+          "cached_input_tokens": 14080,
+          "chargeable_tokens": 16711
+        }
+      },
+      "semaprax_attack_rejections": 10,
+      "semaprax_candidate_discharges": 10,
+      "total_pairs": 10
+    },
+    "candidate_and_attack_controls": {
+      "bend_verdict_candidate_acceptances": 60,
+      "bend_verdict_seeded_attack_rejections": 60,
+      "raw_streams": 480,
+      "semaprax_z3_candidate_postcondition_discharges": 60,
+      "semaprax_z3_seeded_attack_rejections": 60
+    },
+    "process_routes": {
+      "bend_attack_fresh_process": {
+        "count": 30,
+        "p50_ns": 68409687.0,
+        "p95_ns": 69691583
+      },
+      "bend_attack_repeat_process": {
+        "count": 30,
+        "p50_ns": 69071729.0,
+        "p95_ns": 70838084
+      },
+      "bend_candidate_fresh_process": {
+        "count": 30,
+        "p50_ns": 86617917.0,
+        "p95_ns": 95123166
+      },
+      "bend_candidate_repeat_process": {
+        "count": 30,
+        "p50_ns": 87489354.5,
+        "p95_ns": 102620000
+      },
+      "semaprax_attack_fresh_process": {
+        "count": 30,
+        "p50_ns": 192335167.0,
+        "p95_ns": 206678916
+      },
+      "semaprax_attack_repeat_process": {
+        "count": 30,
+        "p50_ns": 191247604.5,
+        "p95_ns": 215137250
+      },
+      "semaprax_candidate_fresh_process": {
+        "count": 30,
+        "p50_ns": 439726645.5,
+        "p95_ns": 472329792
+      },
+      "semaprax_candidate_repeat_process": {
+        "count": 30,
+        "p50_ns": 451408458.0,
+        "p95_ns": 495566959
+      }
+    },
+    "semantic_contract": {
+      "domain": "Bool / bool; exactly two values",
+      "name": "total Boolean negation",
+      "relation": "result == !value / Bool.not(value)",
+      "truth_table": [
+        {
+          "input": false,
+          "output": true
+        },
+        {
+          "input": true,
+          "output": false
+        }
+      ]
+    },
+    "timing_interpretation": "p50/p95 are separate local process-provisioning observations; no cross-route ratio or winner"
+  },
+  "nonclaims": [
+    "no cross-route timing ratio, winner, or superiority claim",
+    "no full LAW-16 closure",
+    "no checked-u32 substitute from i32/i64/u8/usize"
+  ],
+  "pins_and_trust": {
+    "bend": "local historical commit 947db722640c86247849343657bf2f7ef01cb7f1; verdict output is retained tool evidence",
+    "boundaries": [
+      "Bend verdict and SEMAPRAX installed-Z3 have distinct trusted computing bases",
+      "SEMAPRAX source proof does not prove lowering or execution",
+      "fresh/repeat paths do not isolate OS, executable, solver, or tool caches"
+    ],
+    "current_head": "unavailable: retained local executable observations are not current-head evidence",
+    "semaprax": "local historical executable commit 9a9db7a8117ac8d292b24ffd5671ec3333272290; installed-Z3 source proof discharges selected app.negate ensures[0]"
+  },
+  "schema": "semaprax.bend2-law-benchmark.current-report.v1",
+  "scope": "local pinned Boolean-negation evidence only",
+  "status": "incomplete",
+  "unavailable_or_unsupported": {
+    "Lean": "unavailable: no retained admitted Lean export/kernel route",
+    "checked_u32": "unsupported_by_pinned_parser: SPX-P003 admits i32, u8, usize literal suffixes, not u32",
+    "cold_cache": "unavailable: no retained reproducible clean cache isolation",
+    "cost": "unavailable: no Codex JSON monetary charge event",
+    "list_refactor_incremental": "unsupported/unavailable: no matched admitted routes",
+    "project_sized": "unavailable: Boolean microcell is not project-sized/incremental evidence"
+  }
+}

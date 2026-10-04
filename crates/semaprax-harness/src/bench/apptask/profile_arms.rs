@@ -55,10 +55,29 @@ impl Policy {
 
     /// `Some(reason)` while the owning lane has not landed.
     pub fn unavailable(self) -> Option<&'static str> {
+        // Every policy's lane has landed (TC-03 spend ledger, TC-10 routing).
+        None
+    }
+
+    /// `Err(reason)` when the policy cannot change an app-task run in this setup.
+    pub fn applies(self, ctx: &RosterCtx) -> Result<(), String> {
         match self {
-            Self::SpendLedger => Some("durable spend ledger (TC-03) has not landed"),
-            Self::Routing => Some("cost-aware routing (TC-10) has not landed"),
-            _ => None,
+            Self::CompactSkills if !ctx.base_has_skill => Err(
+                "the compact skill profile renders this arm's skill block byte-identically to the default (explicit skills are never suppressed and the default selection has no catalog block)".into(),
+            ),
+            Self::ContextTarget => Err(
+                "app tasks supply the whole project tree as one native pack, not ranked context items; TC-05 target selection has nothing to rank".into(),
+            ),
+            Self::SpendLedger => Err(
+                "app-task trials dispatch through ProductionClient, not the workflow route/spend path; the TC-03 task spend book is not consulted there (the campaign's own --max-usd ledger caps spend)".into(),
+            ),
+            Self::Routing => Err(
+                "app-task trials run one fixed model per arm through ProductionClient; TC-10 ladder routing only runs inside the workflow's route_and_fit".into(),
+            ),
+            Self::CavemanView if ctx.view_arm.is_none() => Err(
+                "no command-view wrapper arm is configured (needs a provisioned HARNESS_* tool arm, --view-arm)".into(),
+            ),
+            _ => Ok(()),
         }
     }
 
@@ -68,19 +87,31 @@ impl Policy {
             Self::CompactSkills => vec![("skills.cost_profile", json!("compact"))],
             Self::ContextTarget => vec![("budget.context_target_bytes", json!(4096))],
             Self::FeedbackAllowance => vec![("budget.feedback_max_tokens", json!(600))],
-            Self::Tiers => vec![
-                ("budget.intent_cap", json!(1024)),
-                ("budget.repair_cap", json!(2048)),
-            ],
+            // App answers are whole-file edits, the source-repair shape; the
+            // structured-intent cap has no app-task counterpart.
+            Self::Tiers => vec![("budget.repair_cap", json!(2048))],
             Self::CavemanView => vec![("command_view.adapter", json!("caveman"))],
             Self::PromptRenderer => vec![
                 ("budget.prompt_renderer", json!("ordered-v1")),
                 ("budget.model_prompt_cache", json!("supported")),
             ],
-            Self::SpendLedger => vec![("spend.ledger", json!("durable"))],
+            Self::SpendLedger => vec![
+                ("budget.task_max_cost_micros", json!(500_000)),
+                ("budget.strict_monetary", json!(true)),
+            ],
             Self::Routing => vec![("routing.cost_aware", json!(true))],
         }
     }
+}
+
+/// What the campaign setup offers the policies.
+#[derive(Clone, Debug, Default)]
+pub struct RosterCtx {
+    pub base_arm: String,
+    /// Compact skill rendering differs from the default for the base arm.
+    pub base_has_skill: bool,
+    /// `arms.json` arm whose command view (a command-output wrapper) the view policy uses.
+    pub view_arm: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -94,6 +125,9 @@ pub struct ProfileArm {
     pub omitted: Vec<(Policy, &'static str)>,
     /// `Some(reason)`: the arm cannot run and reports `unavailable`.
     pub unavailable: Option<String>,
+    /// Policies requested but unable to change app-task runs here, with the reason.
+    pub not_applicable: Vec<(Policy, String)>,
+    pub view_arm: Option<String>,
 }
 
 impl ProfileArm {
@@ -119,48 +153,67 @@ impl ProfileArm {
                "policies": self.policies.iter().map(|p| p.id()).collect::<Vec<_>>(),
                "overlay": self.overlay(), "profile_digest": self.profile_digest(),
                "base_arm": self.base_arm,
+               "not_applicable": self.not_applicable.iter().map(|(p, w)| json!({"policy": p.id(), "reason": w})).collect::<Vec<_>>(),
+               "view_arm": self.view_arm,
                "omitted_unavailable": self.omitted.iter().map(|(p, w)| json!({"policy": p.id(), "reason": w})).collect::<Vec<_>>(),
-               "availability": match &self.unavailable { Some(w) => json!({"state": "unavailable", "reason": w}), None => json!({"state": "available"}) }})
+               "availability": match &self.unavailable { Some(w) if w.starts_with("not-applicable") => json!({"state": "not-applicable", "reason": w}), Some(w) => json!({"state": "unavailable", "reason": w}), None => json!({"state": "available"}) }})
     }
 }
 
-/// Defaults, each policy alone, and the combined candidate (every available policy).
+/// Defaults, each policy alone, and the combined candidate (every available
+/// and applicable policy). A policy that cannot change an app-task run reports
+/// `not-applicable` with its reason; it is never silently pinned.
 pub fn screening_roster(base_arm: &str) -> Vec<ProfileArm> {
-    let mut v = vec![ProfileArm {
-        id: BASELINE.into(),
-        label: "current defaults (no opt-in policy)".into(),
-        policies: vec![],
+    screening_roster_ctx(&RosterCtx {
         base_arm: base_arm.into(),
+        base_has_skill: false,
+        view_arm: None,
+    })
+}
+
+pub fn screening_roster_ctx(ctx: &RosterCtx) -> Vec<ProfileArm> {
+    let mk = |id: &str, label: String| ProfileArm {
+        id: id.into(),
+        label,
+        policies: vec![],
+        base_arm: ctx.base_arm.clone(),
         omitted: vec![],
         unavailable: None,
-    }];
+        not_applicable: vec![],
+        view_arm: None,
+    };
+    let mut v = vec![mk(BASELINE, "current defaults (no opt-in policy)".into())];
+    let (mut on, mut off, mut na) = (vec![], vec![], vec![]);
     for p in POLICIES {
-        v.push(ProfileArm {
-            id: p.id().into(),
-            label: format!("{} alone", p.id()),
-            policies: if p.unavailable().is_some() {
-                vec![]
-            } else {
-                vec![p]
-            },
-            base_arm: base_arm.into(),
-            omitted: vec![],
-            unavailable: p.unavailable().map(String::from),
-        });
+        let mut a = mk(p.id(), format!("{} alone", p.id()));
+        if let Some(why) = p.unavailable() {
+            a.unavailable = Some(why.into());
+            off.push((p, why));
+        } else if let Err(why) = p.applies(ctx) {
+            a.unavailable = Some(format!("not-applicable: {why}"));
+            a.not_applicable = vec![(p, why.clone())];
+            na.push((p, why));
+        } else {
+            a.policies = vec![p];
+            a.view_arm = (p == Policy::CavemanView)
+                .then(|| ctx.view_arm.clone())
+                .flatten();
+            on.push(p);
+        }
+        v.push(a);
     }
-    let (on, off): (Vec<Policy>, Vec<Policy>) =
-        POLICIES.iter().partition(|p| p.unavailable().is_none());
-    v.push(ProfileArm {
-        id: "combined".into(),
-        label: "combined candidate: every available policy".into(),
-        policies: on,
-        base_arm: base_arm.into(),
-        omitted: off
-            .into_iter()
-            .filter_map(|p| p.unavailable().map(|w| (p, w)))
-            .collect(),
-        unavailable: None,
-    });
+    let mut c = mk(
+        "combined",
+        "combined candidate: every available and applicable policy".into(),
+    );
+    c.view_arm = on
+        .contains(&Policy::CavemanView)
+        .then(|| ctx.view_arm.clone())
+        .flatten();
+    c.policies = on;
+    c.omitted = off;
+    c.not_applicable = na;
+    v.push(c);
     v
 }
 
@@ -290,4 +343,19 @@ pub fn load(dir: &Path) -> Result<(Value, Criterion), String> {
         return Err("campaign.json: criterion does not match its declared digest".into());
     }
     Ok((v, c))
+}
+
+/// The wire-level overlays of an arm: TC-02 source-repair tier and TC-06
+/// feedback allowance, read from the arm's pinned configuration.
+pub fn overlays_of(arm: &ProfileArm) -> super::production::Overlays {
+    let o = arm.overlay();
+    let mut g = crate::profile::config::GenerationSection::default();
+    g.repair_cap = o.get("budget.repair_cap").and_then(Value::as_u64);
+    super::production::Overlays {
+        generation: g
+            .repair_cap
+            .is_some()
+            .then(|| crate::workflow::generation::GenerationPolicy::from_section(&g)),
+        feedback_max_tokens: o.get("budget.feedback_max_tokens").and_then(Value::as_u64),
+    }
 }

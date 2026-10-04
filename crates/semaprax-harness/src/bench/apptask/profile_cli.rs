@@ -10,7 +10,7 @@
 //! remaining cohort is retained as `budget_aborted`.
 
 use super::cache_state::CacheTracker;
-use super::model::{HttpModel, ModelClient, SpendLedger};
+use super::model::{ModelClient, SpendLedger};
 use super::production::{RawClient, TrialClient};
 use super::profile_arms::{self, CampaignSpec, Criterion, Pins};
 use super::profile_campaign::{self, ArmBackend};
@@ -20,6 +20,82 @@ use crate::json::canonical;
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
 use std::path::Path;
+
+/// Production-harness backend: every request goes through a real `HostModel`
+/// over an adopted adapter (budgeting, typed receipts, observations).
+pub struct ProductionBackend {
+    pub opened: crate::workflow::OpenedModel,
+    pub max_request_tokens: u64,
+    /// Fixture adapters only: the `goal` member that selects their behaviour.
+    pub goal: Option<String>,
+}
+
+impl ArmBackend for ProductionBackend {
+    fn origin(&self, m: &ModelSpec) -> &'static str {
+        if m.billed {
+            "real"
+        } else {
+            "fixture"
+        }
+    }
+    fn client<'a>(
+        &'a self,
+        arm: &profile_arms::ProfileArm,
+        model: &ModelSpec,
+        tracker: &'a CacheTracker,
+        key: &TrialKey,
+    ) -> Result<Box<dyn TrialClient + 'a>, String> {
+        use crate::receipt::{GenerationControls, Support};
+        use crate::workflow::budget::BudgetConfig;
+        use crate::workflow::prompt_render::PromptRenderer;
+        let ordered = arm.has(profile_arms::Policy::PromptRenderer);
+        let stage = self.opened.stage().with_prompt_cache(if ordered {
+            Support::Supported
+        } else {
+            self.opened.prompt_cache
+        });
+        let lineage = crate::workflow::lineage::Lineage::new(
+            self.opened.binding.clone(),
+            &self.opened.lock_digest,
+            &key.id(),
+        );
+        let c = super::production::ProductionClient::new(
+            Box::new(stage),
+            lineage,
+            &model.id,
+            GenerationControls {
+                max_output_tokens: Some(4096),
+                ..Default::default()
+            },
+            Box::new(|m, t| {
+                BudgetConfig::default()
+                    .for_task(&crate::workflow::stages::Task::default())
+                    .count(m, t)
+            }),
+            &self.opened.prices,
+            super::production::Admission {
+                max_request_tokens: self.max_request_tokens,
+                protocol_overhead_tokens: 256,
+            },
+            tracker,
+        )
+        .with_renderer(
+            if ordered {
+                PromptRenderer::OrderedV1
+            } else {
+                PromptRenderer::Canonical
+            },
+            if ordered {
+                Support::Supported
+            } else {
+                Support::Unknown
+            },
+        )
+        .with_goal(self.goal.clone())
+        .with_overlays(profile_arms::overlays_of(arm));
+        Ok(Box::new(c))
+    }
+}
 
 pub struct RawBackend {
     pub clients: BTreeMap<String, Box<dyn ModelClient>>,
@@ -77,13 +153,29 @@ pub fn run_profiles(
     tasks_sel: &[String],
     max_usd: f64,
     max_calls: u64,
-    models: &[(ModelSpec, HttpModel)],
+    specs: &[ModelSpec],
+    backend: &dyn ArmBackend,
+    ctx: (&str, Option<&str>),
     identities: &Value,
     dry: bool,
     counter: &dyn tokens::TokenCounter,
 ) -> Result<String, String> {
-    let specs: Vec<ModelSpec> = models.iter().map(|(s, _)| s.clone()).collect();
-    let mut roster = profile_arms::screening_roster("native");
+    let base = arm_set
+        .arm(ctx.0)
+        .ok_or_else(|| format!("unknown base arm `{}`", ctx.0))?;
+    let probe = work.join("skillprobe");
+    let std_block = arms::skill_block(&base.skill, &probe.join("std"));
+    let compact_block = arms::skill_block_with(
+        &base.skill,
+        &probe.join("compact"),
+        crate::skills::cost_profile::CostPolicy::compact(),
+    );
+    let base_has_skill = std_block.text != compact_block.text;
+    let mut roster = profile_arms::screening_roster_ctx(&profile_arms::RosterCtx {
+        base_arm: ctx.0.into(),
+        base_has_skill,
+        view_arm: ctx.1.map(String::from),
+    });
     if !(arms_sel.is_empty() || arms_sel.iter().any(|a| a == "all")) {
         roster.retain(|a| a.id == profile_arms::BASELINE || arms_sel.contains(&a.id));
     }
@@ -95,7 +187,7 @@ pub fn run_profiles(
         .collect();
     let spec = CampaignSpec {
         id: format!("profile-{}", &set.digest[7..19]),
-        pins: pins_for(set, &specs, identities),
+        pins: pins_for(set, specs, identities),
         arms: roster,
         tasks,
         reps,
@@ -131,13 +223,7 @@ pub fn run_profiles(
         arm_set,
         skills: &blocks,
     };
-    let backend = RawBackend {
-        clients: models
-            .iter()
-            .map(|(s, c)| (s.id.clone(), Box::new(c.clone()) as Box<dyn ModelClient>))
-            .collect(),
-    };
-    let s = profile_campaign::run(&env, &spec, &specs, &backend, &ledger, out)?;
+    let s = profile_campaign::run(&env, &spec, specs, backend, &ledger, out)?;
     Ok(format!(
         "recorded {} profile trials ({}); spent USD {}; run `bench app qualify {}`\n",
         s.recorded,

@@ -240,6 +240,7 @@ pub(super) fn repair_loop(
     loop {
         s.check_bounds_pub(cx)?;
         s.cancelled_pub(cx, journal)?;
+        super::cost_ladder::observe(cx, &s.feedback, s.last_failures.len());
         let n = s.attempts.len() as u32 + 1;
         let view = st.command.view("diagnostics", &diag_text(&diags), 4096);
         let kept = source_items(s, &diags);

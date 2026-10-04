@@ -70,6 +70,21 @@ pub struct RoutingSection {
     pub allow_remote: Option<bool>,
     /// `mode` was written in the file (the provider's own mode decides otherwise).
     pub explicit: bool,
+    /// `cost_aware` (TC-10, opt-in): compare complete-task strategies from
+    /// registered evidence over the configured ladders.
+    pub cost_aware: bool,
+    /// `[routing.ladder.<family>]`: approved models, weakest first.
+    pub ladders: BTreeMap<String, LadderConfig>,
+}
+
+/// One task family's approved escalation ladder (TC-10).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LadderConfig {
+    pub models: Vec<String>,
+    /// Escalations after known failures (default 1).
+    pub max_escalations: u32,
+    /// Real, verified evidence tasks a strategy needs before it is compared.
+    pub min_tasks: u32,
 }
 
 impl Default for RoutingSection {
@@ -79,6 +94,8 @@ impl Default for RoutingSection {
             pin: None,
             allow_remote: None,
             explicit: false,
+            cost_aware: false,
+            ladders: BTreeMap::new(),
         }
     }
 }
@@ -318,6 +335,12 @@ impl HarnessConfig {
         if self.routing != RoutingSection::default() {
             doc["routing"] = json!({"mode": self.routing.mode, "pin": self.routing.pin,
                 "allow_remote": self.routing.allow_remote});
+            if self.routing.cost_aware {
+                doc["routing"]["cost_aware"] = json!(true);
+            }
+            if !self.routing.ladders.is_empty() {
+                doc["routing"]["ladders"] = json!(self.routing.ladders.iter().map(|(f, l)| (f.clone(), json!({"models": l.models, "max_escalations": l.max_escalations, "min_tasks": l.min_tasks}))).collect::<serde_json::Map<_, _>>());
+            }
         }
         doc
     }
@@ -1021,10 +1044,47 @@ pub fn parse(bytes: &[u8]) -> HarnessResult<HarnessConfig> {
                 if let Some(b) = t.boolean("allow_remote")? {
                     cfg.routing.allow_remote = Some(b);
                 }
-                t.finish(&["mode", "pin", "allow_remote"])?;
+                if let Some(b) = t.boolean("cost_aware")? {
+                    cfg.routing.cost_aware = b;
+                }
+                t.finish(&["mode", "pin", "allow_remote", "cost_aware"])?;
                 if cfg.routing.mode == "pin" && cfg.routing.pin.is_none() {
                     return Err(bad("SPX-HPB004", line, "`mode = \"pin\"` needs `pin`"));
                 }
+            }
+            ["routing", "ladder", family] => {
+                let mut t = Tab::new("[routing.ladder]", entries.clone());
+                if crate::decision::TaskFamily::parse(family).is_none() {
+                    return Err(bad(
+                        "SPX-HPB004",
+                        line,
+                        format!("unknown task family `{family}`"),
+                    ));
+                }
+                let Some((models, l)) = t.list("models")? else {
+                    return Err(bad("SPX-HPB004", line, "a ladder needs `models`"));
+                };
+                if models.is_empty()
+                    || models.len() > 8
+                    || models.iter().any(|m| m.is_empty() || m.len() > 128)
+                {
+                    return Err(bad(
+                        "SPX-HPB004",
+                        l,
+                        "`models` must list 1..=8 short model ids",
+                    ));
+                }
+                let max_escalations = t.size("max_escalations")?.unwrap_or(1).min(8) as u32;
+                let min_tasks = t.size("min_tasks")?.unwrap_or(5).min(1000) as u32;
+                t.finish(&["models", "max_escalations", "min_tasks"])?;
+                cfg.routing.ladders.insert(
+                    family.to_string(),
+                    LadderConfig {
+                        models,
+                        max_escalations,
+                        min_tasks,
+                    },
+                );
             }
             ["capability", name, "config"] => {
                 let Some(kind) = CapabilityKind::parse(name) else {

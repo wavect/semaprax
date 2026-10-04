@@ -41,6 +41,8 @@ impl CostUnit {
 pub struct CostMeter<'a> {
     unit: CostUnit,
     source: Option<(&'a RequestBudget<'a>, String)>,
+    /// A caller-supplied named-token counter (a measurement the caller owns).
+    counter: Option<Box<dyn Fn(&str) -> u64 + 'a>>,
 }
 
 impl<'a> CostMeter<'a> {
@@ -48,6 +50,17 @@ impl<'a> CostMeter<'a> {
         Self {
             unit: CostUnit::Bytes,
             source: None,
+            counter: None,
+        }
+    }
+    /// Named tokens counted by `f` (for a host that holds its own tokenizer).
+    pub fn with_counter(tokenizer: &str, f: Box<dyn Fn(&str) -> u64 + 'a>) -> Self {
+        Self {
+            unit: CostUnit::Tokens {
+                tokenizer: tokenizer.into(),
+            },
+            source: None,
+            counter: Some(f),
         }
     }
     /// Named tokens when the model's tokenizer is mapped and provisioned,
@@ -57,6 +70,7 @@ impl<'a> CostMeter<'a> {
             Some((name, _)) => Self {
                 unit: CostUnit::Tokens { tokenizer: name },
                 source: Some((budget, model_id.to_string())),
+                counter: None,
             },
             None => Self::bytes(),
         }
@@ -65,6 +79,9 @@ impl<'a> CostMeter<'a> {
         &self.unit
     }
     pub fn cost_text(&self, text: &str) -> u64 {
+        if let Some(f) = &self.counter {
+            return f(text);
+        }
         match &self.source {
             Some((b, m)) => b.count(m, text).tokens.unwrap_or(text.len() as u64),
             None => text.len() as u64,

@@ -832,6 +832,7 @@ fn hp_hnwire_fixture_evidence_cannot_unlock_auto_but_real_matched_evidence_can_a
         pin: None,
         allow_remote: None,
         explicit: true,
+        ..RoutingSection::default()
     };
     let w = wire(LIB);
     // No registry: rules decide, the router is never consulted, and the report says why.

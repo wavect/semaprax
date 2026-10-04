@@ -17,6 +17,9 @@ use crate::observe::{
 };
 use crate::receipt::{GenerationControls, PriceBook, Support, Usage};
 use crate::workflow::budget::{request_text, RequestCount};
+use crate::workflow::context_target::CostMeter;
+use crate::workflow::feedback::{project, FeedbackPolicy};
+use crate::workflow::generation::{GenerationPolicy, ResponseShape};
 use crate::workflow::lineage::Lineage;
 use crate::workflow::prompt_render::{self, PromptRenderer};
 use crate::workflow::stages::{ProposalRequest, ProposalStage, StageFailure};
@@ -70,6 +73,10 @@ pub trait TrialClient: Send + Sync {
     fn take_attempts(&self) -> Vec<Attempt>;
     /// Observation events recorded for the trial (production path only).
     fn observations(&self) -> Vec<Value> {
+        vec![]
+    }
+    /// Reports of overlays applied inside the client (feedback projections).
+    fn overlay_reports(&self) -> Vec<Value> {
         vec![]
     }
 }
@@ -207,6 +214,21 @@ pub struct ProductionClient<'a> {
     log: Mutex<Vec<Attempt>>,
     renderer: PromptRenderer,
     cache_support: Support,
+    overlays: Overlays,
+    goal: Option<String>,
+    /// Grader failures seen in the current step (oldest first).
+    history: Mutex<Vec<Value>>,
+    reports: Mutex<Vec<Value>>,
+}
+
+/// Opt-in cost policies the client applies on the wire.
+#[derive(Clone, Debug, Default)]
+pub struct Overlays {
+    /// TC-02 tiers: the source-repair cap (app answers are whole-file edits).
+    pub generation: Option<GenerationPolicy>,
+    /// TC-06 feedback allowance for repair turns, in named tokens (bytes
+    /// policy when the request is not measured in tokens).
+    pub feedback_max_tokens: Option<u64>,
 }
 
 impl<'a> ProductionClient<'a> {
@@ -234,7 +256,74 @@ impl<'a> ProductionClient<'a> {
             log: Mutex::default(),
             renderer: PromptRenderer::Canonical,
             cache_support: Support::Unknown,
+            overlays: Overlays::default(),
+            goal: None,
+            history: Mutex::default(),
+            reports: Mutex::default(),
         }
+    }
+
+    /// A `goal` member for fixture adapters that select behaviour from it
+    /// (for example `MODE:receipt`); real adapters never need it.
+    pub fn with_goal(mut self, g: Option<String>) -> Self {
+        self.goal = g;
+        self
+    }
+
+    pub fn with_overlays(mut self, o: Overlays) -> Self {
+        self.overlays = o;
+        self
+    }
+
+    fn controls_now(&self) -> GenerationControls {
+        match &self.overlays.generation {
+            Some(p) => {
+                let reserve = p.reserve_for(
+                    ResponseShape::SourceRepair,
+                    self.controls.max_output_tokens.unwrap_or(4096),
+                );
+                p.controls(ResponseShape::SourceRepair, reserve)
+            }
+            None => self.controls.clone(),
+        }
+    }
+
+    /// Replace the grader feedback of a retry prompt by the TC-06 projection of
+    /// this step's failure history (current failure exact, history bounded).
+    fn project_feedback(&self, prompt: &str) -> Option<String> {
+        const OPEN: &str = "## Grader result: FAILED\n";
+        const CLOSE: &str = "\n\nReply again, in the same block format";
+        let max = self.overlays.feedback_max_tokens?;
+        let Some(i) = prompt.find(OPEN) else {
+            self.history.lock().expect("history").clear();
+            return None;
+        };
+        let start = i + OPEN.len();
+        let end = prompt[start..].find(CLOSE)? + start;
+        let mut h = self.history.lock().expect("history");
+        let n = h.len() as u64 + 1;
+        h.push(json!({"attempt": n, "stage": "checks", "code": "GRADER",
+                      "message": &prompt[start..end], "proposed": {"kind": "file-blocks"}}));
+        let probe = (self.counter)(&self.model, "");
+        let meter = match &probe.tokenizer {
+            Some((name, _)) => {
+                let m = self.model.clone();
+                CostMeter::with_counter(
+                    name,
+                    Box::new(move |t| (self.counter)(&m, t).tokens.unwrap_or(t.len() as u64)),
+                )
+            }
+            None => CostMeter::bytes(),
+        };
+        let policy = FeedbackPolicy::for_meter(Some(max), &meter);
+        let p = project(&h, &policy, &meter).ok()?;
+        self.reports.lock().expect("reports").push(p.report);
+        Some(format!(
+            "{}{}{}",
+            &prompt[..start],
+            crate::json::canonical(&Value::Array(p.entries)),
+            &prompt[end..]
+        ))
     }
 
     /// `[budget] prompt_renderer` and `model_prompt_cache` of the arm (TC-04).
@@ -285,17 +374,23 @@ impl<'a> ProductionClient<'a> {
 impl ProductionClient<'_> {
     fn generate_one(&self, prompt: &str) -> Result<Generation, ModelError> {
         let role = role_of(prompt);
-        let doc = match self.renderer {
+        let projected = self.project_feedback(prompt);
+        let prompt = projected.as_deref().unwrap_or(prompt);
+        let controls = self.controls_now();
+        let mut doc = match self.renderer {
             PromptRenderer::Canonical => {
                 json!({"schema": "semaprax.harness-apptask-prompt.v1", "text": prompt})
             }
             PromptRenderer::OrderedV1 => ordered_doc(prompt),
         };
+        if let Some(g) = &self.goal {
+            doc["goal"] = json!(g);
+        }
         let text = request_text(&doc);
         let count = (self.counter)(&self.model, &text);
         let required = count.admission_tokens()
             + self.admission.protocol_overhead_tokens
-            + self.controls.max_output_tokens.unwrap_or(0);
+            + controls.max_output_tokens.unwrap_or(0);
         let mut a = Attempt {
             role,
             dispatched: false,
@@ -338,7 +433,7 @@ impl ProductionClient<'_> {
             lineage: &lineage,
             prompt: doc,
             model: self.model.clone(),
-            controls: self.controls.clone(),
+            controls: controls.clone(),
         };
         let t0 = Instant::now();
         let (res, receipt) = self.stage.lock().expect("stage").propose_receipted(&req);
@@ -409,6 +504,9 @@ impl TrialClient for ProductionClient<'_> {
     }
     fn take_attempts(&self) -> Vec<Attempt> {
         std::mem::take(&mut *self.log.lock().expect("attempt log"))
+    }
+    fn overlay_reports(&self) -> Vec<Value> {
+        self.reports.lock().expect("reports").clone()
     }
     /// The events, recorded through a real `Observer` (bounds-checked, sequenced).
     fn observations(&self) -> Vec<Value> {

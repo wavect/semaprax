@@ -5,8 +5,8 @@
 //! reached only through the adapter host; publication is the compiler's own
 //! route under a preexisting host policy.
 
-pub mod adapter_config;
 mod acquire;
+pub mod adapter_config;
 mod attempt;
 mod b64;
 pub mod broker_stage;
@@ -16,8 +16,9 @@ mod cli;
 mod cli_apply;
 pub mod compiler;
 pub mod composition;
+mod cost_ladder;
 pub mod context_target;
-mod feedback;
+pub mod feedback;
 pub mod generation;
 pub mod journal;
 pub mod lineage;
@@ -35,7 +36,7 @@ pub mod stages;
 pub mod tokenizers;
 mod updates_hook;
 
-pub use cli::{cli_run, run_with, RunOptions};
+pub use cli::{cli_run, open_model, run_with, OpenedModel, RunOptions};
 pub use cli_apply::cli_apply;
 pub use compiler::{CompilerService, SubprocessCompiler};
 

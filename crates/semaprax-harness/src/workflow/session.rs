@@ -405,6 +405,7 @@ pub(super) fn loop_steps(
         }
         let n = s.attempts.len() as u32 + 1;
         let stepname = format!("gen-{n}");
+        super::cost_ladder::observe(cx, &s.feedback, s.last_failures.len());
         let projected = s.project_feedback(cx, r)?;
         s.ctx_revision = revision.clone();
         s.ctx_candidate = None;

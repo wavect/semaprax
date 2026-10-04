@@ -353,11 +353,33 @@ gates. Only a complete, pinned, `real`-origin cohort that ran the `production-ha
 raw-loop evidence, unknown cost, an incomplete cohort or an unavailable arm is inconclusive. A failed gate is a no-go,
 and pin drift invalidates the result. Anything short of a pass leaves defaults unchanged.
 
+Production backend (TC-12 follow-up): `--production-adapter <provider id> --production-project <dir>` starts the project's
+adopted and trusted `model.generate` provider through the adapter host (`workflow::open_model`). Each trial then runs
+through a fresh `HostModel`, with budgeting, typed receipts and observations, and is recorded as
+`path: production-harness`. `--production-adapter` without `--production-project` is a usage error, and `--max-usd` stays
+mandatory.
+
+Optional flags:
+- `--base-arm`;
+- `--view-arm` (applies that arm's command view to test output fed back to the model);
+- `--max-request-tokens` (default 200000);
+- `--fixture-tokenizer` (unbilled models only);
+- `--production-goal` (fixture adapters only).
+
+Overlays that apply to app tasks change the wire request:
+- tiers set `max_output_tokens`;
+- the feedback allowance replaces repair-turn feedback with `workflow::feedback::project`, in byte units unless a named
+  tokenizer is supplied;
+- `ordered-v1` adds `segments`.
+
+Compact skills (byte-identical to the default for the app-task skill block) and the context target (app tasks carry
+one whole-tree pack, nothing to rank) report `outcome: not_applicable` with a reason. Every trial lists each policy
+as applied, not-applicable or unavailable. The qualifier treats not-applicable like unavailable, so the result is
+inconclusive.
+
 Current limits:
 - The production path (`ProductionClient`) drives the real `model.generate` contract (HostModel request/interpret,
   `segments`, receipts, price book, Observer), but app tasks are not SEMAPRAX source, so it does not run the whole
   workflow pipeline.
-- Only the prompt-renderer overlay is applied to the prompt. The other overlays are recorded as pins.
-- `--profile-arms` from the CLI runs the labelled raw loop, which cannot promote. A promotable paid run needs a
-  production `HostModel` backend, which is library API only.
+- Without `--production-adapter`, `--profile-arms` runs the labelled raw loop, which cannot promote.
 - No paid run has been made.

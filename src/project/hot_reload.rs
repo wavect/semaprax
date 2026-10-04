@@ -228,6 +228,13 @@ impl HotReloadSession {
         self.terminal
     }
 
+    /// Opaque identity of the prepared worker retained for this explicit
+    /// development session. It is an in-process continuity observation, not
+    /// a transport value or activation receipt.
+    pub fn worker_id(&self) -> std::thread::ThreadId {
+        self.worker.worker_id()
+    }
+
     /// Candidate admission is read-only and does not touch the worker.
     pub fn admit_candidate(
         &mut self,
@@ -676,7 +683,10 @@ fn plan_digest(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::project::{ProjectPreparedExecutionOutcome, ProjectProfile};
+    use crate::project::{
+        verify_project_source_trace_against_revision, ProjectPreparedExecutionOutcome,
+        ProjectProfile,
+    };
     use std::path::{Path, PathBuf};
     use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -945,5 +955,47 @@ mod tests {
             observed(&session),
             ProjectPreparedExecutionOutcome::Returned(42)
         );
+    }
+
+    #[test]
+    fn real_a_to_b_to_c_keeps_one_worker_and_binds_each_trace_to_its_revision() {
+        let fixture = Fixture::new();
+        let active = fixture.revision();
+        let mut session = HotReloadSession::new(
+            Arc::clone(&active),
+            PreparedProjectInterpreterOptions::default(),
+        )
+        .unwrap();
+        let worker = session.worker_id();
+        let a = session
+            .execute_entry(
+                &PreparedProjectExecutionOptions::default(),
+                &ProjectExecutionCancellation::new(),
+            )
+            .unwrap();
+        assert_eq!(a.outcome(), &ProjectPreparedExecutionOutcome::Returned(42));
+        verify_project_source_trace_against_revision(&active, a.trace().envelope()).unwrap();
+
+        fixture.rewrite("src/app.spx", "multiply(6, 7)", "multiply(6, 8)");
+        let b = fixture.revision();
+        session.admit_candidate(Arc::clone(&b)).unwrap();
+        session.activate(session.plan().unwrap()).unwrap();
+        assert_eq!(session.worker_id(), worker);
+        let b_run = session
+            .execute_entry(
+                &PreparedProjectExecutionOptions::default(),
+                &ProjectExecutionCancellation::new(),
+            )
+            .unwrap();
+        assert_eq!(b_run.outcome(), &ProjectPreparedExecutionOutcome::Returned(48));
+        verify_project_source_trace_against_revision(&b, b_run.trace().envelope()).unwrap();
+        assert!(verify_project_source_trace_against_revision(&b, a.trace().envelope()).is_err());
+
+        fixture.rewrite("src/app.spx", "multiply(6, 8)", "multiply(6, 9)");
+        let c = fixture.revision();
+        session.admit_candidate(Arc::clone(&c)).unwrap();
+        session.activate(session.plan().unwrap()).unwrap();
+        assert_eq!(session.worker_id(), worker);
+        assert_eq!(observed(&session), ProjectPreparedExecutionOutcome::Returned(54));
     }
 }

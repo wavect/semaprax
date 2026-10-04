@@ -1,6 +1,6 @@
 # Hot Reload Session v1
 
-Status: partial local library profile for HR-02. The prepared interpreter lane
+Status: partial local library profile for HR-03. The prepared interpreter lane
 has a checked revision coordinator. Its plans now retain compiler-derived
 source-Agent checkpoint handoff facts, while durable migration and destination
 execution remain owned by the source-live migration protocol.
@@ -24,6 +24,12 @@ the generation, submission identity, exact Project and Program roots, selected
 entry/test identities, decision, and reason. The digest is an integrity check,
 not permission. Activation independently rebuilds the plan and delegates the
 whole-state pivot to `PreparedProjectInterpreter::replace_revision`.
+
+The session exposes its retained worker's opaque in-process identity so a
+development UI can observe continuity across A-to-B-to-C activation. It is
+neither a stable wire value nor activation authority. Each completed execution
+keeps its ordinary revision-bound source trace: an A trace remains replayable
+only against A after B or C is active.
 
 ## Current compatibility rule
 

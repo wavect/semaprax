@@ -53,6 +53,16 @@ pub struct PreparedProjectInterpreter {
 }
 
 impl PreparedProjectInterpreter {
+    /// Opaque identity of the one retained worker thread. Local development
+    /// coordinators use it only to observe worker continuity.
+    pub fn worker_id(&self) -> std::thread::ThreadId {
+        self.worker
+            .as_ref()
+            .expect("prepared interpreter retains its worker handle")
+            .thread()
+            .id()
+    }
+
     /// Replace the retained subject on this worker after exact stale-base
     /// comparison and complete candidate preparation. Ordinary admission
     /// rejection preserves the old state; a terminal worker error does not

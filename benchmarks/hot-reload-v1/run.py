@@ -67,7 +67,14 @@ def reply(process, request_id, op):
 
 
 def fixture():
-    root = pathlib.Path(tempfile.mkdtemp(prefix="semaprax-hot-reload-benchmark-"))
+    # macOS often exposes the default temporary directory through `/var`, a
+    # symlink that the Project loader deliberately refuses as an ancestor.
+    root = pathlib.Path(
+        tempfile.mkdtemp(
+            prefix="semaprax-hot-reload-benchmark-",
+            dir=pathlib.Path(tempfile.gettempdir()).resolve(),
+        )
+    )
     for relative, destination in [("semaprax.toml", "semaprax.toml"), ("a/src/app.spx", "src/app.spx"),
                                   ("b/src/app.spx", "b/src/app.spx"), ("shared/src/core.spx", "src/core.spx"),
                                   ("shared/src/tests.spx", "src/tests.spx")]:
@@ -141,7 +148,7 @@ def full_restart(binary):
 
 
 def warm_restart(binary):
-    root = fixture(); store = root / "store"; store.mkdir()
+    root = fixture(); store = root / "store"; store.mkdir(mode=0o700)
     try:
         run([binary, "semantic-cache-init", str(store)])
         _, receipt = run([binary, "semantic-cache-persist", str(root / "semaprax.toml"), str(store)])

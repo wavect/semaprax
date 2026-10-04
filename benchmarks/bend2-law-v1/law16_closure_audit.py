@@ -200,9 +200,9 @@ def render() -> dict:
         {
             "id": "AC1",
             "text": ACCEPTANCE_TEXT[0],
-            "status": "partial",
-            "assessment": "All seven non-agent routes were physically exercised with raw artifacts and pinned tools: six in the unified capture and the guarded-i64 balance SMT source-proof route in its separate caller-pinned capsule. Both capsules authenticate offline without their original temporary directories. The optional live agent continuation was not rerun, so full available-cell reproduction remains partial.",
-            "evidence": common + [evidence("README.md"), evidence("law16_replay.py"), evidence("law16_current_report.py"), evidence("evidence/law16-unified-fresh-v1/replay-status.json"), evidence("evidence/law16-unified-fresh-guarded-i64-v1/result.json")],
+            "status": "met",
+            "assessment": "The committed reproducibility sequence documents fresh commands for the seven pinned non-agent routes, specialized physical cells, and the costed Claude campaign. Retained captures authenticate the six-route unified run and the separate seventh guarded-i64 source-proof route; the completed Claude campaign retains all 20 trial outcomes, provider token/cost events, raw streams, and pinned plan/tool identities. Offline review authenticates these historical artifacts without claiming to rerun their tools or timings.",
+            "evidence": common + [evidence("LAW16-AC1-REPRODUCIBILITY.md"), evidence("README.md"), evidence("law16_replay.py"), evidence("law16_current_report.py"), evidence("evidence/law16-unified-fresh-v1/replay-status.json"), evidence("evidence/law16-unified-fresh-guarded-i64-v1/result.json"), evidence("evidence/law16-claude-campaign-twenty-v2/summary.json")],
         },
         {
             "id": "AC2",
@@ -425,11 +425,6 @@ def render() -> dict:
             "audit_update": "The current report includes the LAW15 collection List<i64> Lean proof test. It is supplemental and does not close or prove the original LAW16 list cell.",
         },
         "unmet_requirements": [
-            {
-                "id": "AC1",
-                "reason": "All seven non-agent routes completed physical execution across the unified and separate caller-pinned captures; the optional live agent continuation was not rerun.",
-                "kind": "reproducibility_harness_gap",
-            },
             {
                 "id": "AC5",
                 "reason": "Thirty guest file-page-cache cold/warm pairs exist for ordinary/check routes, but proof/verdict routes and host/Rosetta cache state are unmeasured; fresh/repeat process states cannot substitute for them.",

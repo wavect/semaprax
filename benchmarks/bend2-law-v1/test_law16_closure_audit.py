@@ -32,7 +32,7 @@ class Law16ClosureAuditTests(unittest.TestCase):
         self.assertEqual(status["AC3"], "met")
         self.assertEqual(status["AC4"], "met")
         self.assertEqual(status["AC7"], "met")
-        self.assertEqual(status["AC1"], "partial")
+        self.assertEqual(status["AC1"], "met")
         self.assertEqual(value["unified_fresh_capture"]["status"], "fresh_capture_authenticated")
         self.assertEqual(value["unified_fresh_capture"]["fresh_route_count"], 6)
         self.assertEqual(value["fresh_guarded_i64_source_proof"]["positive_smt_discharges"], 7)
@@ -55,7 +55,11 @@ class Law16ClosureAuditTests(unittest.TestCase):
         self.assertEqual(cells["supported_list_theorem"]["classification"], "supplemental_profile_only")
         self.assertEqual(cells["law16_list_source_theorem"]["classification"], "unavailable_for_law16_identity")
         self.assertEqual(cells["external_lean_export_kernel"]["classification"], "supplemental_route_available_but_not_law16_cell")
-        self.assertEqual(len(value["unmet_requirements"]), 2)
+        self.assertEqual(len(value["unmet_requirements"]), 1)
+        self.assertEqual(value["unmet_requirements"][0]["id"], "AC5")
+        ac1 = next(row for row in value["acceptance_assessment"] if row["id"] == "AC1")
+        self.assertTrue(any(item["path"] == "LAW16-AC1-REPRODUCIBILITY.md" for item in ac1["evidence"]))
+        self.assertTrue(any(item["path"] == "evidence/law16-claude-campaign-twenty-v2/summary.json" for item in ac1["evidence"]))
         valid_ids = set(status) | set(required)
         self.assertTrue(all(
             set(row["blocking_requirements"]) <= valid_ids

@@ -59,6 +59,7 @@ def capture_cell(runner, output_root, label, fresh_command, repeat_command, fres
         "--fresh-input", str(fresh_input),
         "--repeat-input", str(repeat_input),
         "--samples", str(SAMPLES),
+        "--timeout-seconds", "120",
         "--raw-artifact-dir", str(output_root / f"{label}-raw"),
         "--output", str(output_root / f"{label}.json"),
     ]

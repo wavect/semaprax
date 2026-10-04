@@ -99,6 +99,8 @@ def capture_cell(runner, output_root, label, fresh_command, repeat_command, fres
         str(repeat_input),
         "--samples",
         str(SAMPLES),
+        "--timeout-seconds",
+        "120",
         "--raw-artifact-dir",
         str(output_root / f"{label}-raw"),
         "--output",

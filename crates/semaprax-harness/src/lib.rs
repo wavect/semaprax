@@ -21,6 +21,7 @@ pub mod evolution;
 pub mod host;
 pub mod observe;
 pub mod profile;
+pub mod receipt;
 pub mod skills;
 pub mod updates;
 pub mod workflow;

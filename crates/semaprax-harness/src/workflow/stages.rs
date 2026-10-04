@@ -3,6 +3,7 @@
 //! output is untrusted data: it can only suggest context or a proposal.
 
 use super::b64;
+use super::generation::TRUNCATED_PREFIX;
 use super::lineage::Lineage;
 use crate::cli::Environment;
 use crate::contract::{CapabilityKind, CapabilityRef, RequestEnvelope};
@@ -10,6 +11,7 @@ use crate::diag::{HarnessDiagnostic, HarnessResult};
 use crate::host::grant::Grant;
 use crate::host::{AdapterHandle, CancelToken, InvocationClass, Outcome};
 use crate::profile::check_grant_current;
+use crate::receipt::{GenerationControls, GenerationSupport, ProposalReceipt};
 use serde_json::{json, Map, Value};
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -579,12 +581,35 @@ pub struct ProposalRequest<'a> {
     pub prompt: Value,
     /// Logical model id chosen by the route decision.
     pub model: String,
+    /// Output-token cap (the accepted reservation) and optional reasoning control.
+    pub controls: GenerationControls,
 }
 
 pub trait ProposalStage {
     fn id(&self) -> String;
     /// Raw proposal bytes (`semaprax.harness-proposal.v1`); still untrusted.
     fn propose(&mut self, req: &ProposalRequest) -> Result<Vec<u8>, StageFailure>;
+    /// Proposal bytes plus the typed provider receipt, kept apart: usage is
+    /// never read from the bytes. Scripted and legacy providers keep this
+    /// default (an explicit `unavailable` receipt).
+    fn propose_receipted(
+        &mut self,
+        req: &ProposalRequest,
+    ) -> (Result<Vec<u8>, StageFailure>, ProposalReceipt) {
+        (
+            self.propose(req),
+            ProposalReceipt::unavailable("scripted_or_legacy_provider"),
+        )
+    }
+    /// Declared support for generation controls (`Unknown` unless declared).
+    fn generation_support(&self) -> GenerationSupport {
+        GenerationSupport::default()
+    }
+    /// Tokens of model-visible framing the adapter adds beyond the harness
+    /// prompt, declared by the host and added to admission (never guessed).
+    fn framing_overhead_tokens(&self) -> u64 {
+        0
+    }
     fn calls(&self) -> u32;
     /// Whether a call is non-idempotent (never replayed after a restart).
     fn side_effecting(&self) -> bool;
@@ -665,8 +690,15 @@ pub struct HostModel {
     pub grant: Grant,
     pub env: Environment,
     pub provider_id: String,
+    /// Host-declared support for the output cap and reasoning control.
+    pub support: GenerationSupport,
+    /// Host-declared tokens of framing the adapter adds to the request.
+    pub framing_tokens: u64,
     calls: u32,
 }
+
+/// Transport safety bound on the reply size, separate from the token cap.
+pub const MODEL_MAX_OUTPUT_BYTES: u64 = 65536;
 
 impl HostModel {
     pub fn new(
@@ -680,7 +712,68 @@ impl HostModel {
             grant,
             env,
             provider_id,
+            support: GenerationSupport::default(),
+            framing_tokens: 0,
             calls: 0,
+        }
+    }
+    pub fn with_support(mut self, support: GenerationSupport) -> Self {
+        self.support = support;
+        self
+    }
+    pub fn with_framing_tokens(mut self, n: u64) -> Self {
+        self.framing_tokens = n;
+        self
+    }
+
+    /// The `model.generate/v1` request payload. Optional members appear only
+    /// when requested, so legacy adapters see the original shape by default.
+    pub fn request_payload(req: &ProposalRequest) -> Value {
+        let prompt = crate::json::canonical(&req.prompt);
+        let mut p = json!({"model": req.model, "input_base64": b64::encode(prompt.as_bytes()),
+                           "max_output_bytes": MODEL_MAX_OUTPUT_BYTES});
+        if let Some(n) = req.controls.max_output_tokens {
+            p["max_output_tokens"] = json!(n);
+        }
+        if let Some(e) = req.controls.reasoning {
+            p["reasoning_effort"] = json!(e.as_str());
+        }
+        p
+    }
+
+    /// Map one invocation outcome to proposal bytes and the receipt. Usage comes
+    /// only from the adapter's typed `receipt`; the bytes are never inspected
+    /// for it. An incomplete (length-limited) reply is never returned as a proposal.
+    pub fn interpret(
+        outcome: Outcome,
+        req: &ProposalRequest,
+    ) -> (Result<Vec<u8>, StageFailure>, ProposalReceipt) {
+        match outcome {
+            Outcome::Completed(r) if r.payload.is_some() => {
+                let payload = r.payload.as_ref().expect("checked");
+                let receipt = ProposalReceipt::from_result(&req.controls, payload);
+                if receipt.finish.incomplete() {
+                    return (
+                        Err(StageFailure::Refused(d(
+                            "SPX-HPD030",
+                            format!(
+                                "{TRUNCATED_PREFIX}: the provider ended the reply as {}; it is not a proposal and is never repaired",
+                                receipt.finish.as_str()
+                            ),
+                        ))),
+                        receipt,
+                    );
+                }
+                let out = payload["output_base64"].as_str().and_then(b64::decode);
+                let res = out.ok_or_else(|| {
+                    StageFailure::Refused(d("SPX-HPD030", "model output is not base64"))
+                });
+                (res, receipt)
+            }
+            other => (
+                Err(failure_of(other)),
+                ProposalReceipt::unavailable("provider_failure_without_receipt"),
+            ),
         }
     }
 }
@@ -690,33 +783,38 @@ impl ProposalStage for HostModel {
         self.provider_id.clone()
     }
     fn propose(&mut self, req: &ProposalRequest) -> Result<Vec<u8>, StageFailure> {
-        check_grant_current(&self.env, &self.grant).map_err(StageFailure::Refused)?;
-        let prompt = crate::json::canonical(&req.prompt);
+        self.propose_receipted(req).0
+    }
+    fn propose_receipted(
+        &mut self,
+        req: &ProposalRequest,
+    ) -> (Result<Vec<u8>, StageFailure>, ProposalReceipt) {
+        if let Err(e) = check_grant_current(&self.env, &self.grant) {
+            return (
+                Err(StageFailure::Refused(e)),
+                ProposalReceipt::unavailable("not_dispatched"),
+            );
+        }
         let request = envelope(
             req.lineage,
             CapabilityKind::ModelGenerate,
             "generate",
             1 << 20,
-            json!({"model": req.model, "input_base64": b64::encode(prompt.as_bytes()), "max_output_bytes": 65536}),
+            Self::request_payload(req),
         );
         self.calls += 1;
-        match self.handle.invoke(
+        let outcome = self.handle.invoke(
             &request,
             InvocationClass::SideEffecting,
             &CancelToken::new(),
-        ) {
-            Outcome::Completed(r) if r.payload.is_some() => {
-                let out = r
-                    .payload
-                    .as_ref()
-                    .and_then(|p| p["output_base64"].as_str())
-                    .and_then(b64::decode);
-                out.ok_or_else(|| {
-                    StageFailure::Refused(d("SPX-HPD030", "model output is not base64"))
-                })
-            }
-            other => Err(failure_of(other)),
-        }
+        );
+        Self::interpret(outcome, req)
+    }
+    fn generation_support(&self) -> GenerationSupport {
+        self.support
+    }
+    fn framing_overhead_tokens(&self) -> u64 {
+        self.framing_tokens
     }
     fn calls(&self) -> u32 {
         self.calls

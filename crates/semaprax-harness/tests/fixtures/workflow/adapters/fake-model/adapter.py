@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Fixture model.generate adapter. The task goal selects the behaviour:
 MODE:good | MODE:bad | MODE:publish (adds a forbidden `publish` member) |
-MODE:claims (adds a fabricated passing-test claim). The SDK file is copied
+MODE:claims (adds a fabricated passing-test claim) | MODE:receipt (adds a typed
+provider receipt that reports the output cap it was sent) | MODE:truncate (a
+length-limited partial reply with a receipt). The SDK file is copied
 next to this adapter by the test."""
 import base64
 import json
@@ -31,6 +33,24 @@ def generate(req):
                "usage": {"input_bytes": len(req["payload"]["input_base64"]), "output_bytes": len(raw)}}
     if "MODE:publish" in goal:
         payload["publish"] = True
+    cap = req["payload"].get("max_output_tokens")
+    controls = {"max_output_tokens": {"status": "applied", "effective": cap} if cap else {"status": "unsupported"}}
+    if "MODE:receipt" in goal:
+        payload["receipt"] = {
+            "schema": "semaprax.harness-model-receipt.v1", "protocol": "anthropic_messages",
+            "request_id": "req-fake-1", "model": "fake-model-1", "finish_reason": "end_turn",
+            "usage": {"input_tokens": 40, "cache_read_input_tokens": 60,
+                      "cache_creation_input_tokens": 0, "output_tokens": 50},
+            "controls": controls}
+    if "MODE:truncate" in goal:
+        cut = raw[: len(raw) // 2]
+        payload["output_base64"] = base64.b64encode(cut).decode()
+        payload["usage"]["output_bytes"] = len(cut)
+        payload["receipt"] = {
+            "protocol": "anthropic_messages", "finish_reason": "max_tokens",
+            "usage_events": [{"type": "message_delta", "usage": {"output_tokens": cap or 1}}],
+            "controls": controls}
+        return "partial", payload, []
     return "complete", payload, []
 
 

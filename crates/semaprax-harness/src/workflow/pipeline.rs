@@ -93,6 +93,10 @@ pub(super) struct Ctx<'a> {
     /// Whole-task reservations across attempts and router calls.
     pub(super) ledger: TaskLedger,
     pub(super) started: Instant,
+    /// Provider receipts of every dispatched generation (TC-01).
+    pub(super) receipts: crate::receipt::ReceiptLog,
+    /// Output reserve for the next fit (a bounded larger-cap retry, TC-02).
+    pub(super) reserve_override: Option<u64>,
 }
 
 impl Ctx<'_> {
@@ -162,6 +166,7 @@ impl Ctx<'_> {
 
     /// An incurred request measured at its exact serialized boundary: named
     /// tokens when a tokenizer is mapped, otherwise bytes (`tokenizer_unavailable`).
+    #[allow(clippy::too_many_arguments)]
     pub(super) fn observe_incurred_at(
         &mut self,
         provider: &str,
@@ -170,6 +175,10 @@ impl Ctx<'_> {
         ok: bool,
         started: Instant,
         count: &RequestCount,
+        receipt: Option<(
+            &crate::receipt::ProposalReceipt,
+            &crate::receipt::CostEstimate,
+        )>,
     ) {
         let mut o = Observation::new(
             provider,
@@ -197,6 +206,12 @@ impl Ctx<'_> {
         };
         o.latency_ms = started.elapsed().as_millis() as u64;
         o.incurred = Some(count.token_count());
+        if let Some((r, est)) = receipt {
+            o.cost.provider_billed = r.provider_cost_micros;
+            o.upstream_model = r.model.clone();
+            o.usage = (r.unavailable.is_none()).then_some(r.usage);
+            o.estimated_cost = est.micros;
+        }
         self.observer.record(o);
     }
 
@@ -207,7 +222,15 @@ impl Ctx<'_> {
         stage: Stage,
         count: &RequestCount,
     ) {
-        self.observe_incurred_at(provider, capability, stage, true, Instant::now(), count);
+        self.observe_incurred_at(
+            provider,
+            capability,
+            stage,
+            true,
+            Instant::now(),
+            count,
+            None,
+        );
     }
 }
 
@@ -230,6 +253,8 @@ pub fn run(
         observer,
         ledger: TaskLedger::default(),
         started: Instant::now(),
+        receipts: Default::default(),
+        reserve_override: None,
     };
     let result = drive(&mut cx, &mut stages, &mut report);
     if let Err(e) = result {
@@ -249,6 +274,12 @@ pub fn run(
             report.context = json!({});
         }
         report.context["task_ledger"] = cx.ledger.to_json();
+    }
+    if !cx.receipts.is_empty() {
+        if report.context.is_null() {
+            report.context = json!({});
+        }
+        report.context["usage_receipts"] = cx.receipts.to_json();
     }
     report.compiler_commands = compiler.commands();
     let ext = stages.external.as_ref().map(|e| (e.id(), e.calls()));

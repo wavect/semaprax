@@ -163,6 +163,8 @@ pub struct Fit {
     pub required_tokens: u64,
     pub max_context: u64,
     pub fits: bool,
+    /// Output tokens reserved by this fit; the cap sent with the request.
+    pub output_reserve: u64,
     pub dropped: Vec<String>,
     /// Required tokens with every optional item dropped.
     pub floor_tokens: u64,
@@ -193,6 +195,10 @@ pub struct BudgetConfig {
     /// Opt-in repair-feedback allowance in named tokens (TC-06); `None` keeps
     /// the labelled byte policy.
     pub feedback_max_tokens: Option<u64>,
+    /// Host-owned output-cap tiers and reasoning controls (TC-02; opt-in).
+    pub generation: super::generation::GenerationPolicy,
+    /// Host-configured price records for local cost estimates (TC-01).
+    pub prices: crate::receipt::PriceBook,
 }
 
 impl BudgetConfig {
@@ -294,6 +300,7 @@ impl RequestBudget<'_> {
             model: model.id.clone(),
             prompt,
             fits: required_tokens <= model.max_context,
+            output_reserve: self.policy.output_reserve_tokens,
             required_tokens,
             max_context: model.max_context,
             dropped: order,

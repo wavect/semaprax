@@ -101,6 +101,7 @@ pub(super) fn local_proposal(
             lineage: cx.lineage,
             prompt: Value::Null,
             model: String::new(),
+            controls: Default::default(),
         };
         let b = st.proposer.propose(&req).map_err(|f| match f {
             StageFailure::Unavailable(x) => d(

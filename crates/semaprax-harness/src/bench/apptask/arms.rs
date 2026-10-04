@@ -246,6 +246,19 @@ impl Clone for SkillBlock {
 
 /// The exact skill text a model sees for an arm (empty for none).
 pub fn skill_block(spec: &SkillSpec, home: &Path) -> SkillBlock {
+    skill_block_with(
+        spec,
+        home,
+        crate::skills::cost_profile::CostPolicy::default(),
+    )
+}
+
+/// As [`skill_block`] under an explicit skill cost policy (TC-08 `compact`).
+pub fn skill_block_with(
+    spec: &SkillSpec,
+    home: &Path,
+    cost: crate::skills::cost_profile::CostPolicy,
+) -> SkillBlock {
     let (instruction, ids) = match spec {
         SkillSpec::None => {
             return SkillBlock {
@@ -265,16 +278,16 @@ pub fn skill_block(spec: &SkillSpec, home: &Path) -> SkillBlock {
         }
         SkillSpec::Instruction { instruction, ids } => (instruction.as_str(), ids.clone()),
     };
-    let sel =
-        DefaultSkills::embedded(Some(home.to_path_buf()), "hn17", "bench").and_then(|mut d| {
-            d.select_for_task(
-                &TaskInput {
-                    family: "coding",
-                    instruction: Some(instruction),
-                },
-                64 * 1024,
-            )
-        });
+    let sel = DefaultSkills::embedded(Some(home.to_path_buf()), "hn17", "bench").and_then(|d| {
+        let mut d = d.with_cost_policy(cost);
+        d.select_for_task(
+            &TaskInput {
+                family: "coding",
+                instruction: Some(instruction),
+            },
+            64 * 1024,
+        )
+    });
     match sel {
         Ok(s) => {
             let mut got: Vec<String> = s
@@ -306,12 +319,24 @@ pub fn skill_block(spec: &SkillSpec, home: &Path) -> SkillBlock {
 /// files of concurrent trials would otherwise race, and a `stop` in one arm is
 /// final for its session). One fresh sub-home per arm; keyed by arm id.
 pub fn skill_blocks(set: &ArmSet, home: &Path) -> BTreeMap<String, SkillBlock> {
+    skill_blocks_with(
+        set,
+        home,
+        crate::skills::cost_profile::CostPolicy::default(),
+    )
+}
+
+pub fn skill_blocks_with(
+    set: &ArmSet,
+    home: &Path,
+    cost: crate::skills::cost_profile::CostPolicy,
+) -> BTreeMap<String, SkillBlock> {
     set.arms
         .iter()
         .map(|a| {
             (
                 a.id.clone(),
-                skill_block(&a.skill, &home.join(a.id.replace('+', "_"))),
+                skill_block_with(&a.skill, &home.join(a.id.replace('+', "_")), cost.clone()),
             )
         })
         .collect()

@@ -132,7 +132,7 @@ fn key_for(
 fn outcome(r: &Value, arm: &str, ceiling: u64) -> Outcome {
     let accepted = r["accepted"] == true;
     let origin = match (r["origin"].as_str(), r["outcome"].as_str()) {
-        (_, Some("unavailable")) => Origin::Unavailable,
+        (_, Some("unavailable")) | (_, Some("not_applicable")) => Origin::Unavailable,
         (Some("real"), _) => Origin::Real,
         _ => Origin::Fixture,
     };

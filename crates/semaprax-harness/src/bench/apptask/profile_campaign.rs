@@ -9,7 +9,7 @@
 use super::cache_state::{self, CacheState, CacheTracker, RepoCache};
 use super::model::{Metered, SpendLedger};
 use super::production::{Attempt, TrialClient};
-use super::profile_arms::{CampaignSpec, ProfileArm};
+use super::profile_arms::{CampaignSpec, Policy, ProfileArm};
 use super::trial::{run_trial, ModelSpec, TrialEnv, TrialKey};
 use crate::receipt::Usage;
 use serde_json::{json, Value};
@@ -87,6 +87,7 @@ pub fn wrap(
     path: &str,
     attempts: &[Attempt],
     observations: usize,
+    overlays: Value,
     trial: Value,
 ) -> Value {
     let mut v = base(key, class, arm, model, origin);
@@ -121,9 +122,38 @@ pub fn wrap(
     v["local_overhead_ms"] = trial["totals"]["harness_ms"].clone();
     v["tamper_attempts"] = trial["tamper_attempts"].clone();
     v["observations"] = json!(observations);
+    v["overlays"] = overlays;
     v["pins"] = json!({"model": attempts.iter().find_map(|a| a.model_pin.clone())});
     v["trial_record"] = trial;
     v
+}
+
+/// Which overlays took effect in this trial and which could not, with the reason.
+pub fn overlay_states(arm: &ProfileArm, path: &str, reports: &[Value]) -> Value {
+    let mut v: Vec<Value> = vec![];
+    for p in &arm.policies {
+        let wire = matches!(
+            p,
+            Policy::Tiers | Policy::FeedbackAllowance | Policy::PromptRenderer
+        );
+        v.push(if wire && path != super::production::PATH_PRODUCTION {
+            json!({"policy": p.id(), "state": "not-applicable",
+                   "reason": "the raw model loop has no HostModel wire path; run through the production adapter"})
+        } else {
+            let mut o = json!({"policy": p.id(), "state": "applied"});
+            if *p == Policy::FeedbackAllowance {
+                o["projections"] = json!(reports.len());
+            }
+            o
+        });
+    }
+    for (p, why) in &arm.not_applicable {
+        v.push(json!({"policy": p.id(), "state": "not-applicable", "reason": why}));
+    }
+    for (p, why) in &arm.omitted {
+        v.push(json!({"policy": p.id(), "state": "unavailable", "reason": why}));
+    }
+    json!(v)
 }
 
 pub struct RunSummary {
@@ -153,6 +183,11 @@ pub fn run(
         .open(&file)
         .map_err(|e| format!("trials.jsonl: {e}"))?;
     let tracker = CacheTracker::default();
+    let compact_blocks = super::arms::skill_blocks_with(
+        env.arm_set,
+        &env.work.join("skillhome-compact"),
+        crate::skills::cost_profile::CostPolicy::compact(),
+    );
     let (mut recorded, mut aborted) = (0usize, false);
     let mut emit = |v: &Value| {
         let _ = writeln!(sink, "{}", crate::json::canonical(v));
@@ -166,6 +201,24 @@ pub fn run(
             for arm in &spec.arms {
                 let Some(base_arm) = env.arm_set.arm(&arm.base_arm) else {
                     continue;
+                };
+                let mut eff = base_arm.clone();
+                if let Some(v) = arm.view_arm.as_deref().and_then(|a| env.arm_set.arm(a)) {
+                    eff.view = v.view.clone();
+                }
+                let base_arm = &eff;
+                let arm_env = TrialEnv {
+                    tasks: env.tasks,
+                    tools: env.tools,
+                    work: env.work,
+                    counter: env.counter,
+                    packs: env.packs,
+                    arm_set: env.arm_set,
+                    skills: if arm.has(Policy::CompactSkills) {
+                        &compact_blocks
+                    } else {
+                        env.skills
+                    },
                 };
                 if !base_arm.applies_to(&task.class) {
                     continue;
@@ -189,7 +242,16 @@ pub fn run(
                             "campaign halted by the spend cap",
                         )
                     } else if let Some(why) = &arm.unavailable {
-                        status_record(b, "unavailable", "unavailable", why)
+                        status_record(
+                            b,
+                            "unavailable",
+                            if why.starts_with("not-applicable") {
+                                "not_applicable"
+                            } else {
+                                "unavailable"
+                            },
+                            why,
+                        )
                     } else {
                         match backend.client(arm, m, &tracker, &key) {
                             Err(why) => status_record(b, "unavailable", "unavailable", &why),
@@ -199,7 +261,7 @@ pub fn run(
                                     ledger,
                                     billed: m.billed,
                                 };
-                                let trial = run_trial(env, &key, base_arm, m, &metered);
+                                let trial = run_trial(&arm_env, &key, base_arm, m, &metered);
                                 let attempts = client.take_attempts();
                                 if trial["status"] == "budget" {
                                     aborted = true;
@@ -213,6 +275,7 @@ pub fn run(
                                     client.path(),
                                     &attempts,
                                     client.observations().len(),
+                                    overlay_states(arm, client.path(), &client.overlay_reports()),
                                     trial,
                                 )
                             }

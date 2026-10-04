@@ -790,7 +790,7 @@ fn cost_policy(config: &HarnessConfig) -> crate::skills::cost_profile::CostPolic
     }
 }
 
-fn start(
+pub(super) fn start(
     manager: &AdapterManager,
     l: &ResolvedLaunch,
     snap: &Snapshot,
@@ -854,4 +854,125 @@ fn start(
             )?,
         },
     )
+}
+
+/// An adopted, trusted `model.generate` provider started through the adapter
+/// host, with the project's `[budget]` declarations (TC-12 production path).
+pub struct OpenedModel {
+    pub handle: std::sync::Arc<crate::host::AdapterHandle>,
+    pub grant: Grant,
+    pub env: Environment,
+    pub provider_id: String,
+    pub support: crate::receipt::GenerationSupport,
+    pub prompt_cache: crate::receipt::Support,
+    pub framing_tokens: u64,
+    pub prices: crate::receipt::PriceBook,
+    pub binding: crate::contract::ProjectBinding,
+    pub lock_digest: String,
+    /// Keeps the adapter manager (and so the process) alive.
+    pub _manager: AdapterManager,
+}
+
+impl OpenedModel {
+    /// A fresh `HostModel` stage over the shared adapter handle.
+    pub fn stage(&self) -> HostModel {
+        HostModel::new(
+            self.handle.clone(),
+            self.grant.clone(),
+            self.env.clone(),
+            self.provider_id.clone(),
+        )
+        .with_support(self.support)
+        .with_prompt_cache(self.prompt_cache)
+        .with_framing_tokens(self.framing_tokens)
+    }
+}
+
+/// Resolve the project's profile (same adopt/trust/lock flow as `run`) and start
+/// its selected `model.generate` provider. `provider` must equal the selected id.
+pub fn open_model(
+    env: &Environment,
+    project: &Path,
+    provider: &str,
+    python: Option<&Path>,
+    node: Option<&Path>,
+    cache: &Path,
+) -> HarnessResult<OpenedModel> {
+    let snapshot = Snapshot::capture(project)?;
+    let config = HarnessConfig::load(&snapshot.root)?;
+    let res = profile::resolve_project(env, &snapshot.root)?;
+    if let Some(e) = res.unmet.first() {
+        return Err(e.clone());
+    }
+    match lock::load(&snapshot.root)? {
+        Some(l) => lock::verify_frozen(&l, &res.profile)?,
+        None => lock::write(&snapshot.root, &res.profile)?,
+    }
+    let bad = |m: String| HarnessDiagnostic::new("SPX-HPD090", m);
+    let l = res
+        .launches
+        .get(&CapabilityKind::ModelGenerate)
+        .filter(|_| {
+            res.profile
+                .binding(CapabilityKind::ModelGenerate)
+                .is_some_and(|b| b.state == BindingState::Selected)
+        })
+        .ok_or_else(|| bad("the project has no selected model.generate provider".into()))?;
+    if l.provider_id != provider {
+        return Err(bad(format!(
+            "the selected model provider is `{}`, not `{provider}`",
+            l.provider_id
+        )));
+    }
+    let o = RunOptions {
+        task: None,
+        proposal: None,
+        apply_policy: None,
+        python: python.map(Path::to_path_buf),
+        node: node.map(Path::to_path_buf),
+        compiler: None,
+        observations: None,
+        tokenizer_python: None,
+        tokenizer_script: None,
+        tokenizer_cache: None,
+        tokenizers: vec![],
+        cancel: None,
+        cancel_file: None,
+        frozen: false,
+        offline: true,
+        updates_fixture: None,
+        updates_gh: None,
+        updates_now: None,
+        disable: true,
+        json: false,
+    };
+    let manager = AdapterManager::new(HostConfig::default());
+    let handle = start(&manager, l, &snapshot, cache, &o, env, &config)?;
+    let g = &config.budget.generation;
+    let mut prices = crate::receipt::PriceBook::default();
+    if let Some(rel) = &g.price_book {
+        let b = std::fs::read(snapshot.root.join(rel))
+            .map_err(|e| e.to_string())
+            .and_then(|b| {
+                serde_json::from_slice::<serde_json::Value>(&b).map_err(|e| e.to_string())
+            })
+            .and_then(|v| crate::receipt::PriceBook::from_json(&v))
+            .map_err(|e| {
+                HarnessDiagnostic::new("SPX-HPD081", format!("price book `{rel}`: {e}"))
+            })?;
+        prices = b;
+    }
+    Ok(OpenedModel {
+        handle,
+        grant: l.grant.clone(),
+        env: env.clone(),
+        provider_id: l.provider_id.clone(),
+        support: super::generation::declared_support(g),
+        prompt_cache: super::generation::declared_prompt_cache(g),
+        framing_tokens: g.framing_tokens.unwrap_or(0),
+        prices,
+        binding: snapshot.binding(),
+        lock_digest: res.profile.lock_digest(),
+        _manager: manager,
+    })
 }

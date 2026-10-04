@@ -243,7 +243,7 @@ pub(super) fn repair_loop(
         let n = s.attempts.len() as u32 + 1;
         let view = st.command.view("diagnostics", &diag_text(&diags), 4096);
         let kept = source_items(s, &diags);
-        let projected = s.project_feedback()?;
+        let projected = s.project_feedback(cx, r)?;
         s.ctx_revision = "unverified-baseline".into();
         s.ctx_candidate = None;
         let pc = PromptCtx {

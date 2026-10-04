@@ -151,9 +151,17 @@ impl State {
     }
 
     /// Model-facing feedback for the next request (TC-06); the report is kept.
-    pub(super) fn project_feedback(&mut self) -> HarnessResult<Vec<Value>> {
-        let p =
-            super::feedback::project(&self.feedback, &super::feedback::FeedbackPolicy::default())?;
+    pub(super) fn project_feedback(&mut self, cx: &Ctx, r: &Report) -> HarnessResult<Vec<Value>> {
+        let budget = cx.cfg.budget.for_task(&cx.cfg.task);
+        let meter = match r.route["choice"].as_str() {
+            Some(m) if !self.feedback.is_empty() => {
+                super::context_target::CostMeter::for_model(&budget, m)
+            }
+            _ => super::context_target::CostMeter::bytes(),
+        };
+        let policy =
+            super::feedback::FeedbackPolicy::for_meter(cx.cfg.budget.feedback_max_tokens, &meter);
+        let p = super::feedback::project(&self.feedback, &policy, &meter)?;
         if !p.entries.is_empty() {
             self.feedback_reports.push(p.report);
         }
@@ -395,7 +403,7 @@ pub(super) fn loop_steps(
         }
         let n = s.attempts.len() as u32 + 1;
         let stepname = format!("gen-{n}");
-        let projected = s.project_feedback()?;
+        let projected = s.project_feedback(cx, r)?;
         s.ctx_revision = revision.clone();
         s.ctx_candidate = None;
         s.ctx_proposed = Value::Null;

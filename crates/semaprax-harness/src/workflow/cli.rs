@@ -467,6 +467,7 @@ pub fn run_with(
         }
     }
 
+    budget.feedback_max_tokens = config.budget.feedback_max_tokens;
     let cfg = RunConfig {
         context_max_bytes: config.budget.context_max_bytes as usize,
         context_target: config.budget.context_target_bytes.map(|n| {

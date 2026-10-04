@@ -92,6 +92,8 @@ pub struct BudgetConfig {
     pub context_target_bytes: Option<u64>,
     /// Bounded target escalations through the follow-up path.
     pub context_target_escalations: u64,
+    /// Opt-in repair-feedback allowance in named tokens (TC-06).
+    pub feedback_max_tokens: Option<u64>,
 }
 
 impl Default for BudgetConfig {
@@ -101,6 +103,7 @@ impl Default for BudgetConfig {
             command_view_max_bytes: 8192,
             context_target_bytes: None,
             context_target_escalations: 2,
+            feedback_max_tokens: None,
         }
     }
 }
@@ -212,6 +215,9 @@ impl HarnessConfig {
             "inactive": self.inactive,
         });
         // Only present when set, so existing configurations keep their digest.
+        if let Some(n) = self.budget.feedback_max_tokens {
+            doc["budget"]["feedback_max_tokens"] = json!(n);
+        }
         if let Some(n) = self.budget.context_target_bytes {
             doc["budget"]["context_target_bytes"] = json!(n);
             doc["budget"]["context_target_escalations"] =
@@ -723,7 +729,11 @@ pub fn parse(bytes: &[u8]) -> HarnessResult<HarnessConfig> {
                 if let Some(n) = t.size("context_target_escalations")? {
                     cfg.budget.context_target_escalations = n;
                 }
+                if let Some(n) = t.size("feedback_max_tokens")? {
+                    cfg.budget.feedback_max_tokens = Some(n);
+                }
                 t.finish(&[
+                    "feedback_max_tokens",
                     "context_max_bytes",
                     "command_view_max_bytes",
                     "context_target_bytes",

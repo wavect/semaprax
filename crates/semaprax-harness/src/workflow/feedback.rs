@@ -7,23 +7,40 @@
 //! fields never reach the prompt; they are returned in the report instead.
 //! Pure and deterministic: no model call, no clock, no I/O.
 
+use super::context_target::{CostMeter, CostUnit};
 use crate::diag::{HarnessDiagnostic, HarnessResult};
 use crate::json::sha256_plain;
 use serde_json::{json, Map, Value};
 
-/// Bytes the projected feedback array may use, and the approved ceiling the
-/// indispensable current failure may enlarge to before the session stops.
+/// What the projected feedback array may cost, in the meter's unit, and the
+/// approved ceiling the indispensable current failure may enlarge to before
+/// the session stops.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct FeedbackPolicy {
-    pub max_bytes: usize,
-    pub hard_max_bytes: usize,
+    pub max: u64,
+    pub hard_max: u64,
 }
 
 impl Default for FeedbackPolicy {
+    /// The labelled byte policy.
     fn default() -> Self {
         Self {
-            max_bytes: 16 * 1024,
-            hard_max_bytes: 64 * 1024,
+            max: 16 * 1024,
+            hard_max: 64 * 1024,
+        }
+    }
+}
+
+impl FeedbackPolicy {
+    /// `feedback_max_tokens` (opt-in) applies only when a named tokenizer
+    /// measures the request; otherwise the byte defaults are used and labelled.
+    pub fn for_meter(feedback_max_tokens: Option<u64>, meter: &CostMeter) -> Self {
+        match (feedback_max_tokens, meter.unit()) {
+            (Some(n), CostUnit::Tokens { .. }) => Self {
+                max: n,
+                hard_max: n.saturating_mul(4),
+            },
+            _ => Self::default(),
         }
     }
 }
@@ -95,16 +112,19 @@ fn current_entry(e: &Value, recovery_unavailable: &mut bool) -> Value {
     let msg = strip_output_digest(s(e, "message"));
     o.insert("message".into(), json!(msg));
     // Label which object the failure describes: never the accepted revision.
-    let subject = if e["candidate_revision"].is_string() {
-        "rejected-scratch-candidate"
-    } else {
-        "rejected-proposal"
-    };
-    o.insert("subject".into(), json!(subject));
-    for k in ["base_revision", "candidate_revision", "proposed"] {
-        if !e[k].is_null() {
-            o.insert(k.into(), e[k].clone());
+    // Labels appear only when they say something: a failure before any
+    // candidate exists is against the current revision (the implied default).
+    let has_candidate = e["candidate_revision"].is_string();
+    if has_candidate {
+        o.insert("subject".into(), json!("rejected-scratch-candidate"));
+        for k in ["base_revision", "candidate_revision"] {
+            if !e[k].is_null() {
+                o.insert(k.into(), e[k].clone());
+            }
         }
+    }
+    if (has_candidate || e["check_output"].is_object()) && !e["proposed"].is_null() {
+        o.insert("proposed".into(), e["proposed"].clone());
     }
     if let Some(c) = e["check_output"].as_object() {
         let mut out = Map::new();
@@ -151,17 +171,27 @@ struct Group {
     rejected: Vec<String>,
 }
 
+fn text(v: &[Value]) -> String {
+    crate::json::canonical(&Value::Array(v.to_vec()))
+}
+
 fn size(v: &[Value]) -> usize {
-    crate::json::canonical(&Value::Array(v.to_vec())).len()
+    text(v).len()
 }
 
 /// Projects raw feedback (oldest first, newest = current failure).
-pub fn project(raw: &[Value], policy: &FeedbackPolicy) -> HarnessResult<Projection> {
+pub fn project(
+    raw: &[Value],
+    policy: &FeedbackPolicy,
+    meter: &CostMeter,
+) -> HarnessResult<Projection> {
+    let cost = |v: &[Value]| meter.cost_text(&text(v));
     let raw_bytes = size(raw);
+    let raw_cost = cost(raw);
     let Some((cur, earlier)) = raw.split_last() else {
         return Ok(Projection {
             entries: vec![],
-            report: json!({"entries_in": 0, "entries_out": 0, "unit": "bytes"}),
+            report: json!({"entries_in": 0, "entries_out": 0, "unit": meter.unit().label()}),
         });
     };
     let cur_digest = digest(cur);
@@ -234,26 +264,28 @@ pub fn project(raw: &[Value], policy: &FeedbackPolicy) -> HarnessResult<Projecti
             })
             .collect();
         entries = render(&live);
-        if size(&entries) <= policy.max_bytes || gone.len() == groups.len() {
+        if cost(&entries) <= policy.max || gone.len() == groups.len() {
             break;
         }
         gone.push(order[gone.len()]);
         dropped += 1;
     }
     let bytes = size(&entries);
-    let enlarged = bytes > policy.max_bytes;
-    if bytes > policy.hard_max_bytes {
+    let spent = cost(&entries);
+    let enlarged = spent > policy.max;
+    if spent > policy.hard_max {
         return Err(HarnessDiagnostic::new(
             "SPX-HPD111",
             format!(
-                "session bound exhausted: the current failure needs {bytes} feedback bytes, over the approved {}; stopping rather than cutting the error",
-                policy.hard_max_bytes
+                "session bound exhausted: the current failure needs {spent} feedback {}, over the approved {}; stopping rather than cutting the error",
+                meter.unit().label(),
+                policy.hard_max
             ),
         ));
     }
-    let report = json!({"unit": "bytes", "note": "labelled byte policy; request tokens are counted by the request budget",
+    let report = json!({"unit": meter.unit().label(),
         "entries_in": raw.len(), "entries_out": entries.len(), "raw_bytes": raw_bytes,
-        "projected_bytes": bytes, "max_bytes": policy.max_bytes, "enlarged_within_approval": enlarged,
+        "raw_cost": raw_cost, "projected_bytes": bytes, "projected_cost": spent, "max": policy.max, "enlarged_within_approval": enlarged,
         "dropped_history_groups": dropped, "current_diagnostic_digest": cur_digest,
         "recovery": if recovery_unavailable { json!("unavailable") } else { Value::Null }});
     Ok(Projection { entries, report })
@@ -288,7 +320,7 @@ mod tests {
             raw.push(e);
         }
         let cur_msg = raw[3]["message"].as_str().unwrap().to_string();
-        let p = project(&raw, &FeedbackPolicy::default()).unwrap();
+        let p = project(&raw, &FeedbackPolicy::default(), &CostMeter::bytes()).unwrap();
         let last = p.entries.last().unwrap();
         assert_eq!(last["message"], cur_msg.as_str());
         assert!(last["check_output"]["output"]
@@ -314,7 +346,7 @@ mod tests {
             .map(|n| fail(n, "SPX-D", "same diagnostic"))
             .collect();
         let before = raw.clone();
-        let p = project(&raw, &FeedbackPolicy::default()).unwrap();
+        let p = project(&raw, &FeedbackPolicy::default(), &CostMeter::bytes()).unwrap();
         assert_eq!(p.entries.len(), 2);
         assert_eq!(p.entries[0]["attempts"], json!([1, 2]));
         assert_eq!(p.entries[0]["same_as_current"], true);
@@ -329,13 +361,21 @@ mod tests {
     fn candidate_failure_is_labelled_not_current_revision() {
         let mut e = fail(1, "SPX-X", "boom");
         e["candidate_revision"] = json!("rev-A");
-        let p = project(&[e], &FeedbackPolicy::default()).unwrap();
+        let p = project(&[e], &FeedbackPolicy::default(), &CostMeter::bytes()).unwrap();
         let c = &p.entries[0];
         assert_eq!(c["subject"], "rejected-scratch-candidate");
+        assert_eq!(c["proposed"]["kind"], "replace_function_body");
         assert_eq!(c["candidate_revision"], "rev-A");
         assert_eq!(c["base_revision"], "rev-B");
-        let q = project(&[fail(1, "SPX-X", "boom")], &FeedbackPolicy::default()).unwrap();
-        assert_eq!(q.entries[0]["subject"], "rejected-proposal");
+        let q = project(
+            &[fail(1, "SPX-X", "boom")],
+            &FeedbackPolicy::default(),
+            &CostMeter::bytes(),
+        )
+        .unwrap();
+        assert!(
+            q.entries[0].get("subject").is_none() && q.entries[0].get("base_revision").is_none()
+        );
     }
 
     #[test]
@@ -344,7 +384,7 @@ mod tests {
         let mut c = big_check(3);
         c["incomplete"] = json!(true);
         e["check_output"] = c;
-        let p = project(&[e], &FeedbackPolicy::default()).unwrap();
+        let p = project(&[e], &FeedbackPolicy::default(), &CostMeter::bytes()).unwrap();
         assert_eq!(p.entries[0]["check_output"]["recovery"], "unavailable");
         assert_eq!(p.entries[0]["message"], "boom");
         assert_eq!(p.report["recovery"], "unavailable");
@@ -354,14 +394,14 @@ mod tests {
     fn oversize_current_enlarges_within_approval_or_stops() {
         let big = "e".repeat(20_000);
         let raw = vec![fail(1, "SPX-X", &big)];
-        let p = project(&raw, &FeedbackPolicy::default()).unwrap();
+        let p = project(&raw, &FeedbackPolicy::default(), &CostMeter::bytes()).unwrap();
         assert_eq!(p.entries[0]["message"], big.as_str());
         assert_eq!(p.report["enlarged_within_approval"], true);
         let tight = FeedbackPolicy {
-            max_bytes: 1000,
-            hard_max_bytes: 5000,
+            max: 1000,
+            hard_max: 5000,
         };
-        let e = project(&raw, &tight).err().unwrap();
+        let e = project(&raw, &tight, &CostMeter::bytes()).err().unwrap();
         assert_eq!(e.code, "SPX-HPD111");
     }
 
@@ -374,7 +414,7 @@ mod tests {
         );
         o["stage"] = json!("oracle");
         let raw = vec![o, fail(2, "SPX-Y", "other")];
-        let p = project(&raw, &FeedbackPolicy::default()).unwrap();
+        let p = project(&raw, &FeedbackPolicy::default(), &CostMeter::bytes()).unwrap();
         assert_eq!(
             p.entries[0]["message"],
             "edits the oracle: tests/a.spx and a very long tail"
@@ -391,12 +431,34 @@ mod tests {
         e["check_output"] = big_check(2);
         let baseline = json!({"attempt": 1, "stage": "checks", "code": "SPX-X",
             "message": e["message"], "check_output": e["check_output"]});
-        let p = project(&[e], &FeedbackPolicy::default()).unwrap();
+        let p = project(&[e], &FeedbackPolicy::default(), &CostMeter::bytes()).unwrap();
         assert!(
             size(&p.entries) <= size(&[baseline]),
             "{} > {}",
             size(&p.entries),
             size(&[json!(0)])
+        );
+    }
+
+    #[test]
+    fn bare_proposal_failure_is_not_longer_than_baseline() {
+        let e = fail(1, "SPX-X", "intent is missing a field");
+        let baseline = json!({"attempt": 1, "stage": "checks", "code": "SPX-X",
+            "message": "intent is missing a field"});
+        let p = project(&[e], &FeedbackPolicy::default(), &CostMeter::bytes()).unwrap();
+        assert!(size(&p.entries) <= size(&[baseline]));
+    }
+
+    #[test]
+    fn token_policy_applies_only_with_a_named_tokenizer() {
+        let m = CostMeter::bytes();
+        assert_eq!(
+            FeedbackPolicy::for_meter(Some(10), &m),
+            FeedbackPolicy::default()
+        );
+        assert_eq!(
+            FeedbackPolicy::for_meter(None, &m),
+            FeedbackPolicy::default()
         );
     }
 
@@ -413,7 +475,7 @@ mod tests {
             e["check_output"] = c;
             raw.push(e);
         }
-        let p = project(&raw, &FeedbackPolicy::default()).unwrap();
+        let p = project(&raw, &FeedbackPolicy::default(), &CostMeter::bytes()).unwrap();
         let old = json!({"feedback": raw}).to_string().len();
         let new = json!({"feedback": p.entries}).to_string().len();
         assert!(new * 4 < old, "{new} vs {old}");

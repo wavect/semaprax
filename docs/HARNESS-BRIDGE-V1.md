@@ -1,5 +1,7 @@
 # Harness host bridge v1 (HP-14)
 
+Audience: toolchain contributors and harness adapter authors.
+
 `semaprax-harness bridge <project> --stdio | --host claude-code [--hook pre-tool-use | --print-config]
 [--settings-file F]... [--log F] [--harness-bin P]`. Implementation:
 `crates/semaprax-harness/src/bridge/`. Diagnostics `SPX-HPN`: 001 handshake/protocol, 002 recursion,

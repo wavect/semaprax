@@ -1,5 +1,7 @@
 # Harness decision layer v1 (HP-10)
 
+Audience: toolchain contributors and harness adapter authors.
+
 Owner: `crates/semaprax-harness/src/decision/`. Contract: `decision.evaluate/v1`
 in [HARNESS-PROVIDER-V1](HARNESS-PROVIDER-V1.md). Diagnostics letter `J`.
 

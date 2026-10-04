@@ -1,5 +1,7 @@
 # Harness endpoint adoption v1 (HP-12)
 
+Audience: toolchain contributors and harness adapter authors.
+
 Owner: `crates/semaprax-harness/src/endpoint/`. Diagnostics letter `L`.
 Machine-local state: `<harness_home>/endpoints.json`
 (`semaprax.harness-endpoints.v1`, canonical JSON, atomic write). Nothing is

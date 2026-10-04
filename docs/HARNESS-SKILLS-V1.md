@@ -1,5 +1,7 @@
 # Harness skills v1 (HP-13)
 
+Audience: toolchain contributors and harness adapter authors.
+
 Implements `skill.catalog/v1` of [HARNESS-PROVIDER-V1](HARNESS-PROVIDER-V1.md)
 in `crates/semaprax-harness/src/skills/`. Diagnostics use letter `M`.
 

@@ -1,5 +1,7 @@
 # Harness adapter host v1 (HP-03)
 
+Audience: toolchain contributors and harness adapter authors.
+
 Implements the host side of `docs/HARNESS-PROVIDER-V1.md` (wire protocol,
 lifecycle) in `crates/semaprax-harness/src/host/`. Diagnostics are
 `SPX-HPC001..`.

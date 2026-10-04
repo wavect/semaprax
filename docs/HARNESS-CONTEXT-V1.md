@@ -1,5 +1,7 @@
 # Harness context broker v1 (HP-05)
 
+Audience: toolchain contributors and harness adapter authors.
+
 `semaprax harness context <project> <query> [--max-bytes N] [--symbol S] [--references] [--purge-cache] [--json]`
 composes compiler facts with one external `context.repository/v1` provider.
 Owner: `crates/semaprax-harness/src/context/`. Diagnostics `SPX-HPE`.

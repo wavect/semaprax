@@ -1,5 +1,7 @@
 # Command view v1 (HP-08, HP-09 host side)
 
+Audience: toolchain contributors and harness adapter authors.
+
 `semaprax-harness exec <project> [--raw] [--json] [--timeout-ms N] [--external-owner NAME]
 [--observations FILE] [--env K=V]... -- <argv...>` and
 `recover <project> <handle> [--offset N] [--limit N] [--stream stdout|stderr] [--json]`.

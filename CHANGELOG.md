@@ -1,5 +1,7 @@
 # Changelog
 
+- HP-00..HP-17: add the development harness provider host (`crates/semaprax-harness`, private `semaprax-full harness`). Typed `semaprax.harness-provider.v1` capability contracts, per-project `semaprax.harness.toml`/frozen lock with explicit trust, a bounded stdio adapter host, a compiler-assisted workflow, native-first context, authoritative command results with compressible views, policy-first decision routing bridged to `ProviderPolicy`, local endpoint adoption over the existing Responses adapter, a lazy skill catalog, a Claude Code hook bridge, observation attribution, an adapter SDK and conformance kit, and real Graft/Graphify/RTK/Laya adapters. Evidence is local (macOS aarch64); Graphify and learned routing stay opt-in. The compiled `semaprax.plugin-manifest.v1` is unchanged.
+
 - Fixed the patch-receipt evidence pagination regression to exercise a
   renameable declaration in the app module; the fixture now preserves its
   cross-file identity check without attempting to rename `main`. Both renamed

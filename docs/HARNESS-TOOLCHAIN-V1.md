@@ -1,5 +1,7 @@
 # Harness toolchain integration v1
 
+Audience: toolchain contributors and harness adapter authors.
+
 Status: implemented in source; build and test evidence pending (see Evidence).
 
 ## Entry point

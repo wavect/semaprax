@@ -1,5 +1,7 @@
 # Laya and Jev decision adapters v1 (HP-11)
 
+Audience: toolchain contributors and harness adapter authors.
+
 Owner: `packages/semaprax-harness-adapters/systemone/`. Contract:
 `decision.evaluate/v1` task `model-route/v1` in
 [HARNESS-PROVIDER-V1](HARNESS-PROVIDER-V1.md) and

@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 pub struct Record {
     pub seq: u64,
     pub step: String,
-    /// `begin`, `done`, `refused`, `uncertain`.
+    /// `begin`, `done`, `refused`, `uncertain`, `cancelled` (non-execution proved).
     pub state: String,
     pub detail: Value,
 }
@@ -87,5 +87,47 @@ impl Journal {
     /// True when `step` has a `begin` with no later terminal record.
     pub fn unfinished(&self, step: &str) -> bool {
         matches!(self.state(step), Some(r) if r.state == "begin")
+    }
+
+    /// Record that a cancelled side-effecting step may have had an external
+    /// effect (billed, published or generated). Never replayed; `cause` is data.
+    pub fn record_uncertain(&mut self, step: &str, cause: &str) -> HarnessResult<()> {
+        self.append(step, "uncertain", json!({"cause": cause}))
+    }
+
+    /// Whether a side-effecting `step` may start again. Only a step with no
+    /// record, a refusal, or a cancellation that provably never ran may; a
+    /// begun, completed or uncertain step is a duplicate attempt.
+    pub fn may_run(&self, step: &str) -> bool {
+        match self.state(step) {
+            None => true,
+            Some(r) => matches!(r.state.as_str(), "refused" | "cancelled"),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn uncertain_and_begun_steps_are_never_replayed() {
+        let dir = std::env::temp_dir().join(format!("hp-hn18-journal-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let mut j = Journal::open(&dir, "l").unwrap();
+        assert!(j.may_run("gen"));
+        j.append("gen", "begin", json!({})).unwrap();
+        assert!(!j.may_run("gen"));
+        j.record_uncertain("gen", "cancel").unwrap();
+        assert!(!j.may_run("gen"));
+        // Survives a restart: the record is on disk.
+        let j2 = Journal::open(&dir, "l").unwrap();
+        assert!(!j2.may_run("gen"));
+        let mut j = j2;
+        j.append("pre", "cancelled", json!({})).unwrap();
+        assert!(j.may_run("pre"));
+        j.append("done", "done", json!({})).unwrap();
+        assert!(!j.may_run("done"));
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

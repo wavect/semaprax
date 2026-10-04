@@ -1,0 +1,73 @@
+{
+  "consumer": {
+    "command": "cargo run --locked --manifest-path examples/ri13-combined-app/linked/Cargo.toml --bin consumer",
+    "copy_ledger": {
+      "m1": {
+        "regex_result_owner": {
+          "adapter_borrowed_scan_input_bytes": 28,
+          "adapter_copied_bytes": 0,
+          "adapter_copy_events": 0,
+          "borrow_matches_target": true,
+          "foreign_target_copied_bytes": {
+            "reason": "regex::Regex::is_match does not expose internal copied-byte counts",
+            "status": "unavailable"
+          },
+          "status": "measured"
+        },
+        "url_owner_view": {
+          "adapter_copied_bytes": 0,
+          "adapter_copy_events": 0,
+          "borrow_matches_target": true,
+          "foreign_target_copied_bytes": {
+            "reason": "url::Url::parse does not expose a copied-byte counter",
+            "status": "unavailable"
+          },
+          "status": "measured"
+        }
+      },
+      "m2": {
+        "iterator_callback": {
+          "fn_invocations": 1,
+          "fn_mut_invocations": 1,
+          "scalar_argument_result_copied_bytes": 0
+        },
+        "serde_record": {
+          "deserialize_owned_string_copied_bytes": {
+            "reason": "serde_json deserialization does not expose a copied-byte counter",
+            "status": "unavailable"
+          },
+          "generated_mirror_string_clone_copied_bytes": 3,
+          "input_json_bytes": 25,
+          "output_json_bytes": 25
+        }
+      },
+      "schema": "semaprax.ri13.linked-copy-ledger.v1"
+    },
+    "environment": {
+      "CARGO_BUILD_JOBS": "1",
+      "CARGO_INCREMENTAL": "0",
+      "CLANG": "/usr/bin/clang"
+    },
+    "log_sha256": "0b0644093cd8a246e577ab0a2f79fef7d4133522a02f22cc5907d541e5955730",
+    "marker": "ri13-linked-project-ok"
+  },
+  "host": {
+    "platform": "aarch64-apple-darwin"
+  },
+  "linked_subject": {
+    "m1_project_subject": "sha256:d5d5d5fa8a3f62fb554c8d9a9f6e1e97954ac75be371fa1f805e20ab08e55b5d",
+    "m2_source_revision": "sha256:55145a39ed18a105bbe86c9e442a32827958d444da3c2a18f3226b2f3e730cb2",
+    "m3_project_revision": "sha256:ba16cd1dbb403a38b5fa24ce8220e5df58d15af8747b3b77f49a94a15af5f5bc",
+    "path": "ri13-combined-app/linked/generated/linked-subject.json",
+    "project_revision": "sha256:ba16cd1dbb403a38b5fa24ce8220e5df58d15af8747b3b77f49a94a15af5f5bc",
+    "sha256": "231efcfe81ab2a8c3cd7639eaa3e46fa8ace27746b682b2ef8ac001022da3a3e"
+  },
+  "prepare": {
+    "command": "CARGO_TARGET_DIR=target/ri13-linked-project CARGO_BUILD_JOBS=1 CARGO_INCREMENTAL=0 cargo run --locked --manifest-path examples/ri13-combined-app/linked/prepare/Cargo.toml --bin prepare",
+    "log_sha256": "f9c70d7641c7d1f6599e93c05abdb7bf092cf9c1a5dcc44d91345cde034831b1",
+    "marker": "ri13-linked-prepared:sha256:d5d5d5fa8a3f62fb554c8d9a9f6e1e97954ac75be371fa1f805e20ab08e55b5d:sha256:55145a39ed18a105bbe86c9e442a32827958d444da3c2a18f3226b2f3e730cb2"
+  },
+  "schema": "semaprax.ri13.linked-darwin-evidence.v1",
+  "source_head": "eac96b18d4267c44273eb915aacf5546dfce25ef",
+  "static_route_receipt_sha256": "9c850c8bf99a689b72400ed0d9ed51e17dafc6e02c1a864283ccea8fcb305566"
+}

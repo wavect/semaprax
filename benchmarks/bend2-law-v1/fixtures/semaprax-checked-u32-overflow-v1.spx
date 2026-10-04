@@ -1,0 +1,14 @@
+module law16.checked_u32_overflow;
+
+@id("law16.checked_u32_overflow.overflow")
+fn overflow() -> u32
+{
+    4294967295u32 + 1u32
+}
+
+@id("law16.checked_u32_overflow.main")
+fn main() -> i64
+{
+    let ignored = overflow();
+    0
+}

@@ -290,6 +290,16 @@ fn indexed_real_regex_project_generates_and_executes_locked_offline_owner_loan()
     assert_eq!(ri06_regex_owner::string_constructions(), 2);
     assert_eq!(ri06_regex_owner::live_string_count(), 0);
     assert_eq!(ri06_regex_owner::live_owner_count(), 0);
+    let batch = ri06_regex_owner::run_batch(32).unwrap();
+    assert_eq!(batch.operations, 32);
+    assert_eq!(batch.checksum, 1312);
+    assert_eq!(batch.borrowed_input_bytes, 896);
+    assert_eq!(batch.adapter_copy_events, 0);
+    assert_eq!(batch.adapter_copied_bytes, 0);
+    assert_eq!(batch.live_owner_count, 0);
+    assert_eq!(batch.live_string_count, 0);
+    assert_eq!(ri06_regex_owner::run_batch(0), Err(4));
+    assert_eq!(ri06_regex_owner::run_batch(4097), Err(4));
 }
 "#,
     )
@@ -322,6 +332,52 @@ fn indexed_real_regex_project_generates_and_executes_locked_offline_owner_loan()
         run.status.success(),
         "{}",
         String::from_utf8_lossy(&run.stderr)
+    );
+    // A successful batch must establish the target borrow on every call, not
+    // merely report the final borrowed-byte counter. This C-only mutation
+    // preserves the checked scalar result while severing its held input
+    // pointer; the generated batch API must reject it before reporting zero
+    // adapter copies.
+    let pointer_assignment = "last_pointer=(uintptr_t)a1.text;last_length=(size_t)a1.length;";
+    let original_c = std::str::from_utf8(plan.c_source()).unwrap();
+    assert!(original_c.contains(pointer_assignment));
+    let pointer_mismatch = original_c.replacen(
+        pointer_assignment,
+        "last_pointer=0;last_length=(size_t)a1.length;",
+        1,
+    );
+    std::fs::write(sdk.join("src/regex_project.c"), pointer_mismatch).unwrap();
+    let compiled = Command::new(&clang)
+        .args(["-std=c11", "-O2", "-c"])
+        .arg(sdk.join("src/regex_project.c"))
+        .arg("-o")
+        .arg(&object)
+        .output()
+        .unwrap();
+    assert!(
+        compiled.status.success(),
+        "{}",
+        String::from_utf8_lossy(&compiled.stderr)
+    );
+    std::fs::write(
+        sdk.join("src/main.rs"),
+        "fn main(){assert_eq!(ri06_regex_owner::run(),Ok(41));assert_eq!(ri06_regex_owner::run_batch(32),Err(5));}",
+    )
+    .unwrap();
+    let pointer_mismatch_run = Command::new(&cargo)
+        .args(["run", "--locked", "--offline", "--quiet"])
+        .current_dir(&sdk)
+        .env("CARGO_TARGET_DIR", &target)
+        .env("RUSTFLAGS", format!("-C link-arg={}", object.display()))
+        .env("CARGO_BUILD_JOBS", "1")
+        .env("CARGO_INCREMENTAL", "0")
+        .env("CARGO_PROFILE_DEV_DEBUG", "0")
+        .output()
+        .unwrap();
+    assert!(
+        pointer_mismatch_run.status.success(),
+        "{}",
+        String::from_utf8_lossy(&pointer_mismatch_run.stderr)
     );
     // A canonical authored-body change must alter executable output; the SDK
     // cannot satisfy this gate by running a source-independent Rust facade.

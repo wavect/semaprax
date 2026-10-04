@@ -1,0 +1,5 @@
+{
+  "decision": "reject",
+  "reason": "The retained attack always returns false, which violates the postcondition when the input is false.",
+  "source_sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+}

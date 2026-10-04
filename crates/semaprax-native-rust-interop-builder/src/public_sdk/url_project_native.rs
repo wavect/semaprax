@@ -171,18 +171,63 @@ unsafe extern "C" {
     fn spx_url_project_string_constructions()->u64;
     fn spx_url_project_live_strings()->u64;
 }
+/// Executes one exact checked Project export in an already authenticated carrier
+/// context. This remains private: only `run` and the bounded batch seam create it.
+fn run_in_context(context:u64)->Result<i64,i32> {
+    let mut out=0; let status=unsafe{spx_url_project_entry(context,&mut out)};
+    if status!=0{Err(status)}else{Ok(out)}
+}
 /// Execute the exact checked Project export. The lexical context never escapes.
 pub fn run()->Result<i64,i32> {
     let context=spx_result_owner_context_new(); if context==0{return Err(4)}
-    let mut out=0; let status=unsafe{spx_url_project_entry(context,&mut out)};
+    let result=run_in_context(context);
     let closed=spx_result_owner_context_close(context);
-    if status!=0{Err(status)}else if closed!=0{Err(closed)}else{Ok(out)}
+    match result { Err(status)=>Err(status), Ok(out)=>if closed!=0{Err(closed)}else{Ok(out)} }
 }
 pub fn projected_borrow_matches_target()->bool {
     unsafe {spx_url_project_borrow_pointer()==target_view_pointer()}
 }
 pub fn string_constructions()->u64 {unsafe{spx_url_project_string_constructions()}}
 pub fn live_string_count()->u64 {unsafe{spx_url_project_live_strings()}}
+/// Repeats the authenticated scalar export without accepting any new foreign
+/// input. `operations` is bounded so this measurement seam cannot retain an
+/// unbounded amount of work under the caller's authority.
+pub const MAX_BATCH_OPERATIONS:usize=4096;
+#[derive(Clone,Copy,Debug,Eq,PartialEq)]
+pub struct BatchMetrics {
+    pub operations:usize,
+    pub checksum:i64,
+    pub borrowed_input_bytes:u64,
+    pub adapter_copy_events:usize,
+    pub adapter_copied_bytes:u64,
+    pub live_owner_count:usize,
+    pub live_view_count:usize,
+    pub live_string_count:u64,
+}
+pub fn borrowed_input_length()->usize {unsafe{spx_url_project_borrow_length()}}
+pub fn run_batch(operations:usize)->Result<BatchMetrics,i32> {
+    if operations==0||operations>MAX_BATCH_OPERATIONS{return Err(4)}
+    let copies_before=adapter_copy_count();
+    let bytes_before=adapter_copied_bytes();
+    // The closed profile's generated C entry owns and drops every temporary before
+    // returning. Reusing this private carrier context therefore preserves each
+    // scalar invocation while avoiding a new empty context allocation per call.
+    let context=spx_result_owner_context_new(); if context==0{return Err(4)}
+    let mut checksum=0i64;
+    let mut borrowed_input_bytes=0u64;
+    for _ in 0..operations {
+        let value=match run_in_context(context) { Ok(value)=>value, Err(status)=>{let _=spx_result_owner_context_close(context);return Err(status)} };
+        checksum=match checksum.checked_add(value) { Some(value)=>value, None=>{let _=spx_result_owner_context_close(context);return Err(4)} };
+        if !projected_borrow_matches_target(){let _=spx_result_owner_context_close(context);return Err(5)}
+        borrowed_input_bytes=match u64::try_from(borrowed_input_length()).ok().and_then(|length|borrowed_input_bytes.checked_add(length)) { Some(value)=>value, None=>{let _=spx_result_owner_context_close(context);return Err(4)} };
+    }
+    let adapter_copy_events=match adapter_copy_count().checked_sub(copies_before) { Some(value)=>value, None=>{let _=spx_result_owner_context_close(context);return Err(5)} };
+    let adapter_copied_bytes=match adapter_copied_bytes().checked_sub(bytes_before) { Some(value)=>value, None=>{let _=spx_result_owner_context_close(context);return Err(5)} };
+    let metrics=BatchMetrics{operations,checksum,borrowed_input_bytes,adapter_copy_events,adapter_copied_bytes,live_owner_count:live_owner_count(),live_view_count:live_view_count(),live_string_count:live_string_count()};
+    if metrics.adapter_copy_events!=0||metrics.adapter_copied_bytes!=0||metrics.live_owner_count!=0||metrics.live_view_count!=0||metrics.live_string_count!=0{let _=spx_result_owner_context_close(context);return Err(5)}
+    let closed=spx_result_owner_context_close(context); if closed!=0{return Err(closed)}
+    Ok(metrics)
+}
 "#,
     );
     Ok(Native {

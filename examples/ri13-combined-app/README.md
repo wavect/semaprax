@@ -40,17 +40,31 @@ an explicit C compiler for M1's generated C objects:
 ```sh
 CLANG=/usr/bin/clang python3 examples/ri13-combined-app/measure.py \
   --fresh-target \
+  --warm-stage-pass \
   --target-dir "$PWD/target/ri13-combined-app" \
+  --evidence-dir "$PWD/evidence/ri13-combined-raw" \
   --output examples/ri13-combined-app/measurements/local-receipt.json
 ```
 
-`--fresh-target` refuses a preexisting target directory. This makes the eight
-named prepare/consumer stages a clean-target build receipt. The final
+`--fresh-target` refuses a preexisting target directory. `--warm-stage-pass`
+reruns every named prepare/consumer stage in that same private target only
+after the clean cold pass succeeds. The receipt records the two stage groups
+separately; omitting the option leaves the warm result explicitly
+`not_recorded` rather than deriving it from cold output. The final
 `linked_prepare` and `linked_consumer` stages are the physical M1/M2/M3
 linkage check; `linked_consumer` emits its marker only after the generated M1
 owner carriers, M2 record/callback module, and M3 Future module return their
 checked values in one process. Omit `--fresh-target` only when
-intentionally measuring a warmed target, which the receipt identifies.
+intentionally measuring a warmed target, which the receipt identifies. `--evidence-dir`
+must name a new absolute directory. It retains each cold/warm build and consumer
+stdout/stderr pair plus every M1/M2/M3 CSV byte stream, up to 16 MiB total. The
+receipt binds each retained file name, size, and SHA-256; verify those bytes
+without Cargo before using the receipt:
+
+```sh
+python3 examples/ri13-combined-app/measure.py \
+  --verify-raw-artifacts examples/ri13-combined-app/measurements/local-receipt.json
+```
 
 The harness is offline and locked. It executes M1 and M2 before M3, requires
 each consumer's success marker, and refuses an M3 CSV without all five
@@ -72,11 +86,15 @@ python3 examples/ri13-combined-app/friction-ledger.py \
 python3 -m unittest examples/ri13-combined-app/test_friction_ledger.py
 ```
 
-It hashes and counts each authored Rust file by M1, M2, M3, and linked route;
-refuses handwritten ABI or `unsafe` escape-hatch tokens in those application
-sources; excludes prepare-derived artifacts from the authored count; and names
-the small caller-owned M3 HTTP/runtime configuration separately. It is a
-reproducible disclosure rather than a developer-effort score.
+It hashes and counts each authored application Rust file by M1, M2, M3, and
+linked route; refuses handwritten ABI or `unsafe` escape-hatch tokens in those
+application sources; and names the small caller-owned M3 HTTP/runtime
+configuration separately. It also hashes the direct/handwritten comparison
+harnesses, identifies their handwritten adapter symbols, and discloses their
+allocator-instrumentation `unsafe` tokens separately. Generated source cannot
+be honestly hashed until authenticated prepare runs, so the ledger names every
+location and the combined receipt emits its exact SHA-256 and byte inventory.
+It is a reproducible disclosure rather than a developer-effort score.
 
 ## Receipt categories
 
@@ -84,13 +102,25 @@ The JSON receipt intentionally separates three quantities:
 
 | Field | What it measures | What it does not mean |
 | --- | --- | --- |
-| `full_build_and_consumer_stages` | Wall time for each locked Cargo prepare/consumer command, including compilation and process execution | Per-call route latency or compiler-only time |
+| `full_build_and_consumer_stages` / `warm_build_and_consumer_stages` | Ordered cold and, when requested, genuinely rerun warm locked Cargo stages | Per-call route latency or a synthetic warm result |
+| `build_stage_measurement` / `result_totals` | Separate cold/warm elapsed totals and explicit passed/failed/skipped command counts | An unrecorded warm pass or a skipped successful gate |
+| `generated_code_inventory` | SHA-256 and byte sizes of generated Rust, C, and headers after authenticated prepare | Cargo caches, dependency source, generated binaries, or source that was never prepared |
 | `route_timing_and_allocator_requests.routes.*.{mean_ns,p50_ns,p90_ns,p99_ns}` | M3 route samples around direct Rust, handwritten checks, and generated checked source | A nontrivial batch-work result; every route includes loopback HTTP and numeric parsing |
+| `m1_batch_throughput.tasks.*` | Five 4096-operation fixed Regex scan and Url parse/view batches per direct, handwritten, and generated route, with raw latency, current-thread allocator requests, borrowed bytes, adapter copies, and cleanup counts | A variable-input scan benchmark, an ownership-transfer benchmark, or foreign Regex/Url internal copies |
 | `batch_throughput.routes.*` | Fifteen 64-operation local HTTP batches per route, with normalized operations per second and allocator requests per batch | A portability or production throughput claim; generated registration remains in every operation |
 | `route_timing_and_allocator_requests.routes.*.allocator_requests` | Current-thread allocator calls and requested bytes while one M3 route or batch runs | Copied bytes, retained heap, peak memory, process-wide allocation, or allocations in the server thread |
 | `m3_copy_ledger` | Response wire bytes, the fixture's exact `Bytes` to `Vec<u8>` response copy, its generated host callback subset, and zero-byte scalar boundaries | Copies inside reqwest or HTTP decoding before the observed copy, UTF-8 validation, or a complete application copy total |
 | `linked-receipt.py` `copied_byte_ledger` | Exact scalar M3 boundary/callback payload cells and an explicit unavailable foreign HTTP-body cell for the linked no-HTTP callback | A measurement of foreign HTTP-body copies |
-| `linked_copy_ledger` | M1 Regex buffer-scan input bytes and Regex/Url generated-adapter copy events and bytes, M2 generated mirror clone bytes, and scalar callback boundaries | `regex::Regex::is_match`, `url::Url::parse`, and Serde deserialization copies inside foreign implementations, which remain unavailable |
+| `linked_copy_ledger` | M1 Regex buffer-scan input bytes, per-generated-call target-borrow identity, and Regex/Url generated-adapter copy events and bytes, M2 generated mirror clone bytes and mirror-to-record ownership-transfer bytes with pointer preservation, and scalar callback boundaries | `regex::Regex::is_match`, `url::Url::parse`, and Serde deserialization copies inside foreign implementations, which remain unavailable |
+| `raw_artifacts` | Bound, retained stdout/stderr pairs for every locked build/consumer stage and every M1/M2/M3 CSV stream | Cargo caches, binaries, unrecorded commands, or output beyond the 16 MiB capture cap |
+| Linux evidence `receipt.json` `copy_accounting` | The executed M1 adapter, M2 generated mirror and scalar callback counts, each tagged `exact`; the M1 foreign-library, M2 deserialization and M3 HTTP/text domains tagged `unavailable` | A claim about copies inside the tagged unavailable foreign domains |
+
+`full_build_and_consumer_stages` also retains the exact ignored Project
+selector `ri13_m3::saved_m3_application_runs_offline_and_refuses_timeout_and_stale_binding_mutants`.
+It exercises the test-only wrong-host-return and dropped HTTP-status-check
+mutants, proves that omitting the timeout changes the route outcome, and
+refuses held-source drift. The test has a local loopback socket only; it does
+not grant generated code network authority.
 
 The M3 measurement requires the allocator instrumentation added with the
 RI-13 measurement work. The request count deliberately records `realloc` as
@@ -109,6 +139,33 @@ normalized operations per second separately from scalar samples and includes
 generated registration in every operation, so it is a reproducible local batch
 path without claiming a universal threshold result.
 
+Render the combined investigation only after rendering the source-bound M3
+investigation from the same receipt:
+
+```sh
+python3 examples/ri13-combined-app/investigate-throughput.py \
+  --receipt /path/to/ri13-combined-receipt.json \
+  --m3-investigation /path/to/ri13-m3-batch-investigation.json \
+  --output /path/to/ri13-combined-throughput-investigation.json
+python3 -m unittest examples/ri13-combined-app/test_investigate_throughput.py
+```
+
+It requires the complete ordered M1/M2/M3 prepare and consumer stages, the
+64-operation two-byte M3 workload, and exact receipt digest binding. It emits
+the generated/direct and generated/handwritten normalized M3 ratios with the
+0.90 investigation threshold. The combined receipt also runs M2's existing
+matched 32-operation generic-record and stateful-callback batches across direct
+Rust, handwritten adapters, and generated Semaprax. It also runs M1's matched
+4096-operation fixed Regex scan and Url parse/view batches across direct Rust,
+a handwritten owner/view adapter, and generated Semaprax. The generated route
+uses bounded `checked-export-repeat.v1`: it repeats only the checked scalar
+export for the 28-byte `https://example.invalid/path` fixture and accepts no
+new foreign input. Each raw row binds latency, allocator requests, borrowed
+input bytes, adapter copy counts, and post-run cleanup state; Regex and Url
+foreign implementation copies remain unavailable. The 0.90 generated/direct
+and generated/handwritten threshold opens an investigation, never a performance
+pass or a variable-input claim.
+
 The linked consumer emits its own one-line canonical ledger after it executes
 the M1 owners and M2 record/callback routes. The measurement parser requires
 the Regex carrier to report its exact 28-byte borrowed matcher input, zero
@@ -119,22 +176,24 @@ boundary carries zero buffer bytes. This does not turn `Regex::is_match`, the
 Url parser, or `serde_json` deserialization into a zero-copy claim: their
 foreign internal byte observations remain unavailable.
 
-## Acceptance still open
+## Acceptance evidence still required
 
-This gate does not close #371. It still needs exact copied-byte evidence for
-the issue’s buffer scan and the uninstrumented foreign portions of ownership
-transfer and deserialization, a nontrivial batch regression investigation, and
-fresh Linux x86_64 evidence. The receipt makes those gaps explicit rather than
-converting one local run into a portability or
-performance claim.
+A receipt is an execution claim only for the checkout and target it records.
+Run the cold and warm stage passes on a fresh private target before describing
+build timing, code size, or result counts as measured. The Linux runner makes
+both passes mandatory; the macOS command above does so when invoked with
+`--warm-stage-pass`. The explicit adapter and foreign-library limits remain in
+the receipt rather than becoming zero-copy or portability claims.
 
 ## Linked generated fixture
 
 `linked/prepare` authenticates `unified-project/` for all M1/M2/M3 generated
 outputs. The closed profile carries the exact M1 dependencies and exports,
 while retaining the M3 Future selection. It derives the M2 record/callback
-output and M3 Future module from one held snapshot, and the `consumer` retains
-that same unified Project revision before registering M3. The `consumer` binary
+output and M3 Future module from one held snapshot. Before compiling generated
+C, `linked/build.rs` accepts only the fixed linked-subject envelope and requires
+its Project and M3 revisions to match. The `consumer` retains that same unified
+Project revision before registering M3. The `consumer` binary
 links the M1 owner crates, M2 C/Rust callback module, and M3 generated Future
 module in one process. It emits `ri13-linked-project-ok` only after all three
 routes return their checked values.
@@ -159,6 +218,18 @@ Run its static control without Cargo:
 
 ```sh
 python3 examples/ri13-combined-app/linked-receipt.py --self-test
+```
+
+`linked-darwin-evidence.json` is a compact local Darwin execution receipt. It
+binds the checked-out source head, the static route receipt, generated subject
+bytes, M1/M2/M3 revisions, `/usr/bin/clang` consumer environment, and the
+consumer's exact copy ledger. Verify it offline after a linked prepare has
+produced the ignored generated subject:
+
+```sh
+python3 examples/ri13-combined-app/linked-receipt.py \
+  --verify-darwin-evidence examples/ri13-combined-app/linked-darwin-evidence.json \
+  --linked-subject examples/ri13-combined-app/linked/generated/linked-subject.json
 ```
 
 ## Linux x86_64 evidence runner
@@ -228,12 +299,15 @@ After provisioning those inputs, replace `--plan` with `--run`. The runner
 refuses a preexisting evidence directory, clones the checked revision into its
 own writable evidence worktree, mounts the original checkout nowhere in the
 guest, and uses one named `container run --detach --network none` guest. It
-retains the guest launch, stdout/stderr, and stopped-container inspection
-records before deleting that container. The guest rejects any platform other
+allows at most 45 minutes for that guest, covering the observed cold combined
+stages, linked build, and the separately executed warm stage pass. On expiry
+its existing cleanup trap retains launch/stdout/stderr/inspection records and
+deletes the stopped container. The guest rejects any platform other
 than Linux x86_64 and writes `environment.json`, M1/M2/M3 combined receipt and
-batch measurement, linked Project receipt, and command logs to the named
-evidence directory. `output-digests.json` records SHA-256 digests for the
-admitted outputs. It therefore leaves no running container and does not turn a
+batch measurement, linked Project receipt, command logs, and the bounded
+`combined-raw/` stdout/stderr and CSV evidence directory to the named evidence
+directory. `output-digests.json` records SHA-256 digests for every admitted
+output, including each retained raw stream. It therefore leaves no running container and does not turn a
 Mac-local result into Linux evidence. No Linux evidence has been recorded by
 this route yet.
 

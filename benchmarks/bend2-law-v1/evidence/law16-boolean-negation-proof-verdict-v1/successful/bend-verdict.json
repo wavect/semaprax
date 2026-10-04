@@ -1,0 +1,1447 @@
+{
+  "artifacts": [
+    {
+      "bytes": 327,
+      "path": "/private/tmp/law16-boolean-proof.Pf9u8J/bend/fresh.bend",
+      "role": "fresh_input",
+      "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+    },
+    {
+      "bytes": 327,
+      "path": "/private/tmp/law16-boolean-proof.Pf9u8J/bend/repeat.bend",
+      "role": "repeat_input",
+      "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+    },
+    {
+      "bytes": 57940512,
+      "path": "/Users/kevin/.bun/bin/bun",
+      "role": "operator_input",
+      "sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781"
+    },
+    {
+      "bytes": 34607,
+      "path": "/private/tmp/bend2-law-source/bend2/main.ts",
+      "role": "operator_input",
+      "sha256": "sha256:c48a0274e661a3e529933550752578768e8f029219d814073fbf86537271d475"
+    }
+  ],
+  "cells": {
+    "fresh_process": {
+      "samples": [
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/fresh.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:bcbc9afddd603eef72bc1104fdf9d547ac65498b15fd9337f70c6ef74474ab30",
+          "elapsed_ns": 130846209,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-001.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "fresh-process-001.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/fresh.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:bcbc9afddd603eef72bc1104fdf9d547ac65498b15fd9337f70c6ef74474ab30",
+          "elapsed_ns": 98511667,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-002.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "fresh-process-002.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/fresh.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:bcbc9afddd603eef72bc1104fdf9d547ac65498b15fd9337f70c6ef74474ab30",
+          "elapsed_ns": 105186292,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-003.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "fresh-process-003.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/fresh.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:bcbc9afddd603eef72bc1104fdf9d547ac65498b15fd9337f70c6ef74474ab30",
+          "elapsed_ns": 104929542,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-004.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "fresh-process-004.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/fresh.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:bcbc9afddd603eef72bc1104fdf9d547ac65498b15fd9337f70c6ef74474ab30",
+          "elapsed_ns": 104473000,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-005.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "fresh-process-005.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/fresh.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:bcbc9afddd603eef72bc1104fdf9d547ac65498b15fd9337f70c6ef74474ab30",
+          "elapsed_ns": 102890042,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-006.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "fresh-process-006.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/fresh.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:bcbc9afddd603eef72bc1104fdf9d547ac65498b15fd9337f70c6ef74474ab30",
+          "elapsed_ns": 99056458,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-007.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "fresh-process-007.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/fresh.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:bcbc9afddd603eef72bc1104fdf9d547ac65498b15fd9337f70c6ef74474ab30",
+          "elapsed_ns": 95345791,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-008.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "fresh-process-008.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/fresh.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:bcbc9afddd603eef72bc1104fdf9d547ac65498b15fd9337f70c6ef74474ab30",
+          "elapsed_ns": 107387125,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-009.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "fresh-process-009.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/fresh.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:bcbc9afddd603eef72bc1104fdf9d547ac65498b15fd9337f70c6ef74474ab30",
+          "elapsed_ns": 101456417,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-010.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "fresh-process-010.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/fresh.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:bcbc9afddd603eef72bc1104fdf9d547ac65498b15fd9337f70c6ef74474ab30",
+          "elapsed_ns": 97228833,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-011.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "fresh-process-011.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/fresh.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:bcbc9afddd603eef72bc1104fdf9d547ac65498b15fd9337f70c6ef74474ab30",
+          "elapsed_ns": 100956125,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-012.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "fresh-process-012.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/fresh.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:bcbc9afddd603eef72bc1104fdf9d547ac65498b15fd9337f70c6ef74474ab30",
+          "elapsed_ns": 112451083,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-013.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "fresh-process-013.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/fresh.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:bcbc9afddd603eef72bc1104fdf9d547ac65498b15fd9337f70c6ef74474ab30",
+          "elapsed_ns": 91190666,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-014.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "fresh-process-014.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/fresh.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:bcbc9afddd603eef72bc1104fdf9d547ac65498b15fd9337f70c6ef74474ab30",
+          "elapsed_ns": 105103459,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-015.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "fresh-process-015.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/fresh.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:bcbc9afddd603eef72bc1104fdf9d547ac65498b15fd9337f70c6ef74474ab30",
+          "elapsed_ns": 103930500,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-016.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "fresh-process-016.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/fresh.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:bcbc9afddd603eef72bc1104fdf9d547ac65498b15fd9337f70c6ef74474ab30",
+          "elapsed_ns": 104442584,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-017.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "fresh-process-017.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/fresh.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:bcbc9afddd603eef72bc1104fdf9d547ac65498b15fd9337f70c6ef74474ab30",
+          "elapsed_ns": 102707666,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-018.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "fresh-process-018.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/fresh.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:bcbc9afddd603eef72bc1104fdf9d547ac65498b15fd9337f70c6ef74474ab30",
+          "elapsed_ns": 103231000,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-019.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "fresh-process-019.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/fresh.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:bcbc9afddd603eef72bc1104fdf9d547ac65498b15fd9337f70c6ef74474ab30",
+          "elapsed_ns": 93482291,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-020.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "fresh-process-020.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/fresh.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:bcbc9afddd603eef72bc1104fdf9d547ac65498b15fd9337f70c6ef74474ab30",
+          "elapsed_ns": 108556791,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-021.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "fresh-process-021.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/fresh.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:bcbc9afddd603eef72bc1104fdf9d547ac65498b15fd9337f70c6ef74474ab30",
+          "elapsed_ns": 101390834,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-022.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "fresh-process-022.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/fresh.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:bcbc9afddd603eef72bc1104fdf9d547ac65498b15fd9337f70c6ef74474ab30",
+          "elapsed_ns": 100579000,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-023.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "fresh-process-023.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/fresh.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:bcbc9afddd603eef72bc1104fdf9d547ac65498b15fd9337f70c6ef74474ab30",
+          "elapsed_ns": 99578042,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-024.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "fresh-process-024.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/fresh.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:bcbc9afddd603eef72bc1104fdf9d547ac65498b15fd9337f70c6ef74474ab30",
+          "elapsed_ns": 105306375,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-025.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "fresh-process-025.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/fresh.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:bcbc9afddd603eef72bc1104fdf9d547ac65498b15fd9337f70c6ef74474ab30",
+          "elapsed_ns": 95616458,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-026.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "fresh-process-026.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/fresh.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:bcbc9afddd603eef72bc1104fdf9d547ac65498b15fd9337f70c6ef74474ab30",
+          "elapsed_ns": 102906750,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-027.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "fresh-process-027.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/fresh.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:bcbc9afddd603eef72bc1104fdf9d547ac65498b15fd9337f70c6ef74474ab30",
+          "elapsed_ns": 105387666,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-028.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "fresh-process-028.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/fresh.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:bcbc9afddd603eef72bc1104fdf9d547ac65498b15fd9337f70c6ef74474ab30",
+          "elapsed_ns": 100657875,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-029.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "fresh-process-029.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/fresh.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:bcbc9afddd603eef72bc1104fdf9d547ac65498b15fd9337f70c6ef74474ab30",
+          "elapsed_ns": 100571917,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-030.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "fresh-process-030.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        }
+      ],
+      "status": "completed",
+      "summary": {
+        "count": 30,
+        "p50_ns": 102798854.0,
+        "p95_ns": 112451083
+      }
+    },
+    "repeat_process": {
+      "samples": [
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/repeat.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:ecf13d49a1f213b1a0c477c890f1c0b121c0efb5475274990f623cbedffa4954",
+          "elapsed_ns": 104961625,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-001.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "repeat-process-001.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/repeat.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:ecf13d49a1f213b1a0c477c890f1c0b121c0efb5475274990f623cbedffa4954",
+          "elapsed_ns": 92919583,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-002.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "repeat-process-002.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/repeat.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:ecf13d49a1f213b1a0c477c890f1c0b121c0efb5475274990f623cbedffa4954",
+          "elapsed_ns": 100944791,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-003.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "repeat-process-003.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/repeat.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:ecf13d49a1f213b1a0c477c890f1c0b121c0efb5475274990f623cbedffa4954",
+          "elapsed_ns": 101757500,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-004.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "repeat-process-004.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/repeat.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:ecf13d49a1f213b1a0c477c890f1c0b121c0efb5475274990f623cbedffa4954",
+          "elapsed_ns": 98003667,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-005.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "repeat-process-005.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/repeat.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:ecf13d49a1f213b1a0c477c890f1c0b121c0efb5475274990f623cbedffa4954",
+          "elapsed_ns": 102762792,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-006.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "repeat-process-006.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/repeat.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:ecf13d49a1f213b1a0c477c890f1c0b121c0efb5475274990f623cbedffa4954",
+          "elapsed_ns": 109764833,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-007.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "repeat-process-007.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/repeat.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:ecf13d49a1f213b1a0c477c890f1c0b121c0efb5475274990f623cbedffa4954",
+          "elapsed_ns": 92326208,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-008.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "repeat-process-008.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/repeat.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:ecf13d49a1f213b1a0c477c890f1c0b121c0efb5475274990f623cbedffa4954",
+          "elapsed_ns": 98261875,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-009.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "repeat-process-009.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/repeat.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:ecf13d49a1f213b1a0c477c890f1c0b121c0efb5475274990f623cbedffa4954",
+          "elapsed_ns": 101782750,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-010.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "repeat-process-010.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/repeat.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:ecf13d49a1f213b1a0c477c890f1c0b121c0efb5475274990f623cbedffa4954",
+          "elapsed_ns": 96868750,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-011.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "repeat-process-011.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/repeat.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:ecf13d49a1f213b1a0c477c890f1c0b121c0efb5475274990f623cbedffa4954",
+          "elapsed_ns": 96149000,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-012.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "repeat-process-012.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/repeat.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:ecf13d49a1f213b1a0c477c890f1c0b121c0efb5475274990f623cbedffa4954",
+          "elapsed_ns": 111491083,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-013.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "repeat-process-013.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/repeat.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:ecf13d49a1f213b1a0c477c890f1c0b121c0efb5475274990f623cbedffa4954",
+          "elapsed_ns": 96840042,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-014.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "repeat-process-014.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/repeat.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:ecf13d49a1f213b1a0c477c890f1c0b121c0efb5475274990f623cbedffa4954",
+          "elapsed_ns": 98536750,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-015.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "repeat-process-015.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/repeat.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:ecf13d49a1f213b1a0c477c890f1c0b121c0efb5475274990f623cbedffa4954",
+          "elapsed_ns": 105430875,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-016.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "repeat-process-016.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/repeat.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:ecf13d49a1f213b1a0c477c890f1c0b121c0efb5475274990f623cbedffa4954",
+          "elapsed_ns": 105103292,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-017.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "repeat-process-017.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/repeat.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:ecf13d49a1f213b1a0c477c890f1c0b121c0efb5475274990f623cbedffa4954",
+          "elapsed_ns": 93926500,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-018.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "repeat-process-018.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/repeat.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:ecf13d49a1f213b1a0c477c890f1c0b121c0efb5475274990f623cbedffa4954",
+          "elapsed_ns": 99423083,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-019.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "repeat-process-019.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/repeat.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:ecf13d49a1f213b1a0c477c890f1c0b121c0efb5475274990f623cbedffa4954",
+          "elapsed_ns": 101786041,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-020.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "repeat-process-020.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/repeat.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:ecf13d49a1f213b1a0c477c890f1c0b121c0efb5475274990f623cbedffa4954",
+          "elapsed_ns": 103519000,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-021.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "repeat-process-021.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/repeat.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:ecf13d49a1f213b1a0c477c890f1c0b121c0efb5475274990f623cbedffa4954",
+          "elapsed_ns": 109771667,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-022.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "repeat-process-022.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/repeat.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:ecf13d49a1f213b1a0c477c890f1c0b121c0efb5475274990f623cbedffa4954",
+          "elapsed_ns": 101252458,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-023.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "repeat-process-023.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/repeat.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:ecf13d49a1f213b1a0c477c890f1c0b121c0efb5475274990f623cbedffa4954",
+          "elapsed_ns": 94498000,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-024.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "repeat-process-024.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/repeat.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:ecf13d49a1f213b1a0c477c890f1c0b121c0efb5475274990f623cbedffa4954",
+          "elapsed_ns": 101263333,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-025.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "repeat-process-025.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/repeat.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:ecf13d49a1f213b1a0c477c890f1c0b121c0efb5475274990f623cbedffa4954",
+          "elapsed_ns": 95592708,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-026.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "repeat-process-026.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/repeat.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:ecf13d49a1f213b1a0c477c890f1c0b121c0efb5475274990f623cbedffa4954",
+          "elapsed_ns": 99296917,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-027.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "repeat-process-027.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/repeat.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:ecf13d49a1f213b1a0c477c890f1c0b121c0efb5475274990f623cbedffa4954",
+          "elapsed_ns": 108188916,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-028.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "repeat-process-028.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/repeat.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:ecf13d49a1f213b1a0c477c890f1c0b121c0efb5475274990f623cbedffa4954",
+          "elapsed_ns": 98131375,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-029.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "repeat-process-029.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/tmp/bend2-law-source/bend2/main.ts",
+            "/tmp/law16-boolean-proof.Pf9u8J/bend/repeat.bend",
+            "--verdict"
+          ],
+          "command_sha256": "sha256:ecf13d49a1f213b1a0c477c890f1c0b121c0efb5475274990f623cbedffa4954",
+          "elapsed_ns": 94180584,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-030.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 17,
+            "path": "repeat-process-030.stdout",
+            "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+          },
+          "timeout_seconds": 120
+        }
+      ],
+      "status": "completed",
+      "summary": {
+        "count": 30,
+        "p50_ns": 100183937.0,
+        "p95_ns": 109771667
+      }
+    }
+  },
+  "cold_state": {
+    "reason": "process separation and fresh paths cannot isolate macOS page, executable, solver, or tool caches",
+    "status": "unavailable"
+  },
+  "configuration": {
+    "BEND_NO_TELEMETRY": "1",
+    "fresh_process_meaning": "new child process using the supplied fresh artifact-path command",
+    "repeat_process_meaning": "new child process using the supplied repeat artifact-path command",
+    "samples": 30,
+    "timeout_seconds": 120
+  },
+  "nonclaims": [
+    "fresh_process is not an OS-cache-cold observation",
+    "no cold-versus-warm ratio, winner, or cache-isolation claim"
+  ],
+  "raw_artifact_dir": "/private/tmp/law16-boolean-proof.Pf9u8J/output/proof-verdict-v2/bend-verdict-raw",
+  "schema": "semaprax.bend2-law-benchmark.cold-warm-process-cell.v2"
+}

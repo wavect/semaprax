@@ -1,0 +1,12 @@
+{
+  "schema": "semaprax.bend2-law-benchmark.local-tool-identity.v1",
+  "tool": "bend2 verdict kernel via Bun",
+  "commit": "947db722640c86247849343657bf2f7ef01cb7f1",
+  "executable_path_at_measurement": "/Users/kevin/.bun/bin/bun",
+  "executable_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+  "entrypoint_path_at_measurement": "/tmp/bend2-law-source/bend2/main.ts",
+  "entrypoint_sha256": "sha256:c48a0274e661a3e529933550752578768e8f029219d814073fbf86537271d475",
+  "source_fixture_sha256": "sha256:72581058167b162c2da076832284e7ed31ad5ed447dada93cee3f5e05e5a7f24",
+  "route": "Bend --verdict; BEND_NO_TELEMETRY=1",
+  "scope": "local pinned verdict output; not a separately replayed proof system or current-head evidence"
+}

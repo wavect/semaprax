@@ -1,0 +1,7 @@
+module app.tests;
+
+@id("app.tests.main")
+fn main() -> i64
+{
+    0
+}

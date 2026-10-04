@@ -1,0 +1,47 @@
+{
+  "admission_blocker": {
+    "reason": "the pinned SEMAPRAX parser rejects u32 sources before a matched success-plus-overflow or Z3 route can run",
+    "receipt": "evidence/law16-checked-u32-nonadmission-v1/review.json",
+    "sha256": "sha256:d123fb87b7b42356c5de84c4f1787c0183eeb0f3840d9fb5bbd9cd1b4a058561"
+  },
+  "attack": "no-op-transfer",
+  "attack_witness": {
+    "after": [
+      9,
+      4
+    ],
+    "amount": 3,
+    "before": [
+      9,
+      4
+    ]
+  },
+  "cell": "structured-balance-transfer-v1",
+  "fixture": {
+    "path": "fixtures/structured-balance-transfer-v1.json",
+    "sha256": "sha256:e755c21170231ba94d966744b21c842a92c145b35c8f7b2d3fa67f1a69ce564a"
+  },
+  "laws": [
+    "conservation",
+    "intended-state-change",
+    "nonnegative-balances"
+  ],
+  "nonclaims": [
+    "the 0..100 bounded-balance witness is not this checked-u32 cell",
+    "i32, i64, u8, and usize are not substitutes",
+    "no Bend/SEMAPRAX matched execution, proof, timing, or winner result"
+  ],
+  "schema": "semaprax.bend2-law-benchmark.structured-balance-admission.v1",
+  "semantic_witness": {
+    "after": [
+      6,
+      7
+    ],
+    "amount": 3,
+    "before": [
+      9,
+      4
+    ]
+  },
+  "status": "unsupported"
+}

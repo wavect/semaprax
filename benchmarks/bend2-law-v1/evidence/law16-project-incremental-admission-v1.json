@@ -1,0 +1,74 @@
+{
+  "admission_gates": [
+    {
+      "id": "checked-u32-parser",
+      "reason": "the pinned SEMAPRAX parser rejects checked-u32 input before a same-domain proof route can run",
+      "receipt": {
+        "path": "evidence/law16-checked-u32-nonadmission-v1/review.json",
+        "sha256": "sha256:d123fb87b7b42356c5de84c4f1787c0183eeb0f3840d9fb5bbd9cd1b4a058561"
+      },
+      "status": "unsupported"
+    },
+    {
+      "id": "incremental-accounting-output",
+      "reason": "the retained public project-proof-check source route selects one source postcondition and emits project assurance; its reviewed option/output surface has no changed-module, rechecked-module, or reused-module accounting",
+      "reviewed_sources": [
+        {
+          "bytes": 83649,
+          "path": "src/cli/help.rs",
+          "sha256": "sha256:dcad155d2ef4aecc7737dcaf83543faeb2926e71968e61755971deecafb8d9fc"
+        },
+        {
+          "bytes": 6256,
+          "path": "src/cli/project_proof.rs",
+          "sha256": "sha256:12f5290970db3ec667d2882091789595f56b3c2803e16f3fd42c770456b1b9f0"
+        }
+      ],
+      "status": "unsupported"
+    }
+  ],
+  "cell": "project-incremental-edit-v1",
+  "fixture": {
+    "path": "fixtures/project-incremental-edit-v1.json",
+    "sha256": "sha256:b6b8e0e6112d08da25e6aeb03337d34467cee8ded3c81339925dc0a0d812fbb0"
+  },
+  "nonclaims": [
+    "no checker was executed by this static review",
+    "this does not claim the repository has no incremental implementation outside the retained matched CLI route",
+    "no i32, i64, u8, or usize substitute",
+    "no matched execution, proof, timing, cache-work, or winner result"
+  ],
+  "schema": "semaprax.bend2-law-benchmark.project-incremental-admission.v1",
+  "semantic_contract": {
+    "laws": [
+      "unchanged-module-reuse",
+      "changed-module-recheck"
+    ],
+    "negative_control": {
+      "id": "stale-cache-reuse",
+      "witness": {
+        "changed": "core",
+        "output": 7,
+        "rechecked": [],
+        "reused": [
+          "core",
+          "api"
+        ],
+        "unchanged": "api"
+      }
+    },
+    "numeric_domain": "u32 checked",
+    "success_witness": {
+      "changed": "core",
+      "output": 9,
+      "rechecked": [
+        "core"
+      ],
+      "reused": [
+        "api"
+      ],
+      "unchanged": "api"
+    }
+  },
+  "status": "unsupported"
+}

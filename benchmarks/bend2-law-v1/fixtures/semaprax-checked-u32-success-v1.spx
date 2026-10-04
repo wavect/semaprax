@@ -1,0 +1,15 @@
+module law16.checked_u32_success;
+
+@id("law16.checked_u32_success.successor")
+fn successor(value: u32) -> u32
+    requires value < 4294967295u32
+    ensures result == value + 1u32
+{
+    value + 1u32
+}
+
+@id("law16.checked_u32_success.main")
+fn main() -> i64
+{
+    0
+}

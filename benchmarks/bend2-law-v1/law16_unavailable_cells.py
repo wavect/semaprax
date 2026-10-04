@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 """Emit explicit LAW-16 nonresults for cells without matched numeric semantics."""
 import json,pathlib
-CELLS=('supported-list-theorem-v1','law-preserving-refactor-v1','project-incremental-edit-v1')
+CELLS=(
+ 'structured-balance-transfer-v1',
+ 'supported-list-theorem-v1',
+ 'law-preserving-refactor-v1',
+ 'law-breaking-agent-edit-v1',
+ 'project-incremental-edit-v1',
+)
 def main():
  root=pathlib.Path(__file__).with_name('fixtures'); rows=[]
  for cell in CELLS:

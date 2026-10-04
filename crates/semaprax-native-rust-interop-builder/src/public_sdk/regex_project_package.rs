@@ -168,7 +168,7 @@ pub(crate) fn prepare_regex_project_package(
         raw_digest(native.rust.as_bytes())
     );
     let mut descriptor = String::new();
-    write!(descriptor,"{{\"schema\":\"semaprax.ri06.regex-project-descriptor.v1\",\"subject\":\"{}\",\"source_sha256\":\"{}\",\"lock_sha256\":\"{}\"}}\n",subject_digest,source_sha256,raw_digest(cargo_lock)).expect("String write");
+    write!(descriptor,"{{\"schema\":\"semaprax.ri06.regex-project-descriptor.v1\",\"subject\":\"{}\",\"source_sha256\":\"{}\",\"lock_sha256\":\"{}\",\"batch_api\":\"checked-export-repeat.v1\"}}\n",subject_digest,source_sha256,raw_digest(cargo_lock)).expect("String write");
     Ok(PreparedRegexProjectPackage {
         project_subject_digest: subject_digest.into(),
         target: target.into(),

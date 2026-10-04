@@ -6,7 +6,12 @@ fn main() {
         r#"{"value":2,"label":"two"}"#,
     ]
     .into_iter()
-    .map(deserialize_spxmirrorri13event)
+    .map(|source| {
+        let (record, transfer) = deserialize_spxmirrorri13event_with_transfer_metrics(source)?;
+        assert!(transfer.string_pointers_preserved);
+        assert_eq!(transfer.copied_string_bytes, Some(0));
+        Ok::<_, serde_json::Error>(record)
+    })
     .collect::<Result<Vec<Event>, _>>()
     .expect("generated Serde mirror parses real records");
     assert_eq!(records[0].label, "one");

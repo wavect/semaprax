@@ -9,3 +9,5 @@ publish = false
 [dependencies]
 ri06-regex-owner = { path = "../generated/regex", version = "=0.1.0" }
 ri06-url-owner = { path = "../generated/url", version = "=0.1.0" }
+regex_direct = { package = "regex", version = "=1.13.1" }
+url_direct = { package = "url", version = "=2.5.8" }

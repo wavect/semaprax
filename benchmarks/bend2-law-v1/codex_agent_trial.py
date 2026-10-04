@@ -25,6 +25,16 @@ SCHEMA = "semaprax.bend2-law-benchmark.codex-agent-trial.v2"
 EDIT_RESPONSE_SCHEMA = "semaprax.bend2-law-benchmark.boolean-edit-response.v1"
 MAX_EVENT_BYTES = 32 * 1024 * 1024
 TASK = "scalar-contract-bug-v1"
+TASK_SPECS = {
+    "scalar-contract-bug-v1": {
+        "bend2": (".bend", "bend-two-value-boolean-law-gaming-v1.bend", "bend-two-value-boolean-v1.bend"),
+        "semaprax-scalar-v1": (".spx", "semaprax-two-value-boolean-law-gaming-v1.spx", "semaprax-two-value-boolean-v1.spx"),
+    },
+    "boolean-negation-pair-v1": {
+        "bend2": (".bend", "bend-boolean-negation-law-gaming-v1.bend", "bend-boolean-negation-v1.bend"),
+        "semaprax-scalar-v1": (".spx", "semaprax-boolean-negation-law-gaming-v1.spx", "semaprax-boolean-negation-v1.spx"),
+    },
+}
 
 
 def _plan_module():
@@ -65,6 +75,24 @@ def selected_trial(plan: dict, trial_id: str) -> dict:
     return trial
 
 
+def require_boolean_negation_plan(plan: dict) -> None:
+    """Bind the executable 20-turn route to the reviewed matched pair plan."""
+    if plan.get("id") != "law16-boolean-negation-agent-trials-v1":
+        raise ValueError("Boolean-negation trial plan identity is unsupported")
+    reference = plan.get("pair_plan")
+    expected_path = pathlib.Path(__file__).with_name("fixtures") / "boolean-negation-pair-v1.json"
+    if not isinstance(reference, dict) or reference != {"path": "fixtures/boolean-negation-pair-v1.json", "sha256": sha256(expected_path.read_bytes())}:
+        raise ValueError("Boolean-negation trial plan is not bound to its exact pair plan")
+    pair_path = pathlib.Path(__file__).with_name("law16_boolean_negation_pair.py")
+    spec = importlib.util.spec_from_file_location("law16_boolean_negation_pair", pair_path)
+    pair = importlib.util.module_from_spec(spec)
+    assert spec and spec.loader
+    spec.loader.exec_module(pair)
+    result = pair.review(expected_path)
+    if result.get("status") != "prepared_not_executed":
+        raise ValueError("Boolean-negation source pair no longer has the required static identity")
+
+
 def usage(events: list[dict]) -> dict | None:
     """Keep Codex cache telemetry, without charging its input-token subset twice."""
     completed = [event for event in events if event.get("type") == "turn.completed"]
@@ -80,25 +108,32 @@ def usage(events: list[dict]) -> dict | None:
     return {field: raw[field] for field in fields} | {"total_tokens": raw["input_tokens"] + raw["output_tokens"]}
 
 
+def task_name(trial: dict) -> str:
+    trial_id = trial.get("id")
+    if not isinstance(trial_id, str) or ":" not in trial_id:
+        raise ValueError("isolated Codex edit route has an invalid trial identity")
+    task = trial_id.split(":", 1)[0]
+    if task not in TASK_SPECS:
+        raise ValueError("isolated Codex edit route has an unsupported task")
+    return task
+
+
 def edit_context(trial: dict) -> dict:
-    if not trial["id"].startswith(TASK + ":"):
-        raise ValueError("isolated Codex edit route admits only the pinned Boolean task")
+    task = task_name(trial)
     root = pathlib.Path(__file__).with_name("fixtures")
-    if trial["language"] == "bend2":
-        extension, attack, success = ".bend", "bend-two-value-boolean-law-gaming-v1.bend", "bend-two-value-boolean-v1.bend"
-    elif trial["language"] == "semaprax-scalar-v1":
-        extension, attack, success = ".spx", "semaprax-two-value-boolean-law-gaming-v1.spx", "semaprax-two-value-boolean-v1.spx"
-    else:
-        raise ValueError("isolated Codex edit route has an unsupported language")
+    try:
+        extension, attack, success = TASK_SPECS[task][trial["language"]]
+    except KeyError as error:
+        raise ValueError("isolated Codex edit route has an unsupported language") from error
     attack_source = (root / attack).read_text()
-    return {"extension": extension, "attack_source": attack_source, "attack_sha256": sha256(attack_source.encode()),
+    return {"task": task, "extension": extension, "attack_source": attack_source, "attack_sha256": sha256(attack_source.encode()),
             "success_source": (root / success).read_text()}
 
 
 def prompt(trial: dict) -> str:
     context = edit_context(trial)
     request = {
-        "task": TASK, "trial_id": trial["id"], "language": trial["language"], "laws": trial["acceptance"],
+        "task": context["task"], "trial_id": trial["id"], "language": trial["language"], "laws": trial["acceptance"],
         "seeded_law_gaming_source": context["attack_source"], "seeded_law_gaming_source_sha256": context["attack_sha256"],
         "required_success_case": trial["acceptance"]["success_witnesses"],
         "response_schema": EDIT_RESPONSE_SCHEMA,
@@ -146,6 +181,8 @@ def edit_response(text: str, trial: dict, context: dict) -> dict:
 def run(plan_path: pathlib.Path, trial_id: str, evidence_dir: pathlib.Path, executable: str = "codex") -> dict:
     plan = PLAN.object_json(plan_path, PLAN.SCHEMA)
     trial = selected_trial(plan, trial_id)
+    if task_name(trial) == "boolean-negation-pair-v1":
+        require_boolean_negation_plan(plan)
     context = edit_context(trial)
     configuration = plan.get("agent_configuration", {}).get("value")
     if not isinstance(configuration, dict):

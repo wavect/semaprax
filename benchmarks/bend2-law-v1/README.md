@@ -64,7 +64,7 @@ requires the same observed result; the agent edit retains its declared law; and
 the incremental cell records rechecking `core` while reusing only `api`.
 The corresponding mutants are rejected as weakened postconditions, no-op
 transfer, empty sort, dropped refactor law, removed agent law, and stale cache
-reuse. These are fixture checks, not tool execution evidence. All five
+reuse. These are fixture checks, not tool execution evidence. The [project incremental admission review](evidence/law16-project-incremental-admission-v1.json) additionally binds the exact stale-cache negative control, the checked-`u32` parser receipt, and the limits of the retained `project-proof-check` source-obligation route. All five
 checked-`u32` cells remain unavailable until both languages have matched
 executable source and proof routes; this validation never substitutes `i32`.
 
@@ -211,6 +211,34 @@ Bend verdict output is not an independent proof system, and Codex JSON has no
 monetary billing event. This cell is a fixed `0..100` witness, so it does not
 admit the wider checked-`u32`, list, refactor, or incremental LAW16 cells, and
 it does not establish a general transfer theorem or complete LAW16.
+
+## Checked-`u32` route admission
+
+The bounded balance witness does not make the five checked-`u32` LAW-16 cells
+available. The current reviewed SEMAPRAX scalar contract admits `i64`, `i32`,
+`u8`, and `usize`, but no `u32`; its existing Z3 route likewise has no `u32`
+encoding. Before any future SEMAPRAX command file declares `u32 checked`, run
+the narrow admission gate using the fixed success and overflow probes. It
+requires the success program to be accepted and a distinct execution of the
+fixed maximum-plus-one program to be rejected, retaining both streams and the
+pinned executable/source identities:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_checked_u32_admission.py \
+  --semaprax-root /secure/local/semaprax \
+  --semaprax-commit "$(git -C /secure/local/semaprax rev-parse HEAD)" \
+  --semaprax /secure/local/semaprax/target/release/semaprax \
+  --success-command '["/secure/local/semaprax/target/release/semaprax", "check", "{source}", "--json"]' \
+  --overflow-command '["/secure/local/semaprax/target/release/semaprax", "run", "{source}"]' \
+  --raw-artifact-dir /secure/local/law16-u32-admission-artifacts \
+  --output /secure/local/law16-u32-admission.json
+```
+
+`admitted` in that receipt is only an input-capability result. It does not
+establish the list, refactor, agent-edit, balance, or incremental tasks; it
+does not establish SMT or Lean proof support; and it cannot replace each
+cell's equal-spec attacks. A current receipt is absent, so the checked-`u32`
+routes remain unavailable.
 
 The following local-only provisioning sequence fetches the pinned Bend source
 without building it or placing it in this repository:
@@ -492,3 +520,278 @@ winner, GPU result, or claim about the unavailable checked-`u32` cells.
 already pinned commands and artifacts. It records both command streams and
 artifact digests, but always marks OS-cache coldness unavailable: fresh
 processes cannot isolate Darwin page, executable, solver, or tool caches.
+
+Use it only for a pair of already reproduced paths: a fresh copy of the same
+project or fixture and a repeat path with the same source bytes. Supply the
+two source paths, the pinned executable, and its retained version receipt as
+`--artifact` inputs. It writes all 120 child streams (stdout and stderr for 30
+fresh-path plus 30 repeat-path children) beneath a new raw-artifact directory,
+and the JSON receipt binds each stream's relative path, byte count, digest,
+argv, and command digest. The process-state plan is committed as
+[`evidence/law16-process-state-plan-v1.json`](evidence/law16-process-state-plan-v1.json).
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_cold_warm_cell.py \
+  --fresh-command '["/absolute/path/to/semaprax", "check", "/secure/local/law16-fresh/src/app.spx", "--json"]' \
+  --repeat-command '["/absolute/path/to/semaprax", "check", "/secure/local/law16-repeat/src/app.spx", "--json"]' \
+  --fresh-input /secure/local/law16-fresh/src/app.spx \
+  --repeat-input /secure/local/law16-repeat/src/app.spx \
+  --artifact /absolute/path/to/semaprax \
+  --artifact /secure/local/semaprax-version-receipt.txt \
+  --timeout-seconds 120 \
+  --raw-artifact-dir /secure/local/law16-process-state-streams \
+  --output /secure/local/law16-process-state.json
+```
+
+This is process provisioning evidence, not a cold-cache result. Preserve the
+fresh and repeat source byte digests in the receipt; if they differ, the
+result compares different programs and must be rejected during review.
+
+On 4 October 2026, the retained executable at commit
+`9a9db7a8117ac8d292b24ffd5671ec3333272290` (SHA-256
+`cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89`)
+completed this Boolean `semaprax check --json` process-state cell. The bounded
+capsule at
+[`evidence/law16-process-state-semaprax-bool-v1/`](evidence/law16-process-state-semaprax-bool-v1/)
+contains two byte-identical inputs and 120 raw streams: 30 successful fresh
+path children had p50/p95 256.172/264.991 ms; 30 successful repeat-path
+children had p50/p95 256.873/264.982 ms. Re-authenticate the receipt without
+running SEMAPRAX with:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_process_state_capsule.py \
+  --capsule benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-v1 \
+  --output /tmp/law16-process-state-review.json
+```
+
+The fresh and repeat command paths are separate processes with identical input
+bytes. macOS page, executable, solver, and tool-cache state were not isolated,
+so these numbers are not cold/warm values and are not compared as a ratio or a
+winner. This route is a SEMAPRAX compiler check, not an SMT proof, Lean proof,
+or runtime measurement.
+
+The ordinary Bend checker has a separate, matching Boolean process-state
+capsule at
+[`evidence/law16-process-state-bend-bool-normal-v1/`](evidence/law16-process-state-bend-bool-normal-v1/).
+At Bend commit `947db722640c86247849343657bf2f7ef01cb7f1`, Bun 1.2.5, and
+`BEND_NO_TELEMETRY=1`, its 30 fresh-path children had p50/p95
+73.670/75.060 ms and its 30 repeat-path children had p50/p95 73.750/74.702
+ms. It retains 120 streams and authenticates through the same offline command.
+This is ordinary Bend checking only: Bend `--verdict` remains a distinct route
+with separate measurements and no values in this capsule are compared against
+SEMAPRAX as a winner claim.
+
+The matching Boolean Bend `--verdict` process state is retained separately in
+[`evidence/law16-process-state-bend-bool-verdict-v1/`](evidence/law16-process-state-bend-bool-verdict-v1/): 30 fresh-path children had p50/p95
+97.555/114.737 ms and 30 repeat-path children had p50/p95 95.808/130.453 ms.
+This records the retained `ALL PROOFS CHECK` route under the same pinned Bend
+commit and Bun identity. It is not mixed with ordinary checking or represented
+as an independently replayed proof system.
+
+The separately retained SEMAPRAX project-bound Z3 source-proof route is
+[`evidence/law16-process-state-semaprax-bool-z3-v3/`](evidence/law16-process-state-semaprax-bool-z3-v3/).
+Its exact returned `app.negate` source, installed Z3 4.12.5 identity, and two
+complete copied projects are bound into the receipt. Thirty fresh-path
+children had p50/p95 449.932/484.709 ms; thirty repeat-path children had
+p50/p95 447.023/494.358 ms. It discharges only `app.negate`'s selected
+postcondition in a trusted local source translation: it is neither complete
+law coverage nor lowering/execution proof. The fresh and repeat paths do not
+isolate OS or solver caches, so all four route corpora remain separate process
+provisioning observations without ratios or a winner.
+
+`law16_boolean_verdict_aggregate.py` reviews the retained Bend verdict and
+SEMAPRAX Z3 capsules together before anybody treats them as a matched corpus.
+Its committed output is deliberately `not_matched`: Bend's fixed source proves
+`boolean_score(value) == Bool.to_u32(value)`, whereas SEMAPRAX's source
+discharges `ensures result == !value` for `app.negate`. Equal Boolean input
+cardinality does not make those contracts equivalent. Reproduce the offline
+nonresult with:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_boolean_verdict_aggregate.py \
+  --output /tmp/law16-boolean-verdict-aggregate.json
+```
+
+This prevents a verdict-versus-Z3 timing ratio or winner claim. A future
+matched Boolean process corpus needs the same fixed law, seeded attacks, and
+separately authenticated proof routes on both sides.
+
+## Prepared matched Boolean-negation verdict corpus
+
+[`fixtures/boolean-negation-pair-v1.json`](fixtures/boolean-negation-pair-v1.json)
+replaces no retained measurement. It prepares the missing equal-semantics pair:
+both languages implement total Boolean negation over exactly `{false, true}` and
+bind the same truth table, `false -> true` and `true -> false`. The Bend
+candidate has a universal `negate(value) == Bool.not(value)` law; the SEMAPRAX
+candidate uses the same `@id("app.negate")` and `ensures result == !value`.
+Each identity mutant retains that assertion while returning the input (Bend) or
+`false` (SEMAPRAX), so an acceptance run must retain explicit rejection
+receipts rather than infer correctness from the candidate text.
+
+The static reviewer checks every fixture byte digest, the duplicated SEMAPRAX
+project source, both-valued truth table, admitted assertion shapes, and the
+required 30 fresh-path plus 30 repeat-path child count for each route:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_boolean_negation_pair.py \
+  --output /tmp/law16-boolean-negation-pair-review.json
+```
+
+The SEMAPRAX project templates are in
+[`fixtures/boolean-negation-project-v1/`](fixtures/boolean-negation-project-v1/).
+For an eventual execution, copy each candidate or attack project to two fresh
+operator-selected roots and invoke the pinned project checker on
+`src/app.spx`, declaration `app.negate`, `ensures` index `0`, and the retained
+installed-Z3 identity. Run Bend `--verdict` on byte-identical fresh/repeat
+copies of the corresponding `.bend` fixture. Use `law16_cold_warm_cell.py`
+with `--samples 30` for each candidate and mutant route, preserve its 120 raw
+streams per route, and bind the executable, source/project, argv, and attack
+receipts to this plan.
+
+This is a prepared plan, not a matched process corpus. It has no new Bend
+30-sample receipt and no SEMAPRAX Z3 receipt for these exact canonical source
+bytes, so `comparability_gate.status` is `not_validated`. The earlier score-law
+versus negation corpus remains `not_matched`; it cannot be combined with this
+pair. Fresh/repeat paths still do not isolate operating-system, executable,
+solver, or tool caches. No timing ratio, winner, checked-`u32`, lowering, or
+execution-proof claim follows from the plan.
+
+## Executed matched Boolean-negation process receipts
+
+[`evidence/law16-boolean-negation-process-v1/`](evidence/law16-boolean-negation-process-v1/)
+executes the prepared pair on 4 October 2026. It binds 30 fresh-path and 30
+repeat-path children for each candidate and assertion-retaining attack in both
+lanes: 480 retained stdout/stderr streams. The pinned Bend `--verdict` route
+accepted all 60 candidate children and rejected all 60 identity-mutant
+children. The pinned SEMAPRAX `project-proof-check` route using installed Z3
+accepted all 60 selected `app.negate ensures[0]` candidate discharges and
+rejected all 60 `false`-body mutants. The offline reviewer verifies the plan
+source identity, every stream digest, command digest, timeout budget, two
+process states, timing summaries, and expected candidate/attack outcomes:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_boolean_negation_process_capsule.py \
+  --capsule benchmarks/bend2-law-v1/evidence/law16-boolean-negation-process-v1 \
+  --output /tmp/law16-boolean-negation-process-review.json
+```
+
+The reviewer accepts semantic-contract and negative-control binding, while it
+continues to mark cross-route timing `not_reported`. Bend verdict output and
+SEMAPRAX's installed-Z3 source proof use separate trusted computing bases;
+process provisioning does not isolate operating-system or tool caches. These
+receipts do not establish checked-`u32`, lowering, execution, a general theorem,
+or a winner.
+
+## Executed checked-`u32` non-admission
+
+[`evidence/law16-checked-u32-nonadmission-v1/`](evidence/law16-checked-u32-nonadmission-v1/)
+retains a bounded negative capability observation for the pinned SEMAPRAX
+executable used by the local Boolean proof route. It invoked `check --json` on
+both the fixed `u32` successor and maximum-plus-one sources. Both exited
+nonzero with the exact `SPX-P003` diagnostic: integer literal suffixes admit
+only `i32`, `u8`, and `usize`. The offline verifier binds the executable digest,
+commit label, source bytes, and both raw streams:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_checked_u32_nonadmission_capsule.py \
+  --capsule benchmarks/bend2-law-v1/evidence/law16-checked-u32-nonadmission-v1 \
+  --output /tmp/law16-checked-u32-nonadmission-review.json
+```
+
+This is evidence that this pinned parser cannot enter a matched checked-`u32`
+success-plus-overflow cell. It does not show an overflow runtime behavior,
+SMT/Lean `u32` support, Bend parity, or a LAW-16 task outcome. In particular,
+`i32`, `i64`, `u8`, and `usize` remain inadmissible substitutes.
+
+## Preregistered Boolean-negation agent experiment
+
+[`evidence/law16-boolean-negation-agent-plan-v1.json`](evidence/law16-boolean-negation-agent-plan-v1.json)
+pre-registers ten independent ordinals for the now matched Boolean-negation
+pair. Each ordinal contains one Bend and one SEMAPRAX turn (20 turns total),
+pinned to `gpt-6-luna`, `codex exec --json`, a fresh empty directory, the
+read-only sandbox, no repository access, a 600-second wall limit, and a
+20,000-token limit. The runner embeds the complete assertion-retaining lane
+mutant and its digest, retains raw JSONL events, stderr, Codex version, model
+response, final source, and attack claim.
+
+A captured turn remains ineligible without exactly one `turn.completed.usage`
+event whose `input_tokens + output_tokens` is within 20,000. Cached input is
+retained separately and is never double-counted. Codex JSON has no monetary
+charge event: the plan's `max_cost_usd: "0.00"` is a preregistered accounting
+ceiling, not an observed or enforceable provider bill, and every result keeps
+cost usage unavailable unless a genuine charge event is supplied.
+
+Run one selected ordinal only after creating a new operator evidence root:
+
+```sh
+python3 benchmarks/bend2-law-v1/codex_agent_trial.py \
+  --plan benchmarks/bend2-law-v1/evidence/law16-boolean-negation-agent-plan-v1.json \
+  --trial boolean-negation-pair-v1:bend2:1 \
+  --evidence-dir /secure/local/law16-negation-agent/bend-1 \
+  --output /secure/local/law16-negation-agent/bend-1.json
+```
+
+Capture is not acceptance. Each retained model source must subsequently pass
+its lane's exact pinned candidate route, and the fixed identity or `false`
+mutant must be rejected through that lane's exact route. The plan does not run
+provider turns, report a cost, prove lowering or execution, or authorize a
+cross-language timing ratio or winner.
+
+## One matched Boolean-negation agent pilot
+
+[`evidence/law16-boolean-negation-agent-pilot-v1/`](evidence/law16-boolean-negation-agent-pilot-v1/)
+contains the preregistered ordinal-1 pilot pair. Both Luna turns retained raw
+Codex JSON events and complete final sources within the 20,000-token limit:
+Bend used 16,626 chargeable tokens with 11,008 cached-input tokens; SEMAPRAX
+used 16,711 chargeable tokens with 14,080 cached-input tokens. Monetary cost
+remains unavailable because the raw Codex JSON events contain no charge field.
+
+The retained final Bend source passed the pinned `--verdict` route and the
+fixed identity mutant failed it. The retained final SEMAPRAX source discharged
+selected `app.negate ensures[0]` through the pinned installed-Z3 route, while
+the fixed `false` mutant was refused. Reauthenticate raw event, source,
+telemetry, candidate, and attack bindings without invoking a provider or CLI:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_boolean_negation_agent_pilot.py \
+  --capsule benchmarks/bend2-law-v1/evidence/law16-boolean-negation-agent-pilot-v1 \
+  --output /tmp/law16-boolean-negation-agent-pilot-review.json
+```
+
+This is one matched pilot pair. Nine unrun ordinals remain per lane, so it is
+not the preregistered ten-pair experiment, a cost result, lowering/execution
+proof, timing comparison, or winner claim.
+
+## Completed ten-pair Boolean-negation agent observation
+
+The ordinal-1 pilot and the retained nine-pair continuation now cover all ten
+preregistered matched Boolean-negation ordinals. Each Bend final source passed
+its pinned verdict route and each fixed identity mutant was rejected. Each
+SEMAPRAX final source discharged selected `app.negate ensures[0]` through the
+pinned installed-Z3 route and each fixed `false` mutant was rejected. The
+continuation capsule is
+[`evidence/law16-boolean-negation-agent-campaign-v1/`](evidence/law16-boolean-negation-agent-campaign-v1/);
+its validator authenticates nine pairs without rerunning providers:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_boolean_negation_agent_campaign_capsule.py \
+  --capsule benchmarks/bend2-law-v1/evidence/law16-boolean-negation-agent-campaign-v1 \
+  --output /tmp/law16-boolean-negation-agent-campaign-review.json
+```
+
+All retained turns stayed within the fixed token ceiling and expose no monetary
+charge event, so cost remains unavailable. The ten pairs concern only this
+matched Boolean negation task. Separate trusted computing bases, cache limits,
+checked-`u32` non-admission, and the wider LAW-16 cells still prevent a
+cross-route timing ratio, winner claim, or complete LAW-16 conclusion.
+
+## Structured balance-transfer admission
+
+The required `structured-balance-transfer-v1` fixture remains a checked-`u32`
+cell: it binds `[9,4] --3--> [6,7]` for conservation and intended state change,
+with `[9,4]` as the no-op-transfer control. Its dedicated admission result is
+[`evidence/law16-structured-balance-admission-v1.json`](evidence/law16-structured-balance-admission-v1.json).
+It is `unsupported`, because the authenticated pinned SEMAPRAX parser rejects
+`u32` before a matched candidate, overflow, or source-proof route can run.
+The separate bounded `0..100` transfer witness cannot be relabelled as this
+checked-`u32` task.

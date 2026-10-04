@@ -1,0 +1,39 @@
+{
+  "cells": [
+    {
+      "fixture_sha256": "e755c21170231ba94d966744b21c842a92c145b35c8f7b2d3fa67f1a69ce564a",
+      "id": "structured-balance-transfer-v1",
+      "reason": "SEMAPRAX reviewed scalar profile lacks checked u32; Bend U32 cannot be relabelled as i32/i64",
+      "status": "unsupported"
+    },
+    {
+      "fixture_sha256": "027f3548bd0282dc7e38fa1cd9ba822176a4c7d281b559720a9fad398f0fbccd",
+      "id": "supported-list-theorem-v1",
+      "reason": "SEMAPRAX reviewed scalar profile lacks checked u32; Bend U32 cannot be relabelled as i32/i64",
+      "status": "unsupported"
+    },
+    {
+      "fixture_sha256": "d467b1a05ecac911f91247270440ad9b3915483efd8eba43d3aabfd68fbc16ff",
+      "id": "law-preserving-refactor-v1",
+      "reason": "SEMAPRAX reviewed scalar profile lacks checked u32; Bend U32 cannot be relabelled as i32/i64",
+      "status": "unsupported"
+    },
+    {
+      "fixture_sha256": "359c01461d0a015cc523d2ec70acbfbfb4cf8da724cd490a84426bdcf765a013",
+      "id": "law-breaking-agent-edit-v1",
+      "reason": "SEMAPRAX reviewed scalar profile lacks checked u32; Bend U32 cannot be relabelled as i32/i64",
+      "status": "unsupported"
+    },
+    {
+      "fixture_sha256": "b6b8e0e6112d08da25e6aeb03337d34467cee8ded3c81339925dc0a0d812fbb0",
+      "id": "project-incremental-edit-v1",
+      "reason": "SEMAPRAX reviewed scalar profile lacks checked u32; Bend U32 cannot be relabelled as i32/i64",
+      "status": "unsupported"
+    }
+  ],
+  "nonclaims": [
+    "not an executed benchmark result",
+    "not a win"
+  ],
+  "schema": "semaprax.bend2-law-benchmark.law16-unavailable-cells.v1"
+}

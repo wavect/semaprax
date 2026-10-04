@@ -1,0 +1,1453 @@
+{
+  "acceptance_rule": "each of ten ordinals is a matched Bend/SEMAPRAX pair; capture raw events and final sources within the token budget, then independently accept candidate source and reject exact lane attack",
+  "agent_configuration": {
+    "path": "fixtures/boolean-negation-agent-config-v1.json",
+    "sha256": "sha256:0c182a363c8acdbce93ed2c01ab858a5f9bce6b7b8b2d1f1fbbf4e4499d260ca",
+    "value": {
+      "execution": {
+        "max_wall_seconds": 600,
+        "repository_access": "none",
+        "runner": "codex_exec_json_v1",
+        "sandbox": "read-only",
+        "working_directory": "fresh-empty-directory"
+      },
+      "fixed_budget": {
+        "max_cost_usd": "0.00",
+        "max_tokens": 20000
+      },
+      "model": {
+        "configuration_sha256": "sha256:64447e79bd4a6066d11fff1887e71c2c10da34a14aa3d0399f004c381ca49898",
+        "name": "gpt-6-luna",
+        "provider": "openai-codex-cli"
+      },
+      "schema": "semaprax.bend2-law-benchmark.agent-trial-config.v1",
+      "tool_access": {
+        "filesystem": "read-only",
+        "network": "provider-managed",
+        "shell": "read-only"
+      },
+      "trials_per_cell": 10
+    }
+  },
+  "cells": [
+    {
+      "id": "boolean-negation-pair-v1",
+      "languages": [
+        "bend2",
+        "semaprax-scalar-v1"
+      ],
+      "numeric_domain": "bool exact",
+      "semantic_contract": {
+        "domain": "Bool / bool; exactly two values",
+        "name": "total Boolean negation",
+        "relation": "result == !value / Bool.not(value)",
+        "truth_table": [
+          {
+            "input": false,
+            "output": true
+          },
+          {
+            "input": true,
+            "output": false
+          }
+        ]
+      },
+      "status": "preregistered",
+      "trials": [
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "identity-return": {
+                "behavior": "negate(value) returns value; must be rejected by verdict",
+                "source": {
+                  "bytes": 196,
+                  "path": "fixtures/bend-boolean-negation-law-gaming-v1.bend",
+                  "sha256": "sha256:5ee075e4f37c305e1aa73ed7c81d7fa59815e58c5f4aeda4ac658e79c1fe96fa"
+                }
+              }
+            },
+            "required_attack_outcome": "exact retained attack source must be rejected by the exact pinned attack route",
+            "required_candidate_outcome": "complete final source must pass the exact pinned candidate route for its lane",
+            "semantic_contract": {
+              "domain": "Bool / bool; exactly two values",
+              "name": "total Boolean negation",
+              "relation": "result == !value / Bool.not(value)",
+              "truth_table": [
+                {
+                  "input": false,
+                  "output": true
+                },
+                {
+                  "input": true,
+                  "output": false
+                }
+              ]
+            },
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              },
+              {
+                "input": true,
+                "output": false
+              }
+            ]
+          },
+          "execution": {
+            "max_wall_seconds": 600,
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "boolean-negation-pair-v1:bend2:1",
+          "independent_evaluation": {
+            "bend2": "pinned Bend --verdict candidate accepts and identity mutant rejects",
+            "semaprax-scalar-v1": "pinned project-proof-check candidate app.negate ensures[0] discharges and false mutant rejects",
+            "status": "required_after_capture"
+          },
+          "language": "bend2",
+          "ordinal": 1,
+          "status": "not_run",
+          "telemetry": {
+            "cost_usage": {
+              "reason": "Codex JSON events do not supply a monetary charge field",
+              "status": "unavailable_until_event"
+            },
+            "required_events": [
+              "turn.completed.usage input_tokens",
+              "turn.completed.usage cached_input_tokens",
+              "turn.completed.usage output_tokens"
+            ]
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "identity-return": {
+                "behavior": "negate(value) returns value; must be rejected by verdict",
+                "source": {
+                  "bytes": 196,
+                  "path": "fixtures/bend-boolean-negation-law-gaming-v1.bend",
+                  "sha256": "sha256:5ee075e4f37c305e1aa73ed7c81d7fa59815e58c5f4aeda4ac658e79c1fe96fa"
+                }
+              }
+            },
+            "required_attack_outcome": "exact retained attack source must be rejected by the exact pinned attack route",
+            "required_candidate_outcome": "complete final source must pass the exact pinned candidate route for its lane",
+            "semantic_contract": {
+              "domain": "Bool / bool; exactly two values",
+              "name": "total Boolean negation",
+              "relation": "result == !value / Bool.not(value)",
+              "truth_table": [
+                {
+                  "input": false,
+                  "output": true
+                },
+                {
+                  "input": true,
+                  "output": false
+                }
+              ]
+            },
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              },
+              {
+                "input": true,
+                "output": false
+              }
+            ]
+          },
+          "execution": {
+            "max_wall_seconds": 600,
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "boolean-negation-pair-v1:bend2:2",
+          "independent_evaluation": {
+            "bend2": "pinned Bend --verdict candidate accepts and identity mutant rejects",
+            "semaprax-scalar-v1": "pinned project-proof-check candidate app.negate ensures[0] discharges and false mutant rejects",
+            "status": "required_after_capture"
+          },
+          "language": "bend2",
+          "ordinal": 2,
+          "status": "not_run",
+          "telemetry": {
+            "cost_usage": {
+              "reason": "Codex JSON events do not supply a monetary charge field",
+              "status": "unavailable_until_event"
+            },
+            "required_events": [
+              "turn.completed.usage input_tokens",
+              "turn.completed.usage cached_input_tokens",
+              "turn.completed.usage output_tokens"
+            ]
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "identity-return": {
+                "behavior": "negate(value) returns value; must be rejected by verdict",
+                "source": {
+                  "bytes": 196,
+                  "path": "fixtures/bend-boolean-negation-law-gaming-v1.bend",
+                  "sha256": "sha256:5ee075e4f37c305e1aa73ed7c81d7fa59815e58c5f4aeda4ac658e79c1fe96fa"
+                }
+              }
+            },
+            "required_attack_outcome": "exact retained attack source must be rejected by the exact pinned attack route",
+            "required_candidate_outcome": "complete final source must pass the exact pinned candidate route for its lane",
+            "semantic_contract": {
+              "domain": "Bool / bool; exactly two values",
+              "name": "total Boolean negation",
+              "relation": "result == !value / Bool.not(value)",
+              "truth_table": [
+                {
+                  "input": false,
+                  "output": true
+                },
+                {
+                  "input": true,
+                  "output": false
+                }
+              ]
+            },
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              },
+              {
+                "input": true,
+                "output": false
+              }
+            ]
+          },
+          "execution": {
+            "max_wall_seconds": 600,
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "boolean-negation-pair-v1:bend2:3",
+          "independent_evaluation": {
+            "bend2": "pinned Bend --verdict candidate accepts and identity mutant rejects",
+            "semaprax-scalar-v1": "pinned project-proof-check candidate app.negate ensures[0] discharges and false mutant rejects",
+            "status": "required_after_capture"
+          },
+          "language": "bend2",
+          "ordinal": 3,
+          "status": "not_run",
+          "telemetry": {
+            "cost_usage": {
+              "reason": "Codex JSON events do not supply a monetary charge field",
+              "status": "unavailable_until_event"
+            },
+            "required_events": [
+              "turn.completed.usage input_tokens",
+              "turn.completed.usage cached_input_tokens",
+              "turn.completed.usage output_tokens"
+            ]
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "identity-return": {
+                "behavior": "negate(value) returns value; must be rejected by verdict",
+                "source": {
+                  "bytes": 196,
+                  "path": "fixtures/bend-boolean-negation-law-gaming-v1.bend",
+                  "sha256": "sha256:5ee075e4f37c305e1aa73ed7c81d7fa59815e58c5f4aeda4ac658e79c1fe96fa"
+                }
+              }
+            },
+            "required_attack_outcome": "exact retained attack source must be rejected by the exact pinned attack route",
+            "required_candidate_outcome": "complete final source must pass the exact pinned candidate route for its lane",
+            "semantic_contract": {
+              "domain": "Bool / bool; exactly two values",
+              "name": "total Boolean negation",
+              "relation": "result == !value / Bool.not(value)",
+              "truth_table": [
+                {
+                  "input": false,
+                  "output": true
+                },
+                {
+                  "input": true,
+                  "output": false
+                }
+              ]
+            },
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              },
+              {
+                "input": true,
+                "output": false
+              }
+            ]
+          },
+          "execution": {
+            "max_wall_seconds": 600,
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "boolean-negation-pair-v1:bend2:4",
+          "independent_evaluation": {
+            "bend2": "pinned Bend --verdict candidate accepts and identity mutant rejects",
+            "semaprax-scalar-v1": "pinned project-proof-check candidate app.negate ensures[0] discharges and false mutant rejects",
+            "status": "required_after_capture"
+          },
+          "language": "bend2",
+          "ordinal": 4,
+          "status": "not_run",
+          "telemetry": {
+            "cost_usage": {
+              "reason": "Codex JSON events do not supply a monetary charge field",
+              "status": "unavailable_until_event"
+            },
+            "required_events": [
+              "turn.completed.usage input_tokens",
+              "turn.completed.usage cached_input_tokens",
+              "turn.completed.usage output_tokens"
+            ]
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "identity-return": {
+                "behavior": "negate(value) returns value; must be rejected by verdict",
+                "source": {
+                  "bytes": 196,
+                  "path": "fixtures/bend-boolean-negation-law-gaming-v1.bend",
+                  "sha256": "sha256:5ee075e4f37c305e1aa73ed7c81d7fa59815e58c5f4aeda4ac658e79c1fe96fa"
+                }
+              }
+            },
+            "required_attack_outcome": "exact retained attack source must be rejected by the exact pinned attack route",
+            "required_candidate_outcome": "complete final source must pass the exact pinned candidate route for its lane",
+            "semantic_contract": {
+              "domain": "Bool / bool; exactly two values",
+              "name": "total Boolean negation",
+              "relation": "result == !value / Bool.not(value)",
+              "truth_table": [
+                {
+                  "input": false,
+                  "output": true
+                },
+                {
+                  "input": true,
+                  "output": false
+                }
+              ]
+            },
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              },
+              {
+                "input": true,
+                "output": false
+              }
+            ]
+          },
+          "execution": {
+            "max_wall_seconds": 600,
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "boolean-negation-pair-v1:bend2:5",
+          "independent_evaluation": {
+            "bend2": "pinned Bend --verdict candidate accepts and identity mutant rejects",
+            "semaprax-scalar-v1": "pinned project-proof-check candidate app.negate ensures[0] discharges and false mutant rejects",
+            "status": "required_after_capture"
+          },
+          "language": "bend2",
+          "ordinal": 5,
+          "status": "not_run",
+          "telemetry": {
+            "cost_usage": {
+              "reason": "Codex JSON events do not supply a monetary charge field",
+              "status": "unavailable_until_event"
+            },
+            "required_events": [
+              "turn.completed.usage input_tokens",
+              "turn.completed.usage cached_input_tokens",
+              "turn.completed.usage output_tokens"
+            ]
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "identity-return": {
+                "behavior": "negate(value) returns value; must be rejected by verdict",
+                "source": {
+                  "bytes": 196,
+                  "path": "fixtures/bend-boolean-negation-law-gaming-v1.bend",
+                  "sha256": "sha256:5ee075e4f37c305e1aa73ed7c81d7fa59815e58c5f4aeda4ac658e79c1fe96fa"
+                }
+              }
+            },
+            "required_attack_outcome": "exact retained attack source must be rejected by the exact pinned attack route",
+            "required_candidate_outcome": "complete final source must pass the exact pinned candidate route for its lane",
+            "semantic_contract": {
+              "domain": "Bool / bool; exactly two values",
+              "name": "total Boolean negation",
+              "relation": "result == !value / Bool.not(value)",
+              "truth_table": [
+                {
+                  "input": false,
+                  "output": true
+                },
+                {
+                  "input": true,
+                  "output": false
+                }
+              ]
+            },
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              },
+              {
+                "input": true,
+                "output": false
+              }
+            ]
+          },
+          "execution": {
+            "max_wall_seconds": 600,
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "boolean-negation-pair-v1:bend2:6",
+          "independent_evaluation": {
+            "bend2": "pinned Bend --verdict candidate accepts and identity mutant rejects",
+            "semaprax-scalar-v1": "pinned project-proof-check candidate app.negate ensures[0] discharges and false mutant rejects",
+            "status": "required_after_capture"
+          },
+          "language": "bend2",
+          "ordinal": 6,
+          "status": "not_run",
+          "telemetry": {
+            "cost_usage": {
+              "reason": "Codex JSON events do not supply a monetary charge field",
+              "status": "unavailable_until_event"
+            },
+            "required_events": [
+              "turn.completed.usage input_tokens",
+              "turn.completed.usage cached_input_tokens",
+              "turn.completed.usage output_tokens"
+            ]
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "identity-return": {
+                "behavior": "negate(value) returns value; must be rejected by verdict",
+                "source": {
+                  "bytes": 196,
+                  "path": "fixtures/bend-boolean-negation-law-gaming-v1.bend",
+                  "sha256": "sha256:5ee075e4f37c305e1aa73ed7c81d7fa59815e58c5f4aeda4ac658e79c1fe96fa"
+                }
+              }
+            },
+            "required_attack_outcome": "exact retained attack source must be rejected by the exact pinned attack route",
+            "required_candidate_outcome": "complete final source must pass the exact pinned candidate route for its lane",
+            "semantic_contract": {
+              "domain": "Bool / bool; exactly two values",
+              "name": "total Boolean negation",
+              "relation": "result == !value / Bool.not(value)",
+              "truth_table": [
+                {
+                  "input": false,
+                  "output": true
+                },
+                {
+                  "input": true,
+                  "output": false
+                }
+              ]
+            },
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              },
+              {
+                "input": true,
+                "output": false
+              }
+            ]
+          },
+          "execution": {
+            "max_wall_seconds": 600,
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "boolean-negation-pair-v1:bend2:7",
+          "independent_evaluation": {
+            "bend2": "pinned Bend --verdict candidate accepts and identity mutant rejects",
+            "semaprax-scalar-v1": "pinned project-proof-check candidate app.negate ensures[0] discharges and false mutant rejects",
+            "status": "required_after_capture"
+          },
+          "language": "bend2",
+          "ordinal": 7,
+          "status": "not_run",
+          "telemetry": {
+            "cost_usage": {
+              "reason": "Codex JSON events do not supply a monetary charge field",
+              "status": "unavailable_until_event"
+            },
+            "required_events": [
+              "turn.completed.usage input_tokens",
+              "turn.completed.usage cached_input_tokens",
+              "turn.completed.usage output_tokens"
+            ]
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "identity-return": {
+                "behavior": "negate(value) returns value; must be rejected by verdict",
+                "source": {
+                  "bytes": 196,
+                  "path": "fixtures/bend-boolean-negation-law-gaming-v1.bend",
+                  "sha256": "sha256:5ee075e4f37c305e1aa73ed7c81d7fa59815e58c5f4aeda4ac658e79c1fe96fa"
+                }
+              }
+            },
+            "required_attack_outcome": "exact retained attack source must be rejected by the exact pinned attack route",
+            "required_candidate_outcome": "complete final source must pass the exact pinned candidate route for its lane",
+            "semantic_contract": {
+              "domain": "Bool / bool; exactly two values",
+              "name": "total Boolean negation",
+              "relation": "result == !value / Bool.not(value)",
+              "truth_table": [
+                {
+                  "input": false,
+                  "output": true
+                },
+                {
+                  "input": true,
+                  "output": false
+                }
+              ]
+            },
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              },
+              {
+                "input": true,
+                "output": false
+              }
+            ]
+          },
+          "execution": {
+            "max_wall_seconds": 600,
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "boolean-negation-pair-v1:bend2:8",
+          "independent_evaluation": {
+            "bend2": "pinned Bend --verdict candidate accepts and identity mutant rejects",
+            "semaprax-scalar-v1": "pinned project-proof-check candidate app.negate ensures[0] discharges and false mutant rejects",
+            "status": "required_after_capture"
+          },
+          "language": "bend2",
+          "ordinal": 8,
+          "status": "not_run",
+          "telemetry": {
+            "cost_usage": {
+              "reason": "Codex JSON events do not supply a monetary charge field",
+              "status": "unavailable_until_event"
+            },
+            "required_events": [
+              "turn.completed.usage input_tokens",
+              "turn.completed.usage cached_input_tokens",
+              "turn.completed.usage output_tokens"
+            ]
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "identity-return": {
+                "behavior": "negate(value) returns value; must be rejected by verdict",
+                "source": {
+                  "bytes": 196,
+                  "path": "fixtures/bend-boolean-negation-law-gaming-v1.bend",
+                  "sha256": "sha256:5ee075e4f37c305e1aa73ed7c81d7fa59815e58c5f4aeda4ac658e79c1fe96fa"
+                }
+              }
+            },
+            "required_attack_outcome": "exact retained attack source must be rejected by the exact pinned attack route",
+            "required_candidate_outcome": "complete final source must pass the exact pinned candidate route for its lane",
+            "semantic_contract": {
+              "domain": "Bool / bool; exactly two values",
+              "name": "total Boolean negation",
+              "relation": "result == !value / Bool.not(value)",
+              "truth_table": [
+                {
+                  "input": false,
+                  "output": true
+                },
+                {
+                  "input": true,
+                  "output": false
+                }
+              ]
+            },
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              },
+              {
+                "input": true,
+                "output": false
+              }
+            ]
+          },
+          "execution": {
+            "max_wall_seconds": 600,
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "boolean-negation-pair-v1:bend2:9",
+          "independent_evaluation": {
+            "bend2": "pinned Bend --verdict candidate accepts and identity mutant rejects",
+            "semaprax-scalar-v1": "pinned project-proof-check candidate app.negate ensures[0] discharges and false mutant rejects",
+            "status": "required_after_capture"
+          },
+          "language": "bend2",
+          "ordinal": 9,
+          "status": "not_run",
+          "telemetry": {
+            "cost_usage": {
+              "reason": "Codex JSON events do not supply a monetary charge field",
+              "status": "unavailable_until_event"
+            },
+            "required_events": [
+              "turn.completed.usage input_tokens",
+              "turn.completed.usage cached_input_tokens",
+              "turn.completed.usage output_tokens"
+            ]
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "identity-return": {
+                "behavior": "negate(value) returns value; must be rejected by verdict",
+                "source": {
+                  "bytes": 196,
+                  "path": "fixtures/bend-boolean-negation-law-gaming-v1.bend",
+                  "sha256": "sha256:5ee075e4f37c305e1aa73ed7c81d7fa59815e58c5f4aeda4ac658e79c1fe96fa"
+                }
+              }
+            },
+            "required_attack_outcome": "exact retained attack source must be rejected by the exact pinned attack route",
+            "required_candidate_outcome": "complete final source must pass the exact pinned candidate route for its lane",
+            "semantic_contract": {
+              "domain": "Bool / bool; exactly two values",
+              "name": "total Boolean negation",
+              "relation": "result == !value / Bool.not(value)",
+              "truth_table": [
+                {
+                  "input": false,
+                  "output": true
+                },
+                {
+                  "input": true,
+                  "output": false
+                }
+              ]
+            },
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              },
+              {
+                "input": true,
+                "output": false
+              }
+            ]
+          },
+          "execution": {
+            "max_wall_seconds": 600,
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "boolean-negation-pair-v1:bend2:10",
+          "independent_evaluation": {
+            "bend2": "pinned Bend --verdict candidate accepts and identity mutant rejects",
+            "semaprax-scalar-v1": "pinned project-proof-check candidate app.negate ensures[0] discharges and false mutant rejects",
+            "status": "required_after_capture"
+          },
+          "language": "bend2",
+          "ordinal": 10,
+          "status": "not_run",
+          "telemetry": {
+            "cost_usage": {
+              "reason": "Codex JSON events do not supply a monetary charge field",
+              "status": "unavailable_until_event"
+            },
+            "required_events": [
+              "turn.completed.usage input_tokens",
+              "turn.completed.usage cached_input_tokens",
+              "turn.completed.usage output_tokens"
+            ]
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "constant-false": {
+                "behavior": "negate(value) returns false; must be rejected by selected app.negate ensures[0] Z3 route",
+                "source": {
+                  "bytes": 337,
+                  "path": "fixtures/semaprax-boolean-negation-law-gaming-v1.spx",
+                  "sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+                }
+              }
+            },
+            "required_attack_outcome": "exact retained attack source must be rejected by the exact pinned attack route",
+            "required_candidate_outcome": "complete final source must pass the exact pinned candidate route for its lane",
+            "semantic_contract": {
+              "domain": "Bool / bool; exactly two values",
+              "name": "total Boolean negation",
+              "relation": "result == !value / Bool.not(value)",
+              "truth_table": [
+                {
+                  "input": false,
+                  "output": true
+                },
+                {
+                  "input": true,
+                  "output": false
+                }
+              ]
+            },
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              },
+              {
+                "input": true,
+                "output": false
+              }
+            ]
+          },
+          "execution": {
+            "max_wall_seconds": 600,
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "boolean-negation-pair-v1:semaprax-scalar-v1:1",
+          "independent_evaluation": {
+            "bend2": "pinned Bend --verdict candidate accepts and identity mutant rejects",
+            "semaprax-scalar-v1": "pinned project-proof-check candidate app.negate ensures[0] discharges and false mutant rejects",
+            "status": "required_after_capture"
+          },
+          "language": "semaprax-scalar-v1",
+          "ordinal": 1,
+          "status": "not_run",
+          "telemetry": {
+            "cost_usage": {
+              "reason": "Codex JSON events do not supply a monetary charge field",
+              "status": "unavailable_until_event"
+            },
+            "required_events": [
+              "turn.completed.usage input_tokens",
+              "turn.completed.usage cached_input_tokens",
+              "turn.completed.usage output_tokens"
+            ]
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "constant-false": {
+                "behavior": "negate(value) returns false; must be rejected by selected app.negate ensures[0] Z3 route",
+                "source": {
+                  "bytes": 337,
+                  "path": "fixtures/semaprax-boolean-negation-law-gaming-v1.spx",
+                  "sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+                }
+              }
+            },
+            "required_attack_outcome": "exact retained attack source must be rejected by the exact pinned attack route",
+            "required_candidate_outcome": "complete final source must pass the exact pinned candidate route for its lane",
+            "semantic_contract": {
+              "domain": "Bool / bool; exactly two values",
+              "name": "total Boolean negation",
+              "relation": "result == !value / Bool.not(value)",
+              "truth_table": [
+                {
+                  "input": false,
+                  "output": true
+                },
+                {
+                  "input": true,
+                  "output": false
+                }
+              ]
+            },
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              },
+              {
+                "input": true,
+                "output": false
+              }
+            ]
+          },
+          "execution": {
+            "max_wall_seconds": 600,
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "boolean-negation-pair-v1:semaprax-scalar-v1:2",
+          "independent_evaluation": {
+            "bend2": "pinned Bend --verdict candidate accepts and identity mutant rejects",
+            "semaprax-scalar-v1": "pinned project-proof-check candidate app.negate ensures[0] discharges and false mutant rejects",
+            "status": "required_after_capture"
+          },
+          "language": "semaprax-scalar-v1",
+          "ordinal": 2,
+          "status": "not_run",
+          "telemetry": {
+            "cost_usage": {
+              "reason": "Codex JSON events do not supply a monetary charge field",
+              "status": "unavailable_until_event"
+            },
+            "required_events": [
+              "turn.completed.usage input_tokens",
+              "turn.completed.usage cached_input_tokens",
+              "turn.completed.usage output_tokens"
+            ]
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "constant-false": {
+                "behavior": "negate(value) returns false; must be rejected by selected app.negate ensures[0] Z3 route",
+                "source": {
+                  "bytes": 337,
+                  "path": "fixtures/semaprax-boolean-negation-law-gaming-v1.spx",
+                  "sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+                }
+              }
+            },
+            "required_attack_outcome": "exact retained attack source must be rejected by the exact pinned attack route",
+            "required_candidate_outcome": "complete final source must pass the exact pinned candidate route for its lane",
+            "semantic_contract": {
+              "domain": "Bool / bool; exactly two values",
+              "name": "total Boolean negation",
+              "relation": "result == !value / Bool.not(value)",
+              "truth_table": [
+                {
+                  "input": false,
+                  "output": true
+                },
+                {
+                  "input": true,
+                  "output": false
+                }
+              ]
+            },
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              },
+              {
+                "input": true,
+                "output": false
+              }
+            ]
+          },
+          "execution": {
+            "max_wall_seconds": 600,
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "boolean-negation-pair-v1:semaprax-scalar-v1:3",
+          "independent_evaluation": {
+            "bend2": "pinned Bend --verdict candidate accepts and identity mutant rejects",
+            "semaprax-scalar-v1": "pinned project-proof-check candidate app.negate ensures[0] discharges and false mutant rejects",
+            "status": "required_after_capture"
+          },
+          "language": "semaprax-scalar-v1",
+          "ordinal": 3,
+          "status": "not_run",
+          "telemetry": {
+            "cost_usage": {
+              "reason": "Codex JSON events do not supply a monetary charge field",
+              "status": "unavailable_until_event"
+            },
+            "required_events": [
+              "turn.completed.usage input_tokens",
+              "turn.completed.usage cached_input_tokens",
+              "turn.completed.usage output_tokens"
+            ]
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "constant-false": {
+                "behavior": "negate(value) returns false; must be rejected by selected app.negate ensures[0] Z3 route",
+                "source": {
+                  "bytes": 337,
+                  "path": "fixtures/semaprax-boolean-negation-law-gaming-v1.spx",
+                  "sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+                }
+              }
+            },
+            "required_attack_outcome": "exact retained attack source must be rejected by the exact pinned attack route",
+            "required_candidate_outcome": "complete final source must pass the exact pinned candidate route for its lane",
+            "semantic_contract": {
+              "domain": "Bool / bool; exactly two values",
+              "name": "total Boolean negation",
+              "relation": "result == !value / Bool.not(value)",
+              "truth_table": [
+                {
+                  "input": false,
+                  "output": true
+                },
+                {
+                  "input": true,
+                  "output": false
+                }
+              ]
+            },
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              },
+              {
+                "input": true,
+                "output": false
+              }
+            ]
+          },
+          "execution": {
+            "max_wall_seconds": 600,
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "boolean-negation-pair-v1:semaprax-scalar-v1:4",
+          "independent_evaluation": {
+            "bend2": "pinned Bend --verdict candidate accepts and identity mutant rejects",
+            "semaprax-scalar-v1": "pinned project-proof-check candidate app.negate ensures[0] discharges and false mutant rejects",
+            "status": "required_after_capture"
+          },
+          "language": "semaprax-scalar-v1",
+          "ordinal": 4,
+          "status": "not_run",
+          "telemetry": {
+            "cost_usage": {
+              "reason": "Codex JSON events do not supply a monetary charge field",
+              "status": "unavailable_until_event"
+            },
+            "required_events": [
+              "turn.completed.usage input_tokens",
+              "turn.completed.usage cached_input_tokens",
+              "turn.completed.usage output_tokens"
+            ]
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "constant-false": {
+                "behavior": "negate(value) returns false; must be rejected by selected app.negate ensures[0] Z3 route",
+                "source": {
+                  "bytes": 337,
+                  "path": "fixtures/semaprax-boolean-negation-law-gaming-v1.spx",
+                  "sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+                }
+              }
+            },
+            "required_attack_outcome": "exact retained attack source must be rejected by the exact pinned attack route",
+            "required_candidate_outcome": "complete final source must pass the exact pinned candidate route for its lane",
+            "semantic_contract": {
+              "domain": "Bool / bool; exactly two values",
+              "name": "total Boolean negation",
+              "relation": "result == !value / Bool.not(value)",
+              "truth_table": [
+                {
+                  "input": false,
+                  "output": true
+                },
+                {
+                  "input": true,
+                  "output": false
+                }
+              ]
+            },
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              },
+              {
+                "input": true,
+                "output": false
+              }
+            ]
+          },
+          "execution": {
+            "max_wall_seconds": 600,
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "boolean-negation-pair-v1:semaprax-scalar-v1:5",
+          "independent_evaluation": {
+            "bend2": "pinned Bend --verdict candidate accepts and identity mutant rejects",
+            "semaprax-scalar-v1": "pinned project-proof-check candidate app.negate ensures[0] discharges and false mutant rejects",
+            "status": "required_after_capture"
+          },
+          "language": "semaprax-scalar-v1",
+          "ordinal": 5,
+          "status": "not_run",
+          "telemetry": {
+            "cost_usage": {
+              "reason": "Codex JSON events do not supply a monetary charge field",
+              "status": "unavailable_until_event"
+            },
+            "required_events": [
+              "turn.completed.usage input_tokens",
+              "turn.completed.usage cached_input_tokens",
+              "turn.completed.usage output_tokens"
+            ]
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "constant-false": {
+                "behavior": "negate(value) returns false; must be rejected by selected app.negate ensures[0] Z3 route",
+                "source": {
+                  "bytes": 337,
+                  "path": "fixtures/semaprax-boolean-negation-law-gaming-v1.spx",
+                  "sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+                }
+              }
+            },
+            "required_attack_outcome": "exact retained attack source must be rejected by the exact pinned attack route",
+            "required_candidate_outcome": "complete final source must pass the exact pinned candidate route for its lane",
+            "semantic_contract": {
+              "domain": "Bool / bool; exactly two values",
+              "name": "total Boolean negation",
+              "relation": "result == !value / Bool.not(value)",
+              "truth_table": [
+                {
+                  "input": false,
+                  "output": true
+                },
+                {
+                  "input": true,
+                  "output": false
+                }
+              ]
+            },
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              },
+              {
+                "input": true,
+                "output": false
+              }
+            ]
+          },
+          "execution": {
+            "max_wall_seconds": 600,
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "boolean-negation-pair-v1:semaprax-scalar-v1:6",
+          "independent_evaluation": {
+            "bend2": "pinned Bend --verdict candidate accepts and identity mutant rejects",
+            "semaprax-scalar-v1": "pinned project-proof-check candidate app.negate ensures[0] discharges and false mutant rejects",
+            "status": "required_after_capture"
+          },
+          "language": "semaprax-scalar-v1",
+          "ordinal": 6,
+          "status": "not_run",
+          "telemetry": {
+            "cost_usage": {
+              "reason": "Codex JSON events do not supply a monetary charge field",
+              "status": "unavailable_until_event"
+            },
+            "required_events": [
+              "turn.completed.usage input_tokens",
+              "turn.completed.usage cached_input_tokens",
+              "turn.completed.usage output_tokens"
+            ]
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "constant-false": {
+                "behavior": "negate(value) returns false; must be rejected by selected app.negate ensures[0] Z3 route",
+                "source": {
+                  "bytes": 337,
+                  "path": "fixtures/semaprax-boolean-negation-law-gaming-v1.spx",
+                  "sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+                }
+              }
+            },
+            "required_attack_outcome": "exact retained attack source must be rejected by the exact pinned attack route",
+            "required_candidate_outcome": "complete final source must pass the exact pinned candidate route for its lane",
+            "semantic_contract": {
+              "domain": "Bool / bool; exactly two values",
+              "name": "total Boolean negation",
+              "relation": "result == !value / Bool.not(value)",
+              "truth_table": [
+                {
+                  "input": false,
+                  "output": true
+                },
+                {
+                  "input": true,
+                  "output": false
+                }
+              ]
+            },
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              },
+              {
+                "input": true,
+                "output": false
+              }
+            ]
+          },
+          "execution": {
+            "max_wall_seconds": 600,
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "boolean-negation-pair-v1:semaprax-scalar-v1:7",
+          "independent_evaluation": {
+            "bend2": "pinned Bend --verdict candidate accepts and identity mutant rejects",
+            "semaprax-scalar-v1": "pinned project-proof-check candidate app.negate ensures[0] discharges and false mutant rejects",
+            "status": "required_after_capture"
+          },
+          "language": "semaprax-scalar-v1",
+          "ordinal": 7,
+          "status": "not_run",
+          "telemetry": {
+            "cost_usage": {
+              "reason": "Codex JSON events do not supply a monetary charge field",
+              "status": "unavailable_until_event"
+            },
+            "required_events": [
+              "turn.completed.usage input_tokens",
+              "turn.completed.usage cached_input_tokens",
+              "turn.completed.usage output_tokens"
+            ]
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "constant-false": {
+                "behavior": "negate(value) returns false; must be rejected by selected app.negate ensures[0] Z3 route",
+                "source": {
+                  "bytes": 337,
+                  "path": "fixtures/semaprax-boolean-negation-law-gaming-v1.spx",
+                  "sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+                }
+              }
+            },
+            "required_attack_outcome": "exact retained attack source must be rejected by the exact pinned attack route",
+            "required_candidate_outcome": "complete final source must pass the exact pinned candidate route for its lane",
+            "semantic_contract": {
+              "domain": "Bool / bool; exactly two values",
+              "name": "total Boolean negation",
+              "relation": "result == !value / Bool.not(value)",
+              "truth_table": [
+                {
+                  "input": false,
+                  "output": true
+                },
+                {
+                  "input": true,
+                  "output": false
+                }
+              ]
+            },
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              },
+              {
+                "input": true,
+                "output": false
+              }
+            ]
+          },
+          "execution": {
+            "max_wall_seconds": 600,
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "boolean-negation-pair-v1:semaprax-scalar-v1:8",
+          "independent_evaluation": {
+            "bend2": "pinned Bend --verdict candidate accepts and identity mutant rejects",
+            "semaprax-scalar-v1": "pinned project-proof-check candidate app.negate ensures[0] discharges and false mutant rejects",
+            "status": "required_after_capture"
+          },
+          "language": "semaprax-scalar-v1",
+          "ordinal": 8,
+          "status": "not_run",
+          "telemetry": {
+            "cost_usage": {
+              "reason": "Codex JSON events do not supply a monetary charge field",
+              "status": "unavailable_until_event"
+            },
+            "required_events": [
+              "turn.completed.usage input_tokens",
+              "turn.completed.usage cached_input_tokens",
+              "turn.completed.usage output_tokens"
+            ]
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "constant-false": {
+                "behavior": "negate(value) returns false; must be rejected by selected app.negate ensures[0] Z3 route",
+                "source": {
+                  "bytes": 337,
+                  "path": "fixtures/semaprax-boolean-negation-law-gaming-v1.spx",
+                  "sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+                }
+              }
+            },
+            "required_attack_outcome": "exact retained attack source must be rejected by the exact pinned attack route",
+            "required_candidate_outcome": "complete final source must pass the exact pinned candidate route for its lane",
+            "semantic_contract": {
+              "domain": "Bool / bool; exactly two values",
+              "name": "total Boolean negation",
+              "relation": "result == !value / Bool.not(value)",
+              "truth_table": [
+                {
+                  "input": false,
+                  "output": true
+                },
+                {
+                  "input": true,
+                  "output": false
+                }
+              ]
+            },
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              },
+              {
+                "input": true,
+                "output": false
+              }
+            ]
+          },
+          "execution": {
+            "max_wall_seconds": 600,
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "boolean-negation-pair-v1:semaprax-scalar-v1:9",
+          "independent_evaluation": {
+            "bend2": "pinned Bend --verdict candidate accepts and identity mutant rejects",
+            "semaprax-scalar-v1": "pinned project-proof-check candidate app.negate ensures[0] discharges and false mutant rejects",
+            "status": "required_after_capture"
+          },
+          "language": "semaprax-scalar-v1",
+          "ordinal": 9,
+          "status": "not_run",
+          "telemetry": {
+            "cost_usage": {
+              "reason": "Codex JSON events do not supply a monetary charge field",
+              "status": "unavailable_until_event"
+            },
+            "required_events": [
+              "turn.completed.usage input_tokens",
+              "turn.completed.usage cached_input_tokens",
+              "turn.completed.usage output_tokens"
+            ]
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "constant-false": {
+                "behavior": "negate(value) returns false; must be rejected by selected app.negate ensures[0] Z3 route",
+                "source": {
+                  "bytes": 337,
+                  "path": "fixtures/semaprax-boolean-negation-law-gaming-v1.spx",
+                  "sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+                }
+              }
+            },
+            "required_attack_outcome": "exact retained attack source must be rejected by the exact pinned attack route",
+            "required_candidate_outcome": "complete final source must pass the exact pinned candidate route for its lane",
+            "semantic_contract": {
+              "domain": "Bool / bool; exactly two values",
+              "name": "total Boolean negation",
+              "relation": "result == !value / Bool.not(value)",
+              "truth_table": [
+                {
+                  "input": false,
+                  "output": true
+                },
+                {
+                  "input": true,
+                  "output": false
+                }
+              ]
+            },
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              },
+              {
+                "input": true,
+                "output": false
+              }
+            ]
+          },
+          "execution": {
+            "max_wall_seconds": 600,
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "boolean-negation-pair-v1:semaprax-scalar-v1:10",
+          "independent_evaluation": {
+            "bend2": "pinned Bend --verdict candidate accepts and identity mutant rejects",
+            "semaprax-scalar-v1": "pinned project-proof-check candidate app.negate ensures[0] discharges and false mutant rejects",
+            "status": "required_after_capture"
+          },
+          "language": "semaprax-scalar-v1",
+          "ordinal": 10,
+          "status": "not_run",
+          "telemetry": {
+            "cost_usage": {
+              "reason": "Codex JSON events do not supply a monetary charge field",
+              "status": "unavailable_until_event"
+            },
+            "required_events": [
+              "turn.completed.usage input_tokens",
+              "turn.completed.usage cached_input_tokens",
+              "turn.completed.usage output_tokens"
+            ]
+          }
+        }
+      ],
+      "trials_per_language": 10
+    }
+  ],
+  "cost_usage": {
+    "reason": "the selected Codex JSON event schema exposes token usage but no monetary charge",
+    "status": "unavailable_until_event"
+  },
+  "execution": {
+    "max_wall_seconds": 600,
+    "repository_access": "none",
+    "runner": "codex_exec_json_v1",
+    "sandbox": "read-only",
+    "working_directory": "fresh-empty-directory"
+  },
+  "fixed_budget": {
+    "max_cost_usd": "0.00",
+    "max_tokens": 20000
+  },
+  "id": "law16-boolean-negation-agent-trials-v1",
+  "matched_process_preflight": {
+    "path": "evidence/law16-boolean-negation-process-v1/review.json",
+    "sha256": "sha256:9ecd1fbd6d9e9dbf1d4e2e4d41b74190a218ce8d165773a792fba7e1e1d0a5b1"
+  },
+  "nonclaims": [
+    "no provider turn has run",
+    "fixed max_cost_usd is a preregistered ceiling, not an observed or enforceable provider charge",
+    "captured model claims are not law repair acceptance",
+    "no cross-language ratio or winner"
+  ],
+  "pair_plan": {
+    "path": "fixtures/boolean-negation-pair-v1.json",
+    "sha256": "sha256:824fd1539d6d1ce19daa6bc2a736e897f446c0e405a38839489c9c5cc9640dd7"
+  },
+  "schema": "semaprax.bend2-law-benchmark.agent-trial-plan.v1",
+  "status": "preregistered_not_executed"
+}

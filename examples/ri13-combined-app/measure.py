@@ -11,6 +11,7 @@ import statistics
 import subprocess
 import sys
 import time
+import tempfile
 from pathlib import Path
 
 
@@ -30,6 +31,27 @@ COPY_COLUMNS = (
 M3_COPY_LEDGER_SCHEMA = "semaprax.ri13.m3-copy-ledger.v1"
 LINKED_COPY_LEDGER_SCHEMA = "semaprax.ri13.linked-copy-ledger.v1"
 LINKED_COPY_PREFIX = "ri13-linked-copy-ledger:"
+M1_TASKS = ("regex_scan", "url_parse_view")
+BUILD_STAGE_NAMES = (
+    "m1_prepare", "m1_consumer", "m2_prepare", "m2_consumer", "m3_prepare", "m3_consumer",
+    "m3_negative_controls", "linked_prepare", "linked_consumer",
+)
+M1_BATCH_COLUMNS = (
+    "task", "route", "iteration", "operations", "elapsed_ns",
+    "allocation_calls", "allocated_bytes", "borrowed_input_bytes",
+    "adapter_copy_events", "adapter_copied_bytes", "owner_live_count",
+    "view_live_count", "string_live_count",
+)
+M2_TASKS = ("generic_record", "stateful_callback")
+M2_BATCH_COLUMNS = (
+    "task", "route", "iteration", "operations", "elapsed_ns",
+    "allocation_calls", "allocated_bytes", "adapter_buffer_copied_bytes",
+)
+BUILD_STAGE_SCHEMA = "semaprax.ri13.build-stage-measurement.v1"
+RESULT_TOTALS_SCHEMA = "semaprax.ri13.result-totals.v1"
+GENERATED_CODE_INVENTORY_SCHEMA = "semaprax.ri13.generated-code-inventory.v1"
+RAW_ARTIFACT_SCHEMA = "semaprax.ri13.raw-artifacts.v1"
+MAX_RAW_ARTIFACT_BYTES = 16 * 1024 * 1024
 
 
 def percentile(values, percent):
@@ -44,31 +66,154 @@ def digest(text):
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def run(command, environment, expected_stdout):
+def bytes_digest(payload):
+    return "sha256:" + hashlib.sha256(payload).hexdigest()
+
+
+class RawArtifacts:
+    """Persist bounded command output and retain a receipt-verifiable manifest."""
+
+    def __init__(self, directory, max_bytes=MAX_RAW_ARTIFACT_BYTES):
+        requested = Path(directory)
+        if not requested.is_absolute() or requested.exists():
+            raise ValueError("raw artifact directory must be a new absolute path")
+        self.directory = requested.resolve()
+        self.max_bytes = max_bytes
+        self.entries = []
+        self.total_bytes = 0
+        self.directory.mkdir(parents=True)
+
+    def capture(self, label, stdout, stderr):
+        if not label.replace("-", "").replace("_", "").isalnum():
+            raise ValueError("raw artifact label is unsupported")
+        if self.total_bytes + len(stdout) + len(stderr) > self.max_bytes:
+            raise ValueError("raw artifact capture exceeds its bounded byte budget")
+        streams = {}
+        for stream, payload in (("stdout", stdout), ("stderr", stderr)):
+            filename = f"{len(self.entries):02d}-{label}.{stream}"
+            path = self.directory / filename
+            path.write_bytes(payload)
+            entry = {"path": filename, "bytes": len(payload), "sha256": bytes_digest(payload)}
+            self.entries.append(entry)
+            self.total_bytes += len(payload)
+            streams[stream] = entry
+        return streams
+
+    def manifest(self):
+        return {
+            "schema": RAW_ARTIFACT_SCHEMA,
+            "directory": str(self.directory),
+            "max_bytes": self.max_bytes,
+            "total_bytes": self.total_bytes,
+            "files": self.entries,
+        }
+
+
+def verify_raw_artifacts(manifest):
+    """Fail closed when a retained command-output file is absent or changed."""
+    if not isinstance(manifest, dict) or set(manifest) != {"schema", "directory", "max_bytes", "total_bytes", "files"}:
+        raise ValueError("raw artifact manifest has an unsupported shape")
+    if manifest["schema"] != RAW_ARTIFACT_SCHEMA:
+        raise ValueError("raw artifact manifest has an unsupported schema")
+    directory = Path(manifest["directory"])
+    if not directory.is_absolute() or not directory.is_dir() or directory.is_symlink():
+        raise ValueError("raw artifact directory is unavailable")
+    if manifest["max_bytes"] != MAX_RAW_ARTIFACT_BYTES or not isinstance(manifest["files"], list):
+        raise ValueError("raw artifact manifest changed its capture bounds")
+    if not manifest["files"]:
+        raise ValueError("raw artifact manifest is missing retained output")
+    observed_total = 0
+    names = set()
+    for entry in manifest["files"]:
+        if not isinstance(entry, dict) or set(entry) != {"path", "bytes", "sha256"}:
+            raise ValueError("raw artifact entry is malformed")
+        name = entry["path"]
+        if not isinstance(name, str) or Path(name).name != name or name in names:
+            raise ValueError("raw artifact path is unsupported")
+        names.add(name)
+        path = directory / name
+        if not path.is_file() or path.is_symlink():
+            raise ValueError("raw artifact file is unavailable")
+        payload = path.read_bytes()
+        if len(payload) != entry["bytes"] or bytes_digest(payload) != entry["sha256"]:
+            raise ValueError("raw artifact bytes drifted from the receipt")
+        observed_total += len(payload)
+    if observed_total != manifest["total_bytes"] or observed_total > manifest["max_bytes"]:
+        raise ValueError("raw artifact byte total is invalid")
+    if {path.name for path in directory.iterdir()} != names:
+        raise ValueError("raw artifact directory contains unbound files")
+    return manifest
+
+
+def verify_receipt_raw_artifacts(path):
+    """Verify receipt command coverage as well as every retained raw byte stream."""
+    document = json.loads(path.read_text(encoding="utf-8"))
+    manifest = verify_raw_artifacts(document.get("raw_artifacts"))
+    files = manifest["files"]
+    expected = []
+
+    def retain(label, result):
+        if not isinstance(result, dict) or set(result.get("raw_artifacts", {})) != {"stdout", "stderr"}:
+            raise ValueError(f"receipt command {label} lacks its raw stdout/stderr pair")
+        for stream in ("stdout", "stderr"):
+            entry = result["raw_artifacts"][stream]
+            expected_name = f"{len(expected):02d}-{label}.{stream}"
+            if not isinstance(entry, dict) or entry.get("path") != expected_name:
+                raise ValueError(f"receipt command {label} has an unbound raw {stream} artifact")
+            if result.get(f"{stream}_sha256") != entry.get("sha256", "").removeprefix("sha256:"):
+                raise ValueError(f"receipt command {label} has a mismatched raw {stream} hash")
+            expected.append(entry)
+
+    def retain_stages(key, pass_name, required):
+        stages = document.get(key)
+        if stages is None and not required:
+            return
+        if not isinstance(stages, list) or [stage.get("stage") for stage in stages] != list(BUILD_STAGE_NAMES):
+            raise ValueError(f"receipt {key} is incomplete")
+        for stage in stages:
+            retain(f"{pass_name}-{stage['stage']}", stage)
+
+    retain_stages("full_build_and_consumer_stages", "cold", True)
+    retain_stages("warm_build_and_consumer_stages", "warm", False)
+    for key, label in (
+        ("m1_batch_throughput_measurement_command", "m1-batch-throughput"),
+        ("m2_batch_throughput_measurement_command", "m2-batch-throughput"),
+        ("route_measurement_command", "m3-route-measurement"),
+        ("batch_throughput_measurement_command", "m3-batch-throughput"),
+    ):
+        retain(label, document.get(key))
+    if files != expected:
+        raise ValueError("raw artifact manifest does not bind every retained receipt command")
+    return document
+
+
+def run(command, environment, expected_stdout, artifacts, label):
     started = time.perf_counter_ns()
     completed = subprocess.run(
         command,
         cwd=ROOT,
         env=environment,
-        text=True,
         capture_output=True,
         check=False,
     )
     elapsed_ns = time.perf_counter_ns() - started
+    try:
+        stdout = completed.stdout.decode("utf-8")
+        stderr = completed.stderr.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise RuntimeError(f"{' '.join(command)} emitted non-UTF-8 output") from error
+    raw = artifacts.capture(label, completed.stdout, completed.stderr)
     if completed.returncode:
-        raise RuntimeError(
-            f"{' '.join(command)} exited {completed.returncode}:\n{completed.stderr}"
-        )
-    if expected_stdout not in completed.stdout:
-        raise RuntimeError(
-            f"{' '.join(command)} did not emit {expected_stdout!r}:\n{completed.stdout}"
-        )
+        raise RuntimeError(f"{' '.join(command)} exited {completed.returncode}:\n{stderr}")
+    if expected_stdout not in stdout:
+        raise RuntimeError(f"{' '.join(command)} did not emit {expected_stdout!r}:\n{stdout}")
     return {
         "command": command,
         "elapsed_ns": elapsed_ns,
-        "stdout_sha256": digest(completed.stdout),
-        "stderr_sha256": digest(completed.stderr),
-    }, completed.stdout
+        "stdout_sha256": digest(stdout),
+        "stderr_sha256": digest(stderr),
+        "raw_artifacts": raw,
+    }, stdout
 
 
 def parse_m3_samples(text):
@@ -128,6 +273,121 @@ def parse_m3_samples(text):
         }
     return result
 
+
+
+
+def parse_m1_batch_samples(text):
+    """Parse matched fixed-workload M1 batches without attributing foreign copies."""
+    rows = list(csv.DictReader(text.splitlines()))
+    if not rows or tuple(rows[0]) != M1_BATCH_COLUMNS:
+        raise ValueError("M1 measure output must retain its exact batch columns")
+    grouped = {task: {route: [] for route in ROUTES} for task in M1_TASKS}
+    for row in rows:
+        task = row.get("task")
+        route = row.get("route")
+        if task not in grouped or route not in ROUTES:
+            raise ValueError(f"unknown M1 batch row {row!r}")
+        sample = {key: int(value) for key, value in row.items() if key not in {"task", "route"}}
+        if sample["operations"] != 4096 or sample["elapsed_ns"] <= 0:
+            raise ValueError(f"M1 batch changed its reviewed held-export workload {row!r}")
+        if sample["borrowed_input_bytes"] != sample["operations"] * 28:
+            raise ValueError(f"M1 batch changed its exact borrowed input accounting {row!r}")
+        if any(sample[key] != 0 for key in (
+            "adapter_copy_events", "adapter_copied_bytes", "owner_live_count",
+            "view_live_count", "string_live_count",
+        )):
+            raise ValueError(f"M1 batch changed generated adapter or cleanup accounting {row!r}")
+        if sample["allocation_calls"] < 0 or sample["allocated_bytes"] < 0:
+            raise ValueError(f"M1 batch has invalid allocator accounting {row!r}")
+        grouped[task][route].append(sample)
+    result = {"raw_csv_sha256": digest(text), "tasks": {}}
+    for task, by_route in grouped.items():
+        counts = {route: len(samples) for route, samples in by_route.items()}
+        if len(set(counts.values())) != 1 or not next(iter(counts.values())):
+            raise ValueError(f"unbalanced M1 {task} batch samples {counts}")
+        routes = {}
+        for route, samples in by_route.items():
+            elapsed = [sample["elapsed_ns"] for sample in samples]
+            routes[route] = {
+                "operations_per_sample": 4096,
+                "total_operations": 4096 * len(samples),
+                "borrowed_input_bytes_per_batch": 4096 * 28,
+                "adapter_copy_events_per_batch": 0,
+                "adapter_copied_bytes_per_batch": 0,
+                "post_run_live_counts": {"owner": 0, "view": 0, "string": 0},
+                "mean_batch_ns": round(statistics.mean(elapsed), 1),
+                "p50_batch_ns": round(percentile(elapsed, 50), 1),
+                "p90_batch_ns": round(percentile(elapsed, 90), 1),
+                "p99_batch_ns": round(percentile(elapsed, 99), 1),
+                "normalized_operations_per_second": round(4096 * 1e9 / statistics.mean(elapsed), 2),
+                "allocator_requests_per_batch": {
+                    key: round(statistics.mean(sample[key] for sample in samples), 1)
+                    for key in ("allocation_calls", "allocated_bytes")
+                },
+                "foreign_target_copied_bytes": {
+                    "status": "unavailable",
+                    "reason": "Regex::is_match and Url::parse internal copies are outside the generated adapter boundary",
+                },
+            }
+        result["tasks"][task] = {
+            "samples_per_route": next(iter(counts.values())),
+            "routes": routes,
+        }
+    return result
+
+def parse_m2_batch_samples(text):
+    """Parse the existing matched M2 record/callback batch comparison."""
+    rows = list(csv.DictReader(text.splitlines()))
+    if not rows or tuple(rows[0]) != M2_BATCH_COLUMNS:
+        raise ValueError("M2 measure output must retain its exact batch columns")
+    grouped = {
+        task: {route: [] for route in ROUTES}
+        for task in M2_TASKS
+    }
+    for row in rows:
+        task = row.get("task")
+        route = row.get("route")
+        if task not in grouped or route not in ROUTES:
+            raise ValueError(f"unknown M2 batch row {row!r}")
+        sample = {key: int(value) for key, value in row.items() if key not in {"task", "route"}}
+        if sample["operations"] <= 1 or sample["elapsed_ns"] <= 0:
+            raise ValueError(f"invalid M2 batch row {row!r}")
+        if sample["adapter_buffer_copied_bytes"] != 0:
+            raise ValueError(f"M2 scalar adapter copied bytes {row!r}")
+        grouped[task][route].append(sample)
+    result = {"raw_csv_sha256": digest(text), "tasks": {}}
+    for task, by_route in grouped.items():
+        counts = {route: len(samples) for route, samples in by_route.items()}
+        if len(set(counts.values())) != 1 or not next(iter(counts.values())):
+            raise ValueError(f"unbalanced M2 {task} batch samples {counts}")
+        routes = {}
+        for route, samples in by_route.items():
+            operations = {sample["operations"] for sample in samples}
+            if len(operations) != 1:
+                raise ValueError(f"M2 {task} changed operations for {route}")
+            operation_count = operations.pop()
+            elapsed = [sample["elapsed_ns"] for sample in samples]
+            routes[route] = {
+                "operations_per_sample": operation_count,
+                "total_operations": operation_count * len(samples),
+                "mean_batch_ns": round(statistics.mean(elapsed), 1),
+                "p50_batch_ns": round(percentile(elapsed, 50), 1),
+                "p90_batch_ns": round(percentile(elapsed, 90), 1),
+                "p99_batch_ns": round(percentile(elapsed, 99), 1),
+                "normalized_operations_per_second": round(
+                    operation_count * 1e9 / statistics.mean(elapsed), 2
+                ),
+                "allocator_requests_per_batch": {
+                    key: round(statistics.mean(sample[key] for sample in samples), 1)
+                    for key in ("allocation_calls", "allocated_bytes")
+                },
+                "adapter_buffer_copied_bytes_per_batch": 0,
+            }
+        result["tasks"][task] = {
+            "samples_per_route": next(iter(counts.values())),
+            "routes": routes,
+        }
+    return result
 
 def parse_m3_batch_samples(text):
     rows = list(csv.DictReader(text.splitlines()))
@@ -261,14 +521,137 @@ def parse_linked_copy_ledger(text):
         or not isinstance(foreign_url_bytes.get("reason"), str)
     ):
         raise ValueError("linked Url ownership evidence must retain the unavailable foreign byte count")
-    if record.get("input_json_bytes") != 25 or record.get("output_json_bytes") != 25 or record.get("generated_mirror_string_clone_copied_bytes") != 3:
-        raise ValueError("linked Serde record evidence changed its exact fixture bytes")
+    if (
+        record.get("input_json_bytes") != 25
+        or record.get("output_json_bytes") != 25
+        or record.get("generated_mirror_string_clone_copied_bytes") != 3
+        or record.get("generated_mirror_to_record_transferred_string_bytes") != 6
+        or record.get("generated_mirror_to_record_copied_string_bytes") != 0
+        or record.get("generated_mirror_to_record_pointers_preserved") is not True
+    ):
+        raise ValueError("linked Serde record evidence changed its exact fixture transfer")
     deserialization = record.get("deserialize_owned_string_copied_bytes")
     if not isinstance(deserialization, dict) or deserialization.get("status") != "unavailable" or not isinstance(deserialization.get("reason"), str):
         raise ValueError("linked Serde deserialization must retain its unavailable byte count")
     if callback != {"fn_invocations": 1, "fn_mut_invocations": 1, "scalar_argument_result_copied_bytes": 0}:
         raise ValueError("linked iterator callback evidence changed its scalar copy accounting")
     return ledger
+
+
+def build_stage_plan():
+    """Return the ordered, locked stages used for both cold and warm passes."""
+    return [
+        (
+            "m1_prepare",
+            cargo_command("examples/ri13-m1-regex-url/prepare/Cargo.toml", "semaprax-ri13-m1-prepare"),
+            "ri13-m1-prepared:",
+        ),
+        (
+            "m1_consumer",
+            cargo_command("examples/ri13-m1-regex-url/consumer/Cargo.toml", "semaprax-ri13-m1-consumer"),
+            "ri13-m1-regex-url-ok",
+        ),
+        (
+            "m2_prepare",
+            cargo_command("examples/ri13-m2-record-iterator/Cargo.toml", "prepare"),
+            "ri13-m2-prepared:",
+        ),
+        (
+            "m2_consumer",
+            cargo_command("examples/ri13-m2-record-iterator/Cargo.toml", "consumer"),
+            "ri13-m2-record-iterator-ok",
+        ),
+        (
+            "m3_prepare",
+            cargo_command("examples/ri13-m3-local-http/Cargo.toml", "prepare"),
+            "ri13-m3-prepared",
+        ),
+        (
+            "m3_consumer",
+            cargo_command("examples/ri13-m3-local-http/Cargo.toml", "consumer"),
+            "ri13-m3-local-http-ok",
+        ),
+        (
+            "m3_negative_controls",
+            m3_negative_control_command(),
+            "test result: ok. 1 passed",
+        ),
+        (
+            "linked_prepare",
+            cargo_command("examples/ri13-combined-app/linked/prepare/Cargo.toml", "prepare"),
+            "ri13-linked-prepared:",
+        ),
+        (
+            "linked_consumer",
+            cargo_command("examples/ri13-combined-app/linked/Cargo.toml", "consumer"),
+            "ri13-linked-project-ok",
+        ),
+    ]
+
+
+def run_build_stages(environment, artifacts, pass_name):
+    stages = []
+    linked_copy_ledger = None
+    for name, command, expected in build_stage_plan():
+        result, stdout = run(command, environment, expected, artifacts, f"{pass_name}-{name}")
+        result["stage"] = name
+        stages.append(result)
+        if name == "linked_consumer":
+            linked_copy_ledger = parse_linked_copy_ledger(stdout)
+    if linked_copy_ledger is None:
+        raise RuntimeError("linked consumer did not produce copied-byte evidence")
+    return stages, linked_copy_ledger
+
+
+def result_counts(stages):
+    """A completed run has no failed or skipped stages; failures never make a receipt."""
+    return {"passed": len(stages), "failed": 0, "skipped": 0}
+
+
+def generated_code_inventory(group_paths):
+    """Hash source-level generated code after authenticated prepare stages finish."""
+    groups = {}
+    total_bytes = 0
+    for group, paths in group_paths.items():
+        files = []
+        for path in paths:
+            if not path.is_file():
+                raise ValueError(f"generated code inventory is missing {path}")
+            payload = path.read_bytes()
+            try:
+                label = str(path.relative_to(ROOT))
+            except ValueError:
+                # The parser-only self-test uses a temporary emitted file.
+                label = str(path)
+            files.append({
+                "path": label,
+                "bytes": len(payload),
+                "sha256": "sha256:" + hashlib.sha256(payload).hexdigest(),
+            })
+        files.sort(key=lambda entry: entry["path"])
+        groups[group] = {"files": files, "total_bytes": sum(entry["bytes"] for entry in files)}
+        total_bytes += groups[group]["total_bytes"]
+    return {"schema": GENERATED_CODE_INVENTORY_SCHEMA, "groups": groups, "total_bytes": total_bytes}
+
+
+def prepared_generated_code_inventory():
+    """Inventory only emitted Rust/C/header code, never Cargo caches or binaries."""
+    def code_files(root):
+        return sorted(path for path in root.rglob("*") if path.is_file() and path.suffix in {".rs", ".c", ".h"})
+
+    m1 = ROOT / "examples/ri13-m1-regex-url/generated"
+    linked = ROOT / "examples/ri13-combined-app/linked/generated"
+    return generated_code_inventory({
+        "m1": code_files(m1),
+        "m2": [
+            ROOT / "examples/ri13-m2-record-iterator/generated/module.c",
+            ROOT / "examples/ri13-m2-record-iterator/generated/semaprax_native_rust_interop.h",
+            ROOT / "examples/ri13-m2-record-iterator/src/semaprax_native_rust_interop_ffi.rs",
+            ROOT / "examples/ri13-m2-record-iterator/src/generated.rs",
+        ],
+        "m3": [ROOT / "examples/ri13-m3-local-http/src/generated.rs"],
+        "linked": code_files(linked),
+    })
 
 
 def cargo_command(manifest, binary):
@@ -282,6 +665,22 @@ def cargo_command(manifest, binary):
         manifest,
         "--bin",
         binary,
+    ]
+
+
+def m3_negative_control_command():
+    return [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--quiet",
+        "--test",
+        "project",
+        "ri13_m3::saved_m3_application_runs_offline_and_refuses_timeout_and_stale_binding_mutants",
+        "--",
+        "--ignored",
+        "--exact",
     ]
 
 
@@ -340,8 +739,84 @@ def self_test():
     batch = parse_m3_batch_samples("\n".join(",".join(row) for row in batch_rows))
     assert batch["routes"]["generated_semaprax"]["total_operations"] == 128
     assert batch["routes"]["generated_semaprax"]["normalized_operations_per_second"] == 10_000_000.0
+    m1_rows = [list(M1_BATCH_COLUMNS)]
+    for task in M1_TASKS:
+        for iteration in range(2):
+            for route in ROUTES:
+                m1_rows.append([
+                    task, route, str(iteration), "4096", "409600", "16", "512",
+                    str(4096 * 28), "0", "0", "0", "0", "0",
+                ])
+    m1 = parse_m1_batch_samples("\n".join(",".join(row) for row in m1_rows))
+    assert m1["tasks"]["regex_scan"]["routes"]["generated_semaprax"]["total_operations"] == 8192
+    assert m1["tasks"]["url_parse_view"]["routes"]["direct_rust"]["normalized_operations_per_second"] == 10_000_000.0
+    tampered_m1 = [row.copy() for row in m1_rows]
+    tampered_m1[1][7] = "1"
+    try:
+        parse_m1_batch_samples("\n".join(",".join(row) for row in tampered_m1))
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("M1 borrowed-input drift must fail the batch gate")
+    m2_rows = [list(M2_BATCH_COLUMNS)]
+    for task in M2_TASKS:
+        for iteration in range(2):
+            for route in ROUTES:
+                m2_rows.append([task, route, str(iteration), "32", "3200", "4", "96", "0"])
+    m2 = parse_m2_batch_samples("\n".join(",".join(row) for row in m2_rows))
+    assert m2["tasks"]["generic_record"]["routes"]["generated_semaprax"]["total_operations"] == 64
+    assert m2["tasks"]["stateful_callback"]["routes"]["direct_rust"]["normalized_operations_per_second"] == 10_000_000.0
+    tampered_m2 = [row.copy() for row in m2_rows]
+    tampered_m2[1][-1] = "1"
+    try:
+        parse_m2_batch_samples("\n".join(",".join(row) for row in tampered_m2))
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("nonzero M2 scalar copy bytes must fail the batch gate")
+    assert m3_negative_control_command() == [
+        "cargo", "test", "--locked", "--offline", "--quiet", "--test", "project",
+        "ri13_m3::saved_m3_application_runs_offline_and_refuses_timeout_and_stale_binding_mutants",
+        "--", "--ignored", "--exact",
+    ]
+    assert result_counts([{"stage": "one"}, {"stage": "two"}]) == {"passed": 2, "failed": 0, "skipped": 0}
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        generated = root / "generated.rs"
+        generated.write_text("pub fn generated() {}\n", encoding="utf-8")
+        inventory = generated_code_inventory({"fixture": [generated]})
+        assert inventory["schema"] == GENERATED_CODE_INVENTORY_SCHEMA
+        assert inventory["groups"]["fixture"]["total_bytes"] == generated.stat().st_size
+        assert inventory["groups"]["fixture"]["files"][0]["sha256"].startswith("sha256:")
+        try:
+            generated_code_inventory({"fixture": [root / "missing.rs"]})
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("generated inventory accepted a missing emitted file")
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        artifacts = RawArtifacts(root / "raw")
+        captured = artifacts.capture("fixture", b"stdout", b"stderr")
+        assert captured["stdout"]["bytes"] == 6
+        manifest = verify_raw_artifacts(artifacts.manifest())
+        assert manifest["total_bytes"] == 12
+        (root / "raw" / manifest["files"][0]["path"]).write_bytes(b"forged")
+        try:
+            verify_raw_artifacts(manifest)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("raw artifact verifier accepted forged bytes")
+        limited = RawArtifacts(root / "limited", max_bytes=1)
+        try:
+            limited.capture("too-large", b"xx", b"")
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("raw artifact store accepted oversized output")
     linked_row = (
-        "ri13-linked-copy-ledger:{\"schema\":\"semaprax.ri13.linked-copy-ledger.v1\",\"m1\":{\"regex_result_owner\":{\"status\":\"measured\",\"adapter_copy_events\":0,\"adapter_copied_bytes\":0,\"adapter_borrowed_scan_input_bytes\":28,\"borrow_matches_target\":true,\"foreign_target_copied_bytes\":{\"status\":\"unavailable\",\"reason\":\"no counter\"}},\"url_owner_view\":{\"status\":\"measured\",\"adapter_copy_events\":0,\"adapter_copied_bytes\":0,\"borrow_matches_target\":true,\"foreign_target_copied_bytes\":{\"status\":\"unavailable\",\"reason\":\"no counter\"}}},\"m2\":{\"serde_record\":{\"input_json_bytes\":25,\"output_json_bytes\":25,\"generated_mirror_string_clone_copied_bytes\":3,\"deserialize_owned_string_copied_bytes\":{\"status\":\"unavailable\",\"reason\":\"no counter\"}},\"iterator_callback\":{\"fn_invocations\":1,\"fn_mut_invocations\":1,\"scalar_argument_result_copied_bytes\":0}}}"
+        "ri13-linked-copy-ledger:{\"schema\":\"semaprax.ri13.linked-copy-ledger.v1\",\"m1\":{\"regex_result_owner\":{\"status\":\"measured\",\"adapter_copy_events\":0,\"adapter_copied_bytes\":0,\"adapter_borrowed_scan_input_bytes\":28,\"borrow_matches_target\":true,\"foreign_target_copied_bytes\":{\"status\":\"unavailable\",\"reason\":\"no counter\"}},\"url_owner_view\":{\"status\":\"measured\",\"adapter_copy_events\":0,\"adapter_copied_bytes\":0,\"borrow_matches_target\":true,\"foreign_target_copied_bytes\":{\"status\":\"unavailable\",\"reason\":\"no counter\"}}},\"m2\":{\"serde_record\":{\"input_json_bytes\":25,\"output_json_bytes\":25,\"generated_mirror_string_clone_copied_bytes\":3,\"generated_mirror_to_record_transferred_string_bytes\":6,\"generated_mirror_to_record_copied_string_bytes\":0,\"generated_mirror_to_record_pointers_preserved\":true,\"deserialize_owned_string_copied_bytes\":{\"status\":\"unavailable\",\"reason\":\"no counter\"}},\"iterator_callback\":{\"fn_invocations\":1,\"fn_mut_invocations\":1,\"scalar_argument_result_copied_bytes\":0}}}"
     )
     linked = parse_linked_copy_ledger(linked_row)
     assert linked["m2"]["serde_record"]["generated_mirror_string_clone_copied_bytes"] == 3
@@ -355,6 +830,14 @@ def self_test():
         pass
     else:
         raise AssertionError("nonzero Url adapter bytes must fail the exact zero-copy ledger")
+    tampered_linked = json.loads(linked_row.removeprefix(LINKED_COPY_PREFIX))
+    tampered_linked["m2"]["serde_record"]["generated_mirror_to_record_copied_string_bytes"] = 1
+    try:
+        parse_linked_copy_ledger(LINKED_COPY_PREFIX + json.dumps(tampered_linked))
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("nonzero generated mirror-to-record bytes must fail the exact transfer ledger")
     tampered_linked = json.loads(linked_row.removeprefix(LINKED_COPY_PREFIX))
     tampered_linked["m1"]["regex_result_owner"]["adapter_borrowed_scan_input_bytes"] = 27
     try:
@@ -376,7 +859,7 @@ def self_test():
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", type=Path, required=True, help="receipt JSON path")
+    parser.add_argument("--output", type=Path, help="receipt JSON path")
     parser.add_argument(
         "--target-dir",
         type=Path,
@@ -389,10 +872,32 @@ def main():
         help="refuse an existing target directory to make this a clean-target build receipt",
     )
     parser.add_argument("--self-test", action="store_true")
+    parser.add_argument(
+        "--evidence-dir",
+        type=Path,
+        help="new absolute directory for bounded raw command output artifacts",
+    )
+    parser.add_argument(
+        "--verify-raw-artifacts",
+        type=Path,
+        help="verify the raw artifact manifest embedded in an existing receipt",
+    )
+    parser.add_argument(
+        "--warm-stage-pass",
+        action="store_true",
+        help="rerun every locked prepare/consumer stage against the warmed private target",
+    )
     arguments = parser.parse_args()
     if arguments.self_test:
         self_test()
         return
+    if arguments.verify_raw_artifacts:
+        if arguments.output is not None or arguments.evidence_dir is not None:
+            parser.error("--verify-raw-artifacts cannot combine with --output or --evidence-dir")
+        print(json.dumps(verify_receipt_raw_artifacts(arguments.verify_raw_artifacts), indent=2, sort_keys=True))
+        return
+    if arguments.output is None or arguments.evidence_dir is None:
+        parser.error("--output and --evidence-dir are required for a measurement receipt")
     target = arguments.target_dir.resolve()
     target_existed = target.exists()
     if arguments.fresh_target and target_existed:
@@ -410,69 +915,38 @@ def main():
     if not environment.get("CLANG"):
         raise SystemExit("CLANG must name the explicit compiler for the M1 generated C consumers")
 
-    stages = []
-    linked_copy_ledger = None
-    for name, command, expected in [
-        (
-            "m1_prepare",
-            cargo_command("examples/ri13-m1-regex-url/prepare/Cargo.toml", "semaprax-ri13-m1-prepare"),
-            "ri13-m1-prepared:",
-        ),
-        (
-            "m1_consumer",
-            cargo_command("examples/ri13-m1-regex-url/consumer/Cargo.toml", "semaprax-ri13-m1-consumer"),
-            "ri13-m1-regex-url-ok",
-        ),
-        (
-            "m2_prepare",
-            cargo_command("examples/ri13-m2-record-iterator/Cargo.toml", "prepare"),
-            "ri13-m2-prepared:",
-        ),
-        (
-            "m2_consumer",
-            cargo_command("examples/ri13-m2-record-iterator/Cargo.toml", "consumer"),
-            "ri13-m2-record-iterator-ok",
-        ),
-        (
-            "m3_prepare",
-            cargo_command("examples/ri13-m3-local-http/Cargo.toml", "prepare"),
-            "ri13-m3-prepared",
-        ),
-        (
-            "m3_consumer",
-            cargo_command("examples/ri13-m3-local-http/Cargo.toml", "consumer"),
-            "ri13-m3-local-http-ok",
-        ),
-        (
-            "linked_prepare",
-            cargo_command(
-                "examples/ri13-combined-app/linked/prepare/Cargo.toml", "prepare"
-            ),
-            "ri13-linked-prepared:",
-        ),
-        (
-            "linked_consumer",
-            cargo_command("examples/ri13-combined-app/linked/Cargo.toml", "consumer"),
-            "ri13-linked-project-ok",
-        ),
-    ]:
-        result, stdout = run(command, environment, expected)
-        result["stage"] = name
-        stages.append(result)
-        if name == "linked_consumer":
-            linked_copy_ledger = parse_linked_copy_ledger(stdout)
+    artifacts = RawArtifacts(arguments.evidence_dir)
+    stages, linked_copy_ledger = run_build_stages(environment, artifacts, "cold")
+    warm_stages = None
+    if arguments.warm_stage_pass:
+        warm_stages, warm_linked_copy_ledger = run_build_stages(environment, artifacts, "warm")
+        if warm_linked_copy_ledger != linked_copy_ledger:
+            raise RuntimeError("warm linked consumer changed its copied-byte evidence")
+    generated_inventory = prepared_generated_code_inventory()
 
-    if linked_copy_ledger is None:
-        raise RuntimeError("linked consumer did not produce copied-byte evidence")
+    m1_batch_command = cargo_command("examples/ri13-m1-regex-url/consumer/Cargo.toml", "measure")
+    m1_batch_result, m1_batch_samples = run(
+        m1_batch_command, environment, "url_parse_view,generated_semaprax", artifacts, "m1-batch-throughput"
+    )
+    m1_batch_result["stage"] = "m1_batch_throughput_measurement"
+    m1_batch_measurement = parse_m1_batch_samples(m1_batch_samples)
+
+    m2_batch_command = cargo_command("examples/ri13-m2-record-iterator/Cargo.toml", "measure")
+    m2_batch_result, m2_batch_samples = run(
+        m2_batch_command, environment, "stateful_callback,generated_semaprax", artifacts, "m2-batch-throughput"
+    )
+    m2_batch_result["stage"] = "m2_batch_throughput_measurement"
+    m2_batch_measurement = parse_m2_batch_samples(m2_batch_samples)
 
     measure_command = cargo_command("examples/ri13-m3-local-http/Cargo.toml", "measure")
-    measure_result, samples = run(measure_command, environment, "generated_semaprax")
+    measure_result, samples = run(measure_command, environment, "generated_semaprax", artifacts, "m3-route-measurement")
     measure_result["stage"] = "m3_route_measurement"
     route_measurement = parse_m3_samples(samples)
     batch_command = cargo_command("examples/ri13-m3-local-http/Cargo.toml", "measure") + ["--", "batch"]
-    batch_result, batch_samples = run(batch_command, environment, "generated_semaprax")
+    batch_result, batch_samples = run(batch_command, environment, "generated_semaprax", artifacts, "m3-batch-throughput")
     batch_result["stage"] = "m3_batch_throughput_measurement"
     batch_measurement = parse_m3_batch_samples(batch_samples)
+    raw_artifacts = verify_raw_artifacts(artifacts.manifest())
     report = {
         "schema": "semaprax.ri13.combination-measurement.v1",
         "checkout": current_text(["git", "rev-parse", "HEAD"]),
@@ -481,15 +955,64 @@ def main():
         "host": {"platform": platform.platform(), "python": sys.version.split()[0]},
         "toolchain": {"cargo": current_text(["cargo", "--version"]), "clang": environment["CLANG"]},
         "full_build_and_consumer_stages": stages,
+        "warm_build_and_consumer_stages": warm_stages,
+        "build_stage_measurement": {
+            "schema": BUILD_STAGE_SCHEMA,
+            "cold": {
+                "status": "passed",
+                "target_preexisted": target_existed,
+                "counts": result_counts(stages),
+                "elapsed_ns": sum(stage["elapsed_ns"] for stage in stages),
+            },
+            "warm": (
+                {
+                    "status": "passed",
+                    "target_preexisted": True,
+                    "counts": result_counts(warm_stages),
+                    "elapsed_ns": sum(stage["elapsed_ns"] for stage in warm_stages),
+                }
+                if warm_stages is not None
+                else {
+                    "status": "not_recorded",
+                    "reason": "rerun with --warm-stage-pass to make a paired warm measurement",
+                }
+            ),
+        },
+        "generated_code_inventory": generated_inventory,
+        "raw_artifacts": raw_artifacts,
+        "result_totals": {
+            "schema": RESULT_TOTALS_SCHEMA,
+            "cold_build_and_consumer": result_counts(stages),
+            "warm_build_and_consumer": (
+                result_counts(warm_stages)
+                if warm_stages is not None
+                else {"passed": 0, "failed": 0, "skipped": 0, "status": "not_recorded"}
+            ),
+            "route_measurements": {"passed": 4, "failed": 0, "skipped": 0},
+            "executed_total": {
+                "passed": len(stages) + 4 + (len(warm_stages) if warm_stages is not None else 0),
+                "failed": 0,
+                "skipped": 0,
+            },
+        },
         "route_measurement_command": measure_result,
         "route_timing_and_allocator_requests": route_measurement,
+        "m1_batch_throughput_measurement_command": m1_batch_result,
+        "m1_batch_throughput": m1_batch_measurement,
+        "m2_batch_throughput_measurement_command": m2_batch_result,
+        "m2_batch_throughput": m2_batch_measurement,
         "batch_throughput_measurement_command": batch_result,
         "batch_throughput": batch_measurement,
         "m3_copy_ledger": m3_copy_ledger(route_measurement),
         "linked_copy_ledger": linked_copy_ledger,
         "limits": [
             "The first six stages retain separately admitted M1, M2, and M3 profiles. The final two stages prepare and execute the distinct held linked Project, without claiming that it is one public SDK profile.",
-            "Build-and-consumer stage elapsed times include Cargo work and process startup; they are not route latency.",
+            "Build-and-consumer stage elapsed times include Cargo work and process startup; they are not route latency. A warm stage result exists only when --warm-stage-pass executed every stage after the cold pass.",
+            "Generated-code inventory hashes emitted Rust, C, and headers after authenticated preparation; it excludes Cargo caches, linked binaries, and dependency source.",
+            "Result totals count only commands actually represented in this receipt. A missing warm pass is not reported as a skipped success.",
+            "Raw artifact files retain each locked stage stdout/stderr and every M1/M2/M3 CSV stream under a bounded caller-supplied directory; the receipt fails verification if a retained file is absent or its bytes change.",
+            "M1 retains matched 4096-operation repeats of the held scalar Regex and Url exports across direct Rust, handwritten adapters, and generated Semaprax. It does not measure varying scan inputs, and Regex/Url foreign implementation copies remain unavailable.",
+            "M2 retains matched 32-operation generic-record and stateful-callback batches for direct Rust, handwritten adapters, and generated Semaprax.",
             "Scalar route timings include loopback HTTP and two-byte response parsing; the separate 64-operation batch rows retain their own normalized throughput and remain local evidence.",
             "Allocator values count current-thread requests and do not infer copies. The ledger records exact zero-byte scalar generated and host-callback payload boundaries, response wire bytes, and explicit unavailable cells for reqwest/HTTP/text/capture copies.",
             "The linked ledger measures only the generated Regex owner carrier, generated Serde mirror clone, and scalar iterator callback boundaries. Url::parse and serde_json deserialization retain unavailable copied-byte states.",

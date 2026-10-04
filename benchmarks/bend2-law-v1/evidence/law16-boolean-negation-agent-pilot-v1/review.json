@@ -1,0 +1,39 @@
+{
+  "cost_usage": {
+    "reason": "codex_exec_json_events_do_not_supply_monetary_usage",
+    "status": "unavailable"
+  },
+  "lanes": {
+    "bend2": {
+      "attack": "rejected by retained pinned route",
+      "cached_input_tokens": 11008,
+      "candidate": "accepted by retained pinned route",
+      "chargeable_tokens": 16626,
+      "cost_usage": {
+        "reason": "codex_exec_json_events_do_not_supply_monetary_usage",
+        "status": "unavailable"
+      },
+      "trial_id": "boolean-negation-pair-v1:bend2:1"
+    },
+    "semaprax-scalar-v1": {
+      "attack": "rejected by retained pinned route",
+      "cached_input_tokens": 14080,
+      "candidate": "accepted by retained pinned route",
+      "chargeable_tokens": 16711,
+      "cost_usage": {
+        "reason": "codex_exec_json_events_do_not_supply_monetary_usage",
+        "status": "unavailable"
+      },
+      "trial_id": "boolean-negation-pair-v1:semaprax-scalar-v1:1"
+    }
+  },
+  "nonclaims": [
+    "one ordinal pilot is not ten matched trials",
+    "Bend verdict and installed-Z3 have distinct trusted computing bases",
+    "source proof does not prove lowering or execution",
+    "no timing ratio or winner"
+  ],
+  "ordinal": 1,
+  "schema": "semaprax.bend2-law-benchmark.boolean-negation-agent-pilot-review.v1",
+  "status": "one_matched_pilot_authenticated"
+}

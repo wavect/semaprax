@@ -1,0 +1,2 @@
+project-proof-check: absolute manifest required
+hint: run `semaprax project-proof-check --help` for usage

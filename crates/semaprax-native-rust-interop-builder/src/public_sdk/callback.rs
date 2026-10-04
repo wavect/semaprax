@@ -93,6 +93,39 @@ pub fn prepare_native_rust_serde_iterator_callbacks(
     prepare_serde_callbacks(source, path, record_id, &selection, false)
 }
 
+/// Project-only iterator projection for a source fact borrowed from a live
+/// authenticated Project snapshot.
+///
+/// Indexed Rust imports are admitted by the Project frontend before this
+/// operation. They do not enter the callback ABI: the local projection first
+/// removes every interface and unrelated declaration, then resolves and
+/// validates only the selected record and callback declarations. A callback
+/// that depends on an imported item is therefore refused. This returns inert
+/// generated source and carries no
+/// publication or foreign-call authority; callers must keep the surrounding
+/// Project transaction live so its final held-input recheck binds these bytes.
+pub fn prepare_native_rust_serde_iterator_callbacks_from_authenticated_project_source(
+    source: &semaprax::project::ProjectSource,
+    path: &Path,
+    record_id: &str,
+    factory_id: &str,
+    transition_id: &str,
+) -> Result<NativeSerdeCallbackProjection, Vec<Diagnostic>> {
+    let selection = NativeCallbackSelection {
+        factory_id: factory_id.into(),
+        transition_id: transition_id.into(),
+        trait_path: String::new(),
+        method: String::new(),
+        error_type: String::new(),
+    };
+    prepare_serde_callbacks_from_authenticated_project_source(
+        source.source(),
+        path,
+        record_id,
+        &selection,
+    )
+}
+
 fn prepare_serde_callbacks(
     source: &str,
     path: &Path,
@@ -111,8 +144,74 @@ fn prepare_serde_callbacks(
     let resolved = semaprax::hir::resolve(&parsed)?;
     let record = prepare_serde_record_projection(&resolved, record_id)
         .map_err(|error| vec![error.at_path(path.display().to_string())])?;
-    let callback = prepare(source, path, selection, Some(record_id), trait_impl)
-        .map_err(|error| vec![error.at_path(path.display().to_string())])?;
+    let canonical = semaprax::format::canonical(&parsed);
+    let source_revision =
+        domain_digest(b"semaprax.rich-callback-source.v1\0", canonical.as_bytes());
+    let callback = prepare_checked(
+        parsed,
+        resolved,
+        source_revision,
+        path,
+        selection,
+        Some(record_id),
+        trait_impl,
+    )
+    .map_err(|error| vec![error.at_path(path.display().to_string())])?;
+    Ok(NativeSerdeCallbackProjection {
+        source_revision: callback.source_revision.clone(),
+        record,
+        callback,
+    })
+}
+
+fn prepare_serde_callbacks_from_authenticated_project_source(
+    source: &str,
+    path: &Path,
+    record_id: &str,
+    selection: &NativeCallbackSelection,
+) -> Result<NativeSerdeCallbackProjection, Vec<Diagnostic>> {
+    let located = |error: Diagnostic| vec![error.at_path(path.display().to_string())];
+    if source.len() > MAX_SOURCE_BYTES {
+        return Err(located(refusal(
+            "callback source exceeds its bound",
+            Span::default(),
+        )));
+    }
+    let parsed = semaprax::parse(source, path).map_err(located)?;
+    if !parsed.types.iter().any(|ty| ty.stable_id == record_id) {
+        return Err(located(refusal(
+            "Serde callback source requires its selected record",
+            Span::default(),
+        )));
+    }
+    let canonical = semaprax::format::canonical(&parsed);
+    let source_revision =
+        domain_digest(b"semaprax.rich-callback-source.v1\0", canonical.as_bytes());
+    // The selected callback must be closed over its exact M2 declarations.
+    // Do not resolve unrelated Project functions: in the unified Project those
+    // deliberately use separately authenticated M1 indexed imports.
+    let mut isolated = parsed.clone();
+    isolated.interfaces.clear();
+    isolated.types.retain(|ty| ty.stable_id == record_id);
+    isolated.functions.retain(|function| {
+        function.stable_id == selection.factory_id
+            || function.stable_id == selection.transition_id
+            || function.name == "main"
+    });
+    let resolved = semaprax::hir::resolve(&isolated)
+        .map_err(|mut errors| vec![errors.remove(0).at_path(path.display().to_string())])?;
+    semaprax::hir::validate(&resolved).map_err(located)?;
+    let record = prepare_serde_record_projection(&resolved, record_id).map_err(located)?;
+    let callback = prepare_checked(
+        isolated,
+        resolved,
+        source_revision,
+        path,
+        selection,
+        Some(record_id),
+        false,
+    )
+    .map_err(|error| vec![error.at_path(path.display().to_string())])?;
     Ok(NativeSerdeCallbackProjection {
         source_revision: callback.source_revision.clone(),
         record,
@@ -131,6 +230,33 @@ fn prepare(
     if source.len() > MAX_SOURCE_BYTES {
         return Err(fail("callback source exceeds its bound"));
     }
+    let program = semaprax::check(source, path).map_err(|mut errors| errors.remove(0))?;
+    let canonical = semaprax::format::canonical(&program);
+    let source_revision =
+        domain_digest(b"semaprax.rich-callback-source.v1\0", canonical.as_bytes());
+    let resolved = semaprax::hir::resolve(&program).map_err(|mut errors| errors.remove(0))?;
+    semaprax::hir::validate(&resolved)?;
+    prepare_checked(
+        program,
+        resolved,
+        source_revision,
+        path,
+        selection,
+        allowed_record_id,
+        trait_impl,
+    )
+}
+
+fn prepare_checked(
+    mut program: semaprax::ast::Program,
+    resolved: semaprax::hir::ResolvedProgram,
+    source_revision: String,
+    path: &Path,
+    selection: &NativeCallbackSelection,
+    allowed_record_id: Option<&str>,
+    trait_impl: bool,
+) -> Result<NativeCallbackProjection, Diagnostic> {
+    let fail = |message| refusal(message, Span::default());
     let trait_tokens = if trait_impl {
         let trait_path = semaprax::native_rust_binding::rust_api_path_tokens(&selection.trait_path)
             .ok_or_else(|| fail("callback trait path must be a bounded Rust item path"))?;
@@ -151,12 +277,6 @@ fn prepare(
     } else {
         None
     };
-    let mut program = semaprax::check(source, path).map_err(|mut errors| errors.remove(0))?;
-    let canonical = semaprax::format::canonical(&program);
-    let source_revision =
-        domain_digest(b"semaprax.rich-callback-source.v1\0", canonical.as_bytes());
-    let resolved = semaprax::hir::resolve(&program).map_err(|mut errors| errors.remove(0))?;
-    semaprax::hir::validate(&resolved)?;
     let factory = program
         .functions
         .iter()

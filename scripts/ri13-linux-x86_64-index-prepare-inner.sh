@@ -53,11 +53,19 @@ publish = false
 
 [workspace]
 
+[lib]
+path = "lib.rs"
+
 [dependencies]
 ${alias} = { package = "${package}", version = "=${version}" }
 EOF
+    # Cargo validates the root manifest before selecting the dependency package
+    # for rustdoc, so the capture root needs a concrete target of its own.
+    : > "$root/lib.rs"
     cp "$lock" "$root/Cargo.lock"
     CARGO_TARGET_DIR=/output/target \
+        RUSTC="$nightly/bin/rustc" \
+        RUSTDOC="$nightly/bin/rustdoc" \
         "$nightly/bin/cargo" rustdoc --locked --offline -p "$package" --lib --target "$target" \
         --manifest-path "$root/Cargo.toml" -- -Z unstable-options --output-format json
     local raw="/output/target/$target/doc/$package.json"

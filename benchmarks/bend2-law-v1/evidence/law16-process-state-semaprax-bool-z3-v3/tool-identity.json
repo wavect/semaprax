@@ -1,0 +1,13 @@
+{
+  "schema": "semaprax.bend2-law-benchmark.local-tool-identity.v1",
+  "tool": "SEMAPRAX project-bound Z3 source proof",
+  "commit": "9a9db7a8117ac8d292b24ffd5671ec3333272290",
+  "executable_path_at_measurement": "/tmp/semaprax-9a9db7a81",
+  "executable_sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89",
+  "solver_path_at_measurement": "/opt/homebrew/bin/z3",
+  "solver_sha256": "sha256:bbb24b8fed27552f7fb7cfdf0ed9101e6e24fd0cc0b9cfb945233b3f2ed333c5",
+  "solver_version": "Z3 version 4.12.5 - 64 bit",
+  "source_fixture_sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82",
+  "route": "project-proof-check app.negate ensures[0] with installed Z3",
+  "scope": "local trusted source proof; no proved lowering/execution, no complete law coverage, not current-head evidence"
+}

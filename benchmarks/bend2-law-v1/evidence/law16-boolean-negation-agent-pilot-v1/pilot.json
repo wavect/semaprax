@@ -1,0 +1,141 @@
+{
+  "cost_usage": {
+    "reason": "codex_exec_json_events_do_not_supply_monetary_usage",
+    "status": "unavailable"
+  },
+  "lanes": {
+    "bend2": {
+      "agent_record": {
+        "bytes": 3021,
+        "path": "bend-ordinal-1.json",
+        "sha256": "sha256:fe4d4cf37e17c9fb398ad7d347beb8d36b286672923ebda5dea175ba75964df6"
+      },
+      "attack": {
+        "exit_code": 1,
+        "stderr": {
+          "bytes": 207,
+          "path": "receipts/bend-attack.stderr",
+          "sha256": "sha256:ae177d9943f946c0840bf31a7f251157413e56a845dba6176b6f815151dad087"
+        },
+        "stdout": {
+          "bytes": 0,
+          "path": "receipts/bend-attack.stdout",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "attack_source": {
+        "bytes": 196,
+        "path": "receipts/bend-attack-source.bend",
+        "sha256": "sha256:5ee075e4f37c305e1aa73ed7c81d7fa59815e58c5f4aeda4ac658e79c1fe96fa"
+      },
+      "candidate": {
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "receipts/bend-candidate.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 17,
+          "path": "receipts/bend-candidate.stdout",
+          "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+        }
+      },
+      "candidate_source": {
+        "bytes": 206,
+        "path": "bend-ordinal-1/final-source.bend",
+        "sha256": "sha256:e3b0838d2688376dffab5a07154ef955c2006059ba08b8b8330cd4e91dc8738f"
+      }
+    },
+    "semaprax-scalar-v1": {
+      "agent_record": {
+        "bytes": 3046,
+        "path": "semaprax-ordinal-1.json",
+        "sha256": "sha256:a1910f7c62c53da20a88510f4c5f2881d77f018118eb57140d82a0e83b37f642"
+      },
+      "attack": {
+        "exit_code": 1,
+        "stderr": {
+          "bytes": 103,
+          "path": "receipts/semaprax-attack.stderr",
+          "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+        },
+        "stdout": {
+          "bytes": 0,
+          "path": "receipts/semaprax-attack.stdout",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "attack_manifest": {
+        "bytes": 183,
+        "path": "receipts/semaprax-attack-project/semaprax.toml",
+        "sha256": "sha256:481999d6499263a605ce8eaf67e8155b772f6cddbe466c87e3087978ff339bb5"
+      },
+      "attack_source": {
+        "bytes": 337,
+        "path": "receipts/semaprax-attack-project/src/app.spx",
+        "sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+      },
+      "candidate": {
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "receipts/semaprax-candidate.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6666,
+          "path": "receipts/semaprax-candidate.stdout",
+          "sha256": "sha256:077385b7019417ecd60edfe29913148ae0f1821bccedd852b6d0bfb515625290"
+        }
+      },
+      "candidate_manifest": {
+        "bytes": 183,
+        "path": "receipts/semaprax-candidate-project/semaprax.toml",
+        "sha256": "sha256:481999d6499263a605ce8eaf67e8155b772f6cddbe466c87e3087978ff339bb5"
+      },
+      "candidate_source": {
+        "bytes": 182,
+        "path": "receipts/semaprax-candidate-project/src/app.spx",
+        "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+      }
+    }
+  },
+  "nonclaims": [
+    "one ordinal pilot is not ten matched trials",
+    "Bend verdict and installed-Z3 have distinct trusted computing bases",
+    "source proof does not prove lowering or execution",
+    "no timing ratio or winner"
+  ],
+  "ordinal": 1,
+  "plan": {
+    "path": "benchmarks/bend2-law-v1/evidence/law16-boolean-negation-agent-plan-v1.json",
+    "sha256": "sha256:f5eb4bcba239637f8ea769cb9140aa74ba41feebc0938ac2abc50de6361ea8d1"
+  },
+  "schema": "semaprax.bend2-law-benchmark.boolean-negation-agent-pilot.v1",
+  "status": "candidate_and_attack_routes_observed",
+  "tools": {
+    "bend_commit": "947db722640c86247849343657bf2f7ef01cb7f1",
+    "bend_main": {
+      "bytes": 34607,
+      "path": "/tmp/bend2-law-source/bend2/main.ts",
+      "sha256": "sha256:c48a0274e661a3e529933550752578768e8f029219d814073fbf86537271d475"
+    },
+    "bun": {
+      "bytes": 57940512,
+      "path": "/Users/kevin/.bun/bin/bun",
+      "sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781"
+    },
+    "semaprax": {
+      "bytes": 172081112,
+      "path": "/tmp/semaprax-9a9db7a81",
+      "sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+    },
+    "z3": {
+      "bytes": 23365455,
+      "path": "/opt/homebrew/bin/z3",
+      "sha256": "sha256:bbb24b8fed27552f7fb7cfdf0ed9101e6e24fd0cc0b9cfb945233b3f2ed333c5"
+    },
+    "z3_version": "Z3 version 4.12.5 - 64 bit"
+  }
+}

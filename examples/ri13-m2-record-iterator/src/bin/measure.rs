@@ -137,7 +137,10 @@ fn record(route: Route) -> i64 {
         Route::Generated => JSON
             .into_iter()
             .map(|source| {
-                let record = deserialize_spxmirrorri13event(source).unwrap();
+                let (record, transfer) =
+                    deserialize_spxmirrorri13event_with_transfer_metrics(source).unwrap();
+                assert!(transfer.string_pointers_preserved);
+                assert_eq!(transfer.copied_string_bytes, Some(0));
                 let encoded = serialize_spxmirrorri13event(&record).unwrap();
                 assert_eq!(encoded, source);
                 record.value

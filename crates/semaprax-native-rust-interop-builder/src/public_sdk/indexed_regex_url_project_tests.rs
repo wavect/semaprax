@@ -103,12 +103,28 @@ fn one_held_regex_url_project_authenticates_four_imports_two_exports_and_both_lo
     assert_eq!(built.url.project_subject_digest(), built.subject_digest);
     assert_eq!(built.regex.cargo_lock(), REGEX_LOCK);
     assert_eq!(built.url.cargo_lock(), URL_LOCK);
-    assert!(std::str::from_utf8(built.regex.lib_rs())
+    let regex_lib = std::str::from_utf8(built.regex.lib_rs()).unwrap();
+    let url_lib = std::str::from_utf8(built.url.lib_rs()).unwrap();
+    assert!(regex_lib.contains("pub fn run()"));
+    assert!(url_lib.contains("pub fn run()"));
+    for lib in [regex_lib, url_lib] {
+        assert!(lib.contains("pub const MAX_BATCH_OPERATIONS:usize=4096;"));
+        assert!(lib.contains("pub fn run_batch(operations:usize)->Result<BatchMetrics,i32>"));
+        assert!(lib.contains("adapter_copy_events"));
+        assert!(lib.contains("borrowed_input_bytes"));
+        assert!(lib.contains("if !projected_borrow_matches_target(){let _=spx_result_owner_context_close(context);return Err(5)}"));
+        assert!(lib.contains("fn run_in_context(context:u64)->Result<i64,i32>"));
+        assert!(lib
+            .contains("let context=spx_result_owner_context_new(); if context==0{return Err(4)}"));
+        assert!(lib.contains("run_in_context(context)"));
+        assert!(!lib.contains("checksum=checksum.checked_add(run()?)"));
+    }
+    assert!(std::str::from_utf8(built.regex.descriptor())
         .unwrap()
-        .contains("pub fn run()"));
-    assert!(std::str::from_utf8(built.url.lib_rs())
+        .contains("\"batch_api\":\"checked-export-repeat.v1\""));
+    assert!(std::str::from_utf8(built.url.descriptor())
         .unwrap()
-        .contains("pub fn run()"));
+        .contains("\"batch_api\":\"checked-export-repeat.v1\""));
     assert_ne!(built.regex.c_source(), built.url.c_source());
     assert!(std::str::from_utf8(built.url.lib_rs())
         .unwrap()
@@ -249,6 +265,25 @@ fn closed_ri13_profile_binds_indexed_m1_signatures_before_future_admission() {
     })
     .unwrap();
 
+    let packages = prepare_indexed_regex_url_project_packages(
+        &manifest_path,
+        &regex,
+        &url,
+        "regex.run",
+        "url.run",
+        REGEX_LOCK,
+        URL_LOCK,
+    )
+    .unwrap();
+    assert_eq!(
+        packages.regex.project_subject_digest(),
+        packages.subject_digest
+    );
+    assert_eq!(
+        packages.url.project_subject_digest(),
+        packages.subject_digest
+    );
+
     let source_drift = source.replace("example.invalid", "other.invalid");
     fs::write(root.0.join("src/app.spx"), source_drift).unwrap();
     let refusal =
@@ -324,7 +359,9 @@ fn closed_ri13_profile_binds_indexed_m1_signatures_before_future_admission() {
     let refusal =
         with_authenticated_indexed_regex_url_project(&manifest_path, &regex, &url, |_| Ok(()))
             .unwrap_err();
-    assert!(refusal[0]
-        .message
-        .contains("source-local-future-indexed-rust.v1"));
+    assert_eq!(refusal[0].code, "SPX-J100");
+    assert_eq!(
+        refusal[0].message,
+        "Package Manifest v1 rust_async requires a source-local-future profile and one valid stable ID"
+    );
 }

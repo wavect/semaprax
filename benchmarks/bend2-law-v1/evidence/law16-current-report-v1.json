@@ -1,0 +1,834 @@
+{
+  "annotations_and_changed_bytes": {
+    "historical_bounded_balance_v2": {
+      "nonclaims": [
+        "byte difference is not semantic proof effort"
+      ],
+      "rows": [
+        {
+          "annotation_counts": {
+            "law": 3,
+            "proof_bodies": 4
+          },
+          "changed_bytes_vs_seed": 574,
+          "final_bytes": 842,
+          "final_sha256": "sha256:f0b8f79e6bfd409191f3c3577dfbac1b39ef1d82ac87e6e893480d0b87e5bcec",
+          "language": "bend2",
+          "ordinal": 1
+        },
+        {
+          "annotation_counts": {
+            "ensures": 3,
+            "requires": 0,
+            "stable_ids": 4
+          },
+          "changed_bytes_vs_seed": 244,
+          "final_bytes": 359,
+          "final_sha256": "sha256:5e6f5649dcb6f755c6b5a91a5b6c396f4ea9791a45bd02dbc3625be59a629b7e",
+          "language": "semaprax-scalar-v1",
+          "ordinal": 1
+        },
+        {
+          "annotation_counts": {
+            "law": 3,
+            "proof_bodies": 4
+          },
+          "changed_bytes_vs_seed": 592,
+          "final_bytes": 805,
+          "final_sha256": "sha256:5c59d7522c759b693d0c5c160dce6867a85bf4796754ed1f00204c70b9df6c60",
+          "language": "bend2",
+          "ordinal": 2
+        },
+        {
+          "annotation_counts": {
+            "ensures": 3,
+            "requires": 0,
+            "stable_ids": 4
+          },
+          "changed_bytes_vs_seed": 243,
+          "final_bytes": 359,
+          "final_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418",
+          "language": "semaprax-scalar-v1",
+          "ordinal": 2
+        },
+        {
+          "annotation_counts": {
+            "law": 3,
+            "proof_bodies": 4
+          },
+          "changed_bytes_vs_seed": 638,
+          "final_bytes": 855,
+          "final_sha256": "sha256:40a59a15b5ee2a9604c5df80d6fdfd0ccbd664ff208ad6e7aec7a843437766ba",
+          "language": "bend2",
+          "ordinal": 3
+        },
+        {
+          "annotation_counts": {
+            "ensures": 3,
+            "requires": 0,
+            "stable_ids": 4
+          },
+          "changed_bytes_vs_seed": 243,
+          "final_bytes": 359,
+          "final_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418",
+          "language": "semaprax-scalar-v1",
+          "ordinal": 3
+        },
+        {
+          "annotation_counts": {
+            "law": 0,
+            "proof_bodies": 4
+          },
+          "changed_bytes_vs_seed": 498,
+          "final_bytes": 654,
+          "final_sha256": "sha256:c9255f6bedfda5a40b3699ba82269d3cbf20648b52e29d7f40ed2a32a9da9ec0",
+          "language": "bend2",
+          "ordinal": 4
+        },
+        {
+          "annotation_counts": {
+            "ensures": 3,
+            "requires": 0,
+            "stable_ids": 4
+          },
+          "changed_bytes_vs_seed": 4,
+          "final_bytes": 355,
+          "final_sha256": "sha256:3097dbd73c9c9f7fee58355dc5adab956ba92b7db2e22148c1fac58ede22d445",
+          "language": "semaprax-scalar-v1",
+          "ordinal": 4
+        },
+        {
+          "annotation_counts": {
+            "law": 3,
+            "proof_bodies": 4
+          },
+          "changed_bytes_vs_seed": 549,
+          "final_bytes": 817,
+          "final_sha256": "sha256:2b6d4c7d3b2aa08ea568a313a4df597d3765f7da3b9812061d9a2a15dc15ae05",
+          "language": "bend2",
+          "ordinal": 5
+        },
+        {
+          "annotation_counts": {
+            "ensures": 3,
+            "requires": 0,
+            "stable_ids": 4
+          },
+          "changed_bytes_vs_seed": 243,
+          "final_bytes": 359,
+          "final_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418",
+          "language": "semaprax-scalar-v1",
+          "ordinal": 5
+        },
+        {
+          "annotation_counts": {
+            "law": 3,
+            "proof_bodies": 4
+          },
+          "changed_bytes_vs_seed": 574,
+          "final_bytes": 842,
+          "final_sha256": "sha256:f0b8f79e6bfd409191f3c3577dfbac1b39ef1d82ac87e6e893480d0b87e5bcec",
+          "language": "bend2",
+          "ordinal": 6
+        },
+        {
+          "annotation_counts": {
+            "ensures": 3,
+            "requires": 0,
+            "stable_ids": 4
+          },
+          "changed_bytes_vs_seed": 243,
+          "final_bytes": 359,
+          "final_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418",
+          "language": "semaprax-scalar-v1",
+          "ordinal": 6
+        },
+        {
+          "annotation_counts": {
+            "law": 3,
+            "proof_bodies": 4
+          },
+          "changed_bytes_vs_seed": 573,
+          "final_bytes": 843,
+          "final_sha256": "sha256:03e2fb340328b637f91b7148e6fb8a0b5fb3ba8980c8cbdb9b267465b862d522",
+          "language": "bend2",
+          "ordinal": 7
+        },
+        {
+          "annotation_counts": {
+            "ensures": 3,
+            "requires": 0,
+            "stable_ids": 4
+          },
+          "changed_bytes_vs_seed": 243,
+          "final_bytes": 359,
+          "final_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418",
+          "language": "semaprax-scalar-v1",
+          "ordinal": 7
+        },
+        {
+          "annotation_counts": {
+            "law": 3,
+            "proof_bodies": 4
+          },
+          "changed_bytes_vs_seed": 488,
+          "final_bytes": 782,
+          "final_sha256": "sha256:9912ceb695c0302adabb34c06c4f3353b38e10469ef54e0722603ebe51345b64",
+          "language": "bend2",
+          "ordinal": 8
+        },
+        {
+          "annotation_counts": {
+            "ensures": 3,
+            "requires": 0,
+            "stable_ids": 4
+          },
+          "changed_bytes_vs_seed": 243,
+          "final_bytes": 359,
+          "final_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418",
+          "language": "semaprax-scalar-v1",
+          "ordinal": 8
+        },
+        {
+          "annotation_counts": {
+            "law": 3,
+            "proof_bodies": 4
+          },
+          "changed_bytes_vs_seed": 574,
+          "final_bytes": 842,
+          "final_sha256": "sha256:f0b8f79e6bfd409191f3c3577dfbac1b39ef1d82ac87e6e893480d0b87e5bcec",
+          "language": "bend2",
+          "ordinal": 9
+        },
+        {
+          "annotation_counts": {
+            "ensures": 3,
+            "requires": 0,
+            "stable_ids": 4
+          },
+          "changed_bytes_vs_seed": 243,
+          "final_bytes": 359,
+          "final_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418",
+          "language": "semaprax-scalar-v1",
+          "ordinal": 9
+        },
+        {
+          "annotation_counts": {
+            "law": 3,
+            "proof_bodies": 4
+          },
+          "changed_bytes_vs_seed": 549,
+          "final_bytes": 817,
+          "final_sha256": "sha256:2b6d4c7d3b2aa08ea568a313a4df597d3765f7da3b9812061d9a2a15dc15ae05",
+          "language": "bend2",
+          "ordinal": 10
+        },
+        {
+          "annotation_counts": {
+            "ensures": 3,
+            "requires": 0,
+            "stable_ids": 4
+          },
+          "changed_bytes_vs_seed": 243,
+          "final_bytes": 359,
+          "final_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418",
+          "language": "semaprax-scalar-v1",
+          "ordinal": 10
+        }
+      ],
+      "scope": "historical bounded-balance campaign; not evidence for the required checked-u32 cell",
+      "source": "evidence/law16-annotation-summary-v1.json",
+      "status": "retained_source_evidence_only"
+    },
+    "matched_boolean": {
+      "reason": "no retained normalized annotation and changed-proof-byte summary binds Boolean candidates to a fixed seed",
+      "status": "unavailable"
+    }
+  },
+  "closure": "no: the matched Boolean cell and ten agent pairs do not satisfy checked-u32, Lean, cold-cache, project-sized, list/refactor/incremental, or cost acceptance requirements",
+  "matched_boolean": {
+    "agent_pairs": {
+      "bend_attack_rejections": 10,
+      "bend_candidate_acceptances": 10,
+      "continuation_pairs": 9,
+      "cost_usage": {
+        "reason": "all retained Codex JSON events omit monetary charge",
+        "status": "unavailable"
+      },
+      "pilot_pairs": 1,
+      "pilot_tokens": {
+        "bend2": {
+          "cached_input_tokens": 11008,
+          "chargeable_tokens": 16626
+        },
+        "semaprax-scalar-v1": {
+          "cached_input_tokens": 14080,
+          "chargeable_tokens": 16711
+        }
+      },
+      "semaprax_attack_rejections": 10,
+      "semaprax_candidate_discharges": 10,
+      "total_pairs": 10
+    },
+    "bounded_proof_and_verdict_process_routes": {
+      "bend_verdict": {
+        "fresh_process": {
+          "count": 30,
+          "p50_ns": 102798854.0,
+          "p95_ns": 112451083
+        },
+        "repeat_process": {
+          "count": 30,
+          "p50_ns": 100183937.0,
+          "p95_ns": 109771667
+        }
+      },
+      "semaprax_z3": {
+        "fresh_process": {
+          "count": 30,
+          "p50_ns": 485314812.0,
+          "p95_ns": 577496250
+        },
+        "repeat_process": {
+          "count": 30,
+          "p50_ns": 480240292.0,
+          "p95_ns": 528557500
+        }
+      }
+    },
+    "candidate_and_attack_controls": {
+      "bend_verdict_candidate_acceptances": 60,
+      "bend_verdict_seeded_attack_rejections": 60,
+      "raw_streams": 480,
+      "semaprax_z3_candidate_postcondition_discharges": 60,
+      "semaprax_z3_seeded_attack_rejections": 60
+    },
+    "ordinary_and_nonproof_process_routes": {
+      "bend-ordinary": {
+        "fresh_process": {
+          "count": 30,
+          "p50_ns": 83050145.5,
+          "p95_ns": 100950209
+        },
+        "repeat_process": {
+          "count": 30,
+          "p50_ns": 75527833.0,
+          "p95_ns": 78076250
+        }
+      },
+      "semaprax-check": {
+        "fresh_process": {
+          "count": 30,
+          "p50_ns": 233901479.5,
+          "p95_ns": 238908583
+        },
+        "repeat_process": {
+          "count": 30,
+          "p50_ns": 235004000.0,
+          "p95_ns": 243150709
+        }
+      }
+    },
+    "peak_rss": {
+      "bend_verdict": {
+        "input_sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81",
+        "p50_peak_rss_bytes": 119259136.0,
+        "p95_peak_rss_bytes": 127746048,
+        "samples": 30,
+        "wrapper": "/usr/bin/time -l"
+      },
+      "semaprax_z3": {
+        "input_sha256": "sha256:481999d6499263a605ce8eaf67e8155b772f6cddbe466c87e3087978ff339bb5",
+        "p50_peak_rss_bytes": 50880512.0,
+        "p95_peak_rss_bytes": 51036160,
+        "samples": 30,
+        "wrapper": "/usr/bin/time -l"
+      }
+    },
+    "process_routes": {
+      "bend_attack_fresh_process": {
+        "count": 30,
+        "p50_ns": 68409687.0,
+        "p95_ns": 69691583
+      },
+      "bend_attack_repeat_process": {
+        "count": 30,
+        "p50_ns": 69071729.0,
+        "p95_ns": 70838084
+      },
+      "bend_candidate_fresh_process": {
+        "count": 30,
+        "p50_ns": 86617917.0,
+        "p95_ns": 95123166
+      },
+      "bend_candidate_repeat_process": {
+        "count": 30,
+        "p50_ns": 87489354.5,
+        "p95_ns": 102620000
+      },
+      "semaprax_attack_fresh_process": {
+        "count": 30,
+        "p50_ns": 192335167.0,
+        "p95_ns": 206678916
+      },
+      "semaprax_attack_repeat_process": {
+        "count": 30,
+        "p50_ns": 191247604.5,
+        "p95_ns": 215137250
+      },
+      "semaprax_candidate_fresh_process": {
+        "count": 30,
+        "p50_ns": 439726645.5,
+        "p95_ns": 472329792
+      },
+      "semaprax_candidate_repeat_process": {
+        "count": 30,
+        "p50_ns": 451408458.0,
+        "p95_ns": 495566959
+      }
+    },
+    "proof_path_nonresult": {
+      "error": "SPX-J102: Project v1 ancestor /tmp must be a real directory",
+      "samples": 60
+    },
+    "semantic_contract": {
+      "domain": "Bool / bool; exactly two values",
+      "name": "total Boolean negation",
+      "relation": "result == !value / Bool.not(value)",
+      "truth_table": [
+        {
+          "input": false,
+          "output": true
+        },
+        {
+          "input": true,
+          "output": false
+        }
+      ]
+    },
+    "timing_interpretation": "ordinary Bend, Bend verdict, SEMAPRAX check, and installed-Z3 p50/p95 and RSS are separate local process-provisioning observations; no cross-route ratio or winner"
+  },
+  "measurement_provenance": {
+    "backend": {
+      "bend": "ordinary Bend and separate Bend --verdict routes",
+      "semaprax": "separate SEMAPRAX check and installed-Z3 source-proof routes",
+      "status": "observed",
+      "z3_sha256": "sha256:bbb24b8fed27552f7fb7cfdf0ed9101e6e24fd0cc0b9cfb945233b3f2ed333c5"
+    },
+    "flags": {
+      "bend_nonproof_environment": {
+        "BEND_NO_TELEMETRY": "1"
+      },
+      "compiler_optimization": {
+        "reason": "no retained compiler optimization-flag record",
+        "status": "unavailable"
+      },
+      "status": "partially_observed"
+    },
+    "hardware": {
+      "reason": "no retained machine-model or CPU-topology record binds these samples",
+      "status": "unavailable"
+    },
+    "identity_scope": "pinned historical local executable observations; not current-head claims",
+    "operating_system": {
+      "reason": "no retained OS-version record binds these samples",
+      "status": "unavailable"
+    },
+    "tool_identities": {
+      "bend_commit": "947db722640c86247849343657bf2f7ef01cb7f1",
+      "bend_main_sha256": "sha256:c48a0274e661a3e529933550752578768e8f029219d814073fbf86537271d475",
+      "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+      "semaprax_sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+    }
+  },
+  "nonclaims": [
+    "no cross-route timing ratio, winner, or superiority claim",
+    "no full LAW-16 closure",
+    "no checked-u32 substitute from i32/i64/u8/usize"
+  ],
+  "pins_and_trust": {
+    "bend": "local historical commit 947db722640c86247849343657bf2f7ef01cb7f1; verdict output is retained tool evidence",
+    "boundaries": [
+      "Bend verdict and SEMAPRAX installed-Z3 have distinct trusted computing bases",
+      "SEMAPRAX source proof does not prove lowering or execution",
+      "fresh/repeat paths do not isolate OS, executable, solver, or tool caches"
+    ],
+    "observation_identity": "local historical pins, retained as exact executable/tool evidence",
+    "semaprax": "local historical executable commit 9a9db7a8117ac8d292b24ffd5671ec3333272290; installed-Z3 source proof discharges selected app.negate ensures[0]"
+  },
+  "proof_effort": {
+    "boolean_agent_synthesis": {
+      "cost": {
+        "reason": "retained Codex JSON events contain no monetary charge",
+        "status": "unavailable"
+      },
+      "matched_pairs": 10,
+      "per_language": {
+        "bend2": {
+          "agent_turns": 10,
+          "chargeable_tokens": 166351
+        },
+        "semaprax-scalar-v1": {
+          "agent_turns": 10,
+          "chargeable_tokens": 167648
+        }
+      },
+      "phase": "one isolated agent turn per language and ordinal; not kernel or Z3 checking",
+      "scope": "Boolean-negation agent edits only",
+      "status": "observed"
+    },
+    "historical_bounded_balance_v2": {
+      "nonclaims": [
+        "source bytes are not proof quality"
+      ],
+      "phase_separation": {
+        "cold_isolation": {
+          "reason": "no reproducible clean tool/cache reset was retained",
+          "status": "unavailable"
+        },
+        "cost": {
+          "status": "unavailable"
+        },
+        "kernel_check": "retained local Bend/check/Z3 process samples"
+      },
+      "rows": [
+        {
+          "cached_input_tokens": 14080,
+          "chargeable_tokens": 19263,
+          "input_tokens": 18757,
+          "language": "bend2",
+          "ordinal": 1,
+          "output_tokens": 506,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 842,
+          "source_sha256": "sha256:f0b8f79e6bfd409191f3c3577dfbac1b39ef1d82ac87e6e893480d0b87e5bcec"
+        },
+        {
+          "cached_input_tokens": 11008,
+          "chargeable_tokens": 19052,
+          "input_tokens": 18570,
+          "language": "semaprax-scalar-v1",
+          "ordinal": 1,
+          "output_tokens": 482,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 359,
+          "source_sha256": "sha256:5e6f5649dcb6f755c6b5a91a5b6c396f4ea9791a45bd02dbc3625be59a629b7e"
+        },
+        {
+          "cached_input_tokens": 15104,
+          "chargeable_tokens": 19258,
+          "input_tokens": 18757,
+          "language": "bend2",
+          "ordinal": 2,
+          "output_tokens": 501,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 805,
+          "source_sha256": "sha256:5c59d7522c759b693d0c5c160dce6867a85bf4796754ed1f00204c70b9df6c60"
+        },
+        {
+          "cached_input_tokens": 14080,
+          "chargeable_tokens": 18906,
+          "input_tokens": 18570,
+          "language": "semaprax-scalar-v1",
+          "ordinal": 2,
+          "output_tokens": 336,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 359,
+          "source_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+        },
+        {
+          "cached_input_tokens": 14080,
+          "chargeable_tokens": 19254,
+          "input_tokens": 18757,
+          "language": "bend2",
+          "ordinal": 3,
+          "output_tokens": 497,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 855,
+          "source_sha256": "sha256:40a59a15b5ee2a9604c5df80d6fdfd0ccbd664ff208ad6e7aec7a843437766ba"
+        },
+        {
+          "cached_input_tokens": 14080,
+          "chargeable_tokens": 18901,
+          "input_tokens": 18570,
+          "language": "semaprax-scalar-v1",
+          "ordinal": 3,
+          "output_tokens": 331,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 359,
+          "source_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+        },
+        {
+          "cached_input_tokens": 18176,
+          "chargeable_tokens": 19197,
+          "input_tokens": 18757,
+          "language": "bend2",
+          "ordinal": 4,
+          "output_tokens": 440,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 654,
+          "source_sha256": "sha256:c9255f6bedfda5a40b3699ba82269d3cbf20648b52e29d7f40ed2a32a9da9ec0"
+        },
+        {
+          "cached_input_tokens": 11008,
+          "chargeable_tokens": 19001,
+          "input_tokens": 18570,
+          "language": "semaprax-scalar-v1",
+          "ordinal": 4,
+          "output_tokens": 431,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 355,
+          "source_sha256": "sha256:3097dbd73c9c9f7fee58355dc5adab956ba92b7db2e22148c1fac58ede22d445"
+        },
+        {
+          "cached_input_tokens": 14080,
+          "chargeable_tokens": 19229,
+          "input_tokens": 18757,
+          "language": "bend2",
+          "ordinal": 5,
+          "output_tokens": 472,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 817,
+          "source_sha256": "sha256:2b6d4c7d3b2aa08ea568a313a4df597d3765f7da3b9812061d9a2a15dc15ae05"
+        },
+        {
+          "cached_input_tokens": 18176,
+          "chargeable_tokens": 18897,
+          "input_tokens": 18570,
+          "language": "semaprax-scalar-v1",
+          "ordinal": 5,
+          "output_tokens": 327,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 359,
+          "source_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+        },
+        {
+          "cached_input_tokens": 18176,
+          "chargeable_tokens": 19260,
+          "input_tokens": 18757,
+          "language": "bend2",
+          "ordinal": 6,
+          "output_tokens": 503,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 842,
+          "source_sha256": "sha256:f0b8f79e6bfd409191f3c3577dfbac1b39ef1d82ac87e6e893480d0b87e5bcec"
+        },
+        {
+          "cached_input_tokens": 11008,
+          "chargeable_tokens": 18900,
+          "input_tokens": 18570,
+          "language": "semaprax-scalar-v1",
+          "ordinal": 6,
+          "output_tokens": 330,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 359,
+          "source_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+        },
+        {
+          "cached_input_tokens": 11008,
+          "chargeable_tokens": 19257,
+          "input_tokens": 18757,
+          "language": "bend2",
+          "ordinal": 7,
+          "output_tokens": 500,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 843,
+          "source_sha256": "sha256:03e2fb340328b637f91b7148e6fb8a0b5fb3ba8980c8cbdb9b267465b862d522"
+        },
+        {
+          "cached_input_tokens": 15104,
+          "chargeable_tokens": 18910,
+          "input_tokens": 18570,
+          "language": "semaprax-scalar-v1",
+          "ordinal": 7,
+          "output_tokens": 340,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 359,
+          "source_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+        },
+        {
+          "cached_input_tokens": 18176,
+          "chargeable_tokens": 19282,
+          "input_tokens": 18757,
+          "language": "bend2",
+          "ordinal": 8,
+          "output_tokens": 525,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 782,
+          "source_sha256": "sha256:9912ceb695c0302adabb34c06c4f3353b38e10469ef54e0722603ebe51345b64"
+        },
+        {
+          "cached_input_tokens": 18176,
+          "chargeable_tokens": 18907,
+          "input_tokens": 18570,
+          "language": "semaprax-scalar-v1",
+          "ordinal": 8,
+          "output_tokens": 337,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 359,
+          "source_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+        },
+        {
+          "cached_input_tokens": 18176,
+          "chargeable_tokens": 19261,
+          "input_tokens": 18757,
+          "language": "bend2",
+          "ordinal": 9,
+          "output_tokens": 504,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 842,
+          "source_sha256": "sha256:f0b8f79e6bfd409191f3c3577dfbac1b39ef1d82ac87e6e893480d0b87e5bcec"
+        },
+        {
+          "cached_input_tokens": 18176,
+          "chargeable_tokens": 18898,
+          "input_tokens": 18570,
+          "language": "semaprax-scalar-v1",
+          "ordinal": 9,
+          "output_tokens": 328,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 359,
+          "source_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+        },
+        {
+          "cached_input_tokens": 18176,
+          "chargeable_tokens": 19242,
+          "input_tokens": 18757,
+          "language": "bend2",
+          "ordinal": 10,
+          "output_tokens": 485,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 817,
+          "source_sha256": "sha256:2b6d4c7d3b2aa08ea568a313a4df597d3765f7da3b9812061d9a2a15dc15ae05"
+        },
+        {
+          "cached_input_tokens": 18176,
+          "chargeable_tokens": 18913,
+          "input_tokens": 18570,
+          "language": "semaprax-scalar-v1",
+          "ordinal": 10,
+          "output_tokens": 343,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 359,
+          "source_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+        }
+      ],
+      "scope": "historical bounded-balance campaign; not evidence for the required checked-u32 cell",
+      "source": "evidence/law16-effort-summary-v1.json",
+      "status": "retained_source_evidence_only"
+    }
+  },
+  "schema": "semaprax.bend2-law-benchmark.current-report.v1",
+  "scope": "local pinned historical Boolean-negation evidence only",
+  "status": "incomplete",
+  "unavailable_or_unsupported": {
+    "Lean": "unavailable: no retained admitted Lean export/kernel route",
+    "checked_u32": "unsupported_by_pinned_parser: SPX-P003 admits i32, u8, usize literal suffixes, not u32",
+    "cold_cache": "unavailable: no retained reproducible clean cache isolation",
+    "cost": "unavailable: no Codex JSON monetary charge event",
+    "list_refactor_lawbreaking": {
+      "admission_blocker": {
+        "receipt": "evidence/law16-checked-u32-nonadmission-v1/review.json",
+        "sha256": "sha256:d123fb87b7b42356c5de84c4f1787c0183eeb0f3840d9fb5bbd9cd1b4a058561"
+      },
+      "cells": [
+        {
+          "additional_unobserved_route": "list theorem needs list/source-proof route; none is retained",
+          "attack": "empty-sort",
+          "attack_witness": {
+            "input": [
+              3,
+              1,
+              3,
+              2
+            ],
+            "output": []
+          },
+          "fixture": {
+            "path": "fixtures/supported-list-theorem-v1.json",
+            "sha256": "sha256:027f3548bd0282dc7e38fa1cd9ba822176a4c7d281b559720a9fad398f0fbccd"
+          },
+          "id": "supported-list-theorem-v1",
+          "laws": [
+            "permutation-and-multiplicity",
+            "sortedness"
+          ],
+          "reason": "pinned SEMAPRAX parser rejects checked u32 before a matched route can start",
+          "status": "unsupported",
+          "success_witness": {
+            "input": [
+              3,
+              1,
+              3,
+              2
+            ],
+            "output": [
+              1,
+              2,
+              3,
+              3
+            ]
+          }
+        },
+        {
+          "additional_unobserved_route": "refactor equivalence route is not retained",
+          "attack": "law-dropped-during-refactor",
+          "attack_witness": {
+            "after": 12,
+            "before": 25,
+            "input": 12
+          },
+          "fixture": {
+            "path": "fixtures/law-preserving-refactor-v1.json",
+            "sha256": "sha256:d467b1a05ecac911f91247270440ad9b3915483efd8eba43d3aabfd68fbc16ff"
+          },
+          "id": "law-preserving-refactor-v1",
+          "laws": [
+            "before-after-observational-equivalence"
+          ],
+          "reason": "pinned SEMAPRAX parser rejects checked u32 before a matched route can start",
+          "status": "unsupported",
+          "success_witness": {
+            "after": 25,
+            "before": 25,
+            "input": 12
+          }
+        },
+        {
+          "additional_unobserved_route": "law-inventory preservation route is not retained",
+          "attack": "agent-law-gaming",
+          "attack_witness": {
+            "input": 5,
+            "law_inventory": [],
+            "output": 5
+          },
+          "fixture": {
+            "path": "fixtures/law-breaking-agent-edit-v1.json",
+            "sha256": "sha256:359c01461d0a015cc523d2ec70acbfbfb4cf8da724cd490a84426bdcf765a013"
+          },
+          "id": "law-breaking-agent-edit-v1",
+          "laws": [
+            "declared-law-inventory"
+          ],
+          "reason": "pinned SEMAPRAX parser rejects checked u32 before a matched route can start",
+          "status": "unsupported",
+          "success_witness": {
+            "input": 5,
+            "law_inventory": [
+              "double"
+            ],
+            "output": 10
+          }
+        }
+      ],
+      "nonclaims": [
+        "not executable matched evidence",
+        "no i32, i64, u8, or usize substitute",
+        "no list theorem, refactor, or agent-edit acceptance result"
+      ],
+      "schema": "semaprax.bend2-law-benchmark.remaining-u32-cells-admission.v1",
+      "status": "unsupported"
+    },
+    "project_sized": "unavailable: Boolean microcell is not project-sized/incremental evidence"
+  }
+}

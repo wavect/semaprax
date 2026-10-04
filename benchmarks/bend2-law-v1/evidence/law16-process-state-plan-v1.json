@@ -1,0 +1,42 @@
+{
+  "schema": "semaprax.bend2-law-benchmark.process-state-plan.v1",
+  "status": "prepared_not_executed",
+  "samples_per_state": 30,
+  "states": {
+    "fresh_process": {
+      "meaning": "one new child process against a fresh artifact path containing byte-identical pinned inputs",
+      "not_a_claim": "OS, executable, solver, and tool caches are not controlled"
+    },
+    "repeat_process": {
+      "meaning": "one new child process against a repeat artifact path containing the same pinned inputs",
+      "not_a_claim": "a repeat process does not expose an incremental-recheck counter"
+    }
+  },
+  "required_operator_artifacts": [
+    "fresh fixture or project input",
+    "repeat fixture or project input",
+    "pinned executable",
+    "pinned executable version or identity receipt"
+  ],
+  "raw_outputs": {
+    "per_state": 30,
+    "per_invocation": ["stdout", "stderr"],
+    "receipt_binding": ["relative path", "bytes", "sha256", "argv", "command_sha256"]
+  },
+  "available_route_templates": [
+    "Bend Boolean ordinary checker",
+    "Bend Boolean verdict kernel",
+    "SEMAPRAX Boolean check",
+    "SEMAPRAX Boolean project-bound Z3 proof"
+  ],
+  "unavailable": {
+    "cold_cache": "no pinned CLI supplies page-cache, executable-cache, solver-cache, or tool-cache isolation",
+    "incremental_cache_work": "Bend supplies no incremental route and the reviewed SEMAPRAX public CLI supplies no changed-module reuse counter"
+  },
+  "nonclaims": [
+    "no cold-versus-warm ratio",
+    "no winner",
+    "no comparison between distinct proof routes",
+    "no proof of artifact byte equality until an executed receipt binds it"
+  ]
+}

@@ -1,13 +1,13 @@
 use semaprax_native_rust_interop::{
-    indexed_binding::SelectedPackage, prepare_native_rust_serde_iterator_callbacks,
+    indexed_binding::SelectedPackage,
+    prepare_native_rust_serde_iterator_callbacks_from_authenticated_project_source,
     with_authenticated_indexed_regex_url_project_packages, IndexedProjectRegexRegistrySelection,
     IndexedProjectUrlRegistrySelection,
 };
-use semaprax_rust_api_index::RustApiIndex;
-use std::{
-    env, fs,
-    path::{Path, PathBuf},
-};
+mod selected_index;
+
+use selected_index::admit_selected_index;
+use std::{env, fs, path::Path};
 
 const REGEX_INDEX: &[u8] = include_bytes!(
     "../../../../crates/semaprax-rust-api-index/fixtures/regex-1.13.1-index-envelope.json"
@@ -21,39 +21,6 @@ const REGEX_LOCK: &[u8] = include_bytes!(
 const URL_LOCK: &[u8] =
     include_bytes!("../../../../crates/semaprax-toolchain/src/fixtures/ri06-url-2.5.8.Cargo.lock");
 
-const LINUX_X86_64_TARGET: &str = "x86_64-unknown-linux-gnu";
-
-fn selected_index(name: &str, built_in: &[u8]) -> Vec<u8> {
-    let Some(directory) = env::var_os("RI13_RUST_API_INDEX_DIR") else {
-        return built_in.to_vec();
-    };
-    let directory = PathBuf::from(directory);
-    assert!(
-        directory.is_absolute(),
-        "RI13 Rust API index directory must be absolute"
-    );
-    let path = directory.join(name);
-    let metadata = fs::symlink_metadata(&path).expect("selected RI13 Rust API index metadata");
-    assert!(
-        metadata.file_type().is_file(),
-        "selected RI13 Rust API index must be a regular file"
-    );
-    fs::read(path).expect("selected RI13 Rust API index")
-}
-
-fn admit_linux_index(name: &str, built_in: &[u8]) -> RustApiIndex {
-    let index = RustApiIndex::admit_extractor_output(&selected_index(name, built_in))
-        .expect("admitted selected RI13 Rust API index");
-    if env::var_os("RI13_RUST_API_INDEX_DIR").is_some() {
-        assert_eq!(
-            index.target(),
-            LINUX_X86_64_TARGET,
-            "selected RI13 Rust API index target"
-        );
-    }
-    index
-}
-
 fn embed_generated_package(destination: &Path) {
     let manifest = destination.join("Cargo.toml");
     let source = fs::read_to_string(&manifest).expect("generated package manifest");
@@ -62,6 +29,14 @@ fn embed_generated_package(destination: &Path) {
     // they are path dependencies within the consumer's single workspace.
     fs::write(manifest, source.replacen("\n[workspace]\n", "\n", 1))
         .expect("embedded package manifest");
+}
+
+fn write_generated_package(destination: &Path, files: [(&str, &[u8]); 7]) {
+    fs::create_dir_all(destination.join("src")).expect("generated package source directory");
+    for (name, bytes) in files {
+        fs::write(destination.join(name), bytes).expect("generated package artifact");
+    }
+    embed_generated_package(destination);
 }
 
 fn require_fragment(source: &str, fragment: &str, subject: &str) {
@@ -97,8 +72,8 @@ fn main() {
     ] {
         require_fragment(&unified_source, &format!("@id(\"{identity}\")"), "source");
     }
-    let regex_index = admit_linux_index("regex-1.13.1-index-envelope.json", REGEX_INDEX);
-    let url_index = admit_linux_index("url-2.5.8-index-envelope.json", URL_INDEX);
+    let regex_index = admit_selected_index("regex-1.13.1-index-envelope.json", REGEX_INDEX);
+    let url_index = admit_selected_index("url-2.5.8-index-envelope.json", URL_INDEX);
     let regex_package = SelectedPackage {
         cargo_alias: "regex_alias",
         name: "regex",
@@ -133,8 +108,8 @@ fn main() {
         package: url_package,
     });
     // M1 package facts, M2 projection, and M3 Future rendering are all derived
-    // before the held indexed Project snapshot is released. The callback has no
-    // path or selection input, so it cannot substitute a later source revision.
+    // before the held indexed Project snapshot is released. M2 receives the
+    // held Project source, so it cannot substitute a later source revision.
     let (m1, m2, m3, project_revision) = with_authenticated_indexed_regex_url_project_packages(
         &unified.join("semaprax.toml"),
         &regex,
@@ -150,19 +125,44 @@ fn main() {
                 .iter()
                 .find(|source| source.path() == "src/app.spx")
                 .expect("authenticated unified manifest requires app.spx");
-            let m2 = prepare_native_rust_serde_iterator_callbacks(
-                source.source(),
-                &unified.join("src/app.spx"),
-                "ri13.event",
-                "callback.factory",
-                "callback.advance",
-            )?;
+            let m2 =
+                prepare_native_rust_serde_iterator_callbacks_from_authenticated_project_source(
+                    source,
+                    &unified.join("src/app.spx"),
+                    "ri13.event",
+                    "callback.factory",
+                    "callback.advance",
+                )?;
             let project_revision = snapshot.retain_revision().project_revision().to_owned();
             let m3 = snapshot.render_source_local_future_rust_module()?;
             Ok((m1, m2, m3, project_revision))
         },
     )
     .expect("one held unified Project M1/M2/M3 selection");
+    write_generated_package(
+        &root.join("generated/regex"),
+        [
+            ("Cargo.toml", m1.regex.cargo_toml()),
+            ("Cargo.lock", m1.regex.cargo_lock()),
+            ("src/lib.rs", m1.regex.lib_rs()),
+            ("src/regex_project.c", m1.regex.c_source()),
+            ("src/regex_project.h", m1.regex.header()),
+            ("binding-plan.json", m1.regex.binding_plan()),
+            ("descriptor.json", m1.regex.descriptor()),
+        ],
+    );
+    write_generated_package(
+        &root.join("generated/url"),
+        [
+            ("Cargo.toml", m1.url.cargo_toml()),
+            ("Cargo.lock", m1.url.cargo_lock()),
+            ("src/lib.rs", m1.url.lib_rs()),
+            ("src/url_project.c", m1.url.c_source()),
+            ("src/url_project.h", m1.url.header()),
+            ("binding-plan.json", m1.url.binding_plan()),
+            ("descriptor.json", m1.url.descriptor()),
+        ],
+    );
     let m2_dir = root.join("generated/m2");
     fs::create_dir_all(&m2_dir).unwrap();
     fs::write(m2_dir.join("module.c"), &m2.callback.c_source).unwrap();
@@ -189,14 +189,14 @@ fn main() {
         root.join("generated/linked-subject.json"),
         format!(
             concat!(
-                "{\n",
+                "{{\n",
                 "  \"schema\": \"semaprax.ri13.linked-subject.v1\",\n",
                 "  \"m1_project_subject\": {:?},\n",
                 "  \"project_revision\": {:?},\n",
                 "  \"m2_source_revision\": {:?},\n",
                 "  \"m3_project_revision\": {:?},\n",
                 "  \"candidate\": \"unified-project/semaprax.toml\"\n",
-                "}\n"
+                "}}\n"
             ),
             m1.subject_digest, project_revision, m2.source_revision, project_revision,
         ),

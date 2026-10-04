@@ -33,3 +33,13 @@ handwritten adapters.
 This is a bounded local mixed-project route. It does not claim arbitrary
 foreign package combinations, a merged owner carrier, or publication through
 the general Project SDK CLI.
+
+## Matched batch investigation
+
+The local five-sample Darwin arm64 fixed-workload result at `93c9e2599` is
+recorded in [measurements/](measurements/). It verifies each 4,096-operation
+batch's exact borrow, copy, and cleanup ledger before computing medians. The
+context-allocation fix leaves one extra carrier allocation per batch, but the
+generated/direct throughput ratios are 0.8910 for Regex scan and 0.6378 for
+Url parse/view. Both remain below the 0.90 investigation trigger, so the
+record is adverse local evidence rather than a threshold result.

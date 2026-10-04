@@ -4,10 +4,15 @@
 import argparse
 import hashlib
 import json
+import os
+import subprocess
+import tempfile
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent
+DARWIN_EVIDENCE = ROOT / "linked-darwin-evidence.json"
+LINKED_SUBJECT = ROOT / "linked/generated/linked-subject.json"
 EXAMPLES = ROOT.parent
 M1_PROJECT = EXAMPLES / "ri13-m1-regex-url/project"
 M2_PROJECT = EXAMPLES / "ri13-m2-record-iterator/project"
@@ -41,6 +46,7 @@ PATHS = {
     "build": ROOT / "linked/build.rs",
     "prepare": ROOT / "linked/src/bin_prepare.rs",
     "consumer": ROOT / "linked/src/main.rs",
+    "selected_index": ROOT / "linked/src/selected_index.rs",
 }
 TRACKED = tuple(PATHS.values())
 REQUIRED_IDENTITIES = (
@@ -82,6 +88,48 @@ def require(sources, name, fragment):
         raise ValueError(f"linked RI-13 {name} is missing {fragment!r}")
 
 
+def admitted_index_provenance(directory=None):
+    """Read the exact index pair selected by this receipt invocation."""
+    if directory is None:
+        directory = os.environ.get("RI13_RUST_API_INDEX_DIR")
+    selected = directory is not None
+    if selected:
+        directory = Path(directory)
+        if not directory.is_absolute():
+            raise ValueError("RI13 Rust API index directory must be absolute")
+        paths = {
+            "regex": directory / "regex-1.13.1-index-envelope.json",
+            "url": directory / "url-2.5.8-index-envelope.json",
+        }
+    else:
+        paths = {"regex": M1_REGEX_INDEX, "url": M1_URL_INDEX}
+    expected = {
+        "regex": ("regex", "1.13.1", "regex_alias"),
+        "url": ("url", "2.5.8", "url_alias"),
+    }
+    admitted = {}
+    for name, path in paths.items():
+        if not path.is_file() or path.is_symlink():
+            raise ValueError(f"selected RI-13 {name} index must be a regular file")
+        try:
+            document = json.loads(path.read_text(encoding="utf-8"))
+            index = document["index"]
+            package = index["package"]
+        except (KeyError, TypeError, json.JSONDecodeError) as error:
+            raise ValueError(f"selected RI-13 {name} index is malformed") from error
+        if document.get("schema") != "semaprax.rustdoc-extractor.v2" or index.get("schema") != "semaprax.rust-api-index.v2":
+            raise ValueError(f"selected RI-13 {name} index has an unadmitted schema")
+        if (package.get("name"), package.get("version"), package.get("renamed_from")) != expected[name]:
+            raise ValueError(f"selected RI-13 {name} index package facts differ")
+        admitted[name] = {"sha256": digest(path), "target": index.get("target")}
+    target = admitted["regex"]["target"]
+    if not isinstance(target, str) or admitted["url"]["target"] != target:
+        raise ValueError("selected RI-13 indexes must bind one exact target")
+    if selected and target != "x86_64-unknown-linux-gnu":
+        raise ValueError("selected RI-13 Linux index target differs")
+    return {"selection": "supplied-linux-envelope" if selected else "committed-fixture", "target": target, "envelopes": admitted}
+
+
 def validate_sources(sources):
     """Bind the linked M1/M2/M3 route to its selected Project inputs."""
     if 'profile = "source-local-future.v1"' in sources["m1_manifest"]:
@@ -96,8 +144,9 @@ def validate_sources(sources):
     require(sources, "unified_manifest", "[rust-dependencies]")
     for identity in REQUIRED_IDENTITIES:
         require(sources, "unified_source", f'@id("{identity}")')
-    for index in ("m1_regex_index", "m1_url_index"):
-        require(sources, index, '"target":"aarch64-apple-darwin"')
+    provenance = admitted_index_provenance()
+    if provenance["selection"] == "committed-fixture" and provenance["target"] != "aarch64-apple-darwin":
+        raise ValueError("committed RI-13 indexes must retain the Darwin fixture target")
     for name, expected in LOCK_DIGESTS.items():
         if hashlib.sha256(sources[name].encode()).hexdigest() != expected:
             raise ValueError(f"linked RI-13 {name} drifted from its selected package lock")
@@ -115,7 +164,7 @@ def validate_sources(sources):
         '"regex.run"',
         '"url.run"',
         indexed_snapshot,
-        "prepare_native_rust_serde_iterator_callbacks(",
+        "prepare_native_rust_serde_iterator_callbacks_from_authenticated_project_source(",
         '"ri13.event"',
         '"callback.factory"',
         '"callback.advance"',
@@ -125,12 +174,18 @@ def validate_sources(sources):
         'root.join("generated/m3.rs")',
         'root.join("generated/linked-subject.json")',
         "semaprax.ri13.linked-subject.v1",
-        'let Some(directory) = env::var_os("RI13_RUST_API_INDEX_DIR")',
-        'admit_linux_index("regex-1.13.1-index-envelope.json", REGEX_INDEX)',
-        'admit_linux_index("url-2.5.8-index-envelope.json", URL_INDEX)',
-        "LINUX_X86_64_TARGET",
+        "mod selected_index;",
+        'admit_selected_index("regex-1.13.1-index-envelope.json", REGEX_INDEX)',
+        'admit_selected_index("url-2.5.8-index-envelope.json", URL_INDEX)',
     ):
         require(sources, "prepare", fragment)
+    for fragment in (
+        'let Some(directory) = env::var_os("RI13_RUST_API_INDEX_DIR")',
+        "RI13 Rust API index must be a regular file",
+        "LINUX_X86_64_TARGET",
+        "pub(crate) fn admit_selected_index",
+    ):
+        require(sources, "selected_index", fragment)
 
     for fragment in (
         'name = "prepare"',
@@ -151,7 +206,10 @@ def validate_sources(sources):
         'root.join("generated/url/src/url_project.c")',
         'root.join("generated/m2/module.c")',
         'root.join("generated/linked-subject.json")',
-        '\\"project_revision\\": \\"sha256:',
+        "fn validate_linked_subject(binding: &str)",
+        "validate_linked_subject(&binding);",
+        "linked subject field {key} is not a SHA-256 digest",
+        "linked Project/M3 revision binding is stale",
     ):
         require(sources, "build", fragment)
 
@@ -160,11 +218,16 @@ def validate_sources(sources):
         "ri06_url_owner::run(), Ok(41)",
         "spx_result_owner_adapter_copied_bytes(), 0",
         "adapter_copied_bytes(), 0",
+        "deserialize_spxmirrorri13event_with_transfer_metrics",
+        "generated_mirror_to_record_transferred_string_bytes",
         ".map(callback.as_fn())",
         "SpxStatefulProxy::new",
         ".map(stateful.as_fn_mut())",
         "assert_eq!(states, [11, 13])",
         "with_authenticated_indexed_regex_url_project(manifest,",
+        "mod selected_index;",
+        'admit_selected_index("regex-1.13.1-index-envelope.json", REGEX_INDEX)',
+        'admit_selected_index("url-2.5.8-index-envelope.json", URL_INDEX)',
         "m3::register",
         'join("unified-project/semaprax.toml")',
         "Ok::<i64, ()>(43)",
@@ -184,12 +247,7 @@ def receipt(sources):
         "schema": "semaprax.ri13.linked-project-receipt.v2",
         "inputs": {label(path): digest(path) for path in TRACKED},
         "profiles": {"linked": "source-local-future-indexed-rust.v1"},
-        "m1_index_target": {
-            "target": "aarch64-apple-darwin",
-            "admission": "host-native-only",
-            "linux_result": "SPX-B112",
-            "reason": "the pinned Rust API indexes are target-specific and the package generator requires the current native target",
-        },
+        "m1_index_target": admitted_index_provenance(),
         "unified_project_candidate": {
             "path": "ri13-combined-app/unified-project/semaprax.toml",
             "admission": "closed",
@@ -220,6 +278,73 @@ def receipt(sources):
     }
 
 
+def stable_digest(value):
+    encoded = json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def recorded_head_is_reachable(head):
+    return subprocess.run(
+        ["git", "merge-base", "--is-ancestor", head, "HEAD"],
+        cwd=EXAMPLES.parent,
+        capture_output=True,
+    ).returncode == 0
+
+
+def verify_darwin_evidence(document, sources, subject_path=None):
+    """Verify the compact Darwin execution claim against live authored inputs."""
+    if document.get("schema") != "semaprax.ri13.linked-darwin-evidence.v1":
+        raise ValueError("unsupported linked Darwin evidence schema")
+    head = document.get("source_head")
+    if not isinstance(head, str) or not recorded_head_is_reachable(head):
+        raise ValueError("linked Darwin evidence source head is unavailable")
+    if document.get("static_route_receipt_sha256") != stable_digest(receipt(sources)):
+        raise ValueError("linked Darwin evidence authored route inputs drifted")
+    bound = document.get("linked_subject", {})
+    for key in ("m1_project_subject", "project_revision", "m2_source_revision", "m3_project_revision"):
+        if not isinstance(bound.get(key), str) or not bound[key].startswith("sha256:"):
+            raise ValueError(f"linked Darwin evidence subject {key} is absent")
+    if bound["project_revision"] != bound["m3_project_revision"]:
+        raise ValueError("linked Darwin evidence must bind one Project and M3 revision")
+    if subject_path is not None:
+        subject = json.loads(subject_path.read_text(encoding="utf-8"))
+        if bound.get("sha256") != digest(subject_path):
+            raise ValueError("linked Darwin evidence subject bytes drifted")
+        for key in ("m1_project_subject", "project_revision", "m2_source_revision", "m3_project_revision"):
+            if bound[key] != subject.get(key):
+                raise ValueError(f"linked Darwin evidence subject {key} drifted")
+    consumer = document.get("consumer", {})
+    if consumer.get("environment") != {
+        "CLANG": "/usr/bin/clang",
+        "CARGO_BUILD_JOBS": "1",
+        "CARGO_INCREMENTAL": "0",
+    }:
+        raise ValueError("linked Darwin consumer environment is not the measured SDK wrapper route")
+    if consumer.get("marker") != "ri13-linked-project-ok":
+        raise ValueError("linked Darwin consumer marker is absent")
+    ledger = consumer.get("copy_ledger")
+    if not isinstance(ledger, dict) or ledger.get("schema") != "semaprax.ri13.linked-copy-ledger.v1":
+        raise ValueError("linked Darwin consumer ledger is absent")
+    regex = ledger.get("m1", {}).get("regex_result_owner", {})
+    record = ledger.get("m2", {}).get("serde_record", {})
+    callback = ledger.get("m2", {}).get("iterator_callback", {})
+    if regex.get("adapter_copied_bytes") != 0 or regex.get("adapter_borrowed_scan_input_bytes") != 28:
+        raise ValueError("linked Darwin Regex copy ledger changed")
+    if (
+        record.get("generated_mirror_to_record_transferred_string_bytes") != 6
+        or record.get("generated_mirror_to_record_copied_string_bytes") != 0
+        or record.get("generated_mirror_to_record_pointers_preserved") is not True
+    ):
+        raise ValueError("linked Darwin generated mirror-to-record transfer changed")
+    if callback != {"fn_invocations": 1, "fn_mut_invocations": 1, "scalar_argument_result_copied_bytes": 0}:
+        raise ValueError("linked Darwin callback copy ledger changed")
+
+
+def verify_darwin_evidence_file(path, subject_path):
+    document = json.loads(path.read_text(encoding="utf-8"))
+    verify_darwin_evidence(document, read_sources(), subject_path)
+    return document
+
 def self_test():
     sources = read_sources()
     document = receipt(sources)
@@ -227,18 +352,56 @@ def self_test():
     assert document["stages"] == ["prepare", "consumer"]
     assert document["consumer_marker"] == "ri13-linked-project-ok"
     assert document["unified_project_candidate"]["admission"] == "closed"
+    expected_selection = (
+        "supplied-linux-envelope"
+        if os.environ.get("RI13_RUST_API_INDEX_DIR") is not None
+        else "committed-fixture"
+    )
+    assert document["m1_index_target"]["selection"] == expected_selection
+    source_indexes = (
+        Path(os.environ["RI13_RUST_API_INDEX_DIR"])
+        if os.environ.get("RI13_RUST_API_INDEX_DIR") is not None
+        else M1_REGEX_INDEX.parent
+    )
+    with tempfile.TemporaryDirectory() as temporary:
+        directory = Path(temporary)
+        for name in ("regex-1.13.1-index-envelope.json", "url-2.5.8-index-envelope.json"):
+            index_document = json.loads((source_indexes / name).read_text())
+            # A temporary alternate mount exercises the selected-envelope
+            # path in both fixture and guest modes without relying on a host
+            # extraction directory.
+            index_document["index"]["target"] = "x86_64-unknown-linux-gnu"
+            (directory / name).write_text(json.dumps(index_document), encoding="utf-8")
+        linux = admitted_index_provenance(directory)
+        assert linux["selection"] == "supplied-linux-envelope"
+        assert linux["target"] == "x86_64-unknown-linux-gnu"
+        for name in ("regex-1.13.1-index-envelope.json", "url-2.5.8-index-envelope.json"):
+            index_document = json.loads((directory / name).read_text())
+            index_document["index"]["target"] = "aarch64-apple-darwin"
+            (directory / name).write_text(json.dumps(index_document), encoding="utf-8")
+        try:
+            admitted_index_provenance(directory)
+        except ValueError as error:
+            assert str(error) == "selected RI-13 Linux index target differs"
+        else:
+            raise AssertionError("validator accepted a non-Linux selected index target")
     assert document["copied_byte_ledger"]["m3_generated_boundary"] == {
         "status": "exact",
         "copied_bytes_per_invocation": 0,
         "shape": "i64-to-i64",
     }
     for name, fragment in (
-        ("prepare", "prepare_native_rust_serde_iterator_callbacks("),
-        ("prepare", 'let Some(directory) = env::var_os("RI13_RUST_API_INDEX_DIR")'),
+        ("prepare", "prepare_native_rust_serde_iterator_callbacks_from_authenticated_project_source("),
+        ("selected_index", 'let Some(directory) = env::var_os("RI13_RUST_API_INDEX_DIR")'),
+        ("selected_index", "RI13 Rust API index must be a regular file"),
         ("prepare", 'with_authenticated_indexed_regex_url_project_packages('),
         ("consumer", 'with_authenticated_indexed_regex_url_project(manifest,'),
-        ("build", '\\"project_revision\\": \\"sha256:'),
+        ("consumer", 'admit_selected_index("regex-1.13.1-index-envelope.json", REGEX_INDEX)'),
+        ("build", "validate_linked_subject(&binding);"),
+        ("build", "linked subject field {key} is not a SHA-256 digest"),
+        ("build", "linked Project/M3 revision binding is stale"),
         ("consumer", "m3::register"),
+        ("consumer", "deserialize_spxmirrorri13event_with_transfer_metrics"),
         ("consumer", 'join("unified-project/semaprax.toml")'),
         ("m1_source", '@id("regex.run")'),
         ("unified_source", CALLBACK_ADVANCE),
@@ -272,15 +435,65 @@ def self_test():
         except ValueError:
             continue
         raise AssertionError(f"validator accepted drifted {name}")
+    evidence = json.loads(DARWIN_EVIDENCE.read_text(encoding="utf-8"))
+    # The checked-in execution receipt must fail after authored route inputs
+    # change until a new run replaces it.
+    try:
+        verify_darwin_evidence(evidence, sources)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("stale Darwin execution evidence was accepted")
+    # This self-test validates verifier structure using an in-memory fixture
+    # only. It never rewrites or upgrades the checked-in execution claim.
+    evidence["static_route_receipt_sha256"] = stable_digest(document)
+    evidence["consumer"]["copy_ledger"]["m2"]["serde_record"].update({
+        "generated_mirror_to_record_transferred_string_bytes": 6,
+        "generated_mirror_to_record_copied_string_bytes": 0,
+        "generated_mirror_to_record_pointers_preserved": True,
+    })
+    verify_darwin_evidence(evidence, sources)
+    forged = dict(evidence)
+    forged["consumer"] = dict(evidence["consumer"])
+    forged["consumer"]["copy_ledger"] = json.loads(json.dumps(evidence["consumer"]["copy_ledger"]))
+    forged["consumer"]["copy_ledger"]["m2"]["serde_record"]["generated_mirror_to_record_copied_string_bytes"] = 1
+    try:
+        verify_darwin_evidence(forged, sources)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("verifier accepted forged mirror-to-record copy bytes")
+    forged = dict(evidence)
+    forged["linked_subject"] = dict(evidence["linked_subject"])
+    forged["linked_subject"]["m3_project_revision"] = "sha256:forged"
+    try:
+        verify_darwin_evidence(forged, sources)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("verifier accepted a forged linked subject binding")
     print("ri13-linked-receipt-self-test-ok")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--self-test", action="store_true")
+    parser.add_argument("--verify-darwin-evidence", type=Path)
+    parser.add_argument("--linked-subject", type=Path)
     arguments = parser.parse_args()
     if arguments.self_test:
         self_test()
+        return
+    if arguments.verify_darwin_evidence:
+        if arguments.linked_subject is None:
+            parser.error("--verify-darwin-evidence requires --linked-subject")
+        print(json.dumps(
+            verify_darwin_evidence_file(
+                arguments.verify_darwin_evidence, arguments.linked_subject
+            ),
+            indent=2,
+            sort_keys=True,
+        ))
         return
     print(json.dumps(receipt(read_sources()), indent=2, sort_keys=True))
 

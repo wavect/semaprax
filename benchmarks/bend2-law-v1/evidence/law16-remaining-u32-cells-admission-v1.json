@@ -1,0 +1,103 @@
+{
+  "admission_blocker": {
+    "receipt": "evidence/law16-checked-u32-nonadmission-v1/review.json",
+    "sha256": "sha256:d123fb87b7b42356c5de84c4f1787c0183eeb0f3840d9fb5bbd9cd1b4a058561"
+  },
+  "cells": [
+    {
+      "additional_unobserved_route": "list theorem needs list/source-proof route; none is retained",
+      "attack": "empty-sort",
+      "attack_witness": {
+        "input": [
+          3,
+          1,
+          3,
+          2
+        ],
+        "output": []
+      },
+      "fixture": {
+        "path": "fixtures/supported-list-theorem-v1.json",
+        "sha256": "sha256:027f3548bd0282dc7e38fa1cd9ba822176a4c7d281b559720a9fad398f0fbccd"
+      },
+      "id": "supported-list-theorem-v1",
+      "laws": [
+        "permutation-and-multiplicity",
+        "sortedness"
+      ],
+      "reason": "pinned SEMAPRAX parser rejects checked u32 before a matched route can start",
+      "status": "unsupported",
+      "success_witness": {
+        "input": [
+          3,
+          1,
+          3,
+          2
+        ],
+        "output": [
+          1,
+          2,
+          3,
+          3
+        ]
+      }
+    },
+    {
+      "additional_unobserved_route": "refactor equivalence route is not retained",
+      "attack": "law-dropped-during-refactor",
+      "attack_witness": {
+        "after": 12,
+        "before": 25,
+        "input": 12
+      },
+      "fixture": {
+        "path": "fixtures/law-preserving-refactor-v1.json",
+        "sha256": "sha256:d467b1a05ecac911f91247270440ad9b3915483efd8eba43d3aabfd68fbc16ff"
+      },
+      "id": "law-preserving-refactor-v1",
+      "laws": [
+        "before-after-observational-equivalence"
+      ],
+      "reason": "pinned SEMAPRAX parser rejects checked u32 before a matched route can start",
+      "status": "unsupported",
+      "success_witness": {
+        "after": 25,
+        "before": 25,
+        "input": 12
+      }
+    },
+    {
+      "additional_unobserved_route": "law-inventory preservation route is not retained",
+      "attack": "agent-law-gaming",
+      "attack_witness": {
+        "input": 5,
+        "law_inventory": [],
+        "output": 5
+      },
+      "fixture": {
+        "path": "fixtures/law-breaking-agent-edit-v1.json",
+        "sha256": "sha256:359c01461d0a015cc523d2ec70acbfbfb4cf8da724cd490a84426bdcf765a013"
+      },
+      "id": "law-breaking-agent-edit-v1",
+      "laws": [
+        "declared-law-inventory"
+      ],
+      "reason": "pinned SEMAPRAX parser rejects checked u32 before a matched route can start",
+      "status": "unsupported",
+      "success_witness": {
+        "input": 5,
+        "law_inventory": [
+          "double"
+        ],
+        "output": 10
+      }
+    }
+  ],
+  "nonclaims": [
+    "not executable matched evidence",
+    "no i32, i64, u8, or usize substitute",
+    "no list theorem, refactor, or agent-edit acceptance result"
+  ],
+  "schema": "semaprax.bend2-law-benchmark.remaining-u32-cells-admission.v1",
+  "status": "unsupported"
+}

@@ -342,3 +342,32 @@ executable evidence.
 `adopt <descriptor> --runtime <abs>` records the adapter runtime; `adopt --skills <abs-dir> [--origin l]` approves a
 skill root. Both live in `installations.json` (`runtime`, `skill_roots`), never in a project. A bundled upstream
 (`local:` package, no probe) needs no adopted executable to resolve.
+
+## TC-01/TC-02: model receipts and output caps on the wire
+
+`model.generate/v1` request: optional `max_output_tokens` (≥ 1; the host always sends the accepted output reservation)
+and `reasoning_effort` (`minimal | low | medium | high`, only when configured). `max_output_bytes` remains a separate
+transport bound; bytes are never generation tokens. Result: optional closed `receipt`
+(`semaprax.harness-model-receipt.v1`: `protocol`, `model`, `request_id`, `finish_reason`, provider-native `usage` or
+`usage_events`, `provider_cost_micros`, `controls` with each control's effective/unsupported status). Legacy shapes still
+validate; a provider without a receipt reports `unavailable`, never zero.
+
+The host (`crates/semaprax-harness/src/receipt/`) normalizes usage per protocol: OpenAI Responses/Chat inclusive totals
+never re-add cached input, Anthropic exclusive input adds `cache_read`/`cache_creation` (by tier), reasoning is a subset
+of output, and streaming usage merges cumulative snapshots without double counting (including Anthropic
+`message_start`). Usage observed on a failed or truncated reply is kept; unobserved categories stay unknown. Usage or
+cost claims inside model-generated proposal bytes are ignored. `provider_cost_micros` (provider-reported) is distinct
+from the host estimate priced by a versioned `semaprax.harness-price-book.v1` (`[budget] price_book`, project-relative);
+missing prices or usage keep the estimate unknown, and zero billing needs an explicitly non-billed source.
+
+Output caps: OpenAI Responses `max_output_tokens`, Chat `max_completion_tokens` and Anthropic `max_tokens` each bound
+visible output plus reasoning/thinking together, so the host reserves and sends one total. `[budget]`
+`intent_max_output_tokens | repair_max_output_tokens`, `intent_reasoning | repair_reasoning | reasoning_effort` set opt-in
+per-shape tiers (default: the existing `output_reserve_tokens`). `model_output_cap | model_reasoning`
+(`supported | unsupported`) and `model_framing_tokens` declare what the adapter honours and the framing it adds (counted in
+admission). `generation_strict = true` refuses before dispatch (`SPX-HPD101`) when the cap cannot be enforced; non-strict
+never refuses. A length-limited or otherwise non-stop finish is refused as `SPX-HPD030` ("incomplete model output"), never
+applied or repaired; one larger-cap retry (`length_retry_max_output_tokens`) is reserved before dispatch and bounded by the
+task limits, and an uncertain request is never replayed. Each dispatched attempt (including failed and truncated ones)
+appears in the report's `context.usage_receipts`, with measured, preflight and reserved figures separate; observations
+gain additive `usage` and `estimated_cost`.

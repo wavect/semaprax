@@ -1,0 +1,379 @@
+{
+  "samples": [
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/tmp/bend2-law-source/bend2/main.ts",
+        "benchmarks/bend2-law-v1/fixtures/bend-bounded-balance-transfer-v1.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47",
+      "wall_ms": 162.388834
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/tmp/bend2-law-source/bend2/main.ts",
+        "benchmarks/bend2-law-v1/fixtures/bend-bounded-balance-transfer-v1.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47",
+      "wall_ms": 145.328833
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/tmp/bend2-law-source/bend2/main.ts",
+        "benchmarks/bend2-law-v1/fixtures/bend-bounded-balance-transfer-v1.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47",
+      "wall_ms": 124.897125
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/tmp/bend2-law-source/bend2/main.ts",
+        "benchmarks/bend2-law-v1/fixtures/bend-bounded-balance-transfer-v1.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47",
+      "wall_ms": 117.053375
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/tmp/bend2-law-source/bend2/main.ts",
+        "benchmarks/bend2-law-v1/fixtures/bend-bounded-balance-transfer-v1.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47",
+      "wall_ms": 114.902791
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/tmp/bend2-law-source/bend2/main.ts",
+        "benchmarks/bend2-law-v1/fixtures/bend-bounded-balance-transfer-v1.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47",
+      "wall_ms": 119.523291
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/tmp/bend2-law-source/bend2/main.ts",
+        "benchmarks/bend2-law-v1/fixtures/bend-bounded-balance-transfer-v1.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47",
+      "wall_ms": 136.273333
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/tmp/bend2-law-source/bend2/main.ts",
+        "benchmarks/bend2-law-v1/fixtures/bend-bounded-balance-transfer-v1.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47",
+      "wall_ms": 135.831375
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/tmp/bend2-law-source/bend2/main.ts",
+        "benchmarks/bend2-law-v1/fixtures/bend-bounded-balance-transfer-v1.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47",
+      "wall_ms": 128.265792
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/tmp/bend2-law-source/bend2/main.ts",
+        "benchmarks/bend2-law-v1/fixtures/bend-bounded-balance-transfer-v1.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47",
+      "wall_ms": 131.018834
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/tmp/bend2-law-source/bend2/main.ts",
+        "benchmarks/bend2-law-v1/fixtures/bend-bounded-balance-transfer-v1.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47",
+      "wall_ms": 125.741792
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/tmp/bend2-law-source/bend2/main.ts",
+        "benchmarks/bend2-law-v1/fixtures/bend-bounded-balance-transfer-v1.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47",
+      "wall_ms": 122.981958
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/tmp/bend2-law-source/bend2/main.ts",
+        "benchmarks/bend2-law-v1/fixtures/bend-bounded-balance-transfer-v1.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47",
+      "wall_ms": 112.191375
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/tmp/bend2-law-source/bend2/main.ts",
+        "benchmarks/bend2-law-v1/fixtures/bend-bounded-balance-transfer-v1.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47",
+      "wall_ms": 112.768375
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/tmp/bend2-law-source/bend2/main.ts",
+        "benchmarks/bend2-law-v1/fixtures/bend-bounded-balance-transfer-v1.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47",
+      "wall_ms": 118.25125
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/tmp/bend2-law-source/bend2/main.ts",
+        "benchmarks/bend2-law-v1/fixtures/bend-bounded-balance-transfer-v1.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47",
+      "wall_ms": 111.011334
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/tmp/bend2-law-source/bend2/main.ts",
+        "benchmarks/bend2-law-v1/fixtures/bend-bounded-balance-transfer-v1.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47",
+      "wall_ms": 110.623917
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/tmp/bend2-law-source/bend2/main.ts",
+        "benchmarks/bend2-law-v1/fixtures/bend-bounded-balance-transfer-v1.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47",
+      "wall_ms": 117.589125
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/tmp/bend2-law-source/bend2/main.ts",
+        "benchmarks/bend2-law-v1/fixtures/bend-bounded-balance-transfer-v1.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47",
+      "wall_ms": 124.159542
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/tmp/bend2-law-source/bend2/main.ts",
+        "benchmarks/bend2-law-v1/fixtures/bend-bounded-balance-transfer-v1.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47",
+      "wall_ms": 113.919875
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/tmp/bend2-law-source/bend2/main.ts",
+        "benchmarks/bend2-law-v1/fixtures/bend-bounded-balance-transfer-v1.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47",
+      "wall_ms": 122.705917
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/tmp/bend2-law-source/bend2/main.ts",
+        "benchmarks/bend2-law-v1/fixtures/bend-bounded-balance-transfer-v1.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47",
+      "wall_ms": 110.22925
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/tmp/bend2-law-source/bend2/main.ts",
+        "benchmarks/bend2-law-v1/fixtures/bend-bounded-balance-transfer-v1.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47",
+      "wall_ms": 138.372917
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/tmp/bend2-law-source/bend2/main.ts",
+        "benchmarks/bend2-law-v1/fixtures/bend-bounded-balance-transfer-v1.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47",
+      "wall_ms": 126.405834
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/tmp/bend2-law-source/bend2/main.ts",
+        "benchmarks/bend2-law-v1/fixtures/bend-bounded-balance-transfer-v1.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47",
+      "wall_ms": 131.757625
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/tmp/bend2-law-source/bend2/main.ts",
+        "benchmarks/bend2-law-v1/fixtures/bend-bounded-balance-transfer-v1.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47",
+      "wall_ms": 135.644875
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/tmp/bend2-law-source/bend2/main.ts",
+        "benchmarks/bend2-law-v1/fixtures/bend-bounded-balance-transfer-v1.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47",
+      "wall_ms": 126.010917
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/tmp/bend2-law-source/bend2/main.ts",
+        "benchmarks/bend2-law-v1/fixtures/bend-bounded-balance-transfer-v1.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47",
+      "wall_ms": 123.132209
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/tmp/bend2-law-source/bend2/main.ts",
+        "benchmarks/bend2-law-v1/fixtures/bend-bounded-balance-transfer-v1.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47",
+      "wall_ms": 120.337791
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/tmp/bend2-law-source/bend2/main.ts",
+        "benchmarks/bend2-law-v1/fixtures/bend-bounded-balance-transfer-v1.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47",
+      "wall_ms": 114.00775
+    }
+  ],
+  "schema": "semaprax.bend2-law-benchmark.local-process-measurement.v1",
+  "statistics": {
+    "count": 30,
+    "mean_ms": 124.44424036666666,
+    "p50_ms": 123.0570835,
+    "p95_ms": 138.372917,
+    "population_stdev_ms": 11.464762807085863
+  },
+  "unavailable": [
+    "cold-state isolation",
+    "peak_memory",
+    "proof_synthesis_effort",
+    "provider_cost",
+    "cache_invalidation_work"
+  ]
+}

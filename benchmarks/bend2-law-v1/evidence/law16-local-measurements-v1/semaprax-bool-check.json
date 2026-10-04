@@ -1,0 +1,379 @@
+{
+  "samples": [
+    {
+      "argv": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:70a39292cc67e7e809a1a33ec9bdfb41308849b51abfcfac2bf65e68a96134bd",
+      "wall_ms": 461.055833
+    },
+    {
+      "argv": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:70a39292cc67e7e809a1a33ec9bdfb41308849b51abfcfac2bf65e68a96134bd",
+      "wall_ms": 249.40725
+    },
+    {
+      "argv": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:70a39292cc67e7e809a1a33ec9bdfb41308849b51abfcfac2bf65e68a96134bd",
+      "wall_ms": 254.777375
+    },
+    {
+      "argv": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:70a39292cc67e7e809a1a33ec9bdfb41308849b51abfcfac2bf65e68a96134bd",
+      "wall_ms": 255.067166
+    },
+    {
+      "argv": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:70a39292cc67e7e809a1a33ec9bdfb41308849b51abfcfac2bf65e68a96134bd",
+      "wall_ms": 260.338958
+    },
+    {
+      "argv": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:70a39292cc67e7e809a1a33ec9bdfb41308849b51abfcfac2bf65e68a96134bd",
+      "wall_ms": 257.306333
+    },
+    {
+      "argv": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:70a39292cc67e7e809a1a33ec9bdfb41308849b51abfcfac2bf65e68a96134bd",
+      "wall_ms": 253.635583
+    },
+    {
+      "argv": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:70a39292cc67e7e809a1a33ec9bdfb41308849b51abfcfac2bf65e68a96134bd",
+      "wall_ms": 253.341042
+    },
+    {
+      "argv": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:70a39292cc67e7e809a1a33ec9bdfb41308849b51abfcfac2bf65e68a96134bd",
+      "wall_ms": 260.419167
+    },
+    {
+      "argv": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:70a39292cc67e7e809a1a33ec9bdfb41308849b51abfcfac2bf65e68a96134bd",
+      "wall_ms": 279.418834
+    },
+    {
+      "argv": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:70a39292cc67e7e809a1a33ec9bdfb41308849b51abfcfac2bf65e68a96134bd",
+      "wall_ms": 270.955709
+    },
+    {
+      "argv": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:70a39292cc67e7e809a1a33ec9bdfb41308849b51abfcfac2bf65e68a96134bd",
+      "wall_ms": 254.7865
+    },
+    {
+      "argv": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:70a39292cc67e7e809a1a33ec9bdfb41308849b51abfcfac2bf65e68a96134bd",
+      "wall_ms": 256.448958
+    },
+    {
+      "argv": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:70a39292cc67e7e809a1a33ec9bdfb41308849b51abfcfac2bf65e68a96134bd",
+      "wall_ms": 245.106041
+    },
+    {
+      "argv": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:70a39292cc67e7e809a1a33ec9bdfb41308849b51abfcfac2bf65e68a96134bd",
+      "wall_ms": 259.919333
+    },
+    {
+      "argv": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:70a39292cc67e7e809a1a33ec9bdfb41308849b51abfcfac2bf65e68a96134bd",
+      "wall_ms": 532.096708
+    },
+    {
+      "argv": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:70a39292cc67e7e809a1a33ec9bdfb41308849b51abfcfac2bf65e68a96134bd",
+      "wall_ms": 342.780833
+    },
+    {
+      "argv": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:70a39292cc67e7e809a1a33ec9bdfb41308849b51abfcfac2bf65e68a96134bd",
+      "wall_ms": 265.392291
+    },
+    {
+      "argv": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:70a39292cc67e7e809a1a33ec9bdfb41308849b51abfcfac2bf65e68a96134bd",
+      "wall_ms": 252.597
+    },
+    {
+      "argv": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:70a39292cc67e7e809a1a33ec9bdfb41308849b51abfcfac2bf65e68a96134bd",
+      "wall_ms": 254.552584
+    },
+    {
+      "argv": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:70a39292cc67e7e809a1a33ec9bdfb41308849b51abfcfac2bf65e68a96134bd",
+      "wall_ms": 255.024417
+    },
+    {
+      "argv": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:70a39292cc67e7e809a1a33ec9bdfb41308849b51abfcfac2bf65e68a96134bd",
+      "wall_ms": 270.378917
+    },
+    {
+      "argv": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:70a39292cc67e7e809a1a33ec9bdfb41308849b51abfcfac2bf65e68a96134bd",
+      "wall_ms": 297.180042
+    },
+    {
+      "argv": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:70a39292cc67e7e809a1a33ec9bdfb41308849b51abfcfac2bf65e68a96134bd",
+      "wall_ms": 262.380875
+    },
+    {
+      "argv": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:70a39292cc67e7e809a1a33ec9bdfb41308849b51abfcfac2bf65e68a96134bd",
+      "wall_ms": 265.382167
+    },
+    {
+      "argv": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:70a39292cc67e7e809a1a33ec9bdfb41308849b51abfcfac2bf65e68a96134bd",
+      "wall_ms": 269.709792
+    },
+    {
+      "argv": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:70a39292cc67e7e809a1a33ec9bdfb41308849b51abfcfac2bf65e68a96134bd",
+      "wall_ms": 249.298291
+    },
+    {
+      "argv": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:70a39292cc67e7e809a1a33ec9bdfb41308849b51abfcfac2bf65e68a96134bd",
+      "wall_ms": 272.993584
+    },
+    {
+      "argv": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:70a39292cc67e7e809a1a33ec9bdfb41308849b51abfcfac2bf65e68a96134bd",
+      "wall_ms": 276.166375
+    },
+    {
+      "argv": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "sha256:70a39292cc67e7e809a1a33ec9bdfb41308849b51abfcfac2bf65e68a96134bd",
+      "wall_ms": 265.438
+    }
+  ],
+  "schema": "semaprax.bend2-law-benchmark.local-process-measurement.v1",
+  "statistics": {
+    "count": 30,
+    "mean_ms": 280.11186526666665,
+    "p50_ms": 260.37906250000003,
+    "p95_ms": 342.780833,
+    "population_stdev_ms": 61.24395556881058
+  },
+  "unavailable": [
+    "cold-state isolation",
+    "peak_memory",
+    "proof_synthesis_effort",
+    "provider_cost",
+    "cache_invalidation_work"
+  ]
+}

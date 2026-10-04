@@ -6,6 +6,12 @@ static NEXT: AtomicU64 = AtomicU64::new(0);
 #[cfg(unix)]
 #[path = "cli_help_surface_v1/native_pure_routes.rs"]
 mod native_pure_routes;
+#[cfg(unix)]
+#[path = "cli_help_surface_v1/source_agent_hot_reload.rs"]
+mod source_agent_hot_reload;
+#[cfg(unix)]
+#[path = "../examples/fixtures/opencode_source_fixture.rs"]
+mod source_fixture;
 const SHAPES_CATALOG_PATH: &str = "../../docs/LANGUAGE-SHAPES-CATALOG.md";
 const DOCTOR_LINE: &str = "semaprax doctor [--profile <id>] [--target native|web|all] [--json]\n";
 const NEW_LINE: &str =

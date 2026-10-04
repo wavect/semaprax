@@ -176,6 +176,7 @@ impl Fx {
 
     fn provision(&self, endpoint: &str) {
         std::fs::write(self.provider_dir().join("caveman-endpoint"), endpoint).unwrap();
+        std::fs::write(self.provider_dir().join("caveman-token"), "tok-1").unwrap();
     }
 
     fn stop_runtime(&mut self) {
@@ -320,10 +321,16 @@ fn caveman_fallbacks_deliver_raw_with_no_false_saving() {
         "diff.sh",
         "echo 'diff --git a/x b/x'; i=0; while [ $i -lt 400 ]; do echo \"+line $i of patch text here\"; i=$((i+1)); done",
     );
-    let cases: [(&str, &str, &str, &str); 7] = [
+    let cases: [(&str, &str, &str, &str); 8] = [
         ("compress", &tiny, "tiny", "small output"),
         ("compress", &diff, "unsupported-format", "unsupported"),
         ("record", &noisy, "record-only", "unsupported"),
+        (
+            "bypassed",
+            &noisy,
+            "runtime-bypassed-decision",
+            "unsupported",
+        ),
         ("grow", &noisy, "enlarged", "unsupported"),
         ("drop_error", &noisy, "dropped-error", "failed"),
         ("bad_sha", &noisy, "bad-replacement-digest", "failed"),
@@ -391,42 +398,66 @@ fn caveman_sends_captured_output_to_loopback_in_compress_mode_and_refuses_egress
     let sent: serde_json::Value =
         serde_json::from_slice(&std::fs::read(fx.root.join("tools/last_optimize.json")).unwrap())
             .unwrap();
-    let b = &sent["body"];
+    let (b, h) = (&sent["body"], &sent["headers"]);
     assert_eq!(b["mode"], "compress");
     assert_eq!(b["schema_version"], 1);
     assert_eq!(b["scope"]["namespace"], "semaprax");
     assert_eq!(b["segments"][0]["kind"], "tool_result");
+    assert_eq!(b["recovery_binding"]["kind"], "host_tool");
     assert!(b["segments"][0]["content"]
         .as_str()
         .unwrap()
         .starts_with(&raw_stdout()));
-    assert!(
-        sent["auth"].is_null(),
-        "no credential unless host-provisioned"
+    assert_eq!(h["Authorization"], "Bearer tok-1");
+    assert_eq!(
+        h["Caveman-Middleware-Features"],
+        "http_status_v2, revision_tolerant"
     );
+    assert!(h.get("Origin").is_none() && h.get("Sec-Fetch-Site").is_none());
+    let log = std::fs::read_to_string(fx.root.join("tools/calls.log")).unwrap();
     assert_eq!(fx.runtime_calls("GET capabilities"), 1);
+    assert_eq!(
+        fx.runtime_calls("POST sessions/delete"),
+        1,
+        "upstream copy revoked"
+    );
+    assert_eq!(log.lines().filter(|l| l.contains("receipts")).count(), 0);
+    // §2: with no runtime credential no request is made at all.
+    std::fs::remove_file(fx.provider_dir().join("caveman-token")).unwrap();
+    let before = log.lines().count();
+    let r = fx.exec(&cmd, true);
+    assert_eq!(r.envelope.view.route, "raw");
+    assert!(
+        r.envelope.view.notes.iter().any(
+            |n| n.contains("provider plan: bypass") && n.contains("credential not provisioned")
+        ),
+        "{:?}",
+        r.envelope.view.notes
+    );
+    let log2 = std::fs::read_to_string(fx.root.join("tools/calls.log")).unwrap();
+    assert_eq!(
+        log2.lines().count(),
+        before,
+        "zero requests without a credential"
+    );
+    // A wrong credential is refused by the runtime (401) and falls back to raw.
+    std::fs::write(fx.provider_dir().join("caveman-token"), "wrong").unwrap();
+    assert_eq!(fx.exec(&cmd, true).envelope.view.route, "raw");
+    // A non-loopback endpoint is refused without any connection; raw is delivered.
+    let n = std::fs::read_to_string(fx.root.join("tools/calls.log"))
+        .unwrap()
+        .lines()
+        .count();
+    fx.provision("example.com:80");
+    let r = fx.exec(&cmd, true);
+    assert_eq!(r.envelope.view.route, "raw");
     assert_eq!(
         std::fs::read_to_string(fx.root.join("tools/calls.log"))
             .unwrap()
             .lines()
-            .filter(|l| l.contains("receipts"))
             .count(),
-        0,
-        "no telemetry or receipts"
+        n
     );
-    // A host-provisioned token is sent as a bearer credential.
-    std::fs::write(fx.provider_dir().join("caveman-token"), "tok-1").unwrap();
-    fx.exec(&cmd, true);
-    let sent: serde_json::Value =
-        serde_json::from_slice(&std::fs::read(fx.root.join("tools/last_optimize.json")).unwrap())
-            .unwrap();
-    assert_eq!(sent["auth"], "Bearer tok-1");
-    // A non-loopback endpoint is refused without any connection; raw is delivered.
-    let before = fx.runtime_calls("POST optimize");
-    fx.provision("example.com:80");
-    let r = fx.exec(&cmd, true);
-    assert_eq!(r.envelope.view.route, "raw");
-    assert_eq!(fx.runtime_calls("POST optimize"), before);
 }
 
 #[test]

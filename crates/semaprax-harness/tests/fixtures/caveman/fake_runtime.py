@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 """Fake local Caveman 3.1.0 middleware runtime (test fixture). Usage: fake_runtime.py <dir>
 
-Emulates only the loopback wire the Semaprax adapter uses. Mirrors, at upstream commit
-8af1f1b9b1346bca0722a1556f119b4e6675cc96 of JuliusBrussee/caveman:
-  docs/technical/middleware-protocol.md   (GET capabilities, POST optimize, plan/error schemas, the
-                                           "[caveman: shortened; exact original via caveman_retrieve
-                                           handle=cmw_<48 hex>]" header, record-mode semantics)
-  packages/sdk/python/caveman_cloud/middleware/{runtime,types,validate}.py (request body keys)
-It was written from a read-only summary of those files, not from a recorded real exchange.
-Behaviour comes from <dir>/mode.txt; each request appends "METHOD route" to <dir>/calls.log and the
-last optimize body/auth header are saved in <dir>/last_optimize.json.
+Emulates the loopback wire of middleware protocol 1.1 at upstream commit
+8af1f1b9b1346bca0722a1556f119b4e6675cc96 of JuliusBrussee/caveman, written against the raw files:
+  docs/technical/middleware-protocol.md   (§2 bearer auth on every route and Origin refusal, §3 feature
+                                           header, §6 errors and "decisions are 200", §7 plan constraints,
+                                           §12 originals and sessions/delete)
+  packages/sdk/python/caveman_cloud/middleware/runtime.py   (request body, headers)
+  packages/sdk/python/caveman_cloud/middleware/validate.py  (plan shape the client accepts)
+  packages/sdk/python/caveman_cloud/middleware/{protocol,types}.py (capabilities, marker, features)
+It is a fixture, not a recorded exchange from a real runtime.
+Behaviour comes from <dir>/mode.txt; each request appends "METHOD route" to <dir>/calls.log (also
+for refused ones) and the last optimize body and headers are saved in <dir>/last_optimize.json.
 """
 import hashlib
 import json
@@ -39,6 +41,9 @@ def collapse(t):
     return "\n".join(out)
 
 
+TOKEN = "tok-1"
+
+
 class H(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
@@ -51,13 +56,29 @@ class H(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def err(self, status, code):
+        self.send(status, {"schema_version": 1, "error": {"code": code}})
+
+    def gate(self):
+        route = self.path[len(P):]
+        open(os.path.join(D, "calls.log"), "a").write(f"{self.command} {route}\n")
+        if self.headers.get("Origin") or self.headers.get("Sec-Fetch-Site") == "cross-site":
+            self.err(403, "forbidden_origin")
+        elif self.headers.get("Authorization") != "Bearer " + TOKEN:
+            self.err(401, "unauthorized")
+        elif "http_status_v2" not in (self.headers.get("Caveman-Middleware-Features") or ""):
+            self.err(400, "invalid_request")
+        else:
+            return route
+        return None
+
     def do_GET(self):
-        open(os.path.join(D, "calls.log"), "a").write("GET " + self.path[len(P):] + "\n")
-        if self.path != P + "capabilities":
-            return self.send(404, {"schema_version": 1, "error": {"code": "invalid_request"}})
+        if self.gate() != "capabilities":
+            return
         self.send(200, {
             "schema_version": 1, "protocol": {"min": 1, "max": 1},
-            "features": ["http_status_v2", "revision_tolerant", "tolerant_reader"],
+            "features": ["http_status_v2", "originals_lifecycle", "revision_tolerant", "tolerant_reader"],
+            "mode": "record" if mode() == "record" else "compress",
             "policy_revision": "pr1", "runtime_build": "fake-3.1.0",
             "transforms": [{"transform_id": "ccr-text", "implementation_version": "1", "deterministic": True,
                             "recovery": "exact_ccr", "eligible_segment_kinds": ["tool_result"]}],
@@ -65,25 +86,39 @@ class H(BaseHTTPRequestHandler):
             "max_retention_seconds": 604800, "persistent": True, "recovery": True, "retention_seconds": 604800})
 
     def do_POST(self):
-        route = self.path[len(P):]
-        open(os.path.join(D, "calls.log"), "a").write("POST " + route + "\n")
-        body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+        route = self.gate()
+        if route is None:
+            return
+        raw = self.rfile.read(int(self.headers["Content-Length"]))
+        body = json.loads(raw)
+        if route == "sessions/delete":
+            return self.send(200, {"schema_version": 1, "status": "revoked", "originals_deleted": True,
+                                   "deleted": {"scopes": 1, "choices": 1, "grants": 1, "originals": 1}})
         if route != "optimize":
-            return self.send(404, {"schema_version": 1, "error": {"code": "invalid_request"}})
-        json.dump({"auth": self.headers.get("Authorization"), "body": body}, open(os.path.join(D, "last_optimize.json"), "w"))
+            return self.err(404, "not_found")
+        json.dump({"headers": dict(self.headers.items()), "body": body}, open(os.path.join(D, "last_optimize.json"), "w"))
         m = mode()
         if m == "crash":
-            return self.send(503, {"schema_version": 1, "error": {"code": "runtime_unavailable"}})
+            return self.err(503, "runtime_unavailable")
         if m == "hang":
             time.sleep(8)
         if m == "garbage":
             return self.send(200, "this is not json", raw=True)
         seg = body["segments"][0]
         text = seg["content"]
-        plan = {"schema_version": 1, "status": "applied", "mode": "compress", "policy_revision": "pr1",
-                "runtime_build": "fake-3.1.0", "replacements": [], "skipped": [], "counts": {}}
-        if m == "record" or body["mode"] != "compress":
-            plan.update(mode="record", status="bypassed")
+        plan = {"schema_version": 1, "request_id": body["request_id"], "input_digest": hashlib.sha256(raw).hexdigest(),
+                "policy_revision": "pr1", "replacement_set_id": hashlib.sha256(raw + b"set").hexdigest(),
+                "status": "optimized", "reason": "eligible", "runtime_build": "fake-3.1.0",
+                "replacements": [], "skipped": [],
+                "stability": {"provider_bytes": "unobserved", "provider_cache_hits": "unobserved", "native": "persistent_choices"}}
+        n = len(text.split())
+        plan["measurement"] = {"basis": "inferred", "scope": "segment", "verified_saved_usd": 0, "tokenizer": "fake-words",
+                               "tokens_before": n, "tokens_after": n, "unique_tokens_reduced": 0, "recovery_overhead_tokens": 2}
+        plan["recovery"] = {"available": True, "persistent": True, "expires_at": 4102444800,
+                            "binding_id": body["recovery_binding"]["id"]}
+        if m == "bypassed":
+            plan.update(status="bypassed", reason="not_smaller")
+            plan["skipped"] = [{"segment_id": seg["id"], "source_id": seg["source_id"], "sha256": seg["sha256"], "reason": "not_smaller"}]
             return self.send(200, plan)
         out = collapse(text)
         if m == "grow":
@@ -95,9 +130,12 @@ class H(BaseHTTPRequestHandler):
         sha = hashlib.sha256(out.encode()).hexdigest()
         if m == "bad_sha":
             sha = "0" * 64
+        after = len(out.split())
+        plan["measurement"].update(tokens_after=after, unique_tokens_reduced=max(0, n - after))
         plan["replacements"].append({
             "segment_id": seg["id"], "source_id": seg["source_id"], "original_sha256": seg["sha256"],
-            "transform_id": "ccr-text", "transform_version": "1", "sha256": sha, "text": out, "recovery_handle": handle})
+            "transform_id": "ccr-text", "transform_version": "1", "sha256": sha, "text": out,
+            "tokens_before": n, "tokens_after": after, "reused": False, "unique_original": True, "recovery_handle": handle})
         self.send(200, plan)
 
 

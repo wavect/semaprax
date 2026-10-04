@@ -12,6 +12,12 @@
   receipt explicitly preserves the separate source-profile boundary and does
   not claim copied bytes, a nontrivial batch result, Linux evidence, or one
   linked M1/M2/M3 Project.
+- Add the LAW-16 Bend 2 benchmark harness. It pins Bend's reviewed revision,
+  keeps ordinary and `--verdict` execution separate, requires separately
+  declared SEMAPRAX SMT/Lean/runtime paths, and retains raw cold/warm timing
+  and seeded law-gaming controls under exact local source/environment inputs.
+  No Bend fixture or result is claimed: missing, drifted, timed-out, or
+  semantically mismatched cells remain unavailable or failed.
 
 - RI-08: add a distinct private `FnOnceI64() -> i64` source profile for retained
   owned Bytes plus immutable i64 captures, with graph v63, versioned cleanup

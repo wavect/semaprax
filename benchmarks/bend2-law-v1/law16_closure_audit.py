@@ -246,10 +246,11 @@ def render() -> dict:
             "id": "AC5",
             "text": ACCEPTANCE_TEXT[4],
             "status": "partial",
-            "assessment": "Process timing, proof/check routes, agent synthesis tokens, and runtime controls are separated. The retained fresh/repeat process observations do not establish OS-cache cold/warm state; native compile and run remain combined and unmeasured as separate timings.",
+            "assessment": "Process timing, proof/check routes, agent synthesis tokens, and runtime controls are separated. A retained Apple Container capability probe found read-only guest cache controls and collected zero checker samples; fresh/repeat process observations do not establish OS-cache cold/warm state. Native compile and run remain combined and unmeasured as separate timings.",
             "evidence": common + [
                 evidence("evidence/law16-boolean-negation-process-v2/manifest.json"),
                 evidence("evidence/law16-boolean-negation-process-v2/provenance.json"),
+                evidence("evidence/law16-cache-isolation-probe-v1/receipt.json"),
                 evidence("evidence/law16-effort-summary-v1.json"),
                 evidence("evidence/full-u32-encoding-controls-v1/report.json"),
             ],
@@ -361,7 +362,7 @@ def render() -> dict:
             "classification": "unavailable",
             "blocking_requirements": ["AC5", "R4"],
             "status": unsupported["cold_cache"],
-            "evidence": [evidence("evidence/law16-boolean-negation-process-v2/provenance.json")],
+            "evidence": [evidence("evidence/law16-boolean-negation-process-v2/provenance.json"), evidence("evidence/law16-cache-isolation-probe-v1/receipt.json")],
         },
         {
             "id": "external_lean_export_kernel",

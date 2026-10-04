@@ -44,6 +44,10 @@ class CurrentReportTests(unittest.TestCase):
         self.assertEqual(provenance["operating_system"]["status"], "observed")
         self.assertEqual(provenance["backend"]["status"], "observed")
         self.assertEqual(provenance["flags"]["compiler_optimization"]["status"], "unavailable")
+        cache_probe = value["cache_isolation_probe"]
+        self.assertEqual(cache_probe["status"], "unavailable")
+        self.assertEqual(cache_probe["checking_measurements"]["samples"], 0)
+        self.assertEqual(cache_probe["container_state"]["after_running"], 0)
         process = value["matched_boolean"]["process_provenance"]
         self.assertEqual(process["command_count"], 240)
         self.assertEqual(process["cold_cache"]["status"], "unavailable")

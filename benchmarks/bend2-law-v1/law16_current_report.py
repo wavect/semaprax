@@ -33,6 +33,7 @@ GUARDED_I64_PROFILE = module("full_u32_guarded_i64_profile_v2")
 BEND_U32_SORT = module("law16_bend_u32_sort_proof")
 COST_PROVENANCE = module("law16_boolean_negation_cost_provenance")
 BOOLEAN_ANNOTATIONS = module("law16_annotation_summary")
+CACHE_ISOLATION = module("law16_cache_isolation_probe")
 SCHEMA = "semaprax.bend2-law-benchmark.current-report.v1"
 
 
@@ -137,6 +138,7 @@ def render():
         or claude_pilot.get("campaign_admission") is not False
     ):
         raise ValueError("Claude cost pilot plan or nonadmission receipt drifted")
+    cache_probe = CACHE_ISOLATION.review()
     process_v2_provenance = read(ROOT / "evidence/law16-boolean-negation-process-v2/provenance.json")
     effort = read(ROOT / "evidence/law16-effort-summary-v1.json")
     annotations = read(ROOT / "evidence/law16-annotation-summary-v1.json")
@@ -384,6 +386,14 @@ def render():
                 "nonclaims": annotations["nonclaims"],
             },
         },
+        "cache_isolation_probe": {
+            "source": "evidence/law16-cache-isolation-probe-v1/receipt.json",
+            "status": cache_probe["cold_state"]["status"],
+            "reason": cache_probe["cold_state"]["reason"],
+            "checking_measurements": cache_probe["checking_measurements"],
+            "container_state": cache_probe["container_state"],
+            "nonclaims": cache_probe["nonclaims"],
+        },
         "pins_and_trust": {
             "observation_identity": "local historical pins, retained as exact executable/tool evidence",
             "bend": "local historical commit 947db722640c86247849343657bf2f7ef01cb7f1; verdict output is retained tool evidence",
@@ -396,7 +406,7 @@ def render():
         },
         "unavailable_or_unsupported": {
             "checked_u32": "unsupported_by_pinned_parser: SPX-P003 admits i32, u8, usize literal suffixes, not u32",
-            "cold_cache": "unavailable: no retained reproducible clean cache isolation",
+            "cold_cache": "unavailable: retained Apple Container capability probe found read-only guest cache controls and zero checker measurements",
             "Lean": "supplemental LAW15 collection source theorem physically checked by Lean; no Boolean or original law16.* Lean export",
             "cost": "unavailable for admitted agent trials: Codex JSON has no monetary charge event; a separate Claude probe recorded cost but failed before any source outcome",
             "project_sized": "unavailable: Boolean microcell is not project-sized/incremental evidence",

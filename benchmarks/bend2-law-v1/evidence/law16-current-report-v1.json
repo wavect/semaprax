@@ -834,6 +834,28 @@
       "status": "retained_source_evidence_only"
     }
   },
+  "cache_isolation_probe": {
+    "checking_measurements": {
+      "samples": 0,
+      "status": "not_collected"
+    },
+    "container_state": {
+      "after_observation": "container list had no rows after probe",
+      "after_running": 0,
+      "before_observation": "container list had no rows immediately before probe",
+      "before_running": 0
+    },
+    "nonclaims": [
+      "no cache-cold or cache-warm checker timings were collected",
+      "fresh process and fresh paths are not OS-cache-cold evidence",
+      "the probe did not write to /proc/sys/vm/drop_caches",
+      "an empty post-probe container list does not prove that caches were cleared",
+      "host purge permission denial is recorded from the prior attempt and was not retried"
+    ],
+    "reason": "container guest mounted /proc/sys read-only, so /proc/sys/vm/drop_caches is not writable even as uid 0 with all capabilities; the prior host purge attempt was permission denied",
+    "source": "evidence/law16-cache-isolation-probe-v1/receipt.json",
+    "status": "unavailable"
+  },
   "closure": "no: the matched Boolean cell and supplemental U32 semantic theorem comparison do not satisfy the original checked-u32 source admission, cold-cache, project-sized/refactor/incremental, or monetary cost-event acceptance requirements",
   "matched_boolean": {
     "agent_pairs": {
@@ -2097,7 +2119,7 @@
   "unavailable_or_unsupported": {
     "Lean": "supplemental LAW15 collection source theorem physically checked by Lean; no Boolean or original law16.* Lean export",
     "checked_u32": "unsupported_by_pinned_parser: SPX-P003 admits i32, u8, usize literal suffixes, not u32",
-    "cold_cache": "unavailable: no retained reproducible clean cache isolation",
+    "cold_cache": "unavailable: retained Apple Container capability probe found read-only guest cache controls and zero checker measurements",
     "cost": "unavailable for admitted agent trials: Codex JSON has no monetary charge event; a separate Claude probe recorded cost but failed before any source outcome",
     "list_refactor_lawbreaking": {
       "admission_blocker": {

@@ -97,6 +97,10 @@ non-admission receipt records `SPX-P003`. There is no retained cold-cache
 isolation, monetary cost event for admitted matched agent trials, or matched project-sized/refactor/incremental
 cell. The Lean list proof below covers its exact LAW15 source, not the original
 LAW16 fixture. These gaps prevent honest closure of #392.
+The [cache-isolation probe](evidence/law16-cache-isolation-probe-v1/receipt.json)
+records an ephemeral Apple Container guest with read-only `/proc/sys` even as
+root. It collected zero checker timings and left no container running; it does
+not turn fresh-process measurements into cache-cold results.
 
 The generated machine report also records retained tool identities, explicit
 unavailable hardware/OS and optimization-flag provenance, Boolean agent-turn

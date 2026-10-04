@@ -1,0 +1,122 @@
+{
+  "artifacts": [
+    {
+      "bytes": 244,
+      "path": "container.stderr",
+      "sha256": "sha256:d99fe92ac6ab941d81aca7625190c7cb4430e76fd30f1900052f44bf7869fe86"
+    },
+    {
+      "bytes": 0,
+      "path": "container.stdout",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 3,
+      "path": "containers-after.json",
+      "sha256": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "bytes": 2435,
+      "path": "guest-result.json",
+      "sha256": "sha256:7db49c3dbe0ab9cbf0446af4222ed92e9e750a7b1abbaedafef368ac6b146266"
+    },
+    {
+      "bytes": 5268,
+      "path": "image-inspect.json",
+      "sha256": "sha256:0ef55f6d2c25b185fb46ee464bbf00ad9d6b0e63e1ede83d0738fc13c915245b"
+    },
+    {
+      "bytes": 327,
+      "path": "inputs/candidate.bend",
+      "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+    },
+    {
+      "bytes": 182,
+      "path": "inputs/candidate.spx",
+      "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+    },
+    {
+      "bytes": 9039,
+      "path": "inputs/worker.py",
+      "sha256": "sha256:77a1602f68289c90f00ce4357eec01420522fa78cbc1eee9c66ea8c62116e3d4"
+    },
+    {
+      "bytes": 83,
+      "path": "preflight-bend_ordinary.stderr",
+      "sha256": "sha256:e6e25def4b4746c3dc53b64a2e4b71a34db63706d4d8c494fdbcbfbbc73b4c14"
+    },
+    {
+      "bytes": 0,
+      "path": "preflight-bend_ordinary.stdout",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 1631,
+      "path": "request.json",
+      "sha256": "sha256:4cd3307a15b9d1db960e003a9891d1c5f9ae7ecda592b7821541ac70a906755c"
+    },
+    {
+      "bytes": 0,
+      "path": "version-bun.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 6,
+      "path": "version-bun.stdout",
+      "sha256": "sha256:fe2b7c237b5a6e42818aa3e4f7fc5820f49c32289c32c96260ef89a8c8f6d3d7"
+    },
+    {
+      "bytes": 0,
+      "path": "version-semaprax.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 58,
+      "path": "version-semaprax.stdout",
+      "sha256": "sha256:270f5813685c06233989789b7828159a8c50e833f08721145f810b3567b43c15"
+    }
+  ],
+  "container_argv": [
+    "container",
+    "run",
+    "--rm",
+    "--name",
+    "law16-guest-cache-38d0c0bf2b",
+    "--memory",
+    "512M",
+    "--cpus",
+    "1",
+    "--arch",
+    "amd64",
+    "--rosetta",
+    "--read-only-path",
+    "NONE",
+    "--no-dns",
+    "--mount",
+    "type=bind,source=/private/tmp/law16-linux-tools,target=/tools,readonly",
+    "--mount",
+    "type=bind,source=/private/tmp/bend2-law-source/bend2,target=/bend2,readonly",
+    "--mount",
+    "type=bind,source=/private/tmp/law16-guest-cache-pilot-v1/inputs,target=/inputs,readonly",
+    "--mount",
+    "type=bind,source=/private/tmp/law16-guest-cache-pilot-v1,target=/output",
+    "ri13-linux-evidence:rust-1.98.0",
+    "python3",
+    "/inputs/worker.py"
+  ],
+  "container_exit_code": 1,
+  "container_removed": true,
+  "host": {
+    "architecture": "arm64",
+    "platform": "macOS-26.5.1-arm64-arm-64bit-Mach-O"
+  },
+  "image_digest": "sha256:c9024b5897124ae3a7f124a41dbe4d301c7319daf4e9aed82b23424648eb311e",
+  "nonclaims": [
+    "guest file-page-cache scope only; macOS host cache and Rosetta translation cache are unknown",
+    "live Python/system-library pages and hardware caches are outside the direct residency inventory",
+    "ordinary Bend and SEMAPRAX check only; no verdict, SMT, Lean, or formal proof measurement",
+    "new Linux/Rosetta release profile; not historical macOS executable pins",
+    "no cross-language winner, ratio, native-hardware timing, or issue closure"
+  ],
+  "schema": "semaprax.bend2-law-benchmark.guest-cache.v1"
+}

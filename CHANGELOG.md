@@ -1,5 +1,11 @@
 # Changelog
 
+- Retain a LAW16 Linux/Rosetta guest file-page-cache pilot and thirty cold/warm
+  pairs for ordinary Bend and SEMAPRAX checking. Exact `mincore` observations
+  qualify each guest reset; raw samples, runtime pins, provisioning, failures,
+  and cleanup remain reviewable offline. Host/Rosetta caches and formal-proof
+  routes remain outside this profile; AC5 and issue #392 stay open.
+
 Project log follows a compact [Keep a Changelog](https://keepachangelog.com/)
 format: `Unreleased` then release buckets, grouped by impact.
 

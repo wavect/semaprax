@@ -885,3 +885,62 @@ It is `unsupported`, because the authenticated pinned SEMAPRAX parser rejects
 `u32` before a matched candidate, overflow, or source-proof route can run.
 The separate bounded `0..100` transfer witness cannot be relabelled as this
 checked-`u32` task.
+
+## Measured Linux/Rosetta guest file-page-cache profile
+
+The [thirty-pair guest capsule](evidence/law16-guest-cache-thirty-v1/receipt.json)
+retains 30 cold and 30 warm samples for each fixed Boolean-negation ordinary
+Bend and SEMAPRAX `check` route. A successful [one-pair pilot](evidence/law16-guest-cache-pilot-v1/receipt.json)
+preceded it. The [first preflight](evidence/law16-guest-cache-pilot-failure-v1/receipt.json)
+failed because the staged Bend effect sources were incomplete; it produced
+zero timed checker samples and remains a nonresult.
+
+| Guest profile route | Cold p50 / p95 (ms) | Warm p50 / p95 (ms) |
+| --- | ---: | ---: |
+| Ordinary Bend | 1578.50 / 2269.82 | 1589.67 / 2197.00 |
+| SEMAPRAX `check` | 274.60 / 367.60 | 256.29 / 342.32 |
+
+These are **guest file-page-cache** observations under Rosetta, with macOS
+host caches and Rosetta translation caches unknown. Every inventoried
+executable/source/custom-runtime page was observed resident before guest reset
+and nonresident before each cold command. Warm executable/input residency was
+observed before the next identical command. The small differences relative to
+spread do not establish a performance improvement, cross-route ratio, or
+winner. The offline summary includes median absolute deviation (MAD).
+
+The official Linux release compiler has a different source/binary pin from
+the historical macOS corpus. Both guest tools use the same explicitly pinned
+Ubuntu glibc 2.39 loader; downloads, extraction, hashing, and preflight are
+outside measured checking time. Obtain the exact distribution artifacts in
+[the provisioning record](evidence/law16-guest-cache-provisioning-v1.json),
+extract the SEMAPRAX archive beneath `TOOLS/semaprax/` and the Bun zip beneath
+`TOOLS/bun/`, and leave the pinned libc6 `.deb` in `TOOLS/`. The preexisting
+`ri13-linux-evidence:rust-1.98.0` image must match the recorded digest. The
+runner neither installs tools nor builds or fetches the image for you.
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_guest_cache.py \
+  --tools /absolute/TOOLS --bend /absolute/pinned-bend \
+  --output /absolute/new-pilot
+python3 benchmarks/bend2-law-v1/law16_guest_cache.py \
+  --tools /absolute/TOOLS --bend /absolute/pinned-bend \
+  --pilot /absolute/new-pilot --repetitions 30 \
+  --output /absolute/new-thirty-pairs
+```
+
+Each invocation uses one disposable 512 MiB guest and removes it afterward.
+The capture refuses to start with less than 2 GiB free disk. No Cargo build
+is used; the retained campaign occupies about 8 MiB. Recheck the committed
+raw samples without a VM or installed benchmark tools:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_guest_cache.py \
+  --review benchmarks/bend2-law-v1/evidence/law16-guest-cache-thirty-v1
+python3 -m unittest discover -s benchmarks/bend2-law-v1 \
+  -p test_law16_guest_cache.py -v
+```
+
+The [owning profile](../../docs/BEND2-LAW-BENCHMARK-V1.md#guest-file-page-cache-profile-v1)
+describes the exact cache boundary. Bend verdict, SEMAPRAX SMT/Lean, proof
+synthesis and compile/runtime separation remain outside this profile; AC5 and
+issue #392 remain open.

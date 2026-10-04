@@ -95,19 +95,23 @@ different times and should not be subtracted as if paired.
 | `ri13.m3.score(i64) -> i64` with one `yield i64 -> i64` | Selected `source-local-future.v1` Project, generated Rust registration | Bounded automatic checked source execution after explicit preparation and registration |
 | `reqwest::Client::builder`, `.retry(never)`, `.timeout`, `.build` | Caller-owned Rust host | Explicit configuration, no generated capability |
 | `reqwest::Url::parse`, `Client::get`, `RequestBuilder::send` | Caller-owned Rust effect handler | Explicit adapter callback; no source-authenticated reqwest import |
-| `Response::status`, `Response::text`, numeric body parse | Caller-owned Rust effect handler | Explicit status/parse/transport error mapping |
+| `Response::status`, `Response::bytes`, numeric body parse | Caller-owned Rust effect handler | Explicit status/parse/transport error mapping |
 | Tokio current-thread runtime and local cancellation | Caller-owned Rust host | Explicit executor and cancellation control |
 | RI-06 owner-tied `Url`/Regex, RI-07 records/Serde, RI-08 stateful callbacks | No signature selected in this Project profile | Unsupported in this saved M3 Project; M1/M2 and combined M3 remain open |
 
-The response body has two wire bytes per request. The callback calls
-`Response::text()` once. The generated boundary receives and returns only
-`i64`; there is no body buffer parameter at that boundary. This ledger does
-not measure allocations or actual copied bytes in reqwest, HTTP decoding,
-the host callback, or generated code. It makes no zero-copy claim and cannot
-satisfy the issue's copy/allocator acceptance criterion.
+The response body has two wire bytes per request. The route now calls
+`Response::bytes()` then copies that foreign body into an application-owned
+`Vec<u8>` before UTF-8 parsing. New CSV output records that exact two-byte copy
+for every route; on the generated route it also records the same two bytes as
+owned inside the host callback. These are overlapping scoped observations, not
+two copies to add together. The generated boundary receives and returns only
+`i64`; there is no body buffer parameter at that boundary. The committed raw
+CSV predates this instrumentation. The ledger still does not measure copies
+internal to reqwest, HTTP decoding before the explicit copy, UTF-8 validation,
+or any other required RI-13 payload shape.
 
-| Route | Semaprax boundary | Host body handling | Actual copied bytes | Process allocations |
+| Route | Semaprax boundary | Host body handling | Exact fixture-owned copied bytes | Process allocations |
 | --- | --- | --- | --- | --- |
-| Direct Rust | None | `Response::text()` once | Unmeasured | Unmeasured |
-| Handwritten adapter | Explicit `i64` checks | `Response::text()` once | Unmeasured | Unmeasured |
-| Generated Semaprax | Selected `i64` request/result | `Response::text()` once in host callback | Unmeasured | Unmeasured |
+| Direct Rust | None | `Response::bytes()` then `Vec<u8>` | 2 foreign-body bytes per call | Unmeasured |
+| Handwritten adapter | Explicit `i64` checks | `Response::bytes()` then `Vec<u8>` | 2 foreign-body bytes per call | Unmeasured |
+| Generated Semaprax | Selected `i64` request/result | `Response::bytes()` then callback-owned `Vec<u8>` | 2 foreign-body bytes and the same 2 callback-captured bytes per call | Unmeasured |

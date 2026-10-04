@@ -62,4 +62,5 @@ SEMAPRAX body is scalar; the current v21 Project profile cannot combine its
 `rust_async` export with RI-06 Url or RI-07/08 record/callback imports in one
 linked Project. This example is therefore **M3 source-local HTTP only**; it
 does not satisfy the full M1+M2+M3 application gate, benchmark comparison,
-Linux evidence, zero-copy ledger, or public SDK publication criteria of #371.
+Linux evidence, the other required copied-byte cases, or public SDK publication
+criteria of #371.

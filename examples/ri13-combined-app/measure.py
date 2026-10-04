@@ -23,6 +23,10 @@ ALLOCATION_COLUMNS = (
     "allocated_bytes",
     "deallocated_bytes",
 )
+COPY_COLUMNS = (
+    "foreign_response_body_copied_bytes",
+    "host_callback_captured_bytes",
+)
 M3_COPY_LEDGER_SCHEMA = "semaprax.ri13.m3-copy-ledger.v1"
 
 
@@ -67,11 +71,18 @@ def run(command, environment, expected_stdout):
 
 def parse_m3_samples(text):
     rows = list(csv.DictReader(text.splitlines()))
-    required = {"route", "iteration", "elapsed_ns", "body_bytes", *ALLOCATION_COLUMNS}
+    required = {
+        "route",
+        "iteration",
+        "elapsed_ns",
+        "body_bytes",
+        *COPY_COLUMNS,
+        *ALLOCATION_COLUMNS,
+    }
     if not rows or set(rows[0]) != required:
         raise ValueError(
-            "M3 measure output must have exactly the timing and allocator-request columns; "
-            "run this harness with the RI-13 allocator instrumentation applied"
+            "M3 measure output must have exactly the timing, copied-byte, and allocator "
+            "columns; run this harness with the RI-13 instrumentation applied"
         )
     by_route = {route: [] for route in ROUTES}
     for row in rows:
@@ -80,6 +91,11 @@ def parse_m3_samples(text):
             raise ValueError(f"unknown M3 route {route!r}")
         if int(row["body_bytes"]) != 2 or int(row["elapsed_ns"]) <= 0:
             raise ValueError(f"invalid M3 route sample {row!r}")
+        if int(row["foreign_response_body_copied_bytes"]) != 2:
+            raise ValueError(f"M3 route did not copy its exact two-byte response {row!r}")
+        expected_callback_bytes = 2 if route == "generated_semaprax" else 0
+        if int(row["host_callback_captured_bytes"]) != expected_callback_bytes:
+            raise ValueError(f"M3 callback copy accounting differs from its route {row!r}")
         by_route[route].append({key: int(value) for key, value in row.items() if key != "route"})
     counts = {route: len(samples) for route, samples in by_route.items()}
     if len(set(counts.values())) != 1 or not next(iter(counts.values())):
@@ -92,6 +108,12 @@ def parse_m3_samples(text):
             raise ValueError(f"M3 route {route} changed response body size")
         result["routes"][route] = {
             "body_bytes_per_sample": body_bytes.pop(),
+            "foreign_response_body_copied_bytes_per_sample": samples[0][
+                "foreign_response_body_copied_bytes"
+            ],
+            "host_callback_captured_bytes_per_sample": samples[0][
+                "host_callback_captured_bytes"
+            ],
             "mean_ns": round(statistics.mean(elapsed), 1),
             "p50_ns": round(percentile(elapsed, 50), 1),
             "p90_ns": round(percentile(elapsed, 90), 1),
@@ -151,36 +173,45 @@ def m3_copy_ledger(measurement):
     """Render the byte facts the scalar M3 route can establish exactly.
 
     Its generated boundary has an `i64` input and result, so no byte carrier
-    crosses that boundary. The CSV establishes response payload bytes per
-    route, while copies inside reqwest and decoding remain unobserved.
+    crosses that boundary. The CSV observes the fixture's explicit `Bytes` to
+    callback-owned `Vec<u8>` copy. Copies inside reqwest and HTTP decoding
+    remain unobserved.
     """
     samples = measurement["samples_per_route"]
     routes = {}
     for route, values in measurement["routes"].items():
         body_bytes = values["body_bytes_per_sample"]
+        foreign_response_body_copied_bytes = values[
+            "foreign_response_body_copied_bytes_per_sample"
+        ]
+        host_callback_captured_bytes = values["host_callback_captured_bytes_per_sample"]
         routes[route] = {
             "samples": samples,
             "response_wire_bytes": samples * body_bytes,
+            "foreign_response_body_copied_bytes": samples
+            * foreign_response_body_copied_bytes,
+            "host_callback_captured_bytes": samples * host_callback_captured_bytes,
             "generated_boundary_copied_bytes": 0,
             "generated_boundary_shape": "i64-to-i64",
             "host_callback_payload_copied_bytes": 0,
             "host_callback_payload_shape": "i64-to-Future<Result<i64,String>>",
             "host_callback_capture_copied_bytes": None,
-            "foreign_response_body_copied_bytes": None,
-            "foreign_response_body_shape": "reqwest Response::text to parsed i64",
+            "foreign_response_body_shape": "Response::bytes to callback-owned Vec<u8>",
         }
     return {
         "schema": M3_COPY_LEDGER_SCHEMA,
         "routes": routes,
         "unmeasured_copy_domains": [
-            "reqwest response buffering",
-            "HTTP decoding",
-            "Response::text UTF-8 handling",
+            "reqwest response buffering before the fixture's Bytes-to-Vec copy",
+            "HTTP decoding before the fixture's Bytes-to-Vec copy",
+            "UTF-8 validation after the fixture's Vec copy",
             "host callback captures (reqwest Client and endpoint String)",
         ],
         "exact_copy_domains": [
             "generated i64 boundary",
             "host callback invocation payload",
+            "fixture Bytes-to-Vec response copy",
+            "generated host callback subset of the fixture response copy",
         ],
     }
 
@@ -204,11 +235,32 @@ def current_text(command):
 
 
 def self_test():
-    header = ["route", "iteration", "elapsed_ns", "body_bytes", *ALLOCATION_COLUMNS]
+    header = [
+        "route",
+        "iteration",
+        "elapsed_ns",
+        "body_bytes",
+        *COPY_COLUMNS,
+        *ALLOCATION_COLUMNS,
+    ]
     rows = [header]
     for iteration in range(2):
         for route in ROUTES:
-            rows.append([route, str(iteration), "100", "2", "1", "2", "0", "16", "16"])
+            rows.append(
+                [
+                    route,
+                    str(iteration),
+                    "100",
+                    "2",
+                    "2",
+                    "2" if route == "generated_semaprax" else "0",
+                    "1",
+                    "2",
+                    "0",
+                    "16",
+                    "16",
+                ]
+            )
     report = parse_m3_samples("\n".join(",".join(row) for row in rows))
     assert report["samples_per_route"] == 2
     assert report["routes"]["generated_semaprax"]["body_bytes_per_sample"] == 2
@@ -216,13 +268,14 @@ def self_test():
     assert m3_copy_ledger(report)["routes"]["generated_semaprax"] == {
         "samples": 2,
         "response_wire_bytes": 4,
+        "foreign_response_body_copied_bytes": 4,
+        "host_callback_captured_bytes": 4,
         "generated_boundary_copied_bytes": 0,
         "generated_boundary_shape": "i64-to-i64",
         "host_callback_payload_copied_bytes": 0,
         "host_callback_payload_shape": "i64-to-Future<Result<i64,String>>",
         "host_callback_capture_copied_bytes": None,
-        "foreign_response_body_copied_bytes": None,
-        "foreign_response_body_shape": "reqwest Response::text to parsed i64",
+        "foreign_response_body_shape": "Response::bytes to callback-owned Vec<u8>",
     }
     batch_header = ["route", "iteration", "operations", "elapsed_ns", "body_bytes", *ALLOCATION_COLUMNS]
     batch_rows = [batch_header]

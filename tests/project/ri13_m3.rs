@@ -6,7 +6,7 @@ use semaprax::project::{with_authenticated_project, ProjectRevision};
 use semaprax::resumable_effects::source_local_future::{
     SourceLocalFuture, SourceLocalFutureFailure,
 };
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::future::Future;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
@@ -22,6 +22,37 @@ enum HostError {
     HttpStatus(u16),
     InvalidBody,
     Transport,
+}
+
+#[derive(Clone, Copy, Default, Debug, Eq, PartialEq)]
+struct CopyMetrics {
+    foreign_response_body_copied_bytes: u64,
+    host_callback_captured_bytes: u64,
+}
+
+/// Exact fixture-owned copies only. reqwest and HTTP internals stay outside
+/// this observation because the host does not expose their copy operations.
+#[derive(Clone, Default)]
+struct CopyLedger(Rc<Cell<CopyMetrics>>);
+
+impl CopyLedger {
+    fn capture_foreign_response_body(&self, bytes: usize) {
+        let bytes = u64::try_from(bytes).expect("fixture response length fits u64");
+        let mut metrics = self.0.get();
+        metrics.foreign_response_body_copied_bytes = metrics
+            .foreign_response_body_copied_bytes
+            .checked_add(bytes)
+            .expect("fixture response copy total fits u64");
+        metrics.host_callback_captured_bytes = metrics
+            .host_callback_captured_bytes
+            .checked_add(bytes)
+            .expect("fixture callback copy total fits u64");
+        self.0.set(metrics);
+    }
+
+    fn metrics(&self) -> CopyMetrics {
+        self.0.get()
+    }
 }
 
 fn transport(error: reqwest::Error) -> HostError {
@@ -94,6 +125,7 @@ fn selected_call(
     revision: Arc<ProjectRevision>,
     endpoint: String,
     timeout: Option<Duration>,
+    copies: CopyLedger,
 ) -> Result<
     impl Future<Output = (Result<i64, SourceLocalFutureFailure>, Option<HostError>)>,
     Vec<semaprax::diagnostic::Diagnostic>,
@@ -107,6 +139,7 @@ fn selected_call(
     let slot = Rc::clone(&error);
     let selected = SourceLocalFuture::prepare_revision(revision, 41, 10_000, move |request| {
         let slot = Rc::clone(&slot);
+        let copies = copies.clone();
         async move {
             let request_result = async {
                 let url = reqwest::Url::parse(&format!("{endpoint}/value/{request}"))
@@ -115,10 +148,11 @@ fn selected_call(
                 if !response.status().is_success() {
                     return Err(HostError::HttpStatus(response.status().as_u16()));
                 }
-                response
-                    .text()
-                    .await
-                    .map_err(transport)?
+                let body = response.bytes().await.map_err(transport)?;
+                let captured = body.to_vec();
+                copies.capture_foreign_response_body(captured.len());
+                std::str::from_utf8(&captured)
+                    .map_err(|_| HostError::InvalidBody)?
                     .parse::<i64>()
                     .map_err(|_| HostError::InvalidBody)
             }
@@ -149,7 +183,10 @@ fn run_case(
     timeout: Option<Duration>,
 ) -> (Result<i64, SourceLocalFutureFailure>, Option<HostError>) {
     let (endpoint, _received, server) = local_server(status, body, delay);
-    let result = local.block_on(runtime, selected_call(revision, endpoint, timeout).unwrap());
+    let result = local.block_on(
+        runtime,
+        selected_call(revision, endpoint, timeout, CopyLedger::default()).unwrap(),
+    );
     server.join().unwrap();
     result
 }
@@ -209,6 +246,34 @@ fn saved_m3_application_runs_offline_and_refuses_timeout_and_stale_binding_mutan
         ),
         (Ok(84), None)
     ));
+
+    // The source-local effect handler receives foreign Bytes and deliberately
+    // copies them into callback-owned Vec storage. This checks the observable
+    // operation, rather than inferring copies from allocation counts or
+    // treating the scalar generated boundary as evidence.
+    let copies = CopyLedger::default();
+    let (endpoint, _received, server) = local_server(200, "43", Duration::ZERO);
+    assert_eq!(
+        local.block_on(
+            &runtime,
+            selected_call(
+                Arc::clone(&revision),
+                endpoint,
+                Some(Duration::from_millis(100)),
+                copies.clone(),
+            )
+            .unwrap(),
+        ),
+        (Ok(84), None)
+    );
+    server.join().unwrap();
+    assert_eq!(
+        copies.metrics(),
+        CopyMetrics {
+            foreign_response_body_copied_bytes: 2,
+            host_callback_captured_bytes: 2,
+        }
+    );
     assert!(matches!(
         run_case(
             Arc::clone(&revision),
@@ -287,6 +352,7 @@ fn saved_m3_application_runs_offline_and_refuses_timeout_and_stale_binding_mutan
         Arc::clone(&revision),
         endpoint,
         Some(Duration::from_secs(2)),
+        CopyLedger::default(),
     )
     .unwrap();
     local.block_on(&runtime, async move {

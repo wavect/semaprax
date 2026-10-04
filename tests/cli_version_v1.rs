@@ -28,11 +28,11 @@ fn human_output_is_deterministic_with_known_and_absent_commits() {
 fn json_output_is_canonical_and_has_one_terminal_lf() {
     assert_eq!(
         version::render_json_with_commit(Some(COMMIT)).unwrap(),
-        "{\"schema\":\"semaprax.version.v1\",\"version\":\"0.8.0\",\"commit\":\"8b2d397f164ff93338d7b3935d1c2df291434458\",\"maturity\":\"research\",\"rust_min\":\"1.88\"}\n"
+        "{\"schema\":\"semaprax.version.v1\",\"version\":\"0.8.0\",\"commit\":\"8b2d397f164ff93338d7b3935d1c2df291434458\",\"maturity\":\"beta\",\"rust_min\":\"1.88\"}\n"
     );
     assert_eq!(
         version::render_json_with_commit(None).unwrap(),
-        "{\"schema\":\"semaprax.version.v1\",\"version\":\"0.8.0\",\"commit\":null,\"maturity\":\"research\",\"rust_min\":\"1.88\"}\n"
+        "{\"schema\":\"semaprax.version.v1\",\"version\":\"0.8.0\",\"commit\":null,\"maturity\":\"beta\",\"rust_min\":\"1.88\"}\n"
     );
 }
 

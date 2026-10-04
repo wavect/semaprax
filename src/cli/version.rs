@@ -1,7 +1,7 @@
 use semaprax::diagnostic::quote_json;
 
 const SCHEMA: &str = "semaprax.version.v1";
-const MATURITY: &str = "research";
+const MATURITY: &str = "beta";
 const RUST_MIN: &str = "1.88";
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const INVALID_COMMIT: &str =

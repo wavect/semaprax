@@ -7,7 +7,7 @@ Audience: release reviewers, maintainers, and readers checking hosted claims.
 The workspace manifests, lockfiles, CLI version, installation examples, and
 dated changelog are prepared for v0.8.0. The generated release notes use the
 v0.8.0 changelog section. The CLI and packaged release manifests report
-`maturity: research`; this label change does not establish production support
+`maturity: beta`; this label change does not establish production support
 or promote any completion-matrix row.
 
 Publication requires the exact candidate commit to pass the repository's

@@ -81,7 +81,7 @@ def main(argv=None):
     # setting is respected even if `print` would still use the legacy
     # encoding on some Windows runners.
     out = sys.stdout
-    out.write(f"SEMAPRAX v{args.version} is research software.\n\n")
+    out.write(f"SEMAPRAX v{args.version} is beta software.\n\n")
     out.write("## Changes\n\n")
     out.write(section + "\n")
     out.write(

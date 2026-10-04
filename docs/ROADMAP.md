@@ -61,7 +61,7 @@ exact release corpus passed, and whether users may rely on it. Promotion needs
 an explicit version, target scope, maintained package/host path, and fresh
 evidence. A CI label alone does not publish a private profile.
 
-The full-toolchain archives remain research releases. Keep source-selected private hosts
+The full-toolchain archives remain beta releases. Keep source-selected private hosts
 visible until a promoted workflow intentionally hides them from users.
 
 ## Developer preview: promote the authored Project v8 slice

@@ -2871,6 +2871,5 @@ jobs:
             dist/release-attestation-aarch64-apple-darwin.json \
             dist/release-attestation-x86_64-pc-windows-msvc.json \
             --verify-tag \
-            --prerelease \
             --title "SEMAPRAX $GITHUB_REF_NAME" \
             --notes-file "$RUNNER_TEMP/release-notes.md"

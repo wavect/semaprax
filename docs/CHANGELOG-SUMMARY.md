@@ -99,7 +99,7 @@ attempts are recorded separately. See
   owner identities in the signing certificate. This implementation does not
   establish a signed release before the exact tag gate passes.
 
-## Latest available prerelease: v0.7.0
+## Latest published archive: v0.7.0
 
 The [v0.7.0 release page](https://github.com/wavect/semaprax/releases/tag/v0.7.0)
 lists archives for Linux x86-64, Apple Silicon macOS, and Windows x86-64,

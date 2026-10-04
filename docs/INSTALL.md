@@ -1,6 +1,6 @@
 # Installing SEMAPRAX
 
-Status: public research installation guide; not a production-readiness claim.
+Status: public beta installation guide; not a production-readiness claim.
 Audience: new users and contributors.
 
 > Prefer a shorter path? The user-facing [Semaprax Handbook](../handbook/README.md)
@@ -172,7 +172,7 @@ A CLI built from a tag archive reports its injected commit instead of
 `unknown`. The JSON form is the machine-readable version of the same identity:
 
 ```text
-{"schema":"semaprax.version.v1","version":"0.8.0","commit":null,"maturity":"research","rust_min":"1.88"}
+{"schema":"semaprax.version.v1","version":"0.8.0","commit":null,"maturity":"beta","rust_min":"1.88"}
 ```
 
 `check` prints the verified path and its source digest, and `run` prints `42`:

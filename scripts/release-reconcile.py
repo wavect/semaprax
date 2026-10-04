@@ -69,7 +69,7 @@ def readme_claimed_version(text):
     exists.
     """
     match = re.search(
-        r"published tag is the\n\[v(" + VERSION_RE.pattern + r") prerelease\]",
+        r"published tag is the\n\[v(" + VERSION_RE.pattern + r") (?:pre)?release\]",
         text,
     )
     return match.group(1) if match else None
@@ -84,7 +84,7 @@ def readme_claimed_evidence(text, version):
     pattern = re.compile(
         r"\[v"
         + re.escape(version)
-        + r" prerelease\]\([^)]+\)\n\(([0-9]{4}-[0-9]{2}-[0-9]{2}), `([0-9a-f]{7,40})`\)"
+        + r" (?:pre)?release\]\([^)]+\)\n\(([0-9]{4}-[0-9]{2}-[0-9]{2}), `([0-9a-f]{7,40})`\)"
         r".*?\[release process\]\(docs/RELEASE-PROCESS\.md#([a-z0-9-]+)\)",
         re.DOTALL,
     )
@@ -206,12 +206,12 @@ def reconcile_doc_claim(readme_text, changelog_text, release_process_text):
 
 
 def changelog_summary_claimed_tag(text):
-    """The version `docs/CHANGELOG-SUMMARY.md` names as the current prerelease tag.
+    """The version `docs/CHANGELOG-SUMMARY.md` names as the current release tag.
 
     Returns None if the file makes no such claim in the expected form.
     """
     match = re.search(
-        r"`v(" + VERSION_RE.pattern + r")` is the current prerelease tag", text
+        r"`v(" + VERSION_RE.pattern + r")` is the current (?:pre)?release tag", text
     )
     return match.group(1) if match else None
 
@@ -228,7 +228,7 @@ def reconcile_changelog_summary(changelog_summary_text, cargo_version):
         return []
     return [
         f"docs/CHANGELOG-SUMMARY.md claims v{claimed} is the current "
-        f"prerelease tag, but the root Cargo.toml version is {cargo_version}"
+        f"release tag, but the root Cargo.toml version is {cargo_version}"
     ]
 
 

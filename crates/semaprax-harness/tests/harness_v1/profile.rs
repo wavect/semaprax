@@ -1131,3 +1131,16 @@ fn hp_hp02_trust_store_issues_only_through_grant_for() {
     assert_eq!(hits, ["trust.rs"]);
     let _ = trust::TRUST_SCHEMA;
 }
+
+#[test]
+fn hp_hp02_bundled_local_upstream_is_trusted_without_an_upstream_executable() {
+    let home = crate::support::fixture_dir("hp-hp02-bundled-home");
+    let project = crate::support::fixture_dir("hp-hp02-bundled-project");
+    let e = env(&home, &project);
+    let desc = crate::support::repo_root()
+        .join("packages/semaprax-harness-adapters/examples/output-view-python/harness-provider.json");
+    ok(&e, &["adopt", desc.to_str().unwrap()]);
+    ok(&e, &["trust", "org.example/output-view"]);
+    let status = ok(&e, &["status", "--project", project.to_str().unwrap(), "--json"]);
+    assert!(status.contains("org.example/output-view"), "{status}");
+}

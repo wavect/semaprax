@@ -139,7 +139,7 @@ impl Installation {
             descriptor_digest: descriptor.digest().to_string(),
             entry_digest,
             upstream_digest,
-            requires_upstream: descriptor.upstream.is_some(),
+            requires_upstream: descriptor.upstream.as_ref().is_some_and(|u| !is_bundled(u)),
             requested: descriptor.permissions.clone(),
         };
         Ok(Inspected {
@@ -370,4 +370,11 @@ impl LocalState {
     pub fn home(&self) -> HarnessResult<&Path> {
         self.home_dir()
     }
+}
+
+/// A `local:` upstream with no identity probe is code bundled beside the
+/// adapter entry; the entry digest already binds it, so no separate upstream
+/// executable is adopted or required.
+pub fn is_bundled(upstream: &crate::contract::UpstreamIdentity) -> bool {
+    upstream.package.starts_with("local:") && upstream.identity_probe.is_empty()
 }

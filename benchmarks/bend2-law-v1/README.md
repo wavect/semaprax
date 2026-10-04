@@ -112,3 +112,40 @@ python3 benchmarks/bend2-law-v1/bend_boolean_driver.py \
 
 This is a pinned upstream Boolean smoke fixture. It is outside the six
 checked-`u32` cells and records no comparison, timing result, or winner.
+
+## Agent-trial raw telemetry capture
+
+After an agent run, retain its existing telemetry export and its raw case
+transcripts outside the repository. Do not add a Boolean value such as
+`passed` to make the capture succeed. Instead, create a machine-readable
+`semaprax.bend2-law-benchmark.agent-telemetry-export.v1` document bound to the
+exact preregistration digest. Each trial supplies its transcript digest, the
+existing `token_usage` and `cost_usage` telemetry events (with distinct event
+identities), completed wall-time observations for proof synthesis, law-kernel
+checking, and compilation or runtime, plus digest-bound observations for every
+success witness and seeded attack.
+
+The capture command validates that structure against the fixed plan:
+
+```sh
+python3 benchmarks/bend2-law-v1/agent_trial_capture.py \
+  --plan /secure/local/law16-agent-plan.json \
+  --raw-export /secure/local/law16-agent-raw-export.json \
+  --output /secure/local/law16-agent-capture.json
+```
+
+It emits `completed` only when the raw export covers every preregistered trial
+for both languages. A partial export remains `partial` and exits nonzero;
+accepted attacks, omitted phase timings, reused telemetry events, unknown
+trial IDs, and a changed plan digest are refused. The output retains raw-export
+and transcript digests plus the telemetry values and separate phase durations.
+It does not authenticate an external telemetry provider, execute an agent, or
+state a comparison result.
+
+The local pinned Bend Boolean smoke route was executed on 4 October 2026 with
+Bun 1.2.5 and `BEND_NO_TELEMETRY=1`. Its receipt is
+`/tmp/bend-two-value-boolean.json`: the checked-out source was
+`947db722640c86247849343657bf2f7ef01cb7f1`; ordinary checking emitted `0`,
+`1`, and the separate verdict invocation emitted `ALL PROOFS CHECK`. This is
+upstream tool evidence only. It is not an agent trial, a matched six-cell
+benchmark, or a Bend-versus-SEMAPRAX result.

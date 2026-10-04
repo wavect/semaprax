@@ -613,3 +613,8 @@ fn hp_hp17_skill_pilot_is_labelled_pilot_only_and_loopback_only() {
 
 #[path = "bench/hn17.rs"]
 mod hn17;
+
+// ---- TC-12: profile-arm campaign, offline ----
+
+#[path = "bench/tc12.rs"]
+mod tc12;

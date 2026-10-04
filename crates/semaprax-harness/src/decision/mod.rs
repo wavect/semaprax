@@ -9,6 +9,7 @@
 
 pub mod cache;
 pub mod cli;
+pub mod host_invoker;
 pub mod plan;
 pub mod policy;
 pub mod provider;
@@ -19,6 +20,7 @@ pub mod router;
 pub mod rules;
 
 pub use cache::{CacheKey, DecisionCache};
+pub use host_invoker::HostDecisionInvoker;
 pub use plan::{AttemptGrant, AttemptKind, AttemptLedger, FrozenRoutePlan, PlanSlot};
 pub use policy::{FallbackMode, LineageBudgets, RoutePolicy};
 pub use provider::{

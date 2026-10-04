@@ -19,6 +19,22 @@ pub struct Environment {
     pub vars: BTreeMap<String, String>,
 }
 
+/// Marker variables the host sets for nested invocations.
+pub const FORWARDED_MARKERS: [&str; 3] = [
+    "SEMAPRAX_HARNESS_BRIDGE_DEPTH",
+    "SEMAPRAX_HARNESS_COMMAND_VIEW_LINEAGE",
+    "SEMAPRAX_HARNESS_EXTERNAL_VIEW_OWNER",
+];
+
+/// Credential variable names declared by the machine-local endpoint catalog
+/// (empty when absent or unreadable).
+pub fn credential_env_names(home: Option<&std::path::Path>) -> Vec<String> {
+    let Some(home) = home else { return Vec::new() };
+    crate::endpoint::Catalog::load(home)
+        .map(|c| c.endpoints.values().filter_map(|e| e.credential_env.clone()).collect())
+        .unwrap_or_default()
+}
+
 impl Environment {
     pub fn from_process() -> Self {
         let home = std::env::var_os("SEMAPRAX_HARNESS_HOME").map(PathBuf::from).or_else(|| {
@@ -29,6 +45,19 @@ impl Environment {
         for key in ["HOME", "PATH", "TMPDIR"] {
             if let Ok(v) = std::env::var(key) {
                 vars.insert(key.to_string(), v);
+            }
+        }
+        // Host-set recursion/ownership markers cross real process boundaries.
+        for key in FORWARDED_MARKERS {
+            if let Ok(v) = std::env::var(key) {
+                vars.insert(key.to_string(), v);
+            }
+        }
+        // Only variables named by the adopted endpoint catalog's `credential_env`
+        // fields are forwarded, never the whole environment.
+        for key in credential_env_names(home.as_deref()) {
+            if let Ok(v) = std::env::var(&key) {
+                vars.insert(key, v);
             }
         }
         Self { harness_home: home, compiler, cwd: std::env::current_dir().unwrap_or_default(), vars }

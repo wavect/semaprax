@@ -505,7 +505,7 @@ fn coordinator_transition_table_preserves_the_active_revision() {
                     .reason;
                 assert!(session.terminal());
                 assert_eq!(
-                    session.plan().unwrap_err().reason,
+                    session.plan().err().unwrap().reason,
                     HotReloadReason::TerminalUncertainty
                 );
                 (Some(failure), None)

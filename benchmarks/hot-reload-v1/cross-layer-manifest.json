@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.hot-reload-cross-layer-acceptance.v1",
   "scope": "local-selector-timing",
-  "subject": {"revision": "git-head-at-run", "binary_digest": "not-observed-by-selector-runner"},
+  "subject": {"revision": "git-head-at-run", "binary_digest": "captured-per-selector-in-report"},
   "cells": [
     {
       "id": "interpreter-a-b",

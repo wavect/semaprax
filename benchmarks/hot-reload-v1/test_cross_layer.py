@@ -63,6 +63,8 @@ class Contract(unittest.TestCase):
         measured = value["cells"]["source-agent-a-b"]
         self.assertEqual(measured["status"], "measured")
         self.assertEqual(measured["timing"]["samples"], 2)
+        self.assertTrue(measured["output_digests"][0]["executable"].startswith("/"))
+        self.assertTrue(measured["output_digests"][0]["executable_sha256"].startswith("sha256:"))
         self.assertEqual(value["cells"]["native-process-identity"]["status"], "unavailable")
         self.assertEqual(value["cells"]["interpreter-a-b"]["reason"], "no selector command was supplied")
 

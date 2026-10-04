@@ -69,10 +69,12 @@ python3 benchmarks/hot-reload-v1/cross_layer.py --samples 5 \
   --output /tmp/hot-reload-cross-layer.json
 ```
 
-The example does not stand in for a committed measurement. A command may be
-supplied only when its prebuilt executable matches the intended subject; the
-report records the repository head at the time it runs and explicitly marks
-the selector executable digest as unobserved.
+The example does not stand in for a committed measurement. A supplied command
+must start with an absolute executable file. The report records the repository
+head, the resolved selector path, and the SHA-256 of that executable for every
+sample. It refuses if those bytes change during the sample. This binds the
+observed selector bytes but does not establish platform support, production
+rollout, or that the executable was built from the reported checkout.
 
 ## Compact cross-layer capture
 

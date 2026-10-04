@@ -39,7 +39,7 @@ def validate(manifest):
         raise ValueError("cross-layer manifest has the wrong schema")
     if manifest["scope"] != "local-selector-timing":
         raise ValueError("cross-layer manifest has the wrong scope")
-    if manifest["subject"] != {"revision": "git-head-at-run", "binary_digest": "not-observed-by-selector-runner"}:
+    if manifest["subject"] != {"revision": "git-head-at-run", "binary_digest": "captured-per-selector-in-report"}:
         raise ValueError("cross-layer manifest does not bind its run-time subject")
     if not isinstance(manifest["cells"], list) or not manifest["cells"]:
         raise ValueError("cross-layer manifest has no cells")
@@ -90,12 +90,22 @@ def summarize(values):
 
 
 def invoke(argv):
+    executable = pathlib.Path(argv[0])
+    if not executable.is_absolute() or not executable.is_file() or not os.access(executable, os.X_OK):
+        raise RuntimeError("selector argv[0] must name an absolute executable file")
+    executable = executable.resolve()
+    executable_digest = digest(executable)
+    argv = [str(executable), *argv[1:]]
     started = time.perf_counter_ns()
     completed = subprocess.run(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=False)
     elapsed = (time.perf_counter_ns() - started) / 1_000_000
+    if digest(executable) != executable_digest:
+        raise RuntimeError("selector executable changed while it was measured")
     if completed.returncode:
         raise RuntimeError("selector failed (%s): %s" % (completed.returncode, " ".join(argv)))
     return elapsed, {
+        "executable": str(executable),
+        "executable_sha256": executable_digest,
         "stdout_sha256": "sha256:" + hashlib.sha256(completed.stdout).hexdigest(),
         "stderr_sha256": "sha256:" + hashlib.sha256(completed.stderr).hexdigest(),
     }

@@ -1,0 +1,98 @@
+# Harness adapter host v1 (HP-03)
+
+Implements the host side of `docs/HARNESS-PROVIDER-V1.md` (wire protocol,
+lifecycle) in `crates/semaprax-harness/src/host/`. Diagnostics are
+`SPX-HPC001..`.
+
+## Not part of compile/check
+
+`semaprax-harness` is a separate crate that the compiler does not link. Ordinary
+`semaprax check`/`build` never starts an adapter and needs none of an adapter's
+runtime dependencies (node, python, upstream tools). Adapters start only when a
+host caller invokes `AdapterHandle::invoke`, after a trust `Grant`.
+
+## Public API
+
+- `LaunchSpec { descriptor, descriptor_dir, runtime_executable, upstream_executable, grant, project_root, cache_dir, retention_dir, isolation: IsolationRequest, forward_env }`.
+  `prepare` refuses when the grant does not name this descriptor digest
+  (`HPC001`), when the entry file or upstream executable differs from the
+  granted digest (`HPC002`), or when requested isolation is not enforceable
+  (`HPC003`). The digest is re-checked on every (re)start. Hashing and exec are
+  separate steps (no held-fd exec in `std`), so a swap between them is not
+  excluded; the window is the same as for any path-based launch.
+- `AdapterManager::new(HostConfig)`, `prepare(project_id, LaunchSpec) -> HarnessResult<Arc<AdapterHandle>>`,
+  `handle(project, provider)`, `reap_idle(now: Instant)`, `shutdown_all()`, `budget_used()`.
+- `AdapterHandle::invoke(&RequestEnvelope, InvocationClass, &CancelToken) -> Outcome`,
+  `state()`, `isolation_mode()`, `stderr_tail()`, `shutdown()`, `reap_idle(now)`.
+- `InvocationClass { SafeRead, Decision, SideEffecting }`.
+- `Outcome { Completed(ResultEnvelope), Refused(diag), Quarantined(diag), Unavailable { reason, request_sent, fallback_allowed }, Cancelled, Uncertain(diag) }`.
+- `IsolationRequest { None, Restricted { allow_read, allow_write, network: NetworkPolicy::Deny } }`,
+  `IsolationMode { Subprocess, OsEnforced { mechanism } }`, `IsolationBackend::detect()`.
+- `ApprovedEndpoint::from_host_config(url)`, `Credential::new(header, value)`,
+  `HttpClient::new(endpoint, credential, HttpLimits).request(method, path, body)`.
+- `HostBudget { max_jobs, max_total_ms, max_output_bytes }`, separate from the
+  root crate's `process_provider` limits (not reused, not enlarged).
+
+## Process model
+
+- `env_clear()` plus `PATH=/usr/bin:/bin`, `HOME`/`TMPDIR` below the cache dir,
+  `SEMAPRAX_HARNESS_{PROJECT_ROOT,CACHE_DIR,RETENTION_DIR,UPSTREAM}`, python
+  `PYTHONDONTWRITEBYTECODE`/`PYTHONNOUSERSITE`, and the explicit `forward_env`
+  (reserved keys refused). Working directory is the cache dir.
+- Own process group; deadline, cancel-after-grace, violation, shutdown and drop
+  all send group `SIGKILL` and reap. A descendant that calls `setsid` leaves the
+  group and is not reached.
+- stdout: one frame at a time, capped at `min(max_frame_bytes, 4 MiB)`; stderr:
+  64 KiB ring with a dropped-byte count, drained by its own thread. A waiter
+  polls with `recv_timeout`, so cancellation never waits on a read.
+- Protocol violations (non-JSON or malformed line `HPC009`, unknown/duplicate
+  response id `HPC010` -- which also catches a flood on its first frame --,
+  adapter-initiated request or notification incl. `sampling/*`, `roots/*`,
+  `resources/*` `HPC011`, oversized frame `HPC012`, bad initialize `HPC006`,
+  spoofed result binding/authority member `HPC015`) kill the group and
+  quarantine. Payload-level refusals (`HPA040..046`, e.g. path escape, choice
+  outside options) discard the result and keep the adapter.
+
+## Diagnostics
+
+001 grant/spec mismatch or reserved env key; 002 entry/upstream digest;
+003 isolation not enforceable; 004 start/path error; 005 handshake timeout;
+006 handshake protocol; 007 adapter exited; 008 invoke deadline;
+009 malformed frame; 010 unknown response id; 011 adapter-initiated message;
+012 oversized frame; 015 envelope binding breach; 016 crash breaker;
+017 queue full; 018 cancelled side-effecting call; 020 request not accepted /
+wrong project; 021 handle closed; 022 host budget exhausted; 023 nothing
+negotiable; 024 adapter error response; 030 remote/TLS endpoint refused;
+032 redirect refused; 033 response too large; 034 HTTP timeout; 035 HTTP I/O;
+036 malformed HTTP response; 037 invalid endpoint/credential/request.
+
+## Isolation
+
+`Restricted` uses `/usr/bin/sandbox-exec -p <profile>` on macOS (deny default,
+deny `network*`, reads only below system paths and allowed roots, writes only
+below write roots) and `/usr/bin/bwrap` on Linux (`--unshare-net`, read-only
+and read-write binds). With neither tool the request is refused. Host-added
+roots: descriptor dir, interpreter prefix, cache dir (read-write), project root
+when `read` grants `project`, retention dir when `write` grants `retention`.
+
+## HTTP facility
+
+Plain HTTP/1.1 over loopback only. A non-loopback host or any `https` URL is
+refused with "remote transport requires TLS, unsupported in v1". Redirects
+are refused, responses are size-bounded, calls are timeout-bounded, and the
+credential header is injected by the host and redacted in `Debug`. The only way
+to name a destination is `ApprovedEndpoint::from_host_config`.
+
+## Platform evidence
+
+| Platform | Executed evidence |
+| --- | --- |
+| macOS aarch64 | Full lifecycle, hostile modes, grandchild settlement, `sandbox-exec` secret and loopback-network blocks, loopback HTTP (`cargo test -p semaprax-harness --lib host::`). |
+| Linux | Not evidenced. `bwrap` argument generation is unit-tested; nothing was executed. |
+| Windows | Not evidenced; the host is Unix-only (`process_group`, `rustix`). |
+
+## Known gaps
+
+Outbound MCP client bridge is HP-14. TLS and remote HTTP are not implemented.
+Concurrent invocations share one adapter process and are demultiplexed by
+JSON-RPC id; an adapter that serialises internally gains no parallelism.

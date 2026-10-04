@@ -20,8 +20,24 @@ def body(right):
     return {"kind": "binary", "op": "*", "left": {"kind": "place", "name": "price"}, "right": right}
 
 
+def parse_prompt(raw):
+    """Canonical JSON prompt, or the TC-04 `ordered-v1` text whose lines read `key: <canonical json>`."""
+    try:
+        return json.loads(raw)
+    except ValueError:
+        prompt = {}
+        for line in raw.decode("utf-8").splitlines():
+            key, sep, value = line.partition(": ")
+            if sep and key in ("goal", "seed"):
+                try:
+                    prompt[key] = json.loads(value)
+                except ValueError:
+                    pass
+        return prompt
+
+
 def generate(req):
-    prompt = json.loads(base64.b64decode(req["payload"]["input_base64"]))
+    prompt = parse_prompt(base64.b64decode(req["payload"]["input_base64"]))
     goal = prompt.get("goal", "")
     right = {"kind": "i64", "value": 2} if "MODE:bad" in goal else {"kind": "place", "name": "qty"}
     out = {"schema": "semaprax.harness-proposal.v1",

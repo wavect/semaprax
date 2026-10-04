@@ -23,6 +23,17 @@ def digest(path):
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def same_recorded_path(left, right):
+    if not isinstance(left, str) or not isinstance(right, str):
+        return False
+    if left == right:
+        return True
+    # macOS records /tmp and /private/tmp for the same path. Compare the
+    # retained names without requiring the original temporary files to exist.
+    return ((left.startswith("/tmp/") and "/private" + left == right)
+            or (right.startswith("/tmp/") and "/private" + right == left))
+
+
 def ref(root, value):
     if not isinstance(value, dict) or set(value) != {"path", "bytes", "sha256"}:
         raise ValueError("raw reference is malformed")
@@ -76,12 +87,18 @@ def review(root):
             elapsed = []
             for sample in samples:
                 argv = sample.get("argv")
-                if sample.get("exit_code") != 0 or not isinstance(argv, list) or argv[-1:] != [input_ref["path"]]:
+                if (sample.get("exit_code") != 0 or not isinstance(argv, list) or not argv
+                        or not same_recorded_path(argv[-1], input_ref["path"])):
                     raise ValueError(f"{label} command or exit code drifted")
                 if label == "bend-ordinary" and (len(argv) != 3 or "--verdict" in argv):
                     raise ValueError("ordinary Bend receipt is not an ordinary three-argument invocation")
                 if label == "semaprax-check" and (len(argv) != 3 or argv[1] != "check"):
                     raise ValueError("SEMAPRAX receipt is not the nonproof check command")
+                if label == "bend-ordinary" and not (same_recorded_path(argv[0], tools["bun"]["path"])
+                                                             and same_recorded_path(argv[1], tools["bend_main"]["path"])):
+                    raise ValueError("ordinary Bend tool path drifted")
+                if label == "semaprax-check" and not same_recorded_path(argv[0], tools["semaprax"]["path"]):
+                    raise ValueError("SEMAPRAX tool path drifted")
                 ref(root / f"{label}-raw", sample.get("stdout"))
                 ref(root / f"{label}-raw", sample.get("stderr"))
                 if not isinstance(sample.get("elapsed_ns"), int):

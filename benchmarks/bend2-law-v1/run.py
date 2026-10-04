@@ -89,6 +89,8 @@ def require_commands(commands, bend_commit):
     for line in commands["commands"].values():
         if not isinstance(line, list) or not line or not all(isinstance(part, str) and part for part in line):
             raise ValueError("command is invalid")
+        if "{fixture}" not in line or "{case}" not in line:
+            raise ValueError("command must bind the exact fixture and case")
 
 
 def identities(commands):
@@ -105,16 +107,16 @@ def identities(commands):
     return rows
 
 
-def invoke(template, cell, case, env, timeout):
-    command = [part.format(cell=cell, case=case) for part in template]
+def invoke(template, cell, case, fixture, env, timeout):
+    command = [part.format(cell=cell, case=case, fixture=str(fixture.resolve())) for part in template]
     started = time.perf_counter()
     try:
         result = subprocess.run(command, capture_output=True, text=True, timeout=timeout, env=env)
-        return {"status": "accepted" if result.returncode == 0 else "rejected", "wall_ms": round((time.perf_counter() - started) * 1000, 3), "exit_code": result.returncode, "stdout_sha256": "sha256:" + hashlib.sha256(result.stdout.encode()).hexdigest(), "stderr_sha256": "sha256:" + hashlib.sha256(result.stderr.encode()).hexdigest()}
+        return {"status": "accepted" if result.returncode == 0 else "rejected", "fixture_sha256": digest(fixture), "wall_ms": round((time.perf_counter() - started) * 1000, 3), "exit_code": result.returncode, "stdout_sha256": "sha256:" + hashlib.sha256(result.stdout.encode()).hexdigest(), "stderr_sha256": "sha256:" + hashlib.sha256(result.stderr.encode()).hexdigest()}
     except FileNotFoundError:
-        return {"status": "unavailable", "reason": "tool not found"}
+        return {"status": "unavailable", "fixture_sha256": digest(fixture), "reason": "tool not found"}
     except subprocess.TimeoutExpired:
-        return {"status": "timed_out", "reason": f"timeout after {timeout} seconds"}
+        return {"status": "timed_out", "fixture_sha256": digest(fixture), "reason": f"timeout after {timeout} seconds"}
 
 
 def percentiles(samples):
@@ -127,17 +129,20 @@ def execute(manifest, commands, samples, timeout):
     environment.update(manifest["bend"]["telemetry_environment"])
     rows = []
     for cell in manifest["cells"]:
+        fixture = pathlib.Path(cell["fixture"])
+        if not fixture.is_absolute():
+            fixture = pathlib.Path(manifest.get("_root", ".")) / fixture
         paths = {}
         for path in PATHS:
-            cold = invoke(commands["commands"][path], cell["id"], "success", environment, timeout)
-            attacks = {attack: invoke(commands["commands"][path], cell["id"], attack, environment, timeout) for attack in cell["attacks"]}
+            cold = invoke(commands["commands"][path], cell["id"], "success", fixture, environment, timeout)
+            attacks = {attack: invoke(commands["commands"][path], cell["id"], attack, fixture, environment, timeout) for attack in cell["attacks"]}
             if cold["status"] != "accepted":
                 paths[path] = {"status": "unavailable", "cold": cold, "attacks": attacks}
                 continue
             if any(result["status"] != "rejected" for result in attacks.values()):
                 paths[path] = {"status": "failed", "cold": cold, "attacks": attacks, "reason": "law-gaming control was accepted"}
                 continue
-            warm = [invoke(commands["commands"][path], cell["id"], "success", environment, timeout) for _ in range(samples)]
+            warm = [invoke(commands["commands"][path], cell["id"], "success", fixture, environment, timeout) for _ in range(samples)]
             if any(result["status"] != "accepted" for result in warm):
                 paths[path] = {"status": "unavailable", "cold": cold, "attacks": attacks, "warm": warm}
             else:
@@ -159,6 +164,7 @@ def main(argv=None):
         parser.error("--samples must be at least 30 unless --pilot labels the smaller run")
     try:
         manifest = load(args.manifest, MANIFEST_SCHEMA); require_manifest(manifest, args.manifest.parent)
+        manifest["_root"] = str(args.manifest.parent.resolve())
         commands = load(args.commands, COMMANDS_SCHEMA); require_commands(commands, manifest["bend"]["commit"])
     except (OSError, ValueError, json.JSONDecodeError) as error:
         parser.error(str(error))

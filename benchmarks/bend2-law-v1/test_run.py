@@ -12,6 +12,9 @@ from unittest import mock
 MODULE = pathlib.Path(__file__).with_name("run.py")
 SPEC = importlib.util.spec_from_file_location("bend2_run", MODULE)
 RUN = importlib.util.module_from_spec(SPEC); SPEC.loader.exec_module(RUN)
+RECEIPT_MODULE = pathlib.Path(__file__).with_name("fixture_receipt.py")
+RECEIPT_SPEC = importlib.util.spec_from_file_location("bend2_fixture_receipt", RECEIPT_MODULE)
+RECEIPT = importlib.util.module_from_spec(RECEIPT_SPEC); RECEIPT_SPEC.loader.exec_module(RECEIPT)
 
 
 class RunnerTests(unittest.TestCase):
@@ -30,17 +33,21 @@ class RunnerTests(unittest.TestCase):
                 RUN.require_manifest(manifest, root)
 
     def test_commands_require_distinct_bend_paths_and_pinned_subjects(self):
-        commands = {"schema": RUN.COMMANDS_SCHEMA, "bend": {"root": "/x", "commit": "b"}, "semaprax": {"root": "/y", "commit": "s"}, "environment": {field: field for field in RUN.ENVIRONMENT_FIELDS}, "commands": {path: ["tool", "{cell}", "{case}"] for path in RUN.PATHS}}
+        commands = {"schema": RUN.COMMANDS_SCHEMA, "bend": {"root": "/x", "commit": "b"}, "semaprax": {"root": "/y", "commit": "s"}, "environment": {field: field for field in RUN.ENVIRONMENT_FIELDS}, "commands": {path: ["tool", "{fixture}", "{cell}", "{case}"] for path in RUN.PATHS}}
         RUN.require_commands(commands, "b")
         del commands["commands"]["bend_verdict"]
         with self.assertRaisesRegex(ValueError, "every execution path"):
+            RUN.require_commands(commands, "b")
+        commands["commands"]["bend_verdict"] = ["tool", "{fixture}", "{cell}", "{case}"]
+        commands["commands"]["bend_normal"] = ["tool", "{cell}", "{case}"]
+        with self.assertRaisesRegex(ValueError, "exact fixture"):
             RUN.require_commands(commands, "b")
 
     def test_drifted_identity_writes_unavailable_not_a_win(self):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory); manifest = root / "manifest.json"; commands = root / "commands.json"; output = root / "out.json"
             self.fixture(root); manifest.write_text(json.dumps(self.manifest()))
-            commands.write_text(json.dumps({"schema": RUN.COMMANDS_SCHEMA, "bend": {"root": "/no-bend", "commit": "b"}, "semaprax": {"root": "/no-spx", "commit": "s"}, "environment": {field: field for field in RUN.ENVIRONMENT_FIELDS}, "commands": {path: ["missing", "{cell}", "{case}"] for path in RUN.PATHS}}))
+            commands.write_text(json.dumps({"schema": RUN.COMMANDS_SCHEMA, "bend": {"root": "/no-bend", "commit": "b"}, "semaprax": {"root": "/no-spx", "commit": "s"}, "environment": {field: field for field in RUN.ENVIRONMENT_FIELDS}, "commands": {path: ["missing", "{fixture}", "{cell}", "{case}"] for path in RUN.PATHS}}))
             self.assertEqual(RUN.main(["--manifest", str(manifest), "--commands", str(commands), "--output", str(output)]), 1)
             self.assertEqual(json.loads(output.read_text())["status"], "unavailable")
 
@@ -48,12 +55,21 @@ class RunnerTests(unittest.TestCase):
         with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
             RUN.main(["--commands", "/missing", "--output", "/tmp/out", "--samples", "29"])
 
+    def test_committed_fixture_receipt_is_deterministic_and_binds_bool_cell(self):
+        manifest = MODULE.with_name("manifest.json")
+        first = RECEIPT.receipt(manifest)
+        self.assertEqual(first, RECEIPT.receipt(manifest))
+        self.assertEqual(first["schema"], RECEIPT.SCHEMA)
+        scalar = next(cell for cell in first["cells"] if cell["id"] == "scalar-contract-bug-v1")
+        self.assertEqual(scalar["numeric_domain"], "bool exact")
+        self.assertTrue(scalar["fixture_sha256"].startswith("sha256:"))
+
     def test_accepted_law_gaming_fails_only_the_affected_distinct_path(self):
         manifest = self.manifest()
-        commands = {"commands": {path: [path] for path in RUN.PATHS}}
+        commands = {"commands": {path: [path, "{fixture}"] for path in RUN.PATHS}}
 
-        def fake(template, cell, case, environment, timeout):
-            if template == ["bend_normal"] and case == "empty-sort":
+        def fake(template, cell, case, fixture, environment, timeout):
+            if template[0] == "bend_normal" and case == "empty-sort":
                 return {"status": "accepted", "wall_ms": 1.0, "exit_code": 0}
             if case == "success":
                 return {"status": "accepted", "wall_ms": 1.0, "exit_code": 0}

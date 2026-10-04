@@ -12,10 +12,10 @@
     "inputs": "sha256 identities of the checked source fixtures and inputs"
   },
   "commands": {
-    "bend_normal": ["/absolute/path/to/bend", "run", "{cell}", "{case}"],
-    "bend_verdict": ["/absolute/path/to/bend", "run", "--verdict", "{cell}", "{case}"],
-    "semaprax_smt": ["/absolute/path/to/semaprax", "check", "{cell}", "{case}"],
-    "semaprax_lean": ["/absolute/path/to/semaprax", "lean", "{cell}", "{case}"],
-    "semaprax_runtime": ["/absolute/path/to/semaprax", "test", "{cell}", "{case}"]
+    "bend_normal": ["/absolute/path/to/bend-fixture-driver", "--fixture", "{fixture}", "--cell", "{cell}", "--case", "{case}"],
+    "bend_verdict": ["/absolute/path/to/bend-fixture-driver", "--verdict", "--fixture", "{fixture}", "--cell", "{cell}", "--case", "{case}"],
+    "semaprax_smt": ["/absolute/path/to/semaprax-fixture-driver", "--smt", "--fixture", "{fixture}", "--cell", "{cell}", "--case", "{case}"],
+    "semaprax_lean": ["/absolute/path/to/semaprax-fixture-driver", "--lean", "--fixture", "{fixture}", "--cell", "{cell}", "--case", "{case}"],
+    "semaprax_runtime": ["/absolute/path/to/semaprax-fixture-driver", "--runtime", "--fixture", "{fixture}", "--cell", "{cell}", "--case", "{case}"]
   }
 }

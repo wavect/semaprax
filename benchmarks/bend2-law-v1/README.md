@@ -29,16 +29,33 @@ cannot pass a balance cell. Numeric domains are declared per cell; a command
 file must not substitute Bend `Nat` semantics for the declared checked `u32`
 domain.
 
-`fixtures/` is the committed, language-neutral checked-`u32` source-input
-corpus: every cell has one accepted witness and one rejected attack witness,
-and their digests are bound into the result. The current SEMAPRAX scalar
-surface has no `u32` type (it admits `i32`, `i64`, and `u8`), while Bend uses
-`U32`; an `i32` substitute would narrow the domain and is therefore not
-presented as an equal source fixture. No pinned Bend executable is installed
-on this host, so the corresponding Bend source/proof files and a runnable
-local command configuration remain explicitly unavailable.
+The scalar-contract cell is a matched microcell: it uses total Boolean
+negation, where both languages have the same two-value domain. It remains
+unexecuted until a pinned Bend toolchain and local fixture drivers are supplied.
+Every command receives its canonical fixture path through `{fixture}` and the
+requested `success` or attack case through `{case}`. This prevents a local
+driver from timing an unbound substitute. The other five cells retain their
+checked-`u32` domain and remain unavailable until SEMAPRAX has an equal `u32`
+surface; they cannot be replaced with an `i32` benchmark.
+
+`fixtures/` is the committed language-neutral source-input corpus: every cell
+has one accepted witness and one rejected attack witness, and their digests
+are bound into the result. The current SEMAPRAX scalar surface has no `u32`
+type (it admits `i32`, `i64`, and `u8`), while Bend uses `U32`; an `i32`
+substitute would narrow the domain and is therefore not presented as an equal
+source fixture. No pinned Bend executable is installed on this host, so the
+corresponding Bend source/proof files and a runnable local command
+configuration remain explicitly unavailable.
 
 The harness records local evidence only. It does not provision tools, clone
 repositories, generate source fixtures, publish results, or make a
 superiority claim. Unimplemented fixture/tool combinations remain
 `unavailable` in the result rather than a favorable score.
+
+The deterministic no-tool input receipt is useful for review before a local
+toolchain run:
+
+```sh
+python3 benchmarks/bend2-law-v1/fixture_receipt.py \
+  --output /tmp/bend2-fixture-receipt.json
+```

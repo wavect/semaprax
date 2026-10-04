@@ -113,6 +113,61 @@ fn receipt_is_compact_bound_and_independently_replay_verified() {
 }
 
 #[test]
+fn receipt_derives_and_pages_bounded_dependency_affected_declarations() {
+    let fixture = Fixture::new();
+    let root = fixture.candidate();
+    let candidate = apply(
+        &root,
+        json!({"kind":"rename_declaration","target":"calculator.add","name":"sum"}),
+    );
+    let receipt: Value = serde_json::from_str(
+        &candidate
+            .patch_receipt(candidate.candidate_digest())
+            .unwrap(),
+    )
+    .unwrap();
+    let affected = &receipt["content"]["declarations"]["affected_through_dependencies"];
+    assert_eq!(
+        affected["status"],
+        "derived_bounded_potential_reverse_dependencies"
+    );
+    assert!(affected["count"].as_u64().unwrap() > 0);
+    assert_eq!(affected["evidence"], "dependency_impact");
+
+    let summary: Value = serde_json::from_str(
+        &candidate
+            .patch_receipt_evidence_summary(candidate.candidate_digest())
+            .unwrap(),
+    )
+    .unwrap();
+    let dependency = summary["evidence"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["id"] == "dependency_impact")
+        .unwrap();
+    assert_eq!(
+        dependency["schema"],
+        "semaprax.patch-receipt-dependency-impact.v1"
+    );
+    let page: Value = serde_json::from_str(
+        &candidate
+            .patch_receipt_evidence_page(
+                candidate.candidate_digest(),
+                "dependency_impact",
+                dependency["handle"].as_str().unwrap(),
+                None,
+                ProjectPatchReceiptEvidencePageOptions::new(16, 65_536).unwrap(),
+            )
+            .unwrap(),
+    )
+    .unwrap();
+    assert!(page["items"].as_array().unwrap().iter().any(|row| {
+        row["root"] == "calculator.add" && row["declaration"]["id"] == "calculator.app.main"
+    }));
+}
+
+#[test]
 fn recomputed_outer_digest_cannot_make_a_tampered_receipt_verify() {
     let fixture = Fixture::new();
     let root = fixture.candidate();

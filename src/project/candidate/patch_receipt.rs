@@ -6,11 +6,13 @@
 //! apply/publication authority. Verification replays the candidate from its
 //! retained base before recomputing the complete canonical receipt bytes.
 
+use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use serde_json::{json, Value};
 
 use crate::diagnostic::Diagnostic;
+use crate::workspace_analysis::{WorkspaceAnalysisTargetKind, WorkspaceImpactOptions};
 
 use super::{wire, ProjectCandidate};
 
@@ -35,10 +37,14 @@ const CANDIDATE_EVIDENCE_DOMAIN: &[u8] = b"semaprax.patch-receipt.candidate.v1\\
 const CATALOG_EVIDENCE_DOMAIN: &[u8] = b"semaprax.patch-receipt.catalog.v1\\0";
 const CONTRACT_EVIDENCE_DOMAIN: &[u8] = b"semaprax.patch-receipt.contract.v1\\0";
 const OWNERSHIP_EVIDENCE_DOMAIN: &[u8] = b"semaprax.patch-receipt.ownership.v1\\0";
+const DEPENDENCY_IMPACT_EVIDENCE_DOMAIN: &[u8] = b"semaprax.patch-receipt.dependency-impact.v1\\0";
 const REQUEST_EVIDENCE_DOMAIN: &[u8] = b"semaprax.patch-receipt.request.v1\\0";
 const MAX_DECLARATION_PREVIEW: usize = 16;
 const MAX_EVIDENCE_CURSOR_BYTES: usize = 128;
 const MAX_EVIDENCE_CURSOR_OFFSET: usize = 65_536;
+const DEPENDENCY_IMPACT_MAX_BYTES: usize = 64 * 1024;
+const DEPENDENCY_IMPACT_MAX_NODES: usize = 128;
+const DEPENDENCY_IMPACT_DEPTH: usize = 16;
 
 fn invalid(message: &'static str) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-G982", message)]
@@ -57,14 +63,16 @@ fn stale(message: &'static str) -> Vec<Diagnostic> {
 pub enum ProjectPatchReceiptEvidence {
     Candidate,
     DeclarationCatalog,
+    DependencyImpact,
     ContractDelta,
     OwnershipDelta,
 }
 
 impl ProjectPatchReceiptEvidence {
-    const ALL: [Self; 4] = [
+    const ALL: [Self; 5] = [
         Self::Candidate,
         Self::DeclarationCatalog,
+        Self::DependencyImpact,
         Self::ContractDelta,
         Self::OwnershipDelta,
     ];
@@ -73,6 +81,7 @@ impl ProjectPatchReceiptEvidence {
         match self {
             Self::Candidate => "candidate",
             Self::DeclarationCatalog => "declaration_catalog",
+            Self::DependencyImpact => "dependency_impact",
             Self::ContractDelta => "contract_delta",
             Self::OwnershipDelta => "ownership_delta",
         }
@@ -82,6 +91,7 @@ impl ProjectPatchReceiptEvidence {
         match value {
             "candidate" => Ok(Self::Candidate),
             "declaration_catalog" => Ok(Self::DeclarationCatalog),
+            "dependency_impact" => Ok(Self::DependencyImpact),
             "contract_delta" => Ok(Self::ContractDelta),
             "ownership_delta" => Ok(Self::OwnershipDelta),
             _ => Err(invalid("patch receipt evidence selector is unsupported")),
@@ -147,6 +157,7 @@ impl ProjectCandidate {
         let ownership_text = self.ownership_delta(expected_candidate)?;
         let ownership: Value = serde_json::from_str(&ownership_text)
             .map_err(|_| invalid("ownership delta is not valid compiler JSON"))?;
+        let dependency_impact = dependency_impact_evidence(self, &catalog)?;
 
         for preview_len in (0..=roots.len().min(MAX_DECLARATION_PREVIEW)).rev() {
             let content = self.patch_receipt_content(
@@ -156,6 +167,7 @@ impl ProjectCandidate {
                 &catalog_text,
                 &contract_text,
                 &ownership_text,
+                &dependency_impact,
                 preview_len,
             )?;
             // The digest commits to exactly these canonical UTF-8 bytes,
@@ -459,6 +471,7 @@ impl ProjectCandidate {
         catalog_text: &str,
         contract_text: &str,
         ownership_text: &str,
+        dependency_impact: &DependencyImpactEvidence,
         preview_len: usize,
     ) -> Result<Value> {
         let roots = catalog["roots"]
@@ -500,6 +513,13 @@ impl ProjectCandidate {
                 "derivable_from_retained_candidate",
             ),
             evidence_ref(
+                "dependency_impact",
+                "semaprax.patch-receipt-dependency-impact.v1",
+                dependency_impact.digest.clone(),
+                &binding,
+                "recomputed_from_retained_candidate_with_fixed_bounded_reverse_query",
+            ),
+            evidence_ref(
                 "contract_delta",
                 contract["schema"]
                     .as_str()
@@ -533,9 +553,14 @@ impl ProjectCandidate {
                 "omitted_directly_changed_count": omitted,
                 "details_complete": omitted == 0,
                 "affected_through_dependencies": {
-                    "status": "not_derived",
-                    "count": Value::Null,
-                    "reason": "semantic_delta_catalog records authored roots; dependency impact requires its separate bounded query",
+                    "status": "derived_bounded_potential_reverse_dependencies",
+                    "count": dependency_impact.declaration_ids.len(),
+                    "preview": dependency_impact.preview(),
+                    "omitted_count": dependency_impact.declaration_ids.len().saturating_sub(MAX_DECLARATION_PREVIEW),
+                    "details_complete_within_query": dependency_impact.complete_within_query,
+                    "query": dependency_impact.query.clone(),
+                    "reason": "reverse dependency facts from the checked candidate graph; they are not behavioral impact or executed-test coverage",
+                    "evidence": "dependency_impact",
                 },
                 "full_details_evidence": "declaration_catalog",
             },
@@ -568,6 +593,161 @@ struct RetainedEvidence {
     items: Vec<Value>,
 }
 
+struct DependencyImpactEvidence {
+    digest: String,
+    items: Vec<Value>,
+    declaration_ids: Vec<String>,
+    complete_within_query: bool,
+    query: Value,
+}
+
+impl DependencyImpactEvidence {
+    fn preview(&self) -> Vec<Value> {
+        self.declaration_ids
+            .iter()
+            .take(MAX_DECLARATION_PREVIEW)
+            .map(|id| json!({"id": id}))
+            .collect()
+    }
+
+    fn retained(self) -> RetainedEvidence {
+        RetainedEvidence {
+            schema: "semaprax.patch-receipt-dependency-impact.v1".to_owned(),
+            digest: self.digest,
+            items: self.items,
+        }
+    }
+}
+
+/// Derive reverse-dependency observations only from the already checked
+/// candidate/base semantic graphs.  The fixed query is deliberately bounded;
+/// its truncation facts remain part of both the evidence bytes and receipt.
+fn dependency_impact_evidence(
+    candidate: &ProjectCandidate,
+    catalog: &Value,
+) -> Result<DependencyImpactEvidence> {
+    let roots = catalog
+        .get("roots")
+        .and_then(Value::as_array)
+        .ok_or_else(|| invalid("semantic delta catalog roots are absent"))?;
+    let options = WorkspaceImpactOptions::new(
+        DEPENDENCY_IMPACT_DEPTH,
+        DEPENDENCY_IMPACT_MAX_BYTES,
+        DEPENDENCY_IMPACT_MAX_NODES,
+    )
+    .map_err(|_| invalid("patch receipt dependency impact query is invalid"))?;
+    let query = json!({
+        "direction": "reverse",
+        "depth": DEPENDENCY_IMPACT_DEPTH,
+        "max_bytes": DEPENDENCY_IMPACT_MAX_BYTES,
+        "max_nodes": DEPENDENCY_IMPACT_MAX_NODES,
+    });
+    let direct = roots
+        .iter()
+        .map(|root| {
+            root.get("target")
+                .and_then(Value::as_str)
+                .map(str::to_owned)
+                .ok_or_else(|| invalid("semantic delta root target is absent"))
+        })
+        .collect::<Result<BTreeSet<_>>>()?;
+    let mut items = Vec::new();
+    let mut declaration_ids = BTreeSet::new();
+    let mut complete_within_query = true;
+    let mut observations = Vec::new();
+
+    for root in &direct {
+        for (phase, revision) in [
+            ("base", &candidate.base),
+            ("candidate", &candidate.revision),
+        ] {
+            if revision.semantic.image_symbol(root).is_none() {
+                observations.push(json!({
+                    "root": root,
+                    "phase": phase,
+                    "availability": "declaration_absent_from_checked_graph",
+                }));
+                continue;
+            }
+            let text = revision
+                .semantic_impact(WorkspaceAnalysisTargetKind::Declaration, root, options)
+                .map_err(|_| invalid("checked dependency impact artifact is unavailable"))?;
+            let artifact: Value = serde_json::from_str(&text)
+                .map_err(|_| invalid("checked dependency impact artifact is not compiler JSON"))?;
+            let affected = artifact
+                .get("affected")
+                .and_then(Value::as_array)
+                .ok_or_else(|| invalid("checked dependency impact inventory is absent"))?;
+            let truncation = artifact
+                .get("truncation")
+                .cloned()
+                .ok_or_else(|| invalid("checked dependency impact truncation is absent"))?;
+            let truncated = truncation
+                .get("truncated")
+                .and_then(Value::as_bool)
+                .ok_or_else(|| invalid("checked dependency impact truncation is invalid"))?;
+            complete_within_query &= !truncated;
+            observations.push(json!({
+                "root": root,
+                "phase": phase,
+                "availability": "derived_from_checked_graph",
+                "artifact_digest": artifact.get("artifact_digest").cloned().unwrap_or(Value::Null),
+                "truncation": truncation,
+            }));
+            for value in affected {
+                if value.get("kind").and_then(Value::as_str) != Some("declaration")
+                    || value
+                        .get("minimum_depth")
+                        .and_then(Value::as_u64)
+                        .unwrap_or(0)
+                        == 0
+                {
+                    continue;
+                }
+                let id = value
+                    .get("id")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| invalid("checked dependency declaration id is absent"))?;
+                if direct.contains(id) {
+                    continue;
+                }
+                declaration_ids.insert(id.to_owned());
+                items.push(json!({
+                    "root": root,
+                    "phase": phase,
+                    "declaration": value,
+                }));
+            }
+        }
+    }
+    if items.len() > MAX_EVIDENCE_CURSOR_OFFSET {
+        return Err(capacity(
+            "patch receipt dependency impact inventory exceeds its cursor bound",
+        ));
+    }
+    let evidence = wire::render(
+        json!({
+            "schema": "semaprax.patch-receipt-dependency-impact.v1",
+            "query": query,
+            "observations": observations,
+            "items": items,
+            "nonclaims": [
+                "potential_reverse_dependencies_over_checked_graph_edges_only",
+                "not_behavioral_equivalence_or_executed_test_coverage",
+                "truncation_is_not_complete_dependency_impact",
+            ],
+        }),
+        MAX_PROJECT_PATCH_RECEIPT_EVIDENCE_PAGE_BYTES,
+    )?;
+    Ok(DependencyImpactEvidence {
+        digest: wire::digest(DEPENDENCY_IMPACT_EVIDENCE_DOMAIN, evidence.as_bytes()),
+        items,
+        declaration_ids: declaration_ids.into_iter().collect(),
+        complete_within_query,
+        query,
+    })
+}
+
 fn receipt_binding(candidate: &ProjectCandidate) -> Value {
     json!({
         "candidate_digest": candidate.candidate_digest(),
@@ -588,6 +768,12 @@ fn retained_evidence(
     expected_candidate: &str,
     kind: ProjectPatchReceiptEvidence,
 ) -> Result<RetainedEvidence> {
+    if kind == ProjectPatchReceiptEvidence::DependencyImpact {
+        let catalog: Value =
+            serde_json::from_str(&candidate.semantic_delta_catalog(expected_candidate)?)
+                .map_err(|_| invalid("semantic delta catalog is not valid compiler JSON"))?;
+        return Ok(dependency_impact_evidence(candidate, &catalog)?.retained());
+    }
     let (bytes, domain, array_key, schema) = match kind {
         ProjectPatchReceiptEvidence::Candidate => (
             candidate.to_json().to_owned(),
@@ -601,6 +787,7 @@ fn retained_evidence(
             "roots",
             "semaprax.project-candidate-semantic-delta-catalog.v1",
         ),
+        ProjectPatchReceiptEvidence::DependencyImpact => unreachable!("handled above"),
         ProjectPatchReceiptEvidence::ContractDelta => (
             candidate.contract_delta(expected_candidate)?,
             CONTRACT_EVIDENCE_DOMAIN,

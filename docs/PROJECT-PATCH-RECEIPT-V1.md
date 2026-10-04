@@ -1,16 +1,19 @@
 # Project Patch Receipt v1
 
-Status: implemented retained-candidate summary and refusal/comparison core.
-The V2/V3 durable repair terminal route retains its exact compiler-derived
-receipt bound to the completed journal and replays it without dispatch. Workflow
-adapters and additional assurance observations remain separate work.
+Status: implemented retained-candidate summary, bounded dependency-impact
+evidence, and refusal/comparison core. The V2/V3 durable repair terminal route
+retains its compiler-derived receipt bound to the completed journal and
+replays it without dispatch. Runtime observations use a separate policy
+projection; selected assurance evidence has its own verified candidate route.
 
 Audience: agents and compiler contributors reviewing semantic edit candidates.
 
 `semaprax.patch-receipt.v1` is a compact compiler-owned projection. It carries
-the immutable candidate's base and result Project revisions, a bounded preview
-of directly changed declaration IDs, and references to compiler-derived
-candidate, declaration-catalog, contract-delta, and ownership-delta evidence.
+the immutable candidate's base and result Project revisions, bounded previews
+of directly changed declarations and compiler-derived potential reverse
+dependencies, and references to compiler-derived candidate,
+declaration-catalog, dependency-impact, contract-delta, and ownership-delta
+evidence.
 It is canonical UTF-8 JSON with one terminal LF and an 8 KiB summary bound.
 The outer `receipt_digest` is SHA-256 over the content's canonical bytes using
 the `semaprax.patch-receipt.v1\0` domain.
@@ -39,9 +42,20 @@ pub fn ProjectCandidate::verify_patch_receipt(
 ) -> Result<String, Vec<Diagnostic>>;
 ```
 
-Generation independently derives the selected catalog, contract, and ownership
-projections from the retained candidate. It does not execute tests, invoke a
-provider, run effects, apply source, or publish an artifact. Check rows retain
+Generation independently derives the selected catalog, bounded reverse
+dependency impact, contract, and ownership projections from the retained
+candidate. Dependency impact is queried for every directly changed declaration
+against each checked base and candidate graph where that declaration exists.
+It includes only declaration rows beyond the target itself, deduplicates their
+stable IDs for the receipt count, and retains phase-specific rows for retrieval.
+The fixed reverse query has depth 16, 128 nodes, and 64 KiB per graph. Its
+truncation facts remain visible: `details_complete_within_query: false` means
+the count is only the observed bounded inventory. These facts describe existing
+graph edges; they do not claim behavioral impact, compatibility, or test
+coverage.
+
+Generation does not execute tests, invoke a provider, run effects, apply source,
+or publish an artifact. Check rows retain
 separate categories and explicitly report candidate tests and additional
 assurance as `not_run` when no independently bound observation was selected.
 
@@ -136,8 +150,9 @@ pub fn ProjectCandidate::patch_receipt_evidence_page(
 ) -> Result<String, Vec<Diagnostic>>;
 ```
 
-The summary exposes four closed compiler-derived families: `candidate`,
-`declaration_catalog`, `contract_delta`, and `ownership_delta`. A page accepts
+The summary exposes five closed compiler-derived families: `candidate`,
+`declaration_catalog`, `dependency_impact`, `contract_delta`, and
+`ownership_delta`. A page accepts
 only one of those identifiers. It never follows a filesystem path, URL, receipt
 JSON pointer, or caller-provided evidence document.
 
@@ -149,6 +164,10 @@ for the initial page. It accepts no evidence path, document, or caller-selected
 resource limit.
 The declaration catalog keeps compiler order and can therefore page
 multiple stable IDs across source files without dropping cross-file identities.
+The dependency-impact family pages individual root/phase/declaration
+observations in deterministic compiler order. A page is complete for its
+selected bounded inventory; it never represents a truncated impact query as a
+complete dependency inventory.
 The output is read-only descriptive evidence and does not execute tests or
 effects, observe a runtime, or grant source or publication authority.
 
@@ -161,3 +180,19 @@ URLs, storage authority, or evidence download. It does not add runtime effect ob
 execution observations, assurance payload selection, terminal repair replay,
 or CLI/service/MCP routes. Those integrations must preserve this receipt's
 canonical bytes and its existing authority boundaries.
+
+### Retention and expiry
+
+The receipt itself retains no candidate, source, impact report, or page. Its
+evidence is available only while the selected immutable `ProjectCandidate` and
+its checked base revision remain held by the caller or by a separate supported
+candidate archive route. Recomputing a page never extends that lifetime.
+
+When that retained subject has expired or is unavailable, the library cannot
+resolve its evidence reference and must return an unavailable/refused result;
+it must not substitute a current workspace, a similarly named declaration, or
+receipt-supplied bytes. A historical receipt can still be displayed as bytes,
+but its evidence is no longer independently verifiable through this in-memory
+route. Durable archive retention, eviction policy, and terminal repair-journal
+recovery are separate versioned facilities; their presence is not implied by a
+patch receipt.

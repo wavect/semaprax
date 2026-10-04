@@ -1,0 +1,3049 @@
+{
+  "file_inventory": {
+    "z3_source_obligation": {
+      "/opt/law16/obligation.smt2": {
+        "bytes": 295,
+        "mode": 420,
+        "sha256": "sha256:f0938ea89248af8556a3a623759eeba7193213301b2d3bc4f1c478c113490e88"
+      },
+      "/opt/law16/source-script": {
+        "bytes": 851,
+        "mode": 420,
+        "sha256": "sha256:528891bb0e9f134f51e346ad9450bd0660a4bf6e82259a33327bc47fe88bd981"
+      },
+      "/opt/law16/source/src/app.spx": {
+        "bytes": 182,
+        "mode": 420,
+        "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+      },
+      "/opt/law16/tools/z3": {
+        "bytes": 33667288,
+        "mode": 493,
+        "sha256": "sha256:88e69f94355dfceea14b4b9b92eafb57305ee62033251b17d54d912fae296dd6"
+      }
+    }
+  },
+  "guest": {
+    "boot_id": "4376c6ec-ae8b-4131-9338-25ca7bbb98cf",
+    "kernel_release": "6.18.35",
+    "page_size": 4096,
+    "platform": "Linux-6.18.35-aarch64-with-glibc2.36"
+  },
+  "preflight": {
+    "z3_source_obligation": {
+      "argv": [
+        "/opt/law16/tools/z3",
+        "-smt2",
+        "/opt/law16/obligation.smt2"
+      ],
+      "elapsed_ns": 4948541,
+      "exit_code": 0,
+      "stderr": {
+        "bytes": 0,
+        "path": "z3_source_obligation-00-preflight.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 6,
+        "path": "z3_source_obligation-00-preflight.stdout",
+        "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+      },
+      "timed_out": false
+    }
+  },
+  "profile": "native_arm64_z3_source_obligation",
+  "proof_observation": {
+    "obligation_sha256": "sha256:f0938ea89248af8556a3a623759eeba7193213301b2d3bc4f1c478c113490e88",
+    "renderer_version": "law16_render_app_negate_smt.rs@sha256:528891bb0e9f134f51e346ad9450bd0660a4bf6e82259a33327bc47fe88bd981",
+    "source_commit": "cdfc0cdd27aa248951134f70a71bf7d36b4798de",
+    "source_digest": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063",
+    "source_renderer_sha256": "sha256:528891bb0e9f134f51e346ad9450bd0660a4bf6e82259a33327bc47fe88bd981"
+  },
+  "route": "z3_source_obligation",
+  "route_counts": {
+    "z3_source_obligation": {
+      "cold": 30,
+      "pairs": 30,
+      "warm": 30
+    }
+  },
+  "samples": [
+    {
+      "before_cold": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 0
+        }
+      },
+      "before_reset": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "before_warm": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "cold": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 11352000,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-01-cold.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-01-cold.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      },
+      "ordinal": 1,
+      "route": "z3_source_obligation",
+      "warm": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 4078375,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-01-warm.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-01-warm.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      }
+    },
+    {
+      "before_cold": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 0
+        }
+      },
+      "before_reset": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "before_warm": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "cold": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 9886125,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-02-cold.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-02-cold.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      },
+      "ordinal": 2,
+      "route": "z3_source_obligation",
+      "warm": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 3936250,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-02-warm.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-02-warm.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      }
+    },
+    {
+      "before_cold": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 0
+        }
+      },
+      "before_reset": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "before_warm": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "cold": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 10258042,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-03-cold.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-03-cold.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      },
+      "ordinal": 3,
+      "route": "z3_source_obligation",
+      "warm": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 3911959,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-03-warm.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-03-warm.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      }
+    },
+    {
+      "before_cold": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 0
+        }
+      },
+      "before_reset": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "before_warm": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "cold": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 9709542,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-04-cold.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-04-cold.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      },
+      "ordinal": 4,
+      "route": "z3_source_obligation",
+      "warm": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 3832458,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-04-warm.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-04-warm.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      }
+    },
+    {
+      "before_cold": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 0
+        }
+      },
+      "before_reset": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "before_warm": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "cold": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 9923958,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-05-cold.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-05-cold.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      },
+      "ordinal": 5,
+      "route": "z3_source_obligation",
+      "warm": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 3871709,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-05-warm.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-05-warm.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      }
+    },
+    {
+      "before_cold": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 0
+        }
+      },
+      "before_reset": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "before_warm": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "cold": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 10018000,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-06-cold.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-06-cold.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      },
+      "ordinal": 6,
+      "route": "z3_source_obligation",
+      "warm": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 3881334,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-06-warm.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-06-warm.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      }
+    },
+    {
+      "before_cold": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 0
+        }
+      },
+      "before_reset": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "before_warm": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "cold": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 10006291,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-07-cold.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-07-cold.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      },
+      "ordinal": 7,
+      "route": "z3_source_obligation",
+      "warm": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 3890167,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-07-warm.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-07-warm.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      }
+    },
+    {
+      "before_cold": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 0
+        }
+      },
+      "before_reset": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "before_warm": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "cold": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 8652042,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-08-cold.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-08-cold.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      },
+      "ordinal": 8,
+      "route": "z3_source_obligation",
+      "warm": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 4186333,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-08-warm.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-08-warm.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      }
+    },
+    {
+      "before_cold": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 0
+        }
+      },
+      "before_reset": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "before_warm": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "cold": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 10150083,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-09-cold.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-09-cold.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      },
+      "ordinal": 9,
+      "route": "z3_source_obligation",
+      "warm": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 3875167,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-09-warm.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-09-warm.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      }
+    },
+    {
+      "before_cold": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 0
+        }
+      },
+      "before_reset": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "before_warm": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "cold": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 9736625,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-10-cold.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-10-cold.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      },
+      "ordinal": 10,
+      "route": "z3_source_obligation",
+      "warm": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 3854959,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-10-warm.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-10-warm.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      }
+    },
+    {
+      "before_cold": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 0
+        }
+      },
+      "before_reset": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "before_warm": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "cold": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 9933167,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-11-cold.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-11-cold.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      },
+      "ordinal": 11,
+      "route": "z3_source_obligation",
+      "warm": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 4049791,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-11-warm.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-11-warm.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      }
+    },
+    {
+      "before_cold": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 0
+        }
+      },
+      "before_reset": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "before_warm": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "cold": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 9761001,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-12-cold.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-12-cold.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      },
+      "ordinal": 12,
+      "route": "z3_source_obligation",
+      "warm": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 3908041,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-12-warm.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-12-warm.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      }
+    },
+    {
+      "before_cold": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 0
+        }
+      },
+      "before_reset": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "before_warm": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "cold": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 9283958,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-13-cold.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-13-cold.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      },
+      "ordinal": 13,
+      "route": "z3_source_obligation",
+      "warm": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 4073000,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-13-warm.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-13-warm.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      }
+    },
+    {
+      "before_cold": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 0
+        }
+      },
+      "before_reset": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "before_warm": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "cold": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 10300542,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-14-cold.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-14-cold.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      },
+      "ordinal": 14,
+      "route": "z3_source_obligation",
+      "warm": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 4027833,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-14-warm.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-14-warm.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      }
+    },
+    {
+      "before_cold": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 0
+        }
+      },
+      "before_reset": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "before_warm": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "cold": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 9941750,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-15-cold.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-15-cold.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      },
+      "ordinal": 15,
+      "route": "z3_source_obligation",
+      "warm": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 3911166,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-15-warm.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-15-warm.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      }
+    },
+    {
+      "before_cold": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 0
+        }
+      },
+      "before_reset": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "before_warm": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "cold": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 9627709,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-16-cold.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-16-cold.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      },
+      "ordinal": 16,
+      "route": "z3_source_obligation",
+      "warm": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 3923042,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-16-warm.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-16-warm.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      }
+    },
+    {
+      "before_cold": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 0
+        }
+      },
+      "before_reset": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "before_warm": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "cold": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 9554708,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-17-cold.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-17-cold.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      },
+      "ordinal": 17,
+      "route": "z3_source_obligation",
+      "warm": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 3868959,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-17-warm.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-17-warm.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      }
+    },
+    {
+      "before_cold": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 0
+        }
+      },
+      "before_reset": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "before_warm": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "cold": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 9738042,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-18-cold.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-18-cold.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      },
+      "ordinal": 18,
+      "route": "z3_source_obligation",
+      "warm": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 3911334,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-18-warm.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-18-warm.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      }
+    },
+    {
+      "before_cold": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 0
+        }
+      },
+      "before_reset": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "before_warm": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "cold": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 9727917,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-19-cold.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-19-cold.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      },
+      "ordinal": 19,
+      "route": "z3_source_obligation",
+      "warm": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 3852708,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-19-warm.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-19-warm.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      }
+    },
+    {
+      "before_cold": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 0
+        }
+      },
+      "before_reset": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "before_warm": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "cold": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 9612375,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-20-cold.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-20-cold.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      },
+      "ordinal": 20,
+      "route": "z3_source_obligation",
+      "warm": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 3887292,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-20-warm.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-20-warm.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      }
+    },
+    {
+      "before_cold": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 0
+        }
+      },
+      "before_reset": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "before_warm": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "cold": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 9713417,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-21-cold.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-21-cold.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      },
+      "ordinal": 21,
+      "route": "z3_source_obligation",
+      "warm": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 3963416,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-21-warm.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-21-warm.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      }
+    },
+    {
+      "before_cold": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 0
+        }
+      },
+      "before_reset": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "before_warm": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "cold": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 9354125,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-22-cold.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-22-cold.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      },
+      "ordinal": 22,
+      "route": "z3_source_obligation",
+      "warm": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 3828583,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-22-warm.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-22-warm.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      }
+    },
+    {
+      "before_cold": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 0
+        }
+      },
+      "before_reset": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "before_warm": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "cold": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 9704291,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-23-cold.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-23-cold.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      },
+      "ordinal": 23,
+      "route": "z3_source_obligation",
+      "warm": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 3803500,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-23-warm.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-23-warm.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      }
+    },
+    {
+      "before_cold": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 0
+        }
+      },
+      "before_reset": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "before_warm": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "cold": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 9476208,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-24-cold.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-24-cold.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      },
+      "ordinal": 24,
+      "route": "z3_source_obligation",
+      "warm": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 3774208,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-24-warm.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-24-warm.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      }
+    },
+    {
+      "before_cold": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 0
+        }
+      },
+      "before_reset": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "before_warm": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "cold": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 9588166,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-25-cold.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-25-cold.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      },
+      "ordinal": 25,
+      "route": "z3_source_obligation",
+      "warm": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 3753084,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-25-warm.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-25-warm.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      }
+    },
+    {
+      "before_cold": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 0
+        }
+      },
+      "before_reset": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "before_warm": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "cold": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 9680292,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-26-cold.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-26-cold.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      },
+      "ordinal": 26,
+      "route": "z3_source_obligation",
+      "warm": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 3738125,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-26-warm.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-26-warm.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      }
+    },
+    {
+      "before_cold": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 0
+        }
+      },
+      "before_reset": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "before_warm": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "cold": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 8547708,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-27-cold.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-27-cold.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      },
+      "ordinal": 27,
+      "route": "z3_source_obligation",
+      "warm": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 3858042,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-27-warm.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-27-warm.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      }
+    },
+    {
+      "before_cold": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 0
+        }
+      },
+      "before_reset": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "before_warm": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "cold": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 9392584,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-28-cold.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-28-cold.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      },
+      "ordinal": 28,
+      "route": "z3_source_obligation",
+      "warm": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 3777542,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-28-warm.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-28-warm.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      }
+    },
+    {
+      "before_cold": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 0
+        }
+      },
+      "before_reset": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "before_warm": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "cold": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 9566875,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-29-cold.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-29-cold.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      },
+      "ordinal": 29,
+      "route": "z3_source_obligation",
+      "warm": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 3838000,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-29-warm.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-29-warm.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      }
+    },
+    {
+      "before_cold": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 0
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 0
+        }
+      },
+      "before_reset": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "before_warm": {
+        "/opt/law16/obligation.smt2": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source-script": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/source/src/app.spx": {
+          "pages": 1,
+          "resident_pages": 1
+        },
+        "/opt/law16/tools/z3": {
+          "pages": 8220,
+          "resident_pages": 8220
+        }
+      },
+      "cold": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 9849625,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-30-cold.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-30-cold.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      },
+      "ordinal": 30,
+      "route": "z3_source_obligation",
+      "warm": {
+        "argv": [
+          "/opt/law16/tools/z3",
+          "-smt2",
+          "/opt/law16/obligation.smt2"
+        ],
+        "elapsed_ns": 3769958,
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "z3_source_obligation-30-warm.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 6,
+          "path": "z3_source_obligation-30-warm.stdout",
+          "sha256": "sha256:5c17dfcc2a8f1f30d9e96df6a9825a5030ade046d560332c19de74d93d591a18"
+        },
+        "timed_out": false
+      }
+    }
+  ],
+  "schema": "semaprax.bend2-law-benchmark.proof-verdict-cache-guest.v2",
+  "scope": "Linux guest file-page residency for directly inventoried route files; host, hardware, solver-internal and translation caches are unknown",
+  "source_pins": {
+    "image": "docker.io/library/python@sha256:54c85f3c47607a77f32adec749d3c81d1348bf25833671f512b26a9b6d778cb3",
+    "image_sha256": "sha256:54c85f3c47607a77f32adec749d3c81d1348bf25833671f512b26a9b6d778cb3",
+    "obligation": {
+      "bytes": 295,
+      "path": "inputs/app-negate.smt2",
+      "sha256": "sha256:f0938ea89248af8556a3a623759eeba7193213301b2d3bc4f1c478c113490e88"
+    },
+    "profile": "native_arm64_z3_source_obligation",
+    "renderer_version": "law16_render_app_negate_smt.rs@sha256:528891bb0e9f134f51e346ad9450bd0660a4bf6e82259a33327bc47fe88bd981",
+    "schema": "semaprax.bend2-law-benchmark.native-arm64-z3-source-obligation-pins.v1",
+    "source": {
+      "bytes": 182,
+      "path": "inputs/src-app.spx",
+      "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+    },
+    "source_commit": "cdfc0cdd27aa248951134f70a71bf7d36b4798de",
+    "source_script": {
+      "bytes": 851,
+      "path": "inputs/law16_render_app_negate_smt.rs",
+      "sha256": "sha256:528891bb0e9f134f51e346ad9450bd0660a4bf6e82259a33327bc47fe88bd981"
+    },
+    "tools": {
+      "z3": "sha256:88e69f94355dfceea14b4b9b92eafb57305ee62033251b17d54d912fae296dd6"
+    },
+    "z3_libraries": {}
+  },
+  "status": "thirty_cold_warm_pairs_for_profile_observed",
+  "tool_pins": {
+    "z3": "sha256:88e69f94355dfceea14b4b9b92eafb57305ee62033251b17d54d912fae296dd6"
+  },
+  "tool_versions": {
+    "z3": "Z3 version 4.12.5 - 64 bit"
+  },
+  "z3_library_pins": {}
+}

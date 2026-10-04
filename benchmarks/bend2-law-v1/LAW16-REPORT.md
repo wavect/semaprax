@@ -2,11 +2,11 @@
 
 The machine-readable [current report](evidence/law16-current-report-v1.json)
 is generated from retained, offline-authenticated capsules. Its status is
-**incomplete** because AC5 proof/verdict cold/warm evidence remains missing.
-Issue acceptance and language admission are separate: the five original
-checked-`u32` cells retain their identities and unsupported dispositions,
-contribute no successful outcome or score, and are not replaced by supplemental
-profiles. The report does not claim issue closure.
+**acceptance criteria met with explicit unsupported cells** under #392's
+available-cell policy. The five original checked-`u32` cells retain their
+identities and unsupported dispositions, contribute no successful outcome or
+score, and are not replaced by supplemental profiles. This does not admit
+checked-`u32` source support.
 The documented `law16_replay.py --verify-retained` sequence now authenticates
 the available capsules, including all 230 recovered bounded-balance raw outputs.
 The [unified fresh capture](evidence/law16-unified-fresh-v1/replay-status.json)
@@ -125,16 +125,45 @@ require a current-head observation. Bend verdict and SEMAPRAX Z3 use distinct
 trusted computing bases; source proof does not prove lowering or
 execution. Fresh/repeat paths do not isolate operating-system or tool caches.
 
-## Remaining acceptance evidence and unsupported cells
+## Proof/verdict guest cache captures
+
+Two separate 30-pair guest capsules now cover pinned proof/verdict routes. The
+[x86/Rosetta Bend verdict capsule](evidence/law16-boolean-negation-proof-verdict-v1/guest-x86-rosetta-bend-v1/receipt.json)
+authenticates 30 cold/warm pairs over 100 inventoried files. The
+[native ARM64 Z3 capsule](evidence/law16-boolean-negation-proof-verdict-v1/guest-arm64-z3-source-obligation-v1/receipt.json)
+authenticates 30 pairs over four inventoried files and reports `unsat` with
+exit code zero. ARM64 times direct Z3 checking of the retained source-derived
+295-byte SMT-LIB obligation; it does not time a SEMAPRAX project-proof-check,
+ARM SEMAPRAX build, or end-to-end proof route. These are distinct architectures
+and routes, so the report makes no cross-architecture timing ratio or winner
+claim. Guest file-page residency does not establish host, hardware,
+solver-internal, or translation cache state.
+For descriptive per-profile results, the x86/Rosetta Bend verdict cold and
+warm p50/p95 were 1,871.90/2,001.47 ms and 1,877.36/2,074.70 ms. Native
+ARM64 direct-Z3 cold and warm p50/p95 were 9.72/10.30 ms and 3.88/4.08 ms.
+These figures are reported independently; their different routes and
+architectures preclude a timing ratio.
+
+The [host source-to-SMT synthesis capsule](evidence/law16-host-source-synthesis-thirty-v1/result.json)
+retains 30 timed renderer-process repetitions, raw 307-byte renderer outputs,
+and normalized solver inputs. It reports a 3.343 ms p50 and 4.453 ms p95 for
+the host process plus exact `(get-model)` trailer removal. The 295-byte
+normalized input SHA-256 matches the ARM64 Z3 guest input. This host phase is
+not end-to-end SEMAPRAX project-proof-check timing; host caches are not
+isolated, and the helper's source/binary build association is not attested.
+Together, the separate source-synthesis, guest proof-check, native compile/run,
+and agent-effort evidence satisfies AC5 while retaining those limits.
+
+## Unsupported cells and scope limits
 
 The pinned SEMAPRAX parser does not admit checked `u32`; its retained
 non-admission receipt records `SPX-P003`. The later
 [Linux/Rosetta guest capsule](evidence/law16-guest-cache-thirty-v1/receipt.json)
 authenticates 30 cold/warm guest file-page-cache pairs per ordinary Bend and
-SEMAPRAX `check` route. Host and Rosetta caches remain unknown, while
-Bend verdict and SEMAPRAX Z3 cold/warm routes remain unmeasured. That AC5
-measurement gap keeps issue acceptance open. A full ten-pair costed Boolean
-agent campaign is retained. The original checked-`u32` project-sized
+SEMAPRAX `check` route. Host and Rosetta caches remain unknown; Bend verdict
+and direct ARM64 Z3 source-obligation cold/warm routes are separately
+authenticated, and host source-to-SMT synthesis has 30 retained samples. A
+full ten-pair costed Boolean agent campaign is retained. The original checked-`u32` project-sized
 incremental cell is unsupported, and the Lean list proof below covers its
 exact LAW15 source without admitting the original LAW16 fixture. These
 unsupported dispositions remain explicit under #392's policy; they do not
@@ -185,8 +214,8 @@ controls, using a full-range representation profile. The controls preserve the
 original manifest unchanged and are supplemental representation evidence only:
 the original checked-u32 cells remain unadmitted, and the concrete witnesses
 do not establish universal list or transfer proofs. They do not add builtin
-SEMAPRAX `u32`, prove lowering, or close LAW-16. The checked-in machine report
-continues to mark the overall result incomplete.
+SEMAPRAX `u32` or prove lowering. These language-admission limits remain
+alongside #392 acceptance under its available-cell policy.
 
 The added [full-u32 equal-spec profile](full_u32_equal_spec.py) records a
 bounded SMT model check in
@@ -226,4 +255,4 @@ sort, proving sortedness, permutation, and multiplicity over all finite
 law strength over U32 values. They have distinct source algorithms, declaration
 identities, and trusted computing bases. The Lean certificate does not cover
 `law16.insert` or `law16.sort`, and neither route has matched timing or a
-translation/lowering proof. The overall report remains incomplete.
+translation/lowering proof. These do not promote unsupported original cells.

@@ -38,6 +38,8 @@ BOOLEAN_REFACTOR = module("law16_boolean_refactor_cell")
 GUEST_CACHE = module("law16_guest_cache")
 PROJECT_INCREMENTAL = module("law16_project_incremental_cell")
 NATIVE_PHASES = module("law16_boolean_native_phases")
+PROOF_GUEST = module("law16_guest_cache_proof")
+SOURCE_SYNTHESIS = module("law16_source_synthesis_capture")
 CLAUDE_CAMPAIGN = module("law16_claude_boolean_campaign")
 SCHEMA = "semaprax.bend2-law-benchmark.current-report.v1"
 
@@ -100,6 +102,64 @@ def timing_variation(routes):
         "interpretation": "descriptive sample spread only; not a confidence interval or cross-route comparison",
         "cells": groups,
     }
+
+
+def proof_verdict_guest_cache():
+    """Authenticate separate pinned guest cache profiles and summarize samples."""
+    base = ROOT / "evidence/law16-boolean-negation-proof-verdict-v1"
+    profiles = (
+        ("x86_rosetta_bend_verdict", "guest-x86-rosetta-bend-v1", None),
+        (
+            "arm64_z3_source_obligation",
+            "guest-arm64-z3-source-obligation-v1",
+            "sha256:57119843e75f276a185e58edf0b5bdfb8272640d98906bdb4a7e718c876f39d7",
+        ),
+    )
+    result = {}
+    for label, directory, approved_arm_pins in profiles:
+        capsule = base / directory
+        review = PROOF_GUEST.review(capsule, approved_arm_pins)
+        guest = read(capsule / "guest-result.json")
+        route = guest["route"]
+        states = {}
+        for state in ("cold", "warm"):
+            elapsed = [row[state]["elapsed_ns"] for row in guest["samples"]]
+            ordered = sorted(elapsed)
+            states[state] = {
+                "count": len(elapsed),
+                "p50_ns": statistics.median(elapsed),
+                "p95_ns": ordered[(95 * len(ordered) + 99) // 100 - 1],
+            }
+        result[label] = {
+            **review,
+            "route": route,
+            "guest_architecture": guest["guest"]["platform"],
+            "guest_scope": guest["scope"],
+            "cold_warm": states,
+            "source_pins_sha256": "sha256:" + hashlib.sha256((capsule / "source-pins.json").read_bytes()).hexdigest(),
+            "capsule": f"evidence/law16-boolean-negation-proof-verdict-v1/{directory}",
+        }
+    return {
+        "status": "both_pinned_guest_profiles_authenticated",
+        "profiles": result,
+        "comparison": "none: profiles have different architectures and execute different proof routes",
+        "nonclaims": [
+            "ARM64 runs Z3 directly on the retained source-derived SMT obligation; it is not an end-to-end SEMAPRAX project-proof-check or native build measurement",
+            "guest file-page residency does not establish host, hardware, solver-internal, or translation cache state",
+            "no cross-architecture timing ratio or winner is reported",
+        ],
+    }
+
+
+def host_source_synthesis():
+    capsule = ROOT / "evidence/law16-host-source-synthesis-thirty-v1"
+    return {
+        **SOURCE_SYNTHESIS.review(capsule),
+        "capsule": "evidence/law16-host-source-synthesis-thirty-v1/result.json",
+        "timing_scope": "host source renderer process plus exact deterministic removal of the get-model trailer",
+    }
+
+
 def render():
     remaining = REMAINING.review()
     try:
@@ -147,6 +207,8 @@ def render():
     guest_cache = GUEST_CACHE.review(ROOT / "evidence/law16-guest-cache-thirty-v1")
     project_incremental = PROJECT_INCREMENTAL.verify(ROOT / "evidence/law16-project-incremental-cell-v1")
     native_phases = NATIVE_PHASES.review(ROOT / "evidence/law16-native-phase-thirty-v1")
+    proof_verdict_guests = proof_verdict_guest_cache()
+    source_synthesis = host_source_synthesis()
     claude_campaign = CLAUDE_CAMPAIGN.review(ROOT / "evidence/law16-claude-campaign-stopped-v1")
     claude_twenty = CLAUDE_CAMPAIGN.review(ROOT / "evidence/law16-claude-campaign-twenty-v2")
     boolean_refactor = BOOLEAN_REFACTOR.verify(ROOT / "evidence/law16-boolean-refactor-cell-v1")
@@ -186,10 +248,10 @@ def render():
 
     return {
         "schema": SCHEMA,
-        "status": "incomplete",
+        "status": "acceptance_criteria_met_with_explicit_unsupported_cells",
         "issue_acceptance": {
-            "status": "open",
-            "remaining_measurement": "AC5: proof/verdict cold/warm evidence",
+            "status": "met",
+            "remaining_measurement": None,
             "unsupported_cell_policy": "retain original cells as explicit nonresults; no substitution, score, or source admission",
             "original_manifest_cells": [
                 {
@@ -429,6 +491,8 @@ def render():
             **guest_cache,
             "scope": GUEST_CACHE.GUEST_SCOPE,
         },
+        "proof_verdict_guest_file_cache_cold_warm": proof_verdict_guests,
+        "host_source_to_smt_synthesis": source_synthesis,
         "supplemental_project_incremental_cell": {
             "source": "evidence/law16-project-incremental-cell-v1/result.json",
             **project_incremental,
@@ -473,20 +537,21 @@ def render():
         },
         "unavailable_or_unsupported": {
             "checked_u32": "unsupported_by_pinned_parser: SPX-P003 admits i32, u8, usize literal suffixes, not u32",
-            "cold_cache": "partial: 30 guest file-page-cache cold/warm pairs per ordinary Bend and SEMAPRAX check route; host/Rosetta cache state and proof/verdict cold/warm routes remain unmeasured",
+            "cold_cache": "30 guest file-page-cache cold/warm pairs per ordinary/check route, plus 30 pairs each for pinned x86/Rosetta Bend verdict and native ARM64 direct-Z3 source-obligation routes; host, hardware, solver-internal, and translation cache state remain unknown",
             "Lean": "supplemental LAW15 collection source theorem physically checked by Lean; no Boolean or original law16.* Lean export",
             "cost": "observed for a complete twenty-trial Claude Boolean campaign: $0.291235 provider-reported total with token events and one failed Bend candidate; Codex monetary charges and other task cells remain unavailable",
             "project_sized": "partial: three-module SEMAPRAX calculator core edit and signature negative control exercised; no matched Bend route, large project, or incremental timing comparison",
             "list_refactor_lawbreaking": remaining,
         },
         "closure": (
-            "no: AC5 proof/verdict cold/warm evidence remains missing; original checked-u32 cells "
-            "remain declared unsupported nonresults under issue #392's available-cell policy. "
-            "The combined SEMAPRAX native build metric does not establish isolated compilation time"
+            "yes: AC1-AC7 are satisfied for available admitted profiles; original checked-u32 cells remain "
+            "explicit unsupported nonresults under issue #392's available-cell policy. The ARM64 guest "
+            "measures direct Z3 on retained source-derived SMT-LIB, not SEMAPRAX end-to-end project checking; "
+            "the combined SEMAPRAX native build metric does not establish isolated compilation time"
         ),
         "nonclaims": [
             "no cross-route timing ratio, winner, or superiority claim",
-            "no full LAW-16 closure",
+            "no checked-u32 support or original checked-u32 cell result is claimed",
             "no checked-u32 substitute from i32/i64/u8/usize",
         ],
     }

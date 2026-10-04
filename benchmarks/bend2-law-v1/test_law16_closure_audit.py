@@ -14,7 +14,7 @@ class Law16ClosureAuditTests(unittest.TestCase):
     def test_audit_binds_exact_issue_text_and_assesses_every_acceptance_item(self):
         value = AUDIT.render()
         self.assertEqual(value["schema"], AUDIT.SCHEMA)
-        self.assertEqual(value["report_status"], "incomplete")
+        self.assertEqual(value["report_status"], "acceptance_criteria_met_with_explicit_unsupported_cells")
         self.assertEqual(value["issue"]["number"], 392)
         self.assertEqual(len(value["issue"]["api_body_sha256"]), 64)
         self.assertEqual(len(value["issue"]["acceptance_criteria"]), 7)
@@ -23,9 +23,9 @@ class Law16ClosureAuditTests(unittest.TestCase):
             value["issue"]["acceptance_criteria"], value["acceptance_assessment"], strict=True
         ):
             self.assertEqual(source["text"], assessment["text"])
-            self.assertFalse(source["checked_at_capture"])
+            self.assertEqual(source["checked_at_capture"], assessment["status"] == "met")
 
-    def test_audit_separates_open_requirements_from_declared_unsupported_cells(self):
+    def test_audit_separates_partial_implementation_rows_from_unsupported_cells(self):
         value = AUDIT.render()
         status = {row["id"]: row["status"] for row in value["acceptance_assessment"]}
         self.assertEqual(status["AC2"], "met")
@@ -37,7 +37,7 @@ class Law16ClosureAuditTests(unittest.TestCase):
         self.assertEqual(value["unified_fresh_capture"]["fresh_route_count"], 6)
         self.assertEqual(value["fresh_guarded_i64_source_proof"]["positive_smt_discharges"], 7)
         self.assertEqual(value["fresh_guarded_i64_source_proof"]["no_op_negative"], "proof_tool_refused_no_solver_status_claimed")
-        self.assertEqual(status["AC5"], "partial")
+        self.assertEqual(status["AC5"], "met")
         self.assertEqual(status["AC6"], "met")
         required = {row["id"]: row["status"] for row in value["required_implementation_assessment"]}
         self.assertEqual(len(required), 7)
@@ -57,8 +57,8 @@ class Law16ClosureAuditTests(unittest.TestCase):
         self.assertEqual(cells["supported_list_theorem"]["classification"], "supplemental_profile_only")
         self.assertEqual(cells["law16_list_source_theorem"]["classification"], "unavailable_for_law16_identity")
         self.assertEqual(cells["external_lean_export_kernel"]["classification"], "supplemental_route_available_but_not_law16_cell")
-        self.assertEqual(len(value["unmet_requirements"]), 1)
-        self.assertEqual(value["unmet_requirements"][0]["id"], "AC5")
+        self.assertEqual(value["unmet_requirements"], [])
+        self.assertEqual(value["audit_status"], "acceptance_criteria_met_with_explicit_unsupported_cells")
         ac1 = next(row for row in value["acceptance_assessment"] if row["id"] == "AC1")
         self.assertTrue(any(item["path"] == "LAW16-AC1-REPRODUCIBILITY.md" for item in ac1["evidence"]))
         self.assertTrue(any(item["path"] == "evidence/law16-claude-campaign-twenty-v2/summary.json" for item in ac1["evidence"]))
@@ -85,7 +85,7 @@ class Law16ClosureAuditTests(unittest.TestCase):
         proof = report["supplemental_guarded_i64_balance_source_proof"]
         self.assertEqual(proof["positive_smt_discharges"], 7)
         self.assertEqual(proof["no_op_negative"]["status"], "proof_tool_refused_no_solver_status_claimed")
-        self.assertEqual(value["closure"], "not_satisfied")
+        self.assertEqual(value["closure"], "eligible_under_available_cell_policy")
         self.assertEqual(value["issue_state_at_capture"], "open")
 
     def test_law15_i64_lean_capsule_is_reported_as_supplemental_scope(self):
@@ -113,7 +113,7 @@ class Law16ClosureAuditTests(unittest.TestCase):
         self.assertEqual(comparison["disposition"], "matched_universal_semantic_laws_under_u32_embedding_no_timing")
         self.assertIn("no timing", comparison["scope_limit"])
         self.assertIn("not attested", value["build_association"])
-        self.assertEqual(AUDIT.render()["closure"], "not_satisfied")
+        self.assertEqual(AUDIT.render()["closure"], "eligible_under_available_cell_policy")
 
     def test_evidence_references_are_digest_bound(self):
         value = AUDIT.render()

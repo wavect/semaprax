@@ -5,6 +5,7 @@
 
 - HP-00..HP-17: add the development harness provider host (`crates/semaprax-harness`, private `semaprax-full harness`). Typed `semaprax.harness-provider.v1` capability contracts, per-project `semaprax.harness.toml`/frozen lock with explicit trust, a bounded stdio adapter host, a compiler-assisted workflow, native-first context, authoritative command results with compressible views, policy-first decision routing bridged to `ProviderPolicy`, local endpoint adoption over the existing Responses adapter, a lazy skill catalog, a Claude Code hook bridge, observation attribution, an adapter SDK and conformance kit, and real Graft/Graphify/RTK/Laya adapters. Evidence is local (macOS aarch64); Graphify and learned routing stay opt-in. The compiled `semaprax.plugin-manifest.v1` is unchanged.
 
+- Complete the LAW16 proof/verdict cache evidence with 30 paired guest file-page-cache observations for pinned Bend `--verdict` on x86/Rosetta and the source-derived SMT obligation checked directly by native ARM64 Z3. Retain separate 30-run host source-to-SMT rendering samples, raw outputs, source and tool pins, and offline review. The two guest profiles use different architectures and have no cross-route timing comparison; the ARM route does not claim SEMAPRAX project-proof execution or native compilation.
 - Retain a LAW16 Linux/Rosetta guest file-page-cache pilot and thirty cold/warm
   pairs for ordinary Bend and SEMAPRAX checking. Exact `mincore` observations
   qualify each guest reset; raw samples, runtime pins, provisioning, failures,

@@ -28,6 +28,8 @@ pub struct RetentionPolicy {
 pub struct Policy {
     /// Outputs smaller than this bypass transformation.
     pub min_bytes: u64,
+    /// With a named tokenizer, raw output below this many tokens bypasses the provider.
+    pub min_tokens: Option<u64>,
     pub timeout_ms: u64,
     /// Per-stream bytes kept in memory.
     pub mem_cap: usize,
@@ -49,6 +51,7 @@ impl Default for Policy {
     fn default() -> Self {
         Self {
             min_bytes: 1024,
+            min_tokens: None,
             timeout_ms: 120_000,
             mem_cap: 1 << 20,
             provider_timeout_ms: 15_000,
@@ -116,6 +119,7 @@ impl Policy {
             &[
                 "schema",
                 "min_bytes",
+                "min_tokens",
                 "timeout_ms",
                 "mem_cap_bytes",
                 "provider_timeout_ms",
@@ -138,6 +142,7 @@ impl Policy {
         if let Some(n) = uint(m, "min_bytes", 1 << 30)? {
             p.min_bytes = n;
         }
+        p.min_tokens = uint(m, "min_tokens", 1 << 30)?;
         if let Some(n) = uint(m, "timeout_ms", 600_000)?.filter(|n| *n > 0) {
             p.timeout_ms = n;
         }
@@ -225,6 +230,29 @@ const SIGNERS: &[&str] = &[
     "signify",
     "codesign",
 ];
+/// Executables whose output is a digest the next step must match byte for byte.
+const HASHERS: &[&str] = &[
+    "sha1sum",
+    "sha256sum",
+    "sha512sum",
+    "shasum",
+    "md5",
+    "md5sum",
+    "b3sum",
+    "cksum",
+];
+/// Executables that emit already-compressed or archive data.
+const COMPRESSORS: &[&str] = &[
+    "gzip", "gunzip", "zcat", "bzip2", "bunzip2", "xz", "unxz", "zstd", "unzstd", "tar", "zip",
+    "unzip", "base64",
+];
+/// Commands that need a terminal or answer prompts.
+const INTERACTIVE: &[&str] = &[
+    "vim", "vi", "nvim", "nano", "emacs", "less", "more", "top", "htop", "man", "ssh", "sftp",
+    "telnet", "passwd", "sudo", "su",
+];
+/// Executables whose purpose is to write source (the edit itself, not its report).
+const EDITORS: &[&str] = &["patch", "ed", "ex"];
 /// Flags that make output something another tool must parse exactly.
 const MACHINE_FLAGS: &[&str] = &[
     "--json",
@@ -255,6 +283,40 @@ pub fn exclusion(argv: &[String], raw_flag: bool) -> Option<&'static str> {
     if SIGNERS.contains(&name) {
         return Some("signature-tool");
     }
+    if HASHERS.contains(&name) {
+        return Some("hash-output");
+    }
+    if COMPRESSORS.contains(&name) {
+        return Some("already-compressed-output");
+    }
+    if INTERACTIVE.contains(&name) {
+        return Some("interactive-command");
+    }
+    if EDITORS.contains(&name) {
+        return Some("source-edit-output");
+    }
+    if name == "git" {
+        let sub = argv[1..]
+            .iter()
+            .find(|a| !a.starts_with('-'))
+            .map(String::as_str);
+        match sub {
+            Some(
+                "apply" | "am" | "format-patch" | "hash-object" | "rev-parse" | "rev-list"
+                | "cat-file",
+            ) => return Some("git-machine-output"),
+            _ => {}
+        }
+        if matches!(
+            sub,
+            Some("add" | "rebase" | "checkout" | "reset" | "stash" | "commit" | "clean")
+        ) && argv[1..]
+            .iter()
+            .any(|a| matches!(a.as_str(), "-i" | "-p" | "--interactive" | "--patch"))
+        {
+            return Some("interactive-command");
+        }
+    }
     let machine = argv[1..].iter().any(|a| {
         let flag = a.split('=').next().unwrap_or(a);
         MACHINE_FLAGS.contains(&flag)
@@ -263,6 +325,33 @@ pub fn exclusion(argv: &[String], raw_flag: bool) -> Option<&'static str> {
         return Some("machine-output-flag");
     }
     None
+}
+
+/// Binary output: a NUL byte or a large share of undecodable bytes.
+pub fn looks_binary(bytes: &[u8]) -> bool {
+    bytes.contains(&0)
+        || (!bytes.is_empty()
+            && bytes
+                .utf8_chunks()
+                .map(|c| c.invalid().len())
+                .sum::<usize>()
+                * 20
+                > bytes.len())
+}
+
+/// Output made only of hex digests (hashes the next step must match exactly).
+pub fn looks_like_digests(stdout: &[u8]) -> bool {
+    let t = String::from_utf8_lossy(stdout);
+    let mut n = 0;
+    for l in t.lines().filter(|l| !l.trim().is_empty()) {
+        let tok = l.split_whitespace().next().unwrap_or("");
+        let tok = tok.strip_prefix("sha256:").unwrap_or(tok);
+        if !matches!(tok.len(), 32 | 40 | 64 | 128) || !tok.bytes().all(|b| b.is_ascii_hexdigit()) {
+            return false;
+        }
+        n += 1;
+    }
+    n > 0
 }
 
 /// Output that is itself a JSON document is a machine envelope.
@@ -289,6 +378,25 @@ mod tests {
         );
         assert_eq!(exclusion(&a(&["ls"]), true), Some("raw-requested"));
         assert_eq!(exclusion(&a(&["ls", "-l"]), false), None);
+        for (argv, why) in [
+            (&["sha256sum", "f"][..], "hash-output"),
+            (&["gzip", "-c", "f"], "already-compressed-output"),
+            (&["vim", "f"], "interactive-command"),
+            (&["git", "rebase", "-i", "HEAD~2"], "interactive-command"),
+            (&["git", "add", "-p"], "interactive-command"),
+            (&["patch", "-p1"], "source-edit-output"),
+            (&["git", "apply", "x.diff"], "git-machine-output"),
+            (&["git", "rev-parse", "HEAD"], "git-machine-output"),
+        ] {
+            assert_eq!(exclusion(&a(argv), false), Some(why), "{argv:?}");
+        }
+        assert_eq!(exclusion(&a(&["rg", "-i", "x"]), false), None);
+        assert!(looks_binary(b"ab\0cd"));
+        assert!(!looks_binary("héllo wörld".as_bytes()));
+        assert!(looks_like_digests(
+            b"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  f\n"
+        ));
+        assert!(!looks_like_digests(b"abc123 not a digest\n"));
         assert!(looks_like_json(b" {\"a\":1}\n"));
         assert!(!looks_like_json(b"{not json"));
     }

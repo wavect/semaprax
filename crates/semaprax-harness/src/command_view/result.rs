@@ -71,14 +71,20 @@ pub struct ModelView {
     /// Route taken: `provider`, `raw`, `wrapper`.
     pub route: String,
     pub notes: Vec<String>,
+    /// Delivered-to-model measurement (HN-12); never a billing figure.
+    pub measurement: Option<super::measure::Measurement>,
 }
 
 impl ModelView {
     pub fn to_json(&self) -> Value {
-        json!({
+        let mut v = json!({
             "text": self.text, "lossless": self.lossless, "omissions": self.omissions, "provenance": self.provenance,
             "recovery_handle": self.recovery_handle, "incomplete": self.incomplete, "route": self.route, "notes": self.notes,
-        })
+        });
+        if let Some(m) = &self.measurement {
+            v["measurement"] = m.to_json();
+        }
+        v
     }
 }
 

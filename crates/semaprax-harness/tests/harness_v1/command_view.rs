@@ -2,7 +2,11 @@
 
 use crate::support::{fixture_dir, harness_bin, repo_root, write};
 use semaprax_harness::cli::{run, Environment, Outcome};
-use semaprax_harness::command_view::retention::Retention;
+use semaprax_harness::command_view::retention::{Retention, StreamName};
+use semaprax_harness::command_view::{execute, ExecOptions, ViewTokenizer};
+use semaprax_harness::observe::Tokenizer;
+use semaprax_harness::workflow::stages::CommandStage;
+use semaprax_harness::workflow::{CheckSpec, HostCommandChecks};
 use serde_json::Value;
 use std::collections::BTreeMap;
 use std::os::unix::fs::PermissionsExt;
@@ -579,4 +583,293 @@ fn unreadable_policy_and_unknown_flags_are_refused() {
         run(&s(&["exec", fx.project.to_str().unwrap()]), &fx.env).code,
         2
     );
+}
+
+// ---- HN-12: delivered-to-model measurement, guards, session feedback ----------
+
+/// Whitespace-word counter standing in for a named tokenizer in these unit tests
+/// (the real cl100k_base helper is exercised in tests/real_tools_v1/rtk.rs).
+struct Words;
+impl Tokenizer for Words {
+    fn name(&self) -> &str {
+        "test-words"
+    }
+    fn fingerprint(&self) -> &str {
+        "t1"
+    }
+    fn count(&self, text: &str) -> usize {
+        text.split_whitespace().count()
+    }
+}
+
+fn vt() -> Option<ViewTokenizer> {
+    Some(ViewTokenizer(std::rc::Rc::new(Words)))
+}
+
+fn argv(a: &[&str]) -> Vec<String> {
+    s(a)
+}
+
+#[test]
+fn hn12_named_tokenizer_measures_the_delivered_view_with_overhead() {
+    let fx = Fx::new("example", "");
+    let cmd = fx.noisy("gen.sh");
+    let named = execute(
+        &fx.env,
+        &fx.project,
+        &argv(&[&cmd, "0"]),
+        &ExecOptions {
+            tokenizer: vt(),
+            ..Default::default()
+        },
+        None,
+    )
+    .unwrap();
+    let m = named.envelope.view.measurement.clone().unwrap();
+    assert_eq!(named.envelope.view.route, "provider");
+    assert_eq!((m.basis, m.decision), ("tokens", "provider-smaller"));
+    let (raw, del) = (m.raw_tokens.unwrap(), m.delivered_tokens.unwrap());
+    assert!(del < raw, "{raw} -> {del}");
+    assert_eq!(m.saved_tokens(), Some(raw as i64 - del as i64));
+    assert!(m.tokenizer.is_some() && m.to_json()["overhead_ms"].is_u64());
+    // Unavailable counts: still the smaller view, but no token saving is claimed.
+    let bytes = execute(
+        &fx.env,
+        &fx.project,
+        &argv(&[&cmd, "0"]),
+        &ExecOptions::default(),
+        None,
+    )
+    .unwrap();
+    let m = bytes.envelope.view.measurement.clone().unwrap();
+    assert_eq!(m.basis, "bytes-only");
+    assert!(m.raw_tokens.is_none() && m.delivered_tokens.is_none() && m.saved_tokens().is_none());
+    assert!(m.delivered_bytes < m.raw_bytes);
+    assert_eq!(
+        bytes.envelope.view.to_json()["measurement"]["saved_tokens"],
+        Value::Null
+    );
+    assert_eq!(fx.count(), 2, "each command ran exactly once");
+}
+
+#[test]
+fn hn12_a_view_that_does_not_shrink_or_a_tiny_output_keeps_raw_and_records_the_negative() {
+    let fx = Fx::new("hostile", "");
+    // Identity provider on moderately sized output: the view plus its recovery
+    // reference is larger than the raw text, so raw is delivered.
+    let mid = fx.script(
+        "mid.sh",
+        "i=0; while [ $i -lt 60 ]; do echo \"unique line number $i of the run\"; i=$((i+1)); done",
+    );
+    for tk in [vt(), None] {
+        let r = execute(
+            &fx.env,
+            &fx.project,
+            &argv(&[&mid]),
+            &ExecOptions {
+                tokenizer: tk.clone(),
+                ..Default::default()
+            },
+            None,
+        )
+        .unwrap();
+        let v = &r.envelope.view;
+        let m = v.measurement.clone().unwrap();
+        assert_eq!(v.route, "raw", "{:?}", v.notes);
+        assert_eq!(m.decision, "provider-grew-raw-used");
+        assert!(v.text.contains("unique line number 59"));
+        assert!(v.notes.iter().any(|n| n.contains("did not reduce")));
+        if tk.is_some() {
+            assert_eq!(m.saved_tokens(), Some(0), "raw delivered: nothing saved");
+            assert!(m.rejected_view_tokens.unwrap() >= m.raw_tokens.unwrap());
+        } else {
+            assert!(m.saved_tokens().is_none());
+        }
+    }
+    assert_eq!(
+        fx.view_calls(),
+        2,
+        "the provider was consulted, then rejected"
+    );
+    assert_eq!(fx.count(), 2);
+}
+
+#[test]
+fn hn12_token_threshold_skips_the_provider_only_when_measured() {
+    let fx = Fx::new("hostile", r#","min_tokens":100000"#);
+    let cmd = fx.noisy("gen.sh");
+    let with = execute(
+        &fx.env,
+        &fx.project,
+        &argv(&[&cmd, "0"]),
+        &ExecOptions {
+            tokenizer: vt(),
+            ..Default::default()
+        },
+        None,
+    )
+    .unwrap();
+    let m = with.envelope.view.measurement.unwrap();
+    assert_eq!(m.decision, "below-token-threshold-raw-used");
+    assert_eq!(fx.view_calls(), 0);
+    // Without a tokenizer the threshold cannot be evaluated: it never fabricates a count.
+    let _ = execute(
+        &fx.env,
+        &fx.project,
+        &argv(&[&cmd, "0"]),
+        &ExecOptions::default(),
+        None,
+    )
+    .unwrap();
+    assert_eq!(fx.view_calls(), 1);
+}
+
+#[test]
+fn hn12_structured_binary_hash_compressed_interactive_and_edit_output_bypass() {
+    let fx = Fx::new("hostile", "");
+    let big = "i=0; while [ $i -lt 300 ]; do echo \"line $i of error free output padding padding\"; i=$((i+1)); done";
+    for (name, why) in [
+        ("sha256sum", "hash-output"),
+        ("gzip", "already-compressed-output"),
+        ("less", "interactive-command"),
+        ("patch", "source-edit-output"),
+    ] {
+        let c = fx.script(name, big);
+        let (_, v) = fx.exec_json(&[], &[&c]);
+        assert_eq!(v["view"]["route"], "raw", "{name}");
+        assert!(v["view"]["notes"].to_string().contains(why), "{name}: {v}");
+    }
+    let bin = fx.script(
+        "emit",
+        "i=0; while [ $i -lt 400 ]; do printf 'ab\\0cd\\377\\376 binary payload %s\\n' $i; i=$((i+1)); done",
+    );
+    let (_, v) = fx.exec_json(&[], &[&bin]);
+    assert!(
+        v["view"]["notes"].to_string().contains("binary output"),
+        "{v}"
+    );
+    let digests = fx.script(
+        "digests",
+        "i=0; while [ $i -lt 40 ]; do echo \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  file$i\"; i=$((i+1)); done",
+    );
+    let (_, v) = fx.exec_json(&[], &[&digests]);
+    assert!(
+        v["view"]["notes"].to_string().contains("hash output"),
+        "{v}"
+    );
+    assert_eq!(fx.view_calls(), 0, "no lossy provider saw any of them");
+    assert_eq!(fx.count(), 6, "each ran once");
+    // Unknown family keeps status and content.
+    let unk = fx.script("mystery-tool", &format!("{big}\necho BAD >&2\nexit 7"));
+    let (o, v) = fx.exec_json(&["--raw"], &[&unk]);
+    assert_eq!(o.code, 7);
+    assert_eq!(v["result"]["status"], "exit:7");
+}
+
+fn check(
+    fx: &Fx,
+    stage: &mut HostCommandChecks,
+    cmd: &str,
+    code: &str,
+) -> semaprax_harness::workflow::CheckRun {
+    let mut obs = semaprax_harness::observe::Observer::new(
+        None,
+        semaprax_harness::observe::ObserverLimits::default(),
+    );
+    stage
+        .run_check(
+            &CheckSpec {
+                name: "unit".into(),
+                argv: argv(&[cmd, code]),
+            },
+            &fx.project,
+            &mut obs,
+        )
+        .unwrap()
+        .unwrap()
+}
+
+#[test]
+fn hn12_check_views_carry_measurement_and_recovery_after_success_and_failure_without_rerun() {
+    let fx = Fx::new("example", "");
+    let cmd = fx.noisy("gen.sh");
+    let mut st = HostCommandChecks::new(fx.env.clone());
+    st.tokenizer = vt();
+    for (code, passed) in [("0", true), ("1", false)] {
+        let before = fx.count();
+        let run = check(&fx, &mut st, &cmd, code);
+        assert_eq!((run.passed, run.executions), (passed, 1));
+        assert_eq!(fx.count(), before + 1, "exactly one execution");
+        assert_eq!(run.view_route, "provider");
+        assert!(run.view.contains("decisive failure 7731"));
+        let m = run.measurement.clone().unwrap();
+        assert!(m.saved_tokens().unwrap() > 0);
+        let rec = st.recover_raw(&run, StreamName::Stdout, 0, 4096).unwrap();
+        assert!(rec.text.contains("repetitive noise line"));
+        assert!(rec.next_offset.is_some(), "bounded read, more remains");
+        let err = st.recover_raw(&run, StreamName::Stderr, 0, 4096).unwrap();
+        assert!(err.text.contains("warn on stderr"));
+        assert_eq!(fx.count(), before + 1, "recovery never re-executes");
+    }
+}
+
+#[test]
+fn hn12_external_ownership_makes_the_check_view_raw_not_a_second_transform() {
+    let fx = Fx::new("hostile", "");
+    let cmd = fx.noisy("gen.sh");
+    let mut env = fx.env.clone();
+    env.vars.insert(
+        semaprax_harness::command_view::lineage::OWNER_VAR.into(),
+        "rtk-hook".into(),
+    );
+    let mut st = HostCommandChecks::new(env);
+    st.tokenizer = vt();
+    let run = check(&fx, &mut st, &cmd, "1");
+    assert_eq!(run.view_route, "raw");
+    assert!(!run.passed && run.executions == 1);
+    assert_eq!(
+        fx.view_calls(),
+        0,
+        "the provider never ran under external ownership"
+    );
+    let m = run.measurement.unwrap();
+    assert_eq!(m.saved_tokens(), Some(0));
+}
+
+#[test]
+fn hn12_check_feedback_binds_view_status_recovery_and_changes_the_digest_with_the_output() {
+    use semaprax_harness::workflow::checks::check_feedback;
+    let checks = |view: &str| {
+        serde_json::json!({"commands": [
+            {"name": "ok", "passed": true, "view": "fine"},
+            {"name": "unit", "passed": false, "status": "exit:101", "status_certain": true, "view": view,
+             "view_route": "provider", "view_incomplete": false,
+             "recovery": {"project_id": "p", "handle": "cv-000000000000000000000001"},
+             "measurement": {"basis": "tokens", "raw_tokens": 900, "delivered_tokens": 40, "saved_tokens": 860,
+                             "decision": "provider-smaller", "tokenizer": {"name": "x", "fingerprint": "y"}}}]})
+    };
+    let (m1, f1) = check_feedback(
+        &checks("test a ... FAILED"),
+        "candidate rejected: check failed",
+    );
+    let (m2, _) = check_feedback(
+        &checks("test b ... FAILED"),
+        "candidate rejected: check failed",
+    );
+    assert_ne!(m1, m2, "a different failure is not 'no progress'");
+    let f1 = f1.unwrap();
+    assert_eq!(f1["check"], "unit");
+    assert_eq!(f1["output"], "test a ... FAILED");
+    assert_eq!(f1["recovery_handle"], "cv-000000000000000000000001");
+    assert_eq!(f1["delivered"]["saved_tokens"], 860);
+    assert_eq!(f1["incomplete"], false);
+    assert!(
+        check_feedback(&serde_json::json!({"commands": [{"passed": true}]}), "m")
+            .1
+            .is_none()
+    );
+    // Long views are bounded before they enter a request.
+    let (_, f) = check_feedback(&checks(&"x".repeat(50_000)), "m");
+    let f = f.unwrap();
+    assert!(f["output"].as_str().unwrap().len() < 9000 && f["incomplete"] == true);
 }

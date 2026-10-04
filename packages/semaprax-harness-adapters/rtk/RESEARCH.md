@@ -136,3 +136,28 @@ Pi/OMP `~/.pi/agent/extensions/rtk.ts`; Hermes `~/.hermes/plugins/rtk-rewrite/`;
 adapter reads none of them (no ambient authority). A host holding an explicit grant passes the text to
 `hook_detect.detect_rtk_hook` or sets `external_hooks` / `lineage:["rtk"]` in `plan`, which then bypasses with
 `external-hook-owns-rewrite`.
+
+## 8. HN-12 findings: automatic use at development boundaries (rtk 0.51.0, 2026-10-04)
+
+Measured with the real binary through the adapter and `rtk pipe`; synthetic output is stated as synthetic.
+
+- **Version qualification.** `rtk_families.QUALIFIED_VERSIONS` is an explicit table (`{"0.51.0": FAMILIES}`).
+  `plan` bypasses with `rtk-version-unqualified` and `view` reports `unavailable`/`rtk-version` for any other version,
+  including a newer one, until a row is added together with re-measured tests for every family it lists. The
+  descriptor's `upstream.versions` stays the host-side qualifier; the two must change together.
+- **Truncated multiline failures.** The `cargo-test` pipe filter cuts long failure blocks (a nested `left:`/`right:`
+  panic message loses its tail; only a line matching the critical regex was previously re-attached). The adapter now
+  restores the whole `---- t stdout ----` (libtest) or `___ t ___` (pytest) block when any of its lines is absent from
+  the view (at most 5 blocks, 60 lines and 6000 bytes), then re-attaches remaining critical lines. Tests:
+  `test_nested_multiline_failure_block_is_kept_whole`, long paths/negations, Unicode, critical stderr, totals,
+  no-match (rg exit 1, empty stdout stays empty and lossless) and error status (rg exit 2, find on a missing dir).
+- **Admitted: `ctest`** (bare `ctest` only; `--output-on-failure` matches the machine-flag rule and `-V`/`-j` are
+  unverified): 10494 -> 83 bytes on 150 passes + 1 failure with the failing test name and `1 failed` kept. No `ctest`
+  binary exists here, so this family is proven on synthetic output through the real filter only.
+- **Not admitted (measured, kept bypassed):** `go test` (the `go-test` filter expects `-json` events: plain output
+  became `Go test: No tests found`, i.e. total data loss); `mypy` (identity, 12524 -> 12524, no gain); `ruff check`
+  (the filter expects JSON, elides the tail: the planted `E999` line and the summary were lost); `tsc` (identity,
+  6642 -> 6642, no gain).
+- **Delivered-to-model accounting** is host-side (`command_view::measure`): the count covers the text the model is
+  shown plus its recovery reference, compared with the host's own raw view; a view that does not shrink is replaced by
+  raw. Vendor `rtk gain` figures are never used.

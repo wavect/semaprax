@@ -94,6 +94,8 @@ pub(super) struct State {
     pub attempts: Vec<Value>,
     pub steps: Vec<Value>,
     pub feedback: Vec<Value>,
+    /// Check output delivered to the model in feedback (HN-12), separate from report compaction.
+    pub delivered: Vec<Value>,
     pub candidates: u32,
     pub seen_proposals: BTreeSet<String>,
     pub last_failures: Vec<String>,
@@ -106,7 +108,21 @@ impl State {
         json!({"bounds": self.bounds.to_json(), "attempts_spent": self.attempts.len(),
                "candidates_admitted": self.candidates, "attempts": self.attempts, "steps": self.steps,
                "tool_calls": cx.compiler.commands().len().saturating_sub(self.commands_start),
-               "reserved_tokens": cx.ledger.reserved_tokens(), "result": self.result})
+               "reserved_tokens": cx.ledger.reserved_tokens(), "delivered_to_model": self.delivered_json(),
+               "result": self.result})
+    }
+
+    /// Delivered-to-model savings of check output carried in feedback. Counts the
+    /// view the next request actually contained; unavailable counts claim nothing.
+    fn delivered_json(&self) -> Value {
+        let tokens: Vec<i64> = self
+            .delivered
+            .iter()
+            .filter_map(|d| d["saved_tokens"].as_i64())
+            .collect();
+        json!({"entries": self.delivered,
+               "saved_tokens": if !self.delivered.is_empty() && tokens.len() == self.delivered.len() { json!(tokens.iter().sum::<i64>()) } else { Value::Null },
+               "note": "tokens the model was shown, not post-run report compaction (checks.commands)"})
     }
 
     pub(super) fn check_bounds_pub(&self, cx: &Ctx) -> HarnessResult<()> {
@@ -246,6 +262,7 @@ fn start(cx: &mut Ctx, journal: &mut Journal, r: &mut Report) -> HarnessResult<S
         attempts: vec![],
         steps: vec![],
         feedback: vec![],
+        delivered: vec![],
         candidates: 0,
         seen_proposals: BTreeSet::new(),
         last_failures: vec![],
@@ -450,7 +467,17 @@ pub(super) fn loop_steps(
         match attempt::candidate_checks(cx, st.command, &work, &n.to_string(), &preview, r, false) {
             Ok(c) => r.checks = c,
             Err(e) if e.code == "SPX-HPD050" => {
-                s.record_failure(n, "checks", e.code, &e.message, journal)?;
+                let (msg, fb) = super::checks::check_feedback(&r.checks, &e.message);
+                s.record_failure(n, "checks", e.code, &msg, journal)?;
+                if let Some(fb) = fb {
+                    let mut d = fb["delivered"].clone();
+                    d["attempt"] = json!(n);
+                    d["check"] = fb["check"].clone();
+                    s.delivered.push(d);
+                    if let Some(last) = s.feedback.last_mut() {
+                        last["check_output"] = fb;
+                    }
+                }
                 continue;
             }
             Err(e) => return Err(e),

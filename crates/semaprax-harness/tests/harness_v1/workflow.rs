@@ -772,6 +772,9 @@ impl CommandStage for ScriptedChecks {
             view: "model-facing summary".into(),
             view_route: "provider".into(),
             view_provenance: "ai.rtk/rtk-command-view".into(),
+            view_incomplete: false,
+            recovery: None,
+            measurement: None,
         }))
     }
 }

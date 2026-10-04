@@ -1,7 +1,7 @@
 import os
 import unittest
 
-from helpers import RTK, PINNED_SHA256, Scratch, drive, one
+from helpers import RTK, PINNED_SHA256, Scratch, drive, one, write_exec
 
 
 class PlanRouting(Scratch):
@@ -24,9 +24,40 @@ class PlanRouting(Scratch):
                           (["git", "log", "-n", "20"], "git-log"),
                           (["rg", "-n", "TODO", "src"], "rg"), (["grep", "-rn", "TODO", "src"], "grep"),
                           (["find", "src", "-name", "*.txt"], "find"), (["cargo", "test"], "cargo-test"),
-                          (["pytest", "-q"], "pytest")]:
+                          (["pytest", "-q"], "pytest"), (["ctest"], "ctest")]:
             p = self.plan(argv)
-            self.assertEqual((p["route"], p["family"], p["operation"]), ("post-execution", fam, "view"), argv)
+            self.assertEqual((p["route"], p.get("family"), p.get("operation")), ("post-execution", fam, "view"), (argv, p))
+
+    def test_untested_pipe_filters_stay_bypassed(self):
+        # measured against real rtk 0.51.0 (RESEARCH.md section 8): data loss or no gain
+        for argv in (["go", "test", "./..."], ["mypy", "src"], ["ruff", "check", "."], ["tsc", "--noEmit"],
+                     ["ctest", "-V"], ["ctest", "-j", "4"], ["ctest", "--output-on-failure"]):
+            p = self.plan(argv)
+            self.assertEqual(p["route"], "bypass", argv)
+
+    def fake_rtk(self, version_line):
+        path = os.path.join(self.tmp, "fake-rtk")
+        write_exec(path, f"#!/bin/sh\n[ \"$1\" = --version ] && echo '{version_line}' && exit 0\nexit 9\n")
+        return path
+
+    def test_newer_or_unknown_rtk_versions_go_through_the_qualifier_not_blind_acceptance(self):
+        from rtk_families import QUALIFIED_VERSIONS, Unqualified, qualify
+        self.assertEqual(qualify("rtk 0.51.0\n"), "0.51.0")
+        for text, reason in (("rtk 0.52.0", "rtk-version-unqualified"), ("rtk 1.0.0", "rtk-version-unqualified"),
+                             ("rtk 0.51.0-rc1", "rtk-identity"), ("Rust Type Kit 0.51.0", "rtk-identity"), ("", "rtk-identity")):
+            with self.assertRaises(Unqualified) as c:
+                qualify(text)
+            self.assertEqual(c.exception.reason, reason, text)
+        self.assertEqual(sorted(QUALIFIED_VERSIONS), ["0.51.0"])
+        newer = self.fake_rtk("rtk 0.52.0")
+        r = one("plan", {"argv": ["git", "diff"], "cwd_rel": "."}, self.ret, upstream=newer)
+        self.assertEqual((r["status"], r["payload"]["route"], r["payload"]["reason"]),
+                         ("complete", "bypass", "rtk-version-unqualified"))
+        v = one("view", {"argv": ["cargo", "test"], "stdout": "x\n" * 2000}, self.ret, upstream=newer)
+        self.assertEqual((v["status"], v["diagnostics"][0]["code"]), ("unavailable", "rtk-version"))
+        self.assertIn("rtk-version-unqualified", v["diagnostics"][0]["message"])
+        # the shipped 0.51.0 mapping is unchanged
+        self.assertEqual(self.plan(["git", "diff"])["route"], "post-execution")
 
     def test_already_wrapped_bypasses_exactly_once(self):
         self.assertBypass([RTK, "git", "status"], "already-wrapped")

@@ -82,7 +82,7 @@ through the `PATH` in the supplied `Environment`.
 ## Policy and retention
 
 `$SEMAPRAX_HARNESS_HOME/command-view.json`, schema `semaprax.harness-command-view-policy.v1`
-(closed): `min_bytes`, `timeout_ms`, `mem_cap_bytes`, `provider_timeout_ms`, `retention
+(closed): `min_bytes`, `min_tokens`, `timeout_ms`, `mem_cap_bytes`, `provider_timeout_ms`, `retention
 {enabled, ttl_secs, max_bytes, max_stream_bytes}`, `redact_lines_containing`, `known_wrappers`,
 `runtimes {python, node}`, `env_grant`, `allow_wrapper`. Retention is off unless configured; files
 live in a 0700 directory (0600 files) under `retention/<project>/command-view/`, pruned by TTL and
@@ -96,3 +96,37 @@ incompatible provider falls back to raw unless the capability mode is `required`
 launch, `SPX-HPB04x`/`SPX-HPI001`). The host never installs, upgrades or edits configuration.
 Observations record byte counts at the final display envelope (`byte_only`); vendor gain figures
 are not tokens.
+
+## HN-12: delivered views at development boundaries
+
+Authorized check output (`workflow::checks::HostCommandChecks`) flows through the same `execute` and the same
+post-execution provider (RTK `pipe`, reused, not reimplemented). When a session check fails, the model-facing view
+enters the next request as `feedback[].check_output` (`check`, `status`, `route`, `incomplete`, `recovery_handle`,
+`recovery_project_id`, `output` bounded to 8192 bytes, `delivered`); the verdict stays the authoritative exit status,
+and the feedback digest includes the output so a different failure is progress and an identical one is not. The request
+budget (`docs/HARNESS-WORKFLOW-V1.md`, HN-11) counts the serialized request including this text.
+
+- **Measurement** (`ModelView.measurement`, `command_view::measure`): `ExecOptions.tokenizer` / `HostCommandChecks.tokenizer`
+  lend a named tokenizer. The count covers what the model is shown (view text plus its recovery reference) against the
+  host's own raw view. Fields: `decision` (`provider-smaller`, `provider-grew-raw-used`,
+  `below-token-threshold-raw-used`, `provider-failed-raw-used`, `provider-not-consulted`, `raw-by-policy`), `basis`
+  (`tokens` or `bytes-only`), raw/delivered bytes and tokens, `saved_tokens` (null unless both counts exist; may be
+  zero or negative), `rejected_view_tokens` and `overhead_ms` (time spent consulting the provider). A provider view
+  that is not strictly smaller (tokens when measured, bytes otherwise) is replaced by raw; no tokenizer means no saving
+  is ever claimed. Policy `min_tokens` skips the provider for raw output below that measured size, only with a tokenizer.
+  With a tokenizer the observation records named before/after counts; otherwise it stays byte-only.
+- **Delivered versus report compaction.** `Report.session.delivered_to_model` sums tokens the model was actually shown;
+  `checks.commands[].view` is the post-run report and is not counted as a model saving.
+- **Bypass.** Beyond JSON and machine flags: binary output (NUL or many undecodable bytes), digest-only output, hash
+  tools, compressors/archivers, interactive commands (editors, pagers, `git add -p`, `git rebase -i`), edit tools
+  (`patch`), and machine git subcommands (`apply`, `rev-parse`, `hash-object`, ...) never reach a lossy filter. One
+  owner per transform: an external owner, nested host, known wrapper or lineage marker leaves the output raw.
+- **Raw recovery** without re-execution: `command_view::recover` / `recover_by_id` (and `HostCommandChecks::recover_raw`)
+  read bounded retained bytes, after success and failure, including for scratch trees that no longer exist.
+- **Qualification.** The RTK adapter accepts only versions in `rtk_families.QUALIFIED_VERSIONS` (currently `0.51.0`);
+  a newer version bypasses (`rtk-version-unqualified`) until re-measured. Findings per family are in
+  `packages/semaprax-harness-adapters/rtk/RESEARCH.md` section 8.
+
+Known gaps: the `semaprax harness run` CLI does not yet pass a tokenizer to the check stage (the library path does);
+failed-check feedback exists for the HN-02 session loop only (scratch-repair feedback and HN-14 delegated results do
+not carry it yet).

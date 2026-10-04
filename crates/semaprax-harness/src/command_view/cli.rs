@@ -1,14 +1,13 @@
 //! `exec` and `recover` verbs.
 
-use super::policy::Policy;
-use super::retention::{valid_handle, Retention, StreamName};
+use super::retention::StreamName;
 use super::run::{execute, ExecOptions};
 use crate::cli::{Environment, Outcome};
 use crate::diag::HarnessDiagnostic;
-use crate::json::{canonical, sha256_plain};
+use crate::json::canonical;
 use crate::observe::sink::{JsonlFileSink, Observer, ObserverLimits};
 use serde_json::json;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 fn num(v: &str, what: &str) -> Result<u64, Outcome> {
     v.parse()
@@ -126,44 +125,21 @@ pub fn recover(args: &[String], env: &Environment) -> Outcome {
         );
     };
     let run = || -> Result<Outcome, HarnessDiagnostic> {
-        let bad = |m: &str| HarnessDiagnostic::new("SPX-HPH031", m.to_string());
-        let policy = Policy::load(env)?;
-        let rp = policy
-            .retention
-            .ok_or_else(|| bad("retention is not enabled by policy"))?;
-        let home = env
-            .harness_home
-            .as_ref()
-            .ok_or_else(|| bad("no harness home"))?;
-        if !valid_handle(handle) {
-            return Err(HarnessDiagnostic::new(
-                "SPX-HPH040",
-                "recovery handle must look like `cv-<24 hex>`",
-            ));
-        }
-        let root = env
-            .cwd
-            .join(project)
-            .canonicalize()
-            .map_err(|e| bad(&format!("project path: {e}")))?;
-        let pid = sha256_plain(root.to_string_lossy().as_bytes());
-        let r = Retention::open(home, &pid, &rp)?;
-        let (bytes, total) = r.read(handle, stream, offset, limit)?;
-        let (text, _) = super::guard::decode(&bytes);
-        let next = offset + bytes.len() as u64;
+        let rec = super::recover::recover(env, Path::new(project), handle, stream, offset, limit)?;
+        let next = rec.next_offset;
         Ok(Outcome::ok(if as_json {
             format!(
                 "{}\n",
                 canonical(
-                    &json!({"handle": handle, "offset": offset, "bytes": bytes.len(), "stream_total": total, "next_offset": if next < total { json!(next) } else { json!(null) }, "text": text})
+                    &json!({"handle": handle, "offset": offset, "bytes": rec.bytes, "stream_total": rec.stream_total, "next_offset": next, "text": rec.text})
                 )
             )
         } else {
-            let mut t = text;
-            if next < total {
+            let mut t = rec.text;
+            if let Some(n) = next {
                 t.push_str(&format!(
-                    "\n[recover: {} of {total} bytes shown; continue with --offset {next}]\n",
-                    bytes.len()
+                    "\n[recover: {} of {} bytes shown; continue with --offset {n}]\n",
+                    rec.bytes, rec.stream_total
                 ));
             }
             t

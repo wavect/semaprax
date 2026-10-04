@@ -1,0 +1,19 @@
+{
+  "intent": {
+    "body": {
+      "kind": "binary",
+      "left": {
+        "kind": "place",
+        "name": "price"
+      },
+      "op": "*",
+      "right": {
+        "kind": "bool",
+        "value": true
+      }
+    },
+    "kind": "replace_function_body",
+    "target": "ledger.line_total"
+  },
+  "schema": "semaprax.harness-proposal.v1"
+}

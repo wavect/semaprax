@@ -1,1 +1,499 @@
-//! Provisioned real-tool evidence (see tests/real_tools_v1.rs).
+//! Provisioned real-compiler evidence for the HP-04 workflow (ignored by default).
+//! Needs SEMAPRAX_COMPILER=<absolute path of a built `semaprax`>; python3 is
+//! taken from HARNESS_PYTHON or `/usr/bin/which python3`, git from `/usr/bin/which git`.
+
+use crate::support::*;
+use semaprax_harness::cli::{self, Environment};
+use semaprax_harness::json::sha256_plain;
+use semaprax_harness::observe::{Observer, ObserverLimits};
+use semaprax_harness::workflow::stages::*;
+use semaprax_harness::workflow::*;
+use serde_json::{json, Value};
+use std::collections::BTreeMap;
+use std::path::{Path, PathBuf};
+use std::process::Command;
+
+const NEEDS: &str = "provisioned: needs SEMAPRAX_COMPILER";
+
+fn which(tool: &str) -> PathBuf {
+    let out = Command::new("/usr/bin/which")
+        .arg(tool)
+        .output()
+        .expect("which");
+    PathBuf::from(String::from_utf8_lossy(&out.stdout).trim())
+}
+
+fn python() -> PathBuf {
+    std::env::var_os("HARNESS_PYTHON")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| which("python3"))
+}
+
+fn copy_dir(from: &Path, to: &Path) {
+    std::fs::create_dir_all(to).unwrap();
+    for e in std::fs::read_dir(from).unwrap() {
+        let e = e.unwrap();
+        if e.file_type().unwrap().is_dir() {
+            copy_dir(&e.path(), &to.join(e.file_name()));
+        } else {
+            std::fs::copy(e.path(), to.join(e.file_name())).unwrap();
+        }
+    }
+}
+
+fn fixtures() -> PathBuf {
+    repo_root().join("crates/semaprax-harness/tests/fixtures/workflow")
+}
+
+struct World {
+    root: PathBuf,
+    project: PathBuf,
+    env: Environment,
+    compiler: PathBuf,
+    repo: PathBuf,
+}
+
+fn git(dir: &Path, args: &[&str]) -> String {
+    let o = Command::new(which("git"))
+        .current_dir(dir)
+        .args(["-c", "user.name=t", "-c", "user.email=t@example.invalid"])
+        .args(args)
+        .output()
+        .expect("git");
+    assert!(
+        o.status.success(),
+        "git {args:?}: {}",
+        String::from_utf8_lossy(&o.stderr)
+    );
+    String::from_utf8_lossy(&o.stdout).trim().to_string()
+}
+
+fn world() -> World {
+    let root = fixture_dir("hp-hp04r").canonicalize().unwrap();
+    let project = root.join("project");
+    copy_dir(&fixtures().join("downstream"), &project);
+    git(&project, &["init", "-q"]);
+    git(&project, &["add", "semaprax.toml", "src"]);
+    git(&project, &["commit", "-qm", "base"]);
+    let repo = root.join("host/repo.git");
+    std::fs::create_dir_all(&repo).unwrap();
+    git(&repo, &["init", "-q", "--bare"]);
+    git(
+        &project,
+        &["push", "-q", repo.to_str().unwrap(), "HEAD:refs/heads/main"],
+    );
+    std::fs::write(
+        repo.join("config"),
+        "[core]\n\trepositoryformatversion = 0\n\tfilemode = true\n\tbare = true\n",
+    )
+    .unwrap();
+    let home = root.join("home");
+    std::fs::create_dir_all(&home).unwrap();
+    let env = Environment {
+        harness_home: Some(home),
+        compiler: None,
+        cwd: project.clone(),
+        vars: BTreeMap::from([("PATH".to_string(), "/usr/bin:/bin".to_string())]),
+    };
+    World {
+        root,
+        project,
+        env,
+        compiler: required_tool("SEMAPRAX_COMPILER"),
+        repo,
+    }
+}
+
+impl World {
+    fn harness(&self, args: &[&str]) -> cli::Outcome {
+        cli::run(
+            &args.iter().map(|s| s.to_string()).collect::<Vec<_>>(),
+            &self.env,
+        )
+    }
+
+    fn ok(&self, args: &[&str]) {
+        let o = self.harness(args);
+        assert_eq!(o.code, 0, "{args:?}: {}{}", o.stdout, o.stderr);
+    }
+
+    /// Copy an adapter fixture (with the SDK) and adopt + trust it through the profile CLI.
+    fn provision(&self, name: &str, src: &Path, sdk_into_sibling: bool) {
+        let dir = self.root.join("adapters").join(name);
+        copy_dir(src, &dir);
+        let sdk = repo_root()
+            .join("packages/semaprax-harness-adapters/sdk/python/semaprax_harness_adapter.py");
+        if sdk_into_sibling {
+            std::fs::copy(&sdk, dir.join("semaprax_harness_adapter.py")).unwrap();
+        } else {
+            let to = self.root.join("adapters/sdk/python");
+            std::fs::create_dir_all(&to).unwrap();
+            std::fs::copy(&sdk, to.join("semaprax_harness_adapter.py")).unwrap();
+        }
+        let desc_path = dir.join("harness-provider.json");
+        let mut d: Value = serde_json::from_slice(&std::fs::read(&desc_path).unwrap()).unwrap();
+        d["upstream"]["identity_probe"] = json!(["--version"]);
+        d["upstream"]["versions"] = json!(["0.1.0"]);
+        std::fs::write(&desc_path, d.to_string()).unwrap();
+        let tool = write(
+            &self.root,
+            &format!("tools/{name}"),
+            "#!/bin/sh\necho tool 0.1.0\n",
+        );
+        std::fs::set_permissions(&tool, std::os::unix::fs::PermissionsExt::from_mode(0o755))
+            .unwrap();
+        let id = d["provider"]["id"].as_str().unwrap().to_string();
+        self.ok(&[
+            "adopt",
+            desc_path.to_str().unwrap(),
+            "--upstream",
+            tool.to_str().unwrap(),
+        ]);
+        self.ok(&["trust", &id]);
+    }
+
+    fn provision_source_index(&self) {
+        let src =
+            repo_root().join("packages/semaprax-harness-adapters/examples/source-index-python");
+        self.provision("examples/source-index-python", &src, false);
+    }
+
+    fn provision_fake_model(&self) {
+        self.provision("fake-model", &fixtures().join("adapters/fake-model"), true);
+    }
+
+    fn run(&self, extra: &[&str]) -> (i32, Value) {
+        let mut args = vec![
+            "run",
+            self.project.to_str().unwrap(),
+            "--compiler",
+            self.compiler.to_str().unwrap(),
+            "--python",
+            "",
+            "--json",
+        ];
+        let py = python();
+        args[5] = py.to_str().unwrap();
+        args.extend_from_slice(extra);
+        let o = self.harness(&args);
+        let v: Value = serde_json::from_str(o.stdout.trim())
+            .unwrap_or_else(|_| panic!("not JSON: {}{}", o.stdout, o.stderr));
+        (o.code, v)
+    }
+
+    fn policy(&self) -> PathBuf {
+        let head = git(&self.project, &["rev-parse", "HEAD"]);
+        let gp = write(&self.root, "host/git-policy.json", &json!({
+            "schema": "semaprax.candidate-git-host-policy.v1", "git_executable": which("git"),
+            "repository": self.repo, "reference": "refs/heads/main", "base_commit": head,
+            "project_prefix": "", "author_name": "Host", "author_email": "host@example.invalid",
+            "unix_seconds": 0, "message": "Apply the approved candidate.\n", "max_commands": 512, "timeout_ms": 60000
+        }).to_string());
+        write(&self.root, "host/apply.json", &json!({"schema": "semaprax.harness-apply-policy.v1", "auto_apply": true, "publication_policy": gp}).to_string())
+    }
+
+    fn tree_digest(&self) -> String {
+        let s = Snapshot::capture(&self.project).unwrap();
+        sha256_plain(format!("{:?}", s.files).as_bytes())
+    }
+
+    fn ref_head(&self) -> String {
+        git(&self.repo, &["rev-parse", "refs/heads/main"])
+    }
+}
+
+fn prop(name: &str) -> String {
+    fixtures()
+        .join("proposals")
+        .join(format!("{name}.json"))
+        .to_string_lossy()
+        .into_owned()
+}
+
+fn task() -> String {
+    fixtures().join("task.json").to_string_lossy().into_owned()
+}
+
+fn provider<'a>(v: &'a Value, cap: &str) -> &'a Value {
+    v["providers"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["capability"] == cap)
+        .unwrap()
+}
+
+#[test]
+#[ignore = "provisioned: needs SEMAPRAX_COMPILER"]
+fn hp_hp04_real_cli_workflow_selects_fixture_provider_and_judges_candidates() {
+    let _ = NEEDS;
+    let w = world();
+    w.provision_source_index();
+    let before = w.tree_digest();
+    // Valid repair: real diagnostic, fixture provider invoked, candidate accepted.
+    let (code, v) = w.run(&["--task", &task(), "--proposal", &prop("valid")]);
+    assert_eq!(code, 0, "{v}");
+    assert_eq!(v["status"], "approved-candidate-ready");
+    assert!(
+        v["diagnostics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|d| d["code"] == "test-failure"
+                && d["message"].as_str().unwrap().contains("ledger.line_total")),
+        "{v}"
+    );
+    let ctx = provider(&v, "context.repository");
+    assert_eq!(ctx["provider"], "org.example/source-index");
+    assert_eq!(ctx["state"], "selected");
+    assert_eq!(ctx["invoked"], 1, "{v}");
+    assert_eq!(v["checks"]["tests"], "passed");
+    assert_eq!(v["candidate"]["changed_files"], json!(["src/lib.spx"]));
+    for c in [
+        "check --json",
+        "test --json",
+        "project-candidate-preview",
+        "project-candidate-export",
+    ] {
+        assert!(
+            v["compiler_commands"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|x| x == c),
+            "{c} in {v}"
+        );
+    }
+    // Invalid candidates are rejected; nothing is published or written.
+    let (code, v) = w.run(&["--task", &task(), "--proposal", &prop("invalid-tests")]);
+    assert_eq!(code, 1);
+    assert_eq!(v["status"], "rejected", "{v}");
+    assert_eq!(v["refusals"][0]["code"], "SPX-HPD050");
+    let (_, v) = w.run(&["--task", &task(), "--proposal", &prop("invalid-type")]);
+    assert_eq!(v["status"], "refused");
+    assert!(
+        v["refusals"][0]["message"]
+            .as_str()
+            .unwrap()
+            .contains("SPX-T208"),
+        "{v}"
+    );
+    // Unsupported change kind and raw source: precise diagnostics, no compiler preview.
+    let (_, v) = w.run(&["--task", &task(), "--proposal", &prop("unsupported-kind")]);
+    assert_eq!(v["refusals"][0]["code"], "SPX-HPD031");
+    let (_, v) = w.run(&["--task", &task(), "--proposal", &prop("raw-source")]);
+    assert_eq!(v["refusals"][0]["code"], "SPX-HPD031");
+    let (_, v) = w.run(&["--task", &task(), "--proposal", &prop("weak-requirements")]);
+    assert_eq!(v["refusals"][0]["code"], "SPX-HPD032");
+    assert_eq!(
+        w.tree_digest(),
+        before,
+        "the project is never written by the workflow"
+    );
+    assert_eq!(
+        w.ref_head(),
+        git(&w.project, &["rev-parse", "HEAD"]),
+        "no publication without a policy"
+    );
+}
+
+#[test]
+#[ignore = "provisioned: needs SEMAPRAX_COMPILER"]
+fn hp_hp04_real_builtins_only_and_disabled_plugin_run_the_same_workflow() {
+    let w = world();
+    // Builtins only (nothing adopted): native context for the seed, zero provider calls.
+    let (code, v) = w.run(&["--proposal", &prop("valid")]);
+    assert_eq!(code, 0, "{v}");
+    assert_eq!(v["status"], "approved-candidate-ready");
+    assert_eq!(v["external_provider_calls"], 0);
+    assert_eq!(
+        provider(&v, "context.repository")["provider"],
+        "semaprax/native-context"
+    );
+    assert!(v["compiler_commands"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|c| c.as_str().unwrap().starts_with("context ")));
+    // An adopted optional plugin disabled for the run (single switch): same result, never invoked.
+    w.provision_source_index();
+    let (code, v) = w.run(&["--task", &task(), "--proposal", &prop("valid"), "--disable"]);
+    assert_eq!(code, 0, "{v}");
+    assert_eq!(v["external_provider_calls"], 0);
+    assert_eq!(provider(&v, "context.repository")["state"], "disabled");
+    // And disabled in the committed profile.
+    std::fs::write(
+        w.project.join("semaprax.harness.toml"),
+        "schema = \"semaprax.harness-config.v1\"\n[profile]\nenabled = false\n",
+    )
+    .unwrap();
+    let (code, v) = w.run(&["--task", &task(), "--proposal", &prop("valid")]);
+    assert_eq!(
+        (code, v["external_provider_calls"].as_u64()),
+        (0, Some(0)),
+        "{v}"
+    );
+}
+
+#[test]
+#[ignore = "provisioned: needs SEMAPRAX_COMPILER"]
+fn hp_hp04_real_publication_only_under_host_policy_and_resume_never_replays() {
+    let w = world();
+    let head = w.ref_head();
+    let (_, v) = w.run(&["--proposal", &prop("valid")]);
+    assert_eq!(v["status"], "approved-candidate-ready");
+    assert_eq!(w.ref_head(), head, "no policy, no publication");
+    let policy = w.policy();
+    let (code, v) = w.run(&[
+        "--proposal",
+        &prop("valid"),
+        "--apply-policy",
+        policy.to_str().unwrap(),
+    ]);
+    assert_eq!(code, 0, "{v}");
+    assert_eq!(v["status"], "published");
+    let new_head = w.ref_head();
+    assert_ne!(new_head, head);
+    assert_eq!(v["publication"]["published_commit"], new_head);
+    // Restart: same lineage, nothing is replayed (the reference does not move again).
+    let (_, v2) = w.run(&[
+        "--proposal",
+        &prop("valid"),
+        "--apply-policy",
+        policy.to_str().unwrap(),
+    ]);
+    assert_eq!(v2["status"], "published");
+    assert_eq!(w.ref_head(), new_head);
+    assert!(!v2["compiler_commands"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|c| c == "project-candidate-git-publish"));
+}
+
+#[test]
+#[ignore = "provisioned: needs SEMAPRAX_COMPILER"]
+fn hp_hp04_real_model_provider_claims_ignored_and_provider_publication_refused() {
+    let w = world();
+    w.provision_fake_model();
+    let policy = w.policy();
+    let head = w.ref_head();
+    let goal = |mode: &str| {
+        write(&w.root, &format!("task-{mode}.json"), &json!({"schema": "semaprax.harness-task.v1", "goal": format!("MODE:{mode} key sk-live-SECRET-9"), "external_context": "never"}).to_string())
+    };
+    // Good generation through the host: one invocation, accepted by the compiler.
+    let (code, v) = w.run(&["--task", goal("good").to_str().unwrap()]);
+    assert_eq!(code, 0, "{v}");
+    assert_eq!(provider(&v, "model.generate")["invoked"], 1);
+    assert_eq!(v["status"], "approved-candidate-ready");
+    // Bad candidate with a fabricated claim: the compiler's verdict wins.
+    let (_, v) = w.run(&["--task", goal("bad").to_str().unwrap()]);
+    assert_eq!(v["status"], "rejected", "{v}");
+    // A claim of passing tests on a valid candidate is ignored (and reported).
+    let (_, v) = w.run(&["--task", goal("claims").to_str().unwrap()]);
+    assert_eq!(v["ignored_provider_claims"], json!(["tests_passed"]), "{v}");
+    // Provider-initiated publication: refused by the contract (HPA036), never published.
+    let (code, v) = w.run(&[
+        "--task",
+        goal("publish").to_str().unwrap(),
+        "--apply-policy",
+        policy.to_str().unwrap(),
+    ]);
+    assert_eq!(code, 1);
+    assert!(
+        v["refusals"][0]["message"]
+            .as_str()
+            .unwrap()
+            .contains("SPX-HPA036")
+            || v["refusals"][0]["code"] == "SPX-HPA036",
+        "{v}"
+    );
+    assert!(!v["compiler_commands"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|c| c == "project-candidate-git-publish"));
+    assert_eq!(w.ref_head(), head);
+    // Observability: no goal text or secret in the report or the observation log.
+    let cache = w.env.harness_home.clone().unwrap().join("cache/workflow");
+    let mut seen = 0;
+    for dir in std::fs::read_dir(&cache).unwrap() {
+        for f in std::fs::read_dir(dir.unwrap().path()).unwrap() {
+            let p = f.unwrap().path();
+            if p.to_string_lossy().ends_with(".observations.jsonl") {
+                let text = std::fs::read_to_string(&p).unwrap();
+                assert!(
+                    !text.contains("SECRET") && !text.contains("MODE:"),
+                    "{text}"
+                );
+                seen += 1;
+            }
+        }
+    }
+    assert!(seen >= 1);
+    assert!(!v.to_string().contains("SECRET"));
+}
+
+/// Mutates the project while the "model" is generating.
+struct Racing(PathBuf);
+impl ProposalStage for Racing {
+    fn id(&self) -> String {
+        "org.example/racing".into()
+    }
+    fn propose(&mut self, _r: &ProposalRequest) -> Result<Vec<u8>, StageFailure> {
+        let lib = self.0.join("src/lib.spx");
+        let mut s = std::fs::read_to_string(&lib).unwrap();
+        s.push_str("\n");
+        std::fs::write(&lib, s).unwrap();
+        Ok(std::fs::read(fixtures().join("proposals/valid.json")).unwrap())
+    }
+    fn calls(&self) -> u32 {
+        1
+    }
+    fn side_effecting(&self) -> bool {
+        false
+    }
+}
+
+#[test]
+#[ignore = "provisioned: needs SEMAPRAX_COMPILER"]
+fn hp_hp04_real_stale_revision_during_generation_is_refused() {
+    let w = world();
+    let snapshot = Snapshot::capture(&w.project).unwrap();
+    let cache = w.root.join("cache");
+    let compiler = SubprocessCompiler::new(w.compiler.clone(), cache.join("compiler")).unwrap();
+    let cfg = RunConfig {
+        snapshot,
+        task: Task::default(),
+        context_max_bytes: 16384,
+        cache_dir: cache,
+        lock_digest: "disabled".into(),
+        providers: vec![],
+        composition: Composition::from_profile(None, true, vec![], &[]).unwrap(),
+        apply_policy: None,
+        notes: vec![],
+    };
+    let mut native = NativeContext::new(&compiler);
+    let mut p = Racing(w.project.clone());
+    let mut view = RawCommandView;
+    let mut obs = Observer::new(None, ObserverLimits::default());
+    let r = run(
+        &cfg,
+        &compiler,
+        Stages {
+            native: &mut native,
+            external: None,
+            proposer: &mut p,
+            command: &mut view,
+        },
+        &mut obs,
+    );
+    assert_eq!(r.status, "refused");
+    assert_eq!(r.refusals[0].code, "SPX-HPD005", "{:?}", r.refusals);
+    assert!(
+        !r.compiler_commands
+            .iter()
+            .any(|c| c.starts_with("project-candidate")),
+        "no candidate operation ran on a stale revision"
+    );
+}

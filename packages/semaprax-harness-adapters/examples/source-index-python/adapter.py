@@ -14,19 +14,20 @@ OPS = ["orient", "search", "skeleton", "references"]
 _cache = {}
 
 
-def _index():
+def _index(revision=None):
     root = os.environ.get("SEMAPRAX_HARNESS_PROJECT_ROOT")
     if not root or not os.path.isdir(root):
         raise AdapterError("unavailable", "no-project-root", "SEMAPRAX_HARNESS_PROJECT_ROOT is not set to a directory")
-    if root not in _cache:
+    key = (root, revision)  # a new snapshot revision re-indexes: never serve stale files
+    if key not in _cache:
         _cache.clear()
-        _cache[root] = Index(root)
-    return _cache[root]
+        _cache[key] = Index(root)
+    return _cache[key]
 
 
 def handler(op):
     def run(req):
-        idx = _index()
+        idx = _index((req.get("project") or {}).get("revision"))
         p = req.get("payload") or {}
         if op == "orient":
             out = idx.orient()

@@ -458,7 +458,12 @@ fn v2_command(verb: &str, config: PathBuf, checkpoint: PathBuf, scratch: PathBuf
             checkpoint,
             provider: Some(provider),
         },
-        _ => panic!("test helper only accepts run or resume"),
+        "receipt" => Command::Receipt {
+            config,
+            checkpoint,
+            provider: Some(provider),
+        },
+        _ => panic!("test helper only accepts run, resume, or receipt"),
     }
 }
 

@@ -290,7 +290,7 @@ fn hp_hn15_real_process_adapter_speaks_the_protocol_and_time_cap_aborts() {
     };
     let rep = run_experiment(&sp, &mut a, &Cancel::default(), &rig.dir.join("elsewhere")).unwrap();
     assert_eq!(rep.outcome, Outcome::NoAction);
-    s["adapter"]["command"] = json!(["/bin/sh", "-c", "sleep 20"]);
+    s["adapter"]["command"] = json!(["/bin/sh", "-c", "exec sleep 20"]);
     s["caps"]["max_seconds"] = json!(1);
     let sp = evolution::spec::parse(&s, &rig.dir).unwrap();
     let mut a = ProcessAdapter {

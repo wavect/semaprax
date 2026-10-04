@@ -8,6 +8,7 @@
 pub mod diag;
 pub mod json;
 
+pub mod assets;
 pub mod bench;
 pub mod bridge;
 pub mod command_view;

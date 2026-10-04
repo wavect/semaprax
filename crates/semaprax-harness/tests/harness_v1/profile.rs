@@ -1495,3 +1495,6 @@ fn hp_hn19_legacy_entry_only_installations_stay_readable_and_are_labelled_legacy
         .current;
     assert!(grant_for(&st, "org.example/ctx-a", &cur).is_ok());
 }
+
+#[path = "profile/setup.rs"]
+mod setup;

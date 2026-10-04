@@ -238,21 +238,17 @@ pub fn run_with(
     // Runtimes: explicit flag, then the adopted `--runtime`, then HARNESS_*.
     let rt_env = |l: &ResolvedLaunch| {
         let mut e = env.clone();
-        let pick = |flag: &Option<PathBuf>| flag.clone().or_else(|| l.runtime.clone());
-        match l.descriptor.runtime {
-            Runtime::Python => {
-                if let Some(p) = pick(&o.python) {
-                    e.vars
-                        .insert("HARNESS_PYTHON".into(), p.to_string_lossy().into_owned());
-                }
-            }
-            Runtime::Node => {
-                if let Some(p) = pick(&o.node) {
-                    e.vars
-                        .insert("HARNESS_NODE".into(), p.to_string_lossy().into_owned());
-                }
-            }
-            _ => {}
+        let rt = l.descriptor.runtime;
+        let flag = match rt {
+            Runtime::Python => o.python.as_deref(),
+            Runtime::Node => o.node.as_deref(),
+            _ => None,
+        };
+        if let (Some(var), Some(p)) = (
+            crate::profile::runtime::env_var(rt),
+            crate::profile::runtime::pick(rt, flag, l.runtime.as_deref(), None, env),
+        ) {
+            e.vars.insert(var.into(), p.to_string_lossy().into_owned());
         }
         e
     };
@@ -619,34 +615,20 @@ fn start(
     o: &RunOptions,
     env: &Environment,
 ) -> HarnessResult<std::sync::Arc<crate::host::AdapterHandle>> {
-    let var = |k: &str| env.vars.get(k).map(PathBuf::from);
-    let runtime = match l.descriptor.runtime {
-        Runtime::Python => Some(
-            o.python
-                .clone()
-                .or_else(|| l.runtime.clone())
-                .or_else(|| var("HARNESS_PYTHON"))
-                .ok_or_else(|| {
-                    HarnessDiagnostic::new(
-                        "SPX-HPD091",
-                        "python runtime path not provided (--python, `adopt --runtime`, or HARNESS_PYTHON)",
-                    )
-                })?,
-        ),
-        Runtime::Node => Some(
-            o.node
-                .clone()
-                .or_else(|| l.runtime.clone())
-                .or_else(|| var("HARNESS_NODE"))
-                .ok_or_else(|| {
-                    HarnessDiagnostic::new(
-                        "SPX-HPD091",
-                        "node runtime path not provided (--node, `adopt --runtime`, or HARNESS_NODE)",
-                    )
-                })?,
-        ),
+    let flag = match l.descriptor.runtime {
+        Runtime::Python => o.python.as_deref(),
+        Runtime::Node => o.node.as_deref(),
         _ => None,
     };
+    let runtime = crate::profile::runtime::require(
+        "SPX-HPD091",
+        &l.provider_id,
+        l.descriptor.runtime,
+        flag,
+        l.runtime.as_deref(),
+        None,
+        env,
+    )?;
     let dir = cache.join("adapters").join(l.provider_id.replace('/', "_"));
     let (cache_dir, retention) = (dir.join("cache"), dir.join("retention"));
     for p in [&cache_dir, &retention] {

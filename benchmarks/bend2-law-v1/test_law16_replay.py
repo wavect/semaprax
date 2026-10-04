@@ -17,6 +17,17 @@ SPEC.loader.exec_module(REPLAY)
 
 
 class Law16ReplayTests(unittest.TestCase):
+    def test_fresh_physical_routes_are_distinct_from_offline_capsule_replay(self):
+        sequence = [*REPLAY.FRESH_CAPTURE_ROUTES, *REPLAY.OFFLINE_REPLAY_ROUTES]
+        classified = REPLAY.classify_execution_routes(sequence)
+        self.assertEqual(classified["fresh_capture_routes"], list(REPLAY.FRESH_CAPTURE_ROUTES))
+        self.assertEqual(classified["offline_replay_routes"], list(REPLAY.OFFLINE_REPLAY_ROUTES))
+        self.assertEqual(classified["live_agent_routes"], [])
+        with_agent = REPLAY.classify_execution_routes([*sequence, REPLAY.LIVE_AGENT_ROUTE])
+        self.assertEqual(with_agent["live_agent_routes"], [REPLAY.LIVE_AGENT_ROUTE])
+        with self.assertRaisesRegex(ValueError, "route inventory drifted"):
+            REPLAY.classify_execution_routes([*REPLAY.FRESH_CAPTURE_ROUTES, "bounded_balance_agent_evidence_reexecution"])
+
     def test_live_agent_campaign_receipt_binds_the_pinned_executable_path(self):
         with tempfile.TemporaryDirectory() as directory:
             codex = Path(directory) / "pinned-codex"
@@ -96,6 +107,10 @@ class Law16ReplayTests(unittest.TestCase):
             self.assertEqual(result["status"], "retained_evidence_verified")
             self.assertEqual(result["unavailable_cells"], [])
             self.assertTrue(result["raw_artifacts"])
+            inventory = {row["path"] for row in result["raw_artifacts"]}
+            for cell in ("law16-guest-cache-thirty-v1", "law16-native-phase-thirty-v1",
+                         "law16-project-incremental-cell-v1", "law16-boolean-refactor-cell-v1"):
+                self.assertTrue(any(path.startswith(f"benchmarks/bend2-law-v1/evidence/{cell}/") for path in inventory), cell)
             for row in result["raw_artifacts"]:
                 path = REPLAY.PROJECT / row["path"]
                 self.assertEqual(path.stat().st_size, row["bytes"])

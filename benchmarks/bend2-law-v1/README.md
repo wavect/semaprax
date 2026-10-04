@@ -2,6 +2,11 @@
 
 ## LAW16 unified replay and fresh capture
 
+See [LAW16-AC1-REPRODUCIBILITY.md](LAW16-AC1-REPRODUCIBILITY.md) for the
+complete retained-review, fresh-capture, and specialized-cell sequence. It
+labels offline capsule authentication separately from commands that physically
+rerun a route.
+
 `law16_replay.py` provides retained review, fresh capture, and fresh-capsule
 review modes. Retained mode is an offline integrity and
 semantic replay of existing receipts; it re-renders the LAW16 report, verifies
@@ -37,9 +42,10 @@ Timeouts keep partial stdout/stderr, a null exit status, and the exact timeout
 budget. An interrupted sequence reports `failed_closed` and inventories its
 retained output; no partial route is promoted to successful evidence.
 
-This executes the Boolean ordinary-check, verdict/Z3, and peak-RSS routes; the
-guarded-i64 balance/sort and domain controls; the Bend universal U32 sort proof;
-and the supplemental LAW15 Lean profile. The guarded-i64 control run is a
+This executes seven non-agent routes: Boolean ordinary checking, Boolean
+verdict/Z3, peak RSS, guarded-i64 balance/sort and domain controls, guarded-i64
+balance source proof, Bend universal U32 sort proof, and the supplemental
+LAW15 Lean profile. The guarded-i64 control run is a
 supplemental route and does not admit the original checked-u32 manifest. The
 Bend proof establishes universal U32 sort laws for its exact Bend source; it
 has no matching `law16.*` SEMAPRAX source certificate or timing comparison.
@@ -136,9 +142,11 @@ The review binds every retained artifact, the command receipts, tool pins,
 and existing semantic route checks. The RSS review binds sample commands to
 their recorded provenance, so copying a capsule does not require rewriting
 historical command paths. These observations do not establish a quiet host or
-cache isolation. AC1 remains partial: the optional live agent continuation and
-the separately pinned guarded-i64 balance SMT source-proof route were not
-rerun by this sequence. The original checked-u32 cells remain unsupported.
+cache isolation. This retained capsule is historical and does not include the
+later guarded-i64 balance SMT source-proof route; the current `--execute`
+sequence reruns it as the seventh non-agent capture. The optional live agent
+continuation remains a provider-backed opt-in. The original checked-u32 cells
+remain unsupported.
 
 This is the reproducible benchmark harness for issue #392. It records a
 comparison only when a local command file pins both checked-out source trees,

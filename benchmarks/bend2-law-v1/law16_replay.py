@@ -29,10 +29,38 @@ RETAINED_DIRS = (
     "law16-boolean-negation-nonproof-process-v1", "law16-boolean-negation-proof-verdict-v1",
     "law16-boolean-negation-agent-pilot-v1", "law16-boolean-negation-agent-campaign-v1",
     "law16-boolean-negation-process-v1", "law16-boolean-negation-process-v2",
+    "law16-boolean-refactor-cell-v1", "law16-guest-cache-thirty-v1",
+    "law16-project-incremental-cell-v1", "law16-native-phase-thirty-v1",
     "law16-guarded-i64-balance-smt-v1", "full-u32-encoding-controls-v1", "law16-i64-list-proof-v1",
     "law16-guarded-i64-profile-controls-v2", "law16-bounded-balance-v2",
     "bend-u32-sort-universal-v1",
 )
+FRESH_CAPTURE_ROUTES = (
+    "boolean_ordinary_check",
+    "boolean_verdict_and_z3_process",
+    "boolean_peak_rss",
+    "guarded_i64_balance_and_sort_controls",
+    "guarded_i64_balance_smt_source_proof",
+    "bend_u32_universal_sort_source_proof",
+    "supplemental_law15_lean_list_theorem",
+)
+OFFLINE_REPLAY_ROUTES = ("bounded_balance_agent_evidence_replay",)
+LIVE_AGENT_ROUTE = "boolean_ten_pair_agent_campaign_continuation"
+
+
+def classify_execution_routes(step_ids: list[str]) -> dict[str, list[str]]:
+    expected = [*FRESH_CAPTURE_ROUTES, *OFFLINE_REPLAY_ROUTES]
+    if step_ids == [*expected, LIVE_AGENT_ROUTE]:
+        live_agent = [LIVE_AGENT_ROUTE]
+    elif step_ids == expected:
+        live_agent = []
+    else:
+        raise ValueError("fresh capture or offline replay route inventory drifted")
+    return {
+        "fresh_capture_routes": list(FRESH_CAPTURE_ROUTES),
+        "offline_replay_routes": list(OFFLINE_REPLAY_ROUTES),
+        "live_agent_routes": live_agent,
+    }
 
 
 def sha(path: Path) -> str:
@@ -364,9 +392,13 @@ def execute(output: Path, pins_path: Path, include_agent_campaign: bool) -> dict
     result_status = "executed_with_live_agent_campaign" if include_agent_campaign else "executed_without_live_agent_campaign_opt_in"
     if retained["status"] != "retained_evidence_verified":
         result_status = "partial_retained_evidence_after_fresh_capture"
+    observed_ids = [step["id"] for step in steps]
+    route_classes = classify_execution_routes(observed_ids)
     return {"mode": "fresh_execution", "status": result_status,
             "tool_pins": {"path": version_manifest.name, "sha256": sha(version_manifest)}, "retained_evidence_replay": retained,
-            "steps": steps, "generated_artifacts": output_inventory(output),
+            "steps": steps, **route_classes,
+            "execution_claim": "seven pinned non-agent routes executed; bounded-balance capsule reauthenticated offline",
+            "generated_artifacts": output_inventory(output),
             "agent_campaign": agent_status,
             "nonclaims": ["supplemental guarded-i64 controls are not checked-u32 manifest admission", "LAW15 Lean proof is not a LAW16 source identity", "Bend universal sort proof has no matched Semaprax law16.* source certificate or timing", "Semaprax build commit is caller-declared and not a build attestation", "no issue closure or cross-route winner is implied"]}
 

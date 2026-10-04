@@ -1,0 +1,23 @@
+{
+  "class": "feature",
+  "id": "feature-js-cart",
+  "languages": [
+    "node"
+  ],
+  "query": "coupon discount cart receipt total",
+  "steps": [
+    {
+      "feedback": "grader",
+      "grade": [
+        {
+          "cmd": [
+            "{node}",
+            "--test"
+          ]
+        }
+      ],
+      "id": "s1",
+      "request": "Add coupon support to the cart. cart.applyCoupon(code) accepts \"SAVE10\" (10% off the subtotal, floored: Math.floor(subtotal/10)) and \"FIVE\" (500 cents off, never more than the subtotal); any other code throws Error(\"unknown coupon\"). total(rate) applies the coupon first and tax after. format.receipt adds a line `Coupon <CODE> -<money>` before the Total line when a coupon is applied. Put the coupon rules in a new module src/coupons.js. Do not edit files under test/."
+    }
+  ]
+}

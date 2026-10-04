@@ -4,10 +4,12 @@
 //! configuration plus adopted descriptors, per-cell metrics, predeclared gates
 //! and a recommendation derived from them. Diagnostics `SPX-HPQ001..`: 001
 //! read, 002 schema, 003 unknown member, 004 pin drift, 005 duplicate id, 006
-//! unknown reference, 007 usage, 008 output, 010 router adapter. See
+//! unknown reference, 007 usage, 008 output, 010 router adapter, 011 grader
+//! validation failed, 012 tokenizer unavailable (application tasks). See
 //! `docs/HARNESS-BENCHMARK-V1.md`.
 
 pub mod adversarial;
+pub mod apptask;
 pub mod arena;
 pub mod cell;
 pub mod corpus;
@@ -27,7 +29,7 @@ use serde_json::{json, Value};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-const USAGE: &str = "bench <corpus-dir> [--profile NAME]... [--out DIR] [--json] [--warm N] [--env K=V]... [--repo DIR] [--work DIR] [--label TEXT] [--no-adversarial] [--no-measure] [--pilot HOST:PORT --pilot-model NAME [--pilot-reps N] [--pilot-calls N]]";
+const USAGE: &str = "bench app ... (application tasks, see docs) | bench <corpus-dir> [--profile NAME]... [--out DIR] [--json] [--warm N] [--env K=V]... [--repo DIR] [--work DIR] [--label TEXT] [--no-adversarial] [--no-measure] [--pilot HOST:PORT --pilot-model NAME [--pilot-reps N] [--pilot-calls N]]";
 
 fn q(code: &'static str, m: impl Into<String>) -> HarnessDiagnostic {
     HarnessDiagnostic::new(code, m)
@@ -122,6 +124,9 @@ fn parse(args: &[String]) -> Result<Args, HarnessDiagnostic> {
 }
 
 pub fn cli_bench(args: &[String], env: &Environment) -> Outcome {
+    if args.first().map(String::as_str) == Some("app") {
+        return apptask::cli_app(&args[1..], env);
+    }
     match parse(args).and_then(|a| execute(a, env)) {
         Ok(o) => o,
         Err(e) if e.code == "SPX-HPQ007" => {

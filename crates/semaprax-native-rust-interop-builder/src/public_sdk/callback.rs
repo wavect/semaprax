@@ -199,7 +199,7 @@ fn prepare_serde_callbacks_from_authenticated_project_source(
             || function.name == "main"
     });
     let resolved = semaprax::hir::resolve(&isolated)
-        .map_err(|mut errors| errors.remove(0).at_path(path.display().to_string()))?;
+        .map_err(|mut errors| vec![errors.remove(0).at_path(path.display().to_string())])?;
     semaprax::hir::validate(&resolved).map_err(located)?;
     let record = prepare_serde_record_projection(&resolved, record_id).map_err(located)?;
     let callback = prepare_checked(

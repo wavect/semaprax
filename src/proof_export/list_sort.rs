@@ -1,4 +1,4 @@
-//! LAW-15 collection laws over source-authenticated immutable List<i64> bodies.
+//! LAW-15 collection laws over source-authenticated immutable `List<i64>` bodies.
 //! Pinned Lean checks structural totality, sortedness and exact multiplicity.
 //! The mathematical model does not establish runtime resources or lowering.
 use super::{kernel_report, LeanKernel};

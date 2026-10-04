@@ -76,6 +76,7 @@ pub(super) fn receipt(
     replayed_candidate_test_evidence: Option<ReplayedCandidateTestEvidence>,
     candidate_test_selected: bool,
     receipt_context: Option<&RepairReceiptContext>,
+    terminal_patch_receipt: Option<&TerminalPatchReceipt>,
     checkpoint: &semaprax::live_invocation::source_journal::RecoveredSourceCheckpoint,
     model_dispatches: u32,
     effect_dispatches: u32,
@@ -138,6 +139,10 @@ pub(super) fn receipt(
         });
         report["runtime_effect_accounting"] =
             effect_accounting(checkpoint, model_dispatches, effect_dispatches)?;
+        report["patch_receipt"] = terminal_patch_receipt
+            .map(TerminalPatchReceipt::value)
+            .transpose()?
+            .unwrap_or(Value::Null);
         report["candidate_test_execution"] =
             match (candidate_test_evidence, replayed_candidate_test_evidence) {
                 (Some(evidence), None) => json!({

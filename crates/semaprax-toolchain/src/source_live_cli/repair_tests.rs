@@ -44,6 +44,8 @@ macro_rules! unix_checkpoint_host {
 mod fixed_candidate_test;
 #[path = "repair_tests/post_settled_barrier.rs"]
 mod post_settled_barrier;
+#[path = "repair_tests/terminal_patch_receipt.rs"]
+mod terminal_patch_receipt;
 
 const MANIFEST: &str = include_str!("../../../../examples/offline-repair-project/semaprax.toml");
 const APP: &str = include_str!("../../../../examples/offline-repair-project/src/app.spx");

@@ -219,6 +219,15 @@ response digests and byte counts, decode/refusal outcome, and provider-reported
 usage only when the adapter actually recorded it. Missing usage remains `null`;
 the receipt does not manufacture zero tokens, cost, timing or delivery. Terminal
 replay recomputes the identical projection without starting the provider.
+For V2 and V3, the live terminal invocation also derives the existing compact
+compiler-owned patch receipt once and retains its exact bytes in the held
+checkpoint directory as `terminal-patch-receipt.json`. That document binds the
+receipt digest and candidate digest to the retained journal invocation, chain,
+and generation. A terminal `resume` verifies that binding before it creates an
+adapter, candidate, test host, or effect handler, then returns the same patch
+receipt content and digest with zero model, test, or effect redispatch. A
+missing, malformed, or foreign-bound terminal receipt refuses; recovery never
+derives a replacement receipt from caller paths or stale configuration.
 `runtime_effect_accounting` is a separate bounded projection of the validated
 terminal journal fold. It reports cumulative model attempts, typed-effect
 dispatches, stages, committed model units and stage fuel alongside the

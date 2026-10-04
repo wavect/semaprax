@@ -69,6 +69,7 @@ mod platform {
     const DOCUMENT: &str = "checkpoint.json";
     const LOCK: &str = "writer.lock";
     const CLAIM: &str = "handoff.claim";
+    const TERMINAL_PATCH_RECEIPT: &str = "terminal-patch-receipt.json";
     const READ: OFlags = OFlags::RDONLY
         .union(OFlags::NOFOLLOW)
         .union(OFlags::NONBLOCK)
@@ -295,6 +296,74 @@ mod platform {
         }
         pub(in crate::source_live_cli) fn set_generation(&mut self, generation: u64) {
             self.generation = generation;
+        }
+
+        /// Retains the exact compiler-owned patch receipt produced alongside a
+        /// terminal repair checkpoint. The held checkpoint directory and its
+        /// writer lock remain the sole storage authority; callers can only
+        /// acknowledge identical retained bytes on a later recovery.
+        pub(in crate::source_live_cli) fn retain_terminal_patch_receipt(
+            &self,
+            document: &str,
+        ) -> Result<(), CliError> {
+            const MAX_BYTES: usize = 16 * 1024;
+            if document.len() > MAX_BYTES {
+                return Err(CliError::refused("terminal patch receipt exceeds limit"));
+            }
+            if let Some(existing) = read_at(&self.directory, TERMINAL_PATCH_RECEIPT, MAX_BYTES)? {
+                if existing != document.as_bytes() {
+                    return Err(CliError::refused(
+                        "terminal patch receipt conflicts with retained checkpoint",
+                    ));
+                }
+                let retained = File::from(
+                    openat(&self.directory, TERMINAL_PATCH_RECEIPT, READ, Mode::empty())
+                        .map_err(|_| CliError::refused("cannot reopen terminal patch receipt"))?,
+                );
+                retained
+                    .sync_all()
+                    .and_then(|_| self.directory.sync_all())
+                    .map_err(|_| CliError::refused("cannot acknowledge terminal patch receipt"))?;
+                return Ok(());
+            }
+            let scratch = format!(".terminal-patch-receipt.{}.tmp", std::process::id());
+            let mut staged = File::from(
+                openat(
+                    &self.directory,
+                    scratch.as_str(),
+                    OFlags::WRONLY
+                        | OFlags::CREATE
+                        | OFlags::EXCL
+                        | OFlags::NOFOLLOW
+                        | OFlags::CLOEXEC,
+                    PRIVATE,
+                )
+                .map_err(|_| CliError::refused("cannot stage terminal patch receipt"))?,
+            );
+            staged
+                .write_all(document.as_bytes())
+                .and_then(|_| staged.sync_all())
+                .and_then(|_| {
+                    renameat(
+                        &self.directory,
+                        scratch.as_str(),
+                        &self.directory,
+                        TERMINAL_PATCH_RECEIPT,
+                    )
+                })
+                .and_then(|_| self.directory.sync_all())
+                .map_err(|_| CliError::refused("cannot retain terminal patch receipt"))
+        }
+
+        pub(in crate::source_live_cli) fn terminal_patch_receipt(
+            &self,
+        ) -> Result<Option<String>, CliError> {
+            read_at(&self.directory, TERMINAL_PATCH_RECEIPT, 16 * 1024)?
+                .map(|bytes| {
+                    String::from_utf8(bytes)
+                        .map_err(|_| CliError::refused("terminal patch receipt is not UTF-8"))
+                })
+                .transpose()
         }
 
         pub(in crate::source_live_cli) fn claim_handoff(

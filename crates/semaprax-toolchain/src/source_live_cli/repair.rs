@@ -81,6 +81,89 @@ const RECEIPT_SCHEMA_V2: &str = "semaprax.source-live-cli.repair-receipt.v2";
 const CONFIG_SCHEMA_V1: &str = "semaprax.source-live-cli.repair-config.v1";
 const CONFIG_SCHEMA_V2: &str = "semaprax.source-live-cli.repair-config.v2";
 const MAX_ONE_PROVIDER_CALL_MS: i64 = 30_000;
+const TERMINAL_PATCH_RECEIPT_SCHEMA: &str =
+    "semaprax.source-live-cli.repair-terminal-patch-receipt.v1";
+
+struct TerminalPatchReceipt {
+    document: String,
+    receipt: String,
+}
+
+impl TerminalPatchReceipt {
+    fn derive(
+        preview: &semaprax::agent_runtime_v2::OfflineRepairPreview,
+        checkpoint: &semaprax::live_invocation::source_journal::RecoveredSourceCheckpoint,
+    ) -> Result<Self, CliError> {
+        let candidate = preview.candidate();
+        let candidate_digest = candidate.candidate_digest();
+        let receipt = candidate
+            .patch_receipt(candidate_digest)
+            .map_err(|_| CliError::refused("repair patch receipt derivation refused"))?;
+        let receipt_value: Value = serde_json::from_str(&receipt)
+            .map_err(|_| CliError::refused("repair patch receipt is not compiler JSON"))?;
+        let receipt_digest = receipt_value["receipt_digest"]
+            .as_str()
+            .ok_or(CliError::refused("repair patch receipt digest is absent"))?;
+        let document = serde_json::to_string(&json!({
+            "schema": TERMINAL_PATCH_RECEIPT_SCHEMA,
+            "journal_binding": {
+                "invocation": checkpoint.invocation(),
+                "chain": checkpoint.chain(),
+                "generation": checkpoint.generation(),
+            },
+            "candidate_digest": candidate_digest,
+            "receipt_digest": receipt_digest,
+            "receipt": receipt,
+        }))
+        .map(|document| format!("{document}\n"))
+        .map_err(|_| CliError::refused("repair terminal patch receipt cannot be rendered"))?;
+        Ok(Self { document, receipt })
+    }
+
+    fn recover(
+        document: String,
+        checkpoint: &semaprax::live_invocation::source_journal::RecoveredSourceCheckpoint,
+    ) -> Result<Self, CliError> {
+        let value: Value = serde_json::from_str(&document)
+            .map_err(|_| CliError::refused("terminal patch receipt is malformed"))?;
+        let object = value
+            .as_object()
+            .ok_or(CliError::refused("terminal patch receipt is malformed"))?;
+        let keys = object.keys().map(String::as_str).collect::<Vec<_>>();
+        if keys.as_slice()
+            != [
+                "candidate_digest",
+                "journal_binding",
+                "receipt",
+                "receipt_digest",
+                "schema",
+            ]
+            || value["schema"] != TERMINAL_PATCH_RECEIPT_SCHEMA
+            || value["journal_binding"]["invocation"] != checkpoint.invocation()
+            || value["journal_binding"]["chain"] != checkpoint.chain()
+            || value["journal_binding"]["generation"] != checkpoint.generation()
+        {
+            return Err(CliError::refused(
+                "terminal patch receipt binding is stale or mismatched",
+            ));
+        }
+        let receipt = value["receipt"]
+            .as_str()
+            .ok_or(CliError::refused("terminal patch receipt is malformed"))?
+            .to_owned();
+        let receipt_value: Value = serde_json::from_str(&receipt)
+            .map_err(|_| CliError::refused("terminal patch receipt is malformed"))?;
+        if receipt_value["receipt_digest"] != value["receipt_digest"] {
+            return Err(CliError::refused("terminal patch receipt digest is stale"));
+        }
+        Ok(Self { document, receipt })
+    }
+
+    fn value(&self) -> Result<Value, CliError> {
+        serde_json::from_str(&self.receipt)
+            .map_err(|_| CliError::refused("terminal patch receipt is malformed"))
+    }
+}
 
 #[cfg(test)]
 std::thread_local! {
@@ -934,6 +1017,17 @@ pub(super) fn execute_with_runner_and_candidate_test<
             })?;
         store.set_generation(recovered.generation());
         if recovered.terminal_snapshot().is_some() {
+            let terminal_patch_receipt = matches!(
+                &config.provider,
+                RepairProvider::OpenCode | RepairProvider::Claude
+            )
+            .then(|| {
+                store
+                    .terminal_patch_receipt()?
+                    .ok_or(CliError::refused("terminal patch receipt is unavailable"))
+                    .and_then(|document| TerminalPatchReceipt::recover(document, &recovered))
+            })
+            .transpose()?;
             let replayed_candidate_test_evidence = replayed_candidate_test_evidence(
                 &recovered,
                 &config.corrected_operation_id,
@@ -948,6 +1042,7 @@ pub(super) fn execute_with_runner_and_candidate_test<
                 replayed_candidate_test_evidence,
                 candidate_test_selected,
                 receipt_context.as_ref(),
+                terminal_patch_receipt.as_ref(),
                 &recovered,
                 0,
                 0,
@@ -1103,6 +1198,7 @@ pub(super) fn execute_with_runner_and_candidate_test<
             )
         })?;
     drop(source);
+    drop(barrier_store);
 
     if handler.candidate_test_refused() {
         return Err(CliError::refused(
@@ -1125,6 +1221,21 @@ pub(super) fn execute_with_runner_and_candidate_test<
     verify_checked_source_snapshot(&source_disk_path, source_before)?;
 
     let preview = handler.latest_preview();
+    let terminal_patch_receipt = matches!(
+        &config.provider,
+        RepairProvider::OpenCode | RepairProvider::Claude
+    )
+    .then(|| {
+        preview
+            .ok_or(CliError::refused(
+                "repair terminal candidate preview is unavailable",
+            ))
+            .and_then(|preview| TerminalPatchReceipt::derive(preview, &complete.run().checkpoint))
+    })
+    .transpose()?;
+    if let Some(terminal_patch_receipt) = &terminal_patch_receipt {
+        store.retain_terminal_patch_receipt(&terminal_patch_receipt.document)?;
+    }
     let rejection_count = handler.rejection_count();
     let candidate_test_evidence = handler.candidate_test_evidence();
     // A resumed invocation may execute new candidate tests. Its live evidence
@@ -1148,6 +1259,7 @@ pub(super) fn execute_with_runner_and_candidate_test<
         replayed_candidate_test_evidence,
         candidate_test_selected,
         receipt_context.as_ref(),
+        terminal_patch_receipt.as_ref(),
         &complete.run().checkpoint,
         model_dispatches,
         effect_dispatches,
@@ -1163,6 +1275,7 @@ fn receipt_with_preview(
     replayed_candidate_test_evidence: Option<ReplayedCandidateTestEvidence>,
     candidate_test_selected: bool,
     receipt_context: Option<&RepairReceiptContext>,
+    terminal_patch_receipt: Option<&TerminalPatchReceipt>,
     checkpoint: &semaprax::live_invocation::source_journal::RecoveredSourceCheckpoint,
     model_dispatches: u32,
     effect_dispatches: u32,
@@ -1174,6 +1287,7 @@ fn receipt_with_preview(
         replayed_candidate_test_evidence,
         candidate_test_selected,
         receipt_context,
+        terminal_patch_receipt,
         checkpoint,
         model_dispatches,
         effect_dispatches,

@@ -1,9 +1,10 @@
 # Project Patch Receipt v1
 
 Status: implemented retained-candidate summary and refusal/comparison core.
-The repair CLI has a separate terminal-journal effect-accounting projection;
-workflow adapters, shared candidate runtime/test/assurance observations, and
-evidence retrieval remain separate work.
+The V2/V3 durable repair terminal route retains its exact compiler-derived
+receipt bound to the completed journal and replays it without dispatch. Workflow
+adapters and shared candidate runtime/test/assurance observations remain
+separate work.
 
 Audience: agents and compiler contributors reviewing semantic edit candidates.
 

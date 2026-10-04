@@ -18,12 +18,14 @@ use crate::workspace_analysis::{
 use super::semantic_service_indexes::SemanticServiceIndexes;
 use super::{
     AgentDefinitions, AgentDefinitionsQuery, AgentDefinitionsQueryResult, ExactProgramContext,
-    ExactProgramContextV2, ProgramRoot, ProgramRootV2, ProgramRootV3, ProjectCandidate,
-    ProjectFrontendCache, ProjectFrontendSource, ProjectManifest,
-    ProjectPatchReceiptEvidencePageOptions, ProjectRevision, ProjectSemanticImage, SemanticQuery,
-    SemanticQueryResult, SemanticServiceIndexQuery, SemanticServiceIndexResult,
-    SemanticTransaction, SemanticTransactionArtifacts, SemanticTransactionArtifactsV2,
-    SemanticTransactionV2, SemanticTransactionV2Workflow, SemanticWorkspaceRevision,
+    ExactProgramContextV2, MAX_PROJECT_PATCH_RECEIPT_COMPARISON_BYTES,
+    MAX_PROJECT_PATCH_RECEIPT_COMPARISON_INPUTS, ProgramRoot, ProgramRootV2, ProgramRootV3,
+    ProjectCandidate, ProjectFrontendCache, ProjectFrontendSource, ProjectManifest,
+    ProjectPatchReceiptComparisonInput, ProjectPatchReceiptEvidencePageOptions, ProjectRevision,
+    ProjectSemanticImage, SemanticQuery, SemanticQueryResult, SemanticServiceIndexQuery,
+    SemanticServiceIndexResult, SemanticTransaction, SemanticTransactionArtifacts,
+    SemanticTransactionArtifactsV2, SemanticTransactionV2, SemanticTransactionV2Workflow,
+    SemanticWorkspaceRevision,
 };
 
 mod history;
@@ -46,6 +48,8 @@ pub const SEMANTIC_WORKSPACE_SERVICE_WORK_SCHEMA: &str =
 pub const SEMANTIC_WORKSPACE_SERVICE_REFRESH_SCHEMA: &str =
     "semaprax.semantic-workspace-service-refresh.v1";
 pub const MAX_SEMANTIC_WORKSPACE_SERVICE_RECEIPT_BYTES: usize = 65_536;
+pub const MAX_SEMANTIC_WORKSPACE_SERVICE_PATCH_RECEIPT_COMPARISON_INPUTS: usize =
+    MAX_PROJECT_PATCH_RECEIPT_COMPARISON_INPUTS;
 
 const WORK_DOMAIN: &[u8] = b"semaprax.semantic-workspace-service.work.digest.v1\0";
 const REFRESH_DOMAIN: &[u8] = b"semaprax.semantic-workspace-service.refresh.digest.v1\0";
@@ -942,14 +946,21 @@ impl SemanticWorkspaceService {
         transaction_bytes: &[u8],
         operation: impl FnOnce(&ProjectCandidate) -> Result<T>,
     ) -> Result<T> {
+        let artifacts = self.patch_receipt_artifacts(transaction_bytes)?;
+        operation(artifacts.candidate())
+    }
+
+    fn patch_receipt_artifacts(
+        &self,
+        transaction_bytes: &[u8],
+    ) -> Result<SemanticTransactionArtifacts> {
         let transaction = SemanticTransaction::from_json(transaction_bytes)?;
         if transaction.expected_workspace_revision() != self.active.workspace_revision() {
             return Err(stale(
                 "semantic workspace service patch receipt transaction revision is stale",
             ));
         }
-        let artifacts = transaction.validate(Arc::clone(&self.active.revision))?;
-        operation(artifacts.candidate())
+        transaction.validate(Arc::clone(&self.active.revision))
     }
 
     /// Render a compact compiler-owned receipt for a candidate reconstructed
@@ -1057,6 +1068,49 @@ impl SemanticWorkspaceService {
                 )
             })
         })
+    }
+
+    /// Replay and verify an ordered bounded receipt set from this immutable
+    /// generation before rendering a read-only comparison. The legacy pairwise
+    /// operation remains available with its frozen schema and operands.
+    pub fn compare_patch_receipt_set(&self, inputs: &[(&[u8], &str, &[u8])]) -> Result<String> {
+        if inputs.len() < 2 {
+            return Err(invalid(
+                "patch receipt comparison requires at least two receipts",
+            ));
+        }
+        if inputs.len() > MAX_SEMANTIC_WORKSPACE_SERVICE_PATCH_RECEIPT_COMPARISON_INPUTS {
+            return Err(capacity("patch receipt comparison has too many receipts"));
+        }
+        let total_bytes =
+            inputs
+                .iter()
+                .try_fold(0usize, |total, (transaction, candidate, receipt)| {
+                    total
+                        .checked_add(transaction.len())
+                        .and_then(|value| value.checked_add(candidate.len()))
+                        .and_then(|value| value.checked_add(receipt.len()))
+                        .ok_or_else(|| capacity("patch receipt comparison input bytes overflow"))
+                })?;
+        if total_bytes > MAX_PROJECT_PATCH_RECEIPT_COMPARISON_BYTES {
+            return Err(capacity("patch receipt comparison inputs exceed 128 KiB"));
+        }
+        let artifacts = inputs
+            .iter()
+            .map(|(transaction, _, _)| self.patch_receipt_artifacts(transaction))
+            .collect::<Result<Vec<_>>>()?;
+        let comparisons = artifacts
+            .iter()
+            .zip(inputs)
+            .map(
+                |(artifacts, (_, candidate, receipt))| ProjectPatchReceiptComparisonInput {
+                    candidate: artifacts.candidate(),
+                    expected_candidate: candidate,
+                    receipt_bytes: receipt,
+                },
+            )
+            .collect::<Vec<_>>();
+        ProjectCandidate::compare_patch_receipt_set(&comparisons)
     }
 
     /// Validate one additive v2 transaction against the active immutable

@@ -1,12 +1,12 @@
 //! One-shot authority-free patch receipt projections over an authenticated Project.
 
 use semaprax::diagnostic::Diagnostic;
-use semaprax::project::{with_authenticated_project, SemanticWorkspaceService};
+use semaprax::project::{SemanticWorkspaceService, with_authenticated_project};
 use std::path::PathBuf;
 
 use super::project::{is_project_manifest, resolve_positional};
 
-const USAGE: &str = "patch-receipt requires <project> <render|verify|refusal|verify-refusal|compare|evidence-summary|evidence-page> canonical transaction, receipt, and retained-evidence operands";
+const USAGE: &str = "patch-receipt requires <project> <render|verify|refusal|verify-refusal|compare|compare-set|evidence-summary|evidence-page> canonical transaction, receipt, and retained-evidence operands";
 const EVIDENCE_PAGE_SIZE: usize = 32;
 const EVIDENCE_MAX_BYTES: usize = 65_536;
 
@@ -54,6 +54,10 @@ pub(crate) enum Command {
         right_transaction: String,
         right_candidate: String,
         right_receipt: String,
+    },
+    CompareSet {
+        manifest: PathBuf,
+        entries: Vec<(String, String, String)>,
     },
 }
 
@@ -105,29 +109,47 @@ pub(crate) fn parse(args: &[String]) -> Result<Command, u8> {
                 candidate: candidate.clone(),
             })
         }
-        [operation, transaction, candidate, evidence_id, handle, cursor]
-            if operation == "evidence-page" =>
+        [
+            operation,
+            transaction,
+            candidate,
+            evidence_id,
+            handle,
+            cursor,
+        ] if operation == "evidence-page" => Ok(Command::EvidencePage {
+            manifest,
+            transaction: transaction.clone(),
+            candidate: candidate.clone(),
+            evidence_id: evidence_id.clone(),
+            handle: handle.clone(),
+            cursor: (cursor != "-").then(|| cursor.clone()),
+        }),
+        [
+            operation,
+            left_transaction,
+            left_candidate,
+            left_receipt,
+            right_transaction,
+            right_candidate,
+            right_receipt,
+        ] if operation == "compare" => Ok(Command::Compare {
+            manifest,
+            left_transaction: left_transaction.clone(),
+            left_candidate: left_candidate.clone(),
+            left_receipt: left_receipt.clone(),
+            right_transaction: right_transaction.clone(),
+            right_candidate: right_candidate.clone(),
+            right_receipt: right_receipt.clone(),
+        }),
+        [operation, entries @ ..]
+            if operation == "compare-set" && entries.len() >= 6 && entries.len() % 3 == 0 =>
         {
-            Ok(Command::EvidencePage {
+            Ok(Command::CompareSet {
                 manifest,
-                transaction: transaction.clone(),
-                candidate: candidate.clone(),
-                evidence_id: evidence_id.clone(),
-                handle: handle.clone(),
-                cursor: (cursor != "-").then(|| cursor.clone()),
-            })
-        }
-        [operation, left_transaction, left_candidate, left_receipt, right_transaction, right_candidate, right_receipt]
-            if operation == "compare" =>
-        {
-            Ok(Command::Compare {
-                manifest,
-                left_transaction: left_transaction.clone(),
-                left_candidate: left_candidate.clone(),
-                left_receipt: left_receipt.clone(),
-                right_transaction: right_transaction.clone(),
-                right_candidate: right_candidate.clone(),
-                right_receipt: right_receipt.clone(),
+                entries: entries
+                    .chunks_exact(3)
+                    .map(|entry| (entry[0].clone(), entry[1].clone(), entry[2].clone()))
+                    .collect(),
             })
         }
         _ => usage(),
@@ -142,7 +164,8 @@ pub(crate) fn run(command: Command, report: impl Fn(&[Diagnostic]) -> u8) -> Res
         | Command::VerifyRefusal { manifest, .. }
         | Command::EvidenceSummary { manifest, .. }
         | Command::EvidencePage { manifest, .. }
-        | Command::Compare { manifest, .. } => manifest,
+        | Command::Compare { manifest, .. }
+        | Command::CompareSet { manifest, .. } => manifest,
     }
     .clone();
     let output = with_authenticated_project(&manifest, |snapshot| {
@@ -214,6 +237,19 @@ pub(crate) fn run(command: Command, report: impl Fn(&[Diagnostic]) -> u8) -> Res
                 &right_candidate,
                 right_receipt.as_bytes(),
             ),
+            Command::CompareSet { entries, .. } => {
+                let inputs = entries
+                    .iter()
+                    .map(|(transaction, candidate, receipt)| {
+                        (
+                            transaction.as_bytes(),
+                            candidate.as_str(),
+                            receipt.as_bytes(),
+                        )
+                    })
+                    .collect::<Vec<_>>();
+                service.compare_patch_receipt_set(&inputs)
+            }
         }
     })
     .map_err(|errors| report(&errors))?;
@@ -286,6 +322,22 @@ mod tests {
                 "-",
             ])),
             Ok(Command::EvidencePage { cursor: None, .. })
+        ));
+        assert!(matches!(
+            parse(&args(&[
+                "examples/calculator-project",
+                "compare-set",
+                "{\"schema\":\"semaprax.semantic-transaction.v1\"}",
+                "sha256:one",
+                "{\"schema\":\"semaprax.patch-receipt.v1\"}",
+                "{\"schema\":\"semaprax.semantic-transaction.v1\"}",
+                "sha256:two",
+                "{\"schema\":\"semaprax.patch-receipt.v1\"}",
+                "{\"schema\":\"semaprax.semantic-transaction.v1\"}",
+                "sha256:three",
+                "{\"schema\":\"semaprax.patch-receipt.v1\"}",
+            ])),
+            Ok(Command::CompareSet { entries, .. }) if entries.len() == 3
         ));
         for malformed in [
             args(&[]),

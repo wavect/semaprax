@@ -30,6 +30,7 @@ semaprax patch-receipt <project> verify <transaction-json> <candidate-digest> <r
 semaprax patch-receipt <project> refusal <transaction-json> <requested-candidate-digest>
 semaprax patch-receipt <project> verify-refusal <transaction-json> <requested-candidate-digest> <receipt-json>
 semaprax patch-receipt <project> compare <left-transaction-json> <left-candidate-digest> <left-receipt-json> <right-transaction-json> <right-candidate-digest> <right-receipt-json>
+semaprax patch-receipt <project> compare-set <transaction-json> <candidate-digest> <receipt-json> [<transaction-json> <candidate-digest> <receipt-json> ...]
 semaprax patch-receipt <project> evidence-summary <transaction-json> <candidate-digest>
 semaprax patch-receipt <project> evidence-page <transaction-json> <candidate-digest> <evidence-id> <handle> <cursor|->
 ```
@@ -131,6 +132,24 @@ only when the receipts both admit candidates and bind the same base Project,
 workspace context, and policy/accounting scope. Otherwise it returns
 `not_comparable` with stable reasons. It never calculates a universal best
 patch score and grants no merge, execution, source, or publication authority.
+
+### Bounded receipt sets
+
+`compare-set` is the additive `semaprax.patch-receipt-comparison.v2` route for
+an ordered set of 2 through 16 receipts. It accepts triples in receipt order
+and limits the aggregate receipt bytes to 128 KiB. The semantic service exposes
+the same route as `workspace/compare-patch-receipt-set`, with a closed
+`receipts` array whose items contain only `transaction`, `candidate_digest`,
+and `receipt`; MCP exposes it as `workspace__compare_patch_receipt_set`.
+
+The library replays and verifies every submitted receipt before it evaluates
+compatibility. The result retains the supplied order in `receipts` and gives
+each incompatibility an indexed reason such as
+`receipt_3_base_project_revision_differs` or
+`receipt_3_policy_or_accounting_scope_differs`. Refused candidates likewise
+remain visible as `receipt_N_did_not_admit_a_candidate`. Compatible results
+contain ordered declaration, check, and effect-usage arrays. It remains a
+descriptive, read-only projection and does not assign a universal winner.
 
 ### Repair alternatives from one base
 

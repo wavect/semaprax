@@ -2,10 +2,10 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use semaprax::project::{
-    with_authenticated_project, ProjectCandidate, ProjectPatchReceiptEvidencePageOptions,
-    SemanticChange,
+    ProjectCandidate, ProjectPatchReceiptComparisonInput, ProjectPatchReceiptEvidencePageOptions,
+    SemanticChange, with_authenticated_project,
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
@@ -206,9 +206,11 @@ fn stale_selector_has_a_bound_refusal_without_a_result_candidate_or_successful_c
     );
     assert!(value["content"]["binding"]["project_revision"].is_null());
     assert_eq!(value["content"]["checks"][0]["result"], "failed");
-    assert!(value["content"]["checks"].as_array().unwrap()[1..]
-        .iter()
-        .all(|check| check["result"] == "not_run"));
+    assert!(
+        value["content"]["checks"].as_array().unwrap()[1..]
+            .iter()
+            .all(|check| check["result"] == "not_run")
+    );
     let verification: Value = serde_json::from_str(
         &candidate
             .verify_patch_receipt_refusal(stale, receipt.as_bytes())
@@ -266,10 +268,93 @@ fn receipt_comparison_verifies_both_routes_and_refuses_incompatible_inputs() {
     )
     .unwrap();
     assert_eq!(incomparable["result"], "not_comparable");
-    assert!(incomparable["reasons"]
-        .as_array()
-        .unwrap()
-        .contains(&json!("right_receipt_did_not_admit_a_candidate")));
+    assert!(
+        incomparable["reasons"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("right_receipt_did_not_admit_a_candidate"))
+    );
+    assert!(incomparable["comparison"].is_null());
+}
+
+#[test]
+fn receipt_set_comparison_verifies_three_receipts_and_keeps_incompatibility_indexed() {
+    let fixture = Fixture::new();
+    let root = fixture.candidate();
+    let left = apply(
+        &root,
+        json!({"kind":"rename_declaration","target":"calculator.add","name":"sum"}),
+    );
+    let middle = apply(
+        &root,
+        json!({"kind":"rename_declaration","target":"calculator.add","name":"plus"}),
+    );
+    let right = apply(
+        &root,
+        json!({"kind":"rename_declaration","target":"calculator.add","name":"total"}),
+    );
+    let left_receipt = left.patch_receipt(left.candidate_digest()).unwrap();
+    let middle_receipt = middle.patch_receipt(middle.candidate_digest()).unwrap();
+    let right_receipt = right.patch_receipt(right.candidate_digest()).unwrap();
+    let comparison: Value = serde_json::from_str(
+        &ProjectCandidate::compare_patch_receipt_set(&[
+            ProjectPatchReceiptComparisonInput {
+                candidate: &left,
+                expected_candidate: left.candidate_digest(),
+                receipt_bytes: left_receipt.as_bytes(),
+            },
+            ProjectPatchReceiptComparisonInput {
+                candidate: &middle,
+                expected_candidate: middle.candidate_digest(),
+                receipt_bytes: middle_receipt.as_bytes(),
+            },
+            ProjectPatchReceiptComparisonInput {
+                candidate: &right,
+                expected_candidate: right.candidate_digest(),
+                receipt_bytes: right_receipt.as_bytes(),
+            },
+        ])
+        .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(comparison["schema"], "semaprax.patch-receipt-comparison.v2");
+    assert_eq!(comparison["result"], "comparable");
+    assert_eq!(comparison["receipts"].as_array().unwrap().len(), 3);
+    assert_eq!(
+        comparison["comparison"]["checks"].as_array().unwrap().len(),
+        3
+    );
+
+    let stale = "sha256:2222222222222222222222222222222222222222222222222222222222222222";
+    let refusal = right.patch_receipt_refusal(stale).unwrap();
+    let incomparable: Value = serde_json::from_str(
+        &ProjectCandidate::compare_patch_receipt_set(&[
+            ProjectPatchReceiptComparisonInput {
+                candidate: &left,
+                expected_candidate: left.candidate_digest(),
+                receipt_bytes: left_receipt.as_bytes(),
+            },
+            ProjectPatchReceiptComparisonInput {
+                candidate: &middle,
+                expected_candidate: middle.candidate_digest(),
+                receipt_bytes: middle_receipt.as_bytes(),
+            },
+            ProjectPatchReceiptComparisonInput {
+                candidate: &right,
+                expected_candidate: stale,
+                receipt_bytes: refusal.as_bytes(),
+            },
+        ])
+        .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(incomparable["result"], "not_comparable");
+    assert!(
+        incomparable["reasons"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("receipt_3_did_not_admit_a_candidate"))
+    );
     assert!(incomparable["comparison"].is_null());
 }
 
@@ -356,31 +441,37 @@ fn retained_evidence_pages_are_closed_bounded_and_preserve_cross_file_declaratio
     assert!(contract_ids.contains(&"calculator.subtract"));
 
     let stale = "sha256:1111111111111111111111111111111111111111111111111111111111111111";
-    assert!(candidate
-        .patch_receipt_evidence_page(
-            candidate.candidate_digest(),
-            "../../receipt.json",
-            &handle,
-            None,
-            options,
-        )
-        .is_err());
-    assert!(candidate
-        .patch_receipt_evidence_page(
-            candidate.candidate_digest(),
-            "declaration_catalog",
-            stale,
-            None,
-            options,
-        )
-        .is_err());
-    assert!(candidate
-        .patch_receipt_evidence_page(
-            candidate.candidate_digest(),
-            "declaration_catalog",
-            &handle,
-            Some("1:sha256:bad"),
-            options,
-        )
-        .is_err());
+    assert!(
+        candidate
+            .patch_receipt_evidence_page(
+                candidate.candidate_digest(),
+                "../../receipt.json",
+                &handle,
+                None,
+                options,
+            )
+            .is_err()
+    );
+    assert!(
+        candidate
+            .patch_receipt_evidence_page(
+                candidate.candidate_digest(),
+                "declaration_catalog",
+                stale,
+                None,
+                options,
+            )
+            .is_err()
+    );
+    assert!(
+        candidate
+            .patch_receipt_evidence_page(
+                candidate.candidate_digest(),
+                "declaration_catalog",
+                &handle,
+                Some("1:sha256:bad"),
+                options,
+            )
+            .is_err()
+    );
 }

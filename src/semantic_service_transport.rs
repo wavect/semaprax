@@ -9,8 +9,9 @@ use serde_json::{Map, Value, json};
 
 use crate::diagnostic::Diagnostic;
 use crate::project::{
-    MAX_SEMANTIC_TRANSACTION_V2_WORKFLOW_STEPS, MAX_SOURCES, ProjectFrontendSource,
-    ProjectManifest, ProjectRevision, SemanticWorkspaceService,
+    MAX_SEMANTIC_TRANSACTION_V2_WORKFLOW_STEPS,
+    MAX_SEMANTIC_WORKSPACE_SERVICE_PATCH_RECEIPT_COMPARISON_INPUTS, MAX_SOURCES,
+    ProjectFrontendSource, ProjectManifest, ProjectRevision, SemanticWorkspaceService,
 };
 use crate::project_transport::codec::{self, RequestId, RequestKind, RpcRequest};
 
@@ -328,6 +329,53 @@ impl SemanticWorkspaceStdioSession {
                 )?;
                 self.wrap(json!({"value": exact_json(&comparison)?}))
             }
+            "workspace/compare-patch-receipt-set" => {
+                self.require_open()?;
+                let mut params = closed_params(request.params, &["receipts"])?;
+                let receipts = params
+                    .remove("receipts")
+                    .and_then(|value| value.as_array().cloned())
+                    .ok_or_else(|| invalid("receipts must be an array"))?;
+                if receipts.len() < 2
+                    || receipts.len()
+                        > MAX_SEMANTIC_WORKSPACE_SERVICE_PATCH_RECEIPT_COMPARISON_INPUTS
+                {
+                    return Err(capacity("receipts exceed transport comparison count limit"));
+                }
+                let entries = receipts
+                    .into_iter()
+                    .map(|receipt| {
+                        let mut receipt = receipt
+                            .as_object()
+                            .cloned()
+                            .ok_or_else(|| invalid("each receipt must be an object"))?;
+                        if receipt.len() != 3
+                            || !receipt.contains_key("transaction")
+                            || !receipt.contains_key("candidate_digest")
+                            || !receipt.contains_key("receipt")
+                        {
+                            return Err(invalid("receipt has missing or unknown members"));
+                        }
+                        Ok((
+                            take_string(&mut receipt, "transaction")?,
+                            take_string(&mut receipt, "candidate_digest")?,
+                            take_string(&mut receipt, "receipt")?,
+                        ))
+                    })
+                    .collect::<Result<Vec<_>>>()?;
+                let inputs = entries
+                    .iter()
+                    .map(|(transaction, candidate, receipt)| {
+                        (
+                            transaction.as_bytes(),
+                            candidate.as_str(),
+                            receipt.as_bytes(),
+                        )
+                    })
+                    .collect::<Vec<_>>();
+                let comparison = self.service.compare_patch_receipt_set(&inputs)?;
+                self.wrap(json!({"value": exact_json(&comparison)?}))
+            }
             "workspace/compact-projection" => {
                 self.require_open()?;
                 self.wrap(compact::project(&self.service, request.params)?)
@@ -500,7 +548,7 @@ fn protocol() -> Value {
             "workspace/patch-receipt", "workspace/verify-patch-receipt",
             "workspace/patch-receipt-refusal", "workspace/verify-patch-receipt-refusal",
             "workspace/patch-receipt-evidence-summary", "workspace/patch-receipt-evidence-page",
-            "workspace/compare-patch-receipts",
+            "workspace/compare-patch-receipts", "workspace/compare-patch-receipt-set",
             "workspace/compact-projection",
             "workspace/refresh", "shutdown"
         ],

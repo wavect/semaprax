@@ -374,6 +374,11 @@ fn tools() -> Vec<Value> {
             ]),
         ),
         tool(
+            "workspace__compare_patch_receipt_set",
+            "Independently replay and verify an ordered set of 2 through 16 compact receipts before rendering a descriptive comparison.",
+            json!({"type":"object","properties":{"receipts":{"type":"array","minItems":2,"maxItems":16,"items":{"type":"object","properties":{"transaction":{"type":"string","maxLength":65536},"candidate_digest":{"type":"string","maxLength":4096},"receipt":{"type":"string","maxLength":8192}},"required":["transaction","candidate_digest","receipt"],"additionalProperties":false}}},"required":["receipts"],"additionalProperties":false}),
+        ),
+        tool(
             "workspace__compact_projection",
             "Compact one existing authoritative projection selected from the exact retained workspace generation. Source labels select retained Project bytes only; they are not host paths.",
             json!({
@@ -447,6 +452,7 @@ fn tool_method(name: &str) -> Option<&'static str> {
         }
         "workspace__patch_receipt_evidence_page" => Some("workspace/patch-receipt-evidence-page"),
         "workspace__compare_patch_receipts" => Some("workspace/compare-patch-receipts"),
+        "workspace__compare_patch_receipt_set" => Some("workspace/compare-patch-receipt-set"),
         "workspace__compact_projection" => Some("workspace/compact-projection"),
         "workspace__refresh" => Some("workspace/refresh"),
         _ => None,

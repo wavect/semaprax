@@ -149,6 +149,7 @@ fn lifecycle_catalogue_and_tools_share_the_retained_authority_free_generation() 
             "workspace__patch_receipt_evidence_summary",
             "workspace__patch_receipt_evidence_page",
             "workspace__compare_patch_receipts",
+            "workspace__compare_patch_receipt_set",
             "workspace__compact_projection",
             "workspace__refresh",
         ]

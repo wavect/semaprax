@@ -9,13 +9,13 @@
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use crate::diagnostic::Diagnostic;
 use crate::workspace_analysis::{WorkspaceAnalysisTargetKind, WorkspaceImpactOptions};
 
 use super::{
-    wire, CandidateAssuranceInput, ProjectCandidate, PROJECT_CANDIDATE_ASSURANCE_SELECTION_SCHEMA,
+    CandidateAssuranceInput, PROJECT_CANDIDATE_ASSURANCE_SELECTION_SCHEMA, ProjectCandidate, wire,
 };
 
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
@@ -24,6 +24,10 @@ pub const PROJECT_PATCH_RECEIPT_SCHEMA: &str = "semaprax.patch-receipt.v1";
 pub const PROJECT_PATCH_RECEIPT_VERIFICATION_SCHEMA: &str =
     "semaprax.patch-receipt-verification.v1";
 pub const PROJECT_PATCH_RECEIPT_COMPARISON_SCHEMA: &str = "semaprax.patch-receipt-comparison.v1";
+/// The additive n-ary comparison projection. The v1 pairwise comparison
+/// remains frozen for existing callers.
+pub const PROJECT_PATCH_RECEIPT_SET_COMPARISON_SCHEMA: &str =
+    "semaprax.patch-receipt-comparison.v2";
 pub const PROJECT_PATCH_RECEIPT_EVIDENCE_SUMMARY_SCHEMA: &str =
     "semaprax.patch-receipt-evidence-summary.v1";
 pub const PROJECT_PATCH_RECEIPT_EVIDENCE_PAGE_SCHEMA: &str =
@@ -31,6 +35,8 @@ pub const PROJECT_PATCH_RECEIPT_EVIDENCE_PAGE_SCHEMA: &str =
 /// The default summary budget. Larger reports remain independently derivable
 /// from the selected retained candidate through their own candidate APIs.
 pub const MAX_PROJECT_PATCH_RECEIPT_BYTES: usize = 8 * 1024;
+pub const MAX_PROJECT_PATCH_RECEIPT_COMPARISON_INPUTS: usize = 16;
+pub const MAX_PROJECT_PATCH_RECEIPT_COMPARISON_BYTES: usize = 128 * 1024;
 pub const MAX_PROJECT_PATCH_RECEIPT_EVIDENCE_SUMMARY_BYTES: usize = 64 * 1024;
 pub const MAX_PROJECT_PATCH_RECEIPT_EVIDENCE_PAGE_BYTES: usize = 1024 * 1024;
 
@@ -47,6 +53,16 @@ const MAX_EVIDENCE_CURSOR_OFFSET: usize = 65_536;
 const DEPENDENCY_IMPACT_MAX_BYTES: usize = 64 * 1024;
 const DEPENDENCY_IMPACT_MAX_NODES: usize = 128;
 const DEPENDENCY_IMPACT_DEPTH: usize = 16;
+
+/// One independently replayed receipt selected for a bounded descriptive
+/// comparison. The caller supplies no derived facts: the candidate library
+/// replays and verifies every receipt before it compares their content.
+#[derive(Clone, Copy)]
+pub struct ProjectPatchReceiptComparisonInput<'a> {
+    pub candidate: &'a ProjectCandidate,
+    pub expected_candidate: &'a str,
+    pub receipt_bytes: &'a [u8],
+}
 
 fn invalid(message: &'static str) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-G982", message)]
@@ -476,6 +492,94 @@ impl ProjectCandidate {
             other_expected_candidate,
             None,
             other_bytes,
+        )
+    }
+
+    /// Compare a bounded ordered set of receipts. Every item is independently
+    /// replayed and verified before any compatibility decision is made. Input
+    /// order is retained in the result so equal inputs always render the same
+    /// comparison bytes.
+    pub fn compare_patch_receipt_set(
+        inputs: &[ProjectPatchReceiptComparisonInput<'_>],
+    ) -> Result<String> {
+        if inputs.len() < 2 {
+            return Err(invalid(
+                "patch receipt comparison requires at least two receipts",
+            ));
+        }
+        if inputs.len() > MAX_PROJECT_PATCH_RECEIPT_COMPARISON_INPUTS {
+            return Err(capacity("patch receipt comparison has too many receipts"));
+        }
+        let total_bytes = inputs.iter().try_fold(0usize, |total, input| {
+            total
+                .checked_add(input.receipt_bytes.len())
+                .ok_or_else(|| capacity("patch receipt comparison input bytes overflow"))
+        })?;
+        if total_bytes > MAX_PROJECT_PATCH_RECEIPT_COMPARISON_BYTES {
+            return Err(capacity("patch receipt comparison inputs exceed 128 KiB"));
+        }
+
+        let verified = inputs
+            .iter()
+            .map(|input| {
+                verified_receipt_content(
+                    input.candidate,
+                    input.expected_candidate,
+                    None,
+                    input.receipt_bytes,
+                )
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let first = &verified[0];
+        let mut reasons = Vec::new();
+        for (index, content) in verified.iter().enumerate() {
+            let position = index + 1;
+            if content["attempt"]["status"] != "admitted_candidate" {
+                reasons.push(format!("receipt_{position}_did_not_admit_a_candidate"));
+            }
+            if index == 0 {
+                continue;
+            }
+            for (field, reason) in [
+                ("base_project_revision", "base_project_revision_differs"),
+                ("workspace", "workspace_context_differs"),
+            ] {
+                if content["binding"][field] != first["binding"][field] {
+                    reasons.push(format!("receipt_{position}_{reason}"));
+                }
+            }
+            if content["policy"] != first["policy"] {
+                reasons.push(format!(
+                    "receipt_{position}_policy_or_accounting_scope_differs"
+                ));
+            }
+        }
+        let result = if reasons.is_empty() {
+            "comparable"
+        } else {
+            "not_comparable"
+        };
+        wire::render(
+            json!({
+                "schema": PROJECT_PATCH_RECEIPT_SET_COMPARISON_SCHEMA,
+                "result": result,
+                "reasons": reasons,
+                "receipts": inputs.iter().zip(&verified).enumerate().map(|(index, (input, content))| {
+                    let mut side = receipt_comparison_side(input.receipt_bytes, content)?;
+                    side["receipt_index"] = json!(index + 1);
+                    Ok(side)
+                }).collect::<Result<Vec<_>>>()?,
+                "comparison": if result == "comparable" { json!({
+                    "declarations": verified.iter().map(|content| content["declarations"].clone()).collect::<Vec<_>>(),
+                    "checks": verified.iter().map(|content| content["checks"].clone()).collect::<Vec<_>>(),
+                    "effect_usage": verified.iter().map(|content| content["effect_usage"].clone()).collect::<Vec<_>>(),
+                }) } else { Value::Null },
+                "execution": false,
+                "source_authority": false,
+                "publication_authority": false,
+                "nonclaims": ["not_a_universal_best_patch_score","not_merge_or_publication_authority"],
+            }),
+            65_536,
         )
     }
 

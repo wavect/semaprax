@@ -192,6 +192,14 @@ fn one_session_retains_one_generation_and_delegates_exact_query_and_transaction_
             "workspace/validate-transaction",
             "workspace/validate-transaction-v2",
             "workspace/validate-transaction-v2-workflow",
+            "workspace/patch-receipt",
+            "workspace/verify-patch-receipt",
+            "workspace/patch-receipt-refusal",
+            "workspace/verify-patch-receipt-refusal",
+            "workspace/patch-receipt-evidence-summary",
+            "workspace/patch-receipt-evidence-page",
+            "workspace/compare-patch-receipts",
+            "workspace/compare-patch-receipt-set",
             "workspace/compact-projection",
             "workspace/refresh",
             "shutdown"
@@ -712,12 +720,25 @@ fn patch_receipt_adapters_replay_retained_candidates_without_history_or_path_inp
         ))["payload"]["value"]["result"],
         "comparable"
     );
+    assert_eq!(
+        result(&call(
+            &mut session,
+            json!(9),
+            "workspace/compare-patch-receipt-set",
+            json!({"receipts":[
+                {"transaction":transaction,"candidate_digest":candidate,"receipt":receipt_text},
+                {"transaction":transaction,"candidate_digest":candidate,"receipt":receipt_text},
+                {"transaction":transaction,"candidate_digest":candidate,"receipt":receipt_text}
+            ]}),
+        ))["payload"]["value"]["result"],
+        "comparable"
+    );
 
     let history = SemanticWorkspaceServiceHistoryQuery::new(&workspace, 0, 64).unwrap();
     assert!(
         result(&call(
             &mut session,
-            json!(9),
+            json!(10),
             "workspace/history-query",
             json!({"query":history.to_json()}),
         ))["payload"]["value"]["items"]

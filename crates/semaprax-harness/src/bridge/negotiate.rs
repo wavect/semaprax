@@ -6,6 +6,8 @@ use serde_json::{json, Map, Value};
 use std::collections::BTreeMap;
 
 pub const PROTOCOL: &str = "semaprax.harness-bridge.v1";
+/// Adds the `bridge/skills/*` methods, session identity and skill ownership.
+pub const PROTOCOL_V2: &str = "semaprax.harness-bridge.v2";
 pub const HANDSHAKE_SCHEMA: &str = "semaprax.harness-bridge-handshake.v1";
 /// Marker in the environment/lineage of a process started by a Semaprax bridge.
 pub const DEPTH_VAR: &str = "SEMAPRAX_HARNESS_BRIDGE_DEPTH";
@@ -47,6 +49,12 @@ pub struct HostDeclaration {
     pub command_rewriter: Option<String>,
     pub depth: u64,
     pub lineage: Vec<String>,
+    /// Negotiated protocol version (1 or 2).
+    pub protocol_version: u64,
+    /// v2: session identity the host propagates (defaults to `default`).
+    pub session: Option<String>,
+    /// v2: official skills the host already has installed (name, optional digest).
+    pub host_skills: Vec<(String, Option<String>)>,
 }
 
 /// What this side can actually serve for the project.
@@ -83,25 +91,36 @@ pub fn parse_declaration(params: &Value) -> HarnessResult<HostDeclaration> {
             "command_rewriter",
             "bridge_depth",
             "lineage",
+            "session",
+            "host_skills",
         ]
         .contains(&k.as_str())
         {
             return Err(bad(format!("unknown handshake member `{k}`")));
         }
     }
-    match m.get("protocol").and_then(Value::as_str) {
-        Some(PROTOCOL) => {}
+    let protocol_version = match m.get("protocol").and_then(Value::as_str) {
+        Some(PROTOCOL) => 1,
+        Some(PROTOCOL_V2) => 2,
         other => {
             return Err(bad(format!(
-                "incompatible protocol {:?}; this bridge speaks `{PROTOCOL}` version 1",
+                "incompatible protocol {:?}; this bridge speaks `{PROTOCOL}` (version 1) and `{PROTOCOL_V2}` (version 2)",
                 other.unwrap_or("<missing>")
             )))
         }
+    };
+    if m.get("version").and_then(Value::as_u64) != Some(protocol_version) {
+        return Err(bad(format!(
+            "incompatible protocol version; `{}` is version {protocol_version}",
+            if protocol_version == 1 {
+                PROTOCOL
+            } else {
+                PROTOCOL_V2
+            }
+        )));
     }
-    if m.get("version").and_then(Value::as_u64) != Some(1) {
-        return Err(bad(
-            "incompatible protocol version; this bridge speaks version 1",
-        ));
+    if protocol_version == 1 && (m.contains_key("session") || m.contains_key("host_skills")) {
+        return Err(bad("`session` and `host_skills` need protocol v2"));
     }
     let host = m
         .get("host")
@@ -110,8 +129,21 @@ pub fn parse_declaration(params: &Value) -> HarnessResult<HostDeclaration> {
     let mut d = HostDeclaration {
         name: str_field(host, "name")?,
         version: str_field(host, "version")?,
+        protocol_version,
         ..Default::default()
     };
+    super::hostskills::check_host_support(&d.name, &d.version)?;
+    if let Some(v) = m.get("session") {
+        let s = v
+            .as_str()
+            .ok_or_else(|| bad("`session` must be a string"))?;
+        crate::skills::modes::check_ident("session", s)
+            .map_err(|e| bad(format!("`session`: {}", e.message)))?;
+        d.session = Some(s.to_string());
+    }
+    if let Some(v) = m.get("host_skills") {
+        d.host_skills = super::hostskills::parse_declared(v)?;
+    }
     let caps = m
         .get("capabilities")
         .and_then(Value::as_object)
@@ -273,10 +305,20 @@ pub fn response(decl: &HostDeclaration, avail: &Availability) -> Value {
         }
     }
     let wrapper = dec["command_wrapper"].owner.as_str();
-    json!({
+    let mut delegation = Map::new();
+    for (k, v) in &dec {
+        let word = if v.owner == Owner::Semaprax {
+            "delegated"
+        } else {
+            "not-delegated"
+        };
+        delegation.insert(k.to_string(), json!(word));
+    }
+    let v2 = decl.protocol_version == 2;
+    let mut doc = json!({
         "schema": HANDSHAKE_SCHEMA,
-        "protocol": PROTOCOL,
-        "version": 1,
+        "protocol": if v2 { PROTOCOL_V2 } else { PROTOCOL },
+        "version": decl.protocol_version,
         "host": {"name": decl.name, "version": decl.version},
         "capabilities": caps,
         "single_owner": {
@@ -292,7 +334,12 @@ pub fn response(decl: &HostDeclaration, avail: &Availability) -> Value {
             "whole_session_savings_claimed": false,
             "metrics": "use the #357 report surface (`semaprax-harness report`, editors/vscode token-report.js)",
         },
-    })
+    });
+    if v2 {
+        doc["delegation"] = Value::Object(delegation);
+        doc["methods"] = json!(super::skills_bridge::METHODS);
+    }
+    doc
 }
 
 pub fn owner_of(decl: &HostDeclaration, avail: &Availability, cap: &str) -> Owner {

@@ -161,7 +161,10 @@ def validate_sources(sources):
         'root.join("generated/url/src/url_project.c")',
         'root.join("generated/m2/module.c")',
         'root.join("generated/linked-subject.json")',
-        '\\"project_revision\\": \\"sha256:',
+        "fn validate_linked_subject(binding: &str)",
+        "validate_linked_subject(&binding);",
+        "linked subject field {key} is not a SHA-256 digest",
+        "linked Project/M3 revision binding is stale",
     ):
         require(sources, "build", fragment)
 
@@ -321,7 +324,9 @@ def self_test():
         ("prepare", 'with_authenticated_indexed_regex_url_project_packages('),
         ("consumer", 'with_authenticated_indexed_regex_url_project(manifest,'),
         ("consumer", 'admit_selected_index("regex-1.13.1-index-envelope.json", REGEX_INDEX)'),
-        ("build", '\\"project_revision\\": \\"sha256:'),
+        ("build", "validate_linked_subject(&binding);"),
+        ("build", "linked subject field {key} is not a SHA-256 digest"),
+        ("build", "linked Project/M3 revision binding is stale"),
         ("consumer", "m3::register"),
         ("consumer", "deserialize_spxmirrorri13event_with_transfer_metrics"),
         ("consumer", 'join("unified-project/semaprax.toml")'),

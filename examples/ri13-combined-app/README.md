@@ -168,8 +168,10 @@ than converting one local run into a portability or performance claim.
 `linked/prepare` authenticates `unified-project/` for all M1/M2/M3 generated
 outputs. The closed profile carries the exact M1 dependencies and exports,
 while retaining the M3 Future selection. It derives the M2 record/callback
-output and M3 Future module from one held snapshot, and the `consumer` retains
-that same unified Project revision before registering M3. The `consumer` binary
+output and M3 Future module from one held snapshot. Before compiling generated
+C, `linked/build.rs` accepts only the fixed linked-subject envelope and requires
+its Project and M3 revisions to match. The `consumer` retains that same unified
+Project revision before registering M3. The `consumer` binary
 links the M1 owner crates, M2 C/Rust callback module, and M3 generated Future
 module in one process. It emits `ri13-linked-project-ok` only after all three
 routes return their checked values.

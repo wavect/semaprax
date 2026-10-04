@@ -31,6 +31,22 @@
       "semaprax_z3_candidate_postcondition_discharges": 60,
       "semaprax_z3_seeded_attack_rejections": 60
     },
+    "peak_rss": {
+      "bend_verdict": {
+        "input_sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81",
+        "p50_peak_rss_bytes": 119259136.0,
+        "p95_peak_rss_bytes": 127746048,
+        "samples": 30,
+        "wrapper": "/usr/bin/time -l"
+      },
+      "semaprax_z3": {
+        "input_sha256": "sha256:481999d6499263a605ce8eaf67e8155b772f6cddbe466c87e3087978ff339bb5",
+        "p50_peak_rss_bytes": 50880512.0,
+        "p95_peak_rss_bytes": 51036160,
+        "samples": 30,
+        "wrapper": "/usr/bin/time -l"
+      }
+    },
     "process_routes": {
       "bend_attack_fresh_process": {
         "count": 30,
@@ -88,7 +104,7 @@
         }
       ]
     },
-    "timing_interpretation": "p50/p95 are separate local process-provisioning observations; no cross-route ratio or winner"
+    "timing_interpretation": "p50/p95 and RSS are separate local process-provisioning observations; no cross-route ratio or winner"
   },
   "nonclaims": [
     "no cross-route timing ratio, winner, or superiority claim",

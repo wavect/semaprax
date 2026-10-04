@@ -40,3 +40,9 @@ route by checked-`u32` non-admission. Their machine-readable result is
 [`evidence/law16-remaining-u32-cells-admission-v1.json`](evidence/law16-remaining-u32-cells-admission-v1.json).
 The list source-proof route, refactor-equivalence route, and law-inventory
 preservation route remain unobserved; none is inferred from the Boolean cell.
+
+Matched Boolean-negation peak RSS is also retained separately in
+[`evidence/law16-boolean-negation-peak-rss-v1/`](evidence/law16-boolean-negation-peak-rss-v1/):
+30 wrapper-bound samples per Bend verdict and SEMAPRAX Z3 route. The offline
+review preserves each route's p50/p95 RSS and source digest while excluding an
+RSS ratio or winner claim. It is not cold-cache isolation.

@@ -1,0 +1,26 @@
+{
+  "nonclaims": [
+    "RSS includes /usr/bin/time wrapper observation",
+    "no RSS ratio or winner",
+    "distinct trusted computing bases",
+    "not cold-cache isolation"
+  ],
+  "routes": {
+    "bend_verdict": {
+      "input_sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81",
+      "p50_peak_rss_bytes": 119259136.0,
+      "p95_peak_rss_bytes": 127746048,
+      "samples": 30,
+      "wrapper": "/usr/bin/time -l"
+    },
+    "semaprax_z3": {
+      "input_sha256": "sha256:481999d6499263a605ce8eaf67e8155b772f6cddbe466c87e3087978ff339bb5",
+      "p50_peak_rss_bytes": 50880512.0,
+      "p95_peak_rss_bytes": 51036160,
+      "samples": 30,
+      "wrapper": "/usr/bin/time -l"
+    }
+  },
+  "schema": "semaprax.bend2-law-benchmark.boolean-negation-peak-rss-review.v1",
+  "status": "local_matched_rss_authenticated"
+}

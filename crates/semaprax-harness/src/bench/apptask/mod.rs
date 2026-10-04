@@ -9,8 +9,14 @@
 //! `bench app report <out>` aggregates the raw trials.
 
 pub mod arms;
+pub mod cache_state;
 pub mod campaign;
 pub mod model;
+pub mod production;
+pub mod profile_arms;
+pub mod profile_campaign;
+pub mod profile_cli;
+pub mod profile_qualify;
 pub mod render;
 pub mod report;
 pub mod task;
@@ -26,7 +32,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 use task::{TaskSet, Tools};
 
-pub const APP_USAGE: &str = "bench app validate <tasks> [--env K=V]... [--work DIR] | bench app run <tasks> --out DIR --work DIR --reps N --model id=ID,name=NAME,addr=HOST:PORT,size=small|large[,billed=1][,workers=N][,predict=N][,ctx=N][,temp=X]... [--task ID]... [--arm ID]... [--cap-usd X] [--max-calls N] [--ident K=V]... [--env K=V]... [--dry-run] | bench app report <out> [--label TEXT]";
+pub const APP_USAGE: &str = "bench app validate <tasks> [--env K=V]... [--work DIR] | bench app run <tasks> --out DIR --work DIR --reps N --model id=ID,name=NAME,addr=HOST:PORT,size=small|large[,billed=1][,workers=N][,predict=N][,ctx=N][,temp=X]... [--task ID]... [--arm ID]... [--cap-usd X] [--max-calls N] [--ident K=V]... [--env K=V]... [--dry-run] | bench app run <tasks> --profile-arms all|ID,ID --max-usd N [--out DIR --work DIR --reps N --model ...] (capped profile campaign) | bench app qualify <out> [--ident model=ID --ident tools=DIGEST --ident taskset=DIGEST] | bench app report <out> [--label TEXT]";
 
 fn q(code: &'static str, m: impl Into<String>) -> HarnessDiagnostic {
     HarnessDiagnostic::new(code, m)
@@ -96,6 +102,8 @@ struct Args {
     idents: BTreeMap<String, String>,
     label: Option<String>,
     dry: bool,
+    profile_arms: Option<String>,
+    max_usd: Option<f64>,
 }
 
 fn kv(s: &str) -> BTreeMap<String, String> {
@@ -138,6 +146,8 @@ fn parse(args: &[String]) -> Result<Args, HarnessDiagnostic> {
             "--max-calls" => a.max_calls = num(x, val(x)?)? as u64,
             "--label" => a.label = Some(val(x)?),
             "--dry-run" => a.dry = true,
+            "--profile-arms" => a.profile_arms = Some(val(x)?),
+            "--max-usd" => a.max_usd = Some(num(x, val(x)?)?),
             "--env" | "--ident" => {
                 let v = val(x)?;
                 let (k, v) = v
@@ -212,6 +222,23 @@ fn exec(a: Args, env: &Environment) -> Result<Outcome, HarnessDiagnostic> {
         "report" => {
             return write_report(&dir, a.label.as_deref().unwrap_or("local run")).map(Outcome::ok)
         }
+        "qualify" => {
+            let (declared, _) = profile_arms::load(&dir).map_err(|e| q("SPX-HPQ001", e))?;
+            let pin = |k: &str| {
+                a.idents
+                    .get(k)
+                    .cloned()
+                    .unwrap_or_else(|| declared["pins"][k].as_str().unwrap_or("").to_string())
+            };
+            let live = profile_arms::Pins {
+                model: pin("model"),
+                tools: pin("tools"),
+                taskset: pin("taskset"),
+            };
+            return profile_cli::qualify_dir(&dir, &live)
+                .map(Outcome::ok)
+                .map_err(|e| q("SPX-HPQ008", e));
+        }
         "validate" | "run" => {}
         other => return Err(q("SPX-HPQ007", format!("unknown app subcommand `{other}`"))),
     }
@@ -268,6 +295,7 @@ fn exec(a: Args, env: &Environment) -> Result<Outcome, HarnessDiagnostic> {
     };
     let mut specs = vec![];
     let mut conns = vec![];
+    let mut raw_models: Vec<(trial::ModelSpec, HttpModel)> = vec![];
     for m in &a.models {
         let get = |k: &str| m.get(k).cloned();
         let id = get("id").ok_or_else(|| q("SPX-HPQ007", "--model needs id="))?;
@@ -287,11 +315,68 @@ fn exec(a: Args, env: &Environment) -> Result<Outcome, HarnessDiagnostic> {
             ),
         };
         specs.push(spec.clone());
+        raw_models.push((spec.clone(), client.clone()));
         conns.push(campaign::ModelConn {
             spec,
             client: Box::new(client),
             workers: get("workers").and_then(|x| x.parse().ok()).unwrap_or(1),
         });
+    }
+    if let Some(psel) = &a.profile_arms {
+        let max_usd = a.max_usd.ok_or_else(|| {
+            q(
+                "SPX-HPQ007",
+                "--profile-arms needs an explicit --max-usd cap",
+            )
+        })?;
+        let ids: Vec<String> = psel.split(',').map(|x| x.trim().to_string()).collect();
+        let mut idents = serde_json::Map::new();
+        for (var, p) in &tools.vars {
+            idents.insert(var.to_lowercase(), json!(p.display().to_string()));
+        }
+        idents.insert(
+            "compiler".into(),
+            version_of(tools.compiler.as_ref(), "--version", None),
+        );
+        let words = tokens::WordCounter;
+        let tik;
+        let counter: &dyn tokens::TokenCounter = if a.dry {
+            &words
+        } else {
+            let py = vars
+                .get("HARNESS_TIKTOKEN_PYTHON")
+                .map(PathBuf::from)
+                .ok_or_else(|| {
+                    q(
+                        "SPX-HPQ007",
+                        "run needs --env HARNESS_TIKTOKEN_PYTHON and HARNESS_TIKTOKEN_CACHE",
+                    )
+                })?;
+            let cache = vars
+                .get("HARNESS_TIKTOKEN_CACHE")
+                .map(PathBuf::from)
+                .ok_or_else(|| q("SPX-HPQ007", "run needs HARNESS_TIKTOKEN_CACHE"))?;
+            tik = tokens::Tiktoken::start(&py, &cache).map_err(|e| q("SPX-HPQ012", e))?;
+            &tik
+        };
+        return profile_cli::run_profiles(
+            &set,
+            &arm_set,
+            &tools,
+            &work,
+            &out,
+            a.reps,
+            &ids,
+            &a.tasks,
+            max_usd,
+            a.max_calls,
+            &raw_models,
+            &Value::Object(idents),
+            a.dry,
+            counter,
+        )
+        .map(Outcome::ok)
+        .map_err(|e| q("SPX-HPQ008", e));
     }
     let keys = campaign::plan(&set, &arm_set, &sel, &specs);
     if a.dry {

@@ -149,3 +149,39 @@ Bun 1.2.5 and `BEND_NO_TELEMETRY=1`. Its receipt is
 `1`, and the separate verdict invocation emitted `ALL PROOFS CHECK`. This is
 upstream tool evidence only. It is not an agent trial, a matched six-cell
 benchmark, or a Bend-versus-SEMAPRAX result.
+
+## Executed Boolean law-gaming controls
+
+The Boolean fixture has executable mutant controls that retain the claimed law
+while changing the implementation. The Bend mutant maps both constructors to
+zero but keeps its equality proof; the SEMAPRAX mutant always returns `false`
+while retaining `ensures result == !value`. Run them with pinned source roots
+and write stdout/stderr artifacts outside the repository:
+
+```sh
+python3 benchmarks/bend2-law-v1/boolean_negative_controls.py \
+  --bend-root /tmp/bend2-law-source \
+  --bun /absolute/path/to/bun \
+  --semaprax-root /path/to/pinned/semaprax \
+  --semaprax /path/to/pinned/semaprax-binary \
+  --semaprax-commit "$(git -C /path/to/pinned/semaprax rev-parse HEAD)" \
+  --artifact-dir /secure/local/law16-boolean-negative-artifacts \
+  --output /secure/local/law16-boolean-negative.json
+```
+
+The driver requires the pinned Bend head and supplied SEMAPRAX head, stores raw
+stdout and stderr by path and SHA-256, and classifies the four paths separately:
+ordinary Bend mutation rejection, Bend `--verdict` mutation rejection,
+SEMAPRAX runtime success witness acceptance, and SEMAPRAX runtime mutant
+rejection. Any unexpected zero exit, missing Bend kernel failure marker, or
+wrong success output fails the receipt.
+
+A local execution on 4 October 2026 completed this control using the pinned
+Bend revision and a clean SEMAPRAX binary attributed to
+`ac68e72595514acc717bb1825c3add9d6cac990c`. Both Bend paths rejected the
+mutant with `SOME PROOFS FAIL`; the SEMAPRAX witness printed `0`, and its
+mutant returned a contract language failure. Raw receipt and stream artifacts
+are at `/tmp/law16-boolean-negative.json` and
+`/tmp/law16-boolean-negative-artifacts/`. This is Boolean-only local execution
+evidence, not current-head evidence, an agent trial, a timing result, or a
+Bend-versus-SEMAPRAX comparison.

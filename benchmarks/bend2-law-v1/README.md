@@ -615,3 +615,43 @@ python3 benchmarks/bend2-law-v1/law16_boolean_verdict_aggregate.py \
 This prevents a verdict-versus-Z3 timing ratio or winner claim. A future
 matched Boolean process corpus needs the same fixed law, seeded attacks, and
 separately authenticated proof routes on both sides.
+
+## Prepared matched Boolean-negation verdict corpus
+
+[`fixtures/boolean-negation-pair-v1.json`](fixtures/boolean-negation-pair-v1.json)
+replaces no retained measurement. It prepares the missing equal-semantics pair:
+both languages implement total Boolean negation over exactly `{false, true}` and
+bind the same truth table, `false -> true` and `true -> false`. The Bend
+candidate has a universal `negate(value) == Bool.not(value)` law; the SEMAPRAX
+candidate uses the same `@id("app.negate")` and `ensures result == !value`.
+Each identity mutant retains that assertion while returning the input (Bend) or
+`false` (SEMAPRAX), so an acceptance run must retain explicit rejection
+receipts rather than infer correctness from the candidate text.
+
+The static reviewer checks every fixture byte digest, the duplicated SEMAPRAX
+project source, both-valued truth table, admitted assertion shapes, and the
+required 30 fresh-path plus 30 repeat-path child count for each route:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_boolean_negation_pair.py \
+  --output /tmp/law16-boolean-negation-pair-review.json
+```
+
+The SEMAPRAX project templates are in
+[`fixtures/boolean-negation-project-v1/`](fixtures/boolean-negation-project-v1/).
+For an eventual execution, copy each candidate or attack project to two fresh
+operator-selected roots and invoke the pinned project checker on
+`src/app.spx`, declaration `app.negate`, `ensures` index `0`, and the retained
+installed-Z3 identity. Run Bend `--verdict` on byte-identical fresh/repeat
+copies of the corresponding `.bend` fixture. Use `law16_cold_warm_cell.py`
+with `--samples 30` for each candidate and mutant route, preserve its 120 raw
+streams per route, and bind the executable, source/project, argv, and attack
+receipts to this plan.
+
+This is a prepared plan, not a matched process corpus. It has no new Bend
+30-sample receipt and no SEMAPRAX Z3 receipt for these exact canonical source
+bytes, so `comparability_gate.status` is `not_validated`. The earlier score-law
+versus negation corpus remains `not_matched`; it cannot be combined with this
+pair. Fresh/repeat paths still do not isolate operating-system, executable,
+solver, or tool caches. No timing ratio, winner, checked-`u32`, lowering, or
+execution-proof claim follows from the plan.

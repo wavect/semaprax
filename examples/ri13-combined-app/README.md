@@ -179,6 +179,26 @@ schema, package identity, and Linux target before it starts a container; the
 M1 and linked preparation routes replay them and retain the existing exact
 target and package checks.
 
+The pinned evidence image supplies stable Rust 1.98 but does not contain the
+pinned nightly extractor. Prepare the two envelopes first with a separately
+installed Linux x86_64 `nightly-2026-10-02` toolchain and an already populated
+Linux Cargo home. The preparation runner mounts both inputs read-only, verifies
+the exact `regex` and `url` crate archive checksums from the committed locks,
+uses locked offline `cargo rustdoc`, and retains the raw JSON plus canonical
+envelopes and digest receipt. It does not run the M1/M2/M3 application gate:
+
+```sh
+scripts/ri13-linux-x86_64-index-prepare.sh --run \
+  --image 'ri13-linux-evidence:rust-1.98.0@sha256:c9024b5897124ae3a7f124a41dbe4d301c7319daf4e9aed82b23424648eb311e' \
+  --cargo-home /absolute/linux-x86_64-cargo-home \
+  --nightly-toolchain /absolute/nightly-2026-10-02-x86_64-linux \
+  --output /absolute/ri13-linux-rust-api-index-preparation
+```
+
+Pass `/absolute/ri13-linux-rust-api-index-preparation/envelopes` to the evidence
+runner as `--rust-api-index-dir`. A missing exact nightly toolchain is an
+unavailable prerequisite, not permission to alter target facts in an envelope.
+
 For example, this only prints the exact plan:
 
 ```sh

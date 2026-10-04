@@ -580,11 +580,45 @@ fn migrate_b(old: own State) -> StateB {{
     )
 }
 
+fn successor_c_source() -> String {
+    // C deliberately preserves StateB's nominal schema. The A -> B handoff is
+    // the one schema migration in the chain; B -> C still has to select and
+    // evaluate an explicit checked migration function before it can seed C.
+    let source = successor_source().replace("epoch: 1, marker: 7 }", "epoch: 1, marker: 8 }");
+    assert!(source.contains("fn initialize(task: own Task) -> StateB"));
+    format!(
+        r#"{source}
+@id("fixture.agent.fn.migrate_c")
+fn migrate_c(old: own StateB) -> StateB {{
+    StateB {{ objective: old.objective, budget: old.budget, epoch: old.epoch, marker: old.marker }}
+}}
+"#
+    )
+}
+
 fn migrate_command(
     previous_config: &std::path::Path,
     previous_checkpoint: &std::path::Path,
     destination_config: &std::path::Path,
     destination_checkpoint: &std::path::Path,
+    scratch: &std::path::Path,
+) -> Command {
+    migrate_command_with_function(
+        previous_config,
+        previous_checkpoint,
+        destination_config,
+        destination_checkpoint,
+        "fixture.agent.fn.migrate_b",
+        scratch,
+    )
+}
+
+fn migrate_command_with_function(
+    previous_config: &std::path::Path,
+    previous_checkpoint: &std::path::Path,
+    destination_config: &std::path::Path,
+    destination_checkpoint: &std::path::Path,
+    function: &str,
     scratch: &std::path::Path,
 ) -> Command {
     fs::create_dir(scratch).unwrap();
@@ -594,7 +628,7 @@ fn migrate_command(
         previous_checkpoint.display().to_string(),
         destination_config.display().to_string(),
         destination_checkpoint.display().to_string(),
-        "fixture.agent.fn.migrate_b".into(),
+        function.into(),
         "1000".into(),
         "--opencode".into(),
         "/usr/bin/true".into(),
@@ -812,3 +846,7 @@ mod priced_adapter_boundaries;
 #[cfg(unix)]
 #[path = "io_tests.rs"]
 mod io_tests;
+
+#[cfg(unix)]
+#[path = "hr04_state_handoff_tests.rs"]
+mod hr04_state_handoff_tests;

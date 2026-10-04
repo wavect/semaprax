@@ -851,6 +851,30 @@ mod tests {
     }
 
     #[test]
+    fn cleanup_never_revives_an_old_bearer_when_entropy_reuses_its_id() {
+        let service = service();
+        let mut store = InMemorySessionStore::new(1).unwrap();
+        let reused = [9; SESSION_ID_BYTES];
+        let mut entropy = Entropy(vec![reused, reused]);
+        let old = service
+            .issue(&mut store, &mut entropy, "alice", 10, 1)
+            .unwrap();
+        assert_eq!(store.purge_expired(11), Ok(1));
+        let current = service
+            .issue(&mut store, &mut entropy, "alice", 11, 10)
+            .unwrap();
+        // A host clock regression cannot make the original bearer match the
+        // replacement record: record issue time is part of the authenticated
+        // comparison, while the replacement bearer remains usable at its
+        // admitted tick.
+        assert_eq!(
+            service.verify(&store, old.bearer(), 10),
+            Err(AuthError::InvalidCredential)
+        );
+        assert!(service.verify(&store, current.bearer(), 11).is_ok());
+    }
+
+    #[test]
     fn expiry_maintenance_preserves_live_and_unexpired_retired_records() {
         let service = service();
         let mut store = InMemorySessionStore::new(4).unwrap();

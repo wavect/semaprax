@@ -770,6 +770,9 @@ impl CompiledTypedEffects {
                 failure: None,
             },
             proposal: None,
+            replayed_calls: 0,
+            replayed_arguments: 0,
+            replayed_results: 0,
         };
         self.lifecycle
             .run_live_durable_with_driver(request, source, &mut dispatch, store)
@@ -806,6 +809,9 @@ impl CompiledTypedEffects {
                 failure: None,
             },
             proposal: None,
+            replayed_calls: 0,
+            replayed_arguments: 0,
+            replayed_results: 0,
         };
         self.lifecycle.run_live_durable_with_model_policy(
             request,
@@ -848,6 +854,9 @@ impl CompiledTypedEffects {
                 failure: None,
             },
             proposal: None,
+            replayed_calls: 0,
+            replayed_arguments: 0,
+            replayed_results: 0,
         };
         self.lifecycle
             .run_live_durable_with_model_policy_and_io_limits(
@@ -893,6 +902,9 @@ impl CompiledTypedEffects {
                 failure: None,
             },
             proposal: None,
+            replayed_calls: 0,
+            replayed_arguments: 0,
+            replayed_results: 0,
         };
         prepared.run_with_driver(source, &mut dispatch, store, clock, cancellation)
     }

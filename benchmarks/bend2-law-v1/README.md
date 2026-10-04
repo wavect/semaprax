@@ -139,13 +139,16 @@ python3 benchmarks/bend2-law-v1/codex_agent_trial.py \
   --output /secure/local/law16-codex-trial-001.json
 ```
 
-The record derives only the input, cached-input, and output token counters in
-the retained `turn.completed` JSON event and rejects an absent or over-budget
-counter. Codex JSON events do not provide a monetary charge, and one turn does
-not separate proof synthesis, law-kernel checking, and compilation/runtime
-time. The runner therefore labels even a successful turn `executed_unassessed`:
-it is raw provenance for a later independent acceptance and phase-measurement
-route, never a completed LAW-16 trial or a cost observation.
+The runner embeds the Boolean law, accepted witness, seeded law-gaming source,
+and required JSON response schema in the prompt. It asks the model to return a
+complete repaired source (including Bend's proof body) and a claim that the
+embedded attack is rejected. It retains the exact JSON response, final-source
+bytes, and attack claim alongside raw Codex events. The record derives only the
+input, cached-input, and output token counters in `turn.completed` and rejects
+an absent or over-budget counter. Codex JSON events do not provide a monetary
+charge, and the turn neither independently executes a proof kernel nor a
+runtime. `edit_artifacts_captured` is therefore raw edit provenance, never a
+completed LAW-16 repair or a cost observation.
 
 The reviewed SEMAPRAX scalar profile does not support the checked-`u32` cells.
 They remain explicitly `unsupported`, so the current mixed plan is
@@ -222,14 +225,16 @@ a claimed digest without its retained raw file is not evidence.
 
 `boolean_pair_acceptance.py` reviews one preregistered Boolean ordinal after a
 trial operator retains its final source and verification files. Its
-`semaprax.bend2-law-benchmark.boolean-final-artifacts.v1` input binds the exact
+`semaprax.bend2-law-benchmark.boolean-final-artifacts.v2` input binds the exact
 plan digest, both lane trial IDs, each final source, and a raw verification
 file by relative path, byte count, and SHA-256. The evaluator re-hashes those
 bounded regular files below a supplied artifact root and rejects links or
 source bytes that differ from the committed Boolean success fixtures.
 
 The Bend side requires a retained verdict stream containing `ALL PROOFS CHECK`.
-The SEMAPRAX side requires only its exact runtime witness (`0`), then labels
+The evaluator also binds the retained model response to the exact final source,
+the exact seeded attack source, and the model's `reject` claim. It labels that
+as static control distinction rather than tool rejection. The SEMAPRAX side requires only its exact runtime witness (`0`), then labels
 its formal proof phase unavailable because this scalar route has no admitted
 Boolean proof command. Cost is likewise unavailable unless a separately
 retained provider billing record is introduced. The result is named

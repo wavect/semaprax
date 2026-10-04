@@ -52,14 +52,17 @@ trials per language/cell, and labels every unmatched numeric-domain cell
 no admitted checked-`u32` cell, so this is not execution evidence or a pilot.
 
 The bounded Codex route in `benchmarks/bend2-law-v1/codex_agent_trial.py`
-executes one preregistered review prompt only in a fresh empty directory with
+executes one preregistered Boolean source/proof edit prompt only in a fresh empty directory with
 `codex exec --ephemeral --ignore-user-config -s read-only --json`. It exposes
 no repository workspace, records the exact JSONL event stream, stderr and
 Codex version bytes, and checks the reported input/cached-input/output token
 total against the fixed plan budget. Since those events have no monetary usage
 field and a single turn cannot partition proof synthesis, law-kernel checking,
-and compilation/runtime, its result is explicitly `executed_unassessed` rather
-than an accepted trial. `agent_trial_capture.py` v2 separately requires every
+and compilation/runtime, its result is explicitly `edit_artifacts_captured`
+rather than an accepted trial. The prompt embeds the attack source, law and
+witness; `boolean_pair_acceptance.py` v2 binds the resulting final response,
+final source and attack claim. Their static distinction from the seeded attack
+remains distinct from tool rejection. `agent_trial_capture.py` v2 separately requires every
 transcript, telemetry, phase, and acceptance artifact as a bounded regular
 file below a selected artifact root and re-hashes it; digest-only v1 exports
 are rejected.

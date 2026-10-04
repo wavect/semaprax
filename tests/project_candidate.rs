@@ -150,6 +150,8 @@ mod recovery;
 mod scalar_literal_constructors;
 #[path = "project_candidate/semantic_delta.rs"]
 mod semantic_delta;
+#[path = "project_candidate/patch_receipt.rs"]
+mod patch_receipt;
 #[path = "project_candidate/signature_ownership.rs"]
 mod signature_ownership;
 #[path = "project_candidate/source_review.rs"]

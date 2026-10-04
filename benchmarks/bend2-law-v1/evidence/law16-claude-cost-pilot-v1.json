@@ -1,0 +1,45 @@
+{
+  "budget": {
+    "max_cost_usd": "0.01",
+    "scope": "one isolated Boolean-negation pilot invocation"
+  },
+  "campaign_admission": false,
+  "nonclaims": [
+    "the collector does not retain assistant text or claim a source outcome",
+    "a provider cost event without a successful source and independent route outcome cannot start a campaign",
+    "no currency value is derived from token counters"
+  ],
+  "plan": {
+    "path": "law16-claude-cost-pilot-plan-v1.json",
+    "sha256": "sha256:741585a657f1b27d64b5998bfde860f2c4fbe9d0e1cee4b0665536155dbd5f77"
+  },
+  "provider": {
+    "cli_version": "2.1.289",
+    "id": "anthropic-claude-code-cli",
+    "model_id": "claude-haiku-4-5-20251001"
+  },
+  "provider_cost_usd": 0.023741,
+  "provider_stream": {
+    "bytes": 7069,
+    "sha256": "sha256:6c0a8a8295b0a00c11ce1dcf850b8b79d13560ee42f97cd999f3ec551abbc47b"
+  },
+  "provider_usage": {
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "input_tokens": 0,
+    "output_tokens": 0
+  },
+  "result": {
+    "duration_ms": 1791,
+    "is_error": true,
+    "subtype": "error_max_budget_usd"
+  },
+  "schema": "semaprax.bend2-law-benchmark.claude-cost-pilot.v1",
+  "status": "blocked_before_source_outcome_review",
+  "trial": {
+    "id": "law16-claude-cost-probe:2",
+    "language": "probe-only",
+    "repository_access": "none",
+    "source_outcome": "required_before_campaign"
+  }
+}

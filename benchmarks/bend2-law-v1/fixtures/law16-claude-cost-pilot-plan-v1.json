@@ -1,0 +1,32 @@
+{
+  "budget": {
+    "max_cost_usd": "0.01",
+    "scope": "one isolated Boolean-negation pilot invocation"
+  },
+  "campaign_admission": "requires provider result is_error=false, provider_cost_usd at or below budget, retained complete source, and independent candidate/attack outcomes",
+  "invocation": {
+    "prompt_sha256": "sha256:ee1870b10af9941dbbf93fb90008a4de879450f919b5b00d89104b5448ce6577",
+    "required_flags": [
+      "--print",
+      "--verbose",
+      "--output-format=stream-json",
+      "--no-session-persistence",
+      "--restricted",
+      "--permission-prompts=none",
+      "--max-budget-usd=0.01"
+    ],
+    "system_prompt_sha256": "sha256:125c25896d0a4daaf965135bbbbac3b8ac26e15f73d83d5b39373b9323684c8e"
+  },
+  "provider": {
+    "id": "anthropic-claude-code-cli",
+    "model_id": "claude-haiku-4-5-20251001",
+    "runner": "claude-print-stream-json-v1"
+  },
+  "schema": "semaprax.bend2-law-benchmark.claude-cost-pilot-plan.v1",
+  "trial": {
+    "id": "law16-claude-cost-probe:2",
+    "language": "probe-only",
+    "repository_access": "none",
+    "source_outcome": "required_before_campaign"
+  }
+}

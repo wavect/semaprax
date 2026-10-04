@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use crate::diagnostic::Diagnostic;
 use crate::hir::{ResolvedExpr, ResolvedExprKind, ResolvedStatement, ResolvedType};
 
-use super::{LocalLayout, Signature};
+use super::{LocalLayout, Signature, I32, I64, F32, F64};
 
 pub(super) fn collect_locals(
     expr: &ResolvedExpr,
@@ -224,4 +224,42 @@ pub(super) fn intern_type(
     types.push(signature.clone());
     indexes.insert(signature, index);
     index
+}
+
+pub(super) fn wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
+    match ty {
+        ResolvedType::Unit => Err(Diagnostic::io(
+            "SPX-W101",
+            "unit is not a WebAssembly value type",
+        )),
+        ResolvedType::I64 => Ok(I64),
+        ResolvedType::I32 => Ok(I32),
+        ResolvedType::Char => Ok(I32),
+        ResolvedType::U8 => Ok(I32),
+        ResolvedType::Usize => Ok(I64),
+        ResolvedType::F32 => Ok(F32),
+        ResolvedType::F64 => Ok(F64),
+        ResolvedType::Bool
+        | ResolvedType::Nominal { .. }
+        | ResolvedType::OnceFunction
+        | ResolvedType::OnceFunctionI64
+        | ResolvedType::OnceFunctionI64Pair
+        | ResolvedType::MutFunctionI64
+        | ResolvedType::Function { .. } => Ok(I32),
+        // Owned strings lower to an abstract host handle riding the i64 lane.
+        ResolvedType::String | ResolvedType::Str | ResolvedType::SliceU8 | ResolvedType::Bytes => {
+            Ok(I64)
+        }
+        ResolvedType::ArrayU8(_) => Err(Diagnostic::io(
+            "SPX-W101",
+            "fixed byte arrays require the aggregate WebAssembly path",
+        )),
+        ResolvedType::TypeParameter { .. } => Err(Diagnostic::io(
+            "SPX-W109",
+            format!(
+                "unresolved generic type `{}` cannot be lowered to WebAssembly",
+                ty.identity_key()
+            ),
+        )),
+    }
 }

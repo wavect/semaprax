@@ -92,6 +92,13 @@ canonical .spx source or held Project inputs
 Every backend passes source verification and validated HIR. Cleanup-plan vectors
 are canonical runtime order; projections and backends must never sort or repair them.
 
+`ast/type_properties.rs` owns primitive type formatting and classification.
+The reserved mutable callable type has independent source and retained-HIR
+admission guards in `source_verify/declared_type.rs`, `source_verify/closure.rs`
+and `hir/validation/callable_types.rs`. Leaf type helpers remain under their
+existing graph, Wasm, capacity and workspace owners; `properties/scalar_types.rs`
+owns the property analyzer's scalar spelling projection.
+
 ### Agent and generic owners
 
 The additive `agent_lifecycle/iterative` module owns checked Step transitions,

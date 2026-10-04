@@ -593,6 +593,7 @@ fn validate_supported_type(
         ResolvedType::OnceFunction
         | ResolvedType::OnceFunctionI64
         | ResolvedType::OnceFunctionI64Pair
+        | ResolvedType::MutFunctionI64
         | ResolvedType::Function { .. } => Err(unsupported(
             function,
             format!("does not support function {context} values in the cleanup proof slice"),

@@ -285,6 +285,7 @@ pub(crate) fn function_uses_value(f: &ResolvedFunction) -> bool {
             | ResolvedType::OnceFunction
             | ResolvedType::OnceFunctionI64
             | ResolvedType::OnceFunctionI64Pair
+            | ResolvedType::MutFunctionI64
     ) || f.params.iter().any(|p| {
         matches!(
             p.ty,
@@ -292,6 +293,7 @@ pub(crate) fn function_uses_value(f: &ResolvedFunction) -> bool {
                 | ResolvedType::OnceFunction
                 | ResolvedType::OnceFunctionI64
                 | ResolvedType::OnceFunctionI64Pair
+                | ResolvedType::MutFunctionI64
         )
     });
     walk(f, |e| {
@@ -323,6 +325,7 @@ pub(crate) fn template_uses_value(template: &super::ResolvedFunctionTemplate) ->
                     | ResolvedType::OnceFunction
                     | ResolvedType::OnceFunctionI64
                     | ResolvedType::OnceFunctionI64Pair
+                    | ResolvedType::MutFunctionI64
             )
         })
     {

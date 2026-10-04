@@ -340,7 +340,8 @@ pub(super) fn resolved_data_parameter_is_admitted(
         (
             ResolvedType::OnceFunction
             | ResolvedType::OnceFunctionI64
-            | ResolvedType::OnceFunctionI64Pair,
+            | ResolvedType::OnceFunctionI64Pair
+            | ResolvedType::MutFunctionI64,
             hir::OwnershipMode::Own,
         )
         | (ResolvedType::Bytes, hir::OwnershipMode::Own)
@@ -372,6 +373,7 @@ pub(super) fn resolved_data_result_is_admitted(
                 | ResolvedType::OnceFunction
                 | ResolvedType::OnceFunctionI64
                 | ResolvedType::OnceFunctionI64Pair
+                | ResolvedType::MutFunctionI64
         )
         || owned_vec::is_collection_type(ty)
         || is_admitted_owned_byte_record(declarations, ty)

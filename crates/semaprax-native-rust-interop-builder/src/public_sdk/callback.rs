@@ -196,6 +196,7 @@ fn prepare(
         body,
         owning: false,
         retained: false,
+        mutable: false,
     } = &tail.kind
     else {
         return Err(at(

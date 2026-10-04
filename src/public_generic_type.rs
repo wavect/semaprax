@@ -470,6 +470,7 @@ fn classify_with(
         ResolvedType::OnceFunction
         | ResolvedType::OnceFunctionI64
         | ResolvedType::OnceFunctionI64Pair
+        | ResolvedType::MutFunctionI64
         | ResolvedType::Function { .. } => rejection(Rejection::FunctionType),
         ResolvedType::Nominal {
             declaration,

@@ -29,6 +29,7 @@ pub(super) fn is_direct_plan_owned(program: &ResolvedProgram, ty: &ResolvedType)
             | ResolvedType::OnceFunction
             | ResolvedType::OnceFunctionI64
             | ResolvedType::OnceFunctionI64Pair
+            | ResolvedType::MutFunctionI64
     ) || is_native_owned_vec_type(program, ty)
         || crate::cleanup::is_owned_bounded_box_type(ty)
         || crate::iterator_ops::is_iter(ty)

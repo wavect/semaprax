@@ -125,6 +125,9 @@ pub enum ResolvedType {
     OnceFunction,
     OnceFunctionI64,
     OnceFunctionI64Pair,
+    /// Same-thread transactional i64 callback; unlike ordinary function
+    /// values it owns one mutable receiver state cell.
+    MutFunctionI64,
     Function {
         parameters: Vec<ResolvedType>,
         result: Box<ResolvedType>,
@@ -166,7 +169,11 @@ pub enum ResolvedType {
 
 impl ResolvedType {
     pub fn is_callable(&self) -> bool {
-        self.is_once_function() || matches!(self, Self::Function { .. })
+        self.is_once_function() || self.is_mut_function() || matches!(self, Self::Function { .. })
+    }
+
+    pub fn is_mut_function(&self) -> bool {
+        matches!(self, Self::MutFunctionI64)
     }
 
     pub fn is_once_function(&self) -> bool {
@@ -193,6 +200,7 @@ impl ResolvedType {
                 | Self::OnceFunction
                 | Self::OnceFunctionI64
                 | Self::OnceFunctionI64Pair
+                | Self::MutFunctionI64
         )
     }
     pub fn is_compiler_byte_option(&self) -> bool {
@@ -213,6 +221,7 @@ impl ResolvedType {
             | Self::OnceFunction
             | Self::OnceFunctionI64
             | Self::OnceFunctionI64Pair
+            | Self::MutFunctionI64
             | Self::Unit
             | Self::I64
             | Self::I32
@@ -253,6 +262,7 @@ impl ResolvedType {
                     Self::OnceFunctionI64Pair => {
                         keys.push("fn-once:bytes+i64+i64:i64:v3".to_owned())
                     }
+                    Self::MutFunctionI64 => keys.push("fn-mut:i64+i64:i64:v1".to_owned()),
                     Self::Unit => keys.push("unit".to_owned()),
                     Self::I64 => keys.push("i64".to_owned()),
                     Self::I32 => keys.push("i32".to_owned()),

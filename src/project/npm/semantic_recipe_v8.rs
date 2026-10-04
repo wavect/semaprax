@@ -444,6 +444,7 @@ fn recipe_type(
         ResolvedType::OnceFunction
         | ResolvedType::OnceFunctionI64
         | ResolvedType::OnceFunctionI64Pair
+        | ResolvedType::MutFunctionI64
         | ResolvedType::Function { .. } => Err(package_error(
             "function values are outside semantic recipe v8",
         )),

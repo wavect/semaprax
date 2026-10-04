@@ -616,6 +616,7 @@ fn scalar_type(ty: &ResolvedType) -> Option<ScalarType> {
         | ResolvedType::OnceFunction
         | ResolvedType::OnceFunctionI64
         | ResolvedType::OnceFunctionI64Pair
+        | ResolvedType::MutFunctionI64
         | ResolvedType::Function { .. } => None,
     }
 }

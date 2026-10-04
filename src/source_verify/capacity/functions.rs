@@ -19,3 +19,21 @@ pub(in crate::source_verify) fn source_capacity_functions(
     }
     functions
 }
+
+pub(super) fn source_capacity_slot(
+    slots: &mut Vec<crate::byte_data_capacity::ArrayStorageSlot>,
+    types: &TypeTable<'_>,
+    identity: String,
+    kind: crate::byte_data_capacity::ArrayStorageKind,
+    ty: &Type,
+) -> Result<(), ()> {
+    let length = source_array_payload(types, ty)?;
+    if length != 0 || matches!(ty, Type::ArrayU8(0)) {
+        slots.push(crate::byte_data_capacity::ArrayStorageSlot {
+            identity,
+            kind,
+            length,
+        });
+    }
+    Ok(())
+}

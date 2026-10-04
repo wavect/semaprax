@@ -181,7 +181,8 @@ pub(crate) fn resolved_type_contains_owned_bytes(
             ResolvedType::Bytes
             | ResolvedType::OnceFunction
             | ResolvedType::OnceFunctionI64
-            | ResolvedType::OnceFunctionI64Pair => return true,
+            | ResolvedType::OnceFunctionI64Pair
+            | ResolvedType::MutFunctionI64 => return true,
             ResolvedType::Nominal {
                 declaration,
                 arguments,

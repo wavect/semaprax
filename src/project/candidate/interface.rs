@@ -918,6 +918,7 @@ fn resolved_source_type(
         Type::OnceFunction => ResolvedType::OnceFunction,
         Type::OnceFunctionI64 => ResolvedType::OnceFunctionI64,
         Type::OnceFunctionI64Pair => ResolvedType::OnceFunctionI64Pair,
+        Type::MutFunctionI64 => ResolvedType::MutFunctionI64,
         Type::Bytes => ResolvedType::Bytes,
         Type::Str => ResolvedType::Str,
         Type::SliceU8 => ResolvedType::SliceU8,

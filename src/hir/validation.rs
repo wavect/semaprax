@@ -888,6 +888,7 @@ impl<'a> HirValidator<'a> {
                             | ResolvedType::OnceFunction
                             | ResolvedType::OnceFunctionI64
                             | ResolvedType::OnceFunctionI64Pair
+                            | ResolvedType::MutFunctionI64
                             | ResolvedType::Function { .. }
                             | ResolvedType::SliceU8 => {
                                 return Err(hir_error(format!(
@@ -1096,6 +1097,7 @@ impl<'a> HirValidator<'a> {
                             | ResolvedType::OnceFunction
                             | ResolvedType::OnceFunctionI64
                             | ResolvedType::OnceFunctionI64Pair
+                            | ResolvedType::MutFunctionI64
                             | ResolvedType::Function { .. }
                             | ResolvedType::SliceU8 => {
                                 return Err(hir_error(format!(
@@ -4383,9 +4385,11 @@ impl<'a> HirValidator<'a> {
                                     })?;
                                 (place, origin)
                             }
-                            _ => return Err(hir_error(
-                                "byte-slice local must be a direct immutable alias or authenticated view",
-                            )),
+                            _ => {
+                                return Err(hir_error(
+                                    "byte-slice local must be a direct immutable alias or authenticated view",
+                                ));
+                            }
                         };
                         let is_authenticated_view =
                             matches!(&value.kind, ResolvedExprKind::BorrowPlace { .. });
@@ -6656,9 +6660,11 @@ impl<'a> HirValidator<'a> {
                                         })?;
                                         (place, origin)
                                     }
-                                    _ => return Err(hir_error(
-                                        "byte-slice local must be a direct immutable alias or authenticated view",
-                                    )),
+                                    _ => {
+                                        return Err(hir_error(
+                                            "byte-slice local must be a direct immutable alias or authenticated view",
+                                        ));
+                                    }
                                 };
                                 let is_authenticated_view =
                                     matches!(&value.kind, ResolvedExprKind::BorrowPlace { .. });

@@ -1668,32 +1668,7 @@ pub(crate) fn graph_schema_from_parts_without_loans(
     }
 }
 
-fn type_has_usize(ty: &ResolvedType) -> bool {
-    match ty {
-        ResolvedType::Function { parameters, result } => {
-            parameters.iter().any(type_has_usize) || type_has_usize(result)
-        }
-        ResolvedType::OnceFunction
-        | ResolvedType::OnceFunctionI64
-        | ResolvedType::OnceFunctionI64Pair
-        | ResolvedType::Usize
-        | ResolvedType::ArrayU8(_)
-        | ResolvedType::Bytes
-        | ResolvedType::SliceU8 => true,
-        ResolvedType::Nominal { arguments, .. } => arguments.iter().any(type_has_usize),
-        ResolvedType::Unit
-        | ResolvedType::I64
-        | ResolvedType::I32
-        | ResolvedType::Char
-        | ResolvedType::U8
-        | ResolvedType::F32
-        | ResolvedType::F64
-        | ResolvedType::Bool
-        | ResolvedType::String
-        | ResolvedType::Str
-        | ResolvedType::TypeParameter { .. } => false,
-    }
-}
+use function_values::type_has_usize;
 
 fn type_declaration_has_usize(declaration: &hir::ResolvedTypeDeclaration) -> bool {
     match &declaration.kind {
@@ -5471,10 +5446,21 @@ fn collect_type(ty: &ResolvedType, types: &mut BTreeMap<String, ResolvedType>) {
 
 fn type_json(ty: &ResolvedType) -> String {
     match ty {
-        ResolvedType::OnceFunction => "{\"kind\":\"affine_function\",\"profile\":\"bytes-to-i64.v1\"}".to_owned(),
-        ResolvedType::OnceFunctionI64 => "{\"kind\":\"affine_function\",\"profile\":\"bytes-i64-to-i64.v2\"}".to_owned(),
-        ResolvedType::OnceFunctionI64Pair => "{\"kind\":\"affine_function\",\"profile\":\"bytes-i64-i64-to-i64.v3\"}".to_owned(),
-        ResolvedType::Function{parameters,result}=>function_values::type_json(parameters,result),
+        ResolvedType::OnceFunction => {
+            "{\"kind\":\"affine_function\",\"profile\":\"bytes-to-i64.v1\"}".to_owned()
+        }
+        ResolvedType::OnceFunctionI64 => {
+            "{\"kind\":\"affine_function\",\"profile\":\"bytes-i64-to-i64.v2\"}".to_owned()
+        }
+        ResolvedType::MutFunctionI64 => {
+            "{\"kind\":\"mutable_function\",\"profile\":\"i64-i64-to-i64.v1\"}".to_owned()
+        }
+        ResolvedType::OnceFunctionI64Pair => {
+            "{\"kind\":\"affine_function\",\"profile\":\"bytes-i64-i64-to-i64.v3\"}".to_owned()
+        }
+        ResolvedType::Function { parameters, result } => {
+            function_values::type_json(parameters, result)
+        }
         ResolvedType::Unit => "{\"kind\":\"primitive\",\"name\":\"unit\"}".to_owned(),
         ResolvedType::I64 => "{\"kind\":\"primitive\",\"name\":\"i64\"}".to_owned(),
         ResolvedType::I32 => "{\"kind\":\"primitive\",\"name\":\"i32\"}".to_owned(),

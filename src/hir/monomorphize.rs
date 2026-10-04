@@ -59,6 +59,7 @@ pub(crate) fn substitute_type(
                 ResolvedType::String => resolved.push(ResolvedType::String),
                 ResolvedType::OnceFunction => resolved.push(ResolvedType::OnceFunction),
                 ResolvedType::OnceFunctionI64 => resolved.push(ResolvedType::OnceFunctionI64),
+                ResolvedType::MutFunctionI64 => resolved.push(ResolvedType::MutFunctionI64),
                 ResolvedType::OnceFunctionI64Pair => {
                     resolved.push(ResolvedType::OnceFunctionI64Pair)
                 }
@@ -163,6 +164,7 @@ pub(super) fn substitute_source_function_type(
                 Type::OnceFunction => resolved.push(Type::OnceFunction),
                 Type::OnceFunctionI64 => resolved.push(Type::OnceFunctionI64),
                 Type::OnceFunctionI64Pair => resolved.push(Type::OnceFunctionI64Pair),
+                Type::MutFunctionI64 => resolved.push(Type::MutFunctionI64),
                 Type::Bytes => resolved.push(Type::Bytes),
                 Type::Str => resolved.push(Type::Str),
                 Type::SliceU8 => resolved.push(Type::SliceU8),

@@ -59,6 +59,7 @@ fn expr_has_owning_closure(expr: &Expr) -> bool {
         ExprKind::Closure {
             owning: true,
             retained: false,
+            mutable: false,
             ..
         }
     ) {
@@ -225,6 +226,7 @@ fn lower_statements(statements: &mut Vec<Statement>, substitutions: &mut HashMap
             if let ExprKind::Closure {
                 owning: true,
                 retained: false,
+                mutable: false,
                 body,
                 ..
             } = &value.kind

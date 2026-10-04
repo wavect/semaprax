@@ -428,7 +428,8 @@ fn ast_type_identity_key_len(program: &Program, root: &crate::ast::Type) -> Opti
                 crate::ast::Type::Function { .. }
                 | crate::ast::Type::OnceFunction
                 | crate::ast::Type::OnceFunctionI64
-                | crate::ast::Type::OnceFunctionI64Pair,
+                | crate::ast::Type::OnceFunctionI64Pair
+                | crate::ast::Type::MutFunctionI64,
             ) => return None,
             Frame::Enter(crate::ast::Type::Named { name, arguments }) => {
                 let declaration = program

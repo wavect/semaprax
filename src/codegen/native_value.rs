@@ -173,6 +173,7 @@ pub(crate) fn plan(
         ResolvedType::OnceFunction
         | ResolvedType::OnceFunctionI64
         | ResolvedType::OnceFunctionI64Pair
+        | ResolvedType::MutFunctionI64
         | ResolvedType::Function { .. } => {
             return Err(value_error(
                 "function values are outside the staged single-frame value corpus",
@@ -983,6 +984,7 @@ fn validate_signature(
             ResolvedType::OnceFunction
             | ResolvedType::OnceFunctionI64
             | ResolvedType::OnceFunctionI64Pair
+            | ResolvedType::MutFunctionI64
             | ResolvedType::Function { .. } => {
                 return Err(value_error("function values are outside the staged corpus"))
             }
@@ -1036,6 +1038,7 @@ fn validate_signature(
         ResolvedType::OnceFunction
         | ResolvedType::OnceFunctionI64
         | ResolvedType::OnceFunctionI64Pair
+        | ResolvedType::MutFunctionI64
         | ResolvedType::Function { .. } => {
             Err(value_error("function values are outside the staged corpus"))
         }

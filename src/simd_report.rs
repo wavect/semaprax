@@ -370,24 +370,7 @@ fn admission(function: &Function) -> Option<&'static str> {
 /// The report's primitive-scalar surface: exactly these element types are
 /// analyzed; `bool` and `char` signatures are admitted but their operations
 /// can never join a numeric lane region.
-fn scalar_type_name(ty: &Type) -> Option<&'static str> {
-    match ty {
-        Type::I64 => Some("i64"),
-        Type::I32 => Some("i32"),
-        Type::U8 => Some("u8"),
-        Type::Usize => None,
-        Type::F32 => Some("f32"),
-        Type::F64 => Some("f64"),
-        Type::Bool => Some("bool"),
-        Type::Char => Some("char"),
-        Type::String | Type::Str | Type::SliceU8 | Type::ArrayU8(_) | Type::Bytes => None,
-        Type::OnceFunction
-        | Type::OnceFunctionI64
-        | Type::OnceFunctionI64Pair
-        | Type::Function { .. }
-        | Type::Named { .. } => None,
-    }
-}
+use expression_render::scalar_type_name;
 
 fn element_type_name(ty: &ResolvedType) -> Option<&'static str> {
     match ty {

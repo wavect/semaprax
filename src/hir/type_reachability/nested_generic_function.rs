@@ -36,6 +36,7 @@ pub(super) fn is_admitted(
                 ResolvedType::OnceFunction
                 | ResolvedType::OnceFunctionI64
                 | ResolvedType::OnceFunctionI64Pair
+                | ResolvedType::MutFunctionI64
                 | ResolvedType::Function { .. },
                 _,
             ) => return false,

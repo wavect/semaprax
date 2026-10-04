@@ -109,6 +109,7 @@ pub(super) fn ast_type_owned_capacity(ty: &Type) -> usize {
         | Type::OnceFunction
         | Type::OnceFunctionI64
         | Type::OnceFunctionI64Pair
+        | Type::MutFunctionI64
         | Type::Function { .. } => 0,
         Type::Named { name, arguments } => name
             .capacity()

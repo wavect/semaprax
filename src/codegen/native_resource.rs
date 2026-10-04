@@ -49,6 +49,7 @@ impl NativeResourceAbi {
             ResolvedType::OnceFunction
             | ResolvedType::OnceFunctionI64
             | ResolvedType::OnceFunctionI64Pair
+            | ResolvedType::MutFunctionI64
             | ResolvedType::Function { .. } => Err(resource_error(
                 "function values require the ordinary native function-value emitter",
             )),

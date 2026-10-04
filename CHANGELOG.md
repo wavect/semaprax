@@ -1,5 +1,10 @@
 # Changelog
 
+- RI-08: reserve distinct `FnMutI64(i64) -> i64` and `mut fn` syntax with
+  canonical source preservation, private AST/HIR codec tags, exhaustive leaf
+  classifications and independent source/HIR refusal. The mutable runtime
+  remains unadmitted; this foundation does not claim stateful execution.
+
 - RI-08: permit a direct mutable `i64` binding as the scalar half of the
   private retained `FnOnceI64() -> i64` profile. Construction copies the value
   into the existing environment, so later source mutation cannot alias the

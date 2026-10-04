@@ -39,12 +39,18 @@ impl Resolver<'_> {
             body,
             owning,
             retained,
+            mutable,
         } = &expression.kind
         else {
             unreachable!()
         };
         if *retained {
             return self.resolve_once_closure(parent, expression, outer, path, reference);
+        }
+        if *mutable {
+            return Err(hir_error(
+                "transactional mutable closures await their checked carrier lowering",
+            ));
         }
         if *owning {
             // SPX-AI-021 bounded owning-capture profile: admitted and fully

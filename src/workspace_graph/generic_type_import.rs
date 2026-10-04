@@ -34,6 +34,7 @@ pub(super) fn template_is_admitted(declaration: &TypeDeclaration) -> bool {
             | Type::OnceFunction
             | Type::OnceFunctionI64
             | Type::OnceFunctionI64Pair
+            | Type::MutFunctionI64
             | Type::Function { .. } => false,
         })
 }

@@ -85,6 +85,7 @@ pub(super) fn is_admitted(
                 | Type::OnceFunction
                 | Type::OnceFunctionI64
                 | Type::OnceFunctionI64Pair
+                | Type::MutFunctionI64
                 | Type::Function { .. },
                 _,
             ) => {

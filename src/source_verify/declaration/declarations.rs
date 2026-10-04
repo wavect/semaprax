@@ -257,6 +257,7 @@ pub(super) fn check_native_rust_imports<'p>(
                         | Type::OnceFunction
                         | Type::OnceFunctionI64
                         | Type::OnceFunctionI64Pair
+                        | Type::MutFunctionI64
                         | Type::Function { .. }
                 ) {
                     diagnostics.push(error(
@@ -509,6 +510,7 @@ pub(super) fn check_declared_fields<'p>(
                     Type::OnceFunction
                         | Type::OnceFunctionI64
                         | Type::OnceFunctionI64Pair
+                        | Type::MutFunctionI64
                         | Type::Function { .. }
                 ) {
                     diagnostics.push(error(

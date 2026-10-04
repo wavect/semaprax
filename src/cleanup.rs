@@ -55,6 +55,7 @@ fn resolved_type_owned_capacity(ty: &ResolvedType) -> usize {
         ResolvedType::OnceFunction
         | ResolvedType::OnceFunctionI64
         | ResolvedType::OnceFunctionI64Pair
+        | ResolvedType::MutFunctionI64
         | ResolvedType::Unit
         | ResolvedType::I64
         | ResolvedType::I32
@@ -498,7 +499,8 @@ pub(crate) fn type_needs_resource_cleanup(
             | ResolvedType::String
             | ResolvedType::OnceFunction
             | ResolvedType::OnceFunctionI64
-            | ResolvedType::OnceFunctionI64Pair => return Ok(true),
+            | ResolvedType::OnceFunctionI64Pair
+            | ResolvedType::MutFunctionI64 => return Ok(true),
             ResolvedType::Function { .. } | ResolvedType::Str | ResolvedType::SliceU8 => {}
             ResolvedType::Nominal {
                 declaration,
@@ -577,6 +579,7 @@ pub(crate) fn type_needs_resource_cleanup(
             ResolvedType::OnceFunction
             | ResolvedType::OnceFunctionI64
             | ResolvedType::OnceFunctionI64Pair
+            | ResolvedType::MutFunctionI64
             | ResolvedType::Unit
             | ResolvedType::I64
             | ResolvedType::I32

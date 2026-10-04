@@ -447,7 +447,8 @@ impl Emitter<'_> {
             ty:
                 ResolvedType::OnceFunction
                 | ResolvedType::OnceFunctionI64
-                | ResolvedType::OnceFunctionI64Pair,
+                | ResolvedType::OnceFunctionI64Pair
+                | ResolvedType::MutFunctionI64,
         } = value
         else {
             return Err(error(

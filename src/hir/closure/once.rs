@@ -28,6 +28,7 @@ impl Resolver<'_> {
             body,
             owning: true,
             retained: true,
+            mutable: false,
         } = &expression.kind
         else {
             return Err(hir_error("invalid affine closure literal"));

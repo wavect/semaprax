@@ -143,7 +143,8 @@ pub(super) fn callable_signature(expr: &ResolvedExpr) -> Result<&ResolvedType, D
         ResolvedType::Function { .. }
         | ResolvedType::OnceFunction
         | ResolvedType::OnceFunctionI64
-        | ResolvedType::OnceFunctionI64Pair => Ok(&expr.ty),
+        | ResolvedType::OnceFunctionI64Pair
+        | ResolvedType::MutFunctionI64 => Ok(&expr.ty),
         _ => Err(error(
             "aggregate function invocation callable is not a function",
         )),
@@ -188,7 +189,8 @@ impl super::Emitter<'_> {
             }
             ResolvedType::OnceFunction
             | ResolvedType::OnceFunctionI64
-            | ResolvedType::OnceFunctionI64Pair => (&[][..], &ResolvedType::I64),
+            | ResolvedType::OnceFunctionI64Pair
+            | ResolvedType::MutFunctionI64 => (&[][..], &ResolvedType::I64),
             _ => unreachable!(),
         };
         if parameters.len() != args.len() || *result != expr.ty {
@@ -410,4 +412,26 @@ pub(super) fn executable_functions(
             )
         }))
         .collect()
+}
+
+pub(super) fn value_type(value: &super::Value) -> &ResolvedType {
+    match value {
+        super::Value::Scalar { ty, .. } | super::Value::ScalarMemory { ty, .. } | super::Value::Aggregate { ty, .. } => {
+            ty
+        }
+    }
+}
+
+
+pub(super) fn value_at(
+    pointer: super::Pointer,
+    ty: ResolvedType,
+    program: &ResolvedProgram,
+) -> Result<super::Value, Diagnostic> {
+    if super::is_aggregate(program, &ty)? {
+        Ok(super::Value::Aggregate { pointer, ty })
+    } else {
+        scalar_wasm_type(program, &ty)?;
+        Ok(super::Value::ScalarMemory { pointer, ty })
+    }
 }

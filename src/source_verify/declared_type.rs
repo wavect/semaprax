@@ -142,6 +142,15 @@ pub(super) fn check_declared_type(
 ) {
     let mut pending = vec![ty];
     while let Some(ty) = pending.pop() {
+        if *ty == Type::MutFunctionI64 {
+            diagnostics.push(error(
+                program,
+                "SPX-T308",
+                "transactional mutable callables await checked runtime lowering",
+                span,
+            ));
+            continue;
+        }
         let Type::Named { name, arguments } = ty else {
             if let Type::Function {
                 parameters: slots,
@@ -357,6 +366,7 @@ pub(super) fn generic_function_signature_slot(ty: &Type, parameters: &HashSet<&s
         | Type::OnceFunction
         | Type::OnceFunctionI64
         | Type::OnceFunctionI64Pair
+        | Type::MutFunctionI64
         | Type::Function { .. } => false,
         Type::Named { name, arguments } => {
             arguments.is_empty() && parameters.contains(name.as_str())
@@ -531,6 +541,7 @@ pub(super) fn substitute_function_type(
                 Type::OnceFunction => resolved.push(Type::OnceFunction),
                 Type::OnceFunctionI64 => resolved.push(Type::OnceFunctionI64),
                 Type::OnceFunctionI64Pair => resolved.push(Type::OnceFunctionI64Pair),
+                Type::MutFunctionI64 => resolved.push(Type::MutFunctionI64),
                 Type::Bytes => resolved.push(Type::Bytes),
                 Type::Str => resolved.push(Type::Str),
                 Type::SliceU8 => resolved.push(Type::SliceU8),

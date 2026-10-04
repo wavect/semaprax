@@ -70,7 +70,8 @@ pub(in crate::implementation) fn type_identity_metrics(
                     ResolvedType::Function { .. }
                     | ResolvedType::OnceFunction
                     | ResolvedType::OnceFunctionI64
-                    | ResolvedType::OnceFunctionI64Pair => {
+                    | ResolvedType::OnceFunctionI64Pair
+                    | ResolvedType::MutFunctionI64 => {
                         return Err(b107("scalar value signature required"));
                     }
                     ResolvedType::Unit => Some(leaf("unit".len())),
@@ -223,7 +224,8 @@ pub(in crate::implementation) fn fingerprint_type_identity(
                 ResolvedType::Function { .. }
                 | ResolvedType::OnceFunction
                 | ResolvedType::OnceFunctionI64
-                | ResolvedType::OnceFunctionI64Pair => {
+                | ResolvedType::OnceFunctionI64Pair
+                | ResolvedType::MutFunctionI64 => {
                     return Err(b107("scalar value signature required"));
                 }
                 ResolvedType::Unit

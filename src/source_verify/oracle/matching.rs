@@ -445,6 +445,7 @@ pub(super) fn oracle_match(
         | Type::OnceFunction
         | Type::OnceFunctionI64
         | Type::OnceFunctionI64Pair
+        | Type::MutFunctionI64
         | Type::Function { .. }
         | Type::Named { .. } => None,
     });

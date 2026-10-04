@@ -17,6 +17,9 @@ pub(crate) fn source_scalar(ty: &Type) -> Option<ResolvedType> {
     })
 }
 pub(crate) fn source_type(ty: &Type) -> Option<ResolvedType> {
+    if *ty == Type::MutFunctionI64 {
+        return Some(ResolvedType::MutFunctionI64);
+    }
     if ty.is_once_function() {
         return Some(if *ty == Type::OnceFunctionI64Pair {
             ResolvedType::OnceFunctionI64Pair
@@ -146,7 +149,8 @@ pub(in crate::hir) fn finish(
         ResolvedType::Function { result, .. } => result.as_ref(),
         ResolvedType::OnceFunction
         | ResolvedType::OnceFunctionI64
-        | ResolvedType::OnceFunctionI64Pair => &ResolvedType::I64,
+        | ResolvedType::OnceFunctionI64Pair
+        | ResolvedType::MutFunctionI64 => &ResolvedType::I64,
         _ => return Err(error("invalid callable")),
     };
     let expr = ResolvedExpr {

@@ -79,22 +79,56 @@ pub(crate) fn capture_names_scoped(
                     if locals.contains(name.as_str()) { continue; }
                     if name == "result" || outer.get(name.as_str()).is_none_or(|ty| !scalar(ty)) { return Err(reject("closures capture only lexical Copy scalar values")); }
                     captures.insert(name.clone());
-                    if captures.len() > 8 { return Err(reject("closure capture inventory exceeds eight scalar snapshots")); }
+                    if captures.len() > 8 {
+                        return Err(reject(
+                            "closure capture inventory exceeds eight scalar snapshots",
+                        ));
+                    }
                 }
                 ExprKind::Unary { value, .. } => pending.push(Item::Expr(value, locals)),
-                ExprKind::Binary { left, right, .. } => { pending.push(Item::Expr(right, locals.clone())); pending.push(Item::Expr(left, locals)); }
-                ExprKind::If { condition, then_branch, else_branch } => {
-                    pending.push(Item::Expr(else_branch, locals.clone())); pending.push(Item::Expr(then_branch, locals.clone())); pending.push(Item::Expr(condition, locals));
+                ExprKind::Binary { left, right, .. } => {
+                    pending.push(Item::Expr(right, locals.clone()));
+                    pending.push(Item::Expr(left, locals));
                 }
-                ExprKind::Block { statements, tail } => pending.push(Item::Block(statements, 0, tail, locals)),
-                ExprKind::Call { name, type_arguments, args } => {
-                    if locals.contains(name.as_str()) || outer.contains_key(name.as_str()) || !type_arguments.is_empty() || program.functions.iter().find(|f| f.name == *name).and_then(function_value_signature).is_none() {
-                        return Err(reject("closure bodies call only ordinary local scalar functions"));
+                ExprKind::If {
+                    condition,
+                    then_branch,
+                    else_branch,
+                } => {
+                    pending.push(Item::Expr(else_branch, locals.clone()));
+                    pending.push(Item::Expr(then_branch, locals.clone()));
+                    pending.push(Item::Expr(condition, locals));
+                }
+                ExprKind::Block { statements, tail } => {
+                    pending.push(Item::Block(statements, 0, tail, locals))
+                }
+                ExprKind::Call {
+                    name,
+                    type_arguments,
+                    args,
+                } => {
+                    if locals.contains(name.as_str())
+                        || outer.contains_key(name.as_str())
+                        || !type_arguments.is_empty()
+                        || program
+                            .functions
+                            .iter()
+                            .find(|f| f.name == *name)
+                            .and_then(function_value_signature)
+                            .is_none()
+                    {
+                        return Err(reject(
+                            "closure bodies call only ordinary local scalar functions",
+                        ));
                     }
                     pending.extend(args.iter().rev().map(|arg| Item::Expr(arg, locals.clone())));
                 }
-                _ => return Err(reject("closure bodies admit scalar expressions only; nested closures and owning values are excluded")),
-            }
+                _ => {
+                    return Err(reject(
+                        "closure bodies admit scalar expressions only; nested closures and owning values are excluded",
+                    ));
+                }
+            },
         }
     }
     Ok(captures.into_iter().collect())
@@ -126,6 +160,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             body,
             owning,
             retained: _,
+            mutable,
         } = &expression.kind
         else {
             unreachable!()
@@ -143,6 +178,14 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             );
             self.values.push(value);
             return Ok(());
+        }
+        if *mutable {
+            return Err(error(
+                self.program,
+                "SPX-T308",
+                "transactional mutable closures are not yet lowered in this compiler revision",
+                expression.span,
+            ));
         }
         if !self.current.type_parameters.is_empty()
             && !super::generic_collection_profile(self.current)
@@ -255,6 +298,7 @@ pub(super) fn oracle(
         body,
         owning: _,
         retained: _,
+        mutable: _,
     } = &expression.kind
     else {
         unreachable!()
@@ -369,6 +413,7 @@ pub(super) fn validate_generic_syntax(
             body,
             owning: false,
             retained: false,
+            mutable: false,
         } = &expression.kind
         {
             let scalar = |ty: &Type| {

@@ -237,6 +237,7 @@ fn source_array_payload(types: &TypeTable<'_>, ty: &Type) -> Result<u32, ()> {
             | Type::OnceFunction
             | Type::OnceFunctionI64
             | Type::OnceFunctionI64Pair
+            | Type::MutFunctionI64
             | Type::Function { .. } => {}
         }
     }
@@ -511,23 +512,7 @@ pub(super) fn source_capacity_expr_type(
     }
 }
 
-fn source_capacity_slot(
-    slots: &mut Vec<crate::byte_data_capacity::ArrayStorageSlot>,
-    types: &TypeTable<'_>,
-    identity: String,
-    kind: crate::byte_data_capacity::ArrayStorageKind,
-    ty: &Type,
-) -> Result<(), ()> {
-    let length = source_array_payload(types, ty)?;
-    if length != 0 || matches!(ty, Type::ArrayU8(0)) {
-        slots.push(crate::byte_data_capacity::ArrayStorageSlot {
-            identity,
-            kind,
-            length,
-        });
-    }
-    Ok(())
-}
+use functions::source_capacity_slot;
 
 pub(super) fn source_transcript_source_from_roots(
     expression: &Expr,

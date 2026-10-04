@@ -858,6 +858,16 @@ retained environments after uncertain teardown; and compiled teardown/depth
 mutants. Canonical source/graph and unsupported selection diagnostics remain
 in the owning harness.
 
+### Reserved transactional mutable syntax
+
+The parser preserves the distinct `FnMutI64(i64) -> i64` type and `mut fn`
+literal in canonical source. Both authored source and independent retained-HIR
+admission refuse this profile until its transactional carrier is implemented
+on every execution route. The source diagnostic is `SPX-T308`; parsing and
+formatting this reserved syntax do not establish executable mutable captures.
+The `mutable_closures` language selector checks canonical round-trip, exact
+fixed-signature refusal, inferred-literal refusal and hostile retained HIR.
+
 ### Checked source Result callbacks
 
 `prepare_native_rust_result_callback` selects a pure named

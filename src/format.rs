@@ -699,8 +699,11 @@ fn write_expr_measured(
                         body,
                         owning,
                         retained,
+                        mutable,
                     } => {
-                        if *retained {
+                        if *mutable {
+                            output.write_str("mut ").unwrap();
+                        } else if *retained {
                             output.write_str("once ").unwrap();
                         } else if *owning {
                             output.write_str("own ").unwrap();
@@ -1163,6 +1166,9 @@ pub(crate) fn write_type(output: &mut impl std::fmt::Write, ty: &crate::ast::Typ
             }
             Frame::Type(crate::ast::Type::OnceFunctionI64Pair) => {
                 output.write_str("FnOnceI64Pair() -> i64").unwrap()
+            }
+            Frame::Type(crate::ast::Type::MutFunctionI64) => {
+                output.write_str("FnMutI64(i64) -> i64").unwrap()
             }
             Frame::Type(crate::ast::Type::OnceFunction) => {
                 output.write_str("FnOnce() -> i64").unwrap()

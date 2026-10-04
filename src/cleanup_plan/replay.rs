@@ -2744,6 +2744,7 @@ fn validate_exits(
                             | ResolvedType::OnceFunction
                             | ResolvedType::OnceFunctionI64
                             | ResolvedType::OnceFunctionI64Pair
+                            | ResolvedType::MutFunctionI64
                     ) || !type_needs_drop(program, function, &function.return_type)?
                         || result.storage != StorageId::ProvisionalResult
                         || !result.projections.is_empty()
@@ -3038,9 +3039,7 @@ fn sequence_skeleton_paths(
     Ok(combined)
 }
 
-fn has_active_paths(paths: &[ExprSkeletonPath]) -> bool {
-    paths.iter().any(|path| !path.failed && !path.residual)
-}
+use path_summary::has_active_paths;
 
 fn expression_skeleton(
     program: &ResolvedProgram,
@@ -4909,6 +4908,7 @@ fn validate_match_skeleton_shape(
         | ResolvedType::OnceFunction
         | ResolvedType::OnceFunctionI64
         | ResolvedType::OnceFunctionI64Pair
+        | ResolvedType::MutFunctionI64
         | ResolvedType::Function { .. } => false,
     };
     let is_variant = match &scrutinee.ty {

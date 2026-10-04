@@ -238,6 +238,7 @@ impl<'a> TypeTable<'a> {
                     Type::OnceFunction => resolved.push(Type::OnceFunction),
                     Type::OnceFunctionI64 => resolved.push(Type::OnceFunctionI64),
                     Type::OnceFunctionI64Pair => resolved.push(Type::OnceFunctionI64Pair),
+                    Type::MutFunctionI64 => resolved.push(Type::MutFunctionI64),
                     Type::Bytes => resolved.push(Type::Bytes),
                     Type::Str => resolved.push(Type::Str),
                     Type::SliceU8 => resolved.push(Type::SliceU8),
@@ -326,6 +327,7 @@ impl<'a> TypeTable<'a> {
             | Type::OnceFunction
             | Type::OnceFunctionI64
             | Type::OnceFunctionI64Pair
+            | Type::MutFunctionI64
             | Type::Function { .. } => false,
             Type::Named { name, arguments } => {
                 if !visiting.insert(name.clone()) {
@@ -431,7 +433,8 @@ impl<'a> TypeTable<'a> {
                     | Type::Bytes
                     | Type::OnceFunction
                     | Type::OnceFunctionI64
-                    | Type::OnceFunctionI64Pair => return true,
+                    | Type::OnceFunctionI64Pair
+                    | Type::MutFunctionI64 => return true,
                     Type::Named { name, arguments } => {
                         if crate::iterator_ops::ast_is_iterator(&Type::Named {
                             name: name.clone(),
@@ -522,7 +525,8 @@ impl<'a> TypeTable<'a> {
                 Type::Bytes
                 | Type::OnceFunction
                 | Type::OnceFunctionI64
-                | Type::OnceFunctionI64Pair => return true,
+                | Type::OnceFunctionI64Pair
+                | Type::MutFunctionI64 => return true,
                 Type::Named { name, arguments } => {
                     let identity = Type::Named {
                         name: name.clone(),
@@ -999,6 +1003,7 @@ pub(super) fn classify_nested_owned_byte_record(
                 | Type::OnceFunction
                 | Type::OnceFunctionI64
                 | Type::OnceFunctionI64Pair
+                | Type::MutFunctionI64
                 | Type::Function { .. },
                 _,
             ) => {

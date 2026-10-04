@@ -3698,7 +3698,8 @@ impl Evaluator<'_> {
                 Value::OnceClosure(_),
                 ResolvedType::OnceFunction
                 | ResolvedType::OnceFunctionI64
-                | ResolvedType::OnceFunctionI64Pair,
+                | ResolvedType::OnceFunctionI64Pair
+                | ResolvedType::MutFunctionI64,
             )
             | (Value::Bytes(_), ResolvedType::Bytes)
             | (Value::String(_), ResolvedType::String) => true,
@@ -3929,6 +3930,7 @@ impl Evaluator<'_> {
                             | ResolvedType::OnceFunction
                             | ResolvedType::OnceFunctionI64
                             | ResolvedType::OnceFunctionI64Pair
+                            | ResolvedType::MutFunctionI64
                             | ResolvedType::Nominal { .. }
                     );
                 if moves_storage {

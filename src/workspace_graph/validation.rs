@@ -500,6 +500,7 @@ mod clone_cost {
             hir::ResolvedType::OnceFunction
             | hir::ResolvedType::OnceFunctionI64
             | hir::ResolvedType::OnceFunctionI64Pair
+            | hir::ResolvedType::MutFunctionI64
             | hir::ResolvedType::Unit
             | hir::ResolvedType::I64
             | hir::ResolvedType::I32

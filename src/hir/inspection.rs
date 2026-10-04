@@ -165,6 +165,7 @@ fn audit_resolved_type(root: &ResolvedType) -> Result<(), Diagnostic> {
             ResolvedType::OnceFunction
             | ResolvedType::OnceFunctionI64
             | ResolvedType::OnceFunctionI64Pair
+            | ResolvedType::MutFunctionI64
             | ResolvedType::Unit
             | ResolvedType::I64
             | ResolvedType::I32

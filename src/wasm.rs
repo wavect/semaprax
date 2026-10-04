@@ -4628,42 +4628,7 @@ fn emit_i32_checked_binary(
     output.push(0xa7);
     Ok(())
 }
-fn wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
-    match ty {
-        ResolvedType::Unit => Err(Diagnostic::io(
-            "SPX-W101",
-            "unit is not a WebAssembly value type",
-        )),
-        ResolvedType::I64 => Ok(I64),
-        ResolvedType::I32 => Ok(I32),
-        ResolvedType::Char => Ok(I32),
-        ResolvedType::U8 => Ok(I32),
-        ResolvedType::Usize => Ok(I64),
-        ResolvedType::F32 => Ok(F32),
-        ResolvedType::F64 => Ok(F64),
-        ResolvedType::Bool
-        | ResolvedType::Nominal { .. }
-        | ResolvedType::OnceFunction
-        | ResolvedType::OnceFunctionI64
-        | ResolvedType::OnceFunctionI64Pair
-        | ResolvedType::Function { .. } => Ok(I32),
-        // Owned strings lower to an abstract host handle riding the i64 lane.
-        ResolvedType::String | ResolvedType::Str | ResolvedType::SliceU8 | ResolvedType::Bytes => {
-            Ok(I64)
-        }
-        ResolvedType::ArrayU8(_) => Err(Diagnostic::io(
-            "SPX-W101",
-            "fixed byte arrays require the aggregate WebAssembly path",
-        )),
-        ResolvedType::TypeParameter { .. } => Err(Diagnostic::io(
-            "SPX-W109",
-            format!(
-                "unresolved generic type `{}` cannot be lowered to WebAssembly",
-                ty.identity_key()
-            ),
-        )),
-    }
-}
+use function_value::wasm_type;
 
 use function_value::intern_type;
 fn function_import(output: &mut impl ByteOutput, module: &str, name: &str, type_index: u32) {

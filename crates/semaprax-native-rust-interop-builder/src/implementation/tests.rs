@@ -263,7 +263,8 @@ fn observed_type_bytes(ty: &ResolvedType) -> usize {
         | ResolvedType::Function { .. }
         | ResolvedType::OnceFunction
         | ResolvedType::OnceFunctionI64
-        | ResolvedType::OnceFunctionI64Pair => 0,
+        | ResolvedType::OnceFunctionI64Pair
+        | ResolvedType::MutFunctionI64 => 0,
         ResolvedType::TypeParameter { owner, .. } => owner.as_str().len(),
         ResolvedType::Nominal {
             declaration,

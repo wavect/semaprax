@@ -44,7 +44,7 @@ codec_struct!(ByteSliceProvenance {
     producer,
     ranges
 });
-codec_enum!(ResolvedType {0=>Unit,1=>I64,2=>I32,3=>Char,4=>U8,5=>Usize,6=>ArrayU8(length),7=>F32,8=>F64,9=>Bool,10=>String,11=>Bytes,12=>Str,13=>SliceU8,14=>TypeParameter{owner,index},15=>Nominal{declaration,arguments},16=>Function{parameters,result},17=>OnceFunction,18=>OnceFunctionI64,19=>OnceFunctionI64Pair});
+codec_enum!(ResolvedType {0=>Unit,1=>I64,2=>I32,3=>Char,4=>U8,5=>Usize,6=>ArrayU8(length),7=>F32,8=>F64,9=>Bool,10=>String,11=>Bytes,12=>Str,13=>SliceU8,14=>TypeParameter{owner,index},15=>Nominal{declaration,arguments},16=>Function{parameters,result},17=>OnceFunction,18=>OnceFunctionI64,19=>OnceFunctionI64Pair,20=>MutFunctionI64});
 codec_struct!(TypeFacts {
     copy,
     contains_resource,

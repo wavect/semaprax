@@ -1121,6 +1121,7 @@ fn is_aggregate(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Di
             | ResolvedType::OnceFunction
             | ResolvedType::OnceFunctionI64
             | ResolvedType::OnceFunctionI64Pair
+            | ResolvedType::MutFunctionI64
     ) && crate::hir::closure::requires_runtime_closures(program)
     {
         return Ok(true);
@@ -1162,6 +1163,7 @@ fn aggregate_size_align(
             | ResolvedType::OnceFunction
             | ResolvedType::OnceFunctionI64
             | ResolvedType::OnceFunctionI64Pair
+            | ResolvedType::MutFunctionI64
     ) && crate::hir::closure::requires_runtime_closures(program)
     {
         return Ok((80, 8));
@@ -8452,26 +8454,9 @@ fn borrow_place_shape_is_admitted(operation: &DeclarationId, place: &crate::hir:
     operation.as_str() == crate::byte_ops::BYTES_AS_SLICE_ID
 }
 
-fn value_type(value: &Value) -> &ResolvedType {
-    match value {
-        Value::Scalar { ty, .. } | Value::ScalarMemory { ty, .. } | Value::Aggregate { ty, .. } => {
-            ty
-        }
-    }
-}
+use function_value::value_type;
 
-fn value_at(
-    pointer: Pointer,
-    ty: ResolvedType,
-    program: &ResolvedProgram,
-) -> Result<Value, Diagnostic> {
-    if is_aggregate(program, &ty)? {
-        Ok(Value::Aggregate { pointer, ty })
-    } else {
-        scalar_wasm_type(program, &ty)?;
-        Ok(Value::ScalarMemory { pointer, ty })
-    }
-}
+use function_value::value_at;
 
 fn require_type(
     actual: &ResolvedType,

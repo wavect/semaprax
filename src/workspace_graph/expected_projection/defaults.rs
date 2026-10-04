@@ -51,6 +51,7 @@ pub(super) fn default_expr_expanded_cost(
         | Type::OnceFunction
         | Type::OnceFunctionI64
         | Type::OnceFunctionI64Pair
+        | Type::MutFunctionI64
         | Type::Function { .. } => Err(vec![graph_error(
             "SPX-G173",
             "internal byte-data types have no synthesizable workspace default",
@@ -240,6 +241,7 @@ pub(super) fn default_expr(
         | Type::OnceFunction
         | Type::OnceFunctionI64
         | Type::OnceFunctionI64Pair
+        | Type::MutFunctionI64
         | Type::Function { .. } => {
             return Err(vec![graph_error(
                 "SPX-G173",

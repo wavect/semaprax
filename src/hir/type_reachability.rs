@@ -620,6 +620,7 @@ fn classify_nested_owned_byte_record(
                 ResolvedType::OnceFunction
                 | ResolvedType::OnceFunctionI64
                 | ResolvedType::OnceFunctionI64Pair
+                | ResolvedType::MutFunctionI64
                 | ResolvedType::Function { .. },
                 _,
             ) => return NestedOwnedRecordAdmission::OutsideProfile,

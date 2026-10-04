@@ -21,7 +21,8 @@ fn hir_type_owned_capacity(ty: &ResolvedType) -> Option<usize> {
         | ResolvedType::SliceU8
         | ResolvedType::OnceFunction
         | ResolvedType::OnceFunctionI64
-        | ResolvedType::OnceFunctionI64Pair => Some(0),
+        | ResolvedType::OnceFunctionI64Pair
+        | ResolvedType::MutFunctionI64 => Some(0),
         ResolvedType::Function { parameters, result } => parameters
             .iter()
             .try_fold(

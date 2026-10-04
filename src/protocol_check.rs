@@ -392,6 +392,7 @@ fn check_type(
         Type::OnceFunction
         | Type::OnceFunctionI64
         | Type::OnceFunctionI64Pair
+        | Type::MutFunctionI64
         | Type::Function { .. } => Err(signature_error(
             &protocol.name,
             &method.name,

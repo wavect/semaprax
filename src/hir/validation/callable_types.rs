@@ -29,6 +29,11 @@ impl HirValidator<'_> {
                     | ResolvedType::OnceFunctionI64
                     | ResolvedType::OnceFunctionI64Pair,
                 ) => {}
+                Frame::Enter(ResolvedType::MutFunctionI64) => {
+                    return Err(hir_error(
+                        "transactional mutable callables await checked runtime lowering",
+                    ));
+                }
                 Frame::Enter(ty @ ResolvedType::Function { .. }) => {
                     if !super::function_value::is_signature(ty) {
                         return Err(hir_error("invalid function value signature"));

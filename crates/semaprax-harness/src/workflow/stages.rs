@@ -580,6 +580,11 @@ pub trait ProposalStage {
     fn calls(&self) -> u32;
     /// Whether a call is non-idempotent (never replayed after a restart).
     fn side_effecting(&self) -> bool;
+    /// True when the proposal comes from an explicit host-supplied local
+    /// source: it is taken before routing and reserves nothing.
+    fn local_source(&self) -> bool {
+        false
+    }
 }
 
 /// Reads a proposal from a host-supplied file (tests and CLI).
@@ -639,6 +644,9 @@ impl ProposalStage for ScriptedProposer {
     }
     fn side_effecting(&self) -> bool {
         false
+    }
+    fn local_source(&self) -> bool {
+        self.path.is_some() || self.inline.is_some()
     }
 }
 

@@ -460,7 +460,8 @@ pub(super) fn generate(
             if side {
                 std::fs::write(&cache, &b)
                     .map_err(|e| d("SPX-HPD070", format!("proposal cache: {e}")))?;
-                journal.append(step, "done", json!({"digest": sha256_plain(&b)}))?;
+                let detail = super::acquire::done_detail(cx, &b, count.to_json());
+                journal.append(step, "done", detail)?;
             }
             Ok(b)
         }
@@ -501,19 +502,24 @@ pub(super) fn propose_step(
     p: &PromptCtx,
     step: &str,
 ) -> HarnessResult<Proposal> {
-    let (fit, route_json) = route_and_fit(cx, st, r, p, step)?;
-    r.route = route_json;
-    let model = fit.model.clone();
-    let bytes = generate(
-        cx,
-        st,
-        journal,
-        fit.prompt.clone(),
-        model,
-        r,
-        step,
-        &fit.count,
-    )?;
+    let bytes = match super::acquire::local_proposal(cx, st, journal, r, step)? {
+        Some(b) => b,
+        None => {
+            let (fit, route_json) = route_and_fit(cx, st, r, p, step)?;
+            r.route = route_json;
+            let model = fit.model.clone();
+            generate(
+                cx,
+                st,
+                journal,
+                fit.prompt.clone(),
+                model,
+                r,
+                step,
+                &fit.count,
+            )?
+        }
+    };
     let v2 = cx.cfg.task.schema_version == 2;
     let proposal = parse_proposal(&bytes).map_err(|e| {
         if v2 && e.code == "SPX-HPD031" && e.message.starts_with("unsupported change kind") {

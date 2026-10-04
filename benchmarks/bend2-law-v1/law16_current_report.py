@@ -4,6 +4,7 @@ import argparse
 import importlib.util
 import json
 import pathlib
+import statistics
 import sys
 
 ROOT = pathlib.Path(__file__).parent
@@ -61,6 +62,32 @@ def boolean_synthesis_effort(pilot, campaign):
     }
 
 
+def timing_variation(routes):
+    """Summarize within-cell spread after capsule reviewers authenticate samples."""
+    groups = {}
+    for group, entries in routes.items():
+        group_rows = {}
+        for label, path in entries.items():
+            receipt = read(path)
+            states = {}
+            for state in ("fresh_process", "repeat_process"):
+                samples = receipt["cells"][state]["samples"]
+                elapsed = [sample["elapsed_ns"] for sample in samples]
+                if len(elapsed) != 30 or any(not isinstance(value, int) or value < 0 for value in elapsed):
+                    raise ValueError(f"{group}/{label}/{state} does not contain 30 valid elapsed-time samples")
+                median = statistics.median(elapsed)
+                states[state] = {
+                    "count": len(elapsed),
+                    "median_ns": median,
+                    "mad_ns": statistics.median(abs(value - median) for value in elapsed),
+                }
+            group_rows[label] = states
+        groups[group] = group_rows
+    return {
+        "method": "median absolute deviation from the within-cell median, in nanoseconds",
+        "interpretation": "descriptive sample spread only; not a confidence interval or cross-route comparison",
+        "cells": groups,
+    }
 def render():
     remaining = REMAINING.review()
     try:
@@ -85,6 +112,24 @@ def render():
     proof_identity = read(
         ROOT / "evidence/law16-boolean-negation-proof-verdict-v1/identity.json"
     )
+    variation = timing_variation({
+        "historical_process_v1": {
+            f"{lane}_{kind}": ROOT / f"evidence/law16-boolean-negation-process-v1/{lane}/{kind}/receipt.json"
+            for lane in ("bend", "semaprax") for kind in ("candidate", "attack")
+        },
+        "process_v2": {
+            f"{lane}_{kind}": ROOT / f"evidence/law16-boolean-negation-process-v2/{lane}/{kind}/receipt.json"
+            for lane in ("bend", "semaprax") for kind in ("candidate", "attack")
+        },
+        "ordinary_check_v1": {
+            "bend_ordinary": ROOT / "evidence/law16-boolean-negation-nonproof-process-v1/bend-ordinary.json",
+            "semaprax_check": ROOT / "evidence/law16-boolean-negation-nonproof-process-v1/semaprax-check.json",
+        },
+        "proof_verdict_v1": {
+            "bend_verdict": ROOT / "evidence/law16-boolean-negation-proof-verdict-v1/successful/bend-verdict.json",
+            "semaprax_z3": ROOT / "evidence/law16-boolean-negation-proof-verdict-v1/successful/semaprax-z3.json",
+        },
+    })
 
     return {
         "schema": SCHEMA,
@@ -125,6 +170,7 @@ def render():
                 },
             },
             "peak_rss": rss["routes"],
+            "timing_variation": variation,
             "historical_peak_rss": historical_rss,
             "timing_interpretation": (
                 "ordinary Bend, Bend verdict, SEMAPRAX check, and installed-Z3 p50/p95 "

@@ -465,7 +465,165 @@
         }
       ]
     },
-    "timing_interpretation": "ordinary Bend, Bend verdict, SEMAPRAX check, and installed-Z3 p50/p95 and RSS are separate local process-provisioning observations; no cross-route ratio or winner"
+    "timing_interpretation": "ordinary Bend, Bend verdict, SEMAPRAX check, and installed-Z3 p50/p95 and RSS are separate local process-provisioning observations; no cross-route ratio or winner",
+    "timing_variation": {
+      "cells": {
+        "historical_process_v1": {
+          "bend_attack": {
+            "fresh_process": {
+              "count": 30,
+              "mad_ns": 507583.0,
+              "median_ns": 68409687.0
+            },
+            "repeat_process": {
+              "count": 30,
+              "mad_ns": 434854.5,
+              "median_ns": 69071729.0
+            }
+          },
+          "bend_candidate": {
+            "fresh_process": {
+              "count": 30,
+              "mad_ns": 1140959.0,
+              "median_ns": 86617917.0
+            },
+            "repeat_process": {
+              "count": 30,
+              "mad_ns": 1971562.5,
+              "median_ns": 87489354.5
+            }
+          },
+          "semaprax_attack": {
+            "fresh_process": {
+              "count": 30,
+              "mad_ns": 2916458.0,
+              "median_ns": 192335167.0
+            },
+            "repeat_process": {
+              "count": 30,
+              "mad_ns": 10812646.0,
+              "median_ns": 191247604.5
+            }
+          },
+          "semaprax_candidate": {
+            "fresh_process": {
+              "count": 30,
+              "mad_ns": 8384271.0,
+              "median_ns": 439726645.5
+            },
+            "repeat_process": {
+              "count": 30,
+              "mad_ns": 7211541.0,
+              "median_ns": 451408458.0
+            }
+          }
+        },
+        "ordinary_check_v1": {
+          "bend_ordinary": {
+            "fresh_process": {
+              "count": 30,
+              "mad_ns": 6435541.5,
+              "median_ns": 83050145.5
+            },
+            "repeat_process": {
+              "count": 30,
+              "mad_ns": 438500.0,
+              "median_ns": 75527833.0
+            }
+          },
+          "semaprax_check": {
+            "fresh_process": {
+              "count": 30,
+              "mad_ns": 2444855.0,
+              "median_ns": 233901479.5
+            },
+            "repeat_process": {
+              "count": 30,
+              "mad_ns": 3331771.0,
+              "median_ns": 235004000.0
+            }
+          }
+        },
+        "process_v2": {
+          "bend_attack": {
+            "fresh_process": {
+              "count": 30,
+              "mad_ns": 6287583.0,
+              "median_ns": 84425854.5
+            },
+            "repeat_process": {
+              "count": 30,
+              "mad_ns": 5172042.0,
+              "median_ns": 88104666.5
+            }
+          },
+          "bend_candidate": {
+            "fresh_process": {
+              "count": 30,
+              "mad_ns": 14070520.5,
+              "median_ns": 106149771.0
+            },
+            "repeat_process": {
+              "count": 30,
+              "mad_ns": 3861458.0,
+              "median_ns": 96380958.0
+            }
+          },
+          "semaprax_attack": {
+            "fresh_process": {
+              "count": 30,
+              "mad_ns": 7728959.0,
+              "median_ns": 212161979.5
+            },
+            "repeat_process": {
+              "count": 30,
+              "mad_ns": 7582708.5,
+              "median_ns": 207869375.0
+            }
+          },
+          "semaprax_candidate": {
+            "fresh_process": {
+              "count": 30,
+              "mad_ns": 17696625.5,
+              "median_ns": 485345042.0
+            },
+            "repeat_process": {
+              "count": 30,
+              "mad_ns": 8630562.0,
+              "median_ns": 470260104.0
+            }
+          }
+        },
+        "proof_verdict_v1": {
+          "bend_verdict": {
+            "fresh_process": {
+              "count": 30,
+              "mad_ns": 2346021.5,
+              "median_ns": 102798854.0
+            },
+            "repeat_process": {
+              "count": 30,
+              "mad_ns": 3339479.0,
+              "median_ns": 100183937.0
+            }
+          },
+          "semaprax_z3": {
+            "fresh_process": {
+              "count": 30,
+              "mad_ns": 10952270.5,
+              "median_ns": 485314812.0
+            },
+            "repeat_process": {
+              "count": 30,
+              "mad_ns": 9361416.0,
+              "median_ns": 480240292.0
+            }
+          }
+        }
+      },
+      "interpretation": "descriptive sample spread only; not a confidence interval or cross-route comparison",
+      "method": "median absolute deviation from the within-cell median, in nanoseconds"
+    }
   },
   "measurement_provenance": {
     "backend": {

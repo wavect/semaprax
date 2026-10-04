@@ -18,6 +18,27 @@ These are separate local process-provisioning observations, not a cross-route
 ratio or winner. Fresh/repeat does not isolate operating-system, executable,
 solver, or tool caches.
 
+For each retained 30-sample timing cell, the report also calculates the median
+absolute deviation (MAD) from its sample median. These values describe
+within-cell spread; they are not confidence intervals or estimates of
+cross-route uncertainty. The cells use different process captures and
+assurance routes, so the values do not rank or compare the routes.
+
+| Evidence cell | Fresh MAD (ms) | Repeat MAD (ms) |
+| --- | ---: | ---: |
+| Historical process v1, Bend candidate | 1.141 | 1.972 |
+| Historical process v1, Bend attack | 0.508 | 0.435 |
+| Historical process v1, SEMAPRAX candidate | 8.384 | 7.212 |
+| Historical process v1, SEMAPRAX attack | 2.916 | 10.813 |
+| Process v2, Bend candidate | 14.071 | 3.861 |
+| Process v2, Bend attack | 6.288 | 5.172 |
+| Process v2, SEMAPRAX candidate | 17.697 | 8.631 |
+| Process v2, SEMAPRAX attack | 7.729 | 7.583 |
+| Ordinary/check, Bend | 6.436 | 0.439 |
+| Ordinary/check, SEMAPRAX | 2.445 | 3.332 |
+| Proof/verdict, Bend | 2.346 | 3.339 |
+| Proof/verdict, SEMAPRAX Z3 | 10.952 | 9.361 |
+
 The retained [ordinary/check capsule](evidence/law16-boolean-negation-nonproof-process-v1/) adds the same exact Boolean-negation candidate as separate nonproof routes: Bend ordinary checking measured **83.05 ms / 100.95 ms** fresh p50/p95 and **75.53 ms / 78.08 ms** repeat; SEMAPRAX `check` measured **233.90 ms / 238.91 ms** fresh and **235.00 ms / 243.15 ms** repeat. The capsule validates its raw streams, source hashes, Bend commit, and SEMAPRAX executable SHA from the copied repository path. Ordinary Bend is not `--verdict`, and SEMAPRAX `check` is not external-Z3 proof checking.
 
 The separate [bounded proof/verdict capsule](evidence/law16-boolean-negation-proof-verdict-v1/) runs the exact candidate through Bend `--verdict` and SEMAPRAX installed-Z3, with a **120-second per-process cap**. Bend verdict measured **102.80 ms / 112.45 ms** fresh p50/p95 and **100.18 ms / 109.77 ms** repeat; SEMAPRAX Z3 measured **485.31 ms / 577.50 ms** fresh and **480.24 ms / 528.56 ms** repeat. All 120 successful child processes are retained and authenticated. A preceding path form using `/tmp` is retained as a 60-sample infrastructure nonresult with `SPX-J102`; the successful command canonicalized the project manifest under `/private/tmp`. This route remains local process-provisioning evidence, not OS-cache coldness, a timing ratio, or a winner claim.

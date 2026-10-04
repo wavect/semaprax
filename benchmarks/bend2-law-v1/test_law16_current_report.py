@@ -85,6 +85,20 @@ class CurrentReportTests(unittest.TestCase):
         self.assertIn("not a source-translation", result["claim_boundary"])
         self.assertEqual(value["status"], "incomplete")
 
+    def test_report_exposes_authenticated_per_cell_mad_without_confidence_claim(self):
+        value = REPORT.render()
+        summary = value["matched_boolean"]["timing_variation"]
+        self.assertIn("median absolute deviation", summary["method"])
+        self.assertIn("not a confidence interval", summary["interpretation"])
+        self.assertIn("historical_process_v1", summary["cells"])
+        self.assertIn("process_v2", summary["cells"])
+        self.assertIn("ordinary_check_v1", summary["cells"])
+        self.assertIn("proof_verdict_v1", summary["cells"])
+        bend_candidate = summary["cells"]["process_v2"]["bend_candidate"]
+        self.assertEqual(bend_candidate["fresh_process"]["count"], 30)
+        self.assertEqual(bend_candidate["fresh_process"]["mad_ns"], 14070520.5)
+        self.assertEqual(bend_candidate["repeat_process"]["count"], 30)
+
 
 if __name__ == "__main__":
     unittest.main()

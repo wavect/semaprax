@@ -261,6 +261,10 @@ terminal cumulative values from the producing invocation and historical replay,
 and records a failure or `uncertain` state explicitly. Older authenticated
 sidecars have `effect_budget.status: "absent"`; recovery never derives bytes
 from request digests, count limits, or provider billing data.
+When a terminal `receipt` or `resume` performs no live dispatch, its
+`this_invocation` charges are zero and the complete retained charge ledger is
+reported as `historical_replay`; the limits and cumulative charges remain the
+checkpoint-authenticated values.
 The hash chain supplies integrity and causal shape, not freshness or external
 authentication; a storage controller can replay an older same-binding journal,
 so consumers must not treat this receipt as proof that it is the newest state.

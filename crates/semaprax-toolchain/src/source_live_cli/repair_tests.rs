@@ -860,10 +860,16 @@ fn repair_v2_settled_wire_terminal_resume_is_zero_dispatch_and_nonpublishing() {
         resumed["runtime_effect_accounting"]["replayed_without_dispatch"],
         true
     );
+    let resumed_charges = &resumed["runtime_effect_accounting"]["effect_budget"];
     assert_eq!(
-        resumed["runtime_effect_accounting"]["effect_budget"],
-        first["runtime_effect_accounting"]["effect_budget"],
-        "the journal-bound terminal sidecar preserves exact limits and charges"
+        resumed_charges["effective_limits"],
+        first["runtime_effect_accounting"]["effect_budget"]["effective_limits"],
+        "terminal replay keeps the checkpoint-authenticated limits"
+    );
+    assert_eq!(resumed_charges["this_invocation"]["dispatched_calls"], 0);
+    assert_eq!(
+        resumed_charges["historical_replay"]["dispatched_calls"], 2,
+        "terminal replay classifies retained charges as historical"
     );
     assert_eq!(
         resumed["receipt_policy"]["coverage"]["runtime_effects"]["this_invocation"]

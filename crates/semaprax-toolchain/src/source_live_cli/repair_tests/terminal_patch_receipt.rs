@@ -57,9 +57,16 @@ fn repair_v2_terminal_resume_reuses_exact_retained_patch_receipt_without_dispatc
         0
     );
     assert_eq!(
-        retained["runtime_effect_accounting"]["effect_budget"],
-        first["runtime_effect_accounting"]["effect_budget"],
-        "terminal receipt reuses the checkpoint-authenticated charge ledger"
+        retained["runtime_effect_accounting"]["effect_budget"]["this_invocation"]
+            ["charged_total_bytes"],
+        0,
+        "terminal receipt does not reclassify retained charges as a new invocation"
+    );
+    assert_eq!(
+        retained["runtime_effect_accounting"]["effect_budget"]["historical_replay"]
+            ["charged_total_bytes"],
+        first["runtime_effect_accounting"]["effect_budget"]["cumulative_terminal_journal"]
+            ["charged_total_bytes"],
     );
     assert_eq!(
         retained["receipt_policy"]["coverage"]["runtime_effects"]["replayed_without_dispatch"],

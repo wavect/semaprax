@@ -156,6 +156,96 @@ pub(super) fn effect_accounting(
     }))
 }
 
+/// Rebinds checkpoint-authenticated terminal charges to the invocation that
+/// is reading them. A terminal replay owns no dispatches, so all retained
+/// charges are historical even though the original producing invocation was
+/// live. The retained sidecar supplies exact bytes; this adapter only changes
+/// the descriptive current/historical partition after checking journal facts.
+fn retained_effect_accounting_for_invocation(
+    checkpoint: &semaprax::live_invocation::source_journal::RecoveredSourceCheckpoint,
+    model_dispatches: u32,
+    effect_dispatches: u32,
+    retained: &Value,
+) -> Result<Value, CliError> {
+    let baseline = effect_accounting(checkpoint, model_dispatches, effect_dispatches, None)?;
+    for key in [
+        "schema",
+        "terminal_status",
+        "total_effect_dispatches",
+        "total_model_attempts",
+        "total_stages",
+        "committed_model_units",
+        "committed_stage_fuel",
+    ] {
+        if retained.get(key) != baseline.get(key) {
+            return Err(CliError::refused(
+                "retained repair effect accounting does not match terminal journal",
+            ));
+        }
+    }
+    let mut rebound = retained.clone();
+    let budget = rebound
+        .get_mut("effect_budget")
+        .and_then(Value::as_object_mut)
+        .ok_or(CliError::refused(
+            "retained repair effect accounting has no effect budget",
+        ))?;
+    if budget.get("status").and_then(Value::as_str) != Some("complete") {
+        return Err(CliError::refused(
+            "retained repair effect accounting is not exact",
+        ));
+    }
+    let cumulative =
+        budget
+            .get("cumulative_terminal_journal")
+            .cloned()
+            .ok_or(CliError::refused(
+                "retained repair effect accounting has no cumulative charges",
+            ))?;
+    let counters = [
+        "dispatched_calls",
+        "charged_argument_bytes",
+        "charged_result_bytes",
+        "charged_total_bytes",
+    ];
+    if !counters
+        .iter()
+        .all(|key| cumulative.get(*key).and_then(Value::as_u64).is_some())
+    {
+        return Err(CliError::refused(
+            "retained repair effect accounting has invalid cumulative charges",
+        ));
+    }
+    if effect_dispatches == 0 {
+        budget.insert(
+            "this_invocation".to_owned(),
+            json!({
+                "dispatched_calls": 0,
+                "charged_argument_bytes": 0,
+                "charged_result_bytes": 0,
+                "charged_total_bytes": 0,
+            }),
+        );
+        budget.insert("historical_replay".to_owned(), cumulative);
+    }
+    let object = rebound.as_object_mut().ok_or(CliError::refused(
+        "retained repair effect accounting is malformed",
+    ))?;
+    object.insert(
+        "this_invocation_model_dispatches".to_owned(),
+        json!(model_dispatches),
+    );
+    object.insert(
+        "this_invocation_effect_dispatches".to_owned(),
+        json!(effect_dispatches),
+    );
+    object.insert(
+        "replayed_without_dispatch".to_owned(),
+        json!(model_dispatches == 0 && effect_dispatches == 0),
+    );
+    Ok(rebound)
+}
+
 /// Describes only observations already admitted by the authorized repair
 /// runtime. Rendering this policy neither runs a candidate test nor invokes an
 /// effect; the terminal journal remains the cumulative accounting owner.
@@ -294,7 +384,15 @@ pub(super) fn receipt(
         });
         let runtime_effect_accounting = terminal_patch_receipt
             .and_then(TerminalPatchReceipt::runtime_effect_accounting)
-            .cloned()
+            .map(|retained| {
+                retained_effect_accounting_for_invocation(
+                    checkpoint,
+                    model_dispatches,
+                    effect_dispatches,
+                    retained,
+                )
+            })
+            .transpose()?
             .unwrap_or(effect_accounting(
                 checkpoint,
                 model_dispatches,

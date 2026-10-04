@@ -1,8 +1,9 @@
 # Project Patch Receipt v1
 
-Status: implemented retained-candidate summary and refusal/comparison core;
-workflow adapters, runtime observations, durable repair retention, and evidence
-retrieval remain separate work.
+Status: implemented retained-candidate summary and refusal/comparison core.
+The repair CLI has a separate terminal-journal effect-accounting projection;
+workflow adapters, shared candidate runtime/test/assurance observations, and
+evidence retrieval remain separate work.
 
 Audience: agents and compiler contributors reviewing semantic edit candidates.
 

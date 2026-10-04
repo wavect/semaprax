@@ -219,6 +219,15 @@ response digests and byte counts, decode/refusal outcome, and provider-reported
 usage only when the adapter actually recorded it. Missing usage remains `null`;
 the receipt does not manufacture zero tokens, cost, timing or delivery. Terminal
 replay recomputes the identical projection without starting the provider.
+`runtime_effect_accounting` is a separate bounded projection of the validated
+terminal journal fold. It reports cumulative model attempts, typed-effect
+dispatches, stages, committed model units and stage fuel alongside the
+dispatches performed by the current CLI invocation. A terminal `resume`
+therefore retains the cumulative effect count while its current-invocation
+count is zero and `replayed_without_dispatch` is true. The projection is
+accepted only after normal journal binding and execution-fold replay; malformed
+or counter-inconsistent terminal evidence refuses before rendering. It does
+not prove provider delivery, external-effect completion, or monetary cost.
 The hash chain supplies integrity and causal shape, not freshness or external
 authentication; a storage controller can replay an older same-binding journal,
 so consumers must not treat this receipt as proof that it is the newest state.

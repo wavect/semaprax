@@ -1,5 +1,74 @@
 use super::*;
 
+const EFFECT_ACCOUNTING_SCHEMA: &str = "semaprax.source-live-cli.repair-effect-accounting.v1";
+
+/// Projects terminal execution facts the source-journal validator has already
+/// bound to this invocation. The journal remains the accounting owner.
+fn effect_accounting(
+    checkpoint: &semaprax::live_invocation::source_journal::RecoveredSourceCheckpoint,
+    model_dispatches: u32,
+    effect_dispatches: u32,
+) -> Result<Value, CliError> {
+    let terminal = checkpoint.terminal_snapshot().ok_or(CliError::refused(
+        "repair checkpoint has no terminal snapshot",
+    ))?;
+    let evidence: Value = serde_json::from_slice(terminal.evidence())
+        .map_err(|_| CliError::refused("repair terminal accounting evidence is malformed"))?;
+    let object = evidence.as_object().ok_or(CliError::refused(
+        "repair terminal accounting evidence is not an object",
+    ))?;
+    let number = |key: &str| {
+        object
+            .get(key)
+            .and_then(Value::as_u64)
+            .ok_or(CliError::refused(
+                "repair terminal accounting evidence has an invalid counter",
+            ))
+    };
+    if object.get("schema").and_then(Value::as_str)
+        != Some("semaprax.agent-source-terminal-evidence.v2")
+        || object.get("invocation").and_then(Value::as_str) != Some(checkpoint.invocation())
+        || object.get("status").and_then(Value::as_str) != Some(terminal.status().as_str())
+    {
+        return Err(CliError::refused(
+            "repair terminal accounting evidence has an unexpected binding",
+        ));
+    }
+    let effects = number("effects")?;
+    let attempts = number("attempts")?;
+    let stages = number("stages")?;
+    let committed_stage_fuel = number("committed_stage_fuel")?;
+    let committed_model_units = object
+        .get("committed_model_units")
+        .and_then(Value::as_i64)
+        .ok_or(CliError::refused(
+            "repair terminal accounting evidence has an invalid committed budget",
+        ))?;
+    if effects < u64::from(effect_dispatches) || attempts < u64::from(model_dispatches) {
+        return Err(CliError::refused(
+            "repair dispatch counters exceed validated terminal accounting",
+        ));
+    }
+    Ok(json!({
+        "schema": EFFECT_ACCOUNTING_SCHEMA,
+        "status": "validated_terminal_journal_projection",
+        "terminal_status": terminal.status().as_str(),
+        "total_effect_dispatches": effects,
+        "total_model_attempts": attempts,
+        "total_stages": stages,
+        "committed_model_units": committed_model_units,
+        "committed_stage_fuel": committed_stage_fuel,
+        "this_invocation_model_dispatches": model_dispatches,
+        "this_invocation_effect_dispatches": effect_dispatches,
+        "replayed_without_dispatch": model_dispatches == 0 && effect_dispatches == 0,
+        "nonclaims": [
+            "journal_accounting_is_not_provider_delivery_or_cost_proof",
+            "effect_counts_do_not_describe_external_side_effect_completion",
+            "receipt_projection_grants_no_effect_or_publication_authority",
+        ],
+    }))
+}
+
 pub(super) fn receipt(
     config: &RepairConfig,
     preview: Option<&semaprax::agent_runtime_v2::OfflineRepairPreview>,
@@ -67,6 +136,8 @@ pub(super) fn receipt(
             "chain": checkpoint.chain(),
             "generation": checkpoint.generation(),
         });
+        report["runtime_effect_accounting"] =
+            effect_accounting(checkpoint, model_dispatches, effect_dispatches)?;
         report["candidate_test_execution"] =
             match (candidate_test_evidence, replayed_candidate_test_evidence) {
                 (Some(evidence), None) => json!({

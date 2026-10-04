@@ -515,7 +515,7 @@ fn enqueue_with_side_record_commits_both_or_neither_on_success() {
 /// "database transaction integration" means against ADR 0005's chosen
 /// medium: atomicity against this durable store, not a SQL engine.
 #[test]
-fn a_fault_during_the_joint_commit_leaves_neither_the_job_nor_the_side_record_visible() {
+fn joint_commit_faults_preserve_visibility_and_side_record_atomicity() {
     for fault_point in [
         HookPoint::AfterStageWrite,
         HookPoint::AfterStageFsync,
@@ -557,10 +557,15 @@ fn a_fault_during_the_joint_commit_leaves_neither_the_job_nor_the_side_record_vi
                 .side_records
                 .insert(b"orders-total".to_vec(), b"1".to_vec());
             let result = store.commit_with_hook(candidate, &mut hook);
-            let published = fault_point == HookPoint::AfterRename && occurrence == 2;
+            // The first rename makes an immutable generation available to raw
+            // path readers, while only the second pivots ACTIVE.  Both rename
+            // observations remain uncertain to the writer: it cannot tell
+            // whether that rename reached the filesystem.
+            let publication_uncertain = fault_point == HookPoint::AfterRename;
+            let active_published = publication_uncertain && occurrence == 2;
             assert_eq!(
                 result,
-                Err(if published {
+                Err(if publication_uncertain {
                     JobStoreError::PublicationUncertain
                 } else {
                     JobStoreError::Io
@@ -570,7 +575,7 @@ fn a_fault_during_the_joint_commit_leaves_neither_the_job_nor_the_side_record_vi
 
             drop(store);
             let reopened = GenerationJobStore::open(&dir).unwrap();
-            let expected_entries = if published { 1 } else { 0 };
+            let expected_entries = if active_published { 1 } else { 0 };
             assert_eq!(reopened.table.jobs.len(), expected_entries);
             assert_eq!(
                 reopened.table.side_records.len(),

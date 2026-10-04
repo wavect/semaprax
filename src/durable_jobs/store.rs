@@ -44,8 +44,8 @@ pub trait JobStore: sealed::Sealed {
 
     /// Same as `enqueue`, but atomically commits one additional
     /// caller-declared `(side_key, side_value)` entry into the same
-    /// generation. Both land together or neither does — see
-    /// `store::tests::a_fault_during_the_joint_commit_leaves_neither_the_job_nor_the_side_record_visible`.
+    /// generation. Recovery exposes both entries together through `ACTIVE` —
+    /// see `store::tests::joint_commit_faults_preserve_visibility_and_side_record_atomicity`.
     /// This is the seam's answer to issue #192's "database transaction
     /// integration for enqueue plus application state change" criterion,
     /// read as ADR 0005 re-scopes it: atomicity against this durable store,

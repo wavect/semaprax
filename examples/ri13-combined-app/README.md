@@ -62,7 +62,7 @@ The JSON receipt intentionally separates three quantities:
 | `route_timing_and_allocator_requests.routes.*.allocator_requests` | Current-thread allocator calls and requested bytes while one M3 route or batch runs | Copied bytes, retained heap, peak memory, process-wide allocation, or allocations in the server thread |
 | `m3_copy_ledger` | Response wire bytes, the fixture's exact `Bytes` to `Vec<u8>` response copy, its generated host callback subset, and zero-byte scalar boundaries | Copies inside reqwest or HTTP decoding before the observed copy, UTF-8 validation, or a complete application copy total |
 | `linked-receipt.py` `copied_byte_ledger` | Exact scalar M3 boundary/callback payload cells and an explicit unavailable foreign HTTP-body cell for the linked no-HTTP callback | A measurement of foreign HTTP-body copies |
-| `linked_copy_ledger` | M1 Regex and Url generated-adapter copy events and bytes, M2 generated mirror clone bytes, and scalar callback boundaries | `url::Url::parse` and Serde deserialization copies inside foreign implementations, which remain unavailable |
+| `linked_copy_ledger` | M1 Regex buffer-scan input bytes and Regex/Url generated-adapter copy events and bytes, M2 generated mirror clone bytes, and scalar callback boundaries | `regex::Regex::is_match`, `url::Url::parse`, and Serde deserialization copies inside foreign implementations, which remain unavailable |
 
 The M3 measurement requires the allocator instrumentation added with the
 RI-13 measurement work. The request count deliberately records `realloc` as
@@ -83,12 +83,13 @@ path without claiming a universal threshold result.
 
 The linked consumer emits its own one-line canonical ledger after it executes
 the M1 owners and M2 record/callback routes. The measurement parser requires
-the Regex carrier to report zero adapter copy events and zero adapter bytes,
-and it binds the M2 record fixture's 25-byte JSON plus the generated mirror's
-three-byte label clone. It also exercises one `Fn` and one `FnMut` invocation;
-their `i64` argument/result boundary carries zero buffer bytes. This does not
-turn the uninstrumented foreign Url parser or `serde_json` deserializer into a
-zero-copy claim: both are retained as unavailable byte observations.
+the Regex carrier to report its exact 28-byte borrowed matcher input, zero
+adapter copy events, and zero adapter bytes; it binds the M2 record fixture's
+25-byte JSON plus the generated mirror's three-byte label clone. It also
+exercises one `Fn` and one `FnMut` invocation; their `i64` argument/result
+boundary carries zero buffer bytes. This does not turn `Regex::is_match`, the
+Url parser, or `serde_json` deserialization into a zero-copy claim: their
+foreign internal byte observations remain unavailable.
 
 ## Acceptance still open
 

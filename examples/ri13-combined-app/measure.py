@@ -238,12 +238,17 @@ def parse_linked_copy_ledger(text):
     callback = ledger["m2"].get("iterator_callback")
     if not all(isinstance(value, dict) for value in (regex, url, record, callback)):
         raise ValueError("linked copied-byte ledger has missing route evidence")
-    if regex != {
-        "status": "measured",
-        "adapter_copy_events": 0,
-        "adapter_copied_bytes": 0,
-        "borrow_matches_target": True,
-    }:
+    foreign_regex_bytes = regex.get("foreign_target_copied_bytes")
+    if (
+        regex.get("status") != "measured"
+        or regex.get("adapter_copy_events") != 0
+        or regex.get("adapter_copied_bytes") != 0
+        or regex.get("adapter_borrowed_scan_input_bytes") != 28
+        or regex.get("borrow_matches_target") is not True
+        or not isinstance(foreign_regex_bytes, dict)
+        or foreign_regex_bytes.get("status") != "unavailable"
+        or not isinstance(foreign_regex_bytes.get("reason"), str)
+    ):
         raise ValueError("linked Regex owner evidence is not an exact zero-copy observation")
     foreign_url_bytes = url.get("foreign_target_copied_bytes")
     if (
@@ -336,10 +341,11 @@ def self_test():
     assert batch["routes"]["generated_semaprax"]["total_operations"] == 128
     assert batch["routes"]["generated_semaprax"]["normalized_operations_per_second"] == 10_000_000.0
     linked_row = (
-        "ri13-linked-copy-ledger:{\"schema\":\"semaprax.ri13.linked-copy-ledger.v1\",\"m1\":{\"regex_result_owner\":{\"status\":\"measured\",\"adapter_copy_events\":0,\"adapter_copied_bytes\":0,\"borrow_matches_target\":true},\"url_owner_view\":{\"status\":\"measured\",\"adapter_copy_events\":0,\"adapter_copied_bytes\":0,\"borrow_matches_target\":true,\"foreign_target_copied_bytes\":{\"status\":\"unavailable\",\"reason\":\"no counter\"}}},\"m2\":{\"serde_record\":{\"input_json_bytes\":25,\"output_json_bytes\":25,\"generated_mirror_string_clone_copied_bytes\":3,\"deserialize_owned_string_copied_bytes\":{\"status\":\"unavailable\",\"reason\":\"no counter\"}},\"iterator_callback\":{\"fn_invocations\":1,\"fn_mut_invocations\":1,\"scalar_argument_result_copied_bytes\":0}}}"
+        "ri13-linked-copy-ledger:{\"schema\":\"semaprax.ri13.linked-copy-ledger.v1\",\"m1\":{\"regex_result_owner\":{\"status\":\"measured\",\"adapter_copy_events\":0,\"adapter_copied_bytes\":0,\"adapter_borrowed_scan_input_bytes\":28,\"borrow_matches_target\":true,\"foreign_target_copied_bytes\":{\"status\":\"unavailable\",\"reason\":\"no counter\"}},\"url_owner_view\":{\"status\":\"measured\",\"adapter_copy_events\":0,\"adapter_copied_bytes\":0,\"borrow_matches_target\":true,\"foreign_target_copied_bytes\":{\"status\":\"unavailable\",\"reason\":\"no counter\"}}},\"m2\":{\"serde_record\":{\"input_json_bytes\":25,\"output_json_bytes\":25,\"generated_mirror_string_clone_copied_bytes\":3,\"deserialize_owned_string_copied_bytes\":{\"status\":\"unavailable\",\"reason\":\"no counter\"}},\"iterator_callback\":{\"fn_invocations\":1,\"fn_mut_invocations\":1,\"scalar_argument_result_copied_bytes\":0}}}"
     )
     linked = parse_linked_copy_ledger(linked_row)
     assert linked["m2"]["serde_record"]["generated_mirror_string_clone_copied_bytes"] == 3
+    assert linked["m1"]["regex_result_owner"]["adapter_borrowed_scan_input_bytes"] == 28
     assert linked["m1"]["url_owner_view"]["adapter_copied_bytes"] == 0
     tampered_linked = json.loads(linked_row.removeprefix(LINKED_COPY_PREFIX))
     tampered_linked["m1"]["url_owner_view"]["adapter_copied_bytes"] = 1
@@ -349,6 +355,14 @@ def self_test():
         pass
     else:
         raise AssertionError("nonzero Url adapter bytes must fail the exact zero-copy ledger")
+    tampered_linked = json.loads(linked_row.removeprefix(LINKED_COPY_PREFIX))
+    tampered_linked["m1"]["regex_result_owner"]["adapter_borrowed_scan_input_bytes"] = 27
+    try:
+        parse_linked_copy_ledger(LINKED_COPY_PREFIX + json.dumps(tampered_linked))
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("changed Regex borrowed scan bytes must fail the exact ledger")
     try:
         parse_linked_copy_ledger(
             "ri13-linked-copy-ledger:{\"schema\":\"semaprax.ri13.linked-copy-ledger.v1\",\"m1\":{},\"m2\":{}}"

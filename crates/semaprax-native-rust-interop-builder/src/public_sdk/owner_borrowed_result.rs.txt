@@ -15,6 +15,9 @@ thread_local! {
     static LAST_INPUT_POINTER: Cell<usize> = const { Cell::new(0) };
     static LAST_INPUT_LENGTH: Cell<usize> = const { Cell::new(0) };
     static ADAPTER_COPIES: Cell<usize> = const { Cell::new(0) };
+    // Counts only owned byte buffers materialized by this carrier. The selected
+    // Regex implementation may make internal copies that remain unavailable.
+    static ADAPTER_COPIED_BYTES: Cell<u64> = const { Cell::new(0) };
 }
 static NEXT_CONTEXT: AtomicU64 = AtomicU64::new(1);
 fn caught<T>(f: impl FnOnce() -> T) -> Result<T, i32> {
@@ -34,12 +37,14 @@ fn with_utf8<T>(data: *const u8, length: u64, target: impl FnOnce(&str) -> Resul
     LAST_INPUT_LENGTH.with(|value| value.set(length));
     // This carrier never materializes an owned adapter buffer.
     ADAPTER_COPIES.with(|value| debug_assert_eq!(value.get(), 0));
+    ADAPTER_COPIED_BYTES.with(|value| debug_assert_eq!(value.get(), 0));
     target(text)
 }
 fn error_code(_: @ERROR@) -> i64 { 1 }
 pub fn spx_result_owner_last_input_pointer() -> usize { LAST_INPUT_POINTER.with(Cell::get) }
 pub fn spx_result_owner_last_input_length() -> usize { LAST_INPUT_LENGTH.with(Cell::get) }
 pub fn spx_result_owner_adapter_copies() -> usize { ADAPTER_COPIES.with(Cell::get) }
+pub fn spx_result_owner_adapter_copied_bytes() -> u64 { ADAPTER_COPIED_BYTES.with(Cell::get) }
 fn take(context: u64, owner: SpxOwner) -> Result<@OWNER@, i32> {
     CONTEXTS.with(|contexts| {
         let mut contexts = contexts.try_borrow_mut().map_err(|_| 6)?;

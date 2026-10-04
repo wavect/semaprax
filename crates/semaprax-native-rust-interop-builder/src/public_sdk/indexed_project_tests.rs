@@ -283,6 +283,7 @@ fn indexed_real_regex_project_generates_and_executes_locked_offline_owner_loan()
     assert_eq!(ri06_regex_owner::run(), Ok(41));
     assert!(ri06_regex_owner::projected_borrow_matches_target());
     assert_eq!(ri06_regex_owner::spx_result_owner_adapter_copies(), 0);
+    assert_eq!(ri06_regex_owner::spx_result_owner_adapter_copied_bytes(), 0);
     assert_eq!(ri06_regex_owner::string_constructions(), 2);
     assert_eq!(ri06_regex_owner::live_string_count(), 0);
     assert_eq!(ri06_regex_owner::live_owner_count(), 0);

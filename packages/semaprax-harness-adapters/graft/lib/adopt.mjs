@@ -13,10 +13,12 @@ const MAX_FILE_BYTES = 1_000_000; // graft indexes nothing larger
 const MAX_REASONS = 8;
 
 // Env contract (names are not SEMAPRAX_HARNESS_*, which the host reserves).
+// Primary source: the host-validated descriptor config (`[capability."context.repository".config]`,
+// forwarded as SEMAPRAX_HARNESS_CFG_<FIELD>); the older SEMAPRAX_GRAFT_* names remain aliases.
 export function adoptionConfig(env) {
-  const mode = env.SEMAPRAX_GRAFT_ADOPT_INDEX;
+  const mode = env.SEMAPRAX_HARNESS_CFG_ADOPT_INDEX || env.SEMAPRAX_GRAFT_ADOPT_INDEX;
   if (!mode) return null;
-  const rel = env.SEMAPRAX_GRAFT_USER_INDEX || 'graft';
+  const rel = env.SEMAPRAX_HARNESS_CFG_USER_INDEX || env.SEMAPRAX_GRAFT_USER_INDEX || 'graft';
   if (!MODES.includes(mode) || rel.startsWith('/') || rel.split('/').includes('..') || rel.includes('\\')) return { invalid: true, mode, rel };
   return { mode, rel };
 }

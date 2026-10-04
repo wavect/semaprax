@@ -63,13 +63,19 @@ pub fn run(args: &[String], env: &Environment) -> Outcome {
     let mut broker = Broker::new(native, cache);
     if let Some(l) = res.launches.get(&CapabilityKind::ContextRepository) {
         let scope = cfg.capability(CapabilityKind::ContextRepository).scope;
+        let ccfg = cfg.capability(CapabilityKind::ContextRepository);
+        let config_env = match crate::workflow::adapter_config::config_env(&l.descriptor, &ccfg) {
+            Ok(e) => e,
+            Err(e) => return Outcome::refused(&e),
+        };
         let src = HostExternal::new(
             l.clone(),
             env.clone(),
             res.profile.lock_digest(),
             res.profile.config_digest.clone(),
             scope,
-        );
+        )
+        .with_config_env(config_env);
         if let Err(e) = broker.add_provider(Box::new(src)) {
             return Outcome::refused(&e);
         }

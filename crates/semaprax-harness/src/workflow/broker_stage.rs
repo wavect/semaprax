@@ -70,8 +70,30 @@ impl BrokerContext {
         config_digest: String,
         scope: Vec<String>,
     ) -> HarnessResult<Self> {
+        Self::new_with_config(
+            compiler,
+            launch,
+            env,
+            lock_digest,
+            config_digest,
+            scope,
+            Default::default(),
+        )
+    }
+
+    /// As [`Self::new`], forwarding validated adapter config (`SEMAPRAX_HARNESS_CFG_*`).
+    pub fn new_with_config(
+        compiler: PathBuf,
+        launch: ResolvedLaunch,
+        env: crate::cli::Environment,
+        lock_digest: String,
+        config_digest: String,
+        scope: Vec<String>,
+        config_env: std::collections::BTreeMap<String, String>,
+    ) -> HarnessResult<Self> {
         let id = launch.provider_id.clone();
-        let ext = HostExternal::new(launch, env, lock_digest, config_digest, scope);
+        let ext = HostExternal::new(launch, env, lock_digest, config_digest, scope)
+            .with_config_env(config_env);
         Self::with_sources(
             subprocess(&compiler),
             subprocess(&compiler),
@@ -303,6 +325,10 @@ impl BrokerContext {
 impl ContextStage for BrokerContext {
     fn id(&self) -> String {
         self.id.clone()
+    }
+
+    fn plans(&self) -> bool {
+        true
     }
 
     fn collect(&mut self, req: &ContextRequest) -> Result<ContextPacket, StageFailure> {

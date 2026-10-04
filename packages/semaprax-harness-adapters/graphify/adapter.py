@@ -56,6 +56,9 @@ LANGS = {
 ENV_ALLOW = ("LANG", "LC_ALL", "LC_CTYPE", "TMPDIR")
 BUILD_TIMEOUT_S = 110
 MAX_SKIPPED = 200
+ADOPT_MODES = ("read-only", "copied-snapshot")
+MAX_GRAPH_BYTES = 512 * 1024 * 1024
+MAX_REASONS = 8
 
 
 def env_var(name):
@@ -71,6 +74,24 @@ def child_env(cache_dir):
     env = {k: os.environ[k] for k in ENV_ALLOW if k in os.environ}
     env.update(PATH="/usr/bin:/bin", HOME=home, PYTHONDONTWRITEBYTECODE="1", GRAPHIFY_NO_TIPS="1")
     return env
+
+
+def adoption_config(env=None):
+    """Opt-in adoption of a user-owned `graphify-out`. Primary source: the host-validated descriptor config
+    (SEMAPRAX_HARNESS_CFG_ADOPT_INDEX / _USER_INDEX); SEMAPRAX_GRAPHIFY_* are aliases. Off by default."""
+    env = os.environ if env is None else env
+    mode = env.get("SEMAPRAX_HARNESS_CFG_ADOPT_INDEX") or env.get("SEMAPRAX_GRAPHIFY_ADOPT_INDEX")
+    if not mode:
+        return None
+    rel = env.get("SEMAPRAX_HARNESS_CFG_USER_INDEX") or env.get("SEMAPRAX_GRAPHIFY_USER_INDEX") or "graphify-out"
+    if mode not in ADOPT_MODES or rel.startswith("/") or "\\" in rel or ".." in rel.split("/"):
+        return {"invalid": True, "mode": mode, "rel": rel}
+    return {"mode": mode, "rel": rel}
+
+
+def graphify_file_hash(data, rel):
+    """Graphify's own cache key for a file: sha256(content + NUL + lower-cased relative posix path)."""
+    return hashlib.sha256(data + b"\0" + rel.lower().encode()).hexdigest()
 
 
 def verify_identity(upstream):
@@ -258,6 +279,7 @@ class Index:
         self.out = self.graph_path = self.meta_path = None  # bound to the extractor version in check_identity
         self.identity = None
         self.state = None  # dict: digest, graph, coverage, errors
+        self.adoption_note = None  # why a configured user index was not used (scalar, reported in metadata)
         self._lines = {}
         self._defs = {}
 
@@ -314,9 +336,12 @@ class Index:
             lock.close()
 
     def load(self, digest, files, errors):
-        with open(self.graph_path, encoding="utf-8") as fh:
+        return self.load_from(os.path.join(self.out, "graphify-out"), digest, files, errors)
+
+    def load_from(self, gdir, digest, files, errors):
+        with open(os.path.join(gdir, "graph.json"), encoding="utf-8") as fh:
             graph = Graph(json.load(fh), self.identity)
-        manifest = os.path.join(self.out, "graphify-out", "manifest.json")
+        manifest = os.path.join(gdir, "manifest.json")
         indexed = set(graph.files)
         if os.path.isfile(manifest):
             with open(manifest, encoding="utf-8") as fh:
@@ -326,6 +351,136 @@ class Index:
         self.state = {"digest": digest, "graph": graph, "indexed": sorted(indexed), "skipped": skipped, "errors": errors}
         self._lines, self._defs = {}, {}
         return self.state
+
+    # -- opt-in adoption of a user-owned graphify-out (HN-10) ------------------
+    def verify_user_index(self, ac, files):
+        """Never trust a found graph. Returns (reasons, graph_dir). Pure reads of the user directory."""
+        reasons = []
+
+        def fail(r):
+            if len(reasons) < MAX_REASONS:
+                reasons.append(r)
+        gdir = os.path.join(self.root, ac["rel"])
+        try:
+            st = os.lstat(gdir)
+        except OSError:
+            return ["no user index directory"], None
+        if not os.path.isdir(gdir) or os.path.islink(gdir) or not os.path.realpath(gdir).startswith(self.root + os.sep):
+            return ["user index is not a plain directory inside the project (symlinks are refused)"], None
+        gpath = os.path.join(gdir, "graph.json")
+        if not os.path.isfile(gpath) or os.path.getsize(gpath) > MAX_GRAPH_BYTES:
+            return ["no readable graph.json"], None
+        # Worktree binding: graphify records the root it analysed.
+        try:
+            with open(os.path.join(gdir, ".graphify_root"), encoding="utf-8") as fh:
+                built = os.path.realpath(fh.read().strip())
+        except OSError:
+            built = None
+        if built != self.root:
+            fail(f"index was built for {built or 'an unknown root'}, not this worktree")
+        # Version binding: the per-version AST cache directory names the extractor that wrote it.
+        astdir = os.path.join(gdir, "cache", "ast")
+        tags = sorted(os.listdir(astdir)) if os.path.isdir(astdir) else []
+        if not any(t.startswith(f"v{self.identity}-") for t in tags):
+            fail(f"index was not written by graphifyy {self.identity} (cache versions: {', '.join(tags) or 'none'})")
+        try:
+            with open(gpath, encoding="utf-8") as fh:
+                raw = json.load(fh)
+            graph = Graph(raw, self.identity)
+        except (AdapterError, ValueError) as e:
+            fail(f"graph.json does not satisfy the {self.identity} profile: {getattr(e, 'message', e)}")
+            return reasons, None
+        # Code-only policy: documents, semantic or inferred extraction belong to another mode.
+        if any(n.get("file_type") not in ("code", "rationale") or n.get("_origin", "ast") != "ast" for n in raw["nodes"]):
+            fail("index contains non-code or non-AST nodes from a richer extraction mode; local code-only policy refuses it")
+        # Source binding: every indexed file must hash to what graphify recorded.
+        try:
+            with open(os.path.join(gdir, "cache", "stat-index.json"), encoding="utf-8") as fh:
+                stat_index = json.load(fh)
+        except (OSError, ValueError):
+            fail("no readable cache/stat-index.json: source content cannot be bound")
+            return reasons, None
+        walked = set(files)
+        recorded = {}
+        for key, entry in stat_index.items():
+            if isinstance(entry, dict):
+                recorded[key] = entry
+        for rel in graph.files:
+            if rel not in walked:
+                fail(f"indexed path {rel} is excluded, ignored or absent in this working tree")
+                continue
+            entry = recorded.get(rel)
+            if not entry:
+                fail(f"indexed path {rel} has no recorded signature")
+                continue
+            path = os.path.join(self.root, rel)
+            try:
+                with open(path, "rb") as fh:
+                    data = fh.read()
+                st = os.stat(path)
+            except OSError:
+                fail(f"indexed path {rel} is unreadable")
+                continue
+            hashes = entry.get("hashes")
+            if isinstance(hashes, dict) and hashes:
+                # Content-bound: graphify's own file key (content + relative path).
+                if graphify_file_hash(data, rel) not in set(hashes.values()):
+                    fail(f"indexed path {rel} differs from its indexed content")
+            elif entry.get("size") != len(data) or entry.get("mtime_ns") != st.st_mtime_ns:
+                # Languages graphify does not content-hash are bound by its recorded size and
+                # nanosecond mtime; this is weaker than a content digest (documented in the README).
+                fail(f"indexed path {rel} changed since it was indexed (size or mtime)")
+        exts = {os.path.splitext(r)[1].lower() for r in graph.files}
+        known = set(graph.files)
+        for rel in files:
+            if rel not in known and os.path.splitext(rel)[1].lower() in exts and rel not in recorded:
+                fail(f"source file {rel} is not in the index")
+        return reasons, gdir
+
+    def adopt(self, ac, digest, files):
+        """Try the user's index; (state or None, info string). Never writes the user's directory."""
+        if ac.get("invalid"):
+            return None, f"incompatible: invalid adoption config (mode {ac['mode']!r}, index {ac['rel']!r})"
+        before = self.user_digest(os.path.join(self.root, ac["rel"]))
+        reasons, gdir = self.verify_user_index(ac, files)
+        if reasons or gdir is None:
+            return None, "incompatible: " + "; ".join(reasons)
+        if ac["mode"] == "copied-snapshot":
+            dest = os.path.join(self.cache_dir, "adopted", before, "graphify-out")
+            if not os.path.isfile(os.path.join(dest, "graph.json")):
+                stage = dest + f".stage-{os.getpid()}"
+                shutil.rmtree(stage, ignore_errors=True)
+                os.makedirs(stage)
+                for name in ("graph.json", "manifest.json"):
+                    if os.path.isfile(os.path.join(gdir, name)):
+                        shutil.copyfile(os.path.join(gdir, name), os.path.join(stage, name))
+                        os.chmod(os.path.join(stage, name), 0o444)
+                os.makedirs(os.path.dirname(dest), exist_ok=True)
+                try:
+                    os.rename(stage, dest)
+                except OSError:
+                    shutil.rmtree(stage, ignore_errors=True)
+            st = self.load_from(dest, digest, files, [])
+            st["action"], st["adoption"], st["served_by"] = "copied-validated-index", "copied-validated-index", "adopted-snapshot"
+            return st, None
+        st = self.load_from(gdir, digest, files, [])
+        if self.user_digest(os.path.join(self.root, ac["rel"])) != before:
+            raise AdapterError("failed", "SPX-HPG013", "the user-owned index changed while it was being read; refusing it")
+        st["action"], st["adoption"], st["served_by"] = "reused-user-index", "reused-user-index", "user-index"
+        st["user_digest"], st["user_rel"] = before, ac["rel"]
+        return st, None
+
+    @staticmethod
+    def user_digest(gdir):
+        """Digest of the user-owned files this adapter reads (graph.json, manifest.json, stat-index.json)."""
+        h = hashlib.sha256(b"semaprax.graphify-user-index.v1\0")
+        for name in ("graph.json", "manifest.json", os.path.join("cache", "stat-index.json")):
+            p = os.path.join(gdir, name)
+            try:
+                h.update(f"{name}\0{file_sha(p)}\n".encode())
+            except OSError:
+                h.update(f"{name}\0absent\n".encode())
+        return h.hexdigest()
 
     def disk_meta(self):
         """Reusable only when schema, extractor version, profile, root and graph bytes all match."""
@@ -344,6 +499,17 @@ class Index:
         self.check_identity()
         files = walk_files(self.root)
         digest = source_digest(self.root, files)
+        ac = adoption_config()
+        if self.state is None and ac and self.adoption_note is None:
+            st, note = self.adopt(ac, digest, files)
+            if st is not None:
+                return st, False
+            self.adoption_note = note
+        if self.state is not None and self.state.get("served_by") == "user-index":
+            changed = self.user_digest(os.path.join(self.root, self.state["user_rel"])) != self.state["user_digest"]
+            if changed or self.state["digest"] != digest:
+                # The user's index or tree moved on: this adapter never refreshes it; fall back to the owned cache.
+                self.state, self.adoption_note = None, "incompatible: the user index or working tree changed since it was verified"
         if self.state is None:
             lock = self.locked()
             try:
@@ -351,6 +517,7 @@ class Index:
                 if meta and meta.get("digest") == digest and refresh != "rebuild":
                     st = self.load(digest, files, meta.get("errors", []))
                     st["action"] = "reuse"
+                    self.note_adoption(st)
                     return st, False
             finally:
                 lock.close()
@@ -358,6 +525,7 @@ class Index:
                 raise AdapterError("unavailable", "SPX-HPG011", "no current graph and refresh=never")
             st = self.build(digest, files)
             st["action"] = "build"
+            self.note_adoption(st)
             return st, False
         if self.state["digest"] != digest or refresh == "rebuild":
             if refresh in ("rebuild", "auto"):
@@ -367,6 +535,10 @@ class Index:
             return self.state, True
         self.state["action"] = "reuse"
         return self.state, False
+
+    def note_adoption(self, st):
+        if self.adoption_note:
+            st["adoption"], st["served_by"] = self.adoption_note, "owned-cache"
 
     # -- source lines --------------------------------------------------
     def lines(self, rel):
@@ -467,6 +639,9 @@ def finish(request, index, state, items, exhaustive, diags=(), extra=None):
     meta = {"upstream_version": index.identity, "schema_profile": PROFILES[index.identity]["id"],
             "span_kinds": dict(sorted(kinds.items())), "span_resolver": f"python-ast-{sys.version_info[0]}.{sys.version_info[1]}", "index_files": len(state["indexed"]),
             "source_digest": "sha256:" + state["digest"], "refresh": state.get("action", "reuse")}
+    if state.get("adoption"):
+        meta["index_adoption"] = state["adoption"][:400]
+        meta["served_by"] = state.get("served_by", "owned-cache")
     meta.update(extra or {})
     return status, {"items": items, "coverage": cov, "metadata": meta}, diags
 

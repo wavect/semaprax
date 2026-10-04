@@ -15,7 +15,9 @@
   ],
   "config": {
     "fields": {
-      "deep": {"default": false, "type": "bool"}
+      "adopt_index": {"default": "", "type": "string"},
+      "deep": {"default": false, "type": "bool"},
+      "user_index": {"default": "graft", "type": "string"}
     }
   },
   "extensions": [],

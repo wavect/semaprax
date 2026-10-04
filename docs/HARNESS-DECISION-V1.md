@@ -128,3 +128,19 @@ fixture table; Laya unavailable, Jev fixture-only). Decision: **no-go, rules sta
 active**. Reproduce with `HARNESS_OLLAMA_ENDPOINT=http://127.0.0.1:11434
 HARNESS_ROUTING_OUT=<dir> cargo test -p semaprax-harness --test real_tools_v1
 real_matched_heldout -- --ignored`.
+
+### Project configuration and CLI wiring (HN-16)
+
+`harness run` reads `[routing]` from `semaprax.harness.toml` and wires it into the one routing
+engine: `mode = "rules"|"pin"|"experimental"|"auto"` (`auto` is `qualified-auto`), `pin = "<logical model>"`
+and `allow_remote = true|false`. A `pin` is a *project pin* and wins in every mode (`mode = "pin"` without
+a `pin` is `SPX-HPB004`); `allow_remote = false` removes remote plans in every mode, while `allow_remote = true`
+approves the remote origins of the task's own (endpoint-policy-checked) catalog for project data (without it
+remote destinations stay unapproved, as before). Without `mode` the provider's own mode decides, as before.
+Evidence is machine-local: `<harness home>/routing/evidence.json` (`semaprax.harness-routing-evidence.v1`, the
+JSON of `EvidenceRecord`; loaded only for `auto`, malformed is an error, absent is "no evidence registry"). The
+session lock is taken at the run's first route for the live key and compared on every later route of the run.
+`recheck_dispatch` runs on the final serialized prompt of every dispatch (`HPJ018` refuses a pinned model;
+another model is excluded and the route repeats). Reports carry `route.explanation` (mode, source, rules reason,
+applied evidence key and record digest) and `route.policy` (`allow_remote`, `project_pin`). Fixture-origin
+evidence cannot unlock `auto` (the rules reason says so).

@@ -3,6 +3,7 @@
 //! switch test also needs HARNESS_GRAFT and HARNESS_NODE.
 
 use crate::graft::*;
+use crate::support::required_tool;
 
 const NEEDS: &str = "provisioned: needs SEMAPRAX_COMPILER HARNESS_GRAPHIFY HARNESS_PYTHON";
 
@@ -92,4 +93,41 @@ fn graphify_new_version_runs_host_scenarios() {
             "{name} failed on 0.9.75:\n{text}"
         );
     }
+}
+
+#[test]
+#[ignore = "provisioned: needs SEMAPRAX_COMPILER HARNESS_GRAPHIFY (graphifyy 0.9.75) HARNESS_PYTHON"]
+fn graphify_adopts_a_compatible_user_graph_read_only_through_harness_context() {
+    scenario_adopt_user_index(Tool::Graphify, "read-only");
+}
+
+#[test]
+#[ignore = "provisioned: needs SEMAPRAX_COMPILER HARNESS_GRAPHIFY (graphifyy 0.9.75) HARNESS_PYTHON"]
+fn graphify_adopts_a_compatible_user_graph_as_a_copied_snapshot_through_harness_context() {
+    scenario_adopt_user_index(Tool::Graphify, "copied-snapshot");
+}
+
+/// An index written by another graphify version (a changed parser) is never current evidence:
+/// the adapter falls back to its owned cache and the user's files stay byte-identical.
+#[test]
+#[ignore = "provisioned: needs SEMAPRAX_COMPILER HARNESS_GRAPHIFY (0.9.75) HARNESS_GRAPHIFY_OLD (0.9.25) HARNESS_PYTHON"]
+fn graphify_refuses_a_user_graph_built_by_another_version_and_falls_back_to_an_owned_cache() {
+    let rig = Rig::new(Tool::Graphify, "adopt-old");
+    rig.adopt_trust(Tool::Graphify);
+    rig.write(
+        "semaprax.harness.toml",
+        &format!(
+            "schema = \"semaprax.harness-config.v1\"\n\n[capability.\"context.repository\"]\nmode = \"required\"\nprovider = \"{}\"\n\n[capability.\"context.repository\".config]\nadopt_index = \"read-only\"\n",
+            Tool::Graphify.id()
+        ),
+    );
+    let o = rig.sh(&["resolve", rig.project.to_str().unwrap()]);
+    assert_eq!(o.code, 0, "{}{}", o.stdout, o.stderr);
+    let dirname =
+        build_user_index_with(&rig, Tool::Graphify, required_tool("HARNESS_GRAPHIFY_OLD"));
+    let before = tree_digest(&rig.project.join(dirname));
+    let d = rig.ctx(&["renderTotal", "--max-bytes", "16000"]);
+    assert!(text_has(&d, "renderTotal"), "{d}");
+    assert!(rig.index_stamp().0 > 0, "an owned cache served the answer");
+    assert_eq!(tree_digest(&rig.project.join(dirname)), before);
 }

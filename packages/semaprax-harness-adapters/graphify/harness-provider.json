@@ -14,7 +14,9 @@
   ],
   "config": {
     "fields": {
-      "refresh": {"default": "stale", "type": "string"}
+      "adopt_index": {"default": "", "type": "string"},
+      "refresh": {"default": "stale", "type": "string"},
+      "user_index": {"default": "graphify-out", "type": "string"}
     }
   },
   "extensions": [],

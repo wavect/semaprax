@@ -179,3 +179,9 @@ Diagnostics: 037 catalog or embedded asset invalid; 038 unknown curated skill; 0
 
 No claim is made that a prompt guarantees model behavior: tests verify selection, framing and explicit state, not
 observed model output.
+
+### Updated revisions in the workflow (HN-05)
+
+The workflow constructs `DefaultSkills` from `updates::effective_set`, not the embedded set. Revision locks of a
+session id persist; `harness run` drops the `default` session's locks that no longer match the effective set at
+session start.

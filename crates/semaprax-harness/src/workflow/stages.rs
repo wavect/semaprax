@@ -355,6 +355,12 @@ pub trait ContextStage {
     fn collect(&mut self, req: &ContextRequest) -> Result<ContextPacket, StageFailure>;
     /// Provider invocations performed (builtin native calls are not host calls).
     fn calls(&self) -> u32;
+    /// True for a stage that serves native facts for `external: never` requests
+    /// and also answers task-planned provider queries, follow-ups and handle
+    /// expansion (the broker). The pipeline then drives it as both slots.
+    fn plans(&self) -> bool {
+        false
+    }
     /// A one-shot note about the last collection (for example a provider
     /// failure absorbed by a fallback); reported, never silent.
     fn take_note(&mut self) -> Option<String> {

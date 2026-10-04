@@ -42,6 +42,9 @@ pub struct CapabilityConfig {
     pub provider: Option<String>,
     /// Project-relative path prefixes the capability is limited to.
     pub scope: Vec<String>,
+    /// `[capability."<kind>".config]`: adapter fields (HN-10), validated against
+    /// the selected descriptor's `config.fields` when the adapter is launched.
+    pub config: BTreeMap<String, Value>,
 }
 
 impl Default for CapabilityConfig {
@@ -50,6 +53,32 @@ impl Default for CapabilityConfig {
             mode: Mode::Auto,
             provider: None,
             scope: Vec::new(),
+            config: BTreeMap::new(),
+        }
+    }
+}
+
+/// `[routing]` (HN-16): `mode`, an optional project `pin` and `allow_remote`.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RoutingSection {
+    /// `rules` (default), `pin`, `experimental` or `auto`.
+    pub mode: String,
+    pub pin: Option<String>,
+    /// `Some(false)` prohibits remote routing in every mode; `Some(true)` approves
+    /// the remote origins of the task's own catalog; `None` leaves the default
+    /// (remote destinations stay unapproved).
+    pub allow_remote: Option<bool>,
+    /// `mode` was written in the file (the provider's own mode decides otherwise).
+    pub explicit: bool,
+}
+
+impl Default for RoutingSection {
+    fn default() -> Self {
+        Self {
+            mode: "rules".into(),
+            pin: None,
+            allow_remote: None,
+            explicit: false,
         }
     }
 }
@@ -113,6 +142,7 @@ pub struct HarnessConfig {
     pub skills: SkillsConfig,
     pub workflow: WorkflowConfig,
     pub model: ModelConfig,
+    pub routing: RoutingSection,
     /// Namespaced `x.` capability tables: visible, always inactive.
     pub inactive: Vec<String>,
 }
@@ -126,6 +156,7 @@ impl Default for HarnessConfig {
             skills: SkillsConfig::default(),
             workflow: WorkflowConfig::default(),
             model: ModelConfig::default(),
+            routing: RoutingSection::default(),
             inactive: Vec::new(),
         }
     }
@@ -147,6 +178,9 @@ impl HarnessConfig {
                 o.insert("provider".into(), json!(p));
             }
             o.insert("scope".into(), json!(c.scope));
+            if !c.config.is_empty() {
+                o.insert("config".into(), json!(c.config));
+            }
             caps.insert(k.as_str().into(), Value::Object(o));
         }
         let mut doc = json!({
@@ -174,6 +208,10 @@ impl HarnessConfig {
         if self.model != ModelConfig::default() {
             doc["model"] = json!({"local_only": self.model.local_only,
                 "strict_one_attempt": self.model.strict_one_attempt, "logical": self.model.logical});
+        }
+        if self.routing != RoutingSection::default() {
+            doc["routing"] = json!({"mode": self.routing.mode, "pin": self.routing.pin,
+                "allow_remote": self.routing.allow_remote});
         }
         doc
     }
@@ -722,6 +760,63 @@ pub fn parse(bytes: &[u8]) -> HarnessResult<HarnessConfig> {
                 }
                 t.finish(&["local_only", "strict_one_attempt", "logical"])?;
             }
+            ["routing"] => {
+                let mut t = Tab::new("[routing]", entries.clone());
+                if let Some((m, l)) = t.string("mode")? {
+                    if !["rules", "pin", "experimental", "auto"].contains(&m.as_str()) {
+                        return Err(bad(
+                            "SPX-HPB004",
+                            l,
+                            format!("`mode` must be rules, pin, experimental or auto, found `{m}`"),
+                        ));
+                    }
+                    cfg.routing.mode = m;
+                    cfg.routing.explicit = true;
+                }
+                if let Some((p, l)) = t.string("pin")? {
+                    if p.is_empty() || p.len() > 128 {
+                        return Err(bad(
+                            "SPX-HPB004",
+                            l,
+                            "`pin` must be a short logical model id",
+                        ));
+                    }
+                    cfg.routing.pin = Some(p);
+                }
+                if let Some(b) = t.boolean("allow_remote")? {
+                    cfg.routing.allow_remote = Some(b);
+                }
+                t.finish(&["mode", "pin", "allow_remote"])?;
+                if cfg.routing.mode == "pin" && cfg.routing.pin.is_none() {
+                    return Err(bad("SPX-HPB004", line, "`mode = \"pin\"` needs `pin`"));
+                }
+            }
+            ["capability", name, "config"] => {
+                let Some(kind) = CapabilityKind::parse(name) else {
+                    if name.starts_with("x.") {
+                        continue;
+                    }
+                    return Err(bad(
+                        "SPX-HPB006",
+                        line,
+                        format!("unknown capability kind `{name}`"),
+                    ));
+                };
+                let mut fields = BTreeMap::new();
+                for (k, (v, l)) in entries.iter() {
+                    let j = match v {
+                        Val::Str(s) => json!(s),
+                        Val::Int(n) => json!(n),
+                        Val::Bool(b) => json!(b),
+                        Val::List(items) => json!(items),
+                    };
+                    if k.is_empty() || k.len() > 64 {
+                        return Err(bad("SPX-HPB004", *l, "config field names are 1..64 bytes"));
+                    }
+                    fields.insert(k.clone(), j);
+                }
+                cfg.capabilities.entry(kind).or_default().config = fields;
+            }
             ["capability", name] => {
                 let Some(kind) = CapabilityKind::parse(name) else {
                     if name.starts_with("x.") {
@@ -780,6 +875,11 @@ pub fn parse(bytes: &[u8]) -> HarnessResult<HarnessConfig> {
                     c.scope = s;
                 }
                 t.finish(&["mode", "provider", "scope"])?;
+                c.config = cfg
+                    .capabilities
+                    .get(&kind)
+                    .map(|p| p.config.clone())
+                    .unwrap_or_default();
                 cfg.capabilities.insert(kind, c);
             }
             other => {
@@ -797,7 +897,8 @@ pub fn parse(bytes: &[u8]) -> HarnessResult<HarnessConfig> {
                                 "skills",
                                 "capability",
                                 "workflow",
-                                "model"
+                                "model",
+                                "routing"
                             ]
                         )
                     ),

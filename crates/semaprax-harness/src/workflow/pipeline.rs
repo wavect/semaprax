@@ -48,6 +48,8 @@ pub struct RunConfig {
     pub budget: BudgetConfig,
     /// Cooperative cancellation for a session (checked between steps).
     pub cancel: Option<super::session::CancelFlag>,
+    /// `[routing]`, evidence registry and session lock (HN-16).
+    pub routing: super::routing::RoutingWiring,
 }
 
 /// Skill prompt chosen for this task and its model-visible size.
@@ -509,8 +511,23 @@ pub(super) fn gather_context(
         max_bytes: budget,
         external: cfg.task.external_context,
     };
+    // A plan-capable native stage (the broker) is also the repository provider
+    // slot: its native step must not itself call the provider.
+    let combined = st.external.is_none() && st.native.plans();
+    let native_req = ContextRequest {
+        lineage: cx.lineage,
+        project: root.clone(),
+        seed: seed.as_deref(),
+        query: creq.query.clone(),
+        max_bytes: budget,
+        external: if combined {
+            ExternalContext::Never
+        } else {
+            cfg.task.external_context
+        },
+    };
     let started = Instant::now();
-    let native = st.native.collect(&creq);
+    let native = st.native.collect(&native_req);
     if let Some(n) = st.native.take_note() {
         r.notes.push(n);
     }
@@ -552,7 +569,7 @@ pub(super) fn gather_context(
             .push(format!("native context unavailable: {}", failure_text(&e)));
     }
     if needs_external {
-        match st.external.as_mut() {
+        match plan_stage(st) {
             Some(ext) => {
                 let started = Instant::now();
                 let got = match &rp.initial {
@@ -625,8 +642,15 @@ pub(super) fn gather_context(
             }
         }
     }
+    // A plan-capable stage answers both the native and the provider step: one name.
+    let mut provider_names: Vec<String> = Vec::new();
+    for p in &packets {
+        if !provider_names.contains(&p.provider) {
+            provider_names.push(p.provider.clone());
+        }
+    }
     r.context = json!({"budget_bytes": budget, "used_bytes": used, "items": kept.len(), "dropped_external_items": dropped,
-                       "providers": packets.iter().map(|p| p.provider.clone()).collect::<Vec<_>>()});
+                       "providers": provider_names});
     if dropped > 0 {
         unknowns.push(format!(
             "{dropped} external item(s) dropped by the context budget"
@@ -634,7 +658,7 @@ pub(super) fn gather_context(
     }
     let mut plan_json = json!({"schema": plan::PLAN_SCHEMA, "needs": rp.needs.to_json(),
         "planned_steps": rp.initial.iter().map(|s| s.to_json()).collect::<Vec<_>>(),
-        "provider_consulted": needs_external && st.external.is_some()});
+        "provider_consulted": needs_external && (st.external.is_some() || st.native.plans())});
     if let Some(sr) = stage_report {
         plan_json["retrieval"] = sr;
     }
@@ -696,6 +720,19 @@ pub(super) fn gather_context(
     Ok((kept, used))
 }
 
+/// The stage serving provider plans: the external slot, else a plan-capable native stage.
+pub(super) fn plan_stage<'a, 'b>(
+    st: &'a mut Stages<'b>,
+) -> Option<&'a mut (dyn ContextStage + 'a)> {
+    if let Some(e) = st.external.as_mut() {
+        return Some(&mut **e);
+    }
+    if st.native.plans() {
+        return Some(&mut *st.native);
+    }
+    None
+}
+
 /// Merge provider items into `kept` under the context budget: exact duplicates
 /// are skipped, items that do not fit are counted (never truncated).
 fn merge_fitting(kept: &mut Vec<ContextItem>, items: Vec<ContextItem>, budget: usize) -> usize {
@@ -719,7 +756,6 @@ fn merge_fitting(kept: &mut Vec<ContextItem>, items: Vec<ContextItem>, budget: u
 /// failure's own identifiers. Returns whether new material was added; a stage
 /// without a plan, a spent call bound or a failure that names nothing new makes
 /// no call. Provider trouble is reported, never fatal.
-#[allow(dead_code)]
 pub(super) fn follow_up_context(
     cx: &mut Ctx,
     st: &mut Stages,
@@ -738,7 +774,7 @@ pub(super) fn follow_up_context(
         max_bytes: cfg.context_max_bytes,
         external: cfg.task.external_context,
     };
-    let Some(ext) = st.external.as_mut() else {
+    let Some(ext) = plan_stage(st) else {
         return Ok(false);
     };
     let started = Instant::now();
@@ -782,7 +818,6 @@ pub(super) fn follow_up_context(
 
 /// HN-13: expand one continuation handle from the last collection into `kept`
 /// without a provider call. Stale or unknown handles are refused.
-#[allow(dead_code)]
 pub(super) fn expand_context(
     cx: &mut Ctx,
     st: &mut Stages,
@@ -799,7 +834,7 @@ pub(super) fn expand_context(
         max_bytes: cfg.context_max_bytes,
         external: cfg.task.external_context,
     };
-    let Some(ext) = st.external.as_mut() else {
+    let Some(ext) = plan_stage(st) else {
         return Err(d(
             "SPX-HPD130",
             "no context stage issued continuation handles",

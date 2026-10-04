@@ -46,6 +46,10 @@ struct Args {
     tokenizer_cache: Option<String>,
     tokenizers: Vec<String>,
     cancel_file: Option<String>,
+    updates_fixture: Option<String>,
+    updates_gh: Option<String>,
+    frozen: bool,
+    offline: bool,
     disable: bool,
     json: bool,
 }
@@ -72,6 +76,10 @@ fn parse(args: &[String]) -> HarnessResult<Args> {
             "--tokenizer-cache" => a.tokenizer_cache = Some(val("--tokenizer-cache")?),
             "--cancel-file" => a.cancel_file = Some(val("--cancel-file")?),
             "--tokenizer" => a.tokenizers.push(val("--tokenizer")?),
+            "--updates-fixture-dir" => a.updates_fixture = Some(val("--updates-fixture-dir")?),
+            "--updates-gh" => a.updates_gh = Some(val("--updates-gh")?),
+            "--frozen" => a.frozen = true,
+            "--offline" => a.offline = true,
             "--disable" => a.disable = true,
             "--json" => a.json = true,
             o if o.starts_with("--") => return Err(usage(format!("unknown option `{o}`"))),
@@ -156,6 +164,16 @@ pub struct RunOptions {
     /// Polled path: once it exists the session is cancelled (no signal handling:
     /// that needs `unsafe`, which this crate forbids).
     pub cancel_file: Option<PathBuf>,
+    /// HN-05: `--frozen` makes zero update network calls and activates nothing;
+    /// `--offline` makes zero update network calls.
+    pub frozen: bool,
+    pub offline: bool,
+    /// Directory fixture standing in for the upstream (tests, air-gapped use).
+    pub updates_fixture: Option<PathBuf>,
+    /// Explicit absolute `gh` for the session-start check (else the policy's).
+    pub updates_gh: Option<PathBuf>,
+    /// Injected clock (seconds) for the maintenance TTL; the system clock when absent.
+    pub updates_now: Option<u64>,
     pub disable: bool,
     pub json: bool,
 }
@@ -176,6 +194,11 @@ fn a_to_opts(a: &Args, env: &Environment) -> RunOptions {
         tokenizers: a.tokenizers.clone(),
         cancel: None,
         cancel_file: a.cancel_file.as_deref().map(|p| abs(env, p)),
+        frozen: a.frozen,
+        offline: a.offline,
+        updates_fixture: a.updates_fixture.as_deref().map(|p| abs(env, p)),
+        updates_gh: a.updates_gh.as_deref().map(|p| abs(env, p)),
+        updates_now: None,
         disable: a.disable,
         json: a.json,
     }
@@ -258,15 +281,27 @@ pub fn run_with(
         resolution.as_ref(),
         o.compiler.clone().or_else(|| env.compiler.clone()),
     ) {
-        match BrokerContext::new(
-            exe,
-            l.clone(),
-            rt_env(l),
-            res.profile.lock_digest(),
-            res.profile.config_digest.clone(),
-            config.capability(CapabilityKind::ContextRepository).scope,
-        ) {
-            Ok(b) => broker_ctx = Some(b),
+        let ccfg = config.capability(CapabilityKind::ContextRepository);
+        let built = super::adapter_config::config_env(&l.descriptor, &ccfg).and_then(|cenv| {
+            BrokerContext::new_with_config(
+                exe,
+                l.clone(),
+                rt_env(l),
+                res.profile.lock_digest(),
+                res.profile.config_digest.clone(),
+                ccfg.scope.clone(),
+                cenv,
+            )
+        });
+        match built {
+            // Provider answers are cached machine-locally under the harness home;
+            // keys bind lock, config, working-tree content and worktree (HN-13).
+            Ok(b) => {
+                broker_ctx = Some(match &env.harness_home {
+                    Some(h) => b.with_cache(h.join("cache").join("context")),
+                    None => b,
+                })
+            }
             Err(e) => notes.push(format!(
                 "context provider `{}` not composed, builtin used: {}",
                 l.provider_id, e.message
@@ -276,7 +311,7 @@ pub fn run_with(
     let mut model: Option<HostModel> = None;
     if o.proposal.is_none() {
         if let Some(l) = launch_for(CapabilityKind::ModelGenerate) {
-            match start(&manager, l, &snapshot, &cache, o, env) {
+            match start(&manager, l, &snapshot, &cache, o, env, &config) {
                 Ok(h) => {
                     model = Some(HostModel::new(
                         h,
@@ -296,7 +331,7 @@ pub fn run_with(
     let mut decision_inv: Option<HostDecisionInvoker> = None;
     let mut decision_meta: Option<(ProviderProfile, ProviderMode)> = None;
     if let Some(l) = launch_for(CapabilityKind::DecisionEvaluate) {
-        match start(&manager, l, &snapshot, &cache, o, env) {
+        match start(&manager, l, &snapshot, &cache, o, env, &config) {
             Ok(h) => {
                 decision_inv = Some(HostDecisionInvoker::new(h));
                 let explicit = config
@@ -368,7 +403,15 @@ pub fn run_with(
             argv: argv.clone(),
         })
         .collect();
-    let (skill_prompt, official_use) = skill_prompt(&config, env, &task, disabled, &snapshot.root);
+    let (skill_prompt, official_use) = {
+        let mut set = None;
+        if !disabled && config.skills.enabled {
+            let (s, n) = super::updates_hook::prepare(o, env, &project_id(&snapshot.root));
+            notes.extend(n);
+            set = Some(s);
+        }
+        skill_prompt(&config, env, &task, set, &snapshot.root)
+    };
     let mut budget = super::budget::BudgetConfig::default();
     if let (Some(py), Some(script)) = (&o.tokenizer_python, &o.tokenizer_script) {
         let mut tenv = std::collections::BTreeMap::new();
@@ -391,6 +434,34 @@ pub fn run_with(
         }
     }
 
+    let mut check_tokenizer: Option<crate::command_view::ViewTokenizer> = None;
+    // HN-12: the check stage measures delivered views with a named tokenizer
+    // (its own helper instance; the first named tokenizer when several).
+    if let (Some(py), Some(script), Some(name)) = (
+        &o.tokenizer_python,
+        &o.tokenizer_script,
+        o.tokenizers.first(),
+    ) {
+        let mut tenv = std::collections::BTreeMap::new();
+        tenv.insert("PATH".to_string(), "/usr/bin:/bin".to_string());
+        if let Some(c) = &o.tokenizer_cache {
+            tenv.insert(
+                "TIKTOKEN_CACHE_DIR".to_string(),
+                c.to_string_lossy().into_owned(),
+            );
+        }
+        let targs = vec![script.to_string_lossy().into_owned(), name.clone()];
+        match crate::observe::ExternalTokenizer::spawn(py, &targs, &tenv) {
+            Ok(t) => {
+                check_tokenizer = Some(crate::command_view::ViewTokenizer(std::rc::Rc::new(t)))
+            }
+            Err(e) => notes.push(format!(
+                "check tokenizer `{name}` unavailable ({}); check-output measurements are bytes-only",
+                e.message
+            )),
+        }
+    }
+
     let cfg = RunConfig {
         context_max_bytes: config.budget.context_max_bytes as usize,
         providers: provider_rows(resolution.as_ref().map(|r| &r.profile), disabled),
@@ -406,6 +477,10 @@ pub fn run_with(
         model_plans,
         notes,
         budget,
+        routing: super::routing::RoutingWiring::from_config(
+            &config.routing,
+            env.harness_home.as_deref(),
+        )?,
         cancel: o.cancel.clone().or_else(|| {
             o.cancel_file.as_ref().map(|p| {
                 let flag = super::session::CancelFlag::default();
@@ -454,6 +529,7 @@ pub fn run_with(
         e
     });
     view_checks.raw = disabled;
+    view_checks.tokenizer = check_tokenizer;
     let mut raw_view = RawCommandView;
     let mut observer = Observer::new(sink, ObserverLimits::default());
     let proposer: &mut dyn ProposalStage = match model.as_mut() {
@@ -526,12 +602,12 @@ fn skill_prompt(
     config: &HarnessConfig,
     env: &Environment,
     task: &Task,
-    disabled: bool,
+    set: Option<crate::skills::official::OfficialSet>,
     project: &Path,
 ) -> (Option<SkillPromptUse>, Option<(DefaultSkills, Vec<String>)>) {
-    if disabled || !config.skills.enabled {
+    let Some(set) = set else {
         return (None, None);
-    }
+    };
     if config.capability(CapabilityKind::SkillCatalog).mode == crate::profile::Mode::Disabled {
         return (None, None);
     }
@@ -539,10 +615,15 @@ fn skill_prompt(
     let mut text = String::new();
     let mut loaded: Vec<String> = Vec::new();
     let mut official = None;
-    let mut defaults =
-        DefaultSkills::embedded(env.harness_home.clone(), &project_id(project), "default")
-            .and_then(|d| d.with_project_prefs(config.skills.prefs.clone()))
-            .ok();
+    // The effective set: embedded revisions plus activated updates (HN-05).
+    let mut defaults = DefaultSkills::new(
+        set,
+        env.harness_home.clone(),
+        &project_id(project),
+        super::updates_hook::RUN_SESSION,
+    )
+    .and_then(|d| d.with_project_prefs(config.skills.prefs.clone()))
+    .ok();
     if let Some(ds) = defaults.as_mut() {
         let input = TaskInput {
             family: &task.family,
@@ -614,6 +695,7 @@ fn start(
     cache: &Path,
     o: &RunOptions,
     env: &Environment,
+    config: &HarnessConfig,
 ) -> HarnessResult<std::sync::Arc<crate::host::AdapterHandle>> {
     let flag = match l.descriptor.runtime {
         Runtime::Python => o.python.as_deref(),
@@ -664,7 +746,10 @@ fn start(
             cache_dir: cache_dir.canonicalize().unwrap_or(cache_dir),
             retention_dir: retention.canonicalize().unwrap_or(retention),
             isolation,
-            forward_env: Default::default(),
+            forward_env: super::adapter_config::config_env(
+                &l.descriptor,
+                &config.capability(l.kind),
+            )?,
         },
     )
 }

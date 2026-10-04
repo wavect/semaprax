@@ -228,3 +228,21 @@ route). `run --cancel-file <path>` cancels a session once the file exists (check
 between steps: `SPX-HPD113`, status `cancelled`, journal `cancelled`); an in-flight side-effecting generation is recorded
 `uncertain` and not replayed. SIGINT is not handled: it needs `unsafe`, which this crate forbids.
 
+## HN-05, HN-12, HN-13, HN-16 wiring in `harness run`
+
+- **Skills updates (HN-05).** A run is a new session: it performs the policy-gated, TTL-gated, bounded
+  `updates::ops::maintenance` (a failure is a bounded `notes` entry and never blocks), loads
+  `updates::effective_set(home)` (embedded + activated revisions) into `DefaultSkills`, and releases the
+  previous run's revision locks that no longer match, so the NEXT run uses a newly activated revision while
+  another session id keeps its locked revision from the immutable store. `--frozen` and `--offline` perform no
+  update request at all (the fetcher is never built); `--updates-fixture-dir DIR` / `--updates-gh ABS_PATH`
+  select the upstream (tests, air-gapped use).
+- **Context (HN-13).** The broker stage (native slot) also serves as the plan stage: its native step runs with
+  `external: never`, provider queries come from the task plan, and after a failed candidate in a session the
+  pipeline makes exactly one focused follow-up (`pipeline::follow_up_context`) and, when that adds nothing,
+  expands a continuation handle whose path the failure names (`expand_context`, no provider call). Provider
+  answers are cached under `<harness home>/cache/context`; an identical second run is a cache hit, not a provider
+  call. `context.providers` lists each stage once.
+- **Check tokenizer (HN-12).** With `--tokenizer-python/--tokenizer-script/--tokenizer NAME`, the check stage gets
+  its own helper instance (the first `--tokenizer`), so check-output measurements are named-token counts.
+- **Routing (HN-16).** See [HARNESS-DECISION-V1](HARNESS-DECISION-V1.md#project-configuration-and-cli-wiring-hn-16).

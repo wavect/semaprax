@@ -167,3 +167,16 @@ locks, permissions and query results stay per worktree, and no cache crosses a p
 adapter implements the same rules in Node (`packages/semaprax-harness-adapters/graft/lib/adopt.mjs`,
 `generation.mjs`); the Graphify adapter reuses this contract.
 
+### Adapter configuration plumbing (HN-10)
+
+`[capability."context.repository".config]` in `semaprax.harness.toml` supplies the descriptor's `config.fields`.
+The host validates each value against the selected descriptor (declared field, type, no secret-looking value, no
+absolute/home/`..` path) and forwards it as host-set environment `SEMAPRAX_HARNESS_CFG_<FIELD>` (upper-cased;
+string lists comma-joined). The prefix is host-reserved, so an adapter can trust it; defaults are not forwarded.
+The config (and therefore its digest) is part of every cache key. Graft reads `adopt_index` (`read-only` |
+`copied-snapshot`) and `user_index` (default `graft`); the older `SEMAPRAX_GRAFT_*` names remain aliases.
+Graphify gains the same opt-in with `user_index` defaulting to `graphify-out`: the graph must satisfy the
+installed version's profile, carry that version's per-version AST cache, be code-only (`_origin: ast`), name this
+worktree (`.graphify_root`) and bind to the source (graphify's own content key where it records one, otherwise its
+recorded size and nanosecond mtime, a weaker binding). Any refusal serves from the owned cache and reports
+`index_adoption`/`served_by` metadata; the user's files are never written.

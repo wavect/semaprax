@@ -1,0 +1,570 @@
+{
+  "aggregate_token_usage": {
+    "cached_input_tokens": 258048,
+    "input_tokens": 328688,
+    "output_tokens": 5311,
+    "total_tokens": 333999
+  },
+  "cost_usage": {
+    "observed_monetary_field_paths": [],
+    "provider": "openai-codex-cli",
+    "reason": "none of the 20 retained Codex JSONL streams contains a provider monetary usage field or invoice reference",
+    "receipt_kind": "provider_monetary_usage_event",
+    "status": "unavailable"
+  },
+  "nonclaims": [
+    "token counts are not converted to currency",
+    "this receipt does not authenticate an external provider invoice",
+    "this Boolean-only provenance does not complete LAW-16 or an agent-trial comparison"
+  ],
+  "schema": "semaprax.bend2-law-benchmark.boolean-negation-cost-provenance.v1",
+  "scope": {
+    "matched_pairs": 10,
+    "provider": "openai-codex-cli",
+    "task": "boolean-negation-pair-v1",
+    "trials": 20
+  },
+  "status": "provider_monetary_receipts_unavailable",
+  "trials": [
+    {
+      "cost_usage": {
+        "observed_monetary_field_paths": [],
+        "provider": "openai-codex-cli",
+        "reason": "retained Codex JSONL contains no provider monetary usage field or invoice reference",
+        "receipt_kind": "provider_monetary_usage_event",
+        "status": "unavailable"
+      },
+      "language": "bend2",
+      "provider_event_stream": {
+        "bytes": 1257,
+        "path": "law16-boolean-negation-agent-pilot-v1/bend-ordinal-1/events.jsonl",
+        "sha256": "sha256:01dec6097971fa542f52c8bd231051c5856d8ad7bc7cc584b70417a2a4bc4415"
+      },
+      "record": {
+        "bytes": 3021,
+        "path": "law16-boolean-negation-agent-pilot-v1/bend-ordinal-1.json",
+        "sha256": "sha256:fe4d4cf37e17c9fb398ad7d347beb8d36b286672923ebda5dea175ba75964df6"
+      },
+      "token_usage": {
+        "cached_input_tokens": 11008,
+        "input_tokens": 16387,
+        "output_tokens": 239,
+        "total_tokens": 16626
+      },
+      "trial_id": "boolean-negation-pair-v1:bend2:1"
+    },
+    {
+      "cost_usage": {
+        "observed_monetary_field_paths": [],
+        "provider": "openai-codex-cli",
+        "reason": "retained Codex JSONL contains no provider monetary usage field or invoice reference",
+        "receipt_kind": "provider_monetary_usage_event",
+        "status": "unavailable"
+      },
+      "language": "semaprax-scalar-v1",
+      "provider_event_stream": {
+        "bytes": 1300,
+        "path": "law16-boolean-negation-agent-pilot-v1/semaprax-ordinal-1/events.jsonl",
+        "sha256": "sha256:c5b5fca937b1403fb48a48c9062003f07ad001c29474adae8c485130f00927f7"
+      },
+      "record": {
+        "bytes": 3046,
+        "path": "law16-boolean-negation-agent-pilot-v1/semaprax-ordinal-1.json",
+        "sha256": "sha256:a1910f7c62c53da20a88510f4c5f2881d77f018118eb57140d82a0e83b37f642"
+      },
+      "token_usage": {
+        "cached_input_tokens": 14080,
+        "input_tokens": 16453,
+        "output_tokens": 258,
+        "total_tokens": 16711
+      },
+      "trial_id": "boolean-negation-pair-v1:semaprax-scalar-v1:1"
+    },
+    {
+      "cost_usage": {
+        "observed_monetary_field_paths": [],
+        "provider": "openai-codex-cli",
+        "reason": "retained Codex JSONL contains no provider monetary usage field or invoice reference",
+        "receipt_kind": "provider_monetary_usage_event",
+        "status": "unavailable"
+      },
+      "language": "bend2",
+      "provider_event_stream": {
+        "bytes": 1273,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-2/bend/events.jsonl",
+        "sha256": "sha256:456f9bf3306f3bea9f175dd82a22dcdd7fca4410f869c838e4715a8b67129703"
+      },
+      "record": {
+        "bytes": 3022,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-2/bend.json",
+        "sha256": "sha256:3df43e8194b5193d28f60922dd2a9177272b83c1c690fc6da273d47b89c8ea16"
+      },
+      "token_usage": {
+        "cached_input_tokens": 11008,
+        "input_tokens": 16403,
+        "output_tokens": 238,
+        "total_tokens": 16641
+      },
+      "trial_id": "boolean-negation-pair-v1:bend2:2"
+    },
+    {
+      "cost_usage": {
+        "observed_monetary_field_paths": [],
+        "provider": "openai-codex-cli",
+        "reason": "retained Codex JSONL contains no provider monetary usage field or invoice reference",
+        "receipt_kind": "provider_monetary_usage_event",
+        "status": "unavailable"
+      },
+      "language": "semaprax-scalar-v1",
+      "provider_event_stream": {
+        "bytes": 1412,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-2/semaprax/events.jsonl",
+        "sha256": "sha256:6065221f7b340f69f5fc993f2c02d45e9f8e9f87fa490e32e5c1276ab9f00df2"
+      },
+      "record": {
+        "bytes": 3048,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-2/semaprax.json",
+        "sha256": "sha256:72f5c770cbd75d107a8042ccbf6e5854e41e4db54d2c0dcfa79061c5c96ce872"
+      },
+      "token_usage": {
+        "cached_input_tokens": 14080,
+        "input_tokens": 16469,
+        "output_tokens": 344,
+        "total_tokens": 16813
+      },
+      "trial_id": "boolean-negation-pair-v1:semaprax-scalar-v1:2"
+    },
+    {
+      "cost_usage": {
+        "observed_monetary_field_paths": [],
+        "provider": "openai-codex-cli",
+        "reason": "retained Codex JSONL contains no provider monetary usage field or invoice reference",
+        "receipt_kind": "provider_monetary_usage_event",
+        "status": "unavailable"
+      },
+      "language": "bend2",
+      "provider_event_stream": {
+        "bytes": 1284,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-3/bend/events.jsonl",
+        "sha256": "sha256:d9b32ab4fb24ce6f51b57e8513ffb840e4d2ce05af99777389d5c7608a65c433"
+      },
+      "record": {
+        "bytes": 3021,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-3/bend.json",
+        "sha256": "sha256:4d50ec5ca21a7d1140f1358ad53649fa1e4e1ae6e2915399813e4e34a19a420f"
+      },
+      "token_usage": {
+        "cached_input_tokens": 11008,
+        "input_tokens": 16403,
+        "output_tokens": 241,
+        "total_tokens": 16644
+      },
+      "trial_id": "boolean-negation-pair-v1:bend2:3"
+    },
+    {
+      "cost_usage": {
+        "observed_monetary_field_paths": [],
+        "provider": "openai-codex-cli",
+        "reason": "retained Codex JSONL contains no provider monetary usage field or invoice reference",
+        "receipt_kind": "provider_monetary_usage_event",
+        "status": "unavailable"
+      },
+      "language": "semaprax-scalar-v1",
+      "provider_event_stream": {
+        "bytes": 1251,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-3/semaprax/events.jsonl",
+        "sha256": "sha256:ba6f086a240f4bd27b3382c21835900c1e4ae44d74a930d01570a6b7a97436a8"
+      },
+      "record": {
+        "bytes": 3047,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-3/semaprax.json",
+        "sha256": "sha256:a7f4dc2c42b55753e0ca2e92b7954b93e51cdc2be5af1ad07f987e6f44887568"
+      },
+      "token_usage": {
+        "cached_input_tokens": 11008,
+        "input_tokens": 16469,
+        "output_tokens": 254,
+        "total_tokens": 16723
+      },
+      "trial_id": "boolean-negation-pair-v1:semaprax-scalar-v1:3"
+    },
+    {
+      "cost_usage": {
+        "observed_monetary_field_paths": [],
+        "provider": "openai-codex-cli",
+        "reason": "retained Codex JSONL contains no provider monetary usage field or invoice reference",
+        "receipt_kind": "provider_monetary_usage_event",
+        "status": "unavailable"
+      },
+      "language": "bend2",
+      "provider_event_stream": {
+        "bytes": 1239,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-4/bend/events.jsonl",
+        "sha256": "sha256:1df2194f2967ab069d5537ab7182dc8e116c2966aa5fe612d0d3deb818e687a4"
+      },
+      "record": {
+        "bytes": 3021,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-4/bend.json",
+        "sha256": "sha256:2ddec220153509b15118b0ef1f864a1266ddde1f5ba5761bdae6b9ff52da68d7"
+      },
+      "token_usage": {
+        "cached_input_tokens": 14080,
+        "input_tokens": 16403,
+        "output_tokens": 236,
+        "total_tokens": 16639
+      },
+      "trial_id": "boolean-negation-pair-v1:bend2:4"
+    },
+    {
+      "cost_usage": {
+        "observed_monetary_field_paths": [],
+        "provider": "openai-codex-cli",
+        "reason": "retained Codex JSONL contains no provider monetary usage field or invoice reference",
+        "receipt_kind": "provider_monetary_usage_event",
+        "status": "unavailable"
+      },
+      "language": "semaprax-scalar-v1",
+      "provider_event_stream": {
+        "bytes": 1446,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-4/semaprax/events.jsonl",
+        "sha256": "sha256:d22e1aca9e063cbea8ecf8ee0734b86144c34199490e9017fcf74524b833f617"
+      },
+      "record": {
+        "bytes": 3047,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-4/semaprax.json",
+        "sha256": "sha256:bbbed92fb78ba2f887b5f6c257909a83a7de20d3cbbb103559e0b9df29fd0b0c"
+      },
+      "token_usage": {
+        "cached_input_tokens": 14080,
+        "input_tokens": 16469,
+        "output_tokens": 289,
+        "total_tokens": 16758
+      },
+      "trial_id": "boolean-negation-pair-v1:semaprax-scalar-v1:4"
+    },
+    {
+      "cost_usage": {
+        "observed_monetary_field_paths": [],
+        "provider": "openai-codex-cli",
+        "reason": "retained Codex JSONL contains no provider monetary usage field or invoice reference",
+        "receipt_kind": "provider_monetary_usage_event",
+        "status": "unavailable"
+      },
+      "language": "bend2",
+      "provider_event_stream": {
+        "bytes": 1237,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-5/bend/events.jsonl",
+        "sha256": "sha256:b454a53fe317d0010bff0588bbea299ca9bf98a4308fead9a62b5bf69274a4f6"
+      },
+      "record": {
+        "bytes": 3021,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-5/bend.json",
+        "sha256": "sha256:a8b9d509be601d007adaadfb701e49ed8f2a58002d3604a3072987ba9362e0bc"
+      },
+      "token_usage": {
+        "cached_input_tokens": 14080,
+        "input_tokens": 16403,
+        "output_tokens": 231,
+        "total_tokens": 16634
+      },
+      "trial_id": "boolean-negation-pair-v1:bend2:5"
+    },
+    {
+      "cost_usage": {
+        "observed_monetary_field_paths": [],
+        "provider": "openai-codex-cli",
+        "reason": "retained Codex JSONL contains no provider monetary usage field or invoice reference",
+        "receipt_kind": "provider_monetary_usage_event",
+        "status": "unavailable"
+      },
+      "language": "semaprax-scalar-v1",
+      "provider_event_stream": {
+        "bytes": 1286,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-5/semaprax/events.jsonl",
+        "sha256": "sha256:b2fc465b07aedf26e8c63a1b1fca02ee1c18843b1ebc73288745a42676a7edd3"
+      },
+      "record": {
+        "bytes": 3046,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-5/semaprax.json",
+        "sha256": "sha256:60ced0dec16bdcdad8986250bda6471d2aa6ac6852a9f9295574f5816a8cd9d0"
+      },
+      "token_usage": {
+        "cached_input_tokens": 14080,
+        "input_tokens": 16469,
+        "output_tokens": 258,
+        "total_tokens": 16727
+      },
+      "trial_id": "boolean-negation-pair-v1:semaprax-scalar-v1:5"
+    },
+    {
+      "cost_usage": {
+        "observed_monetary_field_paths": [],
+        "provider": "openai-codex-cli",
+        "reason": "retained Codex JSONL contains no provider monetary usage field or invoice reference",
+        "receipt_kind": "provider_monetary_usage_event",
+        "status": "unavailable"
+      },
+      "language": "bend2",
+      "provider_event_stream": {
+        "bytes": 1183,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-6/bend/events.jsonl",
+        "sha256": "sha256:7481764920cb8f7dc33bbba18e0eb150a8f9869c191b795bcb2205005338dded"
+      },
+      "record": {
+        "bytes": 3022,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-6/bend.json",
+        "sha256": "sha256:851fd14dcb30dcf7308b4896a9d372f0c5d84c4b09ded616603ab051f8707d2e"
+      },
+      "token_usage": {
+        "cached_input_tokens": 11008,
+        "input_tokens": 16403,
+        "output_tokens": 226,
+        "total_tokens": 16629
+      },
+      "trial_id": "boolean-negation-pair-v1:bend2:6"
+    },
+    {
+      "cost_usage": {
+        "observed_monetary_field_paths": [],
+        "provider": "openai-codex-cli",
+        "reason": "retained Codex JSONL contains no provider monetary usage field or invoice reference",
+        "receipt_kind": "provider_monetary_usage_event",
+        "status": "unavailable"
+      },
+      "language": "semaprax-scalar-v1",
+      "provider_event_stream": {
+        "bytes": 1304,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-6/semaprax/events.jsonl",
+        "sha256": "sha256:91d2ce02bc8552db70293ac9948b67cb461616fe5ce6821d059242b21806b231"
+      },
+      "record": {
+        "bytes": 3046,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-6/semaprax.json",
+        "sha256": "sha256:ae0ae23b5179684dc27316f25705abe31e3db0c5c28392e4a232304b418e79e4"
+      },
+      "token_usage": {
+        "cached_input_tokens": 14080,
+        "input_tokens": 16469,
+        "output_tokens": 267,
+        "total_tokens": 16736
+      },
+      "trial_id": "boolean-negation-pair-v1:semaprax-scalar-v1:6"
+    },
+    {
+      "cost_usage": {
+        "observed_monetary_field_paths": [],
+        "provider": "openai-codex-cli",
+        "reason": "retained Codex JSONL contains no provider monetary usage field or invoice reference",
+        "receipt_kind": "provider_monetary_usage_event",
+        "status": "unavailable"
+      },
+      "language": "bend2",
+      "provider_event_stream": {
+        "bytes": 1216,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-7/bend/events.jsonl",
+        "sha256": "sha256:c1be399e7837b2b3ec9cc0b5a98cf02b1e45e362f8387921228c7c90b89c2a2f"
+      },
+      "record": {
+        "bytes": 3021,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-7/bend.json",
+        "sha256": "sha256:fce72143cecc3d0bd54cae2762ef6b56b4185f67660155f274c9c58a52d69e78"
+      },
+      "token_usage": {
+        "cached_input_tokens": 14080,
+        "input_tokens": 16403,
+        "output_tokens": 232,
+        "total_tokens": 16635
+      },
+      "trial_id": "boolean-negation-pair-v1:bend2:7"
+    },
+    {
+      "cost_usage": {
+        "observed_monetary_field_paths": [],
+        "provider": "openai-codex-cli",
+        "reason": "retained Codex JSONL contains no provider monetary usage field or invoice reference",
+        "receipt_kind": "provider_monetary_usage_event",
+        "status": "unavailable"
+      },
+      "language": "semaprax-scalar-v1",
+      "provider_event_stream": {
+        "bytes": 1263,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-7/semaprax/events.jsonl",
+        "sha256": "sha256:28c345be1ee780a85a7bbdd0037673613148489b2527fba13038bb610852399c"
+      },
+      "record": {
+        "bytes": 3046,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-7/semaprax.json",
+        "sha256": "sha256:cdd395a6bbaf0c12db3538510e7975777fded8a28d66a23609caab07d483d9b6"
+      },
+      "token_usage": {
+        "cached_input_tokens": 14080,
+        "input_tokens": 16469,
+        "output_tokens": 333,
+        "total_tokens": 16802
+      },
+      "trial_id": "boolean-negation-pair-v1:semaprax-scalar-v1:7"
+    },
+    {
+      "cost_usage": {
+        "observed_monetary_field_paths": [],
+        "provider": "openai-codex-cli",
+        "reason": "retained Codex JSONL contains no provider monetary usage field or invoice reference",
+        "receipt_kind": "provider_monetary_usage_event",
+        "status": "unavailable"
+      },
+      "language": "bend2",
+      "provider_event_stream": {
+        "bytes": 1274,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-8/bend/events.jsonl",
+        "sha256": "sha256:afa872ba059e8ef1d4d57a1da4ee939560c02b59ccdb8e31cd0bddca9c506d4e"
+      },
+      "record": {
+        "bytes": 3020,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-8/bend.json",
+        "sha256": "sha256:6573d278ab7564f7b3519776d56c40818fd4322f59d3d437d47bb3b4fbd90d8e"
+      },
+      "token_usage": {
+        "cached_input_tokens": 15104,
+        "input_tokens": 16403,
+        "output_tokens": 245,
+        "total_tokens": 16648
+      },
+      "trial_id": "boolean-negation-pair-v1:bend2:8"
+    },
+    {
+      "cost_usage": {
+        "observed_monetary_field_paths": [],
+        "provider": "openai-codex-cli",
+        "reason": "retained Codex JSONL contains no provider monetary usage field or invoice reference",
+        "receipt_kind": "provider_monetary_usage_event",
+        "status": "unavailable"
+      },
+      "language": "semaprax-scalar-v1",
+      "provider_event_stream": {
+        "bytes": 1372,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-8/semaprax/events.jsonl",
+        "sha256": "sha256:f279046d56d13a6af4e36f2f8ed118be162c9cbc5a4efa60ed13737da3da3821"
+      },
+      "record": {
+        "bytes": 3047,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-8/semaprax.json",
+        "sha256": "sha256:1d1c518018280041a9688bf19aaf12a9817bf40a4186e4732fb18beb90aff12a"
+      },
+      "token_usage": {
+        "cached_input_tokens": 11008,
+        "input_tokens": 16469,
+        "output_tokens": 345,
+        "total_tokens": 16814
+      },
+      "trial_id": "boolean-negation-pair-v1:semaprax-scalar-v1:8"
+    },
+    {
+      "cost_usage": {
+        "observed_monetary_field_paths": [],
+        "provider": "openai-codex-cli",
+        "reason": "retained Codex JSONL contains no provider monetary usage field or invoice reference",
+        "receipt_kind": "provider_monetary_usage_event",
+        "status": "unavailable"
+      },
+      "language": "bend2",
+      "provider_event_stream": {
+        "bytes": 1201,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-9/bend/events.jsonl",
+        "sha256": "sha256:75490655ae79502c69b65f662ed1039ad7969d1e7168055108dd82f5ec508e1c"
+      },
+      "record": {
+        "bytes": 3021,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-9/bend.json",
+        "sha256": "sha256:0f0b9e12697c5b3c9a286440fe2df756bfbd86ceedc47970aec7284325472709"
+      },
+      "token_usage": {
+        "cached_input_tokens": 14080,
+        "input_tokens": 16403,
+        "output_tokens": 226,
+        "total_tokens": 16629
+      },
+      "trial_id": "boolean-negation-pair-v1:bend2:9"
+    },
+    {
+      "cost_usage": {
+        "observed_monetary_field_paths": [],
+        "provider": "openai-codex-cli",
+        "reason": "retained Codex JSONL contains no provider monetary usage field or invoice reference",
+        "receipt_kind": "provider_monetary_usage_event",
+        "status": "unavailable"
+      },
+      "language": "semaprax-scalar-v1",
+      "provider_event_stream": {
+        "bytes": 1527,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-9/semaprax/events.jsonl",
+        "sha256": "sha256:13672c9ea7b3af9af451f29883f15dc39ee9c654b8ab22a4d529fc6e35981ef4"
+      },
+      "record": {
+        "bytes": 3048,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-9/semaprax.json",
+        "sha256": "sha256:095428903e9582899f328d88d9323849c4e03be954f5941d295dced5842ec031"
+      },
+      "token_usage": {
+        "cached_input_tokens": 11008,
+        "input_tokens": 16469,
+        "output_tokens": 381,
+        "total_tokens": 16850
+      },
+      "trial_id": "boolean-negation-pair-v1:semaprax-scalar-v1:9"
+    },
+    {
+      "cost_usage": {
+        "observed_monetary_field_paths": [],
+        "provider": "openai-codex-cli",
+        "reason": "retained Codex JSONL contains no provider monetary usage field or invoice reference",
+        "receipt_kind": "provider_monetary_usage_event",
+        "status": "unavailable"
+      },
+      "language": "bend2",
+      "provider_event_stream": {
+        "bytes": 1192,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-10/bend/events.jsonl",
+        "sha256": "sha256:9dfa2f2c61d1f7e57ee5564e7e35c86195ddeeee338391b78335f2d7b298bafc"
+      },
+      "record": {
+        "bytes": 3022,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-10/bend.json",
+        "sha256": "sha256:e868c0dd0da17ae1da50023c73df6299c8b0d66c4ebc6fa67eeb14f5d913e017"
+      },
+      "token_usage": {
+        "cached_input_tokens": 14080,
+        "input_tokens": 16403,
+        "output_tokens": 223,
+        "total_tokens": 16626
+      },
+      "trial_id": "boolean-negation-pair-v1:bend2:10"
+    },
+    {
+      "cost_usage": {
+        "observed_monetary_field_paths": [],
+        "provider": "openai-codex-cli",
+        "reason": "retained Codex JSONL contains no provider monetary usage field or invoice reference",
+        "receipt_kind": "provider_monetary_usage_event",
+        "status": "unavailable"
+      },
+      "language": "semaprax-scalar-v1",
+      "provider_event_stream": {
+        "bytes": 1231,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-10/semaprax/events.jsonl",
+        "sha256": "sha256:6eb6db8fed87b5c112f5d1cab89a09ab8f0a1881e0343efeb286c4547f56f480"
+      },
+      "record": {
+        "bytes": 3047,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-10/semaprax.json",
+        "sha256": "sha256:8cbfd73eea6a42568660e675e34dc547651ebf859e5587b3774e403d95d9871c"
+      },
+      "token_usage": {
+        "cached_input_tokens": 11008,
+        "input_tokens": 16469,
+        "output_tokens": 245,
+        "total_tokens": 16714
+      },
+      "trial_id": "boolean-negation-pair-v1:semaprax-scalar-v1:10"
+    }
+  ]
+}

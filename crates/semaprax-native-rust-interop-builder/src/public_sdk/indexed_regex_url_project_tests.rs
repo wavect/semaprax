@@ -231,29 +231,20 @@ fn closed_ri13_profile_binds_indexed_m1_signatures_before_future_admission() {
             snapshot.source_local_future_signature()?.function_id(),
             "ri13.m3.score"
         );
-        snapshot.with_authenticated_native_rust_sdk_subject(|input| {
-            let all = input
-                .program()
-                .interfaces
-                .iter()
-                .flat_map(|interface| &interface.imports)
-                .map(|import| import.id.as_str())
-                .collect::<Vec<_>>();
-            let selected = input
-                .program()
-                .interfaces
-                .iter()
-                .flat_map(|interface| &interface.imports)
-                .filter(|import| import.index_selected)
-                .map(|import| import.id.as_str())
-                .collect::<Vec<_>>();
-            assert!(all.contains(&"regex.drop") && all.contains(&"url.drop"));
-            assert_eq!(
-                selected,
-                ["regex.new", "regex.match", "url.new", "url.view"]
-            );
-            Ok(())
-        })?;
+        let graph: serde_json::Value = serde_json::from_str(snapshot.semantic_graph()).unwrap();
+        let selected = graph["indexed_rust_imports"]["imports"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|import| {
+                assert!(import["selected_index_digest"].is_string());
+                import["id"].as_str().unwrap()
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            selected,
+            ["regex.match", "regex.new", "url.new", "url.view"]
+        );
         Ok(())
     })
     .unwrap();

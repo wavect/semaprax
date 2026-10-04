@@ -10,16 +10,40 @@ pub struct PreparedRegexUrlProjectPackages {
     pub url: PreparedUrlProjectPackage,
 }
 
-fn selected_import_ids(program: &semaprax::hir::ResolvedProgram) -> Vec<String> {
-    let mut ids = program
-        .interfaces
-        .iter()
-        .flat_map(|interface| &interface.imports)
-        .filter(|import| import.index_selected)
-        .map(|import| import.id.as_str().to_owned())
-        .collect::<Vec<_>>();
+fn selected_import_ids(
+    snapshot: &semaprax::project::ProjectSnapshot,
+) -> Result<Vec<String>, Vec<Diagnostic>> {
+    let graph: serde_json::Value =
+        serde_json::from_str(snapshot.semantic_graph()).map_err(|_| {
+            vec![sdk_error(
+                "indexed Project semantic graph cannot be replayed for selected import coverage",
+            )]
+        })?;
+    let imports = graph
+        .pointer("/indexed_rust_imports/imports")
+        .and_then(serde_json::Value::as_array)
+        .ok_or_else(|| {
+            vec![sdk_error(
+                "indexed Project semantic graph lacks authenticated selected import records",
+            )]
+        })?;
+    let mut ids = Vec::with_capacity(imports.len());
+    for import in imports {
+        let id = import.get("id").and_then(serde_json::Value::as_str);
+        let digest = import
+            .get("selected_index_digest")
+            .and_then(serde_json::Value::as_str);
+        match (id, digest) {
+            (Some(id), Some(_)) => ids.push(id.to_owned()),
+            _ => {
+                return Err(vec![sdk_error(
+                    "indexed Project selected import record lacks an authenticated identity",
+                )]);
+            }
+        }
+    }
     ids.sort();
-    ids
+    Ok(ids)
 }
 
 /// Admit the closed RI-13 Project profile through one held source snapshot and
@@ -61,11 +85,12 @@ pub fn with_authenticated_indexed_regex_url_project<T>(
                     "mixed Regex/Url indexed admission requires source-local-future-indexed-rust.v1",
                 )]);
             }
+            let selected = selected_import_ids(snapshot)?;
             snapshot.with_authenticated_native_rust_sdk_subject(|input| {
                 let subject = project::ProjectSdkSubject::from_authenticated(&input)?;
                 project::verify_project_subject(subject.canonical.as_bytes(), &subject)
                     .map_err(|error| vec![error])?;
-                if selected_import_ids(input.program()) != expected_imports {
+                if selected != expected_imports {
                     return Err(vec![sdk_error(
                         "mixed Regex/Url indexed admission requires the exact four linked imports",
                     )]);
@@ -130,12 +155,12 @@ pub fn with_authenticated_indexed_regex_url_project_packages<T>(
                     "mixed Regex/Url package preparation requires source-local-future-indexed-rust.v1",
                 )]);
             }
+            let selected = selected_import_ids(snapshot)?;
             let packages = snapshot.with_authenticated_native_rust_sdk_subject(|input| {
                 let subject = project::ProjectSdkSubject::from_authenticated(&input)?;
                 project::verify_project_subject(subject.canonical.as_bytes(), &subject)
                     .map_err(|error| vec![error])?;
-                if selected_import_ids(input.program()) != expected_imports
-                    || subject.exports.len() != 2
+                if selected != expected_imports || subject.exports.len() != 2
                     || subject.exports[0].id != expected_exports[0]
                     || subject.exports[1].id != expected_exports[1]
                 {
@@ -210,12 +235,12 @@ pub fn prepare_indexed_regex_url_project_packages(
         manifest_path,
         &regex_bindings,
         |snapshot| {
+            let selected = selected_import_ids(snapshot)?;
             snapshot.with_authenticated_native_rust_sdk_subject(|input| {
                 let subject = project::ProjectSdkSubject::from_authenticated(&input)?;
                 project::verify_project_subject(subject.canonical.as_bytes(), &subject)
                     .map_err(|error| vec![error])?;
-                if selected_import_ids(input.program()) != expected_imports
-                    || subject.exports.len() != 2
+                if selected != expected_imports || subject.exports.len() != 2
                     || subject.exports[0].id != expected_exports[0]
                     || subject.exports[1].id != expected_exports[1]
                 {

@@ -170,6 +170,18 @@ def verify_fresh_capture(capsule: Path) -> dict:
         "bounded_balance_agent_evidence_replay": "bounded_balance",
     }
     steps = result.get("steps", [])
+    source_proof_id = "guarded_i64_balance_smt_source_proof"
+    if source_proof_id in [step.get("id") for step in steps]:
+        expected = {
+            "boolean_ordinary_check": "boolean_ordinary_check",
+            "boolean_verdict_and_z3_process": "boolean_process",
+            "boolean_peak_rss": "boolean_rss",
+            "guarded_i64_balance_and_sort_controls": "guarded_i64_controls",
+            source_proof_id: "guarded_i64_balance_smt",
+            "bend_u32_universal_sort_source_proof": "bend_universal_sort",
+            "supplemental_law15_lean_list_theorem": "lean_law15",
+            "bounded_balance_agent_evidence_replay": "bounded_balance",
+        }
     if [step.get("id") for step in steps] != list(expected):
         raise ValueError("fresh capsule route inventory drifted")
     for step in steps:
@@ -180,6 +192,11 @@ def verify_fresh_capture(capsule: Path) -> dict:
             argv = record["argv"]
             if "--semaprax-sha256" not in argv or argv[argv.index("--semaprax-sha256") + 1] != pins["tools"]["semaprax"]["sha256"]:
                 raise ValueError("guarded-i64 route lost the prefixed compiler digest")
+        if step["id"] == source_proof_id:
+            argv = record["argv"]
+            required = {"--fresh", "--semaprax", pins["tools"]["semaprax"]["path"], "--z3", pins["tools"]["z3"]["path"], "--semaprax-sha256", pins["tools"]["semaprax"]["sha256"], "--z3-sha256", pins["tools"]["z3"]["sha256"], "--semaprax-build-commit", pins["semaprax_build_commit"]}
+            if not required.issubset(argv):
+                raise ValueError("fresh source-proof route lost an exact caller pin")
     module("fresh_nonproof_review", "law16_boolean_negation_nonproof_capsule.py").review(capsule / "boolean-nonproof")
     module("fresh_process_review", "law16_boolean_negation_process_capsule.py").review(capsule / "boolean-process")
     module("fresh_rss_review", "law16_boolean_negation_rss_capsule.py").review_current(capsule / "boolean-rss")
@@ -193,7 +210,10 @@ def verify_fresh_capture(capsule: Path) -> dict:
     raw = b"".join((capsule / "lean-law15-raw" / f"kernel-test.{name}").read_bytes() for name in ("stdout", "stderr"))
     if lean.get("status") != "supplemental_i64_list_profile_proved" or not route.accepted(0, raw):
         raise ValueError("fresh supplemental Lean test did not pass")
-    return {"status": "fresh_capture_authenticated", "fresh_route_count": 6, "retained_agent_replay_count": 1,
+    if source_proof_id in expected:
+        source_route = module("fresh_guarded_i64_source_proof", "law16_guarded_i64_balance_smt.py")
+        source_route.verify_fresh_capsule(capsule / "guarded-i64-balance-smt", pins["tools"]["semaprax"]["sha256"], pins["tools"]["z3"]["sha256"], pins["semaprax_build_commit"])
+    return {"status": "fresh_capture_authenticated", "fresh_route_count": len(expected) - 1, "retained_agent_replay_count": 1,
             "artifact_count": len(result["generated_artifacts"]), "tool_pins": result["tool_pins"],
             "execution_claim": "offline authentication of retained fresh execution; tools were not rerun by this review",
             "agent_campaign": result["agent_campaign"], "nonclaims": result["nonclaims"]}
@@ -303,6 +323,15 @@ def execute(output: Path, pins_path: Path, include_agent_campaign: bool) -> dict
     argv = [sys.executable, str(ROOT / "full_u32_encoding_controls.py"), "--bend-root", str(bend), "--bun", bun, "--semaprax", sem, "--z3", z3,
             "--semaprax-sha256", tools["semaprax"]["sha256"], "--semaprax-build-commit", pins["semaprax_build_commit"], "--artifacts", str(controls)]
     steps.append({"id": "guarded_i64_balance_and_sort_controls", **command(argv, logs, "guarded_i64_controls", env=env)})
+
+    source_proof = output / "guarded-i64-balance-smt"
+    argv = [sys.executable, str(ROOT / "law16_guarded_i64_balance_smt.py"), "--fresh", "--semaprax", sem, "--z3", z3,
+            "--semaprax-sha256", tools["semaprax"]["sha256"], "--z3-sha256", tools["z3"]["sha256"],
+            "--semaprax-build-commit", pins["semaprax_build_commit"], "--output", str(source_proof)]
+    steps.append({"id": "guarded_i64_balance_smt_source_proof", **command(argv, logs, "guarded_i64_balance_smt", env=env)})
+    source_proof_review = module("fresh_guarded_i64_source_proof", "law16_guarded_i64_balance_smt.py").verify_fresh_capsule(
+        source_proof, tools["semaprax"]["sha256"], tools["z3"]["sha256"], pins["semaprax_build_commit"])
+    (output / "guarded-i64-balance-smt-review.json").write_text(json.dumps(source_proof_review, indent=2, sort_keys=True) + "\n")
 
     bend_proof = output / "bend-u32-sort-proof"
     argv = [sys.executable, str(ROOT / "law16_bend_u32_sort_proof.py"), "--bend-root", str(bend), "--bun", bun, "--output-dir", str(bend_proof)]

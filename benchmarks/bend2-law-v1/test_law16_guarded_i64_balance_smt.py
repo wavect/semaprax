@@ -1,5 +1,7 @@
 import importlib.util
 import pathlib
+import sys
+import tempfile
 import unittest
 
 
@@ -25,6 +27,21 @@ class GuardedI64BalanceSourceProofTests(unittest.TestCase):
             result["no_op_negative"], "proof_tool_refused_no_solver_status_claimed"
         )
         self.assertEqual(result["overall_law16"], "incomplete")
+
+    def test_fresh_capture_refuses_a_mismatched_caller_pin_before_execution(self):
+        executable = pathlib.Path(sys.executable)
+        with tempfile.TemporaryDirectory() as directory:
+            output = pathlib.Path(directory) / "fresh"
+            with self.assertRaisesRegex(ValueError, "digest"):
+                ROUTE.run_fresh(
+                    executable,
+                    executable,
+                    output,
+                    "sha256:" + "0" * 64,
+                    "sha256:" + ROUTE.file_digest(executable),
+                    "0" * 40,
+                )
+            self.assertFalse(output.exists())
 
 
 if __name__ == "__main__":

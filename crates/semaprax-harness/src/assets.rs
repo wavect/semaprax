@@ -19,8 +19,12 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 static SERIAL: AtomicUsize = AtomicUsize::new(0);
 
 /// Shipped repository providers: (short name, bundle directory).
-pub const PROVIDERS: &[(&str, &str)] =
-    &[("graft", "graft"), ("graphify", "graphify"), ("rtk", "rtk")];
+pub const PROVIDERS: &[(&str, &str)] = &[
+    ("graft", "graft"),
+    ("graphify", "graphify"),
+    ("rtk", "rtk"),
+    ("caveman", "caveman"),
+];
 
 /// (relative path, exact bytes) of every embedded adapter file, path-sorted.
 pub fn files() -> &'static [(&'static str, &'static [u8])] {
@@ -170,6 +174,7 @@ mod tests {
         }
         let mut found = Vec::new();
         for r in [
+            "caveman",
             "graft",
             "graphify",
             "rtk",

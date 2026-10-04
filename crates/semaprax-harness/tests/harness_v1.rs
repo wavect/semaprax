@@ -10,6 +10,8 @@ mod bench;
 mod bridge;
 #[path = "harness_v1/command_view.rs"]
 mod command_view;
+#[path = "harness_v1/command_view_caveman.rs"]
+mod command_view_caveman;
 #[path = "harness_v1/conformance.rs"]
 mod conformance;
 #[path = "harness_v1/context.rs"]

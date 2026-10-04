@@ -1,5 +1,7 @@
 # Installed Proof Task Cache v1 (LAW-11)
 
+Audience: Project authors and maintainers evaluating bounded law and proof support.
+
 Status: implemented bounded installed Z3 and pinned Lean profile. This is logical
 query reuse for the admitted LAW-06 straight-line, direct, monomorphic, pure
 scalar call profile, LAW-07 finite immutable aggregate scalarization, native

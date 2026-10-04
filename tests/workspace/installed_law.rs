@@ -1,14 +1,14 @@
 //! Explicit real-tool gates. No recorded callback can satisfy these tests.
 use super::*;
+#[cfg(unix)]
+use semaprax::proof_export::installed_project::prove_postcondition_lean_cached;
 use semaprax::{
     agent_runtime::AgentCancellation,
     assurance_manifest::law_set::strict::{self, RequiredLawEvidence, StrictLawPolicy},
     assurance_manifest::modular_law::cache::ProofTaskCache,
     proof_export::{
         installed::{HostProfile, InstalledProofTool, Limits, ToolKind},
-        installed_project::{
-            prove_postcondition, prove_postcondition_lean_cached, prove_postcondition_z3_cached,
-        },
+        installed_project::{prove_postcondition, prove_postcondition_z3_cached},
     },
 };
 use std::{collections::BTreeMap, path::PathBuf, sync::Arc};

@@ -211,16 +211,19 @@ mod editor_grammar {
         let grammar = json(&root.join(grammars[0]["path"].as_str().unwrap()));
         assert_eq!(grammar["scopeName"], grammars[0]["scopeName"]);
         assert_eq!(grammar["fileTypes"], serde_json::json!(["spx"]));
-        // The declarative contribution itself widens nothing. Activation is
-        // the session command, opening a `.spx` file (which only arms the
-        // check-on-save listener; it spawns nothing until a save with a
-        // configured compiler), and the explicit check command.
+        // The declarative contribution itself widens nothing. The language
+        // activation arms check-on-save; the remaining routes require their
+        // explicit commands and configured compiler.
         assert_eq!(
             manifest["activationEvents"],
             serde_json::json!([
                 "onCommand:semaprax.start",
                 "onLanguage:semaprax",
-                "onCommand:semaprax.checkProject"
+                "onCommand:semaprax.checkProject",
+                "onCommand:semaprax.openExplorer",
+                "onCommand:semaprax.exploreSelection",
+                "onCommand:semaprax.reviewCandidateGraph",
+                "onCommand:semaprax.showTokenReport"
             ])
         );
         let commands = manifest["contributes"]["commands"].as_array().unwrap();

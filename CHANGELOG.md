@@ -1,5 +1,13 @@
 # Changelog
 
+- Keep explorer response branch schemas under the root document identity so
+  generated clients can normalize them, and trim generated Rust source
+  indentation to keep the selected client within its byte limit. Complete
+  documentation metadata and catalog navigation, align VS Code syntax and
+  activation checks with the manifest, fix a Unix-only proof import on
+  Windows, quote container types in native interop Rustdoc, and supply the
+  owned-byte interval imports in the iterator Wasm fixture.
+
 - Scope the linked agent migration test's backend-only import to macOS and
   Linux so the Windows Clippy build has no unused import.
 

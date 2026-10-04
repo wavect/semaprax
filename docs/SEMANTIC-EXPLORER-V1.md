@@ -1,5 +1,9 @@
 # Semantic Explorer View v1
 
+Status: bounded read-only semantic projection.
+
+Audience: client and extension authors consuming explorer views.
+
 `semaprax.explorer-view.v1` is a bounded, read-only visualization projection over a held checked Project revision. It is an adapter over `ProjectSemanticImage`, `ProjectCandidate`, `workspace_graph`, and `workspace_analysis`; it accepts no graph JSON, source path, or cache input.
 
 ## Methods

@@ -229,6 +229,17 @@ pub(super) fn generate(language: &str, bundle: &Value) -> Result<String> {
             .ok_or_else(|| invalid("selected client method lacks a request type"))?;
         typed_request(&mut source, language, method, &class, &function, parameters);
     }
+    // Generated Rust embeds the schema catalogue as one raw-string line; the
+    // remaining leading spaces are source formatting only. Removing them keeps
+    // the selected client within the bounded transport frame as schemas grow.
+    if language == "rust" {
+        source = source
+            .lines()
+            .map(str::trim_start)
+            .collect::<Vec<_>>()
+            .join("\n");
+        source.push('\n');
+    }
     Ok(source)
 }
 

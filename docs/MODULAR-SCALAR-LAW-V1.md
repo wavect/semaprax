@@ -1,5 +1,7 @@
 # Modular Scalar Law v1: checked pure-call summaries
 
+Audience: Project authors and maintainers evaluating bounded law and proof support.
+
 Status: bounded LAW-06 Project proof profile. The completion matrix records the
 executable gate and any remaining gaps. Neither a proof record nor a certificate
 grants execution, source mutation, publication, or runtime guard removal.

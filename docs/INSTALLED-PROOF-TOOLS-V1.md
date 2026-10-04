@@ -1,5 +1,9 @@
 # Installed proof tools v1
 
+Status: opt-in bounded source-proof tool profile.
+
+Audience: Project authors and maintainers evaluating bounded law and proof support.
+
 This opt-in source-proof profile runs an explicitly selected installed Lean or
 Z3 executable. It is separate from complete law coverage and never executes
 an application entry point, foreign library, or application build script.

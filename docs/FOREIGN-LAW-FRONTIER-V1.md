@@ -1,5 +1,7 @@
 # Foreign Law Trust Frontier v1
 
+Audience: Project authors and maintainers evaluating bounded law and proof support.
+
 Status: bounded LAW-09 implementation tranche. The completion matrix records the
 executable gate and remaining source/proof integration. This report does not
 certify a foreign implementation.

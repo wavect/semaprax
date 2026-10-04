@@ -1,5 +1,7 @@
 # Native Law Declarations v1
 
+Audience: Project authors and maintainers evaluating bounded law and proof support.
+
 Status: bounded LAW-02 source profile. The executable gate is recorded with
 LAW-02. This specification extends [Law Set v1](LAW-SET-V1.md) with a
 canonical `.spx` projection with an additive scalar relational selector.

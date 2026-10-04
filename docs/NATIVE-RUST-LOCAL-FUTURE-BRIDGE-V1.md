@@ -1,5 +1,7 @@
 # Native Rust Local Future Bridge v1
 
+Audience: maintainers and contributors.
+
 Status: partial RI-09 local Rust adapter profile. This is not a Semaprax
 source async import or public SDK claim.
 

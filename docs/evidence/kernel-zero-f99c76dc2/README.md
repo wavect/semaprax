@@ -1,5 +1,9 @@
 # Kernel-0 accepted-profile receipts, 2 October 2026
 
+Status: historical exact-revision acceptance receipts; no current-head claim.
+
+Audience: maintainers reviewing the recorded acceptance evidence.
+
 All execution receipts below concern exact source revision
 `f99c76dc2d26dd57c81f4fdd5f26fe91d50118e4`. They support the
 [canonical acceptance record](../kernel-zero-accepted-revision-f99c76dc2.json)

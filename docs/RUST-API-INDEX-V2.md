@@ -1,5 +1,7 @@
 # Rust API Index v2
 
+Audience: maintainers and contributors.
+
 Status: proposed private RI-03 preparation boundary. This metadata format is
 not a claim of generally supported Rust interop.
 

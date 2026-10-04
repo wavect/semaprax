@@ -1,5 +1,7 @@
 # Cross-language live pilot v1
 
+Audience: maintainers running the local cross-language pilot.
+
 Status: additive local execution route for issue #332. No real provider trial or
 independent second-host admission is established by the fixture gates.
 

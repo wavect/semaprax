@@ -1,5 +1,7 @@
 # LawSet v1
 
+Audience: Project authors and maintainers evaluating bounded law and proof support.
+
 Status: additive selected-policy interface; its executable gate is
 `workspace project_assurance_manifest::law_set`. This document defines the
 bounded LAW-01 profile, not a claim of universal proof coverage. Native source

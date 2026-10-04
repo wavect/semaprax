@@ -1,5 +1,7 @@
 # Finite Structured Law v1 (LAW-07)
 
+Audience: Project authors and maintainers evaluating bounded law and proof support.
+
 Status: implemented bounded proof profile. The completion matrix records the
 executable gates and explicit limits. A scalarized proof result is proof data only; it
 does not grant source mutation, execution, law publication, database atomicity,

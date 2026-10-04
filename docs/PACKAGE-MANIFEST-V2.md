@@ -1,6 +1,8 @@
 # Package Manifest v2: explicit native law sources
 
-Status: bounded LAW-02 table layout. Audience: Project authors and tool authors.
+Status: bounded LAW-02 table layout.
+
+Audience: Project authors and tool authors.
 This document extends [Package Manifest v1](PACKAGE-MANIFEST-V1.md). Its table
 schema is `semaprax.manifest.v2`; `[package] profile` still selects the same
 Project contract, including `semaprax.project.v1` for the scalar profile.

@@ -324,7 +324,6 @@ fn closed_ri13_profile_binds_indexed_m1_signatures_before_future_admission() {
     let refusal =
         with_authenticated_indexed_regex_url_project(&manifest_path, &regex, &url, |_| Ok(()))
             .unwrap_err();
-    assert!(refusal[0]
-        .message
-        .contains("source-local-future-indexed-rust.v1"));
+    assert_eq!(refusal[0].code, "SPX-J100");
+    assert!(refusal[0].message.contains("rust-dependencies"));
 }

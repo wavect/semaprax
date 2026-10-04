@@ -18,6 +18,11 @@ linked_target=/evidence/target/linked
 test ! -e "$combined_target"
 test ! -e "$linked_target"
 
+python3 examples/ri13-combined-app/measure.py --self-test --output /evidence/unused-measurement.json \
+    > /evidence/combined-self-test.log
+python3 examples/ri13-combined-app/linked-receipt.py --self-test \
+    > /evidence/linked-receipt-self-test.log
+
 python3 - <<'PY' > /evidence/environment.json
 import json
 import platform
@@ -65,18 +70,20 @@ assert environment["revision"] == (root / "revision").read_text().strip()
 combined = json.loads((root / "combined-receipt.json").read_text())
 assert [stage["stage"] for stage in combined["full_build_and_consumer_stages"]] == [
     "m1_prepare", "m1_consumer", "m2_prepare", "m2_consumer", "m3_prepare", "m3_consumer",
-    "m3_route_measurement", "m3_batch_throughput_measurement",
+    "linked_prepare", "linked_consumer", "m3_route_measurement", "m3_batch_throughput_measurement",
 ]
 assert set(combined["batch_throughput"]["routes"]) == {
     "direct_rust", "handwritten_adapter", "generated_semaprax",
 }
 linked = json.loads((root / "linked-receipt.json").read_text())
-assert linked["schema"] == "semaprax.ri13.linked-project-receipt.v1"
+assert linked["schema"] == "semaprax.ri13.linked-project-receipt.v2"
+assert linked["stages"] == ["prepare", "consumer"]
 assert "ri13-linked-project-ok" in (root / "linked-consumer.log").read_text()
 
 import hashlib
 files = [
     "environment.json", "combined-receipt.json", "combined.log",
+    "combined-self-test.log", "linked-receipt-self-test.log",
     "linked-receipt.json", "linked-prepare.log", "linked-consumer.log", "revision",
 ]
 (root / "output-digests.json").write_text(json.dumps({

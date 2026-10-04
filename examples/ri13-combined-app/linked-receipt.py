@@ -161,6 +161,9 @@ def receipt(sources):
 def self_test():
     sources = read_sources()
     document = receipt(sources)
+    assert document["schema"] == "semaprax.ri13.linked-project-receipt.v2"
+    assert document["stages"] == ["prepare", "consumer"]
+    assert document["consumer_marker"] == "ri13-linked-project-ok"
     assert document["copied_byte_ledger"]["m3_generated_boundary"] == {
         "status": "exact",
         "copied_bytes_per_invocation": 0,

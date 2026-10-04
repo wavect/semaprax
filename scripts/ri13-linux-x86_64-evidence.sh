@@ -103,8 +103,10 @@ RI-13 Linux x86_64 evidence plan
 
 --run will create a detached clean clone at $workspace, then run:
   container run --arch amd64 --rosetta --rm --init --network none \\
-    --read-only --tmpfs /tmp --tmpfs /work --mount source=$workspace,target=/repo \\
-    --mount source=$evidence,target=/evidence --mount source=$cargo_home,target=/cargo-home,readonly \\
+    --memory 4G --read-only --tmpfs /tmp --tmpfs /work \\
+    --mount type=bind,source=$workspace,target=/repo \\
+    --mount type=bind,source=$evidence,target=/evidence \\
+    --mount type=bind,source=$cargo_home,target=/cargo-home,readonly \\
     $image bash /repo/scripts/ri13-linux-x86_64-evidence-inner.sh
 
 The inner command rejects a non-Linux/non-x86_64 guest or a revision mismatch,
@@ -128,7 +130,7 @@ command -v container >/dev/null || {
 }
 
 mkdir -p "$evidence"
-trap 'rm -rf "$evidence"' HUP INT TERM
+trap 'echo "RI-13 Linux x86_64 evidence preserved after interruption: $evidence" >&2' HUP INT TERM
 git clone --no-local --no-checkout "$repo" "$workspace"
 git -C "$workspace" checkout --detach "$revision"
 [ -z "$(git -C "$workspace" status --porcelain)" ] || {
@@ -154,5 +156,4 @@ container run --arch amd64 --rosetta --rm --init --network none \
     --env CLANG=/usr/bin/clang \
     "$image" bash /repo/scripts/ri13-linux-x86_64-evidence-inner.sh
 
-trap - HUP INT TERM
 printf '%s\n' "RI-13 Linux x86_64 evidence retained at $evidence"

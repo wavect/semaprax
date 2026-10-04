@@ -4,7 +4,9 @@
 import argparse
 import hashlib
 import json
+import os
 import subprocess
+import tempfile
 from pathlib import Path
 
 
@@ -86,6 +88,48 @@ def require(sources, name, fragment):
         raise ValueError(f"linked RI-13 {name} is missing {fragment!r}")
 
 
+def admitted_index_provenance(directory=None):
+    """Read the exact index pair selected by this receipt invocation."""
+    if directory is None:
+        directory = os.environ.get("RI13_RUST_API_INDEX_DIR")
+    selected = directory is not None
+    if selected:
+        directory = Path(directory)
+        if not directory.is_absolute():
+            raise ValueError("RI13 Rust API index directory must be absolute")
+        paths = {
+            "regex": directory / "regex-1.13.1-index-envelope.json",
+            "url": directory / "url-2.5.8-index-envelope.json",
+        }
+    else:
+        paths = {"regex": M1_REGEX_INDEX, "url": M1_URL_INDEX}
+    expected = {
+        "regex": ("regex", "1.13.1", "regex_alias"),
+        "url": ("url", "2.5.8", "url_alias"),
+    }
+    admitted = {}
+    for name, path in paths.items():
+        if not path.is_file() or path.is_symlink():
+            raise ValueError(f"selected RI-13 {name} index must be a regular file")
+        try:
+            document = json.loads(path.read_text(encoding="utf-8"))
+            index = document["index"]
+            package = index["package"]
+        except (KeyError, TypeError, json.JSONDecodeError) as error:
+            raise ValueError(f"selected RI-13 {name} index is malformed") from error
+        if document.get("schema") != "semaprax.rustdoc-extractor.v2" or index.get("schema") != "semaprax.rust-api-index.v2":
+            raise ValueError(f"selected RI-13 {name} index has an unadmitted schema")
+        if (package.get("name"), package.get("version"), package.get("renamed_from")) != expected[name]:
+            raise ValueError(f"selected RI-13 {name} index package facts differ")
+        admitted[name] = {"sha256": digest(path), "target": index.get("target")}
+    target = admitted["regex"]["target"]
+    if not isinstance(target, str) or admitted["url"]["target"] != target:
+        raise ValueError("selected RI-13 indexes must bind one exact target")
+    if selected and target != "x86_64-unknown-linux-gnu":
+        raise ValueError("selected RI-13 Linux index target differs")
+    return {"selection": "supplied-linux-envelope" if selected else "committed-fixture", "target": target, "envelopes": admitted}
+
+
 def validate_sources(sources):
     """Bind the linked M1/M2/M3 route to its selected Project inputs."""
     if 'profile = "source-local-future.v1"' in sources["m1_manifest"]:
@@ -100,8 +144,9 @@ def validate_sources(sources):
     require(sources, "unified_manifest", "[rust-dependencies]")
     for identity in REQUIRED_IDENTITIES:
         require(sources, "unified_source", f'@id("{identity}")')
-    for index in ("m1_regex_index", "m1_url_index"):
-        require(sources, index, '"target":"aarch64-apple-darwin"')
+    provenance = admitted_index_provenance()
+    if provenance["selection"] == "committed-fixture" and provenance["target"] != "aarch64-apple-darwin":
+        raise ValueError("committed RI-13 indexes must retain the Darwin fixture target")
     for name, expected in LOCK_DIGESTS.items():
         if hashlib.sha256(sources[name].encode()).hexdigest() != expected:
             raise ValueError(f"linked RI-13 {name} drifted from its selected package lock")
@@ -202,12 +247,7 @@ def receipt(sources):
         "schema": "semaprax.ri13.linked-project-receipt.v2",
         "inputs": {label(path): digest(path) for path in TRACKED},
         "profiles": {"linked": "source-local-future-indexed-rust.v1"},
-        "m1_index_target": {
-            "target": "aarch64-apple-darwin",
-            "admission": "host-native-only",
-            "linux_result": "SPX-B112",
-            "reason": "the pinned Rust API indexes are target-specific and the package generator requires the current native target",
-        },
+        "m1_index_target": admitted_index_provenance(),
         "unified_project_candidate": {
             "path": "ri13-combined-app/unified-project/semaprax.toml",
             "admission": "closed",
@@ -312,6 +352,29 @@ def self_test():
     assert document["stages"] == ["prepare", "consumer"]
     assert document["consumer_marker"] == "ri13-linked-project-ok"
     assert document["unified_project_candidate"]["admission"] == "closed"
+    expected_selection = (
+        "supplied-linux-envelope"
+        if os.environ.get("RI13_RUST_API_INDEX_DIR") is not None
+        else "committed-fixture"
+    )
+    assert document["m1_index_target"]["selection"] == expected_selection
+    linux = admitted_index_provenance(
+        Path("/tmp/ri13-linux-x86_64-index-extraction-500c501ad/envelopes")
+    )
+    assert linux["selection"] == "supplied-linux-envelope"
+    assert linux["target"] == "x86_64-unknown-linux-gnu"
+    with tempfile.TemporaryDirectory() as temporary:
+        directory = Path(temporary)
+        for name in ("regex-1.13.1-index-envelope.json", "url-2.5.8-index-envelope.json"):
+            index_document = json.loads((Path("/tmp/ri13-linux-x86_64-index-extraction-500c501ad/envelopes") / name).read_text())
+            index_document["index"]["target"] = "aarch64-apple-darwin"
+            (directory / name).write_text(json.dumps(index_document), encoding="utf-8")
+        try:
+            admitted_index_provenance(directory)
+        except ValueError as error:
+            assert str(error) == "selected RI-13 Linux index target differs"
+        else:
+            raise AssertionError("validator accepted a non-Linux selected index target")
     assert document["copied_byte_ledger"]["m3_generated_boundary"] == {
         "status": "exact",
         "copied_bytes_per_invocation": 0,

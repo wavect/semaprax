@@ -236,7 +236,7 @@ pub fn check_domain(
     let script = render_domain_witness_script(encoding, timeout_ms);
     match run(provisioning, &script, limits) {
         Verdict::Sat(raw) => match parse_model(&raw).and_then(|model| {
-            let model = replay_model(encoding, model)?;
+            let model = replay_model_to_source(encoding, model)?;
             validate_domain_witness(function, &model).map(|()| model)
         }) {
             Ok(model) => DomainStatus::Witness {
@@ -414,7 +414,7 @@ fn interpret_verdict(
             Err(parse_error) => DischargeOutcome::Inconclusive {
                 reason: format!("sat but the model failed to parse: {parse_error}"),
             },
-            Ok(model) => match replay_model(encoding, model)
+            Ok(model) => match replay_model_to_source(encoding, model)
                 .and_then(|model| replay_function(function, &model))
             {
                 Err(evaluation_error) => DischargeOutcome::Inconclusive {
@@ -438,7 +438,8 @@ fn interpret_verdict(
     }
 }
 
-fn replay_model(
+/// Map solver-owned symbols to the corresponding authored parameters.
+pub fn replay_model_to_source(
     encoding: &FunctionEncoding,
     model: crate::assurance_manifest::smt_discharge::model::Model,
 ) -> Result<crate::assurance_manifest::smt_discharge::model::Model, String> {

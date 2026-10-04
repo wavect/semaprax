@@ -229,18 +229,25 @@ fn source_failure(
     result["source_location"] = json!({"path":source_goal.path,"line":function.ensures[index].span.line,
         "column":function.ensures[index].span.column});
     match tool.smt_diagnostic_query(&script) {
-        Ok(SmtDiagnosticResult::Sat(model)) => match smt::replay_function(function, &model) {
-            Ok(smt::ReplayOutcome::EnsuresViolated { ensures_index }) if ensures_index == index => {
-                result["outcome"] = json!("disproved_concrete");
-                result["counterexample"] = witness(&model, show_values, "ensures_violated");
+        Ok(SmtDiagnosticResult::Sat(model)) => {
+            match smt::replay_model_to_source(&encoding, model) {
+                Ok(model) => match smt::replay_function(function, &model) {
+                    Ok(smt::ReplayOutcome::EnsuresViolated { ensures_index })
+                        if ensures_index == index =>
+                    {
+                        result["outcome"] = json!("disproved_concrete");
+                        result["counterexample"] = witness(&model, show_values, "ensures_violated");
+                    }
+                    Ok(smt::ReplayOutcome::Trapped { detail }) => {
+                        result["outcome"] = json!("disproved_concrete");
+                        result["counterexample"] = witness(&model, show_values, "checked_trap");
+                        result["trace"] = json!({"kind":"checked_trap","detail":detail});
+                    }
+                    _ => result["outcome"] = json!("solver_error"),
+                },
+                Err(_) => result["outcome"] = json!("solver_error"),
             }
-            Ok(smt::ReplayOutcome::Trapped { detail }) => {
-                result["outcome"] = json!("disproved_concrete");
-                result["counterexample"] = witness(&model, show_values, "checked_trap");
-                result["trace"] = json!({"kind":"checked_trap","detail":detail});
-            }
-            _ => result["outcome"] = json!("solver_error"),
-        },
+        }
         Ok(SmtDiagnosticResult::Unknown) => result["outcome"] = json!("unknown"),
         Ok(SmtDiagnosticResult::TimedOut) => result["outcome"] = json!("timeout"),
         Ok(SmtDiagnosticResult::Unsat) => result["outcome"] = json!("incomplete"),

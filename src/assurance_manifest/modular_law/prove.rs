@@ -108,10 +108,12 @@ pub fn prove_postconditions(
                             reason: "counterexample model could not be reproduced".into(),
                         });
                     };
-                    let model = smt::parse_model(&raw).map_err(|reason| ProofFailure::Unknown {
-                        declaration_id: summary.declaration_id.clone(),
-                        reason,
-                    })?;
+                    let model = smt::parse_model(&raw)
+                        .and_then(|model| smt::replay_model_to_source(&encoding, model))
+                        .map_err(|reason| ProofFailure::Unknown {
+                            declaration_id: summary.declaration_id.clone(),
+                            reason,
+                        })?;
                     let again = smt::replay_function(&function, &model).map_err(|reason| {
                         ProofFailure::Unknown {
                             declaration_id: summary.declaration_id.clone(),

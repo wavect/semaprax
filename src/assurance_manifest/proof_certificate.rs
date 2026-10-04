@@ -277,11 +277,17 @@ pub fn export_postcondition_certificate(
     let body = match verdict {
         Verdict::Unsat => CertificateBody::Proved,
         Verdict::Sat(raw_model) => {
-            let model = parse_model(&raw_model).map_err(|error| {
-                vec![no_certificate(format!(
-                    "sat but the model failed to parse: {error}"
-                ))]
-            })?;
+            let model = parse_model(&raw_model)
+                .and_then(|model| {
+                    crate::assurance_manifest::smt_discharge::replay_model_to_source(
+                        &encoding, model,
+                    )
+                })
+                .map_err(|error| {
+                    vec![no_certificate(format!(
+                        "sat but the model failed to parse: {error}"
+                    ))]
+                })?;
             match replay_function(function, &model) {
                 Err(error) => {
                     return Err(vec![no_certificate(format!(

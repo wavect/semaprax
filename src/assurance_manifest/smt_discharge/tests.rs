@@ -47,7 +47,7 @@ fn solver_model_symbols_replay_as_authored_parameter_names() {
         encoding.parameter_symbols[0].symbol.clone(),
         crate::assurance_manifest::smt_discharge::model::ModelValue::Int(7),
     );
-    let model = replay_model(&encoding, model).unwrap();
+    let model = replay_model_to_source(&encoding, model).unwrap();
     assert!(model.contains_key("semaprax_smt_binding_1_1"));
     assert!(matches!(
         replay_function(&f, &model),

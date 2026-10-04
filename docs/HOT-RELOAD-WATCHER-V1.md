@@ -33,7 +33,7 @@ new exact inventory; they are never read directly by the adapter.
 
 ## Standalone control adapter
 
-`semaprax dev <semaprax.toml> --jsonl` starts no session until it receives a
+`semaprax dev <semaprax.toml> --jsonl|--human [--interpreter|--source-agent]` starts no session until it receives a
 closed `semaprax.hot-reload-control.v1` `start` frame on standard input. Its
 only operations are `start`, `status`, `plan`, `activate`, and `stop`. Frames
 have strictly increasing unsigned request IDs; unknown or duplicate fields,
@@ -43,6 +43,12 @@ response. Plans remain opaque in-process values: `plan` can render facts for
 inspection, while `activate` consumes only the retained plan. JSON responses
 are the sole standard-output bytes; human diagnostics remain on standard error.
 EOF and `stop` release the watcher and discard any retained plan.
+
+`invoke` explicitly runs the current prepared interpreter entry after a
+successful start or activation; a save itself never runs it. The source-Agent
+handoff decision remains a migration-required report until the authenticated
+source-live contract owns its execution. This adapter neither starts an Agent
+runtime nor treats a handoff selection as activation authority.
 
 Invalid, missing, inaccessible, over-bound, escaping, or symlinked inputs are
 reported by the Project admission owner as a rejected candidate. The prepared

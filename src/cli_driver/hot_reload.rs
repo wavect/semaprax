@@ -7,7 +7,9 @@ use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
 
 use semaprax::project::{
-    HotReloadPlan, HotReloadWatcher, HotReloadWatcherUpdate, PreparedProjectInterpreterOptions,
+    HotReloadPlan, HotReloadWatcher, HotReloadWatcherUpdate, PreparedProjectExecutionOptions,
+    PreparedProjectInterpreterOptions, ProjectExecutionCancellation,
+    ProjectPreparedExecutionOutcome,
 };
 use serde::de::{self, MapAccess, Visitor};
 use serde::Deserialize;
@@ -17,6 +19,18 @@ const SCHEMA: &str = "semaprax.hot-reload-control.v1";
 const MAX_FRAME_BYTES: usize = 4096;
 const MAX_RESPONSES: usize = 64;
 const MAX_RESPONSE_BYTES: usize = 8192;
+
+#[derive(Clone, Copy)]
+enum OutputMode {
+    Jsonl,
+    Human,
+}
+
+#[derive(Clone, Copy)]
+enum Lane {
+    Interpreter,
+    SourceAgentUnsupported,
+}
 
 #[derive(Debug)]
 struct Request {
@@ -72,7 +86,7 @@ impl<'de> Deserialize<'de> for Request {
                 let op = op.ok_or_else(|| de::Error::missing_field("op"))?;
                 if !matches!(
                     op.as_str(),
-                    "start" | "status" | "plan" | "activate" | "stop"
+                    "start" | "status" | "plan" | "activate" | "invoke" | "stop"
                 ) {
                     return Err(de::Error::custom("unknown control operation"));
                 }
@@ -84,23 +98,52 @@ impl<'de> Deserialize<'de> for Request {
 }
 
 pub(super) fn run(args: &[String]) -> Result<(), u8> {
-    let [manifest, format] = args else {
-        eprintln!("dev requires exactly <semaprax.toml> --jsonl");
-        return Err(2);
+    let (manifest, format, lane) = match args {
+        [manifest, format] => (manifest, format, Lane::Interpreter),
+        [manifest, format, lane] if lane == "--interpreter" => {
+            (manifest, format, Lane::Interpreter)
+        }
+        [manifest, format, lane] if lane == "--source-agent" => {
+            (manifest, format, Lane::SourceAgentUnsupported)
+        }
+        _ => {
+            eprintln!(
+                "dev requires <semaprax.toml> --jsonl|--human [--interpreter|--source-agent]"
+            );
+            return Err(2);
+        }
     };
-    if format != "--jsonl" || manifest.is_empty() || manifest.starts_with('-') {
-        eprintln!("dev requires exactly <semaprax.toml> --jsonl");
+    let mode = match format.as_str() {
+        "--jsonl" => OutputMode::Jsonl,
+        "--human" => OutputMode::Human,
+        _ => {
+            eprintln!(
+                "dev requires <semaprax.toml> --jsonl|--human [--interpreter|--source-agent]"
+            );
+            return Err(2);
+        }
+    };
+    if manifest.is_empty() || manifest.starts_with('-') {
+        eprintln!("dev requires <semaprax.toml> --jsonl|--human [--interpreter|--source-agent]");
         return Err(2);
     }
     let stdin = io::stdin();
     let mut output = io::stdout().lock();
-    run_jsonl(PathBuf::from(manifest), stdin.lock(), &mut output)
+    run_jsonl(
+        PathBuf::from(manifest),
+        stdin.lock(),
+        &mut output,
+        mode,
+        lane,
+    )
 }
 
 fn run_jsonl(
     manifest: PathBuf,
     mut input: impl BufRead,
     output: &mut impl Write,
+    mode: OutputMode,
+    lane: Lane,
 ) -> Result<(), u8> {
     let mut watcher: Option<HotReloadWatcher> = None;
     let mut retained_plan: Option<HotReloadPlan> = None;
@@ -109,7 +152,7 @@ fn run_jsonl(
         let frame = match read_frame(&mut input) {
             Ok(frame) => frame,
             Err(message) => {
-                write_error(output, 0, message)?;
+                write_error(output, mode, 0, message)?;
                 return Err(2);
             }
         };
@@ -122,19 +165,23 @@ fn run_jsonl(
         let request: Request = match serde_json::from_slice(&frame) {
             Ok(request) => request,
             Err(_) => {
-                write_error(output, 0, "malformed control frame")?;
+                write_error(output, mode, 0, "malformed control frame")?;
                 continue;
             }
         };
         if previous_id.is_some_and(|last| request.id <= last) {
-            write_error(output, request.id, "request id is stale")?;
+            write_error(output, mode, request.id, "request id is stale")?;
             continue;
         }
         previous_id = Some(request.id);
         match request.op.as_str() {
             "start" => {
+                if matches!(lane, Lane::SourceAgentUnsupported) {
+                    write_error(output, mode, request.id, "source-Agent development sessions require the authenticated source-live migration adapter")?;
+                    continue;
+                }
                 if watcher.is_some() {
-                    write_error(output, request.id, "session already started")?;
+                    write_error(output, mode, request.id, "session already started")?;
                     continue;
                 }
                 match HotReloadWatcher::start(
@@ -149,14 +196,15 @@ fn run_jsonl(
                             watcher.as_ref().unwrap(),
                             "started",
                             None,
+                            mode,
                         )?;
                     }
-                    Err(_) => write_error(output, request.id, "session startup rejected")?,
+                    Err(_) => write_error(output, mode, request.id, "session startup rejected")?,
                 }
             }
             "status" => match watcher.as_ref() {
-                Some(value) => write_status(output, request.id, value, "status", None)?,
-                None => write_error(output, request.id, "session is not started")?,
+                Some(value) => write_status(output, request.id, value, "status", None, mode)?,
+                None => write_error(output, mode, request.id, "session is not started")?,
             },
             "plan" => match watcher.as_mut() {
                 Some(value) => {
@@ -173,26 +221,58 @@ fn run_jsonl(
                             let rendered: Value =
                                 serde_json::from_str(&plan.to_json()).expect("plan JSON is closed");
                             retained_plan = Some(plan);
-                            write_status(output, request.id, value, event, Some(rendered))?;
+                            write_status(output, request.id, value, event, Some(rendered), mode)?;
                         }
-                        Err(_) => write_status(output, request.id, value, event, None)?,
+                        Err(_) => write_status(output, request.id, value, event, None, mode)?,
                     }
                 }
-                None => write_error(output, request.id, "session is not started")?,
+                None => write_error(output, mode, request.id, "session is not started")?,
             },
             "activate" => match (watcher.as_mut(), retained_plan.take()) {
                 (Some(value), Some(plan)) => match value.activate(plan) {
-                    Ok(()) => write_status(output, request.id, value, "activated", None)?,
-                    Err(_) => write_status(output, request.id, value, "activation_rejected", None)?,
+                    Ok(()) => write_status(output, request.id, value, "activated", None, mode)?,
+                    Err(_) => {
+                        write_status(output, request.id, value, "activation_rejected", None, mode)?
+                    }
                 },
-                (Some(_), None) => write_error(output, request.id, "no retained activation plan")?,
-                (None, _) => write_error(output, request.id, "session is not started")?,
+                (Some(_), None) => {
+                    write_error(output, mode, request.id, "no retained activation plan")?
+                }
+                (None, _) => write_error(output, mode, request.id, "session is not started")?,
+            },
+            "invoke" => match watcher.as_ref() {
+                Some(value) => match value.session().execute_entry(
+                    &PreparedProjectExecutionOptions::default(),
+                    &ProjectExecutionCancellation::new(),
+                ) {
+                    Ok(execution) => write_status(
+                        output,
+                        request.id,
+                        value,
+                        "invoked",
+                        Some(json!({
+                            "outcome": outcome_json(execution.outcome()),
+                            "steps_used": execution.steps_used(),
+                        })),
+                        mode,
+                    )?,
+                    Err(_) => write_status(
+                        output,
+                        request.id,
+                        value,
+                        "runtime_terminal_failure",
+                        None,
+                        mode,
+                    )?,
+                },
+                None => write_error(output, mode, request.id, "session is not started")?,
             },
             "stop" => {
                 if let Some(value) = watcher.as_mut() {
                     value.stop();
                 }
                 write_json(
+                    mode,
                     output,
                     json!({"schema": SCHEMA, "id": request.id, "event": "stopped"}),
                 )?;
@@ -204,7 +284,7 @@ fn run_jsonl(
     if let Some(watcher) = watcher.as_mut() {
         watcher.stop();
     }
-    write_error(output, 0, "control request limit exceeded")
+    write_error(output, mode, 0, "control request limit exceeded")
 }
 
 fn read_frame(input: &mut impl BufRead) -> Result<Option<Vec<u8>>, &'static str> {
@@ -240,6 +320,7 @@ fn write_status(
     watcher: &HotReloadWatcher,
     event: &str,
     plan: Option<Value>,
+    mode: OutputMode,
 ) -> Result<(), u8> {
     let session = watcher.session();
     let mut value = json!({
@@ -252,19 +333,45 @@ fn write_status(
         "watch_state": format!("{:?}", watcher.state()).to_lowercase(),
     });
     if let Some(plan) = plan {
-        value["plan"] = plan;
+        if event == "invoked" {
+            value["invocation"] = plan;
+        } else {
+            value["plan"] = plan;
+        }
     }
-    write_json(output, value)
+    write_json(mode, output, value)
 }
 
-fn write_error(output: &mut impl Write, id: u64, message: &str) -> Result<(), u8> {
+fn write_error(
+    output: &mut impl Write,
+    mode: OutputMode,
+    id: u64,
+    message: &str,
+) -> Result<(), u8> {
     write_json(
+        mode,
         output,
         json!({"schema": SCHEMA, "id": id, "event": "rejected", "message": message}),
     )
 }
 
-fn write_json(output: &mut impl Write, value: Value) -> Result<(), u8> {
+fn write_json(mode: OutputMode, output: &mut impl Write, value: Value) -> Result<(), u8> {
+    if matches!(mode, OutputMode::Human) {
+        let event = value["event"].as_str().unwrap_or("rejected");
+        let generation = value["generation"]
+            .as_u64()
+            .map(|value| value.to_string())
+            .unwrap_or_else(|| "-".to_owned());
+        let revision = value["active_project_revision"].as_str().unwrap_or("-");
+        let message = value["message"].as_str().unwrap_or("");
+        let line = format!(
+            "SEMAPRAX dev {event}: generation {generation}; active {revision}; {message}\n"
+        );
+        return output
+            .write_all(line.as_bytes())
+            .and_then(|_| output.flush())
+            .map_err(|_| 1);
+    }
     let text = value.to_string();
     if text.len() > MAX_RESPONSE_BYTES {
         return Err(1);
@@ -274,6 +381,22 @@ fn write_json(output: &mut impl Write, value: Value) -> Result<(), u8> {
         .and_then(|_| output.write_all(b"\n"))
         .map_err(|_| 1)?;
     output.flush().map_err(|_| 1)
+}
+
+fn outcome_json(outcome: &ProjectPreparedExecutionOutcome) -> Value {
+    match outcome {
+        ProjectPreparedExecutionOutcome::Returned(value) => {
+            json!({"kind":"returned","value":value})
+        }
+        ProjectPreparedExecutionOutcome::LanguageFailure(status) => {
+            json!({"kind":"language_failure","status":format!("{status:?}")})
+        }
+        ProjectPreparedExecutionOutcome::FuelExhausted => json!({"kind":"fuel_exhausted"}),
+        ProjectPreparedExecutionOutcome::CallDepthExceeded => json!({"kind":"call_depth_exceeded"}),
+        ProjectPreparedExecutionOutcome::Cancelled { before_step } => {
+            json!({"kind":"cancelled","before_step":before_step})
+        }
+    }
 }
 
 #[cfg(test)]
@@ -318,6 +441,8 @@ mod tests {
             root.join("semaprax.toml"),
             io::Cursor::new(input),
             &mut output,
+            OutputMode::Jsonl,
+            Lane::Interpreter,
         )
         .unwrap();
         let rows: Vec<Value> = String::from_utf8(output)
@@ -347,6 +472,8 @@ mod tests {
             root.join("semaprax.toml"),
             RewriteBeforePlan::new(&root, frames),
             &mut output,
+            OutputMode::Jsonl,
+            Lane::Interpreter,
         )
         .unwrap();
         let rows: Vec<Value> = String::from_utf8(output)
@@ -358,6 +485,30 @@ mod tests {
         assert_eq!(rows[1]["plan"]["decision"], "eligible_code_replacement");
         assert_eq!(rows[2]["event"], "activated");
         assert_eq!(rows[2]["generation"], 1);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn human_mode_renders_saved_session_status_without_json() {
+        let root = fixture();
+        let input = concat!(
+            "{\"schema\":\"semaprax.hot-reload-control.v1\",\"id\":1,\"op\":\"start\"}\n",
+            "{\"schema\":\"semaprax.hot-reload-control.v1\",\"id\":2,\"op\":\"status\"}\n",
+            "{\"schema\":\"semaprax.hot-reload-control.v1\",\"id\":3,\"op\":\"stop\"}\n"
+        );
+        let mut output = Vec::new();
+        run_jsonl(
+            root.join("semaprax.toml"),
+            io::Cursor::new(input),
+            &mut output,
+            OutputMode::Human,
+            Lane::Interpreter,
+        )
+        .unwrap();
+        let rendered = String::from_utf8(output).unwrap();
+        assert!(rendered.contains("SEMAPRAX dev started"));
+        assert!(rendered.contains("SEMAPRAX dev status"));
+        assert!(!rendered.contains('{'));
         fs::remove_dir_all(root).unwrap();
     }
 

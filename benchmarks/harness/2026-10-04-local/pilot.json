@@ -1,0 +1,532 @@
+{
+  "base_seed": 17,
+  "calls": 30,
+  "caveat": "small local model, fewer than 10 trials per configuration: not evidence for any default",
+  "configurations": [
+    {
+      "config": "orient-ledger|native+graft",
+      "correct": 0,
+      "n": 2
+    },
+    {
+      "config": "orient-ledger|native+source-index",
+      "correct": 1,
+      "n": 2
+    },
+    {
+      "config": "orient-ledger|native-only",
+      "correct": 0,
+      "n": 2
+    },
+    {
+      "config": "orient-observer|native+graft",
+      "correct": 2,
+      "n": 2
+    },
+    {
+      "config": "orient-observer|native+source-index",
+      "correct": 2,
+      "n": 2
+    },
+    {
+      "config": "orient-observer|native-only",
+      "correct": 2,
+      "n": 2
+    },
+    {
+      "config": "reuse-byte-tokenizer|native+graft",
+      "correct": 0,
+      "n": 2
+    },
+    {
+      "config": "reuse-byte-tokenizer|native+source-index",
+      "correct": 0,
+      "n": 2
+    },
+    {
+      "config": "reuse-byte-tokenizer|native-only",
+      "correct": 0,
+      "n": 2
+    },
+    {
+      "config": "reuse-cross-language-add|native+graft",
+      "correct": 2,
+      "n": 2
+    },
+    {
+      "config": "reuse-cross-language-add|native+source-index",
+      "correct": 0,
+      "n": 2
+    },
+    {
+      "config": "reuse-cross-language-add|native-only",
+      "correct": 0,
+      "n": 2
+    },
+    {
+      "config": "reuse-line-total-contract|native+graft",
+      "correct": 0,
+      "n": 2
+    },
+    {
+      "config": "reuse-line-total-contract|native+source-index",
+      "correct": 0,
+      "n": 2
+    },
+    {
+      "config": "reuse-line-total-contract|native-only",
+      "correct": 0,
+      "n": 2
+    }
+  ],
+  "endpoint": "loopback",
+  "label": "pilot-only",
+  "min_trials_per_configuration": 2,
+  "model": "qwen2.5:0.5b",
+  "model_digest": "a8b0c51577010a279d933d14c2a8ab4b268079d44c5c8830c0a93900f1827c67",
+  "rows": [
+    {
+      "correct": false,
+      "error": null,
+      "latency_ms": 822,
+      "profile": "native-only",
+      "prompt_bytes": 2085,
+      "rep": 0,
+      "seed": 17,
+      "task": "orient-ledger"
+    },
+    {
+      "correct": false,
+      "error": null,
+      "latency_ms": 58,
+      "profile": "native-only",
+      "prompt_bytes": 2085,
+      "rep": 1,
+      "seed": 18,
+      "task": "orient-ledger"
+    },
+    {
+      "correct": false,
+      "error": null,
+      "latency_ms": 565,
+      "profile": "native+source-index",
+      "prompt_bytes": 4078,
+      "rep": 0,
+      "seed": 17,
+      "task": "orient-ledger"
+    },
+    {
+      "correct": true,
+      "error": null,
+      "latency_ms": 91,
+      "profile": "native+source-index",
+      "prompt_bytes": 4078,
+      "rep": 1,
+      "seed": 18,
+      "task": "orient-ledger"
+    },
+    {
+      "correct": false,
+      "error": null,
+      "latency_ms": 408,
+      "profile": "native+graft",
+      "prompt_bytes": 2921,
+      "rep": 0,
+      "seed": 17,
+      "task": "orient-ledger"
+    },
+    {
+      "correct": false,
+      "error": null,
+      "latency_ms": 126,
+      "profile": "native+graft",
+      "prompt_bytes": 2921,
+      "rep": 1,
+      "seed": 18,
+      "task": "orient-ledger"
+    },
+    {
+      "correct": false,
+      "error": null,
+      "latency_ms": 262,
+      "profile": "native-only",
+      "prompt_bytes": 1794,
+      "rep": 0,
+      "seed": 17,
+      "task": "reuse-line-total-contract"
+    },
+    {
+      "correct": false,
+      "error": null,
+      "latency_ms": 86,
+      "profile": "native-only",
+      "prompt_bytes": 1794,
+      "rep": 1,
+      "seed": 18,
+      "task": "reuse-line-total-contract"
+    },
+    {
+      "correct": false,
+      "error": null,
+      "latency_ms": 578,
+      "profile": "native+source-index",
+      "prompt_bytes": 4138,
+      "rep": 0,
+      "seed": 17,
+      "task": "reuse-line-total-contract"
+    },
+    {
+      "correct": false,
+      "error": null,
+      "latency_ms": 87,
+      "profile": "native+source-index",
+      "prompt_bytes": 4138,
+      "rep": 1,
+      "seed": 18,
+      "task": "reuse-line-total-contract"
+    },
+    {
+      "correct": false,
+      "error": null,
+      "latency_ms": 323,
+      "profile": "native+graft",
+      "prompt_bytes": 2630,
+      "rep": 0,
+      "seed": 17,
+      "task": "reuse-line-total-contract"
+    },
+    {
+      "correct": false,
+      "error": null,
+      "latency_ms": 70,
+      "profile": "native+graft",
+      "prompt_bytes": 2630,
+      "rep": 1,
+      "seed": 18,
+      "task": "reuse-line-total-contract"
+    },
+    {
+      "correct": false,
+      "error": null,
+      "latency_ms": 254,
+      "profile": "native-only",
+      "prompt_bytes": 1773,
+      "rep": 0,
+      "seed": 17,
+      "task": "reuse-cross-language-add"
+    },
+    {
+      "correct": false,
+      "error": null,
+      "latency_ms": 71,
+      "profile": "native-only",
+      "prompt_bytes": 1773,
+      "rep": 1,
+      "seed": 18,
+      "task": "reuse-cross-language-add"
+    },
+    {
+      "correct": false,
+      "error": null,
+      "latency_ms": 603,
+      "profile": "native+source-index",
+      "prompt_bytes": 4084,
+      "rep": 0,
+      "seed": 17,
+      "task": "reuse-cross-language-add"
+    },
+    {
+      "correct": false,
+      "error": null,
+      "latency_ms": 83,
+      "profile": "native+source-index",
+      "prompt_bytes": 4084,
+      "rep": 1,
+      "seed": 18,
+      "task": "reuse-cross-language-add"
+    },
+    {
+      "correct": true,
+      "error": null,
+      "latency_ms": 378,
+      "profile": "native+graft",
+      "prompt_bytes": 3246,
+      "rep": 0,
+      "seed": 17,
+      "task": "reuse-cross-language-add"
+    },
+    {
+      "correct": true,
+      "error": null,
+      "latency_ms": 73,
+      "profile": "native+graft",
+      "prompt_bytes": 3246,
+      "rep": 1,
+      "seed": 18,
+      "task": "reuse-cross-language-add"
+    },
+    {
+      "correct": true,
+      "error": null,
+      "latency_ms": 164,
+      "profile": "native-only",
+      "prompt_bytes": 702,
+      "rep": 0,
+      "seed": 17,
+      "task": "orient-observer"
+    },
+    {
+      "correct": true,
+      "error": null,
+      "latency_ms": 85,
+      "profile": "native-only",
+      "prompt_bytes": 702,
+      "rep": 1,
+      "seed": 18,
+      "task": "orient-observer"
+    },
+    {
+      "correct": true,
+      "error": null,
+      "latency_ms": 291,
+      "profile": "native+source-index",
+      "prompt_bytes": 2479,
+      "rep": 0,
+      "seed": 17,
+      "task": "orient-observer"
+    },
+    {
+      "correct": true,
+      "error": null,
+      "latency_ms": 91,
+      "profile": "native+source-index",
+      "prompt_bytes": 2479,
+      "rep": 1,
+      "seed": 18,
+      "task": "orient-observer"
+    },
+    {
+      "correct": true,
+      "error": null,
+      "latency_ms": 341,
+      "profile": "native+graft",
+      "prompt_bytes": 2857,
+      "rep": 0,
+      "seed": 17,
+      "task": "orient-observer"
+    },
+    {
+      "correct": true,
+      "error": null,
+      "latency_ms": 66,
+      "profile": "native+graft",
+      "prompt_bytes": 2857,
+      "rep": 1,
+      "seed": 18,
+      "task": "orient-observer"
+    },
+    {
+      "correct": false,
+      "error": null,
+      "latency_ms": 125,
+      "profile": "native-only",
+      "prompt_bytes": 725,
+      "rep": 0,
+      "seed": 17,
+      "task": "reuse-byte-tokenizer"
+    },
+    {
+      "correct": false,
+      "error": null,
+      "latency_ms": 86,
+      "profile": "native-only",
+      "prompt_bytes": 725,
+      "rep": 1,
+      "seed": 18,
+      "task": "reuse-byte-tokenizer"
+    },
+    {
+      "correct": false,
+      "error": null,
+      "latency_ms": 301,
+      "profile": "native+source-index",
+      "prompt_bytes": 2127,
+      "rep": 0,
+      "seed": 17,
+      "task": "reuse-byte-tokenizer"
+    },
+    {
+      "correct": false,
+      "error": null,
+      "latency_ms": 133,
+      "profile": "native+source-index",
+      "prompt_bytes": 2127,
+      "rep": 1,
+      "seed": 18,
+      "task": "reuse-byte-tokenizer"
+    },
+    {
+      "correct": false,
+      "error": null,
+      "latency_ms": 1050,
+      "profile": "native+graft",
+      "prompt_bytes": 8073,
+      "rep": 0,
+      "seed": 17,
+      "task": "reuse-byte-tokenizer"
+    },
+    {
+      "correct": false,
+      "error": null,
+      "latency_ms": 99,
+      "profile": "native+graft",
+      "prompt_bytes": 8073,
+      "rep": 1,
+      "seed": 18,
+      "task": "reuse-byte-tokenizer"
+    }
+  ],
+  "scoring": "all expected strings present in the answer (case-insensitive); deterministic",
+  "skill_pilot": {
+    "calls": 12,
+    "caveat": "small local model, few trials: no evidence for any default",
+    "compiler_gate": "unchanged: proposals are still judged only by the workflow's compiler checks (see the native+skill workflow cells)",
+    "label": "pilot-only",
+    "reuse_check": "answer contains [\"multiply(\"]",
+    "rows": [
+      {
+        "answer_digest": "sha256:d04cfc7f59bf091b40335823be19b2e0a6f10245eae3d58897e280c588095ab8",
+        "arm": "without-skill",
+        "error": null,
+        "latency_ms": 306,
+        "prompt_bytes": 1896,
+        "rep": 0,
+        "reused_existing_api": false,
+        "seed": 17
+      },
+      {
+        "answer_digest": "sha256:7144eb8dfa1962a6b97cc260808e007a28834069537e7cab8a9ff4a05a1b24ce",
+        "arm": "with-skill",
+        "error": null,
+        "latency_ms": 268,
+        "prompt_bytes": 3649,
+        "rep": 0,
+        "reused_existing_api": false,
+        "seed": 17
+      },
+      {
+        "answer_digest": "sha256:d04cfc7f59bf091b40335823be19b2e0a6f10245eae3d58897e280c588095ab8",
+        "arm": "without-skill",
+        "error": null,
+        "latency_ms": 138,
+        "prompt_bytes": 1896,
+        "rep": 1,
+        "reused_existing_api": false,
+        "seed": 18
+      },
+      {
+        "answer_digest": "sha256:7144eb8dfa1962a6b97cc260808e007a28834069537e7cab8a9ff4a05a1b24ce",
+        "arm": "with-skill",
+        "error": null,
+        "latency_ms": 263,
+        "prompt_bytes": 3649,
+        "rep": 1,
+        "reused_existing_api": false,
+        "seed": 18
+      },
+      {
+        "answer_digest": "sha256:d04cfc7f59bf091b40335823be19b2e0a6f10245eae3d58897e280c588095ab8",
+        "arm": "without-skill",
+        "error": null,
+        "latency_ms": 140,
+        "prompt_bytes": 1896,
+        "rep": 2,
+        "reused_existing_api": false,
+        "seed": 19
+      },
+      {
+        "answer_digest": "sha256:1354b3258147d14ee260a0973880d4ce41f704595a61bea42422064941d165d0",
+        "arm": "with-skill",
+        "error": null,
+        "latency_ms": 262,
+        "prompt_bytes": 3649,
+        "rep": 2,
+        "reused_existing_api": false,
+        "seed": 19
+      },
+      {
+        "answer_digest": "sha256:91024d9c17b5357efcc10d9400fef00aa527a6e0f107b8223b43a388bd36a364",
+        "arm": "without-skill",
+        "error": null,
+        "latency_ms": 150,
+        "prompt_bytes": 1896,
+        "rep": 3,
+        "reused_existing_api": false,
+        "seed": 20
+      },
+      {
+        "answer_digest": "sha256:d04cfc7f59bf091b40335823be19b2e0a6f10245eae3d58897e280c588095ab8",
+        "arm": "with-skill",
+        "error": null,
+        "latency_ms": 260,
+        "prompt_bytes": 3649,
+        "rep": 3,
+        "reused_existing_api": false,
+        "seed": 20
+      },
+      {
+        "answer_digest": "sha256:0247180eccbe6e241aa530a1f5bb807f22731bfd741e59a3d4ef7952a686a74c",
+        "arm": "without-skill",
+        "error": null,
+        "latency_ms": 124,
+        "prompt_bytes": 1896,
+        "rep": 4,
+        "reused_existing_api": false,
+        "seed": 21
+      },
+      {
+        "answer_digest": "sha256:7144eb8dfa1962a6b97cc260808e007a28834069537e7cab8a9ff4a05a1b24ce",
+        "arm": "with-skill",
+        "error": null,
+        "latency_ms": 267,
+        "prompt_bytes": 3649,
+        "rep": 4,
+        "reused_existing_api": false,
+        "seed": 21
+      },
+      {
+        "answer_digest": "sha256:d04cfc7f59bf091b40335823be19b2e0a6f10245eae3d58897e280c588095ab8",
+        "arm": "without-skill",
+        "error": null,
+        "latency_ms": 144,
+        "prompt_bytes": 1896,
+        "rep": 5,
+        "reused_existing_api": false,
+        "seed": 22
+      },
+      {
+        "answer_digest": "sha256:7144eb8dfa1962a6b97cc260808e007a28834069537e7cab8a9ff4a05a1b24ce",
+        "arm": "with-skill",
+        "error": null,
+        "latency_ms": 263,
+        "prompt_bytes": 3649,
+        "rep": 5,
+        "reused_existing_api": false,
+        "seed": 22
+      }
+    ],
+    "skill_prompt_bytes": 1752,
+    "status": "ran",
+    "task": "reuse-square-via-multiply",
+    "with_skill": {
+      "n": 6,
+      "reused": 0
+    },
+    "without_skill": {
+      "n": 6,
+      "reused": 0
+    }
+  },
+  "status": "ran",
+  "temperature": 0.2
+}

@@ -1,0 +1,31 @@
+{
+  "class": "compile_repair",
+  "id": "compile-repair-js",
+  "languages": [
+    "node"
+  ],
+  "query": "syntax error missing module",
+  "steps": [
+    {
+      "feedback": "grader",
+      "first_failure_only": true,
+      "grade": [
+        {
+          "cmd": [
+            "{node}",
+            "_grader/syntax.js"
+          ]
+        },
+        {
+          "cmd": [
+            "{node}",
+            "--test"
+          ]
+        }
+      ],
+      "id": "s1",
+      "max_attempts": 3,
+      "request": "The csvlite package no longer loads: tests fail before running. Repair the sources under src/ so that every file passes `node --check` and `node --test test/` passes. Do not edit files under test/. Only the first error is reported at a time; fix all that you can find."
+    }
+  ]
+}

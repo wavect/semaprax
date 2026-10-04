@@ -1,0 +1,7 @@
+{
+  "intent": {
+    "kind": "rewrite_file",
+    "target": "ledger.line_total"
+  },
+  "schema": "semaprax.harness-proposal.v1"
+}

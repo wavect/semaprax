@@ -1,0 +1,33 @@
+{
+  "adopted_installations": {
+    "native+skill": {
+      "installations": {},
+      "schema": "semaprax.harness-installations.v1",
+      "skill_roots": [
+        {
+          "origin": "benchmark",
+          "path": "/private/tmp/claude-501/hp-benchwork/native+skill/adapters/skills"
+        }
+      ]
+    }
+  },
+  "compiler": "/Users/kevin/Documents/ChatGPT/AI-Lang-v090/target/debug/semaprax",
+  "compiler_version": "semaprax 0.7.0 (commit unknown)",
+  "corpus_digest": "sha256:96af8435a9c706d0ff169106edc8be2056bed99274e3659dd6d3c48b8bed6acf",
+  "corpus_id": "hp17-local-v1",
+  "label": "2026-10-04 local skill pilot qwen2.5-coder:1.5b",
+  "node_version": "v24.3.0",
+  "os": "Darwin 25.5.0 arm64",
+  "python_version": "Python 3.12.12",
+  "seed": 17,
+  "source_commit": "7e9374e8413680b1fa58f2a9ec8b36fab91488d9",
+  "tokenizer": "byte-v1 only (no named tokenizer on this machine)",
+  "tool_paths": {
+    "HARNESS_NODE": "/Users/kevin/.nvm/versions/node/v24.3.0/bin/node",
+    "HARNESS_PYTHON": "/Users/kevin/.local/bin/python3"
+  },
+  "variables_provided": [
+    "HARNESS_NODE",
+    "HARNESS_PYTHON"
+  ]
+}

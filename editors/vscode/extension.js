@@ -16,6 +16,7 @@ const { SourceIndex } = require('./positions');
 const { openExplorer, stableId } = require('./explorer');
 const { revealCurrentSource } = require('./explorer-reveal');
 const tokenReport = require('./token-report');
+const harness = require('./harness');
 const { HotReload } = require('./hot-reload');
 let stopActive = () => {};
 // Check-on-save: run the user-selected compiler's read-only `check --json` on
@@ -750,6 +751,42 @@ function activate(context) {
     if (testMode && reportBindingOverride !== undefined) return reportBindingOverride;
     return client && !client.closed && !stale && imageProject ? imageProject : undefined;
   }
+  // Harness profile: a client of the same `harness status --json` contract the CLI and
+  // external hosts use.  Runs the configured compiler with shell:false; writes nothing.
+  function runHarness(argv) {
+    const config = configured();
+    return new Promise((resolve, reject) => {
+      const selected = harness.command(config.compiler, argv);
+      const env = {}; for (const key of ['HOME', 'PATH', 'SEMAPRAX_HARNESS_HOME']) if (process.env[key] !== undefined) env[key] = process.env[key];
+      require('node:child_process').execFile(selected.file, selected.args, { shell: false, windowsHide: true, cwd: path.dirname(config.manifest), env, timeout: 30000, maxBuffer: 1 << 20 }, (error, stdout, stderr) => {
+        if (error && !stdout) reject(new Error(String(stderr || error.message).slice(0, 2048))); else resolve({ stdout, stderr, code: error ? error.code : 0 });
+      });
+    });
+  }
+  async function showHarnessStatus() {
+    const config = configured();
+    const result = await runHarness(harness.statusArgv(path.dirname(config.manifest)));
+    const parsed = harness.parseStatus(result.stdout);
+    // Default skills and pending updates share the status view; a failure is shown as a reason, not hidden.
+    const project = path.dirname(config.manifest);
+    const attempt = async (argv, parse) => { try { return parse((await runHarness(argv)).stdout); } catch (error) { return { unavailable: String(error.message).split('\n')[0].slice(0, 200) }; } };
+    const skills = await attempt(harness.skillsStatusArgv(require('node:fs').realpathSync(project)), harness.parseSkillsStatus);
+    const updates = await attempt(harness.updatesStatusArgv(), harness.parseUpdatesStatus);
+    const doc = await vscode.workspace.openTextDocument({ content: harness.summary(parsed, skills, updates), language: 'plaintext' });
+    await vscode.window.showTextDocument(doc, { preview: true });
+    return harness.selectedProviders(parsed);
+  }
+  async function inspectHarnessProvider() {
+    const config = configured();
+    const parsed = harness.parseStatus((await runHarness(harness.statusArgv(path.dirname(config.manifest)))).stdout);
+    const ids = [...new Set(Object.values(harness.selectedProviders(parsed)))];
+    const id = await pick(ids.map(label => ({ label })), { placeHolder: 'Select a provider to inspect' });
+    if (!id) return;
+    const result = await runHarness(harness.inspectArgv(id.label || id));
+    const doc = await vscode.workspace.openTextDocument({ content: result.stdout, language: 'plaintext' });
+    await vscode.window.showTextDocument(doc, { preview: true });
+    return result.stdout;
+  }
   async function showTokenReport() {
     const uri = testMode && testReports.length ? testReports.shift() : (await vscode.window.showOpenDialog({ canSelectFiles: true, canSelectFolders: false, canSelectMany: false, openLabel: 'Open Token Report', filters: { 'Token reports': ['json'] } }))?.[0];
     if (!uri) return;
@@ -782,6 +819,8 @@ function activate(context) {
     async hotReloadActivate() { if (!hotReload) throw new Error('Start Hot Reload first'); hotReload.request('activate'); },
     async hotReloadInvoke() { if (!hotReload) throw new Error('Start Hot Reload first'); saved(); hotReload.request('invoke'); },
     async showTokenReport() { return showTokenReport(); },
+    async showHarnessStatus() { return showHarnessStatus(); },
+    async inspectHarnessProvider() { return inspectHarnessProvider(); },
     async openExplorer() {
       if (!await requireExplorerSession()) return;
       return showExplorer({ mode: 'overview', target: null, direction: 'both', depth: 1, side: 'current' });

@@ -1,0 +1,9 @@
+module ledger.report;
+use function @id("ledger.line_total") from ledger.lib as line_total;
+
+@id("ledger.invoice_total")
+fn invoice_total(price: i64, qty: i64, fee: i64) -> i64
+    requires price >= 0 && price <= 1000000 && qty >= 0 && qty <= 1000000 && fee >= 0 && fee <= 1000000
+{
+    line_total(price, qty) + fee
+}

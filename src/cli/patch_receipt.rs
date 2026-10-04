@@ -140,8 +140,10 @@ pub(crate) fn parse(args: &[String]) -> Result<Command, u8> {
             Ok(Command::CompareSet {
                 manifest,
                 entries: entries
-                    .chunks_exact(3)
-                    .map(|entry| (entry[0].clone(), entry[1].clone(), entry[2].clone()))
+                    .as_chunks::<3>()
+                    .0
+                    .iter()
+                    .map(|[left, digest, receipt]| (left.clone(), digest.clone(), receipt.clone()))
                     .collect(),
             })
         }

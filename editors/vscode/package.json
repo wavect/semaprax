@@ -56,6 +56,7 @@
   },
   "activationEvents": [
     "onCommand:semaprax.start",
+    "onCommand:semaprax.startHotReload",
     "onLanguage:semaprax",
     "onCommand:semaprax.checkProject",
     "onCommand:semaprax.openExplorer",
@@ -90,6 +91,13 @@
     ],
     "commands": [
       { "command": "semaprax.start", "title": "SEMAPRAX: Start Saved-Source Session" },
+      { "command": "semaprax.startHotReload", "title": "SEMAPRAX: Start Hot Reload" },
+      { "command": "semaprax.stopHotReload", "title": "SEMAPRAX: Stop Hot Reload" },
+      { "command": "semaprax.hotReloadStatus", "title": "SEMAPRAX: Show Hot Reload Status" },
+      { "command": "semaprax.hotReloadDetail", "title": "SEMAPRAX: Show Hot Reload Details" },
+      { "command": "semaprax.hotReloadPlan", "title": "SEMAPRAX: Plan Hot Reload" },
+      { "command": "semaprax.hotReloadActivate", "title": "SEMAPRAX: Activate Hot Reload Plan" },
+      { "command": "semaprax.hotReloadInvoke", "title": "SEMAPRAX: Invoke Active Hot Reload Entry" },
       { "command": "semaprax.stop", "title": "SEMAPRAX: Stop Session" },
       { "command": "semaprax.openCandidate", "title": "SEMAPRAX: Open Candidate" },
       { "command": "semaprax.selectTarget", "title": "SEMAPRAX: Select Stable Target ID" },

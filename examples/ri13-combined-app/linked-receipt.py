@@ -24,6 +24,17 @@ def main():
     consumer = (ROOT / "linked/Cargo.toml").read_text()
     assert 'ri06-regex-owner = { path = "generated/regex"' in consumer
     assert 'ri06-url-owner = { path = "generated/url"' in consumer
+    consumer_source = (ROOT / "linked/src/main.rs").read_text()
+    for fragment in [
+        'ri06_regex_owner::run()',
+        'ri06_url_owner::run()',
+        'deserialize_spxmirrorri13event',
+        '.map(callback.as_fn())',
+        'SpxStatefulProxy::new',
+        '.map(stateful.as_fn_mut())',
+        'm3::register',
+    ]:
+        assert fragment in consumer_source
     prepare = (ROOT / "linked/prepare/Cargo.toml").read_text()
     assert 'path = "../src/bin_prepare.rs"' in prepare
     receipt = {"schema": "semaprax.ri13.linked-project-receipt.v1", "inputs": {str(path.relative_to(ROOT)): digest(path) for path in TRACKED}, "project_profile": "source-local-future.v1", "selected_identities": REQUIRED, "stages": ["prepare", "consumer"], "consumer_marker": "ri13-linked-project-ok"}

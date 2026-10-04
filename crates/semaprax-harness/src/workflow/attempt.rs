@@ -10,8 +10,9 @@ use super::policy::check_protected_facts;
 use super::report::Report;
 use super::stages::*;
 use crate::decision::{
-    decide, Budget, Confidentiality, ConfiguredProvider, Destination, LatencyClass, ModelPlan,
-    RouteContext, RouteInputs, RoutePolicy, RouteRequest, TaskFamily, TaskFeatures,
+    gate_attests_key, governed_decide, Budget, Confidentiality, ConfiguredProvider, Destination,
+    EvidenceKey, GateSpec, Governor, LatencyClass, ModelPlan, ProviderMode, RouteContext,
+    RouteInputs, RoutePolicy, RouteRequest, RoutingConfig, RoutingMode, TaskFamily, TaskFeatures,
 };
 use crate::diag::{HarnessDiagnostic, HarnessResult};
 use crate::json::sha256_plain;
@@ -137,6 +138,8 @@ fn route_models(
     catalog: Vec<ModelPlan>,
     estimated_tokens: u64,
     decision: Option<&mut super::pipeline::DecisionStage>,
+    rb: &super::budget::RequestBudget,
+    router_headroom_tokens: Option<u64>,
 ) -> HarnessResult<Routed> {
     let family = TaskFamily::parse(&task.family).ok_or_else(|| {
         d(
@@ -173,23 +176,56 @@ fn route_models(
         router_calls_used: 0,
         router_ms_used: 0,
     };
+    let router_request_tokens = decision.as_ref().map_or(0, |d| {
+        rb.count(&d.profile.provider_id, &text).admission_tokens() + ROUTER_OUTPUT_RESERVE
+    });
     let live = inputs.clone();
+    // The workflow carries only the stage's gate: a learned provider is
+    // consulted in `Auto` mode only when that gate attests the live key
+    // (provider, weights, approved catalog); otherwise rules decide (HN-16).
+    let mode = match decision.as_ref() {
+        None => RoutingMode::Rules,
+        Some(d) if d.mode == ProviderMode::Explicit => RoutingMode::Experimental,
+        Some(d) => {
+            let key = EvidenceKey::live(&d.profile, &inputs.request.catalog_digest());
+            if gate_attests_key(&d.gate, &key) {
+                RoutingMode::Experimental
+            } else {
+                RoutingMode::Rules
+            }
+        }
+    };
     let mut configured = decision.map(|d| ConfiguredProvider {
         profile: d.profile.clone(),
         invoker: &mut *d.invoker,
         mode: d.mode,
         gate: d.gate.clone(),
     });
-    let dec = decide(
+    let cfg = RoutingConfig {
+        mode,
+        ..RoutingConfig::default()
+    };
+    let g = Governor {
+        cfg: &cfg,
+        registry: None,
+        spec: &GateSpec::default(),
+        lock: None,
+        router_headroom_tokens,
+        router_request_tokens,
+    };
+    let gr = governed_decide(
+        &g,
         &inputs,
         &rctx,
         configured.as_mut(),
         &move || live.clone(),
         None,
     )?;
+    let dec = gr.decision;
     Ok(Routed {
         json: json!({"choice": dec.choice, "provider": dec.provider_id, "router_calls": dec.router_calls,
-               "status": dec.provider_status, "source": format!("{:?}", dec.source)}),
+               "status": dec.provider_status, "source": format!("{:?}", dec.source),
+               "mode": gr.mode, "rules_reason": gr.rules_reason}),
         model: dec.choice,
         router_calls: dec.router_calls,
         request_text: text,
@@ -234,7 +270,19 @@ pub(super) fn route_and_fit(
             continue; // the empty pool is refused above, explained
         }
         let started = Instant::now();
-        let routed = route_models(cx, task, pool.clone(), est, st.decision.as_mut())?;
+        let headroom = budget
+            .policy
+            .max_task_tokens
+            .map(|m| m.saturating_sub(cx.ledger.reserved_tokens() + est));
+        let routed = route_models(
+            cx,
+            task,
+            pool.clone(),
+            est,
+            st.decision.as_mut(),
+            &budget,
+            headroom,
+        )?;
         if routed.router_calls > 0 {
             let count = budget.count(&routed.provider, &routed.request_text);
             cx.ledger.reserve(

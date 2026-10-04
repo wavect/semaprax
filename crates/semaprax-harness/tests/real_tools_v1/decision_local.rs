@@ -208,3 +208,297 @@ fn absent_laya_server_falls_back_to_rules_without_starting_anything() {
     assert_eq!(d.provider_id, RULES_PROVIDER_ID);
     assert_eq!(d.choice, "m-cheap");
 }
+
+// ---- HN-16: held-out matched routing evaluation (rules vs shadow) -----------
+
+mod routing_eval {
+    use super::*;
+    use std::collections::BTreeSet;
+    use std::io::Read;
+    use std::net::TcpStream;
+
+    /// Deterministic fixture shadow provider: a hand-written table, not a model.
+    struct ShadowFixture;
+    impl DecisionInvoker for ShadowFixture {
+        fn evaluate(&mut self, r: &RequestEnvelope) -> DecisionCall {
+            let fam = r.payload["features"]["task_family"].as_str().unwrap_or("");
+            let pick = match fam {
+                "mechanical" | "tests_docs" => "m-cheap",
+                _ => "m-mid",
+            };
+            let opts = r.payload["options"].as_array().unwrap();
+            let pick = if opts.iter().any(|o| o == pick) {
+                pick
+            } else {
+                "m-cheap"
+            };
+            DecisionCall::Answered {
+                result: json!({"choice": pick, "scores": {pick: 0.7}, "abstain": false}),
+                elapsed_ms: 1,
+            }
+        }
+    }
+
+    /// `(prompt, expected exact reply)`; graded by string equality, never by a model.
+    fn task(id: &str) -> (&'static str, &'static str) {
+        match id {
+            "seed-004" => ("Reply with only the result of 17+25.", "42"),
+            "seed-005" => (
+                "Reply with only the word `harness` in uppercase.",
+                "HARNESS",
+            ),
+            "seed-006" => ("Reply with only the result of 9*8.", "72"),
+            "seed-010" => (
+                "Reply with only the first letter of the word `compiler`.",
+                "c",
+            ),
+            "seed-011" => ("Reply with only the result of 100-37.", "63"),
+            "seed-012" => ("Reply with only the word `route` reversed.", "etuor"),
+            "seed-016" => ("Reply with only the larger number of 14 and 41.", "41"),
+            "seed-017" => ("Reply with only the result of 6+7.", "13"),
+            "seed-018" => ("Reply with only the word `yes` or `no`: is 12 even?", "yes"),
+            "seed-022" => ("Reply with only the result of 3*3*3.", "27"),
+            "seed-023" => ("Reply with only the result of 50/5.", "10"),
+            _ => ("Reply with only the result of 2+2.", "4"),
+        }
+    }
+
+    fn ollama(endpoint: &str, prompt: &str) -> Option<(String, u64, u64)> {
+        let host = endpoint.trim_start_matches("http://");
+        let body = json!({"model": "qwen2.5:0.5b", "prompt": prompt, "stream": false,
+            "options": {"temperature": 0, "seed": 0, "num_predict": 16}})
+        .to_string();
+        let mut s = TcpStream::connect(host).ok()?;
+        s.set_read_timeout(Some(std::time::Duration::from_secs(120)))
+            .ok()?;
+        write!(
+            s,
+            "POST /api/generate HTTP/1.1\r\nHost: {host}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+            body.len()
+        )
+        .ok()?;
+        let mut raw = String::new();
+        s.read_to_string(&mut raw).ok()?;
+        let j: Value = serde_json::from_str(raw.split("\r\n\r\n").nth(1)?).ok()?;
+        let tokens = j["prompt_eval_count"].as_u64()? + j["eval_count"].as_u64()?;
+        Some((
+            j["response"].as_str()?.trim().to_string(),
+            tokens,
+            j["total_duration"].as_u64()? / 1_000_000,
+        ))
+    }
+
+    fn run_model(
+        endpoint: &str,
+        model: &str,
+        item: &str,
+        arm: &str,
+        router_cost: u64,
+        provider_real: bool,
+    ) -> Outcome {
+        let (prompt, want) = task(item);
+        let mut o = Outcome {
+            item: item.into(),
+            arm: arm.into(),
+            model: model.into(),
+            origin: Origin::Unavailable,
+            verified_by: "exact-match-grader".into(),
+            completed: false,
+            regressions: 0,
+            attempts: 1,
+            cost_micros: None,
+            latency_ms: None,
+            router_cost_micros: router_cost,
+            context_cost_micros: 0,
+            retry_owner: RetryOwner::Host,
+        };
+        // Only the cheap logical model is backed by a real local model.
+        if model == "m-cheap" {
+            if let Some((reply, tokens, ms)) = ollama(endpoint, prompt) {
+                o.origin = if provider_real {
+                    Origin::Real
+                } else {
+                    Origin::Fixture
+                };
+                o.completed = reply
+                    .trim_matches(|c: char| !c.is_alphanumeric())
+                    .eq_ignore_ascii_case(want);
+                o.cost_micros = Some(tokens);
+                o.latency_ms = Some(ms);
+            }
+        }
+        o
+    }
+
+    fn mk_plan(id: &str, cost: u64, rank: u32) -> ModelPlan {
+        plan(id, cost, rank)
+    }
+
+    #[test]
+    #[ignore = "provisioned: needs HARNESS_OLLAMA_ENDPOINT (running Ollama with qwen2.5:0.5b); optional HARNESS_ROUTING_OUT"]
+    fn real_matched_heldout_routing_evaluation_records_a_gate_decision() {
+        let endpoint = std::env::var("HARNESS_OLLAMA_ENDPOINT")
+            .expect("HARNESS_OLLAMA_ENDPOINT=http://127.0.0.1:11434");
+        let corpus = repo_root().join("crates/semaprax-harness/tests/fixtures/decision_corpus");
+        let splits: Value =
+            serde_json::from_str(&std::fs::read_to_string(corpus.join("splits.json")).unwrap())
+                .unwrap();
+        let (mut eval, mut seen): (Vec<Value>, BTreeSet<String>) = (vec![], BTreeSet::new());
+        for l in std::fs::read_to_string(corpus.join("seed.jsonl"))
+            .unwrap()
+            .lines()
+        {
+            let it: Value = serde_json::from_str(l).unwrap();
+            let id = it["id"].as_str().unwrap().to_string();
+            if splits["splits"][it["project"].as_str().unwrap()] == "eval" {
+                eval.push(it);
+            } else {
+                seen.insert(id);
+            }
+        }
+        let catalog = vec![
+            mk_plan("m-cheap", 10, 1),
+            mk_plan("m-mid", 30, 2),
+            mk_plan("m-strong", 100, 3),
+        ];
+        let profile = ProviderProfile {
+            provider_id: "semaprax/shadow-fixture".into(),
+            model_id: "table".into(),
+            checkpoint: "fixture-table-v1".into(),
+            min_confidence: None,
+            max_context_tokens: None,
+            supported_families: None,
+        };
+        let cfg = RoutingConfig {
+            mode: RoutingMode::Experimental,
+            shadow_max_calls: 1,
+            ..RoutingConfig::default()
+        };
+        // Shadow evaluation: the actual route is rules; the fixture only recommends.
+        let cfg_shadow = RoutingConfig {
+            mode: RoutingMode::QualifiedAuto,
+            ..cfg.clone()
+        };
+        let spec = GateSpec::default();
+        let reg = EvidenceRegistry::default();
+        let (mut outcomes, mut key_catalog) = (vec![], String::new());
+        for it in &eval {
+            let id = it["id"].as_str().unwrap();
+            let features = TaskFeatures::from_json(&it["features"]).unwrap();
+            let request = RouteRequest::new(
+                features,
+                catalog.clone(),
+                Budget {
+                    max_cost_micros: 1_000_000,
+                    max_latency_ms: 60_000,
+                    max_router_calls: 1,
+                },
+            )
+            .unwrap();
+            key_catalog = request.catalog_digest();
+            let inputs = RouteInputs {
+                request,
+                policy: RoutePolicy::default(),
+            };
+            let mut shadow = ShadowFixture;
+            let mut p = ConfiguredProvider {
+                profile: profile.clone(),
+                invoker: &mut shadow,
+                mode: ProviderMode::Explicit,
+                gate: EnablementGate::not_evaluated("model-route/v1", &profile.provider_id),
+            };
+            let g = Governor {
+                cfg: &cfg_shadow,
+                registry: Some(&reg),
+                spec: &spec,
+                lock: None,
+                router_headroom_tokens: None,
+                router_request_tokens: 0,
+            };
+            let r = governed_decide(
+                &g,
+                &inputs,
+                &ctx(&format!("eval-{id}")),
+                Some(&mut p),
+                &|| inputs.clone(),
+                None,
+            )
+            .unwrap();
+            assert_eq!(r.shadow.as_ref().unwrap()["changes_route"], false);
+            let rec = r.shadow.as_ref().unwrap()["recommended"]
+                .as_str()
+                .unwrap()
+                .to_string();
+            // Router overhead: byte upper bound of the shadow request (no tokenizer).
+            let router_cost = json!({"features": inputs.request.features.to_json(), "options": ["m-cheap", "m-mid", "m-strong"]}).to_string().len() as u64;
+            outcomes.push(run_model(
+                &endpoint,
+                &r.decision.choice,
+                id,
+                RULES_ARM,
+                0,
+                true,
+            ));
+            outcomes.push(run_model(
+                &endpoint,
+                &rec,
+                id,
+                &profile.provider_id,
+                router_cost,
+                false,
+            ));
+        }
+        let key = EvidenceKey {
+            catalog_digest: key_catalog,
+            ..EvidenceKey::live(&profile, "")
+        };
+        let record = EvidenceRecord {
+            key,
+            budget: MatchedBudget {
+                max_cost_micros: 1000,
+                max_attempts: 1,
+            },
+            eval_items: eval
+                .iter()
+                .map(|i| i["id"].as_str().unwrap().to_string())
+                .collect(),
+            trained_on: seen,
+            outcomes,
+        };
+        let dec = evaluate(&spec, &record);
+        assert!(
+            !dec.go,
+            "an honest no-go is the expected result here: {dec:?}"
+        );
+        let doc = json!({
+            "schema": "semaprax.routing-eval.v1",
+            "decision": dec.to_json(),
+            "gate_spec": {"min_items": spec.min_items, "completion_margin": spec.completion_margin,
+                "min_cost_saving": spec.min_cost_saving, "max_extra_regressions": spec.max_extra_regressions,
+                "max_latency_ratio": spec.max_latency_ratio},
+            "key": record.key.to_json(),
+            "active_mode": "rules (no-go keeps rules active)",
+            "real_model": "ollama qwen2.5:0.5b (backs logical m-cheap only; m-mid and m-strong are unavailable cells, never successes)",
+            "cost_unit": "ollama prompt+eval tokens as micros; router overhead is the request byte upper bound",
+            "providers": {
+                "rules": "builtin, real",
+                "shadow-fixture": "fixture table; cells from it are origin=fixture and cannot unlock auto",
+                "laya": "unavailable: venv removed for disk, not reinstalled; no learned-provider evidence recorded",
+                "jev": "fixture-only: no key, no real inference result"
+            },
+            "outcomes": record.outcomes.iter().map(|o| json!({"item": o.item, "arm": o.arm, "model": o.model,
+                "origin": o.origin.as_str(), "completed": o.completed, "cost_micros": o.cost_micros,
+                "latency_ms": o.latency_ms, "router_cost_micros": o.router_cost_micros})).collect::<Vec<_>>(),
+        });
+        let text = serde_json::to_string_pretty(&doc).unwrap();
+        println!("{text}");
+        if let Ok(dir) = std::env::var("HARNESS_ROUTING_OUT") {
+            std::fs::create_dir_all(&dir).unwrap();
+            std::fs::write(
+                std::path::Path::new(&dir).join("gate-decision.json"),
+                text + "\n",
+            )
+            .unwrap();
+        }
+    }
+}

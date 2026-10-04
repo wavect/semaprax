@@ -1,0 +1,303 @@
+{
+  "active_mode": "rules (no-go keeps rules active)",
+  "cost_unit": "ollama prompt+eval tokens as micros; router overhead is the request byte upper bound",
+  "decision": {
+    "decision": "no-go",
+    "metrics": {
+      "learned": {
+        "attempts": 12,
+        "completed": 2,
+        "latency_ms": 218,
+        "n": 12,
+        "regressions": 0,
+        "total_cost_micros": 9030
+      },
+      "origins": {
+        "fixture": 6,
+        "real": 9,
+        "unavailable": 9
+      },
+      "rules": {
+        "attempts": 12,
+        "completed": 4,
+        "latency_ms": 2806,
+        "n": 12,
+        "regressions": 0,
+        "total_cost_micros": 3419
+      }
+    },
+    "reasons": [
+      "12 held-out items, need 30",
+      "fixture or unavailable cells present: only real verified runs can unlock auto",
+      "completion 0.167 trails rules 0.333",
+      "cost saving -1.641 below 0.100"
+    ],
+    "record_digest": "sha256:df0ccfab11d74ccbf8ac748ecc43a7db20c893e287e55a8c6e895434654a983d",
+    "spec_digest": "sha256:f233f6ba50d1abb49033534d75024028d93affb0bbdf39f81ebe252cd03391f0"
+  },
+  "gate_spec": {
+    "completion_margin": 0.0,
+    "max_extra_regressions": 0,
+    "max_latency_ratio": 1.5,
+    "min_cost_saving": 0.1,
+    "min_items": 30
+  },
+  "key": {
+    "catalog": "sha256:b54eb7ed1feda2d46df94925f5cec9698fb7900d433eafb73b45f3c4efbab5b8",
+    "distribution": "sha256:83ba287193a35fa8f84842bf8511f52878f118321cc47b48daadbfb3500ad79b",
+    "normalization": "model-route/v1/closed-features.v1",
+    "provider": "semaprax/shadow-fixture",
+    "task": "model-route/v1",
+    "weights": "fixture-table-v1"
+  },
+  "outcomes": [
+    {
+      "arm": "rules",
+      "completed": false,
+      "cost_micros": 51,
+      "item": "seed-004",
+      "latency_ms": 2468,
+      "model": "m-cheap",
+      "origin": "real",
+      "router_cost_micros": 0
+    },
+    {
+      "arm": "semaprax/shadow-fixture",
+      "completed": false,
+      "cost_micros": 51,
+      "item": "seed-004",
+      "latency_ms": 63,
+      "model": "m-cheap",
+      "origin": "fixture",
+      "router_cost_micros": 223
+    },
+    {
+      "arm": "rules",
+      "completed": false,
+      "cost_micros": 49,
+      "item": "seed-005",
+      "latency_ms": 66,
+      "model": "m-cheap",
+      "origin": "real",
+      "router_cost_micros": 0
+    },
+    {
+      "arm": "semaprax/shadow-fixture",
+      "completed": false,
+      "cost_micros": 49,
+      "item": "seed-005",
+      "latency_ms": 57,
+      "model": "m-cheap",
+      "origin": "fixture",
+      "router_cost_micros": 229
+    },
+    {
+      "arm": "rules",
+      "completed": true,
+      "cost_micros": 43,
+      "item": "seed-006",
+      "latency_ms": 36,
+      "model": "m-cheap",
+      "origin": "real",
+      "router_cost_micros": 0
+    },
+    {
+      "arm": "semaprax/shadow-fixture",
+      "completed": true,
+      "cost_micros": 43,
+      "item": "seed-006",
+      "latency_ms": 21,
+      "model": "m-cheap",
+      "origin": "fixture",
+      "router_cost_micros": 229
+    },
+    {
+      "arm": "rules",
+      "completed": true,
+      "cost_micros": 44,
+      "item": "seed-010",
+      "latency_ms": 39,
+      "model": "m-cheap",
+      "origin": "real",
+      "router_cost_micros": 0
+    },
+    {
+      "arm": "semaprax/shadow-fixture",
+      "completed": true,
+      "cost_micros": 44,
+      "item": "seed-010",
+      "latency_ms": 23,
+      "model": "m-cheap",
+      "origin": "fixture",
+      "router_cost_micros": 229
+    },
+    {
+      "arm": "rules",
+      "completed": false,
+      "cost_micros": 47,
+      "item": "seed-011",
+      "latency_ms": 40,
+      "model": "m-cheap",
+      "origin": "real",
+      "router_cost_micros": 0
+    },
+    {
+      "arm": "semaprax/shadow-fixture",
+      "completed": false,
+      "cost_micros": 47,
+      "item": "seed-011",
+      "latency_ms": 33,
+      "model": "m-cheap",
+      "origin": "fixture",
+      "router_cost_micros": 230
+    },
+    {
+      "arm": "rules",
+      "completed": false,
+      "cost_micros": 42,
+      "item": "seed-012",
+      "latency_ms": 34,
+      "model": "m-cheap",
+      "origin": "real",
+      "router_cost_micros": 0
+    },
+    {
+      "arm": "semaprax/shadow-fixture",
+      "completed": false,
+      "cost_micros": 42,
+      "item": "seed-012",
+      "latency_ms": 21,
+      "model": "m-cheap",
+      "origin": "fixture",
+      "router_cost_micros": 230
+    },
+    {
+      "arm": "rules",
+      "completed": false,
+      "cost_micros": 51,
+      "item": "seed-016",
+      "latency_ms": 59,
+      "model": "m-cheap",
+      "origin": "real",
+      "router_cost_micros": 0
+    },
+    {
+      "arm": "semaprax/shadow-fixture",
+      "completed": false,
+      "cost_micros": null,
+      "item": "seed-016",
+      "latency_ms": null,
+      "model": "m-mid",
+      "origin": "unavailable",
+      "router_cost_micros": 235
+    },
+    {
+      "arm": "rules",
+      "completed": true,
+      "cost_micros": 43,
+      "item": "seed-017",
+      "latency_ms": 33,
+      "model": "m-cheap",
+      "origin": "real",
+      "router_cost_micros": 0
+    },
+    {
+      "arm": "semaprax/shadow-fixture",
+      "completed": false,
+      "cost_micros": null,
+      "item": "seed-017",
+      "latency_ms": null,
+      "model": "m-mid",
+      "origin": "unavailable",
+      "router_cost_micros": 234
+    },
+    {
+      "arm": "rules",
+      "completed": true,
+      "cost_micros": 49,
+      "item": "seed-018",
+      "latency_ms": 31,
+      "model": "m-cheap",
+      "origin": "real",
+      "router_cost_micros": 0
+    },
+    {
+      "arm": "semaprax/shadow-fixture",
+      "completed": false,
+      "cost_micros": null,
+      "item": "seed-018",
+      "latency_ms": null,
+      "model": "m-mid",
+      "origin": "unavailable",
+      "router_cost_micros": 234
+    },
+    {
+      "arm": "rules",
+      "completed": false,
+      "cost_micros": null,
+      "item": "seed-022",
+      "latency_ms": null,
+      "model": "m-strong",
+      "origin": "unavailable",
+      "router_cost_micros": 0
+    },
+    {
+      "arm": "semaprax/shadow-fixture",
+      "completed": false,
+      "cost_micros": null,
+      "item": "seed-022",
+      "latency_ms": null,
+      "model": "m-mid",
+      "origin": "unavailable",
+      "router_cost_micros": 231
+    },
+    {
+      "arm": "rules",
+      "completed": false,
+      "cost_micros": null,
+      "item": "seed-023",
+      "latency_ms": null,
+      "model": "m-strong",
+      "origin": "unavailable",
+      "router_cost_micros": 0
+    },
+    {
+      "arm": "semaprax/shadow-fixture",
+      "completed": false,
+      "cost_micros": null,
+      "item": "seed-023",
+      "latency_ms": null,
+      "model": "m-mid",
+      "origin": "unavailable",
+      "router_cost_micros": 225
+    },
+    {
+      "arm": "rules",
+      "completed": false,
+      "cost_micros": null,
+      "item": "seed-024",
+      "latency_ms": null,
+      "model": "m-strong",
+      "origin": "unavailable",
+      "router_cost_micros": 0
+    },
+    {
+      "arm": "semaprax/shadow-fixture",
+      "completed": false,
+      "cost_micros": null,
+      "item": "seed-024",
+      "latency_ms": null,
+      "model": "m-mid",
+      "origin": "unavailable",
+      "router_cost_micros": 225
+    }
+  ],
+  "providers": {
+    "jev": "fixture-only: no key, no real inference result",
+    "laya": "unavailable: venv removed for disk, not reinstalled; no learned-provider evidence recorded",
+    "rules": "builtin, real",
+    "shadow-fixture": "fixture table; cells from it are origin=fixture and cannot unlock auto"
+  },
+  "real_model": "ollama qwen2.5:0.5b (backs logical m-cheap only; m-mid and m-strong are unavailable cells, never successes)",
+  "schema": "semaprax.routing-eval.v1"
+}

@@ -880,3 +880,499 @@ fn hp_hp10_cli_decide_runs_rules_and_prints_plan() {
     assert_eq!(cli_decide(&[], &env).code, 2);
     assert_eq!(cli_decide(&args(&["missing.json"]), &env).code, 1);
 }
+
+// ---- HN-16: evidence, qualification and governed routing (prefix hp_hn16) ----
+
+mod hn16 {
+    use super::*;
+    use std::collections::BTreeSet;
+
+    const LEARNED: &str = "learned";
+
+    fn key_for(inp: &RouteInputs, p: &ProviderProfile) -> EvidenceKey {
+        EvidenceKey::live(p, &inp.request.catalog_digest())
+    }
+
+    fn out(item: &str, arm: &str, ok: bool, cost: u64, origin: Origin) -> Outcome {
+        Outcome {
+            item: item.into(),
+            arm: arm.into(),
+            model: "cheap-local".into(),
+            origin,
+            verified_by: "scripted-grader".into(),
+            completed: ok,
+            regressions: 0,
+            attempts: 1,
+            cost_micros: Some(cost),
+            latency_ms: Some(100),
+            router_cost_micros: 0,
+            context_cost_micros: 0,
+            retry_owner: RetryOwner::Host,
+        }
+    }
+
+    fn record(key: EvidenceKey, n: usize, origin: Origin, router_cost: u64) -> EvidenceRecord {
+        let items: BTreeSet<String> = (0..n).map(|i| format!("e{i}")).collect();
+        let mut outcomes = vec![];
+        for i in &items {
+            outcomes.push(out(i, RULES_ARM, true, 100, origin));
+            let mut l = out(i, &key.provider_id, true, 50, origin);
+            l.router_cost_micros = router_cost;
+            outcomes.push(l);
+        }
+        EvidenceRecord {
+            key,
+            budget: MatchedBudget {
+                max_cost_micros: 1000,
+                max_attempts: 2,
+            },
+            eval_items: items,
+            trained_on: (0..n).map(|i| format!("t{i}")).collect(),
+            outcomes,
+        }
+    }
+
+    fn spec() -> GateSpec {
+        GateSpec {
+            min_items: 4,
+            ..GateSpec::default()
+        }
+    }
+
+    fn setup() -> (RouteInputs, ProviderProfile) {
+        (
+            inputs(TaskFamily::LocalizedDebug, Confidentiality::Project),
+            profile(LEARNED),
+        )
+    }
+
+    #[test]
+    fn hp_hn16_evidence_key_binds_weights_catalog_normalization_and_distribution() {
+        let (i, p) = setup();
+        let k = key_for(&i, &p);
+        let mut p2 = p.clone();
+        p2.checkpoint = "ck2".into();
+        assert_ne!(k.digest(), key_for(&i, &p2).digest(), "weights");
+        let mut cat = catalog();
+        cat[0].est_cost_micros += 1;
+        let i2 = RouteInputs {
+            request: RouteRequest::new(i.request.features.clone(), cat, budget()).unwrap(),
+            policy: policy(),
+        };
+        assert_ne!(k.digest(), key_for(&i2, &p).digest(), "catalog revision");
+        let mut p3 = p.clone();
+        p3.max_context_tokens = Some(5);
+        assert_ne!(k.digest(), key_for(&i, &p3).digest(), "distribution");
+        assert_eq!(k.normalization, NORMALIZATION_ID);
+    }
+
+    #[test]
+    fn hp_hn16_gate_goes_only_on_real_matched_heldout_evidence() {
+        let (i, p) = setup();
+        let k = key_for(&i, &p);
+        let mut reg = EvidenceRegistry::default();
+        reg.register(record(k.clone(), 6, Origin::Real, 5)).unwrap();
+        let (gate, dec) = gate_for(&reg, &k, &spec());
+        assert!(dec.unwrap().go);
+        assert!(matches!(gate.status, GateStatus::Passed { .. }));
+        // Reproducible: same record and spec give the same decision bytes.
+        let a = evaluate(&spec(), reg.get(&k).unwrap()).to_json();
+        let b = evaluate(&spec(), reg.get(&k).unwrap()).to_json();
+        assert_eq!(a, b);
+        // Unknown key: not evaluated.
+        let mut p2 = p.clone();
+        p2.checkpoint = "other".into();
+        let (g2, d2) = gate_for(&reg, &key_for(&i, &p2), &spec());
+        assert!(d2.is_none() && g2.status == GateStatus::NotEvaluated);
+    }
+
+    #[test]
+    fn hp_hn16_fixture_and_unavailable_cells_never_unlock_auto() {
+        let (i, p) = setup();
+        let k = key_for(&i, &p);
+        let mut reg = EvidenceRegistry::default();
+        reg.register(record(k.clone(), 6, Origin::Fixture, 0))
+            .unwrap();
+        let (gate, dec) = gate_for(&reg, &k, &spec());
+        let dec = dec.unwrap();
+        assert!(!dec.go && gate.status == GateStatus::Failed);
+        assert!(dec.reasons.iter().any(|r| r.contains("fixture")));
+        // An unavailable cell is never a success and unknown cost is never zero.
+        let mut bad = out("e0", LEARNED, true, 0, Origin::Unavailable);
+        let mut r = record(k.clone(), 4, Origin::Real, 0);
+        r.outcomes.push(bad.clone());
+        assert_eq!(reg.register(r).unwrap_err().code, "SPX-HPJ017");
+        bad.origin = Origin::Real;
+        bad.cost_micros = None;
+        let mut r = record(k.clone(), 4, Origin::Real, 0);
+        r.outcomes.push(bad);
+        assert_eq!(reg.register(r).unwrap_err().code, "SPX-HPJ017");
+    }
+
+    #[test]
+    fn hp_hn16_gate_refuses_leakage_unmatched_arms_small_n_and_hidden_router_cost() {
+        let (i, p) = setup();
+        let k = key_for(&i, &p);
+        let mut leaked = record(k.clone(), 6, Origin::Real, 0);
+        leaked.trained_on.insert("e0".into());
+        assert!(!evaluate(&spec(), &leaked).go);
+        let mut unmatched = record(k.clone(), 6, Origin::Real, 0);
+        unmatched
+            .outcomes
+            .retain(|o| !(o.item == "e1" && o.arm == LEARNED));
+        assert!(!evaluate(&spec(), &unmatched).go);
+        assert!(!evaluate(&spec(), &record(k.clone(), 2, Origin::Real, 0)).go);
+        // Router overhead is part of the same cost: 50 + 45 vs 100 saves < 10%.
+        let r = record(k.clone(), 6, Origin::Real, 45);
+        let d = evaluate(&spec(), &r);
+        assert!(!d.go && d.reasons.iter().any(|x| x.contains("cost saving")));
+        // A learned arm that completes less is a no-go.
+        let mut worse = record(k, 6, Origin::Real, 0);
+        for o in worse
+            .outcomes
+            .iter_mut()
+            .filter(|o| o.arm == LEARNED)
+            .take(2)
+        {
+            o.completed = false;
+        }
+        assert!(!evaluate(&spec(), &worse).go);
+    }
+
+    fn qualified(i: &RouteInputs, p: &ProviderProfile) -> (EvidenceRegistry, SessionLock) {
+        let k = key_for(i, p);
+        let mut reg = EvidenceRegistry::default();
+        reg.register(record(k.clone(), 6, Origin::Real, 5)).unwrap();
+        let lock = SessionLock {
+            key_digest: k.digest(),
+            record_digest: reg.get(&k).unwrap().digest(),
+        };
+        (reg, lock)
+    }
+
+    fn gov<'a>(
+        cfg: &'a RoutingConfig,
+        reg: Option<&'a EvidenceRegistry>,
+        lock: Option<&'a SessionLock>,
+        sp: &'a GateSpec,
+    ) -> Governor<'a> {
+        Governor {
+            cfg,
+            registry: reg,
+            spec: sp,
+            lock,
+            router_headroom_tokens: None,
+            router_request_tokens: 100,
+        }
+    }
+
+    fn route(g: &Governor, i: &RouteInputs, fx: &mut Fx, pr: ProviderProfile) -> HarnessResult2 {
+        let mut p = explicit(fx, pr);
+        p.mode = ProviderMode::Auto;
+        governed_decide(g, i, &ctx(), Some(&mut p), &|| i.clone(), None)
+    }
+    type HarnessResult2 = semaprax_harness::diag::HarnessResult<GovernedRoute>;
+
+    #[test]
+    fn hp_hn16_qualified_auto_uses_learned_only_with_live_evidence_and_names_it() {
+        let (i, p) = setup();
+        let (reg, lock) = qualified(&i, &p);
+        let sp = spec();
+        let cfg = RoutingConfig {
+            mode: RoutingMode::QualifiedAuto,
+            ..RoutingConfig::default()
+        };
+        let mut fx = Fx::picks("mid-local", 0.9);
+        let r = route(
+            &gov(&cfg, Some(&reg), Some(&lock), &sp),
+            &i,
+            &mut fx,
+            p.clone(),
+        )
+        .unwrap();
+        assert_eq!(r.decision.choice, "mid-local");
+        assert_eq!(r.decision.provider_status, "evaluated");
+        assert_eq!(r.explanation["evidence"]["key_digest"], lock.key_digest);
+        assert_eq!(
+            r.explanation["evidence"]["record_digest"],
+            lock.record_digest
+        );
+        // No registry, no lock, an unqualified key: rules decide with zero calls.
+        for (reg2, lock2) in [(None, Some(&lock)), (Some(&reg), None)] {
+            let mut fx = Fx::picks("mid-local", 0.9);
+            let r = route(&gov(&cfg, reg2, lock2, &sp), &i, &mut fx, p.clone()).unwrap();
+            assert_eq!(r.decision.source, DecisionSource::Rules);
+            assert!(r.rules_reason.is_some());
+            assert_eq!(fx.calls, 0);
+        }
+    }
+
+    #[test]
+    fn hp_hn16_changed_weights_or_catalog_disable_the_learned_profile() {
+        let (i, p) = setup();
+        let (reg, lock) = qualified(&i, &p);
+        let sp = spec();
+        let cfg = RoutingConfig {
+            mode: RoutingMode::QualifiedAuto,
+            ..RoutingConfig::default()
+        };
+        let mut p2 = p.clone();
+        p2.checkpoint = "ck-new-weights".into();
+        let mut fx = Fx::picks("mid-local", 0.9);
+        let r = route(&gov(&cfg, Some(&reg), Some(&lock), &sp), &i, &mut fx, p2).unwrap();
+        assert_eq!((r.decision.source, fx.calls), (DecisionSource::Rules, 0));
+        assert!(r.rules_reason.unwrap().contains("differs"));
+        let mut cat = catalog();
+        cat[2].est_cost_micros = 51;
+        let i2 = RouteInputs {
+            request: RouteRequest::new(i.request.features.clone(), cat, budget()).unwrap(),
+            policy: policy(),
+        };
+        let mut fx = Fx::picks("mid-local", 0.9);
+        let r = route(&gov(&cfg, Some(&reg), Some(&lock), &sp), &i2, &mut fx, p).unwrap();
+        assert_eq!((r.decision.source, fx.calls), (DecisionSource::Rules, 0));
+    }
+
+    #[test]
+    fn hp_hn16_wrong_model_and_out_of_policy_choices_fall_back_to_rules() {
+        let (i, p) = setup();
+        let (reg, lock) = qualified(&i, &p);
+        let sp = spec();
+        let cfg = RoutingConfig {
+            mode: RoutingMode::QualifiedAuto,
+            ..RoutingConfig::default()
+        };
+        for bad in ["no-such-model", "strong-remote"] {
+            // strong-remote is remote and the user forbids remote routing; the
+            // approved catalog (and so the key) shrinks, so use experimental mode.
+            let cfg = RoutingConfig {
+                user_allow_remote: bad != "strong-remote",
+                mode: if bad == "strong-remote" {
+                    RoutingMode::Experimental
+                } else {
+                    cfg.mode.clone()
+                },
+                ..cfg.clone()
+            };
+            let mut fx = Fx::picks(bad, 0.99);
+            let r = route(
+                &gov(&cfg, Some(&reg), Some(&lock), &sp),
+                &i,
+                &mut fx,
+                p.clone(),
+            )
+            .unwrap();
+            assert!(
+                matches!(r.decision.source, DecisionSource::Fallback(_)),
+                "{bad}"
+            );
+            assert_ne!(r.decision.choice, bad);
+        }
+    }
+
+    #[test]
+    fn hp_hn16_exhausted_task_budget_stops_router_spend_and_rules_decide() {
+        let (i, p) = setup();
+        let sp = spec();
+        let cfg = RoutingConfig {
+            mode: RoutingMode::Experimental,
+            ..RoutingConfig::default()
+        };
+        let mut g = gov(&cfg, None, None, &sp);
+        g.router_headroom_tokens = Some(99);
+        let mut fx = Fx::picks("mid-local", 0.9);
+        let r = route(&g, &i, &mut fx, p.clone()).unwrap();
+        assert_eq!((r.decision.source, fx.calls), (DecisionSource::Rules, 0));
+        assert!(r.rules_reason.unwrap().contains("budget"));
+        g.router_headroom_tokens = Some(100);
+        let mut fx = Fx::picks("mid-local", 0.9);
+        let r = route(&g, &i, &mut fx, p).unwrap();
+        assert_eq!(
+            (r.decision.source, r.router_calls_total),
+            (DecisionSource::Provider, 1)
+        );
+    }
+
+    #[test]
+    fn hp_hn16_final_prompt_is_rechecked_against_the_chosen_model() {
+        let (i, _) = setup();
+        assert!(recheck_dispatch(&i, "mid-local", 99_999).is_ok());
+        let e = recheck_dispatch(&i, "mid-local", 100_001).unwrap_err();
+        assert_eq!(e.code, "SPX-HPJ018");
+        assert!(e.message.contains("context too large"));
+        assert!(recheck_dispatch(&i, "nope", 1).is_err());
+        // Privacy: a remote model is refused for secret content at dispatch.
+        let s = inputs(TaskFamily::LocalizedDebug, Confidentiality::Secret);
+        assert!(recheck_dispatch(&s, "strong-remote", 10).is_err());
+    }
+
+    #[test]
+    fn hp_hn16_project_pin_and_remote_prohibition_hold_in_every_mode() {
+        let (i, p) = setup();
+        let (reg, lock) = qualified(&i, &p);
+        let sp = spec();
+        for mode in [
+            RoutingMode::Rules,
+            RoutingMode::Pin("mid-local".into()),
+            RoutingMode::Experimental,
+            RoutingMode::QualifiedAuto,
+        ] {
+            let cfg = RoutingConfig {
+                mode: mode.clone(),
+                project_pin: Some("mid-local".into()),
+                user_allow_remote: false,
+                shadow_max_calls: 1,
+                ..RoutingConfig::default()
+            };
+            let mut fx = Fx::picks("cheap-local", 0.99);
+            let r = route(
+                &gov(&cfg, Some(&reg), Some(&lock), &sp),
+                &i,
+                &mut fx,
+                p.clone(),
+            )
+            .unwrap();
+            assert_eq!(r.decision.choice, "mid-local", "{mode:?}");
+            assert_eq!(fx.calls, 0, "a pin never consults a router");
+            // A pin the policy cannot admit refuses; it never falls back.
+            let cfg = RoutingConfig {
+                project_pin: Some("strong-remote".into()),
+                ..cfg
+            };
+            let mut fx = Fx::picks("cheap-local", 0.99);
+            let e = route(
+                &gov(&cfg, Some(&reg), Some(&lock), &sp),
+                &i,
+                &mut fx,
+                p.clone(),
+            )
+            .unwrap_err();
+            assert_eq!(e.code, "SPX-HPJ016");
+        }
+        // Without a pin, remote plans are never chosen when the user forbids them.
+        let cfg = RoutingConfig {
+            mode: RoutingMode::Rules,
+            user_allow_remote: false,
+            ..RoutingConfig::default()
+        };
+        let hard = inputs(TaskFamily::SemanticLaw, Confidentiality::Project);
+        let mut fx = Fx::picks("cheap-local", 0.9);
+        let r = route(&gov(&cfg, None, None, &sp), &hard, &mut fx, p).unwrap();
+        assert_eq!(r.decision.choice, "mid-local");
+    }
+
+    #[test]
+    fn hp_hn16_shadow_recommends_within_budget_without_changing_the_route() {
+        let (i, p) = setup();
+        let sp = spec();
+        let cfg = RoutingConfig {
+            mode: RoutingMode::QualifiedAuto, // not qualified: rules stay active
+            shadow_max_calls: 1,
+            ..RoutingConfig::default()
+        };
+        let mut fx = Fx::picks("mid-local", 0.9);
+        let r = route(&gov(&cfg, None, None, &sp), &i, &mut fx, p.clone()).unwrap();
+        assert_eq!(r.decision.choice, "cheap-local", "actual route is rules");
+        let s = r.shadow.unwrap();
+        assert_eq!(
+            (s["recommended"].as_str(), s["agrees"].as_bool()),
+            (Some("mid-local"), Some(false))
+        );
+        assert_eq!(
+            (s["changes_route"].as_bool(), r.router_calls_total, fx.calls),
+            (Some(false), 1, 1)
+        );
+        // No shadow budget: no shadow call.
+        let cfg = RoutingConfig {
+            shadow_max_calls: 0,
+            ..cfg
+        };
+        let mut fx = Fx::picks("mid-local", 0.9);
+        let r = route(&gov(&cfg, None, None, &sp), &i, &mut fx, p).unwrap();
+        assert!(r.shadow.is_none() && fx.calls == 0);
+    }
+
+    #[test]
+    fn hp_hn16_cheap_task_bypass_skips_the_router() {
+        let (i, p) = setup();
+        let sp = spec();
+        let cfg = RoutingConfig {
+            mode: RoutingMode::Experimental,
+            cheap_bypass_micros: Some(10_000),
+            ..RoutingConfig::default()
+        };
+        let mut fx = Fx::picks("mid-local", 0.9);
+        let r = route(&gov(&cfg, None, None, &sp), &i, &mut fx, p).unwrap();
+        assert_eq!(fx.calls, 0);
+        assert_eq!(r.rules_reason.as_deref(), Some("cheap-task bypass"));
+    }
+
+    #[test]
+    fn hp_hn16_adverse_update_restores_previous_profile_without_touching_a_session_lock() {
+        let mut store = ProfileStore::default();
+        let a = SessionLock {
+            key_digest: "ka".into(),
+            record_digest: "ra".into(),
+        };
+        let b = SessionLock {
+            key_digest: "kb".into(),
+            record_digest: "rb".into(),
+        };
+        store.install(a.clone());
+        let session = store.lock_session().unwrap();
+        store.install(b.clone());
+        let mut m = DriftMonitor::new(0.9, 0.05, 4);
+        for ok in [true, false, false, false] {
+            m.record(ok);
+        }
+        assert!(m.enforce(&mut store));
+        assert_eq!(
+            store.active(),
+            Some(&a),
+            "previous qualified profile restored"
+        );
+        assert_eq!(session, a, "the active session's lock is unchanged");
+        // With nothing earlier, rollback leaves rules (no profile).
+        store.rollback();
+        assert!(store.active().is_none());
+        // Healthy windows or too few samples never roll back.
+        let mut ok = DriftMonitor::new(0.9, 0.05, 4);
+        ok.record(false);
+        assert!(!ok.drifted());
+    }
+
+    #[test]
+    fn hp_hn16_calibration_needs_enough_precision_and_samples() {
+        let s = [
+            (0.9, true),
+            (0.8, true),
+            (0.7, false),
+            (0.6, false),
+            (0.5, false),
+        ];
+        assert_eq!(calibrate_min_confidence(&s, 1.0, 2), Some(0.8));
+        assert_eq!(calibrate_min_confidence(&s, 1.0, 3), None);
+        assert_eq!(calibrate_min_confidence(&[], 0.5, 1), None);
+    }
+
+    #[test]
+    fn hp_hn16_workflow_gate_must_attest_the_live_key() {
+        let (i, p) = setup();
+        let k = key_for(&i, &p);
+        let mut reg = EvidenceRegistry::default();
+        reg.register(record(k.clone(), 6, Origin::Real, 5)).unwrap();
+        let (gate, _) = gate_for(&reg, &k, &spec());
+        assert!(gate_attests_key(&gate, &k));
+        let mut p2 = p;
+        p2.checkpoint = "new".into();
+        assert!(!gate_attests_key(&gate, &key_for(&i, &p2)));
+        let bare = EnablementGate {
+            task: k.task.clone(),
+            profile: k.provider_id.clone(),
+            status: GateStatus::Passed {
+                evidence: "eval-record-7".into(),
+            },
+        };
+        assert!(!gate_attests_key(&bare, &k));
+    }
+}

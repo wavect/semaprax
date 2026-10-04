@@ -358,15 +358,25 @@ def self_test():
         else "committed-fixture"
     )
     assert document["m1_index_target"]["selection"] == expected_selection
-    linux = admitted_index_provenance(
-        Path("/tmp/ri13-linux-x86_64-index-extraction-500c501ad/envelopes")
+    source_indexes = (
+        Path(os.environ["RI13_RUST_API_INDEX_DIR"])
+        if os.environ.get("RI13_RUST_API_INDEX_DIR") is not None
+        else M1_REGEX_INDEX.parent
     )
-    assert linux["selection"] == "supplied-linux-envelope"
-    assert linux["target"] == "x86_64-unknown-linux-gnu"
     with tempfile.TemporaryDirectory() as temporary:
         directory = Path(temporary)
         for name in ("regex-1.13.1-index-envelope.json", "url-2.5.8-index-envelope.json"):
-            index_document = json.loads((Path("/tmp/ri13-linux-x86_64-index-extraction-500c501ad/envelopes") / name).read_text())
+            index_document = json.loads((source_indexes / name).read_text())
+            # A temporary alternate mount exercises the selected-envelope
+            # path in both fixture and guest modes without relying on a host
+            # extraction directory.
+            index_document["index"]["target"] = "x86_64-unknown-linux-gnu"
+            (directory / name).write_text(json.dumps(index_document), encoding="utf-8")
+        linux = admitted_index_provenance(directory)
+        assert linux["selection"] == "supplied-linux-envelope"
+        assert linux["target"] == "x86_64-unknown-linux-gnu"
+        for name in ("regex-1.13.1-index-envelope.json", "url-2.5.8-index-envelope.json"):
+            index_document = json.loads((directory / name).read_text())
             index_document["index"]["target"] = "aarch64-apple-darwin"
             (directory / name).write_text(json.dumps(index_document), encoding="utf-8")
         try:

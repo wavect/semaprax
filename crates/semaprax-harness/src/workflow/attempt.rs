@@ -105,7 +105,19 @@ fn build_prompt(cx: &Ctx, p: &PromptCtx, dropped: &BTreeSet<String>) -> Value {
             prompt["skills"] = json!(sp.text);
         }
     }
-    prompt
+    match cx.cfg.budget.generation.renderer {
+        super::prompt_render::PromptRenderer::Canonical => prompt,
+        super::prompt_render::PromptRenderer::OrderedV1 => {
+            let ids = cx.cfg.skill_prompt.as_ref().map_or(vec![], |s| {
+                if dropped.contains("skills") {
+                    vec![]
+                } else {
+                    s.loaded.clone()
+                }
+            });
+            super::prompt_render::render_ordered(&prompt, &ids)
+        }
+    }
 }
 
 /// The model catalog of the task (explicit models, the machine-local binding or

@@ -151,7 +151,7 @@ impl RequestCount {
 
 /// The exact text sent to the model for `prompt` (what is counted).
 pub fn request_text(prompt: &Value) -> String {
-    canonical(prompt)
+    super::prompt_render::rendered_text(prompt).unwrap_or_else(|| canonical(prompt))
 }
 
 /// Result of fitting one request to one model.

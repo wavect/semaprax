@@ -694,6 +694,8 @@ pub struct HostModel {
     pub support: GenerationSupport,
     /// Host-declared tokens of framing the adapter adds to the request.
     pub framing_tokens: u64,
+    /// Host-declared support for provider prompt-cache boundaries (TC-04).
+    pub prompt_cache: crate::receipt::Support,
     calls: u32,
 }
 
@@ -714,11 +716,16 @@ impl HostModel {
             provider_id,
             support: GenerationSupport::default(),
             framing_tokens: 0,
+            prompt_cache: crate::receipt::Support::Unknown,
             calls: 0,
         }
     }
     pub fn with_support(mut self, support: GenerationSupport) -> Self {
         self.support = support;
+        self
+    }
+    pub fn with_prompt_cache(mut self, s: crate::receipt::Support) -> Self {
+        self.prompt_cache = s;
         self
     }
     pub fn with_framing_tokens(mut self, n: u64) -> Self {
@@ -729,7 +736,7 @@ impl HostModel {
     /// The `model.generate/v1` request payload. Optional members appear only
     /// when requested, so legacy adapters see the original shape by default.
     pub fn request_payload(req: &ProposalRequest) -> Value {
-        let prompt = crate::json::canonical(&req.prompt);
+        let prompt = super::budget::request_text(&req.prompt);
         let mut p = json!({"model": req.model, "input_base64": b64::encode(prompt.as_bytes()),
                            "max_output_bytes": MODEL_MAX_OUTPUT_BYTES});
         if let Some(n) = req.controls.max_output_tokens {
@@ -737,6 +744,30 @@ impl HostModel {
         }
         if let Some(e) = req.controls.reasoning {
             p["reasoning_effort"] = json!(e.as_str());
+        }
+        p
+    }
+
+    /// As [`Self::request_payload`], plus the optional `segments` member when
+    /// the prompt is ordered-rendered and the provider is declared to support
+    /// prompt-cache boundaries. Any other case is the stateless request.
+    pub fn request_payload_cached(
+        req: &ProposalRequest,
+        provider: &str,
+        support: crate::receipt::Support,
+    ) -> Value {
+        let mut p = Self::request_payload(req);
+        if support == crate::receipt::Support::Supported {
+            let b = super::prompt_render::PrefixBinding {
+                provider,
+                model: &req.model,
+                project: &req.lineage.project.id,
+                worktree: &req.lineage.project.worktree,
+                lock_digest: &req.lineage.lock_digest,
+            };
+            if let Some(seg) = super::prompt_render::segments_member(&req.prompt, &b) {
+                p["segments"] = seg;
+            }
         }
         p
     }
@@ -800,7 +831,7 @@ impl ProposalStage for HostModel {
             CapabilityKind::ModelGenerate,
             "generate",
             1 << 20,
-            Self::request_payload(req),
+            Self::request_payload_cached(req, &self.provider_id, self.prompt_cache),
         );
         self.calls += 1;
         let outcome = self.handle.invoke(

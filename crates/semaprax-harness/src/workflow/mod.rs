@@ -23,6 +23,7 @@ pub mod journal;
 pub mod lineage;
 pub mod pipeline;
 pub mod policy;
+pub mod prompt_render;
 pub mod report;
 pub mod routing;
 pub mod session;

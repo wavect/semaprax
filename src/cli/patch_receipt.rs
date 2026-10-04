@@ -6,7 +6,7 @@ use std::path::PathBuf;
 
 use super::project::{is_project_manifest, resolve_positional};
 
-const USAGE: &str = "patch-receipt requires <project> <render|verify|compare|evidence-summary|evidence-page> canonical transaction, receipt, and retained-evidence operands";
+const USAGE: &str = "patch-receipt requires <project> <render|verify|refusal|verify-refusal|compare|evidence-summary|evidence-page> canonical transaction, receipt, and retained-evidence operands";
 const EVIDENCE_PAGE_SIZE: usize = 32;
 const EVIDENCE_MAX_BYTES: usize = 65_536;
 
@@ -20,6 +20,17 @@ pub(crate) enum Command {
         manifest: PathBuf,
         transaction: String,
         candidate: String,
+        receipt: String,
+    },
+    Refusal {
+        manifest: PathBuf,
+        transaction: String,
+        requested_candidate: String,
+    },
+    VerifyRefusal {
+        manifest: PathBuf,
+        transaction: String,
+        requested_candidate: String,
         receipt: String,
     },
     EvidenceSummary {
@@ -72,6 +83,21 @@ pub(crate) fn parse(args: &[String]) -> Result<Command, u8> {
                 receipt: receipt.clone(),
             })
         }
+        [operation, transaction, requested_candidate] if operation == "refusal" => {
+            Ok(Command::Refusal {
+                manifest,
+                transaction: transaction.clone(),
+                requested_candidate: requested_candidate.clone(),
+            })
+        }
+        [operation, transaction, requested_candidate, receipt] if operation == "verify-refusal" => {
+            Ok(Command::VerifyRefusal {
+                manifest,
+                transaction: transaction.clone(),
+                requested_candidate: requested_candidate.clone(),
+                receipt: receipt.clone(),
+            })
+        }
         [operation, transaction, candidate] if operation == "evidence-summary" => {
             Ok(Command::EvidenceSummary {
                 manifest,
@@ -112,6 +138,8 @@ pub(crate) fn run(command: Command, report: impl Fn(&[Diagnostic]) -> u8) -> Res
     let manifest = match &command {
         Command::Render { manifest, .. }
         | Command::Verify { manifest, .. }
+        | Command::Refusal { manifest, .. }
+        | Command::VerifyRefusal { manifest, .. }
         | Command::EvidenceSummary { manifest, .. }
         | Command::EvidencePage { manifest, .. }
         | Command::Compare { manifest, .. } => manifest,
@@ -134,6 +162,21 @@ pub(crate) fn run(command: Command, report: impl Fn(&[Diagnostic]) -> u8) -> Res
             } => {
                 service.verify_patch_receipt(transaction.as_bytes(), &candidate, receipt.as_bytes())
             }
+            Command::Refusal {
+                transaction,
+                requested_candidate,
+                ..
+            } => service.patch_receipt_refusal(transaction.as_bytes(), &requested_candidate),
+            Command::VerifyRefusal {
+                transaction,
+                requested_candidate,
+                receipt,
+                ..
+            } => service.verify_patch_receipt_refusal(
+                transaction.as_bytes(),
+                &requested_candidate,
+                receipt.as_bytes(),
+            ),
             Command::EvidenceSummary {
                 transaction,
                 candidate,
@@ -212,6 +255,25 @@ mod tests {
                 "sha256:abc"
             ])),
             Ok(Command::EvidenceSummary { .. })
+        ));
+        assert!(matches!(
+            parse(&args(&[
+                "examples/calculator-project",
+                "refusal",
+                "{\"schema\":\"semaprax.semantic-transaction.v1\"}",
+                "sha256:stale"
+            ])),
+            Ok(Command::Refusal { .. })
+        ));
+        assert!(matches!(
+            parse(&args(&[
+                "examples/calculator-project",
+                "verify-refusal",
+                "{\"schema\":\"semaprax.semantic-transaction.v1\"}",
+                "sha256:stale",
+                "{\"schema\":\"semaprax.patch-receipt.v1\"}",
+            ])),
+            Ok(Command::VerifyRefusal { .. })
         ));
         assert!(matches!(
             parse(&args(&[

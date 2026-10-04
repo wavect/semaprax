@@ -24,6 +24,8 @@ evidence, or candidate paths:
 ```text
 semaprax patch-receipt <project> render <transaction-json> <candidate-digest>
 semaprax patch-receipt <project> verify <transaction-json> <candidate-digest> <receipt-json>
+semaprax patch-receipt <project> refusal <transaction-json> <requested-candidate-digest>
+semaprax patch-receipt <project> verify-refusal <transaction-json> <requested-candidate-digest> <receipt-json>
 semaprax patch-receipt <project> compare <left-transaction-json> <left-candidate-digest> <left-receipt-json> <right-transaction-json> <right-candidate-digest> <right-receipt-json>
 semaprax patch-receipt <project> evidence-summary <transaction-json> <candidate-digest>
 semaprax patch-receipt <project> evidence-page <transaction-json> <candidate-digest> <evidence-id> <handle> <cursor|->
@@ -77,7 +79,9 @@ An authenticated but nonmatching candidate selector produces an explicit
 retained base/workspace context, leaves `project_revision` null, records a
 failed selector check, and records all later checks as `not_run`. It has no
 invented resulting candidate identity. Refusal verification recomputes the
-same canonical receipt and remains read-only.
+same canonical receipt and remains read-only. The one-shot CLI exposes both
+operations through the retained semantic-service authority; it accepts the
+canonical request and receipt values, never a candidate or receipt path.
 
 ## Comparison
 

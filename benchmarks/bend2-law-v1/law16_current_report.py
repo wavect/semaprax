@@ -34,6 +34,7 @@ BEND_U32_SORT = module("law16_bend_u32_sort_proof")
 COST_PROVENANCE = module("law16_boolean_negation_cost_provenance")
 BOOLEAN_ANNOTATIONS = module("law16_annotation_summary")
 CACHE_ISOLATION = module("law16_cache_isolation_probe")
+BOOLEAN_REFACTOR = module("law16_boolean_refactor_cell")
 SCHEMA = "semaprax.bend2-law-benchmark.current-report.v1"
 
 
@@ -139,6 +140,10 @@ def render():
     ):
         raise ValueError("Claude cost pilot plan or nonadmission receipt drifted")
     cache_probe = CACHE_ISOLATION.review()
+    boolean_refactor = BOOLEAN_REFACTOR.verify(ROOT / "evidence/law16-boolean-refactor-cell-v1")
+    claude_boolean_pilot = read(ROOT / "evidence/law16-claude-boolean-pilot-v1/capsule.json")
+    if claude_boolean_pilot.get("schema") != "semaprax.bend2-law-benchmark.claude-boolean-pilot-capsule.v1" or claude_boolean_pilot.get("campaign_admission") is not False:
+        raise ValueError("Claude Boolean pilot nonadmission receipt drifted")
     process_v2_provenance = read(ROOT / "evidence/law16-boolean-negation-process-v2/provenance.json")
     effort = read(ROOT / "evidence/law16-effort-summary-v1.json")
     annotations = read(ROOT / "evidence/law16-annotation-summary-v1.json")
@@ -393,6 +398,18 @@ def render():
             "checking_measurements": cache_probe["checking_measurements"],
             "container_state": cache_probe["container_state"],
             "nonclaims": cache_probe["nonclaims"],
+        },
+        "supplemental_boolean_refactor_cell": {
+            "source": "evidence/law16-boolean-refactor-cell-v1/result.json",
+            **boolean_refactor,
+            "scope": "matched scalar Boolean refactor and law-breaking edit; original checked-u32 cells remain unadmitted",
+        },
+        "claude_boolean_pilot": {
+            "source": "evidence/law16-claude-boolean-pilot-v1/capsule.json",
+            "status": claude_boolean_pilot["status"],
+            "attempts": claude_boolean_pilot["attempts"],
+            "campaign_admission": claude_boolean_pilot["campaign_admission"],
+            "nonclaims": claude_boolean_pilot["nonclaims"],
         },
         "pins_and_trust": {
             "observation_identity": "local historical pins, retained as exact executable/tool evidence",

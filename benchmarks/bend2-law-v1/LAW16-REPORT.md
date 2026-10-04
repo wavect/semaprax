@@ -75,10 +75,23 @@ recorded a provider-reported **$0.023741** charge, but stopped with
 `error_max_budget_usd` before producing a source outcome. Its sanitized receipt
 does not retain the provider stream, and this failed probe does not supply
 monetary cost for the ten matched Codex pairs or admit a Claude campaign.
+Two later [bounded Claude Bend attempts](evidence/law16-claude-boolean-pilot-v1/capsule.json)
+recorded provider costs of **$0.008302** and **$0.016636**. One generated
+unsupported Bend syntax; the other returned prose instead of the declared
+JSON source shape. Neither is a successful matched trial, and no ten-pair
+Claude campaign was run. Provider streams and prompts are not retained in
+that sanitized capsule.
 The [Boolean annotation receipt](evidence/law16-boolean-negation-annotation-summary-v1.json)
 binds all 20 final sources in those ten pairs to their fixed seeds and reports
 explicit annotation, proof-term, and changed-byte counts. These textual counts
 do not measure reasoning effort or make raw bytes comparable across languages.
+
+A separate [matched Boolean refactor cell](evidence/law16-boolean-refactor-cell-v1/result.json)
+retains 16 raw streams for real Bend ordinary/verdict and SEMAPRAX check/Z3
+candidate and law-breaking attack routes. Both refactored candidates pass;
+Bend ordinary/verdict and SEMAPRAX Z3 reject their attacks. SEMAPRAX `check`
+accepts its attack as a nonproof observation. This scalar cell does not admit
+the original checked-`u32` refactor or a project-sized incremental edit.
 
 ## Trust boundaries
 

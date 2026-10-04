@@ -138,6 +138,10 @@ class CurrentReportTests(unittest.TestCase):
         self.assertEqual(probe["result"]["subtype"], "error_max_budget_usd")
         self.assertFalse(probe["campaign_admission"])
         self.assertFalse(probe["raw_provider_stream_retained"])
+        refactor = value["supplemental_boolean_refactor_cell"]
+        self.assertEqual(refactor["raw_streams"], 16)
+        self.assertEqual(refactor["checked_u32"], "not_admitted_by_this_boolean_cell")
+        self.assertFalse(value["claude_boolean_pilot"]["campaign_admission"])
         self.assertEqual(value["status"], "incomplete")
 
 

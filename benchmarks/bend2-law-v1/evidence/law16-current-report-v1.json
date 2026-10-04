@@ -856,6 +856,70 @@
     "source": "evidence/law16-cache-isolation-probe-v1/receipt.json",
     "status": "unavailable"
   },
+  "claude_boolean_pilot": {
+    "attempts": [
+      {
+        "artifacts": {
+          "attack_stderr": {
+            "bytes": 249,
+            "encoding": "base64",
+            "path": "attempt-1/attack.stderr.base64",
+            "sha256": "sha256:7c5d175fb1e481952bc15aba882682625de7d2b5c5f5f4cd7ede7f5d9ad583a9"
+          },
+          "candidate_source": {
+            "bytes": 149,
+            "path": "attempt-1/final-source.bend",
+            "sha256": "sha256:3a521e801f02dacd269a15ae8d87f8915871f6a22babda95cd661a56ee5d3585"
+          },
+          "candidate_stderr": {
+            "bytes": 220,
+            "path": "attempt-1/candidate.stderr",
+            "sha256": "sha256:0a5626a2464271f85be4ff5d5f6418e8cc5a208b03546fbec5d7f5308025e297"
+          }
+        },
+        "id": "bend-syntax-1",
+        "provider": {
+          "cost_usd": "0.008302",
+          "duration_ms": 8376,
+          "input_tokens": 4027,
+          "output_tokens": 855,
+          "stream_bytes": 19206,
+          "stream_sha256": "sha256:9384acd02737ccc158391491a08f32377258af20ff750dcdfa11dd1066466f20",
+          "subtype": "success"
+        },
+        "result": "candidate_rejected_before_law_verdict: unsupported unicode quantifier",
+        "verdict": {
+          "attack_exit_code": 1,
+          "candidate_exit_code": 1
+        }
+      },
+      {
+        "id": "bend-syntax-2",
+        "provider": {
+          "cache_creation_input_tokens": 4248,
+          "cost_usd": "0.016636",
+          "duration_ms": 13719,
+          "input_tokens": 10,
+          "output_tokens": 1626,
+          "stream_bytes": 24372,
+          "stream_sha256": "sha256:6e90b9cfa44ca84f220f0b9e8d90f465df74e79fd016e96eded51fe4a90ab2c2",
+          "subtype": "success"
+        },
+        "result": "response_parse_failed: provider assistant text was prose, not the declared JSON schema",
+        "verdict": "not_run_without_a_parseable_candidate_source"
+      }
+    ],
+    "campaign_admission": false,
+    "nonclaims": [
+      "provider streams, session identifiers, assistant transcripts, credentials, and prompt bodies are not retained here",
+      "the first candidate failure and fixed-attack rejection are not a successful matched pilot",
+      "the second provider success does not establish a source outcome because its response was not schema-valid",
+      "the raw Claude streams bind provider telemetry but do not retain the initial prompt event, so this capsule does not claim an exact prompt digest",
+      "no SEMAPRAX pilot or ten-pair campaign ran"
+    ],
+    "source": "evidence/law16-claude-boolean-pilot-v1/capsule.json",
+    "status": "two_bounded_bend_attempts_nonadmitted"
+  },
   "closure": "no: the matched Boolean cell and supplemental U32 semantic theorem comparison do not satisfy the original checked-u32 source admission, cold-cache, project-sized/refactor/incremental, or monetary cost-event acceptance requirements",
   "matched_boolean": {
     "agent_pairs": {
@@ -1776,6 +1840,15 @@
   "schema": "semaprax.bend2-law-benchmark.current-report.v1",
   "scope": "local pinned Boolean-negation evidence and separate guarded-U32 theorem/control routes",
   "status": "incomplete",
+  "supplemental_boolean_refactor_cell": {
+    "checked_u32": "not_admitted_by_this_boolean_cell",
+    "raw_streams": 16,
+    "routes": 8,
+    "schema": "semaprax.bend2-law-benchmark.boolean-refactor-cell.v1.review.v1",
+    "scope": "matched scalar Boolean refactor and law-breaking edit; original checked-u32 cells remain unadmitted",
+    "source": "evidence/law16-boolean-refactor-cell-v1/result.json",
+    "status": "completed_local_matched_boolean_refactor"
+  },
   "supplemental_full_u32_encoding_controls": {
     "build_commit_association": "caller_declared_not_attested",
     "candidate_and_attack_routes": 12,

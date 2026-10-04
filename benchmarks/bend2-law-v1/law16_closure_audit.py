@@ -208,10 +208,11 @@ def render() -> dict:
             "id": "AC2",
             "text": ACCEPTANCE_TEXT[1],
             "status": "partial",
-            "assessment": "Supplemental guarded-i64/U32 v2 retains one candidate/attack pair for balance and sort across Bend ordinary, Bend verdict, and SEMAPRAX native routes, plus four SEMAPRAX domain refusals. A separate Bend source theorem proves sortedness and multiplicity for all finite U32 lists, while Lean proves the aligned laws for LAW15 collection.sort over all finite List<i64>. These authenticate distinct source algorithms and trusted computing bases. No LAW16 source theorem or source translation/lowering certificate is established; original checked-u32 syntax remains unsupported.",
+            "assessment": "Supplemental guarded-i64/U32 v2 retains balance and sort controls, and separate Bend and Lean source theorems prove aligned universal sort laws over the U32 subdomain for distinct algorithms. A new matched scalar-Boolean refactor cell accepts both candidates and rejects law-breaking attacks with Bend verdict and SEMAPRAX Z3; SEMAPRAX check accepts its attack as an explicit nonproof result. None establishes the original checked-u32 source identities or source translation/lowering; checked-u32 syntax remains unsupported.",
             "evidence": common + [
                 evidence("evidence/full-u32-encoding-controls-v1/report.json"),
                 evidence("full_u32_equal_spec.py"),
+                evidence("evidence/law16-boolean-refactor-cell-v1/result.json"),
                 evidence("fixtures/full-u32-encoding-v1/sort-equal-spec.smt2"),
                 evidence("evidence/law16-guarded-i64-balance-smt-v1/result.json"),
                 evidence("law16_guarded_i64_balance_smt.py"),
@@ -259,12 +260,13 @@ def render() -> dict:
             "id": "AC6",
             "text": ACCEPTANCE_TEXT[5],
             "status": "partial",
-            "assessment": "Ten fixed-budget matched Boolean agent pairs include candidate/attack outcomes and retained token counters, but their Codex streams lack monetary charges. A separate Claude Haiku probe emitted a monetary cost event and failed at its budget guard before any source outcome; it does not supply campaign cost provenance. Other planned task cells lack corresponding ten-trial agent campaigns.",
+            "assessment": "Ten fixed-budget matched Boolean Codex pairs include candidate/attack outcomes and token counters but no monetary charges. A separate Claude budget probe and two bounded Bend pilots emitted cost events; the latter failed source parsing or verdict, and none is an admitted matched pair. Other planned task cells lack corresponding ten-trial agent campaigns.",
             "evidence": common + [
                 evidence("evidence/law16-boolean-negation-agent-pilot-v1/review.json"),
                 evidence("evidence/law16-boolean-negation-agent-campaign-v1/review.json"),
                 evidence("evidence/law16-effort-summary-v1.json"),
                 evidence("evidence/law16-claude-cost-pilot-v1.json"),
+                evidence("evidence/law16-claude-boolean-pilot-v1/capsule.json"),
             ],
         },
         {
@@ -283,7 +285,7 @@ def render() -> dict:
         ),
         (
             "partial",
-            "Boolean, balance, and sort controls are retained, including a supplemental LAW15 List<i64> Lean proof test. The v2 balance/sort source controls are one candidate/attack pair per route, not the required theorem task campaigns. The planned LAW16 list identities, refactor, law-breaking agent edit, and project-sized incremental cells remain unsupported or unavailable.",
+            "Boolean, balance, and sort controls are retained, including a supplemental LAW15 List<i64> Lean proof test and a matched Boolean refactor candidate/attack cell. The original checked-u32 refactor, law-breaking agent edit, and project-sized incremental cells remain unsupported or unavailable.",
         ),
         (
             "partial",
@@ -295,7 +297,7 @@ def render() -> dict:
         ),
         (
             "partial",
-            "Ten fixed-budget matched agent pairs cover the Boolean task and retain candidate/attack outcomes and token counters. A separate failed Claude probe has a cost event but no source outcome; the admitted Codex trials lack monetary events, and unsupported planned tasks have no matched agent trials.",
+            "Ten fixed-budget matched Codex pairs cover the Boolean task and retain candidate/attack outcomes and token counters without monetary events. Separate Claude cost attempts have monetary events but no successful source outcome, and unsupported planned tasks have no matched agent trials.",
         ),
         (
             "met",
@@ -337,10 +339,10 @@ def render() -> dict:
             "evidence": [evidence("evidence/law16-i64-list-proof-v1/capsule.json")],
         },
         {
-            "id": "law_preserving_refactor",
+            "id": "original_checked_u32_law_preserving_refactor",
             "classification": "unsupported",
             "blocking_requirements": ["R2"],
-            "status": "no matched refactor-equivalence route; checked-u32 parser admission blocks the planned fixture",
+            "status": "a separate scalar-Boolean refactor route is retained, but checked-u32 parser admission still blocks the original planned refactor fixture",
             "evidence": [evidence("evidence/law16-checked-u32-nonadmission-v1/review.json")],
         },
         {
@@ -383,7 +385,7 @@ def render() -> dict:
             "classification": "unavailable",
             "blocking_requirements": ["AC6", "R5"],
             "status": unsupported["cost"],
-            "evidence": common + [evidence("evidence/law16-claude-cost-pilot-v1.json")],
+            "evidence": common + [evidence("evidence/law16-claude-cost-pilot-v1.json"), evidence("evidence/law16-claude-boolean-pilot-v1/capsule.json")],
         },
     ]
 
@@ -431,7 +433,7 @@ def render() -> dict:
             },
             {
                 "id": "AC6",
-                "reason": "The admitted ten-trial agent evidence has no monetary cost event and covers only the Boolean task; a separate Claude cost probe failed before any source outcome.",
+                "reason": "The admitted ten-trial agent evidence has no monetary cost event and covers only the Boolean task; separate Claude cost attempts produced no successful source outcome.",
                 "kind": "missing_agent_telemetry_and_task_coverage",
             },
         ],

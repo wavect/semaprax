@@ -394,10 +394,12 @@ fn tc01_scripted_providers_report_unavailable_and_older_observations_still_load(
     let cfg = config(&e, Task::default(), None);
     let r = go(&cfg, &fake, None, proposal("replace_function_body"));
     assert_eq!(r.status, "approved-candidate-ready", "{:?}", r.refusals);
-    let rec = &r.context["usage_receipts"]["entries"][0]["receipt"];
-    assert_eq!(rec["availability"]["state"], "unavailable");
-    assert_eq!(rec["availability"]["reason"], "scripted_or_legacy_provider");
-    assert_eq!(rec["cost"]["estimated"]["basis"], "unpriced_model");
+    // A scripted proposal is a local hit before routing: no dispatch, so no receipt.
+    assert!(r.context.get("usage_receipts").is_none_or(|v| v.is_null()));
+    // The default receipt of a legacy provider is explicitly unavailable.
+    let j = ProposalReceipt::unavailable("scripted_or_legacy_provider").to_json(None);
+    assert_eq!(j["availability"]["state"], "unavailable");
+    assert_eq!(j["usage"]["output"], "unknown");
     // An observation written before TC-01 has neither member and still loads.
     let mut o = Observation::new(
         "p",
@@ -647,7 +649,13 @@ fn tc02_unsupported_controls_are_reported_and_strict_mode_makes_zero_outbound_re
         output_cap: Support::Supported,
         reasoning: Support::Unknown,
     };
-    cfg.budget.generation.reasoning_override = Some(Effort::Low);
+    // A fresh run: the first one journaled its proposal for this lineage.
+    let mut cfg = config(&e, task(Some(200), Destination::Local), None);
+    cfg.budget.generation = GenerationPolicy {
+        strict: true,
+        reasoning_override: Some(Effort::Low),
+        ..Default::default()
+    };
     let (r, _) = drive(&cfg, &fake, &a);
     assert_eq!((codes(&r), a.calls.get()), (vec!["SPX-HPD101"], 0));
 }

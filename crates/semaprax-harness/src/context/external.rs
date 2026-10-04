@@ -373,6 +373,13 @@ fn parse_payload(p: &Value) -> HarnessResult<(Vec<RawItem>, Coverage, bool)> {
         })
         .collect::<Option<Vec<_>>>()
         .ok_or_else(bad)?;
+    // Extraction errors are files the provider failed on: report them as skipped.
+    let mut skipped = skipped;
+    for x in c["extraction_errors"].as_array().into_iter().flatten() {
+        if let (Some(p), Some(r)) = (x["path"].as_str(), x["reason"].as_str()) {
+            skipped.push((p.to_string(), format!("extraction error: {r}")));
+        }
+    }
     let cov = Coverage {
         complete: c["complete"].as_bool().ok_or_else(bad)?,
         exhaustive: c["exhaustive"].as_bool().ok_or_else(bad)?,

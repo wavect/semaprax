@@ -1,7 +1,9 @@
 # Graphify adapter evidence (HP-07)
 
 Raw local measurements for the ADR 0001 revisit. They are not a benchmark of
-task accuracy (that is HP-17) and say nothing about Graft or native-only.
+task accuracy (that is HP-17). The first part (to "Not measured") is the original adapter
+run; the second part, "2026-10-04 host run", compares Graphify with Graft and native-only
+through the common host.
 
 ## Environment
 
@@ -105,3 +107,41 @@ shim, stale-after-edit, restart reuse and unsupported-version/identity refusal.
 Task accuracy, model-token cost of answers, comparison against Graft or
 native-only context, Linux, any Graphify version other than 0.9.25. Model-backed
 extraction (docs, PDFs, media, LLM providers) was never run.
+
+# 2026-10-04 host run (HP-07 revisit)
+
+Environment, commands and the full six-task table are in
+[../graft/EVIDENCE.md](../graft/EVIDENCE.md) (same run, same snapshots, same
+required-fact checks). Graphify 0.9.25, `/Users/kevin/.local/bin/graphify`, macOS arm64.
+
+## Fixes made for the real host path
+
+* Digests were bare hex; now `sha256:<hex>` (contract). Line digests hash one line
+  without terminator, which is the broker's convention, so items verify.
+* `coverage.extraction_errors` was a list of strings; the contract requires
+  `[{path, reason}]`. Only log lines that name a project file are reported.
+* The adapter read `limit`; it now reads the contract's `max_items`. Default refresh is
+  now `auto` (rebuild when the graph is behind the tree) because the broker never
+  resends a refresh hint; `never` returns `stale`, `rebuild` forces.
+* Items from `references` carry `edges` `[{target, relation, provenance}]`;
+  provenance is `structural` for resolved EXTRACTED edges and `inferred` otherwise,
+  never `compiler-verified`.
+
+## Results against the revisit gates (macOS arm64, 0.9.25)
+
+| Gate | Result |
+| --- | --- |
+| 1 pinned version outside Cargo | met: adapter verifies `graphifyy` 0.9.25 from dist-info metadata |
+| 2 local code-only by default | met: `extract --code-only`, four-variable allowlisted env; planted `*_API_KEY`/`GRAFT_PROVIDER`/proxy values not found in index, cache or output; cold and warm runs pass with network denied |
+| 3 generated graphs outside Git | met: graph lives in the harness cache; `git status --ignored` of the project is clean |
+| 4 lower size at equal-or-better accuracy on real tasks | partial: smaller than full-source on the three real-file tasks (0.19x Rust, 0.09x JS, 0.06x Python) and all required facts present; larger on the 3-file fixture (4.6x-7.1x) and missed the T1 caller fact; accuracy is not a model-answer measurement |
+| 5 merge SEMAPRAX nodes, `.spx` not opaque | met by composition, not by extraction: `.spx`/`.spatch`/`Cargo.toml` are reported skipped with a reason, checked `.spx` facts come from the compiler (identical across Graft and Graphify, `project_switches_graft_to_graphify_by_config_only`) |
+
+## `graphify benchmark` today (0.9.25)
+
+`graphify extract crates/semaprax-harness/src/context --code-only --no-cluster --out <d>`
+then `graphify benchmark <d>/graphify-out/graph.json`: still `KeyError: 'links'`
+(`networkx/.../node_link.py`, `for d in data[edges]`). Without `--no-cluster`, benchmark
+on the same 9-file corpus reports `Benchmark error: No matching nodes found for
+sample questions.` (the earlier `src` run in this file benchmarked successfully, 6.3x).
+The adapter does not use `--no-cluster` and does not depend on `benchmark`.

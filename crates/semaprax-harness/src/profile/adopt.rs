@@ -64,7 +64,12 @@ fn read_capped<R: Read + Send + 'static>(mut r: R) -> std::thread::JoinHandle<Ve
 /// Run `exe <argv>` with a scrubbed environment, a private temp working
 /// directory, a 5 s deadline and a 64 KiB output cap. `Err` explains why no
 /// version could be read.
-pub fn run_probe(home: &Path, exe: &Path, argv: &[String]) -> Result<String, String> {
+pub fn run_probe(
+    home: &Path,
+    exe: &Path,
+    argv: &[String],
+    runtime_dirs: &[PathBuf],
+) -> Result<String, String> {
     let dir = home.join("tmp").join(format!(
         "probe-{}-{}",
         std::process::id(),
@@ -75,7 +80,16 @@ pub fn run_probe(home: &Path, exe: &Path, argv: &[String]) -> Result<String, Str
         let mut child = Command::new(exe)
             .args(argv)
             .env_clear()
-            .env("PATH", "/usr/bin:/bin")
+            // Interpreter-shebang upstreams (`#!/usr/bin/env node`) need their
+            // runtime: only the directories of the explicitly named runtimes.
+            .env("PATH", {
+                let mut p: Vec<String> = runtime_dirs
+                    .iter()
+                    .map(|d| d.display().to_string())
+                    .collect();
+                p.extend(["/usr/bin".into(), "/bin".into()]);
+                p.join(":")
+            })
             .env("HOME", &dir)
             .current_dir(&dir)
             .stdin(Stdio::null())
@@ -214,7 +228,13 @@ pub fn adopt(
                 notes.push("the descriptor declares no identity probe; the upstream is recorded as unidentified".into());
                 (None, false)
             } else {
-                match run_probe(&home, &exe, &up.identity_probe) {
+                let runtime_dirs: Vec<PathBuf> = ["HARNESS_NODE", "HARNESS_PYTHON"]
+                    .iter()
+                    .filter_map(|k| env.vars.get(*k))
+                    .filter_map(|v| Path::new(v).parent().map(Path::to_path_buf))
+                    .filter(|d| d.is_absolute())
+                    .collect();
+                match run_probe(&home, &exe, &up.identity_probe, &runtime_dirs) {
                     Ok(v) => {
                         let ok = up.versions.contains(&v);
                         if !ok {

@@ -47,3 +47,29 @@ permission-scope digest, query, output contract. Authority
 failed recheck purges that provider's entries. Bounded by entries, bytes, TTL;
 a newer revision supersedes older entries of the same query. `--purge-cache`
 purges everything.
+
+## Real providers (HP-06, HP-07)
+
+`packages/semaprax-harness-adapters/graft` (Graft 0.18.0) and `.../graphify`
+(Graphify 0.9.25) implement `context.repository/v1` over real tools; evidence in
+their `EVIDENCE.md`, selection by `[capability."context.repository"] provider = ...`
+only.
+
+Additive optional contract members (v1 stays closed otherwise; validated, bounded):
+
+- request: `refresh` (`auto` | `rebuild` | `never`), `exhaustive` (references),
+  `in` (project-relative path prefix on search/references). Page size is
+  `max_items`, never `limit`. `auto` rebuilds a provider index that is behind the
+  working tree; `never` answers `stale`.
+- result: `metadata` (at most 8 KiB, scalars or one level of scalar-valued objects;
+  still scanned for authority-like members, `SPX-HPA036`), `coverage.extraction_errors`
+  `[{path, reason}]` (surfaced by the broker as skipped entries), item `edges`
+  `[{target <= 1024, relation <= 64, provenance structural|inferred}]`. An edge can
+  never be `compiler-verified`.
+
+Digest convention: an item's `digest` is `sha256:<hex>` of lines `start..=end` joined
+by LF with no trailing terminator, the form the broker re-hashes. A provider using
+another convention has every item reported `stale-digest` and unverified.
+
+Interpreter-shebang upstreams need their runtime to be probed: `adopt` adds the
+directories of `HARNESS_NODE`/`HARNESS_PYTHON` to the probe's `PATH`.

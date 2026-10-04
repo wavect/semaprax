@@ -1,0 +1,6 @@
+schema = "semaprax.project.v1"
+name = "ledger"
+entry = "ledger.app"
+sources = ["src/app.spx", "src/core.spx", "src/tests.spx"]
+web_exports = ["ledger.core.add-entry", "ledger.core.split-evenly"]
+tests = ["ledger.tests"]

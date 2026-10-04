@@ -63,14 +63,17 @@ export class Context {
 }
 
 function pathPrefix(payload) {
-  if (payload.path_prefix === undefined) return null;
-  const p = safeRel(payload.path_prefix);
-  if (!p) throw new Refusal('refused', 'graft.bad-path', 'path_prefix must be a relative path inside the project');
+  // Contract member `in`; `path_prefix` is the adapter-internal spelling.
+  const raw = payload.in ?? payload.path_prefix;
+  if (raw === undefined) return null;
+  const p = safeRel(raw);
+  if (!p) throw new Refusal('refused', 'graft.bad-path', '`in` must be a relative path inside the project');
   return p;
 }
 function limitOf(payload, dflt, max = 100) {
-  const n = payload.limit ?? dflt;
-  if (!Number.isInteger(n) || n < 1) throw new Refusal('refused', 'graft.bad-payload', 'limit must be a positive integer');
+  // Contract member `max_items`; `limit` is the adapter-internal spelling.
+  const n = payload.max_items ?? payload.limit ?? dflt;
+  if (!Number.isInteger(n) || n < 1) throw new Refusal('refused', 'graft.bad-payload', 'max_items must be a positive integer');
   return Math.min(n, max);
 }
 function stringArg(payload, name, max = 500) {
@@ -82,7 +85,7 @@ function stringArg(payload, name, max = 500) {
 // -- operations: each returns {items, truncated, exhaustive, diags, extra} ---------------
 
 async function orient(ctx, payload) {
-  const maxDirs = limitOf({ limit: payload.max_dirs }, 16, 64);
+  const maxDirs = limitOf({ max_items: payload.max_items ?? payload.max_dirs }, 16, 64);
   const r = await ctx.query(['map', '--json', '--max-dirs', String(maxDirs)]);
   if (r.code !== 0) throw new RunError('query-failed', `graft map exited ${r.code}: ${firstLine(r.stderr)}`);
   const m = parseJson(r, 'map');
@@ -242,13 +245,16 @@ export async function invoke(cfg, req, signal, session) {
     }, [{ code: 'graft.semaprax-source', message: reason }]];
   }
   session.identity ??= await probeIdentity(cfg, signal);
-  let index = await ensureFresh(cfg, session.identity.version, { signal, deadline });
+  const refresh = payload.refresh ?? 'auto';
+  if (!['auto', 'rebuild', 'never'].includes(refresh)) throw new Refusal('refused', 'graft.bad-payload', 'refresh must be auto, rebuild or never');
+  let index = await ensureFresh(cfg, session.identity.version, { signal, deadline, force: refresh === 'rebuild', readOnly: refresh === 'never' });
+  if (index.action === 'drift') return ['stale', null, [{ code: 'graft.index-stale', message: 'index is behind the working tree and refresh=never' }]];
   let result;
   for (let attempt = 0; attempt < 2; attempt++) {
     const ctx = new Context(cfg, req, signal, { index });
     result = { ctx, ...(await OPS[req.operation](ctx, payload)) };
     if (!ctx.stale.size) break;
-    if (attempt === 0) {
+    if (attempt === 0 && refresh !== 'never') {
       // Content changed under an index graft's own check considered fresh (e.g. mtime preserved): force a rebuild.
       const again = await ensureFresh(cfg, session.identity.version, { signal, deadline, force: true });
       again.ms += index.ms; again.action = 'refresh'; again.files_changed = Math.max(again.files_changed, ctx.stale.size);

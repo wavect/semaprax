@@ -1,0 +1,9 @@
+module ledger.tests;
+use function @id("ledger.core.add-entry") from ledger.core as add_entry;
+use function @id("ledger.core.split-evenly") from ledger.core as split_evenly;
+
+@id("ledger.tests.main")
+fn main() -> i64
+{
+    if add_entry(40, 2) == 42 && split_evenly(84, 2) == 42 { 0 } else { 1 }
+}

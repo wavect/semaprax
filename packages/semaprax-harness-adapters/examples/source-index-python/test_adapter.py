@@ -42,8 +42,8 @@ class SourceIndexTest(unittest.TestCase):
     def test_orient_counts(self):
         r = call(make_tree(), "orient", {})
         self.assertEqual(r["status"], "complete")
-        self.assertEqual(r["payload"]["files"], 2)
-        self.assertEqual(r["payload"]["languages"], {"python": 1, "rust": 1})
+        self.assertEqual(r["payload"]["metadata"]["files"], 2)
+        self.assertEqual(r["payload"]["metadata"]["languages"], {"python": 1, "rust": 1})
 
     def test_search_items_and_hidden_dirs_skipped(self):
         r = call(make_tree(), "search", {"query": "greet"})

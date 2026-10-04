@@ -3055,6 +3055,12 @@ These areas are deliberately outside the public compiler contract:
   environment. Its v2 `FnOnceI64` scalar snapshot may read a mutable binding at
   construction, but it admits no state-retaining mutable environment, borrowed
   capture or registry authority;
+- `src/hir/closure/mutable.rs` authenticates the noncopyable scalar state and
+  direct transition profile. `src/interpreter/mutable_closure.rs`,
+  `src/codegen/native_emit/mutable.rs` and the Wasm aggregate invocation lane
+  own guarded success-only state commit. `public_sdk/mutable_callback.rs`
+  renders a same-thread unique Rust owner and FnMut adapter for the actual
+  source-created native receiver; each call owns a fresh checked status context;
 - `crates/semaprax-native-rust-interop-builder/src/public_sdk/indexed.rs`:
   narrow public RI-04 admission for one checked scalar Rust import. It replays
   the selected RI-03 index and exact caller-supplied package source bytes

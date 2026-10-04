@@ -53,31 +53,60 @@ pub(crate) fn capture_names_scoped(
         }
         match item {
             Item::Block(statements, next, tail, mut locals) => {
-                let Some(statement) = statements.get(next) else { pending.push(Item::Expr(tail, locals)); continue; };
+                let Some(statement) = statements.get(next) else {
+                    pending.push(Item::Expr(tail, locals));
+                    continue;
+                };
                 match statement {
-                    Statement::Let { name, declared, value, .. } => {
-                        if declared.as_ref().is_some_and(|ty| !scalar(ty)) { return Err(reject("closure locals must be Copy scalars")); }
-                        let prior = locals.clone(); locals.insert(name);
+                    Statement::Let {
+                        name,
+                        declared,
+                        value,
+                        ..
+                    } => {
+                        if declared.as_ref().is_some_and(|ty| !scalar(ty)) {
+                            return Err(reject("closure locals must be Copy scalars"));
+                        }
+                        let prior = locals.clone();
+                        locals.insert(name);
                         pending.push(Item::Block(statements, next + 1, tail, locals));
                         pending.push(Item::Expr(value, prior));
                     }
-                    Statement::Assign { name, field, value, .. } => {
-                        if field.is_some() || !locals.contains(name.as_str()) { return Err(reject("closure snapshots cannot be mutated")); }
+                    Statement::Assign {
+                        name, field, value, ..
+                    } => {
+                        if field.is_some() || !locals.contains(name.as_str()) {
+                            return Err(reject("closure snapshots cannot be mutated"));
+                        }
                         pending.push(Item::Block(statements, next + 1, tail, locals.clone()));
                         pending.push(Item::Expr(value, locals));
                     }
-                    Statement::While { condition, body, .. } => {
+                    Statement::While {
+                        condition, body, ..
+                    } => {
                         pending.push(Item::Block(statements, next + 1, tail, locals.clone()));
-                        pending.push(Item::Expr(body, locals.clone())); pending.push(Item::Expr(condition, locals));
+                        pending.push(Item::Expr(body, locals.clone()));
+                        pending.push(Item::Expr(condition, locals));
                     }
                     _ => return Err(reject("closure body contains an unsupported statement")),
                 }
             }
             Item::Expr(expression, locals) => match &expression.kind {
-                ExprKind::Int(_) | ExprKind::Int32(_) | ExprKind::Char(_) | ExprKind::Uint8(_) | ExprKind::Usize(_) | ExprKind::Float32(_) | ExprKind::Float64(_) | ExprKind::Bool(_) => {}
+                ExprKind::Int(_)
+                | ExprKind::Int32(_)
+                | ExprKind::Char(_)
+                | ExprKind::Uint8(_)
+                | ExprKind::Usize(_)
+                | ExprKind::Float32(_)
+                | ExprKind::Float64(_)
+                | ExprKind::Bool(_) => {}
                 ExprKind::Var(name) => {
-                    if locals.contains(name.as_str()) { continue; }
-                    if name == "result" || outer.get(name.as_str()).is_none_or(|ty| !scalar(ty)) { return Err(reject("closures capture only lexical Copy scalar values")); }
+                    if locals.contains(name.as_str()) {
+                        continue;
+                    }
+                    if name == "result" || outer.get(name.as_str()).is_none_or(|ty| !scalar(ty)) {
+                        return Err(reject("closures capture only lexical Copy scalar values"));
+                    }
                     captures.insert(name.clone());
                     if captures.len() > 8 {
                         return Err(reject(
@@ -180,12 +209,13 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             return Ok(());
         }
         if *mutable {
-            return Err(error(
+            self.values.push(Some(super::mutable_closure::construction(
                 self.program,
-                "SPX-T308",
-                "transactional mutable closures are not yet lowered in this compiler revision",
-                expression.span,
-            ));
+                self.current,
+                expression,
+                &self.scopes[scope].bindings,
+            )?));
+            return Ok(());
         }
         if !self.current.type_parameters.is_empty()
             && !super::generic_collection_profile(self.current)
@@ -292,6 +322,15 @@ pub(super) fn oracle(
     types: &super::type_table::TypeTable<'_>,
     diagnostics: &mut Vec<Diagnostic>,
 ) -> Option<CheckedValue> {
+    if matches!(expression.kind, ExprKind::Closure { mutable: true, .. }) {
+        return match super::mutable_closure::construction(program, current, expression, outer) {
+            Ok(value) => Some(value),
+            Err(error) => {
+                diagnostics.push(error);
+                None
+            }
+        };
+    }
     let ExprKind::Closure {
         params,
         return_type,

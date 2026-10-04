@@ -1,7 +1,7 @@
-//! Transactional mutable carrier body product. Source admission remains closed
-//! until every backend implements state commit and receiver re-entry refusal.
+//! Noncopyable transactional scalar receiver and independently checked uses.
 use super::*;
-use crate::ast::{Expr, ExprKind, ParamMode, Statement, Type};
+
+use crate::ast::{Expr, ExprKind, ParamMode, Type};
 use std::collections::BTreeMap;
 
 impl Resolver<'_> {
@@ -50,39 +50,37 @@ impl Resolver<'_> {
                 "mutable closure body requires a transactional state update",
             ));
         };
-        let [Statement::Assign {
-            name: state,
-            field: None,
-            value: next,
-            ..
-        }] = statements.as_slice()
-        else {
+        if !statements.is_empty() {
             return Err(hir_error(
-                "mutable closure requires exactly one direct state assignment",
-            ));
-        };
-        if state == &params[0].name || !matches!(&tail.kind, ExprKind::Var(name) if name == state) {
-            return Err(hir_error(
-                "mutable closure must return its exact updated capture",
+                "mutable closure requires a direct transition call",
             ));
         }
         let ExprKind::Call {
             name,
             type_arguments,
             args,
-        } = &next.kind
+        } = &tail.kind
         else {
             return Err(hir_error(
-                "mutable closure update must be a checked ordinary function call",
+                "mutable closure requires a direct transition call",
+            ));
+        };
+        let [state, argument] = args.as_slice() else {
+            return Err(hir_error("mutable transition requires state and argument"));
+        };
+        let ExprKind::Var(state) = &state.kind else {
+            return Err(hir_error(
+                "mutable state must be a direct available i64 binding",
             ));
         };
         if !type_arguments.is_empty()
-            || args.len() != 2
-            || !matches!(&args[0].kind, ExprKind::Var(name) if name == state)
-            || !matches!(&args[1].kind, ExprKind::Var(name) if name == &params[0].name)
+            || state == &params[0].name
+            || !matches!(&argument.kind, ExprKind::Var(name) if name == &params[0].name)
+            || outer.contains_key(name)
+            || name == &params[0].name
         {
             return Err(hir_error(
-                "mutable closure update must pass state then invocation argument",
+                "mutable transition must pass state then invocation argument",
             ));
         }
         let target = self
@@ -150,28 +148,21 @@ impl Resolver<'_> {
             .collect();
         // The call result is the candidate state. Only the carrier invocation
         // commits it, after this checked body and its callee contracts succeed.
-        let candidate_body = Expr {
-            kind: ExprKind::Block {
-                statements: Vec::new(),
-                tail: Box::new(next.clone()),
-            },
-            span: body.span,
-        };
         #[cfg(test)]
         let body = if reference {
-            self.resolve_expr_recursive_reference(&execution, &candidate_body, &bindings, "body")?
+            self.resolve_expr_recursive_reference(&execution, body, &bindings, "body")?
         } else {
-            self.resolve_expr(&execution, &candidate_body, &bindings, "body")?
+            self.resolve_expr(&execution, body, &bindings, "body")?
         };
         #[cfg(not(test))]
         let body = {
             let _ = reference;
-            self.resolve_expr(&execution, &candidate_body, &bindings, "body")?
+            self.resolve_expr(&execution, body, &bindings, "body")?
         };
         Ok(ResolvedExpr {
             id,
             ty: ResolvedType::MutFunctionI64,
-            ownership: OwnershipMode::Value,
+            ownership: OwnershipMode::Own,
             kind: ResolvedExprKind::Closure {
                 parameters: vec![parameter],
                 captures: vec![ResolvedClosureCapture {
@@ -209,7 +200,7 @@ pub(crate) fn validate(
         return Err(hir_error("mutable closure shape is absent"));
     };
     if expression.ty != ResolvedType::MutFunctionI64
-        || expression.ownership != OwnershipMode::Value
+        || expression.ownership != OwnershipMode::Own
         || captures.len() != 1
         || parameters.len() != 1
         || body.ty != ResolvedType::I64
@@ -309,6 +300,17 @@ pub(crate) fn validate_receiver(
             "mutable invocation requires a direct local receiver",
         ));
     };
+    if !place.projections.is_empty() {
+        return Err(hir_error("mutable receiver projections are not admitted"));
+    }
+    validate_local_binding(program, &place.root, &callable.ty)
+}
+
+fn validate_local_binding(
+    program: &ResolvedProgram,
+    root: &ValueId,
+    ty: &ResolvedType,
+) -> Result<(), Diagnostic> {
     let mut found = 0usize;
     let mut mutable = false;
     for function in program.functions.iter().chain(
@@ -326,21 +328,77 @@ pub(crate) fn validate_receiver(
                         ..
                     } = statement
                     {
-                        if binding.id == place.root {
+                        if &binding.id == root {
                             found += 1;
                             mutable = *declared
-                                && binding.ty == callable.ty
-                                && binding.ownership == OwnershipMode::Value;
+                                && &binding.ty == ty
+                                && binding.ownership == OwnershipMode::Own;
                         }
                     }
                 }
             }
         });
     }
-    if found != 1 || !mutable || !place.projections.is_empty() {
+    if found != 1 || !mutable {
         return Err(hir_error(
             "mutable invocation requires its unique mutable local declaration",
         ));
+    }
+    Ok(())
+}
+
+/// Authenticate all uses independently of source verification. Receiver places
+/// belong only to direct invocations; source bindings cannot create aliases.
+pub(crate) fn validate_uses(program: &ResolvedProgram) -> Result<(), Diagnostic> {
+    use std::collections::BTreeSet;
+    for function in program.functions.iter().chain(
+        program
+            .function_instances
+            .iter()
+            .map(|instance| &instance.function),
+    ) {
+        if function.params.iter().any(|p| p.ty.is_mut_function()) {
+            return Err(hir_error("mutable callback parameters are not admitted"));
+        }
+        let mut receiver_ids = BTreeSet::new();
+        let mut invalid = false;
+        super::super::function_value::walk(function, |expression| {
+            if let ResolvedExprKind::Invoke { callable, args } = &expression.kind {
+                if callable.ty.is_mut_function() {
+                    receiver_ids.insert(callable.id.clone());
+                    let ResolvedExprKind::Place(receiver) = &callable.kind else {
+                        invalid = true;
+                        return;
+                    };
+                    let mut pending = args.iter().collect::<Vec<_>>();
+                    while let Some(argument) = pending.pop() {
+                        if let ResolvedExprKind::Invoke { callable, .. } = &argument.kind {
+                            if matches!(&callable.kind, ResolvedExprKind::Place(place) if place.root == receiver.root)
+                            {
+                                invalid = true;
+                            }
+                        }
+                        super::super::push_resolved_expression_children_in_authored_order(
+                            argument,
+                            &mut pending,
+                        );
+                    }
+                }
+            }
+        });
+        super::super::function_value::walk(function, |expression| {
+            if expression.ty.is_mut_function()
+                && matches!(expression.kind, ResolvedExprKind::Place(_))
+                && !receiver_ids.contains(&expression.id)
+            {
+                invalid = true;
+            }
+        });
+        if invalid {
+            return Err(hir_error(
+                "mutable receiver cannot be copied, escape, or reenter during argument staging",
+            ));
+        }
     }
     Ok(())
 }

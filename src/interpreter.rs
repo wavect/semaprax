@@ -59,7 +59,6 @@
 //! changes no source.
 mod api_admission;
 mod closures;
-mod mutable_closure;
 mod command_state;
 pub(crate) mod environment;
 mod expression_children;
@@ -70,6 +69,7 @@ mod generic_owned;
 pub mod internal_strings;
 mod iterator;
 mod list;
+mod mutable_closure;
 mod nested_owned;
 pub(crate) mod network;
 pub(crate) mod process;
@@ -3844,8 +3844,9 @@ impl Evaluator<'_> {
             Ok(value) | Err(Flow::Residual(value)) => value,
             Err(flow) => return Err(flow),
         };
-        let retained_result =
-            !function.ensures.is_empty() && matches!(value, Value::OnceClosure(_));
+        let retained_result = !function.ensures.is_empty()
+            && (matches!(value, Value::OnceClosure(_))
+                || matches!(&value, Value::Closure(closure) if closure.mutable.is_some()));
         if !function.ensures.is_empty() {
             let result_value = if retained_result {
                 std::mem::replace(&mut value, Value::Moved)

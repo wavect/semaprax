@@ -37,6 +37,7 @@ mod generic_inference;
 mod hints;
 mod iterative;
 mod loans;
+mod mutable_closure;
 mod owned_buffer;
 mod owning_closure;
 mod place;

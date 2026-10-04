@@ -1,7 +1,6 @@
 # Mutable Callback v1
 
-Status: design contract for the pending source-level RI-08 profile. It does
-not itself admit `FnMut` source programs.
+Status: implemented for the narrow source-level RI-08 profile below.
 
 ## Narrow profile
 
@@ -50,3 +49,23 @@ refusal, canonical source/graph replay, native C at `-O0` and `-O2`, Core Wasm,
 and a separately compiled generated Rust trait consumer. It must also reject
 copying, state aliasing, second-thread use, and all captures outside the fixed
 profile.
+
+## Executable evidence
+
+The `language` harness selector `mutable_closures` covers canonical source and
+Graph replay, unique ownership facts, snapshot isolation, repeated calls in the
+interpreter, native C at `-O0`/`-O2`, Core Wasm, and source/retained-HIR refusals.
+The core `mutable_` selector includes rollback, active and foreign-thread guards,
+and a Wasm failure probe that inspects the actual receiver slot after failure.
+The native Rust interop crate's `mutable_callback` selector compiles the generated
+owner and a separate Rust consumer. It exercises success, contract/arithmetic
+rollback, source-body and factory-failure controls, drop accounting, and compiler
+refusals for Copy, Clone, Send, Sync, overlapping borrows and adapter escape.
+
+The scalar state needs no resource finalizer. Its semantic type is non-Copy and
+uses unique ownership; invocation borrows the available mutable local without
+consuming it. Direct receiver value reads and same-receiver entry while staging
+an argument are refused. Private factories may return newly constructed receivers;
+callback parameters and public/aggregate callback signatures remain outside this
+profile. The generated Rust owner controls the source-created native receiver's
+lifetime and starts a fresh checked status context for each call.

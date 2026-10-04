@@ -204,7 +204,16 @@ impl super::Emitter<'_> {
                 "aggregate function invocation disagrees with its signature",
             ));
         }
-        let callable_value = self.emit_expr(callable)?;
+        let callable_value = if signature.is_mut_function() {
+            let ResolvedExprKind::Place(place) = &callable.kind else {
+                unreachable!()
+            };
+            // Invocation borrows the unique receiver storage; it does not
+            // materialize or transfer the callback owner.
+            self.place_value(place)?
+        } else {
+            self.emit_expr(callable)?
+        };
         if !self.closure_profile() {
             self.require_scalar(&callable_value, signature, "function invocation callable")?;
         }
@@ -224,6 +233,14 @@ impl super::Emitter<'_> {
         self.output.push(0x21);
         super::write_u32(self.output, scratch);
 
+        if signature.is_mut_function() {
+            // Reject active entry before argument evaluation. The independent
+            // use checker prevents an argument from entering this receiver.
+            self.output.push(0x20);
+            super::write_u32(self.output, scratch);
+            self.output
+                .extend([0x28, 0x02, 0x04, 0x04, 0x40, 0x00, 0x0b]);
+        }
         // Each argument snapshots into its dedicated local before the next
         // expression executes, preserving left-to-right value evaluation even
         // when a later argument mutates a binding read by an earlier one.

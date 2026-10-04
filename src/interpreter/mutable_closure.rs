@@ -1,5 +1,4 @@
-//! Same-receiver transactional state. Semantic copies snapshot into a fresh
-//! cell; only the invocation path borrows the receiver's existing cell.
+//! Unique receiver state. Only invocation borrows the existing cell.
 use super::*;
 use std::sync::atomic::{AtomicBool, AtomicI64, Ordering};
 
@@ -7,6 +6,7 @@ use std::sync::atomic::{AtomicBool, AtomicI64, Ordering};
 pub(super) struct MutableState {
     value: AtomicI64,
     active: AtomicBool,
+    thread: std::thread::ThreadId,
 }
 impl PartialEq for MutableState {
     fn eq(&self, other: &Self) -> bool {
@@ -19,15 +19,19 @@ impl MutableState {
         Self {
             value: AtomicI64::new(value),
             active: AtomicBool::new(false),
+            thread: std::thread::current().id(),
         }
     }
     pub(super) fn snapshot(&self) -> Result<i64, Flow> {
         if self.active.load(Ordering::Acquire) {
-            return Err(Flow::Guard("active mutable receiver cannot be copied"));
+            return Err(Flow::Guard("active mutable receiver cannot be inspected"));
         }
         Ok(self.value.load(Ordering::Acquire))
     }
     fn begin(&self) -> Result<MutableCall<'_>, Flow> {
+        if self.thread != std::thread::current().id() {
+            return Err(Flow::Guard("mutable receiver belongs to another thread"));
+        }
         if self
             .active
             .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
@@ -54,30 +58,6 @@ impl Drop for MutableCall<'_> {
 }
 
 impl Evaluator<'_> {
-    pub(super) fn clone_mutable_closure(
-        &mut self,
-        closure: &closures::ClosureValue,
-    ) -> Result<Value, Flow> {
-        let state = closure
-            .mutable
-            .as_ref()
-            .ok_or(Flow::Guard("mutable closure state absent"))?
-            .snapshot()?;
-        let captures = closure
-            .captures
-            .iter()
-            .map(|(id, value)| Ok((id.clone(), self.clone_value(value)?)))
-            .collect::<Result<Vec<_>, Flow>>()?;
-        Ok(Value::Closure(Arc::new(closures::ClosureValue {
-            target: closure.target.clone(),
-            parameters: closure.parameters.clone(),
-            captures,
-            function: closure.function.clone(),
-            result: closure.result.clone(),
-            mutable: Some(MutableState::new(state)),
-        })))
-    }
-
     pub(super) fn evaluate_mutable_invocation(
         &mut self,
         expression: &ResolvedExpr,
@@ -96,13 +76,6 @@ impl Evaluator<'_> {
             .slots
             .get(&place.root)
             .ok_or(Flow::Guard("mutable receiver absent"))?;
-        let argument = self.evaluate(&args[0], environment, depth)?;
-        if !matches!(argument, Value::Int(_)) {
-            return Err(Flow::Guard("mutable invocation argument"));
-        }
-        // The operand identifies storage before evaluating its argument. Read
-        // its current receiver after that evaluation, as native and Wasm do
-        // through their saved address (the argument can replace the binding).
         let Value::Closure(receiver) = &environment.bindings[slot].1 else {
             return Err(Flow::Guard("mutable receiver is not a closure"));
         };
@@ -115,8 +88,13 @@ impl Evaluator<'_> {
             .as_ref()
             .ok_or(Flow::Guard("mutable receiver state absent"))?;
         let call = state.begin()?;
+        let initial = call.state();
+        let argument = self.evaluate(&args[0], environment, depth)?;
+        if !matches!(argument, Value::Int(_)) {
+            return Err(Flow::Guard("mutable invocation argument"));
+        }
         let frame = vec![
-            (receiver.captures[0].0.clone(), Value::Int(call.state())),
+            (receiver.captures[0].0.clone(), Value::Int(initial)),
             (receiver.parameters[0].id.clone(), argument),
         ];
         let candidate = self.call_frame(&receiver.function, frame, depth + 1)?;
@@ -149,13 +127,20 @@ mod tests {
             successful_call.commit(12);
         }
         assert_eq!(state.snapshot().unwrap(), 12);
-        let copied = MutableState::new(state.snapshot().unwrap());
-        {
-            let call = state.begin().unwrap();
-            call.commit(99);
-        }
-        assert_eq!(copied.snapshot().unwrap(), 12);
-        assert_eq!(state.snapshot().unwrap(), 99);
+    }
+
+    #[test]
+    fn mutable_state_rejects_foreign_thread_before_reading_or_committing() {
+        let state = Arc::new(MutableState::new(12));
+        let foreign = Arc::clone(&state);
+        assert!(std::thread::spawn(move || matches!(
+            foreign.begin(),
+            Err(Flow::Guard("mutable receiver belongs to another thread"))
+        ))
+        .join()
+        .unwrap());
+        assert_eq!(state.snapshot().unwrap(), 12);
+        assert!(state.begin().is_ok());
     }
 
     #[test]

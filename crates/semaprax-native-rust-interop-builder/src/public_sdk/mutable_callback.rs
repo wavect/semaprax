@@ -1,6 +1,6 @@
 //! Inert native projection of the exact source-created transactional receiver.
-//! The source and HIR gates are authoritative; this renderer cannot admit the
-//! reserved mutable profile before the compiler's cross-backend gate opens.
+//! Source and HIR validation authenticate the unique state capture and checked
+//! transition before this renderer exposes the local Rust owner.
 use super::*;
 use semaprax::ast::{ExprKind, ParamMode, Span, Type};
 

@@ -18,7 +18,7 @@ impl HirValidator<'_> {
                 "affine construction cannot consume in a contract",
             ));
         }
-        let ownership = if affine {
+        let ownership = if affine || expression.ty.is_mut_function() {
             OwnershipMode::Own
         } else {
             OwnershipMode::Value
@@ -135,7 +135,11 @@ impl HirValidator<'_> {
     ) -> Result<(), Diagnostic> {
         if let ResolvedExprKind::Invoke { callable, .. } = &expression.kind {
             if callable.ty.is_mut_function() {
-                super::super::closure::mutable::validate_receiver(self.program, callable, allow_moves)?;
+                super::super::closure::mutable::validate_receiver(
+                    self.program,
+                    callable,
+                    allow_moves,
+                )?;
             }
             if callable.ty.is_once_function() {
                 if !allow_moves {

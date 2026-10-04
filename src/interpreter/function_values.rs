@@ -31,7 +31,7 @@ impl Evaluator<'_> {
             Value::Variant(value) => Value::Variant(Arc::clone(value)),
             Value::Function(target) => Value::Function(target.clone()),
             Value::Closure(value) if value.mutable.is_some() => {
-                self.clone_mutable_closure(value)?
+                return Err(Flow::Guard("mutable callback cannot be copied"))
             }
             Value::Closure(value) => Value::Closure(Arc::clone(value)),
             Value::OnceClosure(_) => return Err(Flow::Guard("affine callable cannot be copied")),

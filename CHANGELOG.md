@@ -1,5 +1,10 @@
 # Changelog
 
+- RI-08: admit the narrow noncopyable `FnMutI64(i64) -> i64` receiver with the
+  specified direct transition literal. Source/HIR ownership and alias refusals,
+  success-only state commit, interpreter/native/Core Wasm parity, generated Rust
+  FnMut consumers and failure/drop controls cover the transactional profile.
+
 - RI-08: stage the transactional scalar mutable carrier across HIR, interpreter,
   native C, Wasm and the generated Rust owner. State commits only on checked
   success; internal guard/copy tests and Rust borrow/thread-bound negatives

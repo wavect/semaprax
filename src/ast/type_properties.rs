@@ -16,7 +16,7 @@ impl Type {
     /// Canonical ownership predicate. `Bytes` transfers uniquely without
     /// being misclassified as a user resource.
     pub fn is_uniquely_owned(&self) -> bool {
-        self.is_once_function() || matches!(self, Type::String | Type::Bytes)
+        self.is_once_function() || matches!(self, Type::String | Type::Bytes | Type::MutFunctionI64)
     }
 }
 
@@ -89,4 +89,3 @@ impl fmt::Display for Type {
         Ok(())
     }
 }
-

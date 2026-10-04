@@ -44,10 +44,17 @@ pub(super) fn oracle_call(
     ) {
         return result;
     }
-    if let Some(binding_type) = variables
-        .get(name.as_str())
-        .map(|binding| binding.ty.clone())
-    {
+    if let Some(binding_type) = variables.get(name.as_str()).map(|binding| {
+        crate::source_verify::mutable_closure::invocation_signature(
+            program,
+            binding,
+            name,
+            args,
+            allow_moves,
+            expr.span,
+            diagnostics,
+        )
+    }) {
         let Type::Function { parameters, result } = binding_type else {
             diagnostics.push(error(
                 program,

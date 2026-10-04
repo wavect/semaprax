@@ -27,13 +27,9 @@ impl HirValidator<'_> {
                     | ResolvedType::SliceU8
                     | ResolvedType::OnceFunction
                     | ResolvedType::OnceFunctionI64
-                    | ResolvedType::OnceFunctionI64Pair,
+                    | ResolvedType::OnceFunctionI64Pair
+                    | ResolvedType::MutFunctionI64,
                 ) => {}
-                Frame::Enter(ResolvedType::MutFunctionI64) => {
-                    return Err(hir_error(
-                        "transactional mutable callables await checked runtime lowering",
-                    ));
-                }
                 Frame::Enter(ty @ ResolvedType::Function { .. }) => {
                     if !super::function_value::is_signature(ty) {
                         return Err(hir_error("invalid function value signature"));
@@ -153,7 +149,7 @@ impl HirValidator<'_> {
         ty: &ResolvedType,
         ownership: OwnershipMode,
     ) -> Result<(), Diagnostic> {
-        if ty.is_once_function() && ownership != OwnershipMode::Own {
+        if (ty.is_once_function() || ty.is_mut_function()) && ownership != OwnershipMode::Own {
             return Err(hir_error("affine callable requires unique ownership"));
         }
         if ty == &ResolvedType::Str {

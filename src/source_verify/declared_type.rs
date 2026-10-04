@@ -143,12 +143,14 @@ pub(super) fn check_declared_type(
     let mut pending = vec![ty];
     while let Some(ty) = pending.pop() {
         if *ty == Type::MutFunctionI64 {
-            diagnostics.push(error(
-                program,
-                "SPX-T308",
-                "transactional mutable callables await checked runtime lowering",
-                span,
-            ));
+            if !parameters.is_empty() {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T308",
+                    "mutable callables require monomorphic declarations",
+                    span,
+                ));
+            }
             continue;
         }
         let Type::Named { name, arguments } = ty else {
@@ -964,6 +966,15 @@ pub(super) fn check_ownership_mode(
     types: &TypeTable<'_>,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
+    if param.ty == Type::MutFunctionI64 {
+        diagnostics.push(error(
+            program,
+            "SPX-T308",
+            "mutable callback parameters are outside the local receiver profile",
+            param.span,
+        ));
+        return;
+    }
     if param.ty.is_once_function() {
         if param.mode != ParamMode::Own || !function.type_parameters.is_empty() {
             diagnostics.push(error(

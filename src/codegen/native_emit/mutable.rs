@@ -6,12 +6,15 @@ pub(super) fn declarations(output: &mut impl COutput) {
     output.push_str("typedef spx_status_token (*spx_mut_i64_entry_v1)(struct spx_context *, int64_t, int64_t, int64_t *);\n");
     output.push_str("typedef struct { spx_mut_i64_entry_v1 entry; int64_t state; bool active; } spx_mut_i64_v1;\n");
     output.push_str(
-        r#"static __attribute__((unused)) spx_status_token spx_mut_i64_invoke_v1(
+        r#"static __attribute__((unused)) void spx_mut_i64_check_v1(const spx_mut_i64_v1 *receiver) {
+    if (!receiver->entry || receiver->active)
+        spx_runtime_invariant_failure("invalid or active mutable receiver");
+}
+static __attribute__((unused)) spx_status_token spx_mut_i64_invoke_v1(
     struct spx_context *spx_ctx, spx_mut_i64_v1 *receiver,
     int64_t argument, int64_t *result_out
 ) {
-    if (!receiver->entry || receiver->active)
-        spx_runtime_invariant_failure("invalid or active mutable receiver");
+    spx_mut_i64_check_v1(receiver);
     int64_t candidate = INT64_C(0);
     receiver->active = true;
     spx_status_token status = receiver->entry(spx_ctx, receiver->state, argument, &candidate);
@@ -80,6 +83,7 @@ pub(super) fn invoke<O: COutput>(
 ) -> Result<CValue, Diagnostic> {
     hir::function_value::validate_invocation(expression)?;
     let receiver = emitter.emit_expr(callable)?;
+    emitter.line(&format!("spx_mut_i64_check_v1(&{});", receiver.code));
     let argument = emitter.emit_expr(&args[0])?;
     let staged = emitter.temporary(&ResolvedType::I64)?;
     emitter.line(&format!("{staged} = {};", argument.code));
@@ -128,10 +132,9 @@ int main(int argc, char **argv) {
     int64_t out = 999;
     if (argc > 1) { receiver.active = true; spx_mut_i64_invoke_v1(&ctx, &receiver, 1, &out); return 80; }
     if (spx_mut_i64_invoke_v1(&ctx, &receiver, 2, &out) || receiver.state != 12 || out != 12) return 1;
-    spx_mut_i64_v1 copy = receiver;
     out = 999;
     if (spx_mut_i64_invoke_v1(&ctx, &receiver, -4, &out) != 7 || receiver.state != 12 || out != 999 || receiver.active) return 2;
-    if (spx_mut_i64_invoke_v1(&ctx, &receiver, 3, &out) || receiver.state != 15 || out != 15 || copy.state != 12) return 3;
+    if (spx_mut_i64_invoke_v1(&ctx, &receiver, 3, &out) || receiver.state != 15 || out != 15) return 3;
     return 0;
 }
 "#);

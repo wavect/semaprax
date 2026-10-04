@@ -361,6 +361,15 @@ pub(super) fn reject_escaping_read(
     span: Span,
     diagnostics: &mut Vec<Diagnostic>,
 ) -> bool {
+    if *ty == Type::MutFunctionI64 {
+        diagnostics.push(error(
+            program,
+            "SPX-T308",
+            format!("mutable callback `{name}` is noncopyable and may only be invoked directly"),
+            span,
+        ));
+        return true;
+    }
     if !is_sentinel(ty) {
         return false;
     }

@@ -15,13 +15,15 @@ pub fn is_signature(ty: &ResolvedType) -> bool {
 /// Internal helpers may transport scalar callable values; this does not admit
 /// those signatures at an imported or selected public boundary.
 pub(crate) fn private_helper_signature(function: &ResolvedFunction) -> bool {
-    let slot = |ty: &ResolvedType| scalar(ty) || is_signature(ty) || ty.is_once_function() || ty.is_mut_function();
+    let slot = |ty: &ResolvedType| {
+        scalar(ty) || is_signature(ty) || ty.is_once_function() || ty.is_mut_function()
+    };
     function.effects.is_empty()
         && function.params.len() <= 8
         && function.params.iter().all(|p| {
             slot(&p.ty)
                 && p.ownership
-                    == if p.ty.is_once_function() {
+                    == if p.ty.is_once_function() || p.ty.is_mut_function() {
                         OwnershipMode::Own
                     } else {
                         OwnershipMode::Value
@@ -32,7 +34,10 @@ pub(crate) fn private_helper_signature(function: &ResolvedFunction) -> bool {
             || is_signature(&function.return_type)
             || function.return_type.is_once_function()
             || function.return_type.is_mut_function()
-            || function.params.iter().any(|p| p.ty.is_once_function() || p.ty.is_mut_function()))
+            || function
+                .params
+                .iter()
+                .any(|p| p.ty.is_once_function() || p.ty.is_mut_function()))
 }
 pub fn signature(function: &ResolvedFunction) -> Option<ResolvedType> {
     (function.effects.is_empty()
@@ -131,7 +136,7 @@ pub(crate) fn validate_invocation_scoped(
         return Err(error("expected invocation"));
     };
     if callable.ty.is_mut_function() {
-        return if callable.ownership == OwnershipMode::Value
+        return if callable.ownership == OwnershipMode::Own
             && matches!(args.as_slice(), [argument] if argument.ty == ResolvedType::I64 && argument.ownership == OwnershipMode::Value)
             && expression.ty == ResolvedType::I64
             && expression.ownership == OwnershipMode::Value
@@ -140,7 +145,7 @@ pub(crate) fn validate_invocation_scoped(
             Ok(())
         } else {
             Err(error(
-                "mutable invocation requires its direct value receiver and one i64 argument",
+                "mutable invocation requires its direct unique receiver and one i64 argument",
             ))
         };
     }
@@ -211,6 +216,7 @@ pub(crate) fn invocation_params(
 }
 
 pub(crate) fn validate_program(program: &ResolvedProgram) -> Result<(), Diagnostic> {
+    super::closure::mutable::validate_uses(program)?;
     if !requires_function_values(program) {
         return Ok(());
     }

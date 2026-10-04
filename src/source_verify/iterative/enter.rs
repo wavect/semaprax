@@ -179,10 +179,17 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     .iter()
                     .flat_map(|interface| &interface.imports)
                     .find(|import| import.native_rust && import.name == *name);
-                let callable_binding = self.scopes[scope]
-                    .bindings
-                    .get(name)
-                    .map(|binding| binding.ty.clone());
+                let callable_binding = self.scopes[scope].bindings.get(name).map(|binding| {
+                    crate::source_verify::mutable_closure::invocation_signature(
+                        self.program,
+                        binding,
+                        name,
+                        args,
+                        self.allow_moves,
+                        expression.span,
+                        self.diagnostics,
+                    )
+                });
                 let target = if let Some(binding_type) = callable_binding {
                     match binding_type {
                         Type::Function { parameters, result } => {

@@ -1,0 +1,31 @@
+{
+  "cold_state": {
+    "reason": "process separation and fresh paths cannot isolate macOS page, executable, solver, or tool caches",
+    "status": "unavailable"
+  },
+  "nonclaims": [
+    "fresh-path and repeat-path processes do not isolate OS or tool caches",
+    "no cold-versus-warm comparison, winner, proof, or runtime throughput result",
+    "local pinned executable evidence is not current-head evidence"
+  ],
+  "raw_streams": 120,
+  "route": "Bend --verdict; BEND_NO_TELEMETRY=1",
+  "schema": "semaprax.bend2-law-benchmark.process-state-capsule-review.v1",
+  "states": {
+    "fresh_process": {
+      "count": 30,
+      "p50_ns": 97554749.5,
+      "p95_ns": 114737250
+    },
+    "repeat_process": {
+      "count": 30,
+      "p50_ns": 95807687.0,
+      "p95_ns": 130452500
+    }
+  },
+  "status": "local_process_state_authenticated",
+  "tool": {
+    "commit": "947db722640c86247849343657bf2f7ef01cb7f1",
+    "executable_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781"
+  }
+}

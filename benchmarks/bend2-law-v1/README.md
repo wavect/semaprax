@@ -580,3 +580,21 @@ ms. It retains 120 streams and authenticates through the same offline command.
 This is ordinary Bend checking only: Bend `--verdict` remains a distinct route
 with separate measurements and no values in this capsule are compared against
 SEMAPRAX as a winner claim.
+
+The matching Boolean Bend `--verdict` process state is retained separately in
+[`evidence/law16-process-state-bend-bool-verdict-v1/`](evidence/law16-process-state-bend-bool-verdict-v1/): 30 fresh-path children had p50/p95
+97.555/114.737 ms and 30 repeat-path children had p50/p95 95.808/130.453 ms.
+This records the retained `ALL PROOFS CHECK` route under the same pinned Bend
+commit and Bun identity. It is not mixed with ordinary checking or represented
+as an independently replayed proof system.
+
+The separately retained SEMAPRAX project-bound Z3 source-proof route is
+[`evidence/law16-process-state-semaprax-bool-z3-v3/`](evidence/law16-process-state-semaprax-bool-z3-v3/).
+Its exact returned `app.negate` source, installed Z3 4.12.5 identity, and two
+complete copied projects are bound into the receipt. Thirty fresh-path
+children had p50/p95 449.932/484.709 ms; thirty repeat-path children had
+p50/p95 447.023/494.358 ms. It discharges only `app.negate`'s selected
+postcondition in a trusted local source translation: it is neither complete
+law coverage nor lowering/execution proof. The fresh and repeat paths do not
+isolate OS or solver caches, so all four route corpora remain separate process
+provisioning observations without ratios or a winner.

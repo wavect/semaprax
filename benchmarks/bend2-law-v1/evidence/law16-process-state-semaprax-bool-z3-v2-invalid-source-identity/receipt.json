@@ -1,0 +1,2160 @@
+{
+  "artifacts": [
+    {
+      "bytes": 338,
+      "path": "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-input.spx",
+      "role": "fresh_input",
+      "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+    },
+    {
+      "bytes": 338,
+      "path": "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-input.spx",
+      "role": "repeat_input",
+      "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+    },
+    {
+      "bytes": 172081112,
+      "path": "/private/tmp/semaprax-9a9db7a81",
+      "role": "operator_input",
+      "sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+    },
+    {
+      "bytes": 23365455,
+      "path": "/opt/homebrew/bin/z3",
+      "role": "operator_input",
+      "sha256": "sha256:bbb24b8fed27552f7fb7cfdf0ed9101e6e24fd0cc0b9cfb945233b3f2ed333c5"
+    },
+    {
+      "bytes": 183,
+      "path": "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-project/semaprax.toml",
+      "role": "operator_input",
+      "sha256": "sha256:481999d6499263a605ce8eaf67e8155b772f6cddbe466c87e3087978ff339bb5"
+    },
+    {
+      "bytes": 68,
+      "path": "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-project/core/core.spx",
+      "role": "operator_input",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 338,
+      "path": "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-project/src/app.spx",
+      "role": "operator_input",
+      "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+    },
+    {
+      "bytes": 68,
+      "path": "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-project/tests/tests.spx",
+      "role": "operator_input",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 183,
+      "path": "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-project/semaprax.toml",
+      "role": "operator_input",
+      "sha256": "sha256:481999d6499263a605ce8eaf67e8155b772f6cddbe466c87e3087978ff339bb5"
+    },
+    {
+      "bytes": 68,
+      "path": "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-project/core/core.spx",
+      "role": "operator_input",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 338,
+      "path": "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-project/src/app.spx",
+      "role": "operator_input",
+      "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+    },
+    {
+      "bytes": 68,
+      "path": "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-project/tests/tests.spx",
+      "role": "operator_input",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 839,
+      "path": "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/tool-identity.json",
+      "role": "operator_input",
+      "sha256": "sha256:0e6b54428826b8988b44637fcbfcd751cfc1cd9de395b52b8fc1e569d2375c23"
+    }
+  ],
+  "cells": {
+    "fresh_process": {
+      "samples": [
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:780a6cd4e46303282aaf76e28b67dd5a97d44d81a04a699374984bfb4dfc1f3c",
+          "elapsed_ns": 514196792,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-001.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "fresh-process-001.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:780a6cd4e46303282aaf76e28b67dd5a97d44d81a04a699374984bfb4dfc1f3c",
+          "elapsed_ns": 484145708,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-002.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "fresh-process-002.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:780a6cd4e46303282aaf76e28b67dd5a97d44d81a04a699374984bfb4dfc1f3c",
+          "elapsed_ns": 487607166,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-003.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "fresh-process-003.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:780a6cd4e46303282aaf76e28b67dd5a97d44d81a04a699374984bfb4dfc1f3c",
+          "elapsed_ns": 468200333,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-004.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "fresh-process-004.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:780a6cd4e46303282aaf76e28b67dd5a97d44d81a04a699374984bfb4dfc1f3c",
+          "elapsed_ns": 453282416,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-005.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "fresh-process-005.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:780a6cd4e46303282aaf76e28b67dd5a97d44d81a04a699374984bfb4dfc1f3c",
+          "elapsed_ns": 462043208,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-006.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "fresh-process-006.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:780a6cd4e46303282aaf76e28b67dd5a97d44d81a04a699374984bfb4dfc1f3c",
+          "elapsed_ns": 483467917,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-007.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "fresh-process-007.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:780a6cd4e46303282aaf76e28b67dd5a97d44d81a04a699374984bfb4dfc1f3c",
+          "elapsed_ns": 464185417,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-008.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "fresh-process-008.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:780a6cd4e46303282aaf76e28b67dd5a97d44d81a04a699374984bfb4dfc1f3c",
+          "elapsed_ns": 470803083,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-009.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "fresh-process-009.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:780a6cd4e46303282aaf76e28b67dd5a97d44d81a04a699374984bfb4dfc1f3c",
+          "elapsed_ns": 475181375,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-010.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "fresh-process-010.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:780a6cd4e46303282aaf76e28b67dd5a97d44d81a04a699374984bfb4dfc1f3c",
+          "elapsed_ns": 464172334,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-011.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "fresh-process-011.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:780a6cd4e46303282aaf76e28b67dd5a97d44d81a04a699374984bfb4dfc1f3c",
+          "elapsed_ns": 489881875,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-012.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "fresh-process-012.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:780a6cd4e46303282aaf76e28b67dd5a97d44d81a04a699374984bfb4dfc1f3c",
+          "elapsed_ns": 470532750,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-013.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "fresh-process-013.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:780a6cd4e46303282aaf76e28b67dd5a97d44d81a04a699374984bfb4dfc1f3c",
+          "elapsed_ns": 497762167,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-014.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "fresh-process-014.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:780a6cd4e46303282aaf76e28b67dd5a97d44d81a04a699374984bfb4dfc1f3c",
+          "elapsed_ns": 464925583,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-015.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "fresh-process-015.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:780a6cd4e46303282aaf76e28b67dd5a97d44d81a04a699374984bfb4dfc1f3c",
+          "elapsed_ns": 464917833,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-016.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "fresh-process-016.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:780a6cd4e46303282aaf76e28b67dd5a97d44d81a04a699374984bfb4dfc1f3c",
+          "elapsed_ns": 478695166,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-017.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "fresh-process-017.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:780a6cd4e46303282aaf76e28b67dd5a97d44d81a04a699374984bfb4dfc1f3c",
+          "elapsed_ns": 484006708,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-018.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "fresh-process-018.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:780a6cd4e46303282aaf76e28b67dd5a97d44d81a04a699374984bfb4dfc1f3c",
+          "elapsed_ns": 498485208,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-019.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "fresh-process-019.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:780a6cd4e46303282aaf76e28b67dd5a97d44d81a04a699374984bfb4dfc1f3c",
+          "elapsed_ns": 480058084,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-020.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "fresh-process-020.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:780a6cd4e46303282aaf76e28b67dd5a97d44d81a04a699374984bfb4dfc1f3c",
+          "elapsed_ns": 491508167,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-021.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "fresh-process-021.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:780a6cd4e46303282aaf76e28b67dd5a97d44d81a04a699374984bfb4dfc1f3c",
+          "elapsed_ns": 479618833,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-022.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "fresh-process-022.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:780a6cd4e46303282aaf76e28b67dd5a97d44d81a04a699374984bfb4dfc1f3c",
+          "elapsed_ns": 486291250,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-023.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "fresh-process-023.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:780a6cd4e46303282aaf76e28b67dd5a97d44d81a04a699374984bfb4dfc1f3c",
+          "elapsed_ns": 476117000,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-024.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "fresh-process-024.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:780a6cd4e46303282aaf76e28b67dd5a97d44d81a04a699374984bfb4dfc1f3c",
+          "elapsed_ns": 490551208,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-025.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "fresh-process-025.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:780a6cd4e46303282aaf76e28b67dd5a97d44d81a04a699374984bfb4dfc1f3c",
+          "elapsed_ns": 489263375,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-026.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "fresh-process-026.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:780a6cd4e46303282aaf76e28b67dd5a97d44d81a04a699374984bfb4dfc1f3c",
+          "elapsed_ns": 477034542,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-027.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "fresh-process-027.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:780a6cd4e46303282aaf76e28b67dd5a97d44d81a04a699374984bfb4dfc1f3c",
+          "elapsed_ns": 522565333,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-028.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "fresh-process-028.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:780a6cd4e46303282aaf76e28b67dd5a97d44d81a04a699374984bfb4dfc1f3c",
+          "elapsed_ns": 496552959,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-029.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "fresh-process-029.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:780a6cd4e46303282aaf76e28b67dd5a97d44d81a04a699374984bfb4dfc1f3c",
+          "elapsed_ns": 526677208,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-030.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "fresh-process-030.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        }
+      ],
+      "status": "completed",
+      "summary": {
+        "count": 30,
+        "p50_ns": 481763000.5,
+        "p95_ns": 522565333
+      }
+    },
+    "repeat_process": {
+      "samples": [
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:0c778a70be527e67694e68d1959d3392bde85ceb31cfeb531541220ec387f64a",
+          "elapsed_ns": 483970875,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-001.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "repeat-process-001.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:0c778a70be527e67694e68d1959d3392bde85ceb31cfeb531541220ec387f64a",
+          "elapsed_ns": 504728042,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-002.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "repeat-process-002.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:0c778a70be527e67694e68d1959d3392bde85ceb31cfeb531541220ec387f64a",
+          "elapsed_ns": 455036792,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-003.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "repeat-process-003.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:0c778a70be527e67694e68d1959d3392bde85ceb31cfeb531541220ec387f64a",
+          "elapsed_ns": 460342417,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-004.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "repeat-process-004.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:0c778a70be527e67694e68d1959d3392bde85ceb31cfeb531541220ec387f64a",
+          "elapsed_ns": 492725333,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-005.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "repeat-process-005.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:0c778a70be527e67694e68d1959d3392bde85ceb31cfeb531541220ec387f64a",
+          "elapsed_ns": 461247000,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-006.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "repeat-process-006.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:0c778a70be527e67694e68d1959d3392bde85ceb31cfeb531541220ec387f64a",
+          "elapsed_ns": 488270125,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-007.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "repeat-process-007.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:0c778a70be527e67694e68d1959d3392bde85ceb31cfeb531541220ec387f64a",
+          "elapsed_ns": 464045125,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-008.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "repeat-process-008.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:0c778a70be527e67694e68d1959d3392bde85ceb31cfeb531541220ec387f64a",
+          "elapsed_ns": 456371750,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-009.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "repeat-process-009.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:0c778a70be527e67694e68d1959d3392bde85ceb31cfeb531541220ec387f64a",
+          "elapsed_ns": 456757458,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-010.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "repeat-process-010.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:0c778a70be527e67694e68d1959d3392bde85ceb31cfeb531541220ec387f64a",
+          "elapsed_ns": 465532333,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-011.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "repeat-process-011.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:0c778a70be527e67694e68d1959d3392bde85ceb31cfeb531541220ec387f64a",
+          "elapsed_ns": 498853167,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-012.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "repeat-process-012.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:0c778a70be527e67694e68d1959d3392bde85ceb31cfeb531541220ec387f64a",
+          "elapsed_ns": 469327916,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-013.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "repeat-process-013.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:0c778a70be527e67694e68d1959d3392bde85ceb31cfeb531541220ec387f64a",
+          "elapsed_ns": 488399250,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-014.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "repeat-process-014.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:0c778a70be527e67694e68d1959d3392bde85ceb31cfeb531541220ec387f64a",
+          "elapsed_ns": 468933375,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-015.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "repeat-process-015.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:0c778a70be527e67694e68d1959d3392bde85ceb31cfeb531541220ec387f64a",
+          "elapsed_ns": 496807167,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-016.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "repeat-process-016.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:0c778a70be527e67694e68d1959d3392bde85ceb31cfeb531541220ec387f64a",
+          "elapsed_ns": 491244917,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-017.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "repeat-process-017.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:0c778a70be527e67694e68d1959d3392bde85ceb31cfeb531541220ec387f64a",
+          "elapsed_ns": 473233667,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-018.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "repeat-process-018.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:0c778a70be527e67694e68d1959d3392bde85ceb31cfeb531541220ec387f64a",
+          "elapsed_ns": 479507000,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-019.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "repeat-process-019.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:0c778a70be527e67694e68d1959d3392bde85ceb31cfeb531541220ec387f64a",
+          "elapsed_ns": 497914166,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-020.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "repeat-process-020.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:0c778a70be527e67694e68d1959d3392bde85ceb31cfeb531541220ec387f64a",
+          "elapsed_ns": 514085834,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-021.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "repeat-process-021.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:0c778a70be527e67694e68d1959d3392bde85ceb31cfeb531541220ec387f64a",
+          "elapsed_ns": 470731167,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-022.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "repeat-process-022.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:0c778a70be527e67694e68d1959d3392bde85ceb31cfeb531541220ec387f64a",
+          "elapsed_ns": 476468250,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-023.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "repeat-process-023.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:0c778a70be527e67694e68d1959d3392bde85ceb31cfeb531541220ec387f64a",
+          "elapsed_ns": 482006417,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-024.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "repeat-process-024.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:0c778a70be527e67694e68d1959d3392bde85ceb31cfeb531541220ec387f64a",
+          "elapsed_ns": 489049625,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-025.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "repeat-process-025.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:0c778a70be527e67694e68d1959d3392bde85ceb31cfeb531541220ec387f64a",
+          "elapsed_ns": 474486667,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-026.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "repeat-process-026.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:0c778a70be527e67694e68d1959d3392bde85ceb31cfeb531541220ec387f64a",
+          "elapsed_ns": 465548958,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-027.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "repeat-process-027.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:0c778a70be527e67694e68d1959d3392bde85ceb31cfeb531541220ec387f64a",
+          "elapsed_ns": 477056292,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-028.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "repeat-process-028.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:0c778a70be527e67694e68d1959d3392bde85ceb31cfeb531541220ec387f64a",
+          "elapsed_ns": 465141000,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-029.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "repeat-process-029.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:0c778a70be527e67694e68d1959d3392bde85ceb31cfeb531541220ec387f64a",
+          "elapsed_ns": 490793167,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-030.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 6666,
+            "path": "repeat-process-030.stdout",
+            "sha256": "sha256:b605439666336b63741b3860cdd69570227c902945fe3cacb5c014947ba48eff"
+          }
+        }
+      ],
+      "status": "completed",
+      "summary": {
+        "count": 30,
+        "p50_ns": 476762271.0,
+        "p95_ns": 504728042
+      }
+    }
+  },
+  "cold_state": {
+    "reason": "process separation and fresh paths cannot isolate macOS page, executable, solver, or tool caches",
+    "status": "unavailable"
+  },
+  "configuration": {
+    "BEND_NO_TELEMETRY": "1",
+    "fresh_process_meaning": "new child process using the supplied fresh artifact-path command",
+    "repeat_process_meaning": "new child process using the supplied repeat artifact-path command",
+    "samples": 30
+  },
+  "nonclaims": [
+    "fresh_process is not an OS-cache-cold observation",
+    "no cold-versus-warm ratio, winner, or cache-isolation claim"
+  ],
+  "raw_artifact_dir": "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-z3-v2/raw",
+  "schema": "semaprax.bend2-law-benchmark.cold-warm-process-cell.v2"
+}

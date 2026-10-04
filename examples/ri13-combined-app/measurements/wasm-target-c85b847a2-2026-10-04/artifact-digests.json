@@ -1,0 +1,18 @@
+{
+  "schema": "semaprax.ri13.wasm-target-artifact-digests.v1",
+  "sha256": {
+    "raw/m1.stderr": "fa967dd5bcd7baf480d91efb6b7d9f58e10a71fcc5c7a0f314ce0cfa850db13d",
+    "raw/m1.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "raw/m2.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "raw/m2.stdout": "363c0857b4f9089a273ec12915961ddecdf4a809bae975c07a4a3312c97fbdcc",
+    "raw/m2.wasm/app.wasm": "4707bbe39a5773fc894ca02e7198cdb1ce6b97f3fec15a4e8bbc219b5657f0bb",
+    "raw/m2.wasm/index.html": "ffbf04abfe190d32a9fbff4c839ff3c42456057f1e4129c61750ba3531574419",
+    "raw/m2.wasm/package.json": "0492eeec36bd77d7753a63a74914c10b9f49086dc6cc5ee2d6834dbc17fb9453",
+    "raw/m2.wasm/semaprax.bindings.d.ts": "c2fdae96f3d5b0222596d8254ac02ee8b4e98900b5faa0d0d583edbf73ba7a40",
+    "raw/m2.wasm/semaprax.bindings.js": "346ea702b3f8ffc0a796ac78d43b9833bfe1cbcb31c1afe3c242329ab98d147d",
+    "raw/m2.wasm/semaprax.js": "8152a33a857f150d4bace2e2d263a8d95d5a003d3265c4cc956e69895c2135ba",
+    "raw/m2.wasm/semaprax.scalar-exports.json": "58eb9390c52166a266eda902f4c345db2778e8e959ca8192fde0148650170866",
+    "raw/m3.stderr": "faf1dc7f98e92c743ab3d09a45b15cdbc13e74278c79e94a95ef8a4b702e9a01",
+    "raw/m3.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

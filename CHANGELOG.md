@@ -1,5 +1,13 @@
 # Changelog
 
+- RI-13: retain clean locked offline macOS arm64 and Linux x86_64 guest
+  M1/M2/M3 application receipts. Each has 22 passed, 0 failed, 0 skipped
+  stages/measurements and 44 verified raw streams. The linked consumer,
+  copy/friction ledgers, and adverse-throughput investigations are published.
+  Exact target checks refuse unsupported M1/M3 Wasm routes while the separate
+  M2 scalar Project builds; generated Rust Serde/iterator adapters are not
+  claimed on Wasm. Linux performance remains guest evidence.
+
 - RI-08: admit one synchronous parameter-rooted borrowed-text source capture.
   Source/HIR scope validation rejects aliases and escape; interpreter, native C
   and Core Wasm preserve the borrowed descriptor. The generated Rust scope

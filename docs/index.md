@@ -11,8 +11,8 @@ Audience: coding agents, tool authors, and integrators needing exact contracts.
 > agents and tools cite for exact behavior.
 
 The [v0.4.0 baseline](RELEASE-0.4.0-STATUS.md) is the last release with a
-**HOSTED GREEN** implementation claim. The workspace is at version 0.7.0,
-installable from source; v0.7.0 has no published or signed archive yet. Read
+**HOSTED GREEN** implementation claim. The workspace is at version 0.8.0,
+installable from source; v0.8.0 has no published or signed archive yet. Read
 the [completion matrix](COMPLETION-MATRIX.md) before treating a versioned
 contract as a supported feature: a specification is not proof of
 implementation. Contributors start with
@@ -31,7 +31,7 @@ implementation. Contributors start with
 | Write `.spx` as an agent | [Handbook: Agents](../handbook/practices/agents.md) → [Agent quick reference](AGENT-QUICK-REFERENCE.md) |
 | Query or change program meaning | [Agent Context v2](AGENT-CONTEXT-V2.md) → [Semantic Patch v2](SEMANTIC-PATCH-V2.md) |
 | Contribute to the compiler | [First contribution](FIRST-CONTRIBUTION.md) → [Development guide](DEVELOPMENT.md) |
-| Check feature or release status | [Completion matrix](COMPLETION-MATRIX.md) · [Release status](RELEASE-0.7.0-STATUS.md) |
+| Check feature or release status | [Completion matrix](COMPLETION-MATRIX.md) · [Release status](RELEASE-0.8.0-STATUS.md) |
 
 ## Core concepts
 

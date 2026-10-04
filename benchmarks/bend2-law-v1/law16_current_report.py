@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Render the current LAW-16 evidence state from authenticated local capsules."""
 import argparse
+import hashlib
 import importlib.util
 import json
 import pathlib
@@ -31,6 +32,12 @@ GUARDED_I64_BALANCE = module("law16_guarded_i64_balance_smt")
 GUARDED_I64_PROFILE = module("full_u32_guarded_i64_profile_v2")
 BEND_U32_SORT = module("law16_bend_u32_sort_proof")
 COST_PROVENANCE = module("law16_boolean_negation_cost_provenance")
+BOOLEAN_ANNOTATIONS = module("law16_annotation_summary")
+CACHE_ISOLATION = module("law16_cache_isolation_probe")
+BOOLEAN_REFACTOR = module("law16_boolean_refactor_cell")
+GUEST_CACHE = module("law16_guest_cache")
+PROJECT_INCREMENTAL = module("law16_project_incremental_cell")
+NATIVE_PHASES = module("law16_boolean_native_phases")
 SCHEMA = "semaprax.bend2-law-benchmark.current-report.v1"
 
 
@@ -124,9 +131,31 @@ def render():
     cost_provenance = COST_PROVENANCE.capture(ROOT / "evidence")
     if cost_provenance != read(ROOT / "evidence/law16-boolean-negation-agent-cost-provenance-v1.json"):
         raise ValueError("Boolean agent cost provenance receipt drifted")
+    claude_plan_path = ROOT / "fixtures/law16-claude-cost-pilot-plan-v1.json"
+    claude_plan = read(claude_plan_path)
+    claude_pilot = read(ROOT / "evidence/law16-claude-cost-pilot-v1.json")
+    if (
+        claude_pilot.get("schema") != "semaprax.bend2-law-benchmark.claude-cost-pilot.v1"
+        or claude_plan.get("schema") != "semaprax.bend2-law-benchmark.claude-cost-pilot-plan.v1"
+        or claude_pilot.get("plan", {}).get("sha256") != "sha256:" + hashlib.sha256(claude_plan_path.read_bytes()).hexdigest()
+        or claude_pilot.get("provider", {}).get("model_id") != claude_plan.get("provider", {}).get("model_id")
+        or claude_pilot.get("campaign_admission") is not False
+    ):
+        raise ValueError("Claude cost pilot plan or nonadmission receipt drifted")
+    cache_probe = CACHE_ISOLATION.review()
+    guest_cache = GUEST_CACHE.review(ROOT / "evidence/law16-guest-cache-thirty-v1")
+    project_incremental = PROJECT_INCREMENTAL.verify(ROOT / "evidence/law16-project-incremental-cell-v1")
+    native_phases = NATIVE_PHASES.review(ROOT / "evidence/law16-native-phase-thirty-v1")
+    boolean_refactor = BOOLEAN_REFACTOR.verify(ROOT / "evidence/law16-boolean-refactor-cell-v1")
+    claude_boolean_pilot = read(ROOT / "evidence/law16-claude-boolean-pilot-v1/capsule.json")
+    if claude_boolean_pilot.get("schema") != "semaprax.bend2-law-benchmark.claude-boolean-pilot-capsule.v1" or claude_boolean_pilot.get("campaign_admission") is not False:
+        raise ValueError("Claude Boolean pilot nonadmission receipt drifted")
     process_v2_provenance = read(ROOT / "evidence/law16-boolean-negation-process-v2/provenance.json")
     effort = read(ROOT / "evidence/law16-effort-summary-v1.json")
     annotations = read(ROOT / "evidence/law16-annotation-summary-v1.json")
+    boolean_annotations = BOOLEAN_ANNOTATIONS.summarize()
+    if boolean_annotations != read(ROOT / "evidence/law16-boolean-negation-annotation-summary-v1.json"):
+        raise ValueError("Boolean annotation receipt drifted")
     nonproof_identity = read(
         ROOT / "evidence/law16-boolean-negation-nonproof-process-v1/identity.json"
     )
@@ -198,6 +227,17 @@ def render():
                 "aggregate_token_usage": cost_provenance["aggregate_token_usage"],
                 "cost_usage": cost_provenance["cost_usage"],
                 "nonclaims": cost_provenance["nonclaims"],
+            },
+            "claude_cost_probe": {
+                "source": "evidence/law16-claude-cost-pilot-v1.json",
+                "status": claude_pilot["status"],
+                "provider": claude_pilot["provider"],
+                "provider_cost_usd": claude_pilot["provider_cost_usd"],
+                "provider_usage": claude_pilot["provider_usage"],
+                "result": claude_pilot["result"],
+                "campaign_admission": claude_pilot["campaign_admission"],
+                "raw_provider_stream_retained": False,
+                "nonclaims": claude_pilot["nonclaims"],
             },
             "peak_rss": rss["routes"],
             "timing_variation": variation,
@@ -342,8 +382,12 @@ def render():
         },
         "annotations_and_changed_bytes": {
             "matched_boolean": {
-                "status": "unavailable",
-                "reason": "no retained normalized annotation and changed-proof-byte summary binds Boolean candidates to a fixed seed",
+                "status": "retained_source_evidence_only",
+                "source": "evidence/law16-boolean-negation-annotation-summary-v1.json",
+                "scope": "ten matched Boolean final sources versus their fixed seed; byte distance is not semantic effort",
+                "matched_pairs": boolean_annotations["matched_pairs"],
+                "rows": boolean_annotations["rows"],
+                "nonclaims": boolean_annotations["nonclaims"],
             },
             "historical_bounded_balance_v2": {
                 "status": "retained_source_evidence_only",
@@ -352,6 +396,41 @@ def render():
                 "rows": annotations["rows"],
                 "nonclaims": annotations["nonclaims"],
             },
+        },
+        "cache_isolation_probe": {
+            "source": "evidence/law16-cache-isolation-probe-v1/receipt.json",
+            "status": cache_probe["cold_state"]["status"],
+            "reason": cache_probe["cold_state"]["reason"],
+            "checking_measurements": cache_probe["checking_measurements"],
+            "container_state": cache_probe["container_state"],
+            "nonclaims": cache_probe["nonclaims"],
+        },
+        "guest_file_cache_cold_warm": {
+            "source": "evidence/law16-guest-cache-thirty-v1/receipt.json",
+            **guest_cache,
+            "scope": GUEST_CACHE.GUEST_SCOPE,
+        },
+        "supplemental_project_incremental_cell": {
+            "source": "evidence/law16-project-incremental-cell-v1/result.json",
+            **project_incremental,
+            "scope": "local three-module SEMAPRAX compiler cache control; no matched Bend route or project-sized timing comparison",
+        },
+        "supplemental_boolean_native_phases": {
+            "source": "evidence/law16-native-phase-thirty-v1/receipt.json",
+            **native_phases,
+            "scope": "30 local samples each for separate Bend check/C emission/Clang compile/run and SEMAPRAX check/combined native build/run phases; no proof, cache isolation, or cross-route comparison",
+        },
+        "supplemental_boolean_refactor_cell": {
+            "source": "evidence/law16-boolean-refactor-cell-v1/result.json",
+            **boolean_refactor,
+            "scope": "matched scalar Boolean refactor and law-breaking edit; original checked-u32 cells remain unadmitted",
+        },
+        "claude_boolean_pilot": {
+            "source": "evidence/law16-claude-boolean-pilot-v1/capsule.json",
+            "status": claude_boolean_pilot["status"],
+            "attempts": claude_boolean_pilot["attempts"],
+            "campaign_admission": claude_boolean_pilot["campaign_admission"],
+            "nonclaims": claude_boolean_pilot["nonclaims"],
         },
         "pins_and_trust": {
             "observation_identity": "local historical pins, retained as exact executable/tool evidence",
@@ -365,15 +444,15 @@ def render():
         },
         "unavailable_or_unsupported": {
             "checked_u32": "unsupported_by_pinned_parser: SPX-P003 admits i32, u8, usize literal suffixes, not u32",
-            "cold_cache": "unavailable: no retained reproducible clean cache isolation",
+            "cold_cache": "partial: 30 guest file-page-cache cold/warm pairs per ordinary Bend and SEMAPRAX check route; host/Rosetta cache state and proof/verdict cold/warm routes remain unmeasured",
             "Lean": "supplemental LAW15 collection source theorem physically checked by Lean; no Boolean or original law16.* Lean export",
-            "cost": "unavailable: no Codex JSON monetary charge event",
-            "project_sized": "unavailable: Boolean microcell is not project-sized/incremental evidence",
+            "cost": "unavailable for admitted agent trials: Codex JSON has no monetary charge event; a separate Claude probe recorded cost but failed before any source outcome",
+            "project_sized": "partial: three-module SEMAPRAX calculator core edit and signature negative control exercised; no matched Bend route, large project, or incremental timing comparison",
             "list_refactor_lawbreaking": remaining,
         },
         "closure": (
             "no: the matched Boolean cell and supplemental U32 semantic theorem comparison do not satisfy "
-            "the original checked-u32 source admission, cold-cache, project-sized/refactor/incremental, "
+            "the original checked-u32 source admission, full cold-cache and proof-route coverage, matched project-sized incremental/refactor, "
             "or monetary cost-event acceptance requirements"
         ),
         "nonclaims": [

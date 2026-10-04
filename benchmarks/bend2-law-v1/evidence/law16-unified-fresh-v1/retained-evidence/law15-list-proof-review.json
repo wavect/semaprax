@@ -1,0 +1,54 @@
+{
+  "attacks": [
+    "empty_sort",
+    "duplicate_multiplicity"
+  ],
+  "capsule": "evidence/law16-i64-list-proof-v1/capsule.json",
+  "capture_status": "supplemental_i64_list_profile_proved",
+  "coverage": {
+    "declarations": [
+      "law15.collection.insert",
+      "law15.collection.sort"
+    ],
+    "domain": "all finite List<i64>; guarded U32 values are a subset",
+    "laws": [
+      "sort_sorted",
+      "sort_permutation",
+      "sort_multiplicity"
+    ]
+  },
+  "evidence": [
+    {
+      "bytes": 3144,
+      "path": "evidence/law16-i64-list-proof-v1/capsule.json",
+      "sha256": "sha256:a14878d87d8f63cb472916239d3e07f9bac46265291159ef4dc994d5735d5b0d"
+    },
+    {
+      "bytes": 227,
+      "path": "evidence/law16-i64-list-proof-v1/raw/kernel-test.stdout",
+      "sha256": "sha256:e329937fe0073a904349149a708594d058de0f41920b27da9ac4a7a3522dea4e"
+    },
+    {
+      "bytes": 546,
+      "path": "evidence/law16-i64-list-proof-v1/raw/kernel-test.stderr",
+      "sha256": "sha256:39f6b9522db41b7ef34a2a2bb2b2f2e701292e7911c504bd5aa9c5df9b4b6560"
+    }
+  ],
+  "exit_code": null,
+  "exit_code_retained": false,
+  "lean_pin": "leanprover/lean4:v4.34.0",
+  "lean_version": "Lean (version 4.34.0, arm64-apple-darwin24.6.0, commit 293d5d0c0c3f3dded4688b3ccd6a33939ac5102b, Release)",
+  "nonclaims": [
+    "test-binary source association is local rather than a build attestation",
+    "no certificate for law16.* declarations",
+    "no Bend source proof",
+    "no runtime resource or lowering proof",
+    "no public list ABI proof"
+  ],
+  "original_law16_cell": "unchanged; its law16.* identities are not covered by this certificate",
+  "profile": "semaprax.collection-sort-i64.v1",
+  "raw_success_markers": "test success and both rejection witness strings are present",
+  "status": "retained_test_output_and_source_hashes_verified",
+  "test_binary_association": "local path/hash recorded; not a build attestation",
+  "test_binary_sha256": "sha256:5aace567c8f10db937f93f559c65fd80b1104c7a5e5ab9376a3bbf7e7f8a05f4"
+}

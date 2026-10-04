@@ -1,0 +1,91 @@
+{
+  "bend_commit": "947db722640c86247849343657bf2f7ef01cb7f1",
+  "schema": "semaprax.bend2-law-benchmark.live-tool-pins.v1",
+  "semaprax_build_association": "caller-declared; not a build attestation",
+  "semaprax_build_commit": "9a9db7a8117ac8d292b24ffd5671ec3333272290",
+  "tools": {
+    "bendtt": {
+      "path": "/Users/kevin/.bend/bendtt/e15042434e73aab0/bendtt",
+      "sha256": "sha256:04f97a0aba640bf1246c425ba70f3790584e42f8bcf8c608991f293d78ef58a7"
+    },
+    "bun": {
+      "path": "/Users/kevin/.bun/bin/bun",
+      "sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+      "version": {
+        "argv": [
+          "/Users/kevin/.bun/bin/bun",
+          "--version"
+        ],
+        "sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+        "stdout": "1.2.5"
+      }
+    },
+    "clang": {
+      "path": "/usr/bin/clang",
+      "sha256": "sha256:179301dcb41ea78accc3fa0048a7e6f6710d891945a751a34addd622020c1818",
+      "version": {
+        "argv": [
+          "/usr/bin/clang",
+          "--version"
+        ],
+        "sha256": "sha256:179301dcb41ea78accc3fa0048a7e6f6710d891945a751a34addd622020c1818",
+        "stdout": "Apple clang version 21.0.0 (clang-2100.1.1.101)\nTarget: arm64-apple-darwin25.5.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+      }
+    },
+    "lean": {
+      "path": "/Users/kevin/.elan/toolchains/leanprover--lean4---v4.34.0/bin/lean",
+      "sha256": "sha256:1b370cfcbf44e80d1b004ab1b1ab9a4c73951f9f7c242140bcff9bc577576554",
+      "version": {
+        "argv": [
+          "/Users/kevin/.elan/toolchains/leanprover--lean4---v4.34.0/bin/lean",
+          "--version"
+        ],
+        "sha256": "sha256:1b370cfcbf44e80d1b004ab1b1ab9a4c73951f9f7c242140bcff9bc577576554",
+        "stdout": "Lean (version 4.34.0, arm64-apple-darwin24.6.0, commit 293d5d0c0c3f3dded4688b3ccd6a33939ac5102b, Release)"
+      }
+    },
+    "lean_test_binary": {
+      "build_argv": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "semaprax",
+        "--test",
+        "language",
+        "--no-run",
+        "--message-format=json"
+      ],
+      "build_association": "local locked offline Cargo compiler-artifact output; not reproducible-build attestation",
+      "build_profile": "unoptimized, debug=0, incremental=0",
+      "build_source_commit": "fdc908ee98ea706dd0e905f36260557a493b908b",
+      "path": "/private/tmp/semaprax-law12-lane/target/law16-replay/debug/deps/language-a787188e3240809e",
+      "sha256": "sha256:380ac4804d311ebf53c3a87f2dbee7951ec9ed9604315b2c7ed88851d3c9a9f8"
+    },
+    "semaprax": {
+      "path": "/private/tmp/semaprax-9a9db7a81",
+      "sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89",
+      "version": {
+        "argv": [
+          "/private/tmp/semaprax-9a9db7a81",
+          "--version"
+        ],
+        "sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89",
+        "stdout": "semaprax 0.7.0 (9a9db7a8117ac8d292b24ffd5671ec3333272290)"
+      }
+    },
+    "z3": {
+      "path": "/opt/homebrew/bin/z3",
+      "sha256": "sha256:bbb24b8fed27552f7fb7cfdf0ed9101e6e24fd0cc0b9cfb945233b3f2ed333c5",
+      "version": {
+        "argv": [
+          "/opt/homebrew/bin/z3",
+          "--version"
+        ],
+        "sha256": "sha256:bbb24b8fed27552f7fb7cfdf0ed9101e6e24fd0cc0b9cfb945233b3f2ed333c5",
+        "stdout": "Z3 version 4.12.5 - 64 bit"
+      }
+    }
+  }
+}

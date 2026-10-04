@@ -1,0 +1,135 @@
+{
+  "plan_review": {
+    "comparability": {
+      "not_evidence": [
+        "the old Bend score versus SEMAPRAX negation corpus"
+      ],
+      "requires": [
+        "Bend candidate and attack receipts bind this exact plan source",
+        "SEMAPRAX candidate and attack Z3 receipts bind this exact plan source",
+        "both routes complete 30 fresh-path plus 30 repeat-path children",
+        "the identity attacks are rejected"
+      ],
+      "status": "not_validated"
+    },
+    "nonclaims": [
+      "prepared commands are not an executed corpus",
+      "Bend verdict and installed-Z3 have distinct trusted computing bases",
+      "fresh and repeat processes do not isolate OS, executable, solver, or tool caches",
+      "no timing ratio, winner, checked-u32, lowering, or execution proof"
+    ],
+    "routes": {
+      "bend_verdict": {
+        "attack": "nonzero exit and SOME PROOFS FAIL",
+        "candidate": "exit 0 and ALL PROOFS CHECK",
+        "fresh_repeat": "two new child processes over byte-identical fixture copies",
+        "samples_per_state": 30
+      },
+      "semaprax_z3": {
+        "attack": "same selected obligation is rejected",
+        "candidate": "selected app.negate ensures[0] discharges through the pinned installed-Z3 route",
+        "fresh_repeat": "two copied project roots with byte-identical app source and project support files",
+        "samples_per_state": 30
+      }
+    },
+    "schema": "semaprax.bend2-law-benchmark.boolean-negation-pair-review.v1",
+    "semantic_contract": {
+      "domain": "Bool / bool; exactly two values",
+      "name": "total Boolean negation",
+      "relation": "result == !value / Bool.not(value)",
+      "truth_table": [
+        {
+          "input": false,
+          "output": true
+        },
+        {
+          "input": true,
+          "output": false
+        }
+      ]
+    },
+    "sources": {
+      "bend_attack": {
+        "bytes": 196,
+        "path": "fixtures/bend-boolean-negation-law-gaming-v1.bend",
+        "sha256": "sha256:5ee075e4f37c305e1aa73ed7c81d7fa59815e58c5f4aeda4ac658e79c1fe96fa"
+      },
+      "bend_candidate": {
+        "bytes": 327,
+        "path": "fixtures/bend-boolean-negation-v1.bend",
+        "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+      },
+      "semaprax_attack": {
+        "bytes": 337,
+        "path": "fixtures/semaprax-boolean-negation-law-gaming-v1.spx",
+        "sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+      },
+      "semaprax_attack_core_core_spx": {
+        "bytes": 68,
+        "path": "fixtures/boolean-negation-project-v1/attack/core/core.spx",
+        "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+      },
+      "semaprax_attack_project": {
+        "bytes": 183,
+        "path": "fixtures/boolean-negation-project-v1/attack/semaprax.toml",
+        "sha256": "sha256:481999d6499263a605ce8eaf67e8155b772f6cddbe466c87e3087978ff339bb5"
+      },
+      "semaprax_attack_tests_tests_spx": {
+        "bytes": 68,
+        "path": "fixtures/boolean-negation-project-v1/attack/tests/tests.spx",
+        "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+      },
+      "semaprax_candidate": {
+        "bytes": 182,
+        "path": "fixtures/semaprax-boolean-negation-v1.spx",
+        "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+      },
+      "semaprax_candidate_core_core_spx": {
+        "bytes": 68,
+        "path": "fixtures/boolean-negation-project-v1/candidate/core/core.spx",
+        "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+      },
+      "semaprax_candidate_project": {
+        "bytes": 183,
+        "path": "fixtures/boolean-negation-project-v1/candidate/semaprax.toml",
+        "sha256": "sha256:481999d6499263a605ce8eaf67e8155b772f6cddbe466c87e3087978ff339bb5"
+      },
+      "semaprax_candidate_tests_tests_spx": {
+        "bytes": 68,
+        "path": "fixtures/boolean-negation-project-v1/candidate/tests/tests.spx",
+        "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+      }
+    },
+    "status": "prepared_not_executed"
+  },
+  "provenance": {
+    "bytes": 148264,
+    "path": "provenance.json",
+    "sha256": "sha256:70e8ccaeebb2b546eb429c40c3c36764e5a7a366df1c62dc3cbf9ae143553ec2"
+  },
+  "schema": "semaprax.bend2-law-benchmark.boolean-negation-process-capsule.v2",
+  "tools": {
+    "bend_commit": "947db722640c86247849343657bf2f7ef01cb7f1",
+    "bend_main": {
+      "bytes": 34607,
+      "path": "/private/tmp/bend2-law-source/bend2/main.ts",
+      "sha256": "sha256:c48a0274e661a3e529933550752578768e8f029219d814073fbf86537271d475"
+    },
+    "bun": {
+      "bytes": 57940512,
+      "path": "/Users/kevin/.bun/bin/bun",
+      "sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781"
+    },
+    "semaprax": {
+      "bytes": 172081112,
+      "path": "/private/tmp/semaprax-9a9db7a81",
+      "sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+    },
+    "z3": {
+      "bytes": 23365455,
+      "path": "/opt/homebrew/bin/z3",
+      "sha256": "sha256:bbb24b8fed27552f7fb7cfdf0ed9101e6e24fd0cc0b9cfb945233b3f2ed333c5"
+    },
+    "z3_version": "Z3 version 4.12.5 - 64 bit"
+  }
+}

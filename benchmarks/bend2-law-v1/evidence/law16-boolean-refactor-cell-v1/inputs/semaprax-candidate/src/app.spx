@@ -1,0 +1,14 @@
+module app;
+
+@id("app.negate")
+fn negate(value: bool) -> bool
+    ensures result == !value
+{
+    if value { false } else { true }
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    if negate(false) { 0 } else { 1 }
+}

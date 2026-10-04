@@ -3,6 +3,26 @@
 The machine-readable [current report](evidence/law16-current-report-v1.json)
 is generated from retained, offline-authenticated capsules. Its status is
 **incomplete**. It does not claim issue closure.
+The documented `law16_replay.py --verify-retained` sequence now authenticates
+the available capsules, including all 230 recovered bounded-balance raw outputs.
+The [unified fresh capture](evidence/law16-unified-fresh-v1/replay-status.json)
+completed six non-agent routes in that command, with 882 retained artifacts.
+The separate [caller-pinned guarded-i64 balance SMT source-proof capsule](evidence/law16-unified-fresh-guarded-i64-v1/result.json)
+physically exercised the seventh non-agent route and retained its 16 raw
+streams. Offline review of both capsules succeeds. The retained agent campaigns
+were re-authenticated, not rerun. All seven non-agent routes have now been
+physically exercised, but AC1 remains partial because the optional live agent
+continuation was not rerun.
+
+The [preceding failed capture](evidence/law16-unified-fresh-pin-failure-v1/replay-status.json)
+retains all output from the first three routes and the following compiler-pin
+format refusal. The runner now preserves the required `sha256:` prefix. RSS
+review also authenticates original sample commands after the capsule is copied.
+The fresh capture uses the historical compiler pin below and a newly built
+Lean test harness associated locally with
+`fdc908ee98ea706dd0e905f36260557a493b908b`. Its source/binary association is
+not a reproducible-build attestation. Host quietness was not established, and
+these fresh timings introduce no new performance comparison or winner.
 
 ## Matched Boolean-negation evidence
 
@@ -50,6 +70,28 @@ Codex JSON records expose token counters but no monetary charge event. The
 [cost-provenance receipt](evidence/law16-boolean-negation-agent-cost-provenance-v1.json)
 authenticates all 20 provider event streams and their 333,999 total tokens;
 its monetary cost is explicitly unavailable, with no price inferred from tokens.
+A separate [Claude Haiku cost probe](evidence/law16-claude-cost-pilot-v1.json)
+recorded a provider-reported **$0.023741** charge, but stopped with
+`error_max_budget_usd` before producing a source outcome. Its sanitized receipt
+does not retain the provider stream, and this failed probe does not supply
+monetary cost for the ten matched Codex pairs or admit a Claude campaign.
+Two later [bounded Claude Bend attempts](evidence/law16-claude-boolean-pilot-v1/capsule.json)
+recorded provider costs of **$0.008302** and **$0.016636**. One generated
+unsupported Bend syntax; the other returned prose instead of the declared
+JSON source shape. Neither is a successful matched trial, and no ten-pair
+Claude campaign was run. Provider streams and prompts are not retained in
+that sanitized capsule.
+The [Boolean annotation receipt](evidence/law16-boolean-negation-annotation-summary-v1.json)
+binds all 20 final sources in those ten pairs to their fixed seeds and reports
+explicit annotation, proof-term, and changed-byte counts. These textual counts
+do not measure reasoning effort or make raw bytes comparable across languages.
+
+A separate [matched Boolean refactor cell](evidence/law16-boolean-refactor-cell-v1/result.json)
+retains 16 raw streams for real Bend ordinary/verdict and SEMAPRAX check/Z3
+candidate and law-breaking attack routes. Both refactored candidates pass;
+Bend ordinary/verdict and SEMAPRAX Z3 reject their attacks. SEMAPRAX `check`
+accepts its attack as a nonproof observation. This scalar cell does not admit
+the original checked-`u32` refactor or a project-sized incremental edit.
 
 ## Trust boundaries
 
@@ -64,16 +106,35 @@ execution. Fresh/repeat paths do not isolate operating-system or tool caches.
 ## Remaining blockers
 
 The pinned SEMAPRAX parser does not admit checked `u32`; its retained
-non-admission receipt records `SPX-P003`. There is no retained cold-cache
-isolation, monetary cost event, or matched project-sized/refactor/incremental
-cell. The Lean list proof below covers its exact LAW15 source, not the original
-LAW16 fixture. These gaps prevent honest closure of #392.
+non-admission receipt records `SPX-P003`. The later
+[Linux/Rosetta guest capsule](evidence/law16-guest-cache-thirty-v1/receipt.json)
+authenticates 30 cold/warm guest file-page-cache pairs per ordinary Bend and
+SEMAPRAX `check` route. Host and Rosetta caches remain unknown, while
+Bend verdict and SEMAPRAX Z3 cold/warm routes remain unmeasured. There is no
+monetary cost event for admitted matched agent trials or matched project-sized
+incremental cell. The Lean list proof below covers its exact LAW15 source,
+not the original LAW16 fixture. These gaps prevent honest closure of #392.
+The separate [three-module calculator capsule](evidence/law16-project-incremental-cell-v1/result.json)
+executes SEMAPRAX compiler cache tests for a provider body edit and a rejected
+provider-signature edit. It is local incremental behavior, with no matched Bend
+route or large-project timing result.
+The [Boolean native phase capsule](evidence/law16-native-phase-thirty-v1/receipt.json)
+retains 30 local samples for each Bend check, C emission, Clang compilation,
+and run phase and each SEMAPRAX check, combined native build, and run phase.
+Its raw native outputs match the two-value witness. These timings have no
+isolated OS-cache state or cross-route winner interpretation; SEMAPRAX build
+internals are still combined.
+The [cache-isolation probe](evidence/law16-cache-isolation-probe-v1/receipt.json)
+records an earlier ephemeral Apple Container guest with read-only `/proc/sys`
+even as root. It collected zero checker timings and left no container running.
+The later guest capsule used a different guest setting and measured its file
+page cache directly; the earlier failed probe remains a separate nonresult.
 
 The generated machine report also records retained tool identities, explicit
 unavailable hardware/OS and optimization-flag provenance, Boolean agent-turn
-proof-synthesis tokens, and historical bounded-balance annotation/changed-byte
-rows. Historical bounded-balance rows are retained source evidence only and do
-not satisfy the checked-`u32` cell.
+proof-synthesis tokens, Boolean annotation/changed-byte counts, and historical
+bounded-balance annotation/changed-byte rows. The bounded-balance rows remain
+retained source evidence only and do not satisfy the checked-`u32` cell.
 
 The remaining required list-theorem, law-preserving-refactor, and law-breaking
 edit fixtures have dedicated controls but are also blocked before a matched

@@ -1,0 +1,35 @@
+{
+  "attempts": [
+    {
+      "id": "bend-syntax-1",
+      "model": "haiku",
+      "prompt_description": "Repair the embedded Bend Boolean-negation seed and return one JSON response with final_source and a reject decision for the seeded attack.",
+      "prompt_digest": {"status": "unavailable", "reason": "Claude stream-json did not retain the initial prompt event"},
+      "response_contract": "prompt-only JSON request"
+    },
+    {
+      "id": "bend-syntax-2",
+      "model": "haiku",
+      "prompt_description": "Repair the embedded Bend seed using the pinned working syntax; do not use unicode quantifiers; return the declared JSON schema.",
+      "prompt_digest": {"status": "unavailable", "reason": "Claude stream-json did not retain the initial prompt event"},
+      "response_contract": "CLI --json-schema requires trial_id, language, final_source, and seeded_attack.decision=reject"
+    }
+  ],
+  "cli": {
+    "flags": [
+      "--print",
+      "--verbose",
+      "--model=haiku",
+      "--max-budget-usd=0.10",
+      "--output-format=stream-json",
+      "--no-session-persistence",
+      "--tools=",
+      "--permission-mode=dontAsk",
+      "--permission-prompts=none"
+    ],
+    "model_id": "claude-haiku-4-5-20251001",
+    "runner": "claude-code-print-stream-json-v1",
+    "system_prompt": "Return only JSON that validates against the supplied schema. Do not use tools or inspect files."
+  },
+  "schema": "semaprax.bend2-law-benchmark.claude-boolean-pilot-config.v1"
+}

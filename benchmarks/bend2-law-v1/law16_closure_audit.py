@@ -160,7 +160,8 @@ def verify_guarded_i64_v2() -> dict:
         "paired_controls": outcomes,
         "representation_model": {"claim": control["representation_bridge"]["claim"], "exit_code": control["representation_bridge"]["exit_code"], "source": control["representation_bridge"]["source"]},
         "bounded_sort_model": {"claim": control["sort_equal_spec_model"]["claim"], "exit_code": control["sort_equal_spec_model"]["exit_code"], "source": control["sort_equal_spec_model"]["source"]},
-        "law15_lean_route": {"disposition": profile["routes"][2]["disposition"], "declarations": profile["routes"][2]["declarations"], "bend_comparison": profile["routes"][2]["bend_comparison"], "identity_boundary": profile["routes"][2]["identity_boundary"]},
+        "law15_lean_route": {"disposition": profile["routes"][2]["disposition"], "declarations": profile["routes"][2]["declarations"], "identity_boundary": profile["routes"][2]["identity_boundary"]},
+        "supplemental_bend_lean_comparison": {"disposition": profile["routes"][3]["disposition"], "alignment": profile["routes"][3]["domain_and_law_alignment"], "algorithm_boundary": profile["routes"][3]["algorithm_boundary"], "scope_limit": profile["routes"][3]["scope_limit"]},
         "original_manifest_status": profile["base_profile"]["native_u32_source_status"],
         "build_association": profile["reproduction"]["build_association"],
         "claim_limit": profile["reproduction"]["claim_limit"],
@@ -168,10 +169,31 @@ def verify_guarded_i64_v2() -> dict:
     }
 
 
+def verify_fresh_guarded_i64_source_proof() -> dict:
+    """Authenticate the separately captured caller-pinned source-proof route."""
+    capsule = ROOT / "evidence/law16-unified-fresh-guarded-i64-v1"
+    result = json.loads((capsule / "result.json").read_text())
+    route = module("law16_fresh_guarded_i64_source_proof_for_audit", ROOT / "law16_guarded_i64_balance_smt.py")
+    review = route.verify_fresh_capsule(
+        capsule,
+        "sha256:" + result["semaprax"]["sha256"],
+        "sha256:" + result["z3"]["sha256"],
+        result["semaprax"]["build_commit"],
+    )
+    return {
+        **review,
+        "capsule": "evidence/law16-unified-fresh-guarded-i64-v1/result.json",
+        "build_association": "caller-declared local build commit; not a build attestation",
+        "evidence": [evidence("evidence/law16-unified-fresh-guarded-i64-v1/result.json")],
+    }
+
+
 def render() -> dict:
     report = report_data()
     list_proof = verify_i64_list_capsule()
     profile_v2 = verify_guarded_i64_v2()
+    fresh_guarded_i64 = verify_fresh_guarded_i64_source_proof()
+    fresh_capture = module("law16_fresh_replay_for_audit", ROOT / "law16_replay.py").verify_fresh_capture(ROOT / "evidence/law16-unified-fresh-v1")
     current_report = "evidence/law16-current-report-v1.json"
     common = [evidence(current_report)]
     criteria = [
@@ -179,17 +201,18 @@ def render() -> dict:
             "id": "AC1",
             "text": ACCEPTANCE_TEXT[0],
             "status": "partial",
-            "assessment": "The benchmark README documents reproduction commands and the retained capsules carry raw streams and pins. The available cells are documented through separate route-specific commands; this audit found no single sequence that replays every available cell together.",
-            "evidence": common + [evidence("README.md"), evidence("law16_current_report.py")],
+            "assessment": "All seven non-agent routes were physically exercised with raw artifacts and pinned tools: six in the unified capture and the guarded-i64 balance SMT source-proof route in its separate caller-pinned capsule. Both capsules authenticate offline without their original temporary directories. The optional live agent continuation was not rerun, so full available-cell reproduction remains partial.",
+            "evidence": common + [evidence("README.md"), evidence("law16_replay.py"), evidence("law16_current_report.py"), evidence("evidence/law16-unified-fresh-v1/replay-status.json"), evidence("evidence/law16-unified-fresh-guarded-i64-v1/result.json")],
         },
         {
             "id": "AC2",
             "text": ACCEPTANCE_TEXT[1],
             "status": "partial",
-            "assessment": "Supplemental guarded-i64/U32 v2 retains one candidate/attack pair for balance and sort across Bend ordinary, Bend verdict, and SEMAPRAX native routes, plus four SEMAPRAX domain refusals. Its bitvector representation model is full-domain but has no source translation/lowering certificate; the sort model is universal only for four-element U32 lists. The separate Lean capsule proves LAW15 collection.sort over List<i64>, with no matched Bend theorem. No LAW16 source theorem is established; original checked-u32 syntax remains unsupported.",
+            "assessment": "Supplemental guarded-i64/U32 v2 retains balance and sort controls, and separate Bend and Lean source theorems prove aligned universal sort laws over the U32 subdomain for distinct algorithms. A new matched scalar-Boolean refactor cell accepts both candidates and rejects law-breaking attacks with Bend verdict and SEMAPRAX Z3; SEMAPRAX check accepts its attack as an explicit nonproof result. None establishes the original checked-u32 source identities or source translation/lowering; checked-u32 syntax remains unsupported.",
             "evidence": common + [
                 evidence("evidence/full-u32-encoding-controls-v1/report.json"),
                 evidence("full_u32_equal_spec.py"),
+                evidence("evidence/law16-boolean-refactor-cell-v1/result.json"),
                 evidence("fixtures/full-u32-encoding-v1/sort-equal-spec.smt2"),
                 evidence("evidence/law16-guarded-i64-balance-smt-v1/result.json"),
                 evidence("law16_guarded_i64_balance_smt.py"),
@@ -224,10 +247,13 @@ def render() -> dict:
             "id": "AC5",
             "text": ACCEPTANCE_TEXT[4],
             "status": "partial",
-            "assessment": "Process timing, proof/check routes, agent synthesis tokens, and runtime controls are separated. The retained fresh/repeat process observations do not establish OS-cache cold/warm state; native compile and run remain combined and unmeasured as separate timings.",
+            "assessment": "Process timing, proof/check routes, agent synthesis tokens, and runtime controls are separated. A Linux/Rosetta guest capsule authenticates 30 cold/warm file-page-cache pairs each for ordinary Bend and SEMAPRAX check. A separate local 30-sample Boolean capsule times Bend check, C emission, Clang compile, and native run separately, and SEMAPRAX check, combined native build, and native run separately. Host/Rosetta caches and proof/verdict cold/warm routes remain unmeasured; SEMAPRAX build internals remain combined.",
             "evidence": common + [
                 evidence("evidence/law16-boolean-negation-process-v2/manifest.json"),
                 evidence("evidence/law16-boolean-negation-process-v2/provenance.json"),
+                evidence("evidence/law16-cache-isolation-probe-v1/receipt.json"),
+                evidence("evidence/law16-guest-cache-thirty-v1/receipt.json"),
+                evidence("evidence/law16-native-phase-thirty-v1/receipt.json"),
                 evidence("evidence/law16-effort-summary-v1.json"),
                 evidence("evidence/full-u32-encoding-controls-v1/report.json"),
             ],
@@ -236,11 +262,13 @@ def render() -> dict:
             "id": "AC6",
             "text": ACCEPTANCE_TEXT[5],
             "status": "partial",
-            "assessment": "Ten fixed-budget matched Boolean agent pairs include candidate/attack outcomes and retained token counters. No monetary charge event is present, and the other planned task cells have no corresponding ten-trial agent campaigns because they are unsupported or unobserved.",
+            "assessment": "Ten fixed-budget matched Boolean Codex pairs include candidate/attack outcomes and token counters but no monetary charges. A separate Claude budget probe and two bounded Bend pilots emitted cost events; the latter failed source parsing or verdict, and none is an admitted matched pair. Other planned task cells lack corresponding ten-trial agent campaigns.",
             "evidence": common + [
                 evidence("evidence/law16-boolean-negation-agent-pilot-v1/review.json"),
                 evidence("evidence/law16-boolean-negation-agent-campaign-v1/review.json"),
                 evidence("evidence/law16-effort-summary-v1.json"),
+                evidence("evidence/law16-claude-cost-pilot-v1.json"),
+                evidence("evidence/law16-claude-boolean-pilot-v1/capsule.json"),
             ],
         },
         {
@@ -259,19 +287,19 @@ def render() -> dict:
         ),
         (
             "partial",
-            "Boolean, balance, and sort controls are retained, including a supplemental LAW15 List<i64> Lean proof test. The v2 balance/sort source controls are one candidate/attack pair per route, not the required theorem task campaigns. The planned LAW16 list identities, refactor, law-breaking agent edit, and project-sized incremental cells remain unsupported or unavailable.",
+            "Boolean, balance, and sort controls are retained, including a supplemental LAW15 List<i64> Lean proof test and a matched Boolean refactor candidate/attack cell. A local three-module SEMAPRAX incremental cache control executed, but it is not a matched Bend or large-project comparison. The original checked-u32 refactor and law-breaking agent edit remain unsupported.",
         ),
         (
             "partial",
-            "Supplemental controls pair full-U32 Bend values with guarded-i64 SEMAPRAX source, with explicit state-preserving failure cases, all-U32 representation bitvector checks, and a four-element U32 sort model. These do not prove source translation/lowering or unbounded LAW16 laws. A separate Lean capsule reports LAW15 identities only. The original checked-u32 source profile remains unadmitted.",
+            "Supplemental controls pair full-U32 Bend values with guarded-i64 SEMAPRAX source, with explicit state-preserving failure cases and all-U32 representation bitvector checks. Separate Bend and Lean source theorems establish aligned universal sort laws over the U32 subdomain for distinct algorithms. They do not prove source translation/lowering or the original LAW16 identities. The checked-u32 source profile remains unadmitted.",
         ),
         (
             "partial",
-            "Available process cells have 30 samples, p50/p95, peak RSS, and descriptive MAD; proof synthesis tokens and route checks are separately reported. Cold-cache isolation, Boolean annotation/changed-proof-byte counts, monetary cost, and separate native compile/run timings are unavailable.",
+            "Available process cells have 30 samples, p50/p95, peak RSS, and descriptive MAD; proof synthesis tokens, Boolean annotation/changed-byte counts, and route checks are separately reported. A local three-module cache invalidation control and guest file-page-cache cold/warm pairs for ordinary/check routes are retained. Local native phase samples separate Bend Clang compilation and both run phases; SEMAPRAX build internals remain combined. Proof/verdict cold/warm and monetary cost for admitted matched trials remain unavailable.",
         ),
         (
             "partial",
-            "Ten fixed-budget matched agent pairs cover the Boolean task and retain candidate/attack outcomes and token counters. No monetary charge event exists, and unsupported planned tasks have no matched agent trials.",
+            "Ten fixed-budget matched Codex pairs cover the Boolean task and retain candidate/attack outcomes and token counters without monetary events. Separate Claude cost attempts have monetary events but no successful source outcome, and unsupported planned tasks have no matched agent trials.",
         ),
         (
             "met",
@@ -302,8 +330,8 @@ def render() -> dict:
             "id": "supported_list_theorem",
             "classification": "supplemental_profile_only",
             "blocking_requirements": ["AC2", "R2", "R3"],
-            "status": "A retained Lean kernel test proves generic LAW15 collection.sort over all finite List<i64> and rejects empty/duplicate mutants, but it does not cover law16.* declarations or establish a matched Bend source proof. The separate U32 SMT model checks only length-four lists.",
-            "evidence": [evidence("evidence/law16-i64-list-proof-v1/capsule.json"), evidence("fixtures/full-u32-encoding-v1/sort-equal-spec.smt2"), evidence("evidence/law16-checked-u32-nonadmission-v1/review.json")],
+            "status": "Retained Bend and Lean source theorems prove aligned universal sortedness and multiplicity laws over the U32 subdomain, with separate empty/duplicate attack controls. They authenticate distinct algorithms and source identities; neither proves the original law16.* declarations. The separate U32 SMT model remains limited to four-element lists.",
+            "evidence": [evidence("evidence/bend-u32-sort-universal-v1/capsule.json"), evidence("evidence/law16-i64-list-proof-v1/capsule.json"), evidence("fixtures/full-u32-encoding-v1/sort-equal-spec.smt2"), evidence("evidence/law16-checked-u32-nonadmission-v1/review.json")],
         },
         {
             "id": "law16_list_source_theorem",
@@ -313,10 +341,10 @@ def render() -> dict:
             "evidence": [evidence("evidence/law16-i64-list-proof-v1/capsule.json")],
         },
         {
-            "id": "law_preserving_refactor",
+            "id": "original_checked_u32_law_preserving_refactor",
             "classification": "unsupported",
             "blocking_requirements": ["R2"],
-            "status": "no matched refactor-equivalence route; checked-u32 parser admission blocks the planned fixture",
+            "status": "a separate scalar-Boolean refactor route is retained, but checked-u32 parser admission still blocks the original planned refactor fixture",
             "evidence": [evidence("evidence/law16-checked-u32-nonadmission-v1/review.json")],
         },
         {
@@ -335,38 +363,31 @@ def render() -> dict:
         },
         {
             "id": "cold_cache_isolation",
-            "classification": "unavailable",
+            "classification": "partially_observed_guest_file_cache",
             "blocking_requirements": ["AC5", "R4"],
             "status": unsupported["cold_cache"],
-            "evidence": [evidence("evidence/law16-boolean-negation-process-v2/provenance.json")],
+            "evidence": [evidence("evidence/law16-boolean-negation-process-v2/provenance.json"), evidence("evidence/law16-cache-isolation-probe-v1/receipt.json"), evidence("evidence/law16-guest-cache-thirty-v1/receipt.json")],
         },
         {
             "id": "external_lean_export_kernel",
             "classification": "supplemental_route_available_but_not_law16_cell",
             "blocking_requirements": ["R1", "R2"],
-            "status": "a retained pinned Lean kernel route covers LAW15 collection.sort over List<i64>; the original report's no-Lean-route statement predates this supplemental capsule, which does not prove a LAW16 declaration",
+            "status": "a retained pinned Lean kernel route covers LAW15 collection.sort over List<i64>; this supplemental capsule does not prove a LAW16 declaration",
             "evidence": [evidence("evidence/law16-i64-list-proof-v1/capsule.json")],
         },
         {
             "id": "project_sized_incremental_cell",
-            "classification": "unavailable",
+            "classification": "supplemental_three_module_cache_control_only",
             "blocking_requirements": ["R2", "R4"],
             "status": unsupported["project_sized"],
-            "evidence": common,
+            "evidence": common + [evidence("evidence/law16-project-incremental-cell-v1/result.json")],
         },
         {
             "id": "agent_monetary_cost_events",
             "classification": "unavailable",
             "blocking_requirements": ["AC6", "R5"],
             "status": unsupported["cost"],
-            "evidence": common,
-        },
-        {
-            "id": "boolean_annotation_and_changed_proof_byte_measurement",
-            "classification": "unavailable",
-            "blocking_requirements": ["R4"],
-            "status": report["annotations_and_changed_bytes"]["matched_boolean"]["reason"],
-            "evidence": common,
+            "evidence": common + [evidence("evidence/law16-claude-cost-pilot-v1.json"), evidence("evidence/law16-claude-boolean-pilot-v1/capsule.json")],
         },
     ]
 
@@ -394,25 +415,27 @@ def render() -> dict:
         "required_implementation_assessment": required,
         "supplemental_i64_list_proof": list_proof,
         "supplemental_guarded_i64_profile_v2": profile_v2,
+        "fresh_guarded_i64_source_proof": fresh_guarded_i64,
+        "unified_fresh_capture": fresh_capture,
         "current_report_reconciliation": {
             "field": "unavailable_or_unsupported.Lean",
             "existing_report_value": unsupported["Lean"],
-            "audit_update": "The current report's no-Lean-route field predates this capsule. The branch now retains a LAW15 collection List<i64> Lean proof test; it is supplemental and does not close or prove the LAW16 list cell.",
+            "audit_update": "The current report includes the LAW15 collection List<i64> Lean proof test. It is supplemental and does not close or prove the original LAW16 list cell.",
         },
         "unmet_requirements": [
             {
                 "id": "AC1",
-                "reason": "There is no single documented replay sequence that invokes all available cells together.",
+                "reason": "All seven non-agent routes completed physical execution across the unified and separate caller-pinned captures; the optional live agent continuation was not rerun.",
                 "kind": "reproducibility_harness_gap",
             },
             {
                 "id": "AC5",
-                "reason": "No cache-isolated cold observation exists; fresh/repeat process states cannot substitute for it.",
+                "reason": "Thirty guest file-page-cache cold/warm pairs exist for ordinary/check routes, but proof/verdict routes and host/Rosetta cache state are unmeasured; fresh/repeat process states cannot substitute for them.",
                 "kind": "missing_measurement",
             },
             {
                 "id": "AC6",
-                "reason": "No monetary cost event exists, and the ten-trial agent evidence covers only the Boolean task.",
+                "reason": "The admitted ten-trial agent evidence has no monetary cost event and covers only the Boolean task; separate Claude cost attempts produced no successful source outcome.",
                 "kind": "missing_agent_telemetry_and_task_coverage",
             },
         ],
@@ -429,6 +452,7 @@ def render() -> dict:
             "this audit does not close issue #392",
             "unsupported or unavailable cells are not wins and are not silently replaced by supplemental controls",
             "the supplemental guarded-i64 balance source proof is not proof of lowering or app execution",
+            "the fresh guarded-i64 source-proof build commit is caller-declared and not a build attestation",
             "the no-op source-proof refusal is not classified as a counterexample",
             "the four-element U32 sort model check is not a source-level unbounded-list theorem",
             "full-domain representation bitvector checks do not establish source translation or lowering",

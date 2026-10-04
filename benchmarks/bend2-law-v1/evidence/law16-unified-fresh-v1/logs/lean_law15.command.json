@@ -1,0 +1,27 @@
+{
+  "argv": [
+    "/Library/Frameworks/Python.framework/Versions/3.14/bin/python3",
+    "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/law16_i64_list_proof_capsule.py",
+    "--test-binary",
+    "/private/tmp/semaprax-law12-lane/target/law16-replay/debug/deps/language-a787188e3240809e",
+    "--lean",
+    "/Users/kevin/.elan/toolchains/leanprover--lean4---v4.34.0/bin/lean",
+    "--raw-artifact-dir",
+    "/private/tmp/law16-fresh-closure-v2/lean-law15-raw",
+    "--output",
+    "/private/tmp/law16-fresh-closure-v2/lean-law15-capsule.json"
+  ],
+  "exit_code": 0,
+  "stderr": {
+    "bytes": 0,
+    "path": "lean_law15.stderr",
+    "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "stdout": {
+    "bytes": 0,
+    "path": "lean_law15.stdout",
+    "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "timed_out": false,
+  "timeout_seconds": 3600
+}

@@ -7,7 +7,7 @@
     {"kind": "context.repository", "version": 1, "required": true, "operations": ["orient", "search", "skeleton", "references"]}
   ],
   "extensions": [],
-  "platforms": ["macos-aarch64", "linux-x86_64"],
+  "platforms": ["macos-aarch64", "linux-x86_64", "linux-aarch64"],
   "config": {"fields": {}},
   "permissions": {"read": ["project"], "write": [], "network": [], "process": [], "secrets": []},
   "resources": {"handshake_timeout_ms": 5000, "invoke_timeout_ms": 30000, "max_frame_bytes": 1048576, "max_concurrency": 1, "idle_shutdown_ms": 60000},

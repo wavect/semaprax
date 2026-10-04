@@ -2,17 +2,20 @@
 //! Every method delegates to the existing single-source implementation.
 
 use super::hostskills;
+use super::inflight::{self, Invoker};
 use super::negotiate::{self, Availability, HostDeclaration, Owner, DEPTH_VAR};
 use super::skills_bridge::SkillsBridge;
 use crate::cli::Environment;
 use crate::command_view::{self, ExecOptions};
 use crate::contract::CapabilityKind;
 use crate::diag::{HarnessDiagnostic, HarnessResult};
+use crate::host::{CancelToken, HostConfig};
 use crate::json::{canonical, parse_frame, JsonLimits};
 use crate::profile::{status, HarnessConfig, LocalState, Mode};
 use serde_json::{json, Value};
 use std::io::{BufRead, Write};
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
 
 const FRAME_LIMIT: usize = 1 << 20;
 
@@ -31,6 +34,7 @@ pub struct Server<'a> {
     session: Option<String>,
     host_skills_dir: Option<PathBuf>,
     log: Option<PathBuf>,
+    invoker: Arc<Invoker>,
 }
 
 impl<'a> Server<'a> {
@@ -46,6 +50,11 @@ impl<'a> Server<'a> {
     }
     pub fn with_log(mut self, l: Option<PathBuf>) -> Self {
         self.log = l;
+        self
+    }
+    /// Host knobs for `bridge/invoke` (isolation backend, grace periods).
+    pub fn with_host_config(mut self, c: HostConfig) -> Self {
+        self.invoker = Arc::new(Invoker::new(self.env, &self.project, c));
         self
     }
     /// Delivery observations recorded by the skills adapter (v2 sessions).
@@ -77,6 +86,7 @@ impl<'a> Server<'a> {
                     .get(crate::command_view::lineage::LINEAGE_VAR)
                     .is_some_and(|v| !v.is_empty()),
             );
+        let invoker = Arc::new(Invoker::new(env, &project, HostConfig::default()));
         Self {
             env,
             project,
@@ -87,6 +97,7 @@ impl<'a> Server<'a> {
             session: None,
             host_skills_dir: None,
             log: None,
+            invoker,
         }
     }
 
@@ -100,6 +111,17 @@ impl<'a> Server<'a> {
         } else {
             None
         }
+    }
+
+    /// Gate for `bridge/invoke`: handshake first, no recursion.
+    fn invoker(&self) -> HarnessResult<Arc<Invoker>> {
+        if let Some(e) = self.recursion(0, &[]) {
+            return Err(e);
+        }
+        if self.host.is_none() {
+            return Err(diag("SPX-HPN004", "send `bridge/handshake` first"));
+        }
+        Ok(self.invoker.clone())
     }
 
     /// Handle one method; `Err` becomes a JSON-RPC error.
@@ -136,6 +158,8 @@ impl<'a> Server<'a> {
                 r["identity"] = json!({"project": sb.project_id, "session": sb.session});
                 self.skills = Some(sb);
             }
+            r["lifecycle"] = json!({"invoke": true, "cancel": true, "max_in_flight": inflight::MAX_IN_FLIGHT,
+                "cancel_states": ["cancel-requested", "confirmed-terminated", "uncertain-external-effect"]});
             self.host = Some(decl);
             return Ok(r);
         }
@@ -201,7 +225,17 @@ impl<'a> Server<'a> {
                 "SPX-HPN003",
                 "publication is refused: it stays with the host-authorized compiler route, never the bridge",
             )),
-            "bridge/cancel" => Ok(json!({"cancelled": false, "reason": "no request is in flight: the bridge serves one request at a time"})),
+            "bridge/invoke" => Err(diag(
+                "SPX-HPN004",
+                "`bridge/invoke` runs only inside a serving session (`serve_with`)",
+            )),
+            "bridge/cancel" => {
+                let id = obj
+                    .get("id")
+                    .filter(|i| i.is_string() || i.is_number())
+                    .ok_or_else(|| diag("SPX-HPN005", "`id` must be the string or number id of the request to cancel"))?;
+                Ok(self.invoker.registry.cancel(&canonical(id)))
+            }
             other => Err(diag("SPX-HPN004", format!("unknown method `{other}`"))),
         }
     }
@@ -211,8 +245,11 @@ fn error_frame(id: &Value, d: &HarnessDiagnostic) -> Value {
     json!({"jsonrpc": "2.0", "id": id, "error": {"code": -32000, "message": d.message, "data": {"code": d.code}}})
 }
 
-/// Serve frames until EOF or `bridge/shutdown`.
-pub fn serve<R: BufRead, W: Write>(
+/// Serve frames until EOF or `bridge/shutdown`. `bridge/invoke` runs on a
+/// worker thread (bounded, see `inflight::MAX_IN_FLIGHT`) so a later frame,
+/// notably `bridge/cancel`, is read while it is blocked. At EOF (client gone)
+/// or shutdown every live invocation is cancelled and reaped before returning.
+pub fn serve<R: BufRead, W: Write + Send>(
     reader: R,
     out: W,
     env: &Environment,
@@ -222,34 +259,89 @@ pub fn serve<R: BufRead, W: Write>(
 }
 
 /// Serve with a preconfigured server (session, host skills directory, log).
-pub fn serve_with<R: BufRead, W: Write>(
+pub fn serve_with<R: BufRead, W: Write + Send>(
     reader: R,
-    mut out: W,
+    out: W,
     mut server: Server,
 ) -> std::io::Result<()> {
     let limits = JsonLimits::frame(FRAME_LIMIT);
-    for line in reader.lines() {
-        let line = line?;
-        if line.trim().is_empty() {
-            continue;
+    let out = Mutex::new(out);
+    let send = |r: &Value| -> std::io::Result<()> {
+        let mut o = out.lock().unwrap_or_else(|p| p.into_inner());
+        writeln!(o, "{}", canonical(r))?;
+        o.flush()
+    };
+    let invoker = server.invoker.clone();
+    let result = std::thread::scope(|scope| -> std::io::Result<()> {
+        for line in reader.lines() {
+            let line = line?;
+            if line.trim().is_empty() {
+                continue;
+            }
+            let parsed = parse_frame(line.as_bytes(), &limits);
+            let shutdown = parsed
+                .as_ref()
+                .is_ok_and(|v| v.get("method").and_then(Value::as_str) == Some("bridge/shutdown"));
+            let reply = match parsed {
+                Err(d) => Some(error_frame(&Value::Null, &d)),
+                Ok(v) if v.get("method").and_then(Value::as_str) == Some("bridge/invoke") => {
+                    match start_invoke(&server, &v) {
+                        Ok((key, id, params, token, inv)) => {
+                            let send = &send;
+                            scope.spawn(move || {
+                                let r = inv.run(&params, &token);
+                                let state = r.as_ref().map_or("refused", inflight::settled_state);
+                                inv.registry.settle(&key, state);
+                                let _ = send(&match r {
+                                    Ok(res) => json!({"jsonrpc": "2.0", "id": id, "result": res}),
+                                    Err(d) => error_frame(&id, &d),
+                                });
+                            });
+                            None
+                        }
+                        Err((id, d)) => Some(error_frame(&id, &d)),
+                    }
+                }
+                Ok(v) => frame(&mut server, &v),
+            };
+            if let Some(r) = reply {
+                send(&r)?;
+            }
+            if shutdown {
+                break;
+            }
         }
-        let parsed = parse_frame(line.as_bytes(), &limits);
-        let shutdown = parsed
-            .as_ref()
-            .is_ok_and(|v| v.get("method").and_then(Value::as_str) == Some("bridge/shutdown"));
-        let reply = match parsed {
-            Err(d) => Some(error_frame(&Value::Null, &d)),
-            Ok(v) => frame(&mut server, &v),
-        };
-        if let Some(r) = reply {
-            writeln!(out, "{}", canonical(&r))?;
-            out.flush()?;
-        }
-        if shutdown {
-            break;
-        }
+        // EOF, shutdown or a read error: nothing may outlive the session.
+        invoker.registry.cancel_all();
+        Ok(())
+    });
+    result
+}
+
+type Started = (String, Value, Value, CancelToken, Arc<Invoker>);
+
+/// Validate and register one `bridge/invoke` frame before its worker starts.
+fn start_invoke(server: &Server, v: &Value) -> Result<Started, (Value, HarnessDiagnostic)> {
+    let id = v.get("id").cloned().unwrap_or(Value::Null);
+    let fail = |d| (id.clone(), d);
+    if v.get("jsonrpc").and_then(Value::as_str) != Some("2.0") {
+        return Err(fail(diag(
+            "SPX-HPN004",
+            "frame must be JSON-RPC 2.0 with a `method`",
+        )));
     }
-    Ok(())
+    if !(id.is_string() || id.is_number()) {
+        return Err(fail(diag(
+            "SPX-HPN005",
+            "`bridge/invoke` needs a string or number `id`: it is the cancellation correlation id",
+        )));
+    }
+    let inv = server.invoker().map_err(fail)?;
+    let token = CancelToken::new();
+    let key = canonical(&id);
+    inv.registry.begin(&key, &token).map_err(fail)?;
+    let params = v.get("params").cloned().unwrap_or_else(|| json!({}));
+    Ok((key, id, params, token, inv))
 }
 
 fn frame(server: &mut Server, v: &Value) -> Option<Value> {

@@ -1463,7 +1463,7 @@ dependencies = [
 
 [[package]]
 name = "semaprax"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "argon2",
  "ed25519-dalek",

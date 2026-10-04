@@ -1,5 +1,115 @@
 # Bend 2 law benchmark (v1)
 
+## LAW16 unified replay and fresh capture
+
+`law16_replay.py` provides retained review, fresh capture, and fresh-capsule
+review modes. Retained mode is an offline integrity and
+semantic replay of existing receipts; it re-renders the LAW16 report, verifies
+the v2 guarded-i64 profile, the Bend all-finite-U32 sort proof, the LAW15 Lean
+capsule, and the bounded-balance agent capsule when its complete raw artifact
+set is present, and records digests for the retained raw evidence. A missing
+artifact marks that cell incomplete and returns failure. It does not re-run a
+tool or reproduce execution time:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_replay.py \
+  --verify-retained \
+  --output-dir /secure/local/law16-retained-replay
+```
+
+Fresh capture delegates to the existing per-route runners. It requires a local
+pin file based on [`law16-replay-pins.example.json`](law16-replay-pins.example.json).
+The exact pinned Bend checkout, Bun, SEMAPRAX executable, Z3, `clang`, Lean,
+prebuilt Lean test binary, and cached BendTT kernel must exist and match their
+SHA-256 values. Bend source must be clean at the pinned commit. The supplied
+SEMAPRAX source commit is caller-declared and is not a build attestation. No
+Cargo build is run. Fresh capture writes new raw output and a digest inventory
+under a new directory:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_replay.py \
+  --execute --pins /secure/local/law16-replay-pins.json \
+  --output-dir /secure/local/law16-fresh-capture
+```
+
+Each route also retains its command receipt, including failures and timeouts.
+Timeouts keep partial stdout/stderr, a null exit status, and the exact timeout
+budget. An interrupted sequence reports `failed_closed` and inventories its
+retained output; no partial route is promoted to successful evidence.
+
+This executes the Boolean ordinary-check, verdict/Z3, and peak-RSS routes; the
+guarded-i64 balance/sort and domain controls; the Bend universal U32 sort proof;
+and the supplemental LAW15 Lean profile. The guarded-i64 control run is a
+supplemental route and does not admit the original checked-u32 manifest. The
+Bend proof establishes universal U32 sort laws for its exact Bend source; it
+has no matching `law16.*` SEMAPRAX source certificate or timing comparison.
+The LAW15 Lean profile is likewise a distinct, Bend-incomparable source proof.
+The retained bounded-balance ten-pair trial is re-authenticated, not rerun.
+Its complete raw artifact set is now retained and passes offline replay.
+
+The Boolean nine-pair continuation (with retained pilot ordinal 1 as the tenth
+pair) makes new Codex calls and is deliberately excluded by default. Request
+it explicitly with `--include-agent-campaign`; the pin file must then also
+contain a SHA-pinned `tools.codex` executable. The replay passes that exact
+executable path to every trial; its other paths must match the runner's fixed
+local Bend/Bun/SEMAPRAX/Z3 paths:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_replay.py \
+  --execute --pins /secure/local/law16-replay-pins.json \
+  --include-agent-campaign \
+  --output-dir /secure/local/law16-fresh-capture-with-agents
+```
+
+This flag runs nine fresh pairs; it does not replace the pilot or turn one
+campaign into ten new trials. All modes preserve failed/incomplete status and
+publish no winner.
+
+The separate [Claude Boolean campaign plan](fixtures/law16-claude-boolean-campaign-plan-v1.json)
+freezes 10 matched pairs against Claude Haiku 4.5, Claude Code CLI 2.1.289,
+the fixed buggy source and attack fixtures, a $0.03 per-call cap, and a $0.60
+total cap. Its runner uses fresh empty directories, disabled tools, structured
+responses, and independent Bend verdict/SEMAPRAX Z3 replay. It retains
+sanitized provider events with token and monetary cost fields; failed trials
+stop the campaign. The earlier successful one-pair pilot predates this frozen
+plan and is not one of its 10 pairs. Run it only with pinned local tools:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_claude_boolean_campaign.py \
+  --output /absolute/new-claude-campaign --first 1 --last 10 \
+  --claude /absolute/pinned-claude --bend-root /absolute/pinned-bend \
+  --bun /absolute/pinned-bun --semaprax /absolute/pinned-semaprax \
+  --z3 /absolute/pinned-z3 --max-cost-usd 0.03
+python3 benchmarks/bend2-law-v1/law16_claude_boolean_campaign.py \
+  --review /absolute/new-claude-campaign
+```
+
+The retained [unified fresh capture](evidence/law16-unified-fresh-v1/replay-status.json)
+completed six non-agent routes: Boolean ordinary checking, Boolean verdict/Z3
+candidate and attack checking, peak RSS, guarded-i64 balance/sort controls,
+Bend universal U32 sort proof, and the supplemental LAW15 Lean list proof.
+The bounded-balance agent capsule was replayed offline; no new agent turn ran.
+The earlier [failed attempt](evidence/law16-unified-fresh-pin-failure-v1/replay-status.json)
+retains the digest-prefix integration failure after the first three routes.
+Its failure is not a semantic rejection or successful full capture.
+
+Authenticate the copied successful capsule without its original temporary
+directory or installed benchmark tools:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_replay.py \
+  --verify-fresh benchmarks/bend2-law-v1/evidence/law16-unified-fresh-v1 \
+  --output-dir /secure/local/law16-fresh-review
+```
+
+The review binds every retained artifact, the command receipts, tool pins,
+and existing semantic route checks. The RSS review binds sample commands to
+their recorded provenance, so copying a capsule does not require rewriting
+historical command paths. These observations do not establish a quiet host or
+cache isolation. AC1 remains partial: the optional live agent continuation and
+the separately pinned guarded-i64 balance SMT source-proof route were not
+rerun by this sequence. The original checked-u32 cells remain unsupported.
+
 This is the reproducible benchmark harness for issue #392. It records a
 comparison only when a local command file pins both checked-out source trees,
 their exact commits, tools, and commands. The committed manifest pins Bend 2
@@ -67,6 +177,21 @@ transfer, empty sort, dropped refactor law, removed agent law, and stale cache
 reuse. These are fixture checks, not tool execution evidence. The [project incremental admission review](evidence/law16-project-incremental-admission-v1.json) additionally binds the exact stale-cache negative control, the checked-`u32` parser receipt, and the limits of the retained `project-proof-check` source-obligation route. All five
 checked-`u32` cells remain unavailable until both languages have matched
 executable source and proof routes; this validation never substitutes `i32`.
+
+The separate [three-module incremental capsule](evidence/law16-project-incremental-cell-v1/result.json)
+executes two exact compiler tests on `examples/calculator-project`: a body edit
+reparses `core` and reuses `app` and `tests`, while a provider-signature edit is
+rejected on both warm and cold paths. Its raw streams and source/test-binary
+hashes are retained. This is local SEMAPRAX cache behavior, not a matched Bend
+incremental route, large-project benchmark, or timed comparison. Reproduce it
+with a test binary compiled from the recorded source commit:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_project_incremental_cell.py \
+  --test-binary /absolute/semaprax-lib-test-binary \
+  --source-commit 1059e175671bafc2ad497d8a0a50d6c013184842 \
+  --output /absolute/new-project-incremental-capsule
+```
 
 The harness records local evidence only. It does not provision tools, clone
 repositories, generate source fixtures, publish results, or make a
@@ -795,3 +920,79 @@ It is `unsupported`, because the authenticated pinned SEMAPRAX parser rejects
 `u32` before a matched candidate, overflow, or source-proof route can run.
 The separate bounded `0..100` transfer witness cannot be relabelled as this
 checked-`u32` task.
+
+## Measured Linux/Rosetta guest file-page-cache profile
+
+The [thirty-pair guest capsule](evidence/law16-guest-cache-thirty-v1/receipt.json)
+retains 30 cold and 30 warm samples for each fixed Boolean-negation ordinary
+Bend and SEMAPRAX `check` route. A successful [one-pair pilot](evidence/law16-guest-cache-pilot-v1/receipt.json)
+preceded it. The [first preflight](evidence/law16-guest-cache-pilot-failure-v1/receipt.json)
+failed because the staged Bend effect sources were incomplete; it produced
+zero timed checker samples and remains a nonresult.
+
+| Guest profile route | Cold p50 / p95 (ms) | Warm p50 / p95 (ms) |
+| --- | ---: | ---: |
+| Ordinary Bend | 1578.50 / 2269.82 | 1589.67 / 2197.00 |
+| SEMAPRAX `check` | 274.60 / 367.60 | 256.29 / 342.32 |
+
+These are **guest file-page-cache** observations under Rosetta, with macOS
+host caches and Rosetta translation caches unknown. Every inventoried
+executable/source/custom-runtime page was observed resident before guest reset
+and nonresident before each cold command. Warm executable/input residency was
+observed before the next identical command. The small differences relative to
+spread do not establish a performance improvement, cross-route ratio, or
+winner. The offline summary includes median absolute deviation (MAD).
+
+The official Linux release compiler has a different source/binary pin from
+the historical macOS corpus. Both guest tools use the same explicitly pinned
+Ubuntu glibc 2.39 loader; downloads, extraction, hashing, and preflight are
+outside measured checking time. Obtain the exact distribution artifacts in
+[the provisioning record](evidence/law16-guest-cache-provisioning-v1.json),
+extract the SEMAPRAX archive beneath `TOOLS/semaprax/` and the Bun zip beneath
+`TOOLS/bun/`, and leave the pinned libc6 `.deb` in `TOOLS/`. The preexisting
+`ri13-linux-evidence:rust-1.98.0` image must match the recorded digest. The
+runner neither installs tools nor builds or fetches the image for you.
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_guest_cache.py \
+  --tools /absolute/TOOLS --bend /absolute/pinned-bend \
+  --output /absolute/new-pilot
+python3 benchmarks/bend2-law-v1/law16_guest_cache.py \
+  --tools /absolute/TOOLS --bend /absolute/pinned-bend \
+  --pilot /absolute/new-pilot --repetitions 30 \
+  --output /absolute/new-thirty-pairs
+```
+
+Each invocation uses one disposable 512 MiB guest and removes it afterward.
+The capture refuses to start with less than 2 GiB free disk. No Cargo build
+is used; the retained campaign occupies about 8 MiB. Recheck the committed
+raw samples without a VM or installed benchmark tools:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_guest_cache.py \
+  --review benchmarks/bend2-law-v1/evidence/law16-guest-cache-thirty-v1
+python3 -m unittest discover -s benchmarks/bend2-law-v1 \
+  -p test_law16_guest_cache.py -v
+```
+
+The [owning profile](../../docs/BEND2-LAW-BENCHMARK-V1.md#guest-file-page-cache-profile-v1)
+describes the exact cache boundary. Bend verdict, SEMAPRAX SMT/Lean, proof
+synthesis and compile/runtime separation remain outside this profile; AC5 and
+issue #392 remain open.
+
+The separate [native phase capsule](evidence/law16-native-phase-thirty-v1/receipt.json)
+retains 30 local repetitions each for Bend `--check-only`, C emission, Clang
+compilation, and native execution, plus SEMAPRAX `check`, combined native
+`build`, and native execution. A [one-pair pilot](evidence/law16-native-phase-pilot-v1/receipt.json)
+preceded the campaign. Every native run produced the exact Boolean witness;
+the generated C and executables are digest-bound. SEMAPRAX's build command
+combines internal checking, code generation, and compilation, so this profile
+does not claim those internal phases were isolated. It is not cache-isolated,
+proof checking, or a cross-route performance comparison. Reproduce with:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_boolean_native_phases.py \
+  --output /absolute/new-capsule --repetitions 30 \
+  --semaprax /absolute/pinned-semaprax --bun /absolute/pinned-bun \
+  --bend /absolute/pinned-bend-checkout --clang /absolute/pinned-clang
+```

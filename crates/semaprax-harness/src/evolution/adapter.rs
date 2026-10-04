@@ -4,6 +4,7 @@
 
 use serde_json::Value;
 use std::io::{Read, Write};
+use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -58,6 +59,18 @@ impl Adapter for ProcessAdapter {
         deadline: Instant,
         cancel: &Cancel,
     ) -> Result<Value, AdapterError> {
+        // Own process group so a kill also reaches the backend CLI children
+        // (a paid model call must not outlive a cancelled or timed-out run).
+        // stderr is kept in the isolated workspace for diagnosis, never forwarded.
+        let log = std::fs::create_dir_all(workspace.join("evidence"))
+            .and_then(|_| {
+                std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open(workspace.join("evidence/adapter-stderr.log"))
+            })
+            .map(Stdio::from)
+            .unwrap_or_else(|_| Stdio::null());
         let mut child = Command::new(&self.command[0])
             .args(&self.command[1..])
             .current_dir(workspace)
@@ -65,7 +78,8 @@ impl Adapter for ProcessAdapter {
             .envs(&self.env)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .stderr(Stdio::null())
+            .stderr(log)
+            .process_group(0)
             .spawn()
             .map_err(|e| AdapterError::Unavailable(format!("{}: {e}", self.command[0])))?;
         if let Some(mut stdin) = child.stdin.take() {
@@ -85,6 +99,7 @@ impl Adapter for ProcessAdapter {
             }
             if cancel.is_set() || Instant::now() >= deadline {
                 let cancelled = cancel.is_set();
+                kill_group(&child);
                 let _ = child.kill();
                 let _ = child.wait();
                 let _ = reader.join();
@@ -110,8 +125,19 @@ impl Adapter for ProcessAdapter {
             return Err(AdapterError::Unavailable(why.to_string()));
         }
         if !status.success() {
-            return Err(AdapterError::Protocol(format!("adapter exited {status}")));
+            let why = v.get("error").and_then(Value::as_str).unwrap_or("");
+            let why: String = why.chars().take(240).collect();
+            return Err(AdapterError::Protocol(format!(
+                "adapter exited {status}: {why}"
+            )));
         }
         Ok(v)
+    }
+}
+
+/// SIGKILL the adapter's whole process group (it leads its own group).
+fn kill_group(child: &std::process::Child) {
+    if let Some(pid) = rustix::process::Pid::from_raw(child.id() as i32) {
+        let _ = rustix::process::kill_process_group(pid, rustix::process::Signal::KILL);
     }
 }

@@ -13,7 +13,12 @@ use serde_json::{json, Value};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-const NODE: &str = "/Users/kevin/.nvm/versions/node/v24.3.0/bin/node";
+const NODE_MACOS: &str = "/Users/kevin/.nvm/versions/node/v24.3.0/bin/node";
+
+/// Node interpreter for the node adapter: `SEMAPRAX_TEST_NODE` (hosted CI) or the macOS dev path.
+fn node() -> PathBuf {
+    std::env::var_os("SEMAPRAX_TEST_NODE").map_or_else(|| PathBuf::from(NODE_MACOS), PathBuf::from)
+}
 
 fn python() -> PathBuf {
     let out = std::process::Command::new("/usr/bin/which")
@@ -102,7 +107,7 @@ fn hp_hp16b_output_view_passes_command_suite() {
 #[test]
 fn hp_hp16b_decision_node_passes_decision_suite() {
     let d = examples().join("decision-node/harness-provider.json");
-    let r = go(&opts(&d, &["decision"], Some(PathBuf::from(NODE))));
+    let r = go(&opts(&d, &["decision"], Some(node())));
     assert_clean(&r, "decision.evaluate");
 }
 
@@ -501,7 +506,7 @@ fn hp_hp16b_third_provider_journey_without_core_edits() {
     let nr = go(&opts(
         &examples().join("decision-node/harness-provider.json"),
         &["decision"],
-        Some(PathBuf::from(NODE)),
+        Some(node()),
     ));
     assert_clean(&nr, "decision.evaluate");
     m.shutdown_all();

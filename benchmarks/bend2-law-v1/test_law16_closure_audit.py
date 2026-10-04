@@ -33,6 +33,10 @@ class Law16ClosureAuditTests(unittest.TestCase):
         self.assertEqual(status["AC4"], "met")
         self.assertEqual(status["AC7"], "met")
         self.assertEqual(status["AC1"], "partial")
+        self.assertEqual(value["unified_fresh_capture"]["status"], "fresh_capture_authenticated")
+        self.assertEqual(value["unified_fresh_capture"]["fresh_route_count"], 6)
+        self.assertEqual(value["fresh_guarded_i64_source_proof"]["positive_smt_discharges"], 7)
+        self.assertEqual(value["fresh_guarded_i64_source_proof"]["no_op_negative"], "proof_tool_refused_no_solver_status_claimed")
         self.assertEqual(status["AC5"], "partial")
         self.assertEqual(status["AC6"], "partial")
         required = {row["id"]: row["status"] for row in value["required_implementation_assessment"]}
@@ -45,7 +49,8 @@ class Law16ClosureAuditTests(unittest.TestCase):
         cells = {row["id"]: row for row in value["declared_unsupported_or_unavailable_cells"]}
         self.assertEqual(cells["checked_u32_source_syntax"]["classification"], "unsupported")
         self.assertIn("unsupported_by_pinned_parser", cells["checked_u32_source_syntax"]["status"])
-        self.assertEqual(cells["cold_cache_isolation"]["classification"], "unavailable")
+        self.assertEqual(cells["cold_cache_isolation"]["classification"], "partially_observed_guest_file_cache")
+        self.assertEqual(cells["project_sized_incremental_cell"]["classification"], "supplemental_three_module_cache_control_only")
         self.assertEqual(cells["supported_list_theorem"]["classification"], "supplemental_profile_only")
         self.assertEqual(cells["law16_list_source_theorem"]["classification"], "unavailable_for_law16_identity")
         self.assertEqual(cells["external_lean_export_kernel"]["classification"], "supplemental_route_available_but_not_law16_cell")
@@ -74,18 +79,21 @@ class Law16ClosureAuditTests(unittest.TestCase):
         self.assertIn("unchanged", proof["original_law16_cell"])
         self.assertIn("not a build attestation", proof["test_binary_association"])
         self.assertFalse(proof["exit_code_retained"])
-        self.assertIn("predates this capsule", value["current_report_reconciliation"]["audit_update"])
+        self.assertIn("includes the LAW15", value["current_report_reconciliation"]["audit_update"])
         self.assertIn("does not close", value["current_report_reconciliation"]["audit_update"])
 
     def test_guarded_i64_v2_controls_keep_theorem_and_admission_limits_explicit(self):
         value = AUDIT.render()["supplemental_guarded_i64_profile_v2"]
-        self.assertEqual(value["status"], "supplemental_controls_pass_matched_theorem_incomplete")
+        self.assertEqual(value["status"], "supplemental_controls_and_matched_sort_law_route_no_timing")
         self.assertTrue(value["paired_controls"]["balance"]["expected_outcomes_observed"])
         self.assertEqual(value["paired_controls"]["balance"]["candidate_attack_pairs_per_route"], 1)
         self.assertIn("full-domain", value["representation_model"]["claim"])
         self.assertIn("four-element", value["bounded_sort_model"]["claim"])
         self.assertEqual(value["original_manifest_status"], "unsupported_by_pinned_parser")
-        self.assertEqual(value["law15_lean_route"]["bend_comparison"], "none; exact pinned LAW16 Bend source does not provide these universal laws")
+        self.assertIn("no cross-source aliasing", value["law15_lean_route"]["identity_boundary"])
+        comparison = value["supplemental_bend_lean_comparison"]
+        self.assertEqual(comparison["disposition"], "matched_universal_semantic_laws_under_u32_embedding_no_timing")
+        self.assertIn("no timing", comparison["scope_limit"])
         self.assertIn("not attested", value["build_association"])
         self.assertEqual(AUDIT.render()["closure"], "not_satisfied")
 

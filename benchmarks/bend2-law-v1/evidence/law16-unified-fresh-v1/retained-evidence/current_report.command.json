@@ -1,0 +1,21 @@
+{
+  "argv": [
+    "/Library/Frameworks/Python.framework/Versions/3.14/bin/python3",
+    "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/law16_current_report.py",
+    "--output",
+    "/private/tmp/law16-fresh-closure-v2/retained-evidence/current-report.json"
+  ],
+  "exit_code": 0,
+  "stderr": {
+    "bytes": 0,
+    "path": "current_report.stderr",
+    "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "stdout": {
+    "bytes": 0,
+    "path": "current_report.stdout",
+    "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "timed_out": false,
+  "timeout_seconds": 3600
+}

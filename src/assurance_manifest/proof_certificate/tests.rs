@@ -632,16 +632,16 @@ fn verify_certificate_against_source_rejects_a_script_tampered_with_the_known_va
         .clone();
     let encoding = translate_function(&function).expect("supported");
     let honest_script = render_postcondition_script(&encoding, 0, 5000);
-    assert!(!honest_script.contains("(and (>= result"));
+    assert!(!honest_script.contains("(and (>= semaprax_smt_binding_1_0"));
 
     let tampered_script = honest_script.replacen(
-        "(declare-const result Int)\n",
-        "(declare-const result Int)\n(assert (and (>= result -9223372036854775808) \
-         (<= result 9223372036854775807)))\n",
+        "(declare-const semaprax_smt_binding_1_0 Int)\n",
+        "(declare-const semaprax_smt_binding_1_0 Int)\n(assert (and (>= semaprax_smt_binding_1_0 -9223372036854775808) \
+         (<= semaprax_smt_binding_1_0 9223372036854775807)))\n",
         1,
     );
     assert_ne!(tampered_script, honest_script);
-    assert!(tampered_script.contains("(and (>= result"));
+    assert!(tampered_script.contains("(and (>= semaprax_smt_binding_1_0"));
 
     let obligation_id = postcondition_obligation_id("app.t.f", 0);
     let source_sha256 = super::render::source_digest(&source_text);

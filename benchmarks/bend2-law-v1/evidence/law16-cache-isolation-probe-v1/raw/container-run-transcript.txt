@@ -1,0 +1,16 @@
+[0/6] [0s]
+[1/6] Fetching image [0s]
+[2/6] Unpacking image [0s]
+[3/6] Fetching kernel [0s]
+[4/6] Fetching init image [0s]
+[5/6] Unpacking init image [0s]
+[6/6] Starting container [0s]
+[6/6] Starting container [1s]
+[6/6] Starting container [1s]
+arch=x86_64
+uid=0(root) gid=0(root) groups=0(root)
+drop_caches_mount:
+proc /proc/sys proc ro,relatime 0 0
+not_writable
+--w------- 1 root root 0 Oct 4 18:23 /proc/sys/vm/drop_caches
+sync_available

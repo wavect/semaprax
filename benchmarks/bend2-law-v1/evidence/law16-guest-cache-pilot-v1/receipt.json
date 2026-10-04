@@ -1,0 +1,172 @@
+{
+  "artifacts": [
+    {
+      "bytes": 0,
+      "path": "bend_ordinary-01-cold.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 11,
+      "path": "bend_ordinary-01-cold.stdout",
+      "sha256": "sha256:7ae15ce3109ab5e210cd4686faef828330a0a1511e789b4ac7b806570071c791"
+    },
+    {
+      "bytes": 0,
+      "path": "bend_ordinary-01-warm.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 11,
+      "path": "bend_ordinary-01-warm.stdout",
+      "sha256": "sha256:7ae15ce3109ab5e210cd4686faef828330a0a1511e789b4ac7b806570071c791"
+    },
+    {
+      "bytes": 244,
+      "path": "container.stderr",
+      "sha256": "sha256:6e8e8ecae15f8c5a230c695476e57c88bd094080e611eaecad71b5cd92abfffd"
+    },
+    {
+      "bytes": 0,
+      "path": "container.stdout",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 3,
+      "path": "containers-after.json",
+      "sha256": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "bytes": 362797,
+      "path": "guest-result.json",
+      "sha256": "sha256:9ceeaf3e6cdfe2ce5dce6b3602ca9bcb91260c358eac4d52c096e4dc11926061"
+    },
+    {
+      "bytes": 5268,
+      "path": "image-inspect.json",
+      "sha256": "sha256:0ef55f6d2c25b185fb46ee464bbf00ad9d6b0e63e1ede83d0738fc13c915245b"
+    },
+    {
+      "bytes": 327,
+      "path": "inputs/candidate.bend",
+      "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+    },
+    {
+      "bytes": 182,
+      "path": "inputs/candidate.spx",
+      "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+    },
+    {
+      "bytes": 9039,
+      "path": "inputs/worker.py",
+      "sha256": "sha256:77a1602f68289c90f00ce4357eec01420522fa78cbc1eee9c66ea8c62116e3d4"
+    },
+    {
+      "bytes": 0,
+      "path": "preflight-bend_ordinary.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 11,
+      "path": "preflight-bend_ordinary.stdout",
+      "sha256": "sha256:7ae15ce3109ab5e210cd4686faef828330a0a1511e789b4ac7b806570071c791"
+    },
+    {
+      "bytes": 0,
+      "path": "preflight-semaprax_check.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 108,
+      "path": "preflight-semaprax_check.stdout",
+      "sha256": "sha256:e2feeba92b481d3914484e9c194d0968e2516c70fda19a0d2fdf4eb2844243f6"
+    },
+    {
+      "bytes": 10824,
+      "path": "request.json",
+      "sha256": "sha256:10d9cf7b7a9eb87aa7809d9b61d43396c00c6ce89c473efa1e5cf5b229ce9f34"
+    },
+    {
+      "bytes": 0,
+      "path": "semaprax_check-01-cold.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 108,
+      "path": "semaprax_check-01-cold.stdout",
+      "sha256": "sha256:e2feeba92b481d3914484e9c194d0968e2516c70fda19a0d2fdf4eb2844243f6"
+    },
+    {
+      "bytes": 0,
+      "path": "semaprax_check-01-warm.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 108,
+      "path": "semaprax_check-01-warm.stdout",
+      "sha256": "sha256:e2feeba92b481d3914484e9c194d0968e2516c70fda19a0d2fdf4eb2844243f6"
+    },
+    {
+      "bytes": 0,
+      "path": "version-bun.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 6,
+      "path": "version-bun.stdout",
+      "sha256": "sha256:fe2b7c237b5a6e42818aa3e4f7fc5820f49c32289c32c96260ef89a8c8f6d3d7"
+    },
+    {
+      "bytes": 0,
+      "path": "version-semaprax.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 58,
+      "path": "version-semaprax.stdout",
+      "sha256": "sha256:270f5813685c06233989789b7828159a8c50e833f08721145f810b3567b43c15"
+    }
+  ],
+  "container_argv": [
+    "container",
+    "run",
+    "--rm",
+    "--name",
+    "law16-guest-cache-99c9e22342",
+    "--memory",
+    "512M",
+    "--cpus",
+    "1",
+    "--arch",
+    "amd64",
+    "--rosetta",
+    "--read-only-path",
+    "NONE",
+    "--no-dns",
+    "--mount",
+    "type=bind,source=/private/tmp/law16-linux-tools,target=/tools,readonly",
+    "--mount",
+    "type=bind,source=/private/tmp/bend2-law-source/bend2,target=/bend2,readonly",
+    "--mount",
+    "type=bind,source=/private/tmp/law16-guest-cache-pilot-v2/inputs,target=/inputs,readonly",
+    "--mount",
+    "type=bind,source=/private/tmp/law16-guest-cache-pilot-v2,target=/output",
+    "ri13-linux-evidence:rust-1.98.0",
+    "python3",
+    "/inputs/worker.py"
+  ],
+  "container_exit_code": 0,
+  "container_removed": true,
+  "host": {
+    "architecture": "arm64",
+    "platform": "macOS-26.5.1-arm64-arm-64bit-Mach-O"
+  },
+  "image_digest": "sha256:c9024b5897124ae3a7f124a41dbe4d301c7319daf4e9aed82b23424648eb311e",
+  "nonclaims": [
+    "guest file-page-cache scope only; macOS host cache and Rosetta translation cache are unknown",
+    "live Python/system-library pages and hardware caches are outside the direct residency inventory",
+    "ordinary Bend and SEMAPRAX check only; no verdict, SMT, Lean, or formal proof measurement",
+    "new Linux/Rosetta release profile; not historical macOS executable pins",
+    "no cross-language winner, ratio, native-hardware timing, or issue closure"
+  ],
+  "schema": "semaprax.bend2-law-benchmark.guest-cache.v1"
+}

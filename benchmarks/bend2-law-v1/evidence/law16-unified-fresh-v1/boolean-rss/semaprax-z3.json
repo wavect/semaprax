@@ -1,0 +1,878 @@
+{
+  "nonclaims": [
+    "RSS includes /usr/bin/time wrapper observation"
+  ],
+  "samples": [
+    {
+      "command": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-rss/semaprax-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 50921472,
+      "stderr": "        0.62 real         0.49 user         0.03 sys\n            50921472  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7220  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                2922  involuntary context switches\n          4416745391  instructions retired\n          1712874154  cycles elapsed\n             8274376  peak memory footprint\n",
+      "wall_ms": 629.890542,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-rss/semaprax-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 51150848,
+      "stderr": "        0.56 real         0.42 user         0.02 sys\n            51150848  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7202  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                2121  involuntary context switches\n          4405116265  instructions retired\n          1532273058  cycles elapsed\n             8520136  peak memory footprint\n",
+      "wall_ms": 563.221291,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-rss/semaprax-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 51118080,
+      "stderr": "        0.52 real         0.41 user         0.02 sys\n            51118080  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7182  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                1172  involuntary context switches\n          4394435796  instructions retired\n          1506038698  cycles elapsed\n             8536520  peak memory footprint\n",
+      "wall_ms": 530.74375,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-rss/semaprax-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 51068928,
+      "stderr": "        0.57 real         0.45 user         0.02 sys\n            51068928  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7236  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                1739  involuntary context switches\n          4404592531  instructions retired\n          1609493572  cycles elapsed\n             8487368  peak memory footprint\n",
+      "wall_ms": 580.554292,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-rss/semaprax-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 51052544,
+      "stderr": "        0.54 real         0.45 user         0.02 sys\n            51052544  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7210  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                1419  involuntary context switches\n          4396985374  instructions retired\n          1584516130  cycles elapsed\n             8470984  peak memory footprint\n",
+      "wall_ms": 545.728917,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-rss/semaprax-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 51019776,
+      "stderr": "        0.54 real         0.43 user         0.02 sys\n            51019776  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7244  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                1613  involuntary context switches\n          4400699022  instructions retired\n          1541120094  cycles elapsed\n             8438216  peak memory footprint\n",
+      "wall_ms": 551.006042,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-rss/semaprax-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 50790400,
+      "stderr": "        0.49 real         0.41 user         0.02 sys\n            50790400  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7248  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 959  involuntary context switches\n          4394631142  instructions retired\n          1484739272  cycles elapsed\n             8176072  peak memory footprint\n",
+      "wall_ms": 501.677917,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-rss/semaprax-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 51101696,
+      "stderr": "        0.53 real         0.44 user         0.02 sys\n            51101696  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7220  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                1530  involuntary context switches\n          4398079897  instructions retired\n          1562022476  cycles elapsed\n             8520136  peak memory footprint\n",
+      "wall_ms": 541.249625,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-rss/semaprax-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 50872320,
+      "stderr": "        0.49 real         0.39 user         0.02 sys\n            50872320  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7208  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 955  involuntary context switches\n          4395156842  instructions retired\n          1458906099  cycles elapsed\n             8257992  peak memory footprint\n",
+      "wall_ms": 501.334125,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-rss/semaprax-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 50839552,
+      "stderr": "        0.52 real         0.41 user         0.02 sys\n            50839552  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7222  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                1255  involuntary context switches\n          4394491692  instructions retired\n          1479032876  cycles elapsed\n             8208840  peak memory footprint\n",
+      "wall_ms": 527.365583,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-rss/semaprax-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 50970624,
+      "stderr": "        0.57 real         0.44 user         0.02 sys\n            50970624  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7219  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                1574  involuntary context switches\n          4397506005  instructions retired\n          1566717588  cycles elapsed\n             8389064  peak memory footprint\n",
+      "wall_ms": 574.290541,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-rss/semaprax-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 51052544,
+      "stderr": "        0.63 real         0.48 user         0.04 sys\n            51052544  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7218  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                7373  involuntary context switches\n          4461382433  instructions retired\n          1711996081  cycles elapsed\n             8438216  peak memory footprint\n",
+      "wall_ms": 640.941041,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-rss/semaprax-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 50839552,
+      "stderr": "        0.48 real         0.39 user         0.02 sys\n            50839552  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7209  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 848  involuntary context switches\n          4391880149  instructions retired\n          1447366800  cycles elapsed\n             8208840  peak memory footprint\n",
+      "wall_ms": 492.083625,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-rss/semaprax-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 50774016,
+      "stderr": "        0.47 real         0.37 user         0.01 sys\n            50774016  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7164  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                  74  involuntary context switches\n          4381480647  instructions retired\n          1382308201  cycles elapsed\n             8143304  peak memory footprint\n",
+      "wall_ms": 473.167166,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-rss/semaprax-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 50905088,
+      "stderr": "        0.45 real         0.37 user         0.01 sys\n            50905088  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7171  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                  92  involuntary context switches\n          4381835190  instructions retired\n          1374091115  cycles elapsed\n             8257992  peak memory footprint\n",
+      "wall_ms": 460.272125,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-rss/semaprax-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 50970624,
+      "stderr": "        0.47 real         0.37 user         0.01 sys\n            50970624  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7167  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                  72  involuntary context switches\n          4382062723  instructions retired\n          1382422733  cycles elapsed\n             8339912  peak memory footprint\n",
+      "wall_ms": 472.799916,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-rss/semaprax-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 50839552,
+      "stderr": "        0.45 real         0.37 user         0.01 sys\n            50839552  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7208  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                  81  involuntary context switches\n          4381787856  instructions retired\n          1379404141  cycles elapsed\n             8208816  peak memory footprint\n",
+      "wall_ms": 460.3725,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-rss/semaprax-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 50839552,
+      "stderr": "        0.46 real         0.38 user         0.01 sys\n            50839552  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7168  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 203  involuntary context switches\n          4382981155  instructions retired\n          1404737833  cycles elapsed\n             8208840  peak memory footprint\n",
+      "wall_ms": 471.240541,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-rss/semaprax-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 50905088,
+      "stderr": "        0.46 real         0.37 user         0.01 sys\n            50905088  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7207  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 133  involuntary context switches\n          4382293060  instructions retired\n          1392832985  cycles elapsed\n             8274376  peak memory footprint\n",
+      "wall_ms": 466.579375,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-rss/semaprax-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 50823168,
+      "stderr": "        0.47 real         0.38 user         0.01 sys\n            50823168  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7167  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 161  involuntary context switches\n          4382650820  instructions retired\n          1397932056  cycles elapsed\n             8192456  peak memory footprint\n",
+      "wall_ms": 480.395084,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-rss/semaprax-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 50806784,
+      "stderr": "        0.45 real         0.37 user         0.01 sys\n            50806784  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7167  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                  92  involuntary context switches\n          4385746420  instructions retired\n          1386584275  cycles elapsed\n             8176048  peak memory footprint\n",
+      "wall_ms": 461.402458,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-rss/semaprax-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 50823168,
+      "stderr": "        0.46 real         0.37 user         0.01 sys\n            50823168  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7181  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 102  involuntary context switches\n          4383325081  instructions retired\n          1381789040  cycles elapsed\n             8192456  peak memory footprint\n",
+      "wall_ms": 471.971667,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-rss/semaprax-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 50741248,
+      "stderr": "        0.45 real         0.37 user         0.01 sys\n            50741248  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7162  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                  89  involuntary context switches\n          4386997534  instructions retired\n          1380725156  cycles elapsed\n             8110536  peak memory footprint\n",
+      "wall_ms": 459.273167,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-rss/semaprax-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 50872320,
+      "stderr": "        0.47 real         0.37 user         0.01 sys\n            50872320  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7202  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                  89  involuntary context switches\n          4381623353  instructions retired\n          1376771830  cycles elapsed\n             8257992  peak memory footprint\n",
+      "wall_ms": 482.036709,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-rss/semaprax-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 50839552,
+      "stderr": "        0.44 real         0.37 user         0.01 sys\n            50839552  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7167  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 118  involuntary context switches\n          4381408682  instructions retired\n          1385933717  cycles elapsed\n             8192456  peak memory footprint\n",
+      "wall_ms": 452.524292,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-rss/semaprax-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 50905088,
+      "stderr": "        0.50 real         0.39 user         0.01 sys\n            50905088  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7194  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 296  involuntary context switches\n          4384574421  instructions retired\n          1412063187  cycles elapsed\n             8274376  peak memory footprint\n",
+      "wall_ms": 504.938209,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-rss/semaprax-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 50659328,
+      "stderr": "        0.50 real         0.40 user         0.01 sys\n            50659328  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7189  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 401  involuntary context switches\n          4383972102  instructions retired\n          1459161454  cycles elapsed\n             8028616  peak memory footprint\n",
+      "wall_ms": 504.022375,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-rss/semaprax-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 51003392,
+      "stderr": "        0.56 real         0.45 user         0.02 sys\n            51003392  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7197  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                1850  involuntary context switches\n          4402572561  instructions retired\n          1606294362  cycles elapsed\n             8372680  peak memory footprint\n",
+      "wall_ms": 567.516417,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-rss/semaprax-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 50954240,
+      "stderr": "        0.49 real         0.41 user         0.02 sys\n            50954240  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7175  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                1310  involuntary context switches\n          4399143325  instructions retired\n          1495642592  cycles elapsed\n             8323528  peak memory footprint\n",
+      "wall_ms": 497.841333,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-rss/semaprax-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 50937856,
+      "stderr": "        0.51 real         0.41 user         0.02 sys\n            50937856  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7181  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                1040  involuntary context switches\n          4398062583  instructions retired\n          1496811707  cycles elapsed\n             8307144  peak memory footprint\n",
+      "wall_ms": 516.503,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    }
+  ],
+  "schema": "semaprax.bend2-law-benchmark.peak-rss.v1"
+}

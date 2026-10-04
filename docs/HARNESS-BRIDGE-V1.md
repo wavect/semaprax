@@ -8,7 +8,8 @@ Audience: toolchain contributors and harness adapter authors.
 [--settings-file F]... [--log F] [--harness-bin P] [--session ID] [--host-skills-dir D] [--harness-home D]`. Implementation:
 `crates/semaprax-harness/src/bridge/`. Diagnostics `SPX-HPN`: 001 handshake/protocol, 002 recursion,
 003 publication refused, 004 method or order, 005 params, 006 hook input, 007 usage/unsupported host,
-008 delegated verb failed, 009 competing rewriter, 010 log write, 011 setup refused (HN-14). 007 also covers an
+008 delegated verb failed, 009 competing rewriter, 010 log write, 011 setup refused (HN-14), 012 too many in flight,
+013 duplicate request id, 014 no trusted provider for `bridge/invoke`, 015 step not replayed (HN-18). 007 also covers an
 unsupported host version.
 
 The root MCP facade `src/semantic_service_mcp.rs` is untouched: it stays authority-free. The bridge
@@ -35,12 +36,53 @@ surface (`semaprax-harness report`, `editors/vscode/token-report.js`), not to th
 | `bridge/context` `{query, max_bytes?, symbol?, references?}` | the `context --json` document |
 | `bridge/command_view` `{argv, raw?, timeout_ms?}` | `command_view::execute`; when another owner holds `command_wrapper` it runs with `external_owner`, so the view is not transformed again |
 | `bridge/publish` | always refused (`SPX-HPN003`) |
-| `bridge/cancel` | honest no-op: requests are served one at a time |
+| `bridge/invoke` `{capability, operation, payload?, deadline_ms?, step?, isolation?}` | one provider invocation through the adapter host (HN-18, below) |
+| `bridge/cancel` `{id}` | cancels the in-flight `bridge/invoke` whose JSON-RPC `id` is `id` (HN-18, below) |
 | `bridge/shutdown` | ends the session |
 
 Recursion guard: any call is refused (`SPX-HPN002`) when `SEMAPRAX_HARNESS_BRIDGE_DEPTH` is at least 1,
 the command-view lineage marker is set, the handshake carries `bridge_depth >= 1`, or a lineage entry
 starts with `semaprax`.
+
+## Lifecycle extension (HN-18): invoke and cancel
+
+The handshake result gains `lifecycle {invoke, cancel, max_in_flight, cancel_states}`. Methods other than
+`bridge/invoke` are still answered inline; `bridge/invoke` runs on a worker thread, so the session keeps
+reading frames while an adapter is blocked and a second frame (`bridge/status`, another invoke, `bridge/cancel`)
+is served concurrently. The invoke's JSON-RPC `id` (string or number, required) is the correlation id.
+
+`bridge/invoke` resolves the project's selected, trusted provider for `capability` exactly like `run`
+(`profile::resolve_project`, grant re-checked, adopted runtime), then calls `AdapterHandle::invoke` with a
+per-request `CancelToken`. It invents nothing per adapter: deadline, cooperative cancel, process-group kill and reap,
+the crash breaker and the retry boundary are the host's (`docs/HARNESS-HOST-V1.md`). Class by kind:
+`model.generate` is `SideEffecting` (possibly billed), `decision.evaluate` is `Decision`, the rest `SafeRead`.
+`isolation: "required"` requests the OS-enforced restriction; without `sandbox-exec`/`bwrap` the call is an error
+(`SPX-HPC003`), never a plain subprocess. Every result reports `isolation {mode, isolated}`: a plain subprocess is
+`mode: subprocess, isolated: false`.
+
+| Frame | Meaning |
+| --- | --- |
+| `bridge/cancel {id}` for a live id | `state: cancel-requested`. The token is tripped; the invoke's own response carries the final state |
+| invoke response `state` | `completed`, `confirmed-terminated`, `uncertain-external-effect`, `refused`, `unavailable` |
+| `bridge/cancel {id}` after settlement | the settled state (last 256 ids kept), `cancelled: true` only for `confirmed-terminated` |
+| `bridge/cancel {id}` for a never-seen id | `state: unknown-id`; not remembered, so it cannot poison a later request reusing the id |
+
+`confirmed-terminated` is returned only when the host killed and reaped the owned process group (or the request was
+never written). A `SideEffecting` request that was sent is `uncertain-external-effect` (host `SPX-HPC018`): the process is
+gone but the external effect is unknown. A result that arrives after cancellation was requested is discarded
+(`result_discarded: true`) and never returned as current; for a side-effecting step it is also `uncertain-external-effect`.
+Responses carry `retried: false`: cancellation never causes a second attempt.
+
+Bounds: at most 4 invocations in flight (`SPX-HPN012`), unique ids (`SPX-HPN013`), 1 MiB frames, the adapter's own
+queue and concurrency limits. A client that closes stdin (crash or hang-up) cancels every live invocation and the session
+returns only after they are reaped. A bridge killed by `SIGKILL` cannot run that cleanup: its adapter's process group
+survives until the adapter exits or its idle/deadline limits fire (Unix offers no parent-death signal in safe std).
+
+**Side-effecting steps and the journal.** A `SideEffecting` invoke appends `begin` to the append-only journal
+`<harness home>/cache/bridge/<project id>.journal.jsonl` (`workflow::journal`) and then `done`, `refused`, `cancelled`
+(request never written) or `uncertain`. A later invoke with the same `step` (default `<capability>:<operation>`) is refused
+as `SPX-HPN015` unless its last record is `refused` or `cancelled`; a begun, completed or uncertain step is never
+replayed, across restarts.
 
 ## Claude Code (pinned 2.1.289)
 

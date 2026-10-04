@@ -1,0 +1,3 @@
+packages/semaprax-harness-adapters/skills/official/ponytail/v4.10.3 sha256:0b0382c41f1b03d59c21a66618c6ca006e79fc2c4fe87877a8402ccf65376566
+packages/semaprax-harness-adapters/skills/official/caveman/v3.1.0 sha256:8c48fd6c8e13b8550b8bcae3970f701664e78811d9c7523505bbb099af7496e4
+crates/semaprax-harness/tests/fixtures/workflow sha256:d88ddaa8aab5caf361c139734c1a99526df1975bae8448be468568b3b1440d04

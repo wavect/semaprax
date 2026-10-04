@@ -77,7 +77,7 @@ fn main() {
                 }
                 ["version", "--json"] => {
                     record("smoke:version-json");
-                    println!("{{\"schema\":\"semaprax.version.v1\",\"version\":\"0.2.0\",\"commit\":\"{commit}\",\"maturity\":\"alpha\",\"rust_min\":\"1.88\"}}");
+                    println!("{{\"schema\":\"semaprax.version.v1\",\"version\":\"0.2.0\",\"commit\":\"{commit}\",\"maturity\":\"beta\",\"rust_min\":\"1.88\"}}");
                 }
                 [operation @ ("check" | "run"), path] => {
                     assert_eq!(fs::read_to_string(path).unwrap(), "module app;\n\n@id(\"app.main\")\nfn main() -> i64 { 42 }\n");

@@ -1,0 +1,614 @@
+{
+  "definitions": {
+    "bend2": {
+      "excluded": "function signatures and implementation bodies are not counted as proof effort",
+      "law_declarations": "full source lines beginning `law <name>:`; count and UTF-8 source bytes including line ending",
+      "proof_terms": "full source line consisting of the explicit `{==}` proof term; count and bytes including line ending"
+    },
+    "changed_bytes_vs_seed": "bytewise positional differences plus any length difference; this is a textual distance, not semantic effort",
+    "semaprax-scalar-v1": {
+      "annotations": "full source lines beginning @id(, requires, or ensures; counts and bytes include line endings",
+      "explicit_proof_bodies": "full source lines beginning `proof {`; ordinary function bodies are excluded"
+    }
+  },
+  "fixed_pair_plan": {
+    "bytes": 4782,
+    "path": "bend2-law-v1/fixtures/boolean-negation-pair-v1.json",
+    "sha256": "sha256:824fd1539d6d1ce19daa6bc2a736e897f446c0e405a38839489c9c5cc9640dd7"
+  },
+  "matched_pairs": 10,
+  "nonclaims": [
+    "byte counts do not measure reasoning, difficulty, or semantic proof effort",
+    "the two languages use different annotation and proof syntax, so their raw byte totals are not directly comparable",
+    "the summary does not validate or strengthen the retained candidate proof verdicts"
+  ],
+  "plan": {
+    "bytes": 55840,
+    "path": "benchmarks/bend2-law-v1/evidence/law16-boolean-negation-agent-plan-v1.json",
+    "sha256": "sha256:f5eb4bcba239637f8ea769cb9140aa74ba41feebc0938ac2abc50de6361ea8d1"
+  },
+  "rows": [
+    {
+      "changed_bytes_vs_seed": 121,
+      "explicit_annotation_and_proof_counts": {
+        "law_declarations": {
+          "bytes": 32,
+          "count": 1
+        },
+        "proof_terms": {
+          "bytes": 7,
+          "count": 1
+        }
+      },
+      "final_source": {
+        "bytes": 206,
+        "path": "law16-boolean-negation-agent-pilot-v1/bend-ordinal-1/final-source.bend",
+        "sha256": "sha256:e3b0838d2688376dffab5a07154ef955c2006059ba08b8b8330cd4e91dc8738f"
+      },
+      "fixed_seed": {
+        "bytes": 327,
+        "path": "fixtures/bend-boolean-negation-v1.bend",
+        "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+      },
+      "language": "bend2",
+      "ordinal": 1
+    },
+    {
+      "changed_bytes_vs_seed": 0,
+      "explicit_annotation_and_proof_counts": {
+        "ensures": {
+          "bytes": 29,
+          "count": 1
+        },
+        "explicit_proof_bodies": {
+          "bytes": 0,
+          "count": 0
+        },
+        "requires": {
+          "bytes": 0,
+          "count": 0
+        },
+        "stable_ids": {
+          "bytes": 34,
+          "count": 2
+        }
+      },
+      "final_source": {
+        "bytes": 182,
+        "path": "law16-boolean-negation-agent-pilot-v1/semaprax-ordinal-1/final-source.spx",
+        "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+      },
+      "fixed_seed": {
+        "bytes": 182,
+        "path": "fixtures/semaprax-boolean-negation-v1.spx",
+        "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+      },
+      "language": "semaprax-scalar-v1",
+      "ordinal": 1
+    },
+    {
+      "changed_bytes_vs_seed": 121,
+      "explicit_annotation_and_proof_counts": {
+        "law_declarations": {
+          "bytes": 32,
+          "count": 1
+        },
+        "proof_terms": {
+          "bytes": 7,
+          "count": 1
+        }
+      },
+      "final_source": {
+        "bytes": 206,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-2/bend/final-source.bend",
+        "sha256": "sha256:e3b0838d2688376dffab5a07154ef955c2006059ba08b8b8330cd4e91dc8738f"
+      },
+      "fixed_seed": {
+        "bytes": 327,
+        "path": "fixtures/bend-boolean-negation-v1.bend",
+        "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+      },
+      "language": "bend2",
+      "ordinal": 2
+    },
+    {
+      "changed_bytes_vs_seed": 318,
+      "explicit_annotation_and_proof_counts": {
+        "ensures": {
+          "bytes": 29,
+          "count": 1
+        },
+        "explicit_proof_bodies": {
+          "bytes": 0,
+          "count": 0
+        },
+        "requires": {
+          "bytes": 0,
+          "count": 0
+        },
+        "stable_ids": {
+          "bytes": 34,
+          "count": 2
+        }
+      },
+      "final_source": {
+        "bytes": 338,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-2/semaprax/final-source.spx",
+        "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+      },
+      "fixed_seed": {
+        "bytes": 182,
+        "path": "fixtures/semaprax-boolean-negation-v1.spx",
+        "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+      },
+      "language": "semaprax-scalar-v1",
+      "ordinal": 2
+    },
+    {
+      "changed_bytes_vs_seed": 121,
+      "explicit_annotation_and_proof_counts": {
+        "law_declarations": {
+          "bytes": 32,
+          "count": 1
+        },
+        "proof_terms": {
+          "bytes": 7,
+          "count": 1
+        }
+      },
+      "final_source": {
+        "bytes": 206,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-3/bend/final-source.bend",
+        "sha256": "sha256:e3b0838d2688376dffab5a07154ef955c2006059ba08b8b8330cd4e91dc8738f"
+      },
+      "fixed_seed": {
+        "bytes": 327,
+        "path": "fixtures/bend-boolean-negation-v1.bend",
+        "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+      },
+      "language": "bend2",
+      "ordinal": 3
+    },
+    {
+      "changed_bytes_vs_seed": 0,
+      "explicit_annotation_and_proof_counts": {
+        "ensures": {
+          "bytes": 29,
+          "count": 1
+        },
+        "explicit_proof_bodies": {
+          "bytes": 0,
+          "count": 0
+        },
+        "requires": {
+          "bytes": 0,
+          "count": 0
+        },
+        "stable_ids": {
+          "bytes": 34,
+          "count": 2
+        }
+      },
+      "final_source": {
+        "bytes": 182,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-3/semaprax/final-source.spx",
+        "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+      },
+      "fixed_seed": {
+        "bytes": 182,
+        "path": "fixtures/semaprax-boolean-negation-v1.spx",
+        "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+      },
+      "language": "semaprax-scalar-v1",
+      "ordinal": 3
+    },
+    {
+      "changed_bytes_vs_seed": 121,
+      "explicit_annotation_and_proof_counts": {
+        "law_declarations": {
+          "bytes": 32,
+          "count": 1
+        },
+        "proof_terms": {
+          "bytes": 7,
+          "count": 1
+        }
+      },
+      "final_source": {
+        "bytes": 206,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-4/bend/final-source.bend",
+        "sha256": "sha256:e3b0838d2688376dffab5a07154ef955c2006059ba08b8b8330cd4e91dc8738f"
+      },
+      "fixed_seed": {
+        "bytes": 327,
+        "path": "fixtures/bend-boolean-negation-v1.bend",
+        "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+      },
+      "language": "bend2",
+      "ordinal": 4
+    },
+    {
+      "changed_bytes_vs_seed": 318,
+      "explicit_annotation_and_proof_counts": {
+        "ensures": {
+          "bytes": 29,
+          "count": 1
+        },
+        "explicit_proof_bodies": {
+          "bytes": 0,
+          "count": 0
+        },
+        "requires": {
+          "bytes": 0,
+          "count": 0
+        },
+        "stable_ids": {
+          "bytes": 34,
+          "count": 2
+        }
+      },
+      "final_source": {
+        "bytes": 338,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-4/semaprax/final-source.spx",
+        "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+      },
+      "fixed_seed": {
+        "bytes": 182,
+        "path": "fixtures/semaprax-boolean-negation-v1.spx",
+        "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+      },
+      "language": "semaprax-scalar-v1",
+      "ordinal": 4
+    },
+    {
+      "changed_bytes_vs_seed": 121,
+      "explicit_annotation_and_proof_counts": {
+        "law_declarations": {
+          "bytes": 32,
+          "count": 1
+        },
+        "proof_terms": {
+          "bytes": 7,
+          "count": 1
+        }
+      },
+      "final_source": {
+        "bytes": 206,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-5/bend/final-source.bend",
+        "sha256": "sha256:e3b0838d2688376dffab5a07154ef955c2006059ba08b8b8330cd4e91dc8738f"
+      },
+      "fixed_seed": {
+        "bytes": 327,
+        "path": "fixtures/bend-boolean-negation-v1.bend",
+        "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+      },
+      "language": "bend2",
+      "ordinal": 5
+    },
+    {
+      "changed_bytes_vs_seed": 0,
+      "explicit_annotation_and_proof_counts": {
+        "ensures": {
+          "bytes": 29,
+          "count": 1
+        },
+        "explicit_proof_bodies": {
+          "bytes": 0,
+          "count": 0
+        },
+        "requires": {
+          "bytes": 0,
+          "count": 0
+        },
+        "stable_ids": {
+          "bytes": 34,
+          "count": 2
+        }
+      },
+      "final_source": {
+        "bytes": 182,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-5/semaprax/final-source.spx",
+        "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+      },
+      "fixed_seed": {
+        "bytes": 182,
+        "path": "fixtures/semaprax-boolean-negation-v1.spx",
+        "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+      },
+      "language": "semaprax-scalar-v1",
+      "ordinal": 5
+    },
+    {
+      "changed_bytes_vs_seed": 121,
+      "explicit_annotation_and_proof_counts": {
+        "law_declarations": {
+          "bytes": 32,
+          "count": 1
+        },
+        "proof_terms": {
+          "bytes": 7,
+          "count": 1
+        }
+      },
+      "final_source": {
+        "bytes": 206,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-6/bend/final-source.bend",
+        "sha256": "sha256:e3b0838d2688376dffab5a07154ef955c2006059ba08b8b8330cd4e91dc8738f"
+      },
+      "fixed_seed": {
+        "bytes": 327,
+        "path": "fixtures/bend-boolean-negation-v1.bend",
+        "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+      },
+      "language": "bend2",
+      "ordinal": 6
+    },
+    {
+      "changed_bytes_vs_seed": 0,
+      "explicit_annotation_and_proof_counts": {
+        "ensures": {
+          "bytes": 29,
+          "count": 1
+        },
+        "explicit_proof_bodies": {
+          "bytes": 0,
+          "count": 0
+        },
+        "requires": {
+          "bytes": 0,
+          "count": 0
+        },
+        "stable_ids": {
+          "bytes": 34,
+          "count": 2
+        }
+      },
+      "final_source": {
+        "bytes": 182,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-6/semaprax/final-source.spx",
+        "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+      },
+      "fixed_seed": {
+        "bytes": 182,
+        "path": "fixtures/semaprax-boolean-negation-v1.spx",
+        "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+      },
+      "language": "semaprax-scalar-v1",
+      "ordinal": 6
+    },
+    {
+      "changed_bytes_vs_seed": 121,
+      "explicit_annotation_and_proof_counts": {
+        "law_declarations": {
+          "bytes": 32,
+          "count": 1
+        },
+        "proof_terms": {
+          "bytes": 7,
+          "count": 1
+        }
+      },
+      "final_source": {
+        "bytes": 206,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-7/bend/final-source.bend",
+        "sha256": "sha256:e3b0838d2688376dffab5a07154ef955c2006059ba08b8b8330cd4e91dc8738f"
+      },
+      "fixed_seed": {
+        "bytes": 327,
+        "path": "fixtures/bend-boolean-negation-v1.bend",
+        "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+      },
+      "language": "bend2",
+      "ordinal": 7
+    },
+    {
+      "changed_bytes_vs_seed": 0,
+      "explicit_annotation_and_proof_counts": {
+        "ensures": {
+          "bytes": 29,
+          "count": 1
+        },
+        "explicit_proof_bodies": {
+          "bytes": 0,
+          "count": 0
+        },
+        "requires": {
+          "bytes": 0,
+          "count": 0
+        },
+        "stable_ids": {
+          "bytes": 34,
+          "count": 2
+        }
+      },
+      "final_source": {
+        "bytes": 182,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-7/semaprax/final-source.spx",
+        "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+      },
+      "fixed_seed": {
+        "bytes": 182,
+        "path": "fixtures/semaprax-boolean-negation-v1.spx",
+        "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+      },
+      "language": "semaprax-scalar-v1",
+      "ordinal": 7
+    },
+    {
+      "changed_bytes_vs_seed": 121,
+      "explicit_annotation_and_proof_counts": {
+        "law_declarations": {
+          "bytes": 32,
+          "count": 1
+        },
+        "proof_terms": {
+          "bytes": 7,
+          "count": 1
+        }
+      },
+      "final_source": {
+        "bytes": 206,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-8/bend/final-source.bend",
+        "sha256": "sha256:e3b0838d2688376dffab5a07154ef955c2006059ba08b8b8330cd4e91dc8738f"
+      },
+      "fixed_seed": {
+        "bytes": 327,
+        "path": "fixtures/bend-boolean-negation-v1.bend",
+        "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+      },
+      "language": "bend2",
+      "ordinal": 8
+    },
+    {
+      "changed_bytes_vs_seed": 318,
+      "explicit_annotation_and_proof_counts": {
+        "ensures": {
+          "bytes": 29,
+          "count": 1
+        },
+        "explicit_proof_bodies": {
+          "bytes": 0,
+          "count": 0
+        },
+        "requires": {
+          "bytes": 0,
+          "count": 0
+        },
+        "stable_ids": {
+          "bytes": 34,
+          "count": 2
+        }
+      },
+      "final_source": {
+        "bytes": 338,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-8/semaprax/final-source.spx",
+        "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+      },
+      "fixed_seed": {
+        "bytes": 182,
+        "path": "fixtures/semaprax-boolean-negation-v1.spx",
+        "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+      },
+      "language": "semaprax-scalar-v1",
+      "ordinal": 8
+    },
+    {
+      "changed_bytes_vs_seed": 121,
+      "explicit_annotation_and_proof_counts": {
+        "law_declarations": {
+          "bytes": 32,
+          "count": 1
+        },
+        "proof_terms": {
+          "bytes": 7,
+          "count": 1
+        }
+      },
+      "final_source": {
+        "bytes": 206,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-9/bend/final-source.bend",
+        "sha256": "sha256:e3b0838d2688376dffab5a07154ef955c2006059ba08b8b8330cd4e91dc8738f"
+      },
+      "fixed_seed": {
+        "bytes": 327,
+        "path": "fixtures/bend-boolean-negation-v1.bend",
+        "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+      },
+      "language": "bend2",
+      "ordinal": 9
+    },
+    {
+      "changed_bytes_vs_seed": 318,
+      "explicit_annotation_and_proof_counts": {
+        "ensures": {
+          "bytes": 29,
+          "count": 1
+        },
+        "explicit_proof_bodies": {
+          "bytes": 0,
+          "count": 0
+        },
+        "requires": {
+          "bytes": 0,
+          "count": 0
+        },
+        "stable_ids": {
+          "bytes": 34,
+          "count": 2
+        }
+      },
+      "final_source": {
+        "bytes": 338,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-9/semaprax/final-source.spx",
+        "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+      },
+      "fixed_seed": {
+        "bytes": 182,
+        "path": "fixtures/semaprax-boolean-negation-v1.spx",
+        "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+      },
+      "language": "semaprax-scalar-v1",
+      "ordinal": 9
+    },
+    {
+      "changed_bytes_vs_seed": 121,
+      "explicit_annotation_and_proof_counts": {
+        "law_declarations": {
+          "bytes": 32,
+          "count": 1
+        },
+        "proof_terms": {
+          "bytes": 7,
+          "count": 1
+        }
+      },
+      "final_source": {
+        "bytes": 206,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-10/bend/final-source.bend",
+        "sha256": "sha256:e3b0838d2688376dffab5a07154ef955c2006059ba08b8b8330cd4e91dc8738f"
+      },
+      "fixed_seed": {
+        "bytes": 327,
+        "path": "fixtures/bend-boolean-negation-v1.bend",
+        "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+      },
+      "language": "bend2",
+      "ordinal": 10
+    },
+    {
+      "changed_bytes_vs_seed": 0,
+      "explicit_annotation_and_proof_counts": {
+        "ensures": {
+          "bytes": 29,
+          "count": 1
+        },
+        "explicit_proof_bodies": {
+          "bytes": 0,
+          "count": 0
+        },
+        "requires": {
+          "bytes": 0,
+          "count": 0
+        },
+        "stable_ids": {
+          "bytes": 34,
+          "count": 2
+        }
+      },
+      "final_source": {
+        "bytes": 182,
+        "path": "law16-boolean-negation-agent-campaign-v1/ordinal-10/semaprax/final-source.spx",
+        "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+      },
+      "fixed_seed": {
+        "bytes": 182,
+        "path": "fixtures/semaprax-boolean-negation-v1.spx",
+        "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+      },
+      "language": "semaprax-scalar-v1",
+      "ordinal": 10
+    }
+  ],
+  "schema": "semaprax.bend2-law-benchmark.boolean-negation-annotation-summary.v1",
+  "status": "ten_matched_pairs_summarized_from_retained_source"
+}

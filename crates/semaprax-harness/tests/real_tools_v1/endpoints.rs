@@ -301,3 +301,87 @@ fn hp_hn15_wikiskill_bridge_reports_unavailable_truthfully() {
     assert_eq!(rep.outcome, Outcome::Unavailable, "{}", rep.result);
     assert!(rep.result["reason"].as_str().unwrap().contains("wikiskill"));
 }
+
+/// HN-15: a finished REAL WikiSkill run (pinned community implementation driven by
+/// `adapter.py` through the metering `claude` shim) is internally consistent: caps held,
+/// wiki digests match, protected content unchanged, rollback left only wiki/negative
+/// evidence. It checks recorded evidence; it does not start a paid run.
+///   HN15_EVIDENCE_WS  the experiment workspace (`<workspace_root>/<id>`)
+///   HN15_LEDGER       the shim's calls.jsonl
+#[test]
+#[ignore = "provisioned: needs HN15_EVIDENCE_WS and HN15_LEDGER"]
+fn hp_hn15_wikiskill_recorded_real_run_is_consistent() {
+    let ws = crate::support::required_tool("HN15_EVIDENCE_WS");
+    let ledger = crate::support::required_tool("HN15_LEDGER");
+    let r: Value =
+        serde_json::from_slice(&std::fs::read(ws.join("evidence/result.json")).unwrap()).unwrap();
+    let outcome = r["outcome"].as_str().unwrap();
+    assert!(
+        ["accepted", "rejected", "no-action"].contains(&outcome),
+        "not a completed experiment: {r}"
+    );
+    let wiki = r["wiki"].as_array().unwrap();
+    assert!(!wiki.is_empty(), "the real backend produced no wiki update");
+    for e in wiki {
+        let p = e["path"].as_str().unwrap();
+        assert!(p.starts_with("wiki/"));
+        let bytes = std::fs::read(ws.join(p)).unwrap();
+        assert_eq!(
+            semaprax_harness::json::sha256_plain(&bytes),
+            e["digest"].as_str().unwrap(),
+            "{p}"
+        );
+    }
+    assert_eq!(r["protected"]["before"], r["protected"]["after"]);
+    assert_eq!(r["promotion"]["status"], "not-promoted");
+    let derived_name = r["derived"]["name"].as_str();
+    match outcome {
+        "accepted" => assert!(ws.join("derived").join(derived_name.unwrap()).is_dir()),
+        "rejected" => {
+            let cand = r["candidate"]["name"].as_str().unwrap();
+            assert!(!ws.join("derived").join(cand).exists(), "rolled back");
+            assert!(ws.join(r["negative_evidence"].as_str().unwrap()).is_file());
+        }
+        _ => assert!(r.get("candidate").is_none() || r["candidate"].is_null()),
+    }
+    let (mut starts, mut usd) = (0u64, 0f64);
+    for line in std::fs::read_to_string(&ledger).unwrap().lines() {
+        let row: Value = serde_json::from_str(line).unwrap();
+        match row["event"].as_str() {
+            Some("start") => starts += 1,
+            Some("end") => {
+                usd += row["cost_usd"].as_f64().unwrap_or(0.0);
+                if let Some(m) = row["models"].as_array() {
+                    assert!(m.iter().all(|x| x.as_str().unwrap().contains("haiku-4-5")));
+                }
+            }
+            _ => {}
+        }
+    }
+    assert!(starts <= 60, "call cap exceeded: {starts}");
+    assert!(usd <= 5.0, "spend cap exceeded: {usd}");
+    assert!(r["usage"]["model_calls"].as_u64().unwrap() <= 60);
+}
+
+/// HN-15: with the metering shim already at its cap the real bridge must end the
+/// experiment `aborted` (never `no-action`, never a made-up score) while the shim
+/// refuses without reaching any model. Free: no model is called.
+///   HN15_CAPPED_SPEC  an experiment spec whose PATH has a capped shim first
+#[test]
+#[ignore = "provisioned: needs HN15_CAPPED_SPEC"]
+fn hp_hn15_wikiskill_spend_cap_aborts_truthfully() {
+    use semaprax_harness::evolution::{run_experiment, spec, Cancel, Outcome, ProcessAdapter};
+    let path = crate::support::required_tool("HN15_CAPPED_SPEC");
+    let v: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    let sp = spec::parse(&v, path.parent().unwrap()).unwrap();
+    let mut a = ProcessAdapter {
+        command: sp.adapter_command.clone(),
+        env: sp.adapter_env.clone(),
+    };
+    let dir = fixture_dir("hp-hn15cap");
+    let rep = run_experiment(&sp, &mut a, &Cancel::default(), &dir).unwrap();
+    assert_eq!(rep.outcome, Outcome::Aborted, "{}", rep.result);
+    assert_eq!(rep.result["code"], "SPX-HPW005");
+    assert!(rep.result["reason"].as_str().unwrap().contains("spend cap"));
+    assert!(rep.result.get("derived").is_none() || rep.result["derived"].is_null());
+}

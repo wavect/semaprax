@@ -1,8 +1,13 @@
 # v0.7.0 release status
 
-Status: tagged, unpublished; no v0.7.0 archive or signed release is published.
+Status: published prerelease on 2026-10-01. The earlier failed tag attempts
+below remain historical evidence.
 
 Audience: release reviewers, maintainers, and readers checking hosted claims.
+
+The [GitHub release](https://github.com/wavect/semaprax/releases/tag/v0.7.0)
+lists three platform archives, `SHA256SUMS`, and release provenance assets.
+The initial failed attempts described below preceded that publication.
 
 The source package version and dated changelog are prepared for v0.7.0. At the
 user's request, the annotated `v0.7.0` tag was first pushed before main CI

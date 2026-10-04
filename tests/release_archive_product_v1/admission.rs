@@ -73,7 +73,7 @@ fn names(root: &Path, maximum: usize) -> Result<Vec<String>, String> {
 }
 
 fn manifest(commit: &str, target: &str) -> String {
-    format!("{{\n  \"schema\": \"semaprax.release-artifact.v1\",\n  \"version\": \"{VERSION}\",\n  \"commit\": \"{commit}\",\n  \"target\": \"{target}\",\n  \"maturity\": \"alpha\",\n  \"binaries\": [\"semaprax\", \"semapraxd\"],\n  \"nonclaims\": [\n    \"production-ready\",\n    \"stable language ABI\",\n    \"stable public protocol\",\n    \"safety-critical suitability\"\n  ]\n}}\n")
+    format!("{{\n  \"schema\": \"semaprax.release-artifact.v1\",\n  \"version\": \"{VERSION}\",\n  \"commit\": \"{commit}\",\n  \"target\": \"{target}\",\n  \"maturity\": \"beta\",\n  \"binaries\": [\"semaprax\", \"semapraxd\"],\n  \"nonclaims\": [\n    \"production-ready\",\n    \"stable language ABI\",\n    \"stable public protocol\",\n    \"safety-critical suitability\"\n  ]\n}}\n")
 }
 
 fn inspect(root: &Path, commit: &str, target: &str) -> Result<Pins, String> {
@@ -221,7 +221,7 @@ impl Release {
     pub(super) fn verify_versions(&self, root: &Path) {
         for (label, arguments, expected) in [
             ("human", vec!["--version"], format!("semaprax {VERSION} ({})\n", self.commit)),
-            ("json", vec!["version", "--json"], format!("{{\"schema\":\"semaprax.version.v1\",\"version\":\"{VERSION}\",\"commit\":\"{}\",\"maturity\":\"alpha\",\"rust_min\":\"1.88\"}}\n", self.commit)),
+            ("json", vec!["version", "--json"], format!("{{\"schema\":\"semaprax.version.v1\",\"version\":\"{VERSION}\",\"commit\":\"{}\",\"maturity\":\"beta\",\"rust_min\":\"1.88\"}}\n", self.commit)),
         ] {
             let output = command::run(Command::new(&self.cli).args(arguments).current_dir(root), b"",
                 &root.join(format!("version-{label}")), Duration::from_secs(30), 4096, 4096);

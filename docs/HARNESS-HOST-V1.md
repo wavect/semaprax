@@ -1,6 +1,6 @@
 # Harness adapter host v1 (HP-03)
 
-Status: additive development-harness specification (HP-00); local macOS aarch64 evidence only.
+Status: additive development-harness specification (HP-00); local macOS aarch64 evidence; see HARNESS-PLATFORMS-V1.md for the per-platform matrix.
 
 Audience: toolchain contributors and harness adapter authors.
 
@@ -87,7 +87,17 @@ are refused, responses are size-bounded, calls are timeout-bounded, and the
 credential header is injected by the host and redacted in `Debug`. The only way
 to name a destination is `ApprovedEndpoint::from_host_config`.
 
+## Cancellation across the bridge (HN-18)
+
+`CancelToken` is the only cancellation input; the bridge (`bridge/invoke`/`bridge/cancel`,
+`docs/HARNESS-BRIDGE-V1.md`) trips it from a second protocol frame. Outcome mapping: `Cancelled` (safe class) is a
+confirmed termination (group killed and reaped); `Uncertain` (`SPX-HPC018`, side-effecting request already sent) is an
+uncertain external effect and is never retried. Admission and the queue (`SPX-HPC017`) apply unchanged.
+
 ## Platform evidence
+
+The authoritative per-platform pass/fail/untested matrix is `docs/HARNESS-PLATFORMS-V1.md`.
+
 
 | Platform | Executed evidence |
 | --- | --- |

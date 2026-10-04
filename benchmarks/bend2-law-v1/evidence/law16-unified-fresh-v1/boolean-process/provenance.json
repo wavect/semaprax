@@ -1,0 +1,4872 @@
+{
+  "backend_and_flags": {
+    "bend_verdict": {
+      "backend": "Bend --verdict",
+      "environment": {
+        "BEND_NO_TELEMETRY": "1"
+      }
+    },
+    "semaprax_z3": {
+      "arguments": [
+        "--tool",
+        "z3",
+        "--host-profile",
+        "trusted-local",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "backend": "SEMAPRAX project-proof-check with installed Z3"
+    }
+  },
+  "cold_cache": {
+    "reason": "the capture does not clear or verify OS page, executable, solver, or tool caches",
+    "status": "unavailable"
+  },
+  "collector": {
+    "python": {
+      "executable": "/Library/Frameworks/Python.framework/Versions/3.14/bin/python3.14",
+      "version": "3.14.2 (v3.14.2:df793163d58, Dec  5 2025, 12:18:06) [Clang 16.0.0 (clang-1600.0.26.6)]"
+    },
+    "script": {
+      "bytes": 5663,
+      "path": "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/law16_boolean_negation_provenance.py",
+      "sha256": "sha256:49bda646300e229d5e0763da2bdbdf6741c606a158c5e451ef70d0624843af35"
+    }
+  },
+  "command_count": 240,
+  "command_sequence": [
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f89e6bfaa514cbb2df5c2a4a3204c702e86bc25fdc963904b9e29a00e35c2adb",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 1,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f89e6bfaa514cbb2df5c2a4a3204c702e86bc25fdc963904b9e29a00e35c2adb",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 2,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f89e6bfaa514cbb2df5c2a4a3204c702e86bc25fdc963904b9e29a00e35c2adb",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 3,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f89e6bfaa514cbb2df5c2a4a3204c702e86bc25fdc963904b9e29a00e35c2adb",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 4,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f89e6bfaa514cbb2df5c2a4a3204c702e86bc25fdc963904b9e29a00e35c2adb",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 5,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f89e6bfaa514cbb2df5c2a4a3204c702e86bc25fdc963904b9e29a00e35c2adb",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 6,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f89e6bfaa514cbb2df5c2a4a3204c702e86bc25fdc963904b9e29a00e35c2adb",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 7,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f89e6bfaa514cbb2df5c2a4a3204c702e86bc25fdc963904b9e29a00e35c2adb",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 8,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f89e6bfaa514cbb2df5c2a4a3204c702e86bc25fdc963904b9e29a00e35c2adb",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 9,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f89e6bfaa514cbb2df5c2a4a3204c702e86bc25fdc963904b9e29a00e35c2adb",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 10,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f89e6bfaa514cbb2df5c2a4a3204c702e86bc25fdc963904b9e29a00e35c2adb",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 11,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f89e6bfaa514cbb2df5c2a4a3204c702e86bc25fdc963904b9e29a00e35c2adb",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 12,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f89e6bfaa514cbb2df5c2a4a3204c702e86bc25fdc963904b9e29a00e35c2adb",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 13,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f89e6bfaa514cbb2df5c2a4a3204c702e86bc25fdc963904b9e29a00e35c2adb",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 14,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f89e6bfaa514cbb2df5c2a4a3204c702e86bc25fdc963904b9e29a00e35c2adb",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 15,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f89e6bfaa514cbb2df5c2a4a3204c702e86bc25fdc963904b9e29a00e35c2adb",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 16,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f89e6bfaa514cbb2df5c2a4a3204c702e86bc25fdc963904b9e29a00e35c2adb",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 17,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f89e6bfaa514cbb2df5c2a4a3204c702e86bc25fdc963904b9e29a00e35c2adb",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 18,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f89e6bfaa514cbb2df5c2a4a3204c702e86bc25fdc963904b9e29a00e35c2adb",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 19,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f89e6bfaa514cbb2df5c2a4a3204c702e86bc25fdc963904b9e29a00e35c2adb",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 20,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f89e6bfaa514cbb2df5c2a4a3204c702e86bc25fdc963904b9e29a00e35c2adb",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 21,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f89e6bfaa514cbb2df5c2a4a3204c702e86bc25fdc963904b9e29a00e35c2adb",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 22,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f89e6bfaa514cbb2df5c2a4a3204c702e86bc25fdc963904b9e29a00e35c2adb",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 23,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f89e6bfaa514cbb2df5c2a4a3204c702e86bc25fdc963904b9e29a00e35c2adb",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 24,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f89e6bfaa514cbb2df5c2a4a3204c702e86bc25fdc963904b9e29a00e35c2adb",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 25,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f89e6bfaa514cbb2df5c2a4a3204c702e86bc25fdc963904b9e29a00e35c2adb",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 26,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f89e6bfaa514cbb2df5c2a4a3204c702e86bc25fdc963904b9e29a00e35c2adb",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 27,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f89e6bfaa514cbb2df5c2a4a3204c702e86bc25fdc963904b9e29a00e35c2adb",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 28,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f89e6bfaa514cbb2df5c2a4a3204c702e86bc25fdc963904b9e29a00e35c2adb",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 29,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f89e6bfaa514cbb2df5c2a4a3204c702e86bc25fdc963904b9e29a00e35c2adb",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 30,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f6c0702fc8dbaef43abbfb356162d410cedadd3df230a393c40e95fb11f95b57",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 1,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f6c0702fc8dbaef43abbfb356162d410cedadd3df230a393c40e95fb11f95b57",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 2,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f6c0702fc8dbaef43abbfb356162d410cedadd3df230a393c40e95fb11f95b57",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 3,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f6c0702fc8dbaef43abbfb356162d410cedadd3df230a393c40e95fb11f95b57",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 4,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f6c0702fc8dbaef43abbfb356162d410cedadd3df230a393c40e95fb11f95b57",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 5,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f6c0702fc8dbaef43abbfb356162d410cedadd3df230a393c40e95fb11f95b57",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 6,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f6c0702fc8dbaef43abbfb356162d410cedadd3df230a393c40e95fb11f95b57",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 7,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f6c0702fc8dbaef43abbfb356162d410cedadd3df230a393c40e95fb11f95b57",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 8,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f6c0702fc8dbaef43abbfb356162d410cedadd3df230a393c40e95fb11f95b57",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 9,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f6c0702fc8dbaef43abbfb356162d410cedadd3df230a393c40e95fb11f95b57",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 10,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f6c0702fc8dbaef43abbfb356162d410cedadd3df230a393c40e95fb11f95b57",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 11,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f6c0702fc8dbaef43abbfb356162d410cedadd3df230a393c40e95fb11f95b57",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 12,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f6c0702fc8dbaef43abbfb356162d410cedadd3df230a393c40e95fb11f95b57",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 13,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f6c0702fc8dbaef43abbfb356162d410cedadd3df230a393c40e95fb11f95b57",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 14,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f6c0702fc8dbaef43abbfb356162d410cedadd3df230a393c40e95fb11f95b57",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 15,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f6c0702fc8dbaef43abbfb356162d410cedadd3df230a393c40e95fb11f95b57",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 16,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f6c0702fc8dbaef43abbfb356162d410cedadd3df230a393c40e95fb11f95b57",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 17,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f6c0702fc8dbaef43abbfb356162d410cedadd3df230a393c40e95fb11f95b57",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 18,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f6c0702fc8dbaef43abbfb356162d410cedadd3df230a393c40e95fb11f95b57",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 19,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f6c0702fc8dbaef43abbfb356162d410cedadd3df230a393c40e95fb11f95b57",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 20,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f6c0702fc8dbaef43abbfb356162d410cedadd3df230a393c40e95fb11f95b57",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 21,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f6c0702fc8dbaef43abbfb356162d410cedadd3df230a393c40e95fb11f95b57",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 22,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f6c0702fc8dbaef43abbfb356162d410cedadd3df230a393c40e95fb11f95b57",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 23,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f6c0702fc8dbaef43abbfb356162d410cedadd3df230a393c40e95fb11f95b57",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 24,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f6c0702fc8dbaef43abbfb356162d410cedadd3df230a393c40e95fb11f95b57",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 25,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f6c0702fc8dbaef43abbfb356162d410cedadd3df230a393c40e95fb11f95b57",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 26,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f6c0702fc8dbaef43abbfb356162d410cedadd3df230a393c40e95fb11f95b57",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 27,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f6c0702fc8dbaef43abbfb356162d410cedadd3df230a393c40e95fb11f95b57",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 28,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f6c0702fc8dbaef43abbfb356162d410cedadd3df230a393c40e95fb11f95b57",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 29,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/attack/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:f6c0702fc8dbaef43abbfb356162d410cedadd3df230a393c40e95fb11f95b57",
+      "kind": "attack",
+      "lane": "bend",
+      "ordinal": 30,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:41ca64811e54cfc899d6d5df568981cf19295884fcdda4f8afe5850432c8d959",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 1,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:41ca64811e54cfc899d6d5df568981cf19295884fcdda4f8afe5850432c8d959",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 2,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:41ca64811e54cfc899d6d5df568981cf19295884fcdda4f8afe5850432c8d959",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 3,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:41ca64811e54cfc899d6d5df568981cf19295884fcdda4f8afe5850432c8d959",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 4,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:41ca64811e54cfc899d6d5df568981cf19295884fcdda4f8afe5850432c8d959",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 5,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:41ca64811e54cfc899d6d5df568981cf19295884fcdda4f8afe5850432c8d959",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 6,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:41ca64811e54cfc899d6d5df568981cf19295884fcdda4f8afe5850432c8d959",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 7,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:41ca64811e54cfc899d6d5df568981cf19295884fcdda4f8afe5850432c8d959",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 8,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:41ca64811e54cfc899d6d5df568981cf19295884fcdda4f8afe5850432c8d959",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 9,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:41ca64811e54cfc899d6d5df568981cf19295884fcdda4f8afe5850432c8d959",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 10,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:41ca64811e54cfc899d6d5df568981cf19295884fcdda4f8afe5850432c8d959",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 11,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:41ca64811e54cfc899d6d5df568981cf19295884fcdda4f8afe5850432c8d959",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 12,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:41ca64811e54cfc899d6d5df568981cf19295884fcdda4f8afe5850432c8d959",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 13,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:41ca64811e54cfc899d6d5df568981cf19295884fcdda4f8afe5850432c8d959",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 14,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:41ca64811e54cfc899d6d5df568981cf19295884fcdda4f8afe5850432c8d959",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 15,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:41ca64811e54cfc899d6d5df568981cf19295884fcdda4f8afe5850432c8d959",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 16,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:41ca64811e54cfc899d6d5df568981cf19295884fcdda4f8afe5850432c8d959",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 17,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:41ca64811e54cfc899d6d5df568981cf19295884fcdda4f8afe5850432c8d959",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 18,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:41ca64811e54cfc899d6d5df568981cf19295884fcdda4f8afe5850432c8d959",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 19,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:41ca64811e54cfc899d6d5df568981cf19295884fcdda4f8afe5850432c8d959",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 20,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:41ca64811e54cfc899d6d5df568981cf19295884fcdda4f8afe5850432c8d959",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 21,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:41ca64811e54cfc899d6d5df568981cf19295884fcdda4f8afe5850432c8d959",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 22,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:41ca64811e54cfc899d6d5df568981cf19295884fcdda4f8afe5850432c8d959",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 23,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:41ca64811e54cfc899d6d5df568981cf19295884fcdda4f8afe5850432c8d959",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 24,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:41ca64811e54cfc899d6d5df568981cf19295884fcdda4f8afe5850432c8d959",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 25,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:41ca64811e54cfc899d6d5df568981cf19295884fcdda4f8afe5850432c8d959",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 26,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:41ca64811e54cfc899d6d5df568981cf19295884fcdda4f8afe5850432c8d959",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 27,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:41ca64811e54cfc899d6d5df568981cf19295884fcdda4f8afe5850432c8d959",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 28,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:41ca64811e54cfc899d6d5df568981cf19295884fcdda4f8afe5850432c8d959",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 29,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/fresh-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:41ca64811e54cfc899d6d5df568981cf19295884fcdda4f8afe5850432c8d959",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 30,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:a290734ae55f5fc38a5ffc43d90eb02e08ae27eae2b0afa3acbb1e2e5f6fecba",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 1,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:a290734ae55f5fc38a5ffc43d90eb02e08ae27eae2b0afa3acbb1e2e5f6fecba",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 2,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:a290734ae55f5fc38a5ffc43d90eb02e08ae27eae2b0afa3acbb1e2e5f6fecba",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 3,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:a290734ae55f5fc38a5ffc43d90eb02e08ae27eae2b0afa3acbb1e2e5f6fecba",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 4,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:a290734ae55f5fc38a5ffc43d90eb02e08ae27eae2b0afa3acbb1e2e5f6fecba",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 5,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:a290734ae55f5fc38a5ffc43d90eb02e08ae27eae2b0afa3acbb1e2e5f6fecba",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 6,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:a290734ae55f5fc38a5ffc43d90eb02e08ae27eae2b0afa3acbb1e2e5f6fecba",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 7,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:a290734ae55f5fc38a5ffc43d90eb02e08ae27eae2b0afa3acbb1e2e5f6fecba",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 8,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:a290734ae55f5fc38a5ffc43d90eb02e08ae27eae2b0afa3acbb1e2e5f6fecba",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 9,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:a290734ae55f5fc38a5ffc43d90eb02e08ae27eae2b0afa3acbb1e2e5f6fecba",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 10,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:a290734ae55f5fc38a5ffc43d90eb02e08ae27eae2b0afa3acbb1e2e5f6fecba",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 11,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:a290734ae55f5fc38a5ffc43d90eb02e08ae27eae2b0afa3acbb1e2e5f6fecba",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 12,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:a290734ae55f5fc38a5ffc43d90eb02e08ae27eae2b0afa3acbb1e2e5f6fecba",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 13,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:a290734ae55f5fc38a5ffc43d90eb02e08ae27eae2b0afa3acbb1e2e5f6fecba",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 14,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:a290734ae55f5fc38a5ffc43d90eb02e08ae27eae2b0afa3acbb1e2e5f6fecba",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 15,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:a290734ae55f5fc38a5ffc43d90eb02e08ae27eae2b0afa3acbb1e2e5f6fecba",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 16,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:a290734ae55f5fc38a5ffc43d90eb02e08ae27eae2b0afa3acbb1e2e5f6fecba",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 17,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:a290734ae55f5fc38a5ffc43d90eb02e08ae27eae2b0afa3acbb1e2e5f6fecba",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 18,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:a290734ae55f5fc38a5ffc43d90eb02e08ae27eae2b0afa3acbb1e2e5f6fecba",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 19,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:a290734ae55f5fc38a5ffc43d90eb02e08ae27eae2b0afa3acbb1e2e5f6fecba",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 20,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:a290734ae55f5fc38a5ffc43d90eb02e08ae27eae2b0afa3acbb1e2e5f6fecba",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 21,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:a290734ae55f5fc38a5ffc43d90eb02e08ae27eae2b0afa3acbb1e2e5f6fecba",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 22,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:a290734ae55f5fc38a5ffc43d90eb02e08ae27eae2b0afa3acbb1e2e5f6fecba",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 23,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:a290734ae55f5fc38a5ffc43d90eb02e08ae27eae2b0afa3acbb1e2e5f6fecba",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 24,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:a290734ae55f5fc38a5ffc43d90eb02e08ae27eae2b0afa3acbb1e2e5f6fecba",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 25,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:a290734ae55f5fc38a5ffc43d90eb02e08ae27eae2b0afa3acbb1e2e5f6fecba",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 26,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:a290734ae55f5fc38a5ffc43d90eb02e08ae27eae2b0afa3acbb1e2e5f6fecba",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 27,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:a290734ae55f5fc38a5ffc43d90eb02e08ae27eae2b0afa3acbb1e2e5f6fecba",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 28,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:a290734ae55f5fc38a5ffc43d90eb02e08ae27eae2b0afa3acbb1e2e5f6fecba",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 29,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/bend/candidate/repeat-input.bend",
+        "--verdict"
+      ],
+      "command_sha256": "sha256:a290734ae55f5fc38a5ffc43d90eb02e08ae27eae2b0afa3acbb1e2e5f6fecba",
+      "kind": "candidate",
+      "lane": "bend",
+      "ordinal": 30,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 1,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 2,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 3,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 4,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 5,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 6,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 7,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 8,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 9,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 10,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 11,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 12,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 13,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 14,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 15,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 16,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 17,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 18,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 19,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 20,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 21,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 22,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 23,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 24,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 25,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 26,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 27,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 28,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 29,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 30,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 1,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 2,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 3,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 4,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 5,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 6,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 7,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 8,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 9,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 10,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 11,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 12,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 13,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 14,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 15,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 16,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 17,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 18,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 19,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 20,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 21,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 22,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 23,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 24,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 25,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 26,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 27,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 28,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 29,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+      "kind": "attack",
+      "lane": "semaprax",
+      "ordinal": 30,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:aa261006c8b56d81b9bdd52a579a4759420db53bfecfb9b4d7b7afd1e9ebaa43",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 1,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:aa261006c8b56d81b9bdd52a579a4759420db53bfecfb9b4d7b7afd1e9ebaa43",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 2,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:aa261006c8b56d81b9bdd52a579a4759420db53bfecfb9b4d7b7afd1e9ebaa43",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 3,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:aa261006c8b56d81b9bdd52a579a4759420db53bfecfb9b4d7b7afd1e9ebaa43",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 4,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:aa261006c8b56d81b9bdd52a579a4759420db53bfecfb9b4d7b7afd1e9ebaa43",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 5,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:aa261006c8b56d81b9bdd52a579a4759420db53bfecfb9b4d7b7afd1e9ebaa43",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 6,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:aa261006c8b56d81b9bdd52a579a4759420db53bfecfb9b4d7b7afd1e9ebaa43",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 7,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:aa261006c8b56d81b9bdd52a579a4759420db53bfecfb9b4d7b7afd1e9ebaa43",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 8,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:aa261006c8b56d81b9bdd52a579a4759420db53bfecfb9b4d7b7afd1e9ebaa43",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 9,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:aa261006c8b56d81b9bdd52a579a4759420db53bfecfb9b4d7b7afd1e9ebaa43",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 10,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:aa261006c8b56d81b9bdd52a579a4759420db53bfecfb9b4d7b7afd1e9ebaa43",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 11,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:aa261006c8b56d81b9bdd52a579a4759420db53bfecfb9b4d7b7afd1e9ebaa43",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 12,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:aa261006c8b56d81b9bdd52a579a4759420db53bfecfb9b4d7b7afd1e9ebaa43",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 13,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:aa261006c8b56d81b9bdd52a579a4759420db53bfecfb9b4d7b7afd1e9ebaa43",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 14,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:aa261006c8b56d81b9bdd52a579a4759420db53bfecfb9b4d7b7afd1e9ebaa43",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 15,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:aa261006c8b56d81b9bdd52a579a4759420db53bfecfb9b4d7b7afd1e9ebaa43",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 16,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:aa261006c8b56d81b9bdd52a579a4759420db53bfecfb9b4d7b7afd1e9ebaa43",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 17,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:aa261006c8b56d81b9bdd52a579a4759420db53bfecfb9b4d7b7afd1e9ebaa43",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 18,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:aa261006c8b56d81b9bdd52a579a4759420db53bfecfb9b4d7b7afd1e9ebaa43",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 19,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:aa261006c8b56d81b9bdd52a579a4759420db53bfecfb9b4d7b7afd1e9ebaa43",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 20,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:aa261006c8b56d81b9bdd52a579a4759420db53bfecfb9b4d7b7afd1e9ebaa43",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 21,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:aa261006c8b56d81b9bdd52a579a4759420db53bfecfb9b4d7b7afd1e9ebaa43",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 22,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:aa261006c8b56d81b9bdd52a579a4759420db53bfecfb9b4d7b7afd1e9ebaa43",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 23,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:aa261006c8b56d81b9bdd52a579a4759420db53bfecfb9b4d7b7afd1e9ebaa43",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 24,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:aa261006c8b56d81b9bdd52a579a4759420db53bfecfb9b4d7b7afd1e9ebaa43",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 25,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:aa261006c8b56d81b9bdd52a579a4759420db53bfecfb9b4d7b7afd1e9ebaa43",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 26,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:aa261006c8b56d81b9bdd52a579a4759420db53bfecfb9b4d7b7afd1e9ebaa43",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 27,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:aa261006c8b56d81b9bdd52a579a4759420db53bfecfb9b4d7b7afd1e9ebaa43",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 28,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:aa261006c8b56d81b9bdd52a579a4759420db53bfecfb9b4d7b7afd1e9ebaa43",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 29,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/fresh-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:aa261006c8b56d81b9bdd52a579a4759420db53bfecfb9b4d7b7afd1e9ebaa43",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 30,
+      "state": "fresh_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:2121f0e20626a1c6728b6a658bb6e1bb7007f9f5740bb8e43da15f8b4cbe13bb",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 1,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:2121f0e20626a1c6728b6a658bb6e1bb7007f9f5740bb8e43da15f8b4cbe13bb",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 2,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:2121f0e20626a1c6728b6a658bb6e1bb7007f9f5740bb8e43da15f8b4cbe13bb",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 3,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:2121f0e20626a1c6728b6a658bb6e1bb7007f9f5740bb8e43da15f8b4cbe13bb",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 4,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:2121f0e20626a1c6728b6a658bb6e1bb7007f9f5740bb8e43da15f8b4cbe13bb",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 5,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:2121f0e20626a1c6728b6a658bb6e1bb7007f9f5740bb8e43da15f8b4cbe13bb",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 6,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:2121f0e20626a1c6728b6a658bb6e1bb7007f9f5740bb8e43da15f8b4cbe13bb",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 7,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:2121f0e20626a1c6728b6a658bb6e1bb7007f9f5740bb8e43da15f8b4cbe13bb",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 8,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:2121f0e20626a1c6728b6a658bb6e1bb7007f9f5740bb8e43da15f8b4cbe13bb",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 9,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:2121f0e20626a1c6728b6a658bb6e1bb7007f9f5740bb8e43da15f8b4cbe13bb",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 10,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:2121f0e20626a1c6728b6a658bb6e1bb7007f9f5740bb8e43da15f8b4cbe13bb",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 11,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:2121f0e20626a1c6728b6a658bb6e1bb7007f9f5740bb8e43da15f8b4cbe13bb",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 12,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:2121f0e20626a1c6728b6a658bb6e1bb7007f9f5740bb8e43da15f8b4cbe13bb",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 13,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:2121f0e20626a1c6728b6a658bb6e1bb7007f9f5740bb8e43da15f8b4cbe13bb",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 14,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:2121f0e20626a1c6728b6a658bb6e1bb7007f9f5740bb8e43da15f8b4cbe13bb",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 15,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:2121f0e20626a1c6728b6a658bb6e1bb7007f9f5740bb8e43da15f8b4cbe13bb",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 16,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:2121f0e20626a1c6728b6a658bb6e1bb7007f9f5740bb8e43da15f8b4cbe13bb",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 17,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:2121f0e20626a1c6728b6a658bb6e1bb7007f9f5740bb8e43da15f8b4cbe13bb",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 18,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:2121f0e20626a1c6728b6a658bb6e1bb7007f9f5740bb8e43da15f8b4cbe13bb",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 19,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:2121f0e20626a1c6728b6a658bb6e1bb7007f9f5740bb8e43da15f8b4cbe13bb",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 20,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:2121f0e20626a1c6728b6a658bb6e1bb7007f9f5740bb8e43da15f8b4cbe13bb",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 21,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:2121f0e20626a1c6728b6a658bb6e1bb7007f9f5740bb8e43da15f8b4cbe13bb",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 22,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:2121f0e20626a1c6728b6a658bb6e1bb7007f9f5740bb8e43da15f8b4cbe13bb",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 23,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:2121f0e20626a1c6728b6a658bb6e1bb7007f9f5740bb8e43da15f8b4cbe13bb",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 24,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:2121f0e20626a1c6728b6a658bb6e1bb7007f9f5740bb8e43da15f8b4cbe13bb",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 25,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:2121f0e20626a1c6728b6a658bb6e1bb7007f9f5740bb8e43da15f8b4cbe13bb",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 26,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:2121f0e20626a1c6728b6a658bb6e1bb7007f9f5740bb8e43da15f8b4cbe13bb",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 27,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:2121f0e20626a1c6728b6a658bb6e1bb7007f9f5740bb8e43da15f8b4cbe13bb",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 28,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:2121f0e20626a1c6728b6a658bb6e1bb7007f9f5740bb8e43da15f8b4cbe13bb",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 29,
+      "state": "repeat_process"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-9a9db7a81",
+        "project-proof-check",
+        "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/candidate/repeat-project/semaprax.toml",
+        "--tool",
+        "z3",
+        "--executable",
+        "/opt/homebrew/bin/z3",
+        "--version-line",
+        "Z3 version 4.12.5 - 64 bit",
+        "--host-profile",
+        "trusted-local",
+        "--source",
+        "src/app.spx",
+        "--declaration",
+        "app.negate",
+        "--ensures",
+        "0"
+      ],
+      "command_sha256": "sha256:2121f0e20626a1c6728b6a658bb6e1bb7007f9f5740bb8e43da15f8b4cbe13bb",
+      "kind": "candidate",
+      "lane": "semaprax",
+      "ordinal": 30,
+      "state": "repeat_process"
+    }
+  ],
+  "host": {
+    "hardware": {
+      "cpu_brand": {
+        "argv": [
+          "/usr/sbin/sysctl",
+          "-n",
+          "machdep.cpu.brand_string"
+        ],
+        "exit_code": 0,
+        "stderr_utf8": "",
+        "stdout_utf8": "Apple M3 Pro\n"
+      },
+      "logical_cpu_count": {
+        "argv": [
+          "/usr/sbin/sysctl",
+          "-n",
+          "hw.logicalcpu"
+        ],
+        "exit_code": 0,
+        "stderr_utf8": "",
+        "stdout_utf8": "11\n"
+      },
+      "memory_bytes": {
+        "argv": [
+          "/usr/sbin/sysctl",
+          "-n",
+          "hw.memsize"
+        ],
+        "exit_code": 0,
+        "stderr_utf8": "",
+        "stdout_utf8": "19327352832\n"
+      },
+      "physical_cpu_count": {
+        "argv": [
+          "/usr/sbin/sysctl",
+          "-n",
+          "hw.physicalcpu"
+        ],
+        "exit_code": 0,
+        "stderr_utf8": "",
+        "stdout_utf8": "11\n"
+      }
+    },
+    "machine": "arm64",
+    "operating_system": {
+      "sw_vers": {
+        "argv": [
+          "/usr/bin/sw_vers"
+        ],
+        "exit_code": 0,
+        "stderr_utf8": "",
+        "stdout_utf8": "ProductName:\t\tmacOS\nProductVersion:\t\t26.5.1\nBuildVersion:\t\t25F80\n"
+      }
+    },
+    "probes": {
+      "uname": {
+        "argv": [
+          "/usr/bin/uname",
+          "-smr"
+        ],
+        "exit_code": 0,
+        "stderr_utf8": "",
+        "stdout_utf8": "Darwin 25.5.0 arm64\n"
+      }
+    },
+    "release": "25.5.0",
+    "system": "Darwin"
+  },
+  "nonclaims": [
+    "fresh_process and repeat_process are not true cold-cache states",
+    "host observation binds only this capture, not historical capsules",
+    "no cross-route timing ratio or winner"
+  ],
+  "process_states": {
+    "fresh_process": "a new child process using the first byte-identical copied input or project path",
+    "repeat_process": "a new child process using the second byte-identical copied input or project path"
+  },
+  "schema": "semaprax.bend2-law-benchmark.boolean-negation-process-provenance.v1",
+  "status": "observed_local_process_provisioning",
+  "toolchain": {
+    "bend_main": {
+      "identity": {
+        "bytes": 34607,
+        "path": "/private/tmp/bend2-law-source/bend2/main.ts",
+        "sha256": "sha256:c48a0274e661a3e529933550752578768e8f029219d814073fbf86537271d475"
+      }
+    },
+    "bend_repository": {
+      "commit": {
+        "argv": [
+          "/usr/bin/git",
+          "-C",
+          "/private/tmp/bend2-law-source/bend2",
+          "rev-parse",
+          "HEAD"
+        ],
+        "exit_code": 0,
+        "stderr_utf8": "",
+        "stdout_utf8": "947db722640c86247849343657bf2f7ef01cb7f1\n"
+      },
+      "path": "/private/tmp/bend2-law-source/bend2"
+    },
+    "bun": {
+      "identity": {
+        "bytes": 57940512,
+        "path": "/Users/kevin/.bun/bin/bun",
+        "sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781"
+      },
+      "version": {
+        "argv": [
+          "/Users/kevin/.bun/bin/bun",
+          "--version"
+        ],
+        "exit_code": 0,
+        "stderr_utf8": "",
+        "stdout_utf8": "1.2.5\n"
+      }
+    },
+    "semaprax": {
+      "identity": {
+        "bytes": 172081112,
+        "path": "/private/tmp/semaprax-9a9db7a81",
+        "sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+      },
+      "version": {
+        "argv": [
+          "/private/tmp/semaprax-9a9db7a81",
+          "--version"
+        ],
+        "exit_code": 0,
+        "stderr_utf8": "",
+        "stdout_utf8": "semaprax 0.7.0 (9a9db7a8117ac8d292b24ffd5671ec3333272290)\n"
+      }
+    },
+    "z3": {
+      "identity": {
+        "bytes": 23365455,
+        "path": "/opt/homebrew/bin/z3",
+        "sha256": "sha256:bbb24b8fed27552f7fb7cfdf0ed9101e6e24fd0cc0b9cfb945233b3f2ed333c5"
+      },
+      "version": {
+        "argv": [
+          "/opt/homebrew/bin/z3",
+          "--version"
+        ],
+        "exit_code": 0,
+        "stderr_utf8": "",
+        "stdout_utf8": "Z3 version 4.12.5 - 64 bit\n"
+      }
+    }
+  }
+}

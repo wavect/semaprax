@@ -103,11 +103,11 @@ semaprax-full help all
 “Private host” describes an implementation boundary in the source tree. It is
 not an account tier. The standalone executable supplies no private host hooks.
 
-The [v0.7.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.7.0)
-was published on October 1, 2026. A release binary and a later source build can
-both print `0.7.0` while exposing different additions. Record the commit as well
-as the version when reproducing an issue. Follow the release's verification
-instructions and retain its supplied provenance files.
+The current source version is `0.8.0`; its release archives have not been
+published. The [v0.7.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.7.0)
+was published on October 1, 2026. Record the commit as well as the version
+when reproducing an issue. Follow the release's verification instructions and
+retain its supplied provenance files.
 
 ## Find help for your build
 

@@ -1,4 +1,3 @@
-import copy
 import json
 import tempfile
 import unittest
@@ -15,14 +14,23 @@ class FullU32GuardedI64ProfileV2(unittest.TestCase):
                          "observed_during_replay; executable is not retained in this capsule")
         self.assertIn("matching the recorded SHA256", profile["reproduction"]["replay_requirement"])
 
-    def test_rejects_promoting_i64_theorem_to_matched_law16_bend(self):
+    def test_matched_law_route_preserves_distinct_source_identity(self):
         profile = json.loads(profile_v2.PROFILE.read_text())
-        profile["routes"][2]["disposition"] = "matched_cross_language_theorem"
+        profile["routes"][3]["semaprax"]["subject"] = "law16.sort"
         with tempfile.TemporaryDirectory() as directory:
             edited = Path(directory) / "profile.json"
             edited.write_text(json.dumps(profile))
             errors = profile_v2.verify(edited)
-        self.assertTrue(any("LAW15 route was incorrectly presented" in error for error in errors))
+        self.assertTrue(any("source identities were relabeled" in error for error in errors))
+
+    def test_matched_law_route_keeps_distinct_trusted_computing_bases(self):
+        profile = json.loads(profile_v2.PROFILE.read_text())
+        profile["routes"][3]["trusted_computing_bases"]["semaprax"] = profile["routes"][3]["trusted_computing_bases"]["bend"]
+        with tempfile.TemporaryDirectory() as directory:
+            edited = Path(directory) / "profile.json"
+            edited.write_text(json.dumps(profile))
+            errors = profile_v2.verify(edited)
+        self.assertTrue(any("collapses distinct proof TCBs" in error for error in errors))
 
     def test_rejects_promoting_law16_list_model_to_theorem_match(self):
         profile = json.loads(profile_v2.PROFILE.read_text())

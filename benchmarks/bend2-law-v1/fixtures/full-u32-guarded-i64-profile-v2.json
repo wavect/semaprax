@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.bend2-law-benchmark.full-u32-guarded-i64-profile.v2",
   "profile_id": "semaprax.full-u32-guarded-i64-representation.v2",
-  "status": "supplemental_controls_pass_matched_theorem_incomplete",
+  "status": "supplemental_controls_and_matched_sort_law_route_no_timing",
   "base_profile": {
     "profile_id": "semaprax.checked-u32-value-encoding.v1",
     "evidence": "evidence/full-u32-encoding-controls-v1/report.json",
@@ -76,7 +76,7 @@
     },
     {
       "route_id": "law15.collection-sort.all-i64.lean.v1",
-      "disposition": "source_authenticated_semaprax_theorem_proved_bend_comparison_incomparable",
+      "disposition": "source_authenticated_semaprax_theorem_proved",
       "source": {"path": "examples/law-packs/collection/sort.spx", "sha256": "sha256:f729230754eae7b60b96bbdb9c4b30f1e4d14133fbdbf548c7040849983bc4b8"},
       "declarations": ["law15.collection.insert", "law15.collection.sort"],
       "theorem_laws": ["sort_sorted", "sort_permutation", "sort_multiplicity"],
@@ -84,16 +84,56 @@
       "evidence_capsule": "evidence/law16-i64-list-proof-v1/capsule.json",
       "capsule_sha256": "sha256:a14878d87d8f63cb472916239d3e07f9bac46265291159ef4dc994d5735d5b0d",
       "proof_status": "supplemental_i64_list_profile_proved",
-      "bend_comparison": "none; exact pinned LAW16 Bend source does not provide these universal laws",
       "identity_boundary": "does not authenticate fixtures/full-u32-encoding-v1/sort.spx or law16.insert/law16.sort; no cross-source aliasing"
+    },
+    {
+      "route_id": "law16-u32-sort.bend-vs-law15-i64-sort.semantic-laws.v1",
+      "disposition": "matched_universal_semantic_laws_under_u32_embedding_no_timing",
+      "bend": {
+        "subject": "Sort.sort",
+        "source": {"path": "benchmarks/bend2-law-v1/fixtures/full-u32-encoding-v1/sort.bend", "sha256": "sha256:3f81c14f6d27925394d288cd4865e5fe1700fedabbd9873f79b6486c76fab032"},
+        "proof_source": {"path": "benchmarks/bend2-law-v1/fixtures/full-u32-encoding-v1/sort-universal.bend", "sha256": "sha256:e71ce4be53f821b38036b189e360f6c27e8d53bbd73e2c1304af3c064cd819fa"},
+        "proof_capsule": "evidence/bend-u32-sort-universal-v1/capsule.json",
+        "proof_capsule_sha256": "sha256:7707ac0797579e47c8575cec6aefeeaa68532a4745ccf6163b9793a4cb355d9c",
+        "domain": "every finite List<U32>, every U32 query",
+        "laws": ["sorted_sort(xs): SortedB(Sort.sort(xs), 0)", "count_sort(probe,xs): count(probe,Sort.sort(xs)) == count(probe,xs)", "finite-multiset permutation follows extensionally from equality of count for every U32 probe"],
+        "identity": "Bend module/function Sort.sort in exact source above; no SEMAPRAX @id is asserted for this source"
+      },
+      "semaprax": {
+        "subject": "law15.collection.sort",
+        "source": {"path": "examples/law-packs/collection/sort.spx", "sha256": "sha256:f729230754eae7b60b96bbdb9c4b30f1e4d14133fbdbf548c7040849983bc4b8"},
+        "declarations": ["law15.collection.insert", "law15.collection.sort"],
+        "proof_capsule": "evidence/law16-i64-list-proof-v1/capsule.json",
+        "proof_capsule_sha256": "sha256:a14878d87d8f63cb472916239d3e07f9bac46265291159ef4dc994d5735d5b0d",
+        "domain": "all finite List<i64>; restrict inputs and values to 0..4294967295 for the U32 comparison",
+        "laws": ["sort_sorted", "sort_permutation", "sort_multiplicity"]
+      },
+      "domain_and_law_alignment": {
+        "common_domain": "all finite lists of values in 0..4294967295",
+        "order_mapping": "unsigned U32 order agrees with signed i64 order after zero-extension over this interval",
+        "multiplicity_mapping": "Bend Nat count equality for every U32 probe is finite-multiset equality; the Lean permutation/count theorem restricts to the same value subset",
+        "empty_input": "Bend universal proof covers empty lists and its empty-output mutation is rejected; Lean capsule rejects empty-output and duplicate-multiplicity mutations"
+      },
+      "algorithm_boundary": {
+        "bend": "U32 recursive insertion sort with actual U32.is_le Boolean dispatch",
+        "semaprax": "i64 recursive insertion sort authenticated under law15.collection.* IDs",
+        "claim": "independent source algorithms prove aligned postconditions; no source/body identity or translation-equivalence claim"
+      },
+      "trusted_computing_bases": {
+        "bend": "pinned Bend source/front end at commit 947db722640c86247849343657bf2f7ef01cb7f1 plus locally provisioned BendTT kernel; capsule records source/tool/kernel hashes, but kernel binary/source association is not a reproducible build attestation",
+        "semaprax": "pinned source-authenticating Lean proof exporter and Lean 4.34.0 kernel; capsule records local test-binary/kernel identity, but test-binary build association is not a build attestation"
+      },
+      "evidence": ["Bend --verdict candidate and direct kernel replay pass", "Bend empty-output universal proof is rejected at count_sort", "Bend concrete empty-output counterexample is separately proved", "Lean source-authenticated sortedness/permutation/multiplicity capsule passes and rejects empty/duplicate mutants"],
+      "scope_limit": "supplemental cross-source semantic theorem comparison for the U32 subdomain only; not certification of fixtures/full-u32-encoding-v1/sort.spx, law16.insert, or law16.sort; no timing or LAW16 source-pair admission"
     }
   ],
-  "admission_policy": "Admit only the stated supplemental route results. The balance route is a bounded paired control, the LAW16 list route is concrete/model control only, and the LAW15 Lean theorem is a distinct source-authenticated SEMAPRAX theorem with no matched Bend verdict. No route is an equal-strength cross-language theorem comparison.",
+  "admission_policy": "Admit only the stated supplemental route results. The balance route is a bounded paired control and the original LAW16 SEMAPRAX list source remains concrete/model controls only. Separately admit the source-authenticated Bend U32 and LAW15 Lean all-i64 theorems as matched semantic sortedness/multiplicity/permutation guarantees after restriction to their common U32 value domain; their source identities, algorithms, and proof TCBs remain distinct. No timing or source-translation equivalence is claimed.",
   "nonclaims": [
     "v1 checked-u32 SEMAPRAX source remains unsupported by the pinned parser",
     "the v2 representation mapping does not establish source translation or backend lowering",
-    "no Bend sortedness, permutation, multiplicity, or empty-input theorem is authenticated for the LAW16 sort source",
-    "the LAW15 Lean proof is bound only to its exact LAW15 source path, source hash, stable IDs, and theorem capsule",
+    "the Bend theorem is bound to the exact Bend sort source, not to the old SEMAPRAX fixtures/full-u32-encoding-v1/sort.spx or its law16.* identities",
+    "the Lean theorem is bound only to its exact LAW15 source path, source hash, stable IDs, and theorem capsule",
+    "the cross-source theorem comparison aligns postconditions on the U32 subset but does not identify implementations or TCBs",
     "no matched theorem timing, cost, agent trial, public ABI, production support, or LAW16 closure is claimed"
   ]
 }

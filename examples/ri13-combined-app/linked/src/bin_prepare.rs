@@ -19,6 +19,16 @@ const REGEX_LOCK: &[u8] = include_bytes!(
 const URL_LOCK: &[u8] =
     include_bytes!("../../../../crates/semaprax-toolchain/src/fixtures/ri06-url-2.5.8.Cargo.lock");
 
+fn embed_generated_package(destination: &Path) {
+    let manifest = destination.join("Cargo.toml");
+    let source = fs::read_to_string(&manifest).expect("generated package manifest");
+    assert_eq!(source.matches("\n[workspace]\n").count(), 1);
+    // The generated crates are standalone by default. In this combined app,
+    // they are path dependencies within the consumer's single workspace.
+    fs::write(manifest, source.replacen("\n[workspace]\n", "\n", 1))
+        .expect("embedded package manifest");
+}
+
 fn main() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
     let examples = root.parent().unwrap().parent().unwrap();
@@ -91,6 +101,7 @@ fn main() {
     ] {
         fs::write(destination.join(path), bytes).unwrap();
     }
+    embed_generated_package(&destination);
     let destination = root.join("generated/url");
     fs::create_dir_all(destination.join("src")).unwrap();
     for (path, bytes) in [
@@ -104,6 +115,7 @@ fn main() {
     ] {
         fs::write(destination.join(path), bytes).unwrap();
     }
+    embed_generated_package(&destination);
     let m2 = with_authenticated_project(&m2_project.join("semaprax.toml"), |snapshot| {
         snapshot.check()?;
         let source = snapshot
@@ -123,6 +135,11 @@ fn main() {
     let m2_dir = root.join("generated/m2");
     fs::create_dir_all(&m2_dir).unwrap();
     fs::write(m2_dir.join("module.c"), &m2.callback.c_source).unwrap();
+    fs::write(
+        m2_dir.join("semaprax_native_rust_interop_ffi.rs"),
+        &m2.callback.ffi_rust,
+    )
+    .unwrap();
     fs::write(
         m2_dir.join("semaprax_native_rust_interop.h"),
         &m2.callback.header,

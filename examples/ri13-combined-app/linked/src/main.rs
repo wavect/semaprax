@@ -48,7 +48,12 @@ fn main() {
     assert_eq!(domain.live_environments(), 0);
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let revision = with_authenticated_project(
-        &root.parent().unwrap().join("project/semaprax.toml"),
+        &root
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .join("ri13-m3-local-http/project/semaprax.toml"),
         |snapshot| {
             snapshot.check()?;
             Ok(snapshot.retain_revision())

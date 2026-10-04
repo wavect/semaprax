@@ -73,7 +73,7 @@ impl Fixture {
                 r#"module reload.effects;
 permit { process.stdout.write }
 @id("reload.effects.target") fn target(value:i64)->i64 uses { process.stdout.write } { value }
-@id("reload.effects.main") fn main()->i64 uses { process.stdout.write } { target(42) }
+@id("reload.effects.main") fn main()->i64 { 42 }
 @id("reload.effects.run") fn run(input: borrow Slice<u8>)->bool uses { process.stdout.write } { target(42) == 42 }
 "#,
             ),

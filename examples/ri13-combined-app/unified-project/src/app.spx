@@ -12,6 +12,14 @@ resource Url {
     drop import "url.drop";
 }
 
+@id("ri13.event")
+record Event {
+    @id("ri13.event.value")
+    value: i64,
+    @id("ri13.event.label")
+    label: string,
+}
+
 @id("regex.host")
 interface RegexHost
     permits {  }
@@ -48,14 +56,6 @@ interface UrlHost
     import rust selected fn url_view from "url_alias::Url::as_str"
         effects {  }
         failure infallible;
-}
-
-@id("ri13.event")
-record Event {
-    @id("ri13.event.value")
-    value: i64,
-    @id("ri13.event.label")
-    label: string,
 }
 
 @id("callback.factory")

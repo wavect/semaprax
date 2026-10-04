@@ -364,3 +364,168 @@ fn tc01_provider_reported_cost_is_distinct_from_the_local_estimate() {
         "unknown"
     );
 }
+
+// ---- compatibility, config and price-book wiring --------------------------
+
+use semaprax_harness::contract::{validate_payload, CapabilityKind, Direction};
+use semaprax_harness::profile::config::parse as parse_config;
+use semaprax_harness::receipt::{Effort, OUTPUT_CAP_SEMANTICS};
+use semaprax_harness::workflow::generation::{declared_support, GenerationPolicy, ResponseShape};
+
+fn req_ok(p: Value) -> bool {
+    validate_payload(
+        CapabilityKind::ModelGenerate,
+        "generate",
+        Direction::Request,
+        &p,
+    )
+    .is_ok()
+}
+
+#[test]
+fn tc02_model_generate_contract_accepts_the_legacy_shape_and_the_new_optional_members() {
+    let base = json!({"model": "m-a", "input_base64": "aGk=", "max_output_bytes": 100});
+    assert!(req_ok(base.clone()), "legacy request unchanged");
+    let mut with = base.clone();
+    with["max_output_tokens"] = json!(512);
+    with["reasoning_effort"] = json!("low");
+    assert!(req_ok(with));
+    for bad in [
+        json!({"max_output_tokens": 0}),
+        json!({"reasoning_effort": "extreme"}),
+        json!({"max_output_tokens": "9"}),
+        json!({"extra": 1}),
+    ] {
+        let mut p = base.clone();
+        for (k, v) in bad.as_object().unwrap() {
+            p[k] = v.clone();
+        }
+        assert!(!req_ok(p.clone()), "{p}");
+    }
+    // Results: legacy and receipt-bearing both validate; unknown receipt members do not.
+    let res = |extra: Value| {
+        let mut r = json!({"model": "m-a", "output_base64": "aGk=", "usage": {"input_bytes": 1, "output_bytes": 2}});
+        if !extra.is_null() {
+            r["receipt"] = extra;
+        }
+        validate_payload(
+            CapabilityKind::ModelGenerate,
+            "generate",
+            Direction::Result,
+            &r,
+        )
+        .is_ok()
+    };
+    assert!(res(Value::Null));
+    assert!(res(
+        json!({"protocol": "responses", "usage": {"input_tokens": 1}, "controls": {}})
+    ));
+    assert!(!res(json!({"cost_claim": 0})));
+    assert!(!res(json!({"usage_events": [1]})));
+}
+
+#[test]
+fn tc01_price_book_is_versioned_closed_and_unknown_prices_stay_unknown() {
+    let v = json!({"schema": "semaprax.harness-price-book.v1", "records": [
+        {"model_prefix": "syn-", "version": "2026-10-01", "pricing": {"input": 3000000, "output": 15000000}},
+        {"model_prefix": "local-", "version": "l1", "pricing": "non_billed"}]});
+    let book = PriceBook::from_json(&v).unwrap();
+    assert_eq!(book.record_for("syn-x").unwrap().version, "2026-10-01");
+    let u = Usage {
+        uncached_input: Some(1),
+        cache_read: Some(0),
+        cache_write: Some(0),
+        cache_write_1h: Some(0),
+        output: Some(1),
+        ..Default::default()
+    };
+    assert_eq!(book.estimate("syn-x", &u).micros, Some(18));
+    let with_read = Usage {
+        cache_read: Some(5),
+        ..u
+    };
+    assert_eq!(book.estimate("syn-x", &with_read).basis, "missing_price");
+    for bad in [
+        json!({"schema": "other", "records": []}),
+        json!({"schema": "semaprax.harness-price-book.v1", "records": [], "x": 1}),
+        json!({"schema": "semaprax.harness-price-book.v1", "records": [{"model_prefix": "a", "version": "v", "pricing": {"input": -1}}]}),
+        json!({"schema": "semaprax.harness-price-book.v1", "records": [{"model_prefix": "a", "version": "v", "pricing": {"tokens": 1}}]}),
+    ] {
+        assert!(PriceBook::from_json(&bad).is_err(), "{bad}");
+    }
+}
+
+fn cfg(budget: &str) -> semaprax_harness::profile::HarnessConfig {
+    parse_config(
+        format!("schema = \"semaprax.harness-config.v1\"\n[budget]\n{budget}\n").as_bytes(),
+    )
+    .unwrap()
+}
+
+#[test]
+fn tc02_budget_generation_config_is_opt_in_validated_and_leaves_the_default_digest_alone() {
+    let plain = cfg("");
+    assert!(plain.budget.generation.is_default());
+    let policy = GenerationPolicy::from_section(&plain.budget.generation);
+    assert_eq!(
+        policy,
+        GenerationPolicy::default(),
+        "no members, no behaviour change"
+    );
+    assert!(plain
+        .to_json()
+        .get("budget")
+        .unwrap()
+        .get("generation")
+        .is_none());
+    let c = cfg("generation_strict = true\nintent_max_output_tokens = 512\nintent_reasoning = \"low\"\nrepair_max_output_tokens = 8192\nrepair_reasoning = \"high\"\nlength_retry_max_output_tokens = 16384\nmodel_output_cap = \"supported\"\nmodel_framing_tokens = 40\nprice_book = \"cost/prices.json\"");
+    let p = GenerationPolicy::from_section(&c.budget.generation);
+    assert!(p.strict);
+    assert_eq!(p.reserve_for(ResponseShape::StructuredIntent, 4096), 512);
+    assert_eq!(p.reserve_for(ResponseShape::SourceRepair, 4096), 8192);
+    assert_eq!(
+        p.reasoning_for(ResponseShape::StructuredIntent),
+        Some(Effort::Low)
+    );
+    assert_eq!(p.length_retry_cap, Some(16384));
+    let s = declared_support(&c.budget.generation);
+    assert_eq!(
+        format!("{:?} {:?}", s.output_cap, s.reasoning),
+        "Supported Unknown"
+    );
+    assert_eq!(c.budget.generation.framing_tokens, Some(40));
+    assert!(c.to_json()["budget"]["generation"].is_object());
+    for bad in [
+        "intent_reasoning = \"extreme\"",
+        "model_output_cap = \"yes\"",
+        "price_book = \"/etc/p.json\"",
+        "price_book = \"../p.json\"",
+        "intent_max_output_tokens = 0",
+    ] {
+        assert!(
+            parse_config(
+                format!("schema = \"semaprax.harness-config.v1\"\n[budget]\n{bad}\n").as_bytes()
+            )
+            .is_err(),
+            "{bad}"
+        );
+    }
+}
+
+#[test]
+fn tc02_output_cap_semantics_are_documented_for_every_protocol_and_reasoning_is_a_subset() {
+    let names: Vec<_> = OUTPUT_CAP_SEMANTICS.iter().map(|(n, _)| *n).collect();
+    for p in [
+        Protocol::Responses,
+        Protocol::ChatCompletions,
+        Protocol::AnthropicMessages,
+    ] {
+        assert!(names.contains(&p.as_str()), "{p:?}");
+    }
+    // Because the cap includes reasoning, usage.output already contains it and is never added again.
+    let u = normalize(
+        Protocol::Responses,
+        &json!({"output_tokens": 50, "output_tokens_details": {"reasoning_tokens": 20}}),
+    );
+    assert_eq!((u.output, u.reasoning), (Some(50), Some(20)));
+}

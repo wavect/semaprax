@@ -94,6 +94,45 @@ pub struct BudgetConfig {
     pub context_target_escalations: u64,
     /// Opt-in repair-feedback allowance in named tokens (TC-06).
     pub feedback_max_tokens: Option<u64>,
+    /// Opt-in output-cap, reasoning, strict and price-book settings (TC-02).
+    pub generation: GenerationSection,
+}
+
+/// `[budget]` generation members. Every member is opt-in: with none set the
+/// request cap stays the budget's `output_reserve_tokens` and nothing is refused.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct GenerationSection {
+    /// `generation_strict`: refuse before dispatch when the provider is not
+    /// declared to enforce the output cap.
+    pub strict: bool,
+    pub intent_cap: Option<u64>,
+    pub intent_reasoning: Option<String>,
+    pub repair_cap: Option<u64>,
+    pub repair_reasoning: Option<String>,
+    /// Explicit reasoning effort override for every response shape.
+    pub reasoning_override: Option<String>,
+    /// Larger cap for one new attempt after a length-limited reply.
+    pub length_retry_cap: Option<u64>,
+    /// Project-relative versioned JSON price book.
+    pub price_book: Option<String>,
+    /// Host declarations about the model provider: `supported` or `unsupported`.
+    pub output_cap_support: Option<String>,
+    pub reasoning_support: Option<String>,
+    /// Tokens of framing the model adapter adds beyond the harness prompt.
+    pub framing_tokens: Option<u64>,
+}
+
+impl GenerationSection {
+    pub fn is_default(&self) -> bool {
+        *self == Self::default()
+    }
+    pub fn to_json(&self) -> Value {
+        json!({"strict": self.strict, "intent_cap": self.intent_cap, "intent_reasoning": self.intent_reasoning,
+               "repair_cap": self.repair_cap, "repair_reasoning": self.repair_reasoning,
+               "reasoning_override": self.reasoning_override, "length_retry_cap": self.length_retry_cap,
+               "price_book": self.price_book, "output_cap_support": self.output_cap_support,
+               "reasoning_support": self.reasoning_support, "framing_tokens": self.framing_tokens})
+    }
 }
 
 impl Default for BudgetConfig {
@@ -104,6 +143,7 @@ impl Default for BudgetConfig {
             context_target_bytes: None,
             context_target_escalations: 2,
             feedback_max_tokens: None,
+            generation: GenerationSection::default(),
         }
     }
 }
@@ -217,6 +257,9 @@ impl HarnessConfig {
         // Only present when set, so existing configurations keep their digest.
         if let Some(n) = self.budget.feedback_max_tokens {
             doc["budget"]["feedback_max_tokens"] = json!(n);
+        }
+        if !self.budget.generation.is_default() {
+            doc["budget"]["generation"] = self.budget.generation.to_json();
         }
         if let Some(n) = self.budget.context_target_bytes {
             doc["budget"]["context_target_bytes"] = json!(n);
@@ -732,7 +775,72 @@ pub fn parse(bytes: &[u8]) -> HarnessResult<HarnessConfig> {
                 if let Some(n) = t.size("feedback_max_tokens")? {
                     cfg.budget.feedback_max_tokens = Some(n);
                 }
+                let g = &mut cfg.budget.generation;
+                if let Some(b) = t.boolean("generation_strict")? {
+                    g.strict = b;
+                }
+                g.intent_cap = t.size("intent_max_output_tokens")?;
+                g.repair_cap = t.size("repair_max_output_tokens")?;
+                g.length_retry_cap = t.size("length_retry_max_output_tokens")?;
+                g.framing_tokens = t.size("model_framing_tokens")?;
+                for (key, slot) in [
+                    ("intent_reasoning", 0),
+                    ("repair_reasoning", 1),
+                    ("reasoning_effort", 2),
+                ] {
+                    if let Some((v, l)) = t.string(key)? {
+                        if crate::receipt::Effort::parse(&v).is_none() {
+                            return Err(bad(
+                                "SPX-HPB004",
+                                l,
+                                format!("`{key}` must be minimal, low, medium or high, not `{v}`"),
+                            ));
+                        }
+                        match slot {
+                            0 => g.intent_reasoning = Some(v),
+                            1 => g.repair_reasoning = Some(v),
+                            _ => g.reasoning_override = Some(v),
+                        }
+                    }
+                }
+                for (key, slot) in [("model_output_cap", 0), ("model_reasoning", 1)] {
+                    if let Some((v, l)) = t.string(key)? {
+                        if !matches!(v.as_str(), "supported" | "unsupported") {
+                            return Err(bad(
+                                "SPX-HPB004",
+                                l,
+                                format!("`{key}` must be `supported` or `unsupported`, not `{v}`"),
+                            ));
+                        }
+                        if slot == 0 {
+                            g.output_cap_support = Some(v);
+                        } else {
+                            g.reasoning_support = Some(v);
+                        }
+                    }
+                }
+                if let Some((v, l)) = t.string("price_book")? {
+                    if v.starts_with('/') || v.contains("..") {
+                        return Err(bad(
+                            "SPX-HPB004",
+                            l,
+                            "`price_book` must be a project-relative path without `..`",
+                        ));
+                    }
+                    g.price_book = Some(v);
+                }
                 t.finish(&[
+                    "generation_strict",
+                    "intent_max_output_tokens",
+                    "repair_max_output_tokens",
+                    "length_retry_max_output_tokens",
+                    "model_framing_tokens",
+                    "intent_reasoning",
+                    "repair_reasoning",
+                    "reasoning_effort",
+                    "model_output_cap",
+                    "model_reasoning",
+                    "price_book",
                     "feedback_max_tokens",
                     "context_max_bytes",
                     "command_view_max_bytes",

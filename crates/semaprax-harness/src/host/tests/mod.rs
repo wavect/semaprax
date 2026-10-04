@@ -6,6 +6,7 @@
 mod hostile;
 mod isolation_tests;
 mod lifecycle_tests;
+mod model_tests;
 mod net;
 
 use super::grant::{Grant, GrantedPermissions};

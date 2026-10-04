@@ -46,7 +46,50 @@ fn d(code: &'static str, msg: impl Into<String>) -> HarnessDiagnostic {
     HarnessDiagnostic::new(code, msg)
 }
 
+/// Declared support from the `[budget]` `model_*` members (`None`: undeclared).
+pub fn declared_support(g: &crate::profile::config::GenerationSection) -> GenerationSupport {
+    let f = |v: &Option<String>| match v.as_deref() {
+        Some("supported") => Support::Supported,
+        Some("unsupported") => Support::Unsupported,
+        _ => Support::Unknown,
+    };
+    GenerationSupport {
+        output_cap: f(&g.output_cap_support),
+        reasoning: f(&g.reasoning_support),
+    }
+}
+
 impl GenerationPolicy {
+    /// Build the policy from `[budget]`; members left unset change nothing.
+    pub fn from_section(g: &crate::profile::config::GenerationSection) -> Self {
+        let eff = |v: &Option<String>| v.as_deref().and_then(Effort::parse);
+        let mut p = Self {
+            strict: g.strict,
+            reasoning_override: eff(&g.reasoning_override),
+            length_retry_cap: g.length_retry_cap,
+            ..Default::default()
+        };
+        if g.intent_cap.is_some() || g.intent_reasoning.is_some() {
+            p.tiers.insert(
+                ResponseShape::StructuredIntent,
+                ShapeTier {
+                    max_output_tokens: g.intent_cap,
+                    reasoning: eff(&g.intent_reasoning),
+                },
+            );
+        }
+        if g.repair_cap.is_some() || g.repair_reasoning.is_some() {
+            p.tiers.insert(
+                ResponseShape::SourceRepair,
+                ShapeTier {
+                    max_output_tokens: g.repair_cap,
+                    reasoning: eff(&g.repair_reasoning),
+                },
+            );
+        }
+        p
+    }
+
     pub fn with_tier(mut self, shape: ResponseShape, tier: ShapeTier) -> Self {
         self.tiers.insert(shape, tier);
         self
@@ -78,7 +121,7 @@ impl GenerationPolicy {
         if support.output_cap != Support::Supported {
             return Err(d(
                 "SPX-HPD101",
-                "strict budget: the model provider is not declared to enforce an output-token cap; refused before dispatch",
+                "strict budget: the model provider is not declared to enforce an output-token cap (declare `[budget] model_output_cap = \"supported\"` for a provider that does, or drop `generation_strict`); refused before dispatch",
             ));
         }
         if self.reasoning_for(shape).is_some() && support.reasoning != Support::Supported {

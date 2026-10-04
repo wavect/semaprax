@@ -11,6 +11,7 @@ pub mod price;
 
 pub use controls::{
     ControlReport, ControlStatus, Effort, GenerationControls, GenerationSupport, Support,
+    OUTPUT_CAP_SEMANTICS,
 };
 pub use normalize::{event_usage, merge_native, merge_stream, normalize, numeric_only, Usage};
 pub use price::{CostEstimate, PriceBook, PriceRecord, Pricing};

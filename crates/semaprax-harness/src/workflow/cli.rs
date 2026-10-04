@@ -340,12 +340,15 @@ pub fn run_with(
         if let Some(l) = launch_for(CapabilityKind::ModelGenerate) {
             match start(&manager, l, &snapshot, &cache, o, env, &config) {
                 Ok(h) => {
-                    model = Some(HostModel::new(
-                        h,
-                        l.grant.clone(),
-                        env.clone(),
-                        l.provider_id.clone(),
-                    ))
+                    model = Some(
+                        HostModel::new(h, l.grant.clone(), env.clone(), l.provider_id.clone())
+                            .with_support(super::generation::declared_support(
+                                &config.budget.generation,
+                            ))
+                            .with_framing_tokens(
+                                config.budget.generation.framing_tokens.unwrap_or(0),
+                            ),
+                    )
                 }
                 Err(e) => notes.push(format!(
                     "model provider `{}` not started: {}",
@@ -468,6 +471,38 @@ pub fn run_with(
     }
 
     budget.feedback_max_tokens = config.budget.feedback_max_tokens;
+    budget.generation =
+        super::generation::GenerationPolicy::from_section(&config.budget.generation);
+    if let Some(rel) = &config.budget.generation.price_book {
+        let path = snapshot.root.join(rel);
+        let book = std::fs::metadata(&path)
+            .map_err(|e| e.to_string())
+            .and_then(|m| {
+                if m.len() > 1 << 20 {
+                    Err("exceeds 1 MiB".to_string())
+                } else {
+                    std::fs::read(&path).map_err(|e| e.to_string())
+                }
+            })
+            .and_then(|b| {
+                serde_json::from_slice::<serde_json::Value>(&b).map_err(|e| e.to_string())
+            })
+            .and_then(|v| crate::receipt::PriceBook::from_json(&v));
+        match book {
+            Ok(b) => budget.prices = b,
+            Err(e) => {
+                return Err(HarnessDiagnostic::new(
+                    "SPX-HPD081",
+                    format!("price book `{rel}`: {e}"),
+                ))
+            }
+        }
+    }
+    if config.budget.generation.strict
+        && config.budget.generation.output_cap_support.as_deref() != Some("supported")
+    {
+        notes.push("generation_strict is set but no model provider is declared to enforce an output cap (`[budget] model_output_cap`); a model request will be refused before dispatch".into());
+    }
     let cfg = RunConfig {
         context_max_bytes: config.budget.context_max_bytes as usize,
         context_target: config.budget.context_target_bytes.map(|n| {

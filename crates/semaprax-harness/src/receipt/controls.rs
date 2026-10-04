@@ -117,3 +117,24 @@ impl ControlReport {
         }
     }
 }
+
+/// Exact output-cap semantics per protocol. In all three the cap bounds the
+/// visible answer *and* any reasoning/thinking tokens together, so the host
+/// reserves and transmits one total: nothing is subtracted for reasoning (that
+/// would count it twice), and `Usage.output` includes `Usage.reasoning`.
+/// Reasoning effort only changes how much of the total is likely to be spent
+/// on reasoning; it is not a separate token budget here.
+pub const OUTPUT_CAP_SEMANTICS: [(&str, &str); 3] = [
+    (
+        "responses",
+        "max_output_tokens bounds visible output plus reasoning tokens",
+    ),
+    (
+        "chat_completions",
+        "max_completion_tokens bounds visible output plus reasoning tokens",
+    ),
+    (
+        "anthropic_messages",
+        "max_tokens bounds visible output plus extended-thinking tokens",
+    ),
+];

@@ -1,0 +1,62 @@
+{
+  "1": {
+    "attack-normal": 1,
+    "attack-verdict": 1,
+    "candidate-normal": 0,
+    "candidate-verdict": 0
+  },
+  "10": {
+    "attack-normal": 1,
+    "attack-verdict": 1,
+    "candidate-normal": 0,
+    "candidate-verdict": 0
+  },
+  "2": {
+    "attack-normal": 1,
+    "attack-verdict": 1,
+    "candidate-normal": 0,
+    "candidate-verdict": 0
+  },
+  "3": {
+    "attack-normal": 1,
+    "attack-verdict": 1,
+    "candidate-normal": 0,
+    "candidate-verdict": 0
+  },
+  "4": {
+    "attack-normal": 1,
+    "attack-verdict": 1,
+    "candidate-normal": 1,
+    "candidate-verdict": 1
+  },
+  "5": {
+    "attack-normal": 1,
+    "attack-verdict": 1,
+    "candidate-normal": 0,
+    "candidate-verdict": 0
+  },
+  "6": {
+    "attack-normal": 1,
+    "attack-verdict": 1,
+    "candidate-normal": 0,
+    "candidate-verdict": 0
+  },
+  "7": {
+    "attack-normal": 1,
+    "attack-verdict": 1,
+    "candidate-normal": 0,
+    "candidate-verdict": 0
+  },
+  "8": {
+    "attack-normal": 1,
+    "attack-verdict": 1,
+    "candidate-normal": 0,
+    "candidate-verdict": 0
+  },
+  "9": {
+    "attack-normal": 1,
+    "attack-verdict": 1,
+    "candidate-normal": 0,
+    "candidate-verdict": 0
+  }
+}

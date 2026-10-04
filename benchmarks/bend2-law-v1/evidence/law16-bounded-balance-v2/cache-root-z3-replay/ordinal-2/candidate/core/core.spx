@@ -1,0 +1,7 @@
+module app.core;
+
+@id("app.core.value")
+fn value() -> i64
+{
+    0
+}

@@ -1,0 +1,82 @@
+{
+  "1": {
+    "attack app.balance.credit-after": 0,
+    "attack app.balance.debit-after": 1,
+    "attack app.balance.total-after": 1,
+    "candidate app.balance.credit-after": 0,
+    "candidate app.balance.debit-after": 0,
+    "candidate app.balance.total-after": 0
+  },
+  "10": {
+    "attack app.balance.credit-after": 0,
+    "attack app.balance.debit-after": 1,
+    "attack app.balance.total-after": 1,
+    "candidate app.balance.credit-after": 0,
+    "candidate app.balance.debit-after": 0,
+    "candidate app.balance.total-after": 0
+  },
+  "2": {
+    "attack app.balance.credit-after": 0,
+    "attack app.balance.debit-after": 1,
+    "attack app.balance.total-after": 1,
+    "candidate app.balance.credit-after": 0,
+    "candidate app.balance.debit-after": 0,
+    "candidate app.balance.total-after": 0
+  },
+  "3": {
+    "attack app.balance.credit-after": 0,
+    "attack app.balance.debit-after": 1,
+    "attack app.balance.total-after": 1,
+    "candidate app.balance.credit-after": 0,
+    "candidate app.balance.debit-after": 0,
+    "candidate app.balance.total-after": 0
+  },
+  "4": {
+    "attack app.balance.credit-after": 0,
+    "attack app.balance.debit-after": 1,
+    "attack app.balance.total-after": 1,
+    "candidate app.balance.credit-after": 0,
+    "candidate app.balance.debit-after": 0,
+    "candidate app.balance.total-after": 0
+  },
+  "5": {
+    "attack app.balance.credit-after": 0,
+    "attack app.balance.debit-after": 1,
+    "attack app.balance.total-after": 1,
+    "candidate app.balance.credit-after": 0,
+    "candidate app.balance.debit-after": 0,
+    "candidate app.balance.total-after": 0
+  },
+  "6": {
+    "attack app.balance.credit-after": 0,
+    "attack app.balance.debit-after": 1,
+    "attack app.balance.total-after": 1,
+    "candidate app.balance.credit-after": 0,
+    "candidate app.balance.debit-after": 0,
+    "candidate app.balance.total-after": 0
+  },
+  "7": {
+    "attack app.balance.credit-after": 0,
+    "attack app.balance.debit-after": 1,
+    "attack app.balance.total-after": 1,
+    "candidate app.balance.credit-after": 0,
+    "candidate app.balance.debit-after": 0,
+    "candidate app.balance.total-after": 0
+  },
+  "8": {
+    "attack app.balance.credit-after": 0,
+    "attack app.balance.debit-after": 1,
+    "attack app.balance.total-after": 1,
+    "candidate app.balance.credit-after": 0,
+    "candidate app.balance.debit-after": 0,
+    "candidate app.balance.total-after": 0
+  },
+  "9": {
+    "attack app.balance.credit-after": 0,
+    "attack app.balance.debit-after": 1,
+    "attack app.balance.total-after": 1,
+    "candidate app.balance.credit-after": 0,
+    "candidate app.balance.debit-after": 0,
+    "candidate app.balance.total-after": 0
+  }
+}

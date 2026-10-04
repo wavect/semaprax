@@ -1,0 +1,9 @@
+SOME PROOFS FAIL
+Error:
+- expected : '->' (a def with no return type fills a law; no law named debit_after_exact is in scope)
+- observed : ':'
+Location:
+15 | 
+16>| def debit_after_exact():
+   |                        ^
+17 |   {==}

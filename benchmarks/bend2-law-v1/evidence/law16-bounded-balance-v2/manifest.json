@@ -1,0 +1,3512 @@
+{
+  "aggregate": {
+    "attack_credit_discharges": 10,
+    "attack_debit_rejections": 10,
+    "attack_total_rejections": 10,
+    "bend_candidate_failures": 1,
+    "bend_candidate_passes": 9,
+    "semaprax_z3_candidate_discharges": 10,
+    "v1_ineligible_pilot": 1,
+    "v2_matched_pairs": 10
+  },
+  "files": [
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-1/attack/app.balance.credit-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-1/attack/app.balance.credit-after.cache.out",
+      "sha256": "sha256:fb6b6ba194260876530d7eb3dad7493833b041b4b96f82633118ffeb2b1dcdc1"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-1/attack/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-1/attack/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 103,
+      "path": "cache-root-z3-replay/ordinal-1/attack/app.balance.debit-after.cache.err",
+      "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-1/attack/app.balance.debit-after.cache.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-1/attack/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-1/attack/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 103,
+      "path": "cache-root-z3-replay/ordinal-1/attack/app.balance.total-after.cache.err",
+      "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-1/attack/app.balance.total-after.cache.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-1/attack/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-1/attack/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-1/attack/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "cache-root-z3-replay/ordinal-1/attack/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 355,
+      "path": "cache-root-z3-replay/ordinal-1/attack/src/app.spx",
+      "sha256": "sha256:c5103b9d54f484ca0a7cdd350e4804ab49d10a735dec915a9053483deaa82c2f"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-1/attack/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-1/candidate/app.balance.credit-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-1/candidate/app.balance.credit-after.cache.out",
+      "sha256": "sha256:c9c5ff333bc233d3225fb1a3e1d69e58da1c7df3da034bf3a174f90ae52722bc"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-1/candidate/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-1/candidate/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-1/candidate/app.balance.debit-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-1/candidate/app.balance.debit-after.cache.out",
+      "sha256": "sha256:586d132afb89a5747390dd270fd42ce827d9ad9c755266c55a0620d60b02ab32"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-1/candidate/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-1/candidate/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-1/candidate/app.balance.total-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-1/candidate/app.balance.total-after.cache.out",
+      "sha256": "sha256:6351eebe754a61f4ed4c692cf0732337f584503b44f2025977d0e5a457f749c4"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-1/candidate/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-1/candidate/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-1/candidate/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "cache-root-z3-replay/ordinal-1/candidate/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 359,
+      "path": "cache-root-z3-replay/ordinal-1/candidate/src/app.spx",
+      "sha256": "sha256:5e6f5649dcb6f755c6b5a91a5b6c396f4ea9791a45bd02dbc3625be59a629b7e"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-1/candidate/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-10/attack/app.balance.credit-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-10/attack/app.balance.credit-after.cache.out",
+      "sha256": "sha256:fb6b6ba194260876530d7eb3dad7493833b041b4b96f82633118ffeb2b1dcdc1"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-10/attack/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-10/attack/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 103,
+      "path": "cache-root-z3-replay/ordinal-10/attack/app.balance.debit-after.cache.err",
+      "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-10/attack/app.balance.debit-after.cache.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-10/attack/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-10/attack/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 103,
+      "path": "cache-root-z3-replay/ordinal-10/attack/app.balance.total-after.cache.err",
+      "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-10/attack/app.balance.total-after.cache.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-10/attack/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-10/attack/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-10/attack/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "cache-root-z3-replay/ordinal-10/attack/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 355,
+      "path": "cache-root-z3-replay/ordinal-10/attack/src/app.spx",
+      "sha256": "sha256:c5103b9d54f484ca0a7cdd350e4804ab49d10a735dec915a9053483deaa82c2f"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-10/attack/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-10/candidate/app.balance.credit-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-10/candidate/app.balance.credit-after.cache.out",
+      "sha256": "sha256:1ebe44225f901c688785e27c9f7cf4a3940f2f3d774b086b76b314f8dab11ce0"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-10/candidate/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-10/candidate/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-10/candidate/app.balance.debit-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-10/candidate/app.balance.debit-after.cache.out",
+      "sha256": "sha256:34f48b294b45758fc98e7698cbb89b63246bd4b2bacf2c32cb5f7ca39a25b399"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-10/candidate/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-10/candidate/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-10/candidate/app.balance.total-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-10/candidate/app.balance.total-after.cache.out",
+      "sha256": "sha256:086315544bc25aa9d39295e81d52c7440e647232d582269a7930808327e6d0bf"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-10/candidate/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-10/candidate/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-10/candidate/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "cache-root-z3-replay/ordinal-10/candidate/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 359,
+      "path": "cache-root-z3-replay/ordinal-10/candidate/src/app.spx",
+      "sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-10/candidate/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-2/attack/app.balance.credit-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-2/attack/app.balance.credit-after.cache.out",
+      "sha256": "sha256:fb6b6ba194260876530d7eb3dad7493833b041b4b96f82633118ffeb2b1dcdc1"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-2/attack/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-2/attack/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 103,
+      "path": "cache-root-z3-replay/ordinal-2/attack/app.balance.debit-after.cache.err",
+      "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-2/attack/app.balance.debit-after.cache.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-2/attack/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-2/attack/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 103,
+      "path": "cache-root-z3-replay/ordinal-2/attack/app.balance.total-after.cache.err",
+      "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-2/attack/app.balance.total-after.cache.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-2/attack/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-2/attack/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-2/attack/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "cache-root-z3-replay/ordinal-2/attack/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 355,
+      "path": "cache-root-z3-replay/ordinal-2/attack/src/app.spx",
+      "sha256": "sha256:c5103b9d54f484ca0a7cdd350e4804ab49d10a735dec915a9053483deaa82c2f"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-2/attack/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-2/candidate/app.balance.credit-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-2/candidate/app.balance.credit-after.cache.out",
+      "sha256": "sha256:1ebe44225f901c688785e27c9f7cf4a3940f2f3d774b086b76b314f8dab11ce0"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-2/candidate/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-2/candidate/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-2/candidate/app.balance.debit-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-2/candidate/app.balance.debit-after.cache.out",
+      "sha256": "sha256:34f48b294b45758fc98e7698cbb89b63246bd4b2bacf2c32cb5f7ca39a25b399"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-2/candidate/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-2/candidate/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-2/candidate/app.balance.total-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-2/candidate/app.balance.total-after.cache.out",
+      "sha256": "sha256:086315544bc25aa9d39295e81d52c7440e647232d582269a7930808327e6d0bf"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-2/candidate/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-2/candidate/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-2/candidate/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "cache-root-z3-replay/ordinal-2/candidate/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 359,
+      "path": "cache-root-z3-replay/ordinal-2/candidate/src/app.spx",
+      "sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-2/candidate/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-3/attack/app.balance.credit-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-3/attack/app.balance.credit-after.cache.out",
+      "sha256": "sha256:fb6b6ba194260876530d7eb3dad7493833b041b4b96f82633118ffeb2b1dcdc1"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-3/attack/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-3/attack/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 103,
+      "path": "cache-root-z3-replay/ordinal-3/attack/app.balance.debit-after.cache.err",
+      "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-3/attack/app.balance.debit-after.cache.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-3/attack/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-3/attack/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 103,
+      "path": "cache-root-z3-replay/ordinal-3/attack/app.balance.total-after.cache.err",
+      "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-3/attack/app.balance.total-after.cache.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-3/attack/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-3/attack/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-3/attack/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "cache-root-z3-replay/ordinal-3/attack/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 355,
+      "path": "cache-root-z3-replay/ordinal-3/attack/src/app.spx",
+      "sha256": "sha256:c5103b9d54f484ca0a7cdd350e4804ab49d10a735dec915a9053483deaa82c2f"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-3/attack/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-3/candidate/app.balance.credit-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-3/candidate/app.balance.credit-after.cache.out",
+      "sha256": "sha256:1ebe44225f901c688785e27c9f7cf4a3940f2f3d774b086b76b314f8dab11ce0"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-3/candidate/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-3/candidate/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-3/candidate/app.balance.debit-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-3/candidate/app.balance.debit-after.cache.out",
+      "sha256": "sha256:34f48b294b45758fc98e7698cbb89b63246bd4b2bacf2c32cb5f7ca39a25b399"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-3/candidate/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-3/candidate/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-3/candidate/app.balance.total-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-3/candidate/app.balance.total-after.cache.out",
+      "sha256": "sha256:086315544bc25aa9d39295e81d52c7440e647232d582269a7930808327e6d0bf"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-3/candidate/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-3/candidate/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-3/candidate/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "cache-root-z3-replay/ordinal-3/candidate/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 359,
+      "path": "cache-root-z3-replay/ordinal-3/candidate/src/app.spx",
+      "sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-3/candidate/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-4/attack/app.balance.credit-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-4/attack/app.balance.credit-after.cache.out",
+      "sha256": "sha256:fb6b6ba194260876530d7eb3dad7493833b041b4b96f82633118ffeb2b1dcdc1"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-4/attack/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-4/attack/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 103,
+      "path": "cache-root-z3-replay/ordinal-4/attack/app.balance.debit-after.cache.err",
+      "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-4/attack/app.balance.debit-after.cache.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-4/attack/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-4/attack/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 103,
+      "path": "cache-root-z3-replay/ordinal-4/attack/app.balance.total-after.cache.err",
+      "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-4/attack/app.balance.total-after.cache.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-4/attack/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-4/attack/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-4/attack/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "cache-root-z3-replay/ordinal-4/attack/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 355,
+      "path": "cache-root-z3-replay/ordinal-4/attack/src/app.spx",
+      "sha256": "sha256:c5103b9d54f484ca0a7cdd350e4804ab49d10a735dec915a9053483deaa82c2f"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-4/attack/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-4/candidate/app.balance.credit-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-4/candidate/app.balance.credit-after.cache.out",
+      "sha256": "sha256:bd901b13d1603f83421308bcf514f509105361f8459d439ddfbea7c1ad6e42f9"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-4/candidate/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-4/candidate/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-4/candidate/app.balance.debit-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-4/candidate/app.balance.debit-after.cache.out",
+      "sha256": "sha256:5e6ebe336e3b82b142a4cca9740451d9a25cb384f21e83efa4ec5d6e2ec64a0a"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-4/candidate/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-4/candidate/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-4/candidate/app.balance.total-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-4/candidate/app.balance.total-after.cache.out",
+      "sha256": "sha256:1e1ab2d66c17da4d857d940f5fd40624c44031192d2bbd13d6be401b585a814c"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-4/candidate/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-4/candidate/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-4/candidate/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "cache-root-z3-replay/ordinal-4/candidate/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 355,
+      "path": "cache-root-z3-replay/ordinal-4/candidate/src/app.spx",
+      "sha256": "sha256:3097dbd73c9c9f7fee58355dc5adab956ba92b7db2e22148c1fac58ede22d445"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-4/candidate/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-5/attack/app.balance.credit-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-5/attack/app.balance.credit-after.cache.out",
+      "sha256": "sha256:fb6b6ba194260876530d7eb3dad7493833b041b4b96f82633118ffeb2b1dcdc1"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-5/attack/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-5/attack/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 103,
+      "path": "cache-root-z3-replay/ordinal-5/attack/app.balance.debit-after.cache.err",
+      "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-5/attack/app.balance.debit-after.cache.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-5/attack/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-5/attack/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 103,
+      "path": "cache-root-z3-replay/ordinal-5/attack/app.balance.total-after.cache.err",
+      "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-5/attack/app.balance.total-after.cache.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-5/attack/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-5/attack/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-5/attack/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "cache-root-z3-replay/ordinal-5/attack/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 355,
+      "path": "cache-root-z3-replay/ordinal-5/attack/src/app.spx",
+      "sha256": "sha256:c5103b9d54f484ca0a7cdd350e4804ab49d10a735dec915a9053483deaa82c2f"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-5/attack/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-5/candidate/app.balance.credit-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-5/candidate/app.balance.credit-after.cache.out",
+      "sha256": "sha256:1ebe44225f901c688785e27c9f7cf4a3940f2f3d774b086b76b314f8dab11ce0"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-5/candidate/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-5/candidate/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-5/candidate/app.balance.debit-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-5/candidate/app.balance.debit-after.cache.out",
+      "sha256": "sha256:34f48b294b45758fc98e7698cbb89b63246bd4b2bacf2c32cb5f7ca39a25b399"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-5/candidate/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-5/candidate/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-5/candidate/app.balance.total-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-5/candidate/app.balance.total-after.cache.out",
+      "sha256": "sha256:086315544bc25aa9d39295e81d52c7440e647232d582269a7930808327e6d0bf"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-5/candidate/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-5/candidate/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-5/candidate/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "cache-root-z3-replay/ordinal-5/candidate/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 359,
+      "path": "cache-root-z3-replay/ordinal-5/candidate/src/app.spx",
+      "sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-5/candidate/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-6/attack/app.balance.credit-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-6/attack/app.balance.credit-after.cache.out",
+      "sha256": "sha256:fb6b6ba194260876530d7eb3dad7493833b041b4b96f82633118ffeb2b1dcdc1"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-6/attack/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-6/attack/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 103,
+      "path": "cache-root-z3-replay/ordinal-6/attack/app.balance.debit-after.cache.err",
+      "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-6/attack/app.balance.debit-after.cache.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-6/attack/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-6/attack/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 103,
+      "path": "cache-root-z3-replay/ordinal-6/attack/app.balance.total-after.cache.err",
+      "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-6/attack/app.balance.total-after.cache.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-6/attack/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-6/attack/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-6/attack/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "cache-root-z3-replay/ordinal-6/attack/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 355,
+      "path": "cache-root-z3-replay/ordinal-6/attack/src/app.spx",
+      "sha256": "sha256:c5103b9d54f484ca0a7cdd350e4804ab49d10a735dec915a9053483deaa82c2f"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-6/attack/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-6/candidate/app.balance.credit-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-6/candidate/app.balance.credit-after.cache.out",
+      "sha256": "sha256:1ebe44225f901c688785e27c9f7cf4a3940f2f3d774b086b76b314f8dab11ce0"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-6/candidate/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-6/candidate/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-6/candidate/app.balance.debit-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-6/candidate/app.balance.debit-after.cache.out",
+      "sha256": "sha256:34f48b294b45758fc98e7698cbb89b63246bd4b2bacf2c32cb5f7ca39a25b399"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-6/candidate/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-6/candidate/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-6/candidate/app.balance.total-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-6/candidate/app.balance.total-after.cache.out",
+      "sha256": "sha256:086315544bc25aa9d39295e81d52c7440e647232d582269a7930808327e6d0bf"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-6/candidate/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-6/candidate/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-6/candidate/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "cache-root-z3-replay/ordinal-6/candidate/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 359,
+      "path": "cache-root-z3-replay/ordinal-6/candidate/src/app.spx",
+      "sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-6/candidate/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-7/attack/app.balance.credit-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-7/attack/app.balance.credit-after.cache.out",
+      "sha256": "sha256:fb6b6ba194260876530d7eb3dad7493833b041b4b96f82633118ffeb2b1dcdc1"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-7/attack/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-7/attack/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 103,
+      "path": "cache-root-z3-replay/ordinal-7/attack/app.balance.debit-after.cache.err",
+      "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-7/attack/app.balance.debit-after.cache.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-7/attack/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-7/attack/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 103,
+      "path": "cache-root-z3-replay/ordinal-7/attack/app.balance.total-after.cache.err",
+      "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-7/attack/app.balance.total-after.cache.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-7/attack/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-7/attack/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-7/attack/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "cache-root-z3-replay/ordinal-7/attack/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 355,
+      "path": "cache-root-z3-replay/ordinal-7/attack/src/app.spx",
+      "sha256": "sha256:c5103b9d54f484ca0a7cdd350e4804ab49d10a735dec915a9053483deaa82c2f"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-7/attack/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-7/candidate/app.balance.credit-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-7/candidate/app.balance.credit-after.cache.out",
+      "sha256": "sha256:1ebe44225f901c688785e27c9f7cf4a3940f2f3d774b086b76b314f8dab11ce0"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-7/candidate/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-7/candidate/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-7/candidate/app.balance.debit-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-7/candidate/app.balance.debit-after.cache.out",
+      "sha256": "sha256:34f48b294b45758fc98e7698cbb89b63246bd4b2bacf2c32cb5f7ca39a25b399"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-7/candidate/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-7/candidate/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-7/candidate/app.balance.total-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-7/candidate/app.balance.total-after.cache.out",
+      "sha256": "sha256:086315544bc25aa9d39295e81d52c7440e647232d582269a7930808327e6d0bf"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-7/candidate/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-7/candidate/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-7/candidate/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "cache-root-z3-replay/ordinal-7/candidate/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 359,
+      "path": "cache-root-z3-replay/ordinal-7/candidate/src/app.spx",
+      "sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-7/candidate/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-8/attack/app.balance.credit-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-8/attack/app.balance.credit-after.cache.out",
+      "sha256": "sha256:fb6b6ba194260876530d7eb3dad7493833b041b4b96f82633118ffeb2b1dcdc1"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-8/attack/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-8/attack/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 103,
+      "path": "cache-root-z3-replay/ordinal-8/attack/app.balance.debit-after.cache.err",
+      "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-8/attack/app.balance.debit-after.cache.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-8/attack/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-8/attack/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 103,
+      "path": "cache-root-z3-replay/ordinal-8/attack/app.balance.total-after.cache.err",
+      "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-8/attack/app.balance.total-after.cache.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-8/attack/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-8/attack/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-8/attack/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "cache-root-z3-replay/ordinal-8/attack/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 355,
+      "path": "cache-root-z3-replay/ordinal-8/attack/src/app.spx",
+      "sha256": "sha256:c5103b9d54f484ca0a7cdd350e4804ab49d10a735dec915a9053483deaa82c2f"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-8/attack/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-8/candidate/app.balance.credit-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-8/candidate/app.balance.credit-after.cache.out",
+      "sha256": "sha256:1ebe44225f901c688785e27c9f7cf4a3940f2f3d774b086b76b314f8dab11ce0"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-8/candidate/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-8/candidate/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-8/candidate/app.balance.debit-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-8/candidate/app.balance.debit-after.cache.out",
+      "sha256": "sha256:34f48b294b45758fc98e7698cbb89b63246bd4b2bacf2c32cb5f7ca39a25b399"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-8/candidate/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-8/candidate/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-8/candidate/app.balance.total-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-8/candidate/app.balance.total-after.cache.out",
+      "sha256": "sha256:086315544bc25aa9d39295e81d52c7440e647232d582269a7930808327e6d0bf"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-8/candidate/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-8/candidate/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-8/candidate/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "cache-root-z3-replay/ordinal-8/candidate/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 359,
+      "path": "cache-root-z3-replay/ordinal-8/candidate/src/app.spx",
+      "sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-8/candidate/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-9/attack/app.balance.credit-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-9/attack/app.balance.credit-after.cache.out",
+      "sha256": "sha256:fb6b6ba194260876530d7eb3dad7493833b041b4b96f82633118ffeb2b1dcdc1"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-9/attack/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-9/attack/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 103,
+      "path": "cache-root-z3-replay/ordinal-9/attack/app.balance.debit-after.cache.err",
+      "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-9/attack/app.balance.debit-after.cache.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-9/attack/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-9/attack/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 103,
+      "path": "cache-root-z3-replay/ordinal-9/attack/app.balance.total-after.cache.err",
+      "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-9/attack/app.balance.total-after.cache.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-9/attack/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-9/attack/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-9/attack/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "cache-root-z3-replay/ordinal-9/attack/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 355,
+      "path": "cache-root-z3-replay/ordinal-9/attack/src/app.spx",
+      "sha256": "sha256:c5103b9d54f484ca0a7cdd350e4804ab49d10a735dec915a9053483deaa82c2f"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-9/attack/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-9/candidate/app.balance.credit-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-9/candidate/app.balance.credit-after.cache.out",
+      "sha256": "sha256:1ebe44225f901c688785e27c9f7cf4a3940f2f3d774b086b76b314f8dab11ce0"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-9/candidate/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-9/candidate/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-9/candidate/app.balance.debit-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-9/candidate/app.balance.debit-after.cache.out",
+      "sha256": "sha256:34f48b294b45758fc98e7698cbb89b63246bd4b2bacf2c32cb5f7ca39a25b399"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-9/candidate/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-9/candidate/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-9/candidate/app.balance.total-after.cache.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "cache-root-z3-replay/ordinal-9/candidate/app.balance.total-after.cache.out",
+      "sha256": "sha256:086315544bc25aa9d39295e81d52c7440e647232d582269a7930808327e6d0bf"
+    },
+    {
+      "bytes": 60,
+      "path": "cache-root-z3-replay/ordinal-9/candidate/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "cache-root-z3-replay/ordinal-9/candidate/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-9/candidate/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "cache-root-z3-replay/ordinal-9/candidate/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 359,
+      "path": "cache-root-z3-replay/ordinal-9/candidate/src/app.spx",
+      "sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+    },
+    {
+      "bytes": 68,
+      "path": "cache-root-z3-replay/ordinal-9/candidate/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 1859,
+      "path": "v1-ineligible-pilot/bend2/events.jsonl",
+      "sha256": "sha256:e15edf3bf001f30601768e9ede8bdf93ec65f8ebe966a9942bdb9548656c76ed"
+    },
+    {
+      "bytes": 871,
+      "path": "v1-ineligible-pilot/bend2/stderr.txt",
+      "sha256": "sha256:5cd0163d5af2a09a4b5dba588d037e67e8c3433f26b8b43c2b59110b7e09b1dd"
+    },
+    {
+      "bytes": 725,
+      "path": "v1-ineligible-pilot/bend2.bend",
+      "sha256": "sha256:362d118809aef8f54c24f7039129dd3f04f67a10ff5ff11ad63157a1adff9bf8"
+    },
+    {
+      "bytes": 1750,
+      "path": "v1-ineligible-pilot/bend2.prompt",
+      "sha256": "sha256:8a6289a40b5f847a3fb1f23734557272939d134278260c0c7d28dd981d5eed06"
+    },
+    {
+      "bytes": 167,
+      "path": "v1-ineligible-pilot/bend2.replay.err",
+      "sha256": "sha256:412367a8f83bbe410c58d50665af2f00aa785b17f3450b78b1df0e7843809c92"
+    },
+    {
+      "bytes": 0,
+      "path": "v1-ineligible-pilot/bend2.replay.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 1440,
+      "path": "v1-ineligible-pilot/bend2.response",
+      "sha256": "sha256:a6fcf9718bdd7dfde69bc67a75bc874d97a6a07621199cac0d3894a29cbbe73c"
+    },
+    {
+      "bytes": 1463,
+      "path": "v1-ineligible-pilot/semaprax-scalar-v1/events.jsonl",
+      "sha256": "sha256:74cea06488d5d5d212cfdb4d5f86e8c36b1b6a9822f513a2704139e5cf8798a1"
+    },
+    {
+      "bytes": 871,
+      "path": "v1-ineligible-pilot/semaprax-scalar-v1/stderr.txt",
+      "sha256": "sha256:386e8c949a7dc71b764032ad12ec26801a71ad70d9281e4446348109c96f7379"
+    },
+    {
+      "bytes": 1367,
+      "path": "v1-ineligible-pilot/semaprax-scalar-v1.prompt",
+      "sha256": "sha256:9d7e9934fa02048503a775cbe0235fe604dc55d647f0e2b1d9d8e130b673c3b8"
+    },
+    {
+      "bytes": 1038,
+      "path": "v1-ineligible-pilot/semaprax-scalar-v1.response",
+      "sha256": "sha256:20de669ed5c4ca9562488706189135c41d27f950bfd7b771c8e2a555fcfa481e"
+    },
+    {
+      "bytes": 359,
+      "path": "v1-ineligible-pilot/semaprax-scalar-v1.spx",
+      "sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+    },
+    {
+      "bytes": 0,
+      "path": "v1-ineligible-pilot/semaprax.check.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 177,
+      "path": "v1-ineligible-pilot/semaprax.check.out",
+      "sha256": "sha256:4cac6e390bfc9e3546c8e05da456f8cab47bd5e86d094f57dda30204088e8415"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/attack.credit-after.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "v2-turns-and-replay/attack.credit-after.out",
+      "sha256": "sha256:fb6b6ba194260876530d7eb3dad7493833b041b4b96f82633118ffeb2b1dcdc1"
+    },
+    {
+      "bytes": 103,
+      "path": "v2-turns-and-replay/attack.debit-after.err",
+      "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/attack.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 103,
+      "path": "v2-turns-and-replay/attack.total-after.err",
+      "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/attack.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 1174,
+      "path": "v2-turns-and-replay/bend-replay.json",
+      "sha256": "sha256:ae1c42aa1c86c279bec86c5ba2514a1c9f360dfac17d07bb6d04e8e5add44284"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/bend.replay.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9,
+      "path": "v2-turns-and-replay/bend.replay.out",
+      "sha256": "sha256:85e1ba3e2ff934d38d83d06300049efb095b93336777bec0e069c7ed494d618f"
+    },
+    {
+      "bytes": 2013,
+      "path": "v2-turns-and-replay/bend2/events.jsonl",
+      "sha256": "sha256:9fc4a7ec245f28a3b59fd8908b005116fd37d04e0dce91bc364ba3e0f67d688c"
+    },
+    {
+      "bytes": 842,
+      "path": "v2-turns-and-replay/bend2/final-source.bend",
+      "sha256": "sha256:f0b8f79e6bfd409191f3c3577dfbac1b39ef1d82ac87e6e893480d0b87e5bcec"
+    },
+    {
+      "bytes": 871,
+      "path": "v2-turns-and-replay/bend2/stderr.txt",
+      "sha256": "sha256:3c3879decfbe837eba4aa1b221a07173f49811d07d331f8f82e7c1a5d3d8c42f"
+    },
+    {
+      "bytes": 842,
+      "path": "v2-turns-and-replay/bend2.bend",
+      "sha256": "sha256:f0b8f79e6bfd409191f3c3577dfbac1b39ef1d82ac87e6e893480d0b87e5bcec"
+    },
+    {
+      "bytes": 1852,
+      "path": "v2-turns-and-replay/bend2.prompt",
+      "sha256": "sha256:dd20c4c9157c6f6423b9fb0bc31c59d761257f312b0e504776ea78cd3023eed0"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/candidate.credit-after.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "v2-turns-and-replay/candidate.credit-after.out",
+      "sha256": "sha256:c9c5ff333bc233d3225fb1a3e1d69e58da1c7df3da034bf3a174f90ae52722bc"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/candidate.debit-after.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "v2-turns-and-replay/candidate.debit-after.out",
+      "sha256": "sha256:586d132afb89a5747390dd270fd42ce827d9ad9c755266c55a0620d60b02ab32"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/candidate.total-after.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9013,
+      "path": "v2-turns-and-replay/candidate.total-after.out",
+      "sha256": "sha256:6351eebe754a61f4ed4c692cf0732337f584503b44f2025977d0e5a457f749c4"
+    },
+    {
+      "bytes": 1890,
+      "path": "v2-turns-and-replay/ordinal-10/bend2/events.jsonl",
+      "sha256": "sha256:afb61ce6587bcc5e92517059923973e38de09ca678476e1b95663e5495f8eefc"
+    },
+    {
+      "bytes": 817,
+      "path": "v2-turns-and-replay/ordinal-10/bend2/final-source.bend",
+      "sha256": "sha256:2b6d4c7d3b2aa08ea568a313a4df597d3765f7da3b9812061d9a2a15dc15ae05"
+    },
+    {
+      "bytes": 871,
+      "path": "v2-turns-and-replay/ordinal-10/bend2/stderr.txt",
+      "sha256": "sha256:b65b4939c44ba6f4cd2c947e38772cbbfce29ee35ec8dddc9c378cdddb65c2df"
+    },
+    {
+      "bytes": 1482,
+      "path": "v2-turns-and-replay/ordinal-10/semaprax-scalar-v1/events.jsonl",
+      "sha256": "sha256:b0a008ad9ee0bd8b1db8bf9420f13a86cdeaa537bc463c5d5932bf60d48af3e0"
+    },
+    {
+      "bytes": 359,
+      "path": "v2-turns-and-replay/ordinal-10/semaprax-scalar-v1/final-source.spx",
+      "sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+    },
+    {
+      "bytes": 871,
+      "path": "v2-turns-and-replay/ordinal-10/semaprax-scalar-v1/stderr.txt",
+      "sha256": "sha256:e9d1a071a040ff12de7a0ba9bb15efe97cb059ad801f3e81a9190629a18edbce"
+    },
+    {
+      "bytes": 1905,
+      "path": "v2-turns-and-replay/ordinal-2/bend2/events.jsonl",
+      "sha256": "sha256:ea088dfdb4338d598e47dd88c11f3db3dd1038ff8c95b8bdb026b6dc77d59d96"
+    },
+    {
+      "bytes": 805,
+      "path": "v2-turns-and-replay/ordinal-2/bend2/final-source.bend",
+      "sha256": "sha256:5c59d7522c759b693d0c5c160dce6867a85bf4796754ed1f00204c70b9df6c60"
+    },
+    {
+      "bytes": 871,
+      "path": "v2-turns-and-replay/ordinal-2/bend2/stderr.txt",
+      "sha256": "sha256:8f271406093c2dff53b34aa217ea090319a1280cb3ccc556f2856857dd36a640"
+    },
+    {
+      "bytes": 1429,
+      "path": "v2-turns-and-replay/ordinal-2/semaprax-scalar-v1/events.jsonl",
+      "sha256": "sha256:ad26a8d0c8d396ca40c943798159c85b89b2b60d0932be1185abfdc44bd80ce0"
+    },
+    {
+      "bytes": 359,
+      "path": "v2-turns-and-replay/ordinal-2/semaprax-scalar-v1/final-source.spx",
+      "sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+    },
+    {
+      "bytes": 871,
+      "path": "v2-turns-and-replay/ordinal-2/semaprax-scalar-v1/stderr.txt",
+      "sha256": "sha256:a7fc047ea02c457b072e3e3cb837b968c78d62a79e4f32b7c4c7f6c1e5623eba"
+    },
+    {
+      "bytes": 1858,
+      "path": "v2-turns-and-replay/ordinal-3/bend2/events.jsonl",
+      "sha256": "sha256:2e7c6c4bc388730bc3df38c2fdc04828e243d298ce80f8a46024016399b462a0"
+    },
+    {
+      "bytes": 855,
+      "path": "v2-turns-and-replay/ordinal-3/bend2/final-source.bend",
+      "sha256": "sha256:40a59a15b5ee2a9604c5df80d6fdfd0ccbd664ff208ad6e7aec7a843437766ba"
+    },
+    {
+      "bytes": 1153,
+      "path": "v2-turns-and-replay/ordinal-3/bend2/stderr.txt",
+      "sha256": "sha256:0c73924257014173b96c9847777a45c2471963c0a020fbeee4fc512a629c8461"
+    },
+    {
+      "bytes": 1424,
+      "path": "v2-turns-and-replay/ordinal-3/semaprax-scalar-v1/events.jsonl",
+      "sha256": "sha256:140e2040768912ad6dcd5362a5f53af84609f4d26a649a8d84d2f3e8ab632f86"
+    },
+    {
+      "bytes": 359,
+      "path": "v2-turns-and-replay/ordinal-3/semaprax-scalar-v1/final-source.spx",
+      "sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+    },
+    {
+      "bytes": 1153,
+      "path": "v2-turns-and-replay/ordinal-3/semaprax-scalar-v1/stderr.txt",
+      "sha256": "sha256:25d154744588876b5268b86e4fb55d670e2534d0e79ea338255a7df209f2ac70"
+    },
+    {
+      "bytes": 1717,
+      "path": "v2-turns-and-replay/ordinal-4/bend2/events.jsonl",
+      "sha256": "sha256:1da89aae15cef4ca754b1c7d10e03f32f95a5978581b82d9d7db31df22f827dc"
+    },
+    {
+      "bytes": 654,
+      "path": "v2-turns-and-replay/ordinal-4/bend2/final-source.bend",
+      "sha256": "sha256:c9255f6bedfda5a40b3699ba82269d3cbf20648b52e29d7f40ed2a32a9da9ec0"
+    },
+    {
+      "bytes": 1153,
+      "path": "v2-turns-and-replay/ordinal-4/bend2/stderr.txt",
+      "sha256": "sha256:e22aa1d93ab4721843fa74b9f2f4519fb6953fe136be3b37474b93d45f9fa0aa"
+    },
+    {
+      "bytes": 1498,
+      "path": "v2-turns-and-replay/ordinal-4/semaprax-scalar-v1/events.jsonl",
+      "sha256": "sha256:8cb5f3696dd56831a3a81bde42fbef5a75b25670941929c5bb0940a08a528b8b"
+    },
+    {
+      "bytes": 355,
+      "path": "v2-turns-and-replay/ordinal-4/semaprax-scalar-v1/final-source.spx",
+      "sha256": "sha256:3097dbd73c9c9f7fee58355dc5adab956ba92b7db2e22148c1fac58ede22d445"
+    },
+    {
+      "bytes": 871,
+      "path": "v2-turns-and-replay/ordinal-4/semaprax-scalar-v1/stderr.txt",
+      "sha256": "sha256:cfddaeef9352d4665d1a5bcba2db189249a58cf8a51d75e3e2d33cba4213c3ab"
+    },
+    {
+      "bytes": 1848,
+      "path": "v2-turns-and-replay/ordinal-5/bend2/events.jsonl",
+      "sha256": "sha256:74a3394be605e12a45769c1a2c6a11b35f6c34c6fe9ff9fc6fb4df617b9627a8"
+    },
+    {
+      "bytes": 817,
+      "path": "v2-turns-and-replay/ordinal-5/bend2/final-source.bend",
+      "sha256": "sha256:2b6d4c7d3b2aa08ea568a313a4df597d3765f7da3b9812061d9a2a15dc15ae05"
+    },
+    {
+      "bytes": 1153,
+      "path": "v2-turns-and-replay/ordinal-5/bend2/stderr.txt",
+      "sha256": "sha256:97318a80f54546a80ba080e8fe5b6a0ce2670173c7c7f929762f4cd0bc6c8eb3"
+    },
+    {
+      "bytes": 1414,
+      "path": "v2-turns-and-replay/ordinal-5/semaprax-scalar-v1/events.jsonl",
+      "sha256": "sha256:52c2d584a73ebf96326156514244fc421e787bf20f3dc0ddba59e71cfd0e8ff2"
+    },
+    {
+      "bytes": 359,
+      "path": "v2-turns-and-replay/ordinal-5/semaprax-scalar-v1/final-source.spx",
+      "sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+    },
+    {
+      "bytes": 1153,
+      "path": "v2-turns-and-replay/ordinal-5/semaprax-scalar-v1/stderr.txt",
+      "sha256": "sha256:6c971c761dcfaf5b815fbe48cc166ccebfe8aaa14509f393a684a4c575cb4128"
+    },
+    {
+      "bytes": 1964,
+      "path": "v2-turns-and-replay/ordinal-6/bend2/events.jsonl",
+      "sha256": "sha256:7350bd4da620c89296eba74ff412c2350c087f038c5933535569b6b8e93c9f8e"
+    },
+    {
+      "bytes": 842,
+      "path": "v2-turns-and-replay/ordinal-6/bend2/final-source.bend",
+      "sha256": "sha256:f0b8f79e6bfd409191f3c3577dfbac1b39ef1d82ac87e6e893480d0b87e5bcec"
+    },
+    {
+      "bytes": 1153,
+      "path": "v2-turns-and-replay/ordinal-6/bend2/stderr.txt",
+      "sha256": "sha256:61fbfdbea1c8db42c2a2b5528e617b05529916ef8579267a08df4301f34e1205"
+    },
+    {
+      "bytes": 1410,
+      "path": "v2-turns-and-replay/ordinal-6/semaprax-scalar-v1/events.jsonl",
+      "sha256": "sha256:c478fa1f9c3c57fc20c66620d76c45d9bbeee5bf188a3e57149ae408fc0e2a97"
+    },
+    {
+      "bytes": 359,
+      "path": "v2-turns-and-replay/ordinal-6/semaprax-scalar-v1/final-source.spx",
+      "sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+    },
+    {
+      "bytes": 1153,
+      "path": "v2-turns-and-replay/ordinal-6/semaprax-scalar-v1/stderr.txt",
+      "sha256": "sha256:caf93c3adace4bb85f10b936345ff97b06785693095d11b2036a4128e12457d4"
+    },
+    {
+      "bytes": 1883,
+      "path": "v2-turns-and-replay/ordinal-7/bend2/events.jsonl",
+      "sha256": "sha256:aa198c330423c5ccab58ea82ae4fdd0af1a777536bd69617edf51ced306cef76"
+    },
+    {
+      "bytes": 843,
+      "path": "v2-turns-and-replay/ordinal-7/bend2/final-source.bend",
+      "sha256": "sha256:03e2fb340328b637f91b7148e6fb8a0b5fb3ba8980c8cbdb9b267465b862d522"
+    },
+    {
+      "bytes": 871,
+      "path": "v2-turns-and-replay/ordinal-7/bend2/stderr.txt",
+      "sha256": "sha256:16adbd91d888b599ac303832f771e7e3ac0d6b34910fc855e8ea2749f55085cf"
+    },
+    {
+      "bytes": 1441,
+      "path": "v2-turns-and-replay/ordinal-7/semaprax-scalar-v1/events.jsonl",
+      "sha256": "sha256:fa022724d12dda7834f63adc4d7d633afc1cc4f39af1a49636a202d1f61a685d"
+    },
+    {
+      "bytes": 359,
+      "path": "v2-turns-and-replay/ordinal-7/semaprax-scalar-v1/final-source.spx",
+      "sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+    },
+    {
+      "bytes": 871,
+      "path": "v2-turns-and-replay/ordinal-7/semaprax-scalar-v1/stderr.txt",
+      "sha256": "sha256:99c6d8cf7c6f23b67ff38436a16d792b04b83ea228f38997388913c7daea2348"
+    },
+    {
+      "bytes": 1873,
+      "path": "v2-turns-and-replay/ordinal-8/bend2/events.jsonl",
+      "sha256": "sha256:38cfc6bf0d8b4c73558445ba9f3289ade517a9bd8a2dbb7cb576237f17ebcd45"
+    },
+    {
+      "bytes": 782,
+      "path": "v2-turns-and-replay/ordinal-8/bend2/final-source.bend",
+      "sha256": "sha256:9912ceb695c0302adabb34c06c4f3353b38e10469ef54e0722603ebe51345b64"
+    },
+    {
+      "bytes": 871,
+      "path": "v2-turns-and-replay/ordinal-8/bend2/stderr.txt",
+      "sha256": "sha256:c37a7ab5e26efe2d2de165adbe3fd5c6aaf6d9fb2338b96c10fb04fb692219d3"
+    },
+    {
+      "bytes": 1448,
+      "path": "v2-turns-and-replay/ordinal-8/semaprax-scalar-v1/events.jsonl",
+      "sha256": "sha256:46027620190fadc7270f49d1a1411a33ddf314f6adc8f59e872f02e80c53f783"
+    },
+    {
+      "bytes": 359,
+      "path": "v2-turns-and-replay/ordinal-8/semaprax-scalar-v1/final-source.spx",
+      "sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+    },
+    {
+      "bytes": 871,
+      "path": "v2-turns-and-replay/ordinal-8/semaprax-scalar-v1/stderr.txt",
+      "sha256": "sha256:7b47be9992a60cc18566a8770d08f6c49755d5187dee5ebaed785ef078267a02"
+    },
+    {
+      "bytes": 1977,
+      "path": "v2-turns-and-replay/ordinal-9/bend2/events.jsonl",
+      "sha256": "sha256:92f2e5e35361184139a324799748ae7c7aa80e77973fb89dbc469b7a6865583f"
+    },
+    {
+      "bytes": 842,
+      "path": "v2-turns-and-replay/ordinal-9/bend2/final-source.bend",
+      "sha256": "sha256:f0b8f79e6bfd409191f3c3577dfbac1b39ef1d82ac87e6e893480d0b87e5bcec"
+    },
+    {
+      "bytes": 871,
+      "path": "v2-turns-and-replay/ordinal-9/bend2/stderr.txt",
+      "sha256": "sha256:e3e6c00f0a78e04060e220ab98540697a9e675486155e2c25b2631dfe8a1033c"
+    },
+    {
+      "bytes": 1398,
+      "path": "v2-turns-and-replay/ordinal-9/semaprax-scalar-v1/events.jsonl",
+      "sha256": "sha256:5f1ddf1effed34314f32653794ef34aebc052d339a83b699cd24b097612c0172"
+    },
+    {
+      "bytes": 359,
+      "path": "v2-turns-and-replay/ordinal-9/semaprax-scalar-v1/final-source.spx",
+      "sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+    },
+    {
+      "bytes": 871,
+      "path": "v2-turns-and-replay/ordinal-9/semaprax-scalar-v1/stderr.txt",
+      "sha256": "sha256:e9424ebde99e7884cb94173f4c4221606da8a1f1410cd4282ce331f679fe9521"
+    },
+    {
+      "bytes": 3374,
+      "path": "v2-turns-and-replay/plan.json",
+      "sha256": "sha256:95a6d92be8eff4a32e4dc4d8e95eb31332332df13543b848df28a4a9197d4624"
+    },
+    {
+      "bytes": 144,
+      "path": "v2-turns-and-replay/replay/ordinal-1/bend-attack-normal.err",
+      "sha256": "sha256:5181e0885c0998dabceae4eda3eb732d386041289529519526e8659834e84e71"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-1/bend-attack-normal.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 144,
+      "path": "v2-turns-and-replay/replay/ordinal-1/bend-attack-verdict.err",
+      "sha256": "sha256:5181e0885c0998dabceae4eda3eb732d386041289529519526e8659834e84e71"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-1/bend-attack-verdict.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-1/bend-candidate-normal.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9,
+      "path": "v2-turns-and-replay/replay/ordinal-1/bend-candidate-normal.out",
+      "sha256": "sha256:85e1ba3e2ff934d38d83d06300049efb095b93336777bec0e069c7ed494d618f"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-1/bend-candidate-verdict.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 17,
+      "path": "v2-turns-and-replay/replay/ordinal-1/bend-candidate-verdict.out",
+      "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+    },
+    {
+      "bytes": 144,
+      "path": "v2-turns-and-replay/replay/ordinal-10/bend-attack-normal.err",
+      "sha256": "sha256:5181e0885c0998dabceae4eda3eb732d386041289529519526e8659834e84e71"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-10/bend-attack-normal.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 144,
+      "path": "v2-turns-and-replay/replay/ordinal-10/bend-attack-verdict.err",
+      "sha256": "sha256:5181e0885c0998dabceae4eda3eb732d386041289529519526e8659834e84e71"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-10/bend-attack-verdict.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-10/bend-candidate-normal.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9,
+      "path": "v2-turns-and-replay/replay/ordinal-10/bend-candidate-normal.out",
+      "sha256": "sha256:85e1ba3e2ff934d38d83d06300049efb095b93336777bec0e069c7ed494d618f"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-10/bend-candidate-verdict.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 17,
+      "path": "v2-turns-and-replay/replay/ordinal-10/bend-candidate-verdict.out",
+      "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+    },
+    {
+      "bytes": 144,
+      "path": "v2-turns-and-replay/replay/ordinal-2/bend-attack-normal.err",
+      "sha256": "sha256:5181e0885c0998dabceae4eda3eb732d386041289529519526e8659834e84e71"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-2/bend-attack-normal.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 144,
+      "path": "v2-turns-and-replay/replay/ordinal-2/bend-attack-verdict.err",
+      "sha256": "sha256:5181e0885c0998dabceae4eda3eb732d386041289529519526e8659834e84e71"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-2/bend-attack-verdict.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-2/bend-candidate-normal.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9,
+      "path": "v2-turns-and-replay/replay/ordinal-2/bend-candidate-normal.out",
+      "sha256": "sha256:85e1ba3e2ff934d38d83d06300049efb095b93336777bec0e069c7ed494d618f"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-2/bend-candidate-verdict.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 17,
+      "path": "v2-turns-and-replay/replay/ordinal-2/bend-candidate-verdict.out",
+      "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+    },
+    {
+      "bytes": 144,
+      "path": "v2-turns-and-replay/replay/ordinal-3/bend-attack-normal.err",
+      "sha256": "sha256:5181e0885c0998dabceae4eda3eb732d386041289529519526e8659834e84e71"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-3/bend-attack-normal.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 144,
+      "path": "v2-turns-and-replay/replay/ordinal-3/bend-attack-verdict.err",
+      "sha256": "sha256:5181e0885c0998dabceae4eda3eb732d386041289529519526e8659834e84e71"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-3/bend-attack-verdict.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-3/bend-candidate-normal.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9,
+      "path": "v2-turns-and-replay/replay/ordinal-3/bend-candidate-normal.out",
+      "sha256": "sha256:85e1ba3e2ff934d38d83d06300049efb095b93336777bec0e069c7ed494d618f"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-3/bend-candidate-verdict.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 17,
+      "path": "v2-turns-and-replay/replay/ordinal-3/bend-candidate-verdict.out",
+      "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+    },
+    {
+      "bytes": 144,
+      "path": "v2-turns-and-replay/replay/ordinal-4/bend-attack-normal.err",
+      "sha256": "sha256:5181e0885c0998dabceae4eda3eb732d386041289529519526e8659834e84e71"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-4/bend-attack-normal.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 144,
+      "path": "v2-turns-and-replay/replay/ordinal-4/bend-attack-verdict.err",
+      "sha256": "sha256:5181e0885c0998dabceae4eda3eb732d386041289529519526e8659834e84e71"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-4/bend-attack-verdict.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 231,
+      "path": "v2-turns-and-replay/replay/ordinal-4/bend-candidate-normal.err",
+      "sha256": "sha256:8a342aa4c77c1fb83284ecc2044aa8746ec070dca54260c14b1ac9a413f5abf9"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-4/bend-candidate-normal.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 231,
+      "path": "v2-turns-and-replay/replay/ordinal-4/bend-candidate-verdict.err",
+      "sha256": "sha256:8a342aa4c77c1fb83284ecc2044aa8746ec070dca54260c14b1ac9a413f5abf9"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-4/bend-candidate-verdict.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 144,
+      "path": "v2-turns-and-replay/replay/ordinal-5/bend-attack-normal.err",
+      "sha256": "sha256:5181e0885c0998dabceae4eda3eb732d386041289529519526e8659834e84e71"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-5/bend-attack-normal.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 144,
+      "path": "v2-turns-and-replay/replay/ordinal-5/bend-attack-verdict.err",
+      "sha256": "sha256:5181e0885c0998dabceae4eda3eb732d386041289529519526e8659834e84e71"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-5/bend-attack-verdict.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-5/bend-candidate-normal.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9,
+      "path": "v2-turns-and-replay/replay/ordinal-5/bend-candidate-normal.out",
+      "sha256": "sha256:85e1ba3e2ff934d38d83d06300049efb095b93336777bec0e069c7ed494d618f"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-5/bend-candidate-verdict.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 17,
+      "path": "v2-turns-and-replay/replay/ordinal-5/bend-candidate-verdict.out",
+      "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+    },
+    {
+      "bytes": 144,
+      "path": "v2-turns-and-replay/replay/ordinal-6/bend-attack-normal.err",
+      "sha256": "sha256:5181e0885c0998dabceae4eda3eb732d386041289529519526e8659834e84e71"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-6/bend-attack-normal.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 144,
+      "path": "v2-turns-and-replay/replay/ordinal-6/bend-attack-verdict.err",
+      "sha256": "sha256:5181e0885c0998dabceae4eda3eb732d386041289529519526e8659834e84e71"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-6/bend-attack-verdict.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-6/bend-candidate-normal.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9,
+      "path": "v2-turns-and-replay/replay/ordinal-6/bend-candidate-normal.out",
+      "sha256": "sha256:85e1ba3e2ff934d38d83d06300049efb095b93336777bec0e069c7ed494d618f"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-6/bend-candidate-verdict.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 17,
+      "path": "v2-turns-and-replay/replay/ordinal-6/bend-candidate-verdict.out",
+      "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+    },
+    {
+      "bytes": 144,
+      "path": "v2-turns-and-replay/replay/ordinal-7/bend-attack-normal.err",
+      "sha256": "sha256:5181e0885c0998dabceae4eda3eb732d386041289529519526e8659834e84e71"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-7/bend-attack-normal.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 144,
+      "path": "v2-turns-and-replay/replay/ordinal-7/bend-attack-verdict.err",
+      "sha256": "sha256:5181e0885c0998dabceae4eda3eb732d386041289529519526e8659834e84e71"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-7/bend-attack-verdict.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-7/bend-candidate-normal.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9,
+      "path": "v2-turns-and-replay/replay/ordinal-7/bend-candidate-normal.out",
+      "sha256": "sha256:85e1ba3e2ff934d38d83d06300049efb095b93336777bec0e069c7ed494d618f"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-7/bend-candidate-verdict.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 17,
+      "path": "v2-turns-and-replay/replay/ordinal-7/bend-candidate-verdict.out",
+      "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+    },
+    {
+      "bytes": 144,
+      "path": "v2-turns-and-replay/replay/ordinal-8/bend-attack-normal.err",
+      "sha256": "sha256:5181e0885c0998dabceae4eda3eb732d386041289529519526e8659834e84e71"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-8/bend-attack-normal.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 144,
+      "path": "v2-turns-and-replay/replay/ordinal-8/bend-attack-verdict.err",
+      "sha256": "sha256:5181e0885c0998dabceae4eda3eb732d386041289529519526e8659834e84e71"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-8/bend-attack-verdict.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-8/bend-candidate-normal.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9,
+      "path": "v2-turns-and-replay/replay/ordinal-8/bend-candidate-normal.out",
+      "sha256": "sha256:85e1ba3e2ff934d38d83d06300049efb095b93336777bec0e069c7ed494d618f"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-8/bend-candidate-verdict.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 17,
+      "path": "v2-turns-and-replay/replay/ordinal-8/bend-candidate-verdict.out",
+      "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+    },
+    {
+      "bytes": 144,
+      "path": "v2-turns-and-replay/replay/ordinal-9/bend-attack-normal.err",
+      "sha256": "sha256:5181e0885c0998dabceae4eda3eb732d386041289529519526e8659834e84e71"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-9/bend-attack-normal.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 144,
+      "path": "v2-turns-and-replay/replay/ordinal-9/bend-attack-verdict.err",
+      "sha256": "sha256:5181e0885c0998dabceae4eda3eb732d386041289529519526e8659834e84e71"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-9/bend-attack-verdict.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-9/bend-candidate-normal.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9,
+      "path": "v2-turns-and-replay/replay/ordinal-9/bend-candidate-normal.out",
+      "sha256": "sha256:85e1ba3e2ff934d38d83d06300049efb095b93336777bec0e069c7ed494d618f"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/replay/ordinal-9/bend-candidate-verdict.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 17,
+      "path": "v2-turns-and-replay/replay/ordinal-9/bend-candidate-verdict.out",
+      "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/sem.check.err",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 169,
+      "path": "v2-turns-and-replay/sem.check.out",
+      "sha256": "sha256:428bc8e20863e86b96d711e57901a782810039b1d6e3b72c9ae74f04a42a9735"
+    },
+    {
+      "bytes": 1418,
+      "path": "v2-turns-and-replay/semaprax-scalar-v1/events.jsonl",
+      "sha256": "sha256:dfd5dc4718498948dcafc94ef943b9625690a6016eac6db2e5613dd735da0ec2"
+    },
+    {
+      "bytes": 359,
+      "path": "v2-turns-and-replay/semaprax-scalar-v1/final-source.spx",
+      "sha256": "sha256:5e6f5649dcb6f755c6b5a91a5b6c396f4ea9791a45bd02dbc3625be59a629b7e"
+    },
+    {
+      "bytes": 871,
+      "path": "v2-turns-and-replay/semaprax-scalar-v1/stderr.txt",
+      "sha256": "sha256:8e86eeb91f1e8e921620b3a89aa3ca26db752274882f86013735308b7fb1d025"
+    },
+    {
+      "bytes": 1198,
+      "path": "v2-turns-and-replay/semaprax-scalar-v1.prompt",
+      "sha256": "sha256:f5fb15e6e9f0ed228f4a058e0313efca063dfdbb290baa4a455561d0afb49521"
+    },
+    {
+      "bytes": 359,
+      "path": "v2-turns-and-replay/semaprax-scalar-v1.spx",
+      "sha256": "sha256:5e6f5649dcb6f755c6b5a91a5b6c396f4ea9791a45bd02dbc3625be59a629b7e"
+    },
+    {
+      "bytes": 2704,
+      "path": "v2-turns-and-replay/z3-cache-replay.json",
+      "sha256": "sha256:fb740f67fd60bc117c038010d4f7a87b1945087ebd752cfac658fadae5b2ce2f"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-1/attack/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-1/attack/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-1/attack/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-1/attack/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-1/attack/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-1/attack/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-1/attack/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-1/attack/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 355,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-1/attack/src/app.spx",
+      "sha256": "sha256:c5103b9d54f484ca0a7cdd350e4804ab49d10a735dec915a9053483deaa82c2f"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-1/attack/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-1/candidate/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-1/candidate/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-1/candidate/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-1/candidate/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-1/candidate/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-1/candidate/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-1/candidate/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-1/candidate/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 359,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-1/candidate/src/app.spx",
+      "sha256": "sha256:5e6f5649dcb6f755c6b5a91a5b6c396f4ea9791a45bd02dbc3625be59a629b7e"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-1/candidate/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-10/attack/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-10/attack/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-10/attack/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-10/attack/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-10/attack/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-10/attack/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-10/attack/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-10/attack/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 355,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-10/attack/src/app.spx",
+      "sha256": "sha256:c5103b9d54f484ca0a7cdd350e4804ab49d10a735dec915a9053483deaa82c2f"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-10/attack/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-10/candidate/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-10/candidate/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-10/candidate/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-10/candidate/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-10/candidate/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-10/candidate/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-10/candidate/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-10/candidate/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 359,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-10/candidate/src/app.spx",
+      "sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-10/candidate/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-2/attack/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-2/attack/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-2/attack/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-2/attack/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-2/attack/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-2/attack/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-2/attack/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-2/attack/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 355,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-2/attack/src/app.spx",
+      "sha256": "sha256:c5103b9d54f484ca0a7cdd350e4804ab49d10a735dec915a9053483deaa82c2f"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-2/attack/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-2/candidate/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-2/candidate/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-2/candidate/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-2/candidate/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-2/candidate/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-2/candidate/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-2/candidate/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-2/candidate/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 359,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-2/candidate/src/app.spx",
+      "sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-2/candidate/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-3/attack/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-3/attack/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-3/attack/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-3/attack/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-3/attack/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-3/attack/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-3/attack/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-3/attack/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 355,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-3/attack/src/app.spx",
+      "sha256": "sha256:c5103b9d54f484ca0a7cdd350e4804ab49d10a735dec915a9053483deaa82c2f"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-3/attack/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-3/candidate/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-3/candidate/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-3/candidate/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-3/candidate/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-3/candidate/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-3/candidate/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-3/candidate/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-3/candidate/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 359,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-3/candidate/src/app.spx",
+      "sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-3/candidate/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-4/attack/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-4/attack/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-4/attack/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-4/attack/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-4/attack/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-4/attack/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-4/attack/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-4/attack/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 355,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-4/attack/src/app.spx",
+      "sha256": "sha256:c5103b9d54f484ca0a7cdd350e4804ab49d10a735dec915a9053483deaa82c2f"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-4/attack/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-4/candidate/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-4/candidate/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-4/candidate/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-4/candidate/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-4/candidate/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-4/candidate/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-4/candidate/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-4/candidate/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 355,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-4/candidate/src/app.spx",
+      "sha256": "sha256:3097dbd73c9c9f7fee58355dc5adab956ba92b7db2e22148c1fac58ede22d445"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-4/candidate/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-5/attack/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-5/attack/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-5/attack/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-5/attack/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-5/attack/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-5/attack/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-5/attack/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-5/attack/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 355,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-5/attack/src/app.spx",
+      "sha256": "sha256:c5103b9d54f484ca0a7cdd350e4804ab49d10a735dec915a9053483deaa82c2f"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-5/attack/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-5/candidate/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-5/candidate/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-5/candidate/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-5/candidate/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-5/candidate/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-5/candidate/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-5/candidate/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-5/candidate/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 359,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-5/candidate/src/app.spx",
+      "sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-5/candidate/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-6/attack/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-6/attack/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-6/attack/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-6/attack/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-6/attack/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-6/attack/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-6/attack/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-6/attack/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 355,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-6/attack/src/app.spx",
+      "sha256": "sha256:c5103b9d54f484ca0a7cdd350e4804ab49d10a735dec915a9053483deaa82c2f"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-6/attack/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-6/candidate/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-6/candidate/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-6/candidate/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-6/candidate/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-6/candidate/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-6/candidate/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-6/candidate/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-6/candidate/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 359,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-6/candidate/src/app.spx",
+      "sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-6/candidate/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-7/attack/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-7/attack/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-7/attack/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-7/attack/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-7/attack/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-7/attack/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-7/attack/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-7/attack/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 355,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-7/attack/src/app.spx",
+      "sha256": "sha256:c5103b9d54f484ca0a7cdd350e4804ab49d10a735dec915a9053483deaa82c2f"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-7/attack/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-7/candidate/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-7/candidate/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-7/candidate/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-7/candidate/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-7/candidate/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-7/candidate/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-7/candidate/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-7/candidate/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 359,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-7/candidate/src/app.spx",
+      "sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-7/candidate/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-8/attack/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-8/attack/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-8/attack/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-8/attack/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-8/attack/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-8/attack/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-8/attack/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-8/attack/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 355,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-8/attack/src/app.spx",
+      "sha256": "sha256:c5103b9d54f484ca0a7cdd350e4804ab49d10a735dec915a9053483deaa82c2f"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-8/attack/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-8/candidate/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-8/candidate/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-8/candidate/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-8/candidate/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-8/candidate/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-8/candidate/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-8/candidate/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-8/candidate/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 359,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-8/candidate/src/app.spx",
+      "sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-8/candidate/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-9/attack/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-9/attack/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-9/attack/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-9/attack/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-9/attack/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-9/attack/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-9/attack/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-9/attack/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 355,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-9/attack/src/app.spx",
+      "sha256": "sha256:c5103b9d54f484ca0a7cdd350e4804ab49d10a735dec915a9053483deaa82c2f"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-9/attack/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-9/candidate/app.balance.credit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-9/candidate/app.balance.credit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-9/candidate/app.balance.debit-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-9/candidate/app.balance.debit-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 60,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-9/candidate/app.balance.total-after.err",
+      "sha256": "sha256:244782c2200ab00c87bcaa56c6374b3052c33b27e551f8453281a6a6ca87e133"
+    },
+    {
+      "bytes": 0,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-9/candidate/app.balance.total-after.out",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-9/candidate/core/core.spx",
+      "sha256": "sha256:79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5"
+    },
+    {
+      "bytes": 187,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-9/candidate/semaprax.toml",
+      "sha256": "sha256:1dce2b2680dc2a824b9c1322258ff135348f1ddf7c764a41d5176915a2e86b5d"
+    },
+    {
+      "bytes": 359,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-9/candidate/src/app.spx",
+      "sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+    },
+    {
+      "bytes": 68,
+      "path": "v2-turns-and-replay/z3-replay/ordinal-9/candidate/tests/tests.spx",
+      "sha256": "sha256:fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+    },
+    {
+      "bytes": 2704,
+      "path": "v2-turns-and-replay/z3-replay.json",
+      "sha256": "sha256:ac5155ee660a96ed08ac80b59b23c10bedec9e42e7075981acae229002cf08eb"
+    }
+  ],
+  "nonclaims": [
+    "no monetary cost observation",
+    "no checked-u32 cell",
+    "no full LAW-16 completion",
+    "local source proof does not prove lowering or execution"
+  ],
+  "schema": "semaprax.bend2-law-benchmark.bounded-balance-raw-capsule.v1",
+  "status": "local_unhosted_raw_evidence"
+}

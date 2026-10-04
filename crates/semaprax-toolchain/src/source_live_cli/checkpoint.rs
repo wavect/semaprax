@@ -63,6 +63,9 @@ mod platform {
     use std::os::unix::fs::{MetadataExt, PermissionsExt};
     use std::path::{Component, Path, PathBuf};
 
+    #[cfg(test)]
+    use std::cell::RefCell;
+
     const DOCUMENT: &str = "checkpoint.json";
     const LOCK: &str = "writer.lock";
     const CLAIM: &str = "handoff.claim";
@@ -72,6 +75,42 @@ mod platform {
         .union(OFlags::CLOEXEC);
     const DIRECTORY: OFlags = READ.union(OFlags::DIRECTORY);
     const PRIVATE: Mode = Mode::RUSR.union(Mode::WUSR);
+
+    /// A test-only physical commit fault. The matching document has already
+    /// been rendered by the real journal and is still written by the held
+    /// directory store; this controls only which durability boundary loses its
+    /// acknowledgement.
+    #[cfg(test)]
+    #[derive(Clone, Copy)]
+    pub(in crate::source_live_cli) enum CommitFault {
+        BeforeWrite(&'static str),
+        AfterRename(&'static str),
+    }
+
+    #[cfg(test)]
+    thread_local! {
+        static COMMIT_FAULT: RefCell<Option<CommitFault>> = const { RefCell::new(None) };
+    }
+
+    #[cfg(test)]
+    pub(in crate::source_live_cli) fn inject_commit_fault(fault: CommitFault) {
+        COMMIT_FAULT.with(|slot| *slot.borrow_mut() = Some(fault));
+    }
+
+    #[cfg(test)]
+    fn take_commit_fault(document: &str, after_rename: bool) -> bool {
+        COMMIT_FAULT.with(|slot| {
+            let matched = match *slot.borrow() {
+                Some(CommitFault::BeforeWrite(kind)) => !after_rename && document.contains(kind),
+                Some(CommitFault::AfterRename(kind)) => after_rename && document.contains(kind),
+                None => false,
+            };
+            if matched {
+                *slot.borrow_mut() = None;
+            }
+            matched
+        })
+    }
 
     pub(in crate::source_live_cli) struct CheckpointDir {
         path: PathBuf,
@@ -301,12 +340,20 @@ mod platform {
                 )
                 .map_err(|_| CheckpointStoreError)?,
             );
+            #[cfg(test)]
+            if take_commit_fault(document, false) {
+                return Err(CheckpointStoreError);
+            }
             staged
                 .write_all(document.as_bytes())
                 .and_then(|_| staged.sync_all())
                 .map_err(|_| CheckpointStoreError)?;
             renameat(&self.directory, scratch.as_str(), &self.directory, DOCUMENT)
                 .map_err(|_| CheckpointStoreError)?;
+            #[cfg(test)]
+            if take_commit_fault(document, true) {
+                return Err(CheckpointStoreError);
+            }
             self.directory
                 .sync_all()
                 .map_err(|_| CheckpointStoreError)?;
@@ -359,3 +406,5 @@ mod platform {
     }
 }
 pub(super) use platform::CheckpointDir;
+#[cfg(all(test, unix))]
+pub(super) use platform::{inject_commit_fault, CommitFault};

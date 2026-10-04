@@ -23,6 +23,38 @@ fn function(source: &str) -> Function {
     program.functions.swap_remove(0)
 }
 
+#[test]
+fn alpha_renamed_parameters_render_the_same_solver_script() {
+    let left = function(
+        "module app.t;\n@id(\"app.t.left\")\nfn left(a: i64) -> i64\n    ensures result == a\n{ let x = a + 1; x - 1 }\n",
+    );
+    let right = function(
+        "module app.t;\n@id(\"app.t.right\")\nfn right(semaprax_smt_binding_1_1: i64) -> i64\n    ensures result == semaprax_smt_binding_1_1\n{ let renamed = semaprax_smt_binding_1_1 + 1; renamed - 1 }\n",
+    );
+    let left = render_postcondition_script(&translate_function(&left).unwrap(), 0, 2000);
+    let right = render_postcondition_script(&translate_function(&right).unwrap(), 0, 2000);
+    assert_eq!(left, right);
+}
+
+#[test]
+fn solver_model_symbols_replay_as_authored_parameter_names() {
+    let f = function(
+        "module app.t;\n@id(\"app.t.f\")\nfn f(semaprax_smt_binding_1_1: i64) -> i64\n    ensures result != semaprax_smt_binding_1_1\n{ semaprax_smt_binding_1_1 }\n",
+    );
+    let encoding = translate_function(&f).unwrap();
+    let mut model = crate::assurance_manifest::smt_discharge::model::Model::new();
+    model.insert(
+        encoding.parameter_symbols[0].symbol.clone(),
+        crate::assurance_manifest::smt_discharge::model::ModelValue::Int(7),
+    );
+    let model = replay_model(&encoding, model).unwrap();
+    assert!(model.contains_key("semaprax_smt_binding_1_1"));
+    assert!(matches!(
+        replay_function(&f, &model),
+        Ok(ReplayOutcome::EnsuresViolated { ensures_index: 0 })
+    ));
+}
+
 /// Every executable module needs `fn main() -> i64`, exactly like
 /// `assurance_manifest`'s own `write_temp` test helper appends; `generate()`
 /// otherwise rejects the module before `derive_obligations` ever runs.

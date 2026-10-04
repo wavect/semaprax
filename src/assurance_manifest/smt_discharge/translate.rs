@@ -835,5 +835,11 @@ fn f(a: i64) -> i64
         );
         let encoding = translate_function(&f).expect("supported");
         assert_eq!(encoding.ensures.len(), 1);
+        let names = encoding
+            .declarations
+            .iter()
+            .map(|declaration| declaration.name.as_str())
+            .collect::<std::collections::BTreeSet<_>>();
+        assert_eq!(names.len(), encoding.declarations.len());
     }
 }

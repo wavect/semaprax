@@ -6,10 +6,13 @@ is generated from retained, offline-authenticated capsules. Its status is
 The documented `law16_replay.py --verify-retained` sequence now authenticates
 the available capsules, including all 230 recovered bounded-balance raw outputs.
 The [unified fresh capture](evidence/law16-unified-fresh-v1/replay-status.json)
-also completed all six non-agent routes in that command, with 882 retained
-artifacts. Offline review of its copied capsule succeeds. The retained agent
-campaigns were re-authenticated, not rerun; the separate guarded-i64 balance
-SMT source-proof command was outside this capture. AC1 remains partial.
+completed six non-agent routes in that command, with 882 retained artifacts.
+The separate [caller-pinned guarded-i64 balance SMT source-proof capsule](evidence/law16-unified-fresh-guarded-i64-v1/result.json)
+physically exercised the seventh non-agent route and retained its 16 raw
+streams. Offline review of both capsules succeeds. The retained agent campaigns
+were re-authenticated, not rerun. All seven non-agent routes have now been
+physically exercised, but AC1 remains partial because the optional live agent
+continuation was not rerun.
 
 The [preceding failed capture](evidence/law16-unified-fresh-pin-failure-v1/replay-status.json)
 retains all output from the first three routes and the following compiler-pin

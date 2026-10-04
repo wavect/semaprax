@@ -35,6 +35,8 @@ class Law16ClosureAuditTests(unittest.TestCase):
         self.assertEqual(status["AC1"], "partial")
         self.assertEqual(value["unified_fresh_capture"]["status"], "fresh_capture_authenticated")
         self.assertEqual(value["unified_fresh_capture"]["fresh_route_count"], 6)
+        self.assertEqual(value["fresh_guarded_i64_source_proof"]["positive_smt_discharges"], 7)
+        self.assertEqual(value["fresh_guarded_i64_source_proof"]["no_op_negative"], "proof_tool_refused_no_solver_status_claimed")
         self.assertEqual(status["AC5"], "partial")
         self.assertEqual(status["AC6"], "partial")
         required = {row["id"]: row["status"] for row in value["required_implementation_assessment"]}

@@ -169,10 +169,30 @@ def verify_guarded_i64_v2() -> dict:
     }
 
 
+def verify_fresh_guarded_i64_source_proof() -> dict:
+    """Authenticate the separately captured caller-pinned source-proof route."""
+    capsule = ROOT / "evidence/law16-unified-fresh-guarded-i64-v1"
+    result = json.loads((capsule / "result.json").read_text())
+    route = module("law16_fresh_guarded_i64_source_proof_for_audit", ROOT / "law16_guarded_i64_balance_smt.py")
+    review = route.verify_fresh_capsule(
+        capsule,
+        "sha256:" + result["semaprax"]["sha256"],
+        "sha256:" + result["z3"]["sha256"],
+        result["semaprax"]["build_commit"],
+    )
+    return {
+        **review,
+        "capsule": "evidence/law16-unified-fresh-guarded-i64-v1/result.json",
+        "build_association": "caller-declared local build commit; not a build attestation",
+        "evidence": [evidence("evidence/law16-unified-fresh-guarded-i64-v1/result.json")],
+    }
+
+
 def render() -> dict:
     report = report_data()
     list_proof = verify_i64_list_capsule()
     profile_v2 = verify_guarded_i64_v2()
+    fresh_guarded_i64 = verify_fresh_guarded_i64_source_proof()
     fresh_capture = module("law16_fresh_replay_for_audit", ROOT / "law16_replay.py").verify_fresh_capture(ROOT / "evidence/law16-unified-fresh-v1")
     current_report = "evidence/law16-current-report-v1.json"
     common = [evidence(current_report)]
@@ -181,8 +201,8 @@ def render() -> dict:
             "id": "AC1",
             "text": ACCEPTANCE_TEXT[0],
             "status": "partial",
-            "assessment": "The unified command has completed six fresh non-agent routes with raw artifacts and pinned tools, plus offline replay of retained bounded-balance agent evidence. Its copied capsule authenticates without the original temporary directory. The optional live agent continuation and separate guarded-i64 balance SMT source-proof route were not executed by this sequence, so full available-cell reproduction remains partial.",
-            "evidence": common + [evidence("README.md"), evidence("law16_replay.py"), evidence("law16_current_report.py"), evidence("evidence/law16-unified-fresh-v1/replay-status.json")],
+            "assessment": "All seven non-agent routes were physically exercised with raw artifacts and pinned tools: six in the unified capture and the guarded-i64 balance SMT source-proof route in its separate caller-pinned capsule. Both capsules authenticate offline without their original temporary directories. The optional live agent continuation was not rerun, so full available-cell reproduction remains partial.",
+            "evidence": common + [evidence("README.md"), evidence("law16_replay.py"), evidence("law16_current_report.py"), evidence("evidence/law16-unified-fresh-v1/replay-status.json"), evidence("evidence/law16-unified-fresh-guarded-i64-v1/result.json")],
         },
         {
             "id": "AC2",
@@ -389,6 +409,7 @@ def render() -> dict:
         "required_implementation_assessment": required,
         "supplemental_i64_list_proof": list_proof,
         "supplemental_guarded_i64_profile_v2": profile_v2,
+        "fresh_guarded_i64_source_proof": fresh_guarded_i64,
         "unified_fresh_capture": fresh_capture,
         "current_report_reconciliation": {
             "field": "unavailable_or_unsupported.Lean",
@@ -398,7 +419,7 @@ def render() -> dict:
         "unmet_requirements": [
             {
                 "id": "AC1",
-                "reason": "Six non-agent routes completed fresh execution; live agent continuation and the separate guarded-i64 balance SMT source-proof route were not rerun by this sequence.",
+                "reason": "All seven non-agent routes completed physical execution across the unified and separate caller-pinned captures; the optional live agent continuation was not rerun.",
                 "kind": "reproducibility_harness_gap",
             },
             {
@@ -425,6 +446,7 @@ def render() -> dict:
             "this audit does not close issue #392",
             "unsupported or unavailable cells are not wins and are not silently replaced by supplemental controls",
             "the supplemental guarded-i64 balance source proof is not proof of lowering or app execution",
+            "the fresh guarded-i64 source-proof build commit is caller-declared and not a build attestation",
             "the no-op source-proof refusal is not classified as a counterexample",
             "the four-element U32 sort model check is not a source-level unbounded-list theorem",
             "full-domain representation bitvector checks do not establish source translation or lowering",

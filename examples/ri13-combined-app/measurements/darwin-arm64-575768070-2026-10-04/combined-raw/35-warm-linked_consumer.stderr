@@ -1,0 +1,86 @@
+warning: method `active_depth` is never used
+  --> src/../generated/m2/module.rs:55:12
+   |
+46 | impl SpxCallbackDomain {
+   | ---------------------- method in this implementation
+...
+55 |     pub fn active_depth(&self)->usize {self.0.depth.get()}
+   |            ^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: methods `into_once` and `quarantine` are never used
+   --> src/../generated/m2/module.rs:124:12
+    |
+ 73 | impl SpxCallback {
+    | ---------------- methods in this implementation
+...
+124 |     pub fn into_once(self)->impl FnOnce(i64)->Result<i64,SpxCallbackError> {
+    |            ^^^^^^^^^
+...
+132 |     pub fn quarantine(&self) {self.lifecycle.set(2)}
+    |            ^^^^^^^^^^
+
+warning: function `deserialize_spxmirrorri13event` is never used
+   --> src/../generated/m2/module.rs:167:8
+    |
+167 | pub fn deserialize_spxmirrorri13event(input:&str)->Result<Event,::serde_json::Error>{::serde_json::from_str::<SpxMirrorri13event>(i...
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: variant `InvalidBool` is never constructed
+   --> src/../generated/m2/module.rs:171:73
+    |
+171 | #[derive(Debug,PartialEq,Eq)]pub enum SpxMirrorri13eventConversionError{InvalidBool(&'static str),InvalidUtf8(&'static str)}
+    |                                       --------------------------------- ^^^^^^^^^^^
+    |                                       |
+    |                                       variant in this enum
+    |
+    = note: `SpxMirrorri13eventConversionError` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: method `to_owned_wire` is never used
+   --> src/../generated/m2/module.rs:174:19
+    |
+174 | impl Event{pub fn to_owned_wire(&self)->(SpxMirrorri13eventWire,usize){let mut copied_payload_bytes=0usize;let value=SpxMirrorri13e...
+    | ----------        ^^^^^^^^^^^^^
+    | |
+    | method in this implementation
+
+warning: field `retryable` is never read
+ --> src/../generated/m2/module.rs:4:106
+  |
+4 | pub enum NativeRustCallError{Semantic{domain_id:&'static str,code:NonZeroU32,class:NativeRustStatusClass,retryable:bool},HostFailed,H...
+  |                              -------- field in this variant                                              ^^^^^^^^^
+
+warning: field `local` is never read
+  --> src/../generated/m3.rs:18:5
+   |
+15 | pub struct RegisteredAsyncImport<H> {
+   |            --------------------- field in this struct
+...
+18 |     local: Rc<()>,
+   |     ^^^^^
+
+warning: field `0` is never read
+  --> src/../generated/m3.rs:24:12
+   |
+24 |     Source(SourceLocalFutureFailure),
+   |     ------ ^^^^^^^^^^^^^^^^^^^^^^^^
+   |     |
+   |     field in this variant
+   |
+   = note: `AsyncCallError` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+   |
+24 -     Source(SourceLocalFutureFailure),
+24 +     Source(()),
+   |
+
+warning: method `call` is never used
+  --> src/../generated/m3.rs:48:12
+   |
+45 | impl<H> RegisteredAsyncImport<H> {
+   | -------------------------------- method in this implementation
+...
+48 |     pub fn call<F, E>(
+   |            ^^^^
+

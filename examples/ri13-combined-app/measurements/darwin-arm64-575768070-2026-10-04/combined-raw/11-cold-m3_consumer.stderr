@@ -1,0 +1,20 @@
+warning: field `local` is never read
+  --> src/bin/../generated.rs:18:5
+   |
+15 | pub struct RegisteredAsyncImport<H> {
+   |            --------------------- field in this struct
+...
+18 |     local: Rc<()>,
+   |     ^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `call` is never used
+  --> src/bin/../generated.rs:48:12
+   |
+45 | impl<H> RegisteredAsyncImport<H> {
+   | -------------------------------- method in this implementation
+...
+48 |     pub fn call<F, E>(
+   |            ^^^^
+

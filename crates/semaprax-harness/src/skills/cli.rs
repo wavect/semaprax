@@ -126,7 +126,8 @@ fn render_list(l: &ListOutput, p: Option<&PromptOutput>, as_json: bool) -> Strin
         .iter()
         .map(|s| {
             json!({"id": s.id, "name": s.name, "description": s.description, "tags": s.tags, "bytes": s.bytes,
-                   "lexical_size": s.lexical_size, "digest": s.digest, "origin": s.origin, "version": s.version,
+                   "lexical_size": s.lexical_size, "digest": s.digest, "identity": s.identity, "legacy_digest": s.legacy_digest,
+                   "requested": s.requested, "files": s.files, "origin": s.origin, "version": s.version,
                    "license": s.license, "conflict": s.conflict, "missing_dependencies": s.missing_dependencies})
         })
         .collect();

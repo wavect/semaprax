@@ -125,7 +125,15 @@ pub fn grant_for(
         return Err(changed("the descriptor"));
     }
     if rec.entry_digest != current.entry_digest {
-        return Err(changed("the adapter entry"));
+        let v2 = |d: &Option<String>| {
+            d.as_deref()
+                .is_some_and(crate::skills::inventory::is_v2_label)
+        };
+        return Err(if v2(&rec.entry_digest) || v2(&current.entry_digest) {
+            changed("the adapter artifact closure (entry, helper modules or descriptor files)")
+        } else {
+            changed("the adapter entry")
+        });
     }
     if current.requires_upstream && current.upstream_digest.is_none() {
         return Err(bad(

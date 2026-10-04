@@ -169,7 +169,11 @@ pub fn adopt(
         )
     })?;
 
-    let mut notes = Vec::new();
+    // Bind the whole adapter closure (entry, helper modules, descriptor), not
+    // just the entry file: helper changes must change the identity.
+    let closure = super::installations::closure_label_of(&path, &d)
+        .map_err(|e| bad("SPX-HPB021", e.message))?;
+    let mut notes = vec![format!("adapter identity artifact-v2 recorded ({closure}); the entry file alone was {entry_digest}")];
     let mut upstream = None;
     match (&d.upstream, &opts.upstream) {
         (None, Some(_)) => {
@@ -262,7 +266,7 @@ pub fn adopt(
         provider_id: d.provider_id.clone(),
         descriptor_path: path,
         descriptor_digest: d.digest().to_string(),
-        entry_digest: Some(entry_digest),
+        entry_digest: Some(closure),
         upstream,
         runtime: state
             .installations

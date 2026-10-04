@@ -1,6 +1,5 @@
 //! Listing, lazy loading by exact digest, budgeted prompt rendering, caching.
 
-use super::bundle;
 use super::catalog::{ApprovedRoot, Catalog, SkillEntry};
 use super::policy::{self, Warning};
 use super::select;
@@ -20,6 +19,13 @@ pub struct ListedSkill {
     pub bytes: usize,
     pub lexical_size: usize,
     pub digest: String,
+    /// `artifact-v2` (what `digest` is) and the labelled `legacy-v1` digest.
+    pub identity: &'static str,
+    pub legacy_digest: String,
+    /// Requested capabilities (`allowed-tools`, hooks); requests, not grants.
+    pub requested: Vec<String>,
+    /// Count of inventoried files (SKILL.md included); never their content.
+    pub files: usize,
     pub origin: String,
     pub version: Option<String>,
     pub license: Option<String>,
@@ -97,9 +103,22 @@ type CacheKey = (String, String);
 /// detection) and the content cache keyed by (bundle digest, authorization digest).
 pub struct SkillService {
     roots: Vec<ApprovedRoot>,
-    config: SkillCatalogConfig,
-    snapshot: BTreeMap<String, String>,
+    pub(super) config: SkillCatalogConfig,
+    pub(super) snapshot: BTreeMap<String, String>,
     cache: BTreeMap<CacheKey, Rendered>,
+    /// Immutable snapshot store; `None` disables activation.
+    pub(super) store: Option<std::path::PathBuf>,
+    /// Activated revisions by skill name; loads read only from these.
+    pub(super) active: BTreeMap<String, Active>,
+    /// (skill digest, resource path) -> model-visible bytes charged.
+    pub(super) charged: BTreeMap<(String, String), usize>,
+}
+
+/// One activated skill revision.
+pub(super) struct Active {
+    pub digest: String,
+    pub snap: super::snapshot::Snapshot,
+    pub entry: SkillEntry,
 }
 
 pub fn one_line(desc: &str) -> String {
@@ -146,6 +165,10 @@ fn listed(e: &SkillEntry) -> ListedSkill {
         bytes: e.bytes,
         lexical_size: e.lexical_size,
         digest: e.digest.clone(),
+        identity: e.identity,
+        legacy_digest: e.legacy_digest.clone(),
+        requested: e.requested.clone(),
+        files: e.resources.len(),
         origin: e.origin.clone(),
         version: e.version.clone(),
         license: e.license.clone(),
@@ -194,7 +217,14 @@ impl SkillService {
             config,
             snapshot: BTreeMap::new(),
             cache: BTreeMap::new(),
+            store: None,
+            active: BTreeMap::new(),
+            charged: BTreeMap::new(),
         }
+    }
+
+    pub(super) fn scan_catalog(&self) -> Catalog {
+        self.scan()
     }
 
     fn scan(&self) -> Catalog {
@@ -231,31 +261,39 @@ impl SkillService {
                 "skills are disabled; nothing can be loaded",
             ));
         }
-        let cat = self.scan();
-        let stale = || {
-            d(
-                "SPX-HPM006",
-                format!("skill digest {digest} is stale: the bundle changed since listing"),
-            )
+        let active = self
+            .active
+            .values()
+            .find(|a| a.digest == digest)
+            .map(|a| a.entry.clone());
+        let (entry, authz) = match active {
+            Some(e) => (e, "snapshot".to_string()),
+            None => {
+                let cat = self.scan();
+                match cat.entries.iter().find(|e| e.digest == digest) {
+                    Some(e) => (e.clone(), cat.authz_digest.clone()),
+                    None => {
+                        return Err(if self.snapshot.contains_key(digest) {
+                            d(
+                                "SPX-HPM006",
+                                format!("skill digest {digest} is stale: the bundle changed since listing"),
+                            )
+                        } else {
+                            d(
+                                "SPX-HPM007",
+                                format!("no approved skill has digest {digest}"),
+                            )
+                        })
+                    }
+                }
+            }
         };
-        let Some(entry) = cat.entries.iter().find(|e| e.digest == digest) else {
-            return Err(if self.snapshot.contains_key(digest) {
-                stale()
-            } else {
-                d(
-                    "SPX-HPM007",
-                    format!("no approved skill has digest {digest}"),
-                )
-            });
-        };
-        let key = (digest.to_string(), cat.authz_digest.clone());
+        let key = (digest.to_string(), authz);
         if let Some(r) = self.cache.get(&key) {
             return Ok(r.clone());
         }
-        let b = match bundle::read_bundle(&entry.dir) {
-            Ok(Some(b)) if b.digest == digest => b,
-            _ => return Err(stale()),
-        };
+        let b = self.bundle_for(digest)?;
+        let entry = &entry;
         let warnings = policy::scan(&b.body);
         let text = policy::render(entry, &b.body, &warnings);
         let r = Rendered {
@@ -278,7 +316,17 @@ impl SkillService {
             budget,
             ..PromptOutput::default()
         };
-        let cat = self.scan();
+        let mut cat = self.scan();
+        // A session that activated a revision keeps it, whatever the source says now.
+        for (name, a) in &self.active {
+            cat.entries
+                .retain(|e| &e.name != name || e.digest == a.digest);
+            if !cat.entries.iter().any(|e| e.digest == a.digest) {
+                cat.entries.push(a.entry.clone());
+            }
+        }
+        cat.entries
+            .sort_by(|a, b| (&a.name, &a.digest).cmp(&(&b.name, &b.digest)));
         out.diagnostics = cat.diagnostics.clone();
         self.snapshot = cat
             .entries

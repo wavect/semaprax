@@ -82,6 +82,12 @@ impl Fx {
             "adapter/mode.txt",
             &format!("ok\n{}", root.display()),
         );
+        // mode.txt is test-driver data rewritten after adoption (HN-19 closure rules).
+        write(
+            &root,
+            "adapter/harness-closure.json",
+            r#"{"schema":"semaprax.harness-closure.v1","exclude":["mode.txt"]}"#,
+        );
         let adapter = root.join("adapter");
         let mut vars = BTreeMap::new();
         vars.insert("PATH".to_string(), "/usr/bin:/bin".to_string());

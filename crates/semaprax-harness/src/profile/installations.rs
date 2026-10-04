@@ -112,6 +112,11 @@ pub fn entry_path(descriptor_path: &Path, d: &Descriptor) -> Option<PathBuf> {
 }
 
 impl Installation {
+    /// v2 artifact closure identity of the adapter directory as it is now.
+    pub fn closure_label(&self, descriptor: &Descriptor) -> HarnessResult<String> {
+        closure_label_of(&self.descriptor_path, descriptor)
+    }
+
     /// Re-read the descriptor and hash entry and upstream as they are now.
     pub fn inspect(&self) -> HarnessResult<Inspected> {
         let bytes = std::fs::read(&self.descriptor_path).map_err(|e| {
@@ -134,7 +139,12 @@ impl Installation {
             ));
         }
         let entry = entry_path(&self.descriptor_path, &descriptor);
+        let v2 = self
+            .entry_digest
+            .as_deref()
+            .is_some_and(crate::skills::inventory::is_v2_label);
         let entry_digest = match &entry {
+            Some(_) if v2 => Some(self.closure_label(&descriptor)?),
             Some(p) => Some(file_digest(p).map_err(|e| {
                 bad(
                     "SPX-HPB022",
@@ -159,6 +169,26 @@ impl Installation {
             upstream_path,
         })
     }
+}
+
+/// Artifact-v2 closure label over the descriptor's directory (every adapter
+/// file except caches and explicit `harness-closure.json` exclusions).
+pub fn closure_label_of(descriptor_path: &Path, d: &Descriptor) -> HarnessResult<String> {
+    let dir = descriptor_path.parent().unwrap_or(Path::new("/"));
+    let entry = d.entry.first().map(String::as_str).unwrap_or("");
+    let name = descriptor_path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("");
+    crate::skills::inventory::adapter_closure_label(dir, entry, &[name]).map_err(|e| {
+        bad(
+            "SPX-HPB022",
+            format!(
+                "adapter closure of `{}`: {} ({})",
+                d.provider_id, e.message, e.code
+            ),
+        )
+    })
 }
 
 pub fn permissions_to_json(p: &GrantedPermissions) -> Value {

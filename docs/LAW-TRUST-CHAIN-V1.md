@@ -1,5 +1,9 @@
 # Law trust-chain view v1
 
+Status: bounded exact-subject proof trust-chain view.
+
+Audience: Project authors and maintainers evaluating bounded law and proof support.
+
 `proof_export::render_trust_chain_view` emits
 `semaprax.law-trust-chain-view.v1` for one exact Lean certificate. It first
 replays the certificate against current source and regenerated Core Wasm, then

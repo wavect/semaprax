@@ -3,6 +3,9 @@
 Status: private Unix host route, with local fixture gates. No live repair,
 hosted, billing, or production evidence is claimed by this implementation.
 
+Audience: operators and contributors configuring the private source-live
+repair route.
+
 The additive `semaprax.source-live-cli.repair-config.v3` has exactly the V2
 configuration key set. It selects the native Claude print-JSON profile only
 with explicit host operands:

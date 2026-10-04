@@ -71,6 +71,14 @@ pub(super) fn document_schema() -> Value {
             json!({"type":"array","maxItems":128,"items":json!({})}),
         ),
     ]);
-    let value = json!({"$id":"urn:semaprax.explorer-view.v1","$schema":"https://json-schema.org/draft/2020-12/schema","oneOf":[document("semaprax.explorer-view.v1",summary),document("semaprax.explorer-view.v1",page)]});
-    value
+    let branch = |fields| {
+        let mut schema = document("semaprax.explorer-view.v1", fields);
+        let object = schema
+            .as_object_mut()
+            .expect("document schema is an object");
+        object.remove("$id");
+        object.remove("$schema");
+        schema
+    };
+    json!({"$id":"urn:semaprax.explorer-view.v1","$schema":"https://json-schema.org/draft/2020-12/schema","oneOf":[branch(summary),branch(page)]})
 }

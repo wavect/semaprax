@@ -1,5 +1,9 @@
 # Graph-operational VS Code host execution evidence v4
 
+Status: local installed-VSIX evidence procedure; no current-head support claim.
+
+Audience: maintainers running the local VS Code evidence gate.
+
 V4 is the reproducible local gate for the installed VSIX Explorer journey. It
 binds one checked-out source subject, one freshly built public `semaprax`
 binary, one locally provisioned Visual Studio Code product, and the extension

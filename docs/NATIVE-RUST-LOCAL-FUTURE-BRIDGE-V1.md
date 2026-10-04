@@ -1,5 +1,7 @@
 # Native Rust Local Future Bridge v1
 
+Audience: maintainers and contributors.
+
 Status: implemented for the bounded RI-09 same-thread Future bridge and
 Project-selected source `yield` profile. This is not an authored `import rust
 fn` syntax or public SDK package claim.

@@ -1,5 +1,7 @@
 # Native Rust Rich Interoperability v1
 
+Audience: maintainers and contributors.
+
 Status: local additive bootstrap for [RI-01](https://github.com/wavect/semaprax/issues/359).
 It defines compiler input and generated artifacts. The checked-in scalar
 fixture proves one generated native round trip; it does not claim public Rust

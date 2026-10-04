@@ -1,5 +1,7 @@
 # Strict Law Assurance v1
 
+Audience: Project authors and maintainers evaluating bounded law and proof support.
+
 Status: LAW-04 host-selected admission implemented for native-law
 `semaprax.manifest.v2` Projects. This additive library profile joins
 independently selected laws to an exact retained Project and candidate. The

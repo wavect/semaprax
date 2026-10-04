@@ -1,5 +1,9 @@
 # Cross-language pilot Linux scoring host v1
 
+Status: private local Linux VM scoring profile; no independent physical-host evidence.
+
+Audience: maintainers running the local cross-language pilot.
+
 This additive profile owns `agent/pilot_linux_host.py`,
 `agent/pilot_linux_launcher.c`, and the dedicated
 `agent/tests/test_pilot_linux_host.py` gates. It is a local Linux arm64 Apple

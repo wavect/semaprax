@@ -1,5 +1,7 @@
 # Source-bound finite protocol safety v1
 
+Audience: maintainers and contributors.
+
 Status: bounded LAW-10 profile. The completion matrix records the executable
 result and remaining generalization beyond the pure scalar source shape.
 

@@ -1,5 +1,9 @@
 # Host-selected Strict Law Policy v1
 
+Status: bounded host-selected strict-law policy contract.
+
+Audience: Project authors and maintainers evaluating bounded law and proof support.
+
 An explicitly trusted local host may install a strict-law selection for a
 `semaprax.manifest.v2` Project whose `law_sources` contain a nonempty complete
 native LawSet. Installation requires a quiescent Project root: the caller must

@@ -1,5 +1,9 @@
 # Linux native provider provisioning for the live pilot
 
+Status: private local provider provisioning profile; no model-dispatch authority.
+
+Audience: maintainers running the local cross-language pilot.
+
 `agent/pilot_linux_provider.py` provisions **Claude Code 2.1.286** for the
 separately admitted Linux arm64 Apple Container guest. It does not implement a
 model-dispatch route. The helper accepts only version, auth-status, login-help

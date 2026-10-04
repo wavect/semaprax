@@ -1,5 +1,9 @@
 # Graph-operational VS Code host execution evidence v3
 
+Status: local exact-subject evidence procedure; no current-head support claim.
+
+Audience: maintainers running the local VS Code evidence gate.
+
 V3 is the local, exact-subject runner for the installed VSIX variation of the
 saved-source Extension Host scenario. It does not replace the historical v2
 receipt, which remains evidence only for its recorded development-path subject.

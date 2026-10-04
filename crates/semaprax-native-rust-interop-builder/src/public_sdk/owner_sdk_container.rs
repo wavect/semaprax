@@ -1,4 +1,4 @@
-//! Closed conditional cleanup for Option<String> and Result<String, i64>.
+//! Closed conditional cleanup for `Option<String>` and `Result<String, i64>`.
 //! The whole-carrier initialized bit is distinct from payload ownership: an
 //! inactive case has no Rust table entry and executes no physical finalizer.
 use super::*;

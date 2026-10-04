@@ -1,5 +1,7 @@
 # Foreign Law Trust Frontier v1
 
+Audience: Project authors and maintainers evaluating bounded law and proof support.
+
 Status: implemented bounded LAW-09 profile. The admitted route is one exact
 scalar i64 return guard and a checked direct-forwarding Project caller, with
 explicit conditional host policy. The completion matrix records its executable

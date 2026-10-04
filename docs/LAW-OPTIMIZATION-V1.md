@@ -1,5 +1,9 @@
 # Law-gated optimization v1
 
+Status: bounded law-gated rewrite profile.
+
+Audience: Project authors and maintainers evaluating bounded law and proof support.
+
 The first optional rewrite is `ProjectCandidate::propose_checked_i64_add_zero`.
 It accepts only one authenticated authored body expression of the form
 `i64_place + 0i64`. It checks a current native Z3/Lean proof token for the

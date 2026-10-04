@@ -1,5 +1,9 @@
 # Protected Law Intent v1
 
+Status: bounded host-selected law intent contract.
+
+Audience: Project authors and maintainers evaluating bounded law and proof support.
+
 LAW-03 adds an explicit host-selected specification boundary over LawSet v1.
 The public API is `assurance_manifest::law_set::protected`; candidate review is
 `ProjectCandidate::protected_law_review`. Neither a review nor an acceptance

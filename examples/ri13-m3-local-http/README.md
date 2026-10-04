@@ -35,6 +35,9 @@ invalid-body, and source-postcondition cases assert 2, 7, and 3 copied bytes;
 the status, timeout, and cancelled calls assert zero because they do not reach
 that conversion. The ledger does not claim reqwest buffering, HTTP decoding,
 or UTF-8 validation copies.
+It also sends a local 4,096-byte, zero-padded numeric response through the
+same checked continuation and asserts exactly 4,096 callback-owned copied
+bytes while preserving the scalar result `84`.
 The focused Project harness loads the same saved source into a held Project and
 runs the local HTTP cases inside the existing Project test binary, with no
 nested Cargo build. It checks generated module rendering, demonstrates that

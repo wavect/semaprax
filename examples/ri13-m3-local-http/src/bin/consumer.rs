@@ -119,6 +119,14 @@ fn local_server(
     body: &'static str,
     delay: Duration,
 ) -> (String, tokio::sync::oneshot::Receiver<()>, JoinHandle<()>) {
+    local_server_bytes(status, body.as_bytes().to_vec(), delay)
+}
+
+fn local_server_bytes(
+    status: u16,
+    body: Vec<u8>,
+    delay: Duration,
+) -> (String, tokio::sync::oneshot::Receiver<()>, JoinHandle<()>) {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     listener.set_nonblocking(true).unwrap();
     let endpoint = format!("http://{}", listener.local_addr().unwrap());
@@ -143,11 +151,12 @@ fn local_server(
         } else {
             "Service Unavailable"
         };
-        let response = format!(
-            "HTTP/1.1 {status} {reason}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+        let header = format!(
+            "HTTP/1.1 {status} {reason}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
             body.len()
         );
-        let _ = socket.write_all(response.as_bytes());
+        let _ = socket.write_all(header.as_bytes());
+        let _ = socket.write_all(&body);
         std::thread::sleep(Duration::from_millis(100));
         assert_eq!(
             listener.accept().unwrap_err().kind(),
@@ -156,6 +165,12 @@ fn local_server(
         );
     });
     (endpoint, received_rx, server)
+}
+
+fn padded_result_body() -> Vec<u8> {
+    let mut body = vec![b'0'; 4094];
+    body.extend_from_slice(b"43");
+    body
 }
 
 /// Reserve a loopback port, then release it before the client starts. The
@@ -230,6 +245,29 @@ fn main() {
             }
         )
     ));
+    let copies = CopyLedger::default();
+    let (endpoint, _received, server) =
+        local_server_bytes(200, padded_result_body(), Duration::ZERO);
+    assert!(matches!(
+        local.block_on(
+            &runtime,
+            selected_call(
+                Arc::clone(&revision),
+                endpoint,
+                Some(Duration::from_millis(100)),
+                copies.clone(),
+            )
+        ),
+        Ok(84)
+    ));
+    server.join().unwrap();
+    assert_eq!(
+        copies.metrics(),
+        CopyMetrics {
+            foreign_response_body_copied_bytes: 4096,
+            host_callback_captured_bytes: 4096,
+        }
+    );
     let copies = CopyLedger::default();
     assert!(matches!(
         local.block_on(

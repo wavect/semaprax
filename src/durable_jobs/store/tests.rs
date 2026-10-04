@@ -521,51 +521,64 @@ fn a_fault_during_the_joint_commit_leaves_neither_the_job_nor_the_side_record_vi
         HookPoint::AfterStageFsync,
         HookPoint::AfterRename,
     ] {
-        let dir = tempdir(&format!("txn-fault-{fault_point:?}"));
-        let mut store = GenerationJobStore::open(&dir).unwrap();
-        let mut closure = |seen: HookPoint| {
-            if seen == fault_point {
-                Err(io::Error::other("injected"))
-            } else {
+        for occurrence in 1..=2 {
+            let dir = tempdir(&format!("txn-fault-{fault_point:?}-{occurrence}"));
+            let mut store = GenerationJobStore::open(&dir).unwrap();
+            let mut seen_count = 0usize;
+            let mut closure = |seen: HookPoint| {
+                if seen == fault_point {
+                    seen_count += 1;
+                    if seen_count == occurrence {
+                        return Err(io::Error::other("injected"));
+                    }
+                }
                 Ok(())
-            }
-        };
-        let mut hook: Option<&mut durable_fs::Hook<'_>> = Some(&mut closure);
-        let mut candidate = store.table.clone();
-        let id = JobId(candidate.next_job_id);
-        candidate.next_job_id += 1;
-        candidate.jobs.insert(
-            id,
-            JobRecord {
+            };
+            let mut hook: Option<&mut durable_fs::Hook<'_>> = Some(&mut closure);
+            let mut candidate = store.table.clone();
+            let id = JobId(candidate.next_job_id);
+            candidate.next_job_id += 1;
+            candidate.jobs.insert(
                 id,
-                idempotency_key: b"order-99".to_vec(),
-                payload: b"ship-gadget".to_vec(),
-                state: JobState::Pending,
-                attempt: 0,
-                lease_epoch: 0,
-                retry_policy: policy(3),
-                lease: None,
-                created_at_tick: 0,
-                last_error: Vec::new(),
-            },
-        );
-        candidate
-            .side_records
-            .insert(b"orders-total".to_vec(), b"1".to_vec());
-        let result = store.commit_with_hook(candidate, &mut hook);
-        assert!(result.is_err(), "{fault_point:?}");
+                JobRecord {
+                    id,
+                    idempotency_key: b"order-99".to_vec(),
+                    payload: b"ship-gadget".to_vec(),
+                    state: JobState::Pending,
+                    attempt: 0,
+                    lease_epoch: 0,
+                    retry_policy: policy(3),
+                    lease: None,
+                    created_at_tick: 0,
+                    last_error: Vec::new(),
+                },
+            );
+            candidate
+                .side_records
+                .insert(b"orders-total".to_vec(), b"1".to_vec());
+            let result = store.commit_with_hook(candidate, &mut hook);
+            let published = fault_point == HookPoint::AfterRename && occurrence == 2;
+            assert_eq!(
+                result,
+                Err(if published {
+                    JobStoreError::PublicationUncertain
+                } else {
+                    JobStoreError::Io
+                }),
+                "{fault_point:?} occurrence {occurrence}"
+            );
 
-        drop(store);
-        let reopened = GenerationJobStore::open(&dir).unwrap();
-        assert!(
-            reopened.table.jobs.is_empty(),
-            "job leaked at {fault_point:?}"
-        );
-        assert!(
-            reopened.table.side_records.is_empty(),
-            "side record leaked at {fault_point:?}"
-        );
-        fs::remove_dir_all(&dir).ok();
+            drop(store);
+            let reopened = GenerationJobStore::open(&dir).unwrap();
+            let expected_entries = if published { 1 } else { 0 };
+            assert_eq!(reopened.table.jobs.len(), expected_entries);
+            assert_eq!(
+                reopened.side_records.len(),
+                expected_entries,
+                "{fault_point:?} occurrence {occurrence}"
+            );
+            fs::remove_dir_all(&dir).ok();
+        }
     }
 }
 

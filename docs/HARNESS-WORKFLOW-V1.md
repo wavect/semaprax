@@ -91,3 +91,51 @@ uncertain, 080 usage, 081 task, 082 apply policy, 090 no proposal, 091 runtime p
 Decision providers (`decision.evaluate`) are reported but rules decide; the model bridge is a `model.generate`
 adapter call, not the root `ProviderAdapter`; candidate checks use a scratch overlay because the compiler has no
 CLI that tests a candidate in place.
+
+## Integration (hpwire)
+
+Flags and options added to `run`: `--observations <file>` (new JSONL file; one metadata-only observation per stage
+plus a summary line); `--python`/`--node` are now optional (see Runtimes).
+
+**Context.** When the resolved profile selects an external `context.repository` provider the context stage is
+`workflow::BrokerContext`: a `context::Broker` over `SubprocessNative` (the compiler facts, protected by the byte
+budget, provenance `compiler-verified`) plus `HostExternal` (structural items, provenance `external:<tier>`, droppable).
+`external_context` is honored (`never` native only; `when-needed` asks the provider only when native facts are
+incomplete; `always`). A provider failure keeps the compiler facts, marks them incomplete and adds a note. With no
+external provider the plain native stage runs.
+
+**Authorized checks.** `[workflow.check.<name>] argv = ["tools/test", "-q"]` (argv only, never a shell line;
+committed configuration cannot hold an absolute path, so `argv[0]` is a bare name resolved on the host `PATH` or a
+project-relative path). After the compiler's own check and test, each check runs once through
+`command_view::execute` in the candidate scratch tree, with the project configuration. The authoritative exit status
+decides: a non-zero or uncertain status is `SPX-HPD050` (rejected). The model-facing report (`checks.commands[]`)
+carries the view, from the resolved `command.view` provider (for example RTK) or the raw view. `--disable` forces
+the raw view. `SPX-HPD051`: a check was refused by the command layer or the stage cannot run checks.
+
+**Decision.** An adopted `decision.evaluate` provider is wrapped by `decision::HostDecisionInvoker`
+(`InvocationClass::Decision`; the router's latency ceiling becomes the request deadline and the host kills the
+process group when it passes). It is consulted only when the project pins it
+(`[capability."decision.evaluate"] provider = ...`, status `experimental`) or its `EnablementGate` passed
+(no evidence source exists yet, so automatic selection stays on rules: `rules (learned provider not evaluated)`).
+`route` in the report carries `status` and `source`.
+
+**Skills.** Machine-approved roots (`adopt --skills <abs-dir> [--origin label]`, stored in `installations.json`,
+never read from a project) feed the builtin `semaprax/plain-skills` provider (`SkillService`). `[skills]` maps to
+`SkillCatalogConfig`; the rendered prompt for the tags of the task family enters the proposal request (`skills`
+member) and its `model_visible_bytes` is the `skill_catalog` observation.
+
+**Runtimes and environment.** `adopt <desc> --runtime <abs node|python>` records the runtime machine-locally.
+Precedence: `--python/--node`, the adopted runtime, `HARNESS_PYTHON/NODE`. `Environment::from_process` forwards only
+`HOME PATH TMPDIR`, the three host marker variables and the variables named by `credential_env` fields of the
+endpoint catalog.
+
+**Model policy.** `[model] local_only`, `strict_one_attempt`, `logical = "<id>"`: the logical model must be bound
+machine-locally (`endpoints`); the policy is checked against the endpoint's ownership and every candidate model of
+the route (`SPX-HPL010..012`). Endpoint adoption stays machine-local.
+
+**Observations.** Stages observed: context (`context_select`), skills (`skill_catalog`), decision, generation,
+command view. `report <obs.jsonl> --export token-observation [--output f] [--session id]` writes
+`semaprax.token-observation.v1` rows for `scripts/token_report.py session`; byte-only sizes are
+`tokenizer_unavailable`, never tokens.
+
+Known gap: `harness context` (not the workflow) still reads the runtime from `HARNESS_PYTHON/NODE` only.

@@ -8,12 +8,14 @@ pub mod bundle;
 pub mod catalog;
 pub mod cli;
 pub mod load;
+pub mod plain;
 pub mod policy;
 pub mod select;
 
 pub use catalog::{ApprovedRoot, Catalog, Conflict, SkillEntry};
 pub use cli::cli_skills;
 pub use load::{ListOutput, ListedSkill, Omitted, PromptOutput, Rendered, SkillService};
+pub use plain::PlainSkills;
 pub use policy::Warning;
 pub use select::{task_tags, NoRecommender, Recommender, Selection};
 

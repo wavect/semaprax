@@ -126,6 +126,8 @@ pub struct ResolvedLaunch {
     pub descriptor_path: PathBuf,
     pub entry_path: Option<PathBuf>,
     pub upstream_path: Option<PathBuf>,
+    /// Adopted adapter runtime executable, when one was recorded.
+    pub runtime: Option<PathBuf>,
     pub grant: Grant,
 }
 
@@ -170,7 +172,12 @@ fn evaluate<'a>(inst: &'a Installation, state: &LocalState) -> Eval<'a> {
             Some(insp),
         );
     }
-    if let Some(up) = &d.upstream {
+    // Bundled code (a `local:` package with no probe) has no executable to adopt.
+    if let Some(up) = d
+        .upstream
+        .as_ref()
+        .filter(|u| !super::installations::is_bundled(u))
+    {
         let Some(rec) = &inst.upstream else {
             let detail = format!(
                 "upstream `{}` is not adopted; install it yourself ({} from {}) and run `semaprax harness adopt <descriptor> --upstream <absolute path>`",
@@ -308,6 +315,7 @@ fn external_binding(kind: CapabilityKind, ev: &Eval, reason: &str) -> (Binding, 
         descriptor_path: ev.inst.descriptor_path.clone(),
         entry_path: insp.entry_path.clone(),
         upstream_path: insp.upstream_path.clone(),
+        runtime: ev.inst.runtime.clone(),
         grant: ev
             .grant
             .clone()

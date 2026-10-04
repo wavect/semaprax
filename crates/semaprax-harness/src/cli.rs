@@ -19,11 +19,34 @@ pub struct Environment {
     pub vars: BTreeMap<String, String>,
 }
 
+/// Marker variables the host sets for nested invocations.
+pub const FORWARDED_MARKERS: [&str; 3] = [
+    "SEMAPRAX_HARNESS_BRIDGE_DEPTH",
+    "SEMAPRAX_HARNESS_COMMAND_VIEW_LINEAGE",
+    "SEMAPRAX_HARNESS_EXTERNAL_VIEW_OWNER",
+];
+
+/// Credential variable names declared by the machine-local endpoint catalog
+/// (empty when absent or unreadable).
+pub fn credential_env_names(home: Option<&std::path::Path>) -> Vec<String> {
+    let Some(home) = home else { return Vec::new() };
+    crate::endpoint::Catalog::load(home)
+        .map(|c| {
+            c.endpoints
+                .values()
+                .filter_map(|e| e.credential_env.clone())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 impl Environment {
     pub fn from_process() -> Self {
-        let home = std::env::var_os("SEMAPRAX_HARNESS_HOME").map(PathBuf::from).or_else(|| {
-            std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".config/semaprax/harness"))
-        });
+        let home = std::env::var_os("SEMAPRAX_HARNESS_HOME")
+            .map(PathBuf::from)
+            .or_else(|| {
+                std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".config/semaprax/harness"))
+            });
         let compiler = std::env::var_os("SEMAPRAX_COMPILER").map(PathBuf::from);
         let mut vars = BTreeMap::new();
         for key in ["HOME", "PATH", "TMPDIR"] {
@@ -31,7 +54,25 @@ impl Environment {
                 vars.insert(key.to_string(), v);
             }
         }
-        Self { harness_home: home, compiler, cwd: std::env::current_dir().unwrap_or_default(), vars }
+        // Host-set recursion/ownership markers cross real process boundaries.
+        for key in FORWARDED_MARKERS {
+            if let Ok(v) = std::env::var(key) {
+                vars.insert(key.to_string(), v);
+            }
+        }
+        // Only variables named by the adopted endpoint catalog's `credential_env`
+        // fields are forwarded, never the whole environment.
+        for key in credential_env_names(home.as_deref()) {
+            if let Ok(v) = std::env::var(&key) {
+                vars.insert(key, v);
+            }
+        }
+        Self {
+            harness_home: home,
+            compiler,
+            cwd: std::env::current_dir().unwrap_or_default(),
+            vars,
+        }
     }
 }
 
@@ -44,13 +85,25 @@ pub struct Outcome {
 
 impl Outcome {
     pub fn ok(stdout: impl Into<String>) -> Self {
-        Self { code: 0, stdout: stdout.into(), stderr: String::new() }
+        Self {
+            code: 0,
+            stdout: stdout.into(),
+            stderr: String::new(),
+        }
     }
     pub fn refused(diagnostic: &crate::diag::HarnessDiagnostic) -> Self {
-        Self { code: 1, stdout: String::new(), stderr: format!("{diagnostic}\n") }
+        Self {
+            code: 1,
+            stdout: String::new(),
+            stderr: format!("{diagnostic}\n"),
+        }
     }
     pub fn usage(message: impl Into<String>) -> Self {
-        Self { code: 2, stdout: String::new(), stderr: format!("{}\n{USAGE}", message.into()) }
+        Self {
+            code: 2,
+            stdout: String::new(),
+            stderr: format!("{}\n{USAGE}", message.into()),
+        }
     }
 }
 
@@ -96,5 +149,9 @@ pub fn run(args: &[String], env: &Environment) -> Outcome {
 
 /// Placeholder used by a verb whose owning work item has not landed yet.
 pub fn unimplemented_verb(verb: &str) -> Outcome {
-    Outcome { code: 2, stdout: String::new(), stderr: format!("harness verb `{verb}` is not implemented yet\n") }
+    Outcome {
+        code: 2,
+        stdout: String::new(),
+        stderr: format!("harness verb `{verb}` is not implemented yet\n"),
+    }
 }

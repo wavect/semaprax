@@ -213,6 +213,16 @@ pub fn execute(
     }
     let (lk, lv) = lineage_env(&own.chain);
     cenv.insert(lk, lv);
+    // The host, never the caller, advances the nesting depth for its children.
+    let depth = env
+        .vars
+        .get(crate::bridge::negotiate::DEPTH_VAR)
+        .and_then(|d| d.parse::<u64>().ok())
+        .unwrap_or(0);
+    cenv.insert(
+        crate::bridge::negotiate::DEPTH_VAR.to_string(),
+        (depth + 1).to_string(),
+    );
 
     let spill = retention.as_ref().map(Retention::spill);
     let cap_run = executor::run(&ExecSpec {
@@ -270,7 +280,7 @@ pub fn execute(
         cwd: cwd.to_string_lossy().into_owned(),
         env_grant: cenv
             .keys()
-            .filter(|k| *k != lineage::LINEAGE_VAR)
+            .filter(|k| *k != lineage::LINEAGE_VAR && *k != crate::bridge::negotiate::DEPTH_VAR)
             .cloned()
             .collect(),
         termination: cap_run.termination.clone(),

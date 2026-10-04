@@ -264,6 +264,10 @@ pub fn adopt(
         descriptor_digest: d.digest().to_string(),
         entry_digest: Some(entry_digest),
         upstream,
+        runtime: state
+            .installations
+            .get(&d.provider_id)
+            .and_then(|i| i.runtime.clone()),
     };
     state
         .installations
@@ -273,4 +277,84 @@ pub fn adopt(
         installation,
         notes,
     })
+}
+
+fn outside_project(p: &Path, project: &Path, what: &str) -> HarnessResult<PathBuf> {
+    if !p.is_absolute() {
+        return Err(bad(
+            "SPX-HPB021",
+            format!("{what} must be an absolute path; PATH is never searched"),
+        ));
+    }
+    let c = p.canonicalize().map_err(|e| {
+        bad(
+            "SPX-HPB021",
+            format!("{what} {} unreadable: {e}", p.display()),
+        )
+    })?;
+    let root = project
+        .canonicalize()
+        .unwrap_or_else(|_| project.to_path_buf());
+    if c.starts_with(&root) {
+        return Err(bad(
+            "SPX-HPB024",
+            format!("{what} {} is inside the project; machine-local choices are never taken from the workspace", c.display()),
+        ));
+    }
+    Ok(c)
+}
+
+/// Record the explicit runtime executable (`node`/`python`) for an adopted
+/// provider. Machine-local; the project can never name it.
+pub fn set_runtime(
+    env: &Environment,
+    provider_id: &str,
+    runtime: &Path,
+    project: &Path,
+) -> HarnessResult<PathBuf> {
+    let mut state = LocalState::load(env)?;
+    let exe = outside_project(runtime, project, "--runtime")?;
+    if !exe.is_file() {
+        return Err(bad(
+            "SPX-HPB021",
+            format!("--runtime {} is not a file", exe.display()),
+        ));
+    }
+    let inst = state.installations.get_mut(provider_id).ok_or_else(|| {
+        bad(
+            "SPX-HPB023",
+            format!("provider `{provider_id}` is not adopted"),
+        )
+    })?;
+    inst.runtime = Some(exe.clone());
+    state.save_installations()?;
+    Ok(exe)
+}
+
+/// Approve a machine-local skill root. Never read from the project.
+pub fn add_skill_root(
+    env: &Environment,
+    dir: &Path,
+    origin: Option<&str>,
+    project: &Path,
+) -> HarnessResult<super::installations::SkillRootRecord> {
+    let mut state = LocalState::load(env)?;
+    let path = outside_project(dir, project, "--skills")?;
+    if !path.is_dir() {
+        return Err(bad(
+            "SPX-HPB021",
+            format!("--skills {} is not a directory", path.display()),
+        ));
+    }
+    let rec = super::installations::SkillRootRecord {
+        origin: origin
+            .map(String::from)
+            .unwrap_or_else(|| format!("local:{}", path.display())),
+        path,
+    };
+    state.skill_roots.retain(|r| r.path != rec.path);
+    state.skill_roots.push(rec.clone());
+    state.skill_roots.sort_by(|a, b| a.path.cmp(&b.path));
+    state.save_installations()?;
+    Ok(rec)
 }

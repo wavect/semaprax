@@ -336,3 +336,9 @@ interface, no marketplace or remote registry, no automatic installation or
 upgrade, no rewriting of global editor/agent/shell configuration, and no
 claim of hosted, multi-platform or production support without the recorded
 executable evidence.
+
+## Machine-local additions (hpwire)
+
+`adopt <descriptor> --runtime <abs>` records the adapter runtime; `adopt --skills <abs-dir> [--origin l]` approves a
+skill root. Both live in `installations.json` (`runtime`, `skill_roots`), never in a project. A bundled upstream
+(`local:` package, no probe) needs no adopted executable to resolve.

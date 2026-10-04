@@ -167,6 +167,8 @@ pub struct ContextRequest<'a> {
     pub seed: Option<&'a str>,
     pub query: String,
     pub max_bytes: usize,
+    /// The task's external-context policy (a composite stage honors it).
+    pub external: ExternalContext,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -194,6 +196,11 @@ pub trait ContextStage {
     fn collect(&mut self, req: &ContextRequest) -> Result<ContextPacket, StageFailure>;
     /// Provider invocations performed (builtin native calls are not host calls).
     fn calls(&self) -> u32;
+    /// A one-shot note about the last collection (for example a provider
+    /// failure absorbed by a fallback); reported, never silent.
+    fn take_note(&mut self) -> Option<String> {
+        None
+    }
 }
 
 /// Native context: the compiler's own `semaprax context` for the seed.
@@ -227,7 +234,7 @@ impl ContextStage for NativeContext<'_> {
             provider: self.id(),
             items: vec![ContextItem {
                 label: format!("native:{seed}"),
-                provenance: "compiler-verified".into(),
+                provenance: super::broker_stage::COMPILER_VERIFIED.into(),
                 text,
             }],
             complete: true,
@@ -579,6 +586,16 @@ pub fn parse_proposal(bytes: &[u8]) -> HarnessResult<Proposal> {
 pub trait CommandStage {
     fn id(&self) -> String;
     fn view(&mut self, label: &str, raw: &str, max_bytes: usize) -> String;
+    /// Run one authorized check in `workdir`. `None`: this stage cannot run
+    /// checks (the pipeline then records the check as unavailable).
+    fn run_check(
+        &mut self,
+        _check: &super::checks::CheckSpec,
+        _workdir: &std::path::Path,
+        _observer: &mut crate::observe::Observer,
+    ) -> Option<Result<super::checks::CheckRun, HarnessDiagnostic>> {
+        None
+    }
 }
 
 pub struct RawCommandView;

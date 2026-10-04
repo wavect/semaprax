@@ -16,8 +16,8 @@ pub mod trust;
 
 mod cli;
 
-pub use config::{CapabilityConfig, HarnessConfig, Mode};
-pub use installations::{CurrentDigests, Installation, LocalState};
+pub use config::{CapabilityConfig, HarnessConfig, Mode, ModelConfig, WorkflowConfig};
+pub use installations::{CurrentDigests, Installation, LocalState, SkillRootRecord};
 pub use resolve::{
     Binding, BindingState, Resolution, ResolvedLaunch, ResolvedProfile, UpstreamBinding,
 };

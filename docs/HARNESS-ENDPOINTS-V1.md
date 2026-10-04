@@ -127,3 +127,9 @@ missing. What is missing is a plain-HTTP loopback `HostHttpStreamTransport`
 header from the named variable; `endpoint::probe::ProbeClient::{send,post_stream}`
 is the std reference for it. Verify per endpoint with `endpoints ... bind
 --protocol responses`, which refuses unless `responses` was observed supported.
+
+## Project model policy
+
+`[model]` in `semaprax.harness.toml`: `local_only`, `strict_one_attempt`, `logical`. The workflow loads the logical
+binding from the machine-local catalog and applies `check_policy` with the endpoint's real ownership; endpoint
+adoption itself is never configured by a project.

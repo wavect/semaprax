@@ -227,13 +227,15 @@ scripts/ri13-linux-x86_64-evidence.sh --plan \
 After provisioning those inputs, replace `--plan` with `--run`. The runner
 refuses a preexisting evidence directory, clones the checked revision into its
 own writable evidence worktree, mounts the original checkout nowhere in the
-guest, and uses `container run --rm --network none`. The guest rejects any
-platform other than Linux x86_64 and writes `environment.json`, M1/M2/M3
-combined receipt and batch measurement, linked Project receipt, and command
-logs to the named evidence directory. `output-digests.json` records SHA-256
-digests for those outputs. It therefore leaves no running container and does
-not turn a Mac-local result into Linux evidence. No Linux evidence has been
-recorded by this route yet.
+guest, and uses one named `container run --detach --network none` guest. It
+retains the guest launch, stdout/stderr, and stopped-container inspection
+records before deleting that container. The guest rejects any platform other
+than Linux x86_64 and writes `environment.json`, M1/M2/M3 combined receipt and
+batch measurement, linked Project receipt, and command logs to the named
+evidence directory. `output-digests.json` records SHA-256 digests for the
+admitted outputs. It therefore leaves no running container and does not turn a
+Mac-local result into Linux evidence. No Linux evidence has been recorded by
+this route yet.
 
 ## Explicit Wasm refusal evidence
 

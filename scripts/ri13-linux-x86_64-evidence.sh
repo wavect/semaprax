@@ -5,7 +5,7 @@
 #
 # The default is --plan: it creates no clone, target directory, container, image
 # pull, or build.  --run makes a fresh detached clone below the evidence path and
-# invokes one removed-on-exit container with networking disabled.
+# invokes one named container with networking disabled.
 set -eu
 
 usage() {
@@ -28,7 +28,8 @@ generates Rustdoc data during the evidence run.
 
 --plan is the default and has no filesystem or container side effects.  --run
 requires a nonexistent evidence path, creates a detached checked-out clone
-there, and removes the container after the command stops.
+there, retains the guest stdout/stderr and inspect record, then removes the
+stopped container.
 EOF
 }
 
@@ -164,7 +165,7 @@ RI-13 Linux x86_64 evidence plan
   evidence path: $evidence
 
 --run will create a detached clean clone at $workspace, then run:
-  container run --arch amd64 --rosetta --rm --init --network none \\
+  container run --detach --name ri13-linux-evidence-PID --arch amd64 --rosetta --init --network none \\
     --memory 6G --read-only --tmpfs /tmp --tmpfs /work \\
     --mount type=bind,source=$workspace,target=/repo \\
     --mount type=bind,source=$evidence,target=/evidence \\
@@ -223,8 +224,23 @@ git -C "$workspace" checkout --detach "$revision"
 }
 mkdir -p "$target"
 printf '%s\n' "$revision" > "$evidence/revision"
+container_name="ri13-linux-evidence-$$"
+container_started=false
 
-container run --arch amd64 --rosetta --rm --init --network none \
+cleanup_container() {
+    status=$?
+    trap - EXIT HUP INT TERM
+    if [ "$container_started" = true ]; then
+        # Preserve the guest's diagnostics before removing an interrupted run.
+        container logs "$container_name" > "$evidence/container.log" 2>&1 || true
+        container inspect "$container_name" > "$evidence/container-inspect.json" 2>&1 || true
+        container delete --force "$container_name" > "$evidence/container-delete.log" 2>&1 || true
+    fi
+    exit "$status"
+}
+trap cleanup_container EXIT HUP INT TERM
+
+container run --detach --name "$container_name" --arch amd64 --rosetta --init --network none \
     --memory 6G --read-only --tmpfs /tmp --tmpfs /work \
     --mount "type=bind,source=$workspace,target=/repo" \
     --mount "type=bind,source=$evidence,target=/evidence" \
@@ -242,6 +258,31 @@ container run --arch amd64 --rosetta --rm --init --network none \
     --env CARGO_PROFILE_DEV_DEBUG=0 \
     --env HOME=/tmp \
     --env CLANG=/usr/bin/clang \
-    "$image_tag" bash /repo/scripts/ri13-linux-x86_64-evidence-inner.sh
+    "$image_tag" bash /repo/scripts/ri13-linux-x86_64-evidence-inner.sh \
+    > "$evidence/container-launch.log" 2>&1
+container_started=true
+
+# `logs --follow` closes only after the guest init process exits. Retain its
+# output and stopped-state inspection before deleting the named container.
+container logs --follow "$container_name" > "$evidence/container.log" 2>&1 || {
+    status=$?
+    echo "could not retain the guest log (status $status)" >&2
+    exit "$status"
+}
+container inspect "$container_name" > "$evidence/container-inspect.json" 2>&1 || {
+    status=$?
+    echo "could not retain the stopped guest inspection (status $status)" >&2
+    exit "$status"
+}
+container delete "$container_name" > "$evidence/container-delete.log" 2>&1 || {
+    status=$?
+    echo "could not delete the stopped guest (status $status)" >&2
+    exit "$status"
+}
+container_started=false
+[ -f "$evidence/receipt.json" ] || {
+    echo "guest exited without a completed RI-13 Linux evidence receipt" >&2
+    exit 1
+}
 
 printf '%s\n' "RI-13 Linux x86_64 evidence retained at $evidence"

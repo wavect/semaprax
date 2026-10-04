@@ -77,6 +77,8 @@ pub struct PrivateHost {
     pub source_live: fn(&[String]) -> Result<String, (String, u8)>,
     pub source_agent_dev: Option<SourceAgentDevHook>,
     pub native_authority_check: fn(&[String]) -> Result<String, (String, u8)>,
+    /// Harness provider host; prints its own stdout/stderr and returns the exit code.
+    pub harness: fn(&[String]) -> u8,
     pub build_rust: fn(&mut project::ProjectSnapshot, &Path) -> Result<(), Vec<Diagnostic>>,
     pub offline_release_verifier: Option<OfflineReleaseVerifier>,
     #[cfg(windows)]
@@ -154,6 +156,10 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{output}");
             Ok(())
         }
+        CommandId::Harness => match (require_private_host(host, "harness")?.harness)(&args[1..]) {
+            0 => Ok(()),
+            code => Err(code),
+        },
         CommandId::NativeAuthorityCheck => {
             let host = require_private_host(host, "native-authority-check")?;
             let output = (host.native_authority_check)(&args[1..]).map_err(|(error, code)| {

@@ -1,0 +1,24 @@
+# Committed project profile: requests only, never authority.
+schema = "semaprax.harness-config.v1"
+
+[profile]
+enabled = true
+
+[capability."context.repository"]
+mode = "required"                      # disabled | auto | required
+provider = "org.example/ctx-a"
+scope = ["src", "docs"]
+
+[capability."command.view"]
+mode = "auto"
+
+[capability."x.example/notes"]
+mode = "auto"
+
+[budget]
+context_max_bytes = 8192
+
+[skills]
+enabled = true
+select = ["review", 'plain']
+max_bytes = 4096

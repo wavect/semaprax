@@ -1,0 +1,4 @@
+{
+  "interval_ms": 30000,
+  "jitter_ms": 5000
+}

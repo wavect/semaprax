@@ -1,0 +1,12 @@
+module ledger.tests;
+use function @id("ledger.line_total") from ledger.lib as line_total;
+use function @id("ledger.invoice_total") from ledger.report as invoice_total;
+
+@id("ledger.tests.main")
+fn main() -> i64
+{
+    let mut failed = 0;
+    failed = failed + if line_total(3, 4) == 12 { 0 } else { 1 };
+    failed = failed + if invoice_total(2, 5, 1) == 11 { 0 } else { 2 };
+    failed
+}

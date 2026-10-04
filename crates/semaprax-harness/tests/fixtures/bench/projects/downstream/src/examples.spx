@@ -1,0 +1,8 @@
+module ledger.examples;
+use function @id("ledger.line_total") from ledger.lib as line_total;
+
+@id("ledger.examples.main")
+fn main() -> i64
+{
+    if line_total(6, 7) == 42 { 0 } else { 1 }
+}

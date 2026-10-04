@@ -1,0 +1,4 @@
+{
+  "schema": "semaprax.harness-proposal.v1",
+  "source": "module ledger.lib;"
+}

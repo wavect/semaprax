@@ -1,0 +1,55 @@
+{
+  "protocol": "responses",
+  "events": [
+    {
+      "type": "response.created",
+      "response": {
+        "id": "resp_1"
+      }
+    },
+    {
+      "type": "response.output_text.delta",
+      "delta": "x"
+    },
+    {
+      "type": "response.completed",
+      "response": {
+        "usage": {
+          "input_tokens": 100,
+          "input_tokens_details": {
+            "cached_tokens": 60
+          },
+          "output_tokens": 50,
+          "output_tokens_details": {
+            "reasoning_tokens": 20
+          },
+          "total_tokens": 150
+        }
+      }
+    },
+    {
+      "type": "response.completed",
+      "response": {
+        "usage": {
+          "input_tokens": 100,
+          "input_tokens_details": {
+            "cached_tokens": 60
+          },
+          "output_tokens": 50,
+          "output_tokens_details": {
+            "reasoning_tokens": 20
+          },
+          "total_tokens": 150
+        }
+      }
+    }
+  ],
+  "expect": {
+    "input_total": 100,
+    "uncached_input": 40,
+    "cache_read": 60,
+    "cache_write": 0,
+    "output": 50,
+    "reasoning": 20
+  }
+}

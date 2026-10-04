@@ -138,6 +138,7 @@ pub(crate) enum CommandId {
     Registry,
     Version,
     VersionFlag,
+    Harness,
     // Keep this final: the closed-catalog test uses its ordinal as the count.
     Help,
 }
@@ -292,6 +293,7 @@ static COMMANDS: &[CommandSpec] = &[
     CommandSpec { id: CommandId::Repair, canonical: "repair", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax repair <file> <repair-id> --persistent-id <persistent-id>"] },
     CommandSpec { id: CommandId::Version, canonical: "version", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax version [--json]"] },
     CommandSpec { id: CommandId::VersionFlag, canonical: "--version", aliases: &["-V"], availability: Availability::Public, global: true, usages: &["semaprax --version"] },
+    CommandSpec { id: CommandId::Harness, canonical: "harness", aliases: &[], availability: Availability::Private, global: true, usages: &["semaprax-full harness <verb> [args]  (status explain resolve adopt trust revoke inspect run context exec recover decide endpoints skills bridge report conformance bench)"] },
     CommandSpec { id: CommandId::Help, canonical: "help", aliases: &["--help", "-h"], availability: Availability::Public, global: false, usages: &["semaprax help <command>", "semaprax help all", "semaprax help diagnostic <SPX-code|codes>", "semaprax help language", "semaprax help language <topic|topics>", "semaprax help library", "semaprax help library <module|name|stable-id>", "semaprax help shapes", "semaprax help shapes <kind|stable-id|path#stable-id>"] },
 ];
 fn available(spec: &CommandSpec, private: bool) -> bool {
@@ -1019,6 +1021,10 @@ mod tests {
         "agent",
         "source-live",
         "native-authority-check",
+        "dev",
+        "explore",
+        "patch-receipt",
+        "harness",
         "skills",
         "explain",
         "fix",
@@ -1180,6 +1186,16 @@ mod tests {
             assert!(help.contains(&format!("source-live {verb} ")));
         }
         assert!(catalog(true).contains("semaprax-full source-live"));
+    }
+
+    #[test]
+    fn harness_is_visible_only_with_the_private_host() {
+        assert!(parse("harness", false).is_none());
+        assert_eq!(parse("harness", true), Some(CommandId::Harness));
+        assert!(scoped("harness", false).is_none());
+        assert!(!catalog(false).contains("harness"));
+        assert!(scoped("harness", true).unwrap().contains("harness <verb>"));
+        assert!(catalog(true).contains("semaprax-full harness"));
     }
 
     #[test]

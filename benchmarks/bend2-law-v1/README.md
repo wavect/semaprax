@@ -319,6 +319,33 @@ retained Bend verdict markers have not been independently replayed. The batch
 therefore supplies no full LAW-16 repair, checked-`u32`, agent-authorship,
 timing, superiority, or cross-language comparison result.
 
+## Independent replay and committed raw capsule
+
+[`evidence/law16-boolean-v1/`](evidence/law16-boolean-v1/) contains the
+bounded raw evidence for all 20 read-only agent turns: JSONL events, model
+responses, returned sources, attack claims, Codex versions, stderr, and a
+SHA-256/byte-count manifest. It also contains a fresh independent replay of
+every retained Bend candidate and exact attack through ordinary Bend checking
+and `--verdict`, and every SEMAPRAX candidate and exact attack through
+`semaprax check --json`. The capsule is copied without transforming the raw
+content after a credential-marker scan; it is explicitly local and unhosted.
+
+Review the capsule without invoking a provider, Cargo, Bend, or SEMAPRAX:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_boolean_capsule.py \
+  --capsule benchmarks/bend2-law-v1/evidence/law16-boolean-v1 \
+  --output /tmp/law16-boolean-capsule-review.json
+```
+
+The independent replay confirms ten Bend candidate successes and ten exact
+attack rejections on both Bend routes. It also shows the available SEMAPRAX
+`check` route exits zero for all ten candidates **and** all ten exact attacks.
+Consequently, `check` is retained as a compiler semantic-check observation but
+is explicitly unavailable as a formal Boolean proof or law-gaming rejection
+phase. This leaves provider monetary cost unavailable as a separate external
+observation; it cannot be inferred from token counts.
+
 The local pinned Bend Boolean smoke route was executed on 4 October 2026 with
 Bun 1.2.5 and `BEND_NO_TELEMETRY=1`. Its receipt is
 `/tmp/bend-two-value-boolean.json`: the checked-out source was

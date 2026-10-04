@@ -1,0 +1,12 @@
+{
+  "final_source": "module app;\n\n// Mutant control: the checked postcondition retains total Boolean negation,\n// but the implementation always returns false. The runtime route must refuse.\n@id(\"app.negate\")\nfn negate(value: bool) -> bool\n    ensures result == !value\n{\n    !value\n}\n\n@id(\"app.main\")\nfn main() -> i64\n{\n    if negate(false) { 0 } else { 1 }\n}\n",
+  "language": "semaprax-scalar-v1",
+  "proof_explanation": "Replaced the constant false implementation with !value, satisfying the stated postcondition for both Boolean inputs. This accepts the required false-to-true success case while the seeded constant-false mutant remains rejected under the unchanged postcondition. This is an agent claim, not proof execution.",
+  "schema": "semaprax.bend2-law-benchmark.boolean-edit-response.v1",
+  "seeded_attack": {
+    "decision": "reject",
+    "reason": "The seeded implementation returns false even when input is false, violating the unchanged ensures result == !value postcondition.",
+    "source_sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+  },
+  "trial_id": "scalar-contract-bug-v1:semaprax-scalar-v1:1"
+}

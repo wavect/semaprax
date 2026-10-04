@@ -1,0 +1,1439 @@
+{
+  "files": [
+    {
+      "bytes": 28,
+      "path": "agent/ordinal-1/bend/codex-version.txt",
+      "sha256": "sha256:cdfae75a4ea1a6ca8bfd876fa9422186f87b39bcff01e7a3157d1dbc4895bd1b"
+    },
+    {
+      "bytes": 1539,
+      "path": "agent/ordinal-1/bend/events.jsonl",
+      "sha256": "sha256:7fefe2d02739a11c397a57a5610c634a0ddc79349e4762b44b8e8a0f1dde202c"
+    },
+    {
+      "bytes": 513,
+      "path": "agent/ordinal-1/bend/final-source.bend",
+      "sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46"
+    },
+    {
+      "bytes": 1184,
+      "path": "agent/ordinal-1/bend/model-response.json",
+      "sha256": "sha256:978dd91c0ac0d1c7c6d8a0fc30e8e217d2b27c84d0d0726feee2b62459bbf922"
+    },
+    {
+      "bytes": 219,
+      "path": "agent/ordinal-1/bend/seeded-attack-claim.json",
+      "sha256": "sha256:5474e0d4af42215d12030e8c4933503cf4995092ca61a7337e381f975213438e"
+    },
+    {
+      "bytes": 871,
+      "path": "agent/ordinal-1/bend/stderr.txt",
+      "sha256": "sha256:d0ecd5ed30b02ebc44725a1045dbe67ad79e88c5f6609d8306a80f0744bf14b8"
+    },
+    {
+      "bytes": 28,
+      "path": "agent/ordinal-1/semaprax/codex-version.txt",
+      "sha256": "sha256:cdfae75a4ea1a6ca8bfd876fa9422186f87b39bcff01e7a3157d1dbc4895bd1b"
+    },
+    {
+      "bytes": 1531,
+      "path": "agent/ordinal-1/semaprax/events.jsonl",
+      "sha256": "sha256:8317725426d8ad768ec86b5b149d0dcd494d76e231e3e0faa0ac36eb2f7a4db7"
+    },
+    {
+      "bytes": 338,
+      "path": "agent/ordinal-1/semaprax/final-source.spx",
+      "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+    },
+    {
+      "bytes": 1175,
+      "path": "agent/ordinal-1/semaprax/model-response.json",
+      "sha256": "sha256:71f8f9baa56fe0c82ee521030cb04de1b243067ae226f0ff2c706823541af8ea"
+    },
+    {
+      "bytes": 266,
+      "path": "agent/ordinal-1/semaprax/seeded-attack-claim.json",
+      "sha256": "sha256:9b6ab6f0e55b0b548b62fa865c74150c3d3da8f14e21e0bf99bf823a5cc55d22"
+    },
+    {
+      "bytes": 871,
+      "path": "agent/ordinal-1/semaprax/stderr.txt",
+      "sha256": "sha256:ddca9459cd4872dcabe4b7ae9d214fc2cc4af299c21b2f5e76c4e3eb551cc5cb"
+    },
+    {
+      "bytes": 28,
+      "path": "agent/ordinal-10/bend/codex-version.txt",
+      "sha256": "sha256:cdfae75a4ea1a6ca8bfd876fa9422186f87b39bcff01e7a3157d1dbc4895bd1b"
+    },
+    {
+      "bytes": 1557,
+      "path": "agent/ordinal-10/bend/events.jsonl",
+      "sha256": "sha256:3ae1e340ac51acef8b20fefdd5b4db5926e302d6eaac9c7407495ad46892561f"
+    },
+    {
+      "bytes": 513,
+      "path": "agent/ordinal-10/bend/final-source.bend",
+      "sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46"
+    },
+    {
+      "bytes": 1201,
+      "path": "agent/ordinal-10/bend/model-response.json",
+      "sha256": "sha256:19b5a60d7d007f97b0cab535048013e357c1a1f1dd5b79d21a8a06adca9955fa"
+    },
+    {
+      "bytes": 241,
+      "path": "agent/ordinal-10/bend/seeded-attack-claim.json",
+      "sha256": "sha256:43561f4c5bca78bfafea7d8fd9bca9afac928d2afed945e2dfbb37a38dabfbc3"
+    },
+    {
+      "bytes": 871,
+      "path": "agent/ordinal-10/bend/stderr.txt",
+      "sha256": "sha256:1c4f9386f10101bca33b70be1f2af6ccdda9803d9e53ef84c5302ba5731ced02"
+    },
+    {
+      "bytes": 28,
+      "path": "agent/ordinal-10/semaprax/codex-version.txt",
+      "sha256": "sha256:cdfae75a4ea1a6ca8bfd876fa9422186f87b39bcff01e7a3157d1dbc4895bd1b"
+    },
+    {
+      "bytes": 1532,
+      "path": "agent/ordinal-10/semaprax/events.jsonl",
+      "sha256": "sha256:27968cfb6a98d0f1a090fa8b7a099553881d2c3d2c8e3f3a9bb674538583ead6"
+    },
+    {
+      "bytes": 338,
+      "path": "agent/ordinal-10/semaprax/final-source.spx",
+      "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+    },
+    {
+      "bytes": 1176,
+      "path": "agent/ordinal-10/semaprax/model-response.json",
+      "sha256": "sha256:2f087385b0536a111d9df4a26751ca38a4592e5ff5c14cb4a600e6f9bbcec95e"
+    },
+    {
+      "bytes": 247,
+      "path": "agent/ordinal-10/semaprax/seeded-attack-claim.json",
+      "sha256": "sha256:225d5372c699fe79b3abbb92982c5e731f870f555adb717d647996405d2c31e8"
+    },
+    {
+      "bytes": 871,
+      "path": "agent/ordinal-10/semaprax/stderr.txt",
+      "sha256": "sha256:93b76912cb9274104ee19434c6193155b6552ace922bd2bb89cc84d4da30da7b"
+    },
+    {
+      "bytes": 28,
+      "path": "agent/ordinal-2/bend/codex-version.txt",
+      "sha256": "sha256:cdfae75a4ea1a6ca8bfd876fa9422186f87b39bcff01e7a3157d1dbc4895bd1b"
+    },
+    {
+      "bytes": 1546,
+      "path": "agent/ordinal-2/bend/events.jsonl",
+      "sha256": "sha256:63e373a29cdbbc955db20deeb98df5ee44263b2cb089bdda14f44fd27b00b0ef"
+    },
+    {
+      "bytes": 513,
+      "path": "agent/ordinal-2/bend/final-source.bend",
+      "sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46"
+    },
+    {
+      "bytes": 1191,
+      "path": "agent/ordinal-2/bend/model-response.json",
+      "sha256": "sha256:b03de1353a54c4712479a995fb47167c6af44de374cf50ff672031defa17d0b2"
+    },
+    {
+      "bytes": 241,
+      "path": "agent/ordinal-2/bend/seeded-attack-claim.json",
+      "sha256": "sha256:8db3ebff130b907180e23bcac0d8c623ab283b66e5882a2f6818f45d934f3a35"
+    },
+    {
+      "bytes": 871,
+      "path": "agent/ordinal-2/bend/stderr.txt",
+      "sha256": "sha256:c029702e28192e5c073046b59b0982cc91a1f158fdcf175b434bb502cb522f6c"
+    },
+    {
+      "bytes": 28,
+      "path": "agent/ordinal-2/semaprax/codex-version.txt",
+      "sha256": "sha256:cdfae75a4ea1a6ca8bfd876fa9422186f87b39bcff01e7a3157d1dbc4895bd1b"
+    },
+    {
+      "bytes": 1561,
+      "path": "agent/ordinal-2/semaprax/events.jsonl",
+      "sha256": "sha256:8033c24fa8b400280fdcdc3e32c241becf3da5ece5ca06eaaf4af2a2ec82f500"
+    },
+    {
+      "bytes": 338,
+      "path": "agent/ordinal-2/semaprax/final-source.spx",
+      "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+    },
+    {
+      "bytes": 1205,
+      "path": "agent/ordinal-2/semaprax/model-response.json",
+      "sha256": "sha256:d3165663e24ad34ee79b4baaa9bd590d9e25ea82303e827e5ab3fe02b29017e3"
+    },
+    {
+      "bytes": 243,
+      "path": "agent/ordinal-2/semaprax/seeded-attack-claim.json",
+      "sha256": "sha256:a63c0d54d8ae2f401b07f592322f1db86a9229ac71d8a7a2d387a3213f0f15cf"
+    },
+    {
+      "bytes": 871,
+      "path": "agent/ordinal-2/semaprax/stderr.txt",
+      "sha256": "sha256:e040045dd4001ce4b55ef7b08c6695bc5a2d3bb8290f72db14052b77da2f94ac"
+    },
+    {
+      "bytes": 28,
+      "path": "agent/ordinal-3/bend/codex-version.txt",
+      "sha256": "sha256:cdfae75a4ea1a6ca8bfd876fa9422186f87b39bcff01e7a3157d1dbc4895bd1b"
+    },
+    {
+      "bytes": 1518,
+      "path": "agent/ordinal-3/bend/events.jsonl",
+      "sha256": "sha256:236ecdeb77eb69eab6d87f34658bf3ef7f6472dc6987d7983fc146d7e897712e"
+    },
+    {
+      "bytes": 513,
+      "path": "agent/ordinal-3/bend/final-source.bend",
+      "sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46"
+    },
+    {
+      "bytes": 1163,
+      "path": "agent/ordinal-3/bend/model-response.json",
+      "sha256": "sha256:62882b5ebd27a650c5a4afcba113cfb6651ce2c4294f8a117e89b41092126dcc"
+    },
+    {
+      "bytes": 229,
+      "path": "agent/ordinal-3/bend/seeded-attack-claim.json",
+      "sha256": "sha256:254d2fb0b428a9325aacfeffe3f43cfe6c013d92167c11fac871f978bae243e7"
+    },
+    {
+      "bytes": 871,
+      "path": "agent/ordinal-3/bend/stderr.txt",
+      "sha256": "sha256:c22cc98c46163bd7868a4fff05c877590686e7c5b4938de90f416b4f5ad4d1eb"
+    },
+    {
+      "bytes": 28,
+      "path": "agent/ordinal-3/semaprax/codex-version.txt",
+      "sha256": "sha256:cdfae75a4ea1a6ca8bfd876fa9422186f87b39bcff01e7a3157d1dbc4895bd1b"
+    },
+    {
+      "bytes": 1538,
+      "path": "agent/ordinal-3/semaprax/events.jsonl",
+      "sha256": "sha256:8b0f94d3c765611e4dffb6f1b5ea912c456cf3cbf781b32a68669f9b41aa6c48"
+    },
+    {
+      "bytes": 338,
+      "path": "agent/ordinal-3/semaprax/final-source.spx",
+      "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+    },
+    {
+      "bytes": 1182,
+      "path": "agent/ordinal-3/semaprax/model-response.json",
+      "sha256": "sha256:c2a086d19b6966f2bf65490cbad91bd24cc89216fcb96366c5506c7a37af0ed2"
+    },
+    {
+      "bytes": 243,
+      "path": "agent/ordinal-3/semaprax/seeded-attack-claim.json",
+      "sha256": "sha256:ad3898d69e0c7dc12e99234479f6dba98c5dfe5f0af20761e73ce24c8bd66892"
+    },
+    {
+      "bytes": 1153,
+      "path": "agent/ordinal-3/semaprax/stderr.txt",
+      "sha256": "sha256:7133e315815fdc810ab782af6a6003e9df13a2a5c5f7d808225a73206d19f702"
+    },
+    {
+      "bytes": 28,
+      "path": "agent/ordinal-4/bend/codex-version.txt",
+      "sha256": "sha256:cdfae75a4ea1a6ca8bfd876fa9422186f87b39bcff01e7a3157d1dbc4895bd1b"
+    },
+    {
+      "bytes": 1356,
+      "path": "agent/ordinal-4/bend/events.jsonl",
+      "sha256": "sha256:d4c25cf4f94357235af9baacfed244ffc2f2d368b85756c7082aa5281054d50e"
+    },
+    {
+      "bytes": 334,
+      "path": "agent/ordinal-4/bend/final-source.bend",
+      "sha256": "sha256:39ed6a67d90b93cab9783e21754fd185d9302f82a02d530f5403b0ed373d329c"
+    },
+    {
+      "bytes": 1004,
+      "path": "agent/ordinal-4/bend/model-response.json",
+      "sha256": "sha256:1038933340e01980149820c7cd153561db6167fb12a1ec29eca6eb612b0f0902"
+    },
+    {
+      "bytes": 228,
+      "path": "agent/ordinal-4/bend/seeded-attack-claim.json",
+      "sha256": "sha256:c290f2eebb0a0813992279c0695f974cb3342d977a4004030e6b3a5b650d3cb1"
+    },
+    {
+      "bytes": 871,
+      "path": "agent/ordinal-4/bend/stderr.txt",
+      "sha256": "sha256:dae045e619410bb279b98b046219affc7f77b057c573140a48788b997b8d063e"
+    },
+    {
+      "bytes": 28,
+      "path": "agent/ordinal-4/semaprax/codex-version.txt",
+      "sha256": "sha256:cdfae75a4ea1a6ca8bfd876fa9422186f87b39bcff01e7a3157d1dbc4895bd1b"
+    },
+    {
+      "bytes": 1509,
+      "path": "agent/ordinal-4/semaprax/events.jsonl",
+      "sha256": "sha256:6ec046ca608c5a7054dcffc88e6517b4e8ccd1368d852b93c6793252f51854e2"
+    },
+    {
+      "bytes": 338,
+      "path": "agent/ordinal-4/semaprax/final-source.spx",
+      "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+    },
+    {
+      "bytes": 1153,
+      "path": "agent/ordinal-4/semaprax/model-response.json",
+      "sha256": "sha256:11162c8bebf35c67b558118e4a44076baa0bac0e303343a3bacc94cc45e8e144"
+    },
+    {
+      "bytes": 214,
+      "path": "agent/ordinal-4/semaprax/seeded-attack-claim.json",
+      "sha256": "sha256:a88a8b0924dbe9e046b6bb321eeb4dd349dcbae42e6901151110254f237ac28c"
+    },
+    {
+      "bytes": 871,
+      "path": "agent/ordinal-4/semaprax/stderr.txt",
+      "sha256": "sha256:4db5df6a6c250470d5b8247f534597863fb174033c69290ed4c4df6ca5a2a4b8"
+    },
+    {
+      "bytes": 28,
+      "path": "agent/ordinal-5/bend/codex-version.txt",
+      "sha256": "sha256:cdfae75a4ea1a6ca8bfd876fa9422186f87b39bcff01e7a3157d1dbc4895bd1b"
+    },
+    {
+      "bytes": 1529,
+      "path": "agent/ordinal-5/bend/events.jsonl",
+      "sha256": "sha256:87addb3b67ddc770f1f837beb4c5f104173b3094145860e67a53f8182a9e8b7a"
+    },
+    {
+      "bytes": 513,
+      "path": "agent/ordinal-5/bend/final-source.bend",
+      "sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46"
+    },
+    {
+      "bytes": 1174,
+      "path": "agent/ordinal-5/bend/model-response.json",
+      "sha256": "sha256:356eb6065bd7da7a2e103406518ffe3cb322e138488cd3269389793a19784125"
+    },
+    {
+      "bytes": 215,
+      "path": "agent/ordinal-5/bend/seeded-attack-claim.json",
+      "sha256": "sha256:3b57180bb123a9c9cb7c1216b7af92cf70021fc9e92025f2c41bc0129e7051f7"
+    },
+    {
+      "bytes": 871,
+      "path": "agent/ordinal-5/bend/stderr.txt",
+      "sha256": "sha256:4b94c4bb7db647d2399567c39bf8489c10e39a4de47a94e84482bc49bd099017"
+    },
+    {
+      "bytes": 28,
+      "path": "agent/ordinal-5/semaprax/codex-version.txt",
+      "sha256": "sha256:cdfae75a4ea1a6ca8bfd876fa9422186f87b39bcff01e7a3157d1dbc4895bd1b"
+    },
+    {
+      "bytes": 1514,
+      "path": "agent/ordinal-5/semaprax/events.jsonl",
+      "sha256": "sha256:e4a1f75ed65daec31d1aad3abb997f309a28d20229b08b5bbef669cf5f95de78"
+    },
+    {
+      "bytes": 338,
+      "path": "agent/ordinal-5/semaprax/final-source.spx",
+      "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+    },
+    {
+      "bytes": 1158,
+      "path": "agent/ordinal-5/semaprax/model-response.json",
+      "sha256": "sha256:5fe38b44e9b02e3030dee93838422ae9fdc558c1da5f60d06ee60d44f7567a36"
+    },
+    {
+      "bytes": 252,
+      "path": "agent/ordinal-5/semaprax/seeded-attack-claim.json",
+      "sha256": "sha256:051757de5958dbca24602c5c166414ce88f923ed5af1d59adc6d2d9479e78e7b"
+    },
+    {
+      "bytes": 871,
+      "path": "agent/ordinal-5/semaprax/stderr.txt",
+      "sha256": "sha256:48214074782ab3af0dff4144fd57f1dde4983c60d7930d9fae589a8f421cccfd"
+    },
+    {
+      "bytes": 28,
+      "path": "agent/ordinal-6/bend/codex-version.txt",
+      "sha256": "sha256:cdfae75a4ea1a6ca8bfd876fa9422186f87b39bcff01e7a3157d1dbc4895bd1b"
+    },
+    {
+      "bytes": 1620,
+      "path": "agent/ordinal-6/bend/events.jsonl",
+      "sha256": "sha256:b1042a46b017028a6fa060511a0c64902ffcfe8eac5a5febad56584893ec8c13"
+    },
+    {
+      "bytes": 513,
+      "path": "agent/ordinal-6/bend/final-source.bend",
+      "sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46"
+    },
+    {
+      "bytes": 1265,
+      "path": "agent/ordinal-6/bend/model-response.json",
+      "sha256": "sha256:563f3764c633586c0c5766e9641802f2d4f37d4986b917640df5bb0154f8e5a7"
+    },
+    {
+      "bytes": 232,
+      "path": "agent/ordinal-6/bend/seeded-attack-claim.json",
+      "sha256": "sha256:3254c602834fe590e74c7b4ac8558f0dd712e754add6e77ae3ac732576b9da9d"
+    },
+    {
+      "bytes": 871,
+      "path": "agent/ordinal-6/bend/stderr.txt",
+      "sha256": "sha256:76ee4a0911b8cda6fb247f0d9f52eb4a07f0b4a4bcef85635c6c8a9521ef36fb"
+    },
+    {
+      "bytes": 28,
+      "path": "agent/ordinal-6/semaprax/codex-version.txt",
+      "sha256": "sha256:cdfae75a4ea1a6ca8bfd876fa9422186f87b39bcff01e7a3157d1dbc4895bd1b"
+    },
+    {
+      "bytes": 1467,
+      "path": "agent/ordinal-6/semaprax/events.jsonl",
+      "sha256": "sha256:21a72602db7c2370d884def9a53702efab25928434bf3602bf53e4e193deddeb"
+    },
+    {
+      "bytes": 338,
+      "path": "agent/ordinal-6/semaprax/final-source.spx",
+      "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+    },
+    {
+      "bytes": 1111,
+      "path": "agent/ordinal-6/semaprax/model-response.json",
+      "sha256": "sha256:5eb1e8a055d2d0297c2ce37acd833e7e915da5f3f3ec4827f24ef2f43223bfb1"
+    },
+    {
+      "bytes": 269,
+      "path": "agent/ordinal-6/semaprax/seeded-attack-claim.json",
+      "sha256": "sha256:0f434893a0d4acf82306ce06da37f5f299f19c1efc624565d55cf1b967a1b015"
+    },
+    {
+      "bytes": 871,
+      "path": "agent/ordinal-6/semaprax/stderr.txt",
+      "sha256": "sha256:6f7376e548738c511c52ee25726c5c9cde18b9eab0c4868d292cef6d30a0807b"
+    },
+    {
+      "bytes": 28,
+      "path": "agent/ordinal-7/bend/codex-version.txt",
+      "sha256": "sha256:cdfae75a4ea1a6ca8bfd876fa9422186f87b39bcff01e7a3157d1dbc4895bd1b"
+    },
+    {
+      "bytes": 1690,
+      "path": "agent/ordinal-7/bend/events.jsonl",
+      "sha256": "sha256:8d8504c6164440cfd7e905398d4cd45a0bd6292223b7f6dfbe937056e81464d7"
+    },
+    {
+      "bytes": 513,
+      "path": "agent/ordinal-7/bend/final-source.bend",
+      "sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46"
+    },
+    {
+      "bytes": 1338,
+      "path": "agent/ordinal-7/bend/model-response.json",
+      "sha256": "sha256:7a2e11c75703a2e4dfaa2bf2cc320940b24fea29f6729333dbdf37074738db4a"
+    },
+    {
+      "bytes": 252,
+      "path": "agent/ordinal-7/bend/seeded-attack-claim.json",
+      "sha256": "sha256:43f6d779634c2f54f2b1172b0eb498d8c92cfc026b7cfc8ca0f986200785b9ca"
+    },
+    {
+      "bytes": 871,
+      "path": "agent/ordinal-7/bend/stderr.txt",
+      "sha256": "sha256:928dcc4441cde9d698b6d25091025740375395a9f25406e01f4cc0e1a29080a5"
+    },
+    {
+      "bytes": 28,
+      "path": "agent/ordinal-7/semaprax/codex-version.txt",
+      "sha256": "sha256:cdfae75a4ea1a6ca8bfd876fa9422186f87b39bcff01e7a3157d1dbc4895bd1b"
+    },
+    {
+      "bytes": 1553,
+      "path": "agent/ordinal-7/semaprax/events.jsonl",
+      "sha256": "sha256:a06d96156aacf2a0628302891f89dc2c35b0fc44d691b02aa52249b0a94d0e5d"
+    },
+    {
+      "bytes": 338,
+      "path": "agent/ordinal-7/semaprax/final-source.spx",
+      "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+    },
+    {
+      "bytes": 1198,
+      "path": "agent/ordinal-7/semaprax/model-response.json",
+      "sha256": "sha256:c72bf9b29025082ab85c07ded7d55719162943f955e8ac15ec80af833be77c7e"
+    },
+    {
+      "bytes": 262,
+      "path": "agent/ordinal-7/semaprax/seeded-attack-claim.json",
+      "sha256": "sha256:cb6cbddd766c726df446d73cd109cbffd79f85ab8e23aa60d7574e51e2ab1318"
+    },
+    {
+      "bytes": 871,
+      "path": "agent/ordinal-7/semaprax/stderr.txt",
+      "sha256": "sha256:949630afd651bb17941bc08447e7e3eca106b1857af191fa89aa4d73b231331f"
+    },
+    {
+      "bytes": 28,
+      "path": "agent/ordinal-8/bend/codex-version.txt",
+      "sha256": "sha256:cdfae75a4ea1a6ca8bfd876fa9422186f87b39bcff01e7a3157d1dbc4895bd1b"
+    },
+    {
+      "bytes": 1579,
+      "path": "agent/ordinal-8/bend/events.jsonl",
+      "sha256": "sha256:363e90c67ac51c562c23cbe2ee04e39a2197788a4d6a41adee1baa674d9ed926"
+    },
+    {
+      "bytes": 493,
+      "path": "agent/ordinal-8/bend/final-source.bend",
+      "sha256": "sha256:3c0eb478a298c015481345f513053f0fa711c3aeeede7dc6b084552b6d3f30e2"
+    },
+    {
+      "bytes": 1226,
+      "path": "agent/ordinal-8/bend/model-response.json",
+      "sha256": "sha256:54f7d2a58224af7f04016ba1de169db52e59ba9abfe990720089d805792c49de"
+    },
+    {
+      "bytes": 240,
+      "path": "agent/ordinal-8/bend/seeded-attack-claim.json",
+      "sha256": "sha256:2e8e48be8af77b1820c336d235af9f647d44ee4dcc991b6a585f29f1859d0835"
+    },
+    {
+      "bytes": 871,
+      "path": "agent/ordinal-8/bend/stderr.txt",
+      "sha256": "sha256:6b9a5d692054034ae1ab4bba549f2c484102addc805bbe2eb6e25e17a41b6754"
+    },
+    {
+      "bytes": 28,
+      "path": "agent/ordinal-8/semaprax/codex-version.txt",
+      "sha256": "sha256:cdfae75a4ea1a6ca8bfd876fa9422186f87b39bcff01e7a3157d1dbc4895bd1b"
+    },
+    {
+      "bytes": 1475,
+      "path": "agent/ordinal-8/semaprax/events.jsonl",
+      "sha256": "sha256:c1fa71fc459caea5dfa1cb18bb616c020acc62ecd156941d230d084ff5870d69"
+    },
+    {
+      "bytes": 338,
+      "path": "agent/ordinal-8/semaprax/final-source.spx",
+      "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+    },
+    {
+      "bytes": 1119,
+      "path": "agent/ordinal-8/semaprax/model-response.json",
+      "sha256": "sha256:2af0dddb31806ce15294946df914b582b389371b3cd4d38d1f25d8e91a956688"
+    },
+    {
+      "bytes": 223,
+      "path": "agent/ordinal-8/semaprax/seeded-attack-claim.json",
+      "sha256": "sha256:02b318e52fa36651bdb081186ece720b2d5a3f457a835b325097f0802dcf98c4"
+    },
+    {
+      "bytes": 871,
+      "path": "agent/ordinal-8/semaprax/stderr.txt",
+      "sha256": "sha256:86fb17a53ae500f4772c95fc0ab5d5d194f78167c463bdbce98aa26090a2ce1c"
+    },
+    {
+      "bytes": 28,
+      "path": "agent/ordinal-9/bend/codex-version.txt",
+      "sha256": "sha256:cdfae75a4ea1a6ca8bfd876fa9422186f87b39bcff01e7a3157d1dbc4895bd1b"
+    },
+    {
+      "bytes": 1474,
+      "path": "agent/ordinal-9/bend/events.jsonl",
+      "sha256": "sha256:ab5f44fc7b002a8c9b1e025e94eb9d2b23faecc8561ab272755071ba39848fce"
+    },
+    {
+      "bytes": 405,
+      "path": "agent/ordinal-9/bend/final-source.bend",
+      "sha256": "sha256:2aa127efecbde1e0a3ac833acbb22ae2dae5f00264c5e053cc3eafe14fb87b81"
+    },
+    {
+      "bytes": 1122,
+      "path": "agent/ordinal-9/bend/model-response.json",
+      "sha256": "sha256:78c9d061f872505060cf792e076bcc0b880134b919d2e807d5f8af48dc3f440f"
+    },
+    {
+      "bytes": 230,
+      "path": "agent/ordinal-9/bend/seeded-attack-claim.json",
+      "sha256": "sha256:a06cc4bc555cdb58d7c6a5b104bce876508de4e551c472820fc66ac32c31b3a3"
+    },
+    {
+      "bytes": 871,
+      "path": "agent/ordinal-9/bend/stderr.txt",
+      "sha256": "sha256:eac858279883b7a1a08f28574aba0b948778fa58103ed9067dcb7c4d9193d18f"
+    },
+    {
+      "bytes": 28,
+      "path": "agent/ordinal-9/semaprax/codex-version.txt",
+      "sha256": "sha256:cdfae75a4ea1a6ca8bfd876fa9422186f87b39bcff01e7a3157d1dbc4895bd1b"
+    },
+    {
+      "bytes": 1557,
+      "path": "agent/ordinal-9/semaprax/events.jsonl",
+      "sha256": "sha256:096c62a292b3be5cce509a0b5ccbd9d71133a54641c4e3a2456152f8d51a3353"
+    },
+    {
+      "bytes": 338,
+      "path": "agent/ordinal-9/semaprax/final-source.spx",
+      "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+    },
+    {
+      "bytes": 1201,
+      "path": "agent/ordinal-9/semaprax/model-response.json",
+      "sha256": "sha256:fdcc9ab3bd7b4d66bd0dcd9c4b08cf6278e62fc26bcebe55fb08998175e3a30d"
+    },
+    {
+      "bytes": 232,
+      "path": "agent/ordinal-9/semaprax/seeded-attack-claim.json",
+      "sha256": "sha256:5e0604ba499246d3e995b5ec208fab45789f7ea091650b71d98463a703784249"
+    },
+    {
+      "bytes": 871,
+      "path": "agent/ordinal-9/semaprax/stderr.txt",
+      "sha256": "sha256:a088a229c0f4c1680bd59ad7d0647ef34580e4fbaceea9a377ae0906be443fa7"
+    },
+    {
+      "bytes": 151,
+      "path": "replay/ordinal-1/bend-attack-normal.stderr",
+      "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-1/bend-attack-normal.stdout",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 151,
+      "path": "replay/ordinal-1/bend-attack-verdict.stderr",
+      "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-1/bend-attack-verdict.stdout",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 513,
+      "path": "replay/ordinal-1/bend-attack.bend",
+      "sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-1/bend-candidate-normal.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 58,
+      "path": "replay/ordinal-1/bend-candidate-normal.stdout",
+      "sha256": "sha256:931f1e664a679af1355a9ca547ac1daef9f7b14137bc7cc21b110b0cc504b5b1"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-1/bend-candidate-verdict.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 17,
+      "path": "replay/ordinal-1/bend-candidate-verdict.stdout",
+      "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+    },
+    {
+      "bytes": 513,
+      "path": "replay/ordinal-1/bend-candidate.bend",
+      "sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-1/semaprax-attack-check.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 209,
+      "path": "replay/ordinal-1/semaprax-attack-check.stdout",
+      "sha256": "sha256:0a4aa8987a9a3b1460fb625bb637e47f10357a4f0239eaaf74683752077d31ec"
+    },
+    {
+      "bytes": 337,
+      "path": "replay/ordinal-1/semaprax-attack.spx",
+      "sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-1/semaprax-candidate-check.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 212,
+      "path": "replay/ordinal-1/semaprax-candidate-check.stdout",
+      "sha256": "sha256:962c87a99a0f83f26e730d8a853ffea3cf6f2617462814dfa09911af4956efcd"
+    },
+    {
+      "bytes": 338,
+      "path": "replay/ordinal-1/semaprax-candidate.spx",
+      "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+    },
+    {
+      "bytes": 151,
+      "path": "replay/ordinal-10/bend-attack-normal.stderr",
+      "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-10/bend-attack-normal.stdout",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 151,
+      "path": "replay/ordinal-10/bend-attack-verdict.stderr",
+      "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-10/bend-attack-verdict.stdout",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 513,
+      "path": "replay/ordinal-10/bend-attack.bend",
+      "sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-10/bend-candidate-normal.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 58,
+      "path": "replay/ordinal-10/bend-candidate-normal.stdout",
+      "sha256": "sha256:931f1e664a679af1355a9ca547ac1daef9f7b14137bc7cc21b110b0cc504b5b1"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-10/bend-candidate-verdict.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 17,
+      "path": "replay/ordinal-10/bend-candidate-verdict.stdout",
+      "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+    },
+    {
+      "bytes": 513,
+      "path": "replay/ordinal-10/bend-candidate.bend",
+      "sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-10/semaprax-attack-check.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 210,
+      "path": "replay/ordinal-10/semaprax-attack-check.stdout",
+      "sha256": "sha256:93e5d909cd25ce59d8fd6cf544720ea4ec3ecf112a3d40b311d140320189d575"
+    },
+    {
+      "bytes": 337,
+      "path": "replay/ordinal-10/semaprax-attack.spx",
+      "sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-10/semaprax-candidate-check.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 213,
+      "path": "replay/ordinal-10/semaprax-candidate-check.stdout",
+      "sha256": "sha256:a8c6c4065555287bc17980c92eeea6fdde26d51be1d22596262caf726e02179b"
+    },
+    {
+      "bytes": 338,
+      "path": "replay/ordinal-10/semaprax-candidate.spx",
+      "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+    },
+    {
+      "bytes": 151,
+      "path": "replay/ordinal-2/bend-attack-normal.stderr",
+      "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-2/bend-attack-normal.stdout",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 151,
+      "path": "replay/ordinal-2/bend-attack-verdict.stderr",
+      "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-2/bend-attack-verdict.stdout",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 513,
+      "path": "replay/ordinal-2/bend-attack.bend",
+      "sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-2/bend-candidate-normal.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 58,
+      "path": "replay/ordinal-2/bend-candidate-normal.stdout",
+      "sha256": "sha256:931f1e664a679af1355a9ca547ac1daef9f7b14137bc7cc21b110b0cc504b5b1"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-2/bend-candidate-verdict.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 17,
+      "path": "replay/ordinal-2/bend-candidate-verdict.stdout",
+      "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+    },
+    {
+      "bytes": 513,
+      "path": "replay/ordinal-2/bend-candidate.bend",
+      "sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-2/semaprax-attack-check.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 209,
+      "path": "replay/ordinal-2/semaprax-attack-check.stdout",
+      "sha256": "sha256:c00ce4dde68471d59551cb5cc27010d98295d4148fbcd07cfec2e1c79851d651"
+    },
+    {
+      "bytes": 337,
+      "path": "replay/ordinal-2/semaprax-attack.spx",
+      "sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-2/semaprax-candidate-check.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 212,
+      "path": "replay/ordinal-2/semaprax-candidate-check.stdout",
+      "sha256": "sha256:27670a409e648882232c873f45986f31969b3d7ee656e85ce3846986495592c0"
+    },
+    {
+      "bytes": 338,
+      "path": "replay/ordinal-2/semaprax-candidate.spx",
+      "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+    },
+    {
+      "bytes": 151,
+      "path": "replay/ordinal-3/bend-attack-normal.stderr",
+      "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-3/bend-attack-normal.stdout",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 151,
+      "path": "replay/ordinal-3/bend-attack-verdict.stderr",
+      "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-3/bend-attack-verdict.stdout",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 513,
+      "path": "replay/ordinal-3/bend-attack.bend",
+      "sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-3/bend-candidate-normal.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 58,
+      "path": "replay/ordinal-3/bend-candidate-normal.stdout",
+      "sha256": "sha256:931f1e664a679af1355a9ca547ac1daef9f7b14137bc7cc21b110b0cc504b5b1"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-3/bend-candidate-verdict.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 17,
+      "path": "replay/ordinal-3/bend-candidate-verdict.stdout",
+      "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+    },
+    {
+      "bytes": 513,
+      "path": "replay/ordinal-3/bend-candidate.bend",
+      "sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-3/semaprax-attack-check.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 209,
+      "path": "replay/ordinal-3/semaprax-attack-check.stdout",
+      "sha256": "sha256:3511077cfce40d18bece38b9c508f79e80ea6e5eb72dfd82e859da52004b045c"
+    },
+    {
+      "bytes": 337,
+      "path": "replay/ordinal-3/semaprax-attack.spx",
+      "sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-3/semaprax-candidate-check.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 212,
+      "path": "replay/ordinal-3/semaprax-candidate-check.stdout",
+      "sha256": "sha256:c2874019cdd3c4e8d2c5ae7acb3fe2402023e3b2a0a726f67fe9c066daa04928"
+    },
+    {
+      "bytes": 338,
+      "path": "replay/ordinal-3/semaprax-candidate.spx",
+      "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+    },
+    {
+      "bytes": 151,
+      "path": "replay/ordinal-4/bend-attack-normal.stderr",
+      "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-4/bend-attack-normal.stdout",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 151,
+      "path": "replay/ordinal-4/bend-attack-verdict.stderr",
+      "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-4/bend-attack-verdict.stdout",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 513,
+      "path": "replay/ordinal-4/bend-attack.bend",
+      "sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-4/bend-candidate-normal.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 58,
+      "path": "replay/ordinal-4/bend-candidate-normal.stdout",
+      "sha256": "sha256:931f1e664a679af1355a9ca547ac1daef9f7b14137bc7cc21b110b0cc504b5b1"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-4/bend-candidate-verdict.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 17,
+      "path": "replay/ordinal-4/bend-candidate-verdict.stdout",
+      "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+    },
+    {
+      "bytes": 334,
+      "path": "replay/ordinal-4/bend-candidate.bend",
+      "sha256": "sha256:39ed6a67d90b93cab9783e21754fd185d9302f82a02d530f5403b0ed373d329c"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-4/semaprax-attack-check.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 209,
+      "path": "replay/ordinal-4/semaprax-attack-check.stdout",
+      "sha256": "sha256:3cf3645fb551c60919f142a7dffb5e192f2ed9ceee1083dbadf22d9aaab5792e"
+    },
+    {
+      "bytes": 337,
+      "path": "replay/ordinal-4/semaprax-attack.spx",
+      "sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-4/semaprax-candidate-check.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 212,
+      "path": "replay/ordinal-4/semaprax-candidate-check.stdout",
+      "sha256": "sha256:47f132237a3705ac9ba30221c260224f58d4841918bf3b03b6fe3d6b2806b3d1"
+    },
+    {
+      "bytes": 338,
+      "path": "replay/ordinal-4/semaprax-candidate.spx",
+      "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+    },
+    {
+      "bytes": 151,
+      "path": "replay/ordinal-5/bend-attack-normal.stderr",
+      "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-5/bend-attack-normal.stdout",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 151,
+      "path": "replay/ordinal-5/bend-attack-verdict.stderr",
+      "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-5/bend-attack-verdict.stdout",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 513,
+      "path": "replay/ordinal-5/bend-attack.bend",
+      "sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-5/bend-candidate-normal.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 58,
+      "path": "replay/ordinal-5/bend-candidate-normal.stdout",
+      "sha256": "sha256:931f1e664a679af1355a9ca547ac1daef9f7b14137bc7cc21b110b0cc504b5b1"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-5/bend-candidate-verdict.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 17,
+      "path": "replay/ordinal-5/bend-candidate-verdict.stdout",
+      "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+    },
+    {
+      "bytes": 513,
+      "path": "replay/ordinal-5/bend-candidate.bend",
+      "sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-5/semaprax-attack-check.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 209,
+      "path": "replay/ordinal-5/semaprax-attack-check.stdout",
+      "sha256": "sha256:119eb1be8ba8befe74aaea460cc078e1849347b426a801e9af4651277ec9eb66"
+    },
+    {
+      "bytes": 337,
+      "path": "replay/ordinal-5/semaprax-attack.spx",
+      "sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-5/semaprax-candidate-check.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 212,
+      "path": "replay/ordinal-5/semaprax-candidate-check.stdout",
+      "sha256": "sha256:838a35464e3ff55f8acbe078638eaf788afc8547e720b5d71dae41f413be5cb6"
+    },
+    {
+      "bytes": 338,
+      "path": "replay/ordinal-5/semaprax-candidate.spx",
+      "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+    },
+    {
+      "bytes": 151,
+      "path": "replay/ordinal-6/bend-attack-normal.stderr",
+      "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-6/bend-attack-normal.stdout",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 151,
+      "path": "replay/ordinal-6/bend-attack-verdict.stderr",
+      "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-6/bend-attack-verdict.stdout",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 513,
+      "path": "replay/ordinal-6/bend-attack.bend",
+      "sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-6/bend-candidate-normal.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 58,
+      "path": "replay/ordinal-6/bend-candidate-normal.stdout",
+      "sha256": "sha256:931f1e664a679af1355a9ca547ac1daef9f7b14137bc7cc21b110b0cc504b5b1"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-6/bend-candidate-verdict.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 17,
+      "path": "replay/ordinal-6/bend-candidate-verdict.stdout",
+      "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+    },
+    {
+      "bytes": 513,
+      "path": "replay/ordinal-6/bend-candidate.bend",
+      "sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-6/semaprax-attack-check.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 209,
+      "path": "replay/ordinal-6/semaprax-attack-check.stdout",
+      "sha256": "sha256:97c02169c4fb8b1c4892a2d8cf0ff750962fc057a7153add59b187b6974a905a"
+    },
+    {
+      "bytes": 337,
+      "path": "replay/ordinal-6/semaprax-attack.spx",
+      "sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-6/semaprax-candidate-check.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 212,
+      "path": "replay/ordinal-6/semaprax-candidate-check.stdout",
+      "sha256": "sha256:d9ef06892c4a204846b610822b213170f47b3c8a77d91adc784810416d4a148a"
+    },
+    {
+      "bytes": 338,
+      "path": "replay/ordinal-6/semaprax-candidate.spx",
+      "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+    },
+    {
+      "bytes": 151,
+      "path": "replay/ordinal-7/bend-attack-normal.stderr",
+      "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-7/bend-attack-normal.stdout",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 151,
+      "path": "replay/ordinal-7/bend-attack-verdict.stderr",
+      "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-7/bend-attack-verdict.stdout",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 513,
+      "path": "replay/ordinal-7/bend-attack.bend",
+      "sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-7/bend-candidate-normal.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 58,
+      "path": "replay/ordinal-7/bend-candidate-normal.stdout",
+      "sha256": "sha256:931f1e664a679af1355a9ca547ac1daef9f7b14137bc7cc21b110b0cc504b5b1"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-7/bend-candidate-verdict.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 17,
+      "path": "replay/ordinal-7/bend-candidate-verdict.stdout",
+      "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+    },
+    {
+      "bytes": 513,
+      "path": "replay/ordinal-7/bend-candidate.bend",
+      "sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-7/semaprax-attack-check.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 209,
+      "path": "replay/ordinal-7/semaprax-attack-check.stdout",
+      "sha256": "sha256:621ef578cbb947b0afcc336570bcb16d54bf23c8aa4eecebdab383edd95f7a1a"
+    },
+    {
+      "bytes": 337,
+      "path": "replay/ordinal-7/semaprax-attack.spx",
+      "sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-7/semaprax-candidate-check.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 212,
+      "path": "replay/ordinal-7/semaprax-candidate-check.stdout",
+      "sha256": "sha256:3d20563f9c03ac09b9ba1f2028336be366f48f252da5a9a96ca4765b66305881"
+    },
+    {
+      "bytes": 338,
+      "path": "replay/ordinal-7/semaprax-candidate.spx",
+      "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+    },
+    {
+      "bytes": 151,
+      "path": "replay/ordinal-8/bend-attack-normal.stderr",
+      "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-8/bend-attack-normal.stdout",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 151,
+      "path": "replay/ordinal-8/bend-attack-verdict.stderr",
+      "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-8/bend-attack-verdict.stdout",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 513,
+      "path": "replay/ordinal-8/bend-attack.bend",
+      "sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-8/bend-candidate-normal.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 58,
+      "path": "replay/ordinal-8/bend-candidate-normal.stdout",
+      "sha256": "sha256:931f1e664a679af1355a9ca547ac1daef9f7b14137bc7cc21b110b0cc504b5b1"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-8/bend-candidate-verdict.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 17,
+      "path": "replay/ordinal-8/bend-candidate-verdict.stdout",
+      "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+    },
+    {
+      "bytes": 493,
+      "path": "replay/ordinal-8/bend-candidate.bend",
+      "sha256": "sha256:3c0eb478a298c015481345f513053f0fa711c3aeeede7dc6b084552b6d3f30e2"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-8/semaprax-attack-check.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 209,
+      "path": "replay/ordinal-8/semaprax-attack-check.stdout",
+      "sha256": "sha256:de640f863ba5affeace3fe82e77060bd9f28286f73000913e8d2c1b592b181ac"
+    },
+    {
+      "bytes": 337,
+      "path": "replay/ordinal-8/semaprax-attack.spx",
+      "sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-8/semaprax-candidate-check.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 212,
+      "path": "replay/ordinal-8/semaprax-candidate-check.stdout",
+      "sha256": "sha256:5279c596321eae0376bdefbb8a9f804d201704cac203aa132421942ba809898f"
+    },
+    {
+      "bytes": 338,
+      "path": "replay/ordinal-8/semaprax-candidate.spx",
+      "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+    },
+    {
+      "bytes": 151,
+      "path": "replay/ordinal-9/bend-attack-normal.stderr",
+      "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-9/bend-attack-normal.stdout",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 151,
+      "path": "replay/ordinal-9/bend-attack-verdict.stderr",
+      "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-9/bend-attack-verdict.stdout",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 513,
+      "path": "replay/ordinal-9/bend-attack.bend",
+      "sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-9/bend-candidate-normal.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 58,
+      "path": "replay/ordinal-9/bend-candidate-normal.stdout",
+      "sha256": "sha256:931f1e664a679af1355a9ca547ac1daef9f7b14137bc7cc21b110b0cc504b5b1"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-9/bend-candidate-verdict.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 17,
+      "path": "replay/ordinal-9/bend-candidate-verdict.stdout",
+      "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+    },
+    {
+      "bytes": 405,
+      "path": "replay/ordinal-9/bend-candidate.bend",
+      "sha256": "sha256:2aa127efecbde1e0a3ac833acbb22ae2dae5f00264c5e053cc3eafe14fb87b81"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-9/semaprax-attack-check.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 209,
+      "path": "replay/ordinal-9/semaprax-attack-check.stdout",
+      "sha256": "sha256:7847939c58d6db694213261fa6e24ff56504b985eebd3fb5a309545f208910f8"
+    },
+    {
+      "bytes": 337,
+      "path": "replay/ordinal-9/semaprax-attack.spx",
+      "sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+    },
+    {
+      "bytes": 0,
+      "path": "replay/ordinal-9/semaprax-candidate-check.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 212,
+      "path": "replay/ordinal-9/semaprax-candidate-check.stdout",
+      "sha256": "sha256:decf515b69c911c6495f708d58d9aee215893397b7e4c9b984555acf2c512fa9"
+    },
+    {
+      "bytes": 338,
+      "path": "replay/ordinal-9/semaprax-candidate.spx",
+      "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+    },
+    {
+      "bytes": 76710,
+      "path": "replay/summary.json",
+      "sha256": "sha256:1f4dd9976444b26e11025abc4cb2d621395309602479b2127140733f238a9d86"
+    },
+    {
+      "bytes": 665,
+      "path": "retry-config-v2.json",
+      "sha256": "sha256:91a97b9cd7685ea50abf4d42c49010d505de6cd2a1458b7fe0013c7650bb0d84"
+    },
+    {
+      "bytes": 32915,
+      "path": "retry-plan-v2.json",
+      "sha256": "sha256:420d835c2efe53bad16418fc41481e2b21ec8bd5fe2a2f61c4e5f3e8f10669e1"
+    }
+  ],
+  "nonclaims": [
+    "capsule authority is limited to retained bytes",
+    "no provider monetary cost was observed",
+    "no SEMAPRAX formal Boolean proof artifact is present",
+    "Boolean-only evidence does not establish checked-u32 or complete LAW-16"
+  ],
+  "sanitization": {
+    "credential_marker_scan": [
+      "api_key",
+      "authorization",
+      "bearer",
+      "password",
+      "secret"
+    ],
+    "marker_hits": [],
+    "transformed": false
+  },
+  "schema": "semaprax.bend2-law-benchmark.boolean-agent-raw-capsule.v1",
+  "source": "local pinned tools and read-only Codex turns; no hosted authority",
+  "status": "local_unhosted_raw_evidence"
+}

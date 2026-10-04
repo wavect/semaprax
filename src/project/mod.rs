@@ -42,8 +42,8 @@ pub use hot_reload::{
     HOT_RELOAD_SOURCE_AGENT_HANDOFF_SCHEMA,
 };
 pub use hot_reload_watcher::{
-    HotReloadWatchEvent, HotReloadWatchState, HotReloadWatcher, HotReloadWatcherFailure,
-    HotReloadWatcherUpdate,
+    HotReloadWatchControl, HotReloadWatchEvent, HotReloadWatchState, HotReloadWatcher,
+    HotReloadWatcherFailure, HotReloadWatcherUpdate,
 };
 mod image;
 mod image_coverage;
@@ -154,10 +154,6 @@ pub use candidate::{
     PROJECT_CANDIDATE_SEMANTIC_DELTA_SCHEMA, PROJECT_CANDIDATE_TEST_PLAN_SCHEMA,
     PROJECT_CANDIDATE_TEST_REPORT_SCHEMA, PROJECT_DRAFT_EXPRESSION_CATALOG_SCHEMA,
     SEMANTIC_CHANGE_REQUIREMENTS, SEMANTIC_CHANGE_SCHEMA,
-};
-pub use candidate::{
-    MAX_PROJECT_PATCH_RECEIPT_BYTES, PROJECT_PATCH_RECEIPT_SCHEMA,
-    PROJECT_PATCH_RECEIPT_VERIFICATION_SCHEMA,
 };
 pub use candidate::{
     record_scheduling_comparison, AgentProposal, CoordinationParticipant, OperationClass,
@@ -323,6 +319,10 @@ pub use candidate::{
 pub use candidate::{
     MAX_PROJECT_HOLE_NAVIGATION_BYTES, MAX_PROJECT_HOLE_NAVIGATION_ITEMS, PROJECT_HOLE_PAGE_SCHEMA,
     PROJECT_HOLE_SUMMARY_SCHEMA,
+};
+pub use candidate::{
+    MAX_PROJECT_PATCH_RECEIPT_BYTES, PROJECT_PATCH_RECEIPT_SCHEMA,
+    PROJECT_PATCH_RECEIPT_VERIFICATION_SCHEMA,
 };
 pub use canonical_workspace_revision::{
     AgentDefinitions, AuthorityPolicies, ContractsAndTests, DependencyClosure, ProjectionMetadata,

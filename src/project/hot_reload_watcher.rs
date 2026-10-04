@@ -7,7 +7,10 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
 
 use super::{
     with_authenticated_project, HotReloadFailure, HotReloadPlan, HotReloadSession,
@@ -43,6 +46,22 @@ pub enum HotReloadWatcherUpdate {
     Stopped,
 }
 
+/// A bounded external stop request for one watcher.
+///
+/// Requesting a stop is non-blocking. The watcher observes it at the next
+/// record, poll, admission, or activation boundary and releases its pending
+/// candidate before reporting [`HotReloadWatcherUpdate::Stopped`].
+#[derive(Clone, Debug)]
+pub struct HotReloadWatchControl {
+    stop_requested: Arc<AtomicBool>,
+}
+
+impl HotReloadWatchControl {
+    pub fn request_stop(&self) {
+        self.stop_requested.store(true, Ordering::Release);
+    }
+}
+
 #[derive(Debug)]
 pub struct HotReloadWatcherFailure {
     pub diagnostics: Vec<Diagnostic>,
@@ -65,7 +84,7 @@ impl HotReloadWatcherFailure {
 ///
 /// The selected implementation is bounded polling. It examines exact paths
 /// returned by Project admission and never walks a project root. Native editor
-/// notifications use `record` and share the same deterministic coalescer.
+/// notification clients use `record` and share the same deterministic coalescer.
 pub struct HotReloadWatcher {
     manifest_path: PathBuf,
     root: PathBuf,
@@ -78,6 +97,9 @@ pub struct HotReloadWatcher {
     state: HotReloadWatchState,
     last_diagnostics: Vec<Diagnostic>,
     pending_candidate_revision: Option<String>,
+    stop_requested: Arc<AtomicBool>,
+    #[cfg(test)]
+    after_admission: Option<Box<dyn FnMut()>>,
 }
 
 impl HotReloadWatcher {
@@ -108,6 +130,9 @@ impl HotReloadWatcher {
             state: HotReloadWatchState::Watching,
             last_diagnostics: Vec::new(),
             pending_candidate_revision: None,
+            stop_requested: Arc::new(AtomicBool::new(false)),
+            #[cfg(test)]
+            after_admission: None,
         })
     }
 
@@ -120,11 +145,19 @@ impl HotReloadWatcher {
     pub fn last_diagnostics(&self) -> &[Diagnostic] {
         &self.last_diagnostics
     }
+    pub fn control(&self) -> HotReloadWatchControl {
+        HotReloadWatchControl {
+            stop_requested: Arc::clone(&self.stop_requested),
+        }
+    }
 
     /// Coalesce one untrusted hint. Paths outside the exact inventory are
     /// ignored, except while a manifest change needs fresh admission: a newly
     /// named input cannot be in the older inventory yet.
     pub fn record(&mut self, event: HotReloadWatchEvent) -> HotReloadWatcherUpdate {
+        if self.observe_stop_request() {
+            return HotReloadWatcherUpdate::Stopped;
+        }
         if self.state != HotReloadWatchState::Watching {
             return HotReloadWatcherUpdate::Stopped;
         }
@@ -146,12 +179,15 @@ impl HotReloadWatcher {
         HotReloadWatcherUpdate::Idle
     }
 
-    /// Do one bounded metadata scan then at most one authenticated admission.
+    /// Do one bounded metadata scan then at most two authenticated admissions.
     pub fn poll(&mut self) -> HotReloadWatcherUpdate {
+        if self.observe_stop_request() {
+            return HotReloadWatcherUpdate::Stopped;
+        }
         if self.state != HotReloadWatchState::Watching {
             return HotReloadWatcherUpdate::Stopped;
         }
-        if self.fingerprints != fingerprints(&self.inputs) {
+        if self.fingerprints != fingerprints(&self.inputs) && self.dirty_generation.is_none() {
             self.rescan_required = true;
             if !self.mark_dirty() {
                 return HotReloadWatcherUpdate::CandidateRejected;
@@ -167,6 +203,9 @@ impl HotReloadWatcher {
     /// disk inputs before delegating to HR-01, so a historical candidate cannot
     /// activate after a later save.
     pub fn activate(&mut self, plan: HotReloadPlan) -> Result<(), HotReloadWatcherFailure> {
+        if self.observe_stop_request() {
+            return Err(HotReloadWatcherFailure::stopped());
+        }
         if self.state != HotReloadWatchState::Watching {
             return Err(HotReloadWatcherFailure::stopped());
         }
@@ -193,13 +232,25 @@ impl HotReloadWatcher {
     }
 
     pub fn stop(&mut self) {
+        self.stop_requested.store(true, Ordering::Release);
         self.dirty_generation = None;
         self.pending_candidate_revision = None;
         self.state = HotReloadWatchState::Stopped;
     }
 
     fn relevant(&self, path: &Path) -> bool {
-        self.inputs.contains(path) || (self.rescan_required && path.starts_with(&self.root))
+        self.inputs.contains(path) || (self.rescan_required && strictly_beneath(&self.root, path))
+    }
+
+    fn observe_stop_request(&mut self) -> bool {
+        if self.stop_requested.load(Ordering::Acquire) {
+            self.dirty_generation = None;
+            self.pending_candidate_revision = None;
+            self.state = HotReloadWatchState::Stopped;
+            true
+        } else {
+            false
+        }
     }
 
     /// Reserve the sole dirty slot. Saturating an event identity would make a
@@ -235,6 +286,33 @@ impl HotReloadWatcher {
                 return HotReloadWatcherUpdate::CandidateRejected;
             }
         };
+        #[cfg(test)]
+        if let Some(hook) = self.after_admission.as_mut() {
+            hook();
+        }
+        if self.observe_stop_request() {
+            return HotReloadWatcherUpdate::Stopped;
+        }
+        // The loader's held-file recheck establishes the candidate at the end
+        // of the first admission. A second ordinary admission closes the
+        // interval before it reaches HR-01: a save that lands there is queued
+        // as a newer generation instead of submitting the older candidate.
+        let current = admitted_revision(&self.manifest_path);
+        let current = match current {
+            Ok(current) => current,
+            Err(diagnostics) => {
+                self.last_diagnostics = diagnostics;
+                self.rescan_required = true;
+                return HotReloadWatcherUpdate::CandidateRejected;
+            }
+        };
+        if current.project_revision() != candidate.project_revision() {
+            self.rescan_required = true;
+            if !self.mark_dirty() {
+                return HotReloadWatcherUpdate::CandidateRejected;
+            }
+            return HotReloadWatcherUpdate::Idle;
+        }
         if self
             .dirty_generation
             .is_some_and(|newer| newer > generation)
@@ -269,6 +347,15 @@ impl HotReloadWatcher {
             }
         }
     }
+}
+
+fn strictly_beneath(root: &Path, path: &Path) -> bool {
+    let Ok(relative) = path.strip_prefix(root) else {
+        return false;
+    };
+    !relative
+        .components()
+        .any(|component| matches!(component, std::path::Component::ParentDir))
 }
 
 fn watcher_failure(failure: HotReloadFailure) -> HotReloadWatcherFailure {
@@ -319,8 +406,17 @@ fn fingerprints(paths: &BTreeSet<PathBuf>) -> BTreeMap<PathBuf, InputFingerprint
 mod tests {
     use super::*;
     use crate::project::HotReloadDecision;
-    use std::sync::atomic::{AtomicU64, Ordering};
+    use std::sync::{
+        atomic::{AtomicU64, AtomicUsize, Ordering},
+        Mutex, MutexGuard,
+    };
     static SERIAL: AtomicU64 = AtomicU64::new(0);
+    static TEST_LOCK: Mutex<()> = Mutex::new(());
+    fn test_guard() -> MutexGuard<'static, ()> {
+        TEST_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
     struct Fixture(PathBuf);
     impl Fixture {
         fn new() -> Self {
@@ -364,6 +460,12 @@ mod tests {
             assert_ne!(source, changed);
             fs::write(path, changed).unwrap();
         }
+        fn formatted_source(path: &Path, old: &str, new: &str) -> String {
+            let source = fs::read_to_string(path).unwrap();
+            let changed = source.replacen(old, new, 1);
+            assert_ne!(source, changed);
+            crate::format::canonical(&crate::parse(&changed, path).unwrap())
+        }
     }
     impl Drop for Fixture {
         fn drop(&mut self) {
@@ -372,6 +474,7 @@ mod tests {
     }
     #[test]
     fn real_directory_burst_atomic_save_overflow_and_stop_are_coalesced() {
+        let _guard = test_guard();
         let fixture = Fixture::new();
         let mut watcher = HotReloadWatcher::start(
             &fixture.manifest(),
@@ -403,6 +506,7 @@ mod tests {
     }
     #[test]
     fn newer_c_supersedes_b_before_explicit_activation() {
+        let _guard = test_guard();
         let fixture = Fixture::new();
         let mut watcher = HotReloadWatcher::start(
             &fixture.manifest(),
@@ -421,7 +525,108 @@ mod tests {
     }
 
     #[test]
+    fn atomic_save_and_delete_recreate_rescan_the_exact_admitted_input() {
+        let _guard = test_guard();
+        let fixture = Fixture::new();
+        let mut watcher = HotReloadWatcher::start(
+            &fixture.manifest(),
+            PreparedProjectInterpreterOptions::default(),
+        )
+        .unwrap();
+        let app = fixture.0.join("src/app.spx");
+        let staged = fixture.0.join("src/app.spx.save");
+        fs::write(
+            &staged,
+            Fixture::formatted_source(&app, "multiply(6, 7)", "multiply(6, 8)"),
+        )
+        .unwrap();
+        fs::rename(&staged, &app).unwrap();
+        watcher.record(HotReloadWatchEvent::Rename {
+            from: staged,
+            to: app.clone(),
+        });
+        assert_eq!(watcher.poll(), HotReloadWatcherUpdate::CandidateAdmitted);
+
+        let recreated = fixture.0.join("src/app.spx.recreated");
+        fs::rename(&app, &recreated).unwrap();
+        watcher.record(HotReloadWatchEvent::Remove(app.clone()));
+        assert_eq!(watcher.poll(), HotReloadWatcherUpdate::CandidateRejected);
+        fs::rename(&recreated, &app).unwrap();
+        watcher.record(HotReloadWatchEvent::Create(app));
+        assert_eq!(watcher.poll(), HotReloadWatcherUpdate::CandidateAdmitted);
+    }
+
+    #[test]
+    fn controlled_b_to_c_save_between_admission_and_commit_never_submits_b() {
+        let _guard = test_guard();
+        let fixture = Fixture::new();
+        let mut watcher = HotReloadWatcher::start(
+            &fixture.manifest(),
+            PreparedProjectInterpreterOptions::default(),
+        )
+        .unwrap();
+        let app = fixture.0.join("src/app.spx");
+        fixture.rewrite("multiply(6, 7)", "multiply(6, 8)");
+        let c = Fixture::formatted_source(&app, "multiply(6, 8)", "multiply(6, 9)");
+        let mut c = Some(c);
+        let app_for_hook = app.clone();
+        watcher.after_admission = Some(Box::new(move || {
+            if let Some(source) = c.take() {
+                fs::write(&app_for_hook, source).unwrap();
+            }
+        }));
+        watcher.record(HotReloadWatchEvent::Modify(app));
+        assert_eq!(watcher.poll(), HotReloadWatcherUpdate::Idle);
+        assert_eq!(watcher.poll(), HotReloadWatcherUpdate::CandidateAdmitted);
+        assert_eq!(
+            watcher.session().plan().unwrap().decision(),
+            HotReloadDecision::EligibleCodeReplacement
+        );
+    }
+
+    #[test]
+    fn pre_activation_edit_rejects_historical_plan_and_queues_current_revision() {
+        let _guard = test_guard();
+        let fixture = Fixture::new();
+        let mut watcher = HotReloadWatcher::start(
+            &fixture.manifest(),
+            PreparedProjectInterpreterOptions::default(),
+        )
+        .unwrap();
+        let app = fixture.0.join("src/app.spx");
+        fixture.rewrite("multiply(6, 7)", "multiply(6, 8)");
+        watcher.record(HotReloadWatchEvent::Modify(app.clone()));
+        assert_eq!(watcher.poll(), HotReloadWatcherUpdate::CandidateAdmitted);
+        let b = watcher.session().plan().unwrap();
+        fixture.rewrite("multiply(6, 8)", "multiply(6, 9)");
+        assert!(watcher.activate(b).is_err());
+        assert_eq!(watcher.poll(), HotReloadWatcherUpdate::CandidateAdmitted);
+    }
+
+    #[test]
+    fn external_stop_during_admission_clears_pending_work_and_releases_the_fixture() {
+        let _guard = test_guard();
+        let fixture = Fixture::new();
+        let mut watcher = HotReloadWatcher::start(
+            &fixture.manifest(),
+            PreparedProjectInterpreterOptions::default(),
+        )
+        .unwrap();
+        let active = watcher.session().active_project_revision().to_owned();
+        let control = watcher.control();
+        watcher.after_admission = Some(Box::new(move || control.request_stop()));
+        fixture.rewrite("multiply(6, 7)", "multiply(6, 8)");
+        watcher.record(HotReloadWatchEvent::Modify(fixture.0.join("src/app.spx")));
+        assert_eq!(watcher.poll(), HotReloadWatcherUpdate::Stopped);
+        assert_eq!(watcher.state(), HotReloadWatchState::Stopped);
+        assert_eq!(watcher.session().active_project_revision(), active);
+        drop(watcher);
+        assert!(fs::remove_dir_all(&fixture.0).is_ok());
+    }
+
+    #[test]
     fn invalid_c_rejects_after_b_without_replacing_active_a_or_admitting_stale_b() {
+        let _guard = test_guard();
         let fixture = Fixture::new();
         let mut watcher = HotReloadWatcher::start(
             &fixture.manifest(),
@@ -449,6 +654,7 @@ mod tests {
 
     #[test]
     fn manifest_membership_failure_is_reauthenticated_and_reported() {
+        let _guard = test_guard();
         let fixture = Fixture::new();
         let mut watcher = HotReloadWatcher::start(
             &fixture.manifest(),
@@ -470,6 +676,7 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn symlinked_input_is_rejected_by_project_admission() {
+        let _guard = test_guard();
         use std::os::unix::fs::symlink;
 
         let fixture = Fixture::new();
@@ -490,6 +697,7 @@ mod tests {
 
     #[test]
     fn event_generation_exhaustion_is_explicit_and_terminal() {
+        let _guard = test_guard();
         let fixture = Fixture::new();
         let mut watcher = HotReloadWatcher::start(
             &fixture.manifest(),
@@ -508,6 +716,7 @@ mod tests {
 
     #[test]
     fn watcher_input_inventory_rejects_empty_and_first_over_bound() {
+        let _guard = test_guard();
         let empty = bounded_inputs(Vec::new()).unwrap_err();
         assert_eq!(empty[0].code, "SPX-HR401");
         let over_bound = (0..=MAX_WATCHED_INPUTS)
@@ -515,5 +724,72 @@ mod tests {
             .collect();
         let diagnostics = bounded_inputs(over_bound).unwrap_err();
         assert_eq!(diagnostics[0].code, "SPX-HR401");
+    }
+
+    #[test]
+    fn same_byte_write_is_an_unchanged_revision_no_op() {
+        let _guard = test_guard();
+        let fixture = Fixture::new();
+        let mut watcher = HotReloadWatcher::start(
+            &fixture.manifest(),
+            PreparedProjectInterpreterOptions::default(),
+        )
+        .unwrap();
+        let app = fixture.0.join("src/app.spx");
+        let same = fs::read(&app).unwrap();
+        fs::write(&app, same).unwrap();
+        watcher.record(HotReloadWatchEvent::Modify(app));
+        assert_eq!(watcher.poll(), HotReloadWatcherUpdate::Unchanged);
+        assert!(watcher.session().plan().is_err());
+    }
+
+    #[test]
+    fn valid_repair_after_invalid_c_admits_once() {
+        let _guard = test_guard();
+        let fixture = Fixture::new();
+        let mut watcher = HotReloadWatcher::start(
+            &fixture.manifest(),
+            PreparedProjectInterpreterOptions::default(),
+        )
+        .unwrap();
+        let app = fixture.0.join("src/app.spx");
+        fixture.rewrite_raw(&app, "multiply(6, 7)", "multiply(6, )");
+        watcher.record(HotReloadWatchEvent::Modify(app.clone()));
+        assert_eq!(watcher.poll(), HotReloadWatcherUpdate::CandidateRejected);
+        let admissions = Arc::new(AtomicUsize::new(0));
+        let observed = Arc::clone(&admissions);
+        watcher.after_admission = Some(Box::new(move || {
+            observed.fetch_add(1, Ordering::Relaxed);
+        }));
+        fixture.rewrite_raw(&app, "multiply(6, )", "multiply(6, 9)");
+        watcher.record(HotReloadWatchEvent::Modify(app));
+        assert_eq!(watcher.poll(), HotReloadWatcherUpdate::CandidateAdmitted);
+        assert_eq!(admissions.load(Ordering::Relaxed), 1);
+        assert_eq!(watcher.poll(), HotReloadWatcherUpdate::Idle);
+        assert_eq!(admissions.load(Ordering::Relaxed), 1);
+    }
+
+    #[test]
+    fn derived_outputs_and_lexically_escaping_hints_do_not_start_a_rescan_loop() {
+        let _guard = test_guard();
+        let fixture = Fixture::new();
+        let mut watcher = HotReloadWatcher::start(
+            &fixture.manifest(),
+            PreparedProjectInterpreterOptions::default(),
+        )
+        .unwrap();
+        let derived = fixture.0.join("target/generated/app.spx");
+        assert_eq!(
+            watcher.record(HotReloadWatchEvent::Modify(derived)),
+            HotReloadWatcherUpdate::Idle
+        );
+        assert_eq!(watcher.poll(), HotReloadWatcherUpdate::Idle);
+        watcher.rescan_required = true;
+        let escaping = fixture.0.join("src/../../outside.spx");
+        assert_eq!(
+            watcher.record(HotReloadWatchEvent::Create(escaping)),
+            HotReloadWatcherUpdate::Idle
+        );
+        assert_eq!(watcher.dirty_generation, None);
     }
 }

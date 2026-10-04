@@ -16,10 +16,16 @@ The selected implementation is client-driven bounded polling. `poll` compares
 metadata for the current admitted inventory only; clients with native file
 notifications inject `HotReloadWatchEvent` values into the same coalescer.
 Events are hints. Every dirty generation performs normal Project admission and
-the retained candidate is reauthenticated immediately before explicit
-activation. An overflow forces that same admission path. There is no native
-thread or background queue in this profile, so stop drops pending work before
-returning.
+the retained candidate is reauthenticated immediately before it reaches the
+reload session and before explicit activation. An overflow forces that same
+admission path. There is no native thread or background queue in this profile,
+so stop drops pending work before returning.
+
+Clients that may need to stop from another scheduling context retain a
+`HotReloadWatchControl`. Its non-blocking `request_stop` is observed before
+and after admission and before activation; the watcher clears its dirty slot
+and pending candidate at that boundary. The control carries no Project input,
+filesystem, or activation authority.
 
 ## Coalescing
 
@@ -64,9 +70,12 @@ The focused local unit module is `project::hot_reload_watcher::tests`. It uses
 real temporary Project directories for burst coalescing, overflow recovery,
 A-to-B-to-invalid-C rejection, stale-plan refusal, manifest membership failure,
 symlink rejection, first-over-bound inventory refusal, event-generation
-exhaustion, and stop. These tests do not establish native-notification, hosted,
-editor, or production support.
+exhaustion, atomic save/delete-recreate, an edit between admission and candidate
+commit, an edit before activation, same-byte no-op, valid repair after a
+rejected candidate, derived-output and lexical path-escape hints, and external
+stop during admission. These tests do not establish native-notification,
+hosted, editor, or production support.
 The source-built `project::hot_reload_cli` integration child also covers
 A-to-B activation, invalid-C refusal with continued B invocation, hostile
 framing, and EOF/Stop through the bounded JSONL control stream. Its unit
-partner exercises partial-write backpressure with complete ordered frames.
+partner exercises partial-write backpressure and disconnected-output shutdown.

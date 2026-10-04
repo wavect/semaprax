@@ -352,3 +352,80 @@ fn editing_the_visible_test_file_does_not_move_the_production_obligations() {
         lying_grant["unmet_obligations"]
     );
 }
+
+#[test]
+fn compact_assurance_selection_replays_inputs_and_exposes_partial_coverage() {
+    let fixture = Fixture::new(APP_WITH_CONTRACTS, PLAIN_TESTS_BODY);
+    let revision = fixture.revision();
+    let candidate = open(&revision);
+    let envelope = manifest_for(&fixture.app_path());
+    let inputs = [CandidateAssuranceInput {
+        path: "src/app.spx",
+        envelope: &envelope,
+    }];
+
+    let selection = candidate
+        .candidate_assurance_selection(candidate.candidate_digest(), &inputs)
+        .unwrap();
+    assert!(selection.len() <= 8 * 1024);
+    let value: Value = serde_json::from_str(&selection).unwrap();
+    assert_eq!(
+        value["selection"]["schema"],
+        json!("semaprax.project-candidate-assurance-selection.v1")
+    );
+    assert_eq!(
+        value["selection"]["binding"]["candidate_revision"],
+        json!(candidate.candidate_digest())
+    );
+    assert_eq!(value["selection"]["coverage"]["status"], json!("partial"));
+    assert_eq!(
+        value["selection"]["selected_inputs"][0]["path"],
+        json!("src/app.spx")
+    );
+    assert!(value["selection"]["selected_inputs"][0]["envelope_sha256"]
+        .as_str()
+        .unwrap()
+        .starts_with("sha256:"));
+    assert_eq!(
+        value["selection"]["execution"],
+        json!(false),
+        "selection does not turn assurance evidence into test execution"
+    );
+
+    let verified = candidate
+        .verify_candidate_assurance_selection(
+            candidate.candidate_digest(),
+            &inputs,
+            selection.as_bytes(),
+        )
+        .unwrap();
+    assert_eq!(
+        serde_json::from_str::<Value>(&verified).unwrap()["verified"],
+        json!(true)
+    );
+}
+
+#[test]
+fn assurance_selection_rejects_a_rehashed_or_cross_candidate_claim() {
+    let fixture = Fixture::new(APP_WITH_CONTRACTS, PLAIN_TESTS_BODY);
+    let revision = fixture.revision();
+    let candidate = open(&revision);
+    let envelope = manifest_for(&fixture.app_path());
+    let inputs = [CandidateAssuranceInput {
+        path: "src/app.spx",
+        envelope: &envelope,
+    }];
+    let selection = candidate
+        .candidate_assurance_selection(candidate.candidate_digest(), &inputs)
+        .unwrap();
+    let mut altered: Value = serde_json::from_str(&selection).unwrap();
+    altered["selection"]["coverage"]["obligations_total"] = json!(0);
+    // A replacement outer digest is still only caller text: verification
+    // regenerates the independently rebound selection before comparing bytes.
+    altered["selection_digest"] = json!(format!("sha256:{}", "0".repeat(64)));
+    let altered = serde_json::to_vec(&altered).unwrap();
+    let error = candidate
+        .verify_candidate_assurance_selection(candidate.candidate_digest(), &inputs, &altered)
+        .unwrap_err();
+    assert_eq!(error[0].code, "SPX-G935");
+}

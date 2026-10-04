@@ -176,10 +176,12 @@ effects, observe a runtime, or grant source or publication authority.
 Evidence references identify a schema, digest, subject binding, availability,
 and compiler resolver. The candidate library can rederive the listed retained
 projections through the closed paged route; it does not add arbitrary paths,
-URLs, storage authority, or evidence download. It does not add runtime effect observations, test
-execution observations, assurance payload selection, terminal repair replay,
-or CLI/service/MCP routes. Those integrations must preserve this receipt's
-canonical bytes and its existing authority boundaries.
+URLs, storage authority, or evidence download. Runtime effect observations and durable terminal repair replay use a separate
+policy/sidecar projection. Candidate test execution remains unobserved by the
+base receipt. The one-shot CLI, semantic service, and MCP routes expose the
+closed candidate receipt and evidence operations; assurance selection is a
+separate verified candidate projection. These routes preserve their existing
+authority boundaries.
 
 ### Retention and expiry
 
@@ -196,3 +198,35 @@ but its evidence is no longer independently verifiable through this in-memory
 route. Durable archive retention, eviction policy, and terminal repair-journal
 recovery are separate versioned facilities; their presence is not implied by a
 patch receipt.
+
+## Candidate assurance selection
+
+The compact `semaprax.project-candidate-assurance-selection.v1` record is an
+additive candidate-library projection for receipts and adapters that need to
+name assurance inputs without embedding the assurance summary. It delegates all
+envelope replay, source rebinding, obligation derivation, classification, and
+coverage calculation to `candidate_assurance_summary`; it does not accept a
+caller verdict or rederive assurance itself.
+
+```rust
+pub fn ProjectCandidate::candidate_assurance_selection(
+    &self, expected_candidate: &str, inputs: &[CandidateAssuranceInput<'_>],
+) -> Result<String, Vec<Diagnostic>>;
+pub fn ProjectCandidate::verify_candidate_assurance_selection(
+    &self, expected_candidate: &str, inputs: &[CandidateAssuranceInput<'_>], bytes: &[u8],
+) -> Result<String, Vec<Diagnostic>>;
+```
+
+The selection binds its domain-separated digest to the candidate, base Project,
+result Project, and selected envelope bytes. It carries a digest/reference to
+the independently replayed summary, source and obligation coverage, and visible
+unsupported or unobserved limitations. Missing source envelopes remain
+`partial`; they are never reported as passed. Verification regenerates the
+selection from the exact candidate and supplied envelopes before byte
+comparison, so rehashing altered JSON cannot verify it.
+
+The compact selection does not retain supplied envelopes or grant authority.
+An adapter that references it must preserve the candidate binding and use an
+existing authorized retention owner when envelope retrieval is required. It
+never executes tests/effects, accepts a caller-authored assurance verdict, or
+changes the immutable patch receipt until that adapter is separately integrated.

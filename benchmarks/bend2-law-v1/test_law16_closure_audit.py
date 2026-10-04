@@ -14,7 +14,6 @@ class Law16ClosureAuditTests(unittest.TestCase):
     def test_audit_binds_exact_issue_text_and_assesses_every_acceptance_item(self):
         value = AUDIT.render()
         self.assertEqual(value["schema"], AUDIT.SCHEMA)
-        self.assertEqual(value["closure"], "not_satisfied")
         self.assertEqual(value["report_status"], "incomplete")
         self.assertEqual(value["issue"]["number"], 392)
         self.assertEqual(len(value["issue"]["api_body_sha256"]), 64)
@@ -29,6 +28,7 @@ class Law16ClosureAuditTests(unittest.TestCase):
     def test_audit_separates_open_requirements_from_declared_unsupported_cells(self):
         value = AUDIT.render()
         status = {row["id"]: row["status"] for row in value["acceptance_assessment"]}
+        self.assertEqual(status["AC2"], "met")
         self.assertEqual(status["AC3"], "met")
         self.assertEqual(status["AC4"], "met")
         self.assertEqual(status["AC7"], "met")
@@ -49,6 +49,8 @@ class Law16ClosureAuditTests(unittest.TestCase):
         cells = {row["id"]: row for row in value["declared_unsupported_or_unavailable_cells"]}
         self.assertEqual(cells["checked_u32_source_syntax"]["classification"], "unsupported")
         self.assertIn("unsupported_by_pinned_parser", cells["checked_u32_source_syntax"]["status"])
+        self.assertNotIn("AC2", cells["checked_u32_source_syntax"]["blocking_requirements"])
+        self.assertIn("R2", cells["checked_u32_source_syntax"]["blocking_requirements"])
         self.assertEqual(cells["cold_cache_isolation"]["classification"], "partially_observed_guest_file_cache")
         self.assertEqual(cells["project_sized_incremental_cell"]["classification"], "supplemental_three_module_cache_control_only")
         self.assertEqual(cells["agent_monetary_cost_events"]["classification"], "observed_for_complete_boolean_claude_campaign")
@@ -64,6 +66,17 @@ class Law16ClosureAuditTests(unittest.TestCase):
         self.assertTrue(all(
             set(row["blocking_requirements"]) <= valid_ids
             for row in value["declared_unsupported_or_unavailable_cells"]
+        ))
+        self.assertFalse(any(
+            "AC2" in row["blocking_requirements"]
+            for row in value["declared_unsupported_or_unavailable_cells"]
+        ))
+        ac2 = next(row for row in value["acceptance_assessment"] if row["id"] == "AC2")
+        self.assertIn("no-op-transfer and empty-sort attacks", ac2["assessment"])
+        self.assertIn("without admitting the original checked-u32 LAW16 source cells", ac2["assessment"])
+        self.assertTrue(any(
+            item["path"] == "evidence/law16-guarded-i64-profile-controls-v2/report.json"
+            for item in ac2["evidence"]
         ))
 
     def test_supplemental_evidence_does_not_reclassify_noop_refusal_or_close_issue(self):

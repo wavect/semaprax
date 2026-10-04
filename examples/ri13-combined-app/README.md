@@ -66,6 +66,11 @@ python3 examples/ri13-combined-app/measure.py \
   --verify-raw-artifacts examples/ri13-combined-app/measurements/local-receipt.json
 ```
 
+By default, verification reads the absolute directory recorded in the receipt.
+When raw files have been copied elsewhere, pass their retained directory with
+`--raw-artifact-dir` alongside `--verify-raw-artifacts`; the receipt and every
+file hash, filename, and coverage check remain bound to the original manifest.
+
 The harness is offline and locked. It executes M1 and M2 before M3, requires
 each consumer's success marker, and refuses an M3 CSV without all five
 allocator-request columns. The built M2 consumer is the record/Serde and

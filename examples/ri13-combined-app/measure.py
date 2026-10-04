@@ -109,13 +109,13 @@ class RawArtifacts:
         }
 
 
-def verify_raw_artifacts(manifest):
+def verify_raw_artifacts(manifest, directory_override=None):
     """Fail closed when a retained command-output file is absent or changed."""
     if not isinstance(manifest, dict) or set(manifest) != {"schema", "directory", "max_bytes", "total_bytes", "files"}:
         raise ValueError("raw artifact manifest has an unsupported shape")
     if manifest["schema"] != RAW_ARTIFACT_SCHEMA:
         raise ValueError("raw artifact manifest has an unsupported schema")
-    directory = Path(manifest["directory"])
+    directory = Path(manifest["directory"] if directory_override is None else directory_override)
     if not directory.is_absolute() or not directory.is_dir() or directory.is_symlink():
         raise ValueError("raw artifact directory is unavailable")
     if manifest["max_bytes"] != MAX_RAW_ARTIFACT_BYTES or not isinstance(manifest["files"], list):
@@ -145,10 +145,10 @@ def verify_raw_artifacts(manifest):
     return manifest
 
 
-def verify_receipt_raw_artifacts(path):
+def verify_receipt_raw_artifacts(path, raw_artifact_dir=None):
     """Verify receipt command coverage as well as every retained raw byte stream."""
     document = json.loads(path.read_text(encoding="utf-8"))
-    manifest = verify_raw_artifacts(document.get("raw_artifacts"))
+    manifest = verify_raw_artifacts(document.get("raw_artifacts"), raw_artifact_dir)
     files = manifest["files"]
     expected = []
 
@@ -883,6 +883,11 @@ def main():
         help="verify the raw artifact manifest embedded in an existing receipt",
     )
     parser.add_argument(
+        "--raw-artifact-dir",
+        type=Path,
+        help="use this relocated directory for raw files (requires --verify-raw-artifacts)",
+    )
+    parser.add_argument(
         "--warm-stage-pass",
         action="store_true",
         help="rerun every locked prepare/consumer stage against the warmed private target",
@@ -891,10 +896,14 @@ def main():
     if arguments.self_test:
         self_test()
         return
+    if arguments.raw_artifact_dir is not None and arguments.verify_raw_artifacts is None:
+        parser.error("--raw-artifact-dir requires --verify-raw-artifacts")
     if arguments.verify_raw_artifacts:
         if arguments.output is not None or arguments.evidence_dir is not None:
             parser.error("--verify-raw-artifacts cannot combine with --output or --evidence-dir")
-        print(json.dumps(verify_receipt_raw_artifacts(arguments.verify_raw_artifacts), indent=2, sort_keys=True))
+        print(json.dumps(verify_receipt_raw_artifacts(
+            arguments.verify_raw_artifacts, arguments.raw_artifact_dir
+        ), indent=2, sort_keys=True))
         return
     if arguments.output is None or arguments.evidence_dir is None:
         parser.error("--output and --evidence-dir are required for a measurement receipt")

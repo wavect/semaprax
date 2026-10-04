@@ -1,0 +1,272 @@
+{
+  "arms": [
+    {
+      "arm": "feedback-allowance",
+      "decision": "inconclusive",
+      "evidence_key": {
+        "catalog": "sha256:ac4d0d4f29e62af3b99aff5d0acc0ad0429d936a04eaf0f11fabb9608ed9b4da",
+        "distribution": "sha256:90ce39eb26d1afb6dbfbc2b7fe4487df622c60760ca920991d3fd2891191d1dd",
+        "normalization": "cost-profile/v1/receipt-cost.v1",
+        "provider": "feedback-allowance",
+        "task": "cost-profile/v1",
+        "weights": "claude-haiku-4-5"
+      },
+      "evidence_key_digest": "sha256:397b7f24f95f40bcb49531267647859b1077de30855396851e7e114c43564d2d",
+      "gates": [],
+      "metrics": {
+        "acceptance_rate": 0.9083,
+        "accepted": 109,
+        "attempts": {
+          "mean": 1.175,
+          "total": 141.0
+        },
+        "estimated_cost_trials": 0,
+        "first_pass_success": 0.825,
+        "latency_ms": {
+          "mean": 6188.25,
+          "p50": 5484,
+          "p95": 14432
+        },
+        "not_dispatched_trials": 0,
+        "outcomes": {
+          "accepted": 109,
+          "failed": 1,
+          "untested": 10
+        },
+        "provider_cache_states": {
+          "cold": 12,
+          "expired": 107,
+          "unknown": 1
+        },
+        "spend_per_accepted_micros": null,
+        "spend_per_accepted_note": "null = undefined (no accepted task or unknown cost), never zero",
+        "spend_unknown_trials": 1,
+        "tamper_attempts": 0,
+        "total_spend_micros": null,
+        "trial_spend_micros": {
+          "max": 13093,
+          "p50": 3791,
+          "p90": 10300
+        },
+        "trials": 120
+      },
+      "reasons": [
+        "trial compile-repair-spx|feedback-allowance|claude-haiku-4-5|0 is untested (unavailable, untested, aborted or unknown cost)"
+      ],
+      "record_digest": null
+    },
+    {
+      "arm": "tiers",
+      "decision": "inconclusive",
+      "evidence_key": {
+        "catalog": "sha256:b44367ddbe65af7de19ee039230525ceee0c7b33ee6ea9fdfc5ac258608949b9",
+        "distribution": "sha256:90ce39eb26d1afb6dbfbc2b7fe4487df622c60760ca920991d3fd2891191d1dd",
+        "normalization": "cost-profile/v1/receipt-cost.v1",
+        "provider": "tiers",
+        "task": "cost-profile/v1",
+        "weights": "claude-haiku-4-5"
+      },
+      "evidence_key_digest": "sha256:e860c8d93bd71642d5153be1ac14c037b299b16b044c2a2cad372b16778193fc",
+      "gates": [],
+      "metrics": {
+        "acceptance_rate": 0.9083,
+        "accepted": 109,
+        "attempts": {
+          "mean": 1.175,
+          "total": 141.0
+        },
+        "estimated_cost_trials": 0,
+        "first_pass_success": 0.825,
+        "latency_ms": {
+          "mean": 6033.6,
+          "p50": 5279,
+          "p95": 13818
+        },
+        "not_dispatched_trials": 0,
+        "outcomes": {
+          "accepted": 109,
+          "failed": 1,
+          "untested": 10
+        },
+        "provider_cache_states": {
+          "cold": 12,
+          "expired": 107,
+          "unknown": 1
+        },
+        "spend_per_accepted_micros": null,
+        "spend_per_accepted_note": "null = undefined (no accepted task or unknown cost), never zero",
+        "spend_unknown_trials": 1,
+        "tamper_attempts": 0,
+        "total_spend_micros": null,
+        "trial_spend_micros": {
+          "max": 13198,
+          "p50": 3664,
+          "p90": 10344
+        },
+        "trials": 120
+      },
+      "reasons": [
+        "trial compile-repair-spx|tiers|claude-haiku-4-5|0 is untested (unavailable, untested, aborted or unknown cost)"
+      ],
+      "record_digest": null
+    },
+    {
+      "arm": "prompt-renderer",
+      "decision": "inconclusive",
+      "evidence_key": {
+        "catalog": "sha256:285b53a052f7fa8dfa91de04294ee09c6e35208ca5f4cb46d7c7d9c775c08132",
+        "distribution": "sha256:90ce39eb26d1afb6dbfbc2b7fe4487df622c60760ca920991d3fd2891191d1dd",
+        "normalization": "cost-profile/v1/receipt-cost.v1",
+        "provider": "prompt-renderer",
+        "task": "cost-profile/v1",
+        "weights": "claude-haiku-4-5"
+      },
+      "evidence_key_digest": "sha256:155153fc491216d1aee5827efa45513d226fc2d432d407fced992b5872316427",
+      "gates": [],
+      "metrics": {
+        "acceptance_rate": 0.9083,
+        "accepted": 109,
+        "attempts": {
+          "mean": 1.1917,
+          "total": 143.0
+        },
+        "estimated_cost_trials": 0,
+        "first_pass_success": 0.7917,
+        "latency_ms": {
+          "mean": 6232.0,
+          "p50": 5324,
+          "p95": 14950
+        },
+        "not_dispatched_trials": 1,
+        "outcomes": {
+          "accepted": 109,
+          "budget_aborted": 1,
+          "untested": 10
+        },
+        "provider_cache_states": {
+          "cold": 12,
+          "expired": 107,
+          "none": 1
+        },
+        "spend_per_accepted_micros": 5757.5138,
+        "spend_per_accepted_note": "null = undefined (no accepted task or unknown cost), never zero",
+        "spend_unknown_trials": 0,
+        "tamper_attempts": 0,
+        "total_spend_micros": 627569,
+        "trial_spend_micros": {
+          "max": 12886,
+          "p50": 3698,
+          "p90": 10284
+        },
+        "trials": 120
+      },
+      "reasons": [
+        "trial compile-repair-spx|prompt-renderer|claude-haiku-4-5|0 is untested (unavailable, untested, aborted or unknown cost)"
+      ],
+      "record_digest": null
+    },
+    {
+      "arm": "combined",
+      "decision": "inconclusive",
+      "evidence_key": {
+        "catalog": "sha256:6912cc31dacb20c2fd47b84bf93b918050336fd28d293edd9216dda5a8c72757",
+        "distribution": "sha256:90ce39eb26d1afb6dbfbc2b7fe4487df622c60760ca920991d3fd2891191d1dd",
+        "normalization": "cost-profile/v1/receipt-cost.v1",
+        "provider": "combined",
+        "task": "cost-profile/v1",
+        "weights": "claude-haiku-4-5"
+      },
+      "evidence_key_digest": "sha256:c68b916c35aa30defc7a6777eae6b5fadc584e7c1da1833d7c86ec9a8f978c36",
+      "gates": [],
+      "metrics": {
+        "acceptance_rate": 0.9083,
+        "accepted": 109,
+        "attempts": {
+          "mean": 1.1667,
+          "total": 140.0
+        },
+        "estimated_cost_trials": 0,
+        "first_pass_success": 0.8167,
+        "latency_ms": {
+          "mean": 6169.7395,
+          "p50": 5302,
+          "p95": 13690
+        },
+        "not_dispatched_trials": 1,
+        "outcomes": {
+          "accepted": 109,
+          "budget_aborted": 1,
+          "untested": 10
+        },
+        "provider_cache_states": {
+          "cold": 12,
+          "expired": 107,
+          "none": 1
+        },
+        "spend_per_accepted_micros": 5607.0459,
+        "spend_per_accepted_note": "null = undefined (no accepted task or unknown cost), never zero",
+        "spend_unknown_trials": 0,
+        "tamper_attempts": 0,
+        "total_spend_micros": 611168,
+        "trial_spend_micros": {
+          "max": 13187,
+          "p50": 3653,
+          "p90": 10315
+        },
+        "trials": 120
+      },
+      "reasons": [
+        "trial compile-repair-spx|combined|claude-haiku-4-5|0 is untested (unavailable, untested, aborted or unknown cost)",
+        "only the production-harness path validates HostModel wire changes; the raw model loop does not"
+      ],
+      "record_digest": null
+    }
+  ],
+  "baseline": {
+    "arm": "defaults",
+    "metrics": {
+      "acceptance_rate": 0.9083,
+      "accepted": 109,
+      "attempts": {
+        "mean": 1.2,
+        "total": 144.0
+      },
+      "estimated_cost_trials": 0,
+      "first_pass_success": 0.8,
+      "latency_ms": {
+        "mean": 6106.8583,
+        "p50": 5386,
+        "p95": 13968
+      },
+      "not_dispatched_trials": 0,
+      "outcomes": {
+        "accepted": 109,
+        "failed": 1,
+        "untested": 10
+      },
+      "provider_cache_states": {
+        "cold": 12,
+        "expired": 107,
+        "unknown": 1
+      },
+      "spend_per_accepted_micros": null,
+      "spend_per_accepted_note": "null = undefined (no accepted task or unknown cost), never zero",
+      "spend_unknown_trials": 1,
+      "tamper_attempts": 0,
+      "total_spend_micros": null,
+      "trial_spend_micros": {
+        "max": 12771,
+        "p50": 3750,
+        "p90": 9978
+      },
+      "trials": 120
+    }
+  },
+  "criterion_digest": "sha256:90ce39eb26d1afb6dbfbc2b7fe4487df622c60760ca920991d3fd2891191d1dd",
+  "paid_qualification": "unrun unless the cohort origin is real; fixture evidence never promotes",
+  "recommendation": {
+    "action": "leave-defaults-unchanged",
+    "profile": null
+  },
+  "schema": "semaprax.harness-profile-qualification.v1"
+}

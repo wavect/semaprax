@@ -1,0 +1,18 @@
+{
+ "date": "2026-10-04/05",
+ "host": "macOS aarch64 (Darwin 25.5.0)",
+ "model": "claude-haiku-4-5 (Claude Code CLI 2.1.289, --model haiku, --tools '', --max-turns 1, MAX_THINKING_TOKENS=0, system prompt replaced, empty cwd)",
+ "harness": "semaprax-harness debug build at main 41ca8f424",
+ "provider": "org.wavect/haiku-cli-shim 0.1.0 (adapter.py + shim.py, loopback 127.0.0.1:11512, permission network=[loopback:*])",
+ "tools": {
+  "python": "3.12.12",
+  "node": "v24.3.0",
+  "tiktoken": "0.12.0 (o200k_base) venv",
+  "compiler": "not configured (SEMAPRAX_COMPILER unset): compile-repair-spx untested"
+ },
+ "taskset_digest": "sha256:a5bb023559bcd0a17d5a9942291626842c1d9336abee78afa8765ebff98c0e23",
+ "caps": {
+  "harness_max_usd": 5.0,
+  "shim_cap_usd": 5.0
+ }
+}

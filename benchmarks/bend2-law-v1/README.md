@@ -569,3 +569,14 @@ bytes. macOS page, executable, solver, and tool-cache state were not isolated,
 so these numbers are not cold/warm values and are not compared as a ratio or a
 winner. This route is a SEMAPRAX compiler check, not an SMT proof, Lean proof,
 or runtime measurement.
+
+The ordinary Bend checker has a separate, matching Boolean process-state
+capsule at
+[`evidence/law16-process-state-bend-bool-normal-v1/`](evidence/law16-process-state-bend-bool-normal-v1/).
+At Bend commit `947db722640c86247849343657bf2f7ef01cb7f1`, Bun 1.2.5, and
+`BEND_NO_TELEMETRY=1`, its 30 fresh-path children had p50/p95
+73.670/75.060 ms and its 30 repeat-path children had p50/p95 73.750/74.702
+ms. It retains 120 streams and authenticates through the same offline command.
+This is ordinary Bend checking only: Bend `--verdict` remains a distinct route
+with separate measurements and no values in this capsule are compared against
+SEMAPRAX as a winner claim.

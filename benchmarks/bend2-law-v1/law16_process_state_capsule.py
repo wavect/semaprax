@@ -67,7 +67,12 @@ def review(root):
     if fresh.get("role") != "fresh_input" or repeat.get("role") != "repeat_input":
         raise ValueError("receipt input roles are malformed")
     for name, reference in (("fresh", fresh), ("repeat", repeat)):
-        path = root / f"{name}-input.spx"
+        recorded = reference.get("path")
+        if not isinstance(recorded, str):
+            raise ValueError(f"{name} input path is malformed")
+        path = root / pathlib.PurePath(recorded).name
+        if path.name != f"{name}-input.spx" and path.name != f"{name}-input.bend":
+            raise ValueError(f"{name} input file name is unsupported")
         body = path.read_bytes()
         if len(body) != reference.get("bytes") or digest(body) != reference.get("sha256"):
             raise ValueError(f"{name} input does not match receipt")
@@ -97,6 +102,18 @@ def review(root):
     identity = read_json(root / "tool-identity.json", "tool identity")
     if identity.get("schema") != "semaprax.bend2-law-benchmark.local-tool-identity.v1":
         raise ValueError("tool identity schema is unsupported")
+    if identity.get("source_fixture_sha256") != fresh["sha256"]:
+        raise ValueError("tool identity fixture digest disagrees with the captured input")
+    executable_path = identity.get("executable_path_at_measurement")
+    executable_digest = identity.get("executable_sha256")
+    if not isinstance(executable_path, str) or not isinstance(executable_digest, str) or not any(
+        isinstance(artifact.get("path"), str)
+        and pathlib.Path(artifact["path"]).resolve() == pathlib.Path(executable_path).resolve()
+        and artifact.get("sha256") == executable_digest
+        for artifact in artifacts[2:]
+        if isinstance(artifact, dict)
+    ):
+        raise ValueError("tool identity executable does not match the receipt")
     return {
         "schema": RESULT_SCHEMA,
         "status": "local_process_state_authenticated",

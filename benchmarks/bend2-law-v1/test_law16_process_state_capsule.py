@@ -21,6 +21,13 @@ class ProcessStateCapsuleTests(unittest.TestCase):
         self.assertEqual(result["states"]["repeat_process"]["count"], 30)
         self.assertEqual(result["cold_state"]["status"], "unavailable")
 
+    def test_committed_bend_ordinary_process_state_remains_a_separate_route(self):
+        result = CAPSULE.review(ROOT / "evidence/law16-process-state-bend-bool-normal-v1")
+        self.assertEqual(result["status"], "local_process_state_authenticated")
+        self.assertEqual(result["raw_streams"], 120)
+        self.assertEqual(result["tool"]["commit"], "947db722640c86247849343657bf2f7ef01cb7f1")
+        self.assertEqual(result["route"], "ordinary Bend checking; BEND_NO_TELEMETRY=1")
+
 
 if __name__ == "__main__":
     unittest.main()

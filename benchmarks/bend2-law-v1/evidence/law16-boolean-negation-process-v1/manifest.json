@@ -1,0 +1,38 @@
+{
+  "identity": {
+    "bytes": 5178,
+    "path": "identity.json",
+    "sha256": "sha256:1763231393b519e60058e62ff1d88127f11d00dbb9ca84f4670abcebef313d07"
+  },
+  "nonclaims": [
+    "no cross-route timing ratio or winner",
+    "Bend verdict and installed-Z3 have distinct trusted computing bases",
+    "fresh/repeat is not OS-cache cold",
+    "source proof does not prove lowering or execution"
+  ],
+  "raw_stream_count": 480,
+  "receipts": [
+    {
+      "bytes": 54620,
+      "path": "bend/attack/receipt.json",
+      "sha256": "sha256:b930c303c3e7f678f9084f2ffc4aed5afae8cff67d1e0771bca14b741c7e4bdf"
+    },
+    {
+      "bytes": 55110,
+      "path": "bend/candidate/receipt.json",
+      "sha256": "sha256:e13c716fcfdd6993dc9541b4970ea7f85d855395362cd1d93088bff9850b6a5d"
+    },
+    {
+      "bytes": 76417,
+      "path": "semaprax/attack/receipt.json",
+      "sha256": "sha256:1d9ef273990ef05435b9851925bced46224831dc4eb54f80cf71dafacdad6ee9"
+    },
+    {
+      "bytes": 77029,
+      "path": "semaprax/candidate/receipt.json",
+      "sha256": "sha256:b6d81d3ec09ca973aa09332eac27849c7aaa6442a6aec5e54a2c494d331e11a4"
+    }
+  ],
+  "schema": "semaprax.bend2-law-benchmark.boolean-negation-process-capsule.v1",
+  "status": "completed"
+}

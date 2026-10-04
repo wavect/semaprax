@@ -655,3 +655,29 @@ versus negation corpus remains `not_matched`; it cannot be combined with this
 pair. Fresh/repeat paths still do not isolate operating-system, executable,
 solver, or tool caches. No timing ratio, winner, checked-`u32`, lowering, or
 execution-proof claim follows from the plan.
+
+## Executed matched Boolean-negation process receipts
+
+[`evidence/law16-boolean-negation-process-v1/`](evidence/law16-boolean-negation-process-v1/)
+executes the prepared pair on 4 October 2026. It binds 30 fresh-path and 30
+repeat-path children for each candidate and assertion-retaining attack in both
+lanes: 480 retained stdout/stderr streams. The pinned Bend `--verdict` route
+accepted all 60 candidate children and rejected all 60 identity-mutant
+children. The pinned SEMAPRAX `project-proof-check` route using installed Z3
+accepted all 60 selected `app.negate ensures[0]` candidate discharges and
+rejected all 60 `false`-body mutants. The offline reviewer verifies the plan
+source identity, every stream digest, command digest, timeout budget, two
+process states, timing summaries, and expected candidate/attack outcomes:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_boolean_negation_process_capsule.py \
+  --capsule benchmarks/bend2-law-v1/evidence/law16-boolean-negation-process-v1 \
+  --output /tmp/law16-boolean-negation-process-review.json
+```
+
+The reviewer accepts semantic-contract and negative-control binding, while it
+continues to mark cross-route timing `not_reported`. Bend verdict output and
+SEMAPRAX's installed-Z3 source proof use separate trusted computing bases;
+process provisioning does not isolate operating-system or tool caches. These
+receipts do not establish checked-`u32`, lowering, execution, a general theorem,
+or a winner.

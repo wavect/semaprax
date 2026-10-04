@@ -74,7 +74,7 @@ impl Fixture {
 permit { process.stdout.write }
 @id("reload.effects.target") fn target(value:i64)->i64 uses { process.stdout.write } { value }
 @id("reload.effects.main") fn main()->i64 uses { process.stdout.write } { target(42) }
-@id("reload.effects.run") fn run()->bool uses { process.stdout.write } { false }
+@id("reload.effects.run") fn run(input: borrow Slice<u8>)->bool { byte_len(input) == byte_len(input) }
 "#,
             ),
             (

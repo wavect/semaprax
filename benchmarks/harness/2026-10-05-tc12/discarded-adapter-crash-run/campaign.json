@@ -1,0 +1,158 @@
+{
+  "arms": [
+    {
+      "availability": {
+        "state": "available"
+      },
+      "base_arm": "native",
+      "id": "defaults",
+      "label": "current defaults (no opt-in policy)",
+      "not_applicable": [],
+      "omitted_unavailable": [],
+      "overlay": {},
+      "policies": [],
+      "profile_digest": "sha256:f4e4ad28c3632b4215bb9de7625dfbff29fc8fd74e4a7702eecf89c75c9a0df1",
+      "view_arm": null
+    },
+    {
+      "availability": {
+        "state": "available"
+      },
+      "base_arm": "native",
+      "id": "feedback-allowance",
+      "label": "feedback-allowance alone",
+      "not_applicable": [],
+      "omitted_unavailable": [],
+      "overlay": {
+        "budget.feedback_max_tokens": 600
+      },
+      "policies": [
+        "feedback-allowance"
+      ],
+      "profile_digest": "sha256:19c31739a45e1d5a4bb73eb14e67b93e8a546ab17cec3df0dea250ad54644ba6",
+      "view_arm": null
+    },
+    {
+      "availability": {
+        "state": "available"
+      },
+      "base_arm": "native",
+      "id": "tiers",
+      "label": "tiers alone",
+      "not_applicable": [],
+      "omitted_unavailable": [],
+      "overlay": {
+        "budget.repair_cap": 2048
+      },
+      "policies": [
+        "tiers"
+      ],
+      "profile_digest": "sha256:1938c62e3b158d080e482b1d0dd618b940ad0ddc318b87b54845e8a7ad2f2520",
+      "view_arm": null
+    },
+    {
+      "availability": {
+        "state": "available"
+      },
+      "base_arm": "native",
+      "id": "prompt-renderer",
+      "label": "prompt-renderer alone",
+      "not_applicable": [],
+      "omitted_unavailable": [],
+      "overlay": {
+        "budget.model_prompt_cache": "supported",
+        "budget.prompt_renderer": "ordered-v1"
+      },
+      "policies": [
+        "prompt-renderer"
+      ],
+      "profile_digest": "sha256:31d6c5bc121e5eb1fd985483581cc4daca332cdb9e92d416d593bd8040f04ef4",
+      "view_arm": null
+    },
+    {
+      "availability": {
+        "state": "available"
+      },
+      "base_arm": "native",
+      "id": "combined",
+      "label": "combined candidate: every available and applicable policy",
+      "not_applicable": [
+        {
+          "policy": "compact-skills",
+          "reason": "the compact skill profile renders this arm's skill block byte-identically to the default (explicit skills are never suppressed and the default selection has no catalog block)"
+        },
+        {
+          "policy": "context-target",
+          "reason": "app tasks supply the whole project tree as one native pack, not ranked context items; TC-05 target selection has nothing to rank"
+        },
+        {
+          "policy": "caveman-view",
+          "reason": "no command-view wrapper arm is configured (needs a provisioned HARNESS_* tool arm, --view-arm)"
+        },
+        {
+          "policy": "spend-ledger",
+          "reason": "app-task trials dispatch through ProductionClient, not the workflow route/spend path; the TC-03 task spend book is not consulted there (the campaign's own --max-usd ledger caps spend)"
+        },
+        {
+          "policy": "cost-aware-routing",
+          "reason": "app-task trials run one fixed model per arm through ProductionClient; TC-10 ladder routing only runs inside the workflow's route_and_fit"
+        }
+      ],
+      "omitted_unavailable": [],
+      "overlay": {
+        "budget.feedback_max_tokens": 600,
+        "budget.model_prompt_cache": "supported",
+        "budget.prompt_renderer": "ordered-v1",
+        "budget.repair_cap": 2048
+      },
+      "policies": [
+        "feedback-allowance",
+        "tiers",
+        "prompt-renderer"
+      ],
+      "profile_digest": "sha256:68cd518991fd5b41540dd9c46bd9d118acd5c80e976050195c560743069984f8",
+      "view_arm": null
+    }
+  ],
+  "baseline": "defaults",
+  "caps": {
+    "max_calls": 5000,
+    "max_usd": 5.0
+  },
+  "cohort": {
+    "reps": 10,
+    "tasks": [
+      "compile-repair-js",
+      "compile-repair-spx",
+      "failing-tests-js-textkit",
+      "failing-tests-py-ledger",
+      "feature-js-cart",
+      "feature-py-shop",
+      "maintenance-py-notes",
+      "mixed-config-units",
+      "mixed-py-js-invoice",
+      "refactor-py-validators",
+      "reuse-js-order-row",
+      "reuse-py-order-row"
+    ]
+  },
+  "criterion": {
+    "acceptance_margin": 0.0,
+    "first_pass_margin": 0.1,
+    "max_extra_regressions": 0,
+    "max_latency_ratio": 1.5,
+    "min_cost_saving": 0.1,
+    "min_items": 30,
+    "primary_metric": "total billed spend / independently accepted tasks (undefined, never zero, when nothing is accepted or any cost is unknown)",
+    "require_privacy": true
+  },
+  "criterion_digest": "sha256:90ce39eb26d1afb6dbfbc2b7fe4487df622c60760ca920991d3fd2891191d1dd",
+  "id": "profile-a5bb023559bc",
+  "paid_qualification": "unrun",
+  "pins": {
+    "model": "claude-haiku-4-5",
+    "taskset": "sha256:a5bb023559bcd0a17d5a9942291626842c1d9336abee78afa8765ebff98c0e23",
+    "tools": "sha256:43ed4a8171728841a8ecd200468348fcd89fec11143523cbab30e6f6ff8bbc6e"
+  },
+  "schema": "semaprax.harness-profile-campaign.v1"
+}

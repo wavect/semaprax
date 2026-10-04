@@ -784,3 +784,14 @@ charge event, so cost remains unavailable. The ten pairs concern only this
 matched Boolean negation task. Separate trusted computing bases, cache limits,
 checked-`u32` non-admission, and the wider LAW-16 cells still prevent a
 cross-route timing ratio, winner claim, or complete LAW-16 conclusion.
+
+## Structured balance-transfer admission
+
+The required `structured-balance-transfer-v1` fixture remains a checked-`u32`
+cell: it binds `[9,4] --3--> [6,7]` for conservation and intended state change,
+with `[9,4]` as the no-op-transfer control. Its dedicated admission result is
+[`evidence/law16-structured-balance-admission-v1.json`](evidence/law16-structured-balance-admission-v1.json).
+It is `unsupported`, because the authenticated pinned SEMAPRAX parser rejects
+`u32` before a matched candidate, overflow, or source-proof route can run.
+The separate bounded `0..100` transfer witness cannot be relabelled as this
+checked-`u32` task.

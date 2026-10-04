@@ -1,0 +1,488 @@
+{
+  "nonclaims": [
+    "RSS includes /usr/bin/time wrapper observation"
+  ],
+  "samples": [
+    {
+      "command": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 45924352,
+      "stderr": "        0.26 real         0.25 user         0.00 sys\n            45924352  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                3090  page reclaims\n                   4  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   4  voluntary context switches\n                 234  involuntary context switches\n          3078836505  instructions retired\n           929651027  cycles elapsed\n             7913928  peak memory footprint\n",
+      "wall_ms": 266.587458,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 45973504,
+      "stderr": "        0.26 real         0.25 user         0.00 sys\n            45973504  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                3098  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 157  involuntary context switches\n          3077004345  instructions retired\n           926695623  cycles elapsed\n             7963056  peak memory footprint\n",
+      "wall_ms": 263.381,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 45727744,
+      "stderr": "        0.27 real         0.26 user         0.00 sys\n            45727744  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                3081  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 389  involuntary context switches\n          3079426990  instructions retired\n           970138948  cycles elapsed\n             7700936  peak memory footprint\n",
+      "wall_ms": 281.753208,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 45907968,
+      "stderr": "        0.26 real         0.25 user         0.00 sys\n            45907968  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                3094  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 217  involuntary context switches\n          3077503760  instructions retired\n           934156261  cycles elapsed\n             7913928  peak memory footprint\n",
+      "wall_ms": 267.169041,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 45891584,
+      "stderr": "        0.26 real         0.25 user         0.00 sys\n            45891584  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                3092  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 190  involuntary context switches\n          3077023930  instructions retired\n           925799747  cycles elapsed\n             7881160  peak memory footprint\n",
+      "wall_ms": 263.598791,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 45989888,
+      "stderr": "        0.26 real         0.25 user         0.00 sys\n            45989888  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                3099  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 223  involuntary context switches\n          3077631830  instructions retired\n           923862520  cycles elapsed\n             7995848  peak memory footprint\n",
+      "wall_ms": 263.907333,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 45989888,
+      "stderr": "        0.26 real         0.25 user         0.00 sys\n            45989888  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                3099  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 258  involuntary context switches\n          3077624996  instructions retired\n           933701283  cycles elapsed\n             7995848  peak memory footprint\n",
+      "wall_ms": 267.419542,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 45727744,
+      "stderr": "        0.26 real         0.25 user         0.00 sys\n            45727744  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                3083  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 300  involuntary context switches\n          3077326425  instructions retired\n           942182532  cycles elapsed\n             7733704  peak memory footprint\n",
+      "wall_ms": 270.155125,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 46170112,
+      "stderr": "        0.30 real         0.29 user         0.00 sys\n            46170112  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                3110  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 403  involuntary context switches\n          3080408612  instructions retired\n          1031949470  cycles elapsed\n             8176072  peak memory footprint\n",
+      "wall_ms": 303.087,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 46186496,
+      "stderr": "        0.30 real         0.29 user         0.00 sys\n            46186496  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                3111  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 360  involuntary context switches\n          3080760553  instructions retired\n          1035933030  cycles elapsed\n             8192456  peak memory footprint\n",
+      "wall_ms": 306.997375,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 45924352,
+      "stderr": "        0.25 real         0.24 user         0.00 sys\n            45924352  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                3095  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 164  involuntary context switches\n          3076573209  instructions retired\n           913835944  cycles elapsed\n             7930312  peak memory footprint\n",
+      "wall_ms": 259.930708,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 45563904,
+      "stderr": "        0.27 real         0.26 user         0.00 sys\n            45563904  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                3073  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 273  involuntary context switches\n          3076553014  instructions retired\n           953704362  cycles elapsed\n             7569864  peak memory footprint\n",
+      "wall_ms": 274.801042,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 45875200,
+      "stderr": "        0.26 real         0.25 user         0.00 sys\n            45875200  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                3092  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 235  involuntary context switches\n          3077794926  instructions retired\n           937994098  cycles elapsed\n             7881160  peak memory footprint\n",
+      "wall_ms": 268.184167,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 45957120,
+      "stderr": "        0.26 real         0.25 user         0.00 sys\n            45957120  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                3097  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 225  involuntary context switches\n          3077175746  instructions retired\n           929765248  cycles elapsed\n             7946672  peak memory footprint\n",
+      "wall_ms": 266.173584,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 45711360,
+      "stderr": "        0.26 real         0.25 user         0.00 sys\n            45711360  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                3082  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 200  involuntary context switches\n          3076296853  instructions retired\n           933559309  cycles elapsed\n             7717320  peak memory footprint\n",
+      "wall_ms": 265.328958,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 45711360,
+      "stderr": "        0.25 real         0.25 user         0.00 sys\n            45711360  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                3082  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 219  involuntary context switches\n          3077168069  instructions retired\n           922516496  cycles elapsed\n             7717320  peak memory footprint\n",
+      "wall_ms": 262.826167,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 45776896,
+      "stderr": "        0.26 real         0.25 user         0.00 sys\n            45776896  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                3086  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 226  involuntary context switches\n          3077242735  instructions retired\n           936196379  cycles elapsed\n             7782856  peak memory footprint\n",
+      "wall_ms": 267.390042,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 45563904,
+      "stderr": "        0.25 real         0.24 user         0.00 sys\n            45563904  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                3065  page reclaims\n                   8  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   1  voluntary context switches\n                 153  involuntary context switches\n          3076003999  instructions retired\n           917414061  cycles elapsed\n             7569864  peak memory footprint\n",
+      "wall_ms": 262.164291,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 45711360,
+      "stderr": "        0.25 real         0.25 user         0.00 sys\n            45711360  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                3082  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 155  involuntary context switches\n          3075702234  instructions retired\n           918383602  cycles elapsed\n             7700912  peak memory footprint\n",
+      "wall_ms": 260.857375,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 45858816,
+      "stderr": "        0.26 real         0.25 user         0.00 sys\n            45858816  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                3091  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 212  involuntary context switches\n          3076396356  instructions retired\n           928996022  cycles elapsed\n             7848368  peak memory footprint\n",
+      "wall_ms": 264.244625,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 45858816,
+      "stderr": "        0.26 real         0.25 user         0.00 sys\n            45858816  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                3091  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 207  involuntary context switches\n          3077591195  instructions retired\n           936674274  cycles elapsed\n             7864776  peak memory footprint\n",
+      "wall_ms": 267.154208,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 45940736,
+      "stderr": "        0.27 real         0.25 user         0.00 sys\n            45940736  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                3086  page reclaims\n                  10  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   1  voluntary context switches\n                 321  involuntary context switches\n          3080562272  instructions retired\n           954684101  cycles elapsed\n             7930288  peak memory footprint\n",
+      "wall_ms": 273.167875,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 46039040,
+      "stderr": "        0.27 real         0.26 user         0.00 sys\n            46039040  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                3099  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 326  involuntary context switches\n          3079780550  instructions retired\n           959369173  cycles elapsed\n             7995848  peak memory footprint\n",
+      "wall_ms": 274.841,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 45858816,
+      "stderr": "        0.27 real         0.26 user         0.00 sys\n            45858816  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                3091  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 282  involuntary context switches\n          3077844399  instructions retired\n           955337884  cycles elapsed\n             7864776  peak memory footprint\n",
+      "wall_ms": 275.531625,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 45711360,
+      "stderr": "        0.26 real         0.25 user         0.00 sys\n            45711360  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                3080  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 206  involuntary context switches\n          3077240557  instructions retired\n           941524906  cycles elapsed\n             7668144  peak memory footprint\n",
+      "wall_ms": 268.509167,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 45826048,
+      "stderr": "        0.25 real         0.25 user         0.00 sys\n            45826048  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                3089  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 184  involuntary context switches\n          3077378238  instructions retired\n           920627243  cycles elapsed\n             7832008  peak memory footprint\n",
+      "wall_ms": 261.8675,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 45727744,
+      "stderr": "        0.26 real         0.25 user         0.00 sys\n            45727744  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                3083  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 200  involuntary context switches\n          3077788741  instructions retired\n           933934771  cycles elapsed\n             7733704  peak memory footprint\n",
+      "wall_ms": 265.996708,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 45776896,
+      "stderr": "        0.25 real         0.25 user         0.00 sys\n            45776896  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                3086  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 185  involuntary context switches\n          3077917193  instructions retired\n           923388318  cycles elapsed\n             7782856  peak memory footprint\n",
+      "wall_ms": 263.489375,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 46022656,
+      "stderr": "        0.26 real         0.25 user         0.00 sys\n            46022656  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                3101  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 196  involuntary context switches\n          3077620628  instructions retired\n           929275659  cycles elapsed\n             8028616  peak memory footprint\n",
+      "wall_ms": 265.466625,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "benchmarks/bend2-law-v1/fixtures/semaprax-two-value-boolean-v1.spx",
+        "--json"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 46022656,
+      "stderr": "        0.26 real         0.25 user         0.00 sys\n            46022656  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                3101  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 215  involuntary context switches\n          3081194590  instructions retired\n           938829494  cycles elapsed\n             8028616  peak memory footprint\n",
+      "wall_ms": 268.616375,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    }
+  ],
+  "schema": "semaprax.bend2-law-benchmark.peak-rss.v1"
+}

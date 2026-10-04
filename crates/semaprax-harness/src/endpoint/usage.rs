@@ -222,6 +222,7 @@ pub fn assess_stream(
         returned_model: None,
         outcomes: Vec::new(),
     };
+    let mut merged = json!({});
     for e in events {
         let Ok(v) = serde_json::from_str::<Value>(&e.data) else {
             continue;
@@ -259,11 +260,16 @@ pub fn assess_stream(
         if let Some(m) = inner.get("model").and_then(Value::as_str) {
             out.returned_model = Some(m.to_string());
         }
-        let u = parse_usage(inner.get("usage"));
-        if u != UsageEvidence::Unknown {
-            out.usage = u;
+        // Usage updates are cumulative snapshots (and Anthropic nests the first one
+        // in `message`): merge them key by key so a repeated snapshot is not
+        // double counted and an output-only update keeps the earlier input count.
+        if let Some(u) =
+            crate::receipt::event_usage(&v).or_else(|| crate::receipt::event_usage(inner))
+        {
+            crate::receipt::merge_native(&mut merged, u);
         }
     }
+    out.usage = parse_usage(Some(&merged));
     if events.is_empty() {
         out.outcomes.push(Outcome::Failed { status: 0 });
     }

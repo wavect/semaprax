@@ -193,6 +193,8 @@ pub struct BudgetConfig {
     /// Opt-in repair-feedback allowance in named tokens (TC-06); `None` keeps
     /// the labelled byte policy.
     pub feedback_max_tokens: Option<u64>,
+    /// Host-configured price records for local cost estimates (TC-01).
+    pub prices: crate::receipt::PriceBook,
 }
 
 impl BudgetConfig {

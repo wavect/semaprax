@@ -1150,3 +1150,6 @@ mod wire;
 
 #[path = "workflow_tc09.rs"]
 mod tc09;
+
+#[path = "workflow_tc.rs"]
+mod tc;

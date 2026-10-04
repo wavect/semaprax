@@ -10,6 +10,7 @@ use crate::diag::{HarnessDiagnostic, HarnessResult};
 use crate::host::grant::Grant;
 use crate::host::{AdapterHandle, CancelToken, InvocationClass, Outcome};
 use crate::profile::check_grant_current;
+use crate::receipt::{GenerationControls, ProposalReceipt};
 use serde_json::{json, Map, Value};
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -585,6 +586,18 @@ pub trait ProposalStage {
     fn id(&self) -> String;
     /// Raw proposal bytes (`semaprax.harness-proposal.v1`); still untrusted.
     fn propose(&mut self, req: &ProposalRequest) -> Result<Vec<u8>, StageFailure>;
+    /// Proposal bytes plus the typed provider receipt, kept apart: usage is
+    /// never read from the bytes. Scripted and legacy providers keep this
+    /// default (an explicit `unavailable` receipt).
+    fn propose_receipted(
+        &mut self,
+        req: &ProposalRequest,
+    ) -> (Result<Vec<u8>, StageFailure>, ProposalReceipt) {
+        (
+            self.propose(req),
+            ProposalReceipt::unavailable("scripted_or_legacy_provider"),
+        )
+    }
     fn calls(&self) -> u32;
     /// Whether a call is non-idempotent (never replayed after a restart).
     fn side_effecting(&self) -> bool;
@@ -668,6 +681,9 @@ pub struct HostModel {
     calls: u32,
 }
 
+/// Transport safety bound on the reply size, separate from the token cap.
+pub const MODEL_MAX_OUTPUT_BYTES: u64 = 65536;
+
 impl HostModel {
     pub fn new(
         handle: Arc<AdapterHandle>,
@@ -683,6 +699,50 @@ impl HostModel {
             calls: 0,
         }
     }
+    /// The `model.generate/v1` request payload. Optional members appear only
+    /// when requested, so legacy adapters see the original shape by default.
+    pub fn request_payload(req: &ProposalRequest) -> Value {
+        let prompt = crate::json::canonical(&req.prompt);
+        let p = json!({"model": req.model, "input_base64": b64::encode(prompt.as_bytes()),
+                           "max_output_bytes": MODEL_MAX_OUTPUT_BYTES});
+        p
+    }
+
+    /// Map one invocation outcome to proposal bytes and the receipt. Usage comes
+    /// only from the adapter's typed `receipt`; the bytes are never inspected
+    /// for it. An incomplete (length-limited) reply is never returned as a proposal.
+    pub fn interpret(
+        outcome: Outcome,
+        _req: &ProposalRequest,
+    ) -> (Result<Vec<u8>, StageFailure>, ProposalReceipt) {
+        match outcome {
+            Outcome::Completed(r) if r.payload.is_some() => {
+                let payload = r.payload.as_ref().expect("checked");
+                let receipt = ProposalReceipt::from_result(&GenerationControls::default(), payload);
+                if receipt.finish.incomplete() {
+                    return (
+                        Err(StageFailure::Refused(d(
+                            "SPX-HPD030",
+                            format!(
+                                "incomplete model output: the provider ended the reply as {}; it is not a proposal and is never repaired",
+                                receipt.finish.as_str()
+                            ),
+                        ))),
+                        receipt,
+                    );
+                }
+                let out = payload["output_base64"].as_str().and_then(b64::decode);
+                let res = out.ok_or_else(|| {
+                    StageFailure::Refused(d("SPX-HPD030", "model output is not base64"))
+                });
+                (res, receipt)
+            }
+            other => (
+                Err(failure_of(other)),
+                ProposalReceipt::unavailable("provider_failure_without_receipt"),
+            ),
+        }
+    }
 }
 
 impl ProposalStage for HostModel {
@@ -690,33 +750,32 @@ impl ProposalStage for HostModel {
         self.provider_id.clone()
     }
     fn propose(&mut self, req: &ProposalRequest) -> Result<Vec<u8>, StageFailure> {
-        check_grant_current(&self.env, &self.grant).map_err(StageFailure::Refused)?;
-        let prompt = crate::json::canonical(&req.prompt);
+        self.propose_receipted(req).0
+    }
+    fn propose_receipted(
+        &mut self,
+        req: &ProposalRequest,
+    ) -> (Result<Vec<u8>, StageFailure>, ProposalReceipt) {
+        if let Err(e) = check_grant_current(&self.env, &self.grant) {
+            return (
+                Err(StageFailure::Refused(e)),
+                ProposalReceipt::unavailable("not_dispatched"),
+            );
+        }
         let request = envelope(
             req.lineage,
             CapabilityKind::ModelGenerate,
             "generate",
             1 << 20,
-            json!({"model": req.model, "input_base64": b64::encode(prompt.as_bytes()), "max_output_bytes": 65536}),
+            Self::request_payload(req),
         );
         self.calls += 1;
-        match self.handle.invoke(
+        let outcome = self.handle.invoke(
             &request,
             InvocationClass::SideEffecting,
             &CancelToken::new(),
-        ) {
-            Outcome::Completed(r) if r.payload.is_some() => {
-                let out = r
-                    .payload
-                    .as_ref()
-                    .and_then(|p| p["output_base64"].as_str())
-                    .and_then(b64::decode);
-                out.ok_or_else(|| {
-                    StageFailure::Refused(d("SPX-HPD030", "model output is not base64"))
-                })
-            }
-            other => Err(failure_of(other)),
-        }
+        );
+        Self::interpret(outcome, req)
     }
     fn calls(&self) -> u32 {
         self.calls

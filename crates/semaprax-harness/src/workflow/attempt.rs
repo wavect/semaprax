@@ -446,7 +446,8 @@ pub(super) fn generate(
         prompt,
         model,
     };
-    let got = st.proposer.propose(&req);
+    let (got, receipt) = st.proposer.propose_receipted(&req);
+    let estimate = cx.cfg.budget.prices.estimate(&req.model, &receipt.usage);
     cx.observe_incurred_at(
         &st.proposer.id(),
         "model.generate",
@@ -454,6 +455,17 @@ pub(super) fn generate(
         got.is_ok(),
         started,
         count,
+        Some((&receipt, &estimate)),
+    );
+    let reserved = cx.ledger.entries.last().map_or(0, |e| e.output_reserve);
+    cx.receipts.push(
+        step,
+        &st.proposer.id(),
+        &req.model,
+        count.admission_tokens(),
+        reserved,
+        &receipt,
+        &estimate,
     );
     match got {
         Ok(b) => {

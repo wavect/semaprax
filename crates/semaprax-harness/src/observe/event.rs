@@ -181,6 +181,10 @@ pub struct Observation {
     pub incurred: Option<TokenCount>,
     pub before_digest: Option<String>,
     pub after_digest: Option<String>,
+    /// Provider-reported usage of an `Incurred` request (`None`: no receipt).
+    pub usage: Option<crate::receipt::Usage>,
+    /// Locally estimated cost in micro-units (`None`: unknown); never the provider's charge.
+    pub estimated_cost: Option<u64>,
 }
 
 impl Observation {
@@ -215,6 +219,8 @@ impl Observation {
             incurred: None,
             before_digest: None,
             after_digest: None,
+            usage: None,
+            estimated_cost: None,
         }
     }
 
@@ -258,7 +264,7 @@ impl Observation {
     pub fn to_json(&self) -> Value {
         let c = |x: &Option<TokenCount>| x.as_ref().map_or(Value::Null, TokenCount::to_json);
         let s = |x: &Option<String>| x.as_ref().map_or(Value::Null, |v| json!(v));
-        json!({
+        let mut v = json!({
             "schema": OBSERVATION_SCHEMA, "seq": self.seq,
             "provider": self.provider, "capability": self.capability,
             "stage": self.stage.as_str(), "role": self.role.as_str(),
@@ -275,7 +281,15 @@ impl Observation {
             "before": c(&self.before), "after": c(&self.after), "model_visible": self.model_visible,
             "incurred": c(&self.incurred),
             "before_digest": s(&self.before_digest), "after_digest": s(&self.after_digest),
-        })
+        });
+        // Additive members appear only when present, so older readers and goldens are unaffected.
+        if let Some(u) = &self.usage {
+            v["usage"] = u.to_json();
+        }
+        if let Some(c) = self.estimated_cost {
+            v["estimated_cost"] = json!(c);
+        }
+        v
     }
 
     /// Strict decode; unknown additive members are ignored, required ones checked.
@@ -335,6 +349,11 @@ impl Observation {
             incurred: count("incurred")?,
             before_digest: opt_s("before_digest"),
             after_digest: opt_s("after_digest"),
+            usage: v
+                .get("usage")
+                .filter(|u| u.is_object())
+                .map(crate::receipt::Usage::from_json),
+            estimated_cost: v.get("estimated_cost").and_then(Value::as_u64),
         };
         o.validate()?;
         Ok(o)

@@ -28,6 +28,8 @@ mod host;
 mod observe;
 #[path = "harness_v1/profile.rs"]
 mod profile;
+#[path = "harness_v1/receipt.rs"]
+mod receipt;
 #[path = "harness_v1/skills.rs"]
 mod skills;
 #[path = "harness_v1/workflow.rs"]

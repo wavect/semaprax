@@ -17,13 +17,64 @@ pub fn validate(dir: Direction, v: &Value) -> HarnessResult<()> {
             uint_of(m, "max_output_bytes")?;
         }
         Direction::Result => {
-            let m = shape(v, "model result", &["model", "output_base64", "usage"], &[])?;
+            let m = shape(
+                v,
+                "model result",
+                &["model", "output_base64", "usage"],
+                &["receipt"],
+            )?;
             logical_id(m)?;
             base64(m, "output_base64")?;
             let u = shape(&m["usage"], "usage", &["input_bytes", "output_bytes"], &[])?;
             uint_of(u, "input_bytes")?;
             uint_of(u, "output_bytes")?;
+            if let Some(r) = m.get("receipt") {
+                receipt(r)?;
+            }
         }
+    }
+    Ok(())
+}
+
+/// Typed provider receipt (`semaprax.harness-model-receipt.v1`): bounded,
+/// closed, and data only. Usage objects stay provider-native; the host
+/// normalizes them.
+fn receipt(v: &Value) -> HarnessResult<()> {
+    let m = shape(
+        v,
+        "receipt",
+        &[],
+        &[
+            "schema",
+            "protocol",
+            "model",
+            "request_id",
+            "finish_reason",
+            "usage",
+            "usage_events",
+            "provider_cost_micros",
+            "controls",
+        ],
+    )?;
+    for k in ["schema", "protocol", "model", "request_id", "finish_reason"] {
+        if m.contains_key(k) {
+            str_of(m, k, 128)?;
+        }
+    }
+    if m.contains_key("provider_cost_micros") {
+        uint_of(m, "provider_cost_micros")?;
+    }
+    if m.get("usage").is_some_and(|u| !u.is_object()) {
+        return Err(e("SPX-HPA040", "receipt `usage` must be an object"));
+    }
+    if m.contains_key("usage_events") {
+        let ev = array_of(m, "usage_events", 256)?;
+        if ev.iter().any(|x| !x.is_object()) {
+            return Err(e("SPX-HPA040", "receipt `usage_events` must be objects"));
+        }
+    }
+    if m.get("controls").is_some_and(|c| !c.is_object()) {
+        return Err(e("SPX-HPA040", "receipt `controls` must be an object"));
     }
     Ok(())
 }

@@ -278,7 +278,12 @@ fn prepare(
     program.functions.push(lifted);
     // Rechecking the synthetic ordinary source prevents a renderer from
     // granting semantics/cleanup that its original checked closure lacked.
-    let lifted_source = semaprax::format::canonical(&program);
+    let mut lifted_source = semaprax::format::canonical(&program);
+    // The standalone checker requires an entry even though this private
+    // projection exports only the selected callback and transition. Give the
+    // synthetic source a trivial checked entry; it conveys no Project export
+    // or authority and cannot depend on declarations removed above.
+    lifted_source.push_str("\n@id(\"semaprax.callback.synthetic_main\")\nfn main() -> i64 { 0 }\n");
     let program = semaprax::check(&lifted_source, path).map_err(|mut errors| errors.remove(0))?;
     let options = NativeRustSdkOptions {
         exports: canonical_values(

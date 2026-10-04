@@ -89,6 +89,8 @@
   fixtures free of Clippy warnings without changing their runtime checks.
   Scope physical Url test helpers to their supported target and document the
   independent fixture inputs used by the guarded foreign-law repair test.
+  Align verifier-hint and CLI help fixtures with admitted lists and the public
+  `dev` command.
 
 - Repair the current main CI fixtures for owned-byte Wasm imports, constructor
   schema counts, the pinned iOS action, and authenticated Everyday Agent

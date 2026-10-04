@@ -368,7 +368,7 @@ fn foreign_type_names_point_at_the_admitted_types() {
         ("int", "`i64` (the literal default)"),
         ("double", "`f64` and `f32`"),
         ("boolean", "spelled `bool`"),
-        ("List", "no general collection type"),
+        ("Array", "no general collection type"),
     ];
     for (name, expected_help) in cases {
         let diagnostic = only(
@@ -382,6 +382,25 @@ fn foreign_type_names_point_at_the_admitted_types() {
             "{name}: {diagnostic}"
         );
     }
+}
+
+#[test]
+fn list_type_names_require_the_admitted_type_argument() {
+    let source = "module habit.ty;\n@id(\"habit.f\")\nfn f(v: List) -> i64\n{\n    1\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    0\n}\n";
+    let diagnostics = diagnostics(source);
+    assert!(diagnostics.iter().any(|diagnostic| {
+        diagnostic.code == "SPX-T221"
+            && diagnostic.message == "type `List` expects 1 type arguments, received 0"
+            && diagnostic
+                .help
+                .as_deref()
+                .is_some_and(|help| help.contains("`List<…>`"))
+    }));
+    assert!(diagnostics.iter().any(|diagnostic| {
+        diagnostic.code == "SPX-T291"
+            && diagnostic.message
+                == "immutable list profile admits only `List<i64>` and `ListStep<i64>`"
+    }));
 }
 
 #[test]

@@ -4,6 +4,7 @@
 
 use super::budget::{request_text, Fit, LedgerEntry, RequestCount};
 use super::compiler::CandidatePreview;
+use super::generation::{is_truncation, ResponseShape};
 use super::journal::Journal;
 use super::pipeline::{change_bytes, Ctx, Stages};
 use super::policy::check_protected_facts;
@@ -18,6 +19,7 @@ use crate::decision::{
 use crate::diag::{HarnessDiagnostic, HarnessResult};
 use crate::json::sha256_plain;
 use crate::observe::{Availability, Role, Stage};
+use crate::receipt::GenerationControls;
 use serde_json::{json, Value};
 use std::collections::BTreeSet;
 use std::path::Path;
@@ -27,6 +29,14 @@ pub(super) const ROUTER_OUTPUT_RESERVE: u64 = 256;
 
 fn d(code: &'static str, msg: impl Into<String>) -> HarnessDiagnostic {
     HarnessDiagnostic::new(code, msg)
+}
+
+fn response_shape(p: &PromptCtx) -> ResponseShape {
+    if p.scratch_repair {
+        ResponseShape::SourceRepair
+    } else {
+        ResponseShape::StructuredIntent
+    }
 }
 
 /// Everything the model-visible prompt is built from for one attempt.
@@ -273,8 +283,23 @@ pub(super) fn route_and_fit(
 ) -> HarnessResult<(Fit, Value)> {
     let cfg = cx.cfg;
     let task = &cfg.task;
+    let shape = response_shape(p);
+    cfg.budget
+        .generation
+        .gate(shape, &st.proposer.generation_support())?;
     let all = catalog(cx, task)?;
-    let budget = cfg.budget.for_task(task);
+    let mut budget = cfg.budget.for_task(task);
+    // Accepted output reservation: a bounded retry's cap, else the configured tier, else the budget default.
+    budget.policy.output_reserve_tokens = cx.reserve_override.take().unwrap_or_else(|| {
+        cfg.budget
+            .generation
+            .reserve_for(shape, budget.policy.output_reserve_tokens)
+    });
+    // Adapter-declared framing is model-visible and counted in admission.
+    budget.policy.protocol_overhead_tokens = budget
+        .policy
+        .protocol_overhead_tokens
+        .saturating_add(st.proposer.framing_overhead_tokens());
     let optional = optional_labels(p, cfg.skill_prompt.is_some());
     let mut excluded: Vec<Value> = Vec::new();
     let mut pool = all.clone();
@@ -410,6 +435,7 @@ pub(super) fn generate(
     r: &mut Report,
     step: &str,
     count: &RequestCount,
+    controls: &GenerationControls,
 ) -> HarnessResult<Vec<u8>> {
     let side = st.proposer.side_effecting();
     let cache = cx.cfg.cache_dir.join(if step == "generate" {
@@ -445,6 +471,7 @@ pub(super) fn generate(
         lineage: cx.lineage,
         prompt,
         model,
+        controls: controls.clone(),
     };
     let (got, receipt) = st.proposer.propose_receipted(&req);
     let estimate = cx.cfg.budget.prices.estimate(&req.model, &receipt.usage);
@@ -457,13 +484,12 @@ pub(super) fn generate(
         count,
         Some((&receipt, &estimate)),
     );
-    let reserved = cx.ledger.entries.last().map_or(0, |e| e.output_reserve);
     cx.receipts.push(
         step,
         &st.proposer.id(),
         &req.model,
         count.admission_tokens(),
-        reserved,
+        controls.max_output_tokens.unwrap_or(0),
         &receipt,
         &estimate,
     );
@@ -505,6 +531,63 @@ pub(super) fn generate(
     }
 }
 
+/// Route, fit, reserve and generate on the model branch. A length-limited reply
+/// is a known terminal outcome: when configured, one new attempt at the larger
+/// cap, reserved before dispatch like any other.
+fn generate_with_retry(
+    cx: &mut Ctx,
+    st: &mut Stages,
+    journal: &mut Journal,
+    r: &mut Report,
+    p: &PromptCtx,
+    step: &str,
+) -> HarnessResult<Vec<u8>> {
+    let (mut fit, route_json) = route_and_fit(cx, st, r, p, step)?;
+    r.route = route_json;
+    let shape = response_shape(p);
+    let mut controls = cx.cfg.budget.generation.controls(shape, fit.output_reserve);
+    let mut gstep = step.to_string();
+    loop {
+        let model = fit.model.clone();
+        match generate(
+            cx,
+            st,
+            journal,
+            fit.prompt.clone(),
+            model,
+            r,
+            &gstep,
+            &fit.count,
+            &controls,
+        ) {
+            // A length-limited reply is a known terminal outcome: one new attempt
+            // at the configured larger cap, reserved before dispatch like any other.
+            Err(e)
+                if is_truncation(&e)
+                    && gstep == step
+                    && cx
+                        .cfg
+                        .budget
+                        .generation
+                        .length_retry_cap
+                        .is_some_and(|c| c > fit.output_reserve) =>
+            {
+                cx.reserve_override = cx.cfg.budget.generation.length_retry_cap;
+                gstep = format!("{step}-lcap");
+                r.notes.push(format!(
+                    "reply length-limited at {} output tokens; one new attempt at the larger cap",
+                    fit.output_reserve
+                ));
+                let (f2, rj) = route_and_fit(cx, st, r, p, &gstep)?;
+                r.route = rj;
+                fit = f2;
+                controls = cx.cfg.budget.generation.controls(shape, fit.output_reserve);
+            }
+            other => return other,
+        }
+    }
+}
+
 /// Route, fit, reserve, generate and parse one proposal.
 pub(super) fn propose_step(
     cx: &mut Ctx,
@@ -516,21 +599,7 @@ pub(super) fn propose_step(
 ) -> HarnessResult<Proposal> {
     let bytes = match super::acquire::local_proposal(cx, st, journal, r, step)? {
         Some(b) => b,
-        None => {
-            let (fit, route_json) = route_and_fit(cx, st, r, p, step)?;
-            r.route = route_json;
-            let model = fit.model.clone();
-            generate(
-                cx,
-                st,
-                journal,
-                fit.prompt.clone(),
-                model,
-                r,
-                step,
-                &fit.count,
-            )?
-        }
+        None => generate_with_retry(cx, st, journal, r, p, step)?,
     };
     let v2 = cx.cfg.task.schema_version == 2;
     let proposal = parse_proposal(&bytes).map_err(|e| {

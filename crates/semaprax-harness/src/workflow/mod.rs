@@ -18,6 +18,7 @@ pub mod compiler;
 pub mod composition;
 pub mod context_target;
 mod feedback;
+pub mod generation;
 pub mod journal;
 pub mod lineage;
 pub mod pipeline;

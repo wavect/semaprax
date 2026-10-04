@@ -3,6 +3,7 @@
 //! output is untrusted data: it can only suggest context or a proposal.
 
 use super::b64;
+use super::generation::TRUNCATED_PREFIX;
 use super::lineage::Lineage;
 use crate::cli::Environment;
 use crate::contract::{CapabilityKind, CapabilityRef, RequestEnvelope};
@@ -10,7 +11,7 @@ use crate::diag::{HarnessDiagnostic, HarnessResult};
 use crate::host::grant::Grant;
 use crate::host::{AdapterHandle, CancelToken, InvocationClass, Outcome};
 use crate::profile::check_grant_current;
-use crate::receipt::{GenerationControls, ProposalReceipt};
+use crate::receipt::{GenerationControls, GenerationSupport, ProposalReceipt};
 use serde_json::{json, Map, Value};
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -580,6 +581,8 @@ pub struct ProposalRequest<'a> {
     pub prompt: Value,
     /// Logical model id chosen by the route decision.
     pub model: String,
+    /// Output-token cap (the accepted reservation) and optional reasoning control.
+    pub controls: GenerationControls,
 }
 
 pub trait ProposalStage {
@@ -597,6 +600,15 @@ pub trait ProposalStage {
             self.propose(req),
             ProposalReceipt::unavailable("scripted_or_legacy_provider"),
         )
+    }
+    /// Declared support for generation controls (`Unknown` unless declared).
+    fn generation_support(&self) -> GenerationSupport {
+        GenerationSupport::default()
+    }
+    /// Tokens of model-visible framing the adapter adds beyond the harness
+    /// prompt, declared by the host and added to admission (never guessed).
+    fn framing_overhead_tokens(&self) -> u64 {
+        0
     }
     fn calls(&self) -> u32;
     /// Whether a call is non-idempotent (never replayed after a restart).
@@ -678,6 +690,10 @@ pub struct HostModel {
     pub grant: Grant,
     pub env: Environment,
     pub provider_id: String,
+    /// Host-declared support for the output cap and reasoning control.
+    pub support: GenerationSupport,
+    /// Host-declared tokens of framing the adapter adds to the request.
+    pub framing_tokens: u64,
     calls: u32,
 }
 
@@ -696,15 +712,32 @@ impl HostModel {
             grant,
             env,
             provider_id,
+            support: GenerationSupport::default(),
+            framing_tokens: 0,
             calls: 0,
         }
     }
+    pub fn with_support(mut self, support: GenerationSupport) -> Self {
+        self.support = support;
+        self
+    }
+    pub fn with_framing_tokens(mut self, n: u64) -> Self {
+        self.framing_tokens = n;
+        self
+    }
+
     /// The `model.generate/v1` request payload. Optional members appear only
     /// when requested, so legacy adapters see the original shape by default.
     pub fn request_payload(req: &ProposalRequest) -> Value {
         let prompt = crate::json::canonical(&req.prompt);
-        let p = json!({"model": req.model, "input_base64": b64::encode(prompt.as_bytes()),
+        let mut p = json!({"model": req.model, "input_base64": b64::encode(prompt.as_bytes()),
                            "max_output_bytes": MODEL_MAX_OUTPUT_BYTES});
+        if let Some(n) = req.controls.max_output_tokens {
+            p["max_output_tokens"] = json!(n);
+        }
+        if let Some(e) = req.controls.reasoning {
+            p["reasoning_effort"] = json!(e.as_str());
+        }
         p
     }
 
@@ -713,18 +746,18 @@ impl HostModel {
     /// for it. An incomplete (length-limited) reply is never returned as a proposal.
     pub fn interpret(
         outcome: Outcome,
-        _req: &ProposalRequest,
+        req: &ProposalRequest,
     ) -> (Result<Vec<u8>, StageFailure>, ProposalReceipt) {
         match outcome {
             Outcome::Completed(r) if r.payload.is_some() => {
                 let payload = r.payload.as_ref().expect("checked");
-                let receipt = ProposalReceipt::from_result(&GenerationControls::default(), payload);
+                let receipt = ProposalReceipt::from_result(&req.controls, payload);
                 if receipt.finish.incomplete() {
                     return (
                         Err(StageFailure::Refused(d(
                             "SPX-HPD030",
                             format!(
-                                "incomplete model output: the provider ended the reply as {}; it is not a proposal and is never repaired",
+                                "{TRUNCATED_PREFIX}: the provider ended the reply as {}; it is not a proposal and is never repaired",
                                 receipt.finish.as_str()
                             ),
                         ))),
@@ -776,6 +809,12 @@ impl ProposalStage for HostModel {
             &CancelToken::new(),
         );
         Self::interpret(outcome, req)
+    }
+    fn generation_support(&self) -> GenerationSupport {
+        self.support
+    }
+    fn framing_overhead_tokens(&self) -> u64 {
+        self.framing_tokens
     }
     fn calls(&self) -> u32 {
         self.calls

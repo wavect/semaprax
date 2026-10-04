@@ -95,6 +95,8 @@ pub(super) struct Ctx<'a> {
     pub(super) started: Instant,
     /// Provider receipts of every dispatched generation (TC-01).
     pub(super) receipts: crate::receipt::ReceiptLog,
+    /// Output reserve for the next fit (a bounded larger-cap retry, TC-02).
+    pub(super) reserve_override: Option<u64>,
 }
 
 impl Ctx<'_> {
@@ -252,6 +254,7 @@ pub fn run(
         ledger: TaskLedger::default(),
         started: Instant::now(),
         receipts: Default::default(),
+        reserve_override: None,
     };
     let result = drive(&mut cx, &mut stages, &mut report);
     if let Err(e) = result {

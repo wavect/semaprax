@@ -10,11 +10,25 @@ pub fn validate(dir: Direction, v: &Value) -> HarnessResult<()> {
                 v,
                 "model request",
                 &["model", "input_base64", "max_output_bytes"],
-                &[],
+                &["max_output_tokens", "reasoning_effort"],
             )?;
             logical_id(m)?;
             base64(m, "input_base64")?;
             uint_of(m, "max_output_bytes")?;
+            if m.contains_key("max_output_tokens") && uint_of(m, "max_output_tokens")? == 0 {
+                return Err(e("SPX-HPA040", "`max_output_tokens` must be at least 1"));
+            }
+            if m.contains_key("reasoning_effort")
+                && !matches!(
+                    m["reasoning_effort"].as_str(),
+                    Some("minimal" | "low" | "medium" | "high")
+                )
+            {
+                return Err(e(
+                    "SPX-HPA040",
+                    "`reasoning_effort` must be minimal, low, medium or high",
+                ));
+            }
         }
         Direction::Result => {
             let m = shape(

@@ -42,3 +42,33 @@ Validate the committed contract without starting the compiler or timing a host:
 python3 benchmarks/hot-reload-v1/test_run.py
 python3 benchmarks/hot-reload-v1/run.py --dry-run --output /tmp/hot-reload-plan.json
 ```
+
+## Cross-layer acceptance record
+
+`cross-layer-manifest.json` maps the existing HR-01, HR-02, HR-04, and
+source-Agent selectors into one HR-07 evidence record. It includes watcher
+selectors for B→invalid-C retention and invalid-C→repair, source-Agent A→B,
+retained A→B→C handoff and replay, and the prepared-worker A→B→C identity
+selector. The last of these is an opaque in-process worker observation; it is
+not a process identity.
+
+The cross-layer runner never builds a selector. Pass an already-built exact
+selector command for each cell that should be timed. It records raw elapsed
+values, summary values, and stdout/stderr digests only after every invocation
+returns zero. Omitted cells remain `unavailable`; the committed manifest keeps
+native-process identity and native/Wasm state swap explicitly unavailable.
+
+```sh
+python3 benchmarks/hot-reload-v1/cross_layer.py --dry-run \
+  --output /tmp/hot-reload-cross-layer-plan.json
+
+# The argv is JSON so paths and exact test filters stay unambiguous.
+python3 benchmarks/hot-reload-v1/cross_layer.py --samples 5 \
+  --selector-command '{"id":"source-agent-a-b","argv":["/abs/path/to/cli_help_surface_v1","source_agent_hot_reload::full_dev_source_agent_migrates_real_journal_a_to_b_with_local_opencode_stub","--exact"]}' \
+  --output /tmp/hot-reload-cross-layer.json
+```
+
+The example does not stand in for a committed measurement. A command may be
+supplied only when its prebuilt executable matches the intended subject; the
+report records the repository head at the time it runs and explicitly marks
+the selector executable digest as unobserved.

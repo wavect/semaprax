@@ -39,3 +39,28 @@ native/Wasm code swap, or production rollout. See
 [Hot Reload Watcher v1](HOT-RELOAD-WATCHER-V1.md) for the bounded control
 adapter and [Persistent Semantic Cache v1](PERSISTENT-SEMANTIC-CACHE-V1.md)
 for the authenticated restart boundary.
+
+## Cross-layer selector record
+
+The additive [cross-layer manifest](../benchmarks/hot-reload-v1/cross-layer-manifest.json)
+does not expand the interpreter benchmark's scope. It names the existing
+watcher selectors for B→invalid-C retention and invalid-C→repair, the
+source-Agent child selector for A→B journal migration, the retained A→B→C
+migration/replay selector, and the prepared-interpreter A→B→C
+worker-continuity selector.
+These selectors prove different boundaries and must remain separately named in
+the record.
+
+`cross_layer.py` runs only selector commands explicitly supplied by the
+operator, so it does not trigger Cargo or build a compiler. For each supplied
+command it records actual wall-clock samples plus stdout/stderr digests. A
+command that is omitted has `unavailable` status; a nonzero command aborts the
+run without a report. This prevents a plan or prior test result from becoming a
+timing measurement.
+
+Two cells intentionally remain unavailable: the source-Agent JSONL protocol
+does not emit an OS process identity that can be compared through activation,
+and no native or Wasm source-Agent state replacement implementation exists to
+time. The prepared worker's `ThreadId` continuity assertion is an opaque local
+library observation. It is not process identity, transport evidence, or a
+native-target claim.

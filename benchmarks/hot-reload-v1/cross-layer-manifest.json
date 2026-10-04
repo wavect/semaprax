@@ -1,0 +1,63 @@
+{
+  "schema": "semaprax.hot-reload-cross-layer-acceptance.v1",
+  "scope": "local-selector-timing",
+  "subject": {"revision": "git-head-at-run", "binary_digest": "not-observed-by-selector-runner"},
+  "cells": [
+    {
+      "id": "interpreter-a-b",
+      "availability": "runnable-with-prebuilt-semaprax",
+      "selector": "benchmarks/hot-reload-v1/run.py",
+      "requires": ["A returns 42", "B returns 48", "one interpreter child spans A to B"]
+    },
+    {
+      "id": "watcher-a-b-invalid-c",
+      "availability": "selector-required",
+      "selector": "project::hot_reload_watcher::tests::invalid_c_rejects_after_b_without_replacing_active_a_or_admitting_stale_b",
+      "requires": ["B candidate admission", "invalid C refusal", "A remains active", "stale B cannot activate"]
+    },
+    {
+      "id": "watcher-invalid-c-repair",
+      "availability": "selector-required",
+      "selector": "project::hot_reload_watcher::tests::valid_repair_after_invalid_c_admits_once",
+      "requires": ["invalid C refusal", "valid repair admission", "one admission after repair", "next poll is idle"]
+    },
+    {
+      "id": "source-agent-a-b",
+      "availability": "selector-required",
+      "selector": "cli_help_surface_v1::source_agent_hot_reload::full_dev_source_agent_migrates_real_journal_a_to_b_with_local_opencode_stub",
+      "requires": ["source-built semaprax-full child", "A checkpoint", "B destination journal", "one local OpenCode stub"]
+    },
+    {
+      "id": "source-agent-a-b-c",
+      "availability": "selector-required",
+      "selector": "source_live_cli::hr04_state_handoff_tests::retained_a_to_b_to_c_handoff_carries_state_without_initialize_or_redispatch",
+      "requires": ["retained A checkpoint", "B suspend", "C complete", "forged B refusal before provider dispatch", "B to C replay without redispatch"]
+    },
+    {
+      "id": "prepared-worker-a-b-c-identity",
+      "availability": "selector-required",
+      "selector": "project::hot_reload::tests::real_a_to_b_to_c_keeps_one_worker_and_binds_each_trace_to_its_revision",
+      "requires": ["same opaque in-process worker identity", "A/B/C revision-bound traces"]
+    },
+    {
+      "id": "native-process-identity",
+      "availability": "unavailable",
+      "selector": null,
+      "requires": ["a process identity emitted by the source-Agent control protocol", "identity continuity asserted across activation"]
+    },
+    {
+      "id": "native-or-wasm-state-swap",
+      "availability": "unavailable",
+      "selector": null,
+      "requires": ["a native or Wasm source-Agent state replacement implementation", "physical migration timing"]
+    }
+  ],
+  "nonclaims": [
+    "committed timing samples",
+    "native process identity evidence",
+    "native-or-Wasm state swap",
+    "provider latency",
+    "universal-millisecond-target",
+    "production rollout"
+  ]
+}

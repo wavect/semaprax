@@ -19,6 +19,8 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Restore CI's focused dependency and formatting checks: admit the locked
+  `foldhash` Zlib license and format the harness sources checked by rustfmt.
 - Complete and retain the preregistered 20-trial LAW16 Claude Boolean campaign:
   19 candidate/attack trials passed, one Bend candidate failed verdict, and
   provider-reported cost was $0.291235. The adverse result remains visible.

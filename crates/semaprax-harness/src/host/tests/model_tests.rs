@@ -112,10 +112,7 @@ fn fake_model_without_a_receipt_is_explicitly_unavailable_and_truncation_is_not_
     };
     let (bytes, r) = drive("MODE:truncate", controls);
     assert!(bytes.is_err(), "a length-limited reply is refused");
-    assert_eq!(
-        r.finish,
-        Finish::LengthLimited
-    );
+    assert_eq!(r.finish, Finish::LengthLimited);
     assert_eq!(r.usage.output, Some(7));
     assert_eq!(r.usage.uncached_input, None);
 }

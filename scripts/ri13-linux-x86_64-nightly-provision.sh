@@ -94,7 +94,7 @@ RI-13 exact Linux x86_64 nightly extractor provision plan
   nightly date: 2026-10-02
   manifest SHA-256: 50abfdf8df57de84ff7b3188b6cad2a9681a4165518712c9e504948bf896e2b3
 
---run starts one removed-on-exit Linux x86_64 guest with 1 GiB RAM and guest
+--run starts one removed-on-exit Linux x86_64 guest with 2 GiB RAM and guest
 network only for the three checksum-pinned Rust distribution downloads.  It
 does not invoke Cargo, rustdoc extraction, or the M1/M2/M3 evidence gate.
 EOF
@@ -126,7 +126,7 @@ except (IndexError, KeyError, TypeError, json.JSONDecodeError) as error:
 mkdir "$output"
 trap 'echo "RI-13 nightly provision retained after interruption: $output" >&2' HUP INT TERM
 container run --arch amd64 --rosetta --rm --init \
-    --memory 1G --read-only --tmpfs /tmp --tmpfs /work \
+    --memory 2G --read-only --tmpfs /tmp --tmpfs /work \
     --mount "type=bind,source=$script_dir,target=/provision-scripts,readonly" \
     --mount "type=bind,source=$cargo_home,target=/cargo-home,readonly" \
     --mount "type=bind,source=$output,target=/output" \

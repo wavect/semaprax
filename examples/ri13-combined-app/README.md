@@ -182,7 +182,7 @@ target and package checks.
 The pinned evidence image supplies stable Rust 1.98 but does not contain the
 pinned nightly extractor. First provision the exact Linux x86_64
 `nightly-2026-10-02` toolchain with the bounded provisioner below. It starts a
-single 1 GiB guest, verifies the official dated manifest plus the `rustc`,
+single 2 GiB guest, verifies the official dated manifest plus the `rustc`,
 `cargo`, and `rust-std` archive SHA-256 values, installs only those components,
 and verifies the exact rustdoc version. Its supplied Cargo home is read-only;
 it verifies the locked `regex` and `url` archives and that each mounted source

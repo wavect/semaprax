@@ -8,7 +8,7 @@ use super::lineage;
 use super::policy::{exclusion, looks_like_json, Policy};
 use super::result::{argv_digest, CommandResult, Envelope, ModelView, StreamRecord};
 use super::retention::{handle_for, Retention, StreamName};
-use super::view::{lineage_env, Provider};
+use super::view::{lineage_env, PlanRoute, Provider, ViewOptions};
 use super::wrapper;
 use crate::cli::Environment;
 use crate::contract::CapabilityKind;
@@ -137,19 +137,52 @@ pub fn execute(
 
     let mut effective: Option<Vec<String>> = None;
     let mut run_exe = exe.clone();
-    if let Some(p) = provider
-        .as_ref()
-        .filter(|p| policy.allow_wrapper && p.declares("wrap"))
-    {
-        match p.wrap(argv, &own.chain) {
-            Ok(plan) => {
-                let (eff, e) = wrapper::authorize(&plan, argv, &exe, &cwd, &project)?;
-                if eff != argv {
-                    effective = Some(eff);
-                    run_exe = e;
+    let mut plan_bypass = false;
+    if let Some(p) = provider.as_ref() {
+        let cwd_rel = match cwd.strip_prefix(&project) {
+            Ok(r) if !r.as_os_str().is_empty() => r.to_string_lossy().into_owned(),
+            _ => ".".to_string(),
+        };
+        let mut wrapped = None;
+        if p.declares("plan") {
+            match p.plan(
+                argv,
+                &cwd_rel,
+                &own.chain,
+                policy.allow_wrapper,
+                policy.min_bytes,
+            ) {
+                Ok(PlanRoute::PostExecution) => {}
+                Ok(PlanRoute::Bypass(why)) => {
+                    plan_bypass = true;
+                    notes.push(format!("provider plan: bypass ({why})"));
                 }
+                // Only a route that declares complete raw recovery and needs no
+                // extra environment may wrap; otherwise run once, unwrapped, and view.
+                Ok(PlanRoute::Wrapped(plan)) => {
+                    if policy.allow_wrapper && plan.raw_recovery_declared && !plan.needs_env {
+                        wrapped = Some(plan);
+                    } else {
+                        notes.push(
+                            "provider plan: wrapped route lacks complete raw recovery here; running unwrapped"
+                                .into(),
+                        );
+                    }
+                }
+                Err(m) => notes.push(format!("provider plan unavailable, running unwrapped: {m}")),
             }
-            Err(m) => notes.push(format!("wrapper plan unavailable, running unwrapped: {m}")),
+        } else if policy.allow_wrapper && p.declares("wrap") {
+            match p.wrap(argv, &own.chain) {
+                Ok(plan) => wrapped = Some(plan),
+                Err(m) => notes.push(format!("wrapper plan unavailable, running unwrapped: {m}")),
+            }
+        }
+        if let Some(plan) = wrapped {
+            let (eff, e) = wrapper::authorize(&plan, argv, &exe, &cwd, &project)?;
+            if eff != argv {
+                effective = Some(eff);
+                run_exe = e;
+            }
         }
     }
     let run_argv: &[String] = effective.as_deref().unwrap_or(argv);
@@ -257,7 +290,9 @@ pub fn execute(
     let raw_all = raw_text(&out_t, &err_t);
 
     // Decide who produces the text.
-    let mut use_provider = provider.is_some() && effective.is_none();
+    let mut use_provider = provider.as_ref().is_some_and(|p| p.declares("view"))
+        && effective.is_none()
+        && !plan_bypass;
     let skip = |why: &str, flag: &mut bool, notes: &mut Vec<String>| {
         if *flag {
             notes.push(format!("provider not consulted: {why}"));
@@ -301,7 +336,12 @@ pub fn execute(
         let p = provider.as_ref().expect("checked");
         let red_o = redact(&out_t, &policy.redact);
         let red_e = redact(&err_t, &policy.redact);
-        match p.view(argv, &red_o, &red_e, &own.chain) {
+        let opts = ViewOptions {
+            min_bytes: policy.min_bytes,
+            max_bytes: display_cap as u64,
+            recovery_handle: handle.clone(),
+        };
+        match p.view(argv, &red_o, &red_e, &opts, &own.chain) {
             Ok(pv) => {
                 let (mut text, mut incomplete) = guard::bound(&pv.text, display_cap);
                 let reference = raw_text(&red_o, &red_e);

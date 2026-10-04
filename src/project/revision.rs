@@ -133,8 +133,16 @@ impl ProjectRevision {
         &self.public_api_program
     }
 
-    /// Replay the admitted interpreter-only Rust Future selection against
-    /// this immutable Project revision before an ephemeral invocation.
+    /// Return the interpreter-only Rust Future selection admitted when this
+    /// immutable Project revision was constructed.
+    ///
+    /// Project construction already performs the complete profile admission
+    /// against `public_api_program`; an immutable revision cannot acquire a
+    /// different program afterward. Re-deriving the lowering here made each
+    /// generated registration and call replay the same pure admission work.
+    /// Generated modules still bind this retained signature to their exact
+    /// revision, function identity, and plan identity before accepting a
+    /// callback.
     pub fn source_local_future_signature(
         &self,
     ) -> Result<&crate::resumable_effects::source_signature::SourceEffectSignature, Vec<Diagnostic>>
@@ -154,9 +162,6 @@ impl ProjectRevision {
                     "source-local-future.v1 admission is absent",
                 )]
             })?;
-        signature
-            .verify(&self.public_api_program)
-            .map_err(|e| vec![e])?;
         Ok(signature)
     }
 

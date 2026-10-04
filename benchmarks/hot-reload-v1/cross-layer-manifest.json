@@ -52,7 +52,7 @@
     {
       "id": "source-agent-a-b-c",
       "availability": "selector-required",
-      "selector": "source_live_cli::hr04_state_handoff_tests::retained_a_to_b_to_c_handoff_carries_state_without_initialize_or_redispatch",
+      "selector": "source_live_cli::tests::hr04_state_handoff_tests::retained_a_to_b_to_c_handoff_carries_state_without_initialize_or_redispatch",
       "requires": [
         "retained A checkpoint",
         "B suspend",
@@ -192,7 +192,7 @@
     {
       "id": "source-agent-journal-ack-loss",
       "availability": "selector-required",
-      "selector": "source_live_cli::hr04_state_handoff_tests::physical_journal_ack_loss_and_unknown_effect_outcome_keep_source_handoff_terminal_and_block_c_dispatch",
+      "selector": "source_live_cli::tests::hr04_state_handoff_tests::physical_journal_ack_loss_and_unknown_effect_outcome_keep_source_handoff_terminal_and_block_c_dispatch",
       "requires": [
         "physical journal acknowledgement loss is terminal",
         "successor dispatch blocked",
@@ -204,7 +204,7 @@
     {
       "id": "source-agent-claim-and-reservation-faults",
       "availability": "selector-required",
-      "selector": "source_live_cli::hr04_handoff_fault_tests::physical_migration_reservation_and_handoff_claim_faults_block_successor_dispatch",
+      "selector": "source_live_cli::tests::hr04_handoff_fault_tests::physical_migration_reservation_and_handoff_claim_faults_block_successor_dispatch",
       "requires": [
         "migration reservation and handoff claim faults",
         "successor dispatch blocked"
@@ -277,7 +277,7 @@
     {
       "id": "source-agent-a-b-c",
       "availability": "selector-required",
-      "selector": "source_live_cli::hr04_state_handoff_tests::retained_a_to_b_to_c_handoff_carries_state_without_initialize_or_redispatch"
+      "selector": "source_live_cli::tests::hr04_state_handoff_tests::retained_a_to_b_to_c_handoff_carries_state_without_initialize_or_redispatch"
     },
     {
       "id": "prepared-worker-a-b-c-identity",
@@ -342,12 +342,12 @@
     {
       "id": "source-agent-journal-ack-loss",
       "availability": "selector-required",
-      "selector": "source_live_cli::hr04_state_handoff_tests::physical_journal_ack_loss_and_unknown_effect_outcome_keep_source_handoff_terminal_and_block_c_dispatch"
+      "selector": "source_live_cli::tests::hr04_state_handoff_tests::physical_journal_ack_loss_and_unknown_effect_outcome_keep_source_handoff_terminal_and_block_c_dispatch"
     },
     {
       "id": "source-agent-claim-and-reservation-faults",
       "availability": "selector-required",
-      "selector": "source_live_cli::hr04_handoff_fault_tests::physical_migration_reservation_and_handoff_claim_faults_block_successor_dispatch"
+      "selector": "source_live_cli::tests::hr04_handoff_fault_tests::physical_migration_reservation_and_handoff_claim_faults_block_successor_dispatch"
     },
     {
       "id": "source-agent-capacity-and-path-refusal",

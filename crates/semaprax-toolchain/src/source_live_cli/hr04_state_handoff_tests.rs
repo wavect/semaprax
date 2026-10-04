@@ -211,7 +211,7 @@ fn retained_a_to_b_to_c_handoff_carries_state_without_initialize_or_redispatch()
 #[cfg(unix)]
 #[test]
 fn physical_journal_ack_loss_keeps_source_handoff_terminal_and_blocks_c_dispatch() {
-    use super::super::checkpoint::{inject_commit_fault, CommitFault};
+    use super::super::checkpoint::{commit_fault_pending, inject_commit_fault, CommitFault};
     use semaprax::project::{
         with_authenticated_project, HotReloadDecision, HotReloadSession,
         HotReloadSourceAgentHandoffStatus, PreparedProjectInterpreterOptions,
@@ -219,19 +219,19 @@ fn physical_journal_ack_loss_keeps_source_handoff_terminal_and_blocks_c_dispatch
 
     for (name, fault, retained_entry) in [
         (
-            "effect-intent-write",
-            CommitFault::BeforeWrite("\"effect_intent\""),
+            "model-receipt-write",
+            CommitFault::BeforeWrite("\"attempt_settled\""),
             None,
         ),
         (
-            "effect-intent",
-            CommitFault::AfterRename("\"effect_intent\""),
-            Some("\"effect_intent\""),
+            "model-receipt-rename",
+            CommitFault::AfterRename("\"attempt_settled\""),
+            Some("\"attempt_settled\""),
         ),
         (
-            "stop",
-            CommitFault::AfterRename("\"stop\""),
-            Some("\"stop\""),
+            "transition-rename",
+            CommitFault::AfterRename("\"transition\""),
+            Some("\"transition\""),
         ),
     ] {
         let fixture = Fixture::new();
@@ -305,13 +305,20 @@ fn physical_journal_ack_loss_keeps_source_handoff_terminal_and_blocks_c_dispatch
         ];
         let b_calls = Rc::new(Cell::new(0));
         inject_commit_fault(fault);
-        assert!(super::super::run::execute_hot_reload_migration_with_runner(
+        let result = super::super::run::execute_hot_reload_migration_with_runner(
             &mut supervisor,
             plan,
             &arguments,
             runner(recorded_answer(&b_manifest), &b_calls),
-        )
-        .is_err());
+        );
+        assert!(
+            result.is_err(),
+            "{name} must lose its exact journal acknowledgement"
+        );
+        assert!(
+            !commit_fault_pending(),
+            "{name} fault must match a rendered migration checkpoint document"
+        );
         assert_eq!(b_calls.get(), 1, "{name} reaches exactly one B model call");
         assert_eq!(
             supervisor.source_agent_handoff_status(),
@@ -336,8 +343,8 @@ fn physical_journal_ack_loss_keeps_source_handoff_terminal_and_blocks_c_dispatch
                 "{name} keeps the physically committed journal entry for explicit recovery"
             ),
             None => assert!(
-                !b_journal_text.contains("\"effect_intent\""),
-                "a failed effect-intent write never authorizes the effect"
+                !b_journal_text.contains("\"attempt_settled\""),
+                "a failed model-receipt write never acknowledges the model answer"
             ),
         }
 

@@ -120,6 +120,11 @@ mod platform {
     }
 
     #[cfg(test)]
+    pub(in crate::source_live_cli) fn commit_fault_pending() -> bool {
+        COMMIT_FAULT.with(|slot| slot.borrow().is_some())
+    }
+
+    #[cfg(test)]
     pub(in crate::source_live_cli) fn inject_handoff_claim_fault(fault: HandoffClaimFault) {
         HANDOFF_CLAIM_FAULT.with(|slot| *slot.borrow_mut() = Some(fault));
     }
@@ -627,5 +632,6 @@ mod platform {
 pub(super) use platform::CheckpointDir;
 #[cfg(all(test, unix))]
 pub(super) use platform::{
-    inject_commit_fault, inject_handoff_claim_fault, CommitFault, HandoffClaimFault,
+    commit_fault_pending, inject_commit_fault, inject_handoff_claim_fault, CommitFault,
+    HandoffClaimFault,
 };

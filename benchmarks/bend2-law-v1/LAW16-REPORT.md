@@ -118,6 +118,12 @@ The separate [three-module calculator capsule](evidence/law16-project-incrementa
 executes SEMAPRAX compiler cache tests for a provider body edit and a rejected
 provider-signature edit. It is local incremental behavior, with no matched Bend
 route or large-project timing result.
+The [Boolean native phase capsule](evidence/law16-native-phase-thirty-v1/receipt.json)
+retains 30 local samples for each Bend check, C emission, Clang compilation,
+and run phase and each SEMAPRAX check, combined native build, and run phase.
+Its raw native outputs match the two-value witness. These timings have no
+isolated OS-cache state or cross-route winner interpretation; SEMAPRAX build
+internals are still combined.
 The [cache-isolation probe](evidence/law16-cache-isolation-probe-v1/receipt.json)
 records an earlier ephemeral Apple Container guest with read-only `/proc/sys`
 even as root. It collected zero checker timings and left no container running.

@@ -58,6 +58,14 @@ by both warm and cold test routes. The capsule records exact source and local
 test-binary identities and raw test streams. It does not establish a matched
 Bend route, checked-`u32` admission, large-project scale, proof, or timing.
 
+The supplemental Boolean native-phase capsule runs 30 local repetitions of
+Bend ordinary checking, C emission, separate Clang compilation, and the
+resulting executable. It also runs SEMAPRAX checking, its combined native
+build command, and the resulting executable. Raw command streams and generated
+artifacts are retained with digests. Each native output must match the fixed
+two-value witness. The profile has no cache isolation or formal proof route,
+and it cannot split SEMAPRAX build's internal check/codegen/compile work.
+
 Each cell has a digest-bound checked-`u32` input/output corpus under
 `benchmarks/bend2-law-v1/fixtures/`. It is language-neutral because the
 reviewed SEMAPRAX scalar profile does not admit `u32`; replacing it with its

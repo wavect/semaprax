@@ -960,3 +960,20 @@ The [owning profile](../../docs/BEND2-LAW-BENCHMARK-V1.md#guest-file-page-cache-
 describes the exact cache boundary. Bend verdict, SEMAPRAX SMT/Lean, proof
 synthesis and compile/runtime separation remain outside this profile; AC5 and
 issue #392 remain open.
+
+The separate [native phase capsule](evidence/law16-native-phase-thirty-v1/receipt.json)
+retains 30 local repetitions each for Bend `--check-only`, C emission, Clang
+compilation, and native execution, plus SEMAPRAX `check`, combined native
+`build`, and native execution. A [one-pair pilot](evidence/law16-native-phase-pilot-v1/receipt.json)
+preceded the campaign. Every native run produced the exact Boolean witness;
+the generated C and executables are digest-bound. SEMAPRAX's build command
+combines internal checking, code generation, and compilation, so this profile
+does not claim those internal phases were isolated. It is not cache-isolated,
+proof checking, or a cross-route performance comparison. Reproduce with:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_boolean_native_phases.py \
+  --output /absolute/new-capsule --repetitions 30 \
+  --semaprax /absolute/pinned-semaprax --bun /absolute/pinned-bun \
+  --bend /absolute/pinned-bend-checkout --clang /absolute/pinned-clang
+```

@@ -58,6 +58,10 @@ class CurrentReportTests(unittest.TestCase):
         self.assertEqual(project["project_modules"], 3)
         self.assertEqual(project["raw_streams"], 4)
         self.assertIn("no matched Bend route", project["scope"])
+        phases = value["supplemental_boolean_native_phases"]
+        self.assertEqual(phases["status"], "thirty_repetitions_authenticated")
+        self.assertEqual(phases["summary"]["clang_compile"]["count"], 30)
+        self.assertEqual(phases["summary"]["semaprax_run"]["count"], 30)
         process = value["matched_boolean"]["process_provenance"]
         self.assertEqual(process["command_count"], 240)
         self.assertEqual(process["cold_cache"]["status"], "unavailable")

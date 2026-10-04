@@ -37,6 +37,7 @@ CACHE_ISOLATION = module("law16_cache_isolation_probe")
 BOOLEAN_REFACTOR = module("law16_boolean_refactor_cell")
 GUEST_CACHE = module("law16_guest_cache")
 PROJECT_INCREMENTAL = module("law16_project_incremental_cell")
+NATIVE_PHASES = module("law16_boolean_native_phases")
 SCHEMA = "semaprax.bend2-law-benchmark.current-report.v1"
 
 
@@ -144,6 +145,7 @@ def render():
     cache_probe = CACHE_ISOLATION.review()
     guest_cache = GUEST_CACHE.review(ROOT / "evidence/law16-guest-cache-thirty-v1")
     project_incremental = PROJECT_INCREMENTAL.verify(ROOT / "evidence/law16-project-incremental-cell-v1")
+    native_phases = NATIVE_PHASES.review(ROOT / "evidence/law16-native-phase-thirty-v1")
     boolean_refactor = BOOLEAN_REFACTOR.verify(ROOT / "evidence/law16-boolean-refactor-cell-v1")
     claude_boolean_pilot = read(ROOT / "evidence/law16-claude-boolean-pilot-v1/capsule.json")
     if claude_boolean_pilot.get("schema") != "semaprax.bend2-law-benchmark.claude-boolean-pilot-capsule.v1" or claude_boolean_pilot.get("campaign_admission") is not False:
@@ -412,6 +414,11 @@ def render():
             "source": "evidence/law16-project-incremental-cell-v1/result.json",
             **project_incremental,
             "scope": "local three-module SEMAPRAX compiler cache control; no matched Bend route or project-sized timing comparison",
+        },
+        "supplemental_boolean_native_phases": {
+            "source": "evidence/law16-native-phase-thirty-v1/receipt.json",
+            **native_phases,
+            "scope": "30 local samples each for separate Bend check/C emission/Clang compile/run and SEMAPRAX check/combined native build/run phases; no proof, cache isolation, or cross-route comparison",
         },
         "supplemental_boolean_refactor_cell": {
             "source": "evidence/law16-boolean-refactor-cell-v1/result.json",

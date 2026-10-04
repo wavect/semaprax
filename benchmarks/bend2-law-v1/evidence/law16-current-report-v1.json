@@ -1883,6 +1883,55 @@
   "schema": "semaprax.bend2-law-benchmark.current-report.v1",
   "scope": "local pinned Boolean-negation evidence and separate guarded-U32 theorem/control routes",
   "status": "incomplete",
+  "supplemental_boolean_native_phases": {
+    "nonclaims": [
+      "SEMAPRAX build combines internal checking, code generation, and native compilation; those internals are not timed separately",
+      "Bend emit-C and Clang compilation are distinct local phases but do not measure Bend --verdict",
+      "process startup and local caches are not isolated; this is not a cold/warm or cross-route comparison",
+      "native execution is a two-input witness, not a source-proof or lowering theorem",
+      "no performance winner or LAW16 issue closure"
+    ],
+    "scope": "30 local samples each for separate Bend check/C emission/Clang compile/run and SEMAPRAX check/combined native build/run phases; no proof, cache isolation, or cross-route comparison",
+    "source": "evidence/law16-native-phase-thirty-v1/receipt.json",
+    "status": "thirty_repetitions_authenticated",
+    "summary": {
+      "bend_check": {
+        "count": 30,
+        "p50_ns": 82684375.0,
+        "p95_ns": 147570042
+      },
+      "bend_emit_c": {
+        "count": 30,
+        "p50_ns": 94438083.5,
+        "p95_ns": 171655917
+      },
+      "bend_run": {
+        "count": 30,
+        "p50_ns": 205188812.0,
+        "p95_ns": 339447125
+      },
+      "clang_compile": {
+        "count": 30,
+        "p50_ns": 183967167.0,
+        "p95_ns": 325482666
+      },
+      "semaprax_build": {
+        "count": 30,
+        "p50_ns": 256792416.5,
+        "p95_ns": 386561209
+      },
+      "semaprax_check": {
+        "count": 30,
+        "p50_ns": 253952812.5,
+        "p95_ns": 352867625
+      },
+      "semaprax_run": {
+        "count": 30,
+        "p50_ns": 198467521.0,
+        "p95_ns": 377667916
+      }
+    }
+  },
   "supplemental_boolean_refactor_cell": {
     "checked_u32": "not_admitted_by_this_boolean_cell",
     "raw_streams": 16,

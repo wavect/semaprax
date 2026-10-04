@@ -247,12 +247,13 @@ def render() -> dict:
             "id": "AC5",
             "text": ACCEPTANCE_TEXT[4],
             "status": "partial",
-            "assessment": "Process timing, proof/check routes, agent synthesis tokens, and runtime controls are separated. A later Linux/Rosetta guest capsule authenticates 30 cold/warm file-page-cache pairs each for ordinary Bend and SEMAPRAX check. Host/Rosetta caches and proof/verdict cold/warm routes remain unmeasured. Native compile and run remain combined and unmeasured as separate timings.",
+            "assessment": "Process timing, proof/check routes, agent synthesis tokens, and runtime controls are separated. A Linux/Rosetta guest capsule authenticates 30 cold/warm file-page-cache pairs each for ordinary Bend and SEMAPRAX check. A separate local 30-sample Boolean capsule times Bend check, C emission, Clang compile, and native run separately, and SEMAPRAX check, combined native build, and native run separately. Host/Rosetta caches and proof/verdict cold/warm routes remain unmeasured; SEMAPRAX build internals remain combined.",
             "evidence": common + [
                 evidence("evidence/law16-boolean-negation-process-v2/manifest.json"),
                 evidence("evidence/law16-boolean-negation-process-v2/provenance.json"),
                 evidence("evidence/law16-cache-isolation-probe-v1/receipt.json"),
                 evidence("evidence/law16-guest-cache-thirty-v1/receipt.json"),
+                evidence("evidence/law16-native-phase-thirty-v1/receipt.json"),
                 evidence("evidence/law16-effort-summary-v1.json"),
                 evidence("evidence/full-u32-encoding-controls-v1/report.json"),
             ],
@@ -294,7 +295,7 @@ def render() -> dict:
         ),
         (
             "partial",
-            "Available process cells have 30 samples, p50/p95, peak RSS, and descriptive MAD; proof synthesis tokens, Boolean annotation/changed-byte counts, and route checks are separately reported. A local three-module cache invalidation control and guest file-page-cache cold/warm pairs for ordinary/check routes are retained. Proof/verdict cold/warm, monetary cost for admitted matched trials, and separate native compile/run timings remain unavailable.",
+            "Available process cells have 30 samples, p50/p95, peak RSS, and descriptive MAD; proof synthesis tokens, Boolean annotation/changed-byte counts, and route checks are separately reported. A local three-module cache invalidation control and guest file-page-cache cold/warm pairs for ordinary/check routes are retained. Local native phase samples separate Bend Clang compilation and both run phases; SEMAPRAX build internals remain combined. Proof/verdict cold/warm and monetary cost for admitted matched trials remain unavailable.",
         ),
         (
             "partial",

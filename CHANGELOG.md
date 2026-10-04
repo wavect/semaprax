@@ -14,6 +14,9 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Retain 30 LAW16 local Boolean check/build/run phase samples per route with
+  raw streams and generated-artifact digests; keep SEMAPRAX's internal build
+  work combined and exclude cross-route performance claims.
 - Retain a real three-module SEMAPRAX project-incremental cache control for
   LAW16, with a provider body edit, signature-change refusal, exact test-binary
   identity, and raw outputs. The matched Bend and large-project comparison

@@ -1,6 +1,8 @@
 //! Genuine first-class scalar callable values, independent of backend addresses.
 use semaprax::hir::{self, ResolvedExprKind, ResolvedType};
 
+#[path = "function_values/borrowed_closures.rs"]
+mod borrowed_closures;
 #[path = "function_values/closures.rs"]
 mod closures;
 #[path = "function_values/mutable_closures.rs"]

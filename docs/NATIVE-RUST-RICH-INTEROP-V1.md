@@ -797,7 +797,8 @@ generated Rust owner can now be retained by one same-thread foreign registry
 through an opaque lease that invokes once or unregisters before Drop. The
 separate mixed profile admits one copied scalar snapshot, including a snapshot
 from a mutable outer binding. The separate noncopyable scalar mutable profile
-below retains state across calls; borrowed source captures remain open.
+below retains state across calls. The synchronous borrowed-text profile below
+adds one parameter-rooted borrowed source capture.
 
 The additive `prepare_native_rust_callbacks` renderer selects a checked
 `fn(i64) -> fn(i64) -> i64` factory with one immutable scalar snapshot capture,
@@ -924,12 +925,27 @@ failed/ignored, 210 filtered; 1.75s). Tools were Rust 1.98.0 and Apple Clang
 21.0.0 on aarch64 macOS, offline/locked Cargo, one job, debug0 and incremental0,
 with a private target. No hosted or whole-repository full-profile run is claimed.
 
-RI-08 remains open for RI-06-proven borrowed Semaprax capture scopes and
-broader mutable environments and callback Result shapes. Bounded source FnMut
-and retained affine owned captures have separate owning profiles above; their
-support does not establish borrowed source captures. Selected-index trait
-admission is described below. A borrowed generated Rust closure alone does not
-establish a borrowed Semaprax capture.
+The additive [Synchronous Borrowed Text Closures v1](CLOSURES-BORROWED-V1.md)
+profile admits an ordinary source literal capturing exactly one direct
+`borrow str` parameter in its synchronous creator frame. Source and independent
+HIR checking forbid escape, aliases and local owned-view captures. Native C
+retains the original pointer/length; interpreter and Core Wasm retain their
+existing borrowed descriptors. `prepare_native_rust_borrowed_callback` selects a
+checked `(borrow str, i64) -> i64` entry that creates and immediately invokes the
+actual source closure on each Rust invocation. Its higher-ranked same-thread
+Rust scope composes with RI-06's typed URL owner-view guard.
+
+The `borrowed_closures` language selector covers canonical/graph replay,
+source/HIR refusals and interpreter/native O0/O2/Core Wasm parity. The
+`borrowed_callback` builder selector binds the actual checked source body to a
+physical pinned URL consumer and real iterator, verifies borrowed pointer
+identity, catches introduced-copy and changed-body controls, preserves failed
+result slots, and exercises panic release and pre-call reentry refusal. Rust
+refuses callback/function/view/async escape, thread transfer and owner
+move/mutation while the view is live. This is a synchronous parameter-rooted
+capture profile; arbitrary borrowed captures, broader mutable environments and
+callback Result shapes remain separate. Selected-index trait admission is
+below.
 
 The gates ran serially in the builder library harness, with
 `RUSTC=/opt/homebrew/bin/rustc`, `CLANG=/usr/bin/clang`,
@@ -1025,9 +1041,9 @@ without committing state, and returns the live environment count to zero on
 teardown. Exact identity/shape refusals and real unsafe/sealed/extra-method/wrong
 signature compiler controls accompany affine once, mutable-borrow and thread
 transfer compile failures. This adds selected-trait admission; it does not
-reinterpret scalar state transitions as source mutable/owned captures. Source
-borrowed captures and mutable environments beyond the fixed scalar FnMutI64
-profile remain open under RI-08.
+reinterpret scalar state transitions as source mutable/owned captures. Borrowed source captures are limited to the synchronous parameter-rooted
+profile above; mutable environments beyond the fixed scalar FnMutI64 profile
+remain open under RI-08.
 
 Local evidence: the physical safe-impl/retention case passed in the two-case
 selector; after correcting only canonical JSON in a negative metadata fixture,

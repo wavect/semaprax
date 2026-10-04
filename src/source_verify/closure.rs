@@ -217,6 +217,15 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             )?));
             return Ok(());
         }
+        if let Some(value) = super::borrowed_closure::construction(
+            self.program,
+            self.current,
+            expression,
+            &self.scopes[scope].bindings,
+        )? {
+            self.values.push(Some(value));
+            return Ok(());
+        }
         if !self.current.type_parameters.is_empty()
             && !super::generic_collection_profile(self.current)
         {
@@ -330,6 +339,14 @@ pub(super) fn oracle(
                 None
             }
         };
+    }
+    match super::borrowed_closure::construction(program, current, expression, outer) {
+        Ok(Some(value)) => return Some(value),
+        Err(error) => {
+            diagnostics.push(error);
+            return None;
+        }
+        Ok(None) => {}
     }
     let ExprKind::Closure {
         params,

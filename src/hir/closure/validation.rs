@@ -29,6 +29,12 @@ pub(crate) fn validate_shape_scoped(
         }
         return super::once::validate(program, expression);
     }
+    if super::borrowed::is_borrowed(expression) {
+        if owner.is_some() {
+            return Err(hir_error("generic borrowed closures are not admitted"));
+        }
+        return super::borrowed::validate(program, expression);
+    }
     let count = owner
         .and_then(|owner| {
             program

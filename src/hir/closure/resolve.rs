@@ -5,6 +5,7 @@ use std::collections::BTreeMap;
 fn source_type(ty: &ResolvedType, scope: &crate::ast::Function) -> Type {
     match ty {
         ResolvedType::I64 => Type::I64,
+        ResolvedType::Str => Type::Str,
         ResolvedType::I32 => Type::I32,
         ResolvedType::U8 => Type::U8,
         ResolvedType::Usize => Type::Usize,
@@ -82,14 +83,24 @@ impl Resolver<'_> {
             .map(|(name, binding)| (name.as_str(), source_type(&binding.ty, source_function)))
             .collect::<BTreeMap<_, _>>();
         let type_refs = types.iter().map(|(name, ty)| (*name, ty)).collect();
-        let mut names = crate::source_verify::closure::capture_names_scoped(
+        let borrowed = crate::source_verify::borrowed_closure::profile(
             self.program,
-            params,
-            return_type,
-            body,
+            source_function,
+            expression,
             &type_refs,
-            Some(source_function),
         )?;
+        let mut names = if let Some(name) = &borrowed {
+            vec![name.clone()]
+        } else {
+            crate::source_verify::closure::capture_names_scoped(
+                self.program,
+                params,
+                return_type,
+                body,
+                &type_refs,
+                Some(source_function),
+            )?
+        };
         names.sort_by(|a, b| outer[a].id.cmp(&outer[b].id));
         let id = ExpressionId::new(parent, path);
         let target = closure_id(&id);
@@ -103,13 +114,19 @@ impl Resolver<'_> {
         let mut captures = Vec::new();
         for (index, name) in names.into_iter().enumerate() {
             let captured = &outer[&name];
-            if captured.ownership != OwnershipMode::Value
-                || !(super::super::function_value::scalar(&captured.ty)
-                    || super::super::generic_collection::parameter(
-                        &captured.ty,
-                        &DeclarationId::new(source_function.stable_id.clone()),
-                        source_function.type_parameters.len(),
-                    ))
+            let ownership = if borrowed.is_some() {
+                OwnershipMode::Borrow
+            } else {
+                OwnershipMode::Value
+            };
+            if captured.ownership != ownership
+                || !((borrowed.is_some() && captured.ty == ResolvedType::Str)
+                    || (super::super::function_value::scalar(&captured.ty)
+                        || super::super::generic_collection::parameter(
+                            &captured.ty,
+                            &DeclarationId::new(source_function.stable_id.clone()),
+                            source_function.type_parameters.len(),
+                        )))
             {
                 return Err(hir_error(
                     "closure capture is not an unborrowed Copy scalar",
@@ -118,7 +135,7 @@ impl Resolver<'_> {
             let binding = ResolvedBinding {
                 id: ValueId::parameter(&execution, index),
                 name: name.clone(),
-                ownership: OwnershipMode::Value,
+                ownership,
                 ty: captured.ty.clone(),
                 span: expression.span,
             };
@@ -127,7 +144,7 @@ impl Resolver<'_> {
                 Binding {
                     id: binding.id.clone(),
                     ty: binding.ty.clone(),
-                    ownership: OwnershipMode::Value,
+                    ownership,
                     mutable: false,
                 },
             );
@@ -136,7 +153,7 @@ impl Resolver<'_> {
                 value: ResolvedExpr {
                     id: ExpressionId::new(parent, &format!("{path}.capture.{index}")),
                     ty: captured.ty.clone(),
-                    ownership: OwnershipMode::Value,
+                    ownership,
                     kind: ResolvedExprKind::Place(Place {
                         root: captured.id.clone(),
                         projections: Vec::new(),

@@ -1,5 +1,11 @@
 # Changelog
 
+- RI-08: admit one synchronous parameter-rooted borrowed-text source capture.
+  Source/HIR scope validation rejects aliases and escape; interpreter, native C
+  and Core Wasm preserve the borrowed descriptor. The generated Rust scope
+  executes the actual source closure under an RI-06 URL owner-view guard, with
+  real iterator, pointer/copy controls, contract and lifetime regression gates.
+
 - HR-07: complete the macOS arm64 cross-layer hot reload evidence at
   `9a9db7a81`. Twenty-two exact selectors and a real installed VS Code
   Extension Host gate pass; 11 raw samples distinguish save-to-ack, full

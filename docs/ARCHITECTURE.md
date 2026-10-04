@@ -3055,6 +3055,12 @@ These areas are deliberately outside the public compiler contract:
   environment. Its v2 `FnOnceI64` scalar snapshot may read a mutable binding at
   construction, but it admits no state-retaining mutable environment, borrowed
   capture or registry authority;
+- `src/source_verify/borrowed_closure.rs` and `src/hir/closure/borrowed.rs`
+  authenticate the synchronous parameter-rooted borrowed-text capture and its
+  nonescaping local uses. Native closure cells retain the existing pointer and
+  length; interpreter and Wasm retain their established borrowed descriptors.
+  `public_sdk/borrowed_callback.rs` binds a scoped generated Rust callback to
+  the checked source entry that creates and invokes the actual source closure.
 - `src/hir/closure/mutable.rs` authenticates the noncopyable scalar state and
   direct transition profile. `src/interpreter/mutable_closure.rs`,
   `src/codegen/native_emit/mutable.rs` and the Wasm aggregate invocation lane

@@ -217,6 +217,7 @@ pub(crate) fn invocation_params(
 
 pub(crate) fn validate_program(program: &ResolvedProgram) -> Result<(), Diagnostic> {
     super::closure::mutable::validate_uses(program)?;
+    super::closure::borrowed::validate_uses(program)?;
     if !requires_function_values(program) {
         return Ok(());
     }

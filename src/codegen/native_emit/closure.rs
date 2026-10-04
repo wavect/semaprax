@@ -1,4 +1,4 @@
-//! Native scalar-snapshot closure carrier and thunk emission.
+//! Native scalar-snapshot and scoped borrowed-view closure carriers.
 //!
 //! This module is selected only by the resolved closure inventory.  Its fixed
 //! eight-cell representation is caller-owned, so a returned closure requires
@@ -148,6 +148,17 @@ pub(super) fn pack(ty: &ResolvedType, value: &str) -> Result<String, Diagnostic>
 }
 
 fn unpack(ty: &ResolvedType, cell: usize) -> Result<String, Diagnostic> {
+    if *ty == ResolvedType::Str {
+        if cell != 0 {
+            return Err(backend_error(
+                "borrowed closure has a noncanonical capture slot",
+            ));
+        }
+        return Ok(
+            "(spx_str_v1){ .data = (const uint8_t *)(uintptr_t)spx_cells[0], .len = spx_cells[1] }"
+                .into(),
+        );
+    }
     let helper = match ty {
         ResolvedType::I64 => "i64",
         ResolvedType::Usize => "u64",
@@ -452,6 +463,14 @@ pub(super) fn construct<O: COutput>(
         emitter.require_type(&value.ty, &capture.binding.ty, "closure capture")?;
         let staged = emitter.temporary(&value.ty)?;
         emitter.line(&format!("{staged} = {};", value.code));
+        if capture.binding.ty == ResolvedType::Str {
+            hir::closure::borrowed::validate(emitter.program, expr)?;
+            emitter.line(&format!(
+                "{carrier}.cells[0] = (uint64_t)(uintptr_t){staged}.data;"
+            ));
+            emitter.line(&format!("{carrier}.cells[1] = {staged}.len;"));
+            continue;
+        }
         emitter.line(&format!(
             "{carrier}.cells[{slot}] = {};",
             pack(&value.ty, &staged)?

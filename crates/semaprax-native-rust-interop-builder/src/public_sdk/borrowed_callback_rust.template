@@ -1,0 +1,33 @@
+use core::{cell::Cell, marker::PhantomData};
+#[derive(Debug, PartialEq, Eq)]
+pub enum BorrowedCallbackError { Reentered, Source { class:u32, code:u32 }, Bridge }
+extern "C" {
+    fn spx_borrowed_callback_invoke(data:*const u8,length:u64,argument:i64,out:*mut i64,class:*mut u32,code:*mut u32)->u32;
+}
+/// Only constructible inside `with_borrowed_callback`; the invariant scope
+/// lifetime cannot escape its higher-ranked consumer or transfer to a thread.
+pub struct BorrowedCallback<'scope> {
+    view:&'scope str,
+    active:Cell<bool>,
+    _scope:PhantomData<fn(&'scope ())->&'scope ()>,
+    _thread:PhantomData<std::rc::Rc<()>>,
+}
+struct Invocation<'a>(&'a Cell<bool>);
+impl Drop for Invocation<'_>{fn drop(&mut self){self.0.set(false)}}
+pub fn with_borrowed_callback<R>(view:&str, consumer:impl for<'scope> FnOnce(BorrowedCallback<'scope>)->R)->R {
+    consumer(BorrowedCallback{view,active:Cell::new(false),_scope:PhantomData,_thread:PhantomData})
+}
+impl<'scope> BorrowedCallback<'scope> {
+    pub fn view_pointer(&self)->*const u8 {self.view.as_ptr()}
+    pub fn view_length(&self)->usize {self.view.len()}
+    pub fn call(&self,argument:i64)->Result<i64,BorrowedCallbackError> {self.call_with_pre_call(argument,|_|{})}
+    pub fn call_with_pre_call(&self,argument:i64,pre_call:impl FnOnce(&Self))->Result<i64,BorrowedCallbackError> {
+        if self.active.replace(true){return Err(BorrowedCallbackError::Reentered)}
+        let _invocation=Invocation(&self.active);
+        pre_call(self);
+        let mut result=0;let mut class=0;let mut code=0;
+        let status=unsafe{spx_borrowed_callback_invoke(self.view.as_ptr(),self.view.len() as u64,argument,&mut result,&mut class,&mut code)};
+        match status {0=>Ok(result),1=>Err(BorrowedCallbackError::Source{class,code}),_=>Err(BorrowedCallbackError::Bridge)}
+    }
+    pub fn as_fn<'call>(&'call self)->impl Fn(i64)->Result<i64,BorrowedCallbackError>+'call+use<'call,'scope> {move |argument|self.call(argument)}
+}

@@ -53,6 +53,7 @@ PY
 
 python3 examples/ri13-combined-app/measure.py \
     --fresh-target \
+    --warm-stage-pass \
     --target-dir "$combined_target" \
     --output /evidence/combined-receipt.json \
     > /evidence/combined.log 2>&1
@@ -80,6 +81,25 @@ assert [stage["stage"] for stage in combined["full_build_and_consumer_stages"]] 
     "m1_prepare", "m1_consumer", "m2_prepare", "m2_consumer", "m3_prepare", "m3_consumer",
     "m3_negative_controls", "linked_prepare", "linked_consumer",
 ]
+assert [stage["stage"] for stage in combined["warm_build_and_consumer_stages"]] == [
+    "m1_prepare", "m1_consumer", "m2_prepare", "m2_consumer", "m3_prepare", "m3_consumer",
+    "m3_negative_controls", "linked_prepare", "linked_consumer",
+]
+assert combined["build_stage_measurement"]["schema"] == "semaprax.ri13.build-stage-measurement.v1"
+assert combined["build_stage_measurement"]["cold"]["counts"] == {"passed": 9, "failed": 0, "skipped": 0}
+assert combined["build_stage_measurement"]["warm"]["status"] == "passed"
+assert combined["build_stage_measurement"]["warm"]["counts"] == {"passed": 9, "failed": 0, "skipped": 0}
+assert combined["result_totals"]["schema"] == "semaprax.ri13.result-totals.v1"
+assert combined["result_totals"]["executed_total"] == {"passed": 22, "failed": 0, "skipped": 0}
+inventory = combined["generated_code_inventory"]
+assert inventory["schema"] == "semaprax.ri13.generated-code-inventory.v1"
+assert set(inventory["groups"]) == {"m1", "m2", "m3", "linked"}
+assert inventory["total_bytes"] > 0
+assert all(
+    item["bytes"] > 0 and item["sha256"].startswith("sha256:")
+    for group in inventory["groups"].values()
+    for item in group["files"]
+)
 assert set(combined["batch_throughput"]["routes"]) == {
     "direct_rust", "handwritten_adapter", "generated_semaprax",
 }

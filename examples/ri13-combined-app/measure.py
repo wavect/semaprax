@@ -11,6 +11,7 @@ import statistics
 import subprocess
 import sys
 import time
+import tempfile
 from pathlib import Path
 
 
@@ -42,6 +43,9 @@ M2_BATCH_COLUMNS = (
     "task", "route", "iteration", "operations", "elapsed_ns",
     "allocation_calls", "allocated_bytes", "adapter_buffer_copied_bytes",
 )
+BUILD_STAGE_SCHEMA = "semaprax.ri13.build-stage-measurement.v1"
+RESULT_TOTALS_SCHEMA = "semaprax.ri13.result-totals.v1"
+GENERATED_CODE_INVENTORY_SCHEMA = "semaprax.ri13.generated-code-inventory.v1"
 
 
 def percentile(values, percent):
@@ -405,6 +409,122 @@ def parse_linked_copy_ledger(text):
     return ledger
 
 
+def build_stage_plan():
+    """Return the ordered, locked stages used for both cold and warm passes."""
+    return [
+        (
+            "m1_prepare",
+            cargo_command("examples/ri13-m1-regex-url/prepare/Cargo.toml", "semaprax-ri13-m1-prepare"),
+            "ri13-m1-prepared:",
+        ),
+        (
+            "m1_consumer",
+            cargo_command("examples/ri13-m1-regex-url/consumer/Cargo.toml", "semaprax-ri13-m1-consumer"),
+            "ri13-m1-regex-url-ok",
+        ),
+        (
+            "m2_prepare",
+            cargo_command("examples/ri13-m2-record-iterator/Cargo.toml", "prepare"),
+            "ri13-m2-prepared:",
+        ),
+        (
+            "m2_consumer",
+            cargo_command("examples/ri13-m2-record-iterator/Cargo.toml", "consumer"),
+            "ri13-m2-record-iterator-ok",
+        ),
+        (
+            "m3_prepare",
+            cargo_command("examples/ri13-m3-local-http/Cargo.toml", "prepare"),
+            "ri13-m3-prepared",
+        ),
+        (
+            "m3_consumer",
+            cargo_command("examples/ri13-m3-local-http/Cargo.toml", "consumer"),
+            "ri13-m3-local-http-ok",
+        ),
+        (
+            "m3_negative_controls",
+            m3_negative_control_command(),
+            "test result: ok. 1 passed",
+        ),
+        (
+            "linked_prepare",
+            cargo_command("examples/ri13-combined-app/linked/prepare/Cargo.toml", "prepare"),
+            "ri13-linked-prepared:",
+        ),
+        (
+            "linked_consumer",
+            cargo_command("examples/ri13-combined-app/linked/Cargo.toml", "consumer"),
+            "ri13-linked-project-ok",
+        ),
+    ]
+
+
+def run_build_stages(environment):
+    stages = []
+    linked_copy_ledger = None
+    for name, command, expected in build_stage_plan():
+        result, stdout = run(command, environment, expected)
+        result["stage"] = name
+        stages.append(result)
+        if name == "linked_consumer":
+            linked_copy_ledger = parse_linked_copy_ledger(stdout)
+    if linked_copy_ledger is None:
+        raise RuntimeError("linked consumer did not produce copied-byte evidence")
+    return stages, linked_copy_ledger
+
+
+def result_counts(stages):
+    """A completed run has no failed or skipped stages; failures never make a receipt."""
+    return {"passed": len(stages), "failed": 0, "skipped": 0}
+
+
+def generated_code_inventory(group_paths):
+    """Hash source-level generated code after authenticated prepare stages finish."""
+    groups = {}
+    total_bytes = 0
+    for group, paths in group_paths.items():
+        files = []
+        for path in paths:
+            if not path.is_file():
+                raise ValueError(f"generated code inventory is missing {path}")
+            payload = path.read_bytes()
+            try:
+                label = str(path.relative_to(ROOT))
+            except ValueError:
+                # The parser-only self-test uses a temporary emitted file.
+                label = str(path)
+            files.append({
+                "path": label,
+                "bytes": len(payload),
+                "sha256": "sha256:" + hashlib.sha256(payload).hexdigest(),
+            })
+        files.sort(key=lambda entry: entry["path"])
+        groups[group] = {"files": files, "total_bytes": sum(entry["bytes"] for entry in files)}
+        total_bytes += groups[group]["total_bytes"]
+    return {"schema": GENERATED_CODE_INVENTORY_SCHEMA, "groups": groups, "total_bytes": total_bytes}
+
+
+def prepared_generated_code_inventory():
+    """Inventory only emitted Rust/C/header code, never Cargo caches or binaries."""
+    def code_files(root):
+        return sorted(path for path in root.rglob("*") if path.is_file() and path.suffix in {".rs", ".c", ".h"})
+
+    m1 = ROOT / "examples/ri13-m1-regex-url/generated"
+    linked = ROOT / "examples/ri13-combined-app/linked/generated"
+    return generated_code_inventory({
+        "m1": code_files(m1),
+        "m2": [
+            ROOT / "examples/ri13-m2-record-iterator/generated/module.c",
+            ROOT / "examples/ri13-m2-record-iterator/generated/semaprax_native_rust_interop.h",
+            ROOT / "examples/ri13-m2-record-iterator/src/semaprax_native_rust_interop_ffi.rs",
+            ROOT / "examples/ri13-m2-record-iterator/src/generated.rs",
+        ],
+        "m3": [ROOT / "examples/ri13-m3-local-http/src/generated.rs"],
+        "linked": code_files(linked),
+    })
+
+
 def cargo_command(manifest, binary):
     return [
         "cargo",
@@ -530,6 +650,21 @@ def self_test():
         "ri13_m3::saved_m3_application_runs_offline_and_refuses_timeout_and_stale_binding_mutants",
         "--", "--ignored", "--exact",
     ]
+    assert result_counts([{"stage": "one"}, {"stage": "two"}]) == {"passed": 2, "failed": 0, "skipped": 0}
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        generated = root / "generated.rs"
+        generated.write_text("pub fn generated() {}\n", encoding="utf-8")
+        inventory = generated_code_inventory({"fixture": [generated]})
+        assert inventory["schema"] == GENERATED_CODE_INVENTORY_SCHEMA
+        assert inventory["groups"]["fixture"]["total_bytes"] == generated.stat().st_size
+        assert inventory["groups"]["fixture"]["files"][0]["sha256"].startswith("sha256:")
+        try:
+            generated_code_inventory({"fixture": [root / "missing.rs"]})
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("generated inventory accepted a missing emitted file")
     linked_row = (
         "ri13-linked-copy-ledger:{\"schema\":\"semaprax.ri13.linked-copy-ledger.v1\",\"m1\":{\"regex_result_owner\":{\"status\":\"measured\",\"adapter_copy_events\":0,\"adapter_copied_bytes\":0,\"adapter_borrowed_scan_input_bytes\":28,\"borrow_matches_target\":true,\"foreign_target_copied_bytes\":{\"status\":\"unavailable\",\"reason\":\"no counter\"}},\"url_owner_view\":{\"status\":\"measured\",\"adapter_copy_events\":0,\"adapter_copied_bytes\":0,\"borrow_matches_target\":true,\"foreign_target_copied_bytes\":{\"status\":\"unavailable\",\"reason\":\"no counter\"}}},\"m2\":{\"serde_record\":{\"input_json_bytes\":25,\"output_json_bytes\":25,\"generated_mirror_string_clone_copied_bytes\":3,\"generated_mirror_to_record_transferred_string_bytes\":6,\"generated_mirror_to_record_copied_string_bytes\":0,\"generated_mirror_to_record_pointers_preserved\":true,\"deserialize_owned_string_copied_bytes\":{\"status\":\"unavailable\",\"reason\":\"no counter\"}},\"iterator_callback\":{\"fn_invocations\":1,\"fn_mut_invocations\":1,\"scalar_argument_result_copied_bytes\":0}}}"
     )
@@ -587,6 +722,11 @@ def main():
         help="refuse an existing target directory to make this a clean-target build receipt",
     )
     parser.add_argument("--self-test", action="store_true")
+    parser.add_argument(
+        "--warm-stage-pass",
+        action="store_true",
+        help="rerun every locked prepare/consumer stage against the warmed private target",
+    )
     arguments = parser.parse_args()
     if arguments.self_test:
         self_test()
@@ -608,65 +748,13 @@ def main():
     if not environment.get("CLANG"):
         raise SystemExit("CLANG must name the explicit compiler for the M1 generated C consumers")
 
-    stages = []
-    linked_copy_ledger = None
-    for name, command, expected in [
-        (
-            "m1_prepare",
-            cargo_command("examples/ri13-m1-regex-url/prepare/Cargo.toml", "semaprax-ri13-m1-prepare"),
-            "ri13-m1-prepared:",
-        ),
-        (
-            "m1_consumer",
-            cargo_command("examples/ri13-m1-regex-url/consumer/Cargo.toml", "semaprax-ri13-m1-consumer"),
-            "ri13-m1-regex-url-ok",
-        ),
-        (
-            "m2_prepare",
-            cargo_command("examples/ri13-m2-record-iterator/Cargo.toml", "prepare"),
-            "ri13-m2-prepared:",
-        ),
-        (
-            "m2_consumer",
-            cargo_command("examples/ri13-m2-record-iterator/Cargo.toml", "consumer"),
-            "ri13-m2-record-iterator-ok",
-        ),
-        (
-            "m3_prepare",
-            cargo_command("examples/ri13-m3-local-http/Cargo.toml", "prepare"),
-            "ri13-m3-prepared",
-        ),
-        (
-            "m3_consumer",
-            cargo_command("examples/ri13-m3-local-http/Cargo.toml", "consumer"),
-            "ri13-m3-local-http-ok",
-        ),
-        (
-            "m3_negative_controls",
-            m3_negative_control_command(),
-            "test result: ok. 1 passed",
-        ),
-        (
-            "linked_prepare",
-            cargo_command(
-                "examples/ri13-combined-app/linked/prepare/Cargo.toml", "prepare"
-            ),
-            "ri13-linked-prepared:",
-        ),
-        (
-            "linked_consumer",
-            cargo_command("examples/ri13-combined-app/linked/Cargo.toml", "consumer"),
-            "ri13-linked-project-ok",
-        ),
-    ]:
-        result, stdout = run(command, environment, expected)
-        result["stage"] = name
-        stages.append(result)
-        if name == "linked_consumer":
-            linked_copy_ledger = parse_linked_copy_ledger(stdout)
-
-    if linked_copy_ledger is None:
-        raise RuntimeError("linked consumer did not produce copied-byte evidence")
+    stages, linked_copy_ledger = run_build_stages(environment)
+    warm_stages = None
+    if arguments.warm_stage_pass:
+        warm_stages, warm_linked_copy_ledger = run_build_stages(environment)
+        if warm_linked_copy_ledger != linked_copy_ledger:
+            raise RuntimeError("warm linked consumer changed its copied-byte evidence")
+    generated_inventory = prepared_generated_code_inventory()
 
     m1_batch_command = cargo_command("examples/ri13-m1-regex-url/consumer/Cargo.toml", "measure")
     m1_batch_result, m1_batch_samples = run(
@@ -698,6 +786,45 @@ def main():
         "host": {"platform": platform.platform(), "python": sys.version.split()[0]},
         "toolchain": {"cargo": current_text(["cargo", "--version"]), "clang": environment["CLANG"]},
         "full_build_and_consumer_stages": stages,
+        "warm_build_and_consumer_stages": warm_stages,
+        "build_stage_measurement": {
+            "schema": BUILD_STAGE_SCHEMA,
+            "cold": {
+                "status": "passed",
+                "target_preexisted": target_existed,
+                "counts": result_counts(stages),
+                "elapsed_ns": sum(stage["elapsed_ns"] for stage in stages),
+            },
+            "warm": (
+                {
+                    "status": "passed",
+                    "target_preexisted": True,
+                    "counts": result_counts(warm_stages),
+                    "elapsed_ns": sum(stage["elapsed_ns"] for stage in warm_stages),
+                }
+                if warm_stages is not None
+                else {
+                    "status": "not_recorded",
+                    "reason": "rerun with --warm-stage-pass to make a paired warm measurement",
+                }
+            ),
+        },
+        "generated_code_inventory": generated_inventory,
+        "result_totals": {
+            "schema": RESULT_TOTALS_SCHEMA,
+            "cold_build_and_consumer": result_counts(stages),
+            "warm_build_and_consumer": (
+                result_counts(warm_stages)
+                if warm_stages is not None
+                else {"passed": 0, "failed": 0, "skipped": 0, "status": "not_recorded"}
+            ),
+            "route_measurements": {"passed": 4, "failed": 0, "skipped": 0},
+            "executed_total": {
+                "passed": len(stages) + 4 + (len(warm_stages) if warm_stages is not None else 0),
+                "failed": 0,
+                "skipped": 0,
+            },
+        },
         "route_measurement_command": measure_result,
         "route_timing_and_allocator_requests": route_measurement,
         "m1_batch_throughput_measurement_command": m1_batch_result,
@@ -710,7 +837,9 @@ def main():
         "linked_copy_ledger": linked_copy_ledger,
         "limits": [
             "The first six stages retain separately admitted M1, M2, and M3 profiles. The final two stages prepare and execute the distinct held linked Project, without claiming that it is one public SDK profile.",
-            "Build-and-consumer stage elapsed times include Cargo work and process startup; they are not route latency.",
+            "Build-and-consumer stage elapsed times include Cargo work and process startup; they are not route latency. A warm stage result exists only when --warm-stage-pass executed every stage after the cold pass.",
+            "Generated-code inventory hashes emitted Rust, C, and headers after authenticated preparation; it excludes Cargo caches, linked binaries, and dependency source.",
+            "Result totals count only commands actually represented in this receipt. A missing warm pass is not reported as a skipped success.",
             "M1 retains matched 4096-operation repeats of the held scalar Regex and Url exports across direct Rust, handwritten adapters, and generated Semaprax. It does not measure varying scan inputs, and Regex/Url foreign implementation copies remain unavailable.",
             "M2 retains matched 32-operation generic-record and stateful-callback batches for direct Rust, handwritten adapters, and generated Semaprax.",
             "Scalar route timings include loopback HTTP and two-byte response parsing; the separate 64-operation batch rows retain their own normalized throughput and remain local evidence.",

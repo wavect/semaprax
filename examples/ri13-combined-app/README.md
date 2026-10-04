@@ -40,12 +40,16 @@ an explicit C compiler for M1's generated C objects:
 ```sh
 CLANG=/usr/bin/clang python3 examples/ri13-combined-app/measure.py \
   --fresh-target \
+  --warm-stage-pass \
   --target-dir "$PWD/target/ri13-combined-app" \
   --output examples/ri13-combined-app/measurements/local-receipt.json
 ```
 
-`--fresh-target` refuses a preexisting target directory. This makes the eight
-named prepare/consumer stages a clean-target build receipt. The final
+`--fresh-target` refuses a preexisting target directory. `--warm-stage-pass`
+reruns every named prepare/consumer stage in that same private target only
+after the clean cold pass succeeds. The receipt records the two stage groups
+separately; omitting the option leaves the warm result explicitly
+`not_recorded` rather than deriving it from cold output. The final
 `linked_prepare` and `linked_consumer` stages are the physical M1/M2/M3
 linkage check; `linked_consumer` emits its marker only after the generated M1
 owner carriers, M2 record/callback module, and M3 Future module return their
@@ -72,11 +76,15 @@ python3 examples/ri13-combined-app/friction-ledger.py \
 python3 -m unittest examples/ri13-combined-app/test_friction_ledger.py
 ```
 
-It hashes and counts each authored Rust file by M1, M2, M3, and linked route;
-refuses handwritten ABI or `unsafe` escape-hatch tokens in those application
-sources; excludes prepare-derived artifacts from the authored count; and names
-the small caller-owned M3 HTTP/runtime configuration separately. It is a
-reproducible disclosure rather than a developer-effort score.
+It hashes and counts each authored application Rust file by M1, M2, M3, and
+linked route; refuses handwritten ABI or `unsafe` escape-hatch tokens in those
+application sources; and names the small caller-owned M3 HTTP/runtime
+configuration separately. It also hashes the direct/handwritten comparison
+harnesses, identifies their handwritten adapter symbols, and discloses their
+allocator-instrumentation `unsafe` tokens separately. Generated source cannot
+be honestly hashed until authenticated prepare runs, so the ledger names every
+location and the combined receipt emits its exact SHA-256 and byte inventory.
+It is a reproducible disclosure rather than a developer-effort score.
 
 ## Receipt categories
 
@@ -84,7 +92,9 @@ The JSON receipt intentionally separates three quantities:
 
 | Field | What it measures | What it does not mean |
 | --- | --- | --- |
-| `full_build_and_consumer_stages` | Wall time for each locked Cargo prepare/consumer command, including compilation and process execution | Per-call route latency or compiler-only time |
+| `full_build_and_consumer_stages` / `warm_build_and_consumer_stages` | Ordered cold and, when requested, genuinely rerun warm locked Cargo stages | Per-call route latency or a synthetic warm result |
+| `build_stage_measurement` / `result_totals` | Separate cold/warm elapsed totals and explicit passed/failed/skipped command counts | An unrecorded warm pass or a skipped successful gate |
+| `generated_code_inventory` | SHA-256 and byte sizes of generated Rust, C, and headers after authenticated prepare | Cargo caches, dependency source, generated binaries, or source that was never prepared |
 | `route_timing_and_allocator_requests.routes.*.{mean_ns,p50_ns,p90_ns,p99_ns}` | M3 route samples around direct Rust, handwritten checks, and generated checked source | A nontrivial batch-work result; every route includes loopback HTTP and numeric parsing |
 | `m1_batch_throughput.tasks.*` | Five 4096-operation fixed Regex scan and Url parse/view batches per direct, handwritten, and generated route, with raw latency, current-thread allocator requests, borrowed bytes, adapter copies, and cleanup counts | A variable-input scan benchmark, an ownership-transfer benchmark, or foreign Regex/Url internal copies |
 | `batch_throughput.routes.*` | Fifteen 64-operation local HTTP batches per route, with normalized operations per second and allocator requests per batch | A portability or production throughput claim; generated registration remains in every operation |
@@ -155,13 +165,14 @@ boundary carries zero buffer bytes. This does not turn `Regex::is_match`, the
 Url parser, or `serde_json` deserialization into a zero-copy claim: their
 foreign internal byte observations remain unavailable.
 
-## Acceptance still open
+## Acceptance evidence still required
 
-This gate does not close #371. It still needs fresh M1 measured output from
-the locked consumer, exact copied-byte evidence for the issue’s buffer scan and
-the uninstrumented foreign portions of ownership transfer and deserialization,
-and fresh Linux x86_64 evidence. The receipt makes those gaps explicit rather
-than converting one local run into a portability or performance claim.
+A receipt is an execution claim only for the checkout and target it records.
+Run the cold and warm stage passes on a fresh private target before describing
+build timing, code size, or result counts as measured. The Linux runner makes
+both passes mandatory; the macOS command above does so when invoked with
+`--warm-stage-pass`. The explicit adapter and foreign-library limits remain in
+the receipt rather than becoming zero-copy or portability claims.
 
 ## Linked generated fixture
 

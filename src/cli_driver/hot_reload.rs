@@ -512,6 +512,63 @@ mod tests {
         fs::remove_dir_all(root).unwrap();
     }
 
+    #[test]
+    fn slow_consumer_receives_complete_ordered_bounded_frames() {
+        let root = fixture();
+        let input = concat!(
+            "{\"schema\":\"semaprax.hot-reload-control.v1\",\"id\":1,\"op\":\"start\"}\n",
+            "{\"schema\":\"semaprax.hot-reload-control.v1\",\"id\":2,\"op\":\"status\"}\n",
+            "{\"schema\":\"semaprax.hot-reload-control.v1\",\"id\":3,\"op\":\"stop\"}\n"
+        );
+        let mut output = SlowWriter::default();
+        run_jsonl(
+            root.join("semaprax.toml"),
+            io::Cursor::new(input),
+            &mut output,
+            OutputMode::Jsonl,
+            Lane::Interpreter,
+        )
+        .unwrap();
+        assert!(output.writes > 3, "fixture must force partial writes");
+        assert_eq!(output.flushes, 3);
+        let rows = String::from_utf8(output.bytes)
+            .unwrap()
+            .lines()
+            .map(|line| {
+                assert!(line.len() <= MAX_RESPONSE_BYTES);
+                serde_json::from_str::<Value>(line).unwrap()
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            rows.iter()
+                .map(|row| row["event"].as_str())
+                .collect::<Vec<_>>(),
+            vec![Some("started"), Some("status"), Some("stopped")]
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[derive(Default)]
+    struct SlowWriter {
+        bytes: Vec<u8>,
+        writes: usize,
+        flushes: usize,
+    }
+
+    impl Write for SlowWriter {
+        fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+            let count = bytes.len().min(3);
+            self.bytes.extend_from_slice(&bytes[..count]);
+            self.writes += 1;
+            Ok(count)
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            self.flushes += 1;
+            Ok(())
+        }
+    }
+
     struct RewriteBeforePlan {
         root: PathBuf,
         frames: Vec<Vec<u8>>,

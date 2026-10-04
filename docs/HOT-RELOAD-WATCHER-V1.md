@@ -42,7 +42,10 @@ accepts at most 64 newline-delimited 4 KiB frames and emits at most 8 KiB per
 response. Plans remain opaque in-process values: `plan` can render facts for
 inspection, while `activate` consumes only the retained plan. JSON responses
 are the sole standard-output bytes; human diagnostics remain on standard error.
-EOF and `stop` release the watcher and discard any retained plan.
+Each response is written and flushed before the next input frame is read; there
+is no response queue, so a slow consumer applies backpressure without growing
+session memory. EOF and `stop` release the watcher and discard any retained
+plan.
 
 `invoke` explicitly runs the current prepared interpreter entry after a
 successful start or activation; a save itself never runs it. The source-Agent
@@ -63,5 +66,6 @@ symlink rejection, first-over-bound inventory refusal, event-generation
 exhaustion, and stop. These tests do not establish native-notification, hosted,
 editor, or production support.
 The source-built `project::hot_reload_cli` integration child also covers
-A-to-B activation, invalid-C refusal, and continued B invocation through the
-bounded JSONL control stream.
+A-to-B activation, invalid-C refusal with continued B invocation, hostile
+framing, and EOF/Stop through the bounded JSONL control stream. Its unit
+partner exercises partial-write backpressure with complete ordered frames.

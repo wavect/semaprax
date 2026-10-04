@@ -64,6 +64,14 @@ fn embed_generated_package(destination: &Path) {
         .expect("embedded package manifest");
 }
 
+fn write_generated_package(destination: &Path, files: [(&str, &[u8]); 7]) {
+    fs::create_dir_all(destination.join("src")).expect("generated package source directory");
+    for (name, bytes) in files {
+        fs::write(destination.join(name), bytes).expect("generated package artifact");
+    }
+    embed_generated_package(destination);
+}
+
 fn require_fragment(source: &str, fragment: &str, subject: &str) {
     assert!(
         source.contains(fragment),
@@ -163,6 +171,30 @@ fn main() {
         },
     )
     .expect("one held unified Project M1/M2/M3 selection");
+    write_generated_package(
+        &root.join("generated/regex"),
+        [
+            ("Cargo.toml", m1.regex.cargo_toml()),
+            ("Cargo.lock", m1.regex.cargo_lock()),
+            ("src/lib.rs", m1.regex.lib_rs()),
+            ("src/regex_project.c", m1.regex.c_source()),
+            ("src/regex_project.h", m1.regex.header()),
+            ("binding-plan.json", m1.regex.binding_plan()),
+            ("descriptor.json", m1.regex.descriptor()),
+        ],
+    );
+    write_generated_package(
+        &root.join("generated/url"),
+        [
+            ("Cargo.toml", m1.url.cargo_toml()),
+            ("Cargo.lock", m1.url.cargo_lock()),
+            ("src/lib.rs", m1.url.lib_rs()),
+            ("src/url_project.c", m1.url.c_source()),
+            ("src/url_project.h", m1.url.header()),
+            ("binding-plan.json", m1.url.binding_plan()),
+            ("descriptor.json", m1.url.descriptor()),
+        ],
+    );
     let m2_dir = root.join("generated/m2");
     fs::create_dir_all(&m2_dir).unwrap();
     fs::write(m2_dir.join("module.c"), &m2.callback.c_source).unwrap();

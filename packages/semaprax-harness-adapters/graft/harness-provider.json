@@ -1,0 +1,52 @@
+{
+  "adapter": {
+    "entry": ["adapter.mjs"],
+    "runtime": "node",
+    "version": "0.1.0"
+  },
+  "cancellation": "cooperative",
+  "capabilities": [
+    {
+      "kind": "context.repository",
+      "operations": ["orient", "search", "skeleton", "references"],
+      "required": true,
+      "version": 1
+    }
+  ],
+  "config": {
+    "fields": {
+      "deep": {"default": false, "type": "bool"}
+    }
+  },
+  "extensions": [],
+  "permissions": {
+    "network": [],
+    "process": ["upstream"],
+    "read": ["project"],
+    "secrets": [],
+    "write": ["cache"]
+  },
+  "platforms": ["macos-aarch64"],
+  "protocol": {"max": 1, "min": 1, "name": "semaprax.harness-rpc.v1"},
+  "provider": {"id": "org.nanonets/graft-context", "version": "0.1.0"},
+  "resources": {
+    "handshake_timeout_ms": 5000,
+    "idle_shutdown_ms": 60000,
+    "invoke_timeout_ms": 30000,
+    "max_concurrency": 1,
+    "max_frame_bytes": 1048576
+  },
+  "schema": "semaprax.harness-provider.v1",
+  "support": {
+    "isolation": "subprocess",
+    "license": "MIT",
+    "tested": [{"os": "macos-aarch64", "result": "pass", "upstream": "0.18.0"}]
+  },
+  "upstream": {
+    "identity_probe": ["--version"],
+    "name": "graft",
+    "package": "npm:@nanonets/graft",
+    "repository": "https://github.com/trailhq/Graft",
+    "versions": ["0.18.0"]
+  }
+}

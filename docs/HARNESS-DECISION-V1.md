@@ -72,3 +72,59 @@ The chosen model is then revalidated against the full serialized request and rer
 (`SPX-HPD100`, see HARNESS-WORKFLOW-V1). A router call is itself budgeted: its serialized request is reserved in the task
 ledger (output reserve 256) and recorded as an incurred `decision` observation.
 
+
+## Evidence, modes and qualification (HN-16)
+
+One routing engine (`decide`) runs under `governed_decide`; there is no second
+router. Modes: `rules` (default), `pin`, `experimental` (learned provider,
+visibly experimental) and `qualified-auto`.
+
+- **Pins and remote prohibition.** A project pin wins over every mode and any
+  user pin; a pin never consults a router and a pin the policy cannot admit
+  refuses (`HPJ016`), never falls back. `user_allow_remote = false` removes
+  remote plans from the approved set in every mode.
+- **Evidence key.** `EvidenceKey` = task, provider, weights/checkpoint digest,
+  approved-catalog digest, feature normalization (`model-route/v1/closed-features.v1`)
+  and declared task distribution. Any change is a different key, so evidence
+  never transfers. `EvidenceRegistry` stores `EvidenceRecord`s; a record carries
+  no authority.
+- **Outcomes.** Only independently verified results (verifier named; completion,
+  regressions, attempts, usage/cost, latency) at one matched budget. Origin is
+  `real`, `fixture` or `unavailable`. An unavailable cell is never a success and
+  a success with unknown cost is refused (`HPJ017`); unknown cost is charged the
+  matched ceiling in comparisons. Router, context and skill cost and the retry
+  owner (host or gateway) are recorded per outcome and counted in total cost.
+- **Gate.** `GateSpec` (predeclared; digest recorded) compares rules and the
+  learned arm on the sealed eval items: enough items, no overlap with trained
+  or calibrated items, arms matched, only `real` cells, completion non-inferior,
+  no extra regressions, cost saving after router overhead, latency ratio.
+  `gate_for` returns `Passed { evidence: "evidence:<key>:<record>" }` only on go.
+  `qualified-auto` also needs a `SessionLock` for exactly the live key; changed
+  weights, catalog, normalization or distribution fall back to rules.
+- **Shadow.** With `shadow_max_calls > 0` and a provider that is not enabled,
+  rules decide and a recommendation is evaluated within that call budget
+  (`changes_route: false`); its calls are charged to the same task ledger.
+- **Budget.** The workflow reserves router requests in the HN-11 task ledger; when
+  the remaining task tokens cannot cover a router request the router is skipped
+  and rules decide. `recheck_dispatch` re-screens the chosen model against the
+  final serialized request size, privacy and capabilities (`HPJ018`).
+  `cheap_bypass_micros` skips the router for cheap candidate sets.
+- **Rollback.** `ProfileStore::rollback` (driven by `DriftMonitor`) restores the
+  previous qualified profile for new sessions; a `SessionLock` is an owned copy
+  and does not change mid-session.
+- **Workflow wiring.** In `workflow::attempt` an `Auto` stage consults its provider
+  only when its gate attests the live key (`gate_attests_key`); a bare `Passed`
+  string does not unlock it. Route reports gain `mode` and `rules_reason`.
+- **Calibration.** `calibrate_min_confidence` derives a profile threshold from
+  calibration samples or yields none.
+
+Diagnostics added: HPJ016 pinned model not admissible, HPJ017 invalid evidence
+outcome, HPJ018 pre-dispatch recheck failed.
+
+Recorded evaluation: `benchmarks/harness/2026-10-04-routing/gate-decision.json`
+(12 held-out corpus items; Ollama `qwen2.5:0.5b` backs only the logical
+`m-cheap`, other candidates are unavailable cells; the shadow provider is a
+fixture table; Laya unavailable, Jev fixture-only). Decision: **no-go, rules stay
+active**. Reproduce with `HARNESS_OLLAMA_ENDPOINT=http://127.0.0.1:11434
+HARNESS_ROUTING_OUT=<dir> cargo test -p semaprax-harness --test real_tools_v1
+real_matched_heldout -- --ignored`.

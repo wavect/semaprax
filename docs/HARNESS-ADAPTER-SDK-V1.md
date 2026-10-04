@@ -106,32 +106,135 @@ aarch64; the `project` ids are the driver's placeholders):
 sorted keys. The 64-character ids are shortened here.) The driver exits 0 when
 all three replies are JSON-RPC results.
 
-Next steps once the host verbs from HP-02 exist:
+## Adopt, trust, resolve
+
+`adopt` records the descriptor and digests, `trust` approves its requested
+permissions (bound to those digests), `resolve` writes the lock. Select the
+provider in `semaprax.harness.toml` as shown above. An adapter whose
+`upstream` is only its own bundled code (a `local:` package with no identity
+probe) has no separate executable to adopt; `trust` refuses it with
+`SPX-HPB033`, so a third-party provider that ships its own index should omit
+the `upstream` block (the integration test `hp_hp16b_third_provider_journey_without_core_edits`
+does exactly this from a copied directory and then runs `adopt`, `trust`,
+`resolve` and a `context.repository` search through the host). The conformance
+runner itself never needs global trust: it adopts and trusts in a throwaway
+harness home and, for the bundled-upstream examples, derives the temporary grant
+in memory.
+
+## Conformance runner
 
 ```sh
-semaprax harness adopt $A/examples/source-index-python/harness-provider.json
-semaprax harness trust org.example/source-index
-semaprax harness resolve
+semaprax harness conformance <descriptor> \
+  [--suite context|command|decision|skill|common|all] \
+  [--runtime <abs python|node>] [--upstream <abs>] [--hostile-runtime <abs python>] \
+  [--isolation none|restricted] [--env NAME=VALUE]... [--json]
 ```
 
-`adopt`, `trust` and `resolve` are owned by HP-02 and are not exercised by this
-lane; no output for them is shown. The result of the conformance step is also
-pending:
+Exit 0 unless a case failed (1); usage errors exit 2. Paths are absolute where
+they name executables; `PATH` is never searched. The runner launches the
+adapter through the real host with a temporary harness home, project, cache and
+grant (network, process and secret classes are never granted, whatever the
+descriptor requests), runs one suite per *active negotiated* capability, plus
+`common` (adapter identity, binding, declared `max_frame_bytes`, authority,
+cancellation, recursion guard) and `common.hostility` (the host refusing the
+`hostile-python` fixture). Every report states
+`"support_decision": "not-a-support-decision"`; cells that were not executed
+are `unverified`. Digest rule for context items: `sha256:` of the span's lines
+joined with LF.
+
+Real runs (2026-10-04, macOS aarch64, Python 3.12, node v24.3.0):
+
+```text
+$ semaprax harness conformance $A/examples/output-view-python/harness-provider.json --suite command --runtime $PY
+conformance report for org.example/output-view (not-a-support-decision) - pass
+suite command.view [adapter]: pass
+  pass       critical-lines-survive-or-loss-is-declared
+  pass       lossless-claim-is-honest
+  pass       never-carries-exit-status
+  pass       deterministic-for-equal-input
+  unverified raw-recovery
+             raw recovery is performed by the host's `recover` verb (HP-08); only handle presence is observed
+  pass       cancellation-cooperative
+(exit 0)
+
+$ semaprax harness conformance $A/examples/source-index-python/harness-provider.json --suite common --runtime $PY
+conformance report for org.example/source-index (not-a-support-decision) - pass
+suite common [adapter]: pass
+  pass       platform-declared
+  pass       negotiation-visible
+  pass       identity-and-binding
+  pass       revision-rebinding
+  pass       declared-frame-limit-enforced
+  pass       no-ambient-authority
+  pass       endpoint-escalation-refused
+  pass       cancellation-cooperative
+  pass       recursive-invocation-refused
+suite common.hostility [host]: pass
+  pass       spoofed-invocation-id        pass  spoofed-project-id     pass  stale-revision-refused
+  pass       protocol-version-mismatch    pass  malformed-frame        pass  oversized-frame
+  pass       response-flood               pass  unsolicited-host-request  pass  sampling-request
+  pass       path-escape                  pass  absolute-path          pass  forbidden-choice
+  pass       crash-is-contained           pass  handshake-timeout      pass  stderr-flood-bounded
+  pass       budget-abuse-job-cap         pass  cancellation-group-kill-with-grandchild
+  pass       secrets-unrestricted-recorded-honestly  pass  secrets-restricted-isolation
+(exit 0; the hostility lines are shown two or three per row here, the runner prints one per line)
+```
+
+A bad adapter is caught. `HOSTILE_MODE=drop_critical_error` makes the hostile
+fixture delete error lines from a command view:
+
+```text
+$ semaprax harness conformance $A/examples/hostile-python/harness-provider.json --suite command \
+    --runtime $PY --env HOSTILE_MODE=drop_critical_error
+conformance report for org.example/hostile (not-a-support-decision) - fail
+suite command.view [adapter]: fail
+  fail       critical-lines-survive-or-loss-is-declared
+             a critical error line was dropped without a lossy marker covering it and a recovery handle
+  ...
+(exit 1)
+```
+
+`--json` prints the canonical report (`semaprax.harness-conformance-report.v1`),
+byte-identical across runs. Trimmed, for source-index `--suite context`:
+
+```json
+{"schema": "semaprax.harness-conformance-report.v1", "support_decision": "not-a-support-decision",
+ "subject": {"provider_id": "org.example/source-index", "adapter_version": "0.1.0", "license": "Apache-2.0",
+             "os": "macos-aarch64", "runtime": {"kind": "python", "executable": "/abs/python3"},
+             "upstream": {"name": "source-index", "declared_versions": ["builtin-0.1.0"]},
+             "operations": {"context.repository": ["orient", "search", "skeleton", "references"]},
+             "isolation": {"declared": "subprocess", "requested": "none", "observed": "not-recorded"}},
+ "suites": [{"name": "context.repository", "subject": "adapter", "verdict": "pass",
+             "cases": [{"name": "finds-planted-symbol", "verdict": "pass", "evidence": {"items": 1, "operation": "references"}}]}],
+ "inactive_capabilities": [], "summary": {"pass": 7, "fail": 0, "unverified": 0}, "verdict": "pass"}
+```
+
+`isolation.observed` is filled from the `common` suite (it launches the
+adapter and records the host's mode); other suites alone report `not-recorded`.
+`--isolation restricted` runs the adapter under OS enforcement where the host
+offers it and refuses (`SPX-HPC003`) where it does not.
+
+`model.generate` is delegated: the runner reports
+`"delegated": "provider-adapter-conformance"` (an `unverified` case) and does
+not re-implement the root crate's `run_conformance_suite`
+(`src/provider_adapter_sdk/conformance.rs`), which model adapters keep using
+through the toolchain bridge.
+
+Harness tests (all use `conformance::` as selector):
 
 ```sh
-semaprax harness conformance $A/examples/source-index-python/harness-provider.json
+cargo build --offline -p semaprax-harness --example context_adapter_rust
+cargo test --offline -p semaprax-harness --test harness_v1 conformance:: -- --test-threads=2
+# 14 passed, 0 failed
 ```
 
-**Pending:** `semaprax harness conformance <descriptor>` is provided by the
-host (HP-16 conformance module, a separate lane). Until it lands, the evidence
-for these examples is their own tests:
+The adapters' own tests remain:
 
 ```sh
 python3 -m unittest discover -s $A/examples/source-index-python
 python3 -m unittest discover -s $A/examples/output-view-python
 python3 -m unittest discover -s $A/examples/hostile-python
 (cd $A/examples/decision-node && node --test)
-cargo build --offline -p semaprax-harness --example context_adapter_rust
 python3 -m unittest discover -s $A/examples/tools
 ```
 
@@ -168,8 +271,10 @@ fixture per behaviour so a suite can prove it *fails* the mutant:
 | `secret_probe` | reads `SECRET_PATH`; the host must not have granted it |
 
 `hostile-python/test_hostile.py` verifies that each mode really misbehaves on
-the wire (18 tests). It does not itself assert host rejection; that is the
-host conformance runner's job.
+the wire (18 tests). Host rejection is asserted by the `common.hostility` suite;
+the capability suites additionally fail when run *against* such a mode
+(`drop_critical_error` fails `command`, `fake_revision` fails `context`,
+`forbidden_model` and `ignore_cancel` fail `decision`).
 
 ## Identity versus trust
 
@@ -215,7 +320,11 @@ mark itself production-supported. Unsupported or untested
   alone. The examples here were run only on macOS aarch64 with the versions
   noted above; Linux is listed in `platforms` but unverified.
 
-## Test evidence (this lane, 2026-10-04, macOS aarch64)
+## Known limits of this runner
 
-See the commands under "Pending" above; results are recorded in the lane
-report, not fabricated here.
+- Skill, wrapper-form and raw-recovery behaviour that the host owns (`recover`,
+  wrapper execution) is `unverified`, not passed.
+- Only Python and Node runtimes given by absolute path, and native binaries,
+  were exercised; Linux is listed in `platforms` but unverified.
+- A descriptor that lists a `local:` bundled upstream cannot be trusted by the
+  `trust` verb (see above).

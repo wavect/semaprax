@@ -227,8 +227,10 @@ dependencies = [
 name = "semaprax-ri13-m1-consumer"
 version = "0.1.0"
 dependencies = [
+ "regex",
  "ri06-regex-owner",
  "ri06-url-owner",
+ "url",
 ]
 
 [[package]]

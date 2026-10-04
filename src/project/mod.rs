@@ -37,13 +37,13 @@ pub use host_policy::{
     StrictProjectSession, HOST_STRICT_LAW_DIRECTORY, HOST_STRICT_LAW_SCHEMA,
 };
 pub use hot_reload::{
-    HotReloadDecision, HotReloadFailure, HotReloadPlan, HotReloadReason, HotReloadSession,
-    HotReloadSourceAgentHandoff, HotReloadSourceAgentHandoffStatus, HOT_RELOAD_PLAN_SCHEMA,
-    HOT_RELOAD_SOURCE_AGENT_HANDOFF_SCHEMA,
+    HotReloadDecision, HotReloadFailure, HotReloadLifecycle, HotReloadPlan, HotReloadReason,
+    HotReloadSession, HotReloadSourceAgentHandoff, HotReloadSourceAgentHandoffStatus,
+    HOT_RELOAD_PLAN_SCHEMA, HOT_RELOAD_SOURCE_AGENT_HANDOFF_SCHEMA,
 };
 pub use hot_reload_watcher::{
-    HotReloadAdmissionTimings, HotReloadWatchControl, HotReloadWatchEvent, HotReloadWatchState, HotReloadWatcher,
-    HotReloadWatcherFailure, HotReloadWatcherUpdate,
+    HotReloadAdmissionTimings, HotReloadWatchControl, HotReloadWatchEvent, HotReloadWatchState,
+    HotReloadWatcher, HotReloadWatcherFailure, HotReloadWatcherUpdate,
 };
 mod image;
 mod image_coverage;
@@ -206,6 +206,12 @@ pub use candidate::{
     PROJECT_CANDIDATE_DRAFT_LINEAGE_REBASE_SCHEMA, PROJECT_CANDIDATE_DRAFT_REBASE_SCHEMA,
 };
 pub use candidate::{
+    ProjectPatchReceiptComparisonInput, ProjectPatchReceiptEvidencePageOptions,
+    MAX_PROJECT_PATCH_RECEIPT_BYTES, MAX_PROJECT_PATCH_RECEIPT_COMPARISON_BYTES,
+    MAX_PROJECT_PATCH_RECEIPT_COMPARISON_INPUTS, PROJECT_PATCH_RECEIPT_SCHEMA,
+    PROJECT_PATCH_RECEIPT_SET_COMPARISON_SCHEMA, PROJECT_PATCH_RECEIPT_VERIFICATION_SCHEMA,
+};
+pub use candidate::{
     MAX_PROJECT_CANDIDATE_ABI_DELTA_BYTES, PROJECT_CANDIDATE_ABI_DELTA_SCHEMA,
     PROJECT_CANDIDATE_ABI_DELTA_VERIFICATION_SCHEMA,
 };
@@ -321,12 +327,6 @@ pub use candidate::{
 pub use candidate::{
     MAX_PROJECT_HOLE_NAVIGATION_BYTES, MAX_PROJECT_HOLE_NAVIGATION_ITEMS, PROJECT_HOLE_PAGE_SCHEMA,
     PROJECT_HOLE_SUMMARY_SCHEMA,
-};
-pub use candidate::{
-    ProjectPatchReceiptComparisonInput, ProjectPatchReceiptEvidencePageOptions,
-    MAX_PROJECT_PATCH_RECEIPT_BYTES, MAX_PROJECT_PATCH_RECEIPT_COMPARISON_BYTES,
-    MAX_PROJECT_PATCH_RECEIPT_COMPARISON_INPUTS, PROJECT_PATCH_RECEIPT_SCHEMA,
-    PROJECT_PATCH_RECEIPT_SET_COMPARISON_SCHEMA, PROJECT_PATCH_RECEIPT_VERIFICATION_SCHEMA,
 };
 pub use canonical_workspace_revision::{
     AgentDefinitions, AuthorityPolicies, ContractsAndTests, DependencyClosure, ProjectionMetadata,

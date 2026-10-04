@@ -114,6 +114,7 @@ fn read_private_implementation_tests() -> String {
             "cleanup_regions",
             "resolved_disposal",
             "linked_bundle",
+            "indexed_scalar",
         ],
     )
 }

@@ -1,5 +1,8 @@
 # Retained affine callback v1
 
+Status: bounded local RI-08 retained-callback profile.
+Audience: language and native interop implementers.
+
 This additive RI-08 profile gives one owned source capture a real retained
 carrier. The existing `own fn` lexical profile and Copy `fn` signatures keep
 their semantics. The admitted new source type is exactly `FnOnce() -> i64`:

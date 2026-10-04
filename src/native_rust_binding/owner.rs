@@ -153,7 +153,12 @@ pub fn bind_selected_regex_result_signature(
         return Ok(false);
     };
     let type_name = type_path.rsplit("::").next().unwrap_or("");
-    if type_name != "Regex" || !matches!(method, "new" | "is_match") {
+    // RI-06 names its registry package and selected Cargo alias exactly.
+    // An unrelated package may also export a nominal type called Regex; its
+    // ordinary owned constructor must reach the generic owner binder.
+    if !matches!(type_path, "regex::Regex" | "regex_alias::Regex")
+        || !matches!(method, "new" | "is_match")
+    {
         return Ok(false);
     }
     if !import.native_rust

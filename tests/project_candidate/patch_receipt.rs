@@ -2,10 +2,10 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use semaprax::project::{
-    ProjectCandidate, ProjectPatchReceiptComparisonInput, ProjectPatchReceiptEvidencePageOptions,
-    SemanticChange, with_authenticated_project,
+    with_authenticated_project, ProjectCandidate, ProjectPatchReceiptComparisonInput,
+    ProjectPatchReceiptEvidencePageOptions, SemanticChange,
 };
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
@@ -206,11 +206,9 @@ fn stale_selector_has_a_bound_refusal_without_a_result_candidate_or_successful_c
     );
     assert!(value["content"]["binding"]["project_revision"].is_null());
     assert_eq!(value["content"]["checks"][0]["result"], "failed");
-    assert!(
-        value["content"]["checks"].as_array().unwrap()[1..]
-            .iter()
-            .all(|check| check["result"] == "not_run")
-    );
+    assert!(value["content"]["checks"].as_array().unwrap()[1..]
+        .iter()
+        .all(|check| check["result"] == "not_run"));
     let verification: Value = serde_json::from_str(
         &candidate
             .verify_patch_receipt_refusal(stale, receipt.as_bytes())
@@ -268,12 +266,10 @@ fn receipt_comparison_verifies_both_routes_and_refuses_incompatible_inputs() {
     )
     .unwrap();
     assert_eq!(incomparable["result"], "not_comparable");
-    assert!(
-        incomparable["reasons"]
-            .as_array()
-            .unwrap()
-            .contains(&json!("right_receipt_did_not_admit_a_candidate"))
-    );
+    assert!(incomparable["reasons"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("right_receipt_did_not_admit_a_candidate")));
     assert!(incomparable["comparison"].is_null());
 }
 
@@ -349,12 +345,10 @@ fn receipt_set_comparison_verifies_three_receipts_and_keeps_incompatibility_inde
     )
     .unwrap();
     assert_eq!(incomparable["result"], "not_comparable");
-    assert!(
-        incomparable["reasons"]
-            .as_array()
-            .unwrap()
-            .contains(&json!("receipt_3_did_not_admit_a_candidate"))
-    );
+    assert!(incomparable["reasons"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("receipt_3_did_not_admit_a_candidate")));
     assert!(incomparable["comparison"].is_null());
 }
 
@@ -441,37 +435,31 @@ fn retained_evidence_pages_are_closed_bounded_and_preserve_cross_file_declaratio
     assert!(contract_ids.contains(&"calculator.subtract"));
 
     let stale = "sha256:1111111111111111111111111111111111111111111111111111111111111111";
-    assert!(
-        candidate
-            .patch_receipt_evidence_page(
-                candidate.candidate_digest(),
-                "../../receipt.json",
-                &handle,
-                None,
-                options,
-            )
-            .is_err()
-    );
-    assert!(
-        candidate
-            .patch_receipt_evidence_page(
-                candidate.candidate_digest(),
-                "declaration_catalog",
-                stale,
-                None,
-                options,
-            )
-            .is_err()
-    );
-    assert!(
-        candidate
-            .patch_receipt_evidence_page(
-                candidate.candidate_digest(),
-                "declaration_catalog",
-                &handle,
-                Some("1:sha256:bad"),
-                options,
-            )
-            .is_err()
-    );
+    assert!(candidate
+        .patch_receipt_evidence_page(
+            candidate.candidate_digest(),
+            "../../receipt.json",
+            &handle,
+            None,
+            options,
+        )
+        .is_err());
+    assert!(candidate
+        .patch_receipt_evidence_page(
+            candidate.candidate_digest(),
+            "declaration_catalog",
+            stale,
+            None,
+            options,
+        )
+        .is_err());
+    assert!(candidate
+        .patch_receipt_evidence_page(
+            candidate.candidate_digest(),
+            "declaration_catalog",
+            &handle,
+            Some("1:sha256:bad"),
+            options,
+        )
+        .is_err());
 }

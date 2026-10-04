@@ -727,7 +727,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             ResolvedExprKind::Closure { .. } if expr.ty.is_once_function() => {
                 super::once::construct(self, expr)
             }
-            ResolvedExprKind::Closure { captures, .. } => super::closure::construct(self, expr, captures),
+            ResolvedExprKind::Closure { captures, .. } => {
+                super::closure::construct(self, expr, captures)
+            }
             ResolvedExprKind::FunctionReference { .. } => {
                 super::function_value::emit_reference(self, expr)
             }

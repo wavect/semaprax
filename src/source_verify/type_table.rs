@@ -434,7 +434,7 @@ impl<'a> TypeTable<'a> {
                     | Type::OnceFunction
                     | Type::OnceFunctionI64
                     | Type::OnceFunctionI64Pair => return true,
-                    Type::MutFunctionI64 => {},
+                    Type::MutFunctionI64 => {}
                     Type::Named { name, arguments } => {
                         if crate::iterator_ops::ast_is_iterator(&Type::Named {
                             name: name.clone(),
@@ -526,7 +526,7 @@ impl<'a> TypeTable<'a> {
                 | Type::OnceFunction
                 | Type::OnceFunctionI64
                 | Type::OnceFunctionI64Pair => return true,
-                Type::MutFunctionI64 => {},
+                Type::MutFunctionI64 => {}
                 Type::Named { name, arguments } => {
                     let identity = Type::Named {
                         name: name.clone(),

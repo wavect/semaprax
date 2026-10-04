@@ -3,10 +3,12 @@ use super::profile::{
     PROJECT_PROFILE_PROCESS_IO_V1,
 };
 mod tables;
+mod validation;
 use super::profile::{
     PROJECT_FILESYSTEM_CAPABILITIES_V1, PROJECT_PROFILE_FILESYSTEM_IO_V1,
     PROJECT_PROFILE_FILESYSTEM_IO_V2, PROJECT_PROFILE_FILESYSTEM_IO_V3,
 };
+use validation::{grammar_with_help, valid_stable_id, V1_SHAPE_HELP};
 
 pub use tables::{
     ManifestLayout, PackageDependency, PackageDependencySource, RustDependency, MAX_DEPENDENCIES,
@@ -1482,27 +1484,8 @@ fn valid_module(value: &str) -> bool {
         })
 }
 
-fn valid_stable_id(value: &str) -> bool {
-    (1..=MAX_STABLE_ID_BYTES).contains(&value.len())
-        && value.bytes().all(|byte| {
-            byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'.' | b'_' | b'-')
-        })
-}
-
 pub(super) fn grammar(message: impl Into<String>) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-J100", message)]
-}
-
-/// The exact line shape of a Project v1 manifest, for the reader who wrote
-/// the keys in another order or left one out.
-const V1_SHAPE_HELP: &str = "write exactly these six lines in this order, then one final newline: \
-                             `schema = \"semaprax.project.v1\"`, `name = \"…\"`, \
-                             `entry = \"module.with.main\"`, `sources = [\"src/….spx\", …]`, \
-                             `web_exports = [\"stable.id\", …]` (byte-sorted), \
-                             `tests = [\"module.tests\"]`";
-
-fn grammar_with_help(message: impl Into<String>, help: &str) -> Vec<Diagnostic> {
-    vec![Diagnostic::io("SPX-J100", message).with_help(help)]
 }
 
 pub(super) fn capacity(field: &str, limit: usize) -> Vec<Diagnostic> {

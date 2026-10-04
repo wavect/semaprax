@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use crate::diagnostic::Diagnostic;
 use crate::hir::{ResolvedExpr, ResolvedExprKind, ResolvedStatement, ResolvedType};
 
-use super::{LocalLayout, Signature, I32, I64, F32, F64};
+use super::{LocalLayout, Signature, F32, F64, I32, I64};
 
 pub(super) fn collect_locals(
     expr: &ResolvedExpr,

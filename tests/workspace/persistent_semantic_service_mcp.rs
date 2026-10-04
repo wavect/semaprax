@@ -4,15 +4,15 @@ use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use semaprax::project::{
-    ProjectCandidate, ProjectFrontendSource, ProjectManifest, SemanticQuery,
-    SemanticServiceIndexQuery, SemanticTransaction, SemanticTransactionRenameDisplayName,
-    SemanticTransactionReplaceExpression, SemanticTransactionV2,
-    SemanticWorkspaceServiceHistoryQuery, with_authenticated_project,
+    with_authenticated_project, ProjectCandidate, ProjectFrontendSource, ProjectManifest,
+    SemanticQuery, SemanticServiceIndexQuery, SemanticTransaction,
+    SemanticTransactionRenameDisplayName, SemanticTransactionReplaceExpression,
+    SemanticTransactionV2, SemanticWorkspaceServiceHistoryQuery,
 };
 use semaprax::semantic_service_mcp::{
-    SEMANTIC_SERVICE_MCP_PROTOCOL_VERSION, SEMANTIC_SERVICE_MCP_SCHEMA, SemanticWorkspaceMcpSession,
+    SemanticWorkspaceMcpSession, SEMANTIC_SERVICE_MCP_PROTOCOL_VERSION, SEMANTIC_SERVICE_MCP_SCHEMA,
 };
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 
@@ -85,11 +85,9 @@ fn initialize(session: &mut SemanticWorkspaceMcpSession) {
         initialized["result"]["protocolVersion"],
         SEMANTIC_SERVICE_MCP_PROTOCOL_VERSION
     );
-    assert!(
-        session
-            .handle_frame(br#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#)
-            .is_none()
-    );
+    assert!(session
+        .handle_frame(br#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#)
+        .is_none());
 }
 
 fn tool(session: &mut SemanticWorkspaceMcpSession, id: u64, name: &str, arguments: Value) -> Value {

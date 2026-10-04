@@ -8,14 +8,14 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::{
-    Arc,
     atomic::{AtomicBool, Ordering},
+    Arc,
 };
 use std::time::Instant;
 
 use super::{
-    HotReloadFailure, HotReloadPlan, HotReloadSession, HotReloadSourceAgentHandoffStatus,
-    PreparedProjectInterpreterOptions, ProjectRevision, with_authenticated_project,
+    with_authenticated_project, HotReloadFailure, HotReloadPlan, HotReloadSession,
+    HotReloadSourceAgentHandoffStatus, PreparedProjectInterpreterOptions, ProjectRevision,
 };
 use crate::diagnostic::Diagnostic;
 
@@ -499,8 +499,8 @@ mod tests {
     use super::*;
     use crate::project::HotReloadDecision;
     use std::sync::{
-        Mutex, MutexGuard,
         atomic::{AtomicU64, AtomicUsize, Ordering},
+        Mutex, MutexGuard,
     };
     static SERIAL: AtomicU64 = AtomicU64::new(0);
     static TEST_LOCK: Mutex<()> = Mutex::new(());
@@ -632,14 +632,12 @@ mod tests {
         let plan = watcher.session().plan().unwrap();
         let invoked = Arc::new(AtomicBool::new(false));
         let observed = Arc::clone(&invoked);
-        assert!(
-            watcher
-                .activate_source_agent(plan, move |_, _| {
-                    observed.store(true, Ordering::Release);
-                    Ok(())
-                })
-                .is_err()
-        );
+        assert!(watcher
+            .activate_source_agent(plan, move |_, _| {
+                observed.store(true, Ordering::Release);
+                Ok(())
+            })
+            .is_err());
         assert!(
             !invoked.load(Ordering::Acquire),
             "an injected host cannot convert a code-only plan into Agent authority"

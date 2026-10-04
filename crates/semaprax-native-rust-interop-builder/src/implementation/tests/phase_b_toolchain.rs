@@ -485,7 +485,7 @@ fn windows_direct_rustc_tests_use_the_frozen_native_linker() {
         tests[callsites..]
             .matches("bind_test_rust_linker(&mut ")
             .count(),
-        5
+        8
     );
     assert!(!source.contains("format!(\"linker={}\", clang.path.display())"));
 }

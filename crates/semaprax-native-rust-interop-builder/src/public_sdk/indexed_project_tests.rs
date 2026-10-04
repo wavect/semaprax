@@ -170,6 +170,9 @@ fn indexed_project_rebinds_graph_and_executes_authenticated_package() {
     std::fs::remove_dir_all(root).unwrap();
 }
 
+// The committed real-registry index is extracted for aarch64-apple-darwin.
+// The synthetic indexed Project tests above cover other CI targets.
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 #[test]
 fn indexed_real_regex_project_generates_and_executes_locked_offline_owner_loan() {
     let cargo = std::env::var("CARGO").expect("Cargo supplies its executable");

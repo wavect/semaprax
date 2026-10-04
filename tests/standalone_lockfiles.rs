@@ -34,11 +34,25 @@ use std::process::Command;
 /// fails the gate rather than quietly excusing a real manifest. A stale
 /// lockfile can never be hidden by adding it here: that would be weakening a
 /// gate to make it pass.
-const NOT_RESOLVABLE_STANDALONE: &[(&str, &str)] = &[(
-    "examples/frame-payload-rust/Cargo.toml",
-    "depends on examples/frame-payload-generated-sdk/, which the gate generates \
-     and which is absent from a fresh checkout; no workflow fetches it --locked",
-)];
+const NOT_RESOLVABLE_STANDALONE: &[(&str, &str)] = &[
+    (
+        "examples/frame-payload-rust/Cargo.toml",
+        "depends on examples/frame-payload-generated-sdk/, which the gate generates \
+         and which is absent from a fresh checkout; no workflow fetches it --locked",
+    ),
+    (
+        "crates/semaprax-native-rust-interop-builder/tests/fixtures/rich-rust-missing-vendor-fixture/Cargo.toml",
+        "deliberately names the unavailable missing-vendor package",
+    ),
+    (
+        "crates/semaprax-native-rust-interop-builder/tests/fixtures/rich-rust-shape-fixture/Cargo.toml",
+        "deliberately names the unavailable shape-dual package",
+    ),
+    (
+        "crates/semaprax-native-rust-interop-builder/tests/fixtures/rich-rust-vendored-fixture/Cargo.toml",
+        "deliberately names the unavailable fixture-vendor package",
+    ),
+];
 
 fn repository_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).to_path_buf()
@@ -64,7 +78,7 @@ fn standalone_manifests(root: &Path) -> Vec<String> {
         .map(str::trim)
         .filter(|line| !line.is_empty())
         // The root lock belongs to the workspace this test runs in.
-        .filter(|lock| *lock != "Cargo.lock")
+        .filter(|lock| lock.ends_with("/Cargo.lock"))
         .map(|lock| lock.replace("Cargo.lock", "Cargo.toml"))
         .collect();
     manifests.sort();

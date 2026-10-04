@@ -139,6 +139,6 @@ mod tests;
 mod materialize;
 pub(super) use materialize::materialize;
 
-pub(crate) mod mutable;
 pub(crate) mod borrowed;
+pub(crate) mod mutable;
 pub(crate) mod once;

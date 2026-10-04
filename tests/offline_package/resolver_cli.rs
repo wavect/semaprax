@@ -149,6 +149,35 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     const MCP_LINE: &str = "semaprax serve-workspace-mcp <manifest> <host-policy.json>\n";
     assert_eq!(current.matches(MCP_LINE).count(), 1);
     current = current.replacen(MCP_LINE, "", 1);
+    // These read-only explorer, indexed context, and Project proof commands
+    // were added after the retained historical help witnesses.
+    const RECENT_READ_LINES: [&str; 5] = [
+        "semaprax explore <manifest> [--target <id> --depth <n>] [--candidate-capsule <path> --expect-candidate <digest>] --format html|json|markdown|svg --output <path>\n",
+        "semaprax context <file.spx> <selected-rust-import-id|rust-path> --rust-index <canonical-index.json> [--max-bytes N]\n",
+        "semaprax context <saved-file.spx> <rust-path-prefix> --rust-index <canonical-index.json> --candidates [--max-bytes N]\n",
+        "semaprax project-proof-check <absolute-manifest> --tool lean|z3 --executable <absolute-path> --version-line <exact-version> --host-profile trusted-local|confined (--law <stable-id> | --source <project-path> --declaration <stable-id> --ensures <index>)\n",
+        "semaprax project-proof-check <absolute-manifest> --workflow summary|detail --law <selected-id> --tool lean|z3 --executable <absolute-path> --version-line <exact-version> --host-profile trusted-local [--source <project-path> --declaration <stable-id> --ensures <index>] [--offset <n> --limit <n> --max-bytes <n>] [--show-witness-values]\n",
+    ];
+    for line in RECENT_READ_LINES {
+        assert_eq!(current.matches(line).count(), 1);
+        current = current.replacen(line, "", 1);
+    }
+    // The hot-reload development entry point and authenticated patch receipt
+    // verbs were admitted after the frozen help witness.
+    const RECENT_PROJECT_LINES: [&str; 8] = [
+        "semaprax dev <semaprax.toml> --jsonl|--human [--interpreter|--source-agent]\n",
+        "semaprax patch-receipt <project> render <transaction-json> <candidate-digest>\n",
+        "semaprax patch-receipt <project> verify <transaction-json> <candidate-digest> <receipt-json>\n",
+        "semaprax patch-receipt <project> refusal <transaction-json> <requested-candidate-digest>\n",
+        "semaprax patch-receipt <project> verify-refusal <transaction-json> <requested-candidate-digest> <receipt-json>\n",
+        "semaprax patch-receipt <project> compare <left-transaction-json> <left-candidate-digest> <left-receipt-json> <right-transaction-json> <right-candidate-digest> <right-receipt-json>\n",
+        "semaprax patch-receipt <project> evidence-summary <transaction-json> <candidate-digest>\n",
+        "semaprax patch-receipt <project> evidence-page <transaction-json> <candidate-digest> <evidence-id> <handle> <cursor|->\n",
+    ];
+    for line in RECENT_PROJECT_LINES {
+        assert_eq!(current.matches(line).count(), 1);
+        current = current.replacen(line, "", 1);
+    }
     // `context`'s `session_protocol` filter (issue #206) was added after
     // these witnesses were pinned. Normalize it away here, exactly as every
     // other intentional usage addition above is, so the historical byte and

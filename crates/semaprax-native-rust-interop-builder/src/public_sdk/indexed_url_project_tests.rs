@@ -3,6 +3,9 @@ use super::*;
 fn canonical(source: &str, path: &str) -> String {
     semaprax::format::canonical(&semaprax::parse(source, Path::new(path)).unwrap())
 }
+// The committed real-registry index is extracted for aarch64-apple-darwin.
+// The aarch64 macOS CI job runs this physical owner-bound view gate.
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 #[test]
 fn indexed_real_url_project_executes_receiver_tied_view_and_cleanup() {
     let cargo = std::env::var("CARGO").expect("Cargo supplies its executable");

@@ -1,5 +1,7 @@
 # Mutable Callback v1
 
+Audience: language and native interop implementers.
+
 Status: implemented for the narrow source-level RI-08 profile below.
 
 ## Narrow profile

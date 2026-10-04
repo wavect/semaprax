@@ -114,7 +114,9 @@ impl Resolver<'_> {
             return Ok(None);
         };
         if binding.ty.is_mut_function() && !binding.mutable {
-            return Err(error("mutable invocation requires a mutable local receiver"));
+            return Err(error(
+                "mutable invocation requires a mutable local receiver",
+            ));
         }
         if !binding.ty.is_once_function()
             && !binding.ty.is_mut_function()

@@ -1,5 +1,8 @@
 # Bend 2 law benchmark v1
 
+Status: local pinned benchmark harness; no hosted result claim.
+Audience: benchmark operators and reviewers.
+
 Issue #392 compares law-preserving development under an explicitly pinned
 local configuration. The owning runner is
 [`benchmarks/bend2-law-v1/run.py`](../benchmarks/bend2-law-v1/run.py) and its

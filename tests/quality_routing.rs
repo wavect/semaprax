@@ -24,6 +24,7 @@ fn profiles_are_deterministic_and_broad_dispatch_files_force_full() {
         "src/graph/prelude_binding.rs",
         "pub fn select_prelude() { /* changed */ }\n",
     );
+    repository.write("src/graph/affine.rs", "pub fn affine() {}\n");
     repository.write(
         "src/graph/function_values.rs",
         "pub fn function_values() {}\n",
@@ -61,6 +62,8 @@ fn profiles_are_deterministic_and_broad_dispatch_files_force_full() {
     assert!(plan.contains(
         "path\tsrc/graph/prelude_binding.rs\tbroad-compiler-or-graph-dispatch\tfull-workspace\n"
     ));
+    assert!(plan
+        .contains("path\tsrc/graph/affine.rs\tbroad-compiler-or-graph-dispatch\tfull-workspace\n"));
     assert!(plan.contains(
         "path\tsrc/graph/process.rs\tbroad-compiler-or-graph-dispatch\tfull-workspace\n"
     ));

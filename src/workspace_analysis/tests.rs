@@ -618,8 +618,8 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
         [
             // Exact affected-set, edge-order, budget, and digest replay checks
             // below independently bind these re-pinned document digests.
-            "sha256:f86573edffadb4199f4aa9a91b3601d4843584569891589f73445d8ffffcb88d",
-            "sha256:582153db1e138aa400d2b411eb7f182908be651c5a954458491a0bf012f56047",
+            "sha256:bbf3803c597fd457c0bfc19ba85177ae69d66b13dbdfc6fe2967d5a054b3db30",
+            "sha256:cd7f8ad1863bc8e2096848a2bd07f1c92c9111aea042475e554d1c45045bfff5",
         ]
     );
     let declaration_impact: serde_json::Value = serde_json::from_str(&impacts[0].json).unwrap();

@@ -1,5 +1,7 @@
 # Synchronous Borrowed Text Closures v1
 
+Audience: language and native interop implementers.
+
 Status: bounded implementation; owning executable gates are the language
 `borrowed_closures` selector and interop-builder `borrowed_callback` selector.
 

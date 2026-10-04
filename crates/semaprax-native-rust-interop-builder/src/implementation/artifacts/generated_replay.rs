@@ -181,11 +181,7 @@ pub(super) fn replay_private_ffi_exact(
         }
         if import.result != ScalarType::Unit {
             replay.text(", *mut ");
-            if import.result == ScalarType::ResultI64I64 {
-                replay_ffi_wire_scalar(&mut replay, import.result);
-            } else {
-                replay_rust_scalar(&mut replay, import.result);
-            }
+            replay_ffi_wire_scalar(&mut replay, import.result);
         }
         replay.text(")->u64,");
     }

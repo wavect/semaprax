@@ -65,8 +65,6 @@ mod borrowed_bytes_call_interpreter;
 mod class_project;
 #[path = "project/command_argument_borrow.rs"]
 mod command_argument_borrow;
-#[path = "project/hot_reload_cli.rs"]
-mod hot_reload_cli;
 #[path = "project/concrete_generic_project_prerequisites.rs"]
 mod concrete_generic_project_prerequisites;
 #[path = "project/cxx_owned_data_package.rs"]
@@ -93,6 +91,8 @@ mod generic_owned_dependency_runtime;
 mod hole_fill_suggestions;
 #[path = "project/hole_navigation.rs"]
 mod hole_navigation;
+#[path = "project/hot_reload_cli.rs"]
+mod hot_reload_cli;
 #[path = "project/language_command_native.rs"]
 mod language_command_native;
 #[path = "project/line_command_native.rs"]
@@ -173,10 +173,10 @@ mod project_lock_v1;
 mod public_generic_wasm_provider;
 #[path = "project/resource_free_record_evolution.rs"]
 mod resource_free_record_evolution;
-#[path = "project/ri13_m3.rs"]
-mod ri13_m3;
 #[path = "project/retained_owned_api.rs"]
 mod retained_owned_api;
+#[path = "project/ri13_m3.rs"]
+mod ri13_m3;
 #[path = "project/scaffold.rs"]
 mod scaffold;
 #[path = "project/scaffold_cli.rs"]

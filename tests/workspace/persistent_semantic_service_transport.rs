@@ -2,21 +2,21 @@ use std::collections::BTreeMap;
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 
 use semaprax::project::{
-    ProjectCandidate, ProjectFrontendSource, ProjectManifest, ProjectRevision, SemanticQuery,
-    SemanticServiceIndexQuery, SemanticTransaction, SemanticTransactionRenameDisplayName,
-    SemanticTransactionReplaceExpression, SemanticTransactionV2, SemanticWorkspaceService,
-    SemanticWorkspaceServiceHistoryQuery, with_authenticated_project,
+    with_authenticated_project, ProjectCandidate, ProjectFrontendSource, ProjectManifest,
+    ProjectRevision, SemanticQuery, SemanticServiceIndexQuery, SemanticTransaction,
+    SemanticTransactionRenameDisplayName, SemanticTransactionReplaceExpression,
+    SemanticTransactionV2, SemanticWorkspaceService, SemanticWorkspaceServiceHistoryQuery,
 };
 use semaprax::semantic_service_transport::{
-    MAX_SEMANTIC_SERVICE_REQUEST_BYTES, MAX_SEMANTIC_SERVICE_RESPONSE_BYTES,
-    SEMANTIC_SERVICE_TRANSPORT_ERROR_SCHEMA, SEMANTIC_SERVICE_TRANSPORT_RESULT_SCHEMA,
-    SEMANTIC_SERVICE_TRANSPORT_SCHEMA, SemanticWorkspaceStdioSession,
+    SemanticWorkspaceStdioSession, MAX_SEMANTIC_SERVICE_REQUEST_BYTES,
+    MAX_SEMANTIC_SERVICE_RESPONSE_BYTES, SEMANTIC_SERVICE_TRANSPORT_ERROR_SCHEMA,
+    SEMANTIC_SERVICE_TRANSPORT_RESULT_SCHEMA, SEMANTIC_SERVICE_TRANSPORT_SCHEMA,
 };
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 const PATHS: [&str; 3] = ["src/app.spx", "src/core.spx", "src/tests.spx"];
@@ -529,11 +529,9 @@ fn malformed_unknown_oversized_and_lifecycle_inputs_fail_closed_without_mutation
     let closed = call(&mut session, json!(5), "shutdown", json!({}));
     assert_eq!(result(&closed)["payload"]["shutdown"], true);
     assert!(session.is_terminal());
-    assert!(
-        session
-            .handle_frame(br#"{"jsonrpc":"2.0","method":"shutdown","params":{}}"#)
-            .is_none()
-    );
+    assert!(session
+        .handle_frame(br#"{"jsonrpc":"2.0","method":"shutdown","params":{}}"#)
+        .is_none());
     assert_eq!(inventory(&fixture.0), before);
 }
 
@@ -735,17 +733,15 @@ fn patch_receipt_adapters_replay_retained_candidates_without_history_or_path_inp
     );
 
     let history = SemanticWorkspaceServiceHistoryQuery::new(&workspace, 0, 64).unwrap();
-    assert!(
-        result(&call(
-            &mut session,
-            json!(10),
-            "workspace/history-query",
-            json!({"query":history.to_json()}),
-        ))["payload"]["value"]["items"]
-            .as_array()
-            .unwrap()
-            .is_empty()
-    );
+    assert!(result(&call(
+        &mut session,
+        json!(10),
+        "workspace/history-query",
+        json!({"query":history.to_json()}),
+    ))["payload"]["value"]["items"]
+        .as_array()
+        .unwrap()
+        .is_empty());
     let stale_transaction = transaction.replace(
         &workspace,
         "sha256:1111111111111111111111111111111111111111111111111111111111111111",

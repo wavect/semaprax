@@ -12,9 +12,9 @@ use semaprax::project::{
     PreparedProjectExecutionOptions, PreparedProjectInterpreterOptions,
     ProjectExecutionCancellation, ProjectPreparedExecutionOutcome,
 };
-use serde::Deserialize;
 use serde::de::{self, MapAccess, Visitor};
-use serde_json::{Value, json};
+use serde::Deserialize;
+use serde_json::{json, Value};
 
 const SCHEMA: &str = "semaprax.hot-reload-control.v1";
 const MAX_FRAME_BYTES: usize = 4096;
@@ -645,23 +645,17 @@ mod tests {
             .collect();
         assert_eq!(rows[1]["event"], "candidate_admitted");
         assert_eq!(rows[1]["plan"]["decision"], "eligible_code_replacement");
-        assert!(
-            rows[1]["phase_timings_ns"]["source_admission_check_ns"]
-                .as_u64()
-                .is_some_and(|value| value > 0)
-        );
-        assert!(
-            rows[1]["phase_timings_ns"]["candidate_preparation_ns"]
-                .as_u64()
-                .is_some_and(|value| value > 0)
-        );
+        assert!(rows[1]["phase_timings_ns"]["source_admission_check_ns"]
+            .as_u64()
+            .is_some_and(|value| value > 0));
+        assert!(rows[1]["phase_timings_ns"]["candidate_preparation_ns"]
+            .as_u64()
+            .is_some_and(|value| value > 0));
         assert_eq!(rows[2]["event"], "activated");
         assert_eq!(rows[2]["generation"], 1);
-        assert!(
-            rows[2]["phase_timings_ns"]["activation_pivot_ns"]
-                .as_u64()
-                .is_some()
-        );
+        assert!(rows[2]["phase_timings_ns"]["activation_pivot_ns"]
+            .as_u64()
+            .is_some());
         fs::remove_dir_all(root).unwrap();
     }
 

@@ -134,6 +134,8 @@ mod ownership_delta;
 mod package_consumer_replay;
 #[path = "project_candidate/package_dependency_rebase.rs"]
 mod package_dependency_rebase;
+#[path = "project_candidate/patch_receipt.rs"]
+mod patch_receipt;
 #[path = "project_candidate/public_generic_delta.rs"]
 mod public_generic_delta;
 #[path = "project_candidate/rebase.rs"]
@@ -150,8 +152,6 @@ mod recovery;
 mod scalar_literal_constructors;
 #[path = "project_candidate/semantic_delta.rs"]
 mod semantic_delta;
-#[path = "project_candidate/patch_receipt.rs"]
-mod patch_receipt;
 #[path = "project_candidate/signature_ownership.rs"]
 mod signature_ownership;
 #[path = "project_candidate/source_review.rs"]

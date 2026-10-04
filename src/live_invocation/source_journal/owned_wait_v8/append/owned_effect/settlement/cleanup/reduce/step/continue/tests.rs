@@ -975,6 +975,10 @@ fn continued_reduce_chain_step_ack(fault: u8, three_turns: bool, later_observe_e
                                                                 + usize::from(fault - 20),
                                                         );
                                                 }
+                                                // The inspection session itself retains the
+                                                // reached owner. Release it before asserting
+                                                // the cleanup result's sole physical hold.
+                                                drop(before_cleanup);
                                                 let mut failed_cleanup_actions = 0;
                                                 let result = crate::live_invocation::source_journal::owned_wait_v8::live_upstream::observe::settlement::failed_state::stop_failed_observe_state_v8(settled, |_| failed_cleanup_actions += 1);
                                                 if matches!(fault, 21..=23) {

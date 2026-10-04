@@ -978,3 +978,199 @@ pub fn scenario_references_labels(tool: Tool) {
 fn graft_reference_labels_and_no_absence_claim() {
     scenario_references_labels(Tool::Graft);
 }
+
+// ---- HN-10: opt-in adoption of a user-owned index, through `harness context` ----------------
+
+/// Digest of every file under `dir` (paths and bytes): "byte-identical after queries".
+pub fn tree_digest(dir: &Path) -> String {
+    fn walk(root: &Path, d: &Path, out: &mut Vec<String>) {
+        let mut es: Vec<_> = std::fs::read_dir(d).unwrap().flatten().collect();
+        es.sort_by_key(|e| e.file_name());
+        for e in es {
+            let p = e.path();
+            if p.is_dir() {
+                walk(root, &p, out);
+            } else {
+                let rel = p.strip_prefix(root).unwrap().display().to_string();
+                let sha = semaprax_harness::json::sha256_plain(&std::fs::read(&p).unwrap());
+                out.push(format!("{rel}:{sha}"));
+            }
+        }
+    }
+    let mut v = Vec::new();
+    walk(dir, dir, &mut v);
+    semaprax_harness::json::sha256_plain(v.join("\n").as_bytes())
+}
+
+/// Builds the user's own index the way a user would (their tool, their HOME) and
+/// returns its directory name inside the project.
+pub fn build_user_index(rig: &Rig, tool: Tool) -> &'static str {
+    build_user_index_with(rig, tool, required_tool(tool.upstream_var()))
+}
+
+/// As [`build_user_index`] with an explicit tool executable (for example another version).
+pub fn build_user_index_with(rig: &Rig, tool: Tool, up: PathBuf) -> &'static str {
+    let uhome = rig.base.join("uhome");
+    std::fs::create_dir_all(&uhome).unwrap();
+    let project = rig.project.to_str().unwrap();
+    let (args, dirname, path): (Vec<&str>, &str, String) = match tool {
+        Tool::Graphify => (
+            vec!["extract", project, "--code-only", "--out", project],
+            "graphify-out",
+            "/usr/bin:/bin".into(),
+        ),
+        _ => {
+            let node = required_tool("HARNESS_NODE");
+            (
+                vec!["build", "--dir", "", "--", project],
+                "graft",
+                format!("{}:/usr/bin:/bin", node.parent().unwrap().display()),
+            )
+        }
+    };
+    let gdir = rig.project.join("graft");
+    let args: Vec<String> = args
+        .iter()
+        .map(|a| {
+            if a.is_empty() {
+                gdir.display().to_string()
+            } else {
+                a.to_string()
+            }
+        })
+        .collect();
+    let o = Command::new(up)
+        .args(&args)
+        .env_clear()
+        .env("PATH", path)
+        .env("HOME", &uhome)
+        .env("DO_NOT_TRACK", "1")
+        .env("CI", "1")
+        .env("GRAPHIFY_NO_TIPS", "1")
+        .current_dir(&uhome)
+        .output()
+        .expect("build the user's index");
+    assert!(
+        o.status.success(),
+        "user index build: {}{}",
+        String::from_utf8_lossy(&o.stdout),
+        String::from_utf8_lossy(&o.stderr)
+    );
+    assert!(rig.project.join(dirname).is_dir());
+    dirname
+}
+
+fn adopt_config(tool: Tool, fields: &str) -> String {
+    format!(
+        "schema = \"semaprax.harness-config.v1\"\n\n[capability.\"context.repository\"]\nmode = \"required\"\nprovider = \"{}\"\n\n[capability.\"context.repository\".config]\n{fields}",
+        tool.id()
+    )
+}
+
+/// A compatible preexisting index is reused without a rebuild and stays byte-identical;
+/// a stale same-size edit, another worktree and a refused configuration fall back to the
+/// adapter's owned cache without touching the user's files.
+pub fn scenario_adopt_user_index(tool: Tool, mode: &str) {
+    let rig = Rig::new(tool, "adopt");
+    rig.adopt_trust(tool);
+    rig.write(
+        "semaprax.harness.toml",
+        &adopt_config(tool, &format!("adopt_index = \"{mode}\"\n")),
+    );
+    let o = rig.sh(&["resolve", rig.project.to_str().unwrap()]);
+    assert_eq!(o.code, 0, "resolve: {}{}", o.stdout, o.stderr);
+    let dirname = build_user_index(&rig, tool);
+    let user = rig.project.join(dirname);
+    let before = tree_digest(&user);
+    let d0 = rig.ctx(&["renderTotal", "--max-bytes", "16000"]);
+    assert!(text_has(&d0, "renderTotal"), "{d0}");
+    for i in external(&d0) {
+        assert_eq!(i["verified"], true, "{i}");
+    }
+    assert_eq!(
+        rig.index_stamp().0,
+        0,
+        "{mode}: the user's index answered; the adapter built none of its own"
+    );
+    // More queries (cache purged so the adapter really runs again) leave the user's index untouched.
+    rig.purge_context_cache();
+    let d1 = rig.ctx(&["parse_amount", "--max-bytes", "16000"]);
+    assert!(text_has(&d1, "parse_amount"));
+    assert_eq!(rig.index_stamp().0, 0);
+    assert_eq!(
+        tree_digest(&user),
+        before,
+        "{mode}: the user's index must stay byte-identical"
+    );
+    // A stale same-size edit: the index is refused and an owned cache serves current evidence.
+    rig.purge_context_cache();
+    let edited = rig
+        .read("web/render.ts")
+        .replace("renderTotal", "renderTotaL");
+    rig.write("web/render.ts", &edited);
+    let d2 = rig.ctx(&["renderTotal renderTotaL", "--max-bytes", "16000"]);
+    assert!(
+        text_has(&d2, "renderTotaL") && !text_has(&d2, "renderTotal "),
+        "{d2}"
+    );
+    assert!(rig.index_stamp().0 > 0, "fell back to an owned cache");
+    assert_eq!(
+        tree_digest(&user),
+        before,
+        "refusal never writes the user's files"
+    );
+    // Another worktree (a copy carrying the user's index) cannot use it as current evidence.
+    rig.write(
+        "web/render.ts",
+        &edited.replace("renderTotaL", "renderTotal"),
+    );
+    let other = rig.base.join("project-b");
+    copy_tree(&rig.project, &other);
+    let other_before = tree_digest(&other.join(dirname));
+    let mut args = vec!["context".to_string(), other.display().to_string()];
+    args.extend([
+        "renderTotal".into(),
+        "--max-bytes".into(),
+        "16000".into(),
+        "--json".into(),
+    ]);
+    let o = run(&args, &rig.env);
+    assert_eq!(o.code, 0, "{}{}", o.stdout, o.stderr);
+    assert_eq!(tree_digest(&other.join(dirname)), other_before);
+    // A configuration the host cannot validate never reaches the adapter.
+    rig.write(
+        "semaprax.harness.toml",
+        &adopt_config(tool, "user_index = \"../elsewhere\"\n"),
+    );
+    let o = rig.sh(&[
+        "context",
+        rig.project.to_str().unwrap(),
+        "renderTotal",
+        "--json",
+    ]);
+    assert_ne!(o.code, 0);
+    assert!(
+        o.stderr.contains("inside the project"),
+        "{}{}",
+        o.stdout,
+        o.stderr
+    );
+}
+
+#[test]
+#[ignore = "provisioned: needs SEMAPRAX_COMPILER HARNESS_GRAFT HARNESS_NODE"]
+fn graft_adopts_a_compatible_user_index_read_only_through_harness_context() {
+    scenario_adopt_user_index(Tool::Graft, "read-only");
+}
+
+#[test]
+#[ignore = "provisioned: needs SEMAPRAX_COMPILER HARNESS_GRAFT HARNESS_NODE"]
+fn graft_adopts_a_compatible_user_index_as_a_copied_snapshot_through_harness_context() {
+    scenario_adopt_user_index(Tool::Graft, "copied-snapshot");
+}
+
+#[test]
+#[ignore = "provisioned: needs SEMAPRAX_COMPILER HARNESS_GRAFT_NEW HARNESS_NODE"]
+fn graft_new_adopts_a_compatible_user_index_through_harness_context() {
+    scenario_adopt_user_index(Tool::GraftNew, "read-only");
+}

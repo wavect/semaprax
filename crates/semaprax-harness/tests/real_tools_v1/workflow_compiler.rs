@@ -497,6 +497,7 @@ fn hp_hp04_real_stale_revision_during_generation_is_refused() {
         notes: vec![],
         budget: Default::default(),
         cancel: None,
+        routing: Default::default(),
     };
     let mut native = NativeContext::new(&compiler);
     let mut p = Racing(w.project.clone());
@@ -567,6 +568,24 @@ fn hp_hpwire_workflow_context_is_broker_backed_native_plus_structural_external_b
         v["context"]["providers"],
         json!(["org.example/source-index"])
     );
+    // HN-13: provider answers are cached machine-locally; the identical second run is a
+    // cache hit (no provider invocation), not a second provider call.
+    let again = w.harness(&[
+        "run",
+        w.project.to_str().unwrap(),
+        "--compiler",
+        w.compiler.to_str().unwrap(),
+        "--task",
+        &task(),
+        "--proposal",
+        &prop("valid"),
+        "--json",
+    ]);
+    let v2: Value = serde_json::from_str(again.stdout.trim())
+        .unwrap_or_else(|_| panic!("{}{}", again.stdout, again.stderr));
+    assert_eq!(provider(&v2, "context.repository")["invoked"], 0, "{v2}");
+    assert!(w.root.join("home/cache/context").is_dir());
+    assert_eq!(v2["status"], "approved-candidate-ready", "{v2}");
     // The packet itself: compiler-verified facts first, structural external hints after.
     let res = semaprax_harness::profile::resolve_project(&w.env, &w.project).unwrap();
     let launch = res.launches.values().next().unwrap().clone();
@@ -924,6 +943,7 @@ mod hn {
             notes: vec![],
             budget: Default::default(),
             cancel: None,
+            routing: Default::default(),
         }
     }
 
@@ -1658,4 +1678,306 @@ fn hn_hn04_real_run_delivers_official_ponytail_by_task_family_and_honors_the_swi
         "{st}"
     );
     assert_eq!(st["applied_to_model"], false);
+}
+
+/// HN-13 / HN-16 user-path wiring against the real compiler.
+mod hnwire {
+    use super::*;
+    use semaprax_harness::context::external::{Coverage, ExternalQuery, ExternalResponse, RawItem};
+    use semaprax_harness::context::identity::Snapshot as CtxSnapshot;
+    use semaprax_harness::context::item::{Span, Tier};
+    use semaprax_harness::context::{
+        ExternalSource, NativeContextSource, ProviderIdentity, SubprocessNative,
+    };
+    use semaprax_harness::diag::HarnessResult;
+    use semaprax_harness::workflow::compiler::SubprocessCompiler;
+    use semaprax_harness::workflow::stages::{ProposalRequest, RawCommandView, TaskMode};
+    use semaprax_harness::workflow::{
+        BrokerContext, Composition, RunConfig, SessionBounds, Snapshot, Stages,
+    };
+    use std::cell::{Cell, RefCell};
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::{Arc, Mutex};
+
+    const ID: &str = "org.example/ident-search";
+
+    fn idents(s: &str) -> Vec<String> {
+        s.split(|c: char| !(c.is_alphanumeric() || c == '_'))
+            .filter(|t| !t.is_empty())
+            .map(str::to_string)
+            .collect()
+    }
+
+    /// Identifier search over the non-`.spx` files; records every query.
+    struct Search {
+        seen: Arc<Mutex<Vec<String>>>,
+        n: Arc<AtomicUsize>,
+    }
+
+    impl ExternalSource for Search {
+        fn identity(&self) -> ProviderIdentity {
+            ProviderIdentity {
+                provider_id: ID.into(),
+                provider_version: "1.0.0".into(),
+                adapter_version: "0.1.0".into(),
+                upstream_version: None,
+                descriptor_digest: "sha256:d".into(),
+                config_digest: "sha256:c".into(),
+                permission_scope: json!({"read": ["project"]}),
+            }
+        }
+        fn scope(&self) -> Vec<String> {
+            vec![]
+        }
+        fn recheck_authority(&self) -> HarnessResult<()> {
+            Ok(())
+        }
+        fn query(
+            &self,
+            snap: &CtxSnapshot,
+            q: &ExternalQuery,
+            _max: usize,
+        ) -> HarnessResult<ExternalResponse> {
+            self.n.fetch_add(1, Ordering::SeqCst);
+            let text = q.payload["query"].as_str().unwrap_or("").to_string();
+            self.seen.lock().unwrap().push(text.clone());
+            let want = idents(&text);
+            let mut items = Vec::new();
+            for rel in snap.files.keys().filter(|r| !r.ends_with(".spx")) {
+                let Ok(t) = std::fs::read_to_string(snap.root.join(rel)) else {
+                    continue;
+                };
+                for (i, l) in t.split('\n').enumerate() {
+                    if idents(l).iter().any(|w| want.contains(w)) {
+                        items.push(RawItem {
+                            path: rel.clone(),
+                            span: Span {
+                                start_line: i as u64 + 1,
+                                end_line: i as u64 + 1,
+                            },
+                            digest: sha256_plain(l.as_bytes()),
+                            tier: Tier::Structural,
+                            language: "typescript".into(),
+                            rank: 1.0,
+                            text: Some(l.to_string()),
+                            span_kind: Some("start-line".into()),
+                            edges: vec![],
+                        });
+                    }
+                }
+            }
+            Ok(ExternalResponse {
+                status: "complete".into(),
+                no_references: items.is_empty(),
+                items,
+                coverage: Coverage {
+                    complete: true,
+                    exhaustive: false,
+                    indexed_files: 1,
+                    skipped: vec![],
+                },
+                upstream_version: None,
+                provider_id: ID.into(),
+                diagnostics: vec![],
+            })
+        }
+    }
+
+    struct Seq {
+        items: Vec<Value>,
+        prompts: RefCell<Vec<Value>>,
+        calls: Cell<u32>,
+    }
+    struct SeqRef<'a>(&'a Seq);
+    impl ProposalStage for SeqRef<'_> {
+        fn id(&self) -> String {
+            "org.example/seq".into()
+        }
+        fn propose(&mut self, r: &ProposalRequest) -> Result<Vec<u8>, StageFailure> {
+            let i = self.0.calls.get() as usize;
+            self.0.calls.set(i as u32 + 1);
+            self.0.prompts.borrow_mut().push(r.prompt.clone());
+            Ok(self.0.items[i.min(self.0.items.len() - 1)]
+                .to_string()
+                .into_bytes())
+        }
+        fn calls(&self) -> u32 {
+            self.0.calls.get()
+        }
+        fn side_effecting(&self) -> bool {
+            false
+        }
+    }
+
+    #[test]
+    #[ignore = "provisioned: needs SEMAPRAX_COMPILER"]
+    fn hn_hn13_real_failed_first_candidate_triggers_exactly_one_focused_follow_up_that_enables_attempt_two(
+    ) {
+        let root = fixture_dir("hp-hnwire-r").canonicalize().unwrap();
+        let project = root.join("project");
+        copy_dir(&fixtures().join("healthy"), &project);
+        std::fs::create_dir_all(project.join("web")).unwrap();
+        std::fs::write(
+            project.join("web/app.ts"),
+            "export const renderLineCost = (n: number) => n; // TypeScript wrapper\nexport const ledgerGlue = 'FOLLOWUP-MARKER glue for the G225 intention diagnostic';\n",
+        )
+        .unwrap();
+        let exe = required_tool("SEMAPRAX_COMPILER");
+        let cache = root.join("cache");
+        let svc = SubprocessCompiler::new(exe.clone(), root.join("compiler")).unwrap();
+        let nat =
+            || Some(Box::new(SubprocessNative::new(exe.clone())) as Box<dyn NativeContextSource>);
+        let (seen, n) = (Arc::new(Mutex::new(vec![])), Arc::new(AtomicUsize::new(0)));
+        let mut stage = BrokerContext::with_sources(
+            nat(),
+            nat(),
+            Box::new(Search {
+                seen: seen.clone(),
+                n: n.clone(),
+            }),
+            ID.into(),
+            None,
+        )
+        .unwrap();
+        let bad = json!({"schema": "semaprax.harness-proposal.v1", "intent":
+            {"kind": "rename_declaration", "target": "ledger.line_totall", "name": "line_cost"}});
+        let good = json!({"schema": "semaprax.harness-proposal.v1", "intent":
+            {"kind": "rename_declaration", "target": "ledger.line_total", "name": "line_cost"}});
+        let seq = Seq {
+            items: vec![bad, good],
+            prompts: RefCell::default(),
+            calls: Cell::new(0),
+        };
+        let cfg = RunConfig {
+            snapshot: Snapshot::capture(&project).unwrap(),
+            task: Task {
+                schema_version: 2,
+                mode: TaskMode::Change,
+                goal: "rename line_total to line_cost and keep the TypeScript wrapper in step"
+                    .into(),
+                seed: Some("ledger.line_total".into()),
+                external_context: ExternalContext::WhenNeeded,
+                session: Some(SessionBounds {
+                    max_attempts: 3,
+                    ..Default::default()
+                }),
+                ..Task::default()
+            },
+            context_max_bytes: 16384,
+            cache_dir: cache,
+            lock_digest: "sha256:lock".into(),
+            providers: vec![],
+            composition: Composition::from_profile(None, true, vec![], &[]).unwrap(),
+            apply_policy: None,
+            checks: vec![],
+            skill_prompt: None,
+            endpoint_policy: Default::default(),
+            model_plans: None,
+            notes: vec![],
+            budget: Default::default(),
+            cancel: None,
+            routing: Default::default(),
+        };
+        let mut prop = SeqRef(&seq);
+        let mut view = RawCommandView;
+        // Like the CLI: the broker is the native slot and also the provider slot.
+        let r = semaprax_harness::workflow::run(
+            &cfg,
+            &svc,
+            Stages {
+                decision: None,
+                native: &mut stage,
+                external: None,
+                proposer: &mut prop,
+                command: &mut view,
+            },
+            &mut Observer::new(None, ObserverLimits::default()),
+        );
+        assert_eq!(
+            r.status, "candidate-ready",
+            "{:?} {:?}",
+            r.refusals, r.notes
+        );
+        assert_eq!(seq.calls.get(), 2);
+        let q = seen.lock().unwrap().clone();
+        assert_eq!(
+            q.len(),
+            2,
+            "one planned query and exactly one focused follow-up: {q:?}"
+        );
+        assert!(
+            q[1].contains("G225"),
+            "the follow-up is worded by the compiler's failure: {q:?}"
+        );
+        assert!(!q[1].contains("FOLLOWUP"), "not a dump: {q:?}");
+        let p = seq.prompts.borrow();
+        assert!(!p[0].to_string().contains("FOLLOWUP-MARKER"));
+        assert!(
+            p[1].to_string().contains("FOLLOWUP-MARKER"),
+            "follow-up result reached attempt 2"
+        );
+        assert_eq!(
+            r.context["plan"]["follow_up"]["added_items"]
+                .as_u64()
+                .is_some(),
+            true
+        );
+        assert!(r.steps.iter().any(|(k, _)| k == "context-follow-up"));
+    }
+
+    #[test]
+    #[ignore = "provisioned: needs SEMAPRAX_COMPILER"]
+    fn hn_hn16_real_cli_run_honors_the_project_pin_and_explains_the_route() {
+        let w = super::world();
+        use semaprax_harness::decision::{Destination, ModelPlan};
+        let m = |id: &str, rank: u32| {
+            ModelPlan {
+                id: id.into(),
+                destination: Destination::Local,
+                structured_output: true,
+                tools: false,
+                max_context: 1_000_000,
+                est_cost_micros: 0,
+                est_latency_ms: 10,
+                strength_rank: rank,
+            }
+            .to_json()
+        };
+        let task = write(
+            &w.root,
+            "host/task-route.json",
+            &json!({"schema": "semaprax.harness-task.v1", "goal": "fix ledger.line_total so the contract holds",
+                    "models": [m("cheap", 1), m("strong", 2)]})
+            .to_string(),
+        );
+        let run = |w: &super::World| {
+            let o = w.harness(&[
+                "run",
+                w.project.to_str().unwrap(),
+                "--compiler",
+                w.compiler.to_str().unwrap(),
+                "--task",
+                task.to_str().unwrap(),
+                "--proposal",
+                &super::prop("valid"),
+                "--json",
+            ]);
+            serde_json::from_str::<Value>(o.stdout.trim())
+                .unwrap_or_else(|_| panic!("{}{}", o.stdout, o.stderr))
+        };
+        let base = run(&w);
+        assert_eq!(base["route"]["choice"], "cheap", "{base}");
+        write(
+            &w.project,
+            "semaprax.harness.toml",
+            "schema = \"semaprax.harness-config.v1\"\n[routing]\nmode = \"auto\"\npin = \"strong\"\nallow_remote = false\n",
+        );
+        let _ = std::fs::remove_file(w.project.join("semaprax.harness.lock"));
+        let v = run(&w);
+        assert_eq!(v["route"]["choice"], "strong", "{}", v["route"]);
+        assert_eq!(v["route"]["mode"], "pin");
+        assert_eq!(v["route"]["policy"]["allow_remote"], false);
+        assert_eq!(v["route"]["explanation"]["rules_reason"], "pinned");
+        assert_eq!(v["status"], "approved-candidate-ready", "{v}");
+    }
 }

@@ -246,6 +246,8 @@ pub struct HostExternal {
     lock_digest: String,
     config_digest: String,
     scope: Vec<String>,
+    /// Validated adapter config (`SEMAPRAX_HARNESS_CFG_*`), see `workflow::adapter_config`.
+    config_env: std::collections::BTreeMap<String, String>,
     counter: AtomicU64,
 }
 
@@ -264,8 +266,15 @@ impl HostExternal {
             lock_digest,
             config_digest,
             scope,
+            config_env: Default::default(),
             counter: AtomicU64::new(0),
         }
+    }
+
+    /// Forward validated `[capability."context.repository".config]` values.
+    pub fn with_config_env(mut self, env: std::collections::BTreeMap<String, String>) -> Self {
+        self.config_env = env;
+        self
     }
 
     fn spec(&self, snap: &Snapshot) -> HarnessResult<LaunchSpec> {
@@ -305,7 +314,7 @@ impl HostExternal {
             cache_dir: home.join("cache").join("adapters").join(tag.clone()),
             retention_dir: home.join("retention").join(tag),
             isolation: IsolationRequest::None,
-            forward_env: Default::default(),
+            forward_env: self.config_env.clone(),
         })
     }
 }

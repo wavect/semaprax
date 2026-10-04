@@ -986,6 +986,7 @@ mod hn12 {
             notes: vec![],
             budget: Default::default(),
             cancel: None,
+            routing: Default::default(),
         };
         let parser = Parser {
             calls: Cell::new(0),

@@ -270,7 +270,9 @@ impl LaunchSpec {
             env.insert("PYTHONNOUSERSITE".into(), "1".into());
         }
         for (k, v) in &self.forward_env {
-            let reserved = env.contains_key(k) || k.starts_with("SEMAPRAX_HARNESS_");
+            // `SEMAPRAX_HARNESS_CFG_*` is the host's own channel for validated adapter config.
+            let reserved = env.contains_key(k)
+                || (k.starts_with("SEMAPRAX_HARNESS_") && !k.starts_with("SEMAPRAX_HARNESS_CFG_"));
             if reserved || k.is_empty() || k.contains(['=', '\0']) || v.contains('\0') {
                 return Err(refuse(
                     "SPX-HPC001",

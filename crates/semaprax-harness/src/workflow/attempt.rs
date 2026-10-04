@@ -10,9 +10,10 @@ use super::policy::check_protected_facts;
 use super::report::Report;
 use super::stages::*;
 use crate::decision::{
-    gate_attests_key, governed_decide, Budget, Confidentiality, ConfiguredProvider, Destination,
-    EvidenceKey, GateSpec, Governor, LatencyClass, ModelPlan, ProviderMode, RouteContext,
-    RouteInputs, RoutePolicy, RouteRequest, RoutingConfig, RoutingMode, TaskFamily, TaskFeatures,
+    gate_attests_key, governed_decide, recheck_dispatch, Budget, Confidentiality,
+    ConfiguredProvider, Destination, EvidenceKey, Governor, LatencyClass, ModelPlan, ProviderMode,
+    RouteContext, RouteInputs, RoutePolicy, RouteRequest, RoutingConfig, RoutingMode, TaskFamily,
+    TaskFeatures,
 };
 use crate::diag::{HarnessDiagnostic, HarnessResult};
 use crate::json::sha256_plain;
@@ -125,6 +126,7 @@ fn catalog(cx: &Ctx, task: &Task) -> HarnessResult<Vec<ModelPlan>> {
 }
 
 struct Routed {
+    inputs: RouteInputs,
     json: Value,
     model: String,
     router_calls: u32,
@@ -163,10 +165,21 @@ fn route_models(
     let text = crate::json::canonical(&json!({"features": features.to_json(),
         "catalog": catalog.iter().map(ModelPlan::to_json).collect::<Vec<_>>(), "budget": budget.to_json()}));
     let request = RouteRequest::new(features, catalog, budget)?;
-    let inputs = RouteInputs {
-        request,
-        policy: RoutePolicy::default(),
-    };
+    let mut policy = RoutePolicy::default();
+    if cx.cfg.routing.approve_remote {
+        // The project explicitly allows remote routing: the origins of the
+        // (already endpoint-policy-checked) catalog are approved for project data.
+        policy.remote_max_confidentiality = Some(Confidentiality::Project);
+        policy.allowed_origins = request
+            .catalog
+            .iter()
+            .filter_map(|m| match &m.destination {
+                Destination::Remote { origin } => Some(origin.clone()),
+                Destination::Local => None,
+            })
+            .collect();
+    }
+    let inputs = RouteInputs { request, policy };
     let rctx = RouteContext {
         project: cx.lineage.project.clone(),
         lock_digest: cx.lineage.lock_digest.clone(),
@@ -183,17 +196,30 @@ fn route_models(
     // The workflow carries only the stage's gate: a learned provider is
     // consulted in `Auto` mode only when that gate attests the live key
     // (provider, weights, approved catalog); otherwise rules decide (HN-16).
-    let mode = match decision.as_ref() {
-        None => RoutingMode::Rules,
-        Some(d) if d.mode == ProviderMode::Explicit => RoutingMode::Experimental,
-        Some(d) => {
-            let key = EvidenceKey::live(&d.profile, &inputs.request.catalog_digest());
-            if gate_attests_key(&d.gate, &key) {
-                RoutingMode::Experimental
-            } else {
-                RoutingMode::Rules
+    let wiring = &cx.cfg.routing;
+    let live_key = decision
+        .as_ref()
+        .map(|d| EvidenceKey::live(&d.profile, &inputs.request.catalog_digest()));
+    let mode = if wiring.explicit_mode || wiring.cfg.project_pin.is_some() {
+        // `[routing]` decides: the project's mode and pin, never the provider's own.
+        wiring.cfg.mode.clone()
+    } else {
+        match (decision.as_ref(), &live_key) {
+            (None, _) | (_, None) => RoutingMode::Rules,
+            (Some(d), _) if d.mode == ProviderMode::Explicit => RoutingMode::Experimental,
+            (Some(d), Some(key)) => {
+                if gate_attests_key(&d.gate, key) {
+                    RoutingMode::Experimental
+                } else {
+                    RoutingMode::Rules
+                }
             }
         }
+    };
+    let lock = if mode == RoutingMode::QualifiedAuto {
+        live_key.as_ref().and_then(|k| wiring.lock_for(k))
+    } else {
+        None
     };
     let mut configured = decision.map(|d| ConfiguredProvider {
         profile: d.profile.clone(),
@@ -203,13 +229,13 @@ fn route_models(
     });
     let cfg = RoutingConfig {
         mode,
-        ..RoutingConfig::default()
+        ..wiring.cfg.clone()
     };
     let g = Governor {
         cfg: &cfg,
-        registry: None,
-        spec: &GateSpec::default(),
-        lock: None,
+        registry: wiring.registry.as_ref(),
+        spec: &wiring.spec,
+        lock: lock.as_ref(),
         router_headroom_tokens,
         router_request_tokens,
     };
@@ -223,9 +249,11 @@ fn route_models(
     )?;
     let dec = gr.decision;
     Ok(Routed {
+        inputs,
         json: json!({"choice": dec.choice, "provider": dec.provider_id, "router_calls": dec.router_calls,
                "status": dec.provider_status, "source": format!("{:?}", dec.source),
-               "mode": gr.mode, "rules_reason": gr.rules_reason}),
+               "mode": gr.mode, "rules_reason": gr.rules_reason, "explanation": gr.explanation,
+               "policy": {"allow_remote": cfg.user_allow_remote, "project_pin": cfg.project_pin}}),
         model: dec.choice,
         router_calls: dec.router_calls,
         request_text: text,
@@ -328,6 +356,17 @@ pub(super) fn route_and_fit(
             budget.fit(&plan, &optional, &build)
         };
         if fit.fits {
+            // Pre-dispatch recheck of the chosen model against the final serialized request.
+            if let Err(e) = recheck_dispatch(&routed.inputs, &plan.id, fit.required_tokens) {
+                if cfg.routing.cfg.project_pin.is_some()
+                    || matches!(cfg.routing.cfg.mode, RoutingMode::Pin(_))
+                {
+                    return Err(e);
+                }
+                excluded.push(json!({"model": plan.id, "recheck": e.message}));
+                pool.retain(|m| m.id != plan.id);
+                continue;
+            }
             let mut bj = fit.to_json(&budget.policy);
             bj["rerouted_from"] = json!(excluded);
             r.context["request_budget"] = bj;

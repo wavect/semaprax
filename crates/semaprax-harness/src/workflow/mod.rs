@@ -5,6 +5,7 @@
 //! reached only through the adapter host; publication is the compiler's own
 //! route under a preexisting host policy.
 
+pub mod adapter_config;
 mod attempt;
 mod b64;
 pub mod broker_stage;
@@ -19,10 +20,12 @@ pub mod lineage;
 pub mod pipeline;
 pub mod policy;
 pub mod report;
+pub mod routing;
 pub mod session;
 mod session_repair;
 pub mod snapshot;
 pub mod stages;
+mod updates_hook;
 
 pub use cli::{cli_run, run_with, RunOptions};
 pub use cli_apply::cli_apply;

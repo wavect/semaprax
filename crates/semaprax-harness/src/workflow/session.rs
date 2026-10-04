@@ -6,7 +6,9 @@
 
 use super::attempt::{self, PromptCtx};
 use super::journal::Journal;
-use super::pipeline::{gather_context, present_and_publish, step, Ctx, Stages};
+use super::pipeline::{
+    expand_context, follow_up_context, gather_context, present_and_publish, step, Ctx, Stages,
+};
 use super::report::Report;
 use super::session_repair as repair;
 use super::snapshot::Snapshot;
@@ -448,6 +450,7 @@ pub(super) fn loop_steps(
                 ) =>
             {
                 s.record_failure(n, "preview", e.code, &e.message, journal)?;
+                refine_context(cx, st, r, &work, &seed, &e.message, &mut kept);
                 continue;
             }
             Err(e) => return Err(e),
@@ -469,6 +472,7 @@ pub(super) fn loop_steps(
             Err(e) if e.code == "SPX-HPD050" => {
                 let (msg, fb) = super::checks::check_feedback(&r.checks, &e.message);
                 s.record_failure(n, "checks", e.code, &msg, journal)?;
+                refine_context(cx, st, r, &work, &seed, &msg, &mut kept);
                 if let Some(fb) = fb {
                     let mut d = fb["delivered"].clone();
                     d["attempt"] = json!(n);
@@ -526,6 +530,60 @@ pub(super) fn loop_steps(
             }
         } else {
             return finish(cx, st, journal, r, s, &revision, after_repair);
+        }
+    }
+}
+
+/// HN-13: after a failed candidate, exactly one focused provider follow-up
+/// named by the failure's own identifiers; when it adds nothing, a continuation
+/// handle whose path the failure names is expanded (no provider call). Never
+/// fatal: a stage without plans, a spent call bound or provider trouble only
+/// leaves the context unchanged and is reported.
+fn refine_context(
+    cx: &mut Ctx,
+    st: &mut Stages,
+    r: &mut Report,
+    work: &Path,
+    seed: &Option<String>,
+    failure: &str,
+    kept: &mut Vec<ContextItem>,
+) {
+    let added = follow_up_context(cx, st, r, work, seed, failure, kept).unwrap_or(false);
+    if added {
+        return;
+    }
+    let mut handles: Vec<String> = r.context["plan"]["retrieval"]["continuation"]
+        .as_array()
+        .into_iter()
+        .chain(r.context["plan"]["follow_up"]["report"]["continuation"].as_array())
+        .flatten()
+        .filter_map(|h| h.as_str().map(str::to_string))
+        .collect();
+    handles.sort();
+    handles.dedup();
+    for h in handles {
+        let names =
+            crate::context::plan::parse_handle(&h).is_some_and(|p| failure.contains(&p.path));
+        if names {
+            match expand_context(cx, st, work, &h, kept) {
+                Ok(n) if n > 0 => {
+                    r.context["plan"]["expanded_handles"] = json!(r.context["plan"]
+                        ["expanded_handles"]
+                        .as_array()
+                        .cloned()
+                        .unwrap_or_default()
+                        .into_iter()
+                        .chain([json!(h)])
+                        .collect::<Vec<_>>());
+                    step(r, "context-expand", "added");
+                    return;
+                }
+                Ok(_) => {}
+                Err(e) => r.notes.push(format!(
+                    "context expansion refused: {} {}",
+                    e.code, e.message
+                )),
+            }
         }
     }
 }

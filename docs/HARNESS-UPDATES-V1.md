@@ -120,3 +120,10 @@ real blobs. Limits: GitHub only; releases (not bare tags) define stable; publish
 and tag is not proven (no signature verification in v1); the `DefaultSkills` constructors still use the
 embedded set until the workflow adopts `effective_set`; revocation lists from a real origin are not read
 (`GitHubCliFetcher::revoked` is empty), only local `revoke` and fixtures.
+
+## Workflow integration
+
+`harness run` is the session-start hook: see [HARNESS-WORKFLOW-V1](HARNESS-WORKFLOW-V1.md). It loads
+`effective_set(home)`, runs `maintenance` (approved policy and expired TTL only; failure is a notice) and makes no
+update request under `--frozen`/`--offline`. A run releases stale locks of the shared `default` session so the next
+run adopts an activated revision; other sessions keep theirs.

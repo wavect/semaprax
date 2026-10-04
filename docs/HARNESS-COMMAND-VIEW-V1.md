@@ -130,3 +130,9 @@ budget (`docs/HARNESS-WORKFLOW-V1.md`, HN-11) counts the serialized request incl
 Known gaps: the `semaprax harness run` CLI does not yet pass a tokenizer to the check stage (the library path does);
 failed-check feedback exists for the HN-02 session loop only (scratch-repair feedback and HN-14 delegated results do
 not carry it yet).
+
+### Check stage tokenizer (HN-12)
+
+`harness run --tokenizer-python P --tokenizer-script S --tokenizer NAME` spawns a tokenizer helper for the check
+stage (`HostCommandChecks.tokenizer`) in addition to the request-budget helper, so check views are measured in named
+tokens; without the flags measurements are bytes-only.

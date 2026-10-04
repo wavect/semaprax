@@ -243,6 +243,7 @@ fn config(e: &Env, task: Task, policy: Option<ApplyPolicy>) -> RunConfig {
         notes: vec![],
         budget: Default::default(),
         cancel: None,
+        routing: Default::default(),
     }
 }
 
@@ -1121,3 +1122,6 @@ fn hp_hpwire_host_sets_bridge_depth_for_children_but_callers_cannot() {
 
 #[path = "workflow_hn.rs"]
 mod hn;
+
+#[path = "workflow_wire.rs"]
+mod wire;

@@ -116,7 +116,23 @@ fn edges_of(v: &Value) -> HarnessResult<()> {
         )
     })?;
     for ed in a {
-        let m = shape(ed, "edge", &["target", "relation", "provenance"], &[])?;
+        let m = shape(
+            ed,
+            "edge",
+            &["target", "relation", "provenance"],
+            &["resolution"],
+        )?;
+        if m.contains_key("resolution")
+            && !matches!(
+                str_of(m, "resolution", 16)?,
+                "resolved" | "ambiguous" | "unsupported"
+            )
+        {
+            return Err(e(
+                "SPX-HPA040",
+                "edge `resolution` must be `resolved`, `ambiguous` or `unsupported`",
+            ));
+        }
         str_of(m, "target", 1024)?;
         str_of(m, "relation", 64)?;
         if !matches!(str_of(m, "provenance", 16)?, "structural" | "inferred") {
@@ -144,7 +160,7 @@ fn result(op: &str, v: &Value) -> HarnessResult<()> {
             it,
             "context item",
             &["path", "span", "digest", "provenance", "language", "rank"],
-            &["text", "edges"],
+            &["text", "edges", "span_kind"],
         )?;
         path_of(i, "path")?;
         let s = shape(&i["span"], "span", &["start_line", "end_line"], &[])?;
@@ -165,6 +181,14 @@ fn result(op: &str, v: &Value) -> HarnessResult<()> {
         str_of(i, "language", 32)?;
         if !i["rank"].is_number() {
             return Err(e("SPX-HPA040", "`rank` must be a number"));
+        }
+        if i.contains_key("span_kind")
+            && !matches!(str_of(i, "span_kind", 16)?, "definition" | "start-line")
+        {
+            return Err(e(
+                "SPX-HPA040",
+                "`span_kind` must be `definition` or `start-line`",
+            ));
         }
         if let Some(ed) = i.get("edges") {
             edges_of(ed)?;

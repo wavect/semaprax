@@ -5,7 +5,9 @@
 //! discovery as untrusted hints. Diagnostics are `SPX-HPE001..`: 001 mandatory
 //! native facts exceed the budget, 002 no compiler, 010 snapshot, 020-023
 //! compiler facts, 030-032 external provider, 040-041 provider selection and
-//! federation, 050 provenance promotion refused, 060-061 index report mismatch.
+//! federation, 050 provenance promotion refused, 060-061 index report mismatch,
+//! 070 task-filtered or duplicate provider slices, 071-073 continuation handles
+//! (stale, over budget, outside the project).
 
 pub mod broker;
 pub mod budget;
@@ -15,6 +17,7 @@ pub mod external;
 pub mod identity;
 pub mod item;
 pub mod native;
+pub mod plan;
 
 pub use broker::{Broker, BrokerOutput, BrokerRequest};
 pub use cache::{CacheConfig, CacheKey, ResultCache};

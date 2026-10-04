@@ -63,3 +63,12 @@ reused as another kind, 011 choice not admissible, 013 fallback refused,
 `decide <task.json> [--catalog <catalog.json>] [--json]` runs rules and prints
 the decision and frozen plan. `task.json`: `{task, features, budget,
 catalog?, policy?, lineage_id?}`.
+
+## Request budget (HN-11)
+
+The router's `estimated_context_tokens` is the smallest protected-only request requirement over the catalog, computed by
+`workflow::budget` with each model's mapped tokenizer (byte upper bound when unknown); it is never `context_bytes / 4`.
+The chosen model is then revalidated against the full serialized request and rerouted or refused before any provider call
+(`SPX-HPD100`, see HARNESS-WORKFLOW-V1). A router call is itself budgeted: its serialized request is reserved in the task
+ledger (output reserve 256) and recorded as an incurred `decision` observation.
+

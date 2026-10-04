@@ -96,3 +96,14 @@ one `semaprax.token-observation.v1` row (`observe::export`). `Transform` events 
 without a baseline is `baseline_unavailable`; byte-only sizes are `tokenizer_unavailable` with `bytes` set;
 unmeasured events are `incomplete`. `Incurred` events measure `incurred`. Metadata only: digests, sizes, identities.
 Consume with `python3 scripts/token_report.py session --events <rows.jsonl> --output <report.json>`.
+
+## Request counts and the task ledger (HN-11)
+
+The workflow records one `generation` incurred observation per model request and one `decision` incurred observation per
+router request, each carrying the count of its exact serialized request: `named` when the model maps to a supplied
+tokenizer (for example `o200k_base` through `scripts/harness_tokenize.py`), else `byte_only`. The workflow's
+`context.task_ledger` holds the same figures per tokenizer identity (`named_input_tokens`,
+`unknown_tokenizer_upper_bound_bytes`), so the token-observation export (`measured`/`tokenizer_unavailable` rows) and the
+ledger reconcile without double counting; preflight counting itself emits no event. Local counts are payload sizes, not
+billed usage.
+

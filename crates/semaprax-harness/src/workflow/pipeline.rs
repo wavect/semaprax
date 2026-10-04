@@ -3,27 +3,25 @@
 //! generate -> validate -> check -> present -> publish. Publication happens
 //! only through the compiler's route under a preexisting host policy.
 
+use super::attempt::{self, PromptCtx};
+use super::budget::{BudgetConfig, RequestCount, TaskLedger};
 use super::checks::CheckSpec;
-use super::compiler::{CandidatePreview, CompilerDiagnostic, CompilerService, PublishError};
+use super::compiler::{CompilerDiagnostic, CompilerService, PublishError};
 use super::composition::Composition;
 use super::journal::Journal;
 use super::lineage::Lineage;
-use super::policy::{check_protected_facts, ApplyPolicy, REQUIREMENTS};
+use super::policy::{ApplyPolicy, REQUIREMENTS};
 use super::report::{ProviderUse, Report};
 use super::snapshot::Snapshot;
 use super::stages::*;
-use crate::decision::{
-    decide, Budget, Confidentiality, ConfiguredProvider, DecisionInvoker, Destination,
-    EnablementGate, LatencyClass, ModelPlan, ProviderMode, ProviderProfile, RouteContext,
-    RouteInputs, RoutePolicy, RouteRequest, TaskFamily, TaskFeatures,
-};
+use crate::decision::{DecisionInvoker, EnablementGate, ModelPlan, ProviderMode, ProviderProfile};
 use crate::diag::{HarnessDiagnostic, HarnessResult};
 use crate::json::{canonical, sha256_plain};
 use crate::observe::{
     Availability, Observation, Observer, Outcome as ObsOutcome, Role, Stage, TokenCount,
 };
 use serde_json::{json, Value};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::time::Instant;
 
 pub struct RunConfig {
@@ -45,6 +43,10 @@ pub struct RunConfig {
     pub model_plans: Option<Vec<ModelPlan>>,
     /// Setup-time notes (for example a provider that could not be launched).
     pub notes: Vec<String>,
+    /// Request budget: policy, model-to-tokenizer map and supplied tokenizers (HN-11).
+    pub budget: BudgetConfig,
+    /// Cooperative cancellation for a session (checked between steps).
+    pub cancel: Option<super::session::CancelFlag>,
 }
 
 /// Skill prompt chosen for this task and its model-visible size.
@@ -76,16 +78,19 @@ fn d(code: &'static str, msg: impl Into<String>) -> HarnessDiagnostic {
     HarnessDiagnostic::new(code, msg)
 }
 
-struct Ctx<'a> {
-    cfg: &'a RunConfig,
-    compiler: &'a dyn CompilerService,
-    lineage: &'a Lineage,
-    observer: &'a mut Observer,
+pub(super) struct Ctx<'a> {
+    pub(super) cfg: &'a RunConfig,
+    pub(super) compiler: &'a dyn CompilerService,
+    pub(super) lineage: &'a Lineage,
+    pub(super) observer: &'a mut Observer,
+    /// Whole-task reservations across attempts and router calls.
+    pub(super) ledger: TaskLedger,
+    pub(super) started: Instant,
 }
 
 impl Ctx<'_> {
     #[allow(clippy::too_many_arguments)]
-    fn observe(
+    pub(super) fn observe(
         &mut self,
         provider: &str,
         capability: &str,
@@ -110,7 +115,7 @@ impl Ctx<'_> {
     /// Record one metadata-only event; `sizes` are exact byte counts
     /// (before, after/incurred, model-visible) at the measurement boundary.
     #[allow(clippy::too_many_arguments)]
-    fn observe_sized(
+    pub(super) fn observe_sized(
         &mut self,
         provider: &str,
         capability: &str,
@@ -147,6 +152,56 @@ impl Ctx<'_> {
         }
         self.observer.record(o);
     }
+
+    /// An incurred request measured at its exact serialized boundary: named
+    /// tokens when a tokenizer is mapped, otherwise bytes (`tokenizer_unavailable`).
+    pub(super) fn observe_incurred_at(
+        &mut self,
+        provider: &str,
+        capability: &str,
+        stage: Stage,
+        ok: bool,
+        started: Instant,
+        count: &RequestCount,
+    ) {
+        let mut o = Observation::new(
+            provider,
+            capability,
+            stage,
+            Role::Incurred,
+            &format!(
+                "{}-{}-{}",
+                self.lineage.id,
+                stage.as_str(),
+                self.ledger.entries.len()
+            ),
+        );
+        o.source_revision = self.lineage.project.revision.clone();
+        o.config_revision = self.lineage.lock_digest.clone();
+        o.availability = if ok {
+            Availability::Available
+        } else {
+            Availability::Unavailable
+        };
+        o.outcome = if ok {
+            ObsOutcome::Ok
+        } else {
+            ObsOutcome::Failed
+        };
+        o.latency_ms = started.elapsed().as_millis() as u64;
+        o.incurred = Some(count.token_count());
+        self.observer.record(o);
+    }
+
+    pub(super) fn observe_incurred(
+        &mut self,
+        provider: &str,
+        capability: &str,
+        stage: Stage,
+        count: &RequestCount,
+    ) {
+        self.observe_incurred_at(provider, capability, stage, true, Instant::now(), count);
+    }
 }
 
 /// Run the pipeline once and return its report (never panics on refusal).
@@ -166,15 +221,27 @@ pub fn run(
         compiler,
         lineage: &lineage,
         observer,
+        ledger: TaskLedger::default(),
+        started: Instant::now(),
     };
     let result = drive(&mut cx, &mut stages, &mut report);
     if let Err(e) = result {
         report.status = match e.code {
             "SPX-HPD050" => "rejected",
             "SPX-HPD062" | "SPX-HPD071" | "SPX-HPD072" => "uncertain",
+            "SPX-HPD092" if cfg.task.schema_version == 2 => "unsupported-goal",
+            "SPX-HPD111" => "exhausted",
+            "SPX-HPD112" => "no-progress",
+            "SPX-HPD113" => "cancelled",
             _ => "refused",
         };
         report.refusals.push(e);
+    }
+    if !cx.ledger.entries.is_empty() {
+        if report.context.is_null() {
+            report.context = json!({});
+        }
+        report.context["task_ledger"] = cx.ledger.to_json();
     }
     report.compiler_commands = compiler.commands();
     let ext = stages.external.as_ref().map(|e| (e.id(), e.calls()));
@@ -205,13 +272,19 @@ pub fn run(
     report
 }
 
-fn step(r: &mut Report, name: &str, outcome: &str) {
+pub(super) fn step(r: &mut Report, name: &str, outcome: &str) {
     r.steps.push((name.into(), outcome.into()));
 }
 
 fn drive(cx: &mut Ctx, st: &mut Stages, r: &mut Report) -> HarnessResult<()> {
     let cfg = cx.cfg;
+    let task = &cfg.task;
+    let v2 = task.schema_version == 2;
     let root = cfg.snapshot.root.clone();
+    if v2 {
+        r.schema_version = 2;
+        r.task = task.summary_json();
+    }
     let mut journal = Journal::open(&cfg.cache_dir, &cx.lineage.id)?;
 
     // Resume rules: never replay a publication or an unfinished side effect.
@@ -238,15 +311,22 @@ fn drive(cx: &mut Ctx, st: &mut Stages, r: &mut Report) -> HarnessResult<()> {
     cfg.snapshot.verify_current()?;
     step(r, "snapshot", "authenticated");
 
-    // 2. diagnose with the real compiler.
+    // 2. diagnose with the real compiler. Baseline health is a precondition,
+    // not the task's completion.
     let started = Instant::now();
     let check = cx.compiler.check(&root)?;
     r.diagnostics = check.diagnostics.clone();
-    let mut seed = cfg.task.seed.clone();
+    let mut seed = task.seed.clone();
     if !check.ok {
         step(r, "diagnose", "check failed");
+        if v2 && task.session.is_some() && task.mode != TaskMode::Plan {
+            return super::session::repair_unverified(cx, st, &mut journal, r);
+        }
         r.status = "diagnosed";
         r.notes.push("the base project does not verify; candidate operations need a verified base, so no repair was attempted".into());
+        if v2 {
+            r.notes.push("a `session` block in the task enables the isolated scratch source-repair path for an unverified baseline".into());
+        }
         return Ok(());
     }
     let compiler_revision = check
@@ -255,34 +335,82 @@ fn drive(cx: &mut Ctx, st: &mut Stages, r: &mut Report) -> HarnessResult<()> {
         .expect("verified check has a revision");
     r.compiler_revision = Some(compiler_revision.clone());
     let test = cx.compiler.test(&root)?;
-    if test.passed {
+    let green = test.passed;
+    if green && task.mode == TaskMode::Repair {
         step(r, "diagnose", "clean");
-        r.status = "no-repair-needed";
+        if v2 {
+            r.status = "unchanged-repair-baseline";
+            r.notes.push("repair mode on a healthy baseline: no model call; use mode `change` for an intentional change".into());
+        } else {
+            r.status = "no-repair-needed";
+            if task.goal != Task::default().goal {
+                r.notes.push("a task goal was supplied but the legacy v1 task is a repair task; use `semaprax.harness-task.v2` with mode `change` for an intentional change".into());
+            }
+        }
         return Ok(());
     }
-    if let Some(f) = &test.failure {
-        r.diagnostics.push(CompilerDiagnostic {
-            code: "test-failure".into(),
-            message: f.clone(),
-            path: None,
-            line: None,
-        });
+    if !green {
+        if let Some(f) = &test.failure {
+            r.diagnostics.push(CompilerDiagnostic {
+                code: "test-failure".into(),
+                message: f.clone(),
+                path: None,
+                line: None,
+            });
+        }
+        if seed.is_none() {
+            seed = test.failing_function.clone();
+        }
+        if task.mode != TaskMode::Repair && task.session.is_none() {
+            step(r, "diagnose", "baseline tests fail");
+            r.status = "diagnosed";
+            r.notes.push("a change or plan task needs a green baseline; baseline tests fail, so run a repair task (or a session) first".into());
+            return Ok(());
+        }
+        step(
+            r,
+            "diagnose",
+            &format!("test failure in {}", seed.as_deref().unwrap_or("?")),
+        );
+    } else {
+        step(r, "diagnose", "baseline healthy; explicit task proceeds");
     }
-    if seed.is_none() {
-        seed = test.failing_function.clone();
+    // Installed compiler operations (HN-01): advertised, never assumed.
+    let ops: Vec<String> = if v2 {
+        let ops = cx.compiler.supported_intents(&root, &compiler_revision)?;
+        r.operations = json!({"source": "installed compiler", "kinds": ops});
+        if let Some(op) = &task.operation {
+            if !ops.contains(op) {
+                return Err(d(
+                    "SPX-HPD092",
+                    format!("unsupported goal: operation `{op}` is not admitted by the installed compiler; installed operations: {}", ops.join(", ")),
+                ));
+            }
+        }
+        if ops.is_empty() {
+            return Err(d(
+                "SPX-HPD092",
+                "unsupported goal: the installed compiler admits no candidate operation",
+            ));
+        }
+        ops
+    } else {
+        INTENT_KINDS.iter().map(|s| s.to_string()).collect()
+    };
+    if v2 && task.session.is_some() && task.mode == TaskMode::Change {
+        return super::session::run_session(cx, st, &mut journal, r, &compiler_revision, seed, ops);
     }
-    step(
-        r,
-        "diagnose",
-        &format!("test failure in {}", seed.as_deref().unwrap_or("?")),
-    );
     let diag_text = r
         .diagnostics
         .iter()
         .map(|x| format!("{}: {}", x.code, x.message))
         .collect::<Vec<_>>()
         .join("\n");
-    let diag_view = st.command.view("diagnostics", &diag_text, 4096);
+    let diag_view = if diag_text.is_empty() {
+        String::new()
+    } else {
+        st.command.view("diagnostics", &diag_text, 4096)
+    };
     cx.observe(
         "semaprax/compiler",
         "compiler.service",
@@ -292,15 +420,91 @@ fn drive(cx: &mut Ctx, st: &mut Stages, r: &mut Report) -> HarnessResult<()> {
         true,
         started,
     );
+    let query = if diag_text.is_empty() {
+        task.goal.chars().take(256).collect()
+    } else {
+        diag_text.chars().take(256).collect()
+    };
+    let (kept, _used) = gather_context(cx, st, r, &root, &seed, query)?;
 
-    // 3. context: native first; external only when needed.
+    // 5-6. route, fit the exact request to the model, generate a proposal.
     cfg.snapshot.verify_current()?;
+    let pc = PromptCtx {
+        revision: &compiler_revision,
+        seed: seed.as_deref(),
+        diag_view: &diag_view,
+        kept: &kept,
+        ops: &ops,
+        feedback: &[],
+        attempt: 1,
+        scratch_repair: false,
+    };
+    let proposal = match attempt::propose_step(cx, st, &mut journal, r, &pc, "generate") {
+        Err(e) if e.code == "SPX-HPD090" && task.mode == TaskMode::Plan => {
+            step(r, "route", "plan");
+            r.status = "planned";
+            r.notes.push(format!("plan without a proposal source: {}; context and installed operations are reported only", e.message));
+            return Ok(());
+        }
+        other => other?,
+    };
+    step(
+        r,
+        "route",
+        &r.route["choice"].as_str().unwrap_or("").to_string(),
+    );
+    attempt::require_intent(&proposal, &ops)?;
+    step(r, "proposal", &proposal.kind);
+
+    // 7. validate through the compiler's candidate operation, same revision.
+    cfg.snapshot.verify_current()?;
+    let (change, preview) = attempt::validate_step(cx, &root, &compiler_revision, &proposal, r)?;
+    step(r, "validate", "candidate admitted by the compiler");
+    if task.mode == TaskMode::Plan {
+        r.status = "planned";
+        r.notes.push("read-only plan: the compiler admitted the change; no candidate was checked, exported or published".into());
+        return Ok(());
+    }
+
+    // 8. authorized checks on the candidate: the verdict is the compiler's.
+    let checks = attempt::candidate_checks(cx, st.command, &root, "1", &preview, r, true)?;
+    r.checks = checks;
+    step(r, "check", "candidate verified and tests passed");
+
+    // 9. present + approval requirement; 10. publish only under a host policy.
+    cfg.snapshot.verify_current()?;
+    let capsule = cx.compiler.candidate_export(&root, &change)?;
+    if capsule.base_revision != compiler_revision
+        || capsule.candidate_project_revision != preview.candidate_revision
+    {
+        return Err(d(
+            "SPX-HPD041",
+            "exported capsule is bound to a different revision than the validated candidate",
+        ));
+    }
+    present_and_publish(cx, &mut journal, r, &capsule, &proposal.kind)
+}
+
+/// Native context first; external only when needed; then the final byte budget.
+pub(super) fn gather_context(
+    cx: &mut Ctx,
+    st: &mut Stages,
+    r: &mut Report,
+    root: &std::path::Path,
+    seed: &Option<String>,
+    query: String,
+) -> HarnessResult<(Vec<ContextItem>, usize)> {
+    let cfg = cx.cfg;
+    let root = root.to_path_buf();
+    if root == cfg.snapshot.root {
+        cfg.snapshot.verify_current()?;
+    }
     let budget = cfg.context_max_bytes;
     let creq = ContextRequest {
         lineage: cx.lineage,
         project: root.clone(),
         seed: seed.as_deref(),
-        query: diag_text.chars().take(256).collect(),
+        query,
         max_bytes: budget,
         external: cfg.task.external_context,
     };
@@ -435,73 +639,19 @@ fn drive(cx: &mut Ctx, st: &mut Stages, r: &mut Report) -> HarnessResult<()> {
         ),
     );
 
-    // 5. route (policy first; rules only, zero router calls).
-    let started = Instant::now();
-    let (route_json, model) = route(cx, &cfg.task, used, st.decision.as_mut())?;
-    let used_provider = route_json["provider"].as_str().unwrap_or("").to_string();
-    let fell_back = route_json["source"]
-        .as_str()
-        .is_some_and(|s| s.starts_with("Fallback"));
-    r.route = route_json;
-    cx.observe(
-        &used_provider,
-        "decision.evaluate",
-        Stage::Decision,
-        Role::Local,
-        if fell_back {
-            Availability::Fallback
-        } else {
-            Availability::Available
-        },
-        true,
-        started,
-    );
-    step(r, "route", &model);
+    Ok((kept, used))
+}
 
-    // 6. generate a proposal.
-    cfg.snapshot.verify_current()?;
-    let mut prompt = json!({
-        "schema": "semaprax.harness-prompt.v1", "revision": compiler_revision, "goal": cfg.task.goal,
-        "seed": seed, "diagnostics": diag_view, "intents": INTENT_KINDS,
-        "context": kept.iter().map(|i| json!({"label": i.label, "provenance": i.provenance, "text": i.text})).collect::<Vec<_>>(),
-    });
-    if let Some(sp) = &cfg.skill_prompt {
-        // Quoted data below host and compiler authority (framed by the skill service).
-        prompt["skills"] = json!(sp.text);
-    }
-    let bytes = generate(cx, st, &mut journal, prompt, model, r)?;
-    let proposal = parse_proposal(&bytes)?;
-    if let Some(c) = proposal.claims.as_object() {
-        r.ignored_claims = c.keys().cloned().collect();
-    }
-    step(r, "proposal", &proposal.kind);
-
-    // 7. validate through the compiler's candidate operation, same revision.
-    cfg.snapshot.verify_current()?;
-    let change = change_bytes(&compiler_revision, &proposal.intent);
-    let preview = cx.compiler.candidate_preview(&root, &change)?;
-    check_protected_facts(&root, &compiler_revision, &proposal.kind, &preview)?;
-    r.candidate = json!({"intent": proposal.kind, "base_revision": preview.base_revision, "candidate_revision": preview.candidate_revision,
-                         "changed_files": preview.source_changes.iter().map(|c| c.path.clone()).collect::<Vec<_>>(),
-                         "preview_digest": preview.digest});
-    step(r, "validate", "candidate admitted by the compiler");
-
-    // 8. authorized checks on the candidate: the verdict is the compiler's.
-    let checks = candidate_checks(cx, st.command, &preview, r)?;
-    r.checks = checks;
-    step(r, "check", "candidate verified and tests passed");
-
-    // 9. present + approval requirement.
-    cfg.snapshot.verify_current()?;
-    let capsule = cx.compiler.candidate_export(&root, &change)?;
-    if capsule.base_revision != compiler_revision
-        || capsule.candidate_project_revision != preview.candidate_revision
-    {
-        return Err(d(
-            "SPX-HPD041",
-            "exported capsule is bound to a different revision than the validated candidate",
-        ));
-    }
+/// Export bookkeeping, approval requirement and (only under a host policy) publication.
+pub(super) fn present_and_publish(
+    cx: &mut Ctx,
+    journal: &mut Journal,
+    r: &mut Report,
+    capsule: &super::compiler::Capsule,
+    kind: &str,
+) -> HarnessResult<()> {
+    let cfg = cx.cfg;
+    let root = cfg.snapshot.root.clone();
     let capsule_path = cfg
         .cache_dir
         .join(format!("{}.capsule.json", cx.lineage.id));
@@ -513,12 +663,12 @@ fn drive(cx: &mut Ctx, st: &mut Stages, r: &mut Report) -> HarnessResult<()> {
     step(r, "present", "approval required");
 
     // 10. publish only under an explicit preexisting host policy.
-    let Some(policy) = cfg
-        .apply_policy
-        .as_ref()
-        .filter(|p| p.permits(&proposal.kind))
-    else {
-        r.status = "approved-candidate-ready";
+    let Some(policy) = cfg.apply_policy.as_ref().filter(|p| p.permits(kind)) else {
+        r.status = if r.schema_version == 2 {
+            "candidate-ready"
+        } else {
+            "approved-candidate-ready"
+        };
         r.notes.push(
             "no apply policy permits publication; stopped at approved-candidate-ready".into(),
         );
@@ -576,184 +726,6 @@ fn failure_text(e: &StageFailure) -> String {
     }
 }
 
-fn route(
-    cx: &mut Ctx,
-    task: &Task,
-    context_bytes: usize,
-    decision: Option<&mut DecisionStage>,
-) -> HarnessResult<(Value, String)> {
-    let family = TaskFamily::parse(&task.family).ok_or_else(|| {
-        d(
-            "SPX-HPD081",
-            format!("unknown task_family `{}`", task.family),
-        )
-    })?;
-    let features = TaskFeatures {
-        task_family: family,
-        estimated_context_tokens: (context_bytes / 4) as u64,
-        requires_structured_output: true,
-        requires_tools: false,
-        confidentiality: Confidentiality::Project,
-        latency_class: LatencyClass::Interactive,
-    };
-    let catalog = match (&task.models, &cx.cfg.model_plans) {
-        (Some(m), _) => RouteRequest::catalog_from_json(m)?,
-        (None, Some(p)) => p.clone(),
-        (None, None) => vec![ModelPlan {
-            id: "workflow-default".into(),
-            destination: Destination::Local,
-            structured_output: true,
-            tools: false,
-            max_context: 1_000_000,
-            est_cost_micros: 0,
-            est_latency_ms: 1000,
-            strength_rank: 1,
-        }],
-    };
-    for m in &catalog {
-        crate::endpoint::check_policy(
-            cx.cfg.endpoint_policy,
-            &crate::endpoint::AttemptOwnership::direct(),
-            &m.destination,
-        )?;
-    }
-    let request = RouteRequest::new(
-        features,
-        catalog,
-        Budget {
-            max_cost_micros: 1_000_000,
-            max_latency_ms: 60_000,
-            max_router_calls: u32::from(decision.is_some()),
-        },
-    )?;
-    let inputs = RouteInputs {
-        request,
-        policy: RoutePolicy::default(),
-    };
-    let rctx = RouteContext {
-        project: cx.lineage.project.clone(),
-        lock_digest: cx.lineage.lock_digest.clone(),
-        invocation_id: format!("route-{}", cx.lineage.id),
-        lineage_id: cx.lineage.id.clone(),
-        router_lineage: vec![],
-        router_calls_used: 0,
-        router_ms_used: 0,
-    };
-    let live = inputs.clone();
-    let mut configured = decision.map(|d| ConfiguredProvider {
-        profile: d.profile.clone(),
-        invoker: &mut *d.invoker,
-        mode: d.mode,
-        gate: d.gate.clone(),
-    });
-    let dec = decide(
-        &inputs,
-        &rctx,
-        configured.as_mut(),
-        &move || live.clone(),
-        None,
-    )?;
-    Ok((
-        json!({"choice": dec.choice, "provider": dec.provider_id, "router_calls": dec.router_calls,
-               "status": dec.provider_status, "source": format!("{:?}", dec.source)}),
-        dec.choice,
-    ))
-}
-
-fn generate(
-    cx: &mut Ctx,
-    st: &mut Stages,
-    journal: &mut Journal,
-    prompt: Value,
-    model: String,
-    r: &mut Report,
-) -> HarnessResult<Vec<u8>> {
-    let side = st.proposer.side_effecting();
-    let cache = cx
-        .cfg
-        .cache_dir
-        .join(format!("{}.proposal.json", cx.lineage.id));
-    if side {
-        if matches!(
-            journal.state("generate").map(|x| x.state.as_str()),
-            Some("done")
-        ) {
-            if let Ok(b) = std::fs::read(&cache) {
-                r.notes.push(
-                    "proposal reused from the journal; the model was not invoked again".into(),
-                );
-                return Ok(b);
-            }
-        }
-        if journal.unfinished("generate")
-            || matches!(
-                journal.state("generate").map(|x| x.state.as_str()),
-                Some("uncertain")
-            )
-        {
-            return Err(d("SPX-HPD072", "uncertain: a model generation in this lineage began without a recorded result; it is not replayed, supply --proposal or change the task"));
-        }
-        journal.append("generate", "begin", json!({"provider": st.proposer.id()}))?;
-    }
-    let started = Instant::now();
-    let req = ProposalRequest {
-        lineage: cx.lineage,
-        prompt,
-        model,
-    };
-    let got = st.proposer.propose(&req);
-    let prompt_bytes = crate::json::canonical(&req.prompt).len() as u64;
-    cx.observe_sized(
-        &st.proposer.id(),
-        "model.generate",
-        Stage::Generation,
-        Role::Incurred,
-        if got.is_ok() {
-            Availability::Available
-        } else {
-            Availability::Unavailable
-        },
-        got.is_ok(),
-        started,
-        (None, Some(prompt_bytes), false),
-    );
-    match got {
-        Ok(b) => {
-            if side {
-                std::fs::write(&cache, &b)
-                    .map_err(|e| d("SPX-HPD070", format!("proposal cache: {e}")))?;
-                journal.append("generate", "done", json!({"digest": sha256_plain(&b)}))?;
-            }
-            Ok(b)
-        }
-        Err(StageFailure::Uncertain(x)) => {
-            journal.append("generate", "uncertain", json!({}))?;
-            Err(d(
-                "SPX-HPD072",
-                format!(
-                    "uncertain: model outcome unknown, not retried ({})",
-                    x.message
-                ),
-            ))
-        }
-        Err(StageFailure::Refused(x)) => {
-            if side {
-                journal.append("generate", "refused", json!({"code": x.code}))?;
-            }
-            Err(x)
-        }
-        Err(StageFailure::Unavailable(x)) => {
-            if side {
-                journal.append("generate", "refused", json!({"code": x.code}))?;
-            }
-            Err(d(
-                "SPX-HPD090",
-                format!("no proposal available: {} {}", x.code, x.message),
-            ))
-        }
-    }
-}
-
 /// Canonical change bytes: the host fixes schema, base revision and the full
 /// requirement inventory; only the intent comes from the proposal.
 pub fn change_bytes(base_revision: &str, intent: &Value) -> Vec<u8> {
@@ -761,127 +733,6 @@ pub fn change_bytes(base_revision: &str, intent: &Value) -> Vec<u8> {
     let mut s = canonical(&doc);
     s.push('\n');
     s.into_bytes()
-}
-
-fn copy_tree(from: &Path, to: &Path, depth: usize) -> HarnessResult<()> {
-    let io = |e: std::io::Error| d("SPX-HPD070", format!("scratch copy: {e}"));
-    std::fs::create_dir_all(to).map_err(io)?;
-    for e in std::fs::read_dir(from).map_err(io)? {
-        let e = e.map_err(io)?;
-        let name = e.file_name().to_string_lossy().into_owned();
-        let t = e.file_type().map_err(io)?;
-        if t.is_dir() {
-            if name.starts_with('.') || name == "target" || name == "node_modules" || depth > 16 {
-                continue;
-            }
-            copy_tree(&e.path(), &to.join(&name), depth + 1)?;
-        } else if t.is_file() && !name.starts_with("semaprax.harness") {
-            std::fs::copy(e.path(), to.join(&name)).map_err(io)?;
-        }
-    }
-    Ok(())
-}
-
-/// Materialize the compiler-produced candidate sources in a private scratch
-/// copy (never the project) and have the compiler check and test it.
-fn candidate_checks(
-    cx: &mut Ctx,
-    command: &mut dyn CommandStage,
-    preview: &CandidatePreview,
-    r: &mut Report,
-) -> HarnessResult<Value> {
-    let scratch = cx.cfg.cache_dir.join(format!("scratch-{}", cx.lineage.id));
-    let _ = std::fs::remove_dir_all(&scratch);
-    copy_tree(&cx.cfg.snapshot.root, &scratch, 0)?;
-    for c in &preview.source_changes {
-        std::fs::write(scratch.join(&c.path), &c.replacement_source)
-            .map_err(|e| d("SPX-HPD070", format!("scratch write: {e}")))?;
-    }
-    let scratch = scratch
-        .canonicalize()
-        .map_err(|e| d("SPX-HPD070", format!("scratch: {e}")))?;
-    let out = (|| {
-        let check = cx.compiler.check(&scratch)?;
-        if !check.ok {
-            let first = check
-                .diagnostics
-                .first()
-                .map(|x| format!("{} {}", x.code, x.message))
-                .unwrap_or_default();
-            return Err(d(
-                "SPX-HPD050",
-                format!("candidate rejected: the compiler's check failed ({first})"),
-            ));
-        }
-        if check.revision.as_deref() != Some(preview.candidate_revision.as_str()) {
-            return Err(d(
-                "SPX-HPD041",
-                "candidate check revision differs from the previewed candidate revision",
-            ));
-        }
-        let test = cx.compiler.test(&scratch)?;
-        if test.project_revision != preview.candidate_revision {
-            return Err(d(
-                "SPX-HPD041",
-                "candidate test revision differs from the previewed candidate revision",
-            ));
-        }
-        if !test.passed {
-            r.checks = json!({"check": "verified", "tests": "failed", "report_digest": test.report_digest});
-            return Err(d(
-                "SPX-HPD050",
-                format!(
-                    "candidate rejected: tests failed ({})",
-                    test.failure.clone().unwrap_or_else(|| test.outcome.clone())
-                ),
-            ));
-        }
-        let mut runs: Vec<Value> = Vec::new();
-        if !cx.cfg.checks.is_empty() {
-            // Authorized checks see the project's own configuration (scope, mode).
-            let cfg_file = cx
-                .cfg
-                .snapshot
-                .root
-                .join(crate::profile::config::CONFIG_FILE);
-            if cfg_file.is_file() {
-                let _ = std::fs::copy(&cfg_file, scratch.join(crate::profile::config::CONFIG_FILE));
-            }
-            for c in &cx.cfg.checks {
-                let run = match command.run_check(c, &scratch, &mut *cx.observer) {
-                    None => {
-                        return Err(d(
-                            "SPX-HPD051",
-                            format!("authorized check `{}` cannot run: the command stage executes no checks", c.name),
-                        ))
-                    }
-                    Some(Err(e)) => {
-                        return Err(d(
-                            "SPX-HPD051",
-                            format!("authorized check `{}` was refused: {} {}", c.name, e.code, e.message),
-                        ))
-                    }
-                    Some(Ok(run)) => run,
-                };
-                runs.push(run.to_json());
-                if !run.passed {
-                    r.checks = json!({"check": "verified", "tests": "passed", "commands": runs});
-                    return Err(d(
-                        "SPX-HPD050",
-                        format!(
-                            "candidate rejected: authorized check `{}` failed ({})",
-                            c.name, run.status
-                        ),
-                    ));
-                }
-            }
-        }
-        Ok(
-            json!({"check": "verified", "tests": "passed", "candidate_revision": preview.candidate_revision, "report_digest": test.report_digest, "commands": runs}),
-        )
-    })();
-    let _ = std::fs::remove_dir_all(&scratch);
-    out
 }
 
 /// Profile bindings -> provider usage rows (invocation counts filled later).

@@ -151,7 +151,7 @@ pub fn source_digest(bytes: &[u8]) -> String {
     )
 }
 
-fn law_lines(src: &str) -> Vec<String> {
+pub(super) fn law_lines(src: &str) -> Vec<String> {
     src.lines()
         .map(str::trim)
         .filter(|l| {
@@ -163,7 +163,7 @@ fn law_lines(src: &str) -> Vec<String> {
         .collect()
 }
 
-fn effect_tokens(src: &str) -> BTreeSet<String> {
+pub(super) fn effect_tokens(src: &str) -> BTreeSet<String> {
     let mut out = BTreeSet::new();
     for l in src.lines().map(str::trim) {
         if let Some(rest) = l.strip_prefix("uses") {

@@ -27,6 +27,7 @@ struct Fake {
     publish_result: RefCell<Result<(), PublishError>>,
     publishes: Cell<u32>,
     log: RefCell<Vec<String>>,
+    ops: RefCell<Option<Vec<String>>>,
 }
 
 impl Fake {
@@ -37,6 +38,7 @@ impl Fake {
             publish_result: RefCell::new(Ok(())),
             publishes: Cell::new(0),
             log: RefCell::default(),
+            ops: RefCell::default(),
         }
     }
     fn lib(&self, p: &Path) -> String {
@@ -50,6 +52,19 @@ impl CompilerService for Fake {
     }
     fn check(&self, p: &Path) -> semaprax_harness::diag::HarnessResult<CheckReport> {
         self.log.borrow_mut().push("check".into());
+        if self.lib(p).contains("SYNTAXERR") {
+            return Ok(CheckReport {
+                ok: false,
+                revision: None,
+                diagnostics: vec![CompilerDiagnostic {
+                    code: "SPX-P001".into(),
+                    message: "unexpected token `SYNTAXERR`".into(),
+                    path: Some("src/lib.spx".into()),
+                    line: Some(8),
+                }],
+                raw_digest: "x".into(),
+            });
+        }
         Ok(CheckReport {
             ok: true,
             revision: Some(rev_of(&self.lib(p))),
@@ -86,11 +101,23 @@ impl CompilerService for Fake {
     fn candidate_preview(
         &self,
         p: &Path,
-        _c: &[u8],
+        c: &[u8],
     ) -> semaprax_harness::diag::HarnessResult<CandidatePreview> {
         self.log.borrow_mut().push("preview".into());
         let base = std::fs::read(p.join("src/lib.spx")).unwrap();
-        let src = self.preview_source.borrow().clone();
+        // Test hooks in the intent: `fake_refuse` (compiler refusal text) and
+        // `fake_source` (the candidate the "compiler" produces).
+        let intent: Value = serde_json::from_slice::<Value>(c).unwrap()["intent"].clone();
+        if let Some(m) = intent["fake_refuse"].as_str() {
+            return Err(semaprax_harness::diag::HarnessDiagnostic::new(
+                "SPX-HPD040",
+                format!("compiler refused `project-candidate-preview`: {m}"),
+            ));
+        }
+        let src = intent["fake_source"]
+            .as_str()
+            .map(str::to_string)
+            .unwrap_or_else(|| self.preview_source.borrow().clone());
         let reqs = self.requirements.borrow().clone();
         Ok(CandidatePreview {
             base_revision: rev_of(&String::from_utf8_lossy(&base)),
@@ -140,6 +167,17 @@ impl CompilerService for Fake {
     }
     fn commands(&self) -> Vec<String> {
         self.log.borrow().clone()
+    }
+    fn supported_intents(
+        &self,
+        _p: &Path,
+        _r: &str,
+    ) -> semaprax_harness::diag::HarnessResult<Vec<String>> {
+        Ok(self
+            .ops
+            .borrow()
+            .clone()
+            .unwrap_or_else(|| INTENT_KINDS.iter().map(|s| s.to_string()).collect()))
     }
 }
 
@@ -203,6 +241,8 @@ fn config(e: &Env, task: Task, policy: Option<ApplyPolicy>) -> RunConfig {
         endpoint_policy: Default::default(),
         model_plans: None,
         notes: vec![],
+        budget: Default::default(),
+        cancel: None,
     }
 }
 
@@ -1075,3 +1115,6 @@ fn hp_hpwire_host_sets_bridge_depth_for_children_but_callers_cannot() {
         "SPX-HPH010"
     );
 }
+
+#[path = "workflow_hn.rs"]
+mod hn;

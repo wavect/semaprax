@@ -139,3 +139,82 @@ command view. `report <obs.jsonl> --export token-observation [--output f] [--ses
 `tokenizer_unavailable`, never tokens.
 
 Known gap: `harness context` (not the workflow) still reads the runtime from `HARNESS_PYTHON/NODE` only.
+
+## HN-01: explicit task modes
+
+Task `semaprax.harness-task.v2` (additive; v1 and no task are unchanged) adds `mode` (`repair` default, `change`,
+`plan`/`inspect`), `acceptance` (strings are carried to the model; `{"stable_id","contains"}` items are host-verified
+against the compiler-verified candidate source), `operation` (expected candidate kind), `checks` (names of authorized
+checks to run), `budget`, `tokenizer_map` and `session`. `change` and `plan` require a stated nonempty `goal`.
+
+Baseline health is a precondition, not completion. Green baseline tests no longer end a `change`/`plan` run: the goal,
+`task_family`, selected `seed` and acceptance are carried through context, proposal, preview, checks. Failing baseline
+tests or an unverified baseline without a `session` block are `diagnosed` (delegated to HN-02), never forced through a
+verified-base API. Installed operations are discovered from the compiler (`CompilerService::supported_intents`: the
+subprocess compiler probes each documented kind and treats `unsupported candidate intention kind` as absent) and
+advertised in the report and the prompt; an unsupported goal (operation not installed, unknown kind, or the proposer's
+`{"unsupported": reason}`) is `unsupported-goal` (`SPX-HPD092`) naming the installed operations, before any model call
+when the task names the operation. `plan` stops after the compiler admits the proposal (or reports context only with no
+proposal source): no candidate check, export, capsule or publication.
+
+Report `semaprax.harness-run.v2` (only for v2 tasks; v1 reports are unchanged) adds `task` (mode, family, goal and
+acceptance digests, never the goal text), `operations`, `session`. Statuses: `unchanged-repair-baseline` (explicit repair
+on a healthy baseline, no model call), `planned`, `candidate-ready`, `unsupported-goal`, `rejected`, `published`, plus
+`diagnosed`, `refused`, `uncertain`, `exhausted`, `no-progress`, `cancelled`. Exit 0 for `candidate-ready`, `planned`,
+`unchanged-repair-baseline`, `published`, `no-repair-needed`, `approved-candidate-ready`.
+
+## HN-11: one request budget
+
+`workflow::budget` counts the exact serialized model-visible request (`canonical(prompt)`: context, skills, goal,
+diagnostics, feedback, mode framing, intents) with the selected model's tokenizer, adds a protocol overhead and the output
+reserve (`budget.protocol_overhead_tokens` default 256, `output_reserve_tokens` default 4096) and requires the total to fit
+the model's `max_context`. The model-to-tokenizer mapping is explicit data (`DEFAULT_MODEL_TOKENIZERS`, longest prefix,
+task `tokenizer_map` overrides; only `cl100k_base`/`o200k_base`); nothing is guessed. Tokenizers are supplied to the run
+(`--tokenizer-python`, `--tokenizer-script scripts/harness_tokenize.py`, `--tokenizer-cache`, repeated `--tokenizer
+<name>`) and served by `ExternalTokenizer`; no helper means `unknown`: `request_tokens` is null, `measured` false, and
+admission uses the UTF-8 byte length (an upper bound for byte-level tokenizers), reported as
+`admission_basis: utf8-bytes-upper-bound`, never as tokens or cost. bytes/4 is not used anywhere.
+
+Routing circularity: the routing estimate is the smallest protected-only requirement across the catalog; after the router
+chooses, the request is fitted to that model before any provider call. Optional material is dropped whole (external
+context items last first, then the whole skill section); native compiler facts, the goal, diagnostics, intents and the
+output reserve are never truncated. A model that cannot fit is excluded and routing repeats; when none can, the run is
+refused before generation (`SPX-HPD100`, explained). `context.request_budget` records the fit (`dropped_optional`,
+`rerouted_from`, tokenizer identity). A per-task `TaskLedger` reserves input plus output reserve for every generation and
+router call across attempts; `budget.max_task_tokens`/`max_task_cost_micros` refuse a call that would exceed them
+(`SPX-HPD101`) before it starts. Each generation and router request is one incurred observation carrying the same named
+(or byte-only) count the ledger holds, so the token-observation export reconciles without double counting; local counts
+are never billed usage.
+
+## HN-02: bounded session
+
+`session` in a v2 task (`max_attempts` 4, `max_candidates` 8, `max_tool_calls` 400, `max_elapsed_ms` 600000,
+`max_tokens`, `max_steps` 4) runs context -> propose -> preview -> check -> feedback -> revised proposal in a private
+scratch copy, bounded across the whole task (`SPX-HPD111`, status `exhausted`; spent attempts stay counted). Exact
+compiler/check diagnostics (code and text) of earlier attempts enter the next prompt as `feedback`; acceptance is
+preserved. A repeated identical proposal, or the same diagnostic digest three times, stops with `SPX-HPD112`
+(`no-progress`); `RunConfig.cancel` stops between steps with `SPX-HPD113` (`cancelled`). A step is admitted when the
+compiler previews it and its checks (compiler check and tests, authorized checks) pass; admitted sources are applied to
+the scratch tree only and the next step is previewed against the new revision. The session completes when the host-verified
+acceptance holds (without any, after the first admitted step). `done`/`unsupported` proposals are supported.
+
+Unverified baseline (check fails, `session` present, mode `repair`/`change`): the exact baseline bytes are captured, a
+bounded `{"source_patch": {"edits": [{"path","find","replace"}]}}` (at most 16 edits; `find` must match once; baseline `.spx`
+files only) is applied in scratch, and the compiler alone judges it. Operations start only after the scratch candidate is a
+verified base. The acceptance oracle (the manifest and the modules listed under `tests`) cannot be patched
+(`SPX-HPD114`) or targeted by a semantic proposal; compiler caller migrations (rename, signature, move, record field) may
+touch it. Laws and effects cannot be removed or widened (`SPX-HPD042/043`), requirements stay host-fixed, and proposal
+claims are ignored.
+
+Journal: `session` records task, lock, toolchain, baseline, skill and bounds digests; each attempt records proposal and
+diagnostic digests; generation `gen-<n>`/`repair-<n>` that began without a result is never replayed (`SPX-HPD072`);
+completed generations are reused. Final application is a separate authority: `workflow::apply_result(snapshot,
+result_dir, expected_revision, compiler)` re-verifies the result and rejects source drift (`SPX-HPD115`) before an
+all-staged-then-rename write. A single admitted step against the project baseline has an ordinary capsule and publishes
+only under the existing apply policy; multi-step and scratch-repair results are not one capsule and are applied only
+through `apply_result` (no CLI verb yet; known gap).
+
+Diagnostics added: 092 unsupported goal, 100 request cannot fit any model, 101 task budget exhausted, 111 session bound,
+112 no progress, 113 cancelled, 114 oracle edit, 115 apply refused (drift), 116 acceptance/done unmet, 117 invalid
+scratch patch.
+

@@ -58,6 +58,28 @@ pub enum ExternalContext {
     Always,
 }
 
+/// Task mode (`semaprax.harness-task.v2`). `Repair` is the legacy behavior.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TaskMode {
+    Repair,
+    Change,
+    /// Read-only inspect/plan: nothing is exported, checked in a candidate or published.
+    Plan,
+}
+
+impl TaskMode {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            TaskMode::Repair => "repair",
+            TaskMode::Change => "change",
+            TaskMode::Plan => "plan",
+        }
+    }
+}
+
+pub const TASK_V1: &str = "semaprax.harness-task.v1";
+pub const TASK_V2: &str = "semaprax.harness-task.v2";
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Task {
     pub goal: String,
@@ -65,6 +87,20 @@ pub struct Task {
     pub family: String,
     pub external_context: ExternalContext,
     pub models: Option<Value>,
+    /// 1 for `semaprax.harness-task.v1` (and no task), 2 for v2.
+    pub schema_version: u8,
+    pub mode: TaskMode,
+    /// Acceptance criteria carried through every attempt: strings are
+    /// informational; `{"stable_id","contains"}` objects are verified by the host
+    /// against the compiler's own `context` output.
+    pub acceptance: Vec<Value>,
+    /// Operation (compiler candidate kind) the task expects, when known.
+    pub operation: Option<String>,
+    /// Names of authorized checks to run (`None`: all configured).
+    pub checks: Option<Vec<String>>,
+    pub budget: Option<super::budget::BudgetPolicy>,
+    pub tokenizer_map: Option<super::budget::ModelTokenizerMap>,
+    pub session: Option<super::session::SessionBounds>,
 }
 
 impl Default for Task {
@@ -75,9 +111,35 @@ impl Default for Task {
             family: "localized_debug".into(),
             external_context: ExternalContext::WhenNeeded,
             models: None,
+            schema_version: 1,
+            mode: TaskMode::Repair,
+            acceptance: vec![],
+            operation: None,
+            checks: None,
+            budget: None,
+            tokenizer_map: None,
+            session: None,
         }
     }
 }
+
+const V1_MEMBERS: [&str; 6] = [
+    "schema",
+    "goal",
+    "seed",
+    "task_family",
+    "external_context",
+    "models",
+];
+const V2_MEMBERS: [&str; 7] = [
+    "mode",
+    "acceptance",
+    "operation",
+    "checks",
+    "budget",
+    "tokenizer_map",
+    "session",
+];
 
 impl Task {
     pub fn parse(bytes: &[u8]) -> HarnessResult<Task> {
@@ -94,24 +156,26 @@ impl Task {
         let m = v
             .as_object()
             .ok_or_else(|| bad("task must be an object".into()))?;
+        let version = match m.get("schema").and_then(Value::as_str) {
+            Some(TASK_V1) => 1,
+            Some(TASK_V2) => 2,
+            _ => {
+                return Err(bad(format!(
+                    "task schema must be `{TASK_V1}` or `{TASK_V2}`"
+                )))
+            }
+        };
         for k in m.keys() {
-            if ![
-                "schema",
-                "goal",
-                "seed",
-                "task_family",
-                "external_context",
-                "models",
-            ]
-            .contains(&k.as_str())
+            if !V1_MEMBERS.contains(&k.as_str())
+                && !(version == 2 && V2_MEMBERS.contains(&k.as_str()))
             {
                 return Err(bad(format!("unknown task member `{k}`")));
             }
         }
-        if m.get("schema").and_then(Value::as_str) != Some("semaprax.harness-task.v1") {
-            return Err(bad("task schema must be `semaprax.harness-task.v1`".into()));
-        }
-        let mut t = Task::default();
+        let mut t = Task {
+            schema_version: version,
+            ..Task::default()
+        };
         if let Some(g) = m.get("goal") {
             t.goal = g
                 .as_str()
@@ -146,16 +210,111 @@ impl Task {
             };
         }
         t.models = m.get("models").cloned();
+        if version == 2 {
+            t.parse_v2(m)?;
+        }
         Ok(t)
+    }
+
+    fn parse_v2(&mut self, m: &Map<String, Value>) -> HarnessResult<()> {
+        let bad = |m: String| d("SPX-HPD081", m);
+        self.mode = match m.get("mode").and_then(Value::as_str) {
+            None | Some("repair") => TaskMode::Repair,
+            Some("change") => TaskMode::Change,
+            Some("plan") | Some("inspect") => TaskMode::Plan,
+            _ => return Err(bad("`mode` must be repair, change or plan".into())),
+        };
+        if self.mode != TaskMode::Repair && self.goal.trim().is_empty() {
+            return Err(bad("a change or plan task needs a nonempty `goal`".into()));
+        }
+        if self.mode != TaskMode::Repair && !m.contains_key("goal") {
+            return Err(bad("a change or plan task must state its `goal`".into()));
+        }
+        if let Some(a) = m.get("acceptance") {
+            let arr = a
+                .as_array()
+                .filter(|a| a.len() <= 32)
+                .ok_or_else(|| bad("`acceptance` must be an array of at most 32 items".into()))?;
+            for x in arr {
+                let ok = match x {
+                    Value::String(s) => s.len() <= 1024,
+                    Value::Object(o) => {
+                        o.len() == 2
+                            && o.get("stable_id").is_some_and(Value::is_string)
+                            && o.get("contains").is_some_and(Value::is_string)
+                    }
+                    _ => false,
+                };
+                if !ok {
+                    return Err(bad(
+                        "`acceptance` items are strings or {stable_id, contains}".into(),
+                    ));
+                }
+            }
+            self.acceptance = arr.clone();
+        }
+        if let Some(o) = m.get("operation") {
+            self.operation = Some(
+                o.as_str()
+                    .filter(|s| !s.is_empty() && s.len() <= 64)
+                    .ok_or_else(|| bad("`operation` must be a candidate kind".into()))?
+                    .into(),
+            );
+        }
+        if let Some(c) = m.get("checks") {
+            self.checks = Some(
+                c.as_array()
+                    .and_then(|a| a.iter().map(|x| x.as_str().map(str::to_string)).collect())
+                    .ok_or_else(|| bad("`checks` must be an array of check names".into()))?,
+            );
+        }
+        if let Some(b) = m.get("budget") {
+            let o = b
+                .as_object()
+                .ok_or_else(|| bad("`budget` must be an object".into()))?;
+            let mut p = super::budget::BudgetPolicy::default();
+            for (k, v) in o {
+                let n = v
+                    .as_u64()
+                    .ok_or_else(|| bad(format!("`budget.{k}` must be a number")))?;
+                match k.as_str() {
+                    "output_reserve_tokens" => p.output_reserve_tokens = n,
+                    "protocol_overhead_tokens" => p.protocol_overhead_tokens = n,
+                    "max_task_tokens" => p.max_task_tokens = Some(n),
+                    "max_task_cost_micros" => p.max_task_cost_micros = Some(n),
+                    _ => return Err(bad(format!("unknown budget member `{k}`"))),
+                }
+            }
+            self.budget = Some(p);
+        }
+        if let Some(t) = m.get("tokenizer_map") {
+            self.tokenizer_map = Some(super::budget::ModelTokenizerMap::from_json(t)?);
+        }
+        if let Some(s) = m.get("session") {
+            self.session = Some(super::session::SessionBounds::from_json(s)?);
+        }
+        Ok(())
     }
 
     /// Digest of the task; the goal text itself never enters reports.
     pub fn digest(&self) -> String {
-        crate::json::digest(
-            "semaprax.harness-task.v1",
-            &json!({"goal": self.goal, "seed": self.seed, "family": self.family,
-                    "external_context": format!("{:?}", self.external_context), "models": self.models}),
-        )
+        let mut v = json!({"goal": self.goal, "seed": self.seed, "family": self.family,
+                    "external_context": format!("{:?}", self.external_context), "models": self.models});
+        if self.schema_version == 2 {
+            v["v2"] = json!({"mode": self.mode.as_str(), "acceptance": self.acceptance, "operation": self.operation,
+                "checks": self.checks, "budget": self.budget.as_ref().map(|b| format!("{b:?}")),
+                "session": self.session.as_ref().map(|s| s.to_json())});
+        }
+        crate::json::digest(TASK_V1, &v)
+    }
+
+    /// Non-secret task summary for v2 reports (goal text is never included).
+    pub fn summary_json(&self) -> Value {
+        json!({"mode": self.mode.as_str(), "task_family": self.family,
+               "goal_digest": crate::json::sha256_plain(self.goal.as_bytes()),
+               "goal_bytes": self.goal.len(), "seed": self.seed,
+               "acceptance_digest": crate::json::digest("semaprax.harness-acceptance.v1", &json!(self.acceptance)),
+               "acceptance_items": self.acceptance.len(), "operation": self.operation})
     }
 }
 
@@ -518,6 +677,12 @@ pub struct Proposal {
     pub kind: String,
     /// Claims the provider made about validity or test results. Never used.
     pub claims: Value,
+    /// The proposer states the goal is complete (`done: true`, no intent).
+    pub done: bool,
+    /// The proposer states the goal needs an operation the compiler lacks.
+    pub unsupported: Option<String>,
+    /// Bounded scratch edit, accepted only for an unverified baseline (HN-02).
+    pub source_patch: Option<Value>,
 }
 
 /// Strict proposal parse. The host builds the change envelope itself, so a
@@ -539,7 +704,8 @@ pub fn parse_proposal(bytes: &[u8]) -> HarnessResult<Proposal> {
     for k in m.keys() {
         let lk = k.to_ascii_lowercase();
         match lk.as_str() {
-            "schema" | "intent" | "claims" | "summary" => {}
+            "schema" | "intent" | "claims" | "summary" | "done" | "unsupported"
+            | "source_patch" => {}
             "requirements" | "base_revision" => {
                 return Err(d("SPX-HPD032", format!("`{k}` is a protected compiler fact; the host supplies it")))
             }
@@ -558,6 +724,46 @@ pub fn parse_proposal(bytes: &[u8]) -> HarnessResult<Proposal> {
             "proposal schema must be `semaprax.harness-proposal.v1`",
         ));
     }
+    let done = m.get("done").and_then(Value::as_bool).unwrap_or(false);
+    let unsupported = m
+        .get("unsupported")
+        .map(|u| {
+            u.as_str()
+                .filter(|s| !s.is_empty() && s.len() <= 512)
+                .map(str::to_string)
+                .ok_or_else(|| d("SPX-HPD030", "`unsupported` must be a short reason string"))
+        })
+        .transpose()?;
+    let source_patch = m.get("source_patch").cloned();
+    let claims = m.get("claims").cloned().unwrap_or(Value::Null);
+    let special = |kind: &str| Proposal {
+        intent: Value::Null,
+        kind: kind.into(),
+        claims: claims.clone(),
+        done,
+        unsupported: unsupported.clone(),
+        source_patch: source_patch.clone(),
+    };
+    if m.contains_key("intent") as u8
+        + done as u8
+        + unsupported.is_some() as u8
+        + source_patch.is_some() as u8
+        > 1
+    {
+        return Err(d(
+            "SPX-HPD030",
+            "a proposal carries exactly one of intent, done, unsupported, source_patch",
+        ));
+    }
+    if unsupported.is_some() {
+        return Ok(special("unsupported"));
+    }
+    if done {
+        return Ok(special("done"));
+    }
+    if source_patch.is_some() {
+        return Ok(special("source_patch"));
+    }
     let intent = m
         .get("intent")
         .filter(|i| i.is_object())
@@ -575,7 +781,10 @@ pub fn parse_proposal(bytes: &[u8]) -> HarnessResult<Proposal> {
     Ok(Proposal {
         intent: intent.clone(),
         kind,
-        claims: m.get("claims").cloned().unwrap_or(Value::Null),
+        claims,
+        done: false,
+        unsupported: None,
+        source_patch: None,
     })
 }
 

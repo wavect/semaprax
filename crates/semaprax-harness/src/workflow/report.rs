@@ -6,6 +6,9 @@ use crate::diag::HarnessDiagnostic;
 use serde_json::{json, Value};
 
 pub const RUN_SCHEMA: &str = "semaprax.harness-run.v1";
+/// Additive report for `semaprax.harness-task.v2` runs (new statuses, task and
+/// operation blocks). v1 reports keep their members and meanings.
+pub const RUN_SCHEMA_V2: &str = "semaprax.harness-run.v2";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ProviderUse {
@@ -19,7 +22,8 @@ pub struct ProviderUse {
 #[derive(Clone, Debug)]
 pub struct Report {
     /// published, approved-candidate-ready, rejected, refused, uncertain,
-    /// diagnosed, no-repair-needed.
+    /// diagnosed, no-repair-needed; v2 adds unchanged-repair-baseline, planned,
+    /// candidate-ready, unsupported-goal, exhausted, no-progress, cancelled.
     pub status: &'static str,
     pub lineage: String,
     pub revision: String,
@@ -39,6 +43,12 @@ pub struct Report {
     pub ignored_claims: Vec<String>,
     pub compiler_commands: Vec<String>,
     pub external_calls: u32,
+    /// 2 when the run used a v2 task (selects the v2 report schema).
+    pub schema_version: u8,
+    pub task: Value,
+    /// Compiler candidate operations advertised for this run.
+    pub operations: Value,
+    pub session: Value,
 }
 
 impl Report {
@@ -63,17 +73,37 @@ impl Report {
             ignored_claims: vec![],
             compiler_commands: vec![],
             external_calls: 0,
+            schema_version: 1,
+            task: Value::Null,
+            operations: Value::Null,
+            session: Value::Null,
         }
     }
 
     pub fn exit_code(&self) -> i32 {
         match self.status {
-            "published" | "approved-candidate-ready" | "no-repair-needed" => 0,
+            "published"
+            | "approved-candidate-ready"
+            | "no-repair-needed"
+            | "candidate-ready"
+            | "planned"
+            | "unchanged-repair-baseline" => 0,
             _ => 1,
         }
     }
 
     pub fn to_json(&self) -> Value {
+        let mut v = self.to_json_v1();
+        if self.schema_version == 2 {
+            v["schema"] = json!(RUN_SCHEMA_V2);
+            v["task"] = self.task.clone();
+            v["operations"] = self.operations.clone();
+            v["session"] = self.session.clone();
+        }
+        v
+    }
+
+    fn to_json_v1(&self) -> Value {
         json!({
             "schema": RUN_SCHEMA,
             "status": self.status,

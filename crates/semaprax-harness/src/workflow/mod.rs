@@ -5,8 +5,10 @@
 //! reached only through the adapter host; publication is the compiler's own
 //! route under a preexisting host policy.
 
+mod attempt;
 mod b64;
 pub mod broker_stage;
+pub mod budget;
 pub mod checks;
 mod cli;
 pub mod compiler;
@@ -16,6 +18,8 @@ pub mod lineage;
 pub mod pipeline;
 pub mod policy;
 pub mod report;
+pub mod session;
+mod session_repair;
 pub mod snapshot;
 pub mod stages;
 
@@ -32,5 +36,6 @@ pub use composition::{Composition, Interception, Slot, StageId};
 pub use pipeline::{change_bytes, run, DecisionStage, RunConfig, SkillPromptUse, Stages};
 pub use policy::{check_protected_facts, ApplyPolicy};
 pub use report::{ProviderUse, Report};
+pub use session::{apply_result, CancelFlag, SessionBounds};
 pub use snapshot::Snapshot;
 pub use stages::{CommandStage, ContextStage, ProposalStage, Task};

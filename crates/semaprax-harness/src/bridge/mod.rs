@@ -2,10 +2,13 @@
 //! Specification: `docs/HARNESS-BRIDGE-V1.md`. Diagnostics `SPX-HPN`: 001
 //! handshake/protocol, 002 recursion, 003 publication refused, 004 method/order,
 //! 005 params, 006 hook input, 007 usage/host/unsupported version, 008 delegated
-//! verb failed, 009 competing rewriter, 010 log write, 011 setup refused.
+//! verb failed, 009 competing rewriter, 010 log write, 011 setup refused, 012 too
+//! many in flight, 013 duplicate id, 014 no provider for invoke, 015 step not
+//! replayed (HN-18).
 
 pub mod claude;
 pub mod hostskills;
+pub mod inflight;
 pub mod mcp;
 pub mod negotiate;
 pub mod rpc;

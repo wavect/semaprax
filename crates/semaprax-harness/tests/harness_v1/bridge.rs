@@ -1,6 +1,9 @@
 //! HP-14 bridge tests (fixture prefix `hp-hp14`).
 
 use crate::support::{fixture_dir, harness_bin, write};
+
+#[path = "bridge_lifecycle.rs"]
+mod lifecycle;
 use semaprax_harness::bridge::negotiate::{DEPTH_VAR, PROTOCOL};
 use semaprax_harness::bridge::rpc::Server;
 use semaprax_harness::cli::{run, Environment};

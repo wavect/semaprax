@@ -54,11 +54,15 @@ impl Fixture {
         std::fs::write(
             fixture.0.join("semaprax.toml"),
             concat!(
-                "schema = \"semaprax.project.v1\"\n",
+                "schema = \"semaprax.project.v4\"\n",
                 "name = \"hot-reload-effects\"\n",
+                "version = \"1.0.0\"\n",
+                "profile = \"useful-data-command.v1\"\n",
                 "entry = \"reload.effects\"\n",
                 "sources = [\"src/app.spx\", \"src/tests.spx\"]\n",
-                "web_exports = [\"reload.effects.main\"]\n",
+                "web_exports = [\"reload.effects.run\"]\n",
+                "command = \"reload.effects.run\"\n",
+                "capabilities = [\"process.stdout.write\"]\n",
                 "tests = [\"reload.effects.tests\"]\n",
             ),
         )
@@ -67,9 +71,10 @@ impl Fixture {
             (
                 "src/app.spx",
                 r#"module reload.effects;
-permit { clock.read, clock.write }
-@id("reload.effects.target") fn target(value:i64)->i64 uses { clock.read } { value }
-@id("reload.effects.main") fn main()->i64 uses { clock.read, clock.write } { target(42) }
+permit { process.stdout.write }
+@id("reload.effects.target") fn target(value:i64)->i64 uses { process.stdout.write } { value }
+@id("reload.effects.main") fn main()->i64 uses { process.stdout.write } { target(42) }
+@id("reload.effects.run") fn run()->bool uses { process.stdout.write } { false }
 "#,
             ),
             (
@@ -124,16 +129,27 @@ permit { clock.read, clock.write }
 
     let active = resolved_program(SOURCE);
     let body_only = resolved_program(&SOURCE.replace("value+1", "value+2"));
-    let indirect_target_changed = resolved_program(&SOURCE.replace("value-1", "value-2"));
+    let indirect_target_contract_changed = resolved_program(&SOURCE.replace(
+        "@id(\"reload.decrement\") fn decrement(value:i64)->i64{value-1}",
+        "@id(\"reload.decrement\") fn decrement(value:i64)->i64 requires value >= 0 {value-1}",
+    ));
     let entry_effect_changed = resolved_program(&SOURCE.replace(
         "@id(\"reload.main\") fn main()->i64{",
         "@id(\"reload.main\") fn main()->i64 uses { clock.read } {",
     ));
 
+    assert_eq!(
+        crate::hir::function_value::target_universe(&active)
+            .iter()
+            .map(|function| function.id.as_str())
+            .collect::<Vec<_>>(),
+        ["reload.decrement", "reload.increment"],
+        "the checked indirect invocation is bound to both eligible references",
+    );
     assert!(compatible_program(&active, &body_only));
     assert!(
-        !compatible_program(&active, &indirect_target_changed),
-        "an indirect invocation must retain every compiler-derived target"
+        !compatible_program(&active, &indirect_target_contract_changed),
+        "an indirect invocation must retain every compiler-derived target's contract"
     );
     assert!(
         !compatible_program(&active, &entry_effect_changed),
@@ -565,8 +581,8 @@ fn changed_effect_is_refused_by_a_session_and_keeps_active_worker_usable() {
     );
     fixture.rewrite(
         "src/app.spx",
-        "clock.read } { value",
-        "clock.write } { value",
+        " uses { process.stdout.write } { value",
+        " { value",
     );
     let candidate = fixture.revision();
     session.admit_candidate(candidate).unwrap();

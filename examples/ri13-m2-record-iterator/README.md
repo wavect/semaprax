@@ -1,6 +1,6 @@
 # RI-13 M2: one record and iterator callback source
 
-`project/semaprax.toml` owns the authenticated M2 Project; its `app.spx` source is the single authored source for the generated Serde record
+`project/semaprax.toml` owns the authenticated M2 Project; `app.spx` and its checked `tests.spx` module are the single authored source for the generated Serde record
 mirror and scalar callback. `prepare` authenticates and checks that Project before it renders both from
 the same source revision. `consumer` parses two JSON records through the
 generated mirror, maps their values through the generated `Fn` and `FnMut`

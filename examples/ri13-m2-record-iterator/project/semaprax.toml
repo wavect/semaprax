@@ -6,8 +6,8 @@ version = "0.1.0"
 
 [modules]
 entry = "ri13.m2_record_iterator"
-sources = ["app.spx"]
-tests = []
+sources = ["app.spx", "tests.spx"]
+tests = ["ri13.m2_record_iterator_tests"]
 
 [exports]
-web = []
+web = ["callback.advance"]

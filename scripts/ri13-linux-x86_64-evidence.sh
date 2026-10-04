@@ -1,5 +1,7 @@
 #!/bin/sh
 # Plan or run the bounded RI-13 Linux x86_64 evidence fixture with Apple Container.
+# The guest is x86_64 Linux under Rosetta on Apple silicon; this is a
+# portability/reproducibility receipt and carries no native-performance claim.
 #
 # The default is --plan: it creates no clone, target directory, container, image
 # pull, or build.  --run makes a fresh detached clone below the evidence path and
@@ -100,15 +102,14 @@ RI-13 Linux x86_64 evidence plan
   evidence path: $evidence
 
 --run will create a detached clean clone at $workspace, then run:
-  container run --rm --init --platform linux/amd64 --rosetta --network none \\
+  container run --arch amd64 --rosetta --rm --init --network none \\
     --read-only --tmpfs /tmp --tmpfs /work --mount source=$workspace,target=/repo \\
     --mount source=$evidence,target=/evidence --mount source=$cargo_home,target=/cargo-home,readonly \\
     $image bash /repo/scripts/ri13-linux-x86_64-evidence-inner.sh
 
 The inner command rejects a non-Linux/non-x86_64 guest or a revision mismatch,
-runs the M1/M2/M3 combined clean-target receipt plus linked Project prepare and
-consumer, and writes logs, environment.json, combined-receipt.json, and
-linked-receipt.json below the evidence path.
+runs the exact M1/M2/M3 prepare/consumer stages plus the linked Project check,
+and writes one output receipt with per-file digests below the evidence path.
 EOF
 }
 
@@ -137,8 +138,8 @@ git -C "$workspace" checkout --detach "$revision"
 mkdir -p "$target"
 printf '%s\n' "$revision" > "$evidence/revision"
 
-container run --rm --init --platform linux/amd64 --rosetta --network none \
-    --memory 8G --cpus 4 --read-only --tmpfs /tmp --tmpfs /work \
+container run --arch amd64 --rosetta --rm --init --network none \
+    --memory 4G --read-only --tmpfs /tmp --tmpfs /work \
     --mount "type=bind,source=$workspace,target=/repo" \
     --mount "type=bind,source=$evidence,target=/evidence" \
     --mount "type=bind,source=$cargo_home,target=/cargo-home,readonly" \

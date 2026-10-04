@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Runs inside the disposable container started by ri13-linux-x86_64-evidence.sh.
+# This is an emulated x86_64 guest on M1/M2/M3 Apple silicon: no performance
+# result from this route is interpreted as native Apple-silicon performance.
 set -euo pipefail
 
 test "$(uname -s)" = Linux
@@ -29,6 +31,7 @@ print(json.dumps({
     "revision": output("git", "rev-parse", "HEAD"),
     "system": platform.system(),
     "machine": platform.machine(),
+    "execution": "linux-x86_64-under-rosetta",
     "rustc": output("rustc", "--version"),
     "cargo": output("cargo", "--version"),
     "clang": output("/usr/bin/clang", "--version").splitlines()[0],
@@ -57,6 +60,7 @@ root = Path("/evidence")
 environment = json.loads((root / "environment.json").read_text())
 assert environment["system"] == "Linux"
 assert environment["machine"] == "x86_64"
+assert environment["execution"] == "linux-x86_64-under-rosetta"
 assert environment["revision"] == (root / "revision").read_text().strip()
 combined = json.loads((root / "combined-receipt.json").read_text())
 assert [stage["stage"] for stage in combined["full_build_and_consumer_stages"]] == [
@@ -81,5 +85,17 @@ files = [
         name: hashlib.sha256((root / name).read_bytes()).hexdigest()
         for name in files
     },
+}, indent=2, sort_keys=True) + "\n")
+
+(root / "receipt.json").write_text(json.dumps({
+    "schema": "semaprax.ri13.linux-x86_64-receipt.v1",
+    "revision": environment["revision"],
+    "guest": {"system": environment["system"], "machine": environment["machine"]},
+    "container": {"architecture": "amd64", "rosetta": True, "memory": "4G", "network": "none"},
+    "cargo": {"offline": True, "jobs": 1, "target_root": "/evidence/target"},
+    "stages": [stage["stage"] for stage in combined["full_build_and_consumer_stages"]],
+    "linked_check": "ri13-linked-project-ok",
+    "performance_claim": "none",
+    "output_digests": json.loads((root / "output-digests.json").read_text())["sha256"],
 }, indent=2, sort_keys=True) + "\n")
 PY

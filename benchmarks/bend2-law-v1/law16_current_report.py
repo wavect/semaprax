@@ -31,6 +31,7 @@ GUARDED_I64_BALANCE = module("law16_guarded_i64_balance_smt")
 GUARDED_I64_PROFILE = module("full_u32_guarded_i64_profile_v2")
 BEND_U32_SORT = module("law16_bend_u32_sort_proof")
 COST_PROVENANCE = module("law16_boolean_negation_cost_provenance")
+BOOLEAN_ANNOTATIONS = module("law16_annotation_summary")
 SCHEMA = "semaprax.bend2-law-benchmark.current-report.v1"
 
 
@@ -127,6 +128,9 @@ def render():
     process_v2_provenance = read(ROOT / "evidence/law16-boolean-negation-process-v2/provenance.json")
     effort = read(ROOT / "evidence/law16-effort-summary-v1.json")
     annotations = read(ROOT / "evidence/law16-annotation-summary-v1.json")
+    boolean_annotations = BOOLEAN_ANNOTATIONS.summarize()
+    if boolean_annotations != read(ROOT / "evidence/law16-boolean-negation-annotation-summary-v1.json"):
+        raise ValueError("Boolean annotation receipt drifted")
     nonproof_identity = read(
         ROOT / "evidence/law16-boolean-negation-nonproof-process-v1/identity.json"
     )
@@ -342,8 +346,12 @@ def render():
         },
         "annotations_and_changed_bytes": {
             "matched_boolean": {
-                "status": "unavailable",
-                "reason": "no retained normalized annotation and changed-proof-byte summary binds Boolean candidates to a fixed seed",
+                "status": "retained_source_evidence_only",
+                "source": "evidence/law16-boolean-negation-annotation-summary-v1.json",
+                "scope": "ten matched Boolean final sources versus their fixed seed; byte distance is not semantic effort",
+                "matched_pairs": boolean_annotations["matched_pairs"],
+                "rows": boolean_annotations["rows"],
+                "nonclaims": boolean_annotations["nonclaims"],
             },
             "historical_bounded_balance_v2": {
                 "status": "retained_source_evidence_only",

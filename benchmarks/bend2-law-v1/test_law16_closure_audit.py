@@ -74,18 +74,21 @@ class Law16ClosureAuditTests(unittest.TestCase):
         self.assertIn("unchanged", proof["original_law16_cell"])
         self.assertIn("not a build attestation", proof["test_binary_association"])
         self.assertFalse(proof["exit_code_retained"])
-        self.assertIn("predates this capsule", value["current_report_reconciliation"]["audit_update"])
+        self.assertIn("includes the LAW15", value["current_report_reconciliation"]["audit_update"])
         self.assertIn("does not close", value["current_report_reconciliation"]["audit_update"])
 
     def test_guarded_i64_v2_controls_keep_theorem_and_admission_limits_explicit(self):
         value = AUDIT.render()["supplemental_guarded_i64_profile_v2"]
-        self.assertEqual(value["status"], "supplemental_controls_pass_matched_theorem_incomplete")
+        self.assertEqual(value["status"], "supplemental_controls_and_matched_sort_law_route_no_timing")
         self.assertTrue(value["paired_controls"]["balance"]["expected_outcomes_observed"])
         self.assertEqual(value["paired_controls"]["balance"]["candidate_attack_pairs_per_route"], 1)
         self.assertIn("full-domain", value["representation_model"]["claim"])
         self.assertIn("four-element", value["bounded_sort_model"]["claim"])
         self.assertEqual(value["original_manifest_status"], "unsupported_by_pinned_parser")
-        self.assertEqual(value["law15_lean_route"]["bend_comparison"], "none; exact pinned LAW16 Bend source does not provide these universal laws")
+        self.assertIn("no cross-source aliasing", value["law15_lean_route"]["identity_boundary"])
+        comparison = value["supplemental_bend_lean_comparison"]
+        self.assertEqual(comparison["disposition"], "matched_universal_semantic_laws_under_u32_embedding_no_timing")
+        self.assertIn("no timing", comparison["scope_limit"])
         self.assertIn("not attested", value["build_association"])
         self.assertEqual(AUDIT.render()["closure"], "not_satisfied")
 

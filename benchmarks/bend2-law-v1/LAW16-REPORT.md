@@ -50,6 +50,10 @@ Codex JSON records expose token counters but no monetary charge event. The
 [cost-provenance receipt](evidence/law16-boolean-negation-agent-cost-provenance-v1.json)
 authenticates all 20 provider event streams and their 333,999 total tokens;
 its monetary cost is explicitly unavailable, with no price inferred from tokens.
+The [Boolean annotation receipt](evidence/law16-boolean-negation-annotation-summary-v1.json)
+binds all 20 final sources in those ten pairs to their fixed seeds and reports
+explicit annotation, proof-term, and changed-byte counts. These textual counts
+do not measure reasoning effort or make raw bytes comparable across languages.
 
 ## Trust boundaries
 
@@ -71,9 +75,9 @@ LAW16 fixture. These gaps prevent honest closure of #392.
 
 The generated machine report also records retained tool identities, explicit
 unavailable hardware/OS and optimization-flag provenance, Boolean agent-turn
-proof-synthesis tokens, and historical bounded-balance annotation/changed-byte
-rows. Historical bounded-balance rows are retained source evidence only and do
-not satisfy the checked-`u32` cell.
+proof-synthesis tokens, Boolean annotation/changed-byte counts, and historical
+bounded-balance annotation/changed-byte rows. The bounded-balance rows remain
+retained source evidence only and do not satisfy the checked-`u32` cell.
 
 The remaining required list-theorem, law-preserving-refactor, and law-breaking
 edit fixtures have dedicated controls but are also blocked before a matched

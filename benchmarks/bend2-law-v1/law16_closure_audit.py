@@ -160,7 +160,8 @@ def verify_guarded_i64_v2() -> dict:
         "paired_controls": outcomes,
         "representation_model": {"claim": control["representation_bridge"]["claim"], "exit_code": control["representation_bridge"]["exit_code"], "source": control["representation_bridge"]["source"]},
         "bounded_sort_model": {"claim": control["sort_equal_spec_model"]["claim"], "exit_code": control["sort_equal_spec_model"]["exit_code"], "source": control["sort_equal_spec_model"]["source"]},
-        "law15_lean_route": {"disposition": profile["routes"][2]["disposition"], "declarations": profile["routes"][2]["declarations"], "bend_comparison": profile["routes"][2]["bend_comparison"], "identity_boundary": profile["routes"][2]["identity_boundary"]},
+        "law15_lean_route": {"disposition": profile["routes"][2]["disposition"], "declarations": profile["routes"][2]["declarations"], "identity_boundary": profile["routes"][2]["identity_boundary"]},
+        "supplemental_bend_lean_comparison": {"disposition": profile["routes"][3]["disposition"], "alignment": profile["routes"][3]["domain_and_law_alignment"], "algorithm_boundary": profile["routes"][3]["algorithm_boundary"], "scope_limit": profile["routes"][3]["scope_limit"]},
         "original_manifest_status": profile["base_profile"]["native_u32_source_status"],
         "build_association": profile["reproduction"]["build_association"],
         "claim_limit": profile["reproduction"]["claim_limit"],
@@ -267,7 +268,7 @@ def render() -> dict:
         ),
         (
             "partial",
-            "Available process cells have 30 samples, p50/p95, peak RSS, and descriptive MAD; proof synthesis tokens and route checks are separately reported. Cold-cache isolation, Boolean annotation/changed-proof-byte counts, monetary cost, and separate native compile/run timings are unavailable.",
+            "Available process cells have 30 samples, p50/p95, peak RSS, and descriptive MAD; proof synthesis tokens, Boolean annotation/changed-byte counts, and route checks are separately reported. Cold-cache isolation, monetary cost, and separate native compile/run timings are unavailable.",
         ),
         (
             "partial",
@@ -361,13 +362,6 @@ def render() -> dict:
             "status": unsupported["cost"],
             "evidence": common,
         },
-        {
-            "id": "boolean_annotation_and_changed_proof_byte_measurement",
-            "classification": "unavailable",
-            "blocking_requirements": ["R4"],
-            "status": report["annotations_and_changed_bytes"]["matched_boolean"]["reason"],
-            "evidence": common,
-        },
     ]
 
     audited_commit = subprocess.check_output(
@@ -397,7 +391,7 @@ def render() -> dict:
         "current_report_reconciliation": {
             "field": "unavailable_or_unsupported.Lean",
             "existing_report_value": unsupported["Lean"],
-            "audit_update": "The current report's no-Lean-route field predates this capsule. The branch now retains a LAW15 collection List<i64> Lean proof test; it is supplemental and does not close or prove the LAW16 list cell.",
+            "audit_update": "The current report includes the LAW15 collection List<i64> Lean proof test. It is supplemental and does not close or prove the original LAW16 list cell.",
         },
         "unmet_requirements": [
             {

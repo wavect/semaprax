@@ -58,7 +58,9 @@ class CurrentReportTests(unittest.TestCase):
         self.assertEqual(effort["per_language"]["bend2"]["agent_turns"], 10)
         self.assertEqual(effort["per_language"]["semaprax-scalar-v1"]["agent_turns"], 10)
         annotations = value["annotations_and_changed_bytes"]
-        self.assertEqual(annotations["matched_boolean"]["status"], "unavailable")
+        self.assertEqual(annotations["matched_boolean"]["status"], "retained_source_evidence_only")
+        self.assertEqual(annotations["matched_boolean"]["matched_pairs"], 10)
+        self.assertEqual(len(annotations["matched_boolean"]["rows"]), 20)
         self.assertEqual(annotations["historical_bounded_balance_v2"]["status"], "retained_source_evidence_only")
 
     def test_report_includes_full_u32_controls_as_supplemental_only(self):

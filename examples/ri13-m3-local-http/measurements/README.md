@@ -71,6 +71,40 @@ The local `prepare` run on Darwin arm64 with Cargo/rustc 1.98.0 rendered a
 size for this exact selected Project; it excludes linked binary size and
 the caller-authored host effect.
 
+## Recorded nontrivial-batch comparison
+
+Two five-sample local Darwin arm64 runs exercised the reviewed 16-operation,
+4 KiB response-body batch. The exact raw rows are
+[`darwin-arm64-nontrivial-a9189183e-2026-10-04.csv`](darwin-arm64-nontrivial-a9189183e-2026-10-04.csv)
+and
+[`darwin-arm64-nontrivial-460a7e6be-2026-10-04.csv`](darwin-arm64-nontrivial-460a7e6be-2026-10-04.csv).
+Each route has five iterations, each row carries 65,536 fixture-owned foreign
+response bytes, and only the generated route carries the equal callback-owned
+subset. The parser refuses a missing row, changed route/iteration, workload,
+or copy field before computing a result:
+
+```sh
+python3 measurements/summarize_nontrivial_batch.py \
+  --baseline measurements/darwin-arm64-nontrivial-a9189183e-2026-10-04.csv \
+  --candidate measurements/darwin-arm64-nontrivial-460a7e6be-2026-10-04.csv \
+  --output /tmp/ri13-m3-nontrivial-summary.json
+python3 -m unittest measurements/test_summarize_nontrivial_batch.py
+```
+
+| Route | First p50 batch | Later p50 batch | First p50 allocation calls | Later p50 allocation calls |
+| --- | ---: | ---: | ---: | ---: |
+| Direct Rust | 5.884500 ms | 4.996417 ms | 1,408 | 1,408 |
+| Handwritten checked adapter | 5.687000 ms | 5.111583 ms | 1,408 | 1,408 |
+| Generated checked source | 52.112458 ms | 39.400292 ms | 129,792 | 84,224 |
+
+The later generated median improved by 24.4% and its median allocation calls
+by 35.1%, but its generated-to-direct normalized throughput ratio is 0.1268,
+below the 0.90 investigation trigger. The calculator reports
+`investigation_required`; it does not report or imply that a threshold was
+met. These are local five-sample loopback measurements at two named detached
+checkouts, without a universal, Linux, hosted, production, or portability
+claim.
+
 ## Recorded local result and investigation
 
 The offline `measure` command exited zero on Darwin arm64 with Cargo/rustc

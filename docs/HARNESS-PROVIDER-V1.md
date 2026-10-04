@@ -185,15 +185,21 @@ structured reason.
 ## Lifecycle
 
 `prepared -> negotiated -> active -> draining -> closed`, plus `unavailable`
-and `quarantined`. Start is lazy (first invocation). Each project has its own
-process; concurrency and queue length are bounded by the descriptor and host
-caps; idle adapters shut down; cancellation and deadline kill the whole
-process group (`setpgid` + group kill) and settle every child before return.
-A crash circuit breaker quarantines after repeated failures. Restricted mode
+(restartable failure) and `quarantined` (terminal for the session). Start is
+lazy (first invocation); an idle shutdown returns to `prepared`. Each
+`(project, provider)` has its own process; concurrency and queue length are
+bounded by the descriptor and host caps; deadlines and cancellation kill the
+whole process group (`process_group(0)` + group `SIGKILL`) and every child is
+reaped before return. A crash circuit breaker quarantines after repeated
+failures. A protocol violation quarantines immediately with a structured
+`SPX-HPC` reason. Only `SafeRead`/`Decision` invocations may fall back after a
+crash, and only when no response arrived; a side-effecting invocation whose
+request was sent is `Uncertain` and never retried. Restricted mode
 (network/file isolation) is offered only where the host can enforce it
 (`sandbox-exec` on macOS, `bwrap` on Linux when present); otherwise a request
-for restriction is refused, never silently downgraded. Plain subprocess
-execution is never labelled sandboxed.
+for restriction is refused (`SPX-HPC003`), never silently downgraded. Plain
+subprocess execution is never labelled sandboxed. The full host contract,
+diagnostics and platform evidence are in `docs/HARNESS-HOST-V1.md`.
 
 ## Capability payloads (first wave)
 

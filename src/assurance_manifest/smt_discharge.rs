@@ -315,8 +315,21 @@ pub fn discharge_postcondition(
     let script = render_postcondition_script(&encoding, ensures_index, timeout_ms);
     let digest = script_digest(&script);
     let verdict = run(provisioning, &script, limits);
-    let version = solver_version(provisioning).unwrap_or_else(|| "unrecorded".to_owned());
-    interpret_verdict(verdict, function, &digest, provisioning.identity, &version)
+    // Only a proof record needs the auxiliary version probe. Inconclusive
+    // query results and validated counterexamples return without another
+    // subprocess. A proof without a recorded version is not publishable.
+    let version = if matches!(verdict, Verdict::Unsat) {
+        solver_version(provisioning)
+    } else {
+        None
+    };
+    interpret_verdict(
+        verdict,
+        function,
+        &digest,
+        provisioning.identity,
+        version.as_deref(),
+    )
 }
 
 /// Attempt to prove `function`'s `requires` conjunction is satisfiable.
@@ -381,13 +394,18 @@ fn interpret_verdict(
     function: &Function,
     script_digest: &str,
     solver_identity: &'static str,
-    recorded_solver_version: &str,
+    recorded_solver_version: Option<&str>,
 ) -> DischargeOutcome {
     match verdict {
-        Verdict::Unsat => DischargeOutcome::Proved {
-            script_digest: script_digest.to_owned(),
-            solver_identity,
-            solver_version: recorded_solver_version.to_owned(),
+        Verdict::Unsat => match recorded_solver_version {
+            Some(version) => DischargeOutcome::Proved {
+                script_digest: script_digest.to_owned(),
+                solver_identity,
+                solver_version: version.to_owned(),
+            },
+            None => DischargeOutcome::Inconclusive {
+                reason: "solver version probe unavailable after proof query".to_owned(),
+            },
         },
         Verdict::Sat(raw_model) => match parse_model(&raw_model) {
             Err(parse_error) => DischargeOutcome::Inconclusive {

@@ -274,8 +274,6 @@ pub fn export_postcondition_certificate(
     }
     let script = render_postcondition_script(&encoding, ensures_index, timeout_ms);
     let verdict = run(provisioning, &script, limits);
-    let solver_ver = solver_version(provisioning).unwrap_or_else(|| "unrecorded".to_owned());
-
     let body = match verdict {
         Verdict::Unsat => CertificateBody::Proved,
         Verdict::Sat(raw_model) => {
@@ -304,6 +302,11 @@ pub fn export_postcondition_certificate(
         }
         other => return Err(vec![no_certificate(describe_non_result_verdict(&other))]),
     };
+    let solver_ver = solver_version(provisioning).ok_or_else(|| {
+        vec![no_certificate(
+            "solver version probe unavailable after definitive query".to_owned(),
+        )]
+    })?;
 
     let resolved = crate::hir::resolve(&program)?;
     let artifact_bytes = compile_wasm_core_module(&resolved).map_err(|detail| {

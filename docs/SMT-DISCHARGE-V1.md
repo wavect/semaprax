@@ -206,8 +206,11 @@ rlimit or reap an entire process group from `std` alone. Wall-clock time and
 output-byte bounds are enforced; a solver process that allocates unbounded
 memory without producing unbounded output, or that forks helper processes
 of its own, is not bounded by this tranche. [`solver::solver_version`]'s
-`--version` probe is likewise unbounded by time (it is a short, trusted,
-already-provisioned auxiliary call, not the main discharge path).
+`--version` probe is a separate one-second, 4-KiB bounded phase. It is
+skipped after non-proof discharge outcomes; a proof or certificate requiring
+a tool version remains inconclusive if the probe fails. Thus a public
+postcondition discharge can take its query timeout plus at most one second
+for version discovery, excluding process scheduling tolerance.
 
 `Verdict` distinguishes `Unsat`, `Sat`, `Unknown`, `Timeout`,
 `CapacityExceeded`, `Crash`, `Malformed`, and `NotProvisioned` as seven

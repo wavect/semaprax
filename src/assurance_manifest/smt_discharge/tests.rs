@@ -50,6 +50,44 @@ fn short_limits() -> RunLimits {
     }
 }
 
+#[cfg(unix)]
+#[test]
+fn unknown_query_does_not_wait_for_broken_version_probe() {
+    use std::os::unix::fs::PermissionsExt;
+    let path = std::env::temp_dir().join(format!(
+        "semaprax-smt-version-integration-{}",
+        std::process::id()
+    ));
+    std::fs::write(
+        &path,
+        "#!/bin/sh\nif [ \"$1\" = --version ]; then exec sleep 30; fi\ncat >/dev/null\nprintf 'unknown\\n'\n",
+    )
+    .unwrap();
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let provisioning = Provisioning {
+        binary: path.clone(),
+        identity: "z3",
+    };
+    let f = function(
+        "module app.t;\n@id(\"app.t.f\")\nfn f(a: i64) -> i64 ensures result == a { a }\n",
+    );
+    let start = std::time::Instant::now();
+    let outcome = discharge_postcondition(
+        &f,
+        0,
+        Some(&provisioning),
+        &RunLimits {
+            timeout: Duration::from_millis(200),
+            max_output_bytes: 1024,
+        },
+    );
+    assert!(
+        matches!(outcome, DischargeOutcome::Inconclusive { reason } if reason.contains("unknown"))
+    );
+    assert!(start.elapsed() < Duration::from_secs(2));
+    std::fs::remove_file(path).unwrap();
+}
+
 // ---------------------------------------------------------------------
 // Script rendering
 // ---------------------------------------------------------------------

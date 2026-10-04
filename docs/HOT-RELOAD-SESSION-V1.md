@@ -99,10 +99,13 @@ failures. A caller must inspect the typed reason as well as the diagnostic.
 
 The focused local gate at `project::hot_reload::tests::` covers checked
 identical/stale/first-over-bound refusal, changed contract and entry identity,
-missing imported stable IDs, forged plan refusal, a physical held-worker busy
-boundary, replacement panic terminality, source-Agent handoff refusal, and the
-same-worker A-to-B-to-C trace binding. This is local library evidence, not
-hosted or source-Agent handoff evidence.
+missing imported stable IDs, forged plan refusal, and one physically paused A
+invocation: B remains pending with `waiting_for_safe_point`, A's trace remains
+bound to A, then the same worker activates B. It also checks retained-worker
+release when that session ends, replacement panic before the pivot, and a
+post-pivot lost acknowledgement that terminalizes without retry. Source-Agent
+handoff refusal and same-worker A-to-B-to-C trace binding remain covered. This
+is local library evidence, not hosted or source-Agent handoff evidence.
 
 ## Completion work
 

@@ -33,6 +33,8 @@ struct ExecutionRequest {
     options: PreparedProjectExecutionOptions,
     cancellation: Arc<AtomicBool>,
     reply: mpsc::SyncSender<Result<PreparedProjectExecution, Vec<Diagnostic>>>,
+    #[cfg(test)]
+    hook: Option<ExecutionTestHook>,
 }
 
 enum WorkerMessage {
@@ -52,6 +54,8 @@ pub struct PreparedProjectInterpreter {
     _worker_permit: PreparedWorkerPermit,
     #[cfg(test)]
     replacement_hook: std::sync::Mutex<Option<replacement::TestHook>>,
+    #[cfg(test)]
+    execution_hook: std::sync::Mutex<Option<ExecutionTestHook>>,
 }
 
 impl PreparedProjectInterpreter {
@@ -64,6 +68,14 @@ impl PreparedProjectInterpreter {
     pub(crate) fn install_replacement_hook(&self, hook: PreparedReplacementTestHook) {
         *self
             .replacement_hook
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(hook);
+    }
+
+    #[cfg(test)]
+    pub(crate) fn install_execution_hook(&self, hook: ExecutionTestHook) {
+        *self
+            .execution_hook
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(hook);
     }
@@ -141,6 +153,12 @@ impl PreparedProjectInterpreter {
                 options: *options,
                 cancellation: Arc::clone(&cancellation.cancelled),
                 reply,
+                #[cfg(test)]
+                hook: self
+                    .execution_hook
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner())
+                    .take(),
             }))
             .map_err(|_| vec![worker_error("prepared interpreter worker is closed")])?;
         response.recv().map_err(|_| {
@@ -264,6 +282,8 @@ pub fn prepare_project_interpreter(
         _worker_permit: worker_permit,
         #[cfg(test)]
         replacement_hook: std::sync::Mutex::new(None),
+        #[cfg(test)]
+        execution_hook: std::sync::Mutex::new(None),
     })
 }
 
@@ -290,6 +310,10 @@ fn worker_loop(
             }
             WorkerMessage::Shutdown => break,
         };
+        #[cfg(test)]
+        if let Some(hook) = &request.hook {
+            hook.before_execute();
+        }
         let evaluated = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             execute_request(&state.revision, &state.closures, &request)
         }));
@@ -304,6 +328,26 @@ fn worker_loop(
                     "prepared interpreter worker panicked and is now terminal",
                 )]));
                 break;
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+pub(crate) enum ExecutionTestHook {
+    Pause {
+        entered: mpsc::SyncSender<std::thread::ThreadId>,
+        resume: mpsc::Receiver<()>,
+    },
+}
+
+#[cfg(test)]
+impl ExecutionTestHook {
+    fn before_execute(&self) {
+        match self {
+            Self::Pause { entered, resume } => {
+                entered.send(std::thread::current().id()).unwrap();
+                resume.recv().unwrap();
             }
         }
     }

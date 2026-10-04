@@ -23,7 +23,15 @@ pub use trace::{
     PROJECT_SOURCE_TRACE_SCHEMA,
 };
 #[cfg(test)]
-pub(crate) use worker::PreparedReplacementTestHook;
+pub(crate) use worker::{ExecutionTestHook, PreparedReplacementTestHook};
+#[cfg(test)]
+pub(crate) fn prepared_worker_test_guard() -> std::sync::MutexGuard<'static, ()> {
+    tests::real_prepare_serial()
+}
+#[cfg(test)]
+pub(crate) fn active_prepared_worker_count_for_test() -> usize {
+    worker::ACTIVE_PREPARED_PROJECT_INTERPRETER_WORKERS.load(std::sync::atomic::Ordering::Acquire)
+}
 pub use worker::{
     prepare_project_interpreter, PreparedProjectInterpreter, UntracedPreparedProjectExecution,
 };

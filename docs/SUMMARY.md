@@ -618,6 +618,7 @@ Audience: all documentation readers.
 - [Modular Scalar Law v1: checked pure-call summaries](MODULAR-SCALAR-LAW-V1.md)
 - [Native Rust Local Future Bridge v1](NATIVE-RUST-LOCAL-FUTURE-BRIDGE-V1.md)
 - [Project Source Local Future v1](PROJECT-SOURCE-LOCAL-FUTURE-V1.md)
+- [Project source-local Future indexed Rust v1](PROJECT-SOURCE-LOCAL-FUTURE-INDEXED-RUST-V1.md)
 - [Protected Law Intent v1](PROTECTED-LAW-INTENT-V1.md)
 - [Rust API Index v2](RUST-API-INDEX-V2.md)
 - [Semantic Explorer View v1](SEMANTIC-EXPLORER-V1.md)

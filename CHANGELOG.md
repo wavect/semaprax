@@ -91,7 +91,8 @@
   independent fixture inputs used by the guarded foreign-law repair test.
   Align verifier-hint and CLI help fixtures with admitted lists and the public
   `dev` command. Mark the list sort proof's type spelling as code so rustdoc
-  accepts the module documentation with warnings denied.
+  accepts the module documentation with warnings denied. Catalog the RI-13
+  indexed Rust Future profile and state its intended audience.
 
 - Repair the current main CI fixtures for owned-byte Wasm imports, constructor
   schema counts, the pinned iOS action, and authenticated Everyday Agent

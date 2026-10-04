@@ -270,3 +270,18 @@ per-run `CountCache` (FIFO, 1024 entries) is keyed by sha256 of the exact text, 
 It stores integers only, never caches failures, and is shared by catalog candidates, `floor_estimate` and `fit`. A memo hit
 is local work avoided, not provider tokens saved. A newly approved non-OpenAI tokenizer needs its own reference fixtures
 before it is used to select smaller models.
+
+## TC-05: initial context target and span deduplication
+
+Opt-in through `[budget] context_target_bytes` (and `context_target_escalations`, default 2), which sets
+`RunConfig.context_target`. When it is unset the pipeline is unchanged, and `[budget]` digests omit both keys.
+`workflow::context_target` keeps three bounds separate: the model's hard capacity, the host context safety bound, and the
+initial target. `gather_context` merges same-revision, same-path, same-provenance spans (`dedup_spans`) and keeps a
+host-side provenance map; different revisions, external text and disagreeing overlaps stay distinct. `select` then
+keeps compiler-verified and required-reference items unconditionally (or refuses with `SPX-HPD020` if they alone
+exceed a bound) and ranks optional items deterministically: identifier hits, then novelty, then cost, then input
+order. The follow-up path escalates the target only after a named missing dependency or validation failure. Escalation is
+bounded by the escalation count, the hard capacity and the remaining task budget, and a refusal is reported as
+`escalation_refused`. `r.context.target` reports chosen and omitted identities with reasons, the provenance map, the
+current target and the escalation log, plus `exhaustive: false` whenever anything was omitted. None of this enters
+the prompt. The cost unit is `tokens:<name>` or the labelled `bytes:byte-policy-upper-bound`.

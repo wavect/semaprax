@@ -242,6 +242,48 @@ retained provider billing record is introduced. The result is named
 does not execute a command, interpret an exit code, establish agent authorship,
 or turn the runtime witness into a proof.
 
+## Ordinal-2 SEMAPRAX two-input runtime evidence
+
+`semaprax_boolean_runtime_acceptance.py` reviews one SEMAPRAX ordinal whose
+agent output differs from the canonical fixture bytes but retains the pinned
+module name, `app.negate` and `app.main` identities, and
+`ensures result == !value`. It receives raw candidate and exact seeded-attack
+source files, the bound model response, and a separate retained CLI receipt,
+stdout, and stderr for each source. Each receipt binds the source digest,
+three-element `semaprax run` command, executable digest, and pinned SEMAPRAX
+commit. The candidate must have exit zero with exactly `0`; the exact seeded
+attack must have a nonzero exit, empty stdout, and a `language status`
+diagnostic. The evaluator re-hashes every regular artifact and refuses links;
+it does not run a compiler itself.
+
+```sh
+python3 benchmarks/bend2-law-v1/semaprax_boolean_runtime_acceptance.py \
+  --plan /secure/local/law16-agent-plan.json \
+  --evidence /secure/local/law16-two-input-evidence.json \
+  --artifact-root /secure/local/law16-two-input-artifacts \
+  --expected-semaprax-commit <pinned-commit> \
+  --output /secure/local/law16-two-input-acceptance.json
+```
+
+On 4 October 2026, ordinal 2 of the preregistered Boolean SEMAPRAX lane was
+evaluated against `/tmp/semaprax-9a9db7a81`, attributed to
+`9a9db7a8117ac8d292b24ffd5671ec3333272290` with executable SHA-256
+`cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89`.
+The candidate source digest was
+`8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82`;
+the exact seeded attack digest was
+`9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b`.
+The retained candidate route exited zero and emitted `0`; the attack route
+exited one and emitted the contract `language status` diagnostic. The receipt
+is `/tmp/law16-codex-edit-pilot.CBbG5U/ordinal-2-runtime-evidence/acceptance.json`
+with status `two_input_runtime_authenticated`.
+
+This authenticates only this local compiler/runtime two-input observation.
+It does not establish a full law repair, a formal proof, a provider cost, an
+agent-authorship result, a matched Bend result, current-head evidence, or a
+checked-`u32` result. The formal proof and cost fields in the receipt are both
+`unavailable`.
+
 The local pinned Bend Boolean smoke route was executed on 4 October 2026 with
 Bun 1.2.5 and `BEND_NO_TELEMETRY=1`. Its receipt is
 `/tmp/bend-two-value-boolean.json`: the checked-out source was

@@ -185,3 +185,22 @@ observed model output.
 The workflow constructs `DefaultSkills` from `updates::effective_set`, not the embedded set. Revision locks of a
 session id persist; `harness run` drops the `default` session's locks that no longer match the effective set at
 session start.
+
+## Cost-aware skill profile (TC-08)
+
+`[skills] cost_profile = "standard" | "compact"` (default `standard`, the HN-06 behaviour above; any other value is
+refused with `SPX-HPB004`). `compact` is opt-in and is not a default until the TC-12 qualification passes. Under
+`compact`, a fixed invocation (`harness run`) renders only the selected skill bodies and their host policy frame, with
+no discoverable catalog block. Tiny structured families (`structured_intent`, `mechanical`, `mechanical_edit`) omit
+skills that are on only by shipped default (reason `cost-profile:tiny-structured-task`); on those families, approved-root
+skills load only by explicit `[skills] select`, never by tag match. Explicit instructions, session/project/user
+presets, modes and stop triggers resolve exactly as before, and an unknown mode is still refused (`SPX-HPM039`).
+`[skills] host_delivered = [...]` names skills that the outer host already injected; they are omitted with reason
+`already-delivered-by-host` unless explicitly forced, so the model never receives two copies. Official skills are loaded
+byte-exact or not at all; no shortened text is attributed to upstream. Interactive discovery (`skills`, the bridge
+lookup) is unchanged.
+
+Each run's report carries `context.skills.cost` (`semaprax.skill-cost-report/v1`): per skill a `state`
+(`selected | forced | omitted | already-delivered-by-host`), the reason, digest and version, and the totals
+`snapshot_bytes` (pinned artifact files), `rendered_bytes` (what the prompt received) and `catalog_bytes`.
+`provider_input_tokens` stays null there; actual billed input comes from the provider receipt, not from byte sizes.

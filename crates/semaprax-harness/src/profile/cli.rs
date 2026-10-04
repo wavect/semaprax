@@ -202,7 +202,15 @@ pub fn adopt_verb(args: &[String], env: &Environment) -> Outcome {
             project: a.project(env),
             allow_project_local: a.has("--allow-project-local"),
         };
-        let mut r = adopt(env, &desc, &opts)?;
+        // The identity probe finds a shebang runtime in the directory of the
+        // runtime the user named (the probe PATH holds only those directories).
+        let mut probe_env = env.clone();
+        if let Some(rt) = a.val.get("--runtime") {
+            for k in ["HARNESS_NODE", "HARNESS_PYTHON"] {
+                probe_env.vars.insert(k.into(), rt.clone());
+            }
+        }
+        let mut r = adopt(&probe_env, &desc, &opts)?;
         if let Some(rt) = a.val.get("--runtime") {
             let exe = super::adopt::set_runtime(
                 env,

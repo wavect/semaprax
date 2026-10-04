@@ -140,12 +140,13 @@ impl World {
         let desc_path = dir.join("harness-provider.json");
         let mut d: Value = serde_json::from_slice(&std::fs::read(&desc_path).unwrap()).unwrap();
         let up = &d["upstream"];
-        let bundled = up["package"]
-            .as_str()
-            .is_some_and(|p| p.starts_with("local:"))
-            && up["identity_probe"]
-                .as_array()
-                .is_some_and(|a| a.is_empty());
+        let bundled = up.is_null()
+            || up["package"]
+                .as_str()
+                .is_some_and(|p| p.starts_with("local:"))
+                && up["identity_probe"]
+                    .as_array()
+                    .is_some_and(|a| a.is_empty());
         if !bundled {
             d["upstream"]["identity_probe"] = json!(["--version"]);
             d["upstream"]["versions"] = json!(["0.1.0"]);

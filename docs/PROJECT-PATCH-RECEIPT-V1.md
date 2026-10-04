@@ -17,6 +17,16 @@ the `semaprax.patch-receipt.v1\0` domain.
 
 ## Candidate receipt and verification
 
+The one-shot CLI uses the same retained service authority and accepts canonical
+transaction and receipt values as command operands; it never accepts receipt,
+evidence, or candidate paths:
+
+```text
+semaprax patch-receipt <project> render <transaction-json> <candidate-digest>
+semaprax patch-receipt <project> verify <transaction-json> <candidate-digest> <receipt-json>
+semaprax patch-receipt <project> compare <left-transaction-json> <left-candidate-digest> <left-receipt-json> <right-transaction-json> <right-candidate-digest> <right-receipt-json>
+```
+
 ```rust
 pub fn ProjectCandidate::patch_receipt(&self, expected_candidate: &str)
     -> Result<String, Vec<Diagnostic>>;

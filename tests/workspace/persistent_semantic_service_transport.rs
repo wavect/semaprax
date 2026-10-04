@@ -625,7 +625,7 @@ fn patch_receipt_adapters_replay_retained_candidates_without_history_or_path_inp
     let revision = fixture.revision();
     let direct = SemanticWorkspaceService::open(Arc::clone(&revision)).unwrap();
     let workspace = direct.active_generation().workspace_revision().to_owned();
-    let transaction = transaction(&workspace).to_json();
+    let transaction = transaction(&workspace).to_json().to_owned();
     let candidate = direct
         .validate_transaction(transaction.as_bytes())
         .unwrap()
@@ -644,12 +644,13 @@ fn patch_receipt_adapters_replay_retained_candidates_without_history_or_path_inp
         .clone();
     assert_eq!(receipt["schema"], "semaprax.patch-receipt.v1");
     let receipt_text = format!("{}\n", receipt);
-    let verified = result(&call(
+    let verified_response = call(
         &mut session,
         json!(3),
         "workspace/verify-patch-receipt",
         json!({"transaction":transaction,"candidate_digest":candidate,"receipt":receipt_text}),
-    ));
+    );
+    let verified = result(&verified_response);
     assert_eq!(
         verified["payload"]["value"]["result"],
         "exact_recomputation"
@@ -668,12 +669,13 @@ fn patch_receipt_adapters_replay_retained_candidates_without_history_or_path_inp
         .iter()
         .find(|entry| entry["id"] == "declaration_catalog")
         .unwrap();
-    let page = result(&call(
+    let page_response = call(
         &mut session,
         json!(5),
         "workspace/patch-receipt-evidence-page",
         json!({"transaction":transaction,"candidate_digest":candidate,"evidence_id":"declaration_catalog","handle":catalog["handle"],"cursor":null,"page_size":1,"max_bytes":65536}),
-    ));
+    );
+    let page = result(&page_response);
     assert_eq!(
         page["payload"]["value"]["schema"],
         "semaprax.patch-receipt-evidence-page.v1"
@@ -688,7 +690,7 @@ fn patch_receipt_adapters_replay_retained_candidates_without_history_or_path_inp
     ))["payload"]["value"]
         .clone();
     assert_eq!(
-        refusal["attempt"]["status"],
+        refusal["content"]["attempt"]["status"],
         "refused_stale_candidate_selector"
     );
     let refusal_text = format!("{}\n", refusal);

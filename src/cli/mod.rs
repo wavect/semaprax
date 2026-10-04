@@ -23,6 +23,7 @@ pub(crate) mod new_project;
 pub(crate) mod package;
 pub(crate) mod package_lock;
 pub(crate) mod package_resolver;
+pub(crate) mod patch_receipt;
 pub(crate) mod project;
 pub(crate) mod project_candidate;
 pub(crate) mod project_image;

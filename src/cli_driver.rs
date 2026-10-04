@@ -505,6 +505,10 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             let options = cli::service::parse(&args[1..])?;
             cli::service::run(options, |errors| report(errors, false))
         }
+        CommandId::PatchReceipt => {
+            let command = cli::patch_receipt::parse(&args[1..])?;
+            cli::patch_receipt::run(command, |errors| report(errors, false))
+        }
         CommandId::ServeImage
         | CommandId::ServeCandidates
         | CommandId::ServeTestCandidates

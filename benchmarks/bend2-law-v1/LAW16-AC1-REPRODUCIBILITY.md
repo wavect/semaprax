@@ -145,6 +145,21 @@ Codex-backed run, so do not use it for offline review. The retained Codex
 events have no monetary charge data, so this declared ceiling is not a
 measured provider-cost result.
 
+**Costed Claude Boolean campaign.** The completed 20-trial capsule uses the
+separate v2 preregistration, with ten fresh matched pairs. Reproduction needs
+the pinned Claude CLI and provider access, and incurs provider charges. The
+plan specifies a requested $0.06 cap per trial and $1.20 total; provider
+charges can exceed a requested per-trial cap and are retained as failures.
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_claude_boolean_campaign.py \
+  --plan benchmarks/bend2-law-v1/fixtures/law16-claude-boolean-campaign-plan-v2.json \
+  --claude /absolute/pinned/claude --bend-root /absolute/pinned/bend \
+  --bun /absolute/pinned/bun --semaprax /absolute/pinned/semaprax \
+  --z3 /absolute/pinned/z3 --first 1 --last 10 \
+  --max-cost-usd 0.06 --output /absolute/new/law16-claude-campaign
+```
+
 ## Scope
 
 The checked-u32 non-admission, remaining-u32 cells, and guarded-i64

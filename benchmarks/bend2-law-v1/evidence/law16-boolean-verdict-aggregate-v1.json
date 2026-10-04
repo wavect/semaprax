@@ -1,0 +1,60 @@
+{
+  "comparability": {
+    "cold_cache": "unavailable: neither process corpus isolates OS, executable, solver, or tool caches",
+    "current_head": "unavailable: both are local pinned historical executable observations",
+    "proof_route": "unavailable: Bend retained verdict output and SEMAPRAX installed-Z3 source proof have distinct trusted computing bases",
+    "semantic_contract": "unavailable: score-to-u32 and Boolean negation differ"
+  },
+  "nonclaims": [
+    "no cross-language timing ratio or winner",
+    "no shared theorem, lowering proof, execution proof, or checked-u32 result",
+    "no conclusion from similar Boolean input cardinality"
+  ],
+  "reason": "the retained routes prove different Boolean contracts, so no matched semantic timing aggregate exists",
+  "routes": {
+    "bend_verdict": {
+      "contract": "boolean_score(value) == Bool.to_u32(value)",
+      "process_state": {
+        "fresh_process": {
+          "count": 30,
+          "p50_ns": 97554749.5,
+          "p95_ns": 114737250
+        },
+        "repeat_process": {
+          "count": 30,
+          "p50_ns": 95807687.0,
+          "p95_ns": 130452500
+        }
+      },
+      "raw_streams": 120,
+      "source": {
+        "bytes": 714,
+        "path": "fresh-input.bend",
+        "sha256": "sha256:72581058167b162c2da076832284e7ed31ad5ed447dada93cee3f5e05e5a7f24"
+      }
+    },
+    "semaprax_z3": {
+      "contract": "ensures result == !value for app.negate",
+      "process_state": {
+        "fresh_process": {
+          "count": 30,
+          "p50_ns": 449931542.0,
+          "p95_ns": 484708875
+        },
+        "repeat_process": {
+          "count": 30,
+          "p50_ns": 447022771.0,
+          "p95_ns": 494357666
+        }
+      },
+      "raw_streams": 120,
+      "source": {
+        "bytes": 338,
+        "path": "fresh-input.spx",
+        "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+      }
+    }
+  },
+  "schema": "semaprax.bend2-law-benchmark.boolean-verdict-aggregate-review.v1",
+  "status": "not_matched"
+}

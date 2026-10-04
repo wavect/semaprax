@@ -598,3 +598,20 @@ postcondition in a trusted local source translation: it is neither complete
 law coverage nor lowering/execution proof. The fresh and repeat paths do not
 isolate OS or solver caches, so all four route corpora remain separate process
 provisioning observations without ratios or a winner.
+
+`law16_boolean_verdict_aggregate.py` reviews the retained Bend verdict and
+SEMAPRAX Z3 capsules together before anybody treats them as a matched corpus.
+Its committed output is deliberately `not_matched`: Bend's fixed source proves
+`boolean_score(value) == Bool.to_u32(value)`, whereas SEMAPRAX's source
+discharges `ensures result == !value` for `app.negate`. Equal Boolean input
+cardinality does not make those contracts equivalent. Reproduce the offline
+nonresult with:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_boolean_verdict_aggregate.py \
+  --output /tmp/law16-boolean-verdict-aggregate.json
+```
+
+This prevents a verdict-versus-Z3 timing ratio or winner claim. A future
+matched Boolean process corpus needs the same fixed law, seeded attacks, and
+separately authenticated proof routes on both sides.

@@ -30,6 +30,17 @@ def review(root):
  z3=json.loads((root/'v2-turns-and-replay/z3-cache-replay.json').read_text())
  # cache-root replay is authoritative; the /tmp replay is retained infrastructure failure.
  z3=json.loads((root/'v2-turns-and-replay/z3-cache-replay.json').read_text()) if (root/'v2-turns-and-replay/z3-cache-replay.json').exists() else None
+ z3=json.loads((root/'v2-turns-and-replay/z3-cache-replay.json').read_text())
+ if set(z3)!={str(i) for i in range(1,11)}: raise ValueError('Z3 ordinal coverage drift')
+ for row in z3.values():
+  if [row.get('candidate '+d) for d in ('app.balance.debit-after','app.balance.credit-after','app.balance.total-after')]!=[0,0,0]: raise ValueError('candidate Z3 drift')
+  if [row.get('attack '+d) for d in ('app.balance.debit-after','app.balance.credit-after','app.balance.total-after')]!=[1,0,1]: raise ValueError('attack Z3 drift')
+ for n in range(1,11):
+  for lane in ('bend2','semaprax-scalar-v1'):
+   d=root/'v2-turns-and-replay'/(lane if n==1 else f'ordinal-{n}/{lane}')/'events.jsonl'
+   events=[json.loads(x) for x in d.read_text().splitlines()]
+   u=[x.get('usage') for x in events if x.get('type')=='turn.completed']
+   if len(u)!=1 or not isinstance(u[0],dict) or u[0].get('input_tokens',0)+u[0].get('output_tokens',0)>20000: raise ValueError('trial budget drift')
  a=m.get('aggregate',{})
  expected={'v2_matched_pairs':10,'bend_candidate_passes':9,'bend_candidate_failures':1,'semaprax_z3_candidate_discharges':10,'attack_debit_rejections':10,'attack_credit_discharges':10,'attack_total_rejections':10,'v1_ineligible_pilot':1}
  if a!=expected: raise ValueError('aggregate drift')

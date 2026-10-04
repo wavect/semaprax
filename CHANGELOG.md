@@ -15,6 +15,16 @@
   Exact target checks refuse unsupported M1/M3 Wasm routes while the separate
   M2 scalar Project builds; generated Rust Serde/iterator adapters are not
   claimed on Wasm. Linux performance remains guest evidence.
+- Repaired current-main CI regressions in command help, task-service semantic
+  fixture setup, source-local manifest refusals, standalone generated-package
+  lockfile classification, SMT proof guards, review digests, and Windows durable
+  writer contention. The network handle-capacity test now splits its source
+  across bounded helper calls while still exercising the ninth-handle refusal.
+- Pinned native tool setup to the real Linux Clang image, scoped the checked-in
+  macOS arm64 Regex/URL registry envelopes to their host, and checked both
+  carrier-specific generated context names. Linux service packaging acceptance
+  now builds and supplies a static service executable.
+
 - Fixed the patch-receipt evidence pagination regression to exercise a
   renameable declaration in the app module; the fixture now preserves its
   cross-file identity check without attempting to rename `main`. Both renamed

@@ -36,6 +36,14 @@ use std::process::Command;
 /// gate to make it pass.
 const NOT_RESOLVABLE_STANDALONE: &[(&str, &str)] = &[
     (
+        "examples/ri13-combined-app/linked/Cargo.toml",
+        "depends on generated/regex and generated/url packages absent from a fresh checkout",
+    ),
+    (
+        "examples/ri13-m1-regex-url/consumer/Cargo.toml",
+        "depends on ../generated/regex and ../generated/url packages absent from a fresh checkout",
+    ),
+    (
         "examples/frame-payload-rust/Cargo.toml",
         "depends on examples/frame-payload-generated-sdk/, which the gate generates \
          and which is absent from a fresh checkout; no workflow fetches it --locked",

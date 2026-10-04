@@ -290,13 +290,22 @@ fn forged_and_closed_handles_are_unknown() {
 #[test]
 fn capacity_failures_cover_handles_chunks_and_timeouts() {
     let host = byte_array("127.0.0.1");
-    let mut eight = String::new();
-    for index in 0..9 {
-        eight.push_str(&format!(
+    let mut open_three = String::new();
+    for index in 0..3 {
+        open_three.push_str(&format!(
             "    let e{index} = {host};\n    let h{index} = net_connect(array_as_slice(e{index}), 8080usize);\n"
         ));
     }
-    eight.push_str("    marker == 5usize");
+    open_three.push_str("    h2");
+    let helper = format!(
+        "@id(\"net.open-three\")\nfn open_three() -> usize\n    uses {{ network.connect }}\n{{\n{open_three}\n}}\n\n"
+    );
+    let source = program(
+        "    let first = open_three();\n    let second = open_three();\n    let third = open_three();\n    first == second && second == third",
+        "127.0.0.1",
+        8080,
+    )
+    .replacen("@id(\"net.run\")", &format!("{helper}@id(\"net.run\")"), 1);
     // The ninth connect is rejected by the evaluator before provider entry,
     // so the bounded fixture needs exactly the eight reachable connections.
     let connections = (0..8)
@@ -307,7 +316,7 @@ fn capacity_failures_cover_handles_chunks_and_timeouts() {
         "{{\"schema\": \"semaprax.network-fixture.v1\", \"connections\": [{connections}]}}"
     ))
     .unwrap();
-    assert_eq!(failure(&eight, &mut provider), 4);
+    assert_eq!(failure_code(&run(&source, &mut provider)), 4);
 
     for op in ["net_recv", "net_stream_stdout"] {
         let tail = format!(

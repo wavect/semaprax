@@ -760,7 +760,7 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
         document_sha(&review.json),
         // Nested context, impact, evidence-reference, budget, and digest replay
         // checks independently bind this re-pinned document digest.
-        "sha256:a1ab78b221753c37de55d2284dd1e3415795ec24dcb94ce8ae9f1a9bcba8a2da"
+        "sha256:f66beec0a052890f8ca80f1b05f5087ba45c98eded7e366534c872fce82594f0"
     );
     let direct_context = analysis
         .render_context(

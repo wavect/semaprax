@@ -113,7 +113,7 @@ impl GenerationJobStore {
         let root = durable_fs::canonical_existing_dir(root).map_err(|_| JobStoreError::Io)?;
         let writer_lock = match durable_fs::acquire_job_writer_lock(&root) {
             Ok(lock) => lock,
-            Err(error) if error.kind() == io::ErrorKind::WouldBlock => {
+            Err(error) if durable_fs::is_writer_contention(&error) => {
                 return Err(JobStoreError::WriterBusy);
             }
             Err(_) => return Err(JobStoreError::Io),

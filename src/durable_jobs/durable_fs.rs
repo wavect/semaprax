@@ -200,6 +200,19 @@ pub(crate) fn acquire_job_writer_lock(root: &Path) -> io::Result<JobWriterLock> 
     Ok(JobWriterLock { file })
 }
 
+pub(crate) fn is_writer_contention(error: &io::Error) -> bool {
+    if error.kind() == io::ErrorKind::WouldBlock {
+        return true;
+    }
+    #[cfg(windows)]
+    {
+        // LockFileEx and CreateFileW report contention with these raw errors.
+        return matches!(error.raw_os_error(), Some(32) | Some(33));
+    }
+    #[cfg(not(windows))]
+    false
+}
+
 /// Find the first stage sequence that cannot name a stage left by an earlier
 /// store instance.  A process can stop after creating a stage file but before
 /// the best-effort cleanup in [`commit_bytes_with_hook`]; recovery must leave

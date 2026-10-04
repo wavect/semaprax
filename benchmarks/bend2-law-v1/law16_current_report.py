@@ -27,6 +27,7 @@ RSS = module("law16_boolean_negation_rss_capsule")
 NONPROOF = module("law16_boolean_negation_nonproof_capsule")
 PROOFVERDICT = module("law16_boolean_negation_proof_verdict_capsule")
 FULL_U32_EQUAL_SPEC = module("full_u32_equal_spec")
+GUARDED_I64_BALANCE = module("law16_guarded_i64_balance_smt")
 SCHEMA = "semaprax.bend2-law-benchmark.current-report.v1"
 
 
@@ -103,6 +104,12 @@ def render():
     process_v2 = PROCESS.review(ROOT / "evidence/law16-boolean-negation-process-v2")
     full_u32_controls = read(ROOT / "evidence/full-u32-encoding-controls-v1/report.json")
     full_u32_equal_spec = FULL_U32_EQUAL_SPEC.profile()
+    balance_source_proof = GUARDED_I64_BALANCE.verify_capsule(
+        ROOT / "evidence/law16-guarded-i64-balance-smt-v1"
+    )
+    balance_source_proof_result = read(
+        ROOT / "evidence/law16-guarded-i64-balance-smt-v1/result.json"
+    )
     process_v2_provenance = read(ROOT / "evidence/law16-boolean-negation-process-v2/provenance.json")
     effort = read(ROOT / "evidence/law16-effort-summary-v1.json")
     annotations = read(ROOT / "evidence/law16-annotation-summary-v1.json")
@@ -204,6 +211,37 @@ def render():
                     "claim_boundary": "bounded model-level equal-spec result; not a source-translation or lowering certificate and not an unbounded-list theorem",
                 },
             },
+        },
+        "supplemental_guarded_i64_balance_source_proof": {
+            "status": balance_source_proof["status"],
+            "source": "evidence/law16-guarded-i64-balance-smt-v1/result.json",
+            "semantic_scope": balance_source_proof_result["semantic_scope"],
+            "positive_smt_discharges": balance_source_proof["positive_smt_discharges"],
+            "selected_postconditions": [
+                {
+                    "name": row["name"],
+                    "declaration_id": row["declaration_id"],
+                    "ensures_index": row["ensures_index"],
+                    "status": row["status"],
+                }
+                for row in balance_source_proof_result["positive_cases"]
+            ],
+            "no_op_negative": {
+                "status": balance_source_proof["no_op_negative"],
+                "diagnostic": balance_source_proof_result["negative_control"]["diagnostic"],
+                "solver_outcome_classification": "unclaimed; refusal does not distinguish counterexample, unknown, or another refusal reason",
+            },
+            "tool_and_build_identity": {
+                "source_commit": balance_source_proof_result["semaprax"]["source_commit"],
+                "semaprax_sha256": balance_source_proof_result["semaprax"]["sha256"],
+                "z3_version": balance_source_proof_result["z3"]["version"],
+                "z3_sha256": balance_source_proof_result["z3"]["sha256"],
+                "platform": balance_source_proof_result["build"]["platform"],
+                "target_profile": balance_source_proof_result["build"]["target_profile"],
+            },
+            "full_u32_original": balance_source_proof["full_u32_original"],
+            "overall_law16": balance_source_proof["overall_law16"],
+            "nonclaims": balance_source_proof_result["nonclaims"],
         },
         "measurement_provenance": {
             "identity_scope": "machine-local observations bound to the process-v2 raw samples; not current-head claims",

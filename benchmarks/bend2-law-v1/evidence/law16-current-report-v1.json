@@ -1164,6 +1164,77 @@
     "source": "evidence/full-u32-encoding-controls-v1/report.json",
     "status": "supplemental_controls_pass"
   },
+  "supplemental_guarded_i64_balance_source_proof": {
+    "full_u32_original": "unsupported_by_this_source_profile",
+    "no_op_negative": {
+      "diagnostic": "SPX-LW140: installed proof tool refused: solver returned false, unknown, malformed or partial evidence",
+      "solver_outcome_classification": "unclaimed; refusal does not distinguish counterexample, unknown, or another refusal reason",
+      "status": "proof_tool_refused_no_solver_status_claimed"
+    },
+    "nonclaims": [
+      "does not close the original structured full-u32 balance fixture",
+      "does not prove source lowering or execute the application",
+      "no-op refusal does not identify a solver counterexample versus another refusal status",
+      "overall LAW16 remains incomplete"
+    ],
+    "overall_law16": "incomplete",
+    "positive_smt_discharges": 7,
+    "selected_postconditions": [
+      {
+        "declaration_id": "law16.balance.debit_after",
+        "ensures_index": 0,
+        "name": "debit_u32_range",
+        "status": "smt_proved"
+      },
+      {
+        "declaration_id": "law16.balance.debit_after",
+        "ensures_index": 1,
+        "name": "debit_exact",
+        "status": "smt_proved"
+      },
+      {
+        "declaration_id": "law16.balance.debit_after",
+        "ensures_index": 2,
+        "name": "debit_positive_transfer",
+        "status": "smt_proved"
+      },
+      {
+        "declaration_id": "law16.balance.credit_after",
+        "ensures_index": 0,
+        "name": "credit_u32_range",
+        "status": "smt_proved"
+      },
+      {
+        "declaration_id": "law16.balance.credit_after",
+        "ensures_index": 1,
+        "name": "credit_exact",
+        "status": "smt_proved"
+      },
+      {
+        "declaration_id": "law16.balance.credit_after",
+        "ensures_index": 2,
+        "name": "credit_conservation",
+        "status": "smt_proved"
+      },
+      {
+        "declaration_id": "law16.balance.credit_after",
+        "ensures_index": 3,
+        "name": "credit_positive_transfer",
+        "status": "smt_proved"
+      }
+    ],
+    "semantic_scope": "guarded i64 projections for full-u32 values, scalar pre/postconditions only",
+    "source": "evidence/law16-guarded-i64-balance-smt-v1/result.json",
+    "status": "bounded_source_postconditions_proved_full_u32_route_incomplete",
+    "tool_and_build_identity": {
+      "platform": "Darwin arm64",
+      "semaprax_sha256": "6f6fa6384c8d2bacca4740485bcb6241dc06fc388e3d3dc36a7a38420d720e5a",
+      "source_commit": "5e3720672e441b0202b69b51862058493a1939e9",
+      "target_profile": "dev; debug=0; incremental=0; build_jobs=1",
+      "z3_sha256": "bbb24b8fed27552f7fb7cfdf0ed9101e6e24fd0cc0b9cfb945233b3f2ed333c5",
+      "z3_version": "Z3 version 4.12.5 - 64 bit"
+    }
+  },
   "unavailable_or_unsupported": {
     "Lean": "unavailable: no retained admitted Lean export/kernel route",
     "checked_u32": "unsupported_by_pinned_parser: SPX-P003 admits i32, u8, usize literal suffixes, not u32",

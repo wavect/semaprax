@@ -108,3 +108,15 @@ regression is
 model-level equal-spec result over lists of exactly four elements, not a
 certificate that either source was translated into the model and not an
 unbounded-list theorem.
+
+The retained [guarded-i64 balance source-proof capsule](evidence/law16-guarded-i64-balance-smt-v1/result.json)
+authenticates seven installed-Z3 discharges for selected scalar debit and
+credit postconditions: U32 range, exact guarded update, conservation, and
+positive transfer. It checks source obligations for the guarded-i64 projection
+on a locally pinned SEMAPRAX executable and Z3 4.12.5; it does not prove
+lowering or execute the app. The no-op debit mutant was refused with
+`SPX-LW140`. That refusal does not classify a solver counterexample, `unknown`,
+or another refusal reason. The original structured full-u32 balance fixture
+remains unsupported by this profile. These source proofs are distinct from
+the native runtime controls and Bend checks above, and they do not close
+LAW-16.

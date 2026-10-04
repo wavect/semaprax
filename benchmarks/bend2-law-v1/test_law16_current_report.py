@@ -99,6 +99,18 @@ class CurrentReportTests(unittest.TestCase):
         self.assertEqual(bend_candidate["fresh_process"]["mad_ns"], 14070520.5)
         self.assertEqual(bend_candidate["repeat_process"]["count"], 30)
 
+    def test_report_authenticates_bounded_balance_source_proofs_without_reclassifying_refusal(self):
+        value = REPORT.render()
+        proof = value["supplemental_guarded_i64_balance_source_proof"]
+        self.assertEqual(proof["positive_smt_discharges"], 7)
+        self.assertTrue(all(row["status"] == "smt_proved" for row in proof["selected_postconditions"]))
+        self.assertEqual(proof["no_op_negative"]["status"], "proof_tool_refused_no_solver_status_claimed")
+        self.assertIn("unclaimed", proof["no_op_negative"]["solver_outcome_classification"])
+        self.assertEqual(proof["full_u32_original"], "unsupported_by_this_source_profile")
+        self.assertEqual(proof["overall_law16"], "incomplete")
+        self.assertEqual(value["status"], "incomplete")
+        self.assertTrue(any("does not prove source lowering" in row for row in proof["nonclaims"]))
+
 
 if __name__ == "__main__":
     unittest.main()

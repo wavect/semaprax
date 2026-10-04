@@ -1,5 +1,15 @@
 # Changelog
 
+Project log follows a compact [Keep a Changelog](https://keepachangelog.com/)
+format: `Unreleased` then release buckets, grouped by impact.
+
+> For full historical detail of every entry, refer to
+> [docs/CHANGELOG-ARCHIVE.md](docs/CHANGELOG-ARCHIVE.md).
+
+## Unreleased
+
+## 0.8.0 — 2026-10-04
+
 - LAW-16: retain pinned Bend U32 universal insertion-sort verdict/kernel
   evidence and pinned SEMAPRAX LAW15 Lean sortedness/permutation/multiplicity
   evidence over the U32 subset. A versioned guarded-i64 profile records their
@@ -879,14 +889,6 @@
   path consumes the live Report claim into a bounded projection with exact
   authenticated evidence. Public multi-turn entry, remaining failure tails,
   and recovery remain open, so this source-only work does not close #330.
-
-Project log follows a compact [Keep a Changelog](https://keepachangelog.com/)
-format: `Unreleased` then release buckets, grouped by impact.
-
-> For full historical detail of every entry, refer to
-> [docs/CHANGELOG-ARCHIVE.md](docs/CHANGELOG-ARCHIVE.md).
-
-## Unreleased
 
 - Disable implicit OpenCode title, summary and compaction model work in the
   private fixed-model host policy, and pin its default, small and selected-agent

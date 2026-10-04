@@ -187,7 +187,7 @@ fn release_automation_checks_version_surfaces_and_renders_only_one_changelog_buc
         String::from_utf8_lossy(&notes.stderr)
     );
     let notes = String::from_utf8(notes.stdout).expect("release notes must be UTF-8");
-    let title = format!("SEMAPRAX v{version} is alpha research software.");
+    let title = format!("SEMAPRAX v{version} is research software.");
     // Three sampled entries of the current bucket, taken from the top, middle,
     // and bottom of its section, plus the fixed frame. Samples are re-picked
     // each release; the point they hold is that the renderer emits this
@@ -195,9 +195,9 @@ fn release_automation_checks_version_surfaces_and_renders_only_one_changelog_buc
     for exact in [
         title.as_str(),
         "## Changes",
-        "Preserve the selected host failure and physical authority-loss retirement",
-        "Compose the local, caller-authorized mirror-to-held flow",
-        "Run a bounded, flat record or variant of Copy scalars",
+        "LAW-16: retain pinned Bend U32 universal insertion-sort verdict/kernel",
+        "Settle actual first-turn source Refused through its original State",
+        "Retain the immutable cumulative v8 fresh-turn capacity forecast",
         "These archives are not notarized",
         "SHA-256 checksums alone are integrity facts, not signatures",
     ] {
@@ -206,7 +206,7 @@ fn release_automation_checks_version_surfaces_and_renders_only_one_changelog_buc
     // Every other bucket stays out, including the one immediately before this
     // release: a renderer that walked past its section would pick that up
     // first.
-    for other in ["## 0.5.0", "## 0.4.1", "## Unreleased"] {
+    for other in ["## 0.7.0", "## 0.5.0", "## Unreleased"] {
         assert!(
             !notes.contains(other),
             "release notes leaked another bucket: {other}"
@@ -317,7 +317,7 @@ fn both_packagers_bind_version_commit_manifest_inventory_and_smoke() {
             "stable language ABI",
             "stable public protocol",
             "safety-critical suitability",
-            "alpha",
+            "research",
             "release-manifest.json",
             "smoke/meaning.spx",
             "semaprax.version.v1",
@@ -372,7 +372,7 @@ fn release_documentation_preserves_all_nonclaims() {
         "No cross-host reproducible build is claimed",
         "integrity facts, not signatures",
         "does not promote any completion-matrix row",
-        "alpha",
+        "prerelease",
     ] {
         assert!(docs.contains(exact), "release nonclaim lost: {exact}");
     }
@@ -657,7 +657,7 @@ def manifest_bytes(version, commit, target):
         'version': version,
         'commit': commit,
         'target': target,
-        'maturity': 'alpha',
+        'maturity': 'research',
         'binaries': ['semaprax', 'semapraxd'],
         'nonclaims': [],
     }).encode('utf-8')

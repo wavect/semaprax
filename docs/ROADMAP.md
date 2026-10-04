@@ -15,8 +15,8 @@ target behavior sound before widening public APIs.
 ## Current release baseline
 
 v0.4.0 is the last accepted hosted-green release baseline. The full product is
-still Partial. The later v0.5.0 prerelease is downloadable; v0.7.0 is a
-release candidate. See [current release status](RELEASE-0.7.0-STATUS.md) and
+still Partial. The later v0.7.0 prerelease is downloadable; v0.8.0 is a
+source candidate. See [current release status](RELEASE-0.8.0-STATUS.md) and
 the [historical v0.6.0 gate record](RELEASE-0.6.0-STATUS.md).
 
 The [persistent semantic cache](PERSISTENT-SEMANTIC-CACHE-V1.md) already reuses
@@ -61,7 +61,7 @@ exact release corpus passed, and whether users may rely on it. Promotion needs
 an explicit version, target scope, maintained package/host path, and fresh
 evidence. A CI label alone does not publish a private profile.
 
-The full-toolchain archives remain alpha. Keep source-selected private hosts
+The full-toolchain archives remain research releases. Keep source-selected private hosts
 visible until a promoted workflow intentionally hides them from users.
 
 ## Developer preview: promote the authored Project v8 slice

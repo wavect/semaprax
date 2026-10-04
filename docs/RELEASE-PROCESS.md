@@ -1,13 +1,13 @@
 # Release process
 
-Status: tag-release procedure and historical evidence; v0.7.0 is tagged but unpublished.
+Status: tag-release procedure and historical evidence; v0.8.0 is a source candidate.
 
 Audience: maintainers and release reviewers.
 
 Only the repository CI workflow can publish a tag release, and only after the
 exact tag commit passes every job in `release-gate`. A local archive can test
 packaging, but cannot certify a release. This page combines the procedure with
-historical v0.4.x evidence; use [v0.7.0 status](RELEASE-0.7.0-STATUS.md) for
+historical v0.4.x evidence; use [v0.8.0 status](RELEASE-0.8.0-STATUS.md) for
 the current candidate. The [v0.6.0 gate record](RELEASE-0.6.0-STATUS.md)
 remains historical evidence.
 
@@ -407,7 +407,7 @@ SLSA provenance for its own already smoke-tested archive. The final
 capability needed to sign the final aggregate provenance. It authenticates the
 exact three-archive inventory, writes one `SHA256SUMS`, creates the final
 manifest and provenance, and keylessly signs that provenance before publishing
-a GitHub prerelease because SEMAPRAX remains alpha. No repository signing key
+a GitHub prerelease while the release policy retains prerelease status. No repository signing key
 exists. The publisher derives the body with `scripts/release-notes.py`: it
 selects only the tagged version's dated `CHANGELOG.md` section, stopping at the
 next release heading, and surrounds it with the release nonclaims. A missing,

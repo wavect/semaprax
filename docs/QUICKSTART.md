@@ -1,6 +1,6 @@
 # Quickstart
 
-Status: public alpha example, not a production-readiness claim.
+Status: public research example, not a production-readiness claim.
 Audience: first-time SEMAPRAX users.
 
 > Prefer a guided path? The user-facing [Semaprax Handbook](../handbook/README.md)

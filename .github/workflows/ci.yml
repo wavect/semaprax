@@ -2843,7 +2843,7 @@ jobs:
           root_digest="$(sha256sum dist/trusted_root.jsonl | cut -d ' ' -f1)"
           "$RUNNER_TEMP/semaprax-release-verify" doctor verify-release dist \
             --trusted-root-sha256 "$root_digest"
-      - name: Publish the alpha archives only after complete aggregation
+      - name: Publish the release archives only after complete aggregation
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash

@@ -322,7 +322,7 @@ def main(argv=None):
         "--prerelease",
         dest="prerelease",
         action="store_true",
-        help="SEMAPRAX is alpha; every tag today is a GitHub prerelease (default)",
+        help="SEMAPRAX research releases remain GitHub prereleases by default",
     )
     prerelease_group.add_argument("--no-prerelease", dest="prerelease", action="store_false")
     parser.set_defaults(prerelease=True)

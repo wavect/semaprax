@@ -1,14 +1,14 @@
 # Installing SEMAPRAX
 
-Status: public alpha installation guide; not a production-readiness claim.
+Status: public research installation guide; not a production-readiness claim.
 Audience: new users and contributors.
 
 > Prefer a shorter path? The user-facing [Semaprax Handbook](../handbook/README.md)
 > covers installation in [Install](../handbook/getting-started/install.md).
 > This page remains the complete, test-pinned installation reference.
 
-Install from source for the newest local build, or use the last published
-[v0.5.0 archive](https://github.com/wavect/semaprax/releases/tag/v0.5.0).
+Install from source for the newest local build, or use the latest published
+[v0.7.0 archive](https://github.com/wavect/semaprax/releases/tag/v0.7.0).
 Then follow the [quickstart](QUICKSTART.md) to run a calculator project. For
 command syntax, use the [CLI guide](CLI-GUIDE.md). For feature status and
 evidence, use the [completion matrix](COMPLETION-MATRIX.md).
@@ -21,7 +21,7 @@ There are two builds. Release archives rename the full build:
 | --- | --- | --- |
 | `semaprax` | Standalone source install or compiler package | Common commands: `new`, `fmt`, `check`, `run`, `test`, `graph`, `build`, and `doctor`. |
 | `semaprax-full` | Source checkout only | Common commands plus private host and publication operations. Its `new` uses staged publication. |
-| `semaprax` in a release archive | Published [v0.5.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.5.0) | The full build, renamed when packaged. |
+| `semaprax` in a release archive | Published [v0.7.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.7.0) | The full build, renamed when packaged. |
 
 The full toolchain is unpublished (`publish = false`), so build it from a
 checkout. Both binaries accept the common commands, including `doctor`. The
@@ -103,22 +103,17 @@ command -v semaprax
 
 ## Route 2: install from a release archive
 
-The v0.7.0 source version is a release candidate. Its archive is unavailable
+The v0.8.0 source version is a release candidate. Its archive is unavailable
 until the exact-tag gate publishes it; check the
-[current release status](RELEASE-0.7.0-STATUS.md) before choosing an archive.
-The following note preserves the prior v0.6.0 gate observation.
-
-At this document's 2026-09-24 update, the
-[v0.6.0 tag gate](https://github.com/wavect/semaprax/actions/runs/36047757697)
-was still running; v0.6.0 had no published archive or signature. The last
-published [v0.5.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.5.0)
-publishes one archive per admitted host plus a `SHA256SUMS` file:
+[current release status](RELEASE-0.8.0-STATUS.md) before choosing an archive.
+The published [v0.7.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.7.0)
+provides one archive per admitted host, `SHA256SUMS`, and release provenance:
 
 | Host | Archive |
 | --- | --- |
-| Linux x86-64 | `semaprax-v0.5.0-x86_64-unknown-linux-gnu.tar.gz` |
-| Apple Silicon macOS | `semaprax-v0.5.0-aarch64-apple-darwin.tar.gz` |
-| Windows x86-64 | `semaprax-v0.5.0-x86_64-pc-windows-msvc.zip` |
+| Linux x86-64 | `semaprax-v0.7.0-x86_64-unknown-linux-gnu.tar.gz` |
+| Apple Silicon macOS | `semaprax-v0.7.0-aarch64-apple-darwin.tar.gz` |
+| Windows x86-64 | `semaprax-v0.7.0-x86_64-pc-windows-msvc.zip` |
 
 Each archive contains `semaprax`, the `semapraxd` daemon, `LICENSE`,
 `README.md`, a fixed smoke program, and a deterministic
@@ -127,19 +122,17 @@ Each archive contains `semaprax`, the `semapraxd` daemon, `LICENSE`,
 
 ```sh
 shasum -a 256 -c SHA256SUMS
-tar -xzf semaprax-v0.5.0-aarch64-apple-darwin.tar.gz
+tar -xzf semaprax-v0.7.0-aarch64-apple-darwin.tar.gz
 ```
 
 Use `unzip` for the Windows archive. Put the unpacked directory on your `PATH`
 the same way as Cargo's binary directory above, or invoke the binary by path.
 
-**The archives are unsigned and are not notarized.** SHA-256 checksums are
-integrity facts, not signatures, provenance, or publisher authentication. The
-exact published digests, the build evidence behind them, and the full set of
-nonclaims are owned by the release process:
-[v0.4.0 hosted release evidence](RELEASE-PROCESS.md#040-hosted-release-evidence) and
-[nonclaims](RELEASE-PROCESS.md#nonclaims). Do not treat an archive install as
-promotion of any completion-matrix row.
+**The archives are not notarized.** SHA-256 checksums alone are integrity
+facts, not publisher authentication. Verify the supplied signature bundle
+against the [release policy](RELEASE-SIGNING-POLICY-V1.md); the build evidence
+and nonclaims are described in the [release process](RELEASE-PROCESS.md).
+An archive install does not promote any completion-matrix row.
 
 ### The archive uses a different command name
 
@@ -169,17 +162,17 @@ semaprax run examples/meaning.spx
 semaprax graph examples/meaning.spx
 ```
 
-Expected shapes, from a local `0.7.0` standalone build:
+Expected shapes, from a local `0.8.0` standalone build:
 
 ```text
-semaprax 0.7.0 (commit unknown)
+semaprax 0.8.0 (commit unknown)
 ```
 
 A CLI built from a tag archive reports its injected commit instead of
 `unknown`. The JSON form is the machine-readable version of the same identity:
 
 ```text
-{"schema":"semaprax.version.v1","version":"0.7.0","commit":null,"maturity":"alpha","rust_min":"1.88"}
+{"schema":"semaprax.version.v1","version":"0.8.0","commit":null,"maturity":"research","rust_min":"1.88"}
 ```
 
 `check` prints the verified path and its source digest, and `run` prints `42`:

@@ -145,7 +145,7 @@ fn release_provenance_cli_builds_and_rust_module_accepts_it() {
          tag = {tag:?}\n\
          commit = {commit:?}\n\
          def manifest_bytes(target):\n\
-         \treturn json.dumps({{'schema': 'semaprax.release-artifact.v1', 'version': version, 'commit': commit, 'target': target, 'maturity': 'alpha', 'binaries': ['semaprax', 'semapraxd'], 'nonclaims': []}}).encode('utf-8')\n\
+         \treturn json.dumps({{'schema': 'semaprax.release-artifact.v1', 'version': version, 'commit': commit, 'target': target, 'maturity': 'research', 'binaries': ['semaprax', 'semapraxd'], 'nonclaims': []}}).encode('utf-8')\n\
          def write_tar(name, target):\n\
          \twith tarfile.open(scratch / name, 'w:gz') as archive:\n\
          \t\tdata = manifest_bytes(target)\n\

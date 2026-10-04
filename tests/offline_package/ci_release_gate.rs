@@ -290,7 +290,7 @@ fn release_artifacts_are_attested_signed_and_packaged_for_offline_replay_before_
             "Sign final release provenance with keyless Sigstore",
             "Derive the signature claim after archive-attestation verification",
             "Independently verify the signed release before publication",
-            "Publish the alpha archives only after complete aggregation",
+            "Publish the release archives only after complete aggregation",
         ],
     )
     .expect("each final-inventory/signing step must be present once");
@@ -317,7 +317,7 @@ fn release_artifacts_are_attested_signed_and_packaged_for_offline_replay_before_
                 "Generate release provenance from the final manifest",
                 "Install pinned cosign",
                 "Sign final release provenance with keyless Sigstore",
-                "Publish the alpha archives only after complete aggregation",
+                "Publish the release archives only after complete aggregation",
             ],
         )
         .is_err(),

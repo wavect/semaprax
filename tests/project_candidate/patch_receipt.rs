@@ -1,7 +1,10 @@
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use semaprax::project::{with_authenticated_project, ProjectCandidate, SemanticChange};
+use semaprax::project::{
+    with_authenticated_project, ProjectCandidate, ProjectPatchReceiptEvidencePageOptions,
+    SemanticChange,
+};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 
@@ -213,4 +216,116 @@ fn receipt_comparison_verifies_both_routes_and_refuses_incompatible_inputs() {
         .unwrap()
         .contains(&json!("right_receipt_did_not_admit_a_candidate")));
     assert!(incomparable["comparison"].is_null());
+}
+
+#[test]
+fn retained_evidence_pages_are_closed_bounded_and_preserve_cross_file_declaration_ids() {
+    let fixture = Fixture::new();
+    let root = fixture.candidate();
+    let first = apply(
+        &root,
+        json!({"kind":"rename_declaration","target":"calculator.subtract","name":"difference"}),
+    );
+    let candidate = apply(
+        &first,
+        json!({"kind":"rename_declaration","target":"calculator.app.main","name":"run"}),
+    );
+    let options = ProjectPatchReceiptEvidencePageOptions::new(1, 65_536).unwrap();
+    let summary: Value = serde_json::from_str(
+        &candidate
+            .patch_receipt_evidence_summary(candidate.candidate_digest())
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        summary["schema"],
+        "semaprax.patch-receipt-evidence-summary.v1"
+    );
+    let catalog = summary["evidence"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["id"] == "declaration_catalog")
+        .unwrap();
+    assert_eq!(catalog["total_items"], 2);
+    let handle = catalog["handle"].as_str().unwrap().to_owned();
+    let mut cursor = None;
+    let mut ids = Vec::new();
+    loop {
+        let page: Value = serde_json::from_str(
+            &candidate
+                .patch_receipt_evidence_page(
+                    candidate.candidate_digest(),
+                    "declaration_catalog",
+                    &handle,
+                    cursor.as_deref(),
+                    options,
+                )
+                .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(page["items"].as_array().unwrap().len(), 1);
+        ids.push(page["items"][0]["target"].as_str().unwrap().to_owned());
+        cursor = page["next_cursor"].as_str().map(str::to_owned);
+        if cursor.is_none() {
+            break;
+        }
+    }
+    assert_eq!(ids, ["calculator.app.main", "calculator.subtract"]);
+
+    let contracts = summary["evidence"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["id"] == "contract_delta")
+        .unwrap();
+    let contract: Value = serde_json::from_str(
+        &candidate
+            .patch_receipt_evidence_page(
+                candidate.candidate_digest(),
+                "contract_delta",
+                contracts["handle"].as_str().unwrap(),
+                None,
+                ProjectPatchReceiptEvidencePageOptions::new(8, 65_536).unwrap(),
+            )
+            .unwrap(),
+    )
+    .unwrap();
+    let contract_ids = contract["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|row| row["id"].as_str().unwrap())
+        .collect::<Vec<_>>();
+    assert!(contract_ids.contains(&"calculator.app.main"));
+    assert!(contract_ids.contains(&"calculator.subtract"));
+
+    let stale = "sha256:1111111111111111111111111111111111111111111111111111111111111111";
+    assert!(candidate
+        .patch_receipt_evidence_page(
+            candidate.candidate_digest(),
+            "../../receipt.json",
+            &handle,
+            None,
+            options,
+        )
+        .is_err());
+    assert!(candidate
+        .patch_receipt_evidence_page(
+            candidate.candidate_digest(),
+            "declaration_catalog",
+            stale,
+            None,
+            options,
+        )
+        .is_err());
+    assert!(candidate
+        .patch_receipt_evidence_page(
+            candidate.candidate_digest(),
+            "declaration_catalog",
+            &handle,
+            Some("1:sha256:bad"),
+            options,
+        )
+        .is_err());
 }

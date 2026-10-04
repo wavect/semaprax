@@ -70,12 +70,37 @@ workspace context, and policy/accounting scope. Otherwise it returns
 `not_comparable` with stable reasons. It never calculates a universal best
 patch score and grants no merge, execution, source, or publication authority.
 
+## Retained evidence retrieval
+
+```rust
+pub fn ProjectCandidate::patch_receipt_evidence_summary(
+    &self, expected_candidate: &str,
+) -> Result<String, Vec<Diagnostic>>;
+pub fn ProjectCandidate::patch_receipt_evidence_page(
+    &self, expected_candidate: &str, evidence_id: &str, expected_handle: &str,
+    cursor: Option<&str>, options: ProjectPatchReceiptEvidencePageOptions,
+) -> Result<String, Vec<Diagnostic>>;
+```
+
+The summary exposes four closed compiler-derived families: `candidate`,
+`declaration_catalog`, `contract_delta`, and `ownership_delta`. A page accepts
+only one of those identifiers. It never follows a filesystem path, URL, receipt
+JSON pointer, or caller-provided evidence document.
+
+Each call reselects the exact candidate and recomputes the complete selected
+family. Its handle binds the candidate digest, family and whole canonical
+evidence bytes. Cursors additionally bind that handle and the selected page
+options. The declaration catalog keeps compiler order and can therefore page
+multiple stable IDs across source files without dropping cross-file identities.
+The output is read-only descriptive evidence and does not execute tests or
+effects, observe a runtime, or grant source or publication authority.
+
 ## Evidence availability and limitations
 
 Evidence references identify a schema, digest, subject binding, availability,
 and compiler resolver. The candidate library can rederive the listed retained
-projections; this version does not add arbitrary paths, URLs, storage authority,
-or evidence download. It does not add runtime effect observations, test
+projections through the closed paged route; it does not add arbitrary paths,
+URLs, storage authority, or evidence download. It does not add runtime effect observations, test
 execution observations, assurance payload selection, terminal repair replay,
 or CLI/service/MCP routes. Those integrations must preserve this receipt's
 canonical bytes and its existing authority boundaries.

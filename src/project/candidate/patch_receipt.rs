@@ -20,9 +20,15 @@ pub const PROJECT_PATCH_RECEIPT_SCHEMA: &str = "semaprax.patch-receipt.v1";
 pub const PROJECT_PATCH_RECEIPT_VERIFICATION_SCHEMA: &str =
     "semaprax.patch-receipt-verification.v1";
 pub const PROJECT_PATCH_RECEIPT_COMPARISON_SCHEMA: &str = "semaprax.patch-receipt-comparison.v1";
+pub const PROJECT_PATCH_RECEIPT_EVIDENCE_SUMMARY_SCHEMA: &str =
+    "semaprax.patch-receipt-evidence-summary.v1";
+pub const PROJECT_PATCH_RECEIPT_EVIDENCE_PAGE_SCHEMA: &str =
+    "semaprax.patch-receipt-evidence-page.v1";
 /// The default summary budget. Larger reports remain independently derivable
 /// from the selected retained candidate through their own candidate APIs.
 pub const MAX_PROJECT_PATCH_RECEIPT_BYTES: usize = 8 * 1024;
+pub const MAX_PROJECT_PATCH_RECEIPT_EVIDENCE_SUMMARY_BYTES: usize = 64 * 1024;
+pub const MAX_PROJECT_PATCH_RECEIPT_EVIDENCE_PAGE_BYTES: usize = 1024 * 1024;
 
 const RECEIPT_DOMAIN: &[u8] = b"semaprax.patch-receipt.v1\\0";
 const CANDIDATE_EVIDENCE_DOMAIN: &[u8] = b"semaprax.patch-receipt.candidate.v1\\0";
@@ -31,6 +37,8 @@ const CONTRACT_EVIDENCE_DOMAIN: &[u8] = b"semaprax.patch-receipt.contract.v1\\0"
 const OWNERSHIP_EVIDENCE_DOMAIN: &[u8] = b"semaprax.patch-receipt.ownership.v1\\0";
 const REQUEST_EVIDENCE_DOMAIN: &[u8] = b"semaprax.patch-receipt.request.v1\\0";
 const MAX_DECLARATION_PREVIEW: usize = 16;
+const MAX_EVIDENCE_CURSOR_BYTES: usize = 128;
+const MAX_EVIDENCE_CURSOR_OFFSET: usize = 65_536;
 
 fn invalid(message: &'static str) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-G982", message)]
@@ -40,6 +48,84 @@ fn capacity(message: &'static str) -> Vec<Diagnostic> {
 }
 fn stale(message: &'static str) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-G984", message)]
+}
+
+/// Closed retained-candidate evidence families referenced by a patch receipt.
+/// This selector intentionally does not accept paths, receipt JSON, URLs, or
+/// caller-supplied evidence bytes.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ProjectPatchReceiptEvidence {
+    Candidate,
+    DeclarationCatalog,
+    ContractDelta,
+    OwnershipDelta,
+}
+
+impl ProjectPatchReceiptEvidence {
+    const ALL: [Self; 4] = [
+        Self::Candidate,
+        Self::DeclarationCatalog,
+        Self::ContractDelta,
+        Self::OwnershipDelta,
+    ];
+
+    pub const fn id(self) -> &'static str {
+        match self {
+            Self::Candidate => "candidate",
+            Self::DeclarationCatalog => "declaration_catalog",
+            Self::ContractDelta => "contract_delta",
+            Self::OwnershipDelta => "ownership_delta",
+        }
+    }
+
+    pub fn parse(value: &str) -> Result<Self> {
+        match value {
+            "candidate" => Ok(Self::Candidate),
+            "declaration_catalog" => Ok(Self::DeclarationCatalog),
+            "contract_delta" => Ok(Self::ContractDelta),
+            "ownership_delta" => Ok(Self::OwnershipDelta),
+            _ => Err(invalid("patch receipt evidence selector is unsupported")),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ProjectPatchReceiptEvidencePageOptions {
+    page_size: usize,
+    max_bytes: usize,
+}
+
+impl ProjectPatchReceiptEvidencePageOptions {
+    pub fn new(page_size: usize, max_bytes: usize) -> Result<Self> {
+        if !(1..=128).contains(&page_size)
+            || !(1024..=MAX_PROJECT_PATCH_RECEIPT_EVIDENCE_PAGE_BYTES).contains(&max_bytes)
+        {
+            return Err(invalid(
+                "patch receipt evidence page options require 1..128 items and 1024..1048576 bytes",
+            ));
+        }
+        Ok(Self {
+            page_size,
+            max_bytes,
+        })
+    }
+
+    pub const fn page_size(self) -> usize {
+        self.page_size
+    }
+
+    pub const fn max_bytes(self) -> usize {
+        self.max_bytes
+    }
+}
+
+impl Default for ProjectPatchReceiptEvidencePageOptions {
+    fn default() -> Self {
+        Self {
+            page_size: 32,
+            max_bytes: 65_536,
+        }
+    }
 }
 
 impl ProjectCandidate {
@@ -124,6 +210,110 @@ impl ProjectCandidate {
                 "publication_authority": false,
             }),
             65_536,
+        )
+    }
+
+    /// Lists the closed, compiler-derived evidence families referenced by an
+    /// admitted receipt. The handles bind candidate identity, evidence family,
+    /// and complete canonical evidence bytes; cursors additionally bind page
+    /// options.
+    pub fn patch_receipt_evidence_summary(&self, expected_candidate: &str) -> Result<String> {
+        self.require_candidate(expected_candidate)?;
+        let binding = receipt_binding(self);
+        let evidence = ProjectPatchReceiptEvidence::ALL
+            .into_iter()
+            .map(|kind| {
+                let evidence = retained_evidence(self, expected_candidate, kind)?;
+                Ok(json!({
+                    "id": kind.id(),
+                    "schema": evidence.schema,
+                    "digest": evidence.digest,
+                    "total_items": evidence.items.len(),
+                    "handle": evidence_handle(expected_candidate, kind, &evidence.digest),
+                    "availability": "recomputed_from_retained_candidate",
+                }))
+            })
+            .collect::<Result<Vec<_>>>()?;
+        wire::render(
+            json!({
+                "schema": PROJECT_PATCH_RECEIPT_EVIDENCE_SUMMARY_SCHEMA,
+                "binding": binding,
+                "evidence": evidence,
+                "execution": false,
+                "source_authority": false,
+                "publication_authority": false,
+                "nonclaims": [
+                    "not_arbitrary_receipt_path_or_caller_supplied_document_retrieval",
+                    "not_test_execution_or_runtime_effect_observation",
+                    "no_effect_or_publication_authority",
+                ],
+            }),
+            MAX_PROJECT_PATCH_RECEIPT_EVIDENCE_SUMMARY_BYTES,
+        )
+    }
+
+    /// Page one closed evidence family in compiler order. Every page repeats
+    /// candidate selection and recomputes the complete evidence object before
+    /// accepting its handle or cursor, so a page cannot cross candidates,
+    /// evidence families, or pagination policies.
+    pub fn patch_receipt_evidence_page(
+        &self,
+        expected_candidate: &str,
+        evidence_id: &str,
+        expected_handle: &str,
+        cursor: Option<&str>,
+        options: ProjectPatchReceiptEvidencePageOptions,
+    ) -> Result<String> {
+        self.require_candidate(expected_candidate)?;
+        let kind = ProjectPatchReceiptEvidence::parse(evidence_id)?;
+        let evidence = retained_evidence(self, expected_candidate, kind)?;
+        let handle = evidence_handle(expected_candidate, kind, &evidence.digest);
+        if expected_handle.len() != 71 || expected_handle != handle {
+            return Err(stale(
+                "patch receipt evidence handle does not match the retained candidate evidence",
+            ));
+        }
+        let offset = cursor
+            .map(|cursor| evidence_cursor_offset(cursor, &handle, options))
+            .transpose()?
+            .unwrap_or(0);
+        if cursor.is_some() && offset >= evidence.items.len() {
+            return Err(stale(
+                "patch receipt evidence cursor is outside its selected inventory",
+            ));
+        }
+        let end = offset
+            .saturating_add(options.page_size)
+            .min(evidence.items.len());
+        let next_cursor =
+            (end < evidence.items.len()).then(|| evidence_cursor(end, &handle, options));
+        wire::render(
+            json!({
+                "schema": PROJECT_PATCH_RECEIPT_EVIDENCE_PAGE_SCHEMA,
+                "binding": receipt_binding(self),
+                "evidence": {
+                    "id": kind.id(),
+                    "schema": evidence.schema,
+                    "digest": evidence.digest,
+                    "handle": handle,
+                },
+                "cursor": cursor,
+                "offset": offset,
+                "total_items": evidence.items.len(),
+                "page_size": options.page_size,
+                "max_bytes": options.max_bytes,
+                "next_cursor": next_cursor,
+                "items": evidence.items[offset..end].to_vec(),
+                "execution": false,
+                "source_authority": false,
+                "publication_authority": false,
+                "nonclaims": [
+                    "not_arbitrary_receipt_path_or_caller_supplied_document_retrieval",
+                    "not_test_execution_or_runtime_effect_observation",
+                    "no_effect_or_publication_authority",
+                ],
+            }),
+            options.max_bytes,
         )
     }
 
@@ -370,6 +560,150 @@ impl ProjectCandidate {
             ],
         }))
     }
+}
+
+struct RetainedEvidence {
+    schema: String,
+    digest: String,
+    items: Vec<Value>,
+}
+
+fn receipt_binding(candidate: &ProjectCandidate) -> Value {
+    json!({
+        "candidate_digest": candidate.candidate_digest(),
+        "base_project_revision": candidate.base.project_revision(),
+        "project_revision": candidate.revision.project_revision(),
+        "workspace": {
+            "manifest_digest": wire::digest(
+                b"semaprax.patch-receipt.manifest.v1\\0",
+                candidate.revision.manifest().to_canonical_toml().as_bytes(),
+            ),
+            "identity_method": "retained_canonical_project_manifest",
+        },
+    })
+}
+
+fn retained_evidence(
+    candidate: &ProjectCandidate,
+    expected_candidate: &str,
+    kind: ProjectPatchReceiptEvidence,
+) -> Result<RetainedEvidence> {
+    let (bytes, domain, array_key, schema) = match kind {
+        ProjectPatchReceiptEvidence::Candidate => (
+            candidate.to_json().to_owned(),
+            CANDIDATE_EVIDENCE_DOMAIN,
+            "changes",
+            "semaprax.project-candidate.v1",
+        ),
+        ProjectPatchReceiptEvidence::DeclarationCatalog => (
+            candidate.semantic_delta_catalog(expected_candidate)?,
+            CATALOG_EVIDENCE_DOMAIN,
+            "roots",
+            "semaprax.project-candidate-semantic-delta-catalog.v1",
+        ),
+        ProjectPatchReceiptEvidence::ContractDelta => (
+            candidate.contract_delta(expected_candidate)?,
+            CONTRACT_EVIDENCE_DOMAIN,
+            "functions",
+            "semaprax.project-candidate-contract-delta.v1",
+        ),
+        ProjectPatchReceiptEvidence::OwnershipDelta => (
+            candidate.ownership_delta(expected_candidate)?,
+            OWNERSHIP_EVIDENCE_DOMAIN,
+            "functions",
+            "semaprax.project-candidate-ownership-delta.v1",
+        ),
+    };
+    let value: Value = serde_json::from_str(&bytes)
+        .map_err(|_| invalid("retained patch receipt evidence is not compiler JSON"))?;
+    if value.get("schema").and_then(Value::as_str) != Some(schema) {
+        return Err(invalid(
+            "retained patch receipt evidence has an unexpected compiler schema",
+        ));
+    }
+    let mut items = value
+        .get(array_key)
+        .and_then(Value::as_array)
+        .cloned()
+        .ok_or_else(|| invalid("retained patch receipt evidence inventory is absent"))?;
+    if kind == ProjectPatchReceiptEvidence::OwnershipDelta {
+        let types = value
+            .get("types")
+            .and_then(Value::as_array)
+            .ok_or_else(|| invalid("retained ownership evidence type inventory is absent"))?;
+        items = items
+            .into_iter()
+            .map(|value| json!({"kind":"function","value":value}))
+            .chain(
+                types
+                    .iter()
+                    .cloned()
+                    .map(|value| json!({"kind":"type","value":value})),
+            )
+            .collect();
+    }
+    if items.len() > MAX_EVIDENCE_CURSOR_OFFSET {
+        return Err(capacity(
+            "retained patch receipt evidence inventory exceeds its cursor bound",
+        ));
+    }
+    Ok(RetainedEvidence {
+        schema: schema.to_owned(),
+        digest: wire::digest(domain, bytes.as_bytes()),
+        items,
+    })
+}
+
+fn evidence_handle(candidate: &str, kind: ProjectPatchReceiptEvidence, digest: &str) -> String {
+    wire::digest(
+        b"semaprax.patch-receipt-evidence-handle.v1\\0",
+        format!("{candidate}\\n{}\\n{digest}", kind.id()).as_bytes(),
+    )
+}
+
+fn evidence_cursor(
+    offset: usize,
+    handle: &str,
+    options: ProjectPatchReceiptEvidencePageOptions,
+) -> String {
+    let text = format!(
+        "{handle}\\n{offset}\\n{}\\n{}",
+        options.page_size, options.max_bytes
+    );
+    format!(
+        "{offset}:{}",
+        wire::digest(
+            b"semaprax.patch-receipt-evidence-cursor.v1\\0",
+            text.as_bytes()
+        )
+    )
+}
+
+fn evidence_cursor_offset(
+    cursor: &str,
+    handle: &str,
+    options: ProjectPatchReceiptEvidencePageOptions,
+) -> Result<usize> {
+    if cursor.len() > MAX_EVIDENCE_CURSOR_BYTES {
+        return Err(stale("patch receipt evidence cursor exceeds its bound"));
+    }
+    let (number, _) = cursor
+        .split_once(':')
+        .ok_or_else(|| stale("patch receipt evidence cursor is malformed"))?;
+    let offset = number
+        .parse::<usize>()
+        .map_err(|_| stale("patch receipt evidence cursor offset is invalid"))?;
+    if offset == 0
+        || offset > MAX_EVIDENCE_CURSOR_OFFSET
+        || offset % options.page_size != 0
+        || offset.to_string() != number
+        || evidence_cursor(offset, handle, options) != cursor
+    {
+        return Err(stale(
+            "patch receipt evidence cursor does not match its retained evidence handle and options",
+        ));
+    }
+    Ok(offset)
 }
 
 fn render_receipt(content: Value) -> Result<String> {

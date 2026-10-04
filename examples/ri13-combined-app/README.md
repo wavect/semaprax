@@ -104,3 +104,28 @@ CLANG=/usr/bin/clang CARGO_TARGET_DIR="$PWD/target/ri13-linked" \
 it checks the canonical manifest selections, every required source identity,
 the linked prepare/consumer command order, and emits a deterministic receipt
 whose inputs are SHA-256 hashes of the tracked fixture files.
+
+## Linux x86_64 evidence runner
+
+`scripts/ri13-linux-x86_64-evidence.sh` plans a reproducible Apple Container
+run without starting a container by default. It requires an already-pulled
+Linux x86_64 toolchain image named by immutable digest and an existing Linux
+Cargo cache that contains the locked dependencies; it never pulls an image or
+permits guest network access. For example, this only prints the exact plan:
+
+```sh
+scripts/ri13-linux-x86_64-evidence.sh --plan \
+  --image 'registry.example/ri13-toolchain@sha256:IMAGE_DIGEST' \
+  --cargo-home /absolute/linux-x86_64-cargo-home \
+  --evidence /absolute/ri13-linux-x86_64-evidence
+```
+
+After provisioning those inputs, replace `--plan` with `--run`. The runner
+refuses a preexisting evidence directory, clones the checked revision into its
+own writable evidence worktree, mounts the original checkout nowhere in the
+guest, and uses `container run --rm --network none`. The guest rejects any
+platform other than Linux x86_64 and writes `environment.json`, M1/M2/M3
+combined receipt and batch measurement, linked Project receipt, and command
+logs to the named evidence directory. `output-digests.json` records SHA-256
+digests for those outputs. It therefore leaves no running container and does
+not turn a Mac-local result into Linux evidence.

@@ -12,30 +12,36 @@ per cell and exits 3 (`SMOKE INCOMPLETE`) while any cell is untested; only all-p
 
 | Platform | Status |
 | --- | --- |
-| macOS arm64 (aarch64) | supported: every cell below passes |
-| Linux arm64 (aarch64) | partially evidenced: distribution cells pass; adapter and compiler cells untested (below) |
-| Linux x86_64 | declared in adapter descriptors, **untested**: no x86_64 host was executed (Rosetta on arm64 is not evidence) |
+| macOS arm64 (aarch64) | supported: every cell passes (local) |
+| Linux x86_64 | supported: every cell passes on GitHub-hosted `ubuntu-latest` |
+| Linux arm64 (aarch64) | supported: every cell passes on GitHub-hosted `ubuntu-24.04-arm` |
 | Windows (native) | **unavailable**: the host is Unix-only (`process_group`, `rustix`); WSL is not native Windows evidence |
 
 ## Results
 
-| Cell | macOS arm64 | Linux arm64 (Debian bookworm container, Apple `container`) |
-| --- | --- | --- |
-| Fresh install of the tarball outside the checkout (empty HOME, scrubbed env) | pass | pass |
-| Default skills list and load offline | pass | pass |
-| Relocated distribution and asset paths (no old path recorded) | pass | pass |
-| Offline reuse: repeat setup is a no-op, harness home byte-identical | pass | pass |
-| Native-only workflow task from the installed package | pass (prebuilt compiler) | untested: no Linux semaprax compiler; building it was excluded (size, disk) |
-| Bridge cancellation of a blocked hostile adapter, grandchild reaped, concurrency, floods, crash, uncertain-effect journal (`harness_v1 bridge::lifecycle`, 8 tests) | pass | untested: the image has no `python3` (the hostile adapter is Python) and no package was fetched |
-| Required isolation without a sandbox refuses; plain subprocess never called isolated | pass (`sandbox-exec` present; refusal tested with an unavailable backend) | untested (same Python dependency); note `bwrap` is absent in the image, so a real required-isolation request would be refused |
-| OS-enforced isolation actually applied | pass (`sandbox-exec`) | untested: no `bwrap` |
+Hosted evidence: workflow `.github/workflows/harness-platforms.yml`, run
+https://github.com/wavect/semaprax/actions/runs/37231313077 (commit
+`432e5c633`, wavect/v090 with main merged), artifacts `harness-cells-x86_64`
+and `harness-cells-aarch64`. Ubuntu 24.04 needs
+`kernel.apparmor_restrict_unprivileged_userns=0` for unprivileged `bwrap`;
+the workflow sets it and probes `bwrap` before the suite.
 
-Notes. Offline means the run needs and attempts no network by design; it is not network-denied by the OS.
-The Linux arm64 tarball was assembled on the host with the binary built natively inside the container
-(`rust:1.98.0-slim-bookworm`, offline from the host cargo registry), because the catalog step needs Python;
-the smoke ran in a fresh container. The shipped adapter descriptors list `macos-aarch64` and `linux-x86_64` only,
-so a bundled Python/Node adapter is not selectable on `linux-aarch64` until a descriptor lists it (descriptor
-change requested; descriptors are outside this lane).
+| Cell | macOS arm64 (local) | Linux x86_64 (hosted) | Linux arm64 (hosted) |
+| --- | --- | --- | --- |
+| Harness unit + integration suite (`--lib --test harness_v1`) | pass | pass (56 + 382) | pass (56 + 382) |
+| Bridge cancellation of a blocked hostile adapter, grandchild reaped, concurrency, floods, crash, uncertain-effect journal (`bridge::lifecycle`) | pass | pass | pass |
+| Required isolation without a sandbox refuses; plain subprocess never called isolated | pass | pass | pass |
+| OS-enforced isolation actually applied | pass (`sandbox-exec`) | pass (`bwrap` 0.9.0) | pass (`bwrap`) |
+| Fresh install of the tarball outside the checkout (empty HOME, `PATH=/nonexistent`) | pass | pass | pass |
+| Default skills list and load offline | pass | pass | pass |
+| Relocated distribution and asset paths | pass | pass | pass |
+| Offline reuse: repeat setup is a no-op, harness home byte-identical | pass | pass | pass |
+| Native-only workflow task from the installed package (compiler built on the runner) | pass | pass | pass |
+
+Earlier local evidence in an Apple `container` Debian image (Linux arm64) is
+superseded by the hosted run; real third-party tools (Graft, Graphify, RTK)
+are evidenced on macOS only. "Offline" means no network is attempted by
+design; the hosted run does not deny it at the OS level.
 
 ## Reproduce
 

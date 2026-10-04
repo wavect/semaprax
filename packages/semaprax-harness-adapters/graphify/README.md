@@ -56,9 +56,10 @@ compiler build. Outcome of the ADR 0001 re-evaluation: see
 
 ## Behaviour
 
-Request payloads: `search {query, limit?}`, `skeleton {path}`,
-`references {symbol, limit?}`, `orient {limit?}`; every operation also accepts
-`refresh: "stale"|"rebuild"` (default `stale`, the descriptor's `refresh` config).
+Request payloads (contract names): `search {query, max_items?}`, `skeleton {path}`,
+`references {symbol, max_items?}`, `orient {max_items}`; every operation also accepts
+`refresh: "auto"|"rebuild"|"never"` (default `auto`: rebuild a graph that is behind the
+tree; `never` answers `stale`). Digests are `sha256:<hex>` of one line without terminator.
 
 * The adapter reads `graphify-out/graph.json` and validates the pinned 0.9.25
   schema: top-level `nodes` and `links` lists (NetworkX node-link; `edges` is the

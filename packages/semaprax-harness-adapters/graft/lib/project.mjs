@@ -113,7 +113,7 @@ const driftPaths = (g) => new Set([...(g.added ?? []), ...(g.removed ?? []), ...
 
 // Builds (code-only, never --deep) or refreshes the private index when missing/stale.
 // Returns {files, action: reuse|build|refresh, ms, files_changed, index_digest}.
-export async function ensureFresh(cfg, version, { signal, deadline, force = false }) {
+export async function ensureFresh(cfg, version, { signal, deadline, force = false, readOnly = false }) {
   prepareWork(cfg.work, cfg.nodePath, cfg.git);
   const owner = join(cfg.work, 'owner.json');
   const buildEnv = { provider: PROVIDER_ID, root: cfg.root, graft: version, git: Boolean(cfg.git) };
@@ -139,7 +139,11 @@ export async function ensureFresh(cfg, version, { signal, deadline, force = fals
     if (!g) needsBuild = true;
     else if (!g.ok || g.missing) { needsBuild = true; changed = driftPaths(g).size; }
   }
-  if (needsBuild) {
+  if (needsBuild && readOnly) {
+    // refresh=never: report staleness instead of building.
+    if (!files) throw new Refusal('unavailable', 'graft.index-missing', 'no index and refresh=never');
+    action = 'drift';
+  } else if (needsBuild) {
     action = files ? 'refresh' : 'build';
     const pre = walkCandidates(cfg.root, cfg);
     if (pre.count > MAX_INDEX_FILES) throw new Refusal('refused', 'graft.project-too-large', `${pre.count} candidate files exceeds the indexing bound ${MAX_INDEX_FILES}`);
@@ -246,13 +250,15 @@ function lineStarts(buf) {
   return s;
 }
 
-// sha256 of the exact bytes of lines [start,end] (1-based, inclusive, terminators included).
+// sha256 of the exact bytes of lines [start,end] (1-based, inclusive), joined by LF with no trailing
+// terminator: the convention the context broker re-hashes with.
 export function spanDigest(file, start, end) {
   const n = file.lineStarts.length;
   const s = Math.min(Math.max(start, 1), n);
   const e = Math.min(Math.max(end, s), n);
   const from = file.lineStarts[s - 1];
-  const to = e < n ? file.lineStarts[e] : file.buf.length;
+  let to = e < n ? file.lineStarts[e] : file.buf.length;
+  if (to > from && file.buf[to - 1] === 10) to -= 1;
   return { digest: `sha256:${sha256(file.buf.subarray(from, to))}`, start: s, end: e, lines: n };
 }
 

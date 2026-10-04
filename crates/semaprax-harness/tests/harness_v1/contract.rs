@@ -606,3 +606,67 @@ fn hp_hp01_mock_peer_round_trip() {
     )
     .is_none());
 }
+
+#[test]
+fn hp_hp0607_context_additive_optional_members() {
+    use CapabilityKind::ContextRepository as K;
+    let v = |op, d, p: Value| validate_payload(K, op, d, &p);
+    let req = Direction::Request;
+    assert!(v(
+        "search",
+        req,
+        json!({"query": "q", "max_items": 3, "refresh": "never", "in": "src"})
+    )
+    .is_ok());
+    assert!(v(
+        "references",
+        req,
+        json!({"symbol": "f", "exhaustive": true, "refresh": "rebuild"})
+    )
+    .is_ok());
+    assert!(v("orient", req, json!({"max_items": 3, "refresh": "auto"})).is_ok());
+    for bad in [
+        json!({"query": "q", "refresh": "sometimes"}),
+        json!({"query": "q", "limit": 3}),
+        json!({"query": "q", "in": "../x"}),
+    ] {
+        assert!(v("search", req, bad).is_err());
+    }
+    assert!(v(
+        "references",
+        req,
+        json!({"symbol": "f", "exhaustive": "yes"})
+    )
+    .is_err());
+    assert!(v("skeleton", req, json!({"path": "a.rs", "exhaustive": true})).is_err());
+
+    let res = Direction::Result;
+    let mut r = context_result();
+    r["metadata"] =
+        json!({"refresh": {"action": "reuse", "ms": 3}, "upstream_version": "0.18.0", "n": 1});
+    r["coverage"]["extraction_errors"] = json!([{"path": "a.py", "reason": "syntax"}]);
+    r["items"][0]["edges"] =
+        json!([{"target": "g", "relation": "calls", "provenance": "inferred"}]);
+    assert!(v("search", res, r.clone()).is_ok());
+    // compiler certainty can never come from an edge
+    let mut bad = r.clone();
+    bad["items"][0]["edges"][0]["provenance"] = json!("compiler-verified");
+    assert_eq!(code(v("search", res, bad)), "SPX-HPA040");
+    let mut bad = r.clone();
+    bad["metadata"] = json!({"list": [1]});
+    assert_eq!(code(v("search", res, bad)), "SPX-HPA040");
+    let mut bad = r.clone();
+    bad["metadata"] = json!({"blob": "x".repeat(9000)});
+    assert_eq!(code(v("search", res, bad)), "SPX-HPA040");
+    let mut bad = r.clone();
+    bad["coverage"]["extraction_errors"] = json!([{"path": "/abs", "reason": "x"}]);
+    assert_eq!(code(v("search", res, bad)), "SPX-HPA041");
+    // metadata never smuggles authority: the envelope refuses it (HPA036)
+    let rq = request(K, "search", json!({"query": "q"}));
+    let mut env = ResultEnvelope::complete(&rq, r, "o/p", "1.0.0").to_json();
+    env["payload"]["metadata"] = json!({"nested": {"approved": true}});
+    assert_eq!(
+        code(ResultEnvelope::parse_for(&rq, env.to_string().as_bytes())),
+        "SPX-HPA036"
+    );
+}

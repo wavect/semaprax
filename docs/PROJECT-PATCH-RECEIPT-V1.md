@@ -1,0 +1,80 @@
+# Project Patch Receipt v1
+
+Status: implemented retained-candidate summary and refusal/comparison core;
+workflow adapters, runtime observations, durable repair retention, and evidence
+retrieval remain separate work.
+
+Audience: agents and compiler contributors reviewing semantic edit candidates.
+
+`semaprax.patch-receipt.v1` is a compact compiler-owned projection. It carries
+the immutable candidate's base and result Project revisions, a bounded preview
+of directly changed declaration IDs, and references to compiler-derived
+candidate, declaration-catalog, contract-delta, and ownership-delta evidence.
+It is canonical UTF-8 JSON with one terminal LF and an 8 KiB summary bound.
+The outer `receipt_digest` is SHA-256 over the content's canonical bytes using
+the `semaprax.patch-receipt.v1\0` domain.
+
+## Candidate receipt and verification
+
+```rust
+pub fn ProjectCandidate::patch_receipt(&self, expected_candidate: &str)
+    -> Result<String, Vec<Diagnostic>>;
+pub fn ProjectCandidate::verify_patch_receipt(
+    &self, expected_candidate: &str, bytes: &[u8],
+) -> Result<String, Vec<Diagnostic>>;
+```
+
+Generation independently derives the selected catalog, contract, and ownership
+projections from the retained candidate. It does not execute tests, invoke a
+provider, run effects, apply source, or publish an artifact. Check rows retain
+separate categories and explicitly report candidate tests and additional
+assurance as `not_run` when no independently bound observation was selected.
+
+Verification replays the candidate from its retained base and compares exact
+canonical receipt bytes. Rehashing caller-modified JSON cannot authenticate an
+altered receipt. A successful verification proves only the selected retained
+inputs, not a later checkout or publication's freshness.
+
+## Stale selector refusal
+
+```rust
+pub fn ProjectCandidate::patch_receipt_refusal(
+    &self, requested_candidate: &str,
+) -> Result<String, Vec<Diagnostic>>;
+pub fn ProjectCandidate::verify_patch_receipt_refusal(
+    &self, requested_candidate: &str, bytes: &[u8],
+) -> Result<String, Vec<Diagnostic>>;
+```
+
+An authenticated but nonmatching candidate selector produces an explicit
+`refused_stale_candidate_selector` receipt. It binds the request identity and
+retained base/workspace context, leaves `project_revision` null, records a
+failed selector check, and records all later checks as `not_run`. It has no
+invented resulting candidate identity. Refusal verification recomputes the
+same canonical receipt and remains read-only.
+
+## Comparison
+
+```rust
+pub fn ProjectCandidate::compare_patch_receipts(
+    &self, expected_candidate: &str, bytes: &[u8],
+    other: &ProjectCandidate, other_expected_candidate: &str, other_bytes: &[u8],
+) -> Result<String, Vec<Diagnostic>>;
+```
+
+The `semaprax.patch-receipt-comparison.v1` result verifies both receipt inputs
+first. It compares declaration summaries, check rows, and effect-usage objects
+only when the receipts both admit candidates and bind the same base Project,
+workspace context, and policy/accounting scope. Otherwise it returns
+`not_comparable` with stable reasons. It never calculates a universal best
+patch score and grants no merge, execution, source, or publication authority.
+
+## Evidence availability and limitations
+
+Evidence references identify a schema, digest, subject binding, availability,
+and compiler resolver. The candidate library can rederive the listed retained
+projections; this version does not add arbitrary paths, URLs, storage authority,
+or evidence download. It does not add runtime effect observations, test
+execution observations, assurance payload selection, terminal repair replay,
+or CLI/service/MCP routes. Those integrations must preserve this receipt's
+canonical bytes and its existing authority boundaries.

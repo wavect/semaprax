@@ -129,3 +129,88 @@ fn recomputed_outer_digest_cannot_make_a_tampered_receipt_verify() {
         .unwrap_err();
     assert!(errors.iter().any(|error| error.code == "SPX-G984"));
 }
+
+#[test]
+fn stale_selector_has_a_bound_refusal_without_a_result_candidate_or_successful_checks() {
+    let fixture = Fixture::new();
+    let candidate = fixture.candidate();
+    let stale = "sha256:1111111111111111111111111111111111111111111111111111111111111111";
+    let receipt = candidate.patch_receipt_refusal(stale).unwrap();
+    let value: Value = serde_json::from_str(&receipt).unwrap();
+    assert!(receipt.len() <= 8 * 1024);
+    assert_eq!(
+        value["content"]["attempt"]["status"],
+        "refused_stale_candidate_selector"
+    );
+    assert_eq!(
+        value["content"]["binding"]["requested_candidate_digest"],
+        stale
+    );
+    assert!(value["content"]["binding"]["project_revision"].is_null());
+    assert_eq!(value["content"]["checks"][0]["result"], "failed");
+    assert!(value["content"]["checks"].as_array().unwrap()[1..]
+        .iter()
+        .all(|check| check["result"] == "not_run"));
+    let verification: Value = serde_json::from_str(
+        &candidate
+            .verify_patch_receipt_refusal(stale, receipt.as_bytes())
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(verification["result"], "exact_refusal_recomputation");
+}
+
+#[test]
+fn receipt_comparison_verifies_both_routes_and_refuses_incompatible_inputs() {
+    let fixture = Fixture::new();
+    let root = fixture.candidate();
+    let left = apply(
+        &root,
+        json!({"kind":"rename_declaration","target":"calculator.add","name":"sum"}),
+    );
+    let right = apply(
+        &root,
+        json!({"kind":"rename_declaration","target":"calculator.add","name":"plus"}),
+    );
+    let left_receipt = left.patch_receipt(left.candidate_digest()).unwrap();
+    let right_receipt = right.patch_receipt(right.candidate_digest()).unwrap();
+    let comparison: Value = serde_json::from_str(
+        &left
+            .compare_patch_receipts(
+                left.candidate_digest(),
+                left_receipt.as_bytes(),
+                &right,
+                right.candidate_digest(),
+                right_receipt.as_bytes(),
+            )
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(comparison["result"], "comparable");
+    assert_eq!(comparison["reasons"], json!([]));
+    assert_eq!(
+        comparison["comparison"]["effect_usage"]["left"]["status"],
+        "not_applicable"
+    );
+
+    let stale = "sha256:2222222222222222222222222222222222222222222222222222222222222222";
+    let refusal = right.patch_receipt_refusal(stale).unwrap();
+    let incomparable: Value = serde_json::from_str(
+        &left
+            .compare_patch_receipts(
+                left.candidate_digest(),
+                left_receipt.as_bytes(),
+                &right,
+                stale,
+                refusal.as_bytes(),
+            )
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(incomparable["result"], "not_comparable");
+    assert!(incomparable["reasons"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("right_receipt_did_not_admit_a_candidate")));
+    assert!(incomparable["comparison"].is_null());
+}

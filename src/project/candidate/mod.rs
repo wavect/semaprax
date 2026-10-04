@@ -60,8 +60,8 @@ mod owned_workflow_approval;
 mod ownership_delta;
 mod patch_receipt;
 pub use patch_receipt::{
-    MAX_PROJECT_PATCH_RECEIPT_BYTES, PROJECT_PATCH_RECEIPT_SCHEMA,
-    PROJECT_PATCH_RECEIPT_VERIFICATION_SCHEMA,
+    MAX_PROJECT_PATCH_RECEIPT_BYTES, PROJECT_PATCH_RECEIPT_COMPARISON_SCHEMA,
+    PROJECT_PATCH_RECEIPT_SCHEMA, PROJECT_PATCH_RECEIPT_VERIFICATION_SCHEMA,
 };
 mod package_consumer_replay;
 mod protected_laws;

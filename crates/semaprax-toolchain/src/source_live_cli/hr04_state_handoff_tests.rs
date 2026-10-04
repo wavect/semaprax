@@ -178,12 +178,16 @@ fn retained_a_to_b_to_c_handoff_carries_state_without_initialize_or_redispatch()
         (1, 1)
     );
     assert_eq!(super::super::run::read_calls(), 3);
-    let RetainedValue::Variant(complete) = c_outcome.checked_run.as_ref().unwrap().value().unwrap()
+    assert_eq!(
+        c_outcome.checked_run.as_ref().unwrap().status(),
+        semaprax::agent_lifecycle::iterative::IterativeStatus::Complete
+    );
+    let RetainedValue::Record(complete) = c_outcome.checked_run.as_ref().unwrap().value().unwrap()
     else {
         panic!("C must publish the checked Complete carrier");
     };
     assert!(complete.fields.iter().any(|field| {
-        field.field.as_str() == "fixture.agent.step.complete.status"
+        field.field.as_str() == "fixture.agent.type.result.status"
             && field.value == RetainedValue::I64(7)
     }));
     let c_journal = fs::read_to_string(c_checkpoint.join("checkpoint.json")).unwrap();

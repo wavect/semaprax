@@ -1,0 +1,28 @@
+{
+  "schema": "semaprax.hot-reload-acceptance.v1",
+  "scope": "interpreter-only",
+  "compiler": {"revision": "git-head-at-run", "binary_digest": "captured-in-report"},
+  "lanes": [
+    {"id": "interpreter-save-to-ack", "availability": "local", "command": "dev --jsonl --interpreter"},
+    {"id": "full-restart", "availability": "local", "command": "dev --jsonl --interpreter"},
+    {"id": "authenticated-warm-restart", "availability": "local", "command": "semantic-cache-refresh + semantic-cache-warm-open"},
+    {"id": "source-agent", "availability": "migration-required", "command": null}
+  ],
+  "fixture": {
+    "manifest": "fixtures/semaprax.toml",
+    "sources": [
+      {"path": "fixtures/a/src/app.spx", "sha256": "sha256:ddfedb62ccb63930d411bff62716583f075c703b72f8d5434816ff45e1469fcc"},
+      {"path": "fixtures/b/src/app.spx", "sha256": "sha256:389ef5da349e6d3d6537947845ceda784b201b56e1f11c49df5618c24de3ea28"},
+      {"path": "fixtures/shared/src/core.spx", "sha256": "sha256:415255f8628535606dcecd8d7459639014d4a3437dc1199ecf7f9cc8074d801e"},
+      {"path": "fixtures/shared/src/tests.spx", "sha256": "sha256:373d4bc3cc3b292da6fdf69c15778c363573af42dde0dc213c23360f499a7b11"}
+    ]
+  },
+  "transitions": [
+    {"id": "a-invokes", "expected": {"kind": "returned", "value": 42}},
+    {"id": "save-b-plan", "expected_event": "candidate_admitted"},
+    {"id": "activate-b", "expected_event": "activated"},
+    {"id": "b-invokes", "expected": {"kind": "returned", "value": 48}}
+  ],
+  "required_test_counts": {"interpreter-save-to-ack": 1, "full-restart": 1, "authenticated-warm-restart": 1},
+  "nonclaims": ["source-Agent journey", "native-or-Wasm-swap", "production-rollout", "universal-millisecond-target"]
+}

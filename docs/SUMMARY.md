@@ -12,6 +12,7 @@ Audience: all documentation readers.
 - [Install](INSTALL.md)
 - [Quickstart](QUICKSTART.md)
 - [Using the SEMAPRAX CLI](CLI-GUIDE.md)
+- [Hot reload benchmark v1](HOT-RELOAD-BENCHMARK-V1.md)
 - [Language tour](LANGUAGE-TOUR.md)
 - [GitHub Linguist submission v1](GITHUB-LINGUIST-SUBMISSION-V1.md)
 

@@ -1,0 +1,184 @@
+#!/usr/bin/env python3
+"""Measure the local interpreter development loops using one exact fixture.
+
+The runner never builds a compiler.  Supply an already-built ``semaprax``
+binary, so Cargo time cannot enter a sample.  It records real JSONL replies and
+refuses a missing or changed fixture instead of turning a failed run into a
+small timing number.
+"""
+from __future__ import annotations
+
+import argparse, hashlib, json, os, pathlib, platform, shutil, statistics
+import subprocess, tempfile, time
+
+SUITE = pathlib.Path(__file__).resolve().parent
+ROOT = SUITE.parent.parent
+MANIFEST = SUITE / "manifest.json"
+SCHEMA = "semaprax.hot-reload-benchmark.v1"
+CONTROL = "semaprax.hot-reload-control.v1"
+
+
+def digest(path):
+    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def canonical(value):
+    return json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n"
+
+
+def validate(manifest):
+    if set(manifest) != {"schema", "scope", "compiler", "lanes", "fixture", "transitions", "required_test_counts", "nonclaims"}:
+        raise ValueError("acceptance manifest has an unknown or missing top-level field")
+    if manifest["schema"] != "semaprax.hot-reload-acceptance.v1" or manifest["scope"] != "interpreter-only":
+        raise ValueError("acceptance manifest does not select the interpreter-only v1 contract")
+    if manifest["compiler"] != {"revision": "git-head-at-run", "binary_digest": "captured-in-report"}:
+        raise ValueError("acceptance manifest does not bind the compiler subject at run time")
+    if manifest["required_test_counts"] != {"interpreter-save-to-ack": 1, "full-restart": 1, "authenticated-warm-restart": 1}:
+        raise ValueError("acceptance manifest has an incomplete required-test inventory")
+    if "source-Agent journey" not in manifest["nonclaims"]:
+        raise ValueError("interpreter benchmark must explicitly exclude the Agent journey")
+    for item in manifest["fixture"]["sources"]:
+        path = SUITE / item["path"]
+        if set(item) != {"path", "sha256"} or not path.is_file() or digest(path) != item["sha256"]:
+            raise ValueError("fixture digest mismatch: " + item.get("path", "<missing>"))
+
+
+def run(command, *, input=None):
+    started = time.perf_counter_ns()
+    result = subprocess.run(command, input=input, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    elapsed = (time.perf_counter_ns() - started) / 1_000_000
+    if result.returncode:
+        raise RuntimeError("command failed: %s\n%s" % (" ".join(map(str, command)), result.stderr))
+    return elapsed, result.stdout
+
+
+def reply(process, request_id, op):
+    sent = time.perf_counter_ns()
+    process.stdin.write(canonical({"schema": CONTROL, "id": request_id, "op": op}))
+    process.stdin.flush()
+    line = process.stdout.readline()
+    elapsed = (time.perf_counter_ns() - sent) / 1_000_000
+    if not line:
+        raise RuntimeError("development process closed before its reply")
+    value = json.loads(line)
+    if value.get("schema") != CONTROL or value.get("id") != request_id:
+        raise RuntimeError("development process returned an uncorrelated reply")
+    return elapsed, value
+
+
+def fixture():
+    root = pathlib.Path(tempfile.mkdtemp(prefix="semaprax-hot-reload-benchmark-"))
+    for relative, destination in [("semaprax.toml", "semaprax.toml"), ("a/src/app.spx", "src/app.spx"),
+                                  ("b/src/app.spx", "b/src/app.spx"), ("shared/src/core.spx", "src/core.spx"),
+                                  ("shared/src/tests.spx", "src/tests.spx")]:
+        target = root / destination
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(SUITE / "fixtures" / relative, target)
+    return root
+
+
+def outcome(row, expected):
+    actual = row.get("invocation", {}).get("outcome")
+    if actual != expected:
+        raise RuntimeError("unexpected invocation outcome: " + repr(actual))
+
+
+def hot(binary):
+    root = fixture()
+    process = None
+    try:
+        process = subprocess.Popen([binary, "dev", str(root / "semaprax.toml"), "--jsonl", "--interpreter"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        _, started = reply(process, 1, "start")
+        if started.get("event") != "started": raise RuntimeError("interpreter session did not start")
+        _, before = reply(process, 2, "invoke"); outcome(before, {"kind": "returned", "value": 42})
+        save = time.perf_counter_ns()
+        shutil.copyfile(SUITE / "fixtures/b/src/app.spx", root / "src/app.spx")
+        plan_ms, planned = reply(process, 3, "plan")
+        if planned.get("event") != "candidate_admitted" or planned.get("plan", {}).get("decision") != "eligible_code_replacement":
+            raise RuntimeError("saved B was not admitted as a replacement candidate")
+        pivot_ms, activated = reply(process, 4, "activate")
+        if activated.get("event") != "activated": raise RuntimeError("B did not receive an activation acknowledgement")
+        acknowledged = time.perf_counter_ns()
+        _, after = reply(process, 5, "invoke"); outcome(after, {"kind": "returned", "value": 48})
+        _, stopped = reply(process, 6, "stop")
+        if stopped.get("event") != "stopped": raise RuntimeError("session did not stop")
+        process.wait(timeout=10)
+        if process.returncode: raise RuntimeError(process.stderr.read())
+        total = (acknowledged - save) / 1_000_000
+        return {"save_to_ack_ms": total, "debounce_wait_ms": 0.0,
+                "source_admission_check_ms": None, "candidate_preparation_ms": plan_ms,
+                "safe_point_wait_ms": 0.0, "pivot_ms": pivot_ms,
+                "stage_limitations": ["the v1 JSONL control reply combines source admission/check with candidate preparation", "the fixture has no outstanding invocation, so safe-point wait is exactly zero"]}
+    finally:
+        if process is not None and process.poll() is None:
+            process.kill()
+            process.communicate(timeout=10)
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def full_restart(binary):
+    root = fixture()
+    process = None
+    try:
+        save = time.perf_counter_ns(); shutil.copyfile(SUITE / "fixtures/b/src/app.spx", root / "src/app.spx")
+        launched = time.perf_counter_ns()
+        process = subprocess.Popen([binary, "dev", str(root / "semaprax.toml"), "--jsonl", "--interpreter"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        _, started = reply(process, 1, "start")
+        if started.get("event") != "started": raise RuntimeError("restart did not start")
+        _, invoked = reply(process, 2, "invoke")
+        outcome(invoked, {"kind": "returned", "value": 48})
+        acknowledged = time.perf_counter_ns()
+        _, stopped = reply(process, 3, "stop")
+        if stopped.get("event") != "stopped": raise RuntimeError("restart did not stop")
+        process.wait(timeout=10)
+        if process.returncode: raise RuntimeError(process.stderr.read())
+        return {"save_to_ack_ms": (acknowledged - save) / 1_000_000, "process_start_to_ack_ms": (acknowledged - launched) / 1_000_000}
+    finally:
+        if process is not None and process.poll() is None:
+            process.kill()
+            process.communicate(timeout=10)
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def warm_restart(binary):
+    root = fixture(); store = root / "store"; store.mkdir()
+    try:
+        run([binary, "semantic-cache-init", str(store)])
+        _, receipt = run([binary, "semantic-cache-persist", str(root / "semaprax.toml"), str(store)])
+        old = json.loads(receipt)["entry_digest"]
+        save = time.perf_counter_ns(); shutil.copyfile(SUITE / "fixtures/b/src/app.spx", root / "src/app.spx")
+        refresh_ms, refreshed = run([binary, "semantic-cache-refresh", str(root / "semaprax.toml"), str(store), old])
+        entry = json.loads(refreshed)["entry_digest"]
+        warm_ms, opened = run([binary, "semantic-cache-warm-open", str(root / "semaprax.toml"), str(store), entry])
+        if json.loads(opened).get("schema") != "semaprax.semantic-cache-warm-open.v1": raise RuntimeError("warm restart did not authenticate and open B")
+        return {"save_to_ack_ms": (time.perf_counter_ns() - save) / 1_000_000, "refresh_ms": refresh_ms, "warm_open_ms": warm_ms}
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def summary(samples):
+    ordered = sorted(samples); n = len(ordered)
+    return {"samples": n, "median_ms": round(statistics.median(ordered), 3), "p95_ms": round(ordered[min(n - 1, max(0, (95 * n + 99) // 100 - 1))], 3), "values_ms": [round(value, 3) for value in samples]}
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--semaprax")
+    parser.add_argument("--samples", type=int, default=11)
+    parser.add_argument("--output", type=pathlib.Path, default=pathlib.Path("/tmp/hot-reload-benchmark.json"))
+    parser.add_argument("--dry-run", action="store_true")
+    args = parser.parse_args()
+    manifest = json.loads(MANIFEST.read_text()); validate(manifest)
+    if args.samples < 1: raise SystemExit("--samples must be positive")
+    if args.dry_run:
+        args.output.write_text(canonical({"schema": SCHEMA, "mode": "plan", "acceptance_manifest_digest": digest(MANIFEST), "fixture": manifest["fixture"], "lanes": manifest["lanes"]})); return
+    if not args.semaprax or not pathlib.Path(args.semaprax).is_file(): raise SystemExit("--semaprax must name an already-built executable")
+    binary = str(pathlib.Path(args.semaprax).resolve())
+    records = {"interpreter-save-to-ack": [], "full-restart": [], "authenticated-warm-restart": []}
+    for _ in range(args.samples):
+        records["interpreter-save-to-ack"].append(hot(binary)); records["full-restart"].append(full_restart(binary)); records["authenticated-warm-restart"].append(warm_restart(binary))
+    report = {"schema": SCHEMA, "acceptance_manifest_digest": digest(MANIFEST), "compiler": {"path": binary, "digest": digest(pathlib.Path(binary)), "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()}, "host": {"system": platform.system(), "release": platform.release(), "machine": platform.machine(), "cpu_count": os.cpu_count()}, "samples": args.samples, "peak_rss_bytes": None, "peak_rss_basis": "unavailable: portable per-child peak measurement is not implemented", "loops": {name: {"summary": summary([item["save_to_ack_ms"] for item in rows]), "records": rows} for name, rows in records.items()}, "nonclaims": manifest["nonclaims"]}
+    args.output.parent.mkdir(parents=True, exist_ok=True); args.output.write_text(canonical(report))
+
+
+if __name__ == "__main__": main()

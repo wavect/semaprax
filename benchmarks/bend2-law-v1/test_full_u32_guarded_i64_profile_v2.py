@@ -10,6 +10,10 @@ import full_u32_guarded_i64_profile_v2 as profile_v2
 class FullU32GuardedI64ProfileV2(unittest.TestCase):
     def test_retained_pins_controls_and_identity_boundaries(self):
         self.assertEqual(profile_v2.verify(), [])
+        profile = json.loads(profile_v2.PROFILE.read_text())
+        self.assertEqual(profile["reproduction"]["executable_sha256_status"],
+                         "observed_during_replay; executable is not retained in this capsule")
+        self.assertIn("matching the recorded SHA256", profile["reproduction"]["replay_requirement"])
 
     def test_rejects_promoting_i64_theorem_to_matched_law16_bend(self):
         profile = json.loads(profile_v2.PROFILE.read_text())

@@ -29,7 +29,9 @@
     "report_sha256": "sha256:30a9b6879bff167ecde46965947fe23f6ffbe81aa3839e34e7e9eb75e817eff2",
     "control_report_status": "supplemental_controls_pass",
     "claim_limit": "one retained bounded-control replay; no timing experiment or agent-trial claim",
-    "build_association": "caller-declared SEMAPRAX source commit; binary build provenance is not attested"
+    "build_association": "caller-declared SEMAPRAX source commit; binary build provenance is not attested",
+    "executable_sha256_status": "observed_during_replay; executable is not retained in this capsule",
+    "replay_requirement": "provision or rebuild a SEMAPRAX executable matching the recorded SHA256 before rerunning controls; the caller-declared commit is not a build attestation"
   },
   "routes": [
     {

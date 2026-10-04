@@ -22,6 +22,8 @@ use crate::host::{AdapterManager, HostConfig, IsolationRequest, LaunchSpec, Netw
 use crate::observe::JsonlFileSink;
 use crate::observe::{Observer, ObserverLimits};
 use crate::profile::{self, lock, BindingState, HarnessConfig, ResolvedLaunch};
+use crate::skills::cli_defaults::project_id;
+use crate::skills::defaults::{DefaultSkills, TaskInput};
 use crate::skills::{task_tags, ApprovedRoot, SkillCatalogConfig, SkillService};
 use std::path::{Path, PathBuf};
 
@@ -342,7 +344,7 @@ pub fn run_with(
             argv: argv.clone(),
         })
         .collect();
-    let skill_prompt = skill_prompt(&config, env, &task, disabled);
+    let (skill_prompt, official_use) = skill_prompt(&config, env, &task, disabled, &snapshot.root);
 
     let cfg = RunConfig {
         context_max_bytes: config.budget.context_max_bytes as usize,
@@ -423,6 +425,12 @@ pub fn run_with(
     let report = run(&cfg, compiler, stages, &mut observer);
     manager.shutdown_all();
     observer.finish();
+    // Applied-to-model only once a proposal request was actually made.
+    if let Some((mut ds, ids)) = official_use {
+        if report.steps.iter().any(|(k, _)| k == "proposal") {
+            let _ = ds.mark_applied(&ids);
+        }
+    }
     let lines: Vec<String> = observer
         .events()
         .iter()
@@ -444,50 +452,93 @@ pub fn run_with(
     })
 }
 
-/// The approved-root skill prompt for this task (machine-local roots only).
+/// The skill prompt for this task: the official default skills (embedded,
+/// selected deterministically for the task family, no adopt step) followed by
+/// approved-root skills that do not shadow an official id. Returns the
+/// default-skill state so the run can record `applied` after the request.
 fn skill_prompt(
     config: &HarnessConfig,
     env: &Environment,
     task: &Task,
     disabled: bool,
-) -> Option<SkillPromptUse> {
+    project: &Path,
+) -> (Option<SkillPromptUse>, Option<(DefaultSkills, Vec<String>)>) {
     if disabled || !config.skills.enabled {
-        return None;
+        return (None, None);
     }
     if config.capability(CapabilityKind::SkillCatalog).mode == crate::profile::Mode::Disabled {
-        return None;
+        return (None, None);
     }
-    let state = crate::profile::LocalState::load(env).ok()?;
-    if state.skill_roots.is_empty() {
-        return None;
+    let budget = config.skills.max_bytes as usize;
+    let mut text = String::new();
+    let mut loaded: Vec<String> = Vec::new();
+    let mut official = None;
+    let mut defaults =
+        DefaultSkills::embedded(env.harness_home.clone(), &project_id(project), "default")
+            .and_then(|d| d.with_project_prefs(config.skills.prefs.clone()))
+            .ok();
+    if let Some(ds) = defaults.as_mut() {
+        let input = TaskInput {
+            family: &task.family,
+            instruction: Some(&task.goal),
+        };
+        if let Ok(sel) = ds.select_for_task(&input, budget) {
+            let mut ids = Vec::new();
+            for r in sel.reports.iter().filter(|r| r.loaded) {
+                loaded.push(format!(
+                    "{}@{}:{}:{}",
+                    r.id,
+                    r.version,
+                    r.mode,
+                    r.locked_revision.as_deref().unwrap_or("")
+                ));
+                ids.push(r.id.clone());
+            }
+            text = sel.text;
+            official = Some(ids);
+        }
     }
-    let roots = state
-        .skill_roots
-        .iter()
-        .map(|r| ApprovedRoot {
-            path: r.path.clone(),
-            origin: r.origin.clone(),
-            approved_digest: None,
-        })
-        .collect();
-    let mut svc = SkillService::new(
-        roots,
-        SkillCatalogConfig {
-            enabled: true,
-            select: config.skills.select.clone(),
-            max_bytes: config.skills.max_bytes as usize,
-            ..Default::default()
-        },
-    );
-    let p = svc.render_prompt(&task_tags(&task.family));
-    if p.text.is_empty() {
-        return None;
+    if let Ok(state) = crate::profile::LocalState::load(env) {
+        let roots: Vec<ApprovedRoot> = state
+            .skill_roots
+            .iter()
+            .map(|r| ApprovedRoot {
+                path: r.path.clone(),
+                origin: r.origin.clone(),
+                approved_digest: None,
+            })
+            .collect();
+        let roots = match defaults.as_ref() {
+            Some(ds) => ds.refuse_shadowing(&roots).0,
+            None => roots,
+        };
+        if !roots.is_empty() {
+            let mut svc = SkillService::new(
+                roots,
+                SkillCatalogConfig {
+                    enabled: true,
+                    select: config.skills.select.clone(),
+                    max_bytes: budget.saturating_sub(text.len()),
+                    ..Default::default()
+                },
+            );
+            let p = svc.render_prompt(&task_tags(&task.family));
+            text.push_str(&p.text);
+            loaded.extend(p.loaded.iter().map(|(n, _)| n.clone()));
+        }
     }
-    Some(SkillPromptUse {
-        model_visible_bytes: p.model_visible_bytes,
-        loaded: p.loaded.iter().map(|(n, _)| n.clone()).collect(),
-        text: p.text,
-    })
+    if text.is_empty() {
+        return (None, None);
+    }
+    let used = defaults.zip(official);
+    (
+        Some(SkillPromptUse {
+            model_visible_bytes: text.len(),
+            loaded,
+            text,
+        }),
+        used,
+    )
 }
 
 fn start(

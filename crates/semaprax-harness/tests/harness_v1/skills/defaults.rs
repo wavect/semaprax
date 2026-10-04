@@ -812,3 +812,19 @@ fn hp_hn06_cli_use_status_off_round_trip_with_aliases() {
     assert_eq!(project_id(&cwd), project_id(&cwd));
     assert_ne!(project_id(&cwd), project_id(&h));
 }
+
+#[test]
+fn hp_hn06_status_reflects_the_latest_turn_when_a_later_task_skips_a_skill() {
+    let h = home();
+    let mut s = skills(&h, "p1", "s1");
+    s.select_for_task(&task("refactor", None), BIG).unwrap();
+    s.mark_applied(&["ponytail".to_string()]).unwrap();
+    let r = s.status().unwrap();
+    let p = r.skills.iter().find(|r| r.id == "ponytail").unwrap();
+    assert!(p.selected && p.applied_to_model);
+    s.select_for_task(&task("translation", None), BIG).unwrap();
+    let r = s.status().unwrap();
+    let p = r.skills.iter().find(|r| r.id == "ponytail").unwrap();
+    assert!(!p.selected && !p.applied_to_model);
+    assert_eq!(r.status_lines[0], "Ponytail mode: unknown");
+}

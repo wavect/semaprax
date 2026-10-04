@@ -599,6 +599,11 @@ impl DefaultSkills {
                 }
             }
         }
+        // Status reflects the latest turn: a skill this turn did not select is not active.
+        for r in reports.iter().filter(|r| !r.selected) {
+            st.active.remove(&r.id);
+            st.applied.retain(|a| a != &r.id);
+        }
         for id in &instr.status {
             if let Ok(k) = self.skill(id) {
                 out.status_lines.push(self.status_line(k, &st));

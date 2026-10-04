@@ -91,11 +91,13 @@ intent/settlement ordering, carried fuel, ACK loss, cross-version refusal and
 canonical recovery. The `source_live` selector passed 19 local unit tests,
 including the checked State decoder's non-ASCII hostile input. The
 `agent_runtime_v1` `source_migration` selector passed seven retained-Project
-tests: A→B→C execution, binding and budget refusals, lost-ACK charged retry and
-uncertain model refusal, post-ACK deadline, failed-evaluator clock regression,
-post-ACK cancellation, and independently schema-checked recovered settlement.
-The chain recovers B's Suspend before C and C's terminal after expiry without
-redispatch, and inspects each successor's first model request for its migrated
+tests: A→B→C execution through replayed hot-reload selection rows, binding and
+budget refusals, lost-ACK charged retry and uncertain model refusal, post-ACK
+deadline, failed-evaluator clock regression, post-ACK cancellation, and
+independently schema-checked recovered settlement. The chain recovers B's
+Suspend before C and C's terminal after expiry without redispatch, preserves
+the carried State marker and cumulative reservations, retains the same absolute
+deadline, and inspects each successor's first model request for its migrated
 State and destination schema. These are local injected host/store gates;
 fixed reservation units and unknown attempts are charged, not verified provider
 billing. Predecessor response text stays under its original journal binding;

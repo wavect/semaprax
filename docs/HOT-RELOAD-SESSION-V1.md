@@ -123,7 +123,7 @@ uncertainty, and the source-Agent checkpoint-waiting, activation, clean-refusal,
 and terminal-uncertainty states. Every ordinary refusal preserves the active
 revision. The
 `project::hot_reload::tests::changed_effect_is_refused_by_a_session_and_keeps_active_worker_usable`
-gate carries a changed declared effect on a compiler-derived reachable target
+gate carries a changed declared effect on the checked selected entry
 through session admission, planning, refusal and a subsequent active-worker
 execution. Separate cases cover changed contract
 and entry identity, missing imported stable IDs, forged plans, and one

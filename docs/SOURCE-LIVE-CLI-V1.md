@@ -230,6 +230,15 @@ adapter, candidate, test host, or effect handler, then returns the same patch
 receipt content and digest with zero model, test, or effect redispatch. A
 missing, malformed, or foreign-bound terminal receipt refuses; recovery never
 derives a replacement receipt from caller paths or stale configuration.
+After the terminal journal has committed, the held checkpoint owner persists
+the receipt sidecar and then a separate commitment containing the receipt
+digest, exact sidecar-byte digest, and exact checkpoint-document digest. Both
+records are fsynced before the receipt is returned. Recovery first checks that
+commitment against the already authenticated journal document, then accepts the
+sidecar. A crash before the commitment is durable leaves receipt evidence
+explicitly unavailable; recovery never creates a commitment from an unbound
+sidecar. This is a versioned checkpoint-owner extension, not a source-journal
+schema change.
 The terminal-only `receipt` verb uses the same configuration and checkpoint
 binding, but refuses a nonterminal journal before it creates a provider or
 effect handler. It accepts no receipt or evidence document operand. Its bounded

@@ -162,3 +162,70 @@ fn repair_v2_terminal_resume_refuses_patch_receipt_with_foreign_journal_binding(
         patch_receipt_before
     );
 }
+
+#[test]
+fn repair_v2_terminal_resume_refuses_receipt_sidecar_mutation_against_commitment() {
+    unix_checkpoint_host!();
+    let fixture = Fixture::new();
+    let (config, checkpoint, digest) =
+        setup_v2(&fixture, "test.repair.patch-receipt-commitment.v1");
+    let scratch = fixture.0.join("scratch");
+    fs::create_dir(&scratch).unwrap();
+    let calls = Rc::new(Cell::new(0));
+    let prompts = Rc::new(RefCell::new(Vec::new()));
+    reset_test_effect_handler_calls();
+    execute_with_runner(
+        v2_command("run", config.clone(), checkpoint.clone(), scratch.clone()),
+        RecordedOpenCodeRunner {
+            answers: VecDeque::from([proposal(&digest, "0", "0"), proposal(&digest, "7", "1")]),
+            last_answer: None,
+            prompts: Rc::clone(&prompts),
+            calls: Rc::clone(&calls),
+        },
+    )
+    .unwrap();
+    let checkpoint_document = checkpoint.join("checkpoint.json");
+    let patch_receipt_document = checkpoint.join("terminal-patch-receipt.json");
+    let commitment_document = checkpoint.join("terminal-patch-receipt-commitment.json");
+    let mut retained: Value =
+        serde_json::from_slice(&fs::read(&patch_receipt_document).unwrap()).unwrap();
+    let receipt = retained["receipt"].as_str().unwrap();
+    let altered = receipt.replacen("\"result\":\"passed\"", "\"result\":\"failed\"", 1);
+    assert_ne!(
+        altered, receipt,
+        "fixture receipt has a passed check to alter"
+    );
+    retained["receipt"] = json!(altered);
+    fs::write(
+        &patch_receipt_document,
+        serde_json::to_vec(&retained).unwrap(),
+    )
+    .unwrap();
+    let checkpoint_before = fs::read(&checkpoint_document).unwrap();
+    let receipt_before = fs::read(&patch_receipt_document).unwrap();
+    let commitment_before = fs::read(&commitment_document).unwrap();
+
+    let error = execute_with_runner(
+        v2_command("resume", config, checkpoint.clone(), scratch),
+        RecordedOpenCodeRunner {
+            answers: VecDeque::new(),
+            last_answer: None,
+            prompts,
+            calls: Rc::clone(&calls),
+        },
+    )
+    .expect_err("receipt sidecar mutation must fail its retained checkpoint commitment");
+    assert_eq!(
+        error.reason,
+        "terminal patch receipt commitment is stale or mismatched"
+    );
+    assert_eq!(calls.get(), 2, "refusal must not start OpenCode");
+    assert_eq!(
+        test_effect_handler_calls(),
+        2,
+        "refusal must not enter the effect handler"
+    );
+    assert_eq!(fs::read(&checkpoint_document).unwrap(), checkpoint_before);
+    assert_eq!(fs::read(&patch_receipt_document).unwrap(), receipt_before);
+    assert_eq!(fs::read(&commitment_document).unwrap(), commitment_before);
+}

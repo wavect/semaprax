@@ -87,6 +87,7 @@ const TERMINAL_PATCH_RECEIPT_SCHEMA: &str =
 struct TerminalPatchReceipt {
     document: String,
     receipt: String,
+    receipt_digest: String,
 }
 
 impl TerminalPatchReceipt {
@@ -117,12 +118,17 @@ impl TerminalPatchReceipt {
         }))
         .map(|document| format!("{document}\n"))
         .map_err(|_| CliError::refused("repair terminal patch receipt cannot be rendered"))?;
-        Ok(Self { document, receipt })
+        Ok(Self {
+            document,
+            receipt,
+            receipt_digest: receipt_digest.to_owned(),
+        })
     }
 
     fn recover(
         document: String,
         checkpoint: &semaprax::live_invocation::source_journal::RecoveredSourceCheckpoint,
+        commitment: &str,
     ) -> Result<Self, CliError> {
         let value: Value = serde_json::from_str(&document)
             .map_err(|_| CliError::refused("terminal patch receipt is malformed"))?;
@@ -156,7 +162,21 @@ impl TerminalPatchReceipt {
         if receipt_value["receipt_digest"] != value["receipt_digest"] {
             return Err(CliError::refused("terminal patch receipt digest is stale"));
         }
-        Ok(Self { document, receipt })
+        let commitment: Value = serde_json::from_str(commitment)
+            .map_err(|_| CliError::refused("terminal patch receipt commitment is malformed"))?;
+        if commitment["receipt_digest"] != value["receipt_digest"] {
+            return Err(CliError::refused(
+                "terminal patch receipt commitment is stale or mismatched",
+            ));
+        }
+        let receipt_digest = value["receipt_digest"]
+            .as_str()
+            .ok_or(CliError::refused("terminal patch receipt is malformed"))?;
+        Ok(Self {
+            document,
+            receipt,
+            receipt_digest: receipt_digest.to_owned(),
+        })
     }
 
     fn value(&self) -> Result<Value, CliError> {
@@ -1043,10 +1063,18 @@ pub(super) fn execute_with_runner_and_candidate_test<
                 RepairProvider::OpenCode | RepairProvider::Claude
             )
             .then(|| {
-                store
+                let document = store
                     .terminal_patch_receipt()?
-                    .ok_or(CliError::refused("terminal patch receipt is unavailable"))
-                    .and_then(|document| TerminalPatchReceipt::recover(document, &recovered))
+                    .ok_or(CliError::refused("terminal patch receipt is unavailable"))?;
+                let commitment = store
+                    .terminal_patch_receipt_commitment(
+                        &document,
+                        latest.as_deref().expect("resume mode has a latest journal"),
+                    )?
+                    .ok_or(CliError::refused(
+                        "terminal patch receipt commitment is unavailable",
+                    ))?;
+                TerminalPatchReceipt::recover(document, &recovered, &commitment)
             })
             .transpose()?;
             let replayed_candidate_test_evidence = replayed_candidate_test_evidence(
@@ -1260,7 +1288,14 @@ pub(super) fn execute_with_runner_and_candidate_test<
     })
     .transpose()?;
     if let Some(terminal_patch_receipt) = &terminal_patch_receipt {
-        store.retain_terminal_patch_receipt(&terminal_patch_receipt.document)?;
+        let checkpoint_document = store.latest()?.ok_or(CliError::refused(
+            "terminal repair checkpoint is unavailable",
+        ))?;
+        store.retain_terminal_patch_receipt(
+            &terminal_patch_receipt.document,
+            &terminal_patch_receipt.receipt_digest,
+            &checkpoint_document,
+        )?;
     }
     let rejection_count = handler.rejection_count();
     let candidate_test_evidence = handler.candidate_test_evidence();

@@ -139,8 +139,9 @@ impl HotReloadWatcher {
             HotReloadWatchEvent::Rename { from, to } => self.relevant(&from) || self.relevant(&to),
         };
         if relevant {
-            self.event_generation = self.event_generation.saturating_add(1);
-            self.dirty_generation = Some(self.event_generation);
+            if !self.mark_dirty() {
+                return HotReloadWatcherUpdate::CandidateRejected;
+            }
         }
         HotReloadWatcherUpdate::Idle
     }
@@ -152,8 +153,9 @@ impl HotReloadWatcher {
         }
         if self.fingerprints != fingerprints(&self.inputs) {
             self.rescan_required = true;
-            self.event_generation = self.event_generation.saturating_add(1);
-            self.dirty_generation = Some(self.event_generation);
+            if !self.mark_dirty() {
+                return HotReloadWatcherUpdate::CandidateRejected;
+            }
         }
         match self.dirty_generation.take() {
             Some(generation) => self.admit(generation),
@@ -168,12 +170,18 @@ impl HotReloadWatcher {
         if self.state != HotReloadWatchState::Watching {
             return Err(HotReloadWatcherFailure::stopped());
         }
-        let current =
-            admitted_revision(&self.manifest_path).map_err(HotReloadWatcherFailure::diagnostics)?;
+        let current = match admitted_revision(&self.manifest_path) {
+            Ok(current) => current,
+            Err(diagnostics) => {
+                self.last_diagnostics = diagnostics.clone();
+                self.rescan_required = true;
+                self.mark_dirty();
+                return Err(HotReloadWatcherFailure::diagnostics(diagnostics));
+            }
+        };
         if self.pending_candidate_revision.as_deref() != Some(current.project_revision()) {
             self.rescan_required = true;
-            self.event_generation = self.event_generation.saturating_add(1);
-            self.dirty_generation = Some(self.event_generation);
+            self.mark_dirty();
             return Err(HotReloadWatcherFailure::diagnostics(vec![Diagnostic::io(
                 "SPX-HR401",
                 "Project inputs changed after reload candidate admission",
@@ -192,6 +200,24 @@ impl HotReloadWatcher {
 
     fn relevant(&self, path: &Path) -> bool {
         self.inputs.contains(path) || (self.rescan_required && path.starts_with(&self.root))
+    }
+
+    /// Reserve the sole dirty slot. Saturating an event identity would make a
+    /// later event indistinguishable from an earlier one, so exhaustion is a
+    /// terminal local refusal rather than a silently coalesced update.
+    fn mark_dirty(&mut self) -> bool {
+        let Some(next) = self.event_generation.checked_add(1) else {
+            self.dirty_generation = None;
+            self.state = HotReloadWatchState::Failed;
+            self.last_diagnostics = vec![Diagnostic::io(
+                "SPX-HR401",
+                "hot reload watcher event generation is exhausted",
+            )];
+            return false;
+        };
+        self.event_generation = next;
+        self.dirty_generation = Some(next);
+        true
     }
 
     fn admit(&mut self, generation: u64) -> HotReloadWatcherUpdate {
@@ -219,7 +245,7 @@ impl HotReloadWatcher {
             Ok(inputs) => inputs,
             Err(diagnostics) => {
                 self.last_diagnostics = diagnostics;
-                self.state = HotReloadWatchState::Failed;
+                self.rescan_required = true;
                 return HotReloadWatcherUpdate::CandidateRejected;
             }
         };
@@ -332,6 +358,12 @@ mod tests {
             )
             .unwrap();
         }
+        fn rewrite_raw(&self, path: &Path, old: &str, new: &str) {
+            let source = fs::read_to_string(path).unwrap();
+            let changed = source.replacen(old, new, 1);
+            assert_ne!(source, changed);
+            fs::write(path, changed).unwrap();
+        }
     }
     impl Drop for Fixture {
         fn drop(&mut self) {
@@ -386,5 +418,102 @@ mod tests {
         watcher.record(HotReloadWatchEvent::Modify(app));
         assert_eq!(watcher.poll(), HotReloadWatcherUpdate::CandidateAdmitted);
         assert!(watcher.activate(b).is_err());
+    }
+
+    #[test]
+    fn invalid_c_rejects_after_b_without_replacing_active_a_or_admitting_stale_b() {
+        let fixture = Fixture::new();
+        let mut watcher = HotReloadWatcher::start(
+            &fixture.manifest(),
+            PreparedProjectInterpreterOptions::default(),
+        )
+        .unwrap();
+        let active = watcher.session().active_project_revision().to_owned();
+        let app = fixture.0.join("src/app.spx");
+        fixture.rewrite("multiply(6, 7)", "multiply(6, 8)");
+        watcher.record(HotReloadWatchEvent::Modify(app.clone()));
+        assert_eq!(watcher.poll(), HotReloadWatcherUpdate::CandidateAdmitted);
+        let b = watcher.session().plan().unwrap();
+
+        // C is deliberately malformed. The Project admission owner supplies
+        // the diagnostic; the watcher must retain the complete active A.
+        fixture.rewrite_raw(&app, "multiply(6, 8)", "multiply(6, )");
+        watcher.record(HotReloadWatchEvent::Modify(app));
+        assert_eq!(watcher.poll(), HotReloadWatcherUpdate::CandidateRejected);
+        assert_eq!(watcher.session().active_project_revision(), active);
+        assert!(!watcher.last_diagnostics().is_empty());
+        let failure = watcher.activate(b).unwrap_err();
+        assert!(!failure.diagnostics.is_empty());
+        assert_eq!(watcher.session().active_project_revision(), active);
+    }
+
+    #[test]
+    fn manifest_membership_failure_is_reauthenticated_and_reported() {
+        let fixture = Fixture::new();
+        let mut watcher = HotReloadWatcher::start(
+            &fixture.manifest(),
+            PreparedProjectInterpreterOptions::default(),
+        )
+        .unwrap();
+        let manifest = fixture.manifest();
+        fixture.rewrite_raw(
+            &manifest,
+            "\"src/tests.spx\"]",
+            "\"src/tests.spx\", \"src/missing.spx\"]",
+        );
+        watcher.record(HotReloadWatchEvent::Modify(manifest));
+        assert_eq!(watcher.poll(), HotReloadWatcherUpdate::CandidateRejected);
+        assert!(!watcher.last_diagnostics().is_empty());
+        assert_eq!(watcher.state(), HotReloadWatchState::Watching);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn symlinked_input_is_rejected_by_project_admission() {
+        use std::os::unix::fs::symlink;
+
+        let fixture = Fixture::new();
+        let mut watcher = HotReloadWatcher::start(
+            &fixture.manifest(),
+            PreparedProjectInterpreterOptions::default(),
+        )
+        .unwrap();
+        let app = fixture.0.join("src/app.spx");
+        let retained = fixture.0.join("src/app-retained.spx");
+        fs::rename(&app, &retained).unwrap();
+        symlink(&retained, &app).unwrap();
+        watcher.record(HotReloadWatchEvent::Modify(app));
+        assert_eq!(watcher.poll(), HotReloadWatcherUpdate::CandidateRejected);
+        assert!(!watcher.last_diagnostics().is_empty());
+        assert_eq!(watcher.state(), HotReloadWatchState::Watching);
+    }
+
+    #[test]
+    fn event_generation_exhaustion_is_explicit_and_terminal() {
+        let fixture = Fixture::new();
+        let mut watcher = HotReloadWatcher::start(
+            &fixture.manifest(),
+            PreparedProjectInterpreterOptions::default(),
+        )
+        .unwrap();
+        watcher.event_generation = u64::MAX;
+        assert_eq!(
+            watcher.record(HotReloadWatchEvent::Modify(fixture.0.join("src/app.spx"))),
+            HotReloadWatcherUpdate::CandidateRejected
+        );
+        assert_eq!(watcher.state(), HotReloadWatchState::Failed);
+        assert_eq!(watcher.last_diagnostics()[0].code, "SPX-HR401");
+        assert_eq!(watcher.poll(), HotReloadWatcherUpdate::Stopped);
+    }
+
+    #[test]
+    fn watcher_input_inventory_rejects_empty_and_first_over_bound() {
+        let empty = bounded_inputs(Vec::new()).unwrap_err();
+        assert_eq!(empty[0].code, "SPX-HR401");
+        let over_bound = (0..=MAX_WATCHED_INPUTS)
+            .map(|index| PathBuf::from(format!("/watcher-input-{index}")))
+            .collect();
+        let diagnostics = bounded_inputs(over_bound).unwrap_err();
+        assert_eq!(diagnostics[0].code, "SPX-HR401");
     }
 }

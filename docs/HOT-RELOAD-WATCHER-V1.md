@@ -58,5 +58,7 @@ worker retains its earlier revision. A stopped watcher cannot poll or activate.
 
 The focused local unit module is `project::hot_reload_watcher::tests`. It uses
 real temporary Project directories for burst coalescing, overflow recovery,
-B-to-C supersession and stop. These tests do not establish native-notification,
-hosted, editor, or production support.
+A-to-B-to-invalid-C rejection, stale-plan refusal, manifest membership failure,
+symlink rejection, first-over-bound inventory refusal, event-generation
+exhaustion, and stop. These tests do not establish native-notification, hosted,
+editor, or production support.

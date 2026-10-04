@@ -303,6 +303,15 @@ mod tests {
         let v = json!({"fam-": "words-x"});
         assert!(ModelTokenizerMap::from_json(&v).is_err());
         assert!(ModelTokenizerMap::from_json_with(&v, &c.tokenizers).is_ok());
+        let task = br#"{"schema":"semaprax.harness-task.v2","mode":"change","goal":"g","acceptance":["a"],"tokenizer_map":{"fam-":"words-x"}}"#;
+        assert!(crate::workflow::stages::Task::parse(task).is_err());
+        let t = crate::workflow::stages::Task::parse_with(task, &c.tokenizers).unwrap();
+        assert_eq!(
+            t.tokenizer_map.unwrap().tokenizer_for("fam-a"),
+            Some("words-x")
+        );
+        let bad = br#"{"schema":"semaprax.harness-task.v2","mode":"change","goal":"g","acceptance":["a"],"tokenizer_map":{"fam-":"nope"}}"#;
+        assert!(crate::workflow::stages::Task::parse_with(bad, &c.tokenizers).is_err());
         let mut set = TokenizerSet::default();
         let calls = Rc::new(Cell::new(0));
         let w = Words {

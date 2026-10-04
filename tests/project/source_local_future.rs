@@ -120,6 +120,59 @@ fn authenticated_project_selected_async_export_awaits_host_future_and_refuses_dr
     assert_eq!(refusal[0].code, "SPX-H006");
 }
 
+#[test]
+fn source_local_future_binding_is_construction_bound_and_refuses_stale_or_forged_facts() {
+    let fixture = Fixture::new();
+    let retained = with_authenticated_project(&fixture.manifest(), |snapshot| {
+        Ok(snapshot.retain_revision())
+    })
+    .unwrap();
+    let retained_signature = retained.source_local_future_signature().unwrap();
+    let retained_revision = retained.project_revision().to_owned();
+    let retained_function = retained_signature.function_id().to_owned();
+    let retained_plan = *retained_signature.plan_identity();
+    retained
+        .require_source_local_future_binding(&retained_revision, &retained_function, &retained_plan)
+        .unwrap();
+
+    let changed = APP.replace("answer + seed", "answer - seed");
+    let parsed = semaprax::parse(&changed, Path::new("app.spx")).unwrap();
+    std::fs::write(
+        fixture.0.join("src/app.spx"),
+        semaprax::format::canonical(&parsed),
+    )
+    .unwrap();
+    let rebuilt = with_authenticated_project(&fixture.manifest(), |snapshot| {
+        Ok(snapshot.retain_revision())
+    })
+    .unwrap();
+    let rebuilt_signature = rebuilt.source_local_future_signature().unwrap();
+    assert_ne!(rebuilt.project_revision(), retained_revision);
+    assert_ne!(rebuilt_signature.plan_identity(), &retained_plan);
+    assert_eq!(
+        rebuilt
+            .require_source_local_future_binding(
+                &retained_revision,
+                &retained_function,
+                &retained_plan,
+            )
+            .unwrap_err()[0]
+            .code,
+        "SPX-H006"
+    );
+    assert_eq!(
+        rebuilt
+            .require_source_local_future_binding(
+                rebuilt.project_revision(),
+                rebuilt_signature.function_id(),
+                &[0; 32],
+            )
+            .unwrap_err()[0]
+            .code,
+        "SPX-H006"
+    );
+}
+
 fn receive_request(stream: &mut TcpStream, path: &str) {
     stream
         .set_read_timeout(Some(Duration::from_secs(10)))

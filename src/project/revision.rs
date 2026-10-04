@@ -165,6 +165,30 @@ impl ProjectRevision {
         Ok(signature)
     }
 
+    /// Refuse a generated local-Future module whose retained binding does not
+    /// name this exact immutable Project revision and admitted suspension.
+    ///
+    /// This is deliberately a comparison against construction-bound facts;
+    /// it neither reads source files nor replays lowering during invocation.
+    pub fn require_source_local_future_binding(
+        &self,
+        expected_project_revision: &str,
+        expected_function_id: &str,
+        expected_plan_identity: &[u8; 32],
+    ) -> Result<(), Vec<Diagnostic>> {
+        let signature = self.source_local_future_signature()?;
+        if self.project_revision != expected_project_revision
+            || signature.function_id() != expected_function_id
+            || signature.plan_identity() != expected_plan_identity
+        {
+            return Err(vec![Diagnostic::io(
+                "SPX-H006",
+                "generated local Future module does not match selected Project revision",
+            )]);
+        }
+        Ok(())
+    }
+
     /// Re-derive and independently verify the exact compiler-owned endpoint
     /// retained for `public-generic-wasm-provider.v1`.
     pub fn public_generic_wasm_provider_endpoint_v1(

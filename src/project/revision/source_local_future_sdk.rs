@@ -37,16 +37,11 @@ pub fn register<H>(
     revision: Arc<ProjectRevision>,
     callback: H,
 ) -> Result<RegisteredAsyncImport<H>, Vec<Diagnostic>> {
-    let signature = revision.source_local_future_signature()?;
-    if revision.project_revision() != PROJECT_REVISION
-        || signature.function_id() != SOURCE_FUNCTION_ID
-        || signature.plan_identity() != &SOURCE_PLAN_IDENTITY
-    {
-        return Err(vec![Diagnostic::io(
-            "SPX-H006",
-            "generated local Future module does not match selected Project revision",
-        )]);
-    }
+    revision.require_source_local_future_binding(
+        PROJECT_REVISION,
+        SOURCE_FUNCTION_ID,
+        &SOURCE_PLAN_IDENTITY,
+    )?;
     Ok(RegisteredAsyncImport {
         revision,
         callback,

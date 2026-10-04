@@ -788,3 +788,34 @@ fn hp_hp0607_context_additive_optional_members() {
         "SPX-HPA036"
     );
 }
+
+#[test]
+fn hn13_context_span_kind_and_edge_resolution_are_additive_optional_members() {
+    use CapabilityKind::ContextRepository as K;
+    let v = |p: Value| validate_payload(K, "search", Direction::Result, &p);
+    let mut r = context_result();
+    assert!(v(r.clone()).is_ok(), "old payloads stay valid");
+    r["items"][0]["span_kind"] = json!("definition");
+    r["items"][0]["edges"] = json!([
+        {"target": "g", "relation": "calls", "provenance": "inferred", "resolution": "ambiguous"},
+        {"target": "h", "relation": "imports", "provenance": "structural"}
+    ]);
+    assert!(v(r.clone()).is_ok());
+    r["items"][0]["span_kind"] = json!("start-line");
+    for res in ["resolved", "unsupported"] {
+        r["items"][0]["edges"][0]["resolution"] = json!(res);
+        assert!(v(r.clone()).is_ok());
+    }
+    let mut bad = r.clone();
+    bad["items"][0]["span_kind"] = json!("whole-file");
+    assert_eq!(code(v(bad)), "SPX-HPA040");
+    let mut bad = r.clone();
+    bad["items"][0]["edges"][0]["resolution"] = json!("guessed");
+    assert_eq!(code(v(bad)), "SPX-HPA040");
+    let mut bad = r.clone();
+    bad["items"][0]["edges"][0]["extra"] = json!(1);
+    assert!(v(bad).is_err(), "edges stay closed apart from `resolution`");
+    let mut bad = r;
+    bad["items"][0]["span_kind"] = json!(7);
+    assert!(v(bad).is_err());
+}

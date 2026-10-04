@@ -14,6 +14,7 @@ use super::policy::{ApplyPolicy, REQUIREMENTS};
 use super::report::{ProviderUse, Report};
 use super::snapshot::Snapshot;
 use super::stages::*;
+use crate::context::plan;
 use crate::decision::{DecisionInvoker, EnablementGate, ModelPlan, ProviderMode, ProviderProfile};
 use crate::diag::{HarnessDiagnostic, HarnessResult};
 use crate::json::{canonical, sha256_plain};
@@ -527,12 +528,23 @@ pub(super) fn gather_context(
         started,
     );
     let native_complete = native.as_ref().map(|p| p.complete).unwrap_or(false);
+    // HN-13: evidence needs come from the task, not from graph completeness.
+    let diags: Vec<(String, String)> = r
+        .diagnostics
+        .iter()
+        .map(|x| (x.code.clone(), x.message.clone()))
+        .collect();
+    let rp = plan::plan(&root, &cfg.task.goal, seed.as_deref(), &diags);
     let needs_external = match cfg.task.external_context {
         ExternalContext::Never => false,
         ExternalContext::Always => true,
-        ExternalContext::WhenNeeded => !native_complete,
+        ExternalContext::WhenNeeded => {
+            rp.needs.needs_provider() || (!native_complete && !rp.needs.spx_local())
+        }
     };
     let mut packets: Vec<ContextPacket> = Vec::new();
+    let mut unknowns: Vec<String> = Vec::new();
+    let mut stage_report: Option<Value> = None;
     if let Ok(p) = native {
         packets.push(p);
     } else if let Err(e) = native {
@@ -543,7 +555,10 @@ pub(super) fn gather_context(
         match st.external.as_mut() {
             Some(ext) => {
                 let started = Instant::now();
-                let got = ext.collect(&creq);
+                let got = match &rp.initial {
+                    Some(step) => ext.collect_planned(&creq, step),
+                    None => ext.collect(&creq),
+                };
                 cx.observe(
                     &ext.id(),
                     "context.repository",
@@ -557,21 +572,37 @@ pub(super) fn gather_context(
                     got.is_ok(),
                     started,
                 );
+                stage_report = ext.take_plan_report();
                 match got {
                     Ok(p) => packets.push(p),
-                    Err(e) => r.notes.push(format!(
-                        "external context provider failed, using builtin only: {}",
-                        failure_text(&e)
-                    )),
+                    Err(e) => {
+                        unknowns.push(format!(
+                            "repository provider unavailable: {}; the task's foreign evidence was not retrieved",
+                            failure_text(&e)
+                        ));
+                        r.notes.push(format!(
+                            "external context provider failed, using builtin only: {}",
+                            failure_text(&e)
+                        ))
+                    }
                 }
             }
-            None => r
-                .notes
-                .push("external context was wanted but only builtin providers are selected".into()),
+            None => {
+                unknowns.push("no repository provider is selected: foreign-language evidence was not retrieved".into());
+                r.notes.push(
+                    "external context was wanted but only builtin providers are selected".into(),
+                )
+            }
         }
     } else {
-        r.notes
-            .push("native context sufficient: no external provider call".into());
+        if rp.needs.needs_provider() {
+            unknowns.push("the task names foreign-language or configuration evidence but external context is `never`".into());
+        }
+        r.notes.push(if rp.needs.spx_local() {
+            "native-only task: no external provider call".to_string()
+        } else {
+            "native context sufficient: no external provider call".to_string()
+        });
     }
     step(r, "context", &format!("{} packet(s)", packets.len()));
 
@@ -580,6 +611,9 @@ pub(super) fn gather_context(
     let (mut used, mut dropped) = (0usize, 0usize);
     for p in &packets {
         for it in &p.items {
+            if kept.contains(it) {
+                continue; // exact slice and provenance already present
+            }
             let native_packet = it.provenance == super::broker_stage::COMPILER_VERIFIED;
             if used + it.bytes() <= budget {
                 used += it.bytes();
@@ -593,6 +627,26 @@ pub(super) fn gather_context(
     }
     r.context = json!({"budget_bytes": budget, "used_bytes": used, "items": kept.len(), "dropped_external_items": dropped,
                        "providers": packets.iter().map(|p| p.provider.clone()).collect::<Vec<_>>()});
+    if dropped > 0 {
+        unknowns.push(format!(
+            "{dropped} external item(s) dropped by the context budget"
+        ));
+    }
+    let mut plan_json = json!({"schema": plan::PLAN_SCHEMA, "needs": rp.needs.to_json(),
+        "planned_steps": rp.initial.iter().map(|s| s.to_json()).collect::<Vec<_>>(),
+        "provider_consulted": needs_external && st.external.is_some()});
+    if let Some(sr) = stage_report {
+        plan_json["retrieval"] = sr;
+    }
+    unknowns.extend(
+        plan_json["retrieval"]["unknowns"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|u| u.as_str().map(str::to_string)),
+    );
+    plan_json["unknowns"] = json!(unknowns);
+    r.context["plan"] = plan_json;
     step(r, "budget", &format!("{used}/{budget} bytes"));
     // Skills: the exact model-visible prompt block, counted at its boundary.
     if let Some(sp) = &cfg.skill_prompt {
@@ -640,6 +694,129 @@ pub(super) fn gather_context(
     );
 
     Ok((kept, used))
+}
+
+/// Merge provider items into `kept` under the context budget: exact duplicates
+/// are skipped, items that do not fit are counted (never truncated).
+fn merge_fitting(kept: &mut Vec<ContextItem>, items: Vec<ContextItem>, budget: usize) -> usize {
+    let mut used: usize = kept.iter().map(ContextItem::bytes).sum();
+    let mut dropped = 0;
+    for it in items {
+        if kept.contains(&it) {
+            continue;
+        }
+        if used + it.bytes() <= budget {
+            used += it.bytes();
+            kept.push(it);
+        } else {
+            dropped += 1;
+        }
+    }
+    dropped
+}
+
+/// HN-13: after a failed candidate, one focused follow-up retrieval named by the
+/// failure's own identifiers. Returns whether new material was added; a stage
+/// without a plan, a spent call bound or a failure that names nothing new makes
+/// no call. Provider trouble is reported, never fatal.
+#[allow(dead_code)]
+pub(super) fn follow_up_context(
+    cx: &mut Ctx,
+    st: &mut Stages,
+    r: &mut Report,
+    root: &std::path::Path,
+    seed: &Option<String>,
+    failure: &str,
+    kept: &mut Vec<ContextItem>,
+) -> HarnessResult<bool> {
+    let cfg = cx.cfg;
+    let creq = ContextRequest {
+        lineage: cx.lineage,
+        project: root.to_path_buf(),
+        seed: seed.as_deref(),
+        query: String::new(),
+        max_bytes: cfg.context_max_bytes,
+        external: cfg.task.external_context,
+    };
+    let Some(ext) = st.external.as_mut() else {
+        return Ok(false);
+    };
+    let started = Instant::now();
+    let got = ext.follow_up(&creq, failure);
+    cx.observe(
+        &ext.id(),
+        "context.repository",
+        Stage::ContextSelect,
+        Role::Transform,
+        if got.is_ok() {
+            Availability::Available
+        } else {
+            Availability::Fallback
+        },
+        got.is_ok(),
+        started,
+    );
+    let report = ext.take_plan_report();
+    let added = match got {
+        Ok(Some(p)) => {
+            let n = p.items.len();
+            let dropped = merge_fitting(kept, p.items, cfg.context_max_bytes);
+            r.context["plan"]["follow_up"] = json!({"added_items": n.saturating_sub(dropped), "dropped_items": dropped, "report": report});
+            n > dropped
+        }
+        Ok(None) => {
+            r.context["plan"]["follow_up"] =
+                json!({"added_items": 0, "reason": "no new identifiers or call bound spent"});
+            false
+        }
+        Err(e) => {
+            r.notes
+                .push(format!("context follow-up failed: {}", failure_text(&e)));
+            r.context["plan"]["follow_up"] = json!({"added_items": 0, "reason": "provider failed"});
+            false
+        }
+    };
+    step(r, "context-follow-up", if added { "added" } else { "none" });
+    Ok(added)
+}
+
+/// HN-13: expand one continuation handle from the last collection into `kept`
+/// without a provider call. Stale or unknown handles are refused.
+#[allow(dead_code)]
+pub(super) fn expand_context(
+    cx: &mut Ctx,
+    st: &mut Stages,
+    root: &std::path::Path,
+    handle: &str,
+    kept: &mut Vec<ContextItem>,
+) -> HarnessResult<usize> {
+    let cfg = cx.cfg;
+    let creq = ContextRequest {
+        lineage: cx.lineage,
+        project: root.to_path_buf(),
+        seed: None,
+        query: String::new(),
+        max_bytes: cfg.context_max_bytes,
+        external: cfg.task.external_context,
+    };
+    let Some(ext) = st.external.as_mut() else {
+        return Err(d(
+            "SPX-HPD130",
+            "no context stage issued continuation handles",
+        ));
+    };
+    let p = ext.expand(&creq, handle).map_err(|e| match e {
+        StageFailure::Refused(x) | StageFailure::Unavailable(x) | StageFailure::Uncertain(x) => x,
+    })?;
+    let n = p.items.len();
+    let dropped = merge_fitting(kept, p.items, cfg.context_max_bytes);
+    if dropped > 0 {
+        return Err(d(
+            "SPX-HPD131",
+            "continuation slice does not fit the remaining context budget",
+        ));
+    }
+    Ok(n)
 }
 
 /// Export bookkeeping, approval requirement and (only under a host policy) publication.

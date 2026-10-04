@@ -52,6 +52,8 @@ pub struct Edge {
     pub relation: String,
     pub target_path: String,
     pub provenance: Tier,
+    /// The provider's own claim about the target (`resolved|ambiguous|unsupported`).
+    pub resolution: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -61,6 +63,8 @@ pub struct ContextItem {
     pub revision: String,
     pub path: String,
     pub span: Span,
+    /// Provider-declared span meaning (`definition|start-line`), when reported.
+    pub span_kind: Option<String>,
     pub digest: String,
     pub provenance: Tier,
     pub language: String,
@@ -94,6 +98,9 @@ impl ContextItem {
             "span".into(),
             json!({"start_line": self.span.start_line, "end_line": self.span.end_line}),
         );
+        if let Some(k) = &self.span_kind {
+            m.insert("span_kind".into(), json!(k));
+        }
         m.insert("digest".into(), json!(self.digest));
         m.insert("provenance".into(), json!(self.provenance.as_str()));
         m.insert("language".into(), json!(self.language));
@@ -109,7 +116,13 @@ impl ContextItem {
             let e: Vec<Value> = self
                 .edges
                 .iter()
-                .map(|e| json!({"relation": e.relation, "target_path": e.target_path, "provenance": e.provenance.as_str()}))
+                .map(|e| {
+                    let mut x = json!({"relation": e.relation, "target_path": e.target_path, "provenance": e.provenance.as_str()});
+                    if let Some(r) = &e.resolution {
+                        x["resolution"] = json!(r);
+                    }
+                    x
+                })
                 .collect();
             m.insert("edges".into(), Value::Array(e));
         }

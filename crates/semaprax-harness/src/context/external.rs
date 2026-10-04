@@ -65,6 +65,50 @@ pub struct RawItem {
     pub language: String,
     pub rank: f64,
     pub text: Option<String>,
+    /// Optional: whether the span is the whole definition or only its first line.
+    pub span_kind: Option<String>,
+    pub edges: Vec<RawEdge>,
+}
+
+/// Provider-reported relationship; `resolution` is the provider's own claim
+/// about whether the target was resolved (`resolved|ambiguous|unsupported`).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RawEdge {
+    pub target: String,
+    pub relation: String,
+    pub tier: Tier,
+    pub resolution: Option<String>,
+}
+
+fn edges_json(edges: &[RawEdge]) -> Value {
+    Value::Array(
+        edges
+            .iter()
+            .map(|e| {
+                let mut m = json!({"target": e.target, "relation": e.relation, "provenance": e.tier.as_str()});
+                if let Some(r) = &e.resolution {
+                    m["resolution"] = json!(r);
+                }
+                m
+            })
+            .collect(),
+    )
+}
+
+fn edges_from(v: &Value) -> Option<Vec<RawEdge>> {
+    let Some(a) = v.as_array() else {
+        return Some(vec![]);
+    };
+    a.iter()
+        .map(|e| {
+            Some(RawEdge {
+                target: e["target"].as_str()?.to_string(),
+                relation: e["relation"].as_str()?.to_string(),
+                tier: Tier::parse(e["provenance"].as_str()?)?,
+                resolution: e["resolution"].as_str().map(str::to_string),
+            })
+        })
+        .collect()
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
@@ -97,6 +141,12 @@ impl ExternalResponse {
                     "digest": i.digest, "provenance": i.tier.as_str(), "language": i.language, "rank": i.rank});
                 if let Some(t) = &i.text {
                     m["text"] = json!(t);
+                }
+                if let Some(k) = &i.span_kind {
+                    m["span_kind"] = json!(k);
+                }
+                if !i.edges.is_empty() {
+                    m["edges"] = edges_json(&i.edges);
                 }
                 m
             })
@@ -131,6 +181,8 @@ impl ExternalResponse {
                     language: i["language"].as_str()?.to_string(),
                     rank: i["rank"].as_f64()?,
                     text: i["text"].as_str().map(str::to_string),
+                    span_kind: i["span_kind"].as_str().map(str::to_string),
+                    edges: edges_from(&i["edges"])?,
                 })
             })
             .collect::<Option<Vec<_>>>()?;
@@ -274,7 +326,7 @@ impl ExternalSource for HostExternal {
             descriptor_digest: desc.digest().to_string(),
             config_digest: self.config_digest.clone(),
             permission_scope: json!({"read": g.read, "write": g.write, "network": g.network, "process": g.process,
-                                     "secrets": g.secrets, "scope": self.scope,
+                                     "secrets": g.secrets, "scope": self.scope, "lock": self.lock_digest,
                                      "upstream": self.launch.grant.upstream_digest(), "entry": self.launch.grant.entry_digest()}),
         }
     }
@@ -361,6 +413,8 @@ fn parse_payload(p: &Value) -> HarnessResult<(Vec<RawItem>, Coverage, bool)> {
             language: i["language"].as_str().ok_or_else(bad)?.to_string(),
             rank: i["rank"].as_f64().ok_or_else(bad)?,
             text: i["text"].as_str().map(str::to_string),
+            span_kind: i["span_kind"].as_str().map(str::to_string),
+            edges: edges_from(&i["edges"]).ok_or_else(bad)?,
         });
     }
     let c = &p["coverage"];

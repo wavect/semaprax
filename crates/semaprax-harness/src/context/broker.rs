@@ -32,6 +32,13 @@ pub struct BrokerRequest {
     pub native_depth: u32,
     pub native_filters: Vec<String>,
     pub max_items: u64,
+    /// Ask the provider for scoped exhaustive coverage (references only).
+    pub exhaustive: bool,
+    /// Project-relative path prefix the provider search is limited to.
+    pub within: Option<String>,
+    /// File extensions (no dot) the task does not want from the provider, for
+    /// example `spx` when the compiler already owns those facts. Counted, never silent.
+    pub exclude_extensions: Vec<String>,
 }
 
 impl BrokerRequest {
@@ -47,6 +54,9 @@ impl BrokerRequest {
                 .map(String::from)
                 .to_vec(),
             max_items: 20,
+            exhaustive: false,
+            within: None,
+            exclude_extensions: vec![],
         }
     }
 }
@@ -132,6 +142,11 @@ impl Broker {
         }
         self.providers.push(p);
         Ok(())
+    }
+
+    /// Attach (or replace) the provider-result cache after construction.
+    pub fn set_cache(&mut self, cache: Option<ResultCache>) {
+        self.cache = cache;
     }
 
     pub fn cache(&self) -> Option<&ResultCache> {
@@ -255,7 +270,19 @@ impl Broker {
             let offered = normalized.items.len();
             normalized.items.retain(|i| under(&i.path, &scope));
             let dropped = offered - normalized.items.len();
-            let mut verified_all = true;
+            let before = normalized.items.len();
+            normalized
+                .items
+                .retain(|i| !excluded_by_task(&i.path, &req.exclude_extensions));
+            let by_task = before - normalized.items.len();
+            let before = normalized.items.len();
+            dedup_exact(&mut normalized.items);
+            let duplicates = before - normalized.items.len();
+            if by_task + duplicates > 0 {
+                diags.push(json!({"code": "SPX-HPE070", "message": format!("{by_task} item(s) outside the task's language needs and {duplicates} exact duplicate slice(s) not forwarded")}));
+            }
+            // Task-filtered items mean the answer is not the whole truth.
+            let mut verified_all = by_task == 0;
             for raw in &normalized.items {
                 let mut it = make_item(&snap, &ident.provider_id, raw);
                 verified_all &= it.verified;
@@ -380,7 +407,7 @@ impl Broker {
 }
 
 fn external_query(req: &BrokerRequest) -> ExternalQuery {
-    match (&req.symbol, req.references) {
+    let mut q = match (&req.symbol, req.references) {
         (Some(s), true) => ExternalQuery {
             op: "references".into(),
             payload: json!({"symbol": s, "max_items": req.max_items}),
@@ -397,7 +424,33 @@ fn external_query(req: &BrokerRequest) -> ExternalQuery {
             op: "search".into(),
             payload: json!({"query": req.query, "max_items": req.max_items}),
         },
+    };
+    if q.op == "references" && req.exhaustive {
+        q.payload["exhaustive"] = json!(true);
     }
+    if let (Some(w), "search" | "references") = (&req.within, q.op.as_str()) {
+        q.payload["in"] = json!(w);
+    }
+    q
+}
+
+fn excluded_by_task(path: &str, exts: &[String]) -> bool {
+    path.rsplit_once('.')
+        .is_some_and(|(_, e)| exts.iter().any(|x| x == e))
+}
+
+/// Same provider reporting the same slice twice: keep the first.
+fn dedup_exact(items: &mut Vec<super::external::RawItem>) {
+    let mut seen = std::collections::BTreeSet::new();
+    items.retain(|i| {
+        seen.insert((
+            i.path.clone(),
+            i.span.start_line,
+            i.span.end_line,
+            i.digest.clone(),
+            i.tier,
+        ))
+    });
 }
 
 fn native_item(
@@ -425,6 +478,7 @@ fn native_item(
             start_line: d.start_line,
             end_line: d.end_line,
         },
+        span_kind: Some("definition".into()),
         digest,
         provenance: Tier::CompilerVerified,
         language: "semaprax".into(),
@@ -508,6 +562,7 @@ fn make_item(snap: &Snapshot, provider: &str, raw: &super::external::RawItem) ->
         revision: snap.revision.clone(),
         path: raw.path.clone(),
         span: raw.span,
+        span_kind: raw.span_kind.clone(),
         digest: raw.digest.clone(),
         provenance: if verified { raw.tier } else { Tier::Inferred },
         language: raw.language.clone(),
@@ -515,7 +570,16 @@ fn make_item(snap: &Snapshot, provider: &str, raw: &super::external::RawItem) ->
         provider_rank: Some(raw.rank),
         complete: verified,
         omission_reason: why.map(str::to_string),
-        edges: vec![],
+        edges: raw
+            .edges
+            .iter()
+            .map(|e| super::item::Edge {
+                relation: e.relation.clone(),
+                target_path: e.target.clone(),
+                provenance: e.tier,
+                resolution: e.resolution.clone(),
+            })
+            .collect(),
         text: raw.text.clone(),
         stable_id: None,
         link: Link::None,

@@ -291,6 +291,8 @@ fn grep_answer(id: &'static str) -> Answer {
                         language: "text".into(),
                         rank: 1.0,
                         text: Some(l.to_string()),
+                        span_kind: None,
+                        edges: vec![],
                     });
                 }
             }
@@ -835,6 +837,8 @@ fn spx_item(snap: &Snapshot, rel: &str, line: u64, digest: Option<&str>) -> RawI
         language: "semaprax".into(),
         rank: 3.5,
         text: None,
+        span_kind: None,
+        edges: vec![],
     }
 }
 
@@ -1119,3 +1123,6 @@ fn hp_hp05_real_graphify_through_the_broker() {
         .iter()
         .all(|i| i.provenance != Tier::CompilerVerified));
 }
+
+#[path = "context_plan.rs"]
+mod hn13;

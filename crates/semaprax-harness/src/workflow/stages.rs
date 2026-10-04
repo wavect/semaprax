@@ -360,6 +360,39 @@ pub trait ContextStage {
     fn take_note(&mut self) -> Option<String> {
         None
     }
+    /// Collect for a bounded task-derived provider query (HN-13). Stages that
+    /// know nothing of plans fall back to [`Self::collect`].
+    fn collect_planned(
+        &mut self,
+        req: &ContextRequest,
+        _step: &crate::context::plan::PlanStep,
+    ) -> Result<ContextPacket, StageFailure> {
+        self.collect(req)
+    }
+    /// At most one focused follow-up after a failed candidate; `Ok(None)` when
+    /// the failure names nothing new or the plan's call bound is spent.
+    fn follow_up(
+        &mut self,
+        _req: &ContextRequest,
+        _failure: &str,
+    ) -> Result<Option<ContextPacket>, StageFailure> {
+        Ok(None)
+    }
+    /// Expand one continuation handle issued by this stage (no provider call).
+    fn expand(
+        &mut self,
+        _req: &ContextRequest,
+        _handle: &str,
+    ) -> Result<ContextPacket, StageFailure> {
+        Err(StageFailure::Unavailable(d(
+            "SPX-HPD130",
+            "this context stage issues no continuation handles",
+        )))
+    }
+    /// One-shot retrieval report of the last collection (coverage, handles, unknowns).
+    fn take_plan_report(&mut self) -> Option<Value> {
+        None
+    }
 }
 
 /// Native context: the compiler's own `semaprax context` for the seed.

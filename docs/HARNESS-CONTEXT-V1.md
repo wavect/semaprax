@@ -68,8 +68,11 @@ Additive optional contract members (v1 stays closed otherwise; validated, bounde
 - result: `metadata` (at most 8 KiB, scalars or one level of scalar-valued objects;
   still scanned for authority-like members, `SPX-HPA036`), `coverage.extraction_errors`
   `[{path, reason}]` (surfaced by the broker as skipped entries), item `edges`
-  `[{target <= 1024, relation <= 64, provenance structural|inferred}]`. An edge can
-  never be `compiler-verified`.
+  `[{target <= 1024, relation <= 64, provenance structural|inferred, resolution?}]`
+  (an edge can never be `compiler-verified`), item `span_kind` (`definition` = the span
+  is the whole definition, `start-line` = only its first line) and edge `resolution`
+  (`resolved|ambiguous|unsupported`, the provider's own claim). Both are carried
+  through the broker, the cache and the rendered item unchanged.
 
 Digest convention: an item's `digest` is `sha256:<hex>` of lines `start..=end` joined
 by LF with no trailing terminator, the form the broker re-hashes. A provider using
@@ -77,3 +80,62 @@ another convention has every item reported `stale-digest` and unverified.
 
 Interpreter-shebang upstreams need their runtime to be probed: `adopt` adds the
 directories of `HARNESS_NODE`/`HARNESS_PYTHON` to the probe's `PATH`.
+
+## Task-relevant planning (HN-13)
+
+Owner: `context/plan.rs`, `workflow/{pipeline,broker_stage}.rs`. Native graph
+completeness is not the retrieval criterion; the task is. `plan::plan(project,
+goal, seed, diagnostics)` derives `EvidenceNeeds`:
+
+- selected symbols (seed plus `.spx` ids/names the goal mentions);
+- affected foreign-language boundaries: language words in the goal, named files
+  (`web/app.ts`), and a manifest `web_exports` symbol when the goal changes the
+  interface (rename, signature, export, abi ...);
+- configuration words (`config`, `toml`, `yaml`, `env` ...);
+- unresolved references quoted by "unresolved/unknown/not found" diagnostics
+  that no `.spx` declaration owns;
+- an exhaustive-reference request ("all callers", "every usage" ...).
+
+Routing. `.spx` meaning always comes from compiler queries. The one
+project-selected provider is consulted only when a need is foreign, a
+configuration, an unresolved name or an exhaustive reference request. A task
+that only names `.spx` symbols is native-only: zero provider calls. `external_context`
+`never` still forbids the provider (and the plan reports the resulting unknown);
+`always` forces the legacy one-shot query when no concrete need exists.
+
+Bounded plan. The first step is the smallest relevant query (symbol ids/names,
+named files, unresolved names, config words; `.spx` items excluded because the
+compiler owns them, counted as `SPX-HPE070`). A step that surfaces none of the
+needed languages gets at most one goal-worded retry; one failed candidate
+diagnostic gets at most one focused follow-up (`ContextStage::follow_up`)
+whose query is only the identifiers the failure names and the prior query did
+not ask (`max_items <= 8`). `MAX_PROVIDER_CALLS` is 3 and nothing is recursive.
+Workflow wiring of `follow_up` into a retry loop belongs to the session owner;
+`pipeline::follow_up_context` is the merge-and-budget entry point.
+
+Dedup and mandatory data. Exact `path:span` + provenance + text is forwarded once
+(provider duplicates and cross-packet repeats); native facts (contracts, effects,
+ownership, types filters) are mandatory and budgeted before any optional item.
+
+Honesty. `context.plan.retrieval` reports `ranked`, `exhaustive`,
+`absence_provable`, `coverage_complete`, `omitted_items`, `unknowns[]` and
+`continuation[]`. Ranked top-N output is `ranked: true, absence_provable: false`;
+an exhaustive request either establishes scoped complete coverage (provider
+complete + exhaustive + nothing omitted + every slice verified + nothing
+filtered) or states `exhaustive reference coverage declined`. A provider that is
+unavailable or stale keeps the native facts (marked incomplete) and adds an
+unknown ("repository provider failed ..."); it is never retried. Goal text never
+enters a report: steps carry a query digest and term count only.
+
+Continuation. Omitted items keep `ctx:` handles (at most 8). `ContextStage::expand`
+turns one handle into its slice with no provider call: the slice is read from the
+working tree only if it still hashes to the handle digest (`SPX-HPE071` stale or
+drifted), fits the remaining budget (`SPX-HPE072`) and stays inside the project
+(`SPX-HPE073`); unknown handles are `SPX-HPD130`. The workflow budget refuses a
+slice that does not fit (`SPX-HPD131`).
+
+Cache. `BrokerContext::with_cache(root)` (opt-in) reuses the broker cache; the key
+already binds project + worktree, the content digest of the working tree,
+provider/descriptor/upstream identity, the lock digest (added to the provider
+identity), configuration, permission scope and the exact query, so a changed
+plan step, edit, worktree or lock is a miss. A hit is not a provider invocation.

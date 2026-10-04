@@ -30,7 +30,7 @@ crates/semaprax-harness          host-only crate; no dependency on the compiler 
   conformance/ capability conformance + hostility suites                (HP-16)
   bench/      journey benchmark contract and report                     (HP-17)
 packages/semaprax-harness-adapters/<name>/   out-of-tree adapters (graft, graphify,
-                                              rtk, laya/jev, examples)
+                                              rtk, caveman, laya/jev, examples)
 ```
 
 The compiler is a **service used by the harness**: the workflow invokes the

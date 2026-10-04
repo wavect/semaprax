@@ -136,3 +136,34 @@ not carry it yet).
 `harness run --tokenizer-python P --tokenizer-script S --tokenizer NAME` spawns a tokenizer helper for the check
 stage (`HostCommandChecks.tokenizer`) in addition to the request-budget helper, so check views are measured in named
 tokens; without the flags measurements are bytes-only.
+
+## TC-07: Caveman input-compression adapter (opt-in)
+
+`packages/semaprax-harness-adapters/caveman/` (`ai.caveman/caveman-command-view`) is a `command.view` provider. It acts
+as a client of a Caveman 3.1.0 runtime that the user starts (`caveman start`, loopback `127.0.0.1:8787`), speaking
+middleware protocol 1.1. It was checked against the upstream source at commit
+`8af1f1b9b1346bca0722a1556f119b4e6675cc96` (`docs/technical/middleware-protocol.md`, `packages/sdk/python/caveman_cloud/middleware/*`).
+It has not yet been run against a real runtime.
+
+The adapter never installs, starts or logs in to Caveman. It is adopted with `adopt --upstream <caveman>`, which only
+probes `--version`, and is selected only by an explicit `command.view` provider pin. Setup never adopts it
+implicitly, and RTK and raw remain the alternatives.
+
+Each call takes these steps:
+- It authenticates with a host-provisioned runtime bearer credential (`<retention>/caveman-token`). Upstream §2 requires
+  one on every route, loopback included. Without a credential the plan bypasses and no request is made.
+- It sends `Caveman-Middleware-Features: http_status_v2, revision_tolerant`. It never sends an Origin header or a model
+  provider key.
+- It refuses non-loopback endpoints before connecting and follows no redirects or proxies.
+- It sends the already-captured output once, as a `tool_result` segment in `compress` mode under a fresh session id.
+  The command is never re-run.
+- It validates the plan as upstream `validate.py` does (`optimized | bypassed | record`; decisions are 200).
+- It removes Caveman's own `caveman_retrieve` marker from the view. Semaprax retention stays the only recovery path
+  offered to the model.
+- Afterwards it calls `sessions/delete` to revoke the upstream originals.
+
+A record-mode runtime, a bypassed plan, a view that is not smaller, a view that drops an error or fatal line, a bad
+replacement digest, tiny output, patches, JSON, or a runtime failure or timeout all deliver raw output, with no
+claimed saving. Telemetry and work tags are the runtime owner's settings; start it with `DO_NOT_TRACK=1
+CAVEMAN_WORK_TAGS=0`. No upstream headline percentage is a Semaprax result. Only the TC-12 comparison of raw, RTK and
+Caveman on the same tasks can qualify it.

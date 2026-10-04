@@ -13,6 +13,13 @@ CRITICAL = re.compile(r"error|fail|panic", re.I)
 
 
 def _text(p, key):
+    if p.get(key + "_path"):
+        ret = os.path.realpath(os.environ.get("SEMAPRAX_HARNESS_RETENTION_DIR", ""))
+        path = os.path.realpath(os.path.join(ret, p[key + "_path"]))
+        if not ret or os.path.commonpath([path, ret]) != ret:
+            raise AdapterError("refused", "path-outside-retention", f"{key}_path escapes the retention directory")
+        with open(path, "rb") as f:
+            return f.read().decode("utf-8", "replace")
     if p.get(key + "_b64") is not None:
         return base64.b64decode(p[key + "_b64"]).decode("utf-8", "replace")
     return str(p.get(key, ""))

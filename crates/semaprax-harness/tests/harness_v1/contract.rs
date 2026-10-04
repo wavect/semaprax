@@ -86,6 +86,16 @@ fn samples(kind: CapabilityKind) -> Vec<(&'static str, Direction, Value)> {
                 Result,
                 json!({"form": "wrapper", "plan": {"argv": ["ls", "-l"]}}),
             ),
+            (
+                "plan",
+                Request,
+                json!({"argv": ["git", "diff"], "cwd_rel": "."}),
+            ),
+            (
+                "plan",
+                Result,
+                json!({"route": "post-execution", "operation": "view"}),
+            ),
         ],
         CapabilityKind::DecisionEvaluate => vec![
             (
@@ -605,4 +615,112 @@ fn hp_hp01_mock_peer_round_trip() {
         &script
     )
     .is_none());
+}
+
+#[test]
+fn hp_hp09b_command_view_streams_plan_and_bounds() {
+    use CapabilityKind::CommandView;
+    let v = |op, d, p: Value| validate_payload(CommandView, op, d, &p);
+    let view = |extra: Value| {
+        let mut m = json!({"form": "post-execution", "argv": ["git", "diff"]});
+        for (k, x) in extra.as_object().unwrap() {
+            m[k] = x.clone();
+        }
+        m
+    };
+    // Each stream by exactly one of text, base64, or a retention-relative path.
+    let ok = view(
+        json!({"stdout_path": "views/1.out", "stderr_b64": "aGk=", "max_bytes": 10,
+        "min_bytes": 0, "recovery_handle": "h", "config": {"allow_wrapper": false, "n": 3, "s": "x"}}),
+    );
+    v("view", Direction::Request, ok).unwrap();
+    for bad in [
+        json!({"stdout": "a"}),
+        json!({"stdout": "a", "stdout_b64": "", "stderr": ""}),
+        json!({"stdout": "a", "stdout_path": "x", "stderr": ""}),
+        json!({"stdout_b64": "a b", "stderr": ""}),
+        json!({"stdout": "a", "stderr": "", "config": {"x": {"nested": 1}}}),
+        json!({"stdout": "a", "stderr": "", "config": {"x": [1]}}),
+        json!({"stdout": "a", "stderr": "", "max_bytes": -1}),
+        json!({"stdout": "a", "stderr": "", "extra": 1}),
+    ] {
+        assert_eq!(
+            code(v("view", Direction::Request, view(bad.clone()))),
+            "SPX-HPA040",
+            "{bad}"
+        );
+    }
+    for bad in ["/etc/x", "../x", "a/../b", "a\\b", ""] {
+        assert_eq!(
+            code(v(
+                "view",
+                Direction::Request,
+                view(json!({"stdout_path": bad, "stderr": ""}))
+            )),
+            "SPX-HPA041",
+            "{bad}"
+        );
+    }
+    // plan request
+    let plan = json!({"argv": ["cargo", "test"], "cwd_rel": "crates/a", "estimated_output_bytes": 5,
+        "external_hooks": ["rtk"], "lineage": ["exec:1"], "form": "wrapper", "config": {"min_bytes": 1}});
+    v("plan", Direction::Request, plan.clone()).unwrap();
+    for (k, x, c) in [
+        ("cwd_rel", json!("../x"), "SPX-HPA041"),
+        ("cwd_rel", json!("/x"), "SPX-HPA041"),
+        ("argv", json!([]), "SPX-HPA040"),
+        ("argv", json!([1]), "SPX-HPA040"),
+        ("form", json!("shell"), "SPX-HPA040"),
+        ("lineage", json!([1]), "SPX-HPA040"),
+        ("external_hooks", json!("rtk"), "SPX-HPA040"),
+        ("estimated_output_bytes", json!("x"), "SPX-HPA040"),
+        ("unknown", json!(1), "SPX-HPA040"),
+    ] {
+        let mut p = plan.clone();
+        p[k] = x;
+        assert_eq!(code(v("plan", Direction::Request, p)), c, "{k}");
+    }
+    // plan result: the three routes
+    v(
+        "plan",
+        Direction::Result,
+        json!({"route": "bypass", "reason": "small-output"}),
+    )
+    .unwrap();
+    v(
+        "plan",
+        Direction::Result,
+        json!({"route": "post-execution", "family": "git-diff",
+        "filter": "git-diff", "operation": "view", "raw_recovery": "host-retained-streams"}),
+    )
+    .unwrap();
+    let wrapped = json!({"route": "wrapped", "argv": ["/opt/rtk", "git", "diff"], "env": {"RTK_X": "1"},
+        "resolves_via": "PATH", "recovery": {"kind": "recall-db", "coverage": "complete",
+        "retrieve_argv": ["/opt/rtk", "recall", "<handle>"]}});
+    v("plan", Direction::Result, wrapped.clone()).unwrap();
+    for (k, x) in [
+        ("route", json!("teleport")),
+        ("argv", json!(["ok", 1])),
+        ("env", json!({"A": 1})),
+        ("recovery", json!({"a": {"nested": 1}})),
+        ("recovery", json!({"a": ["x", 1]})),
+    ] {
+        let mut p = wrapped.clone();
+        p[k] = x;
+        assert_eq!(code(v("plan", Direction::Result, p)), "SPX-HPA040", "{k}");
+    }
+    let mut w = wrapped.clone();
+    w.as_object_mut().unwrap().remove("argv");
+    assert_eq!(code(v("plan", Direction::Result, w)), "SPX-HPA040");
+    assert_eq!(
+        code(v("plan", Direction::Result, json!({"route": "bypass"}))),
+        "SPX-HPA040"
+    );
+    // A plan result still can never carry an exit status.
+    let mut p = json!({"route": "bypass", "reason": "x"});
+    p["exit_code"] = json!(0);
+    assert_eq!(code(v("plan", Direction::Result, p)), "SPX-HPA042");
+    let mut p = wrapped;
+    p["recovery"]["status"] = json!("ok");
+    assert_eq!(code(v("plan", Direction::Result, p)), "SPX-HPA042");
 }

@@ -1,38 +1,21 @@
 //! HP-09 real-RTK evidence through the host's automatic command-view route.
 //! Needs HARNESS_RTK (pinned rtk 0.51.0) and HARNESS_PYTHON.
 //!
-//! The shipped RTK descriptor declares operation `plan` and its `view` takes
-//! `stdout_b64`; contract v1 admits neither (HPA022 / HPA040). These tests run
-//! the real adapter module and real rtk behind a tiny test-only shim that
-//! declares `view` only and translates the contract payload to the adapter's
-//! fields. The host code under test is unchanged.
+//! The SHIPPED descriptor `packages/semaprax-harness-adapters/rtk/harness-provider.json`
+//! is adopted unmodified through the profile CLI (`adopt`, `trust`); the host then
+//! plans (`plan`) and views (`view`) through the real adapter and real rtk, with
+//! no test shim and no payload translation.
 
 use crate::support::{fixture_dir, repo_root, required_tool, write};
 use semaprax_harness::cli::{run, Environment, Outcome};
 use serde_json::Value;
 use std::collections::BTreeMap;
 use std::os::unix::fs::PermissionsExt;
+use std::os::unix::process::{CommandExt, ExitStatusExt};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 const ID: &str = "ai.rtk/rtk-command-view";
-
-const SHIM: &str = r#"import base64, os, sys
-sys.path.insert(0, "@SDK@")
-sys.path.insert(0, "@RTK@")
-import adapter as rtk
-from semaprax_harness_adapter import serve
-
-def view(req):
-    p = req["payload"]
-    q = dict(req)
-    q["payload"] = {"argv": p["argv"], "stdout_b64": base64.b64encode(p["stdout"].encode()).decode(),
-                    "stderr_b64": base64.b64encode(p["stderr"].encode()).decode()}
-    return rtk.view(q)
-
-serve([{"kind": "command.view", "version": 1, "operations": ["view"]}], {("command.view", "view"): view},
-      {"provider_id": rtk.PROVIDER, "adapter_version": "0.1.0", "upstream_version": rtk.PINNED_VERSION})
-"#;
 
 fn s(a: &[&str]) -> Vec<String> {
     a.iter().map(|x| x.to_string()).collect()
@@ -66,21 +49,6 @@ impl Fx {
         let rtk = root.join("tools/rtk");
         std::fs::create_dir_all(rtk.parent().unwrap()).unwrap();
         std::fs::copy(&pinned, &rtk).unwrap();
-        let rtk_dir = repo_root().join("packages/semaprax-harness-adapters/rtk");
-        let sdk = repo_root().join("packages/semaprax-harness-adapters/sdk/python");
-        write(
-            &root,
-            "adapter/shim.py",
-            &SHIM
-                .replace("@SDK@", sdk.to_str().unwrap())
-                .replace("@RTK@", rtk_dir.to_str().unwrap()),
-        );
-        let mut d: Value =
-            serde_json::from_slice(&std::fs::read(rtk_dir.join("harness-provider.json")).unwrap())
-                .unwrap();
-        d["adapter"]["entry"] = serde_json::json!(["shim.py"]);
-        d["capabilities"][0]["operations"] = serde_json::json!(["view"]);
-        write(&root, "adapter/harness-provider.json", &d.to_string());
         let mut vars = BTreeMap::new();
         vars.insert("PATH".to_string(), "/usr/bin:/bin".to_string());
         vars.insert(
@@ -101,7 +69,8 @@ impl Fx {
             env,
         };
         if adopt {
-            let desc = fx.root.join("adapter/harness-provider.json");
+            let desc =
+                repo_root().join("packages/semaprax-harness-adapters/rtk/harness-provider.json");
             let o = run(
                 &s(&[
                     "adopt",
@@ -394,8 +363,8 @@ fn each_route_runs_the_command_exactly_once() {
     let (_, v) = fx.exec(&[], &[rtk, "git", "diff"]);
     assert_eq!(v["view"]["route"], "raw", "{v}");
     assert!(
-        v["view"]["notes"].to_string().contains("provider failed"),
-        "adapter reports already-wrapped: {v}"
+        v["view"]["notes"].to_string().contains("already-wrapped"),
+        "adapter plan reports already-wrapped: {v}"
     );
     assert_eq!(v["result"]["executions"], 1);
     // An existing hook elsewhere owns rewriting.
@@ -416,7 +385,9 @@ fn each_route_runs_the_command_exactly_once() {
     let (_, v) = fx.exec(&[], &[&big]);
     assert_eq!(v["view"]["route"], "raw");
     assert!(
-        v["view"]["notes"].to_string().contains("provider failed"),
+        v["view"]["notes"]
+            .to_string()
+            .contains("unsupported-command"),
         "{v}"
     );
     assert_eq!(fx.count(), 2, "cargo once, mytool once");
@@ -503,4 +474,317 @@ fn negative_saving_case_is_kept_in_the_evidence() {
         "display is larger than raw; the loss is recorded, not hidden"
     );
     assert!(v["result"]["recovery_handle"].is_string());
+}
+
+/// Wait for `path` to appear, then read the pid inside.
+fn wait_pid(path: &Path) -> i32 {
+    for _ in 0..400 {
+        if let Ok(t) = std::fs::read_to_string(path) {
+            if let Ok(n) = t.trim().parse() {
+                return n;
+            }
+        }
+        std::thread::sleep(std::time::Duration::from_millis(25));
+    }
+    panic!("command never reported its pid");
+}
+
+/// Signal the whole process group of `pid` (a group leader), like a terminal does.
+fn signal_group(sig: &str, pid: i32) {
+    let o = Command::new("/bin/sh")
+        .args(["-c", &format!("kill -{sig} -- -{pid}")])
+        .output()
+        .unwrap();
+    assert!(o.status.success(), "{}", String::from_utf8_lossy(&o.stderr));
+}
+
+/// Long-running cargo-shaped command that reports its pid once its output is written.
+fn sleeper(fx: &Fx, pidf: &Path) -> String {
+    let p = pidf.display();
+    fx.cargo(&format!(
+        "echo 'running 1 test'; echo 'error: partial CRITICAL-SIG-31' >&2; echo $$ > \"{p}.tmp\"; mv \"{p}.tmp\" \"{p}\"; sleep 30"
+    ))
+}
+
+/// Unwrapped ground truth: the same command, own process group, signalled mid-run.
+fn direct_signalled(fx: &Fx, cargo: &str, pidf: &Path, sig: &str) -> (i32, String, String) {
+    let _ = std::fs::remove_file(pidf);
+    let child = Command::new(cargo)
+        .arg("test")
+        .current_dir(&fx.project)
+        .env_clear()
+        .env("PATH", "/usr/bin:/bin")
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .process_group(0)
+        .spawn()
+        .unwrap();
+    signal_group(sig, wait_pid(pidf));
+    let o = child.wait_with_output().unwrap();
+    (
+        o.status.signal().expect("died by signal"),
+        semaprax_harness::json::sha256_plain(&o.stdout),
+        semaprax_harness::json::sha256_plain(&o.stderr),
+    )
+}
+
+#[test]
+#[ignore = "provisioned: needs HARNESS_RTK HARNESS_PYTHON"]
+fn real_group_sigint_and_sigterm_agree_with_the_unwrapped_outcome() {
+    for (sig, num) in [("INT", 2), ("TERM", 15)] {
+        let fx = Fx::new(0, true);
+        let pidf = fx.root.join("pid");
+        let cargo = sleeper(&fx, &pidf);
+        let truth = direct_signalled(&fx, &cargo, &pidf, sig);
+        assert_eq!(truth.0, num, "unwrapped command dies by SIG{sig}");
+        let _ = std::fs::remove_file(&pidf);
+        let (env, project) = (fx.env.clone(), fx.project.display().to_string());
+        let argv = s(&[
+            "exec",
+            &project,
+            "--json",
+            "--timeout-ms",
+            "60000",
+            "--",
+            &cargo,
+            "test",
+        ]);
+        let t = std::thread::spawn(move || run(&argv, &env));
+        signal_group(sig, wait_pid(&pidf));
+        let o = t.join().unwrap();
+        let v: Value = serde_json::from_str(&o.stdout).unwrap();
+        assert_eq!(o.code, 128 + num, "{}", o.stderr);
+        assert_eq!(v["result"]["status"], format!("signal:{num}"));
+        assert_eq!(v["result"]["status_certain"], true);
+        assert_eq!(v["result"]["executions"], 1);
+        assert_eq!(v["result"]["stdout"]["digest"], truth.1.as_str());
+        assert_eq!(v["result"]["stderr"]["digest"], truth.2.as_str());
+        assert_eq!(v["view"]["route"], "provider", "{v}");
+        assert!(v["view"]["text"]
+            .as_str()
+            .unwrap()
+            .contains("CRITICAL-SIG-31"));
+        assert_eq!(fx.count(), 2, "ground truth once, host run once");
+    }
+}
+
+#[test]
+#[ignore = "provisioned: needs HARNESS_RTK HARNESS_PYTHON"]
+fn host_cancel_path_is_uncertain_and_bypasses_rtk() {
+    let fx = Fx::new(0, true);
+    let pidf = fx.root.join("pid");
+    let cargo = sleeper(&fx, &pidf);
+    let cancel = semaprax_harness::host::CancelToken::new();
+    let (env, project, argv, c2) = (
+        fx.env.clone(),
+        fx.project.clone(),
+        s(&[&cargo, "test"]),
+        cancel.clone(),
+    );
+    let t = std::thread::spawn(move || {
+        let opts = semaprax_harness::command_view::ExecOptions {
+            cancel: c2,
+            timeout_ms: Some(60_000),
+            ..Default::default()
+        };
+        semaprax_harness::command_view::execute(&env, &project, &argv, &opts, None)
+    });
+    wait_pid(&pidf);
+    cancel.cancel();
+    let v = t.join().unwrap().unwrap().envelope.to_json();
+    assert_eq!(v["result"]["status"], "cancelled");
+    assert_eq!(v["result"]["status_certain"], false);
+    assert_eq!(v["result"]["executions"], 1);
+    assert_eq!(v["view"]["route"], "raw", "{v}");
+    assert_eq!(v["view"]["incomplete"], true);
+    assert_eq!(fx.count(), 1);
+}
+
+fn cargo_path() -> String {
+    let o = Command::new("/usr/bin/which")
+        .arg("cargo")
+        .output()
+        .expect("which cargo");
+    let p = String::from_utf8_lossy(&o.stdout).trim().to_string();
+    assert!(Path::new(&p).is_absolute(), "no cargo on PATH");
+    p
+}
+
+/// Tiny dependency-free crate: `passing` ok tests and one failing test that
+/// reports through `Result` so libtest output carries no thread id.
+fn crate_at(dir: &Path, passing: usize) {
+    write(
+        dir,
+        "Cargo.toml",
+        "[package]\nname = \"hpdemo\"\nversion = \"0.1.0\"\nedition = \"2021\"\n[dependencies]\n",
+    );
+    let mut lib = String::from("#[cfg(test)]\nmod tests {\n");
+    for i in 0..passing {
+        lib += &format!("    #[test]\n    fn t_{i:03}() {{ assert_eq!(1 + 1, 2); }}\n");
+    }
+    lib += "    #[test]\n    fn planted_failure() -> Result<(), String> { Err(\"CRITICAL-CARGO-4471\".to_string()) }\n}\n";
+    write(dir, "src/lib.rs", &lib);
+}
+
+#[test]
+#[ignore = "provisioned: needs HARNESS_RTK HARNESS_PYTHON and a cargo on PATH"]
+fn real_cargo_test_raw_and_rtk_agree_on_the_authoritative_outcome() {
+    let fx = Fx::new(0, true);
+    crate_at(&fx.project, 400);
+    let cargo = cargo_path();
+    let cdir = Path::new(&cargo).parent().unwrap().display().to_string();
+    let envs = [
+        format!("PATH={cdir}:/usr/bin:/bin"),
+        format!("HOME={}", fx.root.join("userhome").display()),
+        format!("CARGO_HOME={}", fx.root.join("cargo-home").display()),
+        format!(
+            "CARGO_TARGET_DIR={}",
+            fx.root.join("cargo-target").display()
+        ),
+        "CARGO_NET_OFFLINE=true".to_string(),
+        "RUST_TEST_THREADS=1".to_string(),
+    ];
+    let mut base: Vec<&str> = Vec::new();
+    for e in &envs {
+        base.extend(["--env", e.as_str()]);
+    }
+    let mut measured = Vec::new();
+    // (label, cargo args): quiet output is byte-deterministic (digests compared
+    // across modes); the verbose run measures the favourable per-test-line shape.
+    for (label, args) in [
+        ("quiet", vec!["test", "-q", "--color", "never"]),
+        ("verbose", vec!["test", "--color", "never"]),
+    ] {
+        let mut argv = vec![cargo.as_str()];
+        argv.extend(args.iter().copied());
+        let mut raw_flags = base.clone();
+        raw_flags.push("--raw");
+        let obs = fx.root.join(format!("obs-{label}.jsonl"));
+        let mut rtk_flags = base.clone();
+        rtk_flags.extend(["--observations", obs.to_str().unwrap()]);
+        // libtest prints `finished in 0.0Ns`; under load that can differ between two
+        // real runs, so a pair is repeated (at most 4 times) until the digests are comparable.
+        let mut pair = None;
+        for _ in 0..4 {
+            let _ = std::fs::remove_file(&obs);
+            let r = fx.exec(&raw_flags, &argv);
+            let t = fx.exec(&rtk_flags, &argv);
+            let same = r.1["result"]["stdout"]["digest"] == t.1["result"]["stdout"]["digest"];
+            pair = Some((r, t));
+            if same {
+                break;
+            }
+        }
+        let ((o_raw, raw), (o_rtk, rtk)) = pair.unwrap();
+        assert_eq!(o_raw.code, 101, "{label}: {}", o_raw.stderr);
+        assert_eq!(o_rtk.code, 101, "{label}: {}", o_rtk.stderr);
+        assert_eq!(raw["result"]["status"], "exit:101");
+        assert_eq!(rtk["result"]["status"], "exit:101");
+        assert_eq!(raw["view"]["route"], "raw");
+        assert_eq!(rtk["view"]["route"], "provider", "{label}: {rtk}");
+        assert_eq!(rtk["view"]["provenance"], ID);
+        if label == "quiet" {
+            for k in ["stdout", "stderr"] {
+                assert_eq!(
+                    raw["result"][k]["digest"], rtk["result"][k]["digest"],
+                    "{label} {k} digest equals the raw-mode run"
+                );
+            }
+        } else {
+            // Timing text may differ between two real runs; the recovered raw
+            // streams must agree line for line except the cargo `Finished` line.
+            assert_eq!(
+                raw["result"]["stdout"]["digest"],
+                rtk["result"]["stdout"]["digest"]
+            );
+            let rec = |v: &Value, st: &str| {
+                let o = run(
+                    &s(&[
+                        "recover",
+                        fx.project.to_str().unwrap(),
+                        v["result"]["recovery_handle"].as_str().unwrap(),
+                        "--stream",
+                        st,
+                        "--limit",
+                        "1000000",
+                    ]),
+                    &fx.env,
+                );
+                o.stdout
+                    .lines()
+                    .filter(|l| !l.contains("Finished"))
+                    .map(String::from)
+                    .collect::<Vec<_>>()
+            };
+            assert_eq!(rec(&raw, "stderr"), rec(&rtk, "stderr"));
+        }
+        let text = rtk["view"]["text"].as_str().unwrap();
+        assert!(
+            text.contains("planted_failure"),
+            "{label}: failing test name in view: {text}"
+        );
+        assert!(
+            text.contains("CRITICAL-CARGO-4471"),
+            "{label}: planted message in view"
+        );
+        assert!(
+            text.contains("400 passed") && text.contains("1 failed"),
+            "{label}: counts reported: {text}"
+        );
+        let line: Value = serde_json::from_str(
+            std::fs::read_to_string(&obs)
+                .unwrap()
+                .lines()
+                .next()
+                .unwrap(),
+        )
+        .unwrap();
+        let (before, after) = (
+            line["before"]["value"].as_u64().unwrap(),
+            line["after"]["value"].as_u64().unwrap(),
+        );
+        println!(
+            "real cargo test ({label}): raw {before} B -> display {after} B ({:+} B, byte_only, not tokens)",
+            after as i64 - before as i64
+        );
+        measured.push((label, before, after));
+    }
+    // The favourable (per-test lines) shape saves bytes; whichever way the quiet
+    // shape goes it is printed above and kept, not filtered out.
+    let verbose = measured.iter().find(|m| m.0 == "verbose").unwrap();
+    assert!(
+        verbose.2 < verbose.1,
+        "verbose cargo output shrinks: {measured:?}"
+    );
+}
+
+#[test]
+#[ignore = "provisioned: needs HARNESS_RTK HARNESS_PYTHON"]
+fn wrapped_route_without_complete_raw_recovery_runs_unwrapped_once() {
+    let mut fx = Fx::new(1024, true);
+    // Opt in to wrapper routes: RTK's plan answers `wrapped`, but its recall store
+    // keeps raw output only for failures/truncations, so the host must not wrap.
+    let policy = policy(&required_tool("HARNESS_PYTHON"), 1024)
+        .replace("\"retention\"", "\"allow_wrapper\":true,\"retention\"");
+    write(&fx.home, "command-view.json", &policy);
+    // A bare name resolved through the supplied PATH: the only shape RTK may wrap.
+    let cargo = fx.cargo(TEST_OUT);
+    let bin = Path::new(&cargo).parent().unwrap().display().to_string();
+    fx.env
+        .vars
+        .insert("PATH".into(), format!("{bin}:/usr/bin:/bin"));
+    let (o, v) = fx.exec(&[], &["cargo", "test", "101"]);
+    assert_eq!(o.code, 101, "{}", o.stderr);
+    assert_eq!(v["result"]["executions"], 1);
+    assert!(
+        v["result"]["effective_argv"].is_null(),
+        "never wrapped: {v}"
+    );
+    assert_eq!(v["result"]["executable"], cargo.as_str());
+    assert_eq!(v["view"]["route"], "provider", "{v}");
+    assert!(v["view"]["notes"]
+        .to_string()
+        .contains("lacks complete raw recovery"));
+    assert_eq!(fx.count(), 1);
 }

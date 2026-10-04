@@ -471,7 +471,7 @@ pub fn run_with(
         context_max_bytes: config.budget.context_max_bytes as usize,
         context_target: config.budget.context_target_bytes.map(|n| {
             super::context_target::TargetConfig {
-                initial_bytes: n,
+                initial: n,
                 max_escalations: config.budget.context_target_escalations as u32,
             }
         }),

@@ -10,6 +10,10 @@ struct Bulk {
     fillers: usize,
     follow_ups: u32,
     follow_up_text: Option<&'static str>,
+    /// Extra external slices `(label, text)` returned by the initial collection.
+    extra: Vec<(&'static str, &'static str)>,
+    handle: Option<String>,
+    expands: u32,
 }
 
 impl ContextStage for Bulk {
@@ -33,6 +37,13 @@ impl ContextStage for Bulk {
                     text: format!("unrelated filler {i} {}", "z".repeat(200)),
                 });
             }
+            for (l, t) in &self.extra {
+                items.push(ContextItem {
+                    label: (*l).into(),
+                    provenance: "external:structural".into(),
+                    text: (*t).into(),
+                });
+            }
             items.push(ContextItem {
                 label: "web/hit.ts:1-1".into(),
                 provenance: "external:structural".into(),
@@ -47,6 +58,18 @@ impl ContextStage for Bulk {
     }
     fn calls(&self) -> u32 {
         1 + self.follow_ups
+    }
+    fn expand(&mut self, _r: &ContextRequest, _h: &str) -> Result<ContextPacket, StageFailure> {
+        self.expands += 1;
+        Ok(packet(
+            &self.id(),
+            "src/a.ts:1-2",
+            "external:inferred",
+            "EXPANDED-SLICE",
+        ))
+    }
+    fn take_plan_report(&mut self) -> Option<Value> {
+        self.handle.as_ref().map(|h| json!({"continuation": [h]}))
     }
     fn follow_up(
         &mut self,
@@ -109,7 +132,7 @@ fn hp_tc05_localized_task_under_a_small_target_passes_the_same_checks_as_the_def
     };
     let (base, base_prompt) = run_one(None);
     let (small, small_prompt) = run_one(Some(TargetConfig {
-        initial_bytes: 400,
+        initial: 400,
         max_escalations: 1,
     }));
     assert_eq!(base.status, "candidate-ready", "{:?}", base.refusals);
@@ -141,7 +164,7 @@ fn hp_tc05_incomplete_initial_retrieval_escalates_through_the_follow_up_path_wit
     };
     let mut cfg = session_cfg(&e);
     cfg.context_target = Some(TargetConfig {
-        initial_bytes: 60,
+        initial: 60,
         max_escalations: 1,
     });
     let s = failing();
@@ -167,7 +190,7 @@ fn hp_tc05_incomplete_initial_retrieval_escalates_through_the_follow_up_path_wit
     // Bound of zero: no escalation, the refusal is reported, search stays bounded.
     let mut cfg = session_cfg(&e);
     cfg.context_target = Some(TargetConfig {
-        initial_bytes: 60,
+        initial: 60,
         max_escalations: 0,
     });
     let s = failing();
@@ -188,4 +211,127 @@ fn hp_tc05_incomplete_initial_retrieval_escalates_through_the_follow_up_path_wit
         .borrow()
         .iter()
         .any(|p| p.to_string().contains("FOLLOWUP-FACT")));
+}
+
+#[test]
+fn hp_tc05_multi_file_rename_keeps_every_required_reference_and_is_not_exhaustive() {
+    let e = setup(FIXED);
+    let mut cfg = session_cfg(&e);
+    cfg.task.goal = "rename `Gadget` to `Widget` in every file".into();
+    cfg.context_target = Some(TargetConfig {
+        initial: 300,
+        max_escalations: 1,
+    });
+    let s = script(vec![body(json!({}))]);
+    let mut st = Bulk {
+        fillers: 30,
+        extra: vec![
+            ("web/use1.ts:1-1", "const a = new Gadget(1); // pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad"),
+            ("web/use2.ts:1-1", "import { Gadget } from './g'; // pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad"),
+            ("required:contract.law", "law: Gadget ids are stable; padding padding padding padding padding padding padding padding padding"),
+        ],
+        ..Default::default()
+    };
+    let r = drive(&cfg, &mut st, &s);
+    assert_eq!(r.status, "candidate-ready", "{:?}", r.refusals);
+    let p = s.prompts.borrow()[0].to_string();
+    for must in ["web/use1.ts", "web/use2.ts", "required:contract.law"] {
+        assert!(p.contains(must), "required reference {must} kept");
+    }
+    assert!(!p.contains("unrelated filler 29"));
+    let t = &r.context["target"];
+    assert_eq!(t["exhaustive"], false);
+    assert!(t["required_refs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|x| x == "Gadget"));
+    assert!(!t["omitted"].as_array().unwrap().is_empty());
+    assert!(t["chosen"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|c| c["reason"].as_str().unwrap().contains("required")));
+}
+
+struct Words;
+impl semaprax_harness::observe::Tokenizer for Words {
+    fn name(&self) -> &str {
+        "fake-words"
+    }
+    fn fingerprint(&self) -> &str {
+        "fp-w"
+    }
+    fn count(&self, t: &str) -> usize {
+        t.split_whitespace().count()
+    }
+}
+
+#[test]
+fn hp_tc05_named_tokenizer_selects_token_units_and_unknown_falls_back_to_labelled_bytes() {
+    let e = setup(FIXED);
+    let models = json!([semaprax_harness::decision::ModelPlan {
+        id: "m-1".into(),
+        destination: semaprax_harness::decision::Destination::Local,
+        structured_output: true,
+        tools: false,
+        max_context: 100_000,
+        est_cost_micros: 1,
+        est_latency_ms: 1,
+        strength_rank: 1,
+    }
+    .to_json()]);
+    let go_one = |with_tok: bool| {
+        let mut cfg = session_cfg(&e);
+        cfg.task.models = Some(models.clone());
+        cfg.budget.map =
+            semaprax_harness::workflow::budget::ModelTokenizerMap::empty().with("m-", "fake-words");
+        if with_tok {
+            cfg.budget.tokenizers.add(Box::new(Words));
+        }
+        cfg.context_target = Some(TargetConfig {
+            initial: 40,
+            max_escalations: 1,
+        });
+        let s = script(vec![body(json!({}))]);
+        let mut st = Bulk {
+            fillers: 10,
+            ..Default::default()
+        };
+        drive(&cfg, &mut st, &s)
+    };
+    let named = go_one(true);
+    assert_eq!(named.status, "candidate-ready", "{:?}", named.refusals);
+    assert_eq!(named.context["target"]["unit"], "tokens:fake-words");
+    let fallback = go_one(false);
+    assert_eq!(
+        fallback.context["target"]["unit"],
+        "bytes:byte-policy-upper-bound"
+    );
+}
+
+#[test]
+fn hp_tc05_handle_expansion_goes_through_the_target_merge_and_escalates() {
+    let e = setup(FIXED);
+    let mut cfg = session_cfg(&e);
+    cfg.context_target = Some(TargetConfig {
+        initial: 60,
+        max_escalations: 1,
+    });
+    let s = script(vec![
+        body(json!({"fake_refuse": "SPX-G225 mismatch in src/a.ts"})),
+        body(json!({})),
+    ]);
+    let mut st = Bulk {
+        handle: Some("ctx:org.example/bulk-stage:src/a.ts#1-2@sha256:00".into()),
+        ..Default::default()
+    };
+    let r = drive(&cfg, &mut st, &s);
+    assert_eq!(r.status, "candidate-ready", "{:?}", r.refusals);
+    assert_eq!(st.expands, 1);
+    assert!(s.prompts.borrow()[1].to_string().contains("EXPANDED-SLICE"));
+    assert_eq!(
+        r.context["target"]["escalations"].as_array().unwrap().len(),
+        1
+    );
 }

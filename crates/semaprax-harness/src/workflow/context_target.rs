@@ -157,6 +157,44 @@ impl ContextTarget {
     }
 }
 
+/// A packet marks a protected fact or contract name as required by prefixing
+/// the item label with this.
+pub const REQUIRED_PREFIX: &str = "required:";
+
+/// Required references actually known: the seed, acceptance stable ids,
+/// backtick-quoted identifiers in the goal and diagnostics, and diagnostic
+/// paths. Nothing is guessed from free prose.
+pub fn required_refs(
+    goal: &str,
+    seed: Option<&str>,
+    acceptance_ids: &[String],
+    diagnostics: &[(String, String, Option<String>)],
+) -> BTreeSet<String> {
+    let mut out = BTreeSet::new();
+    let mut add = |s: &str| {
+        if s.chars().count() >= 3 {
+            out.insert(s.to_string());
+        }
+    };
+    seed.iter().for_each(|x| add(x));
+    acceptance_ids.iter().for_each(|x| add(x));
+    let quoted = |t: &str| -> Vec<String> {
+        t.split('`')
+            .skip(1)
+            .step_by(2)
+            .map(str::to_string)
+            .collect()
+    };
+    quoted(goal).iter().for_each(|x| add(x));
+    for (_, msg, path) in diagnostics {
+        quoted(msg).iter().for_each(|x| add(x));
+        if let Some(p) = path {
+            add(p);
+        }
+    }
+    out
+}
+
 /// Identifiers (>= 3 chars, alnum/underscore) from task or diagnostic text.
 pub fn identifiers(text: &str) -> BTreeSet<String> {
     text.split(|c: char| !(c.is_alphanumeric() || c == '_'))
@@ -221,6 +259,8 @@ pub fn select(
     for (i, it) in items.iter().enumerate() {
         let why = if it.provenance == COMPILER_VERIFIED {
             "protected: compiler-verified"
+        } else if it.label.starts_with(REQUIRED_PREFIX) {
+            "protected: packet-marked required"
         } else if is_required(it) {
             "protected: required reference"
         } else {
@@ -439,22 +479,29 @@ pub fn dedup_spans(entries: Vec<SpanEntry>) -> (Vec<ContextItem>, Vec<Provenance
 
 // ---- whole-task cost ---------------------------------------------------
 
-/// Opt-in wiring config (`[budget] context_target_bytes`), byte policy.
+/// Opt-in wiring config (`[budget] context_target_bytes`).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TargetConfig {
-    pub initial_bytes: u64,
+    /// In the selection unit: named-tokenizer tokens when the selected model
+    /// has one, else the labelled byte policy (the report states which).
+    pub initial: u64,
     pub max_escalations: u32,
 }
 
 impl TargetConfig {
     /// Target state for this run, restored from the report's `target` block so
     /// no extra run state is carried.
-    pub fn target(&self, safety_bound_bytes: usize, ctx: &Value) -> ContextTarget {
+    pub fn target(
+        &self,
+        safety_bound_bytes: usize,
+        ctx: &Value,
+        hard_capacity: Option<u64>,
+    ) -> ContextTarget {
         let mut t = ContextTarget::new(
-            None,
+            hard_capacity,
             safety_bound_bytes,
-            self.initial_bytes,
-            self.initial_bytes.max(1),
+            self.initial,
+            self.initial.max(1),
             self.max_escalations,
         );
         if let Some(cur) = ctx["target"]["current"].as_u64() {
@@ -480,7 +527,9 @@ pub fn targeted(
     items: Vec<ContextItem>,
     revision: &str,
     task_text: &str,
+    required: &BTreeSet<String>,
     target: &ContextTarget,
+    meter: &CostMeter,
 ) -> HarnessResult<(Vec<ContextItem>, usize, Value)> {
     let n_in = items.len();
     let (deduped, map) = dedup_spans(
@@ -492,13 +541,7 @@ pub fn targeted(
             })
             .collect(),
     );
-    let sel = select(
-        &deduped,
-        &identifiers(task_text),
-        &BTreeSet::new(),
-        target,
-        &CostMeter::bytes(),
-    )?;
+    let sel = select(&deduped, &identifiers(task_text), required, target, meter)?;
     let merged: Vec<Value> = map
         .iter()
         .filter(|m| m.sources.len() > 1 || !m.conflicts.is_empty())
@@ -515,8 +558,93 @@ pub fn targeted(
         .map(|(to, why)| json!({"to": to, "why": why}))
         .collect::<Vec<_>>());
     rep["input_items"] = json!(n_in);
+    rep["required_refs"] = json!(required);
     rep["provenance_map"] = json!(merged);
     Ok((sel.items.clone(), sel.omitted.len(), rep))
+}
+
+/// Meter for the run: the first planned model's named tokenizer when mapped and
+/// provisioned (with that model's capacity as the hard bound), else the labelled
+/// byte policy.
+pub fn meter_for<'a>(
+    rb: &'a RequestBudget<'a>,
+    plans: Option<&[crate::decision::ModelPlan]>,
+) -> (CostMeter<'a>, Option<u64>) {
+    match plans.and_then(|p| p.first()) {
+        Some(m) => {
+            let meter = CostMeter::for_model(rb, &m.id);
+            let hard = matches!(meter.unit(), CostUnit::Tokens { .. }).then_some(m.max_context);
+            (meter, hard)
+        }
+        None => (CostMeter::bytes(), None),
+    }
+}
+
+/// The task's model catalog as the proposal stage sees it (explicit models,
+/// else the machine-local binding); `None` when neither is known.
+fn plans_of(cfg: &super::pipeline::RunConfig) -> Option<Vec<crate::decision::ModelPlan>> {
+    match &cfg.task.models {
+        Some(m) => crate::decision::RouteRequest::catalog_from_json(m).ok(),
+        None => cfg.model_plans.clone(),
+    }
+}
+
+/// Pipeline entry: initial selection under the run's target and meter.
+pub(super) fn select_for_run(
+    cfg: &super::pipeline::RunConfig,
+    tc: &TargetConfig,
+    ctx: &Value,
+    items: Vec<ContextItem>,
+    diagnostics: &[super::compiler::CompilerDiagnostic],
+) -> HarnessResult<(Vec<ContextItem>, usize, Value)> {
+    let rb = cfg.budget.for_task(&cfg.task);
+    let (meter, hard) = meter_for(&rb, plans_of(cfg).as_deref());
+    let t = tc.target(cfg.context_max_bytes, ctx, hard);
+    let diags: Vec<(String, String, Option<String>)> = diagnostics
+        .iter()
+        .map(|x| (x.code.clone(), x.message.clone(), x.path.clone()))
+        .collect();
+    let ids: Vec<String> = cfg
+        .task
+        .acceptance
+        .iter()
+        .filter_map(|a| a["stable_id"].as_str().map(str::to_string))
+        .collect();
+    let required = required_refs(&cfg.task.goal, cfg.task.seed.as_deref(), &ids, &diags);
+    let text = format!(
+        "{} {}",
+        cfg.task.goal,
+        diags
+            .iter()
+            .map(|(c, m, _)| format!("{c} {m}"))
+            .collect::<Vec<_>>()
+            .join(" ")
+    );
+    targeted(items, &cfg.snapshot.revision, &text, &required, &t, &meter)
+}
+
+/// Pipeline entry: follow-up or handle merge under the run's target and meter.
+pub(super) fn merge_for_run(
+    cfg: &super::pipeline::RunConfig,
+    tc: &TargetConfig,
+    ctx: &mut Value,
+    failure: &str,
+    kept: &mut Vec<ContextItem>,
+    items: Vec<ContextItem>,
+) -> usize {
+    let rb = cfg.budget.for_task(&cfg.task);
+    let (meter, hard) = meter_for(&rb, plans_of(cfg).as_deref());
+    merge_escalating(
+        tc,
+        cfg.context_max_bytes,
+        ctx,
+        &cfg.snapshot.revision,
+        failure,
+        kept,
+        items,
+        &meter,
+        hard,
+    )
 }
 
 /// Follow-up/handle merge under the (possibly escalated) target. Escalates
@@ -530,8 +658,10 @@ pub fn merge_escalating(
     failure: &str,
     kept: &mut Vec<ContextItem>,
     items: Vec<ContextItem>,
+    meter: &CostMeter,
+    hard_capacity: Option<u64>,
 ) -> usize {
-    let mut t = cfg.target(safety_bound_bytes, ctx);
+    let mut t = cfg.target(safety_bound_bytes, ctx, hard_capacity);
     let named: String = failure
         .lines()
         .next()
@@ -542,7 +672,8 @@ pub fn merge_escalating(
     if let Err(why) = t.escalate(&Trigger::ValidationFailure(named), None) {
         ctx["target"]["escalation_refused"] = json!(why);
     }
-    let limit = (t.current() as usize).min(safety_bound_bytes);
+    let limit = t.current();
+    ctx["target"]["unit"] = json!(meter.unit().label());
     ctx["target"]["current"] = json!(t.current());
     ctx["target"]["escalations"] = json!(t
         .escalation_log()
@@ -560,12 +691,18 @@ pub fn merge_escalating(
             })
             .collect(),
     );
-    let mut used = 0usize;
+    let (mut used, mut used_bytes) = (0u64, 0usize);
     let mut dropped = 0usize;
     for (i, it) in all.into_iter().enumerate() {
+        let c = meter.cost(&it);
         // Earlier (already kept) material and compiler facts are never dropped.
-        if i < before || it.provenance == COMPILER_VERIFIED || used + it.bytes() <= limit {
-            used += it.bytes();
+        if i < before
+            || it.provenance == COMPILER_VERIFIED
+            || it.label.starts_with(REQUIRED_PREFIX)
+            || (used + c <= limit && used_bytes + it.bytes() <= safety_bound_bytes)
+        {
+            used += c;
+            used_bytes += it.bytes();
             kept.push(it);
         } else {
             dropped += 1;

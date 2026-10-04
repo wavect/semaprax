@@ -1,7 +1,7 @@
 //! HP-17 benchmark tests (fixture prefix `hp-hp17`). No real vendor tool and no
 //! model: the third-party example adapter and seeded adapters stand in. A real
-//! compiler is used when `$SEMAPRAX_COMPILER` is set; compiler-judged workflow
-//! cells are `untested` otherwise (never faked).
+//! compiler is needed for the cell tests (marked `ignore`, run with
+//! `$SEMAPRAX_COMPILER` set); without one, workflow cells are `untested`.
 
 use crate::support::{fixture_dir, repo_root};
 use semaprax_harness::bench::adversarial::{run_adversarial, AdvEnv};
@@ -136,6 +136,7 @@ fn hp_hp17_corpus_schema_pins_and_refusals() {
 }
 
 #[test]
+#[ignore = "provisioned: needs SEMAPRAX_COMPILER (native .spx facts come from the real compiler)"]
 fn hp_hp17_deterministic_cells_third_party_adapter_and_reconciliation() {
     let corpus = Corpus::load(&corpus_dir()).unwrap();
     let work = fixture_dir("hp-hp17").canonicalize().unwrap();
@@ -148,6 +149,23 @@ fn hp_hp17_deterministic_cells_third_party_adapter_and_reconciliation() {
             .map(semaprax_harness::json::canonical)
             .collect::<Vec<_>>()
     };
+    assert_eq!(a.cells.len(), b.cells.len());
+    for (x, y) in a.cells.iter().zip(&b.cells) {
+        let diff: Vec<String> = x
+            .as_object()
+            .unwrap()
+            .iter()
+            .filter(|(k, v)| &y[k.as_str()] != *v)
+            .map(|(k, v)| format!("{k}: {v} vs {}", y[k.as_str()]))
+            .collect();
+        assert!(
+            diff.is_empty(),
+            "{} {} trial {} differs: {diff:?}",
+            x["profile"],
+            x["task"],
+            x["trial"]
+        );
+    }
     assert_eq!(canon(&a), canon(&b));
     assert!(!a.cells.is_empty());
 
@@ -243,6 +261,7 @@ fn hp_hp17_untested_cells_are_not_wins() {
 }
 
 #[test]
+#[ignore = "provisioned: needs SEMAPRAX_COMPILER (native .spx facts come from the real compiler)"]
 fn hp_hp17_seeded_adversarial_cases_are_detected() {
     let corpus = Corpus::load(&corpus_dir()).unwrap();
     let work = fixture_dir("hp-hp17").canonicalize().unwrap();
@@ -435,4 +454,136 @@ fn hp_hp17_cli_usage_and_unknown_profile() {
     );
     assert_eq!(o.code, 1);
     assert!(o.stderr.contains("SPX-HPQ006"), "{}", o.stderr);
+}
+
+#[test]
+#[ignore = "provisioned: needs SEMAPRAX_COMPILER (native .spx facts come from the real compiler)"]
+fn hp_hp17_skill_profile_adopts_root_and_compiler_still_gates() {
+    let corpus = Corpus::load(&corpus_dir()).unwrap();
+    let work = fixture_dir("hp-hp17").canonicalize().unwrap();
+    let out = matrix(&corpus, &work, &["native+skill"]);
+    let cells: Vec<&Value> = out
+        .cells
+        .iter()
+        .filter(|c| c["profile"] == "native+skill")
+        .collect();
+    let reuse: Vec<&&Value> = cells
+        .iter()
+        .filter(|c| c["family"] == "api_reuse")
+        .collect();
+    assert!(!reuse.is_empty());
+    for c in &reuse {
+        assert_eq!(c["status"], "ok", "{c}");
+        assert_eq!(c["skill"]["loaded"], json!(["reuse-before-generation"]));
+        assert!(c["skill"]["prompt_bytes"].as_u64().unwrap() > 0);
+        // The skill prompt is a counted incurred cost, never free.
+        assert!(
+            c["bytes"]["incurred"].as_u64().unwrap()
+                >= c["skill"]["prompt_bytes"].as_u64().unwrap()
+        );
+    }
+    if compiler().is_some() {
+        let wf: Vec<&&Value> = cells
+            .iter()
+            .filter(|c| c["workflow_status"].is_string())
+            .collect();
+        assert!(!wf.is_empty());
+        for c in &wf {
+            let dep = c["checks"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|k| k["kind"] == "no-dependency-change")
+                .unwrap();
+            assert_eq!(dep["pass"], true, "manifest untouched: {c}");
+        }
+        let bad = cells
+            .iter()
+            .find(|c| c["task"] == "law-bad-body-rejected")
+            .unwrap();
+        assert_eq!(bad["workflow_status"], "rejected");
+        assert_eq!(
+            bad["accepted"], true,
+            "a failing candidate is still rejected by the compiler's checks"
+        );
+        let weak = cells
+            .iter()
+            .find(|c| c["task"] == "law-weakening-refused")
+            .unwrap();
+        assert_eq!(weak["workflow_status"], "refused");
+    }
+}
+
+/// Minimal loopback HTTP stand-in for a local model server.
+fn fake_model_server(answer: &'static str, calls: usize) -> (String, std::thread::JoinHandle<()>) {
+    use std::io::{Read, Write};
+    let l = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let addr = l.local_addr().unwrap().to_string();
+    let h = std::thread::spawn(move || {
+        for _ in 0..calls {
+            let (mut s, _) = l.accept().unwrap();
+            let mut buf = vec![0u8; 65536];
+            let n = s.read(&mut buf).unwrap();
+            let req = String::from_utf8_lossy(&buf[..n]).to_string();
+            let body = if req.starts_with("GET /api/tags") {
+                r#"{"models":[{"name":"fake:1b","digest":"d0"}]}"#.to_string()
+            } else {
+                // Reuses the API only when the prompt carries the skill block.
+                let reuse = req.contains("BEGIN SKILL");
+                json!({"response": if reuse { answer } else { "x * x" }}).to_string()
+            };
+            let _ = write!(s, "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len());
+        }
+    });
+    (addr, h)
+}
+
+#[test]
+fn hp_hp17_skill_pilot_is_labelled_pilot_only_and_loopback_only() {
+    use semaprax_harness::bench::arena::Arena;
+    use semaprax_harness::bench::pilot::{run_pilot, run_skill_pilot, PilotConfig};
+    let corpus = Corpus::load(&corpus_dir()).unwrap();
+    let work = fixture_dir("hp-hp17").canonicalize().unwrap();
+    let prep = |id: &str| {
+        Arena::prepare(
+            &corpus,
+            corpus.profile(id).unwrap(),
+            &repo_root(),
+            &work,
+            &vars(),
+            compiler(),
+        )
+    };
+    let (base, skill) = (prep("native-only"), prep("native+skill"));
+    assert!(
+        base.untested.is_none() && skill.untested.is_none(),
+        "{:?} {:?}",
+        base.untested,
+        skill.untested
+    );
+    // Non-loopback endpoints are refused before any request.
+    let remote = PilotConfig {
+        addr: "example.com:80".into(),
+        model: "m".into(),
+        reps: 1,
+        max_calls: 1,
+    };
+    assert_eq!(run_pilot(&corpus, &[&base], &remote)["status"], "refused");
+
+    let (addr, h) = fake_model_server("multiply(x, x)", 6);
+    let cfg = PilotConfig {
+        addr,
+        model: "fake:1b".into(),
+        reps: 1,
+        max_calls: 6,
+    };
+    let r = run_skill_pilot(&corpus, &base, &skill, &cfg, 3);
+    h.join().unwrap();
+    assert_eq!(r["status"], "ran", "{r}");
+    assert_eq!(r["label"], "pilot-only", "fewer than ten trials");
+    assert_eq!(r["without_skill"], json!({"reused": 0, "n": 3}));
+    assert_eq!(r["with_skill"], json!({"reused": 3, "n": 3}));
+    assert!(r["skill_prompt_bytes"].as_u64().unwrap() > 0);
+    // Metadata only: rows hold digests, never answer text.
+    assert!(r["rows"][0].get("answer").is_none());
 }

@@ -149,10 +149,15 @@ pub fn evaluate(cells: &[Value], adversarial: &[Value], summary: &Value, baselin
                 ),
             ];
             let eligible = gates.iter().all(|g| g["pass"] == true);
+            let distinct: BTreeSet<&str> = prof
+                .iter()
+                .filter(|c| c["status"] == "ok")
+                .filter_map(|c| c["task"].as_str())
+                .collect();
             scopes.insert(
                 fam.to_string(),
                 json!({"matched_cells": n, "accepted_delta_per_cell": r4(acc / nf), "visible_byte_reduction": r4(reduction),
-                       "added_latency_ms_per_cell": r4(lat / nf), "gates": gates, "auto_enable_eligible": eligible}),
+                       "added_latency_ms_per_cell": r4(lat / nf), "distinct_tasks": distinct.len(), "gates": gates, "auto_enable_eligible": eligible}),
             );
         }
         out.insert(p.to_string(), Value::Object(scopes));

@@ -27,12 +27,13 @@ def tree_digest(d):
     return "sha256:" + hashlib.sha256("".join(f"{a}\0{b}\n" for a, b in rows).encode()).hexdigest()
 
 
-projects = {k: {"path": f"projects/{k}"} for k in ["downstream", "mixed", "harness-src", "scripts"]}
+projects = {k: {"path": f"projects/{k}"} for k in ["downstream", "ledger-poly", "mixed", "harness-src", "scripts"]}
 pins = {k: tree_digest(os.path.join(B, v["path"])) for k, v in projects.items()}
 rw = lambda: {"read": ["project"], "write": "none", "publish": False}
 rc = lambda: {"read": ["project"], "write": "candidate", "publish": False}
 bud = lambda b=16384, c=6: {"max_visible_bytes": b, "max_calls": c}
-noisy = ["{python}", "{projects}/scripts/noisy_test_run.py", "--counter", "{counter}"]
+noisy = ["{projects}/scripts/cargo", "test"]
+custom = ["{python}", "{projects}/scripts/noisy_test_run.py", "--counter", "{counter}"]
 crit = ["case_173 ... FAILED", "assertion failed: ledger.line_total(3, 4) == 12"]
 
 
@@ -66,10 +67,18 @@ tasks = [
      "acceptance": [{"kind": "facts"}, {"kind": "command", "argv": noisy, "critical": crit}, wf()], "budget": bud(32768, 8)},
     {"id": "diagnose-noisy-run", "family": "failing_test_diagnosis", "project": "downstream", "request": "Read a 320-test run and name the one failing case.", "authority": rw(),
      "baseline_files": [], "required_facts": [], "acceptance": [{"kind": "command", "argv": noisy, "critical": crit}], "budget": bud(16384, 3)},
+    {"id": "diagnose-custom-runner", "family": "failing_test_diagnosis", "project": "downstream", "request": "Same failure from a custom test runner that no compact-view tool knows.", "authority": rw(),
+     "baseline_files": [], "required_facts": [], "acceptance": [{"kind": "command", "argv": custom, "critical": crit}], "budget": bud(16384, 3)},
     {"id": "repair-ledger-two-files", "family": "multi_file_repair", "project": "downstream",
      "request": "invoice_total in report.spx is wrong because line_total in lib.spx is wrong: repair it so the contract holds.", "authority": rc(),
      "query": "ledger.invoice_total", "max_bytes": 4096, "baseline_files": ledger_files, "required_facts": ["src/lib.spx", "src/report.spx", "ledger.line_total"],
      "acceptance": [{"kind": "facts"}, wf()], "budget": bud(24576, 6)},
+    {"id": "repair-ledger-polyglot", "family": "multi_file_repair", "project": "ledger-poly",
+     "request": "A mixed-language ledger project (.spx, TypeScript, Rust, Python) has a failing test: find every place that restates line_total, then repair the .spx declaration.", "authority": rc(),
+     "query": "ledger.line_total", "max_bytes": 4096,
+     "baseline_files": ledger_files + ["web/ledger.ts", "src/host.rs", "tools/check_ledger.py"],
+     "required_facts": ["ledger.line_total", "renderLineTotal", "host_line_total", "expected_line_total"],
+     "acceptance": [{"kind": "facts"}, wf(), {"kind": "workflow_context", "facts": ["ledger.line_total", "renderLineTotal", "host_line_total"]}], "budget": bud(32768, 6)},
     {"id": "law-sound-fix", "family": "law_effect_change", "project": "downstream", "request": "Fix line_total without touching its contract or effects.", "authority": rc(),
      "query": "ledger.line_total", "max_bytes": 4096, "baseline_files": ["src/lib.spx"], "required_facts": ["ensures result == price * qty"],
      "acceptance": [{"kind": "facts"}, wf()], "budget": bud(24576, 6)},
@@ -80,6 +89,13 @@ tasks = [
     {"id": "orient-mixed", "family": "orientation", "project": "mixed", "request": "Orient in the calculator project: what does main use?", "authority": rw(),
      "query": "calculator.app.main", "max_bytes": 4096, "baseline_files": ["src/app.spx", "src/core.spx", "src/tests.spx"],
      "required_facts": ["calculator.app.main", "calculator.multiply", "calculator.add"], "acceptance": [{"kind": "facts"}], "budget": bud()},
+    {"id": "reuse-square-via-multiply", "family": "api_reuse", "project": "mixed", "request": "Add a square(x) helper to the calculator: reuse an existing declaration if one fits.", "authority": rc(),
+     "query": "calculator.multiply", "max_bytes": 4096, "baseline_files": ["src/core.spx"], "required_facts": ["calculator.multiply"],
+     "acceptance": [{"kind": "facts"}], "budget": bud(),
+     "reuse_probe": {"ask": "Write only the body expression of `fn square(x: i64) -> i64` in the calculator package. Do not explain.", "reuse": ["multiply("]}},
+    {"id": "law-bad-body-rejected", "family": "law_effect_change", "project": "downstream", "request": "A candidate that type-checks but fails the tests must still be rejected by the compiler's checks.", "authority": rc(),
+     "baseline_files": [], "required_facts": [],
+     "acceptance": [{"kind": "workflow", "proposal": "proposals/invalid-tests.json", "task": "task-ledger.json", "expect_status": "rejected"}], "budget": bud(8192, 2)},
     {"id": "refactor-multiply-callers", "family": "mechanical_refactor", "project": "mixed", "request": "Rename multiply safely: list every caller first.", "authority": rw(),
      "query": "calculator.multiply", "max_bytes": 4096, "baseline_files": ["src/app.spx", "src/core.spx", "src/tests.spx"], "required_facts": ["calculator.multiply"],
      "acceptance": [{"kind": "facts"}, {"kind": "references", "symbol": "multiply", "callers": ["src/app.spx", "src/tests.spx"]}], "budget": bud()},
@@ -122,6 +138,8 @@ profiles = [
                 "model_id": "laya-multilingual", "checkpoint": "convaiinnovations/laya@7b928d82:multilingual"},
      "requires_env": ["HARNESS_PYTHON"],
      "skip": "untested: resource (disk); real local Laya evidence exists in docs/HARNESS-LAYA-JEV-V1.md (HP-11), not repeated here"},
+    {"id": "native+skill", "description": "Native plus the adopted reuse-before-generation skill (adopt --skills, [skills] enabled).",
+     "skills": ["repo:packages/semaprax-harness-adapters/skills"], "requires_env": []},
     {"id": "local-efficient", "description": "Combined: native + Graft context + RTK command view + rules decision.",
      "installs": [inst(A + "graft/harness-provider.json", "org.nanonets/graft-context", "context.repository", upstream_env="HARNESS_GRAFT"),
                   inst(A + "rtk/harness-provider.json", "ai.rtk/rtk-command-view", "command.view", upstream_env="HARNESS_RTK")],

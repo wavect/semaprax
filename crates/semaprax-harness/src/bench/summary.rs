@@ -178,6 +178,57 @@ fn matched(base: &[&Value], prof: &[&Value]) -> Value {
            "visible_bytes_delta_per_cell": m(d_vis), "latency_ms_delta_per_cell": m(d_lat)})
 }
 
+/// Two explicit acceptance cells: the development workflow itself querying an
+/// external context provider (workflow_context), and an adopted skill.
+fn acceptance_cells(cells: &[Value]) -> Value {
+    let mut ctx = vec![];
+    let mut skill = serde_json::Map::new();
+    for c in cells
+        .iter()
+        .filter(|c| c["status"] == "ok" && c["trial"] == 1)
+    {
+        let w = &c["workflow_context"];
+        if w.is_object()
+            && w["providers"].as_array().is_some_and(|p| {
+                p.iter()
+                    .any(|x| !x.as_str().unwrap_or("").starts_with("semaprax/"))
+            })
+        {
+            ctx.push(json!({"profile": c["profile"], "task": c["task"], "workflow_context": w,
+                            "context_step_visible_bytes": c["bytes"]["final_paired"], "accepted": c["accepted"]}));
+        }
+    }
+    for c in cells
+        .iter()
+        .filter(|c| c["status"] == "ok" && c["skill"].is_object())
+    {
+        let e = skill.entry(c["profile"].as_str().unwrap_or("").to_string()).or_insert_with(|| json!({
+            "cells": 0, "skill_cells": 0, "prompt_bytes": null, "loaded": null, "workflow_cells": 0, "workflow_accepted": 0,
+            "manifest_unchanged_everywhere": true}));
+        e["cells"] = json!(e["cells"].as_u64().unwrap_or(0) + 1);
+        if c["skill"]["prompt_bytes"].is_u64() {
+            e["skill_cells"] = json!(e["skill_cells"].as_u64().unwrap_or(0) + 1);
+            e["prompt_bytes"] = c["skill"]["prompt_bytes"].clone();
+            e["loaded"] = c["skill"]["loaded"].clone();
+        }
+        if c["workflow_status"].is_string() {
+            e["workflow_cells"] = json!(e["workflow_cells"].as_u64().unwrap_or(0) + 1);
+            e["workflow_accepted"] = json!(
+                e["workflow_accepted"].as_u64().unwrap_or(0) + (c["accepted"] == true) as u64
+            );
+            if c["checks"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .any(|k| k["kind"] == "no-dependency-change" && k["pass"] != true)
+            {
+                e["manifest_unchanged_everywhere"] = json!(false);
+            }
+        }
+    }
+    json!({"workflow_external_context": ctx, "skills": skill})
+}
+
 pub fn build(out: &RunOutput, baseline: &str, corpus_digest: &str, trials: (u32, u32)) -> Value {
     let profiles: BTreeSet<String> = out
         .cells
@@ -238,6 +289,7 @@ pub fn build(out: &RunOutput, baseline: &str, corpus_digest: &str, trials: (u32,
         "profiles": per,
         "vs_baseline": cmp,
         "per_task": by_task,
+        "acceptance_cells": acceptance_cells(&out.cells),
         "adversarial": out.adversarial.iter().map(|a| a.to_json()).collect::<Vec<_>>(),
     })
 }

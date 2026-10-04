@@ -135,6 +135,28 @@ required strings. Fewer than ten trials per configuration is labelled
 `pilot-only` and supports no default. Seeds, model name and digest, and
 temperature are recorded; only loopback endpoints are accepted.
 
+A second pilot (`--pilot-skill-reps N`, default 6 per arm) asks a loopback model
+for the body of a new helper with and without the adopted
+`reuse-before-generation` skill block and scores deterministically whether the
+answer reuses the existing declaration. The context is identical in both arms;
+only the skill prompt block (as `skills --json` renders it, bytes counted as
+incurred cost) differs. The total pilot budget is `--pilot-calls` (default 60).
+Compiler gating is shown by deterministic cells, not by the model: the
+`native+skill` profile runs every workflow task with skills enabled and
+requires the same compiler-judged statuses and an unchanged `semaprax.toml`
+(`no-dependency-change` check on every workflow cell).
+
+## Explicit acceptance cells
+
+- Workflow-driven external context: task `repair-ledger-polyglot` runs the
+  development workflow (`run`, external context `always`) on a mixed-language
+  project; the report records which provider the workflow itself invoked, the
+  context bytes the workflow used against the full-source reference, and the
+  required facts verified in the broker context for the same seed (the `run`
+  report carries bytes and identity, not item text).
+- Adopted skills: `adopt --skills <root>` plus `[skills] enabled = true`, the
+  prompt cost, and the unchanged compiler gates, as above.
+
 ## Reproduce
 
 Build the host once, then provide tools explicitly (nothing is discovered):
@@ -145,7 +167,9 @@ export SEMAPRAX_COMPILER=<abs path of a built semaprax>
 target/debug/semaprax-harness bench crates/semaprax-harness/tests/fixtures/bench \
   --work "$PWD/target/benchwork" --out benchmarks/harness/<date>-local --label "<date> local" \
   --env HARNESS_PYTHON=<abs python3> --env HARNESS_NODE=<abs node> \
-  --env HARNESS_GRAFT=<abs graft> --env HARNESS_GRAPHIFY=<abs graphify> --env HARNESS_RTK=<abs rtk>
+  --env HARNESS_GRAFT=<abs graft> --env HARNESS_GRAPHIFY=<abs graphify> --env HARNESS_RTK=<abs rtk> \
+  --pilot 127.0.0.1:11434 --pilot-model <local model> --pilot-profile native-only \
+  --pilot-profile native+source-index --pilot-profile native+graft      # optional local pilot
 ```
 
 `--profile NAME` (repeatable) restricts profiles (the baseline always runs),
@@ -156,7 +180,8 @@ object per cell), `observations/<profile>.jsonl` (metadata-only
 (OS, tool and adopted-upstream versions, corpus digest). Delete `--work` after
 recording numbers: it holds provider indexes. The deterministic fixture suite
 runs without real tools or a model:
-`cargo test --offline -p semaprax-harness --test harness_v1 bench::`.
+`cargo test --offline -p semaprax-harness --test harness_v1 bench::`; the cell tests need the real compiler
+(`SEMAPRAX_COMPILER`) and are `#[ignore]`: add `-- --include-ignored` with it set.
 
 ## Support labels
 

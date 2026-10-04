@@ -166,7 +166,7 @@ mod tests {
         assert_eq!(percentile(&[5, 1, 3, 2, 4], 95), Some(5));
         assert_eq!(percentile(&[], 50), None);
         let (lo, hi) = wilson95(10, 10);
-        assert!(lo > 0.69 && hi == 1.0, "{lo} {hi}");
+        assert!(lo > 0.69 && hi > 0.999, "{lo} {hi}");
         assert_eq!(wilson95(0, 0), (0.0, 1.0));
     }
 

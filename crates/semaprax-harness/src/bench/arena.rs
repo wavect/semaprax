@@ -73,6 +73,9 @@ fn config_toml(p: &ProfileSpec) -> String {
             i.capability, i.provider
         ));
     }
+    if !p.skills.is_empty() {
+        t.push_str("\n[skills]\nenabled = true\n");
+    }
     t
 }
 
@@ -92,6 +95,30 @@ fn policy_json(p: &ProfileSpec, vars: &BTreeMap<String, String>) -> Value {
     }
     m.entry("runtimes").or_insert(Value::Object(rt));
     pol
+}
+
+/// Real downstream projects live in git repositories (some indexers need one).
+/// Best effort with an isolated identity and config; absent git is not an error.
+fn git_init(dir: &Path, home: &Path) {
+    let _ = std::fs::create_dir_all(home);
+    for args in [
+        &["init", "-q"][..],
+        &["add", "-A"],
+        &["commit", "-qm", "benchmark base"],
+    ] {
+        let _ = std::process::Command::new("/usr/bin/git")
+            .args(args)
+            .current_dir(dir)
+            .env_clear()
+            .env("PATH", "/usr/bin:/bin")
+            .env("HOME", home)
+            .env("GIT_CONFIG_NOSYSTEM", "1")
+            .env("GIT_AUTHOR_NAME", "bench")
+            .env("GIT_AUTHOR_EMAIL", "bench@example.invalid")
+            .env("GIT_COMMITTER_NAME", "bench")
+            .env("GIT_COMMITTER_EMAIL", "bench@example.invalid")
+            .output();
+    }
 }
 
 fn strip_upstream(desc: &Path) -> Result<(), String> {
@@ -171,6 +198,7 @@ impl Arena {
                 return a;
             }
             let _ = std::fs::write(dst.join("semaprax.harness.toml"), config_toml(profile));
+            git_init(&dst, &root.join("userhome"));
             a.projects.insert(id.clone(), dst);
         }
         if let Err(e) = copy_tree(&repo.join(ADAPTERS_REL), &root.join("adapters")) {
@@ -235,8 +263,44 @@ impl Arena {
                 return a;
             }
         }
+        // Skill roots: approved machine-locally through `adopt --skills`, then
+        // enabled per project by the `[skills]` table written above.
+        if let Some(first) = a.projects.values().next().cloned() {
+            for sr in &profile.skills {
+                let dir = staged_descriptor(&root, sr);
+                let o = run(
+                    &s(&[
+                        "adopt",
+                        "--skills",
+                        dir.to_str().unwrap_or(""),
+                        "--origin",
+                        "benchmark",
+                        "--project",
+                        first.to_str().unwrap_or(""),
+                    ]),
+                    &a.env,
+                );
+                if o.code != 0 {
+                    let why = format!(
+                        "untested: adopt --skills refused: {}",
+                        o.stderr.lines().next().unwrap_or("")
+                    );
+                    fail(&mut a, why);
+                    return a;
+                }
+            }
+        }
         a.trust_before = a.trust_digest();
         a
+    }
+
+    /// Staged skill root directories of this profile.
+    pub fn skill_roots(&self) -> Vec<PathBuf> {
+        self.profile
+            .skills
+            .iter()
+            .map(|s| staged_descriptor(&self.root, s))
+            .collect()
     }
 
     /// Re-open an arena another process prepared (cell subprocess): same

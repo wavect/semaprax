@@ -66,6 +66,7 @@ fn arena(e: &AdvEnv, spec: &AdversarialSpec, caps: &[&str]) -> Arena {
         requires_env: vec!["HARNESS_PYTHON".into()],
         command_view_policy: Some(json!({"min_bytes": 64})),
         skip: None,
+        skills: vec![],
     };
     Arena::prepare(e.corpus, &p, e.repo, e.work, e.vars, e.compiler.clone())
 }

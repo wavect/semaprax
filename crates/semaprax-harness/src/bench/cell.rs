@@ -56,12 +56,17 @@ pub struct CellResult {
     pub command_execs: Option<u32>,
     pub command_route: Option<String>,
     pub command_provider: Option<String>,
+    pub command_notes: Vec<String>,
     pub route_choice: Option<String>,
     pub route_source: Option<String>,
     pub provider_status: Option<String>,
+    pub provider_offered: Option<u64>,
+    pub provider_note: Option<String>,
     pub workflow_status: Option<String>,
     pub permission_changed: bool,
     pub disk_bytes: u64,
+    pub skill: Option<Value>,
+    pub workflow_context: Option<Value>,
 }
 
 impl CellResult {
@@ -81,10 +86,11 @@ impl CellResult {
                       "final_paired": self.final_paired_bytes, "incurred": self.incurred_bytes, "unit": "byte-v1"},
             "calls": self.calls, "retries": self.retries, "detail_retrievals": self.detail_retrievals,
             "latency_ms": self.latency_ms, "step_ms": self.step_ms,
-            "command": {"executions": self.command_execs, "route": self.command_route, "provider": self.command_provider},
+            "command": {"executions": self.command_execs, "route": self.command_route, "provider": self.command_provider, "notes": self.command_notes},
             "route": {"choice": self.route_choice, "source": self.route_source},
-            "provider_status": self.provider_status, "workflow_status": self.workflow_status,
+            "provider_status": self.provider_status, "provider_offered_items": self.provider_offered, "provider_note": self.provider_note, "workflow_status": self.workflow_status,
             "permission_changed": self.permission_changed, "disk_bytes": self.disk_bytes,
+            "skill": self.skill, "workflow_context": self.workflow_context,
         })
     }
 
@@ -192,8 +198,13 @@ pub fn run_cell(i: &CellInput) -> (CellResult, Vec<Observation>) {
     if t.query.is_some() {
         context_ok = context_step(i, &ids, &project, &mut r, &mut obs, &mut facts_text);
     }
+    if !i.arena.profile.skills.is_empty() && t.steps().contains(&"skill") {
+        skill_step(i, &mut r);
+    }
+    let mut wf_report = Value::Null;
     for c in &t.checks {
         match c {
+            Check::WorkflowContext { .. } => {} // judged after the workflow ran
             Check::Facts => {
                 r.facts_total = t.required_facts.len() as u32;
                 r.facts_missing = t
@@ -223,15 +234,37 @@ pub fn run_cell(i: &CellInput) -> (CellResult, Vec<Observation>) {
                 proposal,
                 task,
                 expect_status,
-            } => workflow_step(
-                i,
-                &project,
-                proposal,
-                task.as_deref(),
-                expect_status,
-                &mut r,
-            ),
+            } => {
+                wf_report = workflow_step(
+                    i,
+                    &project,
+                    proposal,
+                    task.as_deref(),
+                    expect_status,
+                    &mut r,
+                )
+            }
         }
+    }
+    if let Some(Check::WorkflowContext { facts }) = t
+        .checks
+        .iter()
+        .find(|c| matches!(c, Check::WorkflowContext { .. }))
+    {
+        let reference: u64 = t
+            .baseline_files
+            .iter()
+            .map(|f| std::fs::metadata(project.join(f)).map_or(0, |m| m.len()))
+            .sum();
+        let ctx = &wf_report["context"];
+        r.workflow_context = Some(json!({
+            "providers": ctx["providers"], "used_bytes": ctx["used_bytes"], "items": ctx["items"],
+            "external_provider_calls": wf_report["external_provider_calls"],
+            "full_source_reference_bytes": reference,
+            "facts_verified_in_broker_context": facts.iter().filter(|f| facts_text.contains(f.as_str())).count(),
+            "facts_required": facts.len(),
+            "note": "facts are verified in the broker context for the same seed; the workflow report does not carry item text",
+        }));
     }
     r.latency_ms = r.step_ms.values().sum();
     r.permission_changed = i.arena.trust_digest() != i.arena.trust_before;
@@ -300,6 +333,10 @@ fn context_step(
             .unwrap_or("absent")
             .to_string();
         r.provider_status = Some(status.clone());
+        r.provider_offered = p.and_then(|p| p["offered_items"].as_u64());
+        r.provider_note = p
+            .and_then(|p| p["diagnostics"][0]["message"].as_str())
+            .map(|m| m.chars().take(160).collect());
         if !(status == "complete" || status == "partial") {
             let diag = p
                 .and_then(|p| p["diagnostics"][0]["code"].as_str())
@@ -456,7 +493,10 @@ fn command_step(
     let _ = std::fs::remove_file(&counter);
     let argv = expand(argv, i, &counter);
     let t0 = i.clock.now_ms();
-    let rep = execute(&i.arena.env, project, &argv, &ExecOptions::default(), None);
+    let mut opts = ExecOptions::default();
+    opts.extra_env
+        .insert("BENCH_COUNTER".into(), counter.display().to_string());
+    let rep = execute(&i.arena.env, project, &argv, &opts, None);
     r.step_ms
         .insert("command".into(), i.clock.now_ms().saturating_sub(t0));
     r.calls += 1;
@@ -478,6 +518,20 @@ fn command_step(
     let v = &rep.envelope.view;
     r.command_route = Some(v.route.clone());
     r.command_provider = Some(v.provenance.clone());
+    r.command_notes = v
+        .notes
+        .iter()
+        .map(|n| {
+            n.replace(&i.arena.root.display().to_string(), "<arena>")
+                .split(' ')
+                .map(|w| if w.starts_with("cv-") { "<handle>" } else { w })
+                .collect::<Vec<_>>()
+                .join(" ")
+                .chars()
+                .take(200)
+                .collect()
+        })
+        .collect();
     let display = rep.display;
     r.visible_bytes += display.len() as u64;
     if let Some(inst) = i
@@ -652,14 +706,17 @@ fn workflow_step(
     task: Option<&str>,
     expect: &str,
     r: &mut CellResult,
-) {
+) -> Value {
     if i.arena.env.compiler.is_none() {
         r.checks
             .push(("workflow".into(), false, "no compiler configured".into()));
         r.status = "untested".into();
         r.reason = Some("untested: no compiler (set SEMAPRAX_COMPILER)".into());
-        return;
+        return Value::Null;
     }
+    let manifest = std::fs::read(project.join("semaprax.toml"))
+        .map(|b| sha256_plain(&b))
+        .unwrap_or_default();
     let mut args = st(&[
         "run",
         project.to_str().unwrap_or(""),
@@ -689,4 +746,52 @@ fn workflow_step(
         status == expect,
         format!("compiler-judged status `{status}`, expected `{expect}`"),
     ));
+    let after = std::fs::read(project.join("semaprax.toml"))
+        .map(|b| sha256_plain(&b))
+        .unwrap_or_default();
+    r.checks.push((
+        "no-dependency-change".into(),
+        manifest == after,
+        "project manifest bytes identical before and after the run".into(),
+    ));
+    if i.arena.profile.skills.is_empty() {
+        return v;
+    }
+    r.skill.get_or_insert_with(|| json!({}))["workflow_skills"] = v["context"]["skills"].clone();
+    v
+}
+
+/// Skill prompt block the workflow would add: counted as model-visible cost.
+fn skill_step(i: &CellInput, r: &mut CellResult) {
+    let mut args = st(&["skills"]);
+    for root in i.arena.skill_roots() {
+        args.push("--root".into());
+        args.push(root.display().to_string());
+    }
+    args.extend(st(&["--tags", "api-reuse", "--json"]));
+    let t0 = i.clock.now_ms();
+    let o = verb(i.arena, &args);
+    r.step_ms
+        .insert("skill".into(), i.clock.now_ms().saturating_sub(t0));
+    r.calls += 1;
+    let v: Value = serde_json::from_str(o.stdout.trim()).unwrap_or(Value::Null);
+    let bytes = v["prompt"]["model_visible_bytes"].as_u64();
+    let loaded: Vec<String> = v["prompt"]["loaded"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|l| l["name"].as_str().map(str::to_string))
+        .collect();
+    r.visible_bytes += bytes.unwrap_or(0);
+    r.incurred_bytes += bytes.unwrap_or(0);
+    r.skill = Some(
+        json!({"loaded": loaded, "prompt_bytes": bytes, "warnings": v["prompt"]["warnings"], "workflow_skills": null}),
+    );
+    if bytes.is_none() || loaded.is_empty() {
+        r.status = "failed".into();
+        r.reason = Some(format!(
+            "skill step produced no loaded skill: {}",
+            first_line(&o)
+        ));
+    }
 }

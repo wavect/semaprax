@@ -125,6 +125,11 @@ pub enum Check {
         task: Option<String>,
         expect_status: String,
     },
+    /// Informational: what the development workflow's own context step used
+    /// (provider invoked, bytes) against the full-source reference; `facts`
+    /// are verified in the context the broker returns for the same seed.
+    /// Never part of acceptance.
+    WorkflowContext { facts: Vec<String> },
     /// Route decision must be in `allowed` and never in `forbidden`.
     Route {
         request: Value,
@@ -141,6 +146,7 @@ impl Check {
             Check::Command { .. } => "command",
             Check::Workflow { .. } => "workflow",
             Check::Route { .. } => "route",
+            Check::WorkflowContext { .. } => "workflow_context",
         }
     }
 }
@@ -163,6 +169,9 @@ pub struct Task {
     pub max_calls: u64,
     /// Local-model pilot question and the strings a correct answer contains.
     pub question: Option<(String, Vec<String>)>,
+    /// Local-model reuse probe: the answer reuses the existing API iff it
+    /// contains every `reuse` string (deterministic).
+    pub reuse_probe: Option<(String, Vec<String>)>,
 }
 
 impl Task {
@@ -183,6 +192,9 @@ impl Task {
             if self.has_check(k) {
                 s.push(n);
             }
+        }
+        if self.family == "api_reuse" {
+            s.push("skill");
         }
         s
     }
@@ -219,6 +231,9 @@ pub struct ProfileSpec {
     pub installs: Vec<Install>,
     pub router: Option<RouterSpec>,
     pub requires_env: Vec<String>,
+    /// Skill roots (corpus `repo:` paths) adopted with `adopt --skills` and
+    /// enabled through `[skills] enabled = true`.
+    pub skills: Vec<String>,
     pub command_view_policy: Option<Value>,
     /// Declared reason this profile is skipped on this machine (recorded, not hidden).
     pub skip: Option<String>,
@@ -237,6 +252,9 @@ impl ProfileSpec {
         }
         if self.router.is_some() {
             t.push("route");
+        }
+        if !self.skills.is_empty() {
+            t.extend(["skill", "workflow"]);
         }
         t.sort();
         t.dedup();
@@ -332,6 +350,12 @@ fn parse_check(v: &Value, task: &str) -> HarnessResult<Check> {
                 expect_status: text(m, "expect_status", &what)?,
             }
         }
+        "workflow_context" => {
+            let m = closed(v, &what, &["kind", "facts"], &[])?;
+            Check::WorkflowContext {
+                facts: strings(m, "facts", &what)?,
+            }
+        }
         "route" => {
             let m = closed(v, &what, &["kind", "request", "allowed", "forbidden"], &[])?;
             Check::Route {
@@ -358,7 +382,13 @@ fn parse_task(v: &Value) -> HarnessResult<Task> {
             "required_facts",
             "budget",
         ],
-        &["query", "max_bytes", "baseline_files", "question"],
+        &[
+            "query",
+            "max_bytes",
+            "baseline_files",
+            "question",
+            "reuse_probe",
+        ],
     )?;
     let id = text(m, "id", "task")?;
     let what = format!("task `{id}`");
@@ -409,6 +439,13 @@ fn parse_task(v: &Value) -> HarnessResult<Task> {
             Some((text(q, "ask", &what)?, strings(q, "expect", &what)?))
         }
     };
+    let reuse_probe = match m.get("reuse_probe") {
+        None => None,
+        Some(q) => {
+            let q = closed(q, &what, &["ask", "reuse"], &[])?;
+            Some((text(q, "ask", &what)?, strings(q, "reuse", &what)?))
+        }
+    };
     let t = Task {
         id: id.clone(),
         family,
@@ -424,6 +461,7 @@ fn parse_task(v: &Value) -> HarnessResult<Task> {
         max_visible_bytes: uint(b, "max_visible_bytes", &what)?,
         max_calls: uint(b, "max_calls", &what)?,
         question,
+        reuse_probe,
     };
     if t.has_check("facts") && (t.query.is_none() || t.required_facts.is_empty()) {
         return Err(schema_err(format!(
@@ -449,6 +487,7 @@ fn parse_profile(v: &Value) -> HarnessResult<ProfileSpec> {
             "router",
             "requires_env",
             "command_view_policy",
+            "skills",
             "skip",
         ],
     )?;
@@ -528,6 +567,7 @@ fn parse_profile(v: &Value) -> HarnessResult<ProfileSpec> {
         installs,
         router,
         requires_env: strings(m, "requires_env", &what)?,
+        skills: strings(m, "skills", &what)?,
         command_view_policy: m.get("command_view_policy").cloned(),
         skip: m.get("skip").and_then(Value::as_str).map(str::to_string),
     })

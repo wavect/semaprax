@@ -51,14 +51,17 @@ struct Args {
     pilot_model: Option<String>,
     pilot_reps: u32,
     pilot_calls: u32,
+    skill_reps: u32,
+    pilot_profiles: Vec<String>,
 }
 
 fn parse(args: &[String]) -> Result<Args, HarnessDiagnostic> {
     let mut a = Args {
         adversarial: true,
         measure: true,
-        pilot_reps: 3,
+        pilot_reps: 2,
         pilot_calls: 60,
+        skill_reps: 6,
         ..Args::default()
     };
     let mut it = args.iter();
@@ -99,6 +102,12 @@ fn parse(args: &[String]) -> Result<Args, HarnessDiagnostic> {
                     .parse()
                     .map_err(|_| q("SPX-HPQ007", "--pilot-reps needs an integer"))?
             }
+            "--pilot-skill-reps" => {
+                a.skill_reps = val(x)?
+                    .parse()
+                    .map_err(|_| q("SPX-HPQ007", "--pilot-skill-reps needs an integer"))?
+            }
+            "--pilot-profile" => a.pilot_profiles.push(val(x)?),
             "--pilot-calls" => {
                 a.pilot_calls = val(x)?
                     .parse()
@@ -224,25 +233,35 @@ fn execute(a: Args, env: &Environment) -> Result<Outcome, HarnessDiagnostic> {
 
     let pilot = match &a.pilot {
         Some(addr) => {
+            let pick = |p: &corpus::ProfileSpec| {
+                p.baseline
+                    || (a.pilot_profiles.is_empty() && p.touches().contains(&"context"))
+                    || a.pilot_profiles.contains(&p.id)
+            };
             let arenas: Vec<arena::Arena> = corpus
                 .profiles
                 .iter()
-                .filter(|p| p.baseline || p.touches().contains(&"context"))
-                .filter(|p| a.profiles.is_empty() || p.baseline || a.profiles.contains(&p.id))
+                .filter(|p| pick(p) && p.skills.is_empty())
                 .map(|p| arena::Arena::attach(&corpus, p, &work, &vars, env.compiler.clone()))
                 .filter(|ar| ar.root.join("home").is_dir())
                 .collect();
             let refs: Vec<&arena::Arena> = arenas.iter().collect();
-            pilot::run_pilot(
-                &corpus,
-                &refs,
-                &pilot::PilotConfig {
-                    addr: addr.clone(),
-                    model: a.pilot_model.clone().unwrap_or_default(),
-                    reps: a.pilot_reps,
-                    max_calls: a.pilot_calls,
-                },
-            )
+            let skill_calls = a.skill_reps * 2;
+            let cfg = pilot::PilotConfig {
+                addr: addr.clone(),
+                model: a.pilot_model.clone().unwrap_or_default(),
+                reps: a.pilot_reps,
+                max_calls: a.pilot_calls.saturating_sub(skill_calls),
+            };
+            let mut p = pilot::run_pilot(&corpus, &refs, &cfg);
+            let skill_profile = corpus.profiles.iter().find(|p| !p.skills.is_empty());
+            if let (Some(sp), Some(base)) =
+                (skill_profile, refs.iter().find(|r| r.profile.baseline))
+            {
+                let sa = arena::Arena::attach(&corpus, sp, &work, &vars, env.compiler.clone());
+                p["skill_pilot"] = pilot::run_skill_pilot(&corpus, base, &sa, &cfg, a.skill_reps);
+            }
+            p
         }
         None => Value::Null,
     };

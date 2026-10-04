@@ -7,17 +7,21 @@
   "warm": 9
  },
  "pin": {
-  "source_commit": "0ab3915316cf4c727718e0803de6e177da620287",
+  "source_commit": "7e9374e8413680b1fa58f2a9ec8b36fab91488d9",
   "projects": {
    "downstream": "sha256:0976b958ce52399b8918b93731442ff31a06687b336438c3f6836042f30e601d",
+   "ledger-poly": "sha256:40deb1943691ca3ac96689e9890e2534364ac95d1f9292ba2f3bc6ce7de2a572",
    "mixed": "sha256:eae599b9a938d5f814e6c301a4648ae2f0c0dd2433fab8c93e6435b6c075021c",
    "harness-src": "sha256:d34f437c9c15dfbee76d2e78979bf2ab71ea3e9096c2d4b1da922332d7bb8f07",
-   "scripts": "sha256:096ff72a87139224f42dacc35f8b4dd0b3e95b447c60affedd171d8f6407958f"
+   "scripts": "sha256:e331755546937ae9688ced442b5a2205e5fa75968c03f628b14cb39634f9fa2c"
   }
  },
  "projects": {
   "downstream": {
    "path": "projects/downstream"
+  },
+  "ledger-poly": {
+   "path": "projects/ledger-poly"
   },
   "mixed": {
    "path": "projects/mixed"
@@ -139,10 +143,8 @@
     {
      "kind": "command",
      "argv": [
-      "{python}",
-      "{projects}/scripts/noisy_test_run.py",
-      "--counter",
-      "{counter}"
+      "{projects}/scripts/cargo",
+      "test"
      ],
      "critical": [
       "case_173 ... FAILED",
@@ -166,6 +168,38 @@
    "family": "failing_test_diagnosis",
    "project": "downstream",
    "request": "Read a 320-test run and name the one failing case.",
+   "authority": {
+    "read": [
+     "project"
+    ],
+    "write": "none",
+    "publish": false
+   },
+   "baseline_files": [],
+   "required_facts": [],
+   "acceptance": [
+    {
+     "kind": "command",
+     "argv": [
+      "{projects}/scripts/cargo",
+      "test"
+     ],
+     "critical": [
+      "case_173 ... FAILED",
+      "assertion failed: ledger.line_total(3, 4) == 12"
+     ]
+    }
+   ],
+   "budget": {
+    "max_visible_bytes": 16384,
+    "max_calls": 3
+   }
+  },
+  {
+   "id": "diagnose-custom-runner",
+   "family": "failing_test_diagnosis",
+   "project": "downstream",
+   "request": "Same failure from a custom test runner that no compact-view tool knows.",
    "authority": {
     "read": [
      "project"
@@ -233,6 +267,59 @@
    ],
    "budget": {
     "max_visible_bytes": 24576,
+    "max_calls": 6
+   }
+  },
+  {
+   "id": "repair-ledger-polyglot",
+   "family": "multi_file_repair",
+   "project": "ledger-poly",
+   "request": "A mixed-language ledger project (.spx, TypeScript, Rust, Python) has a failing test: find every place that restates line_total, then repair the .spx declaration.",
+   "authority": {
+    "read": [
+     "project"
+    ],
+    "write": "candidate",
+    "publish": false
+   },
+   "query": "ledger.line_total",
+   "max_bytes": 4096,
+   "baseline_files": [
+    "src/lib.spx",
+    "src/report.spx",
+    "src/tests.spx",
+    "src/examples.spx",
+    "web/ledger.ts",
+    "src/host.rs",
+    "tools/check_ledger.py"
+   ],
+   "required_facts": [
+    "ledger.line_total",
+    "renderLineTotal",
+    "host_line_total",
+    "expected_line_total"
+   ],
+   "acceptance": [
+    {
+     "kind": "facts"
+    },
+    {
+     "kind": "workflow",
+     "proposal": "proposals/valid.json",
+     "task": "task-ledger.json",
+     "expect_status": "approved-candidate-ready"
+    },
+    {
+     "kind": "workflow_context",
+     "facts": [
+      "ledger.line_total",
+      "renderLineTotal",
+      "host_line_total"
+     ]
+    }
+   ],
+   "budget": {
+    "max_visible_bytes": 32768,
     "max_calls": 6
    }
   },
@@ -331,6 +418,69 @@
    "budget": {
     "max_visible_bytes": 16384,
     "max_calls": 6
+   }
+  },
+  {
+   "id": "reuse-square-via-multiply",
+   "family": "api_reuse",
+   "project": "mixed",
+   "request": "Add a square(x) helper to the calculator: reuse an existing declaration if one fits.",
+   "authority": {
+    "read": [
+     "project"
+    ],
+    "write": "candidate",
+    "publish": false
+   },
+   "query": "calculator.multiply",
+   "max_bytes": 4096,
+   "baseline_files": [
+    "src/core.spx"
+   ],
+   "required_facts": [
+    "calculator.multiply"
+   ],
+   "acceptance": [
+    {
+     "kind": "facts"
+    }
+   ],
+   "budget": {
+    "max_visible_bytes": 16384,
+    "max_calls": 6
+   },
+   "reuse_probe": {
+    "ask": "Write only the body expression of `fn square(x: i64) -> i64` in the calculator package. Do not explain.",
+    "reuse": [
+     "multiply("
+    ]
+   }
+  },
+  {
+   "id": "law-bad-body-rejected",
+   "family": "law_effect_change",
+   "project": "downstream",
+   "request": "A candidate that type-checks but fails the tests must still be rejected by the compiler's checks.",
+   "authority": {
+    "read": [
+     "project"
+    ],
+    "write": "candidate",
+    "publish": false
+   },
+   "baseline_files": [],
+   "required_facts": [],
+   "acceptance": [
+    {
+     "kind": "workflow",
+     "proposal": "proposals/invalid-tests.json",
+     "task": "task-ledger.json",
+     "expect_status": "rejected"
+    }
+   ],
+   "budget": {
+    "max_visible_bytes": 8192,
+    "max_calls": 2
    }
   },
   {
@@ -796,6 +946,14 @@
     "HARNESS_PYTHON"
    ],
    "skip": "untested: resource (disk); real local Laya evidence exists in docs/HARNESS-LAYA-JEV-V1.md (HP-11), not repeated here"
+  },
+  {
+   "id": "native+skill",
+   "description": "Native plus the adopted reuse-before-generation skill (adopt --skills, [skills] enabled).",
+   "skills": [
+    "repo:packages/semaprax-harness-adapters/skills"
+   ],
+   "requires_env": []
   },
   {
    "id": "local-efficient",

@@ -132,6 +132,38 @@ pub fn render(label: &str, summary: &Value, gates: &Value, pilot: &Value, env: &
         let _ = writeln!(o, "- none observed in applicable cells");
     }
 
+    let _ = writeln!(o, "\n## Explicit acceptance cells\n");
+    let _ = writeln!(o, "Workflow-driven external context (one warm trial each; the `run` report carries bytes and provider identity, not item text, so facts are verified in the broker context for the same seed):\n");
+    for c in summary["acceptance_cells"]["workflow_external_context"]
+        .as_array()
+        .into_iter()
+        .flatten()
+    {
+        let w = &c["workflow_context"];
+        let _ = writeln!(
+            o,
+            "- `{}` on `{}`: `run` invoked the external provider {} time(s) (providers {}); workflow context used {} bytes against {} bytes of full source; required facts verified {}/{}; the `context` step shown to the model was {} bytes; cell accepted: {}.",
+            n(&c["profile"]), n(&c["task"]), n(&w["external_provider_calls"]), n(&w["providers"]), n(&w["used_bytes"]),
+            n(&w["full_source_reference_bytes"]), n(&w["facts_verified_in_broker_context"]), n(&w["facts_required"]),
+            n(&c["context_step_visible_bytes"]), n(&c["accepted"]),
+        );
+    }
+    let _ = writeln!(
+        o,
+        "\nAdopted skill packages (`adopt --skills` plus `[skills] enabled`):\n"
+    );
+    for (p, e) in summary["acceptance_cells"]["skills"]
+        .as_object()
+        .into_iter()
+        .flatten()
+    {
+        let _ = writeln!(
+            o,
+            "- `{p}`: skill loaded {} on {} api-reuse cell(s), prompt {} bytes counted as incurred cost; {} workflow cells, {} accepted by the compiler's checks; manifest bytes unchanged in every workflow cell: {}.",
+            n(&e["loaded"]), n(&e["skill_cells"]), n(&e["prompt_bytes"]), n(&e["workflow_cells"]), n(&e["workflow_accepted"]), n(&e["manifest_unchanged_everywhere"]),
+        );
+    }
+
     let _ = writeln!(o, "\n## Seeded adversarial cases\n");
     for a in summary["adversarial"].as_array().into_iter().flatten() {
         let _ = writeln!(
@@ -173,8 +205,9 @@ pub fn render(label: &str, summary: &Value, gates: &Value, pilot: &Value, env: &
                 .collect();
             let _ = writeln!(
                 o,
-                "- `{fam}`: matched {}; eligible for auto-enable: **{}**{}",
+                "- `{fam}`: matched {} cells over {} distinct task(s); eligible for auto-enable: **{}**{}",
                 n(&sc["matched_cells"]),
+                n(&sc["distinct_tasks"]),
                 n(&sc["auto_enable_eligible"]),
                 if fails.is_empty() {
                     String::new()
@@ -207,12 +240,60 @@ pub fn render(label: &str, summary: &Value, gates: &Value, pilot: &Value, env: &
         }
     }
 
+    if let Some(sp) = pilot.get("skill_pilot").filter(|v| !v.is_null()) {
+        let _ = writeln!(
+            o,
+            "\n### Skill pilot (reuse-before-generation)\n\nStatus `{}`, label `{}`, task `{}`, {} calls. Existing API reused (check: {}): without skill {}/{}, with skill {}/{}; skill prompt adds {} bytes. {} {}",
+            n(&sp["status"]), n(&sp["label"]), n(&sp["task"]), n(&sp["calls"]), n(&sp["reuse_check"]),
+            n(&sp["without_skill"]["reused"]), n(&sp["without_skill"]["n"]), n(&sp["with_skill"]["reused"]), n(&sp["with_skill"]["n"]),
+            n(&sp["skill_prompt_bytes"]), n(&sp["compiler_gate"]), n(&sp["caveat"]),
+        );
+    }
+
     let _ = writeln!(o, "\n## Recommendation\n");
+    let _ = writeln!(o, "Per profile, derived from the gate verdicts above:\n");
+    for (p, scopes) in gates["scopes"].as_object().into_iter().flatten() {
+        let (mut ok, mut quality_only, mut broken) = (vec![], vec![], vec![]);
+        for (fam, sc) in scopes.as_object().into_iter().flatten() {
+            let failed: Vec<&str> = sc["gates"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter(|g| g["pass"] != true)
+                .filter_map(|g| g["id"].as_str())
+                .collect();
+            if sc["auto_enable_eligible"] == true {
+                ok.push(fam.clone());
+            } else if failed.contains(&"G7") || sc["matched_cells"].as_u64() == Some(0) {
+                broken.push(fam.clone());
+            } else if failed == ["G5"]
+                && sc["accepted_delta_per_cell"].as_f64().unwrap_or(0.0) > 0.0
+            {
+                quality_only.push(fam.clone());
+            }
+        }
+        let verdict = if !ok.is_empty() {
+            format!("auto-enable candidate for {ok:?} only (gates G1-G7 passed there)")
+        } else if !quality_only.is_empty() {
+            format!("opt-in: quality gain in {quality_only:?} costs more bytes than it saves (G5 fails); keep off by default")
+        } else {
+            "opt-in or disabled: no scope passes the gates".to_string()
+        };
+        let extra = if broken.is_empty() {
+            String::new()
+        } else {
+            format!(" Untested or failed in {broken:?} (G7): not enabled there.")
+        };
+        let _ = writeln!(o, "- `{p}`: {verdict}.{extra}");
+    }
+    let _ = writeln!(o);
     if eligible.is_empty() {
         let _ = writeln!(o, "**native-only stays the default.** No provider profile passed every gate on any measured task scope, so none is recommended for automatic use. Providers remain opt-in; an integration that failed a gate above should stay disabled for that scope.");
     } else {
-        let _ = writeln!(o, "Automatic defaults are justified only for these measured scopes (every other scope stays opt-in): {}.", eligible.join(", "));
+        let _ = writeln!(o, "Automatic defaults pass the gates only for these measured scopes (every other scope stays opt-in): {}.", eligible.join(", "));
+        let _ = writeln!(o, "\nWhere a combined profile and one of its parts are both eligible on the same scope, prefer the smaller profile: the combination's saving is attributable to the part, and the other components were measured separately on their own scopes.");
     }
+    let _ = writeln!(o, "\nEvidence breadth: matched cells are repeated deterministic runs of a few fixed tasks, so they establish stability of the measurement, not independent samples of the input distribution; the scope is the measured task set only (see the number of distinct tasks per scope).");
     let _ = writeln!(o, "\nEach automatic default above is tied to its task family, matched-cell count and gate verdicts in the Gates section; a scope with fewer than 10 matched cells cannot pass G4-G6.");
     o
 }

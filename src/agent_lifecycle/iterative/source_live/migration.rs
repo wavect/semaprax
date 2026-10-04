@@ -293,14 +293,17 @@ pub fn run_source_live_migration_from_hot_reload_session<'a>(
         supervisor.refuse_source_agent_handoff(true);
         return Err(SourceAgentHandoffFailure::Supervisor(error));
     }
+    let destination_binding = prepared.binding().clone();
     match prepared.run(source, read, store, clock, cancellation) {
-        Ok(outcome) => match supervisor.activate_source_agent_handoff(plan, &handoff) {
-            Ok(()) => Ok(outcome),
-            Err(error) => {
-                supervisor.refuse_source_agent_handoff(true);
-                Err(SourceAgentHandoffFailure::Supervisor(error))
+        Ok(outcome) => {
+            match supervisor.activate_source_agent_handoff(plan, &handoff, destination_binding) {
+                Ok(()) => Ok(outcome),
+                Err(error) => {
+                    supervisor.refuse_source_agent_handoff(true);
+                    Err(SourceAgentHandoffFailure::Supervisor(error))
+                }
             }
-        },
+        }
         Err(error) => {
             // An append acknowledgement loss is ambiguous to this supervisor.
             // Direct source-journal recovery remains an explicit, freshly

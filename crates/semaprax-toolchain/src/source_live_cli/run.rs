@@ -173,6 +173,28 @@ impl Endpoint {
         })
     }
 
+    /// Checks the retained migrated binding against the current checked
+    /// predecessor and host-selected policy before it can authenticate a
+    /// predecessor journal. The carried migration profile stays opaque.
+    fn matches_retained_binding(&self, binding: &SourceInvocationBinding) -> bool {
+        binding.matches_proposal_source(
+            self.compiled.source_revision(),
+            &self.policy.deployment_binding,
+            &self.task.objective,
+            self.task.budget,
+            self.compiled.proposal_schema().schema().digest(),
+        ) && binding.response_limit() == self.policy.response_limit
+            && binding.ceiling() == self.policy.ceiling
+            && binding.reservation_units() == self.policy.reservation_units
+            && binding.unit() == self.policy.unit
+            && binding.clock_domain() == self.policy.clock_domain
+            && binding.deadline_millis() == self.policy.deadline_millis
+            && binding.max_iterations() == self.budget.max_iterations as u32
+            && binding.max_stages() == self.budget.max_stages as u32
+            && binding.max_steps_per_stage() == Some(self.budget.max_steps_per_stage)
+            && binding.max_total_steps() == Some(self.policy.max_total_steps)
+    }
+
     fn binding(&self) -> Result<SourceInvocationBinding, CliError> {
         if let Some(io_limits) = self.config.io_limits.as_ref() {
             return self
@@ -483,7 +505,17 @@ pub(super) fn execute_hot_reload_migration_with_runner<R: OpenCodeRunner>(
     {
         return Err(CliError::refused("migration task changed"));
     }
-    let previous_binding = previous.binding()?;
+    let previous_binding = match supervisor.retained_source_agent_binding() {
+        Some(binding) => {
+            if !previous.matches_retained_binding(binding) {
+                return Err(CliError::refused(
+                    "retained source-Agent binding no longer matches predecessor authority",
+                ));
+            }
+            binding.clone()
+        }
+        None => previous.binding()?,
+    };
     let previous_store = CheckpointDir::existing(&previous_checkpoint, &previous.project_root)?;
     let previous_document = previous_store
         .latest()?

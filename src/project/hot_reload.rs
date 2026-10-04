@@ -12,6 +12,7 @@ use super::{
 };
 use crate::diagnostic::Diagnostic;
 use crate::hir::{ResolvedFunction, ResolvedProgram};
+use crate::live_invocation::source_journal::SourceInvocationBinding;
 
 pub const HOT_RELOAD_PLAN_SCHEMA: &str = "semaprax.hot-reload-plan.v1";
 pub const HOT_RELOAD_SOURCE_AGENT_HANDOFF_SCHEMA: &str =
@@ -291,6 +292,7 @@ pub struct HotReloadSession {
     worker: Arc<PreparedProjectInterpreter>,
     terminal: bool,
     source_agent_handoff_status: HotReloadSourceAgentHandoffStatus,
+    source_agent_binding: Option<SourceInvocationBinding>,
     observation: HotReloadObservation,
 }
 
@@ -314,6 +316,7 @@ impl HotReloadSession {
             worker,
             terminal: false,
             source_agent_handoff_status: HotReloadSourceAgentHandoffStatus::Ready,
+            source_agent_binding: None,
             observation: HotReloadObservation {
                 lifecycle: HotReloadLifecycle::Started,
                 generation: 0,
@@ -346,6 +349,13 @@ impl HotReloadSession {
     /// Migration and checkpoint authority remain with the source-live owner.
     pub fn source_agent_handoff_status(&self) -> HotReloadSourceAgentHandoffStatus {
         self.source_agent_handoff_status
+    }
+
+    /// Authenticated destination binding retained after the acknowledged
+    /// source-Agent handoff. It is a recovery fact for the active revision,
+    /// never a source, checkpoint, or activation authority.
+    pub fn retained_source_agent_binding(&self) -> Option<&SourceInvocationBinding> {
+        self.source_agent_binding.as_ref()
     }
 
     /// Opaque identity of the prepared worker retained for this explicit
@@ -551,6 +561,7 @@ impl HotReloadSession {
         &mut self,
         plan: HotReloadPlan,
         handoff: &HotReloadSourceAgentHandoff,
+        destination_binding: SourceInvocationBinding,
     ) -> Result<(), HotReloadFailure> {
         self.require_source_agent_migration(&plan, handoff)?;
         let next = self.generation.checked_add(1).ok_or_else(|| {
@@ -561,6 +572,7 @@ impl HotReloadSession {
         })?;
         self.active = self.pending.take().expect("validated pending candidate");
         self.generation = next;
+        self.source_agent_binding = Some(destination_binding);
         self.source_agent_handoff_status = HotReloadSourceAgentHandoffStatus::Activated;
         self.observe(HotReloadLifecycle::Activated);
         Ok(())
@@ -711,6 +723,7 @@ impl HotReloadSession {
             Ok(()) => {
                 self.active = self.pending.take().expect("validated pending candidate");
                 self.generation = next;
+                self.source_agent_binding = None;
                 self.observe(HotReloadLifecycle::Activated);
                 Ok(())
             }

@@ -567,6 +567,15 @@ fn source_agent_handoff_supervisor_activates_once_and_terminalizes_lost_ack() {
                     session.active_project_revision(),
                     project_b.project_revision()
                 );
+                let binding = session
+                    .retained_source_agent_binding()
+                    .expect("acknowledged migration retains its destination binding");
+                let recovered = recover_source_checkpoint(&store.document, binding).unwrap();
+                assert_eq!(recovered.generation(), outcome.checkpoint.generation());
+                assert_eq!(
+                    recovered.last_checked_millis(),
+                    outcome.checkpoint.last_checked_millis()
+                );
                 assert_eq!((model.calls, read.calls), (3, 3));
                 assert!(outcome
                     .checked_run
@@ -596,6 +605,7 @@ fn source_agent_handoff_supervisor_activates_once_and_terminalizes_lost_ack() {
                     semaprax::project::HotReloadLifecycle::Refused
                 );
                 assert_eq!(session.generation(), 0);
+                assert!(session.retained_source_agent_binding().is_none());
                 assert_eq!((model.calls, read.calls), (0, 0));
                 assert!(store.document.is_empty());
             }
@@ -614,6 +624,7 @@ fn source_agent_handoff_supervisor_activates_once_and_terminalizes_lost_ack() {
                 );
                 assert!(session.terminal());
                 assert_eq!(session.generation(), 0);
+                assert!(session.retained_source_agent_binding().is_none());
                 assert_eq!((model.calls, read.calls), (0, 0));
                 assert!(store.document.contains("migration_evaluation_intent"));
             }

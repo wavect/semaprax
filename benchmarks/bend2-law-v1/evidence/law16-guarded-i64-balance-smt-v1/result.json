@@ -1,0 +1,194 @@
+{
+  "build": {
+    "checked_out_head": "5e3720672e441b0202b69b51862058493a1939e9",
+    "command": "cargo build --locked -p semaprax --bin semaprax",
+    "platform": "Darwin arm64",
+    "target_profile": "dev; debug=0; incremental=0; build_jobs=1"
+  },
+  "fixture": {
+    "app_bytes": 1570,
+    "app_sha256": "ef7c2af819db678bb1732fe59b4361bf7a9d587ceb11c86aa8df059f1188c388",
+    "core_sha256": "79ca3e75303ff52c305458af8c9e81b1ff52da7c7fc0bb994b86e8e017d273a5",
+    "manifest_sha256": "481999d6499263a605ce8eaf67e8155b772f6cddbe466c87e3087978ff339bb5",
+    "project_source_digest": "sha256:508db4eee12845947866b160d9a3960656dfe40c787ad0a68bc0d277b3e04028",
+    "tests_sha256": "fed58ed7a469fcfd90b3a0c59ef27b44b71d15529cbd522df8088dfdde29e443"
+  },
+  "negative_control": {
+    "declaration_id": "law16.balance.debit_after",
+    "diagnostic": "SPX-LW140: installed proof tool refused: solver returned false, unknown, malformed or partial evidence",
+    "ensures_index": 2,
+    "exit_code": 1,
+    "mutant_source": {
+      "bytes": 1473,
+      "path": "noop_mutant.app.spx",
+      "sha256": "10de5df321ad6c17cbd7622b035e816c0c1ed062177ab41346ae9740cdeadca1"
+    },
+    "name": "noop_mutant",
+    "status": "proof_tool_refused_no_solver_status_claimed",
+    "stderr": {
+      "bytes": 103,
+      "path": "noop_mutant.stderr.txt",
+      "sha256": "8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+    },
+    "stdout": {
+      "bytes": 0,
+      "path": "noop_mutant.stdout.json",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "nonclaims": [
+    "does not close the original structured full-u32 balance fixture",
+    "does not prove source lowering or execute the application",
+    "no-op refusal does not identify a solver counterexample versus another refusal status",
+    "overall LAW16 remains incomplete"
+  ],
+  "positive_cases": [
+    {
+      "declaration_id": "law16.balance.debit_after",
+      "ensures_index": 0,
+      "exit_code": 0,
+      "name": "debit_u32_range",
+      "obligation_id": "semaprax.obligation.v1:13:postcondition:25:law16.balance.debit_after:8:ensure:0",
+      "source_digest": "sha256:508db4eee12845947866b160d9a3960656dfe40c787ad0a68bc0d277b3e04028",
+      "status": "smt_proved",
+      "stderr": {
+        "bytes": 0,
+        "path": "debit_u32_range.stderr.txt",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 18979,
+        "path": "debit_u32_range.stdout.json",
+        "sha256": "88c1704e70abbc00e41c8c7efad339cd0147ffa7970d02e4e18a24290db7ae33"
+      }
+    },
+    {
+      "declaration_id": "law16.balance.debit_after",
+      "ensures_index": 1,
+      "exit_code": 0,
+      "name": "debit_exact",
+      "obligation_id": "semaprax.obligation.v1:13:postcondition:25:law16.balance.debit_after:8:ensure:1",
+      "source_digest": "sha256:508db4eee12845947866b160d9a3960656dfe40c787ad0a68bc0d277b3e04028",
+      "status": "smt_proved",
+      "stderr": {
+        "bytes": 0,
+        "path": "debit_exact.stderr.txt",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 18979,
+        "path": "debit_exact.stdout.json",
+        "sha256": "e778409ece8c409ce3620dc16b800bf514b047ecf2677d80b82752db6841f40b"
+      }
+    },
+    {
+      "declaration_id": "law16.balance.debit_after",
+      "ensures_index": 2,
+      "exit_code": 0,
+      "name": "debit_positive_transfer",
+      "obligation_id": "semaprax.obligation.v1:13:postcondition:25:law16.balance.debit_after:8:ensure:2",
+      "source_digest": "sha256:508db4eee12845947866b160d9a3960656dfe40c787ad0a68bc0d277b3e04028",
+      "status": "smt_proved",
+      "stderr": {
+        "bytes": 0,
+        "path": "debit_positive_transfer.stderr.txt",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 18979,
+        "path": "debit_positive_transfer.stdout.json",
+        "sha256": "6e8316d2ff6737392cc8b06f211f955932b305e6bdea17990f49bd8c033f11a3"
+      }
+    },
+    {
+      "declaration_id": "law16.balance.credit_after",
+      "ensures_index": 0,
+      "exit_code": 0,
+      "name": "credit_u32_range",
+      "obligation_id": "semaprax.obligation.v1:13:postcondition:26:law16.balance.credit_after:8:ensure:0",
+      "source_digest": "sha256:508db4eee12845947866b160d9a3960656dfe40c787ad0a68bc0d277b3e04028",
+      "status": "smt_proved",
+      "stderr": {
+        "bytes": 0,
+        "path": "credit_u32_range.stderr.txt",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 18979,
+        "path": "credit_u32_range.stdout.json",
+        "sha256": "faa6ccfda75fab52aecf91593b0dd086c2bec7fda060e8368c15815fa9b2640a"
+      }
+    },
+    {
+      "declaration_id": "law16.balance.credit_after",
+      "ensures_index": 1,
+      "exit_code": 0,
+      "name": "credit_exact",
+      "obligation_id": "semaprax.obligation.v1:13:postcondition:26:law16.balance.credit_after:8:ensure:1",
+      "source_digest": "sha256:508db4eee12845947866b160d9a3960656dfe40c787ad0a68bc0d277b3e04028",
+      "status": "smt_proved",
+      "stderr": {
+        "bytes": 0,
+        "path": "credit_exact.stderr.txt",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 18979,
+        "path": "credit_exact.stdout.json",
+        "sha256": "27f567d8615218e739ffa9ac064ca217e8d65fbe232a15fc521ecd5a8a50a55b"
+      }
+    },
+    {
+      "declaration_id": "law16.balance.credit_after",
+      "ensures_index": 2,
+      "exit_code": 0,
+      "name": "credit_conservation",
+      "obligation_id": "semaprax.obligation.v1:13:postcondition:26:law16.balance.credit_after:8:ensure:2",
+      "source_digest": "sha256:508db4eee12845947866b160d9a3960656dfe40c787ad0a68bc0d277b3e04028",
+      "status": "smt_proved",
+      "stderr": {
+        "bytes": 0,
+        "path": "credit_conservation.stderr.txt",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 18979,
+        "path": "credit_conservation.stdout.json",
+        "sha256": "cf0f50fc772f10fd4ba77a71485880041a40ba6d3992907494b901a5d227a421"
+      }
+    },
+    {
+      "declaration_id": "law16.balance.credit_after",
+      "ensures_index": 3,
+      "exit_code": 0,
+      "name": "credit_positive_transfer",
+      "obligation_id": "semaprax.obligation.v1:13:postcondition:26:law16.balance.credit_after:8:ensure:3",
+      "source_digest": "sha256:508db4eee12845947866b160d9a3960656dfe40c787ad0a68bc0d277b3e04028",
+      "status": "smt_proved",
+      "stderr": {
+        "bytes": 0,
+        "path": "credit_positive_transfer.stderr.txt",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 18979,
+        "path": "credit_positive_transfer.stdout.json",
+        "sha256": "f3b6c1cfe9939e5bf79a99c2d20872b7d1f7bb67ad97549b70d660ab5df22498"
+      }
+    }
+  ],
+  "raw_stream_count": 16,
+  "schema": "semaprax.bend2-law-benchmark.guarded-i64-balance-smt.v1",
+  "semantic_scope": "guarded i64 projections for full-u32 values, scalar pre/postconditions only",
+  "semaprax": {
+    "path_at_run": "/private/tmp/semaprax-law12-lane/target/law16-lowfootprint/debug/semaprax",
+    "sha256": "6f6fa6384c8d2bacca4740485bcb6241dc06fc388e3d3dc36a7a38420d720e5a",
+    "source_commit": "5e3720672e441b0202b69b51862058493a1939e9"
+  },
+  "status": "bounded_source_postconditions_proved_full_u32_route_incomplete",
+  "z3": {
+    "path_at_run": "/opt/homebrew/bin/z3",
+    "sha256": "bbb24b8fed27552f7fb7cfdf0ed9101e6e24fd0cc0b9cfb945233b3f2ed333c5",
+    "version": "Z3 version 4.12.5 - 64 bit"
+  }
+}

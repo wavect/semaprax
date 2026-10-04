@@ -36,14 +36,23 @@ class CurrentReportTests(unittest.TestCase):
         )
         self.assertEqual(value["matched_boolean"]["proof_path_nonresult"]["samples"], 60)
 
-    def test_report_marks_missing_provenance_and_boolean_changed_bytes_unavailable(self):
+    def test_report_uses_v2_provenance_only_for_its_own_bound_samples(self):
         value = REPORT.render()
         provenance = value["measurement_provenance"]
-        self.assertEqual(provenance["identity_scope"], "pinned historical local executable observations; not current-head claims")
-        self.assertEqual(provenance["hardware"]["status"], "unavailable")
-        self.assertEqual(provenance["operating_system"]["status"], "unavailable")
+        self.assertIn("process-v2 raw samples", provenance["identity_scope"])
+        self.assertEqual(provenance["hardware"]["status"], "observed")
+        self.assertEqual(provenance["operating_system"]["status"], "observed")
         self.assertEqual(provenance["backend"]["status"], "observed")
         self.assertEqual(provenance["flags"]["compiler_optimization"]["status"], "unavailable")
+        process = value["matched_boolean"]["process_provenance"]
+        self.assertEqual(process["command_count"], 240)
+        self.assertEqual(process["cold_cache"]["status"], "unavailable")
+        candidate = value["matched_boolean"]["process_routes"]["bend_candidate_fresh_process"]
+        self.assertEqual(candidate["count"], 30)
+        self.assertEqual(candidate["p50_ns"], 106149771.0)
+        rss = value["matched_boolean"]["peak_rss"]
+        self.assertEqual(rss["bend_verdict"]["samples"], 30)
+        self.assertEqual(rss["semaprax_z3"]["samples"], 30)
         effort = value["proof_effort"]["boolean_agent_synthesis"]
         self.assertEqual(effort["matched_pairs"], 10)
         self.assertEqual(effort["per_language"]["bend2"]["agent_turns"], 10)
@@ -51,6 +60,74 @@ class CurrentReportTests(unittest.TestCase):
         annotations = value["annotations_and_changed_bytes"]
         self.assertEqual(annotations["matched_boolean"]["status"], "unavailable")
         self.assertEqual(annotations["historical_bounded_balance_v2"]["status"], "retained_source_evidence_only")
+
+    def test_report_includes_full_u32_controls_as_supplemental_only(self):
+        value = REPORT.render()
+        controls = value["supplemental_full_u32_encoding_controls"]
+        self.assertEqual(controls["status"], "supplemental_controls_pass")
+        self.assertTrue(controls["original_manifest_unchanged"])
+        self.assertEqual(controls["candidate_and_attack_routes"], 12)
+        self.assertEqual(controls["domain_boundary_controls"], 4)
+        self.assertEqual(value["status"], "incomplete")
+        self.assertTrue(value["closure"].startswith("no:"))
+        self.assertTrue(any("original checked-u32 cells remain unadmitted" in row for row in controls["nonclaims"]))
+
+    def test_report_names_bounded_model_level_sort_check_without_source_theorem_claim(self):
+        value = REPORT.render()
+        controls = value["supplemental_full_u32_encoding_controls"]["equal_spec_profile"]
+        self.assertEqual(controls["source"], "full_u32_equal_spec.py")
+        sort = controls["universal_model_checks"]["sort"]
+        self.assertEqual(sort["expected"], ["unsat", "sat"])
+        self.assertIn("length four", sort["claim"])
+        result = controls["sort_result_interpretation"]
+        self.assertIn("exactly four elements", result["scope"])
+        self.assertIn("not an unbounded-list theorem", result["claim_boundary"])
+        self.assertIn("not a source-translation", result["claim_boundary"])
+        self.assertEqual(value["status"], "incomplete")
+
+    def test_report_exposes_authenticated_per_cell_mad_without_confidence_claim(self):
+        value = REPORT.render()
+        summary = value["matched_boolean"]["timing_variation"]
+        self.assertIn("median absolute deviation", summary["method"])
+        self.assertIn("not a confidence interval", summary["interpretation"])
+        self.assertIn("historical_process_v1", summary["cells"])
+        self.assertIn("process_v2", summary["cells"])
+        self.assertIn("ordinary_check_v1", summary["cells"])
+        self.assertIn("proof_verdict_v1", summary["cells"])
+        bend_candidate = summary["cells"]["process_v2"]["bend_candidate"]
+        self.assertEqual(bend_candidate["fresh_process"]["count"], 30)
+        self.assertEqual(bend_candidate["fresh_process"]["mad_ns"], 14070520.5)
+        self.assertEqual(bend_candidate["repeat_process"]["count"], 30)
+
+    def test_report_authenticates_bounded_balance_source_proofs_without_reclassifying_refusal(self):
+        value = REPORT.render()
+        proof = value["supplemental_guarded_i64_balance_source_proof"]
+        self.assertEqual(proof["positive_smt_discharges"], 7)
+        self.assertTrue(all(row["status"] == "smt_proved" for row in proof["selected_postconditions"]))
+        self.assertEqual(proof["no_op_negative"]["status"], "proof_tool_refused_no_solver_status_claimed")
+        self.assertIn("unclaimed", proof["no_op_negative"]["solver_outcome_classification"])
+        self.assertEqual(proof["full_u32_original"], "unsupported_by_this_source_profile")
+        self.assertEqual(proof["overall_law16"], "incomplete")
+        self.assertEqual(value["status"], "incomplete")
+        self.assertTrue(any("does not prove source lowering" in row for row in proof["nonclaims"]))
+
+    def test_report_keeps_source_distinct_universal_sort_and_cost_provenance_incomplete(self):
+        value = REPORT.render()
+        routes = value["supplemental_guarded_i64_profile_v2"]["routes"]
+        self.assertEqual(len(routes), 4)
+        self.assertEqual(
+            routes[3]["disposition"],
+            "matched_universal_semantic_laws_under_u32_embedding_no_timing",
+        )
+        theorems = value["supplemental_universal_list_theorems"]
+        self.assertEqual(theorems["bend"]["status"], "supplemental_bend_u32_sort_source_proved")
+        self.assertEqual(theorems["semaprax"]["status"], "supplemental_i64_list_profile_proved")
+        self.assertIn("distinct source algorithms", theorems["comparison_scope"])
+        cost = value["matched_boolean"]["cost_provenance"]
+        self.assertEqual(cost["trials"], 20)
+        self.assertEqual(cost["aggregate_token_usage"]["total_tokens"], 333999)
+        self.assertEqual(cost["cost_usage"]["status"], "unavailable")
+        self.assertEqual(value["status"], "incomplete")
 
 
 if __name__ == "__main__":

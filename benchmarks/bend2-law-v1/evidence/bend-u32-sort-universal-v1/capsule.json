@@ -1,0 +1,194 @@
+{
+  "bend_commit": "947db722640c86247849343657bf2f7ef01cb7f1",
+  "bun": {
+    "bytes": 57940512,
+    "path": "/Users/kevin/.bun/bin/bun",
+    "sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781"
+  },
+  "commands": {
+    "candidate": {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/fixtures/full-u32-encoding-v1/sort-universal.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "stderr": {
+        "bytes": 42,
+        "path": "candidate.stderr",
+        "sha256": "sha256:0e76fb2c3fc233f957ba33267a352e821cc8ffdfa68db58c4b8b4e29fc2860db"
+      },
+      "stdout": {
+        "bytes": 17,
+        "path": "candidate.stdout",
+        "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+      }
+    },
+    "empty_counterexample": {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-bend-u32-final-capture/empty-witness.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "stderr": {
+        "bytes": 42,
+        "path": "empty-counterexample.stderr",
+        "sha256": "sha256:0e76fb2c3fc233f957ba33267a352e821cc8ffdfa68db58c4b8b4e29fc2860db"
+      },
+      "stdout": {
+        "bytes": 17,
+        "path": "empty-counterexample.stdout",
+        "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+      }
+    },
+    "empty_universal": {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/law16-bend-u32-final-capture/empty-proof.bend",
+        "--verdict"
+      ],
+      "exit_code": 1,
+      "stderr": {
+        "bytes": 1188,
+        "path": "empty-universal.stderr",
+        "sha256": "sha256:a7b18267eaa169eba0b83f256063200ae702b68530feef10551516b4ca5b23eb"
+      },
+      "stdout": {
+        "bytes": 0,
+        "path": "empty-universal.stdout",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "export": {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/fixtures/full-u32-encoding-v1/sort-universal.bend",
+        "-o",
+        "/private/tmp/law16-bend-u32-final-capture/candidate.bendtt"
+      ],
+      "exit_code": 0,
+      "stderr": {
+        "bytes": 42,
+        "path": "export.stderr",
+        "sha256": "sha256:0e76fb2c3fc233f957ba33267a352e821cc8ffdfa68db58c4b8b4e29fc2860db"
+      },
+      "stdout": {
+        "bytes": 0,
+        "path": "export.stdout",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "kernel_replay": {
+      "argv": [
+        "/Users/kevin/.bend/bendtt/e15042434e73aab0/bendtt",
+        "/private/tmp/law16-bend-u32-final-capture/candidate.bendtt"
+      ],
+      "exit_code": 0,
+      "stderr": {
+        "bytes": 0,
+        "path": "kernel-replay.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 17,
+        "path": "kernel-replay.stdout",
+        "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+      }
+    }
+  },
+  "coverage": {
+    "count_domain": "unbounded Nat",
+    "domain": "every finite List<U32>, every queried U32",
+    "multiplicity": "count_sort(probe,xs): count(probe,Sort.sort(xs)) == count(probe,xs)",
+    "permutation": "extensional finite-multiset equality; see BEND-U32-SORT-PROOF.md",
+    "sortedness": "sorted_sort(xs): SortedB(Sort.sort(xs), 0)",
+    "subject": "Sort.sort from unchanged fixtures/full-u32-encoding-v1/sort.bend"
+  },
+  "elaboration": {
+    "bytes": 51508,
+    "path": "candidate.bendtt",
+    "sha256": "sha256:f4108c694c924d8eb48cc42320450640f310a7c8f3501c7e3cb6fcb2ee36e8aa"
+  },
+  "kernel": {
+    "bytes": 3271216,
+    "path": "/Users/kevin/.bend/bendtt/e15042434e73aab0/bendtt",
+    "sha256": "sha256:04f97a0aba640bf1246c425ba70f3790584e42f8bcf8c608991f293d78ef58a7"
+  },
+  "negative_sources": {
+    "empty-proof.bend": {
+      "bytes": 2494,
+      "path": "empty-proof.bend",
+      "sha256": "sha256:f95b5dfebe000243d95e7b9e7b5b77a2b4e5dcfd84bb86b7bf6a75cf0def55c1"
+    },
+    "empty-sort.bend": {
+      "bytes": 574,
+      "path": "empty-sort.bend",
+      "sha256": "sha256:9053da7862e0cb500deb14bab654b3242653ed44ce9007a815879efac9e4be2e"
+    },
+    "empty-witness.bend": {
+      "bytes": 494,
+      "path": "empty-witness.bend",
+      "sha256": "sha256:8536e48d1d3fc644ea2fed0897300879d5f8dc55b7bbad749ebdfa74fc3602ac"
+    }
+  },
+  "nonclaims": [
+    "no SEMAPRAX law16 source certificate or paired timing",
+    "original v1 manifest admission unchanged",
+    "kernel binary/source association is local, not a reproducible build attestation",
+    "no runtime lowering, performance, or platform claim"
+  ],
+  "proof": {
+    "bytes": 9808,
+    "path": "benchmarks/bend2-law-v1/fixtures/full-u32-encoding-v1/sort-universal.bend",
+    "sha256": "sha256:e71ce4be53f821b38036b189e360f6c27e8d53bbd73e2c1304af3c064cd819fa"
+  },
+  "runner": {
+    "bytes": 9984,
+    "path": "benchmarks/bend2-law-v1/law16_bend_u32_sort_proof.py",
+    "sha256": "sha256:90faba64ec0090f2b6ce359d475fd393616b3a54cdd3c87005e776b4cceab834"
+  },
+  "schema": "semaprax.bend2-law-benchmark.bend-u32-sort-proof.v1",
+  "source": {
+    "bytes": 1131,
+    "path": "benchmarks/bend2-law-v1/fixtures/full-u32-encoding-v1/sort.bend",
+    "sha256": "sha256:3f81c14f6d27925394d288cd4865e5fe1700fedabbd9873f79b6486c76fab032"
+  },
+  "status": "supplemental_bend_u32_sort_source_proved",
+  "tools": {
+    "base.bend": {
+      "bytes": 71530,
+      "path": "bend2/base.bend",
+      "sha256": "sha256:c742fae9c49b14f0cc9128429a2c6109364c8a933a142f2c90b9f2e5fd976661"
+    },
+    "bend.ts": {
+      "bytes": 137761,
+      "path": "bend2/bend.ts",
+      "sha256": "sha256:7deae3693eb896f33c73867081b99d2c6f3ed3b57e77e55eb5f6260840dd0e63"
+    },
+    "bendtt.lean": {
+      "bytes": 165581,
+      "path": "bend2/bendtt.lean",
+      "sha256": "sha256:e15042434e73aab07ab05cea4b77b5619082c00a6d4924ea2d4a2cdec05facce"
+    },
+    "comp.ts": {
+      "bytes": 185681,
+      "path": "bend2/comp.ts",
+      "sha256": "sha256:453e5452f7d5ea1d501b29ce2332623c3f9f4c9e89f407352209716d31638c89"
+    },
+    "main.ts": {
+      "bytes": 34607,
+      "path": "bend2/main.ts",
+      "sha256": "sha256:c48a0274e661a3e529933550752578768e8f029219d814073fbf86537271d475"
+    },
+    "safe.ts": {
+      "bytes": 63418,
+      "path": "bend2/safe.ts",
+      "sha256": "sha256:54cb3a534ab7cc9ee313bf6383b3948ccdcac022469b3020e00745bbfe6f7e04"
+    }
+  }
+}

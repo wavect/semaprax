@@ -3,6 +3,7 @@
 
 import importlib.util
 import json
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -54,6 +55,16 @@ class RawArtifactReceiptTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path, receipt = self.make_receipt(Path(directory))
             self.assertEqual(measure.verify_receipt_raw_artifacts(path), receipt)
+
+    def test_verifier_accepts_relocated_raw_artifact_directory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path, receipt = self.make_receipt(root)
+            relocated = root / "copied-raw-artifacts"
+            shutil.copytree(receipt["raw_artifacts"]["directory"], relocated)
+            self.assertEqual(
+                measure.verify_receipt_raw_artifacts(path, relocated), receipt
+            )
 
     def test_verifier_rejects_missing_command_or_forged_bytes(self):
         with tempfile.TemporaryDirectory() as directory:

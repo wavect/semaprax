@@ -1,0 +1,12 @@
+{
+  "cargo": "cargo 1.98.0 (797e8a9bc 2026-08-05)",
+  "clang": "Debian clang version 14.0.6",
+  "execution": "linux-x86_64-under-rosetta",
+  "image_digest": "sha256:c9024b5897124ae3a7f124a41dbe4d301c7319daf4e9aed82b23424648eb311e",
+  "image_tag": "ri13-linux-evidence:rust-1.98.0",
+  "machine": "x86_64",
+  "revision": "f80beb1336d226aceba19070229223cdc2407507",
+  "rustc": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
+  "schema": "semaprax.ri13.linux-x86_64-environment.v1",
+  "system": "Linux"
+}

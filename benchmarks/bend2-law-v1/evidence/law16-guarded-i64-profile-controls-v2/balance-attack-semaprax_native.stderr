@@ -1,0 +1,3 @@
+SEMAPRAX contract failure
+  contract: ensures if amount > before.debit { result.code == 1 && result.debit == before.debit && result.credit == before.credit } else { if before.credit > 4294967295 - amount { result.code == 2 && result.debit == before.debit && result.credit == before.credit } else { result.code == 0 && result.debit == before.debit - amount && result.credit == before.credit + amount } } in law16.transfer
+  arguments: before = <data>, amount = 3

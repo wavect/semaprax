@@ -21,7 +21,10 @@ ROOT = pathlib.Path(__file__).parent
 SPEC = importlib.util.spec_from_file_location("law16_boolean_negation_pair", ROOT / "law16_boolean_negation_pair.py")
 PAIR = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(PAIR)
-SCHEMA = "semaprax.bend2-law-benchmark.boolean-negation-process-capsule.v1"
+PROVENANCE_SPEC = importlib.util.spec_from_file_location("law16_boolean_negation_provenance", ROOT / "law16_boolean_negation_provenance.py")
+PROVENANCE = importlib.util.module_from_spec(PROVENANCE_SPEC)
+PROVENANCE_SPEC.loader.exec_module(PROVENANCE)
+SCHEMA = "semaprax.bend2-law-benchmark.boolean-negation-process-capsule.v2"
 SAMPLES = 30
 TIMEOUT_SECONDS = 15
 
@@ -106,6 +109,7 @@ def main(argv=None):
     parser.add_argument("--output", required=True, type=pathlib.Path)
     args = parser.parse_args(argv)
     if args.output.exists() or not args.output.parent.is_dir(): parser.error("--output must be new beneath an existing directory")
+    args.output = args.output.resolve()
     try: plan_review = PAIR.review(ROOT / "fixtures/boolean-negation-pair-v1.json")
     except (OSError, ValueError, json.JSONDecodeError) as error: parser.error(str(error))
     bend_main = args.bend_root / "bend2/main.ts"
@@ -123,10 +127,12 @@ def main(argv=None):
         copy_project(source, fresh); copy_project(source, repeat)
         sources={"fresh_project_app":ref(fresh/"src/app.spx",args.output),"repeat_project_app":ref(repeat/"src/app.spx",args.output),"fresh_manifest":ref(fresh/"semaprax.toml",args.output),"repeat_manifest":ref(repeat/"semaprax.toml",args.output),"semaprax":tool_ref(args.semaprax),"z3":tool_ref(args.z3)}
         capture_lane(args.output, "semaprax", kind, fresh, repeat, lambda project:[str(args.semaprax),"project-proof-check",str(project/"semaprax.toml"),"--tool","z3","--executable",str(args.z3),"--version-line","Z3 version 4.12.5 - 64 bit","--host-profile","trusted-local","--source","src/app.spx","--declaration","app.negate","--ensures","0"], sources)
-    identity={"schema":SCHEMA,"plan_review":plan_review,"tools":{"bend_commit":subprocess.check_output(["git","-C",str(args.bend_root/"bend2"),"rev-parse","HEAD"],text=True).strip(),"bend_main":tool_ref(bend_main),"bun":tool_ref(args.bun),"semaprax":tool_ref(args.semaprax),"z3":tool_ref(args.z3),"z3_version":"Z3 version 4.12.5 - 64 bit"}}
-    (args.output / "identity.json").write_text(json.dumps(identity,indent=2,sort_keys=True)+"\n")
     receipts=[json.loads(path.read_text()) for path in sorted(args.output.glob("*/*/receipt.json"))]
-    manifest={"schema":SCHEMA,"status":"completed" if all(r["status"]=="completed_expected_observation" for r in receipts) else "failed","receipts":[ref(path,args.output) for path in sorted(args.output.glob("*/*/receipt.json"))],"identity":ref(args.output/"identity.json",args.output),"raw_stream_count":sum(2*SAMPLES*2 for _ in receipts),"nonclaims":["no cross-route timing ratio or winner","Bend verdict and installed-Z3 have distinct trusted computing bases","fresh/repeat is not OS-cache cold","source proof does not prove lowering or execution"]}
+    provenance = PROVENANCE.capture(bend_root=args.bend_root, bun=args.bun, semaprax=args.semaprax, z3=args.z3, bend_main=bend_main, receipts=receipts)
+    (args.output / "provenance.json").write_text(json.dumps(provenance,indent=2,sort_keys=True)+"\n")
+    identity={"schema":SCHEMA,"plan_review":plan_review,"tools":{"bend_commit":subprocess.check_output(["git","-C",str(args.bend_root/"bend2"),"rev-parse","HEAD"],text=True).strip(),"bend_main":tool_ref(bend_main),"bun":tool_ref(args.bun),"semaprax":tool_ref(args.semaprax),"z3":tool_ref(args.z3),"z3_version":"Z3 version 4.12.5 - 64 bit"},"provenance":ref(args.output / "provenance.json",args.output)}
+    (args.output / "identity.json").write_text(json.dumps(identity,indent=2,sort_keys=True)+"\n")
+    manifest={"schema":SCHEMA,"status":"completed" if all(r["status"]=="completed_expected_observation" for r in receipts) else "failed","receipts":[ref(path,args.output) for path in sorted(args.output.glob("*/*/receipt.json"))],"identity":ref(args.output/"identity.json",args.output),"provenance":ref(args.output/"provenance.json",args.output),"raw_stream_count":sum(2*SAMPLES*2 for _ in receipts),"nonclaims":["no cross-route timing ratio or winner","Bend verdict and installed-Z3 have distinct trusted computing bases","fresh/repeat is not OS-cache cold","source proof does not prove lowering or execution"]}
     (args.output / "manifest.json").write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\n")
     return 0 if manifest["status"] == "completed" else 1
 

@@ -1,0 +1,488 @@
+{
+  "nonclaims": [
+    "RSS includes /usr/bin/time wrapper observation"
+  ],
+  "samples": [
+    {
+      "command": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-boolean-negation-peak-rss-v2/bend-input.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 116588544,
+      "stderr": "        0.18 real         0.20 user         0.04 sys\n           116588544  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                6010  page reclaims\n                1769  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                  51  voluntary context switches\n                1478  involuntary context switches\n          2348680346  instructions retired\n           859278160  cycles elapsed\n            90555232  peak memory footprint\n",
+      "wall_ms": 183.949167,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-boolean-negation-peak-rss-v2/bend-input.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 117145600,
+      "stderr": "        0.09 real         0.23 user         0.01 sys\n           117145600  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7643  page reclaims\n                  70  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   1  voluntary context switches\n                 619  involuntary context switches\n          2306998058  instructions retired\n           849142842  cycles elapsed\n            91079496  peak memory footprint\n",
+      "wall_ms": 95.298417,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-boolean-negation-peak-rss-v2/bend-input.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 113426432,
+      "stderr": "        0.09 real         0.21 user         0.01 sys\n           113426432  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7425  page reclaims\n                  64  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   1  voluntary context switches\n                 612  involuntary context switches\n          2160289410  instructions retired\n           776053085  cycles elapsed\n            87360304  peak memory footprint\n",
+      "wall_ms": 93.292917,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-boolean-negation-peak-rss-v2/bend-input.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 124878848,
+      "stderr": "        0.09 real         0.26 user         0.01 sys\n           124878848  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                8124  page reclaims\n                  65  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 711  involuntary context switches\n          2605882673  instructions retired\n           955506493  cycles elapsed\n            98845512  peak memory footprint\n",
+      "wall_ms": 100.367125,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-boolean-negation-peak-rss-v2/bend-input.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 119455744,
+      "stderr": "        0.09 real         0.22 user         0.01 sys\n           119455744  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7844  page reclaims\n                  64  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 559  involuntary context switches\n          2282699274  instructions retired\n           816307188  cycles elapsed\n            93406024  peak memory footprint\n",
+      "wall_ms": 94.761334,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-boolean-negation-peak-rss-v2/bend-input.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 119619584,
+      "stderr": "        0.09 real         0.23 user         0.01 sys\n           119619584  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7800  page reclaims\n                  64  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 600  involuntary context switches\n          2355293120  instructions retired\n           858057590  cycles elapsed\n            93553480  peak memory footprint\n",
+      "wall_ms": 96.53525,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-boolean-negation-peak-rss-v2/bend-input.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 113557504,
+      "stderr": "        0.09 real         0.21 user         0.01 sys\n           113557504  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7431  page reclaims\n                  65  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 577  involuntary context switches\n          2183336341  instructions retired\n           786758730  cycles elapsed\n            87507808  peak memory footprint\n",
+      "wall_ms": 95.002958,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-boolean-negation-peak-rss-v2/bend-input.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 118603776,
+      "stderr": "        0.09 real         0.23 user         0.01 sys\n           118603776  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7737  page reclaims\n                  64  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   1  voluntary context switches\n                 697  involuntary context switches\n          2332926853  instructions retired\n           857084304  cycles elapsed\n            92554080  peak memory footprint\n",
+      "wall_ms": 98.395917,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-boolean-negation-peak-rss-v2/bend-input.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 118620160,
+      "stderr": "        0.09 real         0.22 user         0.01 sys\n           118620160  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7742  page reclaims\n                  64  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 677  involuntary context switches\n          2260510376  instructions retired\n           830001446  cycles elapsed\n            92586848  peak memory footprint\n",
+      "wall_ms": 96.532625,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-boolean-negation-peak-rss-v2/bend-input.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 118046720,
+      "stderr": "        0.09 real         0.22 user         0.01 sys\n           118046720  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7705  page reclaims\n                  64  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 669  involuntary context switches\n          2306367603  instructions retired\n           844398353  cycles elapsed\n            91980568  peak memory footprint\n",
+      "wall_ms": 96.355208,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-boolean-negation-peak-rss-v2/bend-input.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 115621888,
+      "stderr": "        0.09 real         0.22 user         0.01 sys\n           115621888  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7560  page reclaims\n                  64  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 577  involuntary context switches\n          2259290779  instructions retired\n           825087558  cycles elapsed\n            89604984  peak memory footprint\n",
+      "wall_ms": 96.410916,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-boolean-negation-peak-rss-v2/bend-input.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 117243904,
+      "stderr": "        0.09 real         0.22 user         0.01 sys\n           117243904  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7656  page reclaims\n                  64  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 629  involuntary context switches\n          2266186844  instructions retired\n           814720266  cycles elapsed\n            91194184  peak memory footprint\n",
+      "wall_ms": 94.830625,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-boolean-negation-peak-rss-v2/bend-input.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 112115712,
+      "stderr": "        0.09 real         0.21 user         0.01 sys\n           112115712  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7345  page reclaims\n                  64  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 992  involuntary context switches\n          2183245087  instructions retired\n           797378806  cycles elapsed\n            86049608  peak memory footprint\n",
+      "wall_ms": 95.621541,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-boolean-negation-peak-rss-v2/bend-input.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 119652352,
+      "stderr": "        0.09 real         0.24 user         0.01 sys\n           119652352  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7804  page reclaims\n                  64  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 682  involuntary context switches\n          2384850183  instructions retired\n           897769733  cycles elapsed\n            93619040  peak memory footprint\n",
+      "wall_ms": 101.374292,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-boolean-negation-peak-rss-v2/bend-input.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 119341056,
+      "stderr": "        0.09 real         0.24 user         0.01 sys\n           119341056  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7783  page reclaims\n                  65  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   1  voluntary context switches\n                 537  involuntary context switches\n          2512537506  instructions retired\n           883818480  cycles elapsed\n            93242136  peak memory footprint\n",
+      "wall_ms": 95.463125,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-boolean-negation-peak-rss-v2/bend-input.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 122978304,
+      "stderr": "        0.09 real         0.24 user         0.01 sys\n           122978304  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                8012  page reclaims\n                  64  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 611  involuntary context switches\n          2475792537  instructions retired\n           888182397  cycles elapsed\n            96895840  peak memory footprint\n",
+      "wall_ms": 98.430166,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-boolean-negation-peak-rss-v2/bend-input.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 116621312,
+      "stderr": "        0.09 real         0.22 user         0.01 sys\n           116621312  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7623  page reclaims\n                  64  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 657  involuntary context switches\n          2337145110  instructions retired\n           837093017  cycles elapsed\n            90588000  peak memory footprint\n",
+      "wall_ms": 93.976958,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-boolean-negation-peak-rss-v2/bend-input.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 119095296,
+      "stderr": "        0.10 real         0.26 user         0.01 sys\n           119095296  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7768  page reclaims\n                  64  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 734  involuntary context switches\n          2450721880  instructions retired\n           947757800  cycles elapsed\n            93062008  peak memory footprint\n",
+      "wall_ms": 107.591,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-boolean-negation-peak-rss-v2/bend-input.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 117014528,
+      "stderr": "        0.10 real         0.25 user         0.01 sys\n           117014528  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7658  page reclaims\n                  64  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 740  involuntary context switches\n          2254387098  instructions retired\n           887320993  cycles elapsed\n            90964832  peak memory footprint\n",
+      "wall_ms": 103.239708,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-boolean-negation-peak-rss-v2/bend-input.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 120209408,
+      "stderr": "        0.09 real         0.26 user         0.01 sys\n           120209408  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7841  page reclaims\n                  64  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   1  voluntary context switches\n                 573  involuntary context switches\n          2543852216  instructions retired\n           953795096  cycles elapsed\n            94159688  peak memory footprint\n",
+      "wall_ms": 102.5015,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-boolean-negation-peak-rss-v2/bend-input.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 115343360,
+      "stderr": "        0.09 real         0.24 user         0.01 sys\n           115343360  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7541  page reclaims\n                  64  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 631  involuntary context switches\n          2341475059  instructions retired\n           866647001  cycles elapsed\n            89277256  peak memory footprint\n",
+      "wall_ms": 101.184208,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-boolean-negation-peak-rss-v2/bend-input.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 118554624,
+      "stderr": "        0.10 real         0.25 user         0.01 sys\n           118554624  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7738  page reclaims\n                  64  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   1  voluntary context switches\n                 675  involuntary context switches\n          2343965997  instructions retired\n           898516443  cycles elapsed\n            92521312  peak memory footprint\n",
+      "wall_ms": 104.260709,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-boolean-negation-peak-rss-v2/bend-input.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 117112832,
+      "stderr": "        0.10 real         0.28 user         0.01 sys\n           117112832  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7649  page reclaims\n                  64  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 631  involuntary context switches\n          2459485580  instructions retired\n           976079630  cycles elapsed\n            91063088  peak memory footprint\n",
+      "wall_ms": 109.41775,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-boolean-negation-peak-rss-v2/bend-input.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 119685120,
+      "stderr": "        0.10 real         0.26 user         0.01 sys\n           119685120  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7807  page reclaims\n                  64  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 634  involuntary context switches\n          2434282085  instructions retired\n           938787516  cycles elapsed\n            93651808  peak memory footprint\n",
+      "wall_ms": 105.252375,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-boolean-negation-peak-rss-v2/bend-input.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 117751808,
+      "stderr": "        0.09 real         0.23 user         0.01 sys\n           117751808  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7688  page reclaims\n                  64  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   1  voluntary context switches\n                 520  involuntary context switches\n          2314694975  instructions retired\n           836005694  cycles elapsed\n            91685680  peak memory footprint\n",
+      "wall_ms": 94.302625,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-boolean-negation-peak-rss-v2/bend-input.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 122437632,
+      "stderr": "        0.10 real         0.27 user         0.01 sys\n           122437632  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7973  page reclaims\n                  64  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 726  involuntary context switches\n          2511781282  instructions retired\n           961590400  cycles elapsed\n            96420704  peak memory footprint\n",
+      "wall_ms": 104.027208,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-boolean-negation-peak-rss-v2/bend-input.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 120193024,
+      "stderr": "        0.10 real         0.25 user         0.01 sys\n           120193024  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7837  page reclaims\n                  64  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   2  voluntary context switches\n                 644  involuntary context switches\n          2391745006  instructions retired\n           911996542  cycles elapsed\n            94143328  peak memory footprint\n",
+      "wall_ms": 104.336916,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-boolean-negation-peak-rss-v2/bend-input.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 113770496,
+      "stderr": "        0.09 real         0.24 user         0.01 sys\n           113770496  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7446  page reclaims\n                  64  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n                 674  involuntary context switches\n          2226967042  instructions retired\n           859908657  cycles elapsed\n            87704368  peak memory footprint\n",
+      "wall_ms": 101.992333,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-boolean-negation-peak-rss-v2/bend-input.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 112885760,
+      "stderr": "        0.09 real         0.23 user         0.01 sys\n           112885760  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7391  page reclaims\n                  64  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   1  voluntary context switches\n                 508  involuntary context switches\n          2205936539  instructions retired\n           831284626  cycles elapsed\n            86852424  peak memory footprint\n",
+      "wall_ms": 99.271416,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    },
+    {
+      "command": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-boolean-negation-peak-rss-v2/bend-input.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "peak_rss_bytes": 120340480,
+      "stderr": "        0.10 real         0.26 user         0.01 sys\n           120340480  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7848  page reclaims\n                  64  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   1  voluntary context switches\n                 608  involuntary context switches\n          2517180668  instructions retired\n           945964778  cycles elapsed\n            94323576  peak memory footprint\n",
+      "wall_ms": 105.543834,
+      "wrapper": [
+        "/usr/bin/time",
+        "-l"
+      ]
+    }
+  ],
+  "schema": "semaprax.bend2-law-benchmark.peak-rss.v1"
+}

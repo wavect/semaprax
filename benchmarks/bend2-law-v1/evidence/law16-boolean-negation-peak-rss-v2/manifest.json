@@ -1,0 +1,39 @@
+{
+  "bend_input": {
+    "bytes": 327,
+    "path": "bend-input.bend",
+    "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+  },
+  "bend_receipt": {
+    "bytes": 37540,
+    "path": "bend-verdict.json",
+    "sha256": "sha256:e8be313704dec172af3139a48141db3e294bc2bda10e2d704188d9f74b16128c"
+  },
+  "nonclaims": [
+    "v2 is a current-checkout observation and does not rebind historical RSS evidence",
+    "no RSS ratio, winner, or cold-cache claim"
+  ],
+  "provenance": {
+    "bytes": 4517,
+    "path": "provenance.json",
+    "sha256": "sha256:e4f103c1607495c175d49feb93b7224467abcb10353a2d694dca7abeec3f44ab"
+  },
+  "samples_per_route": 30,
+  "schema": "semaprax.bend2-law-benchmark.boolean-negation-peak-rss-current.v2",
+  "semaprax_manifest": {
+    "bytes": 183,
+    "path": "semaprax-project/semaprax.toml",
+    "sha256": "sha256:481999d6499263a605ce8eaf67e8155b772f6cddbe466c87e3087978ff339bb5"
+  },
+  "semaprax_receipt": {
+    "bytes": 46612,
+    "path": "semaprax-z3.json",
+    "sha256": "sha256:7cee52188725851bd855678ab0397c45a296d74f21050152fe71ce1839554047"
+  },
+  "semaprax_source": {
+    "bytes": 182,
+    "path": "semaprax-project/src/app.spx",
+    "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+  },
+  "status": "completed"
+}

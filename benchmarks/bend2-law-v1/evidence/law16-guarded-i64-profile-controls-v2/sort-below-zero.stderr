@@ -1,0 +1,3 @@
+SEMAPRAX contract failure
+  contract: requires domain(input) in law16.checked_sort
+  arguments: input = <data>

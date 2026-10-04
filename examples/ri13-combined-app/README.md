@@ -66,6 +66,11 @@ python3 examples/ri13-combined-app/measure.py \
   --verify-raw-artifacts examples/ri13-combined-app/measurements/local-receipt.json
 ```
 
+By default, verification reads the absolute directory recorded in the receipt.
+When raw files have been copied elsewhere, pass their retained directory with
+`--raw-artifact-dir` alongside `--verify-raw-artifacts`; the receipt and every
+file hash, filename, and coverage check remain bound to the original manifest.
+
 The harness is offline and locked. It executes M1 and M2 before M3, requires
 each consumer's success marker, and refuses an M3 CSV without all five
 allocator-request columns. The built M2 consumer is the record/Serde and
@@ -311,15 +316,18 @@ output, including each retained raw stream. It therefore leaves no running conta
 Mac-local result into Linux evidence. No Linux evidence has been recorded by
 this route yet.
 
-## Explicit Wasm refusal evidence
+## Explicit Wasm target classification
 
 RI-13's generated Rust routes are not Wasm or cross-target support. The
 following command uses one supplied current-head compiler binary to request the
 Wasm target for each independent M1, M2, and M3 Project manifest. It records
 the exact manifest profile (`implicit scalar.v1` for M1/M2 and
 `source-local-future.v1` for M3), compiler and checkout identity, command,
-diagnostic codes, and raw stdout/stderr artifacts. Every row must exit nonzero
-and leave its requested `.wasm` output absent.
+diagnostic codes, and raw stdout/stderr artifacts. M1 and M3 must refuse and
+leave their requested `.wasm` output absent. M2 must succeed because its
+ordinary scalar Project export is independently Wasm-admitted; that result does
+not admit the separate generated Serde record or Rust Iterator callback
+projection to Wasm.
 
 ```sh
 python3 examples/ri13-combined-app/wasm-refusal.py \
@@ -330,7 +338,7 @@ python3 examples/ri13-combined-app/wasm-refusal.py \
   --output /secure/local/ri13-wasm-refusal.json
 ```
 
-The receipt proves only an explicit refusal for the named source profiles and
-target. It does not assert a fallback, Wasm execution, a native result, or
-cross-target portability. A missing compiler or changed checkout is
-`unavailable`; a zero exit or materialized output is a failed refusal.
+The receipt classifies only the named Project source profiles and target. It
+does not assert a fallback, Wasm execution, a native result, or cross-target
+portability. A missing compiler or changed checkout is `unavailable`; a row
+whose exit and artifact state disagree with its recorded expected status fails.

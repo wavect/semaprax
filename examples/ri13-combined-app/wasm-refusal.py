@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Record explicit RI-13 Project Wasm-refusal evidence with no artifact claim."""
+"""Classify RI-13 Project Wasm requests without claiming Rust interop support."""
 import argparse
 import hashlib
 import json
@@ -11,11 +11,11 @@ from datetime import datetime, timezone
 
 ROOT = pathlib.Path(__file__).resolve().parent
 EXAMPLES = ROOT.parent
-SCHEMA = "semaprax.ri13.wasm-refusal.v1"
+SCHEMA = "semaprax.ri13.wasm-target-classification.v1"
 PROJECTS = {
-    "m1": (EXAMPLES / "ri13-m1-regex-url/project/semaprax.toml", "implicit scalar.v1"),
-    "m2": (EXAMPLES / "ri13-m2-record-iterator/project/semaprax.toml", "implicit scalar.v1"),
-    "m3": (EXAMPLES / "ri13-m3-local-http/project/semaprax.toml", "source-local-future.v1"),
+    "m1": (EXAMPLES / "ri13-m1-regex-url/project/semaprax.toml", "implicit scalar.v1", "refused"),
+    "m2": (EXAMPLES / "ri13-m2-record-iterator/project/semaprax.toml", "implicit scalar.v1", "supported"),
+    "m3": (EXAMPLES / "ri13-m3-local-http/project/semaprax.toml", "source-local-future.v1", "refused"),
 }
 
 
@@ -38,7 +38,7 @@ def write_artifact(directory, name, content):
     return {"path": name, "sha256": digest(path)}
 
 
-def run_one(binary, artifact_dir, label, manifest, selected_profile):
+def run_one(binary, artifact_dir, label, manifest, selected_profile, expected):
     output = artifact_dir / f"{label}.wasm"
     command = [str(binary), "build", "--manifest-path", str(manifest), "--target", "wasm", "--output", str(output)]
     completed = subprocess.run(command, capture_output=True, text=True)
@@ -54,12 +54,18 @@ def run_one(binary, artifact_dir, label, manifest, selected_profile):
         "stdout": stdout,
         "stderr": stderr,
         "diagnostic_codes": codes,
-        "output_exists_after_refusal": output.exists(),
+        "output_exists": output.exists(),
+        "expected": expected,
     }
-    if completed.returncode == 0 or output.exists():
-        result.update({"status": "failed", "reason": "Wasm request emitted an artifact or did not refuse"})
+    if expected == "refused":
+        if completed.returncode == 0 or output.exists():
+            result.update({"status": "failed", "reason": "Wasm request emitted an artifact or did not refuse"})
+        else:
+            result["status"] = "refused"
+    elif completed.returncode != 0 or not output.exists():
+        result.update({"status": "failed", "reason": "supported scalar Project Wasm request did not emit its artifact"})
     else:
-        result["status"] = "refused"
+        result["status"] = "supported"
     return result
 
 
@@ -72,21 +78,23 @@ def run(binary, checkout, expected_commit, artifact_dir):
         "checkout": {"path": str(checkout.resolve()), "expected_commit": expected_commit, "observed_commit": observed},
         "paths": {},
         "nonclaims": [
-            "each row is an explicit Wasm refusal, not a cross-target build result",
-            "this command does not test native target behavior, runtime execution, or a Wasm fallback",
-            "no M1/M2/M3 Project profile is widened by the refusal evidence",
+            "M2's supported row covers only its ordinary scalar Project Wasm artifact",
+            "M2's generated Serde record and Rust Iterator callback projection has no Wasm target subject in this command",
+            "this command does not test native target behavior, runtime execution, or cross-target portability",
         ],
     }
     if observed != expected_commit:
         result.update({"status": "unavailable", "reason": "compiler checkout differs from requested commit"})
         return result
     artifact_dir.mkdir(parents=True, exist_ok=False)
-    for label, (manifest, required_profile) in PROJECTS.items():
+    for label, (manifest, required_profile, expected) in PROJECTS.items():
         actual = profile(manifest)
         if actual != required_profile:
             raise ValueError(f"{label} profile changed from its reviewed refusal subject")
-        result["paths"][label] = run_one(binary, artifact_dir, label, manifest, actual)
-    result["status"] = "completed" if all(row["status"] == "refused" for row in result["paths"].values()) else "failed"
+        result["paths"][label] = run_one(binary, artifact_dir, label, manifest, actual, expected)
+    result["status"] = "completed" if all(
+        row["status"] == row["expected"] for row in result["paths"].values()
+    ) else "failed"
     return result
 
 

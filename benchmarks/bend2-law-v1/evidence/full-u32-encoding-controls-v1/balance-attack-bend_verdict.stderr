@@ -1,0 +1,9 @@
+SOME PROOFS FAIL
+Error:
+- expected : Decision{9, 4, 0}
+- observed : Decision{6, 7, 0}
+Location: case_0
+34 | def case_0():
+35>|   {==}
+   |   ^^^^
+36 | 

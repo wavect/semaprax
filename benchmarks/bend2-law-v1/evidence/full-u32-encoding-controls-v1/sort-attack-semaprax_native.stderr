@@ -1,0 +1,3 @@
+SEMAPRAX contract failure
+  contract: ensures result == 0 in app.main
+  arguments: none

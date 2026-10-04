@@ -2,6 +2,21 @@
 
 - HP-00..HP-17: add the development harness provider host (`crates/semaprax-harness`, private `semaprax-full harness`). Typed `semaprax.harness-provider.v1` capability contracts, per-project `semaprax.harness.toml`/frozen lock with explicit trust, a bounded stdio adapter host, a compiler-assisted workflow, native-first context, authoritative command results with compressible views, policy-first decision routing bridged to `ProviderPolicy`, local endpoint adoption over the existing Responses adapter, a lazy skill catalog, a Claude Code hook bridge, observation attribution, an adapter SDK and conformance kit, and real Graft/Graphify/RTK/Laya adapters. Evidence is local (macOS aarch64); Graphify and learned routing stay opt-in. The compiled `semaprax.plugin-manifest.v1` is unchanged.
 
+- LAW-16: retain pinned Bend U32 universal insertion-sort verdict/kernel
+  evidence and pinned SEMAPRAX LAW15 Lean sortedness/permutation/multiplicity
+  evidence over the U32 subset. A versioned guarded-i64 profile records their
+  matched semantic laws, separate source identities and trust boundaries;
+  bounded balance controls and source-Z3 obligations remain separate. Agent
+  token events are authenticated across ten Boolean pairs, while monetary
+  cost events and cache-isolated cold measurements remain unavailable. The
+  original checked-u32 cells and LAW-16 closure remain open.
+- RI-13: retain clean locked offline macOS arm64 and Linux x86_64 guest
+  M1/M2/M3 application receipts. Each has 22 passed, 0 failed, 0 skipped
+  stages/measurements and 44 verified raw streams. The linked consumer,
+  copy/friction ledgers, and adverse-throughput investigations are published.
+  Exact target checks refuse unsupported M1/M3 Wasm routes while the separate
+  M2 scalar Project builds; generated Rust Serde/iterator adapters are not
+  claimed on Wasm. Linux performance remains guest evidence.
 - Fixed the patch-receipt evidence pagination regression to exercise a
   renameable declaration in the app module; the fixture now preserves its
   cross-file identity check without attempting to rename `main`. Both renamed

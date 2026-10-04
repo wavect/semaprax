@@ -73,8 +73,25 @@ pub enum SourceLocalFutureFailure {
 
 /// A one-shot, thread-local host future serving exactly one source request.
 /// The opaque suspension binding is held in memory and never serialized.
+enum SourceLocalFutureProgram {
+    /// A standalone checked source invocation owns its resolved program.
+    Detached(hir::ResolvedProgram),
+    /// A Project invocation retains its immutable admission and borrows its
+    /// already-linked public API program for the lifetime of the future.
+    Revision(Arc<ProjectRevision>),
+}
+
+impl SourceLocalFutureProgram {
+    fn program(&self) -> &hir::ResolvedProgram {
+        match self {
+            Self::Detached(program) => program,
+            Self::Revision(revision) => revision.public_api_program(),
+        }
+    }
+}
+
 pub struct SourceLocalFuture<F, H> {
-    program: hir::ResolvedProgram,
+    program: SourceLocalFutureProgram,
     function_id: String,
     seed: i64,
     request: i64,
@@ -85,7 +102,6 @@ pub struct SourceLocalFuture<F, H> {
     pending: Option<Pin<Box<F>>>,
     settled: bool,
     local: Rc<()>,
-    revision: Option<Arc<ProjectRevision>>,
 }
 
 impl<F, H, E> SourceLocalFuture<F, H>
@@ -118,7 +134,13 @@ where
         }
         let program = hir::resolve(&checked)?;
         admitted_source_future_signature(&program, function_id).map_err(|e| vec![e])?;
-        Self::prepare_program(program, function_id, seed, max_steps, handler, None)
+        Self::prepare_program(
+            SourceLocalFutureProgram::Detached(program),
+            function_id,
+            seed,
+            max_steps,
+            handler,
+        )
     }
 
     /// Consume only a retained, Phase-A admitted Project revision. A caller
@@ -138,24 +160,21 @@ where
             .source_local_future_signature()?
             .function_id()
             .to_owned();
-        let program = revision.public_api_program().clone();
         Self::prepare_program(
-            program,
+            SourceLocalFutureProgram::Revision(revision),
             &function_id,
             seed,
             max_steps,
             handler,
-            Some(revision),
         )
     }
 
     fn prepare_program(
-        program: hir::ResolvedProgram,
+        program: SourceLocalFutureProgram,
         function_id: &str,
         seed: i64,
         max_steps: usize,
         handler: H,
-        revision: Option<Arc<ProjectRevision>>,
     ) -> Result<Self, Vec<Diagnostic>> {
         if !(1..=MAX_STEPS_LIMIT).contains(&max_steps) {
             return Err(invalid(
@@ -163,7 +182,7 @@ where
             ));
         }
         let step = run_resumable_effect(
-            &program,
+            program.program(),
             function_id,
             &[ArgumentValue::Int(seed)],
             max_steps,
@@ -190,7 +209,6 @@ where
             pending: None,
             settled: false,
             local: Rc::new(()),
-            revision,
         })
     }
 }
@@ -206,7 +224,6 @@ where
         let this = self.get_mut();
         assert!(!this.settled, "local source Future polled after settlement");
         let _ = &this.local;
-        let _ = &this.revision;
         if this.pending.is_none() {
             let handler = this.handler.take().expect("one handler before settlement");
             match catch_unwind(AssertUnwindSafe(|| handler(this.request))) {
@@ -236,7 +253,7 @@ where
         this.pending = None;
         let answer = answer.map_err(|_| SourceLocalFutureFailure::HandlerFailed)?;
         let step = resume_resumable_effect(
-            &this.program,
+            this.program.program(),
             &this.function_id,
             &[ArgumentValue::Int(this.seed)],
             &this.state,

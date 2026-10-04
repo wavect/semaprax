@@ -75,7 +75,7 @@ pub fn run(args: &[String], env: &Environment) -> Outcome {
         }
     }
     let mut req = BrokerRequest::new(
-        &pos[1],
+        pos[1],
         max_bytes.unwrap_or(cfg.budget.context_max_bytes as usize),
     );
     req.symbol = symbol;

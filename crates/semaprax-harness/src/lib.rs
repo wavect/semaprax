@@ -8,18 +8,18 @@
 pub mod diag;
 pub mod json;
 
-pub mod contract;
-pub mod profile;
-pub mod host;
-pub mod workflow;
-pub mod context;
+pub mod bench;
+pub mod bridge;
 pub mod command_view;
+pub mod conformance;
+pub mod context;
+pub mod contract;
 pub mod decision;
 pub mod endpoint;
-pub mod skills;
-pub mod bridge;
+pub mod host;
 pub mod observe;
-pub mod conformance;
-pub mod bench;
+pub mod profile;
+pub mod skills;
+pub mod workflow;
 
 pub mod cli;

@@ -121,9 +121,11 @@ impl<'a> Server<'a> {
                     .and_then(|a| a.iter().map(|x| x.as_str().map(String::from)).collect())
                     .filter(|a: &Vec<String>| !a.is_empty())
                     .ok_or_else(|| diag("SPX-HPN005", "`argv` must be a non-empty array of strings"))?;
-                let mut opts = ExecOptions::default();
-                opts.raw = obj.get("raw").and_then(Value::as_bool) == Some(true);
-                opts.timeout_ms = obj.get("timeout_ms").and_then(Value::as_u64);
+                let mut opts = ExecOptions {
+                    raw: obj.get("raw").and_then(Value::as_bool) == Some(true),
+                    timeout_ms: obj.get("timeout_ms").and_then(Value::as_u64),
+                    ..ExecOptions::default()
+                };
                 if negotiate::owner_of(&host, &self.avail, "command_wrapper") != Owner::Semaprax {
                     opts.external_owner = Some(host.command_rewriter.clone().unwrap_or_else(|| "external-host".into()));
                 }

@@ -499,7 +499,7 @@ fn hp_hp14_headless_stdio_fake_host_session() {
         "{}",
         r[4]
     );
-    assert!(r[4]["result"]["native"].as_array().unwrap().len() > 0);
+    assert!(!r[4]["result"]["native"].as_array().unwrap().is_empty());
     assert_eq!(r[5]["result"]["exit_code"], 0);
     assert_eq!(r[5]["result"]["envelope"]["result"]["executions"], 1);
     assert!(r[5]["result"]["display"]

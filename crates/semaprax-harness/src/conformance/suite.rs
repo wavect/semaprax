@@ -105,14 +105,17 @@ pub fn declared_ops(d: &Descriptor, kind: CapabilityKind) -> Vec<String> {
 }
 
 /// Per-rig knobs.
+type CfgEdit = Box<dyn FnOnce(&mut HostConfig)>;
+type DescriptorEdit = Box<dyn Fn(&mut Value)>;
+
 #[derive(Default)]
 pub struct Setup {
     pub files: Vec<(String, Vec<u8>)>,
     pub env: Vec<(String, String)>,
     pub isolation: Option<IsolationRequest>,
-    pub cfg: Option<Box<dyn FnOnce(&mut HostConfig)>>,
+    pub cfg: Option<CfgEdit>,
     /// Edit the descriptor JSON; the variant gets an in-memory grant.
-    pub edit: Option<Box<dyn Fn(&mut Value)>>,
+    pub edit: Option<DescriptorEdit>,
 }
 
 impl Setup {
@@ -228,7 +231,7 @@ impl Rig {
                 allow_project_local: false,
             },
         )?;
-        let trusted = crate::profile::cli_trust(&[id.clone()], &env);
+        let trusted = crate::profile::cli_trust(std::slice::from_ref(&id), &env);
         // An upstream that is just the adapter's own bundled code (`local:`
         // package, no identity probe) is bound by the entry digest and is
         // trusted by the real verb; the in-memory fallback below only covers

@@ -272,8 +272,10 @@ fn hp_hp04_valid_candidate_stops_at_approved_ready_with_zero_external_calls() {
 fn hp_hp04_external_context_only_when_requested_or_needed() {
     let e = setup(LIB);
     let fake = Fake::new(FIXED);
-    let mut always = Task::default();
-    always.external_context = ExternalContext::Always;
+    let always = Task {
+        external_context: ExternalContext::Always,
+        ..Task::default()
+    };
     let mut ext = Counting(0, false);
     let r = go(
         &config(&e, always, None),
@@ -284,8 +286,10 @@ fn hp_hp04_external_context_only_when_requested_or_needed() {
     assert_eq!(r.status, "approved-candidate-ready");
     assert_eq!(ext.0, 1);
     // Seed unknown (no failing function named) is not the case here, so force `never`.
-    let mut never = Task::default();
-    never.external_context = ExternalContext::Never;
+    let never = Task {
+        external_context: ExternalContext::Never,
+        ..Task::default()
+    };
     let mut ext = Counting(0, false);
     go(
         &config(&e, never, None),
@@ -300,8 +304,10 @@ fn hp_hp04_external_context_only_when_requested_or_needed() {
 fn hp_hp04_context_budget_is_enforced_after_collection() {
     let e = setup(LIB);
     let fake = Fake::new(FIXED);
-    let mut t = Task::default();
-    t.external_context = ExternalContext::Always;
+    let t = Task {
+        external_context: ExternalContext::Always,
+        ..Task::default()
+    };
     let mut ext = Counting(0, true);
     let r = go(
         &config(&e, t, None),
@@ -620,8 +626,10 @@ fn hp_hp04_composition_is_typed_deterministic_and_refuses_violations() {
 #[test]
 fn hp_hp04_report_and_observations_carry_no_goal_text() {
     let e = setup(LIB);
-    let mut task = Task::default();
-    task.goal = "use key sk-live-SECRET-123 to fix".into();
+    let task = Task {
+        goal: "use key sk-live-SECRET-123 to fix".into(),
+        ..Task::default()
+    };
     let cfg = config(&e, task, None);
     let fake = Fake::new(FIXED);
     let r = go(&cfg, &fake, None, proposal("replace_function_body"));

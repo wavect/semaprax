@@ -25,7 +25,7 @@ pub fn respond(frame: &[u8], script: &MockScript) -> Option<Vec<u8>> {
         }),
         "harness/invoke" => match RequestEnvelope::from_json(msg.get("params")?) {
             Ok(req) => (script.invoke)(&req),
-            Err(d) => return Some(error_frame(&id, &d.code, &d.message)),
+            Err(d) => return Some(error_frame(&id, d.code, &d.message)),
         },
         "harness/shutdown" => json!({}),
         other => return Some(error_frame(&id, "method-not-found", other)),

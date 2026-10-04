@@ -32,7 +32,13 @@ impl Grant {
         upstream_digest: Option<String>,
         permissions: GrantedPermissions,
     ) -> Self {
-        Self { provider_id, descriptor_digest, entry_digest, upstream_digest, permissions }
+        Self {
+            provider_id,
+            descriptor_digest,
+            entry_digest,
+            upstream_digest,
+            permissions,
+        }
     }
 
     pub fn provider_id(&self) -> &str {

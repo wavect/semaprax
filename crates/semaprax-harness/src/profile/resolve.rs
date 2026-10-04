@@ -165,7 +165,7 @@ fn evaluate<'a>(inst: &'a Installation, state: &LocalState) -> Eval<'a> {
     };
     let d = &insp.descriptor;
     let platform = current_platform();
-    if !d.platforms.iter().any(|p| *p == platform) {
+    if !d.platforms.contains(&platform) {
         return fail(
             Verdict::Unsupported,
             format!("platform `{platform}` is not listed by the descriptor"),

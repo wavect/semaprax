@@ -158,7 +158,7 @@ impl Rig {
     }
 
     /// Adopt, trust, select and resolve the rig's tool.
-    pub fn install(&self, mode: &str) {
+    pub fn install(&self, _mode: &str) {
         self.adopt_trust(self.tool);
         let o = self.sh(&["resolve", self.project.to_str().unwrap()]);
         assert_eq!(o.code, 0, "resolve: {}{}", o.stdout, o.stderr);
@@ -260,7 +260,7 @@ pub fn items(doc: &Value) -> Vec<&Value> {
         .collect()
 }
 
-pub fn external<'a>(doc: &'a Value) -> Vec<&'a Value> {
+pub fn external(doc: &Value) -> Vec<&Value> {
     doc["external"].as_array().into_iter().flatten().collect()
 }
 
@@ -461,8 +461,7 @@ pub fn scenario_absent(tool: Tool) {
     rig.select(tool, "required");
     let err = rig
         .context(&[Q, "--max-bytes", "16000"])
-        .err()
-        .expect("required with no provider must fail");
+        .expect_err("required with no provider must fail");
     assert_ne!(err.code, 0);
     assert!(
         err.stderr.contains("SPX-HP"),

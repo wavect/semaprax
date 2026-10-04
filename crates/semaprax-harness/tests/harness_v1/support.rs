@@ -33,7 +33,8 @@ pub fn harness_bin() -> PathBuf {
 /// Required absolute path from the environment for provisioned tests; panics
 /// with an actionable message instead of silently skipping.
 pub fn required_tool(var: &str) -> PathBuf {
-    let value = std::env::var_os(var).unwrap_or_else(|| panic!("provisioned test requires {var}=<absolute path>"));
+    let value = std::env::var_os(var)
+        .unwrap_or_else(|| panic!("provisioned test requires {var}=<absolute path>"));
     let path = PathBuf::from(value);
     assert!(path.is_absolute(), "{var} must be absolute");
     path
@@ -41,5 +42,8 @@ pub fn required_tool(var: &str) -> PathBuf {
 
 /// Repository root (two levels above this crate).
 pub fn repo_root() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../..").canonicalize().expect("repo root")
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../..")
+        .canonicalize()
+        .expect("repo root")
 }

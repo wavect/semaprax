@@ -187,6 +187,8 @@ impl AdapterHandle {
         };
     }
 
+    // Outcome is the intentionally rich terminal value returned verbatim to callers.
+    #[allow(clippy::result_large_err)]
     fn ensure_running(
         &self,
         project: &ProjectBinding,
@@ -296,6 +298,8 @@ impl AdapterHandle {
     }
 
     /// Take an in-flight slot, queueing (bounded) until `until` or cancel.
+    // Outcome is the intentionally rich terminal value returned verbatim to callers.
+    #[allow(clippy::result_large_err)]
     fn admit(&self, until: Instant, cancel: &CancelToken) -> Result<(), Outcome> {
         let mut g = lock(&self.gate);
         if g.closing {

@@ -72,9 +72,11 @@ fn ollama_and_litellm_gateway_reuse_with_cancellation_and_single_attempt() {
         .to_string(),
     )
     .unwrap();
-    let mut env = Environment::default();
-    env.harness_home = Some(dir.join("home"));
-    env.cwd = dir.clone();
+    let mut env = Environment {
+        harness_home: Some(dir.join("home")),
+        cwd: dir.clone(),
+        ..Environment::default()
+    };
     env.vars.insert("LITELLM_MASTER_KEY".into(), key.clone());
     let run = |args: &[&str]| {
         let mut v = vec!["proj".to_string()];

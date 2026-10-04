@@ -72,10 +72,11 @@ pub fn exec(args: &[String], env: &Environment) -> Outcome {
             format!("observations file: {e}"),
         ))),
     });
-    if let Some(Err(o)) = observer {
-        return o;
-    }
-    let mut observer = observer.map(|r| r.ok().expect("checked"));
+    let mut observer = match observer {
+        Some(Err(o)) => return o,
+        Some(Ok(obs)) => Some(obs),
+        None => None,
+    };
     let r = execute(env, &env.cwd.join(project), argv, &opts, observer.as_mut());
     if let Some(o) = observer.as_mut() {
         o.finish();

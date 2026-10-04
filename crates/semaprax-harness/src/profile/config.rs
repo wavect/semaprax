@@ -396,7 +396,7 @@ impl<'a> Cursor<'a> {
                         && r.trim_start_matches('-')
                             .bytes()
                             .all(|b| b.is_ascii_digit())
-                        && r.trim_start_matches('-').len() > 0 =>
+                        && !r.trim_start_matches('-').is_empty() =>
                     {
                         r.parse::<i64>()
                             .map(Val::Int)

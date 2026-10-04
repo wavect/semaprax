@@ -194,10 +194,7 @@ fn hp_hp15_observer_failure_leaves_execution_identical() {
 fn hp_hp15_final_envelope_counts_match_tokenizer_independently() {
     let envelope = "tool: ctx\nskill: build — wrapper<retrieved>héllo 日本語 😀</retrieved>";
     let m = measure(envelope, Some(&ByteTokenizer));
-    assert_eq!(
-        m.count,
-        Some(TokenCount::bytes(envelope.as_bytes().len() as u64))
-    );
+    assert_eq!(m.count, Some(TokenCount::bytes(envelope.len() as u64)));
     assert_eq!(m.bytes, envelope.len());
     assert!(m.digest.starts_with("sha256:"));
     // Named tokenizer through the helper protocol, checked against an

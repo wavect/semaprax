@@ -462,7 +462,7 @@ impl ProposalStage for Racing {
     fn propose(&mut self, _r: &ProposalRequest) -> Result<Vec<u8>, StageFailure> {
         let lib = self.0.join("src/lib.spx");
         let mut s = std::fs::read_to_string(&lib).unwrap();
-        s.push_str("\n");
+        s.push('\n');
         std::fs::write(&lib, s).unwrap();
         Ok(std::fs::read(fixtures().join("proposals/valid.json")).unwrap())
     }

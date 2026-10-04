@@ -151,9 +151,11 @@ fn fx() -> Fx {
     let dir = fixture_dir("hp-hp12");
     std::fs::create_dir_all(dir.join("proj")).unwrap();
     let home = dir.join("home");
-    let mut env = Environment::default();
-    env.harness_home = Some(home.clone());
-    env.cwd = dir.clone();
+    let env = Environment {
+        harness_home: Some(home.clone()),
+        cwd: dir.clone(),
+        ..Environment::default()
+    };
     Fx {
         env,
         project: "proj".into(),

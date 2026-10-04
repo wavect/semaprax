@@ -14,8 +14,10 @@ const LIB_A: &str =
 const LIB_B: &str =
     "pub fn beta_conformance_symbol() -> u32 {\n    42 + 1\n}\n\npub fn helper_conformance() {}\n";
 
+type Lookup = (&'static str, fn(&str) -> Value);
+
 /// `(operation, payload builder)` for the best lookup the adapter declares.
-fn lookup(t: &Target) -> Option<(&'static str, fn(&str) -> Value)> {
+fn lookup(t: &Target) -> Option<Lookup> {
     let ops = t.ops(KIND);
     let has = |o: &str| ops.iter().any(|x| x == o);
     if has("references") {

@@ -76,9 +76,9 @@ impl Target {
         let addrs = (host, self.port)
             .to_socket_addrs()
             .map_err(|e| err("SPX-HPL003", format!("cannot resolve loopback host: {e}")))?;
+        let mut addrs = addrs;
         addrs
-            .filter(|a| a.ip().is_loopback())
-            .next()
+            .find(|a| a.ip().is_loopback())
             .ok_or_else(|| err("SPX-HPL002", "host does not resolve to a loopback address"))
     }
 }

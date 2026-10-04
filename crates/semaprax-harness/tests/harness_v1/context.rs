@@ -475,8 +475,8 @@ fn hp_hp05_cache_hits_recheck_authority_every_read() {
         2,
         "authority rechecked on the hit too"
     );
-    assert_eq!(o1.cache_hits["org.example/fake"], false);
-    assert_eq!(o2.cache_hits["org.example/fake"], true);
+    assert!(!o1.cache_hits["org.example/fake"]);
+    assert!(o2.cache_hits["org.example/fake"]);
     assert_eq!(
         o1.rendered, o2.rendered,
         "cached and fresh output are byte-identical"
@@ -769,7 +769,7 @@ fn hp_hp05_all_output_fits_every_budget_and_handles_preserve_omissions() {
     let (b, ..) = counted(&p);
     let mut saw_handles = false;
     for max in (2048..9000).step_by(250) {
-        let mut r = req("add", max);
+        let r = req("add", max);
         match b.context(&p, &r) {
             Ok(o) => {
                 assert!(o.rendered.len() <= max, "{} > {max}", o.rendered.len());

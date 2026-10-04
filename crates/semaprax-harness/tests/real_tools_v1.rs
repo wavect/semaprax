@@ -11,17 +11,17 @@
 #[path = "harness_v1/support.rs"]
 mod support;
 
-#[path = "real_tools_v1/graft.rs"]
-mod graft;
-#[path = "real_tools_v1/graphify.rs"]
-mod graphify;
-#[path = "real_tools_v1/rtk.rs"]
-mod rtk;
 #[path = "real_tools_v1/decision_local.rs"]
 mod decision_local;
 #[path = "real_tools_v1/endpoints.rs"]
 mod endpoints;
 #[path = "real_tools_v1/external_host.rs"]
 mod external_host;
+#[path = "real_tools_v1/graft.rs"]
+mod graft;
+#[path = "real_tools_v1/graphify.rs"]
+mod graphify;
+#[path = "real_tools_v1/rtk.rs"]
+mod rtk;
 #[path = "real_tools_v1/workflow_compiler.rs"]
 mod workflow_compiler;

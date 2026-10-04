@@ -90,15 +90,14 @@ The session emits `SPX-HR400` for its own typed refusals and preserves the
 underlying Project and prepared-interpreter diagnostics for those owners'
 failures. A caller must inspect the typed reason as well as the diagnostic.
 
-The focused local gate at `project::hot_reload::tests::` passed 3/3 with
-`CARGO_TARGET_DIR=target/hr01 CARGO_BUILD_JOBS=1 CARGO_INCREMENTAL=0
-CARGO_PROFILE_TEST_DEBUG=0 cargo test --locked --offline -p semaprax --lib
-project::hot_reload::tests:: -- --nocapture`. This is local library evidence,
-not hosted or source-Agent handoff evidence.
+The focused local gate at `project::hot_reload::tests::` covers checked
+identical/stale/first-over-bound refusal, changed contract and entry identity,
+missing imported stable IDs, forged plan refusal, a physical held-worker busy
+boundary, replacement panic terminality, source-Agent handoff refusal, and the
+same-worker A-to-B-to-C trace binding. This is local library evidence, not
+hosted or source-Agent handoff evidence.
 
 ## Completion work
 
-HR-01 still needs the source-Agent durable-checkpoint execution lane, a shared
-table-driven transition suite including a physical busy boundary and
-first-over-bound inputs, and broader adversarial coverage of rename, entry,
-effects, contracts, and missing stable IDs.
+HR-01 still needs the source-Agent durable-checkpoint execution lane and
+broader adversarial effects coverage.

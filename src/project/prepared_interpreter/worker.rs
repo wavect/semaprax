@@ -21,6 +21,8 @@ pub use untraced::UntracedPreparedProjectExecution;
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
+pub(crate) use replacement::TestHook as PreparedReplacementTestHook;
 use replacement::{ReplacementRequest, WorkerState};
 
 pub(super) const MAX_PREPARED_PROJECT_INTERPRETER_WORKERS: usize = 8;
@@ -53,6 +55,19 @@ pub struct PreparedProjectInterpreter {
 }
 
 impl PreparedProjectInterpreter {
+    #[cfg(test)]
+    pub(crate) fn set_execution_for_test(&self, active: bool) {
+        self.executing.store(active, Ordering::Release);
+    }
+
+    #[cfg(test)]
+    pub(crate) fn install_replacement_hook(&self, hook: PreparedReplacementTestHook) {
+        *self
+            .replacement_hook
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(hook);
+    }
+
     /// Opaque identity of the one retained worker thread. Local development
     /// coordinators use it only to observe worker continuity.
     pub fn worker_id(&self) -> std::thread::ThreadId {
@@ -160,11 +175,11 @@ impl Drop for PreparedProjectInterpreter {
 }
 
 #[derive(Debug)]
-pub(super) struct ExecutionAdmission<'a> {
+pub(crate) struct ExecutionAdmission<'a> {
     executing: &'a AtomicBool,
 }
 impl<'a> ExecutionAdmission<'a> {
-    pub(super) fn acquire(executing: &'a AtomicBool) -> Result<Self, Vec<Diagnostic>> {
+    pub(crate) fn acquire(executing: &'a AtomicBool) -> Result<Self, Vec<Diagnostic>> {
         executing
             .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
             .map_err(|_| {

@@ -22,6 +22,8 @@ pub use trace::{
     ProjectPreparedExecutionOutcome, ProjectSourceTrace, ProjectSourceTraceEvent,
     PROJECT_SOURCE_TRACE_SCHEMA,
 };
+#[cfg(test)]
+pub(crate) use worker::PreparedReplacementTestHook;
 pub use worker::{
     prepare_project_interpreter, PreparedProjectInterpreter, UntracedPreparedProjectExecution,
 };

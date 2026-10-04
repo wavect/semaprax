@@ -983,6 +983,7 @@ fn plan_digest(
 
 #[cfg(test)]
 mod tests {
+    use super::super::prepared_interpreter::PreparedReplacementTestHook;
     use super::*;
     use crate::project::{
         verify_project_source_trace_against_revision, ProjectPreparedExecutionOutcome,
@@ -1303,6 +1304,80 @@ mod tests {
         assert_eq!(
             observed(&session),
             ProjectPreparedExecutionOutcome::Returned(54)
+        );
+    }
+
+    #[test]
+    fn physical_busy_boundary_preserves_pending_plan_until_the_worker_is_idle() {
+        let fixture = Fixture::new();
+        let active = fixture.revision();
+        let mut session = HotReloadSession::new(
+            Arc::clone(&active),
+            PreparedProjectInterpreterOptions::default(),
+        )
+        .unwrap();
+        fixture.rewrite("src/app.spx", "multiply(6, 7)", "multiply(6, 8)");
+        let candidate = fixture.revision();
+        session.admit_candidate(Arc::clone(&candidate)).unwrap();
+        let plan = session.plan().unwrap();
+        session.worker.set_execution_for_test(true);
+        assert_eq!(
+            session.activate(plan.clone()).unwrap_err().reason,
+            HotReloadReason::BusyBoundary
+        );
+        assert_eq!(session.active_project_revision(), active.project_revision());
+        session.worker.set_execution_for_test(false);
+        session.activate(plan).unwrap();
+        assert_eq!(
+            session.active_project_revision(),
+            candidate.project_revision()
+        );
+    }
+
+    #[test]
+    fn forged_plan_and_terminal_worker_refuse_every_later_transition() {
+        let fixture = Fixture::new();
+        let active = fixture.revision();
+        let mut session = HotReloadSession::new(
+            Arc::clone(&active),
+            PreparedProjectInterpreterOptions::default(),
+        )
+        .unwrap();
+        fixture.rewrite("src/app.spx", "multiply(6, 7)", "multiply(6, 8)");
+        let candidate = fixture.revision();
+        session.admit_candidate(Arc::clone(&candidate)).unwrap();
+        let mut forged = session.plan().unwrap();
+        forged.candidate_program_root.push('0');
+        assert_eq!(
+            session.activate(forged).unwrap_err().reason,
+            HotReloadReason::StaleCandidate
+        );
+        let plan = session.plan().unwrap();
+        session
+            .worker
+            .install_replacement_hook(PreparedReplacementTestHook::PanicBeforePrepare);
+        assert_eq!(
+            session.activate(plan).unwrap_err().reason,
+            HotReloadReason::TerminalUncertainty
+        );
+        assert!(session.terminal());
+        assert_eq!(
+            session.admit_candidate(candidate).unwrap_err().reason,
+            HotReloadReason::TerminalUncertainty
+        );
+        assert_eq!(
+            session.plan().err().unwrap().reason,
+            HotReloadReason::TerminalUncertainty
+        );
+        assert_eq!(
+            session
+                .execute_entry(
+                    &PreparedProjectExecutionOptions::default(),
+                    &ProjectExecutionCancellation::new()
+                )
+                .unwrap_err()[0]
+                .code,
+            "SPX-HR400"
         );
     }
 }

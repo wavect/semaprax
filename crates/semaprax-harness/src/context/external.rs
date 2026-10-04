@@ -224,12 +224,15 @@ impl HostExternal {
             )
         })?;
         let desc = &self.launch.descriptor;
-        let runtime_executable = match desc.runtime {
-            Runtime::Python => self.env.vars.get("HARNESS_PYTHON"),
-            Runtime::Node => self.env.vars.get("HARNESS_NODE"),
-            _ => None,
-        }
-        .map(std::path::PathBuf::from);
+        // The runtime recorded at adoption wins; `HARNESS_*` is the fallback.
+        let runtime_executable = self.launch.runtime.clone().or_else(|| {
+            match desc.runtime {
+                Runtime::Python => self.env.vars.get("HARNESS_PYTHON"),
+                Runtime::Node => self.env.vars.get("HARNESS_NODE"),
+                _ => None,
+            }
+            .map(std::path::PathBuf::from)
+        });
         let tag = format!(
             "{}-{}",
             desc.provider_id.replace('/', "_"),

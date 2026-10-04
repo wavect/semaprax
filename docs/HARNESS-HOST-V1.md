@@ -1,5 +1,7 @@
 # Harness adapter host v1 (HP-03)
 
+Status: additive development-harness specification (HP-00); local macOS aarch64 evidence only.
+
 Audience: toolchain contributors and harness adapter authors.
 
 Implements the host side of `docs/HARNESS-PROVIDER-V1.md` (wire protocol,

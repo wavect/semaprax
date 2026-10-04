@@ -1,5 +1,7 @@
 # Command view v1 (HP-08, HP-09 host side)
 
+Status: additive development-harness specification (HP-00); local macOS aarch64 evidence only.
+
 Audience: toolchain contributors and harness adapter authors.
 
 `semaprax-harness exec <project> [--raw] [--json] [--timeout-ms N] [--external-owner NAME]

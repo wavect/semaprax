@@ -156,13 +156,10 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{output}");
             Ok(())
         }
-        CommandId::Harness => {
-            let host = require_private_host(host, "harness")?;
-            match (host.harness)(&args[1..]) {
-                0 => Ok(()),
-                code => Err(code),
-            }
-        }
+        CommandId::Harness => match (require_private_host(host, "harness")?.harness)(&args[1..]) {
+            0 => Ok(()),
+            code => Err(code),
+        },
         CommandId::NativeAuthorityCheck => {
             let host = require_private_host(host, "native-authority-check")?;
             let output = (host.native_authority_check)(&args[1..]).map_err(|(error, code)| {

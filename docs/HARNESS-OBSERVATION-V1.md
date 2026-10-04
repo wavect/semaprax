@@ -1,5 +1,7 @@
 # Harness observation v1 (HP-15)
 
+Status: additive development-harness specification (HP-00); local macOS aarch64 evidence only.
+
 Audience: harness-provider and benchmark maintainers. Owned by
 `crates/semaprax-harness/src/observe/`; verb `report <observations.jsonl> [--json]`.
 Diagnostics: `SPX-HPO001` invalid event/oversize field, `HPO002` trace read/parse,

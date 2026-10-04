@@ -1,5 +1,7 @@
 # Harness endpoint adoption v1 (HP-12)
 
+Status: additive development-harness specification (HP-00); local macOS aarch64 evidence only.
+
 Audience: toolchain contributors and harness adapter authors.
 
 Owner: `crates/semaprax-harness/src/endpoint/`. Diagnostics letter `L`.

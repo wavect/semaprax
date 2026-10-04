@@ -1,5 +1,7 @@
 # Harness context broker v1 (HP-05)
 
+Status: additive development-harness specification (HP-00); local macOS aarch64 evidence only.
+
 Audience: toolchain contributors and harness adapter authors.
 
 `semaprax harness context <project> <query> [--max-bytes N] [--symbol S] [--references] [--purge-cache] [--json]`

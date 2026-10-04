@@ -1,5 +1,7 @@
 # Harness Adapter SDK v1
 
+Status: additive development-harness specification (HP-00); local macOS aarch64 evidence only.
+
 Audience: adapter authors. Companion to
 [HARNESS-PROVIDER-V1](HARNESS-PROVIDER-V1.md), which is authoritative for the
 descriptor, envelopes and wire protocol; this page does not restate them.

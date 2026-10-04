@@ -1,5 +1,7 @@
 # Harness host bridge v1 (HP-14)
 
+Status: additive development-harness specification (HP-00); local macOS aarch64 evidence only.
+
 Audience: toolchain contributors and harness adapter authors.
 
 `semaprax-harness bridge <project> --stdio | --host claude-code [--hook pre-tool-use | --print-config]

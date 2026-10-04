@@ -1,5 +1,7 @@
 # Harness skills v1 (HP-13)
 
+Status: additive development-harness specification (HP-00); local macOS aarch64 evidence only.
+
 Audience: toolchain contributors and harness adapter authors.
 
 Implements `skill.catalog/v1` of [HARNESS-PROVIDER-V1](HARNESS-PROVIDER-V1.md)

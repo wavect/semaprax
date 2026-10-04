@@ -68,6 +68,12 @@ impl Policy {
             Self::ContextTarget => Err(
                 "app tasks supply the whole project tree as one native pack, not ranked context items; TC-05 target selection has nothing to rank".into(),
             ),
+            Self::SpendLedger => Err(
+                "app-task trials dispatch through ProductionClient, not the workflow route/spend path; the TC-03 task spend book is not consulted there (the campaign's own --max-usd ledger caps spend)".into(),
+            ),
+            Self::Routing => Err(
+                "app-task trials run one fixed model per arm through ProductionClient; TC-10 ladder routing only runs inside the workflow's route_and_fit".into(),
+            ),
             Self::CavemanView if ctx.view_arm.is_none() => Err(
                 "no command-view wrapper arm is configured (needs a provisioned HARNESS_* tool arm, --view-arm)".into(),
             ),

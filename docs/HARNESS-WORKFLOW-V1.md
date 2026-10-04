@@ -359,3 +359,44 @@ holder, fails closed with `SPX-HPD070`.
 `task_ledger` reports committed totals plus each entry's id, cost and state.
 
 The monetary keys are opt-in. A router has no receipt yet, so a billable router stays `uncertain` at its bound.
+
+## TC-10: cost-aware routing ladder (opt-in)
+
+`[routing] cost_aware = true` with `[routing.ladder.<family>]` turns this on:
+- `models`: approved choices, weakest first, 1 to 8;
+- `max_escalations`: default 1;
+- `min_tasks`: default 5.
+
+Without it, routing is unchanged. `decision::cost_route` is pure: no model call, clock or I/O, and no training during a task.
+
+**Cost estimate.** Each attempt's estimate reuses the TC-03 `call_bound`. Before dispatch the cache state is always
+conservative. A confirmed cache read lowers an estimate only when cache reads are priced, and never discounts context
+capacity. Local latency is carried separately from API billing.
+
+**Choosing the starting rung.** Hard filters run before any cost comparison: admissibility, structured output, tools,
+context capacity, a known price, and the spend allowance. Strategies are then compared on existing `EvidenceRecord`
+outcomes (real origin, verified success only). The comparison uses total cost per accepted task, including failed
+attempts, with exact integer cross-multiplication. A strategy is left out if it has fewer than `min_tasks` tasks,
+zero accepted tasks, or any unknown cost. With insufficient evidence the ladder only narrows the pool for the existing
+`rules_choice`.
+
+Evidence is looked up by the live `EvidenceKey`, so provider, model, catalog or profile drift falls back to rules. The
+governor, explicit pins, the privacy screen and the TC-03 allowance stay in force.
+
+**After a known terminal failure,** `next_action` picks one of: focused context expansion (TC-05 path), a larger output
+cap (TC-02 retry), one escalation, the same model when its feedback input changed, or stop. Uncertain requests,
+authorization refusals and missing toolchain dependencies always stop. A pin, a spent escalation bound or an
+unaffordable rung blocks escalation. The chosen model stays fixed across a length retry.
+
+**Router.** A paid router is bypassed unless its known benefit exceeds its known cost. An unknown benefit never pays,
+so in cost-aware mode the router is bypassed today.
+
+Each route records a `cost_policy` object: action, reason, escalation count and router-bypass reason.
+
+**Limits:**
+- Failure classification is a heuristic over stage, code and message.
+- The scratch-repair loop does not escalate.
+- Promotion needs TC-12 evidence.
+
+The TC-12 `spend-ledger` and `cost-aware-routing` arms report `not-applicable` for app tasks. Those trials run one
+fixed model through `ProductionClient`, not the workflow route/spend path.

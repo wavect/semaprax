@@ -593,11 +593,12 @@ fn tc12_production_path_campaign_uses_adapter_contract_budget_observations_and_r
         write_attempt["cost_micros"],
         300 + 700 * 1_250_000 / 1_000_000 + 1500
     );
-    // TC-03 and TC-10 landed: both are real arms that run, not placeholders.
+    // TC-03 and TC-10 landed, but app-task trials never run the workflow's
+    // route/spend path, so both arms report why instead of claiming an effect.
     for id in ["spend-ledger", "cost-aware-routing"] {
         let u = rows_of(&rows, id);
         assert_eq!(u.len(), TASKS.len() * 2);
-        assert!(u.iter().all(|r| r["outcome"] != "unavailable"), "{id}");
+        assert!(u.iter().all(|r| r["outcome"] == "not_applicable"), "{id}");
     }
     // Repo/index cache is labelled separately from the provider cache.
     assert!(
@@ -920,19 +921,26 @@ fn tc12_roster_is_bounded_with_placeholders_and_a_combined_profile() {
         get("prompt-renderer").overlay()["budget.prompt_renderer"],
         "ordered-v1"
     );
-    assert!(
-        get("spend-ledger").unavailable.is_none() && get("cost-aware-routing").unavailable.is_none()
-    );
-    assert_eq!(get("spend-ledger").overlay()["budget.strict_monetary"], true);
-    assert_eq!(get("cost-aware-routing").overlay()["routing.cost_aware"], true);
+    for id in ["spend-ledger", "cost-aware-routing"] {
+        let why = get(id).unavailable.clone().unwrap_or_default();
+        assert!(why.starts_with("not-applicable"), "{id}: {why}");
+    }
     let c = get("combined");
     assert!(
-        c.has(Policy::PromptRenderer) && c.has(Policy::CompactSkills) && c.has(Policy::Routing)
+        c.has(Policy::PromptRenderer)
+            && c.has(Policy::CompactSkills)
+            && !c.has(Policy::Routing)
+            && !c.has(Policy::SpendLedger)
     );
     assert!(c.omitted.is_empty());
     assert!(get("defaults").overlay().is_empty());
     // Policies that cannot change an app-task run say so, with the reason.
-    for id in ["context-target", "caveman-view"] {
+    for id in [
+        "context-target",
+        "caveman-view",
+        "spend-ledger",
+        "cost-aware-routing",
+    ] {
         let a = get(id);
         assert!(
             a.unavailable
@@ -943,7 +951,7 @@ fn tc12_roster_is_bounded_with_placeholders_and_a_combined_profile() {
         );
         assert!(a.policies.is_empty() && !a.not_applicable.is_empty());
     }
-    assert_eq!(c.not_applicable.len(), 2);
+    assert_eq!(c.not_applicable.len(), 4);
     assert!(!c.has(Policy::ContextTarget) && !c.has(Policy::CavemanView));
     // Without a skill in the base arm, compact skills is not applicable either.
     let n = profile_arms::screening_roster("native");
@@ -1202,7 +1210,8 @@ fn tc13_applied_overlays_change_the_wire_request_and_inapplicable_ones_report_wh
     assert_eq!(state("tiers"), Some(json!("applied")));
     assert_eq!(state("context-target"), Some(json!("not-applicable")));
     assert_eq!(state("caveman-view"), Some(json!("not-applicable")));
-    assert_eq!(state("spend-ledger"), Some(json!("unavailable")));
+    assert_eq!(state("spend-ledger"), Some(json!("not-applicable")));
+    assert_eq!(state("cost-aware-routing"), Some(json!("not-applicable")));
     assert!(comb[0]["overlays"]
         .as_array()
         .unwrap()

@@ -91,6 +91,22 @@ provider-reported charge was $0.151974. The CLI's requested per-call limit was
 not a hard monetary bound in that attempt; the overrun is retained as an
 adverse result rather than treated as an admitted trial.
 
+The [revised frozen plan](fixtures/law16-claude-boolean-campaign-plan-v2.json)
+keeps the same 20 task identities and model but requests $0.06 per call and
+allows failed trial outcomes to remain in the 10-pair campaign. Its planned
+total ceiling is $1.20. A provider rate limit pauses the campaign; use the
+same output directory with `--resume` after the limit resets. This is a new
+configuration and its outcomes are never pooled with the first campaign:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_claude_boolean_campaign.py \
+  --plan benchmarks/bend2-law-v1/fixtures/law16-claude-boolean-campaign-plan-v2.json \
+  --output /absolute/new-claude-campaign-v2 --first 1 --last 10 \
+  --claude /absolute/pinned-claude --bend-root /absolute/pinned-bend \
+  --bun /absolute/pinned-bun --semaprax /absolute/pinned-semaprax \
+  --z3 /absolute/pinned-z3 --max-cost-usd 0.06
+```
+
 The retained [unified fresh capture](evidence/law16-unified-fresh-v1/replay-status.json)
 completed six non-agent routes: Boolean ordinary checking, Boolean verdict/Z3
 candidate and attack checking, peak RSS, guarded-i64 balance/sort controls,

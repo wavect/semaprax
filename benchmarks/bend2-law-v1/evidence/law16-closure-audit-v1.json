@@ -4,14 +4,14 @@
       "assessment": "All seven non-agent routes were physically exercised with raw artifacts and pinned tools: six in the unified capture and the guarded-i64 balance SMT source-proof route in its separate caller-pinned capsule. Both capsules authenticate offline without their original temporary directories. The optional live agent continuation was not rerun, so full available-cell reproduction remains partial.",
       "evidence": [
         {
-          "bytes": 88502,
+          "bytes": 88528,
           "path": "evidence/law16-current-report-v1.json",
-          "sha256": "sha256:fa2c118cb4abe51d19bb06cd09d9e2f4ef41cdda7fc914e71a2d0a05faedd17f"
+          "sha256": "sha256:62b1d9319f0ac0e055bfb1ee1f1553ca96de495008ac6558fe82079b57f81451"
         },
         {
-          "bytes": 54870,
+          "bytes": 55743,
           "path": "README.md",
-          "sha256": "sha256:406d753a70852e786346b240e63618492e7db23b3ab6dcc4dbccfcb317854141"
+          "sha256": "sha256:46e05e0c8c846ce0ae192cf140f8e6a44e50f8bf627af6232a722e632d40f40b"
         },
         {
           "bytes": 28614,
@@ -42,9 +42,9 @@
       "assessment": "Supplemental guarded-i64/U32 v2 retains balance and sort controls, and separate Bend and Lean source theorems prove aligned universal sort laws over the U32 subdomain for distinct algorithms. A new matched scalar-Boolean refactor cell accepts both candidates and rejects law-breaking attacks with Bend verdict and SEMAPRAX Z3; SEMAPRAX check accepts its attack as an explicit nonproof result. None establishes the original checked-u32 source identities or source translation/lowering; checked-u32 syntax remains unsupported.",
       "evidence": [
         {
-          "bytes": 88502,
+          "bytes": 88528,
           "path": "evidence/law16-current-report-v1.json",
-          "sha256": "sha256:fa2c118cb4abe51d19bb06cd09d9e2f4ef41cdda7fc914e71a2d0a05faedd17f"
+          "sha256": "sha256:62b1d9319f0ac0e055bfb1ee1f1553ca96de495008ac6558fe82079b57f81451"
         },
         {
           "bytes": 21122,
@@ -100,9 +100,9 @@
       "assessment": "Ordinary Bend, Bend verdict, SEMAPRAX check, and installed-Z3 routes have separate evidence fields and route-specific controls; the report makes no cross-route timing comparison.",
       "evidence": [
         {
-          "bytes": 88502,
+          "bytes": 88528,
           "path": "evidence/law16-current-report-v1.json",
-          "sha256": "sha256:fa2c118cb4abe51d19bb06cd09d9e2f4ef41cdda7fc914e71a2d0a05faedd17f"
+          "sha256": "sha256:62b1d9319f0ac0e055bfb1ee1f1553ca96de495008ac6558fe82079b57f81451"
         },
         {
           "bytes": 53322,
@@ -128,9 +128,9 @@
       "assessment": "Unavailable/non-admitted routes remain explicit nonresults; infrastructure failure cannot count as attack rejection in the supplemental control tests; differing numeric profiles and source-proof limits are recorded. No superiority result is published.",
       "evidence": [
         {
-          "bytes": 88502,
+          "bytes": 88528,
           "path": "evidence/law16-current-report-v1.json",
-          "sha256": "sha256:fa2c118cb4abe51d19bb06cd09d9e2f4ef41cdda7fc914e71a2d0a05faedd17f"
+          "sha256": "sha256:62b1d9319f0ac0e055bfb1ee1f1553ca96de495008ac6558fe82079b57f81451"
         },
         {
           "bytes": 2359,
@@ -156,9 +156,9 @@
       "assessment": "Process timing, proof/check routes, agent synthesis tokens, and runtime controls are separated. A Linux/Rosetta guest capsule authenticates 30 cold/warm file-page-cache pairs each for ordinary Bend and SEMAPRAX check. A separate local 30-sample Boolean capsule times Bend check, C emission, Clang compile, and native run separately, and SEMAPRAX check, combined native build, and native run separately. Host/Rosetta caches and proof/verdict cold/warm routes remain unmeasured; SEMAPRAX build internals remain combined.",
       "evidence": [
         {
-          "bytes": 88502,
+          "bytes": 88528,
           "path": "evidence/law16-current-report-v1.json",
-          "sha256": "sha256:fa2c118cb4abe51d19bb06cd09d9e2f4ef41cdda7fc914e71a2d0a05faedd17f"
+          "sha256": "sha256:62b1d9319f0ac0e055bfb1ee1f1553ca96de495008ac6558fe82079b57f81451"
         },
         {
           "bytes": 1396,
@@ -204,9 +204,9 @@
       "assessment": "Ten fixed-budget matched Boolean Codex pairs include candidate/attack outcomes and token counters but no monetary charges. A separate preregistered Claude Haiku campaign authenticated four matched candidate/attack pairs with provider token and monetary events; its fifth Bend trial stopped after the CLI charged $0.039957 above the requested $0.03 per-call budget. This is adverse cost evidence, not a completed ten-pair Claude campaign. Other task cells also lack ten-trial campaigns.",
       "evidence": [
         {
-          "bytes": 88502,
+          "bytes": 88528,
           "path": "evidence/law16-current-report-v1.json",
-          "sha256": "sha256:fa2c118cb4abe51d19bb06cd09d9e2f4ef41cdda7fc914e71a2d0a05faedd17f"
+          "sha256": "sha256:62b1d9319f0ac0e055bfb1ee1f1553ca96de495008ac6558fe82079b57f81451"
         },
         {
           "bytes": 1329,
@@ -247,9 +247,9 @@
       "assessment": "The current report keeps LAW-16 incomplete, makes no winner or superiority claim, retains adverse/no-op and unsupported results, and reports per-cell timing variation without cross-route ranking.",
       "evidence": [
         {
-          "bytes": 88502,
+          "bytes": 88528,
           "path": "evidence/law16-current-report-v1.json",
-          "sha256": "sha256:fa2c118cb4abe51d19bb06cd09d9e2f4ef41cdda7fc914e71a2d0a05faedd17f"
+          "sha256": "sha256:62b1d9319f0ac0e055bfb1ee1f1553ca96de495008ac6558fe82079b57f81451"
         },
         {
           "bytes": 14851,
@@ -268,7 +268,7 @@
     }
   ],
   "audit_status": "open_requirements_remain",
-  "audited_repository_commit": "6dbd271c2ee0f4ea1d375e4c777182e2c6ebcb5b",
+  "audited_repository_commit": "f41936d8aae2ce6700455712a0d2650fa6b0e15a",
   "closure": "not_satisfied",
   "current_report_reconciliation": {
     "audit_update": "The current report includes the LAW15 collection List<i64> Lean proof test. It is supplemental and does not close or prove the original LAW16 list cell.",
@@ -441,9 +441,9 @@
       "classification": "supplemental_three_module_cache_control_only",
       "evidence": [
         {
-          "bytes": 88502,
+          "bytes": 88528,
           "path": "evidence/law16-current-report-v1.json",
-          "sha256": "sha256:fa2c118cb4abe51d19bb06cd09d9e2f4ef41cdda7fc914e71a2d0a05faedd17f"
+          "sha256": "sha256:62b1d9319f0ac0e055bfb1ee1f1553ca96de495008ac6558fe82079b57f81451"
         },
         {
           "bytes": 4365,
@@ -462,9 +462,9 @@
       "classification": "partial_four_matched_claude_pairs",
       "evidence": [
         {
-          "bytes": 88502,
+          "bytes": 88528,
           "path": "evidence/law16-current-report-v1.json",
-          "sha256": "sha256:fa2c118cb4abe51d19bb06cd09d9e2f4ef41cdda7fc914e71a2d0a05faedd17f"
+          "sha256": "sha256:62b1d9319f0ac0e055bfb1ee1f1553ca96de495008ac6558fe82079b57f81451"
         },
         {
           "bytes": 1403,
@@ -493,9 +493,9 @@
       "sha256": "sha256:44b6fdffa377ff4beb09d982bbdf24343616d1447fbe0a69ab0aec1a7e1f41ce"
     },
     {
-      "bytes": 54870,
+      "bytes": 55743,
       "path": "README.md",
-      "sha256": "sha256:406d753a70852e786346b240e63618492e7db23b3ab6dcc4dbccfcb317854141"
+      "sha256": "sha256:46e05e0c8c846ce0ae192cf140f8e6a44e50f8bf627af6232a722e632d40f40b"
     },
     {
       "bytes": 26795,
@@ -503,9 +503,9 @@
       "sha256": "sha256:c87c1d78570212ce9f1c3d1e35b75c63482ca5c27ae4278a79f3df7a0fc94df2"
     },
     {
-      "bytes": 88502,
+      "bytes": 88528,
       "path": "evidence/law16-current-report-v1.json",
-      "sha256": "sha256:fa2c118cb4abe51d19bb06cd09d9e2f4ef41cdda7fc914e71a2d0a05faedd17f"
+      "sha256": "sha256:62b1d9319f0ac0e055bfb1ee1f1553ca96de495008ac6558fe82079b57f81451"
     }
   ],
   "fresh_guarded_i64_source_proof": {

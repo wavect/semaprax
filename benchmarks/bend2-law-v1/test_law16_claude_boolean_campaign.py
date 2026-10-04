@@ -19,6 +19,16 @@ class ClaudeBooleanCampaignTests(unittest.TestCase):
         self.assertEqual(len(plan["trials"]), 20)
         self.assertEqual(plan["provider"]["model_id"], "claude-haiku-4-5-20251001")
         self.assertEqual(plan["source_task_plan_sha256"], RUNNER.digest(RUNNER.PLAN.read_bytes()))
+        revised = json.loads(RUNNER.CAMPAIGN_PLAN_V2.read_text())
+        self.assertEqual(revised["trials"], plan["trials"])
+        self.assertEqual(revised["execution"]["per_trial_max_cost_usd"], "0.06")
+        self.assertTrue(revised["execution"]["continue_after_trial_failure"])
+
+    def test_retained_budget_overrun_is_an_adverse_partial_campaign(self):
+        value = RUNNER.review(ROOT / "evidence/law16-claude-campaign-stopped-v1")
+        self.assertEqual(value["status"], "stopped_nonadmitted")
+        self.assertEqual(value["accepted_trials"], 8)
+        self.assertEqual(value["trials"], 9)
 
     def test_schema_binds_trial_and_attack_digest(self):
         trial = RUNNER.selected_trial("bend2", 1)

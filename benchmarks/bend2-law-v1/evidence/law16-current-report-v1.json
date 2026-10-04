@@ -921,6 +921,7 @@
     "status": "two_bounded_bend_attempts_nonadmitted"
   },
   "claude_preregistered_campaign": {
+    "accepted_trials": 8,
     "matched_pairs": 4,
     "nonclaims": [
       "sanitized provider stream is retained; unredacted raw is represented by a local digest only",

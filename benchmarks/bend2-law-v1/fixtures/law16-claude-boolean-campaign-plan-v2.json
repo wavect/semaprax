@@ -1,0 +1,178 @@
+{
+  "admission": {
+    "attack": "pinned corresponding law-gaming source rejected",
+    "candidate": "pinned Bend --verdict or SEMAPRAX installed-Z3 source proof accepts",
+    "provider": "schema-valid complete source plus observed token and monetary cost events"
+  },
+  "execution": {
+    "continue_after_trial_failure": true,
+    "fresh_empty_cwd_per_trial": true,
+    "pairs": 10,
+    "pause_on_provider_rate_limit": true,
+    "per_trial_max_cost_usd": "0.06",
+    "prompt_contract": "buggy-source-only-canonical-v1",
+    "repository_access": "none",
+    "session_persistence": false,
+    "stop_on_first_nonadmitted_trial": false,
+    "timeout_seconds": 180,
+    "tools": "disabled",
+    "total_max_cost_usd": "1.20",
+    "trials": 20
+  },
+  "nonclaims": [
+    "the earlier $0.03 campaign remains an independent adverse result and is not pooled with this configuration",
+    "the CLI budget request is a soft limit; an over-cap provider charge is retained as a failed trial",
+    "ten paired trial outcomes may include failures and do not imply superiority or issue closure"
+  ],
+  "provider": {
+    "cli": "Claude Code",
+    "cli_sha256": "sha256:03d66745e3bb69ec727d66023696f3820bc0a00a8a5ba725eb6706d0c67cbe69",
+    "cli_version": "2.1.289 (Claude Code)",
+    "model_id": "claude-haiku-4-5-20251001"
+  },
+  "schema": "semaprax.bend2-law-benchmark.claude-boolean-campaign-plan.v2",
+  "source_task_plan_sha256": "sha256:f5eb4bcba239637f8ea769cb9140aa74ba41feebc0938ac2abc50de6361ea8d1",
+  "status": "preregistered",
+  "trials": [
+    {
+      "buggy_source_sha256": "sha256:5ee075e4f37c305e1aa73ed7c81d7fa59815e58c5f4aeda4ac658e79c1fe96fa",
+      "language": "bend2",
+      "ordinal": 1,
+      "replay_success_fixture_sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81",
+      "trial_id": "boolean-negation-pair-v1:bend2:1"
+    },
+    {
+      "buggy_source_sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b",
+      "language": "semaprax-scalar-v1",
+      "ordinal": 1,
+      "replay_success_fixture_sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063",
+      "trial_id": "boolean-negation-pair-v1:semaprax-scalar-v1:1"
+    },
+    {
+      "buggy_source_sha256": "sha256:5ee075e4f37c305e1aa73ed7c81d7fa59815e58c5f4aeda4ac658e79c1fe96fa",
+      "language": "bend2",
+      "ordinal": 2,
+      "replay_success_fixture_sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81",
+      "trial_id": "boolean-negation-pair-v1:bend2:2"
+    },
+    {
+      "buggy_source_sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b",
+      "language": "semaprax-scalar-v1",
+      "ordinal": 2,
+      "replay_success_fixture_sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063",
+      "trial_id": "boolean-negation-pair-v1:semaprax-scalar-v1:2"
+    },
+    {
+      "buggy_source_sha256": "sha256:5ee075e4f37c305e1aa73ed7c81d7fa59815e58c5f4aeda4ac658e79c1fe96fa",
+      "language": "bend2",
+      "ordinal": 3,
+      "replay_success_fixture_sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81",
+      "trial_id": "boolean-negation-pair-v1:bend2:3"
+    },
+    {
+      "buggy_source_sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b",
+      "language": "semaprax-scalar-v1",
+      "ordinal": 3,
+      "replay_success_fixture_sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063",
+      "trial_id": "boolean-negation-pair-v1:semaprax-scalar-v1:3"
+    },
+    {
+      "buggy_source_sha256": "sha256:5ee075e4f37c305e1aa73ed7c81d7fa59815e58c5f4aeda4ac658e79c1fe96fa",
+      "language": "bend2",
+      "ordinal": 4,
+      "replay_success_fixture_sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81",
+      "trial_id": "boolean-negation-pair-v1:bend2:4"
+    },
+    {
+      "buggy_source_sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b",
+      "language": "semaprax-scalar-v1",
+      "ordinal": 4,
+      "replay_success_fixture_sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063",
+      "trial_id": "boolean-negation-pair-v1:semaprax-scalar-v1:4"
+    },
+    {
+      "buggy_source_sha256": "sha256:5ee075e4f37c305e1aa73ed7c81d7fa59815e58c5f4aeda4ac658e79c1fe96fa",
+      "language": "bend2",
+      "ordinal": 5,
+      "replay_success_fixture_sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81",
+      "trial_id": "boolean-negation-pair-v1:bend2:5"
+    },
+    {
+      "buggy_source_sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b",
+      "language": "semaprax-scalar-v1",
+      "ordinal": 5,
+      "replay_success_fixture_sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063",
+      "trial_id": "boolean-negation-pair-v1:semaprax-scalar-v1:5"
+    },
+    {
+      "buggy_source_sha256": "sha256:5ee075e4f37c305e1aa73ed7c81d7fa59815e58c5f4aeda4ac658e79c1fe96fa",
+      "language": "bend2",
+      "ordinal": 6,
+      "replay_success_fixture_sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81",
+      "trial_id": "boolean-negation-pair-v1:bend2:6"
+    },
+    {
+      "buggy_source_sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b",
+      "language": "semaprax-scalar-v1",
+      "ordinal": 6,
+      "replay_success_fixture_sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063",
+      "trial_id": "boolean-negation-pair-v1:semaprax-scalar-v1:6"
+    },
+    {
+      "buggy_source_sha256": "sha256:5ee075e4f37c305e1aa73ed7c81d7fa59815e58c5f4aeda4ac658e79c1fe96fa",
+      "language": "bend2",
+      "ordinal": 7,
+      "replay_success_fixture_sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81",
+      "trial_id": "boolean-negation-pair-v1:bend2:7"
+    },
+    {
+      "buggy_source_sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b",
+      "language": "semaprax-scalar-v1",
+      "ordinal": 7,
+      "replay_success_fixture_sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063",
+      "trial_id": "boolean-negation-pair-v1:semaprax-scalar-v1:7"
+    },
+    {
+      "buggy_source_sha256": "sha256:5ee075e4f37c305e1aa73ed7c81d7fa59815e58c5f4aeda4ac658e79c1fe96fa",
+      "language": "bend2",
+      "ordinal": 8,
+      "replay_success_fixture_sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81",
+      "trial_id": "boolean-negation-pair-v1:bend2:8"
+    },
+    {
+      "buggy_source_sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b",
+      "language": "semaprax-scalar-v1",
+      "ordinal": 8,
+      "replay_success_fixture_sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063",
+      "trial_id": "boolean-negation-pair-v1:semaprax-scalar-v1:8"
+    },
+    {
+      "buggy_source_sha256": "sha256:5ee075e4f37c305e1aa73ed7c81d7fa59815e58c5f4aeda4ac658e79c1fe96fa",
+      "language": "bend2",
+      "ordinal": 9,
+      "replay_success_fixture_sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81",
+      "trial_id": "boolean-negation-pair-v1:bend2:9"
+    },
+    {
+      "buggy_source_sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b",
+      "language": "semaprax-scalar-v1",
+      "ordinal": 9,
+      "replay_success_fixture_sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063",
+      "trial_id": "boolean-negation-pair-v1:semaprax-scalar-v1:9"
+    },
+    {
+      "buggy_source_sha256": "sha256:5ee075e4f37c305e1aa73ed7c81d7fa59815e58c5f4aeda4ac658e79c1fe96fa",
+      "language": "bend2",
+      "ordinal": 10,
+      "replay_success_fixture_sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81",
+      "trial_id": "boolean-negation-pair-v1:bend2:10"
+    },
+    {
+      "buggy_source_sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b",
+      "language": "semaprax-scalar-v1",
+      "ordinal": 10,
+      "replay_success_fixture_sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063",
+      "trial_id": "boolean-negation-pair-v1:semaprax-scalar-v1:10"
+    }
+  ]
+}

@@ -24,6 +24,8 @@ from decimal import Decimal, InvalidOperation
 ROOT = pathlib.Path(__file__).parent
 PLAN = ROOT / "evidence/law16-boolean-negation-agent-plan-v1.json"
 CAMPAIGN_PLAN = ROOT / "fixtures/law16-claude-boolean-campaign-plan-v1.json"
+CAMPAIGN_PLAN_V2 = ROOT / "fixtures/law16-claude-boolean-campaign-plan-v2.json"
+KNOWN_PLANS = (CAMPAIGN_PLAN, CAMPAIGN_PLAN_V2)
 SCHEMA = "semaprax.bend2-law-benchmark.claude-boolean-campaign.v1"
 EDIT_SCHEMA = "semaprax.bend2-law-benchmark.boolean-edit-response.v1"
 MAX_STREAM_BYTES = 2 * 1024 * 1024
@@ -52,18 +54,26 @@ def checked_reference(root: pathlib.Path, item: dict) -> pathlib.Path:
 
 
 def checked_campaign_plan(args: argparse.Namespace) -> tuple[dict, str]:
-    plan = json.loads(CAMPAIGN_PLAN.read_text())
+    plan_path = getattr(args, "plan", None) or CAMPAIGN_PLAN
+    if plan_path.resolve() not in [path.resolve() for path in KNOWN_PLANS]:
+        raise ValueError("Claude campaign plan is not one of the frozen local plans")
+    plan = json.loads(plan_path.read_text())
     provider = plan.get("provider", {})
     execution = plan.get("execution", {})
-    if (plan.get("schema") != "semaprax.bend2-law-benchmark.claude-boolean-campaign-plan.v1"
+    version = "v1" if plan_path.resolve() == CAMPAIGN_PLAN.resolve() else "v2"
+    expected_budget = "0.03" if version == "v1" else "0.06"
+    expected_total = "0.60" if version == "v1" else "1.20"
+    if (plan.get("schema") != f"semaprax.bend2-law-benchmark.claude-boolean-campaign-plan.{version}"
             or plan.get("status") != "preregistered" or plan.get("source_task_plan_sha256") != digest(PLAN.read_bytes())
             or provider.get("model_id") != "claude-haiku-4-5-20251001"
             or provider.get("cli_sha256") != digest(args.claude.resolve().read_bytes())
             or provider.get("cli_version") != subprocess.check_output([str(args.claude), "--version"], text=True, timeout=10).strip()
-            or execution.get("per_trial_max_cost_usd") != str(args.max_cost_usd)
-            or execution.get("total_max_cost_usd") != "0.60" or execution.get("pairs") != 10
+            or execution.get("per_trial_max_cost_usd") != str(args.max_cost_usd) or str(args.max_cost_usd) != expected_budget
+            or execution.get("total_max_cost_usd") != expected_total or execution.get("pairs") != 10
             or execution.get("trials") != 20 or execution.get("prompt_contract") != "buggy-source-only-canonical-v1"
-            or execution.get("tools") != "disabled" or execution.get("stop_on_first_nonadmitted_trial") is not True):
+            or execution.get("tools") != "disabled" or execution.get("stop_on_first_nonadmitted_trial") is not (version == "v1")
+            or (version == "v2" and (execution.get("continue_after_trial_failure") is not True
+                                      or execution.get("pause_on_provider_rate_limit") is not True))):
         raise ValueError("Claude campaign preregistration or CLI identity differs")
     expected = []
     for ordinal in range(1, 11):
@@ -75,7 +85,7 @@ def checked_campaign_plan(args: argparse.Namespace) -> tuple[dict, str]:
                              "replay_success_fixture_sha256": digest(success.read_bytes())})
     if plan.get("trials") != expected:
         raise ValueError("Claude campaign trial inventory differs from frozen task")
-    return plan, digest(CAMPAIGN_PLAN.read_bytes())
+    return plan, digest(plan_path.read_bytes())
 
 
 def redact(value: object) -> object:
@@ -266,10 +276,15 @@ def one(output: pathlib.Path, language: str, ordinal: int, args: argparse.Namesp
 def review(root: pathlib.Path) -> dict:
     """Authenticate retained, sanitized provider events and independent replay streams."""
     summary = json.loads((root / "summary.json").read_text())
-    plan_sha = digest(CAMPAIGN_PLAN.read_bytes())
+    plan_sha = summary.get("campaign_plan_sha256")
+    matches = [path for path in KNOWN_PLANS if digest(path.read_bytes()) == plan_sha]
+    if len(matches) != 1:
+        raise ValueError("Claude campaign plan is not frozen locally")
+    plan = json.loads(matches[0].read_text())
+    v2 = matches[0] == CAMPAIGN_PLAN_V2
     records = summary.get("records")
     if (summary.get("schema") != SCHEMA or summary.get("campaign_plan_sha256") != plan_sha
-            or summary.get("status") not in {"stopped", "completed"} or not isinstance(records, list)
+            or summary.get("status") not in {"stopped", "paused_rate_limit", "stopped_total_budget", "completed"} or not isinstance(records, list)
             or not 1 <= len(records) <= 20):
         raise ValueError("Claude campaign summary or plan identity differs")
     total = Decimal(0)
@@ -330,18 +345,28 @@ def review(root: pathlib.Path) -> dict:
                 raise ValueError("Claude campaign replay classification differs")
         else:
             accepted = False
-        if record.get("campaign_admission") != (result.get("is_error") is False and accepted):
+        if record.get("campaign_admission") != (result.get("is_error") is False and not over_cap and accepted):
             raise ValueError("Claude campaign admission differs from evidence")
-        if not accepted and index != len(records) - 1:
+        if not accepted and not v2 and index != len(records) - 1:
             raise ValueError("Claude campaign continued after nonadmitted trial")
-    if (summary["status"] == "completed") != (len(records) == 20 and all(row["campaign_admission"] for row in records)):
+    if (summary["status"] == "completed") != (len(records) == 20 and (v2 or all(row["campaign_admission"] for row in records))):
         raise ValueError("Claude campaign completion classification differs")
+    if summary["status"] == "paused_rate_limit" and (not v2 or records[-1]["provider_result"]["terminal_reason"] != "api_error"):
+        raise ValueError("Claude campaign pause lacks rate-limit evidence")
+    if summary["status"] == "stopped" and (v2 or records[-1]["campaign_admission"]):
+        raise ValueError("Claude campaign stop lacks failed trial")
+    if summary["status"] == "stopped_total_budget" and (not v2 or total <= Decimal(plan["execution"]["total_max_cost_usd"])):
+        raise ValueError("Claude campaign total-budget stop lacks overrun")
     if summary["status"] == "completed" and Decimal(summary["total_provider_cost_usd"]) != total:
         raise ValueError("Claude campaign total provider cost differs")
-    if total > Decimal("0.60"):
+    if total > Decimal(plan["execution"]["total_max_cost_usd"]) and summary["status"] != "stopped_total_budget":
         raise ValueError("Claude campaign total exceeded preregistered cap")
-    return {"status": "twenty_trials_authenticated" if summary["status"] == "completed" else "stopped_nonadmitted",
-            "trials": len(records), "matched_pairs": len(records) // 2, "provider_cost_usd": str(total), "provider_tokens": tokens,
+    accepted = sum(row["campaign_admission"] for row in records)
+    pairs = sum(records[index]["campaign_admission"] and records[index + 1]["campaign_admission"]
+                for index in range(0, len(records) - 1, 2))
+    return {"status": "twenty_trials_authenticated" if summary["status"] == "completed" else (summary["status"] if v2 else "stopped_nonadmitted"),
+            "trials": len(records), "matched_pairs": pairs, "accepted_trials": accepted,
+            "provider_cost_usd": str(total), "provider_tokens": tokens,
             "nonclaims": ["sanitized provider stream is retained; unredacted raw is represented by a local digest only",
                           "different toolchains and trust bases prohibit a cross-route winner claim"]}
 
@@ -349,6 +374,8 @@ def review(root: pathlib.Path) -> dict:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--review", type=pathlib.Path)
+    parser.add_argument("--plan", type=pathlib.Path, default=CAMPAIGN_PLAN)
+    parser.add_argument("--resume", action="store_true")
     parser.add_argument("--output", type=pathlib.Path)
     parser.add_argument("--claude", type=pathlib.Path)
     parser.add_argument("--bend-root", type=pathlib.Path)
@@ -364,8 +391,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if not all((args.output, args.claude, args.bend_root, args.bun, args.semaprax, args.z3)):
         parser.error("capture requires --output, --claude, --bend-root, --bun, --semaprax, and --z3")
-    if args.output.exists() or not args.output.parent.is_dir() or args.first < 1 or args.last > 10 or args.first > args.last or args.max_cost_usd <= 0:
-        parser.error("output must be new; ordinal range is 1..10; cost budget must be positive")
+    if (not args.output.parent.is_dir() or args.first < 1 or args.last > 10 or args.first > args.last
+            or args.max_cost_usd <= 0 or (args.output.exists() and not args.resume) or (args.resume and not args.output.is_dir())):
+        parser.error("output must be new or resumable; ordinal range is 1..10; cost budget must be positive")
     for path in (args.claude, args.bun, args.semaprax, args.z3, args.bend_root / "bend2/main.ts"):
         if not path.is_file() or not os.access(path, os.X_OK):
             parser.error("required executable is unavailable: " + str(path))
@@ -373,17 +401,36 @@ def main(argv: list[str] | None = None) -> int:
         plan, plan_sha = checked_campaign_plan(args)
     except (OSError, ValueError, subprocess.SubprocessError) as error:
         parser.error(str(error))
-    args.output.mkdir()
-    records = []
-    for ordinal in range(args.first, args.last + 1):
-        for language in ("bend2", "semaprax-scalar-v1"):
-            lane_output = args.output / f"ordinal-{ordinal}" / language
-            lane_output.parent.mkdir(exist_ok=True)
-            records.append(one(lane_output, language, ordinal, args, plan_sha))
-            if not records[-1]["campaign_admission"]:
-                (args.output / "summary.json").write_text(json.dumps({"schema": SCHEMA, "status": "stopped", "campaign_plan_sha256": plan_sha, "records": records}, indent=2, sort_keys=True) + "\n")
-                return 2
-    (args.output / "summary.json").write_text(json.dumps({"schema": SCHEMA, "status": "completed", "campaign_plan_sha256": plan_sha, "records": records, "total_provider_cost_usd": str(sum(Decimal(row["provider_cost_usd"]) for row in records))}, indent=2, sort_keys=True) + "\n")
+    v2 = args.plan.resolve() == CAMPAIGN_PLAN_V2.resolve()
+    if v2 and (args.first, args.last) != (1, 10):
+        parser.error("v2 preregistration requires all ten matched ordinals")
+    if args.resume:
+        if not v2 or review(args.output)["status"] != "paused_rate_limit":
+            parser.error("only a verified v2 provider-rate-limit pause can resume")
+        records = json.loads((args.output / "summary.json").read_text())["records"]
+    else:
+        args.output.mkdir()
+        records = []
+    sequence = [(ordinal, language) for ordinal in range(args.first, args.last + 1)
+                for language in ("bend2", "semaprax-scalar-v1")]
+    for ordinal, language in sequence[len(records):]:
+        lane_output = args.output / f"ordinal-{ordinal}" / language
+        lane_output.parent.mkdir(exist_ok=True)
+        records.append(one(lane_output, language, ordinal, args, plan_sha))
+        total = sum(Decimal(row["provider_cost_usd"]) for row in records)
+        status = None
+        if v2 and total > Decimal(plan["execution"]["total_max_cost_usd"]):
+            status = "stopped_total_budget"
+        elif v2 and len(records) < len(sequence) and records[-1]["provider_result"]["terminal_reason"] == "api_error":
+            status = "paused_rate_limit"
+        elif not v2 and not records[-1]["campaign_admission"]:
+            status = "stopped"
+        if status:
+            (args.output / "summary.json").write_text(json.dumps({"schema": SCHEMA, "status": status, "campaign_plan_sha256": plan_sha,
+                                                                    "records": records}, indent=2, sort_keys=True) + "\n")
+            return 2
+    (args.output / "summary.json").write_text(json.dumps({"schema": SCHEMA, "status": "completed", "campaign_plan_sha256": plan_sha,
+                                                            "records": records, "total_provider_cost_usd": str(sum(Decimal(row["provider_cost_usd"]) for row in records))}, indent=2, sort_keys=True) + "\n")
     return 0
 
 

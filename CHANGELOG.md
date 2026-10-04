@@ -14,6 +14,9 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Freeze a separate LAW16 Claude campaign configuration that retains failed
+  trials, requests a higher per-call budget after the first CLI overrun, and
+  can resume after provider rate limiting without pooling configurations.
 - Retain the first preregistered LAW16 Claude campaign: four costed matched
   Boolean pairs passed, then a fifth Bend call exceeded the requested $0.03
   per-call limit before source admission. Preserve its sanitized provider and

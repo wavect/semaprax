@@ -1,6 +1,6 @@
 # Hot Reload Session v1
 
-Status: partial local library profile for HR-01. The prepared interpreter lane
+Status: partial local library profile for HR-02. The prepared interpreter lane
 has a checked revision coordinator. Its plans now retain compiler-derived
 source-Agent checkpoint handoff facts, while durable migration and destination
 execution remain owned by the source-live migration protocol.

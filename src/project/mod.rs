@@ -30,6 +30,7 @@ mod filesystem;
 mod flat_owned_record;
 pub(crate) mod host_policy;
 mod hot_reload;
+mod hot_reload_watcher;
 pub use host_policy::{
     install_host_strict_law_policy, with_authenticated_project_inspection,
     with_selected_law_diagnostics, with_strict_authenticated_project, ProjectInspection,
@@ -38,6 +39,10 @@ pub use host_policy::{
 pub use hot_reload::{
     HotReloadDecision, HotReloadFailure, HotReloadPlan, HotReloadReason, HotReloadSession,
     HOT_RELOAD_PLAN_SCHEMA,
+};
+pub use hot_reload_watcher::{
+    HotReloadWatchEvent, HotReloadWatchState, HotReloadWatcher, HotReloadWatcherFailure,
+    HotReloadWatcherUpdate,
 };
 mod image;
 mod image_coverage;
@@ -703,6 +708,18 @@ impl ProjectSnapshot {
 
     pub fn sources(&self) -> &[ProjectSource] {
         self.revision.sources()
+    }
+
+    /// Exact canonical paths authenticated for this invocation.
+    ///
+    /// This inventory is descriptive only. It does not retain or transfer the
+    /// held file authority; callers that read these paths must acquire their
+    /// own authority and reauthenticate through the Project loader.
+    pub fn authoritative_input_paths(&self) -> Vec<PathBuf> {
+        self.declared_inputs
+            .iter()
+            .map(|input| input.canonical_path.clone())
+            .collect()
     }
 
     pub fn workspace_manifest(&self) -> &str {

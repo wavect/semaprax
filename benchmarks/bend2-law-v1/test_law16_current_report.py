@@ -48,6 +48,11 @@ class CurrentReportTests(unittest.TestCase):
         self.assertEqual(cache_probe["status"], "unavailable")
         self.assertEqual(cache_probe["checking_measurements"]["samples"], 0)
         self.assertEqual(cache_probe["container_state"]["after_running"], 0)
+        guest = value["guest_file_cache_cold_warm"]
+        self.assertEqual(guest["status"], "thirty_guest_cache_pairs_authenticated")
+        self.assertEqual(guest["summary"]["bend_ordinary"]["cold"]["count"], 30)
+        self.assertEqual(guest["summary"]["semaprax_check"]["warm"]["count"], 30)
+        self.assertIn("host and Rosetta caches unknown", guest["scope"])
         process = value["matched_boolean"]["process_provenance"]
         self.assertEqual(process["command_count"], 240)
         self.assertEqual(process["cold_cache"]["status"], "unavailable")

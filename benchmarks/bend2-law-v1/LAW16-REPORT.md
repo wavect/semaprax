@@ -106,14 +106,19 @@ execution. Fresh/repeat paths do not isolate operating-system or tool caches.
 ## Remaining blockers
 
 The pinned SEMAPRAX parser does not admit checked `u32`; its retained
-non-admission receipt records `SPX-P003`. There is no retained cold-cache
-isolation, monetary cost event for admitted matched agent trials, or matched project-sized/refactor/incremental
-cell. The Lean list proof below covers its exact LAW15 source, not the original
-LAW16 fixture. These gaps prevent honest closure of #392.
+non-admission receipt records `SPX-P003`. The later
+[Linux/Rosetta guest capsule](evidence/law16-guest-cache-thirty-v1/receipt.json)
+authenticates 30 cold/warm guest file-page-cache pairs per ordinary Bend and
+SEMAPRAX `check` route. Host and Rosetta caches remain unknown, while
+Bend verdict and SEMAPRAX Z3 cold/warm routes remain unmeasured. There is no
+monetary cost event for admitted matched agent trials or matched project-sized
+incremental cell. The Lean list proof below covers its exact LAW15 source,
+not the original LAW16 fixture. These gaps prevent honest closure of #392.
 The [cache-isolation probe](evidence/law16-cache-isolation-probe-v1/receipt.json)
-records an ephemeral Apple Container guest with read-only `/proc/sys` even as
-root. It collected zero checker timings and left no container running; it does
-not turn fresh-process measurements into cache-cold results.
+records an earlier ephemeral Apple Container guest with read-only `/proc/sys`
+even as root. It collected zero checker timings and left no container running.
+The later guest capsule used a different guest setting and measured its file
+page cache directly; the earlier failed probe remains a separate nonresult.
 
 The generated machine report also records retained tool identities, explicit
 unavailable hardware/OS and optimization-flag provenance, Boolean agent-turn

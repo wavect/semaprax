@@ -920,7 +920,50 @@
     "source": "evidence/law16-claude-boolean-pilot-v1/capsule.json",
     "status": "two_bounded_bend_attempts_nonadmitted"
   },
-  "closure": "no: the matched Boolean cell and supplemental U32 semantic theorem comparison do not satisfy the original checked-u32 source admission, cold-cache, project-sized/refactor/incremental, or monetary cost-event acceptance requirements",
+  "closure": "no: the matched Boolean cell and supplemental U32 semantic theorem comparison do not satisfy the original checked-u32 source admission, full cold-cache and proof-route coverage, project-sized/refactor/incremental, or monetary cost-event acceptance requirements",
+  "guest_file_cache_cold_warm": {
+    "nonclaims": [
+      "guest file-page-cache scope only; macOS host cache and Rosetta translation cache are unknown",
+      "live Python/system-library pages and hardware caches are outside the direct residency inventory",
+      "ordinary Bend and SEMAPRAX check only; no verdict, SMT, Lean, or formal proof measurement",
+      "new Linux/Rosetta release profile; not historical macOS executable pins",
+      "no cross-language winner, ratio, native-hardware timing, or issue closure"
+    ],
+    "schema": "semaprax.bend2-law-benchmark.guest-cache.v1",
+    "scope": "Linux guest file page cache only; host and Rosetta caches unknown",
+    "source": "evidence/law16-guest-cache-thirty-v1/receipt.json",
+    "status": "thirty_guest_cache_pairs_authenticated",
+    "summary": {
+      "bend_ordinary": {
+        "cold": {
+          "count": 30,
+          "mad_ns": 136693625.5,
+          "p50_ns": 1578498834.0,
+          "p95_ns": 2269816626
+        },
+        "warm": {
+          "count": 30,
+          "mad_ns": 108287500.5,
+          "p50_ns": 1589668479.5,
+          "p95_ns": 2196996959
+        }
+      },
+      "semaprax_check": {
+        "cold": {
+          "count": 30,
+          "mad_ns": 28778166.5,
+          "p50_ns": 274600458.5,
+          "p95_ns": 367598417
+        },
+        "warm": {
+          "count": 30,
+          "mad_ns": 21766291.5,
+          "p50_ns": 256290021.5,
+          "p95_ns": 342324250
+        }
+      }
+    }
+  },
   "matched_boolean": {
     "agent_pairs": {
       "bend_attack_rejections": 10,
@@ -2192,7 +2235,7 @@
   "unavailable_or_unsupported": {
     "Lean": "supplemental LAW15 collection source theorem physically checked by Lean; no Boolean or original law16.* Lean export",
     "checked_u32": "unsupported_by_pinned_parser: SPX-P003 admits i32, u8, usize literal suffixes, not u32",
-    "cold_cache": "unavailable: retained Apple Container capability probe found read-only guest cache controls and zero checker measurements",
+    "cold_cache": "partial: 30 guest file-page-cache cold/warm pairs per ordinary Bend and SEMAPRAX check route; host/Rosetta cache state and proof/verdict cold/warm routes remain unmeasured",
     "cost": "unavailable for admitted agent trials: Codex JSON has no monetary charge event; a separate Claude probe recorded cost but failed before any source outcome",
     "list_refactor_lawbreaking": {
       "admission_blocker": {

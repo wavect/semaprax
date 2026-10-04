@@ -247,11 +247,12 @@ def render() -> dict:
             "id": "AC5",
             "text": ACCEPTANCE_TEXT[4],
             "status": "partial",
-            "assessment": "Process timing, proof/check routes, agent synthesis tokens, and runtime controls are separated. A retained Apple Container capability probe found read-only guest cache controls and collected zero checker samples; fresh/repeat process observations do not establish OS-cache cold/warm state. Native compile and run remain combined and unmeasured as separate timings.",
+            "assessment": "Process timing, proof/check routes, agent synthesis tokens, and runtime controls are separated. A later Linux/Rosetta guest capsule authenticates 30 cold/warm file-page-cache pairs each for ordinary Bend and SEMAPRAX check. Host/Rosetta caches and proof/verdict cold/warm routes remain unmeasured. Native compile and run remain combined and unmeasured as separate timings.",
             "evidence": common + [
                 evidence("evidence/law16-boolean-negation-process-v2/manifest.json"),
                 evidence("evidence/law16-boolean-negation-process-v2/provenance.json"),
                 evidence("evidence/law16-cache-isolation-probe-v1/receipt.json"),
+                evidence("evidence/law16-guest-cache-thirty-v1/receipt.json"),
                 evidence("evidence/law16-effort-summary-v1.json"),
                 evidence("evidence/full-u32-encoding-controls-v1/report.json"),
             ],
@@ -293,7 +294,7 @@ def render() -> dict:
         ),
         (
             "partial",
-            "Available process cells have 30 samples, p50/p95, peak RSS, and descriptive MAD; proof synthesis tokens, Boolean annotation/changed-byte counts, and route checks are separately reported. Cold-cache isolation, monetary cost for admitted matched trials, and separate native compile/run timings are unavailable.",
+            "Available process cells have 30 samples, p50/p95, peak RSS, and descriptive MAD; proof synthesis tokens, Boolean annotation/changed-byte counts, and route checks are separately reported. Guest file-page-cache cold/warm pairs now cover ordinary/check routes; proof/verdict cold/warm, monetary cost for admitted matched trials, and separate native compile/run timings remain unavailable.",
         ),
         (
             "partial",
@@ -361,10 +362,10 @@ def render() -> dict:
         },
         {
             "id": "cold_cache_isolation",
-            "classification": "unavailable",
+            "classification": "partially_observed_guest_file_cache",
             "blocking_requirements": ["AC5", "R4"],
             "status": unsupported["cold_cache"],
-            "evidence": [evidence("evidence/law16-boolean-negation-process-v2/provenance.json"), evidence("evidence/law16-cache-isolation-probe-v1/receipt.json")],
+            "evidence": [evidence("evidence/law16-boolean-negation-process-v2/provenance.json"), evidence("evidence/law16-cache-isolation-probe-v1/receipt.json"), evidence("evidence/law16-guest-cache-thirty-v1/receipt.json")],
         },
         {
             "id": "external_lean_export_kernel",
@@ -428,7 +429,7 @@ def render() -> dict:
             },
             {
                 "id": "AC5",
-                "reason": "No cache-isolated cold observation exists; fresh/repeat process states cannot substitute for it.",
+                "reason": "Thirty guest file-page-cache cold/warm pairs exist for ordinary/check routes, but proof/verdict routes and host/Rosetta cache state are unmeasured; fresh/repeat process states cannot substitute for them.",
                 "kind": "missing_measurement",
             },
             {

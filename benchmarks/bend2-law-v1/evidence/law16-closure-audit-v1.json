@@ -4,14 +4,14 @@
       "assessment": "All seven non-agent routes were physically exercised with raw artifacts and pinned tools: six in the unified capture and the guarded-i64 balance SMT source-proof route in its separate caller-pinned capsule. Both capsules authenticate offline without their original temporary directories. The optional live agent continuation was not rerun, so full available-cell reproduction remains partial.",
       "evidence": [
         {
-          "bytes": 83897,
+          "bytes": 85460,
           "path": "evidence/law16-current-report-v1.json",
-          "sha256": "sha256:8798fd317324418d09abaf03fa88206586a1ab97da73b3f5988ef5c8393ae042"
+          "sha256": "sha256:9c9949eb960f640806d8eb9efcee1c90bbb2425bd88392947a072c80f44e836b"
         },
         {
-          "bytes": 48376,
+          "bytes": 51476,
           "path": "README.md",
-          "sha256": "sha256:1f8d72351d27ff0b68f7f50cfb9f92a81a697d959d9baf461b8440c703f3301d"
+          "sha256": "sha256:7483089975b2bb1494b884e076766542b99e46cb919bb61728c273e563860354"
         },
         {
           "bytes": 28557,
@@ -19,9 +19,9 @@
           "sha256": "sha256:f905fd7df73944663232cf454288f21f8c2df99db53f4182088b3ba746623f82"
         },
         {
-          "bytes": 24800,
+          "bytes": 25205,
           "path": "law16_current_report.py",
-          "sha256": "sha256:acd3fe1e186c5223cb16b15a128ded6ae7c042505eb305f57f7c44ebc13eb8cb"
+          "sha256": "sha256:1fca73c8c0f90090a4f7adff13a5554857129dd8deb650a33ccdc257c88267df"
         },
         {
           "bytes": 984607,
@@ -42,9 +42,9 @@
       "assessment": "Supplemental guarded-i64/U32 v2 retains balance and sort controls, and separate Bend and Lean source theorems prove aligned universal sort laws over the U32 subdomain for distinct algorithms. A new matched scalar-Boolean refactor cell accepts both candidates and rejects law-breaking attacks with Bend verdict and SEMAPRAX Z3; SEMAPRAX check accepts its attack as an explicit nonproof result. None establishes the original checked-u32 source identities or source translation/lowering; checked-u32 syntax remains unsupported.",
       "evidence": [
         {
-          "bytes": 83897,
+          "bytes": 85460,
           "path": "evidence/law16-current-report-v1.json",
-          "sha256": "sha256:8798fd317324418d09abaf03fa88206586a1ab97da73b3f5988ef5c8393ae042"
+          "sha256": "sha256:9c9949eb960f640806d8eb9efcee1c90bbb2425bd88392947a072c80f44e836b"
         },
         {
           "bytes": 21122,
@@ -100,9 +100,9 @@
       "assessment": "Ordinary Bend, Bend verdict, SEMAPRAX check, and installed-Z3 routes have separate evidence fields and route-specific controls; the report makes no cross-route timing comparison.",
       "evidence": [
         {
-          "bytes": 83897,
+          "bytes": 85460,
           "path": "evidence/law16-current-report-v1.json",
-          "sha256": "sha256:8798fd317324418d09abaf03fa88206586a1ab97da73b3f5988ef5c8393ae042"
+          "sha256": "sha256:9c9949eb960f640806d8eb9efcee1c90bbb2425bd88392947a072c80f44e836b"
         },
         {
           "bytes": 53322,
@@ -128,9 +128,9 @@
       "assessment": "Unavailable/non-admitted routes remain explicit nonresults; infrastructure failure cannot count as attack rejection in the supplemental control tests; differing numeric profiles and source-proof limits are recorded. No superiority result is published.",
       "evidence": [
         {
-          "bytes": 83897,
+          "bytes": 85460,
           "path": "evidence/law16-current-report-v1.json",
-          "sha256": "sha256:8798fd317324418d09abaf03fa88206586a1ab97da73b3f5988ef5c8393ae042"
+          "sha256": "sha256:9c9949eb960f640806d8eb9efcee1c90bbb2425bd88392947a072c80f44e836b"
         },
         {
           "bytes": 2359,
@@ -153,12 +153,12 @@
       "text": "Missing tools, unsupported targets, timed-out proofs, and differing numeric domains cannot count as a win."
     },
     {
-      "assessment": "Process timing, proof/check routes, agent synthesis tokens, and runtime controls are separated. A retained Apple Container capability probe found read-only guest cache controls and collected zero checker samples; fresh/repeat process observations do not establish OS-cache cold/warm state. Native compile and run remain combined and unmeasured as separate timings.",
+      "assessment": "Process timing, proof/check routes, agent synthesis tokens, and runtime controls are separated. A later Linux/Rosetta guest capsule authenticates 30 cold/warm file-page-cache pairs each for ordinary Bend and SEMAPRAX check. Host/Rosetta caches and proof/verdict cold/warm routes remain unmeasured. Native compile and run remain combined and unmeasured as separate timings.",
       "evidence": [
         {
-          "bytes": 83897,
+          "bytes": 85460,
           "path": "evidence/law16-current-report-v1.json",
-          "sha256": "sha256:8798fd317324418d09abaf03fa88206586a1ab97da73b3f5988ef5c8393ae042"
+          "sha256": "sha256:9c9949eb960f640806d8eb9efcee1c90bbb2425bd88392947a072c80f44e836b"
         },
         {
           "bytes": 1396,
@@ -174,6 +174,11 @@
           "bytes": 2695,
           "path": "evidence/law16-cache-isolation-probe-v1/receipt.json",
           "sha256": "sha256:310d5f04156dc9c95885aa76114dbf3a758b1e31dce75dc3cff3bb6513180138"
+        },
+        {
+          "bytes": 44683,
+          "path": "evidence/law16-guest-cache-thirty-v1/receipt.json",
+          "sha256": "sha256:6d7ee176f4cf763e50214f5bb499e67e3103b5f1a915ac9d42ef6635f931b8a8"
         },
         {
           "bytes": 8241,
@@ -194,9 +199,9 @@
       "assessment": "Ten fixed-budget matched Boolean Codex pairs include candidate/attack outcomes and token counters but no monetary charges. A separate Claude budget probe and two bounded Bend pilots emitted cost events; the latter failed source parsing or verdict, and none is an admitted matched pair. Other planned task cells lack corresponding ten-trial agent campaigns.",
       "evidence": [
         {
-          "bytes": 83897,
+          "bytes": 85460,
           "path": "evidence/law16-current-report-v1.json",
-          "sha256": "sha256:8798fd317324418d09abaf03fa88206586a1ab97da73b3f5988ef5c8393ae042"
+          "sha256": "sha256:9c9949eb960f640806d8eb9efcee1c90bbb2425bd88392947a072c80f44e836b"
         },
         {
           "bytes": 1329,
@@ -232,14 +237,14 @@
       "assessment": "The current report keeps LAW-16 incomplete, makes no winner or superiority claim, retains adverse/no-op and unsupported results, and reports per-cell timing variation without cross-route ranking.",
       "evidence": [
         {
-          "bytes": 83897,
+          "bytes": 85460,
           "path": "evidence/law16-current-report-v1.json",
-          "sha256": "sha256:8798fd317324418d09abaf03fa88206586a1ab97da73b3f5988ef5c8393ae042"
+          "sha256": "sha256:9c9949eb960f640806d8eb9efcee1c90bbb2425bd88392947a072c80f44e836b"
         },
         {
-          "bytes": 13033,
+          "bytes": 13387,
           "path": "LAW16-REPORT.md",
-          "sha256": "sha256:5a22e258c662c96680c903abc84511d0ec241f8be988c89836a46672e54d26b9"
+          "sha256": "sha256:f64c13c379faa50092b4b4906d92002a81fe06e8b527db8f28a35920a018074b"
         },
         {
           "bytes": 3144,
@@ -253,7 +258,7 @@
     }
   ],
   "audit_status": "open_requirements_remain",
-  "audited_repository_commit": "0fecabdc3e6c239c484403c29faa26fd769664cc",
+  "audited_repository_commit": "1170fa9f3f5b44181c883a111c6b8babb49a809c",
   "closure": "not_satisfied",
   "current_report_reconciliation": {
     "audit_update": "The current report includes the LAW15 collection List<i64> Lean proof test. It is supplemental and does not close or prove the original LAW16 list cell.",
@@ -381,7 +386,7 @@
         "AC5",
         "R4"
       ],
-      "classification": "unavailable",
+      "classification": "partially_observed_guest_file_cache",
       "evidence": [
         {
           "bytes": 159784,
@@ -392,10 +397,15 @@
           "bytes": 2695,
           "path": "evidence/law16-cache-isolation-probe-v1/receipt.json",
           "sha256": "sha256:310d5f04156dc9c95885aa76114dbf3a758b1e31dce75dc3cff3bb6513180138"
+        },
+        {
+          "bytes": 44683,
+          "path": "evidence/law16-guest-cache-thirty-v1/receipt.json",
+          "sha256": "sha256:6d7ee176f4cf763e50214f5bb499e67e3103b5f1a915ac9d42ef6635f931b8a8"
         }
       ],
       "id": "cold_cache_isolation",
-      "status": "unavailable: retained Apple Container capability probe found read-only guest cache controls and zero checker measurements"
+      "status": "partial: 30 guest file-page-cache cold/warm pairs per ordinary Bend and SEMAPRAX check route; host/Rosetta cache state and proof/verdict cold/warm routes remain unmeasured"
     },
     {
       "blocking_requirements": [
@@ -421,9 +431,9 @@
       "classification": "unavailable",
       "evidence": [
         {
-          "bytes": 83897,
+          "bytes": 85460,
           "path": "evidence/law16-current-report-v1.json",
-          "sha256": "sha256:8798fd317324418d09abaf03fa88206586a1ab97da73b3f5988ef5c8393ae042"
+          "sha256": "sha256:9c9949eb960f640806d8eb9efcee1c90bbb2425bd88392947a072c80f44e836b"
         }
       ],
       "id": "project_sized_incremental_cell",
@@ -437,9 +447,9 @@
       "classification": "unavailable",
       "evidence": [
         {
-          "bytes": 83897,
+          "bytes": 85460,
           "path": "evidence/law16-current-report-v1.json",
-          "sha256": "sha256:8798fd317324418d09abaf03fa88206586a1ab97da73b3f5988ef5c8393ae042"
+          "sha256": "sha256:9c9949eb960f640806d8eb9efcee1c90bbb2425bd88392947a072c80f44e836b"
         },
         {
           "bytes": 1403,
@@ -458,24 +468,24 @@
   ],
   "evidence_basis": [
     {
-      "bytes": 13033,
+      "bytes": 13387,
       "path": "LAW16-REPORT.md",
-      "sha256": "sha256:5a22e258c662c96680c903abc84511d0ec241f8be988c89836a46672e54d26b9"
+      "sha256": "sha256:f64c13c379faa50092b4b4906d92002a81fe06e8b527db8f28a35920a018074b"
     },
     {
-      "bytes": 48376,
+      "bytes": 51476,
       "path": "README.md",
-      "sha256": "sha256:1f8d72351d27ff0b68f7f50cfb9f92a81a697d959d9baf461b8440c703f3301d"
+      "sha256": "sha256:7483089975b2bb1494b884e076766542b99e46cb919bb61728c273e563860354"
     },
     {
-      "bytes": 24800,
+      "bytes": 25205,
       "path": "law16_current_report.py",
-      "sha256": "sha256:acd3fe1e186c5223cb16b15a128ded6ae7c042505eb305f57f7c44ebc13eb8cb"
+      "sha256": "sha256:1fca73c8c0f90090a4f7adff13a5554857129dd8deb650a33ccdc257c88267df"
     },
     {
-      "bytes": 83897,
+      "bytes": 85460,
       "path": "evidence/law16-current-report-v1.json",
-      "sha256": "sha256:8798fd317324418d09abaf03fa88206586a1ab97da73b3f5988ef5c8393ae042"
+      "sha256": "sha256:9c9949eb960f640806d8eb9efcee1c90bbb2425bd88392947a072c80f44e836b"
     }
   ],
   "fresh_guarded_i64_source_proof": {
@@ -583,7 +593,7 @@
     "full-domain representation bitvector checks do not establish source translation or lowering",
     "supplemental guarded-i64 v2 source controls do not change original checked-u32 manifest admission"
   ],
-  "report_closure": "no: the matched Boolean cell and supplemental U32 semantic theorem comparison do not satisfy the original checked-u32 source admission, cold-cache, project-sized/refactor/incremental, or monetary cost-event acceptance requirements",
+  "report_closure": "no: the matched Boolean cell and supplemental U32 semantic theorem comparison do not satisfy the original checked-u32 source admission, full cold-cache and proof-route coverage, project-sized/refactor/incremental, or monetary cost-event acceptance requirements",
   "report_status": "incomplete",
   "required_implementation_assessment": [
     {
@@ -605,7 +615,7 @@
       "text": "Equalize law strength: sorting includes permutation/multiplicity and sortedness; balances include intended state change, not only conservation; compare the same domain/overflow semantics. Bend Nat/U32 and Semaprax checked integers are not interchangeable by default."
     },
     {
-      "assessment": "Available process cells have 30 samples, p50/p95, peak RSS, and descriptive MAD; proof synthesis tokens, Boolean annotation/changed-byte counts, and route checks are separately reported. Cold-cache isolation, monetary cost for admitted matched trials, and separate native compile/run timings are unavailable.",
+      "assessment": "Available process cells have 30 samples, p50/p95, peak RSS, and descriptive MAD; proof synthesis tokens, Boolean annotation/changed-byte counts, and route checks are separately reported. Guest file-page-cache cold/warm pairs now cover ordinary/check routes; proof/verdict cold/warm, monetary cost for admitted matched trials, and separate native compile/run timings remain unavailable.",
       "id": "R4",
       "status": "partial",
       "text": "Measure cold/warm checking wall time, p50/p95, peak memory, proof-writing effort, explicit annotations, generated/changed proof bytes, law inventory coverage, rejection of seeded spec-gaming attacks, and cache invalidation work. Use at least 30 timed repetitions per microbenchmark configuration, separate process/tool provisioning, retain raw samples, and treat tiny/noisy differences as inconclusive. Set `BEND_NO_TELEMETRY=1` for offline/timing trials and record it, because the reviewed CLI performs an opt-out daily version check."
@@ -808,7 +818,7 @@
     {
       "id": "AC5",
       "kind": "missing_measurement",
-      "reason": "No cache-isolated cold observation exists; fresh/repeat process states cannot substitute for it."
+      "reason": "Thirty guest file-page-cache cold/warm pairs exist for ordinary/check routes, but proof/verdict routes and host/Rosetta cache state are unmeasured; fresh/repeat process states cannot substitute for them."
     },
     {
       "id": "AC6",

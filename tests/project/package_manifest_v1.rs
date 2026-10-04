@@ -179,17 +179,37 @@ fn reject(source: &str) -> Vec<semaprax::diagnostic::Diagnostic> {
 }
 
 #[test]
-fn ri13_unified_project_candidate_is_authored_but_refused_by_profile_admission() {
+fn ri13_unified_project_profile_admits_only_the_closed_indexed_rust_shape() {
     semaprax::parse(
         RI13_UNIFIED_PROJECT_SOURCE,
         Path::new("ri13-unified-project/src/app.spx"),
     )
     .expect("the unified candidate source remains parser-admitted");
-    let errors = reject(RI13_UNIFIED_PROJECT_MANIFEST);
+    let manifest = ProjectManifest::parse(RI13_UNIFIED_PROJECT_MANIFEST)
+        .expect("the closed indexed-Rust profile admits the exact RI-13 candidate");
+    assert_eq!(
+        manifest.project_profile(),
+        crate::project::ProjectProfile::SourceLocalFutureIndexedRustV1
+    );
+    let unsupported = RI13_UNIFIED_PROJECT_MANIFEST.replace(
+        "source-local-future-indexed-rust.v1",
+        "source-local-future.v1",
+    );
+    let errors = reject(&unsupported);
     assert_eq!(codes(&errors), ["SPX-J100"]);
     assert!(errors[0]
         .message
         .contains("[dependency-sources] and [rust-dependencies] require the scalar profile"));
+
+    let with_semantic_package = RI13_UNIFIED_PROJECT_MANIFEST.replace(
+        "\n[rust-dependencies]",
+        "\n[dependencies]\nacme.math = \"^1.0.0\"\n\n[rust-dependencies]",
+    );
+    let errors = reject(&with_semantic_package);
+    assert_eq!(codes(&errors), ["SPX-J100"]);
+    assert!(errors[0]
+        .message
+        .contains("does not admit `[dependencies]` or `[dependency-sources]`"));
 }
 
 #[test]

@@ -421,8 +421,8 @@ pub use manifest::{
     PROJECT_SCHEMA_V10, PROJECT_SCHEMA_V11, PROJECT_SCHEMA_V12, PROJECT_SCHEMA_V13,
     PROJECT_SCHEMA_V14, PROJECT_SCHEMA_V15, PROJECT_SCHEMA_V16, PROJECT_SCHEMA_V17,
     PROJECT_SCHEMA_V18, PROJECT_SCHEMA_V19, PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V20,
-    PROJECT_SCHEMA_V21, PROJECT_SCHEMA_V3, PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5, PROJECT_SCHEMA_V6,
-    PROJECT_SCHEMA_V7, PROJECT_SCHEMA_V8, PROJECT_SCHEMA_V9,
+    PROJECT_SCHEMA_V21, PROJECT_SCHEMA_V22, PROJECT_SCHEMA_V3, PROJECT_SCHEMA_V4,
+    PROJECT_SCHEMA_V5, PROJECT_SCHEMA_V6, PROJECT_SCHEMA_V7, PROJECT_SCHEMA_V8, PROJECT_SCHEMA_V9,
 };
 pub use native_sdk::{
     with_native_owned_data_sdk_subject, ProjectNativeRustPackage, ProjectNativeRustPackageMode,
@@ -933,7 +933,7 @@ impl ProjectSnapshot {
     /// Build the authenticated project entry closure as its profile-selected
     /// Web product.
     pub fn build_web(&mut self, output: &Path) -> Result<(), Vec<Diagnostic>> {
-        if self.manifest.project_profile() == ProjectProfile::SourceLocalFutureV1 {
+        if self.manifest.project_profile().is_source_local_future() {
             return Err(vec![Diagnostic::io(
                 "SPX-W120",
                 "source-local-future.v1 has no Web emitter",
@@ -986,7 +986,7 @@ impl ProjectSnapshot {
 
     /// Build and publish the exact installable schema-selected npm package.
     pub fn build_npm(&mut self, output: &Path) -> Result<(), Vec<Diagnostic>> {
-        if self.manifest.project_profile() == ProjectProfile::SourceLocalFutureV1 {
+        if self.manifest.project_profile().is_source_local_future() {
             return Err(vec![Diagnostic::io(
                 "SPX-W120",
                 "source-local-future.v1 has no npm emitter",
@@ -1090,7 +1090,7 @@ impl ProjectSnapshot {
     /// destination must not exist, so publication never clobbers a file the
     /// caller did not create for this exact operation.
     pub fn build_native(&mut self, output: &Path) -> Result<(), Vec<Diagnostic>> {
-        if self.manifest.project_profile() == ProjectProfile::SourceLocalFutureV1 {
+        if self.manifest.project_profile().is_source_local_future() {
             return Err(vec![Diagnostic::io(
                 "SPX-B116",
                 "source-local-future.v1 has no ordinary native emitter",

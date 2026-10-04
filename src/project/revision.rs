@@ -147,10 +147,10 @@ impl ProjectRevision {
         &self,
     ) -> Result<&crate::resumable_effects::source_signature::SourceEffectSignature, Vec<Diagnostic>>
     {
-        if self.manifest.project_profile() != ProjectProfile::SourceLocalFutureV1 {
+        if !self.manifest.project_profile().is_source_local_future() {
             return Err(vec![Diagnostic::io(
                 "SPX-H006",
-                "source-local-future.v1 Project profile is not selected",
+                "a source-local-future Project profile is not selected",
             )]);
         }
         let signature = self
@@ -429,7 +429,7 @@ impl ProjectRevision {
 
     /// Build Project v1 as one deterministic pathless scalar-Web carrier.
     pub fn build_web_inline(&self, max_bytes: usize) -> Result<ProjectWebBuild, Vec<Diagnostic>> {
-        if self.manifest.project_profile() == ProjectProfile::SourceLocalFutureV1 {
+        if self.manifest.project_profile().is_source_local_future() {
             return Err(vec![Diagnostic::io(
                 "SPX-W120",
                 "source-local-future.v1 has no Web emitter",
@@ -458,6 +458,7 @@ impl ProjectRevision {
                 ProjectProfile::ProcessIoV1 => "v18",
                 ProjectProfile::PublicGenericWasmProviderV1 => "v20",
                 ProjectProfile::SourceLocalFutureV1 => "v21",
+                ProjectProfile::SourceLocalFutureIndexedRustV1 => "v22",
             };
             return Err(vec![Diagnostic::io(
                 "SPX-W120",
@@ -493,7 +494,7 @@ impl ProjectRevision {
 
     /// Build one deterministic, pathless, context-bound npm carrier.
     pub fn build_npm_inline(&self, max_bytes: usize) -> Result<ProjectNpmBuild, Vec<Diagnostic>> {
-        if self.manifest.project_profile() == ProjectProfile::SourceLocalFutureV1 {
+        if self.manifest.project_profile().is_source_local_future() {
             return Err(vec![Diagnostic::io(
                 "SPX-W120",
                 "source-local-future.v1 has no npm/Web emitter",

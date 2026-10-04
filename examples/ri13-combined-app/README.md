@@ -13,16 +13,16 @@ as one reproducible receipt:
 4. The linked route prepares all selected M1/M2/M3 generated packages and
    executes its one-process consumer after the three profile-specific routes.
 
-The profiles deliberately remain separate. The current Project Future profile
-does not admit the M1 owner imports or M2 record/callback projection in one
-Project. The receipt is a combined executable gate for the three
-real application paths, not a claim that those source profiles are one ABI.
+The standalone M1, M2, and M3 profiles remain as independent measurement
+routes. The linked preparation below uses one additional, closed Project
+profile rather than treating those standalone profiles as one ABI.
 
-`unified-project/` is the concrete authored one-Project candidate. It combines
+`unified-project/` is the concrete authored one-Project route. It combines
 the M1 imports, M2 declarations, and M3 yielding export under
-`source-local-future.v1`. Its M1 `[rust-dependencies]` make the manifest reject
-with `SPX-J100`: dependency tables require the scalar profile. The regression
-keeps this limitation executable. The successful `linked/prepare` path writes
+`source-local-future-indexed-rust.v1`. That profile admits only the exact
+Regex/Url dependency pair and two M1 exports; putting those dependencies under
+the ordinary `source-local-future.v1` profile still rejects with `SPX-J100`.
+The successful `linked/prepare` path writes
 one generated subject binding for the authenticated M1, M2, and M3 inputs, and
 the consumer build refuses to link without it.
 
@@ -130,14 +130,12 @@ performance claim.
 
 ## Linked generated fixture
 
-`linked/prepare` authenticates the saved M1 Project, M2 source revision, and
-M3 Future Project independently, then derives their generated packages/modules
-into one local consumer. A single manifest cannot honestly carry all three:
-M1's `[rust-dependencies]` are admitted only by the scalar package profile,
-while M3 selects `source-local-future.v1`. The `consumer` binary links the M1
+`linked/prepare` authenticates `unified-project/` for all M1/M2/M3 generated
+outputs. The closed profile carries the exact M1 dependencies and exports,
+while retaining the M3 Future selection. The `consumer` binary links the M1
 owner crates, M2 C/Rust callback module, and M3 generated Future module in one
 process. It emits `ri13-linked-project-ok` only after all three routes return
-their checked values; it does not claim a mixed-profile Project ABI.
+their checked values.
 
 The prepare result is intentionally untracked. Reproduce the linked route with
 its own private target directory:
@@ -150,10 +148,10 @@ CLANG=/usr/bin/clang CARGO_TARGET_DIR="$PWD/target/ri13-linked" \
 ```
 
 `linked-receipt.py` performs the no-Cargo structural assertion for the route.
-It binds each independently admitted M1/M2/M3 source selection to its linked
-preparation path, generated C inputs, consumer result checks, and existing
-copied-byte ledger contract. It preserves unavailable foreign copy cells and
-does not replace the compiled linked consumer gate.
+It binds one authenticated Project selection to its M1/M2/M3 preparation
+paths, generated C inputs, consumer result checks, and existing copied-byte
+ledger contract. It preserves unavailable foreign copy cells and does not
+replace the compiled linked consumer gate.
 
 Run its static control without Cargo:
 

@@ -78,7 +78,7 @@ def validate_sources(sources):
     for identity in ("ri13.event", "callback.factory", "callback.advance"):
         require(sources, "m2_source", f'@id("{identity}")')
     require(sources, "m3_source", '@id("ri13.m3.score")')
-    require(sources, "unified_manifest", 'profile = "source-local-future.v1"')
+    require(sources, "unified_manifest", 'profile = "source-local-future-indexed-rust.v1"')
     require(sources, "unified_manifest", "[rust-dependencies]")
     for identity in REQUIRED_IDENTITIES:
         require(sources, "unified_source", f'@id("{identity}")')
@@ -86,17 +86,17 @@ def validate_sources(sources):
         require(sources, index, '"target":"aarch64-apple-darwin"')
 
     for fragment in (
-        'let m1_project = examples.join("ri13-m1-regex-url/project")',
+        'let unified = root.parent().unwrap().join("unified-project")',
         "prepare_indexed_regex_url_project_packages(",
-        "&m1_project.join(\"semaprax.toml\")",
+        "&unified.join(\"semaprax.toml\")",
         '"regex.run"',
         '"url.run"',
-        "with_authenticated_project(&m2_project.join(\"semaprax.toml\"),",
+        "with_authenticated_project(&unified.join(\"semaprax.toml\"),",
         "prepare_native_rust_serde_iterator_callbacks(",
         '"ri13.event"',
         '"callback.factory"',
         '"callback.advance"',
-        "with_authenticated_project(&m3_project.join(\"semaprax.toml\"),",
+        "with_authenticated_project(&unified.join(\"semaprax.toml\"),",
         "snapshot.render_source_local_future_rust_module()",
         'root.join("generated/m3.rs")',
         'root.join("generated/linked-subject.json")',
@@ -152,11 +152,7 @@ def receipt(sources):
     return {
         "schema": "semaprax.ri13.linked-project-receipt.v2",
         "inputs": {label(path): digest(path) for path in TRACKED},
-        "profiles": {
-            "m1": "scalar-package",
-            "m2": "source-local",
-            "m3": "source-local-future.v1",
-        },
+        "profiles": {"linked": "source-local-future-indexed-rust.v1"},
         "m1_index_target": {
             "target": "aarch64-apple-darwin",
             "admission": "host-native-only",
@@ -165,9 +161,9 @@ def receipt(sources):
         },
         "unified_project_candidate": {
             "path": "ri13-combined-app/unified-project/semaprax.toml",
-            "admission": "refused",
-            "diagnostic": "SPX-J100",
-            "reason": "source-local-future.v1 rejects M1 [rust-dependencies]; no mixed-profile Project is admitted",
+            "admission": "closed",
+            "diagnostic": None,
+            "reason": "one Project admits only the exact Regex/Url dependency and export shape; untrusted combinations remain refused",
         },
         "selected_identities": list(REQUIRED_IDENTITIES),
         "stages": ["prepare", "consumer"],
@@ -199,7 +195,7 @@ def self_test():
     assert document["schema"] == "semaprax.ri13.linked-project-receipt.v2"
     assert document["stages"] == ["prepare", "consumer"]
     assert document["consumer_marker"] == "ri13-linked-project-ok"
-    assert document["unified_project_candidate"]["diagnostic"] == "SPX-J100"
+    assert document["unified_project_candidate"]["admission"] == "closed"
     assert document["copied_byte_ledger"]["m3_generated_boundary"] == {
         "status": "exact",
         "copied_bytes_per_invocation": 0,

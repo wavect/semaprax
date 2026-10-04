@@ -3,7 +3,7 @@ schema = "semaprax.manifest.v1"
 [package]
 name = "ri13-unified-project-candidate"
 version = "0.1.0"
-profile = "source-local-future.v1"
+profile = "source-local-future-indexed-rust.v1"
 
 [modules]
 entry = "ri13.unified_project"

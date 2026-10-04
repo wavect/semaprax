@@ -111,6 +111,24 @@ class CurrentReportTests(unittest.TestCase):
         self.assertEqual(value["status"], "incomplete")
         self.assertTrue(any("does not prove source lowering" in row for row in proof["nonclaims"]))
 
+    def test_report_keeps_source_distinct_universal_sort_and_cost_provenance_incomplete(self):
+        value = REPORT.render()
+        routes = value["supplemental_guarded_i64_profile_v2"]["routes"]
+        self.assertEqual(len(routes), 4)
+        self.assertEqual(
+            routes[3]["disposition"],
+            "matched_universal_semantic_laws_under_u32_embedding_no_timing",
+        )
+        theorems = value["supplemental_universal_list_theorems"]
+        self.assertEqual(theorems["bend"]["status"], "supplemental_bend_u32_sort_source_proved")
+        self.assertEqual(theorems["semaprax"]["status"], "supplemental_i64_list_profile_proved")
+        self.assertIn("distinct source algorithms", theorems["comparison_scope"])
+        cost = value["matched_boolean"]["cost_provenance"]
+        self.assertEqual(cost["trials"], 20)
+        self.assertEqual(cost["aggregate_token_usage"]["total_tokens"], 333999)
+        self.assertEqual(cost["cost_usage"]["status"], "unavailable")
+        self.assertEqual(value["status"], "incomplete")
+
 
 if __name__ == "__main__":
     unittest.main()

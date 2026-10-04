@@ -1,5 +1,13 @@
 # Changelog
 
+- LAW-16: retain pinned Bend U32 universal insertion-sort verdict/kernel
+  evidence and pinned SEMAPRAX LAW15 Lean sortedness/permutation/multiplicity
+  evidence over the U32 subset. A versioned guarded-i64 profile records their
+  matched semantic laws, separate source identities and trust boundaries;
+  bounded balance controls and source-Z3 obligations remain separate. Agent
+  token events are authenticated across ten Boolean pairs, while monetary
+  cost events and cache-isolated cold measurements remain unavailable. The
+  original checked-u32 cells and LAW-16 closure remain open.
 - RI-13: retain clean locked offline macOS arm64 and Linux x86_64 guest
   M1/M2/M3 application receipts. Each has 22 passed, 0 failed, 0 skipped
   stages/measurements and 44 verified raw streams. The linked consumer,

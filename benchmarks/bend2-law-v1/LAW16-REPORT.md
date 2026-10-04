@@ -46,7 +46,10 @@ The separate [bounded proof/verdict capsule](evidence/law16-boolean-negation-pro
 Ten fixed-budget Luna matched pairs were completed: ten Bend candidate verdict
 acceptances and ten identity-mutant rejections; ten SEMAPRAX selected
 `app.negate ensures[0]` Z3 discharges and ten false-mutant rejections. All
-Codex JSON records expose token counters but no monetary charge event.
+Codex JSON records expose token counters but no monetary charge event. The
+[cost-provenance receipt](evidence/law16-boolean-negation-agent-cost-provenance-v1.json)
+authenticates all 20 provider event streams and their 333,999 total tokens;
+its monetary cost is explicitly unavailable, with no price inferred from tokens.
 
 ## Trust boundaries
 
@@ -62,9 +65,9 @@ execution. Fresh/repeat paths do not isolate operating-system or tool caches.
 
 The pinned SEMAPRAX parser does not admit checked `u32`; its retained
 non-admission receipt records `SPX-P003`. There is no retained cold-cache
-isolation, Lean export/kernel route, monetary cost event, or matched
-project-sized/list/refactor/incremental cell. These blockers prevent
-honest closure of #392.
+isolation, monetary cost event, or matched project-sized/refactor/incremental
+cell. The Lean list proof below covers its exact LAW15 source, not the original
+LAW16 fixture. These gaps prevent honest closure of #392.
 
 The generated machine report also records retained tool identities, explicit
 unavailable hardware/OS and optimization-flag provenance, Boolean agent-turn
@@ -76,8 +79,9 @@ The remaining required list-theorem, law-preserving-refactor, and law-breaking
 edit fixtures have dedicated controls but are also blocked before a matched
 route by checked-`u32` non-admission. Their machine-readable result is
 [`evidence/law16-remaining-u32-cells-admission-v1.json`](evidence/law16-remaining-u32-cells-admission-v1.json).
-The list source-proof route, refactor-equivalence route, and law-inventory
-preservation route remain unobserved; none is inferred from the Boolean cell.
+The original LAW16 list source-proof route, refactor-equivalence route, and
+law-inventory preservation route remain unobserved; none is inferred from the
+Boolean cell.
 
 Matched Boolean-negation peak RSS v2 is retained separately in
 [`evidence/law16-boolean-negation-peak-rss-v2/`](evidence/law16-boolean-negation-peak-rss-v2/):
@@ -120,3 +124,19 @@ or another refusal reason. The original structured full-u32 balance fixture
 remains unsupported by this profile. These source proofs are distinct from
 the native runtime controls and Bend checks above, and they do not close
 LAW-16.
+
+The additive [guarded-i64/U32 v2 profile](fixtures/full-u32-guarded-i64-profile-v2.json)
+binds a fresh 12-route candidate/attack replay, four out-of-domain refusals,
+and its separate bitvector representation checks. It keeps the original
+checked-`u32` admission unchanged. Its [Bend universal sort capsule](evidence/bend-u32-sort-universal-v1/capsule.json)
+retains a pinned `--verdict` and direct BendTT kernel pass for sortedness and
+exact per-value multiplicity over every finite U32 list. The empty-sort
+universal count law is refused, and a separate `[1]` count mismatch is
+kernel-checked. The [SEMAPRAX Lean capsule](evidence/law16-i64-list-proof-v1/capsule.json)
+retains a pinned Lean 4.34.0 check of source-authenticated LAW15 insertion
+sort, proving sortedness, permutation, and multiplicity over all finite
+`List<i64>` values; U32 values are a subset. These routes align in semantic
+law strength over U32 values. They have distinct source algorithms, declaration
+identities, and trusted computing bases. The Lean certificate does not cover
+`law16.insert` or `law16.sort`, and neither route has matched timing or a
+translation/lowering proof. The overall report remains incomplete.

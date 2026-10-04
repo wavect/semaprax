@@ -28,6 +28,9 @@ NONPROOF = module("law16_boolean_negation_nonproof_capsule")
 PROOFVERDICT = module("law16_boolean_negation_proof_verdict_capsule")
 FULL_U32_EQUAL_SPEC = module("full_u32_equal_spec")
 GUARDED_I64_BALANCE = module("law16_guarded_i64_balance_smt")
+GUARDED_I64_PROFILE = module("full_u32_guarded_i64_profile_v2")
+BEND_U32_SORT = module("law16_bend_u32_sort_proof")
+COST_PROVENANCE = module("law16_boolean_negation_cost_provenance")
 SCHEMA = "semaprax.bend2-law-benchmark.current-report.v1"
 
 
@@ -110,6 +113,17 @@ def render():
     balance_source_proof_result = read(
         ROOT / "evidence/law16-guarded-i64-balance-smt-v1/result.json"
     )
+    profile_errors = GUARDED_I64_PROFILE.verify()
+    if profile_errors:
+        raise ValueError(f"guarded-i64 profile drifted: {profile_errors}")
+    guarded_i64_profile = read(ROOT / "fixtures/full-u32-guarded-i64-profile-v2.json")
+    bend_u32_sort = BEND_U32_SORT.verify(
+        ROOT / "evidence/bend-u32-sort-universal-v1/capsule.json"
+    )
+    law15_list = read(ROOT / "evidence/law16-i64-list-proof-v1/capsule.json")
+    cost_provenance = COST_PROVENANCE.capture(ROOT / "evidence")
+    if cost_provenance != read(ROOT / "evidence/law16-boolean-negation-agent-cost-provenance-v1.json"):
+        raise ValueError("Boolean agent cost provenance receipt drifted")
     process_v2_provenance = read(ROOT / "evidence/law16-boolean-negation-process-v2/provenance.json")
     effort = read(ROOT / "evidence/law16-effort-summary-v1.json")
     annotations = read(ROOT / "evidence/law16-annotation-summary-v1.json")
@@ -141,7 +155,7 @@ def render():
     return {
         "schema": SCHEMA,
         "status": "incomplete",
-        "scope": "local pinned historical Boolean-negation evidence only",
+        "scope": "local pinned Boolean-negation evidence and separate guarded-U32 theorem/control routes",
         "matched_boolean": {
             "semantic_contract": process["semantic_contract"],
             "process_routes": process_v2["process_states"],
@@ -175,6 +189,15 @@ def render():
                     "status": "unavailable",
                     "reason": "all retained Codex JSON events omit monetary charge",
                 },
+            },
+            "cost_provenance": {
+                "source": "evidence/law16-boolean-negation-agent-cost-provenance-v1.json",
+                "status": cost_provenance["status"],
+                "matched_pairs": cost_provenance["scope"]["matched_pairs"],
+                "trials": cost_provenance["scope"]["trials"],
+                "aggregate_token_usage": cost_provenance["aggregate_token_usage"],
+                "cost_usage": cost_provenance["cost_usage"],
+                "nonclaims": cost_provenance["nonclaims"],
             },
             "peak_rss": rss["routes"],
             "timing_variation": variation,
@@ -242,6 +265,28 @@ def render():
             "full_u32_original": balance_source_proof["full_u32_original"],
             "overall_law16": balance_source_proof["overall_law16"],
             "nonclaims": balance_source_proof_result["nonclaims"],
+        },
+        "supplemental_guarded_i64_profile_v2": {
+            "source": "fixtures/full-u32-guarded-i64-profile-v2.json",
+            "status": guarded_i64_profile["status"],
+            "numeric_domain": guarded_i64_profile["numeric_domain"],
+            "routes": guarded_i64_profile["routes"],
+            "nonclaims": guarded_i64_profile["nonclaims"],
+        },
+        "supplemental_universal_list_theorems": {
+            "bend": {
+                "source": "evidence/bend-u32-sort-universal-v1/capsule.json",
+                "status": bend_u32_sort["status"],
+                "coverage": bend_u32_sort["coverage"],
+                "negative_control": "empty universal count law refused; a separate concrete count mismatch was kernel-checked",
+            },
+            "semaprax": {
+                "source": "evidence/law16-i64-list-proof-v1/capsule.json",
+                "status": law15_list["status"],
+                "coverage": law15_list["coverage"],
+                "original_law16_cell": law15_list["original_law16_cell"],
+            },
+            "comparison_scope": "aligned universal sortedness and exact multiplicity over the U32 subset; distinct source algorithms and proof TCBs; no matched timing or original law16.* source certificate",
         },
         "measurement_provenance": {
             "identity_scope": "machine-local observations bound to the process-v2 raw samples; not current-head claims",
@@ -321,14 +366,15 @@ def render():
         "unavailable_or_unsupported": {
             "checked_u32": "unsupported_by_pinned_parser: SPX-P003 admits i32, u8, usize literal suffixes, not u32",
             "cold_cache": "unavailable: no retained reproducible clean cache isolation",
-            "Lean": "unavailable: no retained admitted Lean export/kernel route",
+            "Lean": "supplemental LAW15 collection source theorem physically checked by Lean; no Boolean or original law16.* Lean export",
             "cost": "unavailable: no Codex JSON monetary charge event",
             "project_sized": "unavailable: Boolean microcell is not project-sized/incremental evidence",
             "list_refactor_lawbreaking": remaining,
         },
         "closure": (
-            "no: the matched Boolean cell and ten agent pairs do not satisfy checked-u32, Lean, "
-            "cold-cache, project-sized, list/refactor/incremental, or cost acceptance requirements"
+            "no: the matched Boolean cell and supplemental U32 semantic theorem comparison do not satisfy "
+            "the original checked-u32 source admission, cold-cache, project-sized/refactor/incremental, "
+            "or monetary cost-event acceptance requirements"
         ),
         "nonclaims": [
             "no cross-route timing ratio, winner, or superiority claim",

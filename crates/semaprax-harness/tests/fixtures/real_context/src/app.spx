@@ -1,9 +1,0 @@
-module ledger.app;
-use function @id("ledger.core.add-entry") from ledger.core as add_entry;
-use function @id("ledger.core.split-evenly") from ledger.core as split_evenly;
-
-@id("ledger.app.main")
-fn main() -> i64
-{
-    add_entry(split_evenly(84, 2), 0)
-}

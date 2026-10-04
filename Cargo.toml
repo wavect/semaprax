@@ -27,7 +27,6 @@ members = [
     "crates/semaprax-rust-api-index",
     "crates/semaprax-project-revision-store-windows-sys",
     "crates/semaprax-toolchain",
-    "crates/semaprax-harness",
 ]
 default-members = ["."]
 resolver = "2"

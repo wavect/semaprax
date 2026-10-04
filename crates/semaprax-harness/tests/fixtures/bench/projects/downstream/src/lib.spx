@@ -1,9 +1,0 @@
-module ledger.lib;
-
-@id("ledger.line_total")
-fn line_total(price: i64, qty: i64) -> i64
-    requires price >= 0 && price <= 1000000 && qty >= 0 && qty <= 1000000
-    ensures result == price * qty
-{
-    price + qty
-}

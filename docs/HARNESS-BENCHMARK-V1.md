@@ -195,3 +195,113 @@ historical evidence (cited, never mixed into these numbers).
 
 `SPX-HPQ001` read/parse, 002 schema, 003 unknown member, 004 pin drift, 005
 duplicate id, 006 unknown reference, 007 usage, 008 output, 010 router adapter.
+
+## HN-17: application-task benchmark (scoped default recommendations)
+
+HN-17 extends the same `bench` verb and the same statistics helpers; it does
+not replace HP-17 or its recorded evidence (`benchmarks/harness/2026-10-04-local`,
+`-skill-coder`, `-skill-haiku`, `-routing`), which stay exactly as recorded and
+are never mixed into HN-17 figures. HN-17 measurements live in
+`benchmarks/harness/2026-10-04-hn17/` and carry their own commit. Owner:
+`crates/semaprax-harness/src/bench/apptask/`; verbs `bench app validate|run|report`.
+Diagnostics continue the `SPX-HPQ` numbering: 011 grader validation failed, 012
+tokenizer unavailable.
+
+### Tasks and graders
+
+`tests/fixtures/bench/apptasks/` (a new, separate pinned task set; regenerated
+only through `gen/`, never hand-edited, never rustfmt-ed) holds twelve
+multi-file application tasks in seven classes: `feature` (healthy-project
+feature work, Python and Node), `refactor`, `compile_repair` (a real SEMAPRAX
+project that fails `semaprax check`, and a Node package that fails to load; the
+repair runs as a session with up to three attempts, each fed the previous
+diagnostic), `failing_tests` (noisy suites, the failing run is shown through a
+command view), `mixed_language` (Python + JavaScript contracts, graded
+end to end across both), `index_reuse` (an existing helper library the new code
+must reuse), and `maintenance` (three consecutive sessions on one project:
+feature, bug fix, refactor; the later session starts from the model's own
+accepted earlier edits). Cold start is trial 0 of every cell (index
+construction charged to it); warm trials reuse the index.
+
+The model answers in a file-block protocol. The grader is a list of commands
+(compiler checks, `unittest`, `node --test`, structural reuse checks) run in a
+sandbox after the model's edits; before grading, every visible test and hidden
+grader file is restored from the pinned fixture, and edits to protected paths
+are refused and counted (`tamper_attempts`). A task passes only when every
+grader command passes; `bench app validate` proves each grader fails the
+pristine project and passes the reference solution. Neither the model's own
+claims nor the structural validity of its answer decide success; both are
+reported separately.
+
+### Arms
+
+`native` (baseline), `ponytail` (official Ponytail v4.10.3, mode `full`),
+`caveman` (official Caveman v3.1.0), `ponytail+caveman`, and `concise` (one
+sentence: be concise, reuse existing code, smallest change). The skill text is
+what the harness's own default-skill selection renders (byte-exact upstream
+files in the host frame), so the prompt cost of delivery is inside every count.
+Ablations: `graft` and `graphify` replace the full tree by the real tool's
+retrieval pack plus the files named in the request and at most three files the
+pack points at; `rtk-err` and `rtk-test` replace the raw failing-test output by
+the real RTK view of the same single command execution. Negative controls: `neg-output-keeps-first-file` (the harness drops every file block of
+each answer after the first, simulating a lossy output-compression skill
+independently of model obedience), `neg-skill-strips-work` (a prompt-level skill
+that allows one file per reply; whether a model obeys it is itself a
+measurement) and `neg-stripped-failure` (failure lines removed from the test
+output, the run reported as OK). Each runs only in classes where the required
+work spans more than one file. `router` and `wikiskill` are labelled
+untested, never skipped as a success.
+
+### Measurements
+
+Per trial: named-tokenizer counts (`tiktoken` `o200k_base`) of the exact prompt
+(skill, retrieval pack, command view, every retry) and of every answer;
+provider-reported usage (Claude Code CLI JSON `usage`, Ollama
+`prompt_eval_count`/`eval_count`) kept separate; provider-reported cost
+(`total_cost_usd`; unavailable for the local model, never zero); retrieval and
+index-construction time and bytes; retrieval recall of the reference files;
+attempts and retries; model, harness and completion time; structural validity;
+tamper attempts; accepted (grader). Records are metadata only (counts, digests,
+verdicts). A hard spend ledger (`SpendLedger`) reserves a per-call ceiling
+before every billed call and refuses when `spent + reserved + ceiling` would
+pass the cap; a failed billed call is charged its reservation.
+
+### Gates for HN-17 recommendations (declared before the campaign)
+
+Evaluated per (model, task class, arm) over matched cells (same task,
+repetition and model) against `native`; nothing is pooled across classes.
+
+| Gate | Rule |
+| --- | --- |
+| `N` | at least `MIN_MATCHED_CELLS` (10) matched cells; fewer is `pilot-only` |
+| `Q` | accepted-rate delta per matched cell >= `QUALITY_TOLERANCE` (0.0): no loss |
+| `C` | total o200k tokens (skill prompt, retrieval, failed attempts included) fall >= 20% (`MIN_NET_BYTE_REDUCTION`), and billed cost falls >= 20% where billed |
+| `T` | added completion time per matched cell <= `MAX_ADDED_LATENCY_MS` (2000 ms) |
+
+`MIN_TRIALS_PER_CELL` (10) repetitions per (task, arm, model) cell are required
+for a report to be anything but a `pilot`. Verdicts: `qualified-scoped` (N, Q,
+C, T all pass), `available-no-lift` (no loss but no gate-level lift: the tool
+stays available, no automatic-performance claim), `not-recommended` (quality
+loss), `pilot-only`, `untested-cells`. A negative control is `control-detected`
+only when its accepted rate falls at least 0.20 below native; otherwise the
+benchmark itself is flagged (`control-NOT-detected`). `qualified-scoped`
+entries are exported as advisory `recommendations.json` and `outcomes.json`
+(HN-16 evidence-outcome shape, origin `real`); they apply nothing, there is no
+hidden global switch, and an HN-06 `[skills]` proposal names the class scope.
+
+### Reproduce
+
+```sh
+semaprax-harness bench app validate crates/semaprax-harness/tests/fixtures/bench/apptasks \
+  --env HARNESS_PYTHON=<py> --env HARNESS_NODE=<node> --env SEMAPRAX_COMPILER=<semaprax>
+semaprax-harness bench app run <tasks> --out <dir> --work <scratch> --reps 10 \
+  --model id=small,name=qwen2.5:0.5b,addr=127.0.0.1:11434,size=small \
+  --model id=large,name=claude-haiku-4-5,addr=127.0.0.1:11500,size=large,billed=1,workers=4 \
+  --cap-usd 15 --env HARNESS_TIKTOKEN_PYTHON=<py> --env HARNESS_TIKTOKEN_CACHE=<dir> \
+  --env HARNESS_GRAFT=<graft> --env HARNESS_GRAPHIFY=<graphify> --env HARNESS_RTK=<rtk>
+semaprax-harness bench app report <dir>
+```
+
+The campaign is resumable (`trials.jsonl` is append-only; recorded trials are
+skipped) and rep-major, so a stopped or capped run leaves every cell with the
+same number of repetitions.

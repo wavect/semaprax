@@ -1,0 +1,42 @@
+{
+  "class": "mixed_language",
+  "id": "mixed-config-units",
+  "languages": [
+    "python",
+    "node"
+  ],
+  "query": "schedule interval jitter units config",
+  "steps": [
+    {
+      "feedback": "grader",
+      "grade": [
+        {
+          "cmd": [
+            "{python}",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "tests",
+            "-t",
+            "."
+          ]
+        },
+        {
+          "cmd": [
+            "{node}",
+            "--test"
+          ]
+        },
+        {
+          "cmd": [
+            "{python}",
+            "_grader/check_doc.py"
+          ]
+        }
+      ],
+      "id": "s1",
+      "request": "Change the shared schedule configuration from seconds to milliseconds everywhere. config/schedule.json keys become `interval_ms` and `jitter_ms` (30000 and 5000). The Python worker (worker/schedule.py: next_delay) and the JavaScript poller (web/poller.js: nextDelayMs) must read the new keys and return milliseconds, and docs/schedule.md must describe the new keys and unit. The existing visible tests encode the old unit; the graders encode the new one. Do not rely on editing tests."
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "class": "failing_tests",
+  "id": "failing-tests-js-textkit",
+  "languages": [
+    "node"
+  ],
+  "query": "slug iso date failing tests",
+  "steps": [
+    {
+      "feedback": "grader",
+      "grade": [
+        {
+          "cmd": [
+            "{node}",
+            "--test"
+          ]
+        }
+      ],
+      "id": "s1",
+      "initial_command": {
+        "cmd": [
+          "{node}",
+          "--test"
+        ],
+        "rtk": [
+          "test",
+          "{node}",
+          "--test"
+        ]
+      },
+      "request": "The test suite fails. Fix the code under src/ so that all tests pass. Do not edit anything under test/. The output of the test run is included below."
+    }
+  ]
+}

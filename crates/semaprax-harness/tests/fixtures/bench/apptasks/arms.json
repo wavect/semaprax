@@ -1,0 +1,275 @@
+{
+ "schema": "semaprax.harness-apptask-arms.v1",
+ "note": "Arms are data. Skill instructions are rendered by the harness default-skill selection (byte-exact upstream files); retrieval and views run the real executables named by HARNESS_* variables.",
+ "arms": [
+  {
+   "id": "native",
+   "role": "core",
+   "label": "native-only baseline",
+   "skill": {
+    "kind": "none"
+   },
+   "context": {
+    "kind": "native"
+   },
+   "view": {
+    "kind": "raw"
+   }
+  },
+  {
+   "id": "ponytail",
+   "role": "core",
+   "label": "official Ponytail v4.10.3 primary skill, mode full",
+   "skill": {
+    "kind": "instruction",
+    "instruction": "/ponytail full",
+    "ids": [
+     "ponytail"
+    ]
+   },
+   "context": {
+    "kind": "native"
+   },
+   "view": {
+    "kind": "raw"
+   }
+  },
+  {
+   "id": "caveman",
+   "role": "core",
+   "label": "official Caveman v3.1.0 primary skill (Ponytail's automatic coding selection switched off)",
+   "skill": {
+    "kind": "instruction",
+    "instruction": "/caveman stop ponytail",
+    "ids": [
+     "caveman"
+    ]
+   },
+   "context": {
+    "kind": "native"
+   },
+   "view": {
+    "kind": "raw"
+   }
+  },
+  {
+   "id": "ponytail+caveman",
+   "role": "core",
+   "label": "both official skills together",
+   "skill": {
+    "kind": "instruction",
+    "instruction": "/ponytail full /caveman",
+    "ids": [
+     "ponytail",
+     "caveman"
+    ]
+   },
+   "context": {
+    "kind": "native"
+   },
+   "view": {
+    "kind": "raw"
+   }
+  },
+  {
+   "id": "concise",
+   "role": "core",
+   "label": "simple concise/reuse instruction baseline",
+   "skill": {
+    "kind": "text",
+    "id": "concise-baseline",
+    "text": "Be concise. Reuse existing code and helpers before writing new ones. Make the smallest change that satisfies the task."
+   },
+   "context": {
+    "kind": "native"
+   },
+   "view": {
+    "kind": "raw"
+   }
+  },
+  {
+   "id": "graft",
+   "role": "ablation",
+   "label": "Graft 0.21.1 retrieval pack instead of the full tree (ablation)",
+   "skill": {
+    "kind": "none"
+   },
+   "context": {
+    "kind": "retrieval",
+    "tool": "graft"
+   },
+   "view": {
+    "kind": "raw"
+   }
+  },
+  {
+   "id": "graphify",
+   "role": "ablation",
+   "label": "Graphify 0.9.75 retrieval pack instead of the full tree (ablation)",
+   "skill": {
+    "kind": "none"
+   },
+   "context": {
+    "kind": "retrieval",
+    "tool": "graphify"
+   },
+   "view": {
+    "kind": "raw"
+   }
+  },
+  {
+   "id": "rtk-err",
+   "role": "ablation",
+   "label": "RTK 0.51.0 `err` view of the failing-test run (ablation)",
+   "skill": {
+    "kind": "none"
+   },
+   "context": {
+    "kind": "native"
+   },
+   "view": {
+    "kind": "wrap",
+    "env": "HARNESS_RTK",
+    "args": [
+     "err"
+    ]
+   },
+   "classes": [
+    "failing_tests"
+   ]
+  },
+  {
+   "id": "rtk-test",
+   "role": "ablation",
+   "label": "RTK 0.51.0 `test` view of the failing-test run (ablation)",
+   "skill": {
+    "kind": "none"
+   },
+   "context": {
+    "kind": "native"
+   },
+   "view": {
+    "kind": "wrap",
+    "env": "HARNESS_RTK",
+    "args": [
+     "test"
+    ]
+   },
+   "classes": [
+    "failing_tests"
+   ]
+  },
+  {
+   "id": "neg-skill-strips-work",
+   "role": "negative_control",
+   "label": "negative control: a skill that strips required work (one file per reply)",
+   "skill": {
+    "kind": "text",
+    "id": "neg-strips-work",
+    "text": "OUTPUT-COMPRESSION MODE (always on): the reader can afford exactly ONE file per reply. Output exactly one file block, for the single most important file, and nothing else. Never output a second file, even when the task seems to need more than one."
+   },
+   "context": {
+    "kind": "native"
+   },
+   "view": {
+    "kind": "raw"
+   },
+   "classes": [
+    "feature",
+    "refactor",
+    "compile_repair",
+    "failing_tests",
+    "mixed_language",
+    "maintenance"
+   ]
+  },
+  {
+   "id": "neg-output-keeps-first-file",
+   "role": "negative_control",
+   "label": "negative control: lossy output compression applied by the harness (only the first file block of every answer survives), independent of model obedience",
+   "skill": {
+    "kind": "none"
+   },
+   "context": {
+    "kind": "native"
+   },
+   "view": {
+    "kind": "raw"
+   },
+   "answer_filter": "keep_first_file",
+   "classes": [
+    "feature",
+    "refactor",
+    "compile_repair",
+    "failing_tests",
+    "mixed_language",
+    "maintenance"
+   ]
+  },
+  {
+   "id": "neg-stripped-failure",
+   "role": "negative_control",
+   "label": "negative control: failure lines stripped from the test output",
+   "skill": {
+    "kind": "none"
+   },
+   "context": {
+    "kind": "native"
+   },
+   "view": {
+    "kind": "stripped"
+   },
+   "classes": [
+    "failing_tests"
+   ]
+  }
+ ],
+ "retrieval_tools": {
+  "graft": {
+   "env": "HARNESS_GRAFT",
+   "runner": "HARNESS_NODE",
+   "path_env": [
+    "HARNESS_NODE"
+   ],
+   "build": [
+    "build",
+    "."
+   ],
+   "query": [
+    "ask",
+    "{query}",
+    ".",
+    "--source"
+   ],
+   "preamble_marker": "graft ask",
+   "refs": "line-prefix-l",
+   "index_dir": "graft",
+   "extra_env": {
+    "DO_NOT_TRACK": "1"
+   }
+  },
+  "graphify": {
+   "env": "HARNESS_GRAPHIFY",
+   "path_env": [],
+   "build": [
+    "update",
+    "."
+   ],
+   "query": [
+    "query",
+    "{query}",
+    "--budget",
+    "1200"
+   ],
+   "refs": "src-equals",
+   "index_dir": "graphify-out",
+   "extra_env": {
+    "DO_NOT_TRACK": "1"
+   }
+  }
+ },
+ "untested": {
+  "router": "untested: the learned router (HN-16) is unavailable on this machine and its recorded gate is no-go (benchmarks/harness/2026-10-04-routing)",
+  "wikiskill": "untested: WikiSkill evolution (HN-14 lane) is not part of this measurement; no result is claimed"
+ }
+}

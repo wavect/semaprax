@@ -123,6 +123,11 @@ fn modules_of_a_harness_do_not_share_a_fixture_prefix() {
 /// the key stops matching, and the gate fires — which is the point.
 const SELF_INVOKING: &[(&str, &str)] = &[
     (
+        "tests/useful_data/durable_job_writer.rs",
+        "the useful_data harness includes this module at its root, so the existing \
+         `--exact durable_job_writer::writer_lock_child` selector names the child test",
+    ),
+    (
         "tests/release_archive_product_v1/command/tests.rs",
         "its own top-level test target, so `--exact command::tests::capture_helper` \
          already names the right path; merging it into a harness would prefix that \

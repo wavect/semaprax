@@ -24,6 +24,9 @@ enum HostError {
     Transport,
 }
 
+type SelectedCallOutcome = (Result<i64, SourceLocalFutureFailure>, Option<HostError>);
+type SelectedCallError = Vec<semaprax::diagnostic::Diagnostic>;
+
 #[derive(Clone, Copy, Default, Debug, Eq, PartialEq)]
 struct CopyMetrics {
     foreign_response_body_copied_bytes: u64,
@@ -166,10 +169,7 @@ fn selected_call_with_controls(
     timeout: Option<Duration>,
     copies: CopyLedger,
     controls: HostMutationControls,
-) -> Result<
-    impl Future<Output = (Result<i64, SourceLocalFutureFailure>, Option<HostError>)>,
-    Vec<semaprax::diagnostic::Diagnostic>,
-> {
+) -> Result<impl Future<Output = SelectedCallOutcome>, SelectedCallError> {
     let mut builder = reqwest::Client::builder().retry(reqwest::retry::never());
     if let Some(timeout) = timeout {
         builder = builder.timeout(timeout);
@@ -220,10 +220,7 @@ fn selected_call(
     endpoint: String,
     timeout: Option<Duration>,
     copies: CopyLedger,
-) -> Result<
-    impl Future<Output = (Result<i64, SourceLocalFutureFailure>, Option<HostError>)>,
-    Vec<semaprax::diagnostic::Diagnostic>,
-> {
+) -> Result<impl Future<Output = SelectedCallOutcome>, SelectedCallError> {
     selected_call_with_controls(revision, endpoint, timeout, copies, AUTHENTIC_HOST_CONTROLS)
 }
 

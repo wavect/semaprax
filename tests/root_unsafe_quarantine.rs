@@ -208,6 +208,10 @@ fn root_unsafe_exceptions_are_confined_to_audited_authority_modules() {
     assert!(metal.starts_with("//! The real Apple Metal device session"));
     assert_eq!(metal.matches("#![allow(unsafe_code)]").count(), 1);
     assert!(metal.contains("Every unsafe block below carries its own `SAFETY`"));
+    let solver =
+        fs::read_to_string(root.join("src/assurance_manifest/smt_discharge/solver.rs")).unwrap();
+    assert!(solver.starts_with("//! Explicit solver provisioning"));
+    assert_eq!(solver.matches("#[allow(unsafe_code)]").count(), 2);
 
     let mut sources = Vec::new();
     rust_sources(&root.join("src"), &mut sources);
@@ -223,6 +227,7 @@ fn root_unsafe_exceptions_are_confined_to_audited_authority_modules() {
     assert_eq!(
         exceptions,
         [
+            PathBuf::from("src/assurance_manifest/smt_discharge/solver.rs"),
             PathBuf::from("src/compute_profile/metal_backend/device.rs"),
             PathBuf::from("src/process_provider/registered/platform.rs"),
             PathBuf::from(QUARANTINE)

@@ -355,6 +355,22 @@ fn receipt_set_comparison_verifies_three_receipts_and_keeps_incompatibility_inde
 #[test]
 fn retained_evidence_pages_are_closed_bounded_and_preserve_cross_file_declaration_ids() {
     let fixture = Fixture::new();
+    let core_path = fixture.0.join("src/core.spx");
+    let core_source = std::fs::read_to_string(&core_path).unwrap();
+    let contracted_core = core_source.replace(
+        "fn subtract(left: i64, right: i64) -> i64\n{",
+        "fn subtract(left: i64, right: i64) -> i64\n    ensures result == left - right\n{",
+    );
+    assert_ne!(contracted_core, core_source);
+    let core = semaprax::parse(&contracted_core, &core_path).unwrap();
+    std::fs::write(core_path, semaprax::format::canonical(&core)).unwrap();
+    let app_path = fixture.0.join("src/app.spx");
+    let mut app_source = std::fs::read_to_string(&app_path).unwrap();
+    app_source.push_str(
+        "\n@id(\"calculator.app.helper\")\nfn helper() -> i64\n    ensures result == 1\n{ subtract(2, 1) }\n",
+    );
+    let app = semaprax::parse(&app_source, &app_path).unwrap();
+    std::fs::write(app_path, semaprax::format::canonical(&app)).unwrap();
     let root = fixture.candidate();
     let first = apply(
         &root,
@@ -362,7 +378,7 @@ fn retained_evidence_pages_are_closed_bounded_and_preserve_cross_file_declaratio
     );
     let candidate = apply(
         &first,
-        json!({"kind":"rename_declaration","target":"calculator.app.main","name":"run"}),
+        json!({"kind":"rename_declaration","target":"calculator.app.helper","name":"run"}),
     );
     let options = ProjectPatchReceiptEvidencePageOptions::new(1, 65_536).unwrap();
     let summary: Value = serde_json::from_str(
@@ -405,7 +421,7 @@ fn retained_evidence_pages_are_closed_bounded_and_preserve_cross_file_declaratio
             break;
         }
     }
-    assert_eq!(ids, ["calculator.app.main", "calculator.subtract"]);
+    assert_eq!(ids, ["calculator.app.helper", "calculator.subtract"]);
 
     let contracts = summary["evidence"]
         .as_array()
@@ -431,7 +447,7 @@ fn retained_evidence_pages_are_closed_bounded_and_preserve_cross_file_declaratio
         .iter()
         .map(|row| row["id"].as_str().unwrap())
         .collect::<Vec<_>>();
-    assert!(contract_ids.contains(&"calculator.app.main"));
+    assert!(contract_ids.contains(&"calculator.app.helper"));
     assert!(contract_ids.contains(&"calculator.subtract"));
 
     let stale = "sha256:1111111111111111111111111111111111111111111111111111111111111111";

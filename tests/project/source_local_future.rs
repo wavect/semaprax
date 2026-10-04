@@ -10,7 +10,7 @@ use std::pin::Pin;
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
-use std::task::{Context, Poll, Wake, Waker};
+use std::task::{Context, Poll, Waker};
 use std::time::Duration;
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
@@ -57,11 +57,6 @@ impl Fixture {
     }
 }
 
-struct NoopWake;
-impl Wake for NoopWake {
-    fn wake(self: Arc<Self>) {}
-}
-
 #[test]
 fn authenticated_project_selected_async_export_awaits_host_future_and_refuses_drift() {
     let fixture = Fixture::new();
@@ -97,9 +92,8 @@ fn authenticated_project_selected_async_export_awaits_host_future_and_refuses_dr
             Ok::<i64, ()>(request + 1)
         })
         .unwrap();
-    let mut caller = Box::pin(async move { selected.await });
-    let waker = Waker::from(Arc::new(NoopWake));
-    let mut context = Context::from_waker(&waker);
+    let mut caller = Box::pin(selected);
+    let mut context = Context::from_waker(Waker::noop());
     assert_eq!(
         Pin::as_mut(&mut caller).poll(&mut context),
         Poll::Ready(Ok(84))
@@ -371,7 +365,7 @@ fn generated_project_future_module_registers_source_import_and_refuses_stale_pro
     );
     std::fs::write(consumer.join("Cargo.toml"), manifest).unwrap();
     let consumer_lock = include_str!("ri09_generated_consumer.Cargo.lock");
-    std::fs::write(consumer.join("Cargo.lock"), &consumer_lock).unwrap();
+    std::fs::write(consumer.join("Cargo.lock"), consumer_lock).unwrap();
     std::fs::write(
         consumer.join("src/main.rs"),
         include_str!("ri09_generated_consumer.rs.txt"),

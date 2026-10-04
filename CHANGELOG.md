@@ -7,6 +7,16 @@
   Exact target checks refuse unsupported M1/M3 Wasm routes while the separate
   M2 scalar Project builds; generated Rust Serde/iterator adapters are not
   claimed on Wasm. Linux performance remains guest evidence.
+- Fixed the patch-receipt evidence pagination regression to exercise a
+  renameable declaration in the app module; the fixture now preserves its
+  cross-file identity check without attempting to rename `main`. Both renamed
+  functions now carry contracts so the contract-delta page checks their IDs.
+- Made the paired affine callback's flipped-source control change the paired
+  return expression, so its physical consumer detects the substitution.
+- Recorded the durable job writer's harness-aware child selector in the
+  self-invocation inventory.
+- Added the explicitly bounded SMT solver process module to the audited unsafe
+  quarantine inventory, including its production and test-only Unix calls.
 
 - RI-08: admit one synchronous parameter-rooted borrowed-text source capture.
   Source/HIR scope validation rejects aliases and escape; interpreter, native C
@@ -91,7 +101,16 @@
   and split over-budget source modules while retaining source-locked coverage.
   Cover the checkpoint-waiting branch in the source-agent handoff test fixture.
   Keep the native Regex/Url lint allowance valid under non-Clippy builds with
-  warnings denied.
+  warnings denied. Canonicalize Rust formatting after the merged v0.8.0 work.
+  Repair the durable-job recovery fixture's byte request and the list-proof
+  fixture's borrowed evidence slices. Keep the source-local Future Project
+  fixtures free of Clippy warnings without changing their runtime checks.
+  Scope physical Url test helpers to their supported target and document the
+  independent fixture inputs used by the guarded foreign-law repair test.
+  Align verifier-hint and CLI help fixtures with admitted lists and the public
+  `dev` command. Mark the list sort proof's type spelling as code so rustdoc
+  accepts the module documentation with warnings denied. Catalog the RI-13
+  indexed Rust Future profile and state its intended audience.
 
 - Repair the current main CI fixtures for owned-byte Wasm imports, constructor
   schema counts, the pinned iOS action, and authenticated Everyday Agent

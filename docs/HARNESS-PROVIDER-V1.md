@@ -371,3 +371,28 @@ applied or repaired; one larger-cap retry (`length_retry_max_output_tokens`) is 
 task limits, and an uncertain request is never replayed. Each dispatched attempt (including failed and truncated ones)
 appears in the report's `context.usage_receipts`, with measured, preflight and reserved figures separate; observations
 gain additive `usage` and `estimated_cost`.
+
+## TC-04: ordered prompt rendering and cache boundaries
+
+The `[budget] prompt_renderer` key is opt-in. It defaults to `canonical`, the existing sorted-key JSON, with byte-identical requests. With `ordered-v1`,
+`workflow::prompt_render` renders the canonical prompt value as three ordered segments:
+
+- `host`: stable instructions and response schema.
+- `task`: mode, family, goal, acceptance, context and skills. All of these are still quoted lower-trust data.
+- `live`: revision, seed, diagnostics, intents, attempt and feedback.
+
+`host` + `task` is the reusable prefix. Journals and identities keep canonical JSON. Admission, fit and the journal
+`request_digest` all use the rendered bytes, so they count and bind exactly what is sent, including the renderer
+version.
+
+The prefix identity binds provider, model, project id, worktree, lock digest (the authorization boundary), renderer
+version, selected skill ids and sha256 of the prefix bytes. A change to any of them invalidates the prefix, so a prefix
+is never reused across projects.
+
+When a model declares `[budget] model_prompt_cache = "supported"`, `model.generate` carries an optional closed
+`segments` member: `{renderer, prefix_identity, items[{id, bytes}], cache_boundary_after}`. Item sizes must sum to the
+input length, and the boundary must name an item. An adapter may map it to its provider's documented cache controls.
+Otherwise the same self-contained text is sent uncached.
+
+The harness never prewarms a cache or pads a prompt to reach a cache threshold. A billed reduction is claimed only from
+provider cache-read/write receipts (TC-01), qualified in TC-12.

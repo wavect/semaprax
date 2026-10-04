@@ -1,0 +1,33 @@
+module app;
+
+@id("law16.balance.debit_after")
+fn debit_after(debit: i64, credit: i64, amount: i64) -> i64
+    requires debit >= 0 && debit <= 4294967295
+    requires credit >= 0 && credit <= 4294967295
+    requires amount >= 0 && amount <= 4294967295
+    ensures result >= 0 && result <= 4294967295
+    ensures if amount > debit { result == debit } else { if credit > 4294967295 - amount { result == debit } else { result == debit - amount } }
+    ensures if amount > 0 && amount <= debit && credit <= 4294967295 - amount { result < debit } else { result == debit }
+{
+    if amount > debit { debit } else { if credit > 4294967295 - amount { debit } else { debit - amount } }
+}
+
+@id("law16.balance.credit_after")
+fn credit_after(debit: i64, credit: i64, amount: i64) -> i64
+    requires debit >= 0 && debit <= 4294967295
+    requires credit >= 0 && credit <= 4294967295
+    requires amount >= 0 && amount <= 4294967295
+    ensures result >= 0 && result <= 4294967295
+    ensures if amount > debit { result == credit } else { if credit > 4294967295 - amount { result == credit } else { result == credit + amount } }
+    ensures if amount > debit || credit > 4294967295 - amount { result + debit == debit + credit } else { result + debit - amount == debit + credit }
+    ensures if amount > 0 && amount <= debit && credit <= 4294967295 - amount { result > credit } else { result == credit }
+{
+    if amount > debit { credit } else { if credit > 4294967295 - amount { credit } else { credit + amount } }
+}
+
+@id("app.main")
+fn main() -> i64
+    ensures result == 0
+{
+    0
+}

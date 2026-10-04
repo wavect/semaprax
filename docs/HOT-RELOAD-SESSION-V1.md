@@ -41,8 +41,10 @@ a second transport protocol.
 ## Current compatibility rule
 
 The local prepared-interpreter lane derives the callable closure from each
-checked entry/test root, including calls in checked pre/postconditions and
-instantiated targets. It admits a changed code body only when the entrypoints,
+checked entry/test root, including calls in checked pre/postconditions,
+instantiated targets, function references, and every checked target compatible
+with a reachable indirect invocation. It admits a changed code body only when
+the entrypoints,
 permit set, type and interface records, exact reachable callable stable-ID set,
 return/parameter types and ownership, declared effects and yields, checked
 pre/postconditions, cleanup inventory/plan, and loan plan agree. A missing or
@@ -50,7 +52,8 @@ ambiguous closure target fails closed. Unreachable functions remain outside
 this local prepared-worker state compatibility decision.
 For every source Agent, planning retains the predecessor and candidate
 AgentDefinition, AgentGraph, Runtime v1 profile, Proposal and Observation
-schema digests in a stable-ID ordered opaque handoff row. The row contains no
+schema digests in a stable-ID ordered opaque handoff row. Its v2 digest binds
+the row schema and every endpoint fact. The row contains no
 checkpoint bytes, lifecycle binding, store, host capability, or migration
 function. It is therefore a selection record for the source-live migration
 owner, never permission to restore or run a checkpoint. A source-Agent plan
@@ -65,8 +68,9 @@ An acknowledged-journal ambiguity terminalizes the supervisor as
 claim remains a cooperating-CLI single-destination rule: a post-claim,
 pre-settlement crash needs explicit operator reconciliation. A changed row
 does not grant a policy or capability widening.
-This rule remains conservative and incomplete: it does not compute a reachable
-callable closure, and is not a general hot reload guarantee.
+This rule remains conservative and incomplete: it is a local
+prepared-interpreter compatibility decision, and is not a general hot reload
+guarantee.
 
 ## Transition table
 
@@ -109,5 +113,5 @@ is local library evidence, not hosted or source-Agent handoff evidence.
 
 ## Completion work
 
-HR-01 still needs the source-Agent durable-checkpoint execution lane and
-broader adversarial effects coverage.
+HR-01 still needs physical source-Agent durable-checkpoint execution evidence
+and broader adversarial effects coverage.

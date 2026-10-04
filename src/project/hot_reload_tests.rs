@@ -67,6 +67,79 @@ fn observed(session: &HotReloadSession) -> ProjectPreparedExecutionOutcome {
         .clone()
 }
 
+fn resolved_program(source: &str) -> crate::hir::ResolvedProgram {
+    crate::hir::resolve(&crate::check(source, "hot-reload-function-values.spx").unwrap()).unwrap()
+}
+
+#[test]
+fn indirect_callable_target_universe_participates_in_replacement_compatibility() {
+    const SOURCE: &str = r#"
+module test.hot_reload_function_values;
+@id("reload.increment") fn increment(value:i64)->i64{value+1}
+@id("reload.decrement") fn decrement(value:i64)->i64{value-1}
+@id("reload.apply") fn apply(callback:fn(i64)->i64,value:i64)->i64{callback(value)}
+@id("reload.catalog") fn catalog()->i64{let callback=decrement;callback(41)}
+@id("reload.main") fn main()->i64{apply(increment,41)}
+"#;
+
+    let active = resolved_program(SOURCE);
+    let body_only = resolved_program(&SOURCE.replace("value+1", "value+2"));
+    let indirect_target_changed = resolved_program(&SOURCE.replace("value-1", "value-2"));
+
+    assert!(compatible_program(&active, &body_only));
+    assert!(
+        !compatible_program(&active, &indirect_target_changed),
+        "an indirect invocation must retain every compiler-derived target"
+    );
+}
+
+#[test]
+fn source_agent_handoff_digest_binds_definition_and_interaction_schema_facts() {
+    let previous = SourceAgentEndpointFacts {
+        definition_digest: "sha256:definition-a".to_owned(),
+        graph_digest: "sha256:graph-a".to_owned(),
+        runtime_profile_digest: "sha256:profile-a".to_owned(),
+        proposal_type_id: "agent.proposal".to_owned(),
+        proposal_type_revision: "sha256:proposal-type-a".to_owned(),
+        observation_type_id: "agent.observation".to_owned(),
+        observation_type_revision: "sha256:observation-type-a".to_owned(),
+        proposal_schema_digest: "sha256:proposal-schema-a".to_owned(),
+        observation_schema_digest: "sha256:observation-schema-a".to_owned(),
+    };
+    let destination = SourceAgentEndpointFacts {
+        definition_digest: "sha256:definition-b".to_owned(),
+        graph_digest: "sha256:graph-b".to_owned(),
+        runtime_profile_digest: "sha256:profile-b".to_owned(),
+        proposal_type_id: "agent.proposal".to_owned(),
+        proposal_type_revision: "sha256:proposal-type-b".to_owned(),
+        observation_type_id: "agent.observation".to_owned(),
+        observation_type_revision: "sha256:observation-type-b".to_owned(),
+        proposal_schema_digest: "sha256:proposal-schema-b".to_owned(),
+        observation_schema_digest: "sha256:observation-schema-b".to_owned(),
+    };
+    let digest = source_agent_handoff_row_digest("agent.id", &previous, &destination);
+
+    let mut changed_definition = destination.clone();
+    changed_definition.definition_digest = "sha256:definition-c".to_owned();
+    let mut changed_proposal_schema = destination.clone();
+    changed_proposal_schema.proposal_schema_digest = "sha256:proposal-schema-c".to_owned();
+    let mut changed_observation_type = destination;
+    changed_observation_type.observation_type_revision = "sha256:observation-type-c".to_owned();
+
+    assert_ne!(
+        digest,
+        source_agent_handoff_row_digest("agent.id", &previous, &changed_definition)
+    );
+    assert_ne!(
+        digest,
+        source_agent_handoff_row_digest("agent.id", &previous, &changed_proposal_schema)
+    );
+    assert_ne!(
+        digest,
+        source_agent_handoff_row_digest("agent.id", &previous, &changed_observation_type)
+    );
+}
+
 #[test]
 fn checked_plan_is_separate_from_activation_and_two_plans_cannot_both_commit() {
     let _worker_guard = prepared_worker_test_guard();

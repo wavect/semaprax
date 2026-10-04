@@ -816,19 +816,33 @@ fn reachable_callable_closure<'a>(
         let function = *functions.get(id.as_str())?;
         reachable.insert(id, function);
         let mut calls = BTreeSet::new();
-        for expression in function
-            .requires
-            .iter()
-            .chain(&function.ensures)
-            .chain(std::iter::once(&function.body))
-        {
-            crate::hir::visit_resolved_calls(expression, &mut |callee, instance, _| {
+        crate::hir::function_value::walk(function, |expression| match &expression.kind {
+            crate::hir::ResolvedExprKind::Call {
+                callee, instance, ..
+            } => {
                 calls.insert(
                     instance
+                        .as_ref()
                         .map_or_else(|| callee.as_str().to_owned(), |id| id.as_str().to_owned()),
                 );
-            });
-        }
+            }
+            crate::hir::ResolvedExprKind::FunctionReference { target } => {
+                calls.insert(target.as_str().to_owned());
+            }
+            crate::hir::ResolvedExprKind::Invoke { callable, .. } => {
+                // The interpreter dispatches an indirect call against the
+                // checked target universe, which is derived from every
+                // function reference in the retained program. Keep the
+                // replacement decision at least as conservative: a target
+                // reachable only through another function-value site still
+                // has to retain its compatibility facts.
+                for target in crate::hir::function_value::compatible_targets(program, &callable.ty)
+                {
+                    calls.insert(target.id.as_str().to_owned());
+                }
+            }
+            _ => {}
+        });
         pending.extend(calls.into_iter().rev());
     }
     Some(reachable)
@@ -985,8 +999,9 @@ fn source_agent_handoff_row_digest(
     destination: &SourceAgentEndpointFacts,
 ) -> String {
     digest_bytes(
-        b"semaprax.hot-reload-source-agent-handoff.v1\0",
+        b"semaprax.hot-reload-source-agent-handoff.v2\0",
         serde_json::to_string(&serde_json::json!({
+            "schema": HOT_RELOAD_SOURCE_AGENT_HANDOFF_SCHEMA,
             "agent_id": agent_id,
             "previous": endpoint_facts_json(previous),
             "destination": endpoint_facts_json(destination),

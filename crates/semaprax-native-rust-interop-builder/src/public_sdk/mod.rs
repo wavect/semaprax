@@ -610,9 +610,11 @@ mod authority;
 mod borrowed_input;
 mod build;
 pub use affine_callback::{prepare_native_rust_affine_callback, NativeAffineCallbackProjection};
-mod callback;
 mod borrowed_callback;
-pub use borrowed_callback::{prepare_native_rust_borrowed_callback, NativeBorrowedCallbackProjection};
+mod callback;
+pub use borrowed_callback::{
+    prepare_native_rust_borrowed_callback, NativeBorrowedCallbackProjection,
+};
 mod mutable_callback;
 pub use mutable_callback::{prepare_native_rust_mutable_callback, NativeMutableCallbackProjection};
 mod registered_callback;
@@ -652,7 +654,8 @@ pub use indexed_project::{
     IndexedProjectScalarSelection,
 };
 pub use indexed_regex_url_project::{
-    prepare_indexed_regex_url_project_packages, PreparedRegexUrlProjectPackages,
+    prepare_indexed_regex_url_project_packages, with_authenticated_indexed_regex_url_project,
+    PreparedRegexUrlProjectPackages,
 };
 pub use indexed_url_project::{
     prepare_indexed_url_project_package, IndexedProjectUrlRegistrySelection,

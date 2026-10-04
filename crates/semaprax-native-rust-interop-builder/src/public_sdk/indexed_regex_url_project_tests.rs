@@ -172,8 +172,14 @@ fn closed_ri13_profile_binds_indexed_m1_signatures_before_future_admission() {
             )),
     );
     fs::create_dir_all(root.0.join("src")).unwrap();
-    fs::write(root.0.join("src/app.spx"), RI13_SOURCE).unwrap();
-    fs::write(root.0.join("src/tests.spx"), RI13_TESTS).unwrap();
+    let source = semaprax::format::canonical(
+        &semaprax::parse(RI13_SOURCE, Path::new("src/app.spx")).unwrap(),
+    );
+    let tests = semaprax::format::canonical(
+        &semaprax::parse(RI13_TESTS, Path::new("src/tests.spx")).unwrap(),
+    );
+    fs::write(root.0.join("src/app.spx"), &source).unwrap();
+    fs::write(root.0.join("src/tests.spx"), tests).unwrap();
     let manifest_path = root.0.join("semaprax.toml");
     fs::write(&manifest_path, RI13_MANIFEST).unwrap();
 
@@ -202,14 +208,14 @@ fn closed_ri13_profile_binds_indexed_m1_signatures_before_future_admission() {
     let regex =
         ["regex.new", "regex.match"].map(|import_id| IndexedProjectRegexRegistrySelection {
             source_path: "src/app.spx",
-            source: RI13_SOURCE,
+            source: &source,
             import_id,
             index_bytes: regex_json.as_bytes(),
             package: regex_package,
         });
     let url = ["url.new", "url.view"].map(|import_id| IndexedProjectUrlRegistrySelection {
         source_path: "src/app.spx",
-        source: RI13_SOURCE,
+        source: &source,
         import_id,
         index_bytes: url_json.as_bytes(),
         package: url_package,
@@ -229,14 +235,14 @@ fn closed_ri13_profile_binds_indexed_m1_signatures_before_future_admission() {
     })
     .unwrap();
 
-    let source_drift = RI13_SOURCE.replace("example.invalid", "other.invalid");
+    let source_drift = source.replace("example.invalid", "other.invalid");
     fs::write(root.0.join("src/app.spx"), source_drift).unwrap();
     let refusal =
         with_authenticated_indexed_regex_url_project(&manifest_path, &regex, &url, |_| Ok(()))
             .unwrap_err();
     assert_eq!(refusal[0].code, "SPX-B142");
 
-    fs::write(root.0.join("src/app.spx"), RI13_SOURCE).unwrap();
+    fs::write(root.0.join("src/app.spx"), &source).unwrap();
     let untrusted_dependency = RI13_MANIFEST.replace("url = [\"=2.5.8\"]", "url = [\"=2.5.7\"]");
     fs::write(&manifest_path, untrusted_dependency).unwrap();
     let refusal =

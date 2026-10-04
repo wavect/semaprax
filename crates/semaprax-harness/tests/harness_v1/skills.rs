@@ -1100,3 +1100,8 @@ mod defaults;
 
 #[path = "skills/updates.rs"]
 mod updates;
+
+// ---- HN-15: gated evolution (tests in skills/evolution.rs) ----
+
+#[path = "skills/evolution.rs"]
+mod evolution;

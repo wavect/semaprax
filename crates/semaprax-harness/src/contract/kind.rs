@@ -60,3 +60,20 @@ impl CapabilityKind {
 
 /// Current (only) contract version of every first-wave kind.
 pub const SUPPORTED_VERSION: u32 = 1;
+
+/// `skill.evolve/v1` (HN-15): experimental, host-invoked evolution capability.
+///
+/// It is deliberately not a member of [`CapabilityKind::ALL`]: it is never
+/// bound by profile resolution or negotiated as a default provider. The host
+/// calls it only for an explicit, isolated evolution experiment
+/// (`docs/HARNESS-EVOLUTION-V1.md`). Payloads are validated by
+/// `contract::payload::evolve`.
+pub struct EvolveCapability;
+
+impl EvolveCapability {
+    pub const KIND: &'static str = "skill.evolve";
+    pub const VERSION: u32 = 1;
+    /// `evolve`: ingest traces, consolidate the wiki, propose one skill.
+    /// `solve`: run one held-out task with or without a skill (the host grades).
+    pub const OPERATIONS: [&'static str; 2] = ["evolve", "solve"];
+}

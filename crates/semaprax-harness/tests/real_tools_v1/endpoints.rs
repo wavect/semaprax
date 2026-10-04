@@ -264,3 +264,40 @@ fn ollama_and_litellm_gateway_reuse_with_cancellation_and_single_attempt() {
     println!("reprobe: {}", o.stdout.trim());
     assert!(o.stdout.contains("\"valid\""));
 }
+
+/// HN-15: the shipped WikiSkill bridge, run as a real process. No evolution
+/// backend exists for a local model, so the truthful result is `unavailable`.
+#[test]
+#[ignore = "provisioned: needs HARNESS_PYTHON"]
+fn hp_hn15_wikiskill_bridge_reports_unavailable_truthfully() {
+    use semaprax_harness::evolution::{run_experiment, spec, Cancel, Outcome, ProcessAdapter};
+    let python = crate::support::required_tool("HARNESS_PYTHON");
+    let root = crate::support::repo_root();
+    let dir = fixture_dir("hp-hn15r");
+    let traces = crate::support::write(
+        &dir,
+        "t.jsonl",
+        &format!(
+            "{}\n{}\n",
+            json!({"schema": "semaprax.evolution-trace.v1", "task_id": "a", "family": "f"}),
+            json!({"schema": "semaprax.evolution-trace.v1", "task_id": "b", "family": "f"})
+        ),
+    );
+    let task = |id: &str, split: &str| json!({"id": id, "split": split, "prompt": format!("held-out prompt {id}"), "expected": "answer-x"});
+    let v = json!({
+        "schema": "semaprax.evolution-experiment.v1", "id": "real-1", "family": "f",
+        "adapter": {"command": [python, root.join("packages/semaprax-harness-adapters/wikiskill/adapter.py")], "env": {}},
+        "workspace_root": dir.join("work"),
+        "consent": {"traces": [traces], "retention": "keep"},
+        "parent": {"name": "ponytail", "dir": root.join("packages/semaprax-harness-adapters/skills/official/ponytail/v4.10.3")},
+        "tasks": [task("v", "validation"), task("t", "test")],
+    });
+    let sp = spec::parse(&v, &dir).unwrap();
+    let mut a = ProcessAdapter {
+        command: sp.adapter_command.clone(),
+        env: sp.adapter_env.clone(),
+    };
+    let rep = run_experiment(&sp, &mut a, &Cancel::default(), &dir.join("elsewhere")).unwrap();
+    assert_eq!(rep.outcome, Outcome::Unavailable, "{}", rep.result);
+    assert!(rep.result["reason"].as_str().unwrap().contains("wikiskill"));
+}

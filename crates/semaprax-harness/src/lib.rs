@@ -17,6 +17,7 @@ pub mod context;
 pub mod contract;
 pub mod decision;
 pub mod endpoint;
+pub mod evolution;
 pub mod host;
 pub mod observe;
 pub mod profile;

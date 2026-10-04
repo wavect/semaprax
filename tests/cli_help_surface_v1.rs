@@ -4,6 +4,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 static NEXT: AtomicU64 = AtomicU64::new(0);
 const SHAPES_CATALOG_PATH: &str = "docs/LANGUAGE-SHAPES-CATALOG.md";
+const DEV_LINE: &str =
+    "semaprax dev <semaprax.toml> --jsonl|--human [--interpreter|--source-agent]\n";
 const BUILD_SOURCE_LINE: &str = "semaprax build <file> [--target native|native-callable|web|wasm] [--profile internal-strings-v1] [--function stable-id] [--export stable-id ...] [-o|--output path] [--json]\n";
 const BUILD_PROJECT_LINE: &str = "semaprax build [<dir>|semaprax.toml|--manifest-path path] [--target native|web|wasm|npm|oci] [-o|--output path] [--json]\n";
 const DOCTOR_LINE: &str = "semaprax doctor [--profile <id>] [--target native|web|all] [--json]\n";
@@ -141,7 +143,8 @@ fn standalone_help_is_exact_capability_aware_and_inert() {
     assert!(all.status.success());
     assert!(all.stderr.is_empty());
     let help = String::from_utf8(all.stdout.clone()).unwrap();
-    assert!(help.starts_with(&format!("{BANNER}\nUsage:\nsemaprax check ")));
+    assert!(help.starts_with(&format!("{BANNER}\nUsage:\n{DEV_LINE}semaprax check ")));
+    assert_eq!(help.matches(DEV_LINE).count(), 1);
     assert_eq!(help.matches(BUILD_SOURCE_LINE).count(), 1);
     assert_eq!(help.matches(BUILD_PROJECT_LINE).count(), 1);
     assert_eq!(help.matches(DOCTOR_LINE).count(), 1);

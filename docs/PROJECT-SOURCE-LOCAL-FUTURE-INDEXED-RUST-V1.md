@@ -2,6 +2,8 @@
 
 Status: private RI-13 admission profile; local execution evidence is pending.
 
+Audience: Project and indexed Rust SDK implementers.
+
 `source-local-future-indexed-rust.v1` is a closed additive Package Manifest
 profile for the one linked RI-13 application. It admits exactly:
 

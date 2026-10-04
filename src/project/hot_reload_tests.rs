@@ -63,22 +63,27 @@ impl Fixture {
             ),
         )
         .unwrap();
-        std::fs::write(
-            fixture.0.join("src/app.spx"),
-            r#"module reload.effects;
+        for (relative, source) in [
+            (
+                "src/app.spx",
+                r#"module reload.effects;
 permit { clock.read, clock.write }
 @id("reload.effects.target") fn target(value:i64)->i64 uses { clock.read } { value }
-@id("reload.effects.main") fn main()->i64 uses { clock.read, clock.write } { let callback=target; callback(42) }
+@id("reload.effects.main") fn main()->i64 uses { clock.read, clock.write } { target(42) }
 "#,
-        )
-        .unwrap();
-        std::fs::write(
-            fixture.0.join("src/tests.spx"),
-            r#"module reload.effects.tests;
+            ),
+            (
+                "src/tests.spx",
+                r#"module reload.effects.tests;
 @id("reload.effects.tests.main") fn main()->i64 { 0 }
 "#,
-        )
-        .unwrap();
+            ),
+        ] {
+            let canonical = crate::format::canonical(
+                &crate::parse(source, Path::new(relative)).expect("effect fixture parses"),
+            );
+            std::fs::write(fixture.0.join(relative), canonical).unwrap();
+        }
         fixture
     }
 }
@@ -114,14 +119,16 @@ permit { clock.read, clock.write }
 @id("reload.effectful") fn effectful(value:i64)->i64 uses { clock.read } { value }
 @id("reload.apply") fn apply(callback:fn(i64)->i64,value:i64)->i64{callback(value)}
 @id("reload.catalog") fn catalog()->i64{let callback=decrement;callback(41)}
-@id("reload.main") fn main()->i64{apply(increment,41)}
+@id("reload.main") fn main()->i64{let callback=if true{increment}else{decrement};apply(callback,41)}
 "#;
 
     let active = resolved_program(SOURCE);
     let body_only = resolved_program(&SOURCE.replace("value+1", "value+2"));
     let indirect_target_changed = resolved_program(&SOURCE.replace("value-1", "value-2"));
-    let indirect_target_effect_changed =
-        resolved_program(&SOURCE.replace("uses { clock.read }", "uses { clock.write }"));
+    let entry_effect_changed = resolved_program(&SOURCE.replace(
+        "@id(\"reload.main\") fn main()->i64{",
+        "@id(\"reload.main\") fn main()->i64 uses { clock.read } {",
+    ));
 
     assert!(compatible_program(&active, &body_only));
     assert!(
@@ -129,8 +136,8 @@ permit { clock.read, clock.write }
         "an indirect invocation must retain every compiler-derived target"
     );
     assert!(
-        !compatible_program(&active, &indirect_target_effect_changed),
-        "a compiler-derived indirect target cannot widen its declared effect"
+        !compatible_program(&active, &entry_effect_changed),
+        "a reachable compiler-derived function cannot widen its declared effect"
     );
 }
 
@@ -543,7 +550,7 @@ fn coordinator_transition_table_preserves_the_active_revision() {
 }
 
 #[test]
-fn indirect_changed_effect_is_refused_by_a_session_and_keeps_active_worker_usable() {
+fn changed_effect_is_refused_by_a_session_and_keeps_active_worker_usable() {
     let _worker_guard = prepared_worker_test_guard();
     let fixture = Fixture::indirect_effect();
     let active = fixture.revision();

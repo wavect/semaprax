@@ -208,9 +208,11 @@ memory without producing unbounded output, or that forks helper processes
 of its own, is not bounded by this tranche. [`solver::solver_version`]'s
 `--version` probe is a separate one-second, 4-KiB bounded phase. It is
 skipped after non-proof discharge outcomes; a proof or certificate requiring
-a tool version remains inconclusive if the probe fails. Thus a public
-postcondition discharge can take its query timeout plus at most one second
-for version discovery, excluding process scheduling tolerance.
+a tool version remains inconclusive if the probe fails. A postcondition
+discharge makes one bounded query, or a domain query followed by that query
+when `requires` is present; version discovery adds at most one second after
+a proof query. Process scheduling and the existing bounded pipe-drain phase
+can add overhead outside those per-process limits.
 
 `Verdict` distinguishes `Unsat`, `Sat`, `Unknown`, `Timeout`,
 `CapacityExceeded`, `Crash`, `Malformed`, and `NotProvisioned` as seven

@@ -518,6 +518,7 @@ impl HotReloadSession {
                 )
             })?;
         self.source_agent_handoff_status = HotReloadSourceAgentHandoffStatus::WaitingForCheckpoint;
+        self.observe(HotReloadLifecycle::WaitingForSafePoint);
         Ok(handoff)
     }
 
@@ -561,6 +562,7 @@ impl HotReloadSession {
         self.active = self.pending.take().expect("validated pending candidate");
         self.generation = next;
         self.source_agent_handoff_status = HotReloadSourceAgentHandoffStatus::Activated;
+        self.observe(HotReloadLifecycle::Activated);
         Ok(())
     }
 
@@ -572,8 +574,10 @@ impl HotReloadSession {
             self.terminal = true;
             self.source_agent_handoff_status =
                 HotReloadSourceAgentHandoffStatus::TerminalUncertainty;
+            self.observe(HotReloadLifecycle::TerminalUncertainty);
         } else {
             self.source_agent_handoff_status = HotReloadSourceAgentHandoffStatus::MigrationRequired;
+            self.observe(HotReloadLifecycle::Refused);
         }
     }
 

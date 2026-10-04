@@ -511,6 +511,10 @@ fn source_agent_handoff_supervisor_activates_once_and_terminalizes_lost_ack() {
         activated.source_agent_handoff_status(),
         HotReloadSourceAgentHandoffStatus::Activated
     );
+    assert_eq!(
+        activated.observation().lifecycle(),
+        semaprax::project::HotReloadLifecycle::Activated
+    );
     assert_eq!(activated.generation(), 1);
     assert_eq!(
         activated.active_project_revision(),
@@ -560,6 +564,10 @@ fn source_agent_handoff_supervisor_activates_once_and_terminalizes_lost_ack() {
         refused.source_agent_handoff_status(),
         HotReloadSourceAgentHandoffStatus::MigrationRequired
     );
+    assert_eq!(
+        refused.observation().lifecycle(),
+        semaprax::project::HotReloadLifecycle::Refused
+    );
     assert_eq!(refused.generation(), 0);
     assert_eq!((refused_model.calls, refused_read.calls), (0, 0));
     assert!(refused_store.document.is_empty());
@@ -590,6 +598,10 @@ fn source_agent_handoff_supervisor_activates_once_and_terminalizes_lost_ack() {
     assert_eq!(
         uncertain.source_agent_handoff_status(),
         HotReloadSourceAgentHandoffStatus::TerminalUncertainty
+    );
+    assert_eq!(
+        uncertain.observation().lifecycle(),
+        semaprax::project::HotReloadLifecycle::TerminalUncertainty
     );
     assert!(uncertain.terminal());
     assert_eq!(uncertain.generation(), 0);

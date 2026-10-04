@@ -63,6 +63,10 @@ retained Projects, then still authenticates the predecessor checkpoint,
 selection, schema transition, pure migration and destination journal before
 one destination traversal. Only that traversal may mark the supervisor
 `activated`; the prepared interpreter never pivots or dispatches this Agent.
+The bounded lifecycle observation records the corresponding
+`waiting_for_safe_point`, `activated`, ordinary `refused`, or
+`terminal_uncertainty` transition while the handoff-status accessor retains its
+more specific source-Agent state.
 An acknowledged-journal ambiguity terminalizes the supervisor as
 `terminal_uncertainty`, without in-memory retry or rollback. The physical CLI
 claim remains a cooperating-CLI single-destination rule: a post-claim,

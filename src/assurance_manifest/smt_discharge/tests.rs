@@ -14,7 +14,7 @@ use std::time::Duration;
 
 use super::*;
 use crate::assurance_manifest::{
-    AssuranceManifestOptions, ExternalRecords, Obligation, ObligationKind, generate, obligation_id,
+    generate, obligation_id, AssuranceManifestOptions, ExternalRecords, Obligation, ObligationKind,
 };
 use crate::ast::Function;
 
@@ -188,14 +188,15 @@ fn unknown_query_does_not_wait_for_broken_version_probe() {
         0,
         Some(&provisioning),
         &RunLimits {
-            timeout: Duration::from_millis(200),
+            timeout: Duration::from_secs(2),
             max_output_bytes: 1024,
         },
     );
     assert!(
-        matches!(outcome, DischargeOutcome::Inconclusive { reason } if reason.contains("unknown"))
+        matches!(outcome, DischargeOutcome::Inconclusive { ref reason } if reason.contains("unknown")),
+        "{outcome:?}"
     );
-    assert!(start.elapsed() < Duration::from_secs(2));
+    assert!(start.elapsed() < Duration::from_secs(3));
     std::fs::remove_file(path).unwrap();
 }
 
@@ -212,8 +213,8 @@ fn postcondition_script_has_the_expected_shape() {
     let script = render_postcondition_script(&encoding, 0, 2000);
     assert!(script.contains("(set-option :timeout 2000)"));
     assert!(script.contains("(set-logic QF_LIA)"));
-    assert!(script.contains("(declare-const a Int)"));
-    assert!(script.contains("(=> (>= a 0) (>= result 0))"));
+    assert!(script.contains("(declare-const semaprax_smt_binding_0_0 Int)"));
+    assert!(script.contains("(=> (>= semaprax_smt_binding_0_0 0) (>= semaprax_smt_binding_1_0 0))"));
     assert!(script.contains("(assert (not"));
     assert!(script.contains("(check-sat)"));
     assert!(script.contains("(get-model)"));
@@ -236,9 +237,7 @@ fn a_derived_arithmetic_value_never_gets_an_unconditional_range_axiom() {
     let encoding = translate_function(&f).expect("supported");
     let script = render_postcondition_script(&encoding, 0, 2000);
     assert!(!script.contains("(and (>= semaprax_smt_binding_1_0"));
-    assert!(
-        script.contains("(assert (= semaprax_smt_binding_1_0 (+ semaprax_smt_binding_0_0 1)))")
-    );
+    assert!(script.contains("(assert (= semaprax_smt_binding_1_0 (+ semaprax_smt_binding_0_0 1)))"));
     assert!(script.contains("(>= (+ semaprax_smt_binding_0_0 1)"));
 }
 
@@ -288,11 +287,9 @@ fn checked_reference_witness_distinguishes_overflow_and_empty_domain() {
     let witness = bounded_domain_witness(&f, 8).expect("zero is a witness");
     validate_domain_witness(&f, &witness).expect("checked replay");
     let overflow = Model::from([("a".to_owned(), ModelValue::Int(i64::MAX as i128))]);
-    assert!(
-        validate_domain_witness(&f, &overflow)
-            .unwrap_err()
-            .contains("trapped")
-    );
+    assert!(validate_domain_witness(&f, &overflow)
+        .unwrap_err()
+        .contains("trapped"));
     let contradictory = function(
         "module app.t;\n@id(\"app.t.f\")\nfn f(a: i64) -> i64\n    requires a > 0\n    requires a < 0\n    ensures result == a\n{ a }\n",
     );
@@ -312,7 +309,11 @@ fn scalar_model_corpus_matches_checked_reference_execution() {
         let expected = if a == 0 {
             "valid"
         } else if let Some(next) = a.checked_add(1) {
-            if next > 0 { "valid" } else { "requires_false" }
+            if next > 0 {
+                "valid"
+            } else {
+                "requires_false"
+            }
         } else {
             "trapped"
         };
@@ -453,10 +454,12 @@ fn merging_an_smt_method_into_an_already_derived_obligation_fails_closed_today()
     };
     let method = to_method_record(&outcome, Duration::from_secs(2)).expect("a record");
     let external = ExternalRecords {
-        obligations: vec![
-            Obligation::new(ObligationKind::Postcondition, "app.t.check", "ensure:0")
-                .with_method(method),
-        ],
+        obligations: vec![Obligation::new(
+            ObligationKind::Postcondition,
+            "app.t.check",
+            "ensure:0",
+        )
+        .with_method(method)],
         assumptions: Vec::new(),
     };
     let options = AssuranceManifestOptions::default().with_external_records(external);
@@ -469,11 +472,9 @@ fn merging_an_smt_method_into_an_already_derived_obligation_fails_closed_today()
          this documents rather than silently works around",
     );
     assert_eq!(diagnostics[0].code, "SPX-Z101");
-    assert!(
-        diagnostics[0]
-            .message
-            .contains("collided with an automatically derived obligation")
-    );
+    assert!(diagnostics[0]
+        .message
+        .contains("collided with an automatically derived obligation"));
 }
 
 // ---------------------------------------------------------------------

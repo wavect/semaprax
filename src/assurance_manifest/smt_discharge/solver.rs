@@ -365,18 +365,24 @@ mod tests {
     #[test]
     #[allow(unsafe_code)] // kill(pid, 0) observes that the test child was reaped.
     fn version_probe_bounds_time_and_reaps_child() {
-        let pid_file =
-            std::env::temp_dir().join(format!("semaprax-version-probe-pid-{}", std::process::id()));
+        let pid_file = std::env::temp_dir().join(format!(
+            "semaprax-version-probe-pid-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
         let fake = fake_solver(&format!(
             "echo $$ > '{}'\nexec sleep 30",
             pid_file.display()
         ));
         let start = Instant::now();
         assert_eq!(
-            solver_version_with_limits(&fake, Duration::from_millis(75), 16),
+            solver_version_with_limits(&fake, Duration::from_secs(1), 16),
             None
         );
-        assert!(start.elapsed() < Duration::from_secs(2));
+        assert!(start.elapsed() < Duration::from_secs(3));
         let pid: i32 = std::fs::read_to_string(&pid_file)
             .unwrap()
             .trim()

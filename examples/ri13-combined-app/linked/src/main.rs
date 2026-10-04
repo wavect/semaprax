@@ -79,8 +79,10 @@ fn main() {
     // This line is consumed by the measurement harness. It is limited to
     // generated APIs that expose an exact count or scalar-only boundary.
     println!(
-        "ri13-linked-copy-ledger:{{\"schema\":\"semaprax.ri13.linked-copy-ledger.v1\",\"m1\":{{\"regex_result_owner\":{{\"status\":\"measured\",\"adapter_copy_events\":{},\"adapter_copied_bytes\":0,\"borrow_matches_target\":true}},\"url_owner_view\":{{\"status\":\"unavailable\",\"reason\":\"generated Url carrier exposes borrow identity but no copied-byte counter for Url::parse\",\"borrow_matches_target\":true}}}},\"m2\":{{\"serde_record\":{{\"input_json_bytes\":25,\"output_json_bytes\":25,\"generated_mirror_string_clone_copied_bytes\":{},\"deserialize_owned_string_copied_bytes\":{{\"status\":\"unavailable\",\"reason\":\"serde_json deserialization does not expose a copied-byte counter\"}}}},\"iterator_callback\":{{\"fn_invocations\":1,\"fn_mut_invocations\":1,\"scalar_argument_result_copied_bytes\":0}}}}}}",
+        "ri13-linked-copy-ledger:{{\"schema\":\"semaprax.ri13.linked-copy-ledger.v1\",\"m1\":{{\"regex_result_owner\":{{\"status\":\"measured\",\"adapter_copy_events\":{},\"adapter_copied_bytes\":0,\"borrow_matches_target\":true}},\"url_owner_view\":{{\"status\":\"measured\",\"adapter_copy_events\":{},\"adapter_copied_bytes\":{},\"borrow_matches_target\":true,\"foreign_target_copied_bytes\":{{\"status\":\"unavailable\",\"reason\":\"url::Url::parse does not expose a copied-byte counter\"}}}}}},\"m2\":{{\"serde_record\":{{\"input_json_bytes\":25,\"output_json_bytes\":25,\"generated_mirror_string_clone_copied_bytes\":{},\"deserialize_owned_string_copied_bytes\":{{\"status\":\"unavailable\",\"reason\":\"serde_json deserialization does not expose a copied-byte counter\"}}}},\"iterator_callback\":{{\"fn_invocations\":1,\"fn_mut_invocations\":1,\"scalar_argument_result_copied_bytes\":0}}}}}}",
         ri06_regex_owner::spx_result_owner_adapter_copies(),
+        ri06_url_owner::adapter_copy_count(),
+        ri06_url_owner::adapter_copied_bytes(),
         generated_mirror_string_clone_copied_bytes,
     );
     println!("ri13-linked-project-ok");

@@ -245,8 +245,17 @@ def parse_linked_copy_ledger(text):
         "borrow_matches_target": True,
     }:
         raise ValueError("linked Regex owner evidence is not an exact zero-copy observation")
-    if url.get("status") != "unavailable" or url.get("borrow_matches_target") is not True or not isinstance(url.get("reason"), str):
-        raise ValueError("linked Url ownership evidence must retain its unavailable byte count")
+    foreign_url_bytes = url.get("foreign_target_copied_bytes")
+    if (
+        url.get("status") != "measured"
+        or url.get("adapter_copy_events") != 0
+        or url.get("adapter_copied_bytes") != 0
+        or url.get("borrow_matches_target") is not True
+        or not isinstance(foreign_url_bytes, dict)
+        or foreign_url_bytes.get("status") != "unavailable"
+        or not isinstance(foreign_url_bytes.get("reason"), str)
+    ):
+        raise ValueError("linked Url ownership evidence must retain the unavailable foreign byte count")
     if record.get("input_json_bytes") != 25 or record.get("output_json_bytes") != 25 or record.get("generated_mirror_string_clone_copied_bytes") != 3:
         raise ValueError("linked Serde record evidence changed its exact fixture bytes")
     deserialization = record.get("deserialize_owned_string_copied_bytes")
@@ -326,10 +335,20 @@ def self_test():
     batch = parse_m3_batch_samples("\n".join(",".join(row) for row in batch_rows))
     assert batch["routes"]["generated_semaprax"]["total_operations"] == 128
     assert batch["routes"]["generated_semaprax"]["normalized_operations_per_second"] == 10_000_000.0
-    linked = parse_linked_copy_ledger(
-        "ri13-linked-copy-ledger:{\"schema\":\"semaprax.ri13.linked-copy-ledger.v1\",\"m1\":{\"regex_result_owner\":{\"status\":\"measured\",\"adapter_copy_events\":0,\"adapter_copied_bytes\":0,\"borrow_matches_target\":true},\"url_owner_view\":{\"status\":\"unavailable\",\"reason\":\"no counter\",\"borrow_matches_target\":true}},\"m2\":{\"serde_record\":{\"input_json_bytes\":25,\"output_json_bytes\":25,\"generated_mirror_string_clone_copied_bytes\":3,\"deserialize_owned_string_copied_bytes\":{\"status\":\"unavailable\",\"reason\":\"no counter\"}},\"iterator_callback\":{\"fn_invocations\":1,\"fn_mut_invocations\":1,\"scalar_argument_result_copied_bytes\":0}}}"
+    linked_row = (
+        "ri13-linked-copy-ledger:{\"schema\":\"semaprax.ri13.linked-copy-ledger.v1\",\"m1\":{\"regex_result_owner\":{\"status\":\"measured\",\"adapter_copy_events\":0,\"adapter_copied_bytes\":0,\"borrow_matches_target\":true},\"url_owner_view\":{\"status\":\"measured\",\"adapter_copy_events\":0,\"adapter_copied_bytes\":0,\"borrow_matches_target\":true,\"foreign_target_copied_bytes\":{\"status\":\"unavailable\",\"reason\":\"no counter\"}}},\"m2\":{\"serde_record\":{\"input_json_bytes\":25,\"output_json_bytes\":25,\"generated_mirror_string_clone_copied_bytes\":3,\"deserialize_owned_string_copied_bytes\":{\"status\":\"unavailable\",\"reason\":\"no counter\"}},\"iterator_callback\":{\"fn_invocations\":1,\"fn_mut_invocations\":1,\"scalar_argument_result_copied_bytes\":0}}}"
     )
+    linked = parse_linked_copy_ledger(linked_row)
     assert linked["m2"]["serde_record"]["generated_mirror_string_clone_copied_bytes"] == 3
+    assert linked["m1"]["url_owner_view"]["adapter_copied_bytes"] == 0
+    tampered_linked = json.loads(linked_row.removeprefix(LINKED_COPY_PREFIX))
+    tampered_linked["m1"]["url_owner_view"]["adapter_copied_bytes"] = 1
+    try:
+        parse_linked_copy_ledger(LINKED_COPY_PREFIX + json.dumps(tampered_linked))
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("nonzero Url adapter bytes must fail the exact zero-copy ledger")
     try:
         parse_linked_copy_ledger(
             "ri13-linked-copy-ledger:{\"schema\":\"semaprax.ri13.linked-copy-ledger.v1\",\"m1\":{},\"m2\":{}}"

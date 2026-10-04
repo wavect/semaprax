@@ -44,8 +44,9 @@ inspection, while `activate` consumes only the retained plan. JSON responses
 are the sole standard-output bytes; human diagnostics remain on standard error.
 Each response is written and flushed before the next input frame is read; there
 is no response queue, so a slow consumer applies backpressure without growing
-session memory. EOF and `stop` release the watcher and discard any retained
-plan.
+session memory. EOF, `stop`, a response-bound refusal, or a disconnected
+consumer release the watcher and discard any retained plan before the CLI
+returns.
 
 `invoke` explicitly runs the current prepared interpreter entry after a
 successful start or activation; a save itself never runs it. The source-Agent

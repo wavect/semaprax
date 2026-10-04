@@ -32,6 +32,32 @@ enum Lane {
     SourceAgentUnsupported,
 }
 
+/// Owns the in-process state which must be released before any stdio exit.
+///
+/// In particular, a slow or disconnected consumer can make response writing
+/// fail after `start`. The control adapter has no background work, so dropping
+/// the retained plan and explicitly stopping its watcher is the complete,
+/// bounded shutdown path for that case as well as EOF and `stop`.
+struct ControlSession {
+    watcher: Option<HotReloadWatcher>,
+    retained_plan: Option<HotReloadPlan>,
+}
+
+impl ControlSession {
+    fn stop(&mut self) {
+        self.retained_plan = None;
+        if let Some(watcher) = self.watcher.as_mut() {
+            watcher.stop();
+        }
+    }
+}
+
+impl Drop for ControlSession {
+    fn drop(&mut self) {
+        self.stop();
+    }
+}
+
 #[derive(Debug)]
 struct Request {
     id: u64,
@@ -145,8 +171,10 @@ fn run_jsonl(
     mode: OutputMode,
     lane: Lane,
 ) -> Result<(), u8> {
-    let mut watcher: Option<HotReloadWatcher> = None;
-    let mut retained_plan: Option<HotReloadPlan> = None;
+    let mut session = ControlSession {
+        watcher: None,
+        retained_plan: None,
+    };
     let mut previous_id = None;
     for _ in 0..MAX_RESPONSES {
         let frame = match read_frame(&mut input) {
@@ -157,9 +185,6 @@ fn run_jsonl(
             }
         };
         let Some(frame) = frame else {
-            if let Some(watcher) = watcher.as_mut() {
-                watcher.stop();
-            }
             return Ok(());
         };
         let request: Request = match serde_json::from_slice(&frame) {
@@ -180,7 +205,7 @@ fn run_jsonl(
                     write_error(output, mode, request.id, "source-Agent development sessions require the authenticated source-live migration adapter")?;
                     continue;
                 }
-                if watcher.is_some() {
+                if session.watcher.is_some() {
                     write_error(output, mode, request.id, "session already started")?;
                     continue;
                 }
@@ -189,11 +214,11 @@ fn run_jsonl(
                     PreparedProjectInterpreterOptions::default(),
                 ) {
                     Ok(value) => {
-                        watcher = Some(value);
+                        session.watcher = Some(value);
                         write_status(
                             output,
                             request.id,
-                            watcher.as_ref().unwrap(),
+                            session.watcher.as_ref().unwrap(),
                             "started",
                             None,
                             mode,
@@ -202,11 +227,11 @@ fn run_jsonl(
                     Err(_) => write_error(output, mode, request.id, "session startup rejected")?,
                 }
             }
-            "status" => match watcher.as_ref() {
+            "status" => match session.watcher.as_ref() {
                 Some(value) => write_status(output, request.id, value, "status", None, mode)?,
                 None => write_error(output, mode, request.id, "session is not started")?,
             },
-            "plan" => match watcher.as_mut() {
+            "plan" => match session.watcher.as_mut() {
                 Some(value) => {
                     let update = value.poll();
                     let event = match update {
@@ -220,7 +245,7 @@ fn run_jsonl(
                         Ok(plan) => {
                             let rendered: Value =
                                 serde_json::from_str(&plan.to_json()).expect("plan JSON is closed");
-                            retained_plan = Some(plan);
+                            session.retained_plan = Some(plan);
                             write_status(output, request.id, value, event, Some(rendered), mode)?;
                         }
                         Err(_) => write_status(output, request.id, value, event, None, mode)?,
@@ -228,7 +253,7 @@ fn run_jsonl(
                 }
                 None => write_error(output, mode, request.id, "session is not started")?,
             },
-            "activate" => match (watcher.as_mut(), retained_plan.take()) {
+            "activate" => match (session.watcher.as_mut(), session.retained_plan.take()) {
                 (Some(value), Some(plan)) => match value.activate(plan) {
                     Ok(()) => write_status(output, request.id, value, "activated", None, mode)?,
                     Err(_) => {
@@ -240,7 +265,7 @@ fn run_jsonl(
                 }
                 (None, _) => write_error(output, mode, request.id, "session is not started")?,
             },
-            "invoke" => match watcher.as_ref() {
+            "invoke" => match session.watcher.as_ref() {
                 Some(value) => match value.session().execute_entry(
                     &PreparedProjectExecutionOptions::default(),
                     &ProjectExecutionCancellation::new(),
@@ -268,9 +293,7 @@ fn run_jsonl(
                 None => write_error(output, mode, request.id, "session is not started")?,
             },
             "stop" => {
-                if let Some(value) = watcher.as_mut() {
-                    value.stop();
-                }
+                session.stop();
                 write_json(
                     mode,
                     output,
@@ -280,9 +303,6 @@ fn run_jsonl(
             }
             _ => unreachable!("request parser closes the operation set"),
         }
-    }
-    if let Some(watcher) = watcher.as_mut() {
-        watcher.stop();
     }
     write_error(output, mode, 0, "control request limit exceeded")
 }
@@ -548,6 +568,25 @@ mod tests {
         fs::remove_dir_all(root).unwrap();
     }
 
+    #[test]
+    fn disconnected_consumer_exits_through_bounded_session_shutdown() {
+        let root = fixture();
+        let input = "{\"schema\":\"semaprax.hot-reload-control.v1\",\"id\":1,\"op\":\"start\"}\n";
+        let mut output = RefusingWriter;
+        assert_eq!(
+            run_jsonl(
+                root.join("semaprax.toml"),
+                io::Cursor::new(input),
+                &mut output,
+                OutputMode::Jsonl,
+                Lane::Interpreter,
+            )
+            .unwrap_err(),
+            1
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
     #[derive(Default)]
     struct SlowWriter {
         bytes: Vec<u8>,
@@ -565,6 +604,21 @@ mod tests {
 
         fn flush(&mut self) -> io::Result<()> {
             self.flushes += 1;
+            Ok(())
+        }
+    }
+
+    struct RefusingWriter;
+
+    impl Write for RefusingWriter {
+        fn write(&mut self, _bytes: &[u8]) -> io::Result<usize> {
+            Err(io::Error::new(
+                io::ErrorKind::BrokenPipe,
+                "fixture disconnect",
+            ))
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
             Ok(())
         }
     }

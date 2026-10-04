@@ -301,14 +301,23 @@ Raw candidate and attack receipts are under
 `/tmp/law16-codex-edit-pilot.CBbG5U/ordinal-2-bend-runtime-evidence/`; its
 `acceptance.json` has status `two_input_bend_runtime_authenticated`.
 
-The 20,000-token v2 plan already reserves ten ordinals for each Boolean lane.
-After the ordinal-2 pair, the least additional agent work is nine sequential
-matched pairs (ordinals 1 and 3 through 10), each followed by both local raw
-route captures and evaluators. A pilot's observed chargeable use was about
-16.6k tokens per lane, so that schedule is roughly 299k additional chargeable
-tokens before any unavailable provider-cost conversion. It remains a Boolean
-microcell campaign until all ten pairs have retained evidence; it is not a
-checked-`u32` benchmark or a comparison result.
+All ten ordinals of the fixed 20,000-token Boolean plan were executed
+sequentially on 4 October 2026. The local machine-readable summary is
+[`law16-ten-boolean-local-summary.json`](law16-ten-boolean-local-summary.json):
+it lists the SHA-256 and local path of all 20 retained agent records and all
+20 language-specific evaluator records. Each ordinal has one
+`two_input_runtime_authenticated` SEMAPRAX receipt and one
+`two_input_bend_runtime_authenticated` Bend receipt. The summary is a local,
+unhosted evidence capsule and carries no authority by itself.
+
+These ten Boolean pairs do not close #392. The five checked-`u32` cells remain
+unsupported by the reviewed SEMAPRAX scalar profile; the SEMAPRAX scalar route
+has no admitted formal Boolean proof phase; Codex JSON events provide no
+monetary cost observation; and the retained tool identities are local pinned
+observations, not current-head evidence. Bend ordinary checking and the
+retained Bend verdict markers have not been independently replayed. The batch
+therefore supplies no full LAW-16 repair, checked-`u32`, agent-authorship,
+timing, superiority, or cross-language comparison result.
 
 The local pinned Bend Boolean smoke route was executed on 4 October 2026 with
 Bun 1.2.5 and `BEND_NO_TELEMETRY=1`. Its receipt is

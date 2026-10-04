@@ -103,6 +103,8 @@ mod string_ops_v2;
 mod string_scalars;
 #[path = "language/structural_list_match.rs"]
 mod structural_list_match;
+#[path = "language/collection_law_pack.rs"]
+mod collection_law_pack;
 #[path = "language/u8_scalars.rs"]
 mod u8_scalars;
 #[path = "language/variants_semantics.rs"]

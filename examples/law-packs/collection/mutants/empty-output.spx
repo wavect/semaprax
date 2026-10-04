@@ -1,0 +1,33 @@
+module lawpacks.collection;
+
+@id("law15.collection.insert")
+fn insert(value: i64, input: List<i64>) -> List<i64> {
+    match list_uncons(input) {
+        ListStep::Nil {} => list_cons(value, list_nil()),
+        ListStep::Cons { head, tail } => if value <= head {
+            list_cons(value, list_cons(head, tail))
+        } else {
+            list_cons(head, insert(value, tail))
+        },
+    }
+}
+
+@id("law15.collection.sort")
+fn sort(input: List<i64>) -> List<i64> {
+    match list_uncons(input) {
+        ListStep::Nil {} => list_nil(),
+        ListStep::Cons { head, tail } => list_nil(),
+    }
+}
+
+@id("law15.collection.main")
+fn main() -> i64 {
+    let output = sort(list_cons(1, list_cons(2, list_nil())));
+    match list_uncons(output) {
+        ListStep::Nil {} => -1,
+        ListStep::Cons { head, tail } => match list_uncons(tail) {
+            ListStep::Nil {} => -2,
+            ListStep::Cons { head: second, tail: rest } => head * 10 + second,
+        },
+    }
+}

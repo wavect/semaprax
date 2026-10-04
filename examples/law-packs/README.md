@@ -34,7 +34,8 @@ SEMAPRAX_SMT_Z3_PATH="$(command -v z3)" cargo test --locked --offline -p semapra
 The owning test uses the same source file. Its body-only no-op mutation leaves
 the law clauses unchanged: conservation still proves, while both exact amount
 clauses refute. Separate debit, credit, overflow and wrong-variant mutations
-refute their selected clauses. Restoring the original body repairs the example
+refute their selected clauses. The gate restores exactly the two broken body fields, requires the repaired
+source to equal the saved source bytes, and reproves all three transfer clauses
 without altering law intent. A future version can add a Project manifest and
 strict publication policy; this pack currently demonstrates direct checked
 source and installed proof queries only.
@@ -71,6 +72,15 @@ signature and a range guard do not prove addition. The
 and its [report walkthrough](foreign-boundary/REPORT.md) separates conditional
 source evidence from observed calls and unproved foreign behavior.
 
-The collection pack remains separate LAW-15 work.
-A collection pack requires LAW-08's source-authenticated structural induction
-and cannot be represented by bounded tests alone.
+## Collections v1
+
+[`collection/`](collection/README.md) supplies immutable-list insertion sort,
+compiler-fixed sortedness and exact multiplicity laws, and separately authored
+proofs checked by pinned Lean. The translator emits the checked source's actual
+branches and recursive calls. Empty-output and length-preserving duplicate
+mutants refuse; separate kernel-checked `[1, 2]` counterexamples demonstrate why
+sortedness and length alone are insufficient. Restoring the original body
+replays the unchanged laws. Structural totality is mathematical; capacity,
+allocation, depth and backend lowering remain separate runtime obligations.
+See [the versioned profile](../../docs/COLLECTION-LAW-PACK-V1.md) for the exact
+source grammar, report schema, axiom policy and replay boundary.

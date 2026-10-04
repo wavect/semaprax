@@ -2,6 +2,9 @@
 
 - Scope the linked agent migration test's backend-only import to macOS and
   Linux so the Windows Clippy build has no unused import.
+
+- **LAW-15 collection laws and unchanged-law repair:** added a saved immutable-list insertion-sort pack with source-authenticated pinned Lean sortedness, permutation and multiplicity proofs; empty-output and length-preserving duplicate mutants refuse, while separate kernel-checked counterexamples expose their lost multiplicity. Certificates bind source, proof/semantics versions, complete coverage and standard axiom reports; runtime resources and lowering remain explicit limits. The money/state gate now restores body-only no-op edits and reproves all three original clauses.
+
 - Bind LAW-08 structural induction to checked immutable `List<i64>` append/reverse source and a separate authored Lean proof module. A selected Project/LawSet gate replays exact v9 prelude, source, proof, theorem association and strict evidence through installed Lean 4.34.0 (1/1); wrong reverse and stale proof controls refuse. The workspace linker now retains List compiler-owned declarations and operations without treating proof as lowering authority.
 
 - Save an RI-13 M2 record/iterator Rust application. An opt-in native builder

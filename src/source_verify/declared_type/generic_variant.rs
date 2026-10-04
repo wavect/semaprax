@@ -157,7 +157,9 @@ pub(in crate::source_verify) fn match_result(
 ) -> bool {
     // The immutable LAW-08 carrier may return a List from a value-mode
     // ListStep match. Keep this monomorphic and effect-free; the source-bound
-    // Lean exporter further authenticates the exact structural bodies.
+    // Lean exporter further authenticates the exact structural bodies. One
+    // additional i64 value parameter supports insertion into the List; an
+    // actual List input remains required, with at most two value parameters.
     if mode == crate::ast::MatchMode::Value
         && ownership == ParamMode::Value
         && matches!(ty, Type::Named { name, arguments }
@@ -167,10 +169,11 @@ pub(in crate::source_verify) fn match_result(
                 && function.effects.is_empty()
                 && &function.return_type == ty
                 && (1..=2).contains(&function.params.len())
-                && function
-                    .params
-                    .iter()
-                    .all(|parameter| parameter.mode == ParamMode::Value && &parameter.ty == ty)
+                && function.params.iter().any(|parameter| &parameter.ty == ty)
+                && function.params.iter().all(|parameter| {
+                    parameter.mode == ParamMode::Value
+                        && (&parameter.ty == ty || parameter.ty == Type::I64)
+                })
         })
     {
         return true;

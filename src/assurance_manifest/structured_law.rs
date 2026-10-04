@@ -1185,22 +1185,22 @@ mod tests {
             ),
             (
                 "wrong credit",
-                "credit: Account { balance: before.credit.balance + amount },",
-                "credit: Account { balance: before.credit.balance - amount },",
+                "credit: Account { balance: before.credit.balance + amount }",
+                "credit: Account { balance: before.credit.balance - amount }",
                 "law07.transfer",
                 1,
             ),
             (
                 "non-conservation",
-                "credit: Account { balance: before.credit.balance + amount },",
-                "credit: Account { balance: before.credit.balance + amount + 1 },",
+                "credit: Account { balance: before.credit.balance + amount }",
+                "credit: Account { balance: before.credit.balance + amount + 1 }",
                 "law07.transfer",
                 2,
             ),
             (
                 "overflow",
-                "credit: Account { balance: before.credit.balance + amount },",
-                "credit: Account { balance: before.credit.balance + 9223372036854775807 },",
+                "credit: Account { balance: before.credit.balance + amount }",
+                "credit: Account { balance: before.credit.balance + 9223372036854775807 }",
                 "law07.transfer",
                 1,
             ),
@@ -1238,8 +1238,8 @@ mod tests {
                 1,
             )
             .replacen(
-                "credit: Account { balance: before.credit.balance + amount },",
-                "credit: Account { balance: before.credit.balance },",
+                "credit: Account { balance: before.credit.balance + amount }",
+                "credit: Account { balance: before.credit.balance }",
                 1,
             );
         let program = crate::check(&no_op, "law15_no_op_transfer.spx").unwrap();
@@ -1255,6 +1255,33 @@ mod tests {
                     matches!(result, DischargeOutcome::Refuted { .. })
                 },
                 "no-op transfer clause {index}: {result:?}"
+            );
+        }
+        let repaired = no_op
+            .replacen(
+                "debit: Account { balance: before.debit.balance },",
+                "debit: Account { balance: before.debit.balance - amount },",
+                1,
+            )
+            .replacen(
+                "credit: Account { balance: before.credit.balance }",
+                "credit: Account { balance: before.credit.balance + amount }",
+                1,
+            );
+        assert_eq!(
+            repaired, SOURCE,
+            "repair changes only the two broken body fields"
+        );
+        let repaired_program = crate::check(&repaired, "law15_repaired_transfer.spx").unwrap();
+        let repaired_transfer = selected(&repaired_program, "law07.transfer");
+        for index in 0..3 {
+            let lowered =
+                lower_aggregate_clause(&repaired_program, repaired_transfer, index).unwrap();
+            let result =
+                discharge_postcondition(&lowered.scalar, 0, Some(&solver), &RunLimits::default());
+            assert!(
+                matches!(result, DischargeOutcome::Proved { .. }),
+                "unchanged-law repair clause {index}: {result:?}"
             );
         }
     }

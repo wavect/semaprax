@@ -1,0 +1,9 @@
+{
+  "schema": "semaprax.collection-sort-proof-module.v1",
+  "semantics": "semaprax.checked-i64.immutable-list.v1",
+  "insert_permutation": "induction input with\n| nil => simp [insert]\n| cons head tail ih =>\n  by_cases h : value ≤ head\n  · simp [insert, h]\n  · simp only [insert, h]\n    exact (List.Perm.cons head ih).trans (List.Perm.swap value head tail)",
+  "insert_sorted": "revert ordered\ninduction input with\n| nil => intro ordered; simp [insert]\n| cons head tail ih =>\n  intro ordered\n  have hs := List.pairwise_cons.mp ordered\n  by_cases h : value ≤ head\n  · simp only [insert, h]\n    apply List.pairwise_cons.mpr\n    constructor\n    · intro y hy\n      rcases List.mem_cons.mp hy with rfl | hy\n      · exact h\n      · exact Int.le_trans h (hs.1 y hy)\n    · exact ordered\n  · simp only [insert, h]\n    apply List.pairwise_cons.mpr\n    constructor\n    · intro y hy\n      have hy' := (insert_permutation value tail).mem_iff.mp hy\n      rcases List.mem_cons.mp hy' with rfl | hy'\n      · omega\n      · exact hs.1 y hy'\n    · exact ih hs.2",
+  "sort_permutation": "induction input with\n| nil => simp [sort]\n| cons head tail ih =>\n  exact (insert_permutation head (sort tail)).trans (List.Perm.cons head ih)",
+  "sort_sorted": "induction input with\n| nil => simp [sort]\n| cons head tail ih => exact insert_sorted head (sort tail) ih",
+  "sort_multiplicity": "exact (sort_permutation input).count_eq value"
+}

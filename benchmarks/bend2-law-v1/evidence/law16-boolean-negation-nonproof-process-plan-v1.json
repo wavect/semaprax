@@ -1,0 +1,29 @@
+{
+  "schema": "semaprax.bend2-law-benchmark.boolean-negation-nonproof-process.v1",
+  "status": "prepared_not_executed",
+  "runner": "../law16_boolean_negation_nonproof_process.py",
+  "validator": "../law16_boolean_negation_nonproof_capsule.py",
+  "samples_per_state": 30,
+  "routes": [
+    {
+      "id": "bend-ordinary",
+      "command_shape": ["BUN", "BEND_ROOT/bend2/main.ts", "FRESH_OR_REPEAT_BEND_SOURCE"],
+      "required_identity": {"bend_commit": "947db722640c86247849343657bf2f7ef01cb7f1"},
+      "excluded": ["--verdict"]
+    },
+    {
+      "id": "semaprax-check",
+      "command_shape": ["SEMAPRAX", "check", "FRESH_OR_REPEAT_SEMAPRAX_SOURCE"],
+      "required_identity": {"semaprax_sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"},
+      "excluded": ["project-proof-check", "z3"]
+    }
+  ],
+  "input_preconditions": [
+    "fresh and repeat Bend sources equal fixtures/bend-boolean-negation-v1.bend byte-for-byte",
+    "fresh and repeat SEMAPRAX sources equal fixtures/semaprax-boolean-negation-v1.spx byte-for-byte",
+    "the committed equal-semantics Boolean-negation plan passes its static review"
+  ],
+  "raw_output": ["identity.json", "bend-ordinary.json", "bend-ordinary-raw/*.stdout", "bend-ordinary-raw/*.stderr", "semaprax-check.json", "semaprax-check-raw/*.stdout", "semaprax-check-raw/*.stderr"],
+  "cold_cache": {"status": "unavailable", "reason": "fresh paths and child processes cannot isolate operating-system, executable, solver, or tool caches"},
+  "nonclaims": ["no unrun result", "ordinary Bend checking is not verdict-kernel checking", "SEMAPRAX check is not external-Z3 proof", "no cross-route timing ratio or winner"]
+}

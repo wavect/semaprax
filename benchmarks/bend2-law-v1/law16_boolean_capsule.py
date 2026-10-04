@@ -11,6 +11,9 @@ import stat
 
 SCHEMA = "semaprax.bend2-law-benchmark.boolean-agent-raw-capsule.v1"
 REPLAY_SCHEMA = "semaprax.bend2-law-benchmark.ten-boolean-independent-replay.v1"
+PROJECT_PROOF_REPLAY_SCHEMA = "semaprax.bend2-law-benchmark.project-z3-proof-replay-summary.v1"
+PROJECT_PROOF_RECEIPT_SCHEMA = "semaprax.bend2-law-benchmark.project-z3-proof-replay-receipt.v1"
+PROJECT_PROOF_OUTPUT_SCHEMA = "semaprax.installed-project-proof-check.v1"
 RESULT_SCHEMA = "semaprax.bend2-law-benchmark.boolean-agent-raw-capsule-review.v1"
 MAX_BYTES = 2 * 1024 * 1024
 
@@ -54,6 +57,81 @@ def raw_file(root: pathlib.Path, reference: object) -> None:
         raise ValueError("capsule reference digest disagrees")
 
 
+def exact_digest(path: pathlib.Path, expected: object, label: str) -> None:
+    if not isinstance(expected, str) or digest(path.read_bytes()) != expected:
+        raise ValueError(f"{label} digest disagrees")
+
+
+def project_proof_observation(root: pathlib.Path, replay: dict) -> dict:
+    proof_root = root / "project-z3-replay"
+    summary = read_json(proof_root / "summary.json", "project Z3 proof replay summary")
+    if summary.get("schema") != PROJECT_PROOF_REPLAY_SCHEMA or summary.get("status") != "completed":
+        raise ValueError("project Z3 proof replay summary has unsupported identity")
+    solver, semaprax, rows = summary.get("solver"), summary.get("semaprax"), summary.get("rows")
+    if not isinstance(solver, dict) or not isinstance(semaprax, dict) or not isinstance(rows, list):
+        raise ValueError("project Z3 proof replay summary is malformed")
+    solver_version = solver.get("version")
+    if not isinstance(solver_version, str) or not isinstance(solver.get("sha256"), str) or not isinstance(semaprax.get("sha256"), str):
+        raise ValueError("project Z3 proof replay identities are malformed")
+    expected = {(ordinal, kind) for ordinal in range(1, 11) for kind in ("candidate", "attack")}
+    actual = {(row.get("ordinal"), row.get("kind")) for row in rows if isinstance(row, dict)}
+    if len(rows) != 20 or actual != expected:
+        raise ValueError("project Z3 proof replay does not cover exactly ten candidate and attack pairs")
+    for row in rows:
+        if not isinstance(row, dict) or row.get("schema") != PROJECT_PROOF_RECEIPT_SCHEMA:
+            raise ValueError("project Z3 proof receipt has unsupported identity")
+        ordinal, kind = row["ordinal"], row["kind"]
+        if row.get("semaprax_sha256") != semaprax["sha256"] or row.get("z3_sha256") != solver["sha256"] or row.get("z3_version") != solver_version:
+            raise ValueError("project Z3 proof receipt identity drifted")
+        raw = proof_root / f"ordinal-{ordinal}" / kind
+        receipt = read_json(raw / "receipt.json", "project Z3 proof receipt")
+        if receipt != row:
+            raise ValueError("project Z3 proof receipt differs from its summary")
+        source = raw / "src/app.spx"
+        exact_digest(source, row.get("source_sha256"), "project Z3 proof source")
+        exact_digest(raw / "semaprax.toml", row.get("manifest_sha256"), "project Z3 proof manifest")
+        exact_digest(raw / "stdout.json", row.get("stdout_sha256"), "project Z3 proof stdout")
+        exact_digest(raw / "stderr.txt", row.get("stderr_sha256"), "project Z3 proof stderr")
+        source_from_replay = root / "replay" / f"ordinal-{ordinal}" / f"semaprax-{kind}.spx"
+        exact_digest(source_from_replay, row.get("source_sha256"), "project Z3 proof source binding")
+        if kind == "candidate":
+            if row.get("exit_code") != 0:
+                raise ValueError("project Z3 candidate was not discharged")
+            output = read_json(raw / "stdout.json", "project Z3 candidate output")
+            obligations = output.get("project_assurance", {}).get("payload", {}).get("obligations")
+            if not isinstance(obligations, list) or not any(
+                isinstance(obligation, dict)
+                and obligation.get("declaration_id") == "app.negate"
+                and obligation.get("kind") == "postcondition"
+                and obligation.get("classification") == "smt_proved"
+                and any(
+                    isinstance(method, dict)
+                    and method.get("class") == "smt_proved"
+                    and method.get("tool") == "z3"
+                    and method.get("tool_version") == solver_version
+                    and isinstance(method.get("proof_ref"), str)
+                    for method in obligation.get("methods", [])
+                )
+                for obligation in obligations
+            ):
+                raise ValueError("project Z3 candidate lacks the app.negate SMT discharge")
+        elif row.get("exit_code") == 0:
+            raise ValueError("project Z3 exact attack was unexpectedly discharged")
+    return {
+        "status": "observed_installed_z3_source_proof",
+        "candidate_postcondition_discharges": 10,
+        "exact_seeded_attack_rejections": 10,
+        "solver": {"sha256": solver["sha256"], "version": solver_version},
+        "semaprax": {"sha256": semaprax["sha256"]},
+        "limitations": [
+            "each receipt proves only app.negate ensures[0] in its retained Project revision",
+            "the admitted SMT subset excludes calls, so app.main is outside this discharge",
+            "trusted local Z3 and source translation do not prove lowering or execution",
+            "an attack nonzero exit is route rejection; this retained output does not independently expose a solver counterexample",
+        ],
+    }
+
+
 def review(root: pathlib.Path) -> dict:
     root = root.resolve(strict=True)
     manifest = read_json(root / "manifest.json", "capsule manifest")
@@ -78,6 +156,7 @@ def review(root: pathlib.Path) -> dict:
             raise ValueError("Bend replay does not preserve candidate success and attack rejection")
         if any(semaprax.get(kind, {}).get("exit_code") != 0 for kind in ("candidate", "attack")):
             raise ValueError("SEMAPRAX check replay diverged from recorded behavior")
+    project_proof = project_proof_observation(root, replay)
     return {
         "schema": RESULT_SCHEMA,
         "status": "local_boolean_replay_authenticated",
@@ -88,14 +167,18 @@ def review(root: pathlib.Path) -> dict:
             "bend_exact_attack_check_and_verdict_rejections": 10,
             "semaprax_check_candidate_successes": 10,
             "semaprax_check_exact_attack_successes": 10,
+            "semaprax_project_z3_candidate_postcondition_discharges": project_proof["candidate_postcondition_discharges"],
+            "semaprax_project_z3_exact_attack_rejections": project_proof["exact_seeded_attack_rejections"],
         },
-        "proof_phase": {"status": "unavailable", "reason": "the available SEMAPRAX check accepts every exact law-gaming attack, so it is not a Boolean proof/rejection phase"},
+        "check_phase": {"status": "observed_non_proof_check", "reason": "SEMAPRAX check accepts every exact law-gaming attack and is not the formal-discharge route"},
+        "proof_phase": project_proof,
         "cost_usage": {"status": "unavailable", "reason": "the retained Codex JSON events have no provider monetary charge"},
         "remaining_acceptance_gaps": [
             "the five checked-u32 cells remain unsupported by the reviewed SEMAPRAX scalar profile",
             "the tool identities are local pinned observations rather than current-head evidence",
             "Bend verdict markers are retained output and were not independently replayed by a separate proof system",
             "the Boolean microcell cannot establish the full LAW-16 matrix",
+            "a next scalar campaign needs a separately specified call-free contract with an identical Bend numeric domain and explicit overflow rules; the five checked-u32 cells cannot use an i32 substitute",
         ],
         "nonclaims": [
             "raw local replay is not a completed LAW-16 repair",

@@ -12,12 +12,15 @@ SPEC.loader.exec_module(CAPSULE)
 
 
 class Law16BooleanCapsuleTests(unittest.TestCase):
-    def test_committed_capsule_replays_all_ten_boolean_ordinals_and_exposes_check_gap(self):
+    def test_committed_capsule_replays_all_ten_boolean_ordinals_and_separates_proof_from_check(self):
         result = CAPSULE.review(ROOT / "evidence/law16-boolean-v1")
         self.assertEqual(result["status"], "local_boolean_replay_authenticated")
         self.assertEqual(result["observations"]["bend_exact_attack_check_and_verdict_rejections"], 10)
         self.assertEqual(result["observations"]["semaprax_check_exact_attack_successes"], 10)
-        self.assertEqual(result["proof_phase"]["status"], "unavailable")
+        self.assertEqual(result["check_phase"]["status"], "observed_non_proof_check")
+        self.assertEqual(result["proof_phase"]["status"], "observed_installed_z3_source_proof")
+        self.assertEqual(result["proof_phase"]["candidate_postcondition_discharges"], 10)
+        self.assertEqual(result["proof_phase"]["exact_seeded_attack_rejections"], 10)
 
 
 if __name__ == "__main__":

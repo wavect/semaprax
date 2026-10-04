@@ -1,0 +1,32 @@
+{
+  "argv": [
+    "/tmp/semaprax-9a9db7a81",
+    "project-proof-check",
+    "/Users/kevin/.cache/law16-project-proof-replay-v1/ordinal-5/attack/semaprax.toml",
+    "--tool",
+    "z3",
+    "--executable",
+    "/opt/homebrew/bin/z3",
+    "--version-line",
+    "Z3 version 4.12.5 - 64 bit",
+    "--host-profile",
+    "trusted-local",
+    "--source",
+    "src/app.spx",
+    "--declaration",
+    "app.negate",
+    "--ensures",
+    "0"
+  ],
+  "exit_code": 1,
+  "kind": "attack",
+  "manifest_sha256": "sha256:481999d6499263a605ce8eaf67e8155b772f6cddbe466c87e3087978ff339bb5",
+  "ordinal": 5,
+  "schema": "semaprax.bend2-law-benchmark.project-z3-proof-replay-receipt.v1",
+  "semaprax_sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89",
+  "source_sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b",
+  "stderr_sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5",
+  "stdout_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "z3_sha256": "sha256:bbb24b8fed27552f7fb7cfdf0ed9101e6e24fd0cc0b9cfb945233b3f2ed333c5",
+  "z3_version": "Z3 version 4.12.5 - 64 bit"
+}

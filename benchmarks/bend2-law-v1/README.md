@@ -235,12 +235,12 @@ The Bend side requires a retained verdict stream containing `ALL PROOFS CHECK`.
 The evaluator also binds the retained model response to the exact final source,
 the exact seeded attack source, and the model's `reject` claim. It labels that
 as static control distinction rather than tool rejection. The SEMAPRAX side requires only its exact runtime witness (`0`), then labels
-its formal proof phase unavailable because this scalar route has no admitted
-Boolean proof command. Cost is likewise unavailable unless a separately
-retained provider billing record is introduced. The result is named
-`source_pair_authenticated`, never `accepted` or a successful law repair: it
-does not execute a command, interpret an exit code, establish agent authorship,
-or turn the runtime witness into a proof.
+its formal proof phase unavailable because this evaluator does not execute the
+separate project-bound installed-Z3 proof route. Cost is likewise unavailable
+unless a separately retained provider billing record is introduced. The result
+is named `source_pair_authenticated`, never `accepted` or a successful law
+repair: it does not execute a command, interpret an exit code, establish agent
+authorship, or turn the runtime witness into a proof.
 
 ## Ordinal-2 SEMAPRAX two-input runtime evidence
 
@@ -311,12 +311,11 @@ it lists the SHA-256 and local path of all 20 retained agent records and all
 unhosted evidence capsule and carries no authority by itself.
 
 These ten Boolean pairs do not close #392. The five checked-`u32` cells remain
-unsupported by the reviewed SEMAPRAX scalar profile; the SEMAPRAX scalar route
-has no admitted formal Boolean proof phase; Codex JSON events provide no
-monetary cost observation; and the retained tool identities are local pinned
-observations, not current-head evidence. Bend ordinary checking and the
-retained Bend verdict markers have not been independently replayed. The batch
-therefore supplies no full LAW-16 repair, checked-`u32`, agent-authorship,
+unsupported by the reviewed SEMAPRAX scalar profile; Codex JSON events provide
+no monetary cost observation; and the retained tool identities are local
+pinned observations, not current-head evidence. The retained Bend verdict
+markers have not been independently replayed by a separate proof system. The
+batch therefore supplies no full LAW-16 repair, checked-`u32`, agent-authorship,
 timing, superiority, or cross-language comparison result.
 
 ## Independent replay and committed raw capsule
@@ -327,8 +326,11 @@ responses, returned sources, attack claims, Codex versions, stderr, and a
 SHA-256/byte-count manifest. It also contains a fresh independent replay of
 every retained Bend candidate and exact attack through ordinary Bend checking
 and `--verdict`, and every SEMAPRAX candidate and exact attack through
-`semaprax check --json`. The capsule is copied without transforming the raw
-content after a credential-marker scan; it is explicitly local and unhosted.
+`semaprax check --json`. It also retains the project wrappers, exact command
+receipts, stdout, stderr, and solver/tool hashes from a project-bound installed
+Z3 replay for all ten SEMAPRAX candidates and exact attacks. The capsule is
+copied without transforming the raw content after a credential-marker scan; it
+is explicitly local and unhosted.
 
 Review the capsule without invoking a provider, Cargo, Bend, or SEMAPRAX:
 
@@ -341,10 +343,20 @@ python3 benchmarks/bend2-law-v1/law16_boolean_capsule.py \
 The independent replay confirms ten Bend candidate successes and ten exact
 attack rejections on both Bend routes. It also shows the available SEMAPRAX
 `check` route exits zero for all ten candidates **and** all ten exact attacks.
-Consequently, `check` is retained as a compiler semantic-check observation but
-is explicitly unavailable as a formal Boolean proof or law-gaming rejection
-phase. This leaves provider monetary cost unavailable as a separate external
-observation; it cannot be inferred from token counts.
+Consequently, `check` is retained as a compiler semantic-check observation and
+is never presented as proof. Separately, the retained
+`project-proof-check --tool z3` receipts discharge `app.negate`'s sole
+postcondition for all ten candidates and reject all ten exact attacks. That
+route is an installed-Z3 source proof for the exact retained project revision:
+it proves neither lowering nor execution, and its call-free SMT subset does not
+cover `app.main`, which invokes `app.negate`. An attack's nonzero route exit is
+recorded as rejection, not as a separately retained solver counterexample.
+
+The next scalar campaign must specify a call-free contract in an identical Bend
+numeric domain and state overflow semantics explicitly. The five checked-`u32`
+cells remain unavailable until SEMAPRAX admits that same domain; an `i32`
+substitution would not be a matched task. Provider monetary cost remains a
+separate unavailable observation and cannot be inferred from token counts.
 
 The local pinned Bend Boolean smoke route was executed on 4 October 2026 with
 Bun 1.2.5 and `BEND_NO_TELEMETRY=1`. Its receipt is

@@ -887,6 +887,7 @@ impl<'a> HirValidator<'a> {
                             | ResolvedType::Str
                             | ResolvedType::OnceFunction
                             | ResolvedType::OnceFunctionI64
+                            | ResolvedType::OnceFunctionI64Pair
                             | ResolvedType::Function { .. }
                             | ResolvedType::SliceU8 => {
                                 return Err(hir_error(format!(
@@ -1094,6 +1095,7 @@ impl<'a> HirValidator<'a> {
                             | ResolvedType::Str
                             | ResolvedType::OnceFunction
                             | ResolvedType::OnceFunctionI64
+                            | ResolvedType::OnceFunctionI64Pair
                             | ResolvedType::Function { .. }
                             | ResolvedType::SliceU8 => {
                                 return Err(hir_error(format!(

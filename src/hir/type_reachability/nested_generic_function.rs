@@ -35,6 +35,7 @@ pub(super) fn is_admitted(
             Frame::Type(
                 ResolvedType::OnceFunction
                 | ResolvedType::OnceFunctionI64
+                | ResolvedType::OnceFunctionI64Pair
                 | ResolvedType::Function { .. },
                 _,
             ) => return false,

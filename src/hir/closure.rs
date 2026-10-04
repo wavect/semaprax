@@ -25,7 +25,9 @@ pub fn closure_function(
     };
     let result = match &expression.ty {
         ResolvedType::Function { result, .. } => result.as_ref(),
-        ResolvedType::OnceFunction | ResolvedType::OnceFunctionI64 => &ResolvedType::I64,
+        ResolvedType::OnceFunction
+        | ResolvedType::OnceFunctionI64
+        | ResolvedType::OnceFunctionI64Pair => &ResolvedType::I64,
         _ => return Err(hir_error("closure has no callable signature")),
     };
     let id = closure_id(&expression.id);

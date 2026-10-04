@@ -317,6 +317,7 @@ pub(super) fn derive_from_admitted(
         match &parameter.ty {
             ResolvedType::OnceFunction
             | ResolvedType::OnceFunctionI64
+            | ResolvedType::OnceFunctionI64Pair
             | ResolvedType::Function { .. } => {
                 return Err(host_error("function values are not native host parameters"))
             }

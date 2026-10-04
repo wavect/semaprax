@@ -417,6 +417,7 @@ impl FunctionPlan {
                         && lifecycle.as_str() != crate::cleanup::ITER_DROP_LIFECYCLE_ID
                         && lifecycle.as_str() != crate::hir::closure::once::DROP_ID
                         && lifecycle.as_str() != crate::hir::closure::once::MIXED_DROP_ID
+                        && lifecycle.as_str() != crate::hir::closure::once::PAIR_DROP_ID
                     {
                         return Err(error("CleanupPlan leaf has an unsupported lifecycle"));
                     }
@@ -1116,7 +1117,10 @@ fn is_variant(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diag
 fn is_aggregate(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic> {
     if matches!(
         ty,
-        ResolvedType::Function { .. } | ResolvedType::OnceFunction | ResolvedType::OnceFunctionI64
+        ResolvedType::Function { .. }
+            | ResolvedType::OnceFunction
+            | ResolvedType::OnceFunctionI64
+            | ResolvedType::OnceFunctionI64Pair
     ) && crate::hir::closure::requires_runtime_closures(program)
     {
         return Ok(true);
@@ -1154,7 +1158,10 @@ fn aggregate_size_align(
 ) -> Result<(u32, u32), Diagnostic> {
     if matches!(
         ty,
-        ResolvedType::Function { .. } | ResolvedType::OnceFunction | ResolvedType::OnceFunctionI64
+        ResolvedType::Function { .. }
+            | ResolvedType::OnceFunction
+            | ResolvedType::OnceFunctionI64
+            | ResolvedType::OnceFunctionI64Pair
     ) && crate::hir::closure::requires_runtime_closures(program)
     {
         return Ok((80, 8));

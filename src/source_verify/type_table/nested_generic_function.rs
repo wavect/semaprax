@@ -84,6 +84,7 @@ pub(super) fn is_admitted(
                 | Type::SliceU8
                 | Type::OnceFunction
                 | Type::OnceFunctionI64
+                | Type::OnceFunctionI64Pair
                 | Type::Function { .. },
                 _,
             ) => {

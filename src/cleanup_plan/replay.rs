@@ -2743,6 +2743,7 @@ fn validate_exits(
                             | ResolvedType::String
                             | ResolvedType::OnceFunction
                             | ResolvedType::OnceFunctionI64
+                            | ResolvedType::OnceFunctionI64Pair
                     ) || !type_needs_drop(program, function, &function.return_type)?
                         || result.storage != StorageId::ProvisionalResult
                         || !result.projections.is_empty()
@@ -4907,6 +4908,7 @@ fn validate_match_skeleton_shape(
         | ResolvedType::TypeParameter { .. }
         | ResolvedType::OnceFunction
         | ResolvedType::OnceFunctionI64
+        | ResolvedType::OnceFunctionI64Pair
         | ResolvedType::Function { .. } => false,
     };
     let is_variant = match &scrutinee.ty {

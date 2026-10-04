@@ -443,6 +443,7 @@ fn recipe_type(
     match ty {
         ResolvedType::OnceFunction
         | ResolvedType::OnceFunctionI64
+        | ResolvedType::OnceFunctionI64Pair
         | ResolvedType::Function { .. } => Err(package_error(
             "function values are outside semantic recipe v8",
         )),

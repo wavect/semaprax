@@ -1141,7 +1141,7 @@ impl ScalarKind {
             | Type::SliceU8
             | Type::ArrayU8(_)
             | Type::Bytes
-            | Type::OnceFunction | Type::OnceFunctionI64 | Type::Function { .. } | Type::Named { .. } => unreachable!(
+            | Type::OnceFunction | Type::OnceFunctionI64 | Type::OnceFunctionI64Pair | Type::Function { .. } | Type::Named { .. } => unreachable!(
                 "ScalarKind::of called for unsupported type `{:?}`; admitted scalars are the seven primitive Copy types",
                 ty
             ),
@@ -1176,7 +1176,7 @@ fn scalar_type_text(ty: &Type) -> &'static str {
         | Type::SliceU8
         | Type::ArrayU8(_)
         | Type::Bytes
-        | Type::OnceFunction | Type::OnceFunctionI64 | Type::Function { .. } | Type::Named { .. } => unreachable!(
+        | Type::OnceFunction | Type::OnceFunctionI64 | Type::OnceFunctionI64Pair | Type::Function { .. } | Type::Named { .. } => unreachable!(
             "scalar_type_text called for unsupported type `{:?}`; admitted scalars are the seven primitive Copy types",
             ty
         ),

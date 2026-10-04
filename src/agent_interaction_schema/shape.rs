@@ -88,6 +88,7 @@ impl Representation {
             ResolvedType::Bytes => Some(Self::Bytes),
             ResolvedType::OnceFunction
             | ResolvedType::OnceFunctionI64
+            | ResolvedType::OnceFunctionI64Pair
             | ResolvedType::Function { .. }
             | ResolvedType::Unit
             | ResolvedType::Char

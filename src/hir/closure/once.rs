@@ -1,7 +1,7 @@
 //! Closed affine callable profile: one owned Bytes capture, no arguments, i64.
 use super::*;
 use crate::ast::{Expr, ExprKind, ParamMode, Type};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 pub(crate) const DROP_ID: &str = "core.fn_once.drop";
 pub(crate) const CONSTRUCT_ID: &str = "core.fn_once.construct";
@@ -9,6 +9,9 @@ pub(crate) const INVOKE_ID: &str = "core.fn_once.invoke";
 pub(crate) const MIXED_DROP_ID: &str = "core.fn_once_i64.drop.v2";
 pub(crate) const MIXED_CONSTRUCT_ID: &str = "core.fn_once_i64.construct.v2";
 pub(crate) const MIXED_INVOKE_ID: &str = "core.fn_once_i64.invoke.v2";
+pub(crate) const PAIR_DROP_ID: &str = "core.fn_once_i64_pair.drop.v3";
+pub(crate) const PAIR_CONSTRUCT_ID: &str = "core.fn_once_i64_pair.construct.v3";
+pub(crate) const PAIR_INVOKE_ID: &str = "core.fn_once_i64_pair.invoke.v3";
 
 impl Resolver<'_> {
     pub(in crate::hir) fn resolve_once_closure(
@@ -47,6 +50,7 @@ impl Resolver<'_> {
             return Err(hir_error("affine closure body is not a direct call"));
         };
         let mixed = args.len() == 2;
+        let pair = args.len() == 3;
         let Some(Expr {
             kind: ExprKind::Var(captured),
             ..
@@ -65,7 +69,7 @@ impl Resolver<'_> {
             || !target.effects.is_empty()
             || target.return_type != Type::I64
             || target.params.len() != args.len()
-            || !(args.len() == 1 || mixed)
+            || !(args.len() == 1 || mixed || pair)
             || target.params[0].ty != Type::Bytes
             || target.params[0].mode != ParamMode::Own
         {
@@ -73,24 +77,38 @@ impl Resolver<'_> {
                 "affine closure target must be pure (own Bytes)->i64",
             ));
         }
-        let scalar = if mixed {
-            let ExprKind::Var(name) = &args[1].kind else {
-                return Err(hir_error("mixed capture requires a direct scalar binding"));
-            };
-            let binding = outer
-                .get(name)
-                .ok_or_else(|| hir_error("mixed scalar capture absent"))?;
-            if binding.ty != ResolvedType::I64
-                || binding.ownership != OwnershipMode::Value
-                || target.params[1].ty != Type::I64
-                || target.params[1].mode != ParamMode::Value
-            {
-                return Err(hir_error("mixed capture requires available value i64"));
-            }
-            Some((name.clone(), binding.clone()))
-        } else {
-            None
-        };
+        let scalars = args[1..]
+            .iter()
+            .enumerate()
+            .map(|(offset, argument)| {
+                let ExprKind::Var(name) = &argument.kind else {
+                    return Err(hir_error("mixed capture requires a direct scalar binding"));
+                };
+                let binding = outer
+                    .get(name)
+                    .ok_or_else(|| hir_error("mixed scalar capture absent"))?;
+                let parameter = &target.params[offset + 1];
+                if binding.ty != ResolvedType::I64
+                    || binding.ownership != OwnershipMode::Value
+                    || parameter.ty != Type::I64
+                    || parameter.mode != ParamMode::Value
+                {
+                    return Err(hir_error("mixed capture requires available value i64"));
+                }
+                Ok((name.clone(), binding.clone()))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        if scalars
+            .iter()
+            .map(|(name, _)| name.as_str())
+            .collect::<BTreeSet<_>>()
+            .len()
+            != scalars.len()
+        {
+            return Err(hir_error(
+                "mixed scalar captures must name distinct bindings",
+            ));
+        }
         let outer = outer
             .get(captured)
             .ok_or_else(|| hir_error("affine capture is absent"))?;
@@ -135,9 +153,9 @@ impl Resolver<'_> {
             },
         )]);
         let mut captures = vec![capture];
-        if let Some((name, outer)) = scalar {
+        for (offset, (name, outer)) in scalars.into_iter().enumerate() {
             let binding = ResolvedBinding {
-                id: ValueId::parameter(&execution, 1),
+                id: ValueId::parameter(&execution, offset + 1),
                 name: name.clone(),
                 ownership: OwnershipMode::Value,
                 ty: ResolvedType::I64,
@@ -155,7 +173,7 @@ impl Resolver<'_> {
             captures.push(ResolvedClosureCapture {
                 binding,
                 value: ResolvedExpr {
-                    id: ExpressionId::new(parent, &format!("{path}.capture.1")),
+                    id: ExpressionId::new(parent, &format!("{path}.capture.{}", offset + 1)),
                     ty: ResolvedType::I64,
                     ownership: OwnershipMode::Value,
                     kind: ResolvedExprKind::Place(Place {
@@ -179,7 +197,9 @@ impl Resolver<'_> {
         };
         Ok(ResolvedExpr {
             id,
-            ty: if mixed {
+            ty: if pair {
+                ResolvedType::OnceFunctionI64Pair
+            } else if mixed {
                 ResolvedType::OnceFunctionI64
             } else {
                 ResolvedType::OnceFunction
@@ -207,8 +227,13 @@ pub(crate) fn validate(
     else {
         return Err(hir_error("affine closure shape missing"));
     };
-    let mixed = expression.ty == ResolvedType::OnceFunctionI64;
-    if captures.len() != if mixed { 2 } else { 1 } {
+    let scalar_count = match expression.ty {
+        ResolvedType::OnceFunction => 0,
+        ResolvedType::OnceFunctionI64 => 1,
+        ResolvedType::OnceFunctionI64Pair => 2,
+        _ => return Err(hir_error("affine callable type is invalid")),
+    };
+    if captures.len() != scalar_count + 1 {
         return Err(hir_error("affine closure capture schema mismatch"));
     }
     let capture = &captures[0];
@@ -237,9 +262,8 @@ pub(crate) fn validate(
             "affine capture signature or ownership is invalid",
         ));
     }
-    if mixed {
-        let scalar = &captures[1];
-        if scalar.binding.id != ValueId::parameter(&execution, 1)
+    for (offset, scalar) in captures[1..].iter().enumerate() {
+        if scalar.binding.id != ValueId::parameter(&execution, offset + 1)
             || scalar.binding.ty != ResolvedType::I64
             || scalar.binding.ownership != OwnershipMode::Value
             || scalar.value.ty != ResolvedType::I64
@@ -281,16 +305,18 @@ pub(crate) fn validate(
     {
         return Err(hir_error("affine body does not transfer its exact capture"));
     }
-    if mixed
-        && (target.params[1].ty != ResolvedType::I64
-            || target.params[1].ownership != OwnershipMode::Value
-            || args[1].ty != ResolvedType::I64
-            || args[1].ownership != OwnershipMode::Value
-            || !matches!(&args[1].kind, ResolvedExprKind::Place(p) if p.root == captures[1].binding.id && p.projections.is_empty()))
-    {
-        return Err(hir_error(
-            "mixed affine body must pass its exact scalar capture",
-        ));
+    for (offset, scalar) in captures[1..].iter().enumerate() {
+        let index = offset + 1;
+        if target.params[index].ty != ResolvedType::I64
+            || target.params[index].ownership != OwnershipMode::Value
+            || args[index].ty != ResolvedType::I64
+            || args[index].ownership != OwnershipMode::Value
+            || !matches!(&args[index].kind, ResolvedExprKind::Place(p) if p.root == scalar.binding.id && p.projections.is_empty())
+        {
+            return Err(hir_error(
+                "mixed affine body must pass its exact scalar capture",
+            ));
+        }
     }
     Ok(())
 }
@@ -306,18 +332,25 @@ pub(crate) fn call(expression: &ResolvedExpr) -> Option<(&'static DeclarationId,
         std::sync::LazyLock::new(|| DeclarationId::new(MIXED_CONSTRUCT_ID));
     static MIXED_INVOKE: std::sync::LazyLock<DeclarationId> =
         std::sync::LazyLock::new(|| DeclarationId::new(MIXED_INVOKE_ID));
+    static PAIR_CONSTRUCT: std::sync::LazyLock<DeclarationId> =
+        std::sync::LazyLock::new(|| DeclarationId::new(PAIR_CONSTRUCT_ID));
+    static PAIR_INVOKE: std::sync::LazyLock<DeclarationId> =
+        std::sync::LazyLock::new(|| DeclarationId::new(PAIR_INVOKE_ID));
     match &expression.kind {
         ResolvedExprKind::Closure { captures, .. }
             if expression.ty.is_once_function()
                 && captures.len()
-                    == if expression.ty == ResolvedType::OnceFunctionI64 {
-                        2
-                    } else {
-                        1
+                    == match expression.ty {
+                        ResolvedType::OnceFunction => 1,
+                        ResolvedType::OnceFunctionI64 => 2,
+                        ResolvedType::OnceFunctionI64Pair => 3,
+                        _ => return None,
                     } =>
         {
             Some((
-                if expression.ty == ResolvedType::OnceFunctionI64 {
+                if expression.ty == ResolvedType::OnceFunctionI64Pair {
+                    &PAIR_CONSTRUCT
+                } else if expression.ty == ResolvedType::OnceFunctionI64 {
                     &MIXED_CONSTRUCT
                 } else {
                     &CONSTRUCT
@@ -329,7 +362,9 @@ pub(crate) fn call(expression: &ResolvedExpr) -> Option<(&'static DeclarationId,
             if callable.ty.is_once_function() && args.is_empty() =>
         {
             Some((
-                if callable.ty == ResolvedType::OnceFunctionI64 {
+                if callable.ty == ResolvedType::OnceFunctionI64Pair {
+                    &PAIR_INVOKE
+                } else if callable.ty == ResolvedType::OnceFunctionI64 {
                     &MIXED_INVOKE
                 } else {
                     &INVOKE
@@ -343,9 +378,10 @@ pub(crate) fn call(expression: &ResolvedExpr) -> Option<(&'static DeclarationId,
 
 pub(crate) fn params(callee: &DeclarationId) -> Option<Vec<ResolvedParam>> {
     let ty = match callee.as_str() {
-        CONSTRUCT_ID | MIXED_CONSTRUCT_ID => ResolvedType::Bytes,
+        CONSTRUCT_ID | MIXED_CONSTRUCT_ID | PAIR_CONSTRUCT_ID => ResolvedType::Bytes,
         INVOKE_ID => ResolvedType::OnceFunction,
         MIXED_INVOKE_ID => ResolvedType::OnceFunctionI64,
+        PAIR_INVOKE_ID => ResolvedType::OnceFunctionI64Pair,
         _ => return None,
     };
     Some(vec![ResolvedParam {
@@ -362,7 +398,12 @@ pub(crate) fn reject_reserved_identities(program: &ResolvedProgram) -> Result<()
     if program.declarations.declarations().any(|declaration| {
         matches!(
             declaration.id.as_str(),
-            MIXED_CONSTRUCT_ID | MIXED_INVOKE_ID | MIXED_DROP_ID
+            MIXED_CONSTRUCT_ID
+                | MIXED_INVOKE_ID
+                | MIXED_DROP_ID
+                | PAIR_CONSTRUCT_ID
+                | PAIR_INVOKE_ID
+                | PAIR_DROP_ID
         )
     }) {
         return Err(hir_error(
@@ -391,4 +432,5 @@ pub(crate) fn uses_type(program: &ResolvedProgram, ty: &ResolvedType) -> bool {
 pub(crate) fn requires_bytes(program: &ResolvedProgram) -> bool {
     uses_type(program, &ResolvedType::OnceFunction)
         || uses_type(program, &ResolvedType::OnceFunctionI64)
+        || uses_type(program, &ResolvedType::OnceFunctionI64Pair)
 }

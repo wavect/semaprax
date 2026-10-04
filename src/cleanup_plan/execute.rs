@@ -1449,7 +1449,8 @@ impl<'a> Executor<'a> {
                 | ResolvedType::Bytes
                 | ResolvedType::String
                 | ResolvedType::OnceFunction
-                | ResolvedType::OnceFunctionI64,
+                | ResolvedType::OnceFunctionI64
+                | ResolvedType::OnceFunctionI64Pair,
             ) => storage.storage == StorageId::ProvisionalResult && storage.projections.is_empty(),
             (CleanupResultSource::Scalar { .. }, ResolvedType::Nominal { .. })
             | (CleanupResultSource::Scalar { .. }, ResolvedType::Unit)
@@ -1457,7 +1458,9 @@ impl<'a> Executor<'a> {
             | (CleanupResultSource::Scalar { .. }, ResolvedType::Bytes)
             | (
                 CleanupResultSource::Scalar { .. },
-                ResolvedType::OnceFunction | ResolvedType::OnceFunctionI64,
+                ResolvedType::OnceFunction
+                | ResolvedType::OnceFunctionI64
+                | ResolvedType::OnceFunctionI64Pair,
             )
             | (CleanupResultSource::Scalar { .. }, ResolvedType::Str)
             | (CleanupResultSource::Scalar { .. }, ResolvedType::SliceU8)

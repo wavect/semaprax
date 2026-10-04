@@ -4645,6 +4645,7 @@ fn wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
         | ResolvedType::Nominal { .. }
         | ResolvedType::OnceFunction
         | ResolvedType::OnceFunctionI64
+        | ResolvedType::OnceFunctionI64Pair
         | ResolvedType::Function { .. } => Ok(I32),
         // Owned strings lower to an abstract host handle riding the i64 lane.
         ResolvedType::String | ResolvedType::Str | ResolvedType::SliceU8 | ResolvedType::Bytes => {

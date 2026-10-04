@@ -67,7 +67,10 @@ pub(super) fn resolved_call_params(
         }
         if let Some(op) = crate::list_ops::by_id(callee.as_str()) {
             if !type_arguments.is_empty() {
-                return Err(replay_error(function, "immutable list call has incorrect type arity"));
+                return Err(replay_error(
+                    function,
+                    "immutable list call has incorrect type arity",
+                ));
             }
             return Ok(op.resolved_params());
         }

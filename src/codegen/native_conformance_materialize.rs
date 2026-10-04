@@ -288,6 +288,7 @@ fn materialize_result(
         (
             ResolvedType::OnceFunction
             | ResolvedType::OnceFunctionI64
+            | ResolvedType::OnceFunctionI64Pair
             | ResolvedType::Function { .. },
             _,
         ) => Err(MaterializeError::ResultTypeMismatch),

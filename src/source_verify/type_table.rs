@@ -237,6 +237,7 @@ impl<'a> TypeTable<'a> {
                     Type::String => resolved.push(Type::String),
                     Type::OnceFunction => resolved.push(Type::OnceFunction),
                     Type::OnceFunctionI64 => resolved.push(Type::OnceFunctionI64),
+                    Type::OnceFunctionI64Pair => resolved.push(Type::OnceFunctionI64Pair),
                     Type::Bytes => resolved.push(Type::Bytes),
                     Type::Str => resolved.push(Type::Str),
                     Type::SliceU8 => resolved.push(Type::SliceU8),
@@ -324,6 +325,7 @@ impl<'a> TypeTable<'a> {
             | Type::SliceU8
             | Type::OnceFunction
             | Type::OnceFunctionI64
+            | Type::OnceFunctionI64Pair
             | Type::Function { .. } => false,
             Type::Named { name, arguments } => {
                 if !visiting.insert(name.clone()) {
@@ -425,9 +427,11 @@ impl<'a> TypeTable<'a> {
                     visiting.remove(&instance);
                 }
                 Frame::Enter(ty) => match ty {
-                    Type::String | Type::Bytes | Type::OnceFunction | Type::OnceFunctionI64 => {
-                        return true
-                    }
+                    Type::String
+                    | Type::Bytes
+                    | Type::OnceFunction
+                    | Type::OnceFunctionI64
+                    | Type::OnceFunctionI64Pair => return true,
                     Type::Named { name, arguments } => {
                         if crate::iterator_ops::ast_is_iterator(&Type::Named {
                             name: name.clone(),
@@ -515,7 +519,10 @@ impl<'a> TypeTable<'a> {
         let mut visited = HashSet::new();
         while let Some(current) = pending.pop() {
             match current {
-                Type::Bytes | Type::OnceFunction | Type::OnceFunctionI64 => return true,
+                Type::Bytes
+                | Type::OnceFunction
+                | Type::OnceFunctionI64
+                | Type::OnceFunctionI64Pair => return true,
                 Type::Named { name, arguments } => {
                     let identity = Type::Named {
                         name: name.clone(),
@@ -991,6 +998,7 @@ pub(super) fn classify_nested_owned_byte_record(
                 | Type::SliceU8
                 | Type::OnceFunction
                 | Type::OnceFunctionI64
+                | Type::OnceFunctionI64Pair
                 | Type::Function { .. },
                 _,
             ) => {

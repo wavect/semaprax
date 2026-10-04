@@ -281,13 +281,17 @@ pub(crate) fn validate_program(program: &ResolvedProgram) -> Result<(), Diagnost
 pub(crate) fn function_uses_value(f: &ResolvedFunction) -> bool {
     let mut found = matches!(
         f.return_type,
-        ResolvedType::Function { .. } | ResolvedType::OnceFunction | ResolvedType::OnceFunctionI64
+        ResolvedType::Function { .. }
+            | ResolvedType::OnceFunction
+            | ResolvedType::OnceFunctionI64
+            | ResolvedType::OnceFunctionI64Pair
     ) || f.params.iter().any(|p| {
         matches!(
             p.ty,
             ResolvedType::Function { .. }
                 | ResolvedType::OnceFunction
                 | ResolvedType::OnceFunctionI64
+                | ResolvedType::OnceFunctionI64Pair
         )
     });
     walk(f, |e| {
@@ -318,6 +322,7 @@ pub(crate) fn template_uses_value(template: &super::ResolvedFunctionTemplate) ->
                 ResolvedType::Function { .. }
                     | ResolvedType::OnceFunction
                     | ResolvedType::OnceFunctionI64
+                    | ResolvedType::OnceFunctionI64Pair
             )
         })
     {

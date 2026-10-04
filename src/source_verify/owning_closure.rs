@@ -139,7 +139,8 @@ pub(super) fn check_construction(
         return None;
     };
     let mixed = retained && args.len() == 2;
-    if !type_arguments.is_empty() || (!mixed && args.len() != 1) {
+    let pair = retained && args.len() == 3;
+    if !type_arguments.is_empty() || (!mixed && !pair && args.len() != 1) {
         diagnostics.push(error(
             program,
             "SPX-T292",
@@ -186,10 +187,12 @@ pub(super) fn check_construction(
         ));
         return None;
     }
-    if mixed {
-        let valid = matches!(&args[1].kind, ExprKind::Var(name) if variables.get(name).is_some_and(|binding| binding.ty == Type::I64 && binding.mode == ParamMode::Value && binding.availability == Availability::Available))
-            && target.params[1].ty == Type::I64
-            && target.params[1].mode == ParamMode::Value;
+    if mixed || pair {
+        let valid = args[1..].iter().enumerate().all(|(offset, argument)| {
+            matches!(&argument.kind, ExprKind::Var(name) if variables.get(name).is_some_and(|binding| binding.ty == Type::I64 && binding.mode == ParamMode::Value && binding.availability == Availability::Available))
+                && target.params[offset + 1].ty == Type::I64
+                && target.params[offset + 1].mode == ParamMode::Value
+        });
         if !valid {
             diagnostics.push(error(
                 program,
@@ -258,7 +261,9 @@ pub(super) fn check_construction(
         .expect("checked above")
         .availability = Availability::Moved;
     Some(CheckedValue {
-        ty: if mixed {
+        ty: if pair {
+            Type::OnceFunctionI64Pair
+        } else if mixed {
             Type::OnceFunctionI64
         } else if retained {
             Type::OnceFunction

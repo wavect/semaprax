@@ -554,6 +554,7 @@ pub(super) fn graph_schema_includes_modern_composite_facts(schema: &str) -> bool
             | "semaprax.graph.v46"
             | "semaprax.graph.v62"
             | "semaprax.graph.v63"
+            | "semaprax.graph.v64"
     )
 }
 
@@ -581,6 +582,7 @@ pub(super) fn graph_schema_includes_loans(schema: &str) -> bool {
             | "semaprax.graph.v46"
             | "semaprax.graph.v62"
             | "semaprax.graph.v63"
+            | "semaprax.graph.v64"
     )
 }
 
@@ -606,6 +608,7 @@ pub(super) fn graph_schema_includes_projected_provenance(schema: &str) -> bool {
             | "semaprax.graph.v46"
             | "semaprax.graph.v62"
             | "semaprax.graph.v63"
+            | "semaprax.graph.v64"
     )
 }
 

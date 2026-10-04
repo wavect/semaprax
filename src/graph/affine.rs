@@ -9,7 +9,9 @@ fn requires(program: &ResolvedProgram) -> bool {
 }
 pub(crate) fn graph_schema(program: &ResolvedProgram) -> Result<&'static str, Diagnostic> {
     Ok(if requires(program) {
-        if mixed(program) {
+        if paired(program) {
+            "semaprax.graph.v64"
+        } else if mixed(program) {
             "semaprax.graph.v63"
         } else {
             "semaprax.graph.v62"
@@ -32,6 +34,12 @@ pub(crate) fn graph_schema_from_parts_and_instances(
             .any(function_requires)
         {
             if f.iter()
+                .chain(n.iter().map(|v| &v.function))
+                .any(function_paired)
+            {
+                "semaprax.graph.v64"
+            } else if f
+                .iter()
                 .chain(n.iter().map(|v| &v.function))
                 .any(function_mixed)
             {
@@ -72,7 +80,9 @@ pub(super) fn graph_json(
         }
         graph.replace_range(
             ..prefix.len(),
-            if mixed(program) {
+            if paired(program) {
+                "{\"schema\":\"semaprax.graph.v64\""
+            } else if mixed(program) {
                 "{\"schema\":\"semaprax.graph.v63\""
             } else {
                 "{\"schema\":\"semaprax.graph.v62\""
@@ -106,4 +116,22 @@ fn mixed(program: &ResolvedProgram) -> bool {
         .iter()
         .chain(program.function_instances.iter().map(|i| &i.function))
         .any(function_mixed)
+}
+fn function_paired(function: &ResolvedFunction) -> bool {
+    let mut found = function.return_type == ResolvedType::OnceFunctionI64Pair
+        || function
+            .params
+            .iter()
+            .any(|p| p.ty == ResolvedType::OnceFunctionI64Pair);
+    hir::function_value::walk(function, |expr| {
+        found |= expr.ty == ResolvedType::OnceFunctionI64Pair
+    });
+    found
+}
+fn paired(program: &ResolvedProgram) -> bool {
+    program
+        .functions
+        .iter()
+        .chain(program.function_instances.iter().map(|i| &i.function))
+        .any(function_paired)
 }

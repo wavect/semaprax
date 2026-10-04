@@ -48,7 +48,9 @@ pub fn prepare_native_rust_affine_callback(
     semaprax::hir::validate(&resolved).map_err(|e| vec![e])?;
     let canonical = semaprax::format::canonical(&program);
     let source_revision = domain_digest(
-        if factory.return_type == Type::OnceFunctionI64 {
+        if factory.return_type == Type::OnceFunctionI64Pair {
+            b"semaprax.affine-callback-source.v3\0"
+        } else if factory.return_type == Type::OnceFunctionI64 {
             b"semaprax.affine-callback-source.v2\0"
         } else {
             b"semaprax.affine-callback-source.v1\0"
@@ -65,7 +67,16 @@ pub fn prepare_native_rust_affine_callback(
             .collect::<String>()
     );
     let bridge = C_BRIDGE.replace("FACTORY_SYMBOL", &symbol);
-    let bridge = if factory.return_type == Type::OnceFunctionI64 {
+    let bridge = if factory.return_type == Type::OnceFunctionI64Pair {
+        bridge
+            .replace("spx_once_v1", "spx_once_i64_pair_v3")
+            .replace("spx_once_move", "spx_once_i64_pair_move_v3")
+            .replace("spx_once_drop", "spx_once_i64_pair_drop_v3")
+            .replace(
+                "spx_bytes_move(&callback.capture), out",
+                "spx_bytes_move(&callback.capture), callback.first, callback.second, out",
+            )
+    } else if factory.return_type == Type::OnceFunctionI64 {
         bridge
             .replace("spx_once_v1", "spx_once_i64_v2")
             .replace("spx_once_move", "spx_once_i64_move_v2")

@@ -7,6 +7,7 @@ pub(super) enum OwnedLeafKind {
     Bytes,
     Once,
     OnceI64,
+    OnceI64Pair,
     String,
     Vec,
     Box,
@@ -18,6 +19,7 @@ impl OwnedLeafKind {
         match self {
             Self::Once => "spx_once_v1",
             Self::OnceI64 => "spx_once_i64_v2",
+            Self::OnceI64Pair => "spx_once_i64_pair_v3",
             Self::Bytes => "spx_bytes_v1",
             Self::String => "char *",
             Self::Vec => "spx_vec_v1",
@@ -30,6 +32,7 @@ impl OwnedLeafKind {
         match self {
             Self::Once => format!("spx_once_move(&{source})"),
             Self::OnceI64 => format!("spx_once_i64_move_v2(&{source})"),
+            Self::OnceI64Pair => format!("spx_once_i64_pair_move_v3(&{source})"),
             Self::Bytes => format!("spx_bytes_move(&{source})"),
             Self::String => source.to_owned(),
             Self::Vec => format!("spx_vec_move(spx_ctx, &{source})"),
@@ -42,6 +45,7 @@ impl OwnedLeafKind {
         match self {
             Self::Once => format!("spx_once_drop(&{value})"),
             Self::OnceI64 => format!("spx_once_i64_drop_v2(&{value})"),
+            Self::OnceI64Pair => format!("spx_once_i64_pair_drop_v3(&{value})"),
             Self::Bytes => format!("spx_bytes_drop(&{value})"),
             Self::String => format!("spx_string_drop({value})"),
             Self::Vec => format!("spx_vec_drop(spx_ctx, &{value})"),

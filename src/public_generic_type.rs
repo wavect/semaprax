@@ -469,6 +469,7 @@ fn classify_with(
         ResolvedType::ArrayU8(_) => rejection(Rejection::InlineByteArray),
         ResolvedType::OnceFunction
         | ResolvedType::OnceFunctionI64
+        | ResolvedType::OnceFunctionI64Pair
         | ResolvedType::Function { .. } => rejection(Rejection::FunctionType),
         ResolvedType::Nominal {
             declaration,

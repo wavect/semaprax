@@ -622,6 +622,9 @@ pub(super) fn type_json(ty: &ResolvedType) -> String {
         ResolvedType::OnceFunctionI64 => bounded_output::budgeted_clone(
             "{\"kind\":\"affine_function\",\"profile\":\"bytes-i64-to-i64.v2\"}",
         ),
+        ResolvedType::OnceFunctionI64Pair => bounded_output::budgeted_clone(
+            "{\"kind\":\"affine_function\",\"profile\":\"bytes-i64-i64-to-i64.v3\"}",
+        ),
         ResolvedType::OnceFunction => bounded_output::budgeted_clone(
             "{\"kind\":\"affine_function\",\"profile\":\"bytes-to-i64.v1\"}",
         ),

@@ -5337,6 +5337,7 @@ fn signature_type_is_admitted(
         | Type::Bytes
         | Type::OnceFunction
         | Type::OnceFunctionI64
+        | Type::OnceFunctionI64Pair
         | Type::Function { .. } => false,
         Type::Named { name, arguments } if arguments.is_empty() => {
             let Some(target_id) = resolve_type_id(module, name, programs) else {
@@ -5464,6 +5465,7 @@ fn exposed_type_reference_is_directly_imported(
         | Type::ArrayU8(_)
         | Type::OnceFunction
         | Type::OnceFunctionI64
+        | Type::OnceFunctionI64Pair
         | Type::Function { .. } => false,
         Type::Bytes => true,
         Type::Named { name, arguments } if arguments.is_empty() => {
@@ -5545,6 +5547,7 @@ fn type_reference_is_admitted(
         | Type::ArrayU8(_)
         | Type::OnceFunction
         | Type::OnceFunctionI64
+        | Type::OnceFunctionI64Pair
         | Type::Function { .. } => false,
         Type::Bytes => true,
         Type::Named { name, arguments } if arguments.is_empty() => {

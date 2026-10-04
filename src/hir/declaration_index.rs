@@ -427,6 +427,9 @@ impl DeclarationIndex {
                         ResolvedType::OnceFunctionI64 => {
                             Some((false, false, true, "owned:fn-once:bytes+i64:i64:v2"))
                         }
+                        ResolvedType::OnceFunctionI64Pair => {
+                            Some((false, false, true, "owned:fn-once:bytes+i64+i64:i64:v3"))
+                        }
                         ResolvedType::OnceFunction => {
                             Some((false, false, true, "owned:fn-once:bytes:i64:v1"))
                         }
@@ -1419,6 +1422,7 @@ impl DeclarationIndex {
                     Type::Bytes => resolved.push(ResolvedType::Bytes),
                     Type::OnceFunction => resolved.push(ResolvedType::OnceFunction),
                     Type::OnceFunctionI64 => resolved.push(ResolvedType::OnceFunctionI64),
+                    Type::OnceFunctionI64Pair => resolved.push(ResolvedType::OnceFunctionI64Pair),
                     Type::Str => resolved.push(ResolvedType::Str),
                     Type::SliceU8 => resolved.push(ResolvedType::SliceU8),
                     Type::Named { name, arguments } => {

@@ -389,7 +389,10 @@ fn check_type(
     declared_types: &std::collections::BTreeSet<&str>,
 ) -> Result<(), Diagnostic> {
     match ty {
-        Type::OnceFunction | Type::OnceFunctionI64 | Type::Function { .. } => Err(signature_error(
+        Type::OnceFunction
+        | Type::OnceFunctionI64
+        | Type::OnceFunctionI64Pair
+        | Type::Function { .. } => Err(signature_error(
             &protocol.name,
             &method.name,
             "function values are outside Protocol Projection v1".to_owned(),

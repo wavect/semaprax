@@ -250,6 +250,7 @@ impl Resolver<'_> {
         match ty {
             ResolvedType::OnceFunction
             | ResolvedType::OnceFunctionI64
+            | ResolvedType::OnceFunctionI64Pair
             | ResolvedType::Function { .. }
             | ResolvedType::Unit => None,
             ResolvedType::I64 => Some(Type::I64),

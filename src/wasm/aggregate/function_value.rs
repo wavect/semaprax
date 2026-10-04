@@ -142,7 +142,8 @@ pub(super) fn callable_signature(expr: &ResolvedExpr) -> Result<&ResolvedType, D
     match &expr.ty {
         ResolvedType::Function { .. }
         | ResolvedType::OnceFunction
-        | ResolvedType::OnceFunctionI64 => Ok(&expr.ty),
+        | ResolvedType::OnceFunctionI64
+        | ResolvedType::OnceFunctionI64Pair => Ok(&expr.ty),
         _ => Err(error(
             "aggregate function invocation callable is not a function",
         )),
@@ -185,9 +186,9 @@ impl super::Emitter<'_> {
             ResolvedType::Function { parameters, result } => {
                 (parameters.as_slice(), result.as_ref())
             }
-            ResolvedType::OnceFunction | ResolvedType::OnceFunctionI64 => {
-                (&[][..], &ResolvedType::I64)
-            }
+            ResolvedType::OnceFunction
+            | ResolvedType::OnceFunctionI64
+            | ResolvedType::OnceFunctionI64Pair => (&[][..], &ResolvedType::I64),
             _ => unreachable!(),
         };
         if parameters.len() != args.len() || *result != expr.ty {

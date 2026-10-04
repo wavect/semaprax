@@ -56,6 +56,7 @@ pub(super) fn inline_array_payload_bytes(
         match ty {
             ResolvedType::OnceFunction
             | ResolvedType::OnceFunctionI64
+            | ResolvedType::OnceFunctionI64Pair
             | ResolvedType::Function { .. } => {}
             ResolvedType::ArrayU8(length) => {
                 total = total

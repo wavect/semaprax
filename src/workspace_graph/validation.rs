@@ -499,6 +499,7 @@ mod clone_cost {
             } => add(declaration(id), types(arguments)?),
             hir::ResolvedType::OnceFunction
             | hir::ResolvedType::OnceFunctionI64
+            | hir::ResolvedType::OnceFunctionI64Pair
             | hir::ResolvedType::Unit
             | hir::ResolvedType::I64
             | hir::ResolvedType::I32

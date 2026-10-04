@@ -33,6 +33,7 @@ pub(super) fn template_is_admitted(declaration: &TypeDeclaration) -> bool {
             | Type::ArrayU8(_)
             | Type::OnceFunction
             | Type::OnceFunctionI64
+            | Type::OnceFunctionI64Pair
             | Type::Function { .. } => false,
         })
 }

@@ -66,6 +66,7 @@ impl NativeBytesPlan {
                     let kind = match lifecycle.as_str() {
                         crate::hir::closure::once::DROP_ID => OwnedLeafKind::Once,
                         crate::hir::closure::once::MIXED_DROP_ID => OwnedLeafKind::OnceI64,
+                        crate::hir::closure::once::PAIR_DROP_ID => OwnedLeafKind::OnceI64Pair,
                         crate::cleanup::BYTES_DROP_LIFECYCLE_ID => OwnedLeafKind::Bytes,
                         crate::cleanup::STRING_DROP_LIFECYCLE_ID => OwnedLeafKind::String,
                         crate::cleanup::ITER_DROP_LIFECYCLE_ID => OwnedLeafKind::Iter,

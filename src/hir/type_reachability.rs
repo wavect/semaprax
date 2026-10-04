@@ -619,6 +619,7 @@ fn classify_nested_owned_byte_record(
             Frame::Type(
                 ResolvedType::OnceFunction
                 | ResolvedType::OnceFunctionI64
+                | ResolvedType::OnceFunctionI64Pair
                 | ResolvedType::Function { .. },
                 _,
             ) => return NestedOwnedRecordAdmission::OutsideProfile,

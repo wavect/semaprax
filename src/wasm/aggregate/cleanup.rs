@@ -10,7 +10,9 @@ impl Emitter<'_> {
         for action in actions {
             if matches!(
                 action.lifecycle_id.as_str(),
-                crate::hir::closure::once::DROP_ID | crate::hir::closure::once::MIXED_DROP_ID
+                crate::hir::closure::once::DROP_ID
+                    | crate::hir::closure::once::MIXED_DROP_ID
+                    | crate::hir::closure::once::PAIR_DROP_ID
             ) {
                 self.emit_once_cleanup(action)?;
                 continue;
@@ -442,7 +444,10 @@ impl Emitter<'_> {
         let value = self.cleanup_value_at(&action.source)?;
         let Value::Aggregate {
             pointer,
-            ty: ResolvedType::OnceFunction | ResolvedType::OnceFunctionI64,
+            ty:
+                ResolvedType::OnceFunction
+                | ResolvedType::OnceFunctionI64
+                | ResolvedType::OnceFunctionI64Pair,
         } = value
         else {
             return Err(error(

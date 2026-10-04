@@ -45,7 +45,9 @@ impl Evaluator<'_> {
         }
         let result = match &expression.ty {
             ResolvedType::Function { result, .. } => *result.clone(),
-            ResolvedType::OnceFunction | ResolvedType::OnceFunctionI64 => ResolvedType::I64,
+            ResolvedType::OnceFunction
+            | ResolvedType::OnceFunctionI64
+            | ResolvedType::OnceFunctionI64Pair => ResolvedType::I64,
             _ => return Err(Flow::Guard("closure type")),
         };
         let function = self

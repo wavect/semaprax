@@ -53,6 +53,8 @@ pub enum Type {
     /// Affine zero-argument callable with one owned Bytes capture and i64 result.
     OnceFunction,
     OnceFunctionI64,
+    /// Affine zero-argument callable with one owned Bytes and two i64 snapshots.
+    OnceFunctionI64Pair,
     Function {
         parameters: Vec<Type>,
         result: Box<Type>,
@@ -87,6 +89,7 @@ impl fmt::Display for Type {
                 Frame::Type(Type::Bytes) => f.write_str("Bytes")?,
                 Frame::Type(Type::OnceFunction) => f.write_str("FnOnce() -> i64")?,
                 Frame::Type(Type::OnceFunctionI64) => f.write_str("FnOnceI64() -> i64")?,
+                Frame::Type(Type::OnceFunctionI64Pair) => f.write_str("FnOnceI64Pair() -> i64")?,
                 Frame::Type(Type::Str) => f.write_str("str")?,
                 Frame::Type(Type::SliceU8) => f.write_str("Slice<u8>")?,
                 Frame::Type(Type::Function { parameters, result }) => {
@@ -133,7 +136,10 @@ impl fmt::Display for Type {
 
 impl Type {
     pub fn is_once_function(&self) -> bool {
-        matches!(self, Self::OnceFunction | Self::OnceFunctionI64)
+        matches!(
+            self,
+            Self::OnceFunction | Self::OnceFunctionI64 | Self::OnceFunctionI64Pair
+        )
     }
 
     pub fn is_named(&self) -> bool {
@@ -434,6 +440,7 @@ impl Drop for Program {
                 }
                 Type::OnceFunction
                 | Type::OnceFunctionI64
+                | Type::OnceFunctionI64Pair
                 | Type::I64
                 | Type::I32
                 | Type::Char

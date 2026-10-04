@@ -119,6 +119,62 @@ fn mixed_source() -> String {
         .replace("make();", "make(40);")
 }
 
+fn paired_source() -> String {
+    mixed_source()
+        .replace("FnOnceI64()", "FnOnceI64Pair()")
+        .replace(
+            "consume(payload: own Bytes, offset: i64) -> i64 { offset + 2 }",
+            "consume(payload: own Bytes, first: i64, second: i64) -> i64 { first + second }",
+        )
+        .replace("let payload =", "let second = 2; let payload =")
+        .replace(
+            "consume(payload, offset) }",
+            "consume(payload, offset, second) }",
+        )
+}
+
+#[test]
+fn paired_affine_capture_retains_ordered_scalar_record_on_all_backends() {
+    assert!(command_available("clang") && command_available("node"));
+    for (label, source, expected) in [
+        ("paired-called", paired_source(), 42),
+        (
+            "paired-snapshot-order",
+            paired_source().replace("make(40)", "make(17)"),
+            19,
+        ),
+        (
+            "paired-unused",
+            paired_source().replace("    run(moved)", "    99"),
+            99,
+        ),
+    ] {
+        let program = checked_program(&source, label);
+        let canonical = semaprax::format::canonical(&program);
+        assert_eq!(
+            canonical,
+            semaprax::format::canonical(&checked_program(&canonical, label))
+        );
+        let graph = semaprax::graph::to_json(&program).unwrap();
+        semaprax::graph::verify_json(&program, &graph).unwrap();
+        for fact in [
+            "semaprax.graph.v64",
+            "bytes-i64-i64-to-i64.v3",
+            "core.fn_once_i64_pair.construct.v3",
+            "core.fn_once_i64_pair.invoke.v3",
+            "core.fn_once_i64_pair.drop.v3",
+        ] {
+            assert!(graph.contains(fact), "missing {fact}");
+        }
+        let c = codegen::emit_c(&program).unwrap();
+        assert_eq!(run_interpreter(&source, label), expected);
+        for optimization in ["-O0", "-O2"] {
+            assert_eq!(run_native(&c, optimization, label, 36804), (expected, 1, 1));
+        }
+        assert_eq!(run_core_wasm(&program, label), (expected, 1, 1));
+    }
+}
+
 #[test]
 fn mixed_affine_capture_retains_scalar_and_owner_on_all_backends() {
     assert!(command_available("clang") && command_available("node"));

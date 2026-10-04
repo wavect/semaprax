@@ -1030,6 +1030,9 @@ impl Resolver<'_> {
                 }
                 Frame::Enter(Type::OnceFunction) => result = Some(ResolvedType::OnceFunction),
                 Frame::Enter(Type::OnceFunctionI64) => result = Some(ResolvedType::OnceFunctionI64),
+                Frame::Enter(Type::OnceFunctionI64Pair) => {
+                    result = Some(ResolvedType::OnceFunctionI64Pair)
+                }
                 Frame::Enter(Type::I64) => result = Some(ResolvedType::I64),
                 Frame::Enter(Type::I32) => result = Some(ResolvedType::I32),
                 Frame::Enter(Type::Char) => result = Some(ResolvedType::Char),

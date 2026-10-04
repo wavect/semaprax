@@ -1675,6 +1675,7 @@ fn type_has_usize(ty: &ResolvedType) -> bool {
         }
         ResolvedType::OnceFunction
         | ResolvedType::OnceFunctionI64
+        | ResolvedType::OnceFunctionI64Pair
         | ResolvedType::Usize
         | ResolvedType::ArrayU8(_)
         | ResolvedType::Bytes
@@ -5472,6 +5473,7 @@ fn type_json(ty: &ResolvedType) -> String {
     match ty {
         ResolvedType::OnceFunction => "{\"kind\":\"affine_function\",\"profile\":\"bytes-to-i64.v1\"}".to_owned(),
         ResolvedType::OnceFunctionI64 => "{\"kind\":\"affine_function\",\"profile\":\"bytes-i64-to-i64.v2\"}".to_owned(),
+        ResolvedType::OnceFunctionI64Pair => "{\"kind\":\"affine_function\",\"profile\":\"bytes-i64-i64-to-i64.v3\"}".to_owned(),
         ResolvedType::Function{parameters,result}=>function_values::type_json(parameters,result),
         ResolvedType::Unit => "{\"kind\":\"primitive\",\"name\":\"unit\"}".to_owned(),
         ResolvedType::I64 => "{\"kind\":\"primitive\",\"name\":\"i64\"}".to_owned(),

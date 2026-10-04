@@ -451,6 +451,7 @@ fn resolved_type_owned_capacity(ty: &ResolvedType) -> usize {
         }
         ResolvedType::OnceFunction
         | ResolvedType::OnceFunctionI64
+        | ResolvedType::OnceFunctionI64Pair
         | ResolvedType::Unit
         | ResolvedType::I64
         | ResolvedType::I32
@@ -3896,6 +3897,7 @@ impl<'a> PlanBuilder<'a> {
                             .is_some_and(|item| item.kind == DeclarationKind::Record),
                         ResolvedType::OnceFunction
                         | ResolvedType::OnceFunctionI64
+                        | ResolvedType::OnceFunctionI64Pair
                         | ResolvedType::Unit
                         | ResolvedType::I64
                         | ResolvedType::I32
@@ -3913,6 +3915,7 @@ impl<'a> PlanBuilder<'a> {
                         | ResolvedType::TypeParameter { .. }
                         | ResolvedType::OnceFunction
                         | ResolvedType::OnceFunctionI64
+                        | ResolvedType::OnceFunctionI64Pair
                         | ResolvedType::Function { .. } => false,
                     };
                     if is_record {
@@ -6079,6 +6082,7 @@ impl<'a> PlanBuilder<'a> {
                 .is_some_and(|item| item.kind == DeclarationKind::Record),
             ResolvedType::OnceFunction
             | ResolvedType::OnceFunctionI64
+            | ResolvedType::OnceFunctionI64Pair
             | ResolvedType::Unit
             | ResolvedType::I64
             | ResolvedType::I32
@@ -6096,6 +6100,7 @@ impl<'a> PlanBuilder<'a> {
             | ResolvedType::TypeParameter { .. }
             | ResolvedType::OnceFunction
             | ResolvedType::OnceFunctionI64
+            | ResolvedType::OnceFunctionI64Pair
             | ResolvedType::Function { .. } => false,
         };
         if is_record {

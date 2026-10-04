@@ -69,6 +69,9 @@ pub(super) fn emit_carrier_declarations(
     if hir::closure::once::uses_type(program, &ResolvedType::OnceFunctionI64) {
         super::once::mixed_declarations(output);
     }
+    if hir::closure::once::uses_type(program, &ResolvedType::OnceFunctionI64Pair) {
+        super::once::pair_declarations(output);
+    }
     let mut signatures = std::collections::BTreeMap::new();
     for function in program
         .functions

@@ -178,9 +178,10 @@ pub(crate) fn resolved_type_contains_owned_bytes(
     while let Some(ty) = pending.pop() {
         match ty {
             ResolvedType::Function { .. } => {}
-            ResolvedType::Bytes | ResolvedType::OnceFunction | ResolvedType::OnceFunctionI64 => {
-                return true
-            }
+            ResolvedType::Bytes
+            | ResolvedType::OnceFunction
+            | ResolvedType::OnceFunctionI64
+            | ResolvedType::OnceFunctionI64Pair => return true,
             ResolvedType::Nominal {
                 declaration,
                 arguments,

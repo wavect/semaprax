@@ -444,6 +444,7 @@ pub(super) fn oracle_match(
         | Type::SliceU8
         | Type::OnceFunction
         | Type::OnceFunctionI64
+        | Type::OnceFunctionI64Pair
         | Type::Function { .. }
         | Type::Named { .. } => None,
     });

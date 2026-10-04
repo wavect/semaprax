@@ -26,7 +26,8 @@ impl HirValidator<'_> {
                     | ResolvedType::Str
                     | ResolvedType::SliceU8
                     | ResolvedType::OnceFunction
-                    | ResolvedType::OnceFunctionI64,
+                    | ResolvedType::OnceFunctionI64
+                    | ResolvedType::OnceFunctionI64Pair,
                 ) => {}
                 Frame::Enter(ty @ ResolvedType::Function { .. }) => {
                     if !super::function_value::is_signature(ty) {

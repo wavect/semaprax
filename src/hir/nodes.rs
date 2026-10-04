@@ -124,6 +124,7 @@ pub enum ResolvedType {
     /// A retained affine zero-argument, i64-result callable.
     OnceFunction,
     OnceFunctionI64,
+    OnceFunctionI64Pair,
     Function {
         parameters: Vec<ResolvedType>,
         result: Box<ResolvedType>,
@@ -169,7 +170,10 @@ impl ResolvedType {
     }
 
     pub fn is_once_function(&self) -> bool {
-        matches!(self, Self::OnceFunction | Self::OnceFunctionI64)
+        matches!(
+            self,
+            Self::OnceFunction | Self::OnceFunctionI64 | Self::OnceFunctionI64Pair
+        )
     }
 
     pub fn is_compiler_i64_result(&self) -> bool {
@@ -184,7 +188,11 @@ impl ResolvedType {
     pub fn is_uniquely_owned(&self) -> bool {
         matches!(
             self,
-            Self::String | Self::Bytes | Self::OnceFunction | Self::OnceFunctionI64
+            Self::String
+                | Self::Bytes
+                | Self::OnceFunction
+                | Self::OnceFunctionI64
+                | Self::OnceFunctionI64Pair
         )
     }
     pub fn is_compiler_byte_option(&self) -> bool {
@@ -204,6 +212,7 @@ impl ResolvedType {
             Self::Function { .. }
             | Self::OnceFunction
             | Self::OnceFunctionI64
+            | Self::OnceFunctionI64Pair
             | Self::Unit
             | Self::I64
             | Self::I32
@@ -241,6 +250,9 @@ impl ResolvedType {
                     }
                     Self::OnceFunction => keys.push("fn-once:bytes:i64:v1".to_owned()),
                     Self::OnceFunctionI64 => keys.push("fn-once:bytes+i64:i64:v2".to_owned()),
+                    Self::OnceFunctionI64Pair => {
+                        keys.push("fn-once:bytes+i64+i64:i64:v3".to_owned())
+                    }
                     Self::Unit => keys.push("unit".to_owned()),
                     Self::I64 => keys.push("i64".to_owned()),
                     Self::I32 => keys.push("i32".to_owned()),

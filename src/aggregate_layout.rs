@@ -264,6 +264,7 @@ fn layout_type(
         }
         ResolvedType::OnceFunction
         | ResolvedType::OnceFunctionI64
+        | ResolvedType::OnceFunctionI64Pair
         | ResolvedType::Function { .. } => Err(layout_error(
             "function values cannot appear in executable aggregate layouts v1",
         )),
@@ -554,6 +555,7 @@ fn concrete_layout_instance_is_admitted(
                 | ResolvedType::TypeParameter { .. }
                 | ResolvedType::OnceFunction
                 | ResolvedType::OnceFunctionI64
+                | ResolvedType::OnceFunctionI64Pair
                 | ResolvedType::Function { .. },
                 _,
             ) => return false,

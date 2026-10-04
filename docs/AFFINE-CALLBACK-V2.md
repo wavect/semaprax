@@ -6,6 +6,8 @@ Audience: compiler contributors and native Rust callback adapter authors.
 This extends [Retained affine callback v1](AFFINE-CALLBACK-V1.md) with the
 separate owned type `FnOnceI64() -> i64`. Its environment has exactly two
 ordered captures: one owned `Bytes`, followed by one copied value `i64`.
+The v3 `FnOnceI64Pair() -> i64` profile has one fixed ordered capture record:
+one owned `Bytes`, followed by two copied `i64` values.
 The original `FnOnce() -> i64` type, graph v62 selection, cache tags, intrinsic
 identities and native carrier remain unchanged.
 
@@ -37,8 +39,9 @@ fn main() -> i64
 
 The `once fn` literal's exact tail-call shape selects its type: one direct
 `Bytes` binding selects v1; `Bytes` followed by one direct available `i64`
-binding selects v2. The target must be a pure monomorphic local function with
-exact `(own Bytes, i64) -> i64` signature. The scalar may be mutable, but
+binding selects v2; `Bytes` followed by two direct available `i64` bindings
+selects v3. The target must be a pure monomorphic local function with the
+matching exact `(own Bytes, i64...) -> i64` signature. Each scalar may be mutable, but
 construction copies its current value into the retained environment, so later
 writes to the outer binding cannot alias the callback. Computed scalar operands,
 borrowed captures, extra captures and generic creation sites remain closed.
@@ -55,6 +58,7 @@ checked target. The owned capture and callback each move once; reuse remains
 
 Graph v63 records the `affine_function` profile `bytes-i64-to-i64.v2`, both
 ordered captures, the checked derived body, and the ordinary cleanup plan.
+Graph v64 records `bytes-i64-i64-to-i64.v3` and its three ordered captures.
 Graphs containing only v1 affine values retain v62. Replay refuses altered
 capture schemas and cleanup facts.
 
@@ -70,6 +74,13 @@ this boundary complete: no omitted operand can fail, allocate, mutate, borrow,
 or transfer another owner. A future computed or owning capture needs a new
 boundary and replay contract.
 
+V3 uses `core.fn_once_i64_pair.construct.v3`,
+`core.fn_once_i64_pair.invoke.v3`, and `core.fn_once_i64_pair.drop.v3`.
+It stages and commits only the `Bytes` owner, then snapshots its two direct
+scalar places in source order. The interpreter, native C, Core Wasm and the
+generated Rust bridge preserve this order; unused-drop settles only the byte
+owner.
+
 Native C uses the separate `spx_once_i64_v2` carrier and a typed entry accepting
 `Bytes`, `i64`, and the ordinary checked output/status parameters. Core Wasm
 uses its existing fixed environment, with the owned byte token in slot zero
@@ -82,8 +93,8 @@ Modules with only affine helper signatures still select the owned runtime and
 carrier declarations. This selection does not fabricate a closure definition or
 change the graph projection.
 
-The inert `prepare_native_rust_affine_callback` projection accepts either exact
-factory result type. V2 selects a separate source revision domain and typed C
+The inert `prepare_native_rust_affine_callback` projection accepts all exact
+factory result types in this document. V2 and v3 select separate source revision domains and typed C
 bridge. The safe Rust owner and same-thread retained lease keep v1's consumption
 and teardown rules. No foreign trait-object layout or cross-thread ABI is added.
 

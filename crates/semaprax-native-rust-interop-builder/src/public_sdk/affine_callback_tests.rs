@@ -60,6 +60,22 @@ fn mixed_affine_capture_rust_consumer_snapshots_mutable_source_state() {
     physical_consumer(&source);
 }
 
+#[test]
+fn paired_affine_capture_rust_consumer_retains_ordered_scalar_snapshots() {
+    let source = SOURCE
+        .replace("FnOnce()", "FnOnceI64Pair()")
+        .replace(
+            "consume(payload: own Bytes) -> i64 { 42 }",
+            "consume(payload: own Bytes, first: i64, second: i64) -> i64 { first + second }",
+        )
+        .replace(
+            "let payload =",
+            "let first = 40; let second = 2; let payload =",
+        )
+        .replace("consume(payload) }", "consume(payload, first, second) }");
+    physical_consumer(&source);
+}
+
 fn physical_consumer(source: &str) {
     let root = Temp(std::env::temp_dir().join(format!(
         "spx-affine-rust-{}-{}",
@@ -86,6 +102,10 @@ fn physical_consumer(source: &str) {
                 .replace(
                     "-> i64 { offset + 2 }",
                     "-> i64 ensures false { offset + 2 }",
+                )
+                .replace(
+                    "-> i64 { first + second }",
+                    "-> i64 ensures false { first + second }",
                 ),
             CALL_FAILURE,
             true,
@@ -100,6 +120,10 @@ fn physical_consumer(source: &str) {
                 .replace(
                     "fn make() -> FnOnceI64() -> i64 {",
                     "fn make() -> FnOnceI64() -> i64 ensures false {",
+                )
+                .replace(
+                    "fn make() -> FnOnceI64Pair() -> i64 {",
+                    "fn make() -> FnOnceI64Pair() -> i64 ensures false {",
                 ),
             CREATE_FAILURE,
             true,

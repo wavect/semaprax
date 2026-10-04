@@ -14,7 +14,7 @@ use std::sync::{
 
 use super::{
     with_authenticated_project, HotReloadFailure, HotReloadPlan, HotReloadSession,
-    PreparedProjectInterpreterOptions, ProjectRevision,
+    HotReloadSourceAgentHandoffStatus, PreparedProjectInterpreterOptions, ProjectRevision,
 };
 use crate::diagnostic::Diagnostic;
 
@@ -203,6 +203,76 @@ impl HotReloadWatcher {
     /// disk inputs before delegating to HR-01, so a historical candidate cannot
     /// activate after a later save.
     pub fn activate(&mut self, plan: HotReloadPlan) -> Result<(), HotReloadWatcherFailure> {
+        self.confirm_activation_candidate()?;
+        self.session.activate(plan).map_err(watcher_failure)?;
+        self.pending_candidate_revision = None;
+        Ok(())
+    }
+
+    /// Runs the authenticated source-Agent owner at the same activation
+    /// boundary as an interpreter replacement. The watcher retains the
+    /// compiler-checked predecessor until the owner has replayed the opaque
+    /// handoff row; it never supplies checkpoint, provider, or journal
+    /// authority itself.
+    pub fn activate_source_agent(
+        &mut self,
+        plan: HotReloadPlan,
+        activate: impl FnOnce(&mut HotReloadSession, HotReloadPlan) -> Result<(), ()>,
+    ) -> Result<(), HotReloadWatcherFailure> {
+        self.confirm_activation_candidate()?;
+        let expected_generation = self.session.generation().checked_add(1).ok_or_else(|| {
+            HotReloadWatcherFailure::diagnostics(vec![Diagnostic::io(
+                "SPX-HR401",
+                "source-Agent activation generation is exhausted",
+            )])
+        })?;
+        let expected_revision = self.pending_candidate_revision.clone().ok_or_else(|| {
+            HotReloadWatcherFailure::diagnostics(vec![Diagnostic::io(
+                "SPX-HR401",
+                "source-Agent activation has no pending candidate",
+            )])
+        })?;
+        if plan.source_agent_handoffs().is_empty() {
+            return Err(HotReloadWatcherFailure::diagnostics(vec![Diagnostic::io(
+                "SPX-HR401",
+                "source-Agent activation requires a compiler-derived handoff",
+            )]));
+        }
+        if activate(&mut self.session, plan).is_err() {
+            return Err(self
+                .source_agent_activation_failure("source-Agent handoff owner refused activation"));
+        }
+        if self.session.generation() != expected_generation
+            || self.session.active_project_revision() != expected_revision
+            || self.session.source_agent_handoff_status()
+                != HotReloadSourceAgentHandoffStatus::Activated
+        {
+            self.session.refuse_source_agent_handoff(true);
+            return Err(self.source_agent_activation_failure(
+                "source-Agent handoff owner did not acknowledge the exact candidate",
+            ));
+        }
+        self.pending_candidate_revision = None;
+        Ok(())
+    }
+
+    fn source_agent_activation_failure(
+        &mut self,
+        ordinary: &'static str,
+    ) -> HotReloadWatcherFailure {
+        if self.session.terminal() {
+            self.pending_candidate_revision = None;
+            self.state = HotReloadWatchState::Failed;
+            HotReloadWatcherFailure::diagnostics(vec![Diagnostic::io(
+                "SPX-HR401",
+                "source-Agent activation acknowledgement is uncertain",
+            )])
+        } else {
+            HotReloadWatcherFailure::diagnostics(vec![Diagnostic::io("SPX-HR401", ordinary)])
+        }
+    }
+
+    fn confirm_activation_candidate(&mut self) -> Result<(), HotReloadWatcherFailure> {
         if self.observe_stop_request() {
             return Err(HotReloadWatcherFailure::stopped());
         }
@@ -226,8 +296,6 @@ impl HotReloadWatcher {
                 "Project inputs changed after reload candidate admission",
             )]));
         }
-        self.session.activate(plan).map_err(watcher_failure)?;
-        self.pending_candidate_revision = None;
         Ok(())
     }
 
@@ -522,6 +590,34 @@ mod tests {
         watcher.record(HotReloadWatchEvent::Modify(app));
         assert_eq!(watcher.poll(), HotReloadWatcherUpdate::CandidateAdmitted);
         assert!(watcher.activate(b).is_err());
+    }
+
+    #[test]
+    fn injected_source_agent_owner_cannot_claim_an_ordinary_reload_plan() {
+        let _guard = test_guard();
+        let fixture = Fixture::new();
+        let mut watcher = HotReloadWatcher::start(
+            &fixture.manifest(),
+            PreparedProjectInterpreterOptions::default(),
+        )
+        .unwrap();
+        let app = fixture.0.join("src/app.spx");
+        fixture.rewrite("multiply(6, 7)", "multiply(6, 8)");
+        watcher.record(HotReloadWatchEvent::Modify(app));
+        assert_eq!(watcher.poll(), HotReloadWatcherUpdate::CandidateAdmitted);
+        let plan = watcher.session().plan().unwrap();
+        let invoked = Arc::new(AtomicBool::new(false));
+        let observed = Arc::clone(&invoked);
+        assert!(watcher
+            .activate_source_agent(plan, move |_, _| {
+                observed.store(true, Ordering::Release);
+                Ok(())
+            })
+            .is_err());
+        assert!(
+            !invoked.load(Ordering::Acquire),
+            "an injected host cannot convert a code-only plan into Agent authority"
+        );
     }
 
     #[test]

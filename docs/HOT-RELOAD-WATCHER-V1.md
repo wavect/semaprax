@@ -55,13 +55,18 @@ consumer release the watcher and discard any retained plan before the CLI
 returns.
 
 `invoke` explicitly runs the current prepared interpreter entry after a
-successful start or activation; a save itself never runs it. The source-Agent
-handoff decision remains a migration-required report until the authenticated
-source-live contract owns its execution. `--source-agent` therefore refuses
-`start` without retaining a session: the CLI has no checkpoint, proposal
-source, read operation, checkpoint store, clock, or cancellation authority to
-provide to that contract. This adapter neither starts an Agent runtime nor
-treats a handoff selection as activation authority.
+successful start or activation; a save itself never runs it. The public
+`semaprax` binary refuses `--source-agent` at `start`: it has no source-live
+host authority. The unpublished `semaprax-full` toolchain may select that lane
+only with the exact closed operands of `source-live migrate` after
+`--source-agent`: prior and destination configuration and checkpoint paths,
+migration function and bound, then explicit `--opencode` executable and empty
+`--scratch` directory. At `activate`, the adapter passes the retained A
+revision and opaque compiler handoff to the source-live owner. That owner
+replays the handoff, authenticates the predecessor journal, claims one fresh
+destination journal, and performs the sole destination traversal. It currently
+refuses priced or I/O-profiled source-live configurations, and never treats
+the selection row as checkpoint, provider, policy, or cancellation authority.
 
 Both output modes expose terminal uncertainty. JSONL retains the closed
 `terminal_uncertainty` boolean; human mode prints `terminal_uncertainty` on

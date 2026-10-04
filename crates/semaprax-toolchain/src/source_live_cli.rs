@@ -61,6 +61,18 @@ pub fn run(arguments: &[String]) -> Result<String, (String, u8)> {
     result.map_err(|error| (error.reason, error.code))
 }
 
+/// Private-host bridge for `dev --source-agent`. Its operands are the closed
+/// source-live `migrate` command, so checkpoint, provider and policy authority
+/// remain explicit and owned by this module.
+pub fn run_hot_reload_migration(
+    supervisor: &mut semaprax::project::HotReloadSession,
+    plan: semaprax::project::HotReloadPlan,
+    arguments: &[String],
+) -> Result<(), (String, u8)> {
+    run::execute_hot_reload_migration(supervisor, plan, arguments)
+        .map_err(|error| (error.reason, error.code))
+}
+
 /// Run the durable V2/V3 repair route with an explicitly injected candidate-test
 /// observer. Ordinary [`run`] calls never acquire this capability.
 pub fn run_repair_with_candidate_test(

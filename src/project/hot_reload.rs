@@ -330,6 +330,13 @@ impl HotReloadSession {
         self.active.project_revision()
     }
 
+    /// Retained checked predecessor for an explicitly selected source-Agent
+    /// migration owner. This exposes no host capability; the owner must still
+    /// bind its policy, journal, provider and checkpoint independently.
+    pub fn retained_active_project(&self) -> Arc<ProjectRevision> {
+        Arc::clone(&self.active)
+    }
+
     pub fn terminal(&self) -> bool {
         self.terminal
     }

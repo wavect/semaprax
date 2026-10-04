@@ -30,6 +30,10 @@ enum OutputMode {
 enum Lane {
     Interpreter,
     SourceAgentUnsupported,
+    SourceAgent {
+        hook: super::SourceAgentDevHook,
+        arguments: Vec<String>,
+    },
 }
 
 /// Owns the in-process state which must be released before any stdio exit.
@@ -123,7 +127,10 @@ impl<'de> Deserialize<'de> for Request {
     }
 }
 
-pub(super) fn run(args: &[String]) -> Result<(), u8> {
+pub(super) fn run(
+    args: &[String],
+    source_agent_hook: Option<super::SourceAgentDevHook>,
+) -> Result<(), u8> {
     let (manifest, format, lane) = match args {
         [manifest, format] => (manifest, format, Lane::Interpreter),
         [manifest, format, lane] if lane == "--interpreter" => {
@@ -132,9 +139,22 @@ pub(super) fn run(args: &[String]) -> Result<(), u8> {
         [manifest, format, lane] if lane == "--source-agent" => {
             (manifest, format, Lane::SourceAgentUnsupported)
         }
+        [manifest, format, lane, arguments @ ..] if lane == "--source-agent" => {
+            match source_agent_hook {
+                Some(hook) if !arguments.is_empty() => (
+                    manifest,
+                    format,
+                    Lane::SourceAgent {
+                        hook,
+                        arguments: arguments.to_vec(),
+                    },
+                ),
+                _ => (manifest, format, Lane::SourceAgentUnsupported),
+            }
+        }
         _ => {
             eprintln!(
-                "dev requires <semaprax.toml> --jsonl|--human [--interpreter|--source-agent]"
+                "dev requires <semaprax.toml> --jsonl|--human [--interpreter|--source-agent <explicit-source-live-migrate-operands>]"
             );
             return Err(2);
         }
@@ -144,13 +164,13 @@ pub(super) fn run(args: &[String]) -> Result<(), u8> {
         "--human" => OutputMode::Human,
         _ => {
             eprintln!(
-                "dev requires <semaprax.toml> --jsonl|--human [--interpreter|--source-agent]"
+                "dev requires <semaprax.toml> --jsonl|--human [--interpreter|--source-agent <explicit-source-live-migrate-operands>]"
             );
             return Err(2);
         }
     };
     if manifest.is_empty() || manifest.starts_with('-') {
-        eprintln!("dev requires <semaprax.toml> --jsonl|--human [--interpreter|--source-agent]");
+        eprintln!("dev requires <semaprax.toml> --jsonl|--human [--interpreter|--source-agent <explicit-source-live-migrate-operands>]");
         return Err(2);
     }
     let stdin = io::stdin();
@@ -201,7 +221,7 @@ fn run_jsonl(
         previous_id = Some(request.id);
         match request.op.as_str() {
             "start" => {
-                if matches!(lane, Lane::SourceAgentUnsupported) {
+                if matches!(&lane, Lane::SourceAgentUnsupported) {
                     write_error(output, mode, request.id, "source-Agent development sessions require the authenticated source-live migration adapter")?;
                     continue;
                 }
@@ -254,17 +274,69 @@ fn run_jsonl(
                 None => write_error(output, mode, request.id, "session is not started")?,
             },
             "activate" => match (session.watcher.as_mut(), session.retained_plan.take()) {
-                (Some(value), Some(plan)) => match value.activate(plan) {
-                    Ok(()) => write_status(output, request.id, value, "activated", None, mode)?,
-                    Err(_) => {
-                        write_status(output, request.id, value, "activation_rejected", None, mode)?
+                (Some(value), Some(plan)) => {
+                    let retained_source_agent_plan =
+                        matches!(&lane, Lane::SourceAgent { .. }).then(|| plan.clone());
+                    let activation = match &lane {
+                        Lane::Interpreter | Lane::SourceAgentUnsupported => value.activate(plan),
+                        Lane::SourceAgent { hook, arguments } => {
+                            let mut refusal = None;
+                            let result = value.activate_source_agent(plan, |supervisor, plan| {
+                                match hook(supervisor, plan, arguments) {
+                                    Ok(()) => Ok(()),
+                                    Err((message, _)) => {
+                                        refusal = Some(message);
+                                        Err(())
+                                    }
+                                }
+                            });
+                            if let Err(error) = result {
+                                Err(error)
+                            } else {
+                                Ok(())
+                            }
+                        }
+                    };
+                    match activation {
+                        Ok(()) => write_status(output, request.id, value, "activated", None, mode)?,
+                        Err(_) if value.session().terminal() => write_status(
+                            output,
+                            request.id,
+                            value,
+                            "terminal_uncertainty",
+                            None,
+                            mode,
+                        )?,
+                        Err(_) => {
+                            if let Some(plan) = retained_source_agent_plan {
+                                session.retained_plan = Some(plan);
+                            }
+                            if let Some(message) = refusal {
+                                write_error(output, mode, request.id, &message)?;
+                            } else {
+                                write_status(
+                                    output,
+                                    request.id,
+                                    value,
+                                    "activation_rejected",
+                                    None,
+                                    mode,
+                                )?;
+                            }
+                        }
                     }
-                },
+                }
                 (Some(_), None) => {
                     write_error(output, mode, request.id, "no retained activation plan")?
                 }
                 (None, _) => write_error(output, mode, request.id, "session is not started")?,
             },
+            "invoke" if matches!(&lane, Lane::SourceAgent { .. }) => write_error(
+                output,
+                mode,
+                request.id,
+                "source-Agent execution remains owned by the authenticated source-live session",
+            )?,
             "invoke" => match session.watcher.as_ref() {
                 Some(value) => match value.session().execute_entry(
                     &PreparedProjectExecutionOptions::default(),

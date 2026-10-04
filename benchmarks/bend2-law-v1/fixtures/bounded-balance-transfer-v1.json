@@ -1,0 +1,21 @@
+{
+  "schema": "semaprax.bend2-law-benchmark.bounded-balance-transfer.v1",
+  "status": "preregistered_fixed_witness",
+  "domain": {
+    "values": [20, 30, 7],
+    "result_values": [13, 37, 50],
+    "admitted_range": "0..100 inclusive",
+    "overflow_policy": "the fixture only admits values whose exact results are in 0..100; Bend U32 and SEMAPRAX i64 therefore have identical arithmetic for this witness"
+  },
+  "laws": [
+    "debit_after == 13",
+    "credit_after == 37",
+    "debit_after + credit_after == 50"
+  ],
+  "attack": "replace the debit update 20 - 7 with 20 while preserving the three claimed laws",
+  "nonclaims": [
+    "this fixed witness is not a checked-u32 scalar cell",
+    "this bounded transfer witness does not establish behavior outside 0..100",
+    "no agent, timing, cost, or comparative result is present"
+  ]
+}

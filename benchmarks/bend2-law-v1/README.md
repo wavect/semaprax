@@ -157,6 +157,31 @@ successful matched trial or use an `i32` substitute.
 
 ## Pinned Bend Boolean smoke fixture
 
+## Bounded balance-transfer preflight
+
+`bounded_balance_preflight.py` establishes the next feasible matched witness
+without relabelling it as the unavailable checked-`u32` cell. It fixes debit,
+credit, and amount to `20`, `30`, and `7`; all intermediate and result values
+are in `0..100`, where Bend `U32` and SEMAPRAX `i64` agree. Bend checks and
+verifies its three literal laws, while the project-bound installed-Z3 route
+separately discharges the scalar debit, credit, and total postconditions. The
+seeded no-debit source must fail Bend on both routes and Z3 for debit and total;
+its unchanged credit clause is expected to remain provable.
+
+```sh
+python3 benchmarks/bend2-law-v1/bounded_balance_preflight.py \
+  --bend-root /tmp/bend2-law-source --bun /absolute/path/to/bun \
+  --semaprax /absolute/path/to/semaprax --z3 /absolute/path/to/z3 \
+  --artifacts /secure/local/law16-bounded-balance-artifacts \
+  --output /secure/local/law16-bounded-balance.json
+```
+
+The project-proof command refuses projects below `/tmp`; choose a real local
+directory such as `/secure/local` for the retained artifacts. This is a fixed
+bounded witness with local source proof. It does not establish general transfer
+semantics, checked-`u32` support, lowering or execution proof, an agent trial,
+or a language comparison.
+
 The following local-only provisioning sequence fetches the pinned Bend source
 without building it or placing it in this repository:
 

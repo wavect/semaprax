@@ -325,6 +325,12 @@ confinement or distributed locking. The checkpoint is the persistence boundary;
 `DatabaseFixture` remains an in-memory decision mirror, not a physical database
 transaction with application state.
 
+The generation-backed job-store seam leaves a crash-left staging file in place:
+it never promotes, reads, or deletes that uncommitted file during `open`.
+Recovery scans its bounded owned staging namespace and allocates later names;
+an excessive or exhausted namespace refuses open. This avoids reusing an
+ambiguous stage while writer exclusion remains a separate store concern.
+
 Execution checkpoints a claim and then `Running` before invoking the handler.
 Recovery replays the original attempt times, expires an unstarted lease at its
 recorded deadline, and turns a retained `Running` attempt into `Uncertain`.

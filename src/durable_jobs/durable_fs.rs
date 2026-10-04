@@ -142,6 +142,50 @@ pub fn ensure_dir(dir: &Path) -> io::Result<PathBuf> {
     Ok(dir.to_path_buf())
 }
 
+/// Find the first stage sequence that cannot name a stage left by an earlier
+/// store instance.  A process can stop after creating a stage file but before
+/// the best-effort cleanup in [`commit_bytes_with_hook`]; recovery must leave
+/// that unknown file alone and choose a later name instead.
+///
+/// Only the two names owned by `GenerationJobStore` are considered.  The
+/// scan is capped so a malformed root cannot turn opening the small local
+/// store into unbounded work.  Reaching the cap is an I/O refusal rather than
+/// permission to reuse an ambiguous stage name.
+pub(crate) fn next_job_stage_sequence(directories: [&Path; 2]) -> io::Result<u64> {
+    const MAX_OWNED_STAGES: usize = 1024;
+    const PREFIXES: [&str; 2] = [".stage-generation-", ".stage-active-"];
+
+    let mut owned_stages = 0usize;
+    let mut highest = None;
+    for directory in directories {
+        for entry in fs::read_dir(directory)? {
+            let name = entry?.file_name();
+            let Some(name) = name.to_str() else {
+                continue;
+            };
+            let Some(suffix) = PREFIXES.iter().find_map(|prefix| name.strip_prefix(prefix)) else {
+                continue;
+            };
+            let Ok(sequence) = suffix.parse::<u64>() else {
+                continue;
+            };
+            owned_stages = owned_stages
+                .checked_add(1)
+                .ok_or_else(|| io::Error::other("owned stage count overflow"))?;
+            if owned_stages > MAX_OWNED_STAGES {
+                return Err(io::Error::other("too many abandoned job stages"));
+            }
+            highest = Some(highest.map_or(sequence, |current: u64| current.max(sequence)));
+        }
+    }
+    match highest {
+        Some(sequence) => sequence
+            .checked_add(1)
+            .ok_or_else(|| io::Error::other("job stage sequence exhausted")),
+        None => Ok(0),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

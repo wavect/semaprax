@@ -251,6 +251,71 @@ fn reopening_an_empty_directory_starts_a_fresh_empty_store() {
     fs::remove_dir_all(&dir).ok();
 }
 
+#[test]
+fn reopening_skips_crash_left_stages_without_deleting_or_promoting_them() {
+    let dir = tempdir("crash-left-stages");
+    let generations = dir.join("generations");
+    fs::create_dir(&generations).unwrap();
+    let generation_stage = generations.join(".stage-generation-0");
+    let active_stage = dir.join(".stage-active-1");
+    fs::write(&generation_stage, b"incomplete-generation").unwrap();
+    fs::write(&active_stage, b"incomplete-active").unwrap();
+
+    let mut store = GenerationJobStore::open(&dir).unwrap();
+    assert!(matches!(
+        store
+            .enqueue(request(b"after-crash", b"payload", 3, 0))
+            .unwrap(),
+        EnqueueOutcome::Created(_)
+    ));
+    assert_eq!(
+        fs::read(&generation_stage).unwrap(),
+        b"incomplete-generation"
+    );
+    assert_eq!(fs::read(&active_stage).unwrap(), b"incomplete-active");
+
+    // Reopening again must still select a fresh stage, even though the
+    // preexisting crash artifacts remain intentionally untouched.
+    let mut reopened = GenerationJobStore::open(&dir).unwrap();
+    assert!(matches!(
+        reopened
+            .enqueue(request(b"after-second-reopen", b"payload", 3, 1))
+            .unwrap(),
+        EnqueueOutcome::Created(_)
+    ));
+    assert_eq!(reopened.table.jobs.len(), 2);
+    assert_eq!(
+        fs::read(&generation_stage).unwrap(),
+        b"incomplete-generation"
+    );
+    assert_eq!(fs::read(&active_stage).unwrap(), b"incomplete-active");
+    fs::remove_dir_all(&dir).ok();
+}
+
+#[test]
+fn opening_refuses_a_bounded_namespace_of_abandoned_stages() {
+    let dir = tempdir("too-many-crash-left-stages");
+    let generations = dir.join("generations");
+    fs::create_dir(&generations).unwrap();
+    for sequence in 0..=1024 {
+        fs::write(
+            generations.join(format!(".stage-generation-{sequence}")),
+            b"uncommitted",
+        )
+        .unwrap();
+    }
+
+    assert!(matches!(
+        GenerationJobStore::open(&dir),
+        Err(JobStoreError::Io)
+    ));
+    assert_eq!(
+        fs::read(generations.join(".stage-generation-0")).unwrap(),
+        b"uncommitted"
+    );
+    fs::remove_dir_all(&dir).ok();
+}
+
 // ---------------------------------------------------------------------
 // Determinism: identical operation sequences produce byte-identical
 // generations, and job ids are assigned in a fixed, replayable order.

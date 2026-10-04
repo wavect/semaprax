@@ -127,18 +127,29 @@ impl GenerationJobStore {
                 (generation, table)
             }
         };
+        // A terminated process can leave a `create_new` stage behind.  Do
+        // not remove or promote it: it may be live, foreign, or incomplete.
+        // Start after every owned stage sequence observed in both directories
+        // so this reopened handle cannot collide with the crashed attempt.
+        let stage_seq = durable_fs::next_job_stage_sequence([root, &generations_dir])
+            .map_err(|_| JobStoreError::Io)?;
         Ok(GenerationJobStore {
             generations_dir,
             active_path,
             current_generation,
             table,
-            stage_seq: AtomicU64::new(0),
+            stage_seq: AtomicU64::new(stage_seq),
         })
     }
 
-    fn next_stage_name(&self, label: &str) -> String {
-        let seq = self.stage_seq.fetch_add(1, Ordering::Relaxed);
-        format!(".stage-{label}-{seq}")
+    fn next_stage_name(&self, label: &str) -> Result<String, JobStoreError> {
+        let seq = self
+            .stage_seq
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
+                current.checked_add(1)
+            })
+            .map_err(|_| JobStoreError::Io)?;
+        Ok(format!(".stage-{label}-{seq}"))
     }
 
     /// Durably publish `candidate` as the next generation, then adopt it as
@@ -155,10 +166,10 @@ impl GenerationJobStore {
             .checked_add(1)
             .ok_or(JobStoreError::TickOverflow)?;
         let generation_path = self.generations_dir.join(new_generation.to_string());
-        let generation_stage = self.next_stage_name("generation");
+        let generation_stage = self.next_stage_name("generation")?;
         durable_fs::commit_bytes(&generation_path, &generation_stage, &bytes)
             .map_err(|_| JobStoreError::Io)?;
-        let pointer_stage = self.next_stage_name("active");
+        let pointer_stage = self.next_stage_name("active")?;
         durable_fs::commit_bytes(
             &self.active_path,
             &pointer_stage,
@@ -182,9 +193,13 @@ impl GenerationJobStore {
         let bytes = codec::encode(&candidate).ok_or_else(|| io::Error::other("too large"))?;
         let new_generation = self.current_generation + 1;
         let generation_path = self.generations_dir.join(new_generation.to_string());
-        let generation_stage = self.next_stage_name("generation");
+        let generation_stage = self
+            .next_stage_name("generation")
+            .map_err(|_| io::Error::other("job stage sequence exhausted"))?;
         durable_fs::commit_bytes_with_hook(&generation_path, &generation_stage, &bytes, hook)?;
-        let pointer_stage = self.next_stage_name("active");
+        let pointer_stage = self
+            .next_stage_name("active")
+            .map_err(|_| io::Error::other("job stage sequence exhausted"))?;
         durable_fs::commit_bytes_with_hook(
             &self.active_path,
             &pointer_stage,

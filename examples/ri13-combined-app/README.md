@@ -18,6 +18,20 @@ does not admit the M1 owner imports or M2 record/callback projection in one
 Project. The receipt is a combined executable gate for the three
 real application paths, not a claim that those source profiles are one ABI.
 
+`unified-project/` is the concrete authored one-Project candidate. It combines
+the M1 imports, M2 declarations, and M3 yielding export under
+`source-local-future.v1`. Its M1 `[rust-dependencies]` make the manifest reject
+with `SPX-J100`: dependency tables require the scalar profile. The regression
+keeps this limitation executable. The successful `linked/prepare` path writes
+one generated subject binding for the authenticated M1, M2, and M3 inputs, and
+the consumer build refuses to link without it.
+
+M1's committed Regex and Url API indexes are `aarch64-apple-darwin` inputs.
+Their package generator requires the current native target, so a Linux x86_64
+attempt correctly stops at `SPX-B112` before it can produce the linked M1
+packages. This is an acceptance limit of the pinned M1 input, not a fallback
+or a reason to retarget its authenticated index.
+
 ## Reproduce
 
 From the repository root, use a private target directory in this checkout and

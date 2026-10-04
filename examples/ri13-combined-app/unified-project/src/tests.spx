@@ -1,0 +1,7 @@
+module ri13.unified_project_tests;
+
+@id("ri13.unified_project_tests.main")
+fn main() -> i64
+{
+    0
+}

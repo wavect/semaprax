@@ -12,6 +12,9 @@ EXAMPLES = ROOT.parent
 M1_PROJECT = EXAMPLES / "ri13-m1-regex-url/project"
 M2_PROJECT = EXAMPLES / "ri13-m2-record-iterator/project"
 M3_PROJECT = EXAMPLES / "ri13-m3-local-http/project"
+UNIFIED_PROJECT = ROOT / "unified-project"
+M1_REGEX_INDEX = EXAMPLES.parent / "crates/semaprax-rust-api-index/fixtures/regex-1.13.1-index-envelope.json"
+M1_URL_INDEX = EXAMPLES.parent / "crates/semaprax-rust-api-index/fixtures/url-2.5.8-index-envelope.json"
 PATHS = {
     "m1_manifest": M1_PROJECT / "semaprax.toml",
     "m1_source": M1_PROJECT / "src/app.spx",
@@ -22,6 +25,11 @@ PATHS = {
     "m3_manifest": M3_PROJECT / "semaprax.toml",
     "m3_source": M3_PROJECT / "src/app.spx",
     "m3_tests": M3_PROJECT / "src/tests.spx",
+    "unified_manifest": UNIFIED_PROJECT / "semaprax.toml",
+    "unified_source": UNIFIED_PROJECT / "src/app.spx",
+    "unified_tests": UNIFIED_PROJECT / "src/tests.spx",
+    "m1_regex_index": M1_REGEX_INDEX,
+    "m1_url_index": M1_URL_INDEX,
     "consumer_cargo": ROOT / "linked/Cargo.toml",
     "consumer_lock": ROOT / "linked/Cargo.lock",
     "prepare_cargo": ROOT / "linked/prepare/Cargo.toml",
@@ -46,7 +54,9 @@ def digest(path):
 
 
 def label(path):
-    return str(path.relative_to(EXAMPLES))
+    if path.is_relative_to(EXAMPLES):
+        return str(path.relative_to(EXAMPLES))
+    return str(path.relative_to(EXAMPLES.parent))
 
 
 def read_sources():
@@ -68,6 +78,12 @@ def validate_sources(sources):
     for identity in ("ri13.event", "callback.factory", "callback.advance"):
         require(sources, "m2_source", f'@id("{identity}")')
     require(sources, "m3_source", '@id("ri13.m3.score")')
+    require(sources, "unified_manifest", 'profile = "source-local-future.v1"')
+    require(sources, "unified_manifest", "[rust-dependencies]")
+    for identity in REQUIRED_IDENTITIES:
+        require(sources, "unified_source", f'@id("{identity}")')
+    for index in ("m1_regex_index", "m1_url_index"):
+        require(sources, index, '"target":"aarch64-apple-darwin"')
 
     for fragment in (
         'let m1_project = examples.join("ri13-m1-regex-url/project")',
@@ -83,6 +99,8 @@ def validate_sources(sources):
         "with_authenticated_project(&m3_project.join(\"semaprax.toml\"),",
         "snapshot.render_source_local_future_rust_module()",
         'root.join("generated/m3.rs")',
+        'root.join("generated/linked-subject.json")',
+        "semaprax.ri13.linked-subject.v1",
     ):
         require(sources, "prepare", fragment)
 
@@ -102,6 +120,7 @@ def validate_sources(sources):
         'root.join("generated/regex/src/regex_project.c")',
         'root.join("generated/url/src/url_project.c")',
         'root.join("generated/m2/module.c")',
+        'root.join("generated/linked-subject.json")',
     ):
         require(sources, "build", fragment)
 
@@ -134,6 +153,18 @@ def receipt(sources):
             "m2": "source-local",
             "m3": "source-local-future.v1",
         },
+        "m1_index_target": {
+            "target": "aarch64-apple-darwin",
+            "admission": "host-native-only",
+            "linux_result": "SPX-B112",
+            "reason": "the pinned Rust API indexes are target-specific and the package generator requires the current native target",
+        },
+        "unified_project_candidate": {
+            "path": "ri13-combined-app/unified-project/semaprax.toml",
+            "admission": "refused",
+            "diagnostic": "SPX-J100",
+            "reason": "source-local-future.v1 rejects M1 [rust-dependencies]; no mixed-profile Project is admitted",
+        },
         "selected_identities": list(REQUIRED_IDENTITIES),
         "stages": ["prepare", "consumer"],
         "consumer_marker": "ri13-linked-project-ok",
@@ -164,6 +195,7 @@ def self_test():
     assert document["schema"] == "semaprax.ri13.linked-project-receipt.v2"
     assert document["stages"] == ["prepare", "consumer"]
     assert document["consumer_marker"] == "ri13-linked-project-ok"
+    assert document["unified_project_candidate"]["diagnostic"] == "SPX-J100"
     assert document["copied_byte_ledger"]["m3_generated_boundary"] == {
         "status": "exact",
         "copied_bytes_per_invocation": 0,

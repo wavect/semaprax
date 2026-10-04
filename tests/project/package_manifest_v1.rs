@@ -24,6 +24,10 @@ use semaprax::{audit_capsule, package_lock_v3, package_registry, package_report_
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 
 const CALCULATOR_TABLES: &str = "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"calculator\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"calculator.app\"\nsources = [\"src/app.spx\", \"src/core.spx\", \"src/tests.spx\"]\ntests = [\"calculator.tests\"]\n\n[exports]\nweb = [\"calculator.add\", \"calculator.divide\", \"calculator.is-negative\", \"calculator.multiply\", \"calculator.not\", \"calculator.subtract\"]\n";
+const RI13_UNIFIED_PROJECT_MANIFEST: &str =
+    include_str!("../../examples/ri13-combined-app/unified-project/semaprax.toml");
+const RI13_UNIFIED_PROJECT_SOURCE: &str =
+    include_str!("../../examples/ri13-combined-app/unified-project/src/app.spx");
 
 const SPXGREP_TABLES: &str = "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"spxgrep\"\nversion = \"0.1.0\"\nprofile = \"useful-data-command.v1\"\n\n[modules]\nentry = \"spxgrep.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"spxgrep.tests\"]\n\n[exports]\nweb = [\"spxgrep.contains\"]\n\n[command]\nfunction = \"spxgrep.contains\"\n\n[capabilities]\nrequired = [\"process.stdout.write\"]\n";
 
@@ -172,6 +176,20 @@ fn codes(errors: &[semaprax::diagnostic::Diagnostic]) -> Vec<&str> {
 
 fn reject(source: &str) -> Vec<semaprax::diagnostic::Diagnostic> {
     ProjectManifest::parse(source).expect_err("manifest must reject")
+}
+
+#[test]
+fn ri13_unified_project_candidate_is_authored_but_refused_by_profile_admission() {
+    semaprax::parse(
+        RI13_UNIFIED_PROJECT_SOURCE,
+        Path::new("ri13-unified-project/src/app.spx"),
+    )
+    .expect("the unified candidate source remains parser-admitted");
+    let errors = reject(RI13_UNIFIED_PROJECT_MANIFEST);
+    assert_eq!(codes(&errors), ["SPX-J100"]);
+    assert!(errors[0]
+        .message
+        .contains("[dependency-sources] and [rust-dependencies] require the scalar profile"));
 }
 
 #[test]

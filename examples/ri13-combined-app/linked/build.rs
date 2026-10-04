@@ -6,11 +6,26 @@ fn main() {
         root.join("generated/url/src/url_project.c"),
         root.join("generated/m2/module.c"),
     ];
+    let linked_subject = root.join("generated/linked-subject.json");
     for source in &sources {
         println!("cargo:rerun-if-changed={}", source.display());
     }
-    if sources.iter().any(|source| !source.is_file()) {
+    println!("cargo:rerun-if-changed={}", linked_subject.display());
+    if sources.iter().any(|source| !source.is_file()) || !linked_subject.is_file() {
         return;
+    }
+    let binding = std::fs::read_to_string(&linked_subject).expect("linked subject binding");
+    for fragment in [
+        "\"schema\": \"semaprax.ri13.linked-subject.v1\"",
+        "\"m1_project_subject\": \"sha256:",
+        "\"m2_source_revision\": \"sha256:",
+        "\"m3_project_revision\": \"sha256:",
+        "\"candidate\": \"unified-project/semaprax.toml\"",
+    ] {
+        assert!(
+            binding.contains(fragment),
+            "linked subject binding is incomplete"
+        );
     }
     let clang = env::var_os("CLANG").expect("set absolute CLANG for linked RI-13 consumer");
     let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());

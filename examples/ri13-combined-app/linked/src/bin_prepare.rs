@@ -29,6 +29,13 @@ fn embed_generated_package(destination: &Path) {
         .expect("embedded package manifest");
 }
 
+fn require_fragment(source: &str, fragment: &str, subject: &str) {
+    assert!(
+        source.contains(fragment),
+        "linked RI-13 candidate {subject} is missing {fragment:?}"
+    );
+}
+
 fn main() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
     let examples = root.parent().unwrap().parent().unwrap();
@@ -43,6 +50,31 @@ fn main() {
     let m2_project = examples.join("ri13-m2-record-iterator/project");
     let m2_source_path = m2_project.join("app.spx");
     let m3_project = examples.join("ri13-m3-local-http/project");
+    // This is the authored one-Project candidate. It intentionally cannot be
+    // admitted today: `source-local-future.v1` rejects M1's dependency table.
+    // Keep it bound here so the successful generated linkage and the exact
+    // failed-unification boundary advance together.
+    let unified = root.parent().unwrap().join("unified-project");
+    let unified_manifest = fs::read_to_string(unified.join("semaprax.toml"))
+        .expect("authored unified Project candidate manifest");
+    let unified_source = fs::read_to_string(unified.join("src/app.spx"))
+        .expect("authored unified Project candidate source");
+    require_fragment(
+        &unified_manifest,
+        "profile = \"source-local-future.v1\"",
+        "manifest",
+    );
+    require_fragment(&unified_manifest, "[rust-dependencies]", "manifest");
+    for identity in [
+        "regex.run",
+        "url.run",
+        "ri13.event",
+        "callback.factory",
+        "callback.advance",
+        "ri13.m3.score",
+    ] {
+        require_fragment(&unified_source, &format!("@id(\"{identity}\")"), "source");
+    }
     let regex_index = RustApiIndex::admit_extractor_output(REGEX_INDEX).unwrap();
     let url_index = RustApiIndex::admit_extractor_output(URL_INDEX).unwrap();
     let regex_package = SelectedPackage {
@@ -153,12 +185,33 @@ fn main() {
         ),
     )
     .unwrap();
-    let m3 = with_authenticated_project(&m3_project.join("semaprax.toml"), |snapshot| {
-        snapshot.check()?;
-        snapshot.render_source_local_future_rust_module()
-    })
-    .expect("held M3 Future Project selection");
+    let (m3, m3_revision) =
+        with_authenticated_project(&m3_project.join("semaprax.toml"), |snapshot| {
+            snapshot.check()?;
+            let revision = snapshot.retain_revision();
+            Ok((
+                snapshot.render_source_local_future_rust_module()?,
+                revision.project_revision().to_owned(),
+            ))
+        })
+        .expect("held M3 Future Project selection");
     fs::write(root.join("generated/m3.rs"), m3).unwrap();
+    fs::write(
+        root.join("generated/linked-subject.json"),
+        format!(
+            concat!(
+                "{\n",
+                "  \"schema\": \"semaprax.ri13.linked-subject.v1\",\n",
+                "  \"m1_project_subject\": {:?},\n",
+                "  \"m2_source_revision\": {:?},\n",
+                "  \"m3_project_revision\": {:?},\n",
+                "  \"candidate\": \"unified-project/semaprax.toml\"\n",
+                "}\n"
+            ),
+            m1.subject_digest, m2.source_revision, m3_revision,
+        ),
+    )
+    .expect("linked subject binding");
     println!(
         "ri13-linked-prepared:{}:{}",
         m1.subject_digest, m2.source_revision

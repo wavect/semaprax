@@ -18,7 +18,7 @@ M3_SCHEMA = "semaprax.ri13.m3-batch-investigation.v1"
 ROUTES = ("direct_rust", "handwritten_adapter", "generated_semaprax")
 STAGES = (
     "m1_prepare", "m1_consumer", "m2_prepare", "m2_consumer",
-    "m3_prepare", "m3_consumer", "linked_prepare", "linked_consumer",
+    "m3_prepare", "m3_consumer", "m3_negative_controls", "linked_prepare", "linked_consumer",
 )
 THRESHOLD = 0.90
 

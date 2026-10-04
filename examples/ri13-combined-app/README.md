@@ -93,6 +93,13 @@ The JSON receipt intentionally separates three quantities:
 | `linked_copy_ledger` | M1 Regex buffer-scan input bytes and Regex/Url generated-adapter copy events and bytes, M2 generated mirror clone bytes, and scalar callback boundaries | `regex::Regex::is_match`, `url::Url::parse`, and Serde deserialization copies inside foreign implementations, which remain unavailable |
 | Linux evidence `receipt.json` `copy_accounting` | The executed M1 adapter, M2 generated mirror and scalar callback counts, each tagged `exact`; the M1 foreign-library, M2 deserialization and M3 HTTP/text domains tagged `unavailable` | A claim about copies inside the tagged unavailable foreign domains |
 
+`full_build_and_consumer_stages` also retains the exact ignored Project
+selector `ri13_m3::saved_m3_application_runs_offline_and_refuses_timeout_and_stale_binding_mutants`.
+It exercises the test-only wrong-host-return and dropped HTTP-status-check
+mutants, proves that omitting the timeout changes the route outcome, and
+refuses held-source drift. The test has a local loopback socket only; it does
+not grant generated code network authority.
+
 The M3 measurement requires the allocator instrumentation added with the
 RI-13 measurement work. The request count deliberately records `realloc` as
 one reallocation plus its old-size deallocation and new-size allocation. It

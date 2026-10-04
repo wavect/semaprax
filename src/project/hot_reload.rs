@@ -715,12 +715,17 @@ fn reachable_callable_closure<'a>(
 ) -> Option<BTreeMap<String, &'a ResolvedFunction>> {
     let mut functions = BTreeMap::new();
     for function in &program.functions {
-        functions.insert(function.id.as_str(), function).is_none()?;
+        if functions.insert(function.id.as_str(), function).is_some() {
+            return None;
+        }
     }
     for instance in &program.function_instances {
-        functions
+        if functions
             .insert(instance.id.as_str(), &instance.function)
-            .is_none()?;
+            .is_some()
+        {
+            return None;
+        }
     }
 
     let mut reachable = BTreeMap::new();
@@ -738,7 +743,7 @@ fn reachable_callable_closure<'a>(
             .chain(&function.ensures)
             .chain(std::iter::once(&function.body))
         {
-            crate::hir::inspection::visit_resolved_calls(expression, &mut |callee, instance, _| {
+            crate::hir::visit_resolved_calls(expression, &mut |callee, instance, _| {
                 calls.insert(
                     instance
                         .map_or_else(|| callee.as_str().to_owned(), |id| id.as_str().to_owned()),

@@ -253,7 +253,7 @@ export function spanDigest(file, start, end) {
   const e = Math.min(Math.max(end, s), n);
   const from = file.lineStarts[s - 1];
   const to = e < n ? file.lineStarts[e] : file.buf.length;
-  return { digest: sha256(file.buf.subarray(from, to)), start: s, end: e, lines: n };
+  return { digest: `sha256:${sha256(file.buf.subarray(from, to))}`, start: s, end: e, lines: n };
 }
 
 export function sourceText(file, start, end, maxLines = 40, maxBytes = 2000) {

@@ -8,7 +8,7 @@ import { Adapter, GRAFT, makeProject, sha, snapshot, tmp } from './helpers.mjs';
 const skip = GRAFT ? false : 'graft not installed (set SEMAPRAX_TEST_GRAFT)';
 
 // sha256 of the exact bytes of lines a..b (1-based, inclusive).
-const lines = (root, rel, a, b) => sha(Buffer.from(readFileSync(join(root, rel), 'utf8').split(/(?<=\n)/).slice(a - 1, b).join('')));
+const lines = (root, rel, a, b) => 'sha256:' + sha(Buffer.from(readFileSync(join(root, rel), 'utf8').split(/(?<=\n)/).slice(a - 1, b).join('')));
 
 describe('graft context adapter (real graft)', { skip }, () => {
   let root; let cache; let ad;
@@ -34,7 +34,7 @@ describe('graft context adapter (real graft)', { skip }, () => {
     for (const it of p.items) {
       assert.equal(it.provenance, 'structural');
       assert.ok(!it.path.startsWith('/') && !it.path.includes('..'));
-      assert.match(it.digest, /^[0-9a-f]{64}$/);
+      assert.match(it.digest, /^sha256:[0-9a-f]{64}$/);
     }
     assert.ok(p.items.some((i) => i.path === 'src/greet.ts'));
     assert.equal(p.coverage.indexed_files, 3);

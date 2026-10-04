@@ -55,6 +55,7 @@ python3 examples/ri13-combined-app/measure.py \
     --fresh-target \
     --warm-stage-pass \
     --target-dir "$combined_target" \
+    --evidence-dir /evidence/combined-raw \
     --output /evidence/combined-receipt.json \
     > /evidence/combined.log 2>&1
 
@@ -67,7 +68,9 @@ CARGO_TARGET_DIR="$linked_target" cargo run --locked --offline \
 python3 examples/ri13-combined-app/linked-receipt.py > /evidence/linked-receipt.json
 
 python3 - <<'PY'
+import hashlib
 import json
+import subprocess
 from pathlib import Path
 
 root = Path("/evidence")
@@ -91,6 +94,22 @@ assert combined["build_stage_measurement"]["warm"]["status"] == "passed"
 assert combined["build_stage_measurement"]["warm"]["counts"] == {"passed": 9, "failed": 0, "skipped": 0}
 assert combined["result_totals"]["schema"] == "semaprax.ri13.result-totals.v1"
 assert combined["result_totals"]["executed_total"] == {"passed": 22, "failed": 0, "skipped": 0}
+raw = combined["raw_artifacts"]
+assert raw["schema"] == "semaprax.ri13.raw-artifacts.v1"
+assert raw["directory"] == "/evidence/combined-raw"
+assert raw["max_bytes"] == 16 * 1024 * 1024
+assert len(raw["files"]) == 44
+assert raw["total_bytes"] == sum(item["bytes"] for item in raw["files"])
+assert raw["total_bytes"] <= raw["max_bytes"]
+for item in raw["files"]:
+    candidate = root / "combined-raw" / item["path"]
+    assert candidate.is_file() and not candidate.is_symlink()
+    assert candidate.stat().st_size == item["bytes"]
+    assert "sha256:" + hashlib.sha256(candidate.read_bytes()).hexdigest() == item["sha256"]
+subprocess.check_call([
+    "python3", "examples/ri13-combined-app/measure.py", "--verify-raw-artifacts",
+    str(root / "combined-receipt.json"),
+])
 inventory = combined["generated_code_inventory"]
 assert inventory["schema"] == "semaprax.ri13.generated-code-inventory.v1"
 assert set(inventory["groups"]) == {"m1", "m2", "m3", "linked"}
@@ -169,12 +188,13 @@ copy_accounting = {
     },
 }
 
-import hashlib
 files = [
     "environment.json", "combined-receipt.json", "combined.log",
     "combined-self-test.log", "linked-receipt-self-test.log",
     "linked-receipt.json", "linked-prepare.log", "linked-consumer.log", "revision",
 ]
+files.extend(f"combined-raw/{item['path']}" for item in raw["files"])
+assert len(files) == len(set(files))
 (root / "output-digests.json").write_text(json.dumps({
     "schema": "semaprax.ri13.linux-x86_64-output-digests.v1",
     "sha256": {
@@ -193,6 +213,7 @@ files = [
     "linked_check": "ri13-linked-project-ok",
     "performance_claim": "none",
     "copy_accounting": copy_accounting,
+    "combined_raw_artifacts": raw,
     "output_digests": json.loads((root / "output-digests.json").read_text())["sha256"],
 }, indent=2, sort_keys=True) + "\n")
 PY

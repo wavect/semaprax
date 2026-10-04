@@ -42,6 +42,7 @@ CLANG=/usr/bin/clang python3 examples/ri13-combined-app/measure.py \
   --fresh-target \
   --warm-stage-pass \
   --target-dir "$PWD/target/ri13-combined-app" \
+  --evidence-dir "$PWD/evidence/ri13-combined-raw" \
   --output examples/ri13-combined-app/measurements/local-receipt.json
 ```
 
@@ -54,7 +55,16 @@ separately; omitting the option leaves the warm result explicitly
 linkage check; `linked_consumer` emits its marker only after the generated M1
 owner carriers, M2 record/callback module, and M3 Future module return their
 checked values in one process. Omit `--fresh-target` only when
-intentionally measuring a warmed target, which the receipt identifies.
+intentionally measuring a warmed target, which the receipt identifies. `--evidence-dir`
+must name a new absolute directory. It retains each cold/warm build and consumer
+stdout/stderr pair plus every M1/M2/M3 CSV byte stream, up to 16 MiB total. The
+receipt binds each retained file name, size, and SHA-256; verify those bytes
+without Cargo before using the receipt:
+
+```sh
+python3 examples/ri13-combined-app/measure.py \
+  --verify-raw-artifacts examples/ri13-combined-app/measurements/local-receipt.json
+```
 
 The harness is offline and locked. It executes M1 and M2 before M3, requires
 each consumer's success marker, and refuses an M3 CSV without all five
@@ -102,6 +112,7 @@ The JSON receipt intentionally separates three quantities:
 | `m3_copy_ledger` | Response wire bytes, the fixture's exact `Bytes` to `Vec<u8>` response copy, its generated host callback subset, and zero-byte scalar boundaries | Copies inside reqwest or HTTP decoding before the observed copy, UTF-8 validation, or a complete application copy total |
 | `linked-receipt.py` `copied_byte_ledger` | Exact scalar M3 boundary/callback payload cells and an explicit unavailable foreign HTTP-body cell for the linked no-HTTP callback | A measurement of foreign HTTP-body copies |
 | `linked_copy_ledger` | M1 Regex buffer-scan input bytes, per-generated-call target-borrow identity, and Regex/Url generated-adapter copy events and bytes, M2 generated mirror clone bytes and mirror-to-record ownership-transfer bytes with pointer preservation, and scalar callback boundaries | `regex::Regex::is_match`, `url::Url::parse`, and Serde deserialization copies inside foreign implementations, which remain unavailable |
+| `raw_artifacts` | Bound, retained stdout/stderr pairs for every locked build/consumer stage and every M1/M2/M3 CSV stream | Cargo caches, binaries, unrecorded commands, or output beyond the 16 MiB capture cap |
 | Linux evidence `receipt.json` `copy_accounting` | The executed M1 adapter, M2 generated mirror and scalar callback counts, each tagged `exact`; the M1 foreign-library, M2 deserialization and M3 HTTP/text domains tagged `unavailable` | A claim about copies inside the tagged unavailable foreign domains |
 
 `full_build_and_consumer_stages` also retains the exact ignored Project
@@ -293,9 +304,10 @@ stages, linked build, and the separately executed warm stage pass. On expiry
 its existing cleanup trap retains launch/stdout/stderr/inspection records and
 deletes the stopped container. The guest rejects any platform other
 than Linux x86_64 and writes `environment.json`, M1/M2/M3 combined receipt and
-batch measurement, linked Project receipt, and command logs to the named
-evidence directory. `output-digests.json` records SHA-256 digests for the
-admitted outputs. It therefore leaves no running container and does not turn a
+batch measurement, linked Project receipt, command logs, and the bounded
+`combined-raw/` stdout/stderr and CSV evidence directory to the named evidence
+directory. `output-digests.json` records SHA-256 digests for every admitted
+output, including each retained raw stream. It therefore leaves no running container and does not turn a
 Mac-local result into Linux evidence. No Linux evidence has been recorded by
 this route yet.
 

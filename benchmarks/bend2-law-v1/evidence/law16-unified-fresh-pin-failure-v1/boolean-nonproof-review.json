@@ -1,0 +1,36 @@
+{
+  "nonclaims": [
+    "ordinary Bend checking is not Bend --verdict",
+    "SEMAPRAX check is not external-Z3 proof checking",
+    "successful checker execution does not establish law repair",
+    "no cross-route timing ratio, winner, or cache-isolation claim"
+  ],
+  "routes": {
+    "bend-ordinary": {
+      "fresh_process": {
+        "count": 30,
+        "p50_ns": 82570667.0,
+        "p95_ns": 120863000
+      },
+      "repeat_process": {
+        "count": 30,
+        "p50_ns": 91823958.0,
+        "p95_ns": 218606834
+      }
+    },
+    "semaprax-check": {
+      "fresh_process": {
+        "count": 30,
+        "p50_ns": 278262791.5,
+        "p95_ns": 547364875
+      },
+      "repeat_process": {
+        "count": 30,
+        "p50_ns": 248960229.0,
+        "p95_ns": 360461750
+      }
+    }
+  },
+  "schema": "semaprax.bend2-law-benchmark.boolean-negation-nonproof-process-review.v1",
+  "status": "local_matched_nonproof_routes_authenticated"
+}

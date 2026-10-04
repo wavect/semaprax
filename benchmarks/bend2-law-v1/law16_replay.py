@@ -148,6 +148,57 @@ def output_inventory(output: Path) -> list[dict]:
     return rows
 
 
+def verify_fresh_capture(capsule: Path) -> dict:
+    """Authenticate a completed non-agent capture without invoking its tools."""
+    result = json.loads((capsule / "replay-status.json").read_text())
+    if result.get("mode") != "fresh_execution" or result.get("status") != "executed_without_live_agent_campaign_opt_in":
+        raise ValueError("fresh capsule is not a completed non-agent execution")
+    if result.get("generated_artifacts") != output_inventory(capsule):
+        raise ValueError("fresh capsule artifact inventory drifted")
+    if result.get("tool_pins") != {"path": "tool-pins.json", "sha256": sha(capsule / "tool-pins.json")}:
+        raise ValueError("fresh capsule tool pins drifted")
+    pins = json.loads((capsule / "tool-pins.json").read_text())
+    if pins.get("bend_commit") != BEND_PIN or any(not re.fullmatch(r"sha256:[0-9a-f]{64}", pins.get("tools", {}).get(key, {}).get("sha256", "")) for key in PIN_KEYS):
+        raise ValueError("fresh capsule lacks exact tool pins")
+    expected = {
+        "boolean_ordinary_check": "boolean_ordinary_check",
+        "boolean_verdict_and_z3_process": "boolean_process",
+        "boolean_peak_rss": "boolean_rss",
+        "guarded_i64_balance_and_sort_controls": "guarded_i64_controls",
+        "bend_u32_universal_sort_source_proof": "bend_universal_sort",
+        "supplemental_law15_lean_list_theorem": "lean_law15",
+        "bounded_balance_agent_evidence_replay": "bounded_balance",
+    }
+    steps = result.get("steps", [])
+    if [step.get("id") for step in steps] != list(expected):
+        raise ValueError("fresh capsule route inventory drifted")
+    for step in steps:
+        record = json.loads((capsule / "logs" / f"{expected[step['id']]}.command.json").read_text())
+        if step != {"id": step["id"], **record} or record.get("exit_code") != 0 or record.get("timed_out") is not False:
+            raise ValueError("fresh capsule route did not complete successfully")
+        if step["id"] == "guarded_i64_balance_and_sort_controls":
+            argv = record["argv"]
+            if "--semaprax-sha256" not in argv or argv[argv.index("--semaprax-sha256") + 1] != pins["tools"]["semaprax"]["sha256"]:
+                raise ValueError("guarded-i64 route lost the prefixed compiler digest")
+    module("fresh_nonproof_review", "law16_boolean_negation_nonproof_capsule.py").review(capsule / "boolean-nonproof")
+    module("fresh_process_review", "law16_boolean_negation_process_capsule.py").review(capsule / "boolean-process")
+    module("fresh_rss_review", "law16_boolean_negation_rss_capsule.py").review_current(capsule / "boolean-rss")
+    module("fresh_sort_review", "law16_bend_u32_sort_proof.py").verify(capsule / "bend-u32-sort-proof/capsule.json")
+    controls = json.loads((capsule / "guarded-i64-controls/report.json").read_text())
+    control_rows = controls.get("cases", []) + controls.get("domain_controls", [])
+    if controls.get("status") != "supplemental_controls_pass" or len(control_rows) != 16 or not all(row.get("expected_outcome_observed") is True for row in control_rows):
+        raise ValueError("fresh supplemental controls did not pass")
+    lean = json.loads((capsule / "lean-law15-capsule.json").read_text())
+    route = module("fresh_lean_review", "law16_i64_list_proof_capsule.py")
+    raw = b"".join((capsule / "lean-law15-raw" / f"kernel-test.{name}").read_bytes() for name in ("stdout", "stderr"))
+    if lean.get("status") != "supplemental_i64_list_profile_proved" or not route.accepted(0, raw):
+        raise ValueError("fresh supplemental Lean test did not pass")
+    return {"status": "fresh_capture_authenticated", "fresh_route_count": 6, "retained_agent_replay_count": 1,
+            "artifact_count": len(result["generated_artifacts"]), "tool_pins": result["tool_pins"],
+            "execution_claim": "offline authentication of retained fresh execution; tools were not rerun by this review",
+            "agent_campaign": result["agent_campaign"], "nonclaims": result["nonclaims"]}
+
+
 def verify_retained(output: Path) -> dict:
     output.mkdir(parents=True)
     steps = []
@@ -250,7 +301,7 @@ def execute(output: Path, pins_path: Path, include_agent_campaign: bool) -> dict
 
     controls = output / "guarded-i64-controls"
     argv = [sys.executable, str(ROOT / "full_u32_encoding_controls.py"), "--bend-root", str(bend), "--bun", bun, "--semaprax", sem, "--z3", z3,
-            "--semaprax-sha256", tools["semaprax"]["sha256"].removeprefix("sha256:"), "--semaprax-build-commit", pins["semaprax_build_commit"], "--artifacts", str(controls)]
+            "--semaprax-sha256", tools["semaprax"]["sha256"], "--semaprax-build-commit", pins["semaprax_build_commit"], "--artifacts", str(controls)]
     steps.append({"id": "guarded_i64_balance_and_sort_controls", **command(argv, logs, "guarded_i64_controls", env=env)})
 
     bend_proof = output / "bend-u32-sort-proof"
@@ -292,6 +343,7 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--verify-retained", action="store_true", help="cheap offline review of retained capsules; does not rerun a cell")
+    mode.add_argument("--verify-fresh", type=Path, metavar="CAPSULE", help="offline authenticate a completed non-agent fresh capture")
     mode.add_argument("--execute", action="store_true", help="fresh capture through existing route runners; requires an explicit pin file")
     parser.add_argument("--pins", type=Path, help="local JSON tool pins required by --execute")
     parser.add_argument("--include-agent-campaign", action="store_true", help="opt in to nine new Codex pairs; the retained ordinal-1 pilot supplies pair ten")
@@ -302,12 +354,16 @@ def main(argv=None) -> int:
     args.output_dir = args.output_dir.resolve()
     if args.pins:
         args.pins = args.pins.expanduser().resolve()
-    if args.verify_retained and (args.pins or args.include_agent_campaign):
+    if not args.execute and (args.pins or args.include_agent_campaign):
         parser.error("--pins and --include-agent-campaign require --execute")
     if args.execute and not args.pins:
         parser.error("--execute requires --pins so every executable and source revision is explicitly identified")
     try:
-        result = verify_retained(args.output_dir) if args.verify_retained else execute(args.output_dir, args.pins, args.include_agent_campaign)
+        if args.verify_fresh:
+            result = verify_fresh_capture(args.verify_fresh.expanduser().resolve())
+            args.output_dir.mkdir()
+        else:
+            result = verify_retained(args.output_dir) if args.verify_retained else execute(args.output_dir, args.pins, args.include_agent_campaign)
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError, json.JSONDecodeError) as error:
         if args.output_dir.exists():
             failure = {"mode": "fresh_execution" if args.execute else "retained_evidence_replay", "status": "failed_closed", "reason": str(error),
@@ -316,7 +372,7 @@ def main(argv=None) -> int:
         parser.error(str(error))
     (args.output_dir / "replay-status.json").write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
     print(f"{result['status'] if 'status' in result else 'retained_evidence_verified'}: {args.output_dir / 'replay-status.json'}")
-    return 0 if result.get("status") in ("retained_evidence_verified", "executed_without_live_agent_campaign_opt_in", "executed_with_live_agent_campaign") else 1
+    return 0 if result.get("status") in ("retained_evidence_verified", "fresh_capture_authenticated", "executed_without_live_agent_campaign_opt_in", "executed_with_live_agent_campaign") else 1
 
 
 if __name__ == "__main__":

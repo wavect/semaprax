@@ -1,7 +1,7 @@
 {
   "acceptance_assessment": [
     {
-      "assessment": "The benchmark README documents one pinned replay harness for retained verification and fresh capture routes. The retained replay authenticates the available capsules, including the recovered bounded-balance raw outputs. Fresh capture has not been exercised end to end, so this is not a complete reproduction of the benchmark cells.",
+      "assessment": "The unified command has completed six fresh non-agent routes with raw artifacts and pinned tools, plus offline replay of retained bounded-balance agent evidence. Its copied capsule authenticates without the original temporary directory. The optional live agent continuation and separate guarded-i64 balance SMT source-proof route were not executed by this sequence, so full available-cell reproduction remains partial.",
       "evidence": [
         {
           "bytes": 78546,
@@ -9,19 +9,24 @@
           "sha256": "sha256:7e53476a0cf7b34e3e3559001f4f75a6bc190cd34117322113a5b80d71bd8753"
         },
         {
-          "bytes": 46833,
+          "bytes": 48376,
           "path": "README.md",
-          "sha256": "sha256:4cf6c9b1943ead200efa4bbee85d98225988458e0011ca9ad4108d1f129869fa"
+          "sha256": "sha256:1f8d72351d27ff0b68f7f50cfb9f92a81a697d959d9baf461b8440c703f3301d"
         },
         {
-          "bytes": 21326,
+          "bytes": 26204,
           "path": "law16_replay.py",
-          "sha256": "sha256:c182682fbbeb3e07b70c4d8740c78aa56a2923df8c8f609fd9bc1338eb9534a0"
+          "sha256": "sha256:9442d52cdfc8a4321179c1af5b828b5d7f7c0a1058ac0886f41e9925792af529"
         },
         {
           "bytes": 21547,
           "path": "law16_current_report.py",
           "sha256": "sha256:f8a990f6d4ae84d807707c0edb0a6fc2750c348dc98d5e36b4690face550a0ff"
+        },
+        {
+          "bytes": 984607,
+          "path": "evidence/law16-unified-fresh-v1/replay-status.json",
+          "sha256": "sha256:e195dd53fee00c8de3b7eefc8405a5d2853e2d04247a3f7490891e783e72885f"
         }
       ],
       "id": "AC1",
@@ -207,9 +212,9 @@
           "sha256": "sha256:7e53476a0cf7b34e3e3559001f4f75a6bc190cd34117322113a5b80d71bd8753"
         },
         {
-          "bytes": 10222,
+          "bytes": 11192,
           "path": "LAW16-REPORT.md",
-          "sha256": "sha256:d00aeafc6c263edb49705cd385fb430075484bdee4fba84a1e5b6b4315f6279d"
+          "sha256": "sha256:8a3da1571c9cd4588e5915650893c758fdcf756a8fcde0297e186ff7834fcdfb"
         },
         {
           "bytes": 3144,
@@ -223,7 +228,7 @@
     }
   ],
   "audit_status": "open_requirements_remain",
-  "audited_repository_commit": "a03e3b80e11bc5a18473a2068bb4df1a7bbabe2b",
+  "audited_repository_commit": "e672a84b7890588460b399d3d249cbcada046c60",
   "closure": "not_satisfied",
   "current_report_reconciliation": {
     "audit_update": "The current report includes the LAW15 collection List<i64> Lean proof test. It is supplemental and does not close or prove the original LAW16 list cell.",
@@ -413,14 +418,14 @@
   ],
   "evidence_basis": [
     {
-      "bytes": 10222,
+      "bytes": 11192,
       "path": "LAW16-REPORT.md",
-      "sha256": "sha256:d00aeafc6c263edb49705cd385fb430075484bdee4fba84a1e5b6b4315f6279d"
+      "sha256": "sha256:8a3da1571c9cd4588e5915650893c758fdcf756a8fcde0297e186ff7834fcdfb"
     },
     {
-      "bytes": 46833,
+      "bytes": 48376,
       "path": "README.md",
-      "sha256": "sha256:4cf6c9b1943ead200efa4bbee85d98225988458e0011ca9ad4108d1f129869fa"
+      "sha256": "sha256:1f8d72351d27ff0b68f7f50cfb9f92a81a697d959d9baf461b8440c703f3301d"
     },
     {
       "bytes": 21547,
@@ -717,11 +722,30 @@
     "test_binary_association": "local path/hash recorded; not a build attestation",
     "test_binary_sha256": "sha256:5aace567c8f10db937f93f559c65fd80b1104c7a5e5ab9376a3bbf7e7f8a05f4"
   },
+  "unified_fresh_capture": {
+    "agent_campaign": "not_reexecuted; existing capsule is available in retained-evidence mode",
+    "artifact_count": 882,
+    "execution_claim": "offline authentication of retained fresh execution; tools were not rerun by this review",
+    "fresh_route_count": 6,
+    "nonclaims": [
+      "supplemental guarded-i64 controls are not checked-u32 manifest admission",
+      "LAW15 Lean proof is not a LAW16 source identity",
+      "Bend universal sort proof has no matched Semaprax law16.* source certificate or timing",
+      "Semaprax build commit is caller-declared and not a build attestation",
+      "no issue closure or cross-route winner is implied"
+    ],
+    "retained_agent_replay_count": 1,
+    "status": "fresh_capture_authenticated",
+    "tool_pins": {
+      "path": "tool-pins.json",
+      "sha256": "sha256:6cc2760b3d53385a845dfe3d2a536a0e20cd0123c5441846e84158d8c3858851"
+    }
+  },
   "unmet_requirements": [
     {
       "id": "AC1",
       "kind": "reproducibility_harness_gap",
-      "reason": "A single replay sequence authenticates retained capsules, but fresh capture has not been exercised end to end."
+      "reason": "Six non-agent routes completed fresh execution; live agent continuation and the separate guarded-i64 balance SMT source-proof route were not rerun by this sequence."
     },
     {
       "id": "AC5",

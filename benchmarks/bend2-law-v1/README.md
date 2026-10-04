@@ -2,7 +2,8 @@
 
 ## LAW16 unified replay and fresh capture
 
-`law16_replay.py` provides two modes. Retained mode is an offline integrity and
+`law16_replay.py` provides retained review, fresh capture, and fresh-capsule
+review modes. Retained mode is an offline integrity and
 semantic replay of existing receipts; it re-renders the LAW16 report, verifies
 the v2 guarded-i64 profile, the Bend all-finite-U32 sort proof, the LAW15 Lean
 capsule, and the bounded-balance agent capsule when its complete raw artifact
@@ -60,10 +61,34 @@ python3 benchmarks/bend2-law-v1/law16_replay.py \
 ```
 
 This flag runs nine fresh pairs; it does not replace the pilot or turn one
-campaign into ten new trials. Both modes preserve failed/incomplete status and
-publish no winner. AC1 remains partial until the fresh-capture sequence has
-been exercised successfully with the required pins; retained-evidence replay
-alone does not satisfy it.
+campaign into ten new trials. All modes preserve failed/incomplete status and
+publish no winner.
+
+The retained [unified fresh capture](evidence/law16-unified-fresh-v1/replay-status.json)
+completed six non-agent routes: Boolean ordinary checking, Boolean verdict/Z3
+candidate and attack checking, peak RSS, guarded-i64 balance/sort controls,
+Bend universal U32 sort proof, and the supplemental LAW15 Lean list proof.
+The bounded-balance agent capsule was replayed offline; no new agent turn ran.
+The earlier [failed attempt](evidence/law16-unified-fresh-pin-failure-v1/replay-status.json)
+retains the digest-prefix integration failure after the first three routes.
+Its failure is not a semantic rejection or successful full capture.
+
+Authenticate the copied successful capsule without its original temporary
+directory or installed benchmark tools:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_replay.py \
+  --verify-fresh benchmarks/bend2-law-v1/evidence/law16-unified-fresh-v1 \
+  --output-dir /secure/local/law16-fresh-review
+```
+
+The review binds every retained artifact, the command receipts, tool pins,
+and existing semantic route checks. The RSS review binds sample commands to
+their recorded provenance, so copying a capsule does not require rewriting
+historical command paths. These observations do not establish a quiet host or
+cache isolation. AC1 remains partial: the optional live agent continuation and
+the separately pinned guarded-i64 balance SMT source-proof route were not
+rerun by this sequence. The original checked-u32 cells remain unsupported.
 
 This is the reproducible benchmark harness for issue #392. It records a
 comparison only when a local command file pins both checked-out source trees,

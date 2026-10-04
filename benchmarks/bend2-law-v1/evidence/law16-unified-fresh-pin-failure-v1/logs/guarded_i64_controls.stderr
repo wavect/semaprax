@@ -1,0 +1,6 @@
+usage: full_u32_encoding_controls.py [-h] --bend-root BEND_ROOT --bun BUN
+                                     --semaprax SEMAPRAX --z3 Z3
+                                     --semaprax-sha256 SEMAPRAX_SHA256
+                                     --semaprax-build-commit SEMAPRAX_BUILD_COMMIT
+                                     --artifacts ARTIFACTS [--timeout TIMEOUT]
+full_u32_encoding_controls.py: error: SEMAPRAX executable differs from its explicit SHA256 pin

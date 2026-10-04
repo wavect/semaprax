@@ -1,0 +1,2179 @@
+{
+  "annotations_and_changed_bytes": {
+    "historical_bounded_balance_v2": {
+      "nonclaims": [
+        "byte difference is not semantic proof effort"
+      ],
+      "rows": [
+        {
+          "annotation_counts": {
+            "law": 3,
+            "proof_bodies": 4
+          },
+          "changed_bytes_vs_seed": 574,
+          "final_bytes": 842,
+          "final_sha256": "sha256:f0b8f79e6bfd409191f3c3577dfbac1b39ef1d82ac87e6e893480d0b87e5bcec",
+          "language": "bend2",
+          "ordinal": 1
+        },
+        {
+          "annotation_counts": {
+            "ensures": 3,
+            "requires": 0,
+            "stable_ids": 4
+          },
+          "changed_bytes_vs_seed": 244,
+          "final_bytes": 359,
+          "final_sha256": "sha256:5e6f5649dcb6f755c6b5a91a5b6c396f4ea9791a45bd02dbc3625be59a629b7e",
+          "language": "semaprax-scalar-v1",
+          "ordinal": 1
+        },
+        {
+          "annotation_counts": {
+            "law": 3,
+            "proof_bodies": 4
+          },
+          "changed_bytes_vs_seed": 592,
+          "final_bytes": 805,
+          "final_sha256": "sha256:5c59d7522c759b693d0c5c160dce6867a85bf4796754ed1f00204c70b9df6c60",
+          "language": "bend2",
+          "ordinal": 2
+        },
+        {
+          "annotation_counts": {
+            "ensures": 3,
+            "requires": 0,
+            "stable_ids": 4
+          },
+          "changed_bytes_vs_seed": 243,
+          "final_bytes": 359,
+          "final_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418",
+          "language": "semaprax-scalar-v1",
+          "ordinal": 2
+        },
+        {
+          "annotation_counts": {
+            "law": 3,
+            "proof_bodies": 4
+          },
+          "changed_bytes_vs_seed": 638,
+          "final_bytes": 855,
+          "final_sha256": "sha256:40a59a15b5ee2a9604c5df80d6fdfd0ccbd664ff208ad6e7aec7a843437766ba",
+          "language": "bend2",
+          "ordinal": 3
+        },
+        {
+          "annotation_counts": {
+            "ensures": 3,
+            "requires": 0,
+            "stable_ids": 4
+          },
+          "changed_bytes_vs_seed": 243,
+          "final_bytes": 359,
+          "final_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418",
+          "language": "semaprax-scalar-v1",
+          "ordinal": 3
+        },
+        {
+          "annotation_counts": {
+            "law": 0,
+            "proof_bodies": 4
+          },
+          "changed_bytes_vs_seed": 498,
+          "final_bytes": 654,
+          "final_sha256": "sha256:c9255f6bedfda5a40b3699ba82269d3cbf20648b52e29d7f40ed2a32a9da9ec0",
+          "language": "bend2",
+          "ordinal": 4
+        },
+        {
+          "annotation_counts": {
+            "ensures": 3,
+            "requires": 0,
+            "stable_ids": 4
+          },
+          "changed_bytes_vs_seed": 4,
+          "final_bytes": 355,
+          "final_sha256": "sha256:3097dbd73c9c9f7fee58355dc5adab956ba92b7db2e22148c1fac58ede22d445",
+          "language": "semaprax-scalar-v1",
+          "ordinal": 4
+        },
+        {
+          "annotation_counts": {
+            "law": 3,
+            "proof_bodies": 4
+          },
+          "changed_bytes_vs_seed": 549,
+          "final_bytes": 817,
+          "final_sha256": "sha256:2b6d4c7d3b2aa08ea568a313a4df597d3765f7da3b9812061d9a2a15dc15ae05",
+          "language": "bend2",
+          "ordinal": 5
+        },
+        {
+          "annotation_counts": {
+            "ensures": 3,
+            "requires": 0,
+            "stable_ids": 4
+          },
+          "changed_bytes_vs_seed": 243,
+          "final_bytes": 359,
+          "final_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418",
+          "language": "semaprax-scalar-v1",
+          "ordinal": 5
+        },
+        {
+          "annotation_counts": {
+            "law": 3,
+            "proof_bodies": 4
+          },
+          "changed_bytes_vs_seed": 574,
+          "final_bytes": 842,
+          "final_sha256": "sha256:f0b8f79e6bfd409191f3c3577dfbac1b39ef1d82ac87e6e893480d0b87e5bcec",
+          "language": "bend2",
+          "ordinal": 6
+        },
+        {
+          "annotation_counts": {
+            "ensures": 3,
+            "requires": 0,
+            "stable_ids": 4
+          },
+          "changed_bytes_vs_seed": 243,
+          "final_bytes": 359,
+          "final_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418",
+          "language": "semaprax-scalar-v1",
+          "ordinal": 6
+        },
+        {
+          "annotation_counts": {
+            "law": 3,
+            "proof_bodies": 4
+          },
+          "changed_bytes_vs_seed": 573,
+          "final_bytes": 843,
+          "final_sha256": "sha256:03e2fb340328b637f91b7148e6fb8a0b5fb3ba8980c8cbdb9b267465b862d522",
+          "language": "bend2",
+          "ordinal": 7
+        },
+        {
+          "annotation_counts": {
+            "ensures": 3,
+            "requires": 0,
+            "stable_ids": 4
+          },
+          "changed_bytes_vs_seed": 243,
+          "final_bytes": 359,
+          "final_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418",
+          "language": "semaprax-scalar-v1",
+          "ordinal": 7
+        },
+        {
+          "annotation_counts": {
+            "law": 3,
+            "proof_bodies": 4
+          },
+          "changed_bytes_vs_seed": 488,
+          "final_bytes": 782,
+          "final_sha256": "sha256:9912ceb695c0302adabb34c06c4f3353b38e10469ef54e0722603ebe51345b64",
+          "language": "bend2",
+          "ordinal": 8
+        },
+        {
+          "annotation_counts": {
+            "ensures": 3,
+            "requires": 0,
+            "stable_ids": 4
+          },
+          "changed_bytes_vs_seed": 243,
+          "final_bytes": 359,
+          "final_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418",
+          "language": "semaprax-scalar-v1",
+          "ordinal": 8
+        },
+        {
+          "annotation_counts": {
+            "law": 3,
+            "proof_bodies": 4
+          },
+          "changed_bytes_vs_seed": 574,
+          "final_bytes": 842,
+          "final_sha256": "sha256:f0b8f79e6bfd409191f3c3577dfbac1b39ef1d82ac87e6e893480d0b87e5bcec",
+          "language": "bend2",
+          "ordinal": 9
+        },
+        {
+          "annotation_counts": {
+            "ensures": 3,
+            "requires": 0,
+            "stable_ids": 4
+          },
+          "changed_bytes_vs_seed": 243,
+          "final_bytes": 359,
+          "final_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418",
+          "language": "semaprax-scalar-v1",
+          "ordinal": 9
+        },
+        {
+          "annotation_counts": {
+            "law": 3,
+            "proof_bodies": 4
+          },
+          "changed_bytes_vs_seed": 549,
+          "final_bytes": 817,
+          "final_sha256": "sha256:2b6d4c7d3b2aa08ea568a313a4df597d3765f7da3b9812061d9a2a15dc15ae05",
+          "language": "bend2",
+          "ordinal": 10
+        },
+        {
+          "annotation_counts": {
+            "ensures": 3,
+            "requires": 0,
+            "stable_ids": 4
+          },
+          "changed_bytes_vs_seed": 243,
+          "final_bytes": 359,
+          "final_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418",
+          "language": "semaprax-scalar-v1",
+          "ordinal": 10
+        }
+      ],
+      "scope": "historical bounded-balance campaign; not evidence for the required checked-u32 cell",
+      "source": "evidence/law16-annotation-summary-v1.json",
+      "status": "retained_source_evidence_only"
+    },
+    "matched_boolean": {
+      "matched_pairs": 10,
+      "nonclaims": [
+        "byte counts do not measure reasoning, difficulty, or semantic proof effort",
+        "the two languages use different annotation and proof syntax, so their raw byte totals are not directly comparable",
+        "the summary does not validate or strengthen the retained candidate proof verdicts"
+      ],
+      "rows": [
+        {
+          "changed_bytes_vs_seed": 121,
+          "explicit_annotation_and_proof_counts": {
+            "law_declarations": {
+              "bytes": 32,
+              "count": 1
+            },
+            "proof_terms": {
+              "bytes": 7,
+              "count": 1
+            }
+          },
+          "final_source": {
+            "bytes": 206,
+            "path": "law16-boolean-negation-agent-pilot-v1/bend-ordinal-1/final-source.bend",
+            "sha256": "sha256:e3b0838d2688376dffab5a07154ef955c2006059ba08b8b8330cd4e91dc8738f"
+          },
+          "fixed_seed": {
+            "bytes": 327,
+            "path": "fixtures/bend-boolean-negation-v1.bend",
+            "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+          },
+          "language": "bend2",
+          "ordinal": 1
+        },
+        {
+          "changed_bytes_vs_seed": 0,
+          "explicit_annotation_and_proof_counts": {
+            "ensures": {
+              "bytes": 29,
+              "count": 1
+            },
+            "explicit_proof_bodies": {
+              "bytes": 0,
+              "count": 0
+            },
+            "requires": {
+              "bytes": 0,
+              "count": 0
+            },
+            "stable_ids": {
+              "bytes": 34,
+              "count": 2
+            }
+          },
+          "final_source": {
+            "bytes": 182,
+            "path": "law16-boolean-negation-agent-pilot-v1/semaprax-ordinal-1/final-source.spx",
+            "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+          },
+          "fixed_seed": {
+            "bytes": 182,
+            "path": "fixtures/semaprax-boolean-negation-v1.spx",
+            "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+          },
+          "language": "semaprax-scalar-v1",
+          "ordinal": 1
+        },
+        {
+          "changed_bytes_vs_seed": 121,
+          "explicit_annotation_and_proof_counts": {
+            "law_declarations": {
+              "bytes": 32,
+              "count": 1
+            },
+            "proof_terms": {
+              "bytes": 7,
+              "count": 1
+            }
+          },
+          "final_source": {
+            "bytes": 206,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-2/bend/final-source.bend",
+            "sha256": "sha256:e3b0838d2688376dffab5a07154ef955c2006059ba08b8b8330cd4e91dc8738f"
+          },
+          "fixed_seed": {
+            "bytes": 327,
+            "path": "fixtures/bend-boolean-negation-v1.bend",
+            "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+          },
+          "language": "bend2",
+          "ordinal": 2
+        },
+        {
+          "changed_bytes_vs_seed": 318,
+          "explicit_annotation_and_proof_counts": {
+            "ensures": {
+              "bytes": 29,
+              "count": 1
+            },
+            "explicit_proof_bodies": {
+              "bytes": 0,
+              "count": 0
+            },
+            "requires": {
+              "bytes": 0,
+              "count": 0
+            },
+            "stable_ids": {
+              "bytes": 34,
+              "count": 2
+            }
+          },
+          "final_source": {
+            "bytes": 338,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-2/semaprax/final-source.spx",
+            "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+          },
+          "fixed_seed": {
+            "bytes": 182,
+            "path": "fixtures/semaprax-boolean-negation-v1.spx",
+            "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+          },
+          "language": "semaprax-scalar-v1",
+          "ordinal": 2
+        },
+        {
+          "changed_bytes_vs_seed": 121,
+          "explicit_annotation_and_proof_counts": {
+            "law_declarations": {
+              "bytes": 32,
+              "count": 1
+            },
+            "proof_terms": {
+              "bytes": 7,
+              "count": 1
+            }
+          },
+          "final_source": {
+            "bytes": 206,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-3/bend/final-source.bend",
+            "sha256": "sha256:e3b0838d2688376dffab5a07154ef955c2006059ba08b8b8330cd4e91dc8738f"
+          },
+          "fixed_seed": {
+            "bytes": 327,
+            "path": "fixtures/bend-boolean-negation-v1.bend",
+            "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+          },
+          "language": "bend2",
+          "ordinal": 3
+        },
+        {
+          "changed_bytes_vs_seed": 0,
+          "explicit_annotation_and_proof_counts": {
+            "ensures": {
+              "bytes": 29,
+              "count": 1
+            },
+            "explicit_proof_bodies": {
+              "bytes": 0,
+              "count": 0
+            },
+            "requires": {
+              "bytes": 0,
+              "count": 0
+            },
+            "stable_ids": {
+              "bytes": 34,
+              "count": 2
+            }
+          },
+          "final_source": {
+            "bytes": 182,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-3/semaprax/final-source.spx",
+            "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+          },
+          "fixed_seed": {
+            "bytes": 182,
+            "path": "fixtures/semaprax-boolean-negation-v1.spx",
+            "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+          },
+          "language": "semaprax-scalar-v1",
+          "ordinal": 3
+        },
+        {
+          "changed_bytes_vs_seed": 121,
+          "explicit_annotation_and_proof_counts": {
+            "law_declarations": {
+              "bytes": 32,
+              "count": 1
+            },
+            "proof_terms": {
+              "bytes": 7,
+              "count": 1
+            }
+          },
+          "final_source": {
+            "bytes": 206,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-4/bend/final-source.bend",
+            "sha256": "sha256:e3b0838d2688376dffab5a07154ef955c2006059ba08b8b8330cd4e91dc8738f"
+          },
+          "fixed_seed": {
+            "bytes": 327,
+            "path": "fixtures/bend-boolean-negation-v1.bend",
+            "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+          },
+          "language": "bend2",
+          "ordinal": 4
+        },
+        {
+          "changed_bytes_vs_seed": 318,
+          "explicit_annotation_and_proof_counts": {
+            "ensures": {
+              "bytes": 29,
+              "count": 1
+            },
+            "explicit_proof_bodies": {
+              "bytes": 0,
+              "count": 0
+            },
+            "requires": {
+              "bytes": 0,
+              "count": 0
+            },
+            "stable_ids": {
+              "bytes": 34,
+              "count": 2
+            }
+          },
+          "final_source": {
+            "bytes": 338,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-4/semaprax/final-source.spx",
+            "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+          },
+          "fixed_seed": {
+            "bytes": 182,
+            "path": "fixtures/semaprax-boolean-negation-v1.spx",
+            "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+          },
+          "language": "semaprax-scalar-v1",
+          "ordinal": 4
+        },
+        {
+          "changed_bytes_vs_seed": 121,
+          "explicit_annotation_and_proof_counts": {
+            "law_declarations": {
+              "bytes": 32,
+              "count": 1
+            },
+            "proof_terms": {
+              "bytes": 7,
+              "count": 1
+            }
+          },
+          "final_source": {
+            "bytes": 206,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-5/bend/final-source.bend",
+            "sha256": "sha256:e3b0838d2688376dffab5a07154ef955c2006059ba08b8b8330cd4e91dc8738f"
+          },
+          "fixed_seed": {
+            "bytes": 327,
+            "path": "fixtures/bend-boolean-negation-v1.bend",
+            "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+          },
+          "language": "bend2",
+          "ordinal": 5
+        },
+        {
+          "changed_bytes_vs_seed": 0,
+          "explicit_annotation_and_proof_counts": {
+            "ensures": {
+              "bytes": 29,
+              "count": 1
+            },
+            "explicit_proof_bodies": {
+              "bytes": 0,
+              "count": 0
+            },
+            "requires": {
+              "bytes": 0,
+              "count": 0
+            },
+            "stable_ids": {
+              "bytes": 34,
+              "count": 2
+            }
+          },
+          "final_source": {
+            "bytes": 182,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-5/semaprax/final-source.spx",
+            "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+          },
+          "fixed_seed": {
+            "bytes": 182,
+            "path": "fixtures/semaprax-boolean-negation-v1.spx",
+            "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+          },
+          "language": "semaprax-scalar-v1",
+          "ordinal": 5
+        },
+        {
+          "changed_bytes_vs_seed": 121,
+          "explicit_annotation_and_proof_counts": {
+            "law_declarations": {
+              "bytes": 32,
+              "count": 1
+            },
+            "proof_terms": {
+              "bytes": 7,
+              "count": 1
+            }
+          },
+          "final_source": {
+            "bytes": 206,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-6/bend/final-source.bend",
+            "sha256": "sha256:e3b0838d2688376dffab5a07154ef955c2006059ba08b8b8330cd4e91dc8738f"
+          },
+          "fixed_seed": {
+            "bytes": 327,
+            "path": "fixtures/bend-boolean-negation-v1.bend",
+            "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+          },
+          "language": "bend2",
+          "ordinal": 6
+        },
+        {
+          "changed_bytes_vs_seed": 0,
+          "explicit_annotation_and_proof_counts": {
+            "ensures": {
+              "bytes": 29,
+              "count": 1
+            },
+            "explicit_proof_bodies": {
+              "bytes": 0,
+              "count": 0
+            },
+            "requires": {
+              "bytes": 0,
+              "count": 0
+            },
+            "stable_ids": {
+              "bytes": 34,
+              "count": 2
+            }
+          },
+          "final_source": {
+            "bytes": 182,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-6/semaprax/final-source.spx",
+            "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+          },
+          "fixed_seed": {
+            "bytes": 182,
+            "path": "fixtures/semaprax-boolean-negation-v1.spx",
+            "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+          },
+          "language": "semaprax-scalar-v1",
+          "ordinal": 6
+        },
+        {
+          "changed_bytes_vs_seed": 121,
+          "explicit_annotation_and_proof_counts": {
+            "law_declarations": {
+              "bytes": 32,
+              "count": 1
+            },
+            "proof_terms": {
+              "bytes": 7,
+              "count": 1
+            }
+          },
+          "final_source": {
+            "bytes": 206,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-7/bend/final-source.bend",
+            "sha256": "sha256:e3b0838d2688376dffab5a07154ef955c2006059ba08b8b8330cd4e91dc8738f"
+          },
+          "fixed_seed": {
+            "bytes": 327,
+            "path": "fixtures/bend-boolean-negation-v1.bend",
+            "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+          },
+          "language": "bend2",
+          "ordinal": 7
+        },
+        {
+          "changed_bytes_vs_seed": 0,
+          "explicit_annotation_and_proof_counts": {
+            "ensures": {
+              "bytes": 29,
+              "count": 1
+            },
+            "explicit_proof_bodies": {
+              "bytes": 0,
+              "count": 0
+            },
+            "requires": {
+              "bytes": 0,
+              "count": 0
+            },
+            "stable_ids": {
+              "bytes": 34,
+              "count": 2
+            }
+          },
+          "final_source": {
+            "bytes": 182,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-7/semaprax/final-source.spx",
+            "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+          },
+          "fixed_seed": {
+            "bytes": 182,
+            "path": "fixtures/semaprax-boolean-negation-v1.spx",
+            "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+          },
+          "language": "semaprax-scalar-v1",
+          "ordinal": 7
+        },
+        {
+          "changed_bytes_vs_seed": 121,
+          "explicit_annotation_and_proof_counts": {
+            "law_declarations": {
+              "bytes": 32,
+              "count": 1
+            },
+            "proof_terms": {
+              "bytes": 7,
+              "count": 1
+            }
+          },
+          "final_source": {
+            "bytes": 206,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-8/bend/final-source.bend",
+            "sha256": "sha256:e3b0838d2688376dffab5a07154ef955c2006059ba08b8b8330cd4e91dc8738f"
+          },
+          "fixed_seed": {
+            "bytes": 327,
+            "path": "fixtures/bend-boolean-negation-v1.bend",
+            "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+          },
+          "language": "bend2",
+          "ordinal": 8
+        },
+        {
+          "changed_bytes_vs_seed": 318,
+          "explicit_annotation_and_proof_counts": {
+            "ensures": {
+              "bytes": 29,
+              "count": 1
+            },
+            "explicit_proof_bodies": {
+              "bytes": 0,
+              "count": 0
+            },
+            "requires": {
+              "bytes": 0,
+              "count": 0
+            },
+            "stable_ids": {
+              "bytes": 34,
+              "count": 2
+            }
+          },
+          "final_source": {
+            "bytes": 338,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-8/semaprax/final-source.spx",
+            "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+          },
+          "fixed_seed": {
+            "bytes": 182,
+            "path": "fixtures/semaprax-boolean-negation-v1.spx",
+            "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+          },
+          "language": "semaprax-scalar-v1",
+          "ordinal": 8
+        },
+        {
+          "changed_bytes_vs_seed": 121,
+          "explicit_annotation_and_proof_counts": {
+            "law_declarations": {
+              "bytes": 32,
+              "count": 1
+            },
+            "proof_terms": {
+              "bytes": 7,
+              "count": 1
+            }
+          },
+          "final_source": {
+            "bytes": 206,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-9/bend/final-source.bend",
+            "sha256": "sha256:e3b0838d2688376dffab5a07154ef955c2006059ba08b8b8330cd4e91dc8738f"
+          },
+          "fixed_seed": {
+            "bytes": 327,
+            "path": "fixtures/bend-boolean-negation-v1.bend",
+            "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+          },
+          "language": "bend2",
+          "ordinal": 9
+        },
+        {
+          "changed_bytes_vs_seed": 318,
+          "explicit_annotation_and_proof_counts": {
+            "ensures": {
+              "bytes": 29,
+              "count": 1
+            },
+            "explicit_proof_bodies": {
+              "bytes": 0,
+              "count": 0
+            },
+            "requires": {
+              "bytes": 0,
+              "count": 0
+            },
+            "stable_ids": {
+              "bytes": 34,
+              "count": 2
+            }
+          },
+          "final_source": {
+            "bytes": 338,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-9/semaprax/final-source.spx",
+            "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+          },
+          "fixed_seed": {
+            "bytes": 182,
+            "path": "fixtures/semaprax-boolean-negation-v1.spx",
+            "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+          },
+          "language": "semaprax-scalar-v1",
+          "ordinal": 9
+        },
+        {
+          "changed_bytes_vs_seed": 121,
+          "explicit_annotation_and_proof_counts": {
+            "law_declarations": {
+              "bytes": 32,
+              "count": 1
+            },
+            "proof_terms": {
+              "bytes": 7,
+              "count": 1
+            }
+          },
+          "final_source": {
+            "bytes": 206,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-10/bend/final-source.bend",
+            "sha256": "sha256:e3b0838d2688376dffab5a07154ef955c2006059ba08b8b8330cd4e91dc8738f"
+          },
+          "fixed_seed": {
+            "bytes": 327,
+            "path": "fixtures/bend-boolean-negation-v1.bend",
+            "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+          },
+          "language": "bend2",
+          "ordinal": 10
+        },
+        {
+          "changed_bytes_vs_seed": 0,
+          "explicit_annotation_and_proof_counts": {
+            "ensures": {
+              "bytes": 29,
+              "count": 1
+            },
+            "explicit_proof_bodies": {
+              "bytes": 0,
+              "count": 0
+            },
+            "requires": {
+              "bytes": 0,
+              "count": 0
+            },
+            "stable_ids": {
+              "bytes": 34,
+              "count": 2
+            }
+          },
+          "final_source": {
+            "bytes": 182,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-10/semaprax/final-source.spx",
+            "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+          },
+          "fixed_seed": {
+            "bytes": 182,
+            "path": "fixtures/semaprax-boolean-negation-v1.spx",
+            "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+          },
+          "language": "semaprax-scalar-v1",
+          "ordinal": 10
+        }
+      ],
+      "scope": "ten matched Boolean final sources versus their fixed seed; byte distance is not semantic effort",
+      "source": "evidence/law16-boolean-negation-annotation-summary-v1.json",
+      "status": "retained_source_evidence_only"
+    }
+  },
+  "closure": "no: the matched Boolean cell and supplemental U32 semantic theorem comparison do not satisfy the original checked-u32 source admission, cold-cache, project-sized/refactor/incremental, or monetary cost-event acceptance requirements",
+  "matched_boolean": {
+    "agent_pairs": {
+      "bend_attack_rejections": 10,
+      "bend_candidate_acceptances": 10,
+      "continuation_pairs": 9,
+      "cost_usage": {
+        "reason": "all retained Codex JSON events omit monetary charge",
+        "status": "unavailable"
+      },
+      "pilot_pairs": 1,
+      "pilot_tokens": {
+        "bend2": {
+          "cached_input_tokens": 11008,
+          "chargeable_tokens": 16626
+        },
+        "semaprax-scalar-v1": {
+          "cached_input_tokens": 14080,
+          "chargeable_tokens": 16711
+        }
+      },
+      "semaprax_attack_rejections": 10,
+      "semaprax_candidate_discharges": 10,
+      "total_pairs": 10
+    },
+    "bounded_proof_and_verdict_process_routes": {
+      "bend_verdict": {
+        "fresh_process": {
+          "count": 30,
+          "p50_ns": 102798854.0,
+          "p95_ns": 112451083
+        },
+        "repeat_process": {
+          "count": 30,
+          "p50_ns": 100183937.0,
+          "p95_ns": 109771667
+        }
+      },
+      "semaprax_z3": {
+        "fresh_process": {
+          "count": 30,
+          "p50_ns": 485314812.0,
+          "p95_ns": 577496250
+        },
+        "repeat_process": {
+          "count": 30,
+          "p50_ns": 480240292.0,
+          "p95_ns": 528557500
+        }
+      }
+    },
+    "candidate_and_attack_controls": {
+      "bend_verdict_candidate_acceptances": 60,
+      "bend_verdict_seeded_attack_rejections": 60,
+      "raw_streams": 480,
+      "semaprax_z3_candidate_postcondition_discharges": 60,
+      "semaprax_z3_seeded_attack_rejections": 60
+    },
+    "cost_provenance": {
+      "aggregate_token_usage": {
+        "cached_input_tokens": 258048,
+        "input_tokens": 328688,
+        "output_tokens": 5311,
+        "total_tokens": 333999
+      },
+      "cost_usage": {
+        "observed_monetary_field_paths": [],
+        "provider": "openai-codex-cli",
+        "reason": "none of the 20 retained Codex JSONL streams contains a provider monetary usage field or invoice reference",
+        "receipt_kind": "provider_monetary_usage_event",
+        "status": "unavailable"
+      },
+      "matched_pairs": 10,
+      "nonclaims": [
+        "token counts are not converted to currency",
+        "this receipt does not authenticate an external provider invoice",
+        "this Boolean-only provenance does not complete LAW-16 or an agent-trial comparison"
+      ],
+      "source": "evidence/law16-boolean-negation-agent-cost-provenance-v1.json",
+      "status": "provider_monetary_receipts_unavailable",
+      "trials": 20
+    },
+    "historical_peak_rss": {
+      "reason": "bend-verdict.json command does not bind retained input",
+      "scope": "historical absolute-path evidence is not rebound to this checkout",
+      "status": "unavailable"
+    },
+    "historical_process_routes": {
+      "bend_attack_fresh_process": {
+        "count": 30,
+        "p50_ns": 68409687.0,
+        "p95_ns": 69691583
+      },
+      "bend_attack_repeat_process": {
+        "count": 30,
+        "p50_ns": 69071729.0,
+        "p95_ns": 70838084
+      },
+      "bend_candidate_fresh_process": {
+        "count": 30,
+        "p50_ns": 86617917.0,
+        "p95_ns": 95123166
+      },
+      "bend_candidate_repeat_process": {
+        "count": 30,
+        "p50_ns": 87489354.5,
+        "p95_ns": 102620000
+      },
+      "semaprax_attack_fresh_process": {
+        "count": 30,
+        "p50_ns": 192335167.0,
+        "p95_ns": 206678916
+      },
+      "semaprax_attack_repeat_process": {
+        "count": 30,
+        "p50_ns": 191247604.5,
+        "p95_ns": 215137250
+      },
+      "semaprax_candidate_fresh_process": {
+        "count": 30,
+        "p50_ns": 439726645.5,
+        "p95_ns": 472329792
+      },
+      "semaprax_candidate_repeat_process": {
+        "count": 30,
+        "p50_ns": 451408458.0,
+        "p95_ns": 495566959
+      }
+    },
+    "ordinary_and_nonproof_process_routes": {
+      "bend-ordinary": {
+        "fresh_process": {
+          "count": 30,
+          "p50_ns": 83050145.5,
+          "p95_ns": 100950209
+        },
+        "repeat_process": {
+          "count": 30,
+          "p50_ns": 75527833.0,
+          "p95_ns": 78076250
+        }
+      },
+      "semaprax-check": {
+        "fresh_process": {
+          "count": 30,
+          "p50_ns": 233901479.5,
+          "p95_ns": 238908583
+        },
+        "repeat_process": {
+          "count": 30,
+          "p50_ns": 235004000.0,
+          "p95_ns": 243150709
+        }
+      }
+    },
+    "peak_rss": {
+      "bend_verdict": {
+        "input_sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81",
+        "p50_peak_rss_bytes": 118300672.0,
+        "p95_peak_rss_bytes": 122978304,
+        "samples": 30,
+        "wrapper": "/usr/bin/time -l"
+      },
+      "semaprax_z3": {
+        "input_sha256": "sha256:481999d6499263a605ce8eaf67e8155b772f6cddbe466c87e3087978ff339bb5",
+        "p50_peak_rss_bytes": 50970624.0,
+        "p95_peak_rss_bytes": 51167232,
+        "samples": 30,
+        "wrapper": "/usr/bin/time -l"
+      }
+    },
+    "process_provenance": {
+      "cold_cache": {
+        "reason": "the capture does not clear or verify OS page, executable, solver, or tool caches",
+        "status": "unavailable"
+      },
+      "command_count": 240,
+      "process_states": {
+        "fresh_process": "a new child process using the first byte-identical copied input or project path",
+        "repeat_process": "a new child process using the second byte-identical copied input or project path"
+      },
+      "source": "evidence/law16-boolean-negation-process-v2/provenance.json"
+    },
+    "process_routes": {
+      "bend_attack_fresh_process": {
+        "count": 30,
+        "p50_ns": 84425854.5,
+        "p95_ns": 100811334
+      },
+      "bend_attack_repeat_process": {
+        "count": 30,
+        "p50_ns": 88104666.5,
+        "p95_ns": 102983417
+      },
+      "bend_candidate_fresh_process": {
+        "count": 30,
+        "p50_ns": 106149771.0,
+        "p95_ns": 166507667
+      },
+      "bend_candidate_repeat_process": {
+        "count": 30,
+        "p50_ns": 96380958.0,
+        "p95_ns": 160042208
+      },
+      "semaprax_attack_fresh_process": {
+        "count": 30,
+        "p50_ns": 212161979.5,
+        "p95_ns": 228564083
+      },
+      "semaprax_attack_repeat_process": {
+        "count": 30,
+        "p50_ns": 207869375.0,
+        "p95_ns": 319836917
+      },
+      "semaprax_candidate_fresh_process": {
+        "count": 30,
+        "p50_ns": 485345042.0,
+        "p95_ns": 600401500
+      },
+      "semaprax_candidate_repeat_process": {
+        "count": 30,
+        "p50_ns": 470260104.0,
+        "p95_ns": 508084042
+      }
+    },
+    "proof_path_nonresult": {
+      "error": "SPX-J102: Project v1 ancestor /tmp must be a real directory",
+      "samples": 60
+    },
+    "semantic_contract": {
+      "domain": "Bool / bool; exactly two values",
+      "name": "total Boolean negation",
+      "relation": "result == !value / Bool.not(value)",
+      "truth_table": [
+        {
+          "input": false,
+          "output": true
+        },
+        {
+          "input": true,
+          "output": false
+        }
+      ]
+    },
+    "timing_interpretation": "ordinary Bend, Bend verdict, SEMAPRAX check, and installed-Z3 p50/p95 and RSS are separate local process-provisioning observations; no cross-route ratio or winner",
+    "timing_variation": {
+      "cells": {
+        "historical_process_v1": {
+          "bend_attack": {
+            "fresh_process": {
+              "count": 30,
+              "mad_ns": 507583.0,
+              "median_ns": 68409687.0
+            },
+            "repeat_process": {
+              "count": 30,
+              "mad_ns": 434854.5,
+              "median_ns": 69071729.0
+            }
+          },
+          "bend_candidate": {
+            "fresh_process": {
+              "count": 30,
+              "mad_ns": 1140959.0,
+              "median_ns": 86617917.0
+            },
+            "repeat_process": {
+              "count": 30,
+              "mad_ns": 1971562.5,
+              "median_ns": 87489354.5
+            }
+          },
+          "semaprax_attack": {
+            "fresh_process": {
+              "count": 30,
+              "mad_ns": 2916458.0,
+              "median_ns": 192335167.0
+            },
+            "repeat_process": {
+              "count": 30,
+              "mad_ns": 10812646.0,
+              "median_ns": 191247604.5
+            }
+          },
+          "semaprax_candidate": {
+            "fresh_process": {
+              "count": 30,
+              "mad_ns": 8384271.0,
+              "median_ns": 439726645.5
+            },
+            "repeat_process": {
+              "count": 30,
+              "mad_ns": 7211541.0,
+              "median_ns": 451408458.0
+            }
+          }
+        },
+        "ordinary_check_v1": {
+          "bend_ordinary": {
+            "fresh_process": {
+              "count": 30,
+              "mad_ns": 6435541.5,
+              "median_ns": 83050145.5
+            },
+            "repeat_process": {
+              "count": 30,
+              "mad_ns": 438500.0,
+              "median_ns": 75527833.0
+            }
+          },
+          "semaprax_check": {
+            "fresh_process": {
+              "count": 30,
+              "mad_ns": 2444855.0,
+              "median_ns": 233901479.5
+            },
+            "repeat_process": {
+              "count": 30,
+              "mad_ns": 3331771.0,
+              "median_ns": 235004000.0
+            }
+          }
+        },
+        "process_v2": {
+          "bend_attack": {
+            "fresh_process": {
+              "count": 30,
+              "mad_ns": 6287583.0,
+              "median_ns": 84425854.5
+            },
+            "repeat_process": {
+              "count": 30,
+              "mad_ns": 5172042.0,
+              "median_ns": 88104666.5
+            }
+          },
+          "bend_candidate": {
+            "fresh_process": {
+              "count": 30,
+              "mad_ns": 14070520.5,
+              "median_ns": 106149771.0
+            },
+            "repeat_process": {
+              "count": 30,
+              "mad_ns": 3861458.0,
+              "median_ns": 96380958.0
+            }
+          },
+          "semaprax_attack": {
+            "fresh_process": {
+              "count": 30,
+              "mad_ns": 7728959.0,
+              "median_ns": 212161979.5
+            },
+            "repeat_process": {
+              "count": 30,
+              "mad_ns": 7582708.5,
+              "median_ns": 207869375.0
+            }
+          },
+          "semaprax_candidate": {
+            "fresh_process": {
+              "count": 30,
+              "mad_ns": 17696625.5,
+              "median_ns": 485345042.0
+            },
+            "repeat_process": {
+              "count": 30,
+              "mad_ns": 8630562.0,
+              "median_ns": 470260104.0
+            }
+          }
+        },
+        "proof_verdict_v1": {
+          "bend_verdict": {
+            "fresh_process": {
+              "count": 30,
+              "mad_ns": 2346021.5,
+              "median_ns": 102798854.0
+            },
+            "repeat_process": {
+              "count": 30,
+              "mad_ns": 3339479.0,
+              "median_ns": 100183937.0
+            }
+          },
+          "semaprax_z3": {
+            "fresh_process": {
+              "count": 30,
+              "mad_ns": 10952270.5,
+              "median_ns": 485314812.0
+            },
+            "repeat_process": {
+              "count": 30,
+              "mad_ns": 9361416.0,
+              "median_ns": 480240292.0
+            }
+          }
+        }
+      },
+      "interpretation": "descriptive sample spread only; not a confidence interval or cross-route comparison",
+      "method": "median absolute deviation from the within-cell median, in nanoseconds"
+    }
+  },
+  "measurement_provenance": {
+    "backend": {
+      "observation": {
+        "bend_verdict": {
+          "backend": "Bend --verdict",
+          "environment": {
+            "BEND_NO_TELEMETRY": "1"
+          }
+        },
+        "semaprax_z3": {
+          "arguments": [
+            "--tool",
+            "z3",
+            "--host-profile",
+            "trusted-local",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "backend": "SEMAPRAX project-proof-check with installed Z3"
+        }
+      },
+      "source": "evidence/law16-boolean-negation-process-v2/provenance.json",
+      "status": "observed"
+    },
+    "flags": {
+      "compiler_optimization": {
+        "reason": "the observed process cell invokes retained executables and does not compile them",
+        "status": "unavailable"
+      },
+      "observation": {
+        "bend_verdict": {
+          "backend": "Bend --verdict",
+          "environment": {
+            "BEND_NO_TELEMETRY": "1"
+          }
+        },
+        "semaprax_z3": {
+          "arguments": [
+            "--tool",
+            "z3",
+            "--host-profile",
+            "trusted-local",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "backend": "SEMAPRAX project-proof-check with installed Z3"
+        }
+      },
+      "source": "evidence/law16-boolean-negation-process-v2/provenance.json",
+      "status": "observed"
+    },
+    "hardware": {
+      "observation": {
+        "cpu_brand": {
+          "argv": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "machdep.cpu.brand_string"
+          ],
+          "exit_code": 0,
+          "stderr_utf8": "",
+          "stdout_utf8": "Apple M3 Pro\n"
+        },
+        "logical_cpu_count": {
+          "argv": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "hw.logicalcpu"
+          ],
+          "exit_code": 0,
+          "stderr_utf8": "",
+          "stdout_utf8": "11\n"
+        },
+        "memory_bytes": {
+          "argv": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "hw.memsize"
+          ],
+          "exit_code": 0,
+          "stderr_utf8": "",
+          "stdout_utf8": "19327352832\n"
+        },
+        "physical_cpu_count": {
+          "argv": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "hw.physicalcpu"
+          ],
+          "exit_code": 0,
+          "stderr_utf8": "",
+          "stdout_utf8": "11\n"
+        }
+      },
+      "source": "evidence/law16-boolean-negation-process-v2/provenance.json",
+      "status": "observed"
+    },
+    "identity_scope": "machine-local observations bound to the process-v2 raw samples; not current-head claims",
+    "operating_system": {
+      "observation": {
+        "detail": {
+          "sw_vers": {
+            "argv": [
+              "/usr/bin/sw_vers"
+            ],
+            "exit_code": 0,
+            "stderr_utf8": "",
+            "stdout_utf8": "ProductName:\t\tmacOS\nProductVersion:\t\t26.5.1\nBuildVersion:\t\t25F80\n"
+          }
+        },
+        "machine": "arm64",
+        "release": "25.5.0",
+        "system": "Darwin"
+      },
+      "source": "evidence/law16-boolean-negation-process-v2/provenance.json",
+      "status": "observed"
+    },
+    "process_state_and_cache_boundary": {
+      "cold_cache": {
+        "reason": "the capture does not clear or verify OS page, executable, solver, or tool caches",
+        "status": "unavailable"
+      },
+      "states": {
+        "fresh_process": "a new child process using the first byte-identical copied input or project path",
+        "repeat_process": "a new child process using the second byte-identical copied input or project path"
+      }
+    },
+    "tool_identities": {
+      "observation": {
+        "bend_main": {
+          "identity": {
+            "bytes": 34607,
+            "path": "/private/tmp/bend2-law-source/bend2/main.ts",
+            "sha256": "sha256:c48a0274e661a3e529933550752578768e8f029219d814073fbf86537271d475"
+          }
+        },
+        "bend_repository": {
+          "commit": {
+            "argv": [
+              "/usr/bin/git",
+              "-C",
+              "/private/tmp/bend2-law-source/bend2",
+              "rev-parse",
+              "HEAD"
+            ],
+            "exit_code": 0,
+            "stderr_utf8": "",
+            "stdout_utf8": "947db722640c86247849343657bf2f7ef01cb7f1\n"
+          },
+          "path": "/private/tmp/bend2-law-source/bend2"
+        },
+        "bun": {
+          "identity": {
+            "bytes": 57940512,
+            "path": "/Users/kevin/.bun/bin/bun",
+            "sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781"
+          },
+          "version": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "--version"
+            ],
+            "exit_code": 0,
+            "stderr_utf8": "",
+            "stdout_utf8": "1.2.5\n"
+          }
+        },
+        "semaprax": {
+          "identity": {
+            "bytes": 172081112,
+            "path": "/private/tmp/semaprax-9a9db7a81",
+            "sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+          },
+          "version": {
+            "argv": [
+              "/private/tmp/semaprax-9a9db7a81",
+              "--version"
+            ],
+            "exit_code": 0,
+            "stderr_utf8": "",
+            "stdout_utf8": "semaprax 0.7.0 (9a9db7a8117ac8d292b24ffd5671ec3333272290)\n"
+          }
+        },
+        "z3": {
+          "identity": {
+            "bytes": 23365455,
+            "path": "/opt/homebrew/bin/z3",
+            "sha256": "sha256:bbb24b8fed27552f7fb7cfdf0ed9101e6e24fd0cc0b9cfb945233b3f2ed333c5"
+          },
+          "version": {
+            "argv": [
+              "/opt/homebrew/bin/z3",
+              "--version"
+            ],
+            "exit_code": 0,
+            "stderr_utf8": "",
+            "stdout_utf8": "Z3 version 4.12.5 - 64 bit\n"
+          }
+        }
+      },
+      "source": "evidence/law16-boolean-negation-process-v2/provenance.json",
+      "status": "observed"
+    }
+  },
+  "nonclaims": [
+    "no cross-route timing ratio, winner, or superiority claim",
+    "no full LAW-16 closure",
+    "no checked-u32 substitute from i32/i64/u8/usize"
+  ],
+  "pins_and_trust": {
+    "bend": "local historical commit 947db722640c86247849343657bf2f7ef01cb7f1; verdict output is retained tool evidence",
+    "boundaries": [
+      "Bend verdict and SEMAPRAX installed-Z3 have distinct trusted computing bases",
+      "SEMAPRAX source proof does not prove lowering or execution",
+      "fresh/repeat paths do not isolate OS, executable, solver, or tool caches"
+    ],
+    "observation_identity": "local historical pins, retained as exact executable/tool evidence",
+    "semaprax": "local historical executable commit 9a9db7a8117ac8d292b24ffd5671ec3333272290; installed-Z3 source proof discharges selected app.negate ensures[0]"
+  },
+  "proof_effort": {
+    "boolean_agent_synthesis": {
+      "cost": {
+        "reason": "retained Codex JSON events contain no monetary charge",
+        "status": "unavailable"
+      },
+      "matched_pairs": 10,
+      "per_language": {
+        "bend2": {
+          "agent_turns": 10,
+          "chargeable_tokens": 166351
+        },
+        "semaprax-scalar-v1": {
+          "agent_turns": 10,
+          "chargeable_tokens": 167648
+        }
+      },
+      "phase": "one isolated agent turn per language and ordinal; not kernel or Z3 checking",
+      "scope": "Boolean-negation agent edits only",
+      "status": "observed"
+    },
+    "historical_bounded_balance_v2": {
+      "nonclaims": [
+        "source bytes are not proof quality"
+      ],
+      "phase_separation": {
+        "cold_isolation": {
+          "reason": "no reproducible clean tool/cache reset was retained",
+          "status": "unavailable"
+        },
+        "cost": {
+          "status": "unavailable"
+        },
+        "kernel_check": "retained local Bend/check/Z3 process samples"
+      },
+      "rows": [
+        {
+          "cached_input_tokens": 14080,
+          "chargeable_tokens": 19263,
+          "input_tokens": 18757,
+          "language": "bend2",
+          "ordinal": 1,
+          "output_tokens": 506,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 842,
+          "source_sha256": "sha256:f0b8f79e6bfd409191f3c3577dfbac1b39ef1d82ac87e6e893480d0b87e5bcec"
+        },
+        {
+          "cached_input_tokens": 11008,
+          "chargeable_tokens": 19052,
+          "input_tokens": 18570,
+          "language": "semaprax-scalar-v1",
+          "ordinal": 1,
+          "output_tokens": 482,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 359,
+          "source_sha256": "sha256:5e6f5649dcb6f755c6b5a91a5b6c396f4ea9791a45bd02dbc3625be59a629b7e"
+        },
+        {
+          "cached_input_tokens": 15104,
+          "chargeable_tokens": 19258,
+          "input_tokens": 18757,
+          "language": "bend2",
+          "ordinal": 2,
+          "output_tokens": 501,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 805,
+          "source_sha256": "sha256:5c59d7522c759b693d0c5c160dce6867a85bf4796754ed1f00204c70b9df6c60"
+        },
+        {
+          "cached_input_tokens": 14080,
+          "chargeable_tokens": 18906,
+          "input_tokens": 18570,
+          "language": "semaprax-scalar-v1",
+          "ordinal": 2,
+          "output_tokens": 336,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 359,
+          "source_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+        },
+        {
+          "cached_input_tokens": 14080,
+          "chargeable_tokens": 19254,
+          "input_tokens": 18757,
+          "language": "bend2",
+          "ordinal": 3,
+          "output_tokens": 497,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 855,
+          "source_sha256": "sha256:40a59a15b5ee2a9604c5df80d6fdfd0ccbd664ff208ad6e7aec7a843437766ba"
+        },
+        {
+          "cached_input_tokens": 14080,
+          "chargeable_tokens": 18901,
+          "input_tokens": 18570,
+          "language": "semaprax-scalar-v1",
+          "ordinal": 3,
+          "output_tokens": 331,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 359,
+          "source_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+        },
+        {
+          "cached_input_tokens": 18176,
+          "chargeable_tokens": 19197,
+          "input_tokens": 18757,
+          "language": "bend2",
+          "ordinal": 4,
+          "output_tokens": 440,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 654,
+          "source_sha256": "sha256:c9255f6bedfda5a40b3699ba82269d3cbf20648b52e29d7f40ed2a32a9da9ec0"
+        },
+        {
+          "cached_input_tokens": 11008,
+          "chargeable_tokens": 19001,
+          "input_tokens": 18570,
+          "language": "semaprax-scalar-v1",
+          "ordinal": 4,
+          "output_tokens": 431,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 355,
+          "source_sha256": "sha256:3097dbd73c9c9f7fee58355dc5adab956ba92b7db2e22148c1fac58ede22d445"
+        },
+        {
+          "cached_input_tokens": 14080,
+          "chargeable_tokens": 19229,
+          "input_tokens": 18757,
+          "language": "bend2",
+          "ordinal": 5,
+          "output_tokens": 472,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 817,
+          "source_sha256": "sha256:2b6d4c7d3b2aa08ea568a313a4df597d3765f7da3b9812061d9a2a15dc15ae05"
+        },
+        {
+          "cached_input_tokens": 18176,
+          "chargeable_tokens": 18897,
+          "input_tokens": 18570,
+          "language": "semaprax-scalar-v1",
+          "ordinal": 5,
+          "output_tokens": 327,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 359,
+          "source_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+        },
+        {
+          "cached_input_tokens": 18176,
+          "chargeable_tokens": 19260,
+          "input_tokens": 18757,
+          "language": "bend2",
+          "ordinal": 6,
+          "output_tokens": 503,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 842,
+          "source_sha256": "sha256:f0b8f79e6bfd409191f3c3577dfbac1b39ef1d82ac87e6e893480d0b87e5bcec"
+        },
+        {
+          "cached_input_tokens": 11008,
+          "chargeable_tokens": 18900,
+          "input_tokens": 18570,
+          "language": "semaprax-scalar-v1",
+          "ordinal": 6,
+          "output_tokens": 330,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 359,
+          "source_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+        },
+        {
+          "cached_input_tokens": 11008,
+          "chargeable_tokens": 19257,
+          "input_tokens": 18757,
+          "language": "bend2",
+          "ordinal": 7,
+          "output_tokens": 500,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 843,
+          "source_sha256": "sha256:03e2fb340328b637f91b7148e6fb8a0b5fb3ba8980c8cbdb9b267465b862d522"
+        },
+        {
+          "cached_input_tokens": 15104,
+          "chargeable_tokens": 18910,
+          "input_tokens": 18570,
+          "language": "semaprax-scalar-v1",
+          "ordinal": 7,
+          "output_tokens": 340,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 359,
+          "source_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+        },
+        {
+          "cached_input_tokens": 18176,
+          "chargeable_tokens": 19282,
+          "input_tokens": 18757,
+          "language": "bend2",
+          "ordinal": 8,
+          "output_tokens": 525,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 782,
+          "source_sha256": "sha256:9912ceb695c0302adabb34c06c4f3353b38e10469ef54e0722603ebe51345b64"
+        },
+        {
+          "cached_input_tokens": 18176,
+          "chargeable_tokens": 18907,
+          "input_tokens": 18570,
+          "language": "semaprax-scalar-v1",
+          "ordinal": 8,
+          "output_tokens": 337,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 359,
+          "source_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+        },
+        {
+          "cached_input_tokens": 18176,
+          "chargeable_tokens": 19261,
+          "input_tokens": 18757,
+          "language": "bend2",
+          "ordinal": 9,
+          "output_tokens": 504,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 842,
+          "source_sha256": "sha256:f0b8f79e6bfd409191f3c3577dfbac1b39ef1d82ac87e6e893480d0b87e5bcec"
+        },
+        {
+          "cached_input_tokens": 18176,
+          "chargeable_tokens": 18898,
+          "input_tokens": 18570,
+          "language": "semaprax-scalar-v1",
+          "ordinal": 9,
+          "output_tokens": 328,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 359,
+          "source_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+        },
+        {
+          "cached_input_tokens": 18176,
+          "chargeable_tokens": 19242,
+          "input_tokens": 18757,
+          "language": "bend2",
+          "ordinal": 10,
+          "output_tokens": 485,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 817,
+          "source_sha256": "sha256:2b6d4c7d3b2aa08ea568a313a4df597d3765f7da3b9812061d9a2a15dc15ae05"
+        },
+        {
+          "cached_input_tokens": 18176,
+          "chargeable_tokens": 18913,
+          "input_tokens": 18570,
+          "language": "semaprax-scalar-v1",
+          "ordinal": 10,
+          "output_tokens": 343,
+          "proof_synthesis": "one isolated agent turn; not kernel checking",
+          "source_bytes": 359,
+          "source_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+        }
+      ],
+      "scope": "historical bounded-balance campaign; not evidence for the required checked-u32 cell",
+      "source": "evidence/law16-effort-summary-v1.json",
+      "status": "retained_source_evidence_only"
+    }
+  },
+  "schema": "semaprax.bend2-law-benchmark.current-report.v1",
+  "scope": "local pinned Boolean-negation evidence and separate guarded-U32 theorem/control routes",
+  "status": "incomplete",
+  "supplemental_full_u32_encoding_controls": {
+    "build_commit_association": "caller_declared_not_attested",
+    "candidate_and_attack_routes": 12,
+    "domain_boundary_controls": 4,
+    "equal_spec_profile": {
+      "profile": "semaprax.checked-u32-value-encoding.v1",
+      "schema": "semaprax.bend2-law-benchmark.full-u32-equal-spec.v1",
+      "sort_result_interpretation": {
+        "answers": [
+          "unsat: no length-four output violates sortedness or exact multiplicity",
+          "sat: a nonempty four-value input with query equal to one element witnesses that zero output multiplicity cannot preserve input multiplicity"
+        ],
+        "claim_boundary": "bounded model-level equal-spec result; not a source-translation or lowering certificate and not an unbounded-list theorem",
+        "scope": "all U32 values for each element of a list of exactly four elements and every queried U32 value",
+        "source": "fixtures/full-u32-encoding-v1/sort-equal-spec.smt2",
+        "test": "test_full_u32_equal_spec.py::test_universal_sort_model_checks_sortedness_and_multiplicity"
+      },
+      "source": "full_u32_equal_spec.py",
+      "universal_model_checks": {
+        "balance": {
+          "claim": "all U32 balance, credit, amount triples preserve matched guard decisions, outputs, conservation, order, equality, and reject a positive successful no-op",
+          "expected": [
+            "unsat",
+            "sat",
+            "sat"
+          ],
+          "source": "fixtures/full-u32-encoding-v1/representation.smt2"
+        },
+        "sort": {
+          "claim": "every U32 list of length four has sorted output and exact multiplicity for every queried U32 value; the second check exposes the empty-output loophole",
+          "expected": [
+            "unsat",
+            "sat"
+          ],
+          "source": "fixtures/full-u32-encoding-v1/sort-equal-spec.smt2"
+        }
+      }
+    },
+    "nonclaims": [
+      "supplemental representation controls; original checked-u32 cells remain unadmitted",
+      "concrete law witnesses are not universal list or transfer proofs",
+      "Bend ordinary checking, Bend verdict, and SEMAPRAX native runtime are distinct assurance routes",
+      "native compile and run are combined; no timings, agent trial, cost, comparison or issue closure",
+      "no builtin SEMAPRAX u32, lowering proof, full-list runtime totality or current-head build attestation"
+    ],
+    "numeric_domain": "all integers 0..4294967295; explicit transfer failure preserves state",
+    "original_manifest_unchanged": true,
+    "representation_profile": "semaprax.checked-u32-value-encoding.v1",
+    "source": "evidence/full-u32-encoding-controls-v1/report.json",
+    "status": "supplemental_controls_pass"
+  },
+  "supplemental_guarded_i64_balance_source_proof": {
+    "full_u32_original": "unsupported_by_this_source_profile",
+    "no_op_negative": {
+      "diagnostic": "SPX-LW140: installed proof tool refused: solver returned false, unknown, malformed or partial evidence",
+      "solver_outcome_classification": "unclaimed; refusal does not distinguish counterexample, unknown, or another refusal reason",
+      "status": "proof_tool_refused_no_solver_status_claimed"
+    },
+    "nonclaims": [
+      "does not close the original structured full-u32 balance fixture",
+      "does not prove source lowering or execute the application",
+      "no-op refusal does not identify a solver counterexample versus another refusal status",
+      "overall LAW16 remains incomplete"
+    ],
+    "overall_law16": "incomplete",
+    "positive_smt_discharges": 7,
+    "selected_postconditions": [
+      {
+        "declaration_id": "law16.balance.debit_after",
+        "ensures_index": 0,
+        "name": "debit_u32_range",
+        "status": "smt_proved"
+      },
+      {
+        "declaration_id": "law16.balance.debit_after",
+        "ensures_index": 1,
+        "name": "debit_exact",
+        "status": "smt_proved"
+      },
+      {
+        "declaration_id": "law16.balance.debit_after",
+        "ensures_index": 2,
+        "name": "debit_positive_transfer",
+        "status": "smt_proved"
+      },
+      {
+        "declaration_id": "law16.balance.credit_after",
+        "ensures_index": 0,
+        "name": "credit_u32_range",
+        "status": "smt_proved"
+      },
+      {
+        "declaration_id": "law16.balance.credit_after",
+        "ensures_index": 1,
+        "name": "credit_exact",
+        "status": "smt_proved"
+      },
+      {
+        "declaration_id": "law16.balance.credit_after",
+        "ensures_index": 2,
+        "name": "credit_conservation",
+        "status": "smt_proved"
+      },
+      {
+        "declaration_id": "law16.balance.credit_after",
+        "ensures_index": 3,
+        "name": "credit_positive_transfer",
+        "status": "smt_proved"
+      }
+    ],
+    "semantic_scope": "guarded i64 projections for full-u32 values, scalar pre/postconditions only",
+    "source": "evidence/law16-guarded-i64-balance-smt-v1/result.json",
+    "status": "bounded_source_postconditions_proved_full_u32_route_incomplete",
+    "tool_and_build_identity": {
+      "platform": "Darwin arm64",
+      "semaprax_sha256": "6f6fa6384c8d2bacca4740485bcb6241dc06fc388e3d3dc36a7a38420d720e5a",
+      "source_commit": "5e3720672e441b0202b69b51862058493a1939e9",
+      "target_profile": "dev; debug=0; incremental=0; build_jobs=1",
+      "z3_sha256": "bbb24b8fed27552f7fb7cfdf0ed9101e6e24fd0cc0b9cfb945233b3f2ed333c5",
+      "z3_version": "Z3 version 4.12.5 - 64 bit"
+    }
+  },
+  "supplemental_guarded_i64_profile_v2": {
+    "nonclaims": [
+      "v1 checked-u32 SEMAPRAX source remains unsupported by the pinned parser",
+      "the v2 representation mapping does not establish source translation or backend lowering",
+      "the Bend theorem is bound to the exact Bend sort source, not to the old SEMAPRAX fixtures/full-u32-encoding-v1/sort.spx or its law16.* identities",
+      "the Lean theorem is bound only to its exact LAW15 source path, source hash, stable IDs, and theorem capsule",
+      "the cross-source theorem comparison aligns postconditions on the U32 subset but does not identify implementations or TCBs",
+      "no matched theorem timing, cost, agent trial, public ABI, production support, or LAW16 closure is claimed"
+    ],
+    "numeric_domain": {
+      "addition": "all admitted transfer additions satisfy 0 <= credit + amount <= 4294967295 before execution; arithmetic result agrees with U32.add",
+      "bend_representation": "unsigned 32-bit U32",
+      "embedding": "x maps to zero-extended i64(x); this is injective, preserves order and equality on the stated U32 interval",
+      "maximum": 4294967295,
+      "minimum": 0,
+      "name": "U32",
+      "overflow_behavior": "credit overflow is rejected before state update; failed transfer preserves both fields",
+      "scope": "representation-level mathematical correspondence only; does not prove source translation or backend lowering",
+      "semaprax_representation": "signed 64-bit i64 with explicit 0 <= value <= 4294967295 guards",
+      "subtraction": "all admitted transfer subtractions satisfy 0 <= debit - amount before execution; arithmetic result agrees with U32.sub"
+    },
+    "routes": [
+      {
+        "coverage_limit": "paired bounded source controls plus an independent universal bitvector representation model; no matched source theorem or translation proof",
+        "disposition": "paired_bounded_controls_pass_theorem_match_not_established",
+        "law_inventory_comparison": {
+          "bend": [
+            "concrete transfer success witness",
+            "concrete rejection witnesses",
+            "exact no-op mutation rejected by verdict route"
+          ],
+          "equal_universal_source_law_inventory": false,
+          "semaprax": [
+            "guarded-i64 contracts on source",
+            "concrete transfer success witness",
+            "explicit lower/upper domain refusal",
+            "exact no-op mutation rejected by contract route"
+          ]
+        },
+        "observed_controls": [
+          "Bend ordinary check and --verdict on the candidate and exact no-op mutation",
+          "SEMAPRAX native compile/run on the candidate and exact no-op mutation",
+          "SEMAPRAX refusal for explicit -1 and 4294967296 witnesses",
+          "QF_BV representation checks for all U32 balance triples: successful guard/output correspondence is unsat; omitted-overflow-guard and signed-i32-order attacks are sat"
+        ],
+        "route_evidence": "evidence/law16-guarded-i64-profile-controls-v2/report.json",
+        "route_id": "law16.structured-balance-transfer.guarded-i64.v2",
+        "sources": {
+          "bend": {
+            "path": "fixtures/full-u32-encoding-v1/balance.bend",
+            "sha256": "sha256:bd75f28947cacd6ac2a8cecc1856ca4096f33f3cdf70f9169fa668f78294d0a9"
+          },
+          "semaprax": {
+            "path": "fixtures/full-u32-encoding-v1/balance.spx",
+            "sha256": "sha256:a5eb501412f36517614b061cff9dbd5eda4c1ee17fa6acf75012759d8c890d4f"
+          }
+        }
+      },
+      {
+        "bend_source_law_inventory": [
+          "five concrete law case_* equalities; no universal sortedness/permutation/multiplicity law"
+        ],
+        "coverage_limit": "four-element model result and concrete source controls do not discharge unbounded-list source laws",
+        "disposition": "paired_concrete_controls_pass_theorem_match_unsupported",
+        "observed_controls": [
+          "Bend ordinary check and --verdict on concrete witnesses and exact empty-output mutation",
+          "SEMAPRAX native compile/run on concrete witnesses and exact empty-output mutation",
+          "SEMAPRAX refusal for explicit -1 and 4294967296 witnesses",
+          "QF_BV model proves sortedness and multiplicity for all U32-valued four-element inputs, with a satisfiable attack"
+        ],
+        "required_unmatched_laws": [
+          "universal sortedness",
+          "permutation",
+          "duplicate multiplicity",
+          "empty-input behavior"
+        ],
+        "route_evidence": "evidence/law16-guarded-i64-profile-controls-v2/report.json",
+        "route_id": "law16.list-sort.guarded-i64.v2",
+        "semaprax_source_law_inventory": [
+          "guarded U32 domain",
+          "recursive insert/sort",
+          "concrete witnesses; no authenticated universal source theorem in this route"
+        ],
+        "sources": {
+          "bend": {
+            "path": "fixtures/full-u32-encoding-v1/sort.bend",
+            "sha256": "sha256:3f81c14f6d27925394d288cd4865e5fe1700fedabbd9873f79b6486c76fab032"
+          },
+          "semaprax": {
+            "path": "fixtures/full-u32-encoding-v1/sort.spx",
+            "sha256": "sha256:f288b63d27a3699ecca965f10d72a22414b1a5000b892e30d868832ba8ed719f"
+          }
+        }
+      },
+      {
+        "capsule_sha256": "sha256:a14878d87d8f63cb472916239d3e07f9bac46265291159ef4dc994d5735d5b0d",
+        "declarations": [
+          "law15.collection.insert",
+          "law15.collection.sort"
+        ],
+        "disposition": "source_authenticated_semaprax_theorem_proved",
+        "domain": "all finite List<i64>; U32-valued lists embed as a subset",
+        "evidence_capsule": "evidence/law16-i64-list-proof-v1/capsule.json",
+        "identity_boundary": "does not authenticate fixtures/full-u32-encoding-v1/sort.spx or law16.insert/law16.sort; no cross-source aliasing",
+        "proof_status": "supplemental_i64_list_profile_proved",
+        "route_id": "law15.collection-sort.all-i64.lean.v1",
+        "source": {
+          "path": "examples/law-packs/collection/sort.spx",
+          "sha256": "sha256:f729230754eae7b60b96bbdb9c4b30f1e4d14133fbdbf548c7040849983bc4b8"
+        },
+        "theorem_laws": [
+          "sort_sorted",
+          "sort_permutation",
+          "sort_multiplicity"
+        ]
+      },
+      {
+        "algorithm_boundary": {
+          "bend": "U32 recursive insertion sort with actual U32.is_le Boolean dispatch",
+          "claim": "independent source algorithms prove aligned postconditions; no source/body identity or translation-equivalence claim",
+          "semaprax": "i64 recursive insertion sort authenticated under law15.collection.* IDs"
+        },
+        "bend": {
+          "domain": "every finite List<U32>, every U32 query",
+          "identity": "Bend module/function Sort.sort in exact source above; no SEMAPRAX @id is asserted for this source",
+          "laws": [
+            "sorted_sort(xs): SortedB(Sort.sort(xs), 0)",
+            "count_sort(probe,xs): count(probe,Sort.sort(xs)) == count(probe,xs)",
+            "finite-multiset permutation follows extensionally from equality of count for every U32 probe"
+          ],
+          "proof_capsule": "evidence/bend-u32-sort-universal-v1/capsule.json",
+          "proof_capsule_sha256": "sha256:7707ac0797579e47c8575cec6aefeeaa68532a4745ccf6163b9793a4cb355d9c",
+          "proof_source": {
+            "path": "benchmarks/bend2-law-v1/fixtures/full-u32-encoding-v1/sort-universal.bend",
+            "sha256": "sha256:e71ce4be53f821b38036b189e360f6c27e8d53bbd73e2c1304af3c064cd819fa"
+          },
+          "source": {
+            "path": "benchmarks/bend2-law-v1/fixtures/full-u32-encoding-v1/sort.bend",
+            "sha256": "sha256:3f81c14f6d27925394d288cd4865e5fe1700fedabbd9873f79b6486c76fab032"
+          },
+          "subject": "Sort.sort"
+        },
+        "disposition": "matched_universal_semantic_laws_under_u32_embedding_no_timing",
+        "domain_and_law_alignment": {
+          "common_domain": "all finite lists of values in 0..4294967295",
+          "empty_input": "Bend universal proof covers empty lists and its empty-output mutation is rejected; Lean capsule rejects empty-output and duplicate-multiplicity mutations",
+          "multiplicity_mapping": "Bend Nat count equality for every U32 probe is finite-multiset equality; the Lean permutation/count theorem restricts to the same value subset",
+          "order_mapping": "unsigned U32 order agrees with signed i64 order after zero-extension over this interval"
+        },
+        "evidence": [
+          "Bend --verdict candidate and direct kernel replay pass",
+          "Bend empty-output universal proof is rejected at count_sort",
+          "Bend concrete empty-output counterexample is separately proved",
+          "Lean source-authenticated sortedness/permutation/multiplicity capsule passes and rejects empty/duplicate mutants"
+        ],
+        "route_id": "law16-u32-sort.bend-vs-law15-i64-sort.semantic-laws.v1",
+        "scope_limit": "supplemental cross-source semantic theorem comparison for the U32 subdomain only; not certification of fixtures/full-u32-encoding-v1/sort.spx, law16.insert, or law16.sort; no timing or LAW16 source-pair admission",
+        "semaprax": {
+          "declarations": [
+            "law15.collection.insert",
+            "law15.collection.sort"
+          ],
+          "domain": "all finite List<i64>; restrict inputs and values to 0..4294967295 for the U32 comparison",
+          "laws": [
+            "sort_sorted",
+            "sort_permutation",
+            "sort_multiplicity"
+          ],
+          "proof_capsule": "evidence/law16-i64-list-proof-v1/capsule.json",
+          "proof_capsule_sha256": "sha256:a14878d87d8f63cb472916239d3e07f9bac46265291159ef4dc994d5735d5b0d",
+          "source": {
+            "path": "examples/law-packs/collection/sort.spx",
+            "sha256": "sha256:f729230754eae7b60b96bbdb9c4b30f1e4d14133fbdbf548c7040849983bc4b8"
+          },
+          "subject": "law15.collection.sort"
+        },
+        "trusted_computing_bases": {
+          "bend": "pinned Bend source/front end at commit 947db722640c86247849343657bf2f7ef01cb7f1 plus locally provisioned BendTT kernel; capsule records source/tool/kernel hashes, but kernel binary/source association is not a reproducible build attestation",
+          "semaprax": "pinned source-authenticating Lean proof exporter and Lean 4.34.0 kernel; capsule records local test-binary/kernel identity, but test-binary build association is not a build attestation"
+        }
+      }
+    ],
+    "source": "fixtures/full-u32-guarded-i64-profile-v2.json",
+    "status": "supplemental_controls_and_matched_sort_law_route_no_timing"
+  },
+  "supplemental_universal_list_theorems": {
+    "bend": {
+      "coverage": {
+        "count_domain": "unbounded Nat",
+        "domain": "every finite List<U32>, every queried U32",
+        "multiplicity": "count_sort(probe,xs): count(probe,Sort.sort(xs)) == count(probe,xs)",
+        "permutation": "extensional finite-multiset equality; see BEND-U32-SORT-PROOF.md",
+        "sortedness": "sorted_sort(xs): SortedB(Sort.sort(xs), 0)",
+        "subject": "Sort.sort from unchanged fixtures/full-u32-encoding-v1/sort.bend"
+      },
+      "negative_control": "empty universal count law refused; a separate concrete count mismatch was kernel-checked",
+      "source": "evidence/bend-u32-sort-universal-v1/capsule.json",
+      "status": "supplemental_bend_u32_sort_source_proved"
+    },
+    "comparison_scope": "aligned universal sortedness and exact multiplicity over the U32 subset; distinct source algorithms and proof TCBs; no matched timing or original law16.* source certificate",
+    "semaprax": {
+      "coverage": {
+        "declarations": [
+          "law15.collection.insert",
+          "law15.collection.sort"
+        ],
+        "domain": "all finite List<i64>; guarded U32 values are a subset",
+        "laws": [
+          "sort_sorted",
+          "sort_permutation",
+          "sort_multiplicity"
+        ]
+      },
+      "original_law16_cell": "unchanged; its law16.* identities are not covered by this certificate",
+      "source": "evidence/law16-i64-list-proof-v1/capsule.json",
+      "status": "supplemental_i64_list_profile_proved"
+    }
+  },
+  "unavailable_or_unsupported": {
+    "Lean": "supplemental LAW15 collection source theorem physically checked by Lean; no Boolean or original law16.* Lean export",
+    "checked_u32": "unsupported_by_pinned_parser: SPX-P003 admits i32, u8, usize literal suffixes, not u32",
+    "cold_cache": "unavailable: no retained reproducible clean cache isolation",
+    "cost": "unavailable: no Codex JSON monetary charge event",
+    "list_refactor_lawbreaking": {
+      "admission_blocker": {
+        "receipt": "evidence/law16-checked-u32-nonadmission-v1/review.json",
+        "sha256": "sha256:d123fb87b7b42356c5de84c4f1787c0183eeb0f3840d9fb5bbd9cd1b4a058561"
+      },
+      "cells": [
+        {
+          "additional_unobserved_route": "list theorem needs list/source-proof route; none is retained",
+          "attack": "empty-sort",
+          "attack_witness": {
+            "input": [
+              3,
+              1,
+              3,
+              2
+            ],
+            "output": []
+          },
+          "fixture": {
+            "path": "fixtures/supported-list-theorem-v1.json",
+            "sha256": "sha256:027f3548bd0282dc7e38fa1cd9ba822176a4c7d281b559720a9fad398f0fbccd"
+          },
+          "id": "supported-list-theorem-v1",
+          "laws": [
+            "permutation-and-multiplicity",
+            "sortedness"
+          ],
+          "reason": "pinned SEMAPRAX parser rejects checked u32 before a matched route can start",
+          "status": "unsupported",
+          "success_witness": {
+            "input": [
+              3,
+              1,
+              3,
+              2
+            ],
+            "output": [
+              1,
+              2,
+              3,
+              3
+            ]
+          }
+        },
+        {
+          "additional_unobserved_route": "refactor equivalence route is not retained",
+          "attack": "law-dropped-during-refactor",
+          "attack_witness": {
+            "after": 12,
+            "before": 25,
+            "input": 12
+          },
+          "fixture": {
+            "path": "fixtures/law-preserving-refactor-v1.json",
+            "sha256": "sha256:d467b1a05ecac911f91247270440ad9b3915483efd8eba43d3aabfd68fbc16ff"
+          },
+          "id": "law-preserving-refactor-v1",
+          "laws": [
+            "before-after-observational-equivalence"
+          ],
+          "reason": "pinned SEMAPRAX parser rejects checked u32 before a matched route can start",
+          "status": "unsupported",
+          "success_witness": {
+            "after": 25,
+            "before": 25,
+            "input": 12
+          }
+        },
+        {
+          "additional_unobserved_route": "law-inventory preservation route is not retained",
+          "attack": "agent-law-gaming",
+          "attack_witness": {
+            "input": 5,
+            "law_inventory": [],
+            "output": 5
+          },
+          "fixture": {
+            "path": "fixtures/law-breaking-agent-edit-v1.json",
+            "sha256": "sha256:359c01461d0a015cc523d2ec70acbfbfb4cf8da724cd490a84426bdcf765a013"
+          },
+          "id": "law-breaking-agent-edit-v1",
+          "laws": [
+            "declared-law-inventory"
+          ],
+          "reason": "pinned SEMAPRAX parser rejects checked u32 before a matched route can start",
+          "status": "unsupported",
+          "success_witness": {
+            "input": 5,
+            "law_inventory": [
+              "double"
+            ],
+            "output": 10
+          }
+        }
+      ],
+      "nonclaims": [
+        "not executable matched evidence",
+        "no i32, i64, u8, or usize substitute",
+        "no list theorem, refactor, or agent-edit acceptance result"
+      ],
+      "schema": "semaprax.bend2-law-benchmark.remaining-u32-cells-admission.v1",
+      "status": "unsupported"
+    },
+    "project_sized": "unavailable: Boolean microcell is not project-sized/incremental evidence"
+  }
+}

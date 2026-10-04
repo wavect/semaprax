@@ -1,0 +1,317 @@
+sort.insert_choice : ∀x0 : U32 -> ∀x1 : U32 -> ∀x2 : (List.q2 -U32) -> ∀x3 : (List.q2 -U32) -> ∀x4 : Bool -> (List.q2 -U32) =
+  λx0 => λ+x1 => λx2 => λx3 => λ{(,): λ{.True: λ{(): (.Con, (x0, ((.Con, (x1, (x2, ()))), ()))); λ{}}; λ{.False: λ{(): (.Con, (x1, (x3, ()))); λ{}}; λ{}}}}
+
+Cmp.is_le : ∀x0 : Cmp -> Bool =
+  λ{(,): λ{.GT: λ{(): (.False, ()); λ{}}; λx0 => λx1 => (.True, ())}}
+
+Bool.cmp : ∀x0 : Bool -> ∀x1 : Bool -> Cmp =
+  λ{(,): λ{.False: λ{(): λ{(,): λ{.False: λ{(): (.EQ, ()); λ{}}; λ{.True: λ{(): (.LT, ()); λ{}}; λ{}}}}; λ{}}; λ{.True: λ{(): λ{(,): λ{.False: λ{(): (.GT, ()); λ{}}; λ{.True: λ{(): (.EQ, ()); λ{}}; λ{}}}}; λ{}}; λ{}}}}
+
+Word.cmp.fin : ∀x0 : Bool -> ∀x1 : Bool -> ∀x2 : Cmp -> Cmp =
+  λx0 => λx1 => λ{(,): λ{.LT: λ{(): (.LT, ()); λ{}}; λ{.EQ: λ{(): (Bool.cmp x0 x1); λ{}}; λ{.GT: λ{(): (.GT, ()); λ{}}; λ{}}}}}
+
+Word.cmp : ∀x0 : Nat -> ∀x1 : (Word x0) -> ∀x2 : (Word x0) -> Cmp =
+  λ{(,): λ{.Zero: λ{(): λx0 => λx1 => (.EQ, ()); λ{}}; λ{.Succ: λ{(,): λx0 => λ{(): λ{(,): λ{.WCon: λ{(,): λx1 => λ{(,): λx2 => λ{(): λ{(,): λ{.WCon: λ{(,): λx3 => λ{(,): λx4 => λ{(): (Word.cmp.fin x1 x3 (Word.cmp x0 x2 x4)); λ{}}}}; λ{}}}; λ{}}}}; λ{}}}; λ{}}}; λ{}}}}
+
+U32.cmp : ∀x0 : U32 -> ∀x1 : U32 -> Cmp =
+  λ{(,): λ{.U32: λ{(,): λx0 => λ{(): λ{(,): λ{.U32: λ{(,): λx1 => λ{(): (Word.cmp (.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Zero, ()), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())) x0 x1); λ{}}}; λ{}}}; λ{}}}; λ{}}}
+
+U32.is_le : ∀x0 : U32 -> ∀x1 : U32 -> Bool =
+  λx0 => λx1 => (Cmp.is_le (U32.cmp x0 x1))
+
+sort.insert : ∀+x0 : U32 -> ∀+x1 : (List.q2 -U32) -> (List.q2 -U32) =
+  λ+x0 => λ{(,): λ{.Nil: λ{(): (.Con, (x0, ((.Nil, ()), ()))); λ{}}; λ{.Con: λ{(,): λ+x1 => λ{(,): λ+x2 => λ{(): (sort.insert_choice x0 x1 x2 (sort.insert +x0 +x2) (U32.is_le x0 x1)); λ{}}}}; λ{}}}}
+
+sort.sort : ∀x0 : (List.q2 -U32) -> (List.q2 -U32) =
+  λ{(,): λ{.Nil: λ{(): (.Nil, ()); λ{}}; λ{.Con: λ{(,): λx0 => λ{(,): λx1 => λ{(): (sort.insert +x0 +(sort.sort x1)); λ{}}}}; λ{}}}}
+
+U32.lit3 : U32 =
+  (.U32, ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WNil, ()), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))
+
+U32.lit1 : U32 =
+  (.U32, ((.WCon, ((.True, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WNil, ()), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))
+
+U32.lit2 : U32 =
+  (.U32, ((.WCon, ((.False, ()), ((.WCon, ((.True, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WNil, ()), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))
+
+sort.case_0 : {(sort.sort (.Con, (U32.lit3, ((.Con, (U32.lit1, ((.Con, (U32.lit3, ((.Con, (U32.lit2, ((.Nil, ()), ()))), ()))), ()))), ())))) == (.Con, (U32.lit1, ((.Con, (U32.lit2, ((.Con, (U32.lit3, ((.Con, (U32.lit3, ((.Nil, ()), ()))), ()))), ()))), ()))) : (List.q2 -U32)} =
+  {==}
+
+sort.case_1 : {(sort.sort (.Nil, ())) == (.Nil, ()) : (List.q2 -U32)} =
+  {==}
+
+U32.lit4294967295 : U32 =
+  (.U32, ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WNil, ()), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))
+
+U32.lit0 : U32 =
+  (.U32, ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WNil, ()), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))
+
+U32.lit2147483648 : U32 =
+  (.U32, ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.True, ()), ((.WNil, ()), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))
+
+sort.case_2 : {(sort.sort (.Con, (U32.lit4294967295, ((.Con, (U32.lit0, ((.Con, (U32.lit2147483648, ((.Con, (U32.lit4294967295, ((.Nil, ()), ()))), ()))), ()))), ())))) == (.Con, (U32.lit0, ((.Con, (U32.lit2147483648, ((.Con, (U32.lit4294967295, ((.Con, (U32.lit4294967295, ((.Nil, ()), ()))), ()))), ()))), ()))) : (List.q2 -U32)} =
+  {==}
+
+sort.case_3 : {(sort.sort (.Con, (U32.lit1, ((.Con, (U32.lit2, ((.Nil, ()), ()))), ())))) == (.Con, (U32.lit1, ((.Con, (U32.lit2, ((.Nil, ()), ()))), ()))) : (List.q2 -U32)} =
+  {==}
+
+sort.case_4 : {(sort.sort (.Con, (U32.lit4294967295, ((.Nil, ()), ())))) == (.Con, (U32.lit4294967295, ((.Nil, ()), ()))) : (List.q2 -U32)} =
+  {==}
+
+opaque IO.print : ∀x0 : String -> (IO -Unit) =
+  λx0 => λ-x1 => λx2 => (.Halt, (U32.lit0, ((.SNil, ()), ())))
+
+U32.lit102 : U32 =
+  (.U32, ((.WCon, ((.False, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WNil, ()), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))
+
+U32.lit117 : U32 =
+  (.U32, ((.WCon, ((.True, ()), ((.WCon, ((.False, ()), ((.WCon, ((.True, ()), ((.WCon, ((.False, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WNil, ()), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))
+
+U32.lit108 : U32 =
+  (.U32, ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.False, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WNil, ()), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))
+
+U32.lit45 : U32 =
+  (.U32, ((.WCon, ((.True, ()), ((.WCon, ((.False, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.False, ()), ((.WCon, ((.True, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WNil, ()), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))
+
+U32.lit51 : U32 =
+  (.U32, ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WNil, ()), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))
+
+U32.lit50 : U32 =
+  (.U32, ((.WCon, ((.False, ()), ((.WCon, ((.True, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WNil, ()), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))
+
+U32.lit115 : U32 =
+  (.U32, ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WNil, ()), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))
+
+U32.lit111 : U32 =
+  (.U32, ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.False, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WNil, ()), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))
+
+U32.lit114 : U32 =
+  (.U32, ((.WCon, ((.False, ()), ((.WCon, ((.True, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WNil, ()), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))
+
+U32.lit116 : U32 =
+  (.U32, ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.True, ()), ((.WCon, ((.False, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WNil, ()), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))
+
+U32.lit99 : U32 =
+  (.U32, ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WNil, ()), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))
+
+U32.lit110 : U32 =
+  (.U32, ((.WCon, ((.False, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.False, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WNil, ()), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))
+
+U32.lit112 : U32 =
+  (.U32, ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WNil, ()), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))
+
+U32.lit97 : U32 =
+  (.U32, ((.WCon, ((.True, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.True, ()), ((.WCon, ((.True, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WCon, ((.False, ()), ((.WNil, ()), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))
+
+sort.main : (IO -Unit) =
+  λ-x0 => λx1 => (IO.print (.SCon, ((.Chr, (U32.lit102, ())), ((.SCon, ((.Chr, (U32.lit117, ())), ((.SCon, ((.Chr, (U32.lit108, ())), ((.SCon, ((.Chr, (U32.lit108, ())), ((.SCon, ((.Chr, (U32.lit45, ())), ((.SCon, ((.Chr, (U32.lit117, ())), ((.SCon, ((.Chr, (U32.lit51, ())), ((.SCon, ((.Chr, (U32.lit50, ())), ((.SCon, ((.Chr, (U32.lit45, ())), ((.SCon, ((.Chr, (U32.lit115, ())), ((.SCon, ((.Chr, (U32.lit111, ())), ((.SCon, ((.Chr, (U32.lit114, ())), ((.SCon, ((.Chr, (U32.lit116, ())), ((.SCon, ((.Chr, (U32.lit45, ())), ((.SCon, ((.Chr, (U32.lit99, ())), ((.SCon, ((.Chr, (U32.lit111, ())), ((.SCon, ((.Chr, (U32.lit110, ())), ((.SCon, ((.Chr, (U32.lit116, ())), ((.SCon, ((.Chr, (U32.lit114, ())), ((.SCon, ((.Chr, (U32.lit111, ())), ((.SCon, ((.Chr, (U32.lit108, ())), ((.SCon, ((.Chr, (U32.lit115, ())), ((.SCon, ((.Chr, (U32.lit45, ())), ((.SCon, ((.Chr, (U32.lit112, ())), ((.SCon, ((.Chr, (U32.lit97, ())), ((.SCon, ((.Chr, (U32.lit115, ())), ((.SCon, ((.Chr, (U32.lit115, ())), ((.SNil, ()), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))), ()))) -x0 λx2 => (x1 x2))
+
+Flip : ∀x0 : Cmp -> Cmp =
+  λ{(,): λ{.LT: λ{(): (.GT, ()); λ{}}; λ{.EQ: λ{(): (.EQ, ()); λ{}}; λ{.GT: λ{(): (.LT, ()); λ{}}; λ{}}}}}
+
+cmp_fin_swap : ∀x0 : Bool -> ∀x1 : Bool -> ∀x2 : Cmp -> {(Word.cmp.fin x0 x1 x2) == (Flip (Word.cmp.fin x1 x0 (Flip x2))) : Cmp} =
+  λ{(,): λ{.False: λ{(): λ{(,): λ{.False: λ{(): λ{(,): λ{.LT: λ{(): {==}; λ{}}; λ{.EQ: λ{(): {==}; λ{}}; λ{.GT: λ{(): {==}; λ{}}; λ{}}}}}; λ{}}; λ{.True: λ{(): λ{(,): λ{.LT: λ{(): {==}; λ{}}; λ{.EQ: λ{(): {==}; λ{}}; λ{.GT: λ{(): {==}; λ{}}; λ{}}}}}; λ{}}; λ{}}}}; λ{}}; λ{.True: λ{(): λ{(,): λ{.False: λ{(): λ{(,): λ{.LT: λ{(): {==}; λ{}}; λ{.EQ: λ{(): {==}; λ{}}; λ{.GT: λ{(): {==}; λ{}}; λ{}}}}}; λ{}}; λ{.True: λ{(): λ{(,): λ{.LT: λ{(): {==}; λ{}}; λ{.EQ: λ{(): {==}; λ{}}; λ{.GT: λ{(): {==}; λ{}}; λ{}}}}}; λ{}}; λ{}}}}; λ{}}; λ{}}}}
+
+fin_flip : ∀x0 : Bool -> ∀x1 : Bool -> ∀x2 : Cmp -> Cmp =
+  λx0 => λx1 => λx2 => (Flip (Word.cmp.fin x1 x0 x2))
+
+flip_flip : ∀x0 : Cmp -> {(Flip (Flip x0)) == x0 : Cmp} =
+  λ{(,): λ{.LT: λ{(): {==}; λ{}}; λ{.EQ: λ{(): {==}; λ{}}; λ{.GT: λ{(): {==}; λ{}}; λ{}}}}}
+
+Equal.cong : ∀-x0 : *1 -> ∀-x1 : *1 -> ∀-x2 : ∀x2 : x0 -> x1 -> ∀-x3 : x0 -> ∀-x4 : x0 -> ∀x5 : {x3 == x4 : x0} -> {(x2 x3) == (x2 x4) : x1} =
+  λ-x0 => λ-x1 => λ-x2 => λ-x3 => λ-x4 => λx5 => %x5 : x6, x7 => {(x2 x3) == (x2 x6) : x1}; {==}
+
+Equal.trans : ∀-x0 : *1 -> ∀-x1 : x0 -> ∀-x2 : x0 -> ∀-x3 : x0 -> ∀x4 : {x1 == x2 : x0} -> ∀x5 : {x2 == x3 : x0} -> {x1 == x3 : x0} =
+  λ-x0 => λ-x1 => λ-x2 => λ-x3 => λx4 => λx5 => %x5 : x6, x7 => {x1 == x6 : x0}; x4
+
+word_cmp_swap : ∀+x0 : Nat -> ∀+x1 : (Word x0) -> ∀+x2 : (Word x0) -> {(Word.cmp x0 x1 x2) == (Flip (Word.cmp x0 x2 x1)) : Cmp} =
+  λ{(,): λ{.Zero: λ{(): λ+x0 => λ+x1 => {==}; λ{}}; λ{.Succ: λ{(,): λ+x0 => λ{(): λ{(,): λ{.WCon: λ{(,): λ+x1 => λ{(,): λ+x2 => λ{(): λ{(,): λ{.WCon: λ{(,): λ+x3 => λ{(,): λ+x4 => λ{(): !+x5 = (word_cmp_swap +x0 +x2 +x4); !+x6 = (Equal.cong -Cmp -Cmp -λx6 => (Flip x6) -(Word.cmp x0 x2 x4) -(Flip (Word.cmp x0 x4 x2)) x5); !+x7 = (flip_flip (Word.cmp x0 x4 x2)); !+x8 = (cmp_fin_swap x1 x3 (Word.cmp x0 x2 x4)); !+x9 = (Equal.cong -Cmp -Cmp -λx9 => (fin_flip x1 x3 x9) -(Flip (Word.cmp x0 x2 x4)) -(Flip (Flip (Word.cmp x0 x4 x2))) x6); !+x10 = (Equal.cong -Cmp -Cmp -λx10 => (fin_flip x1 x3 x10) -(Flip (Flip (Word.cmp x0 x4 x2))) -(Word.cmp x0 x4 x2) x7); !+x11 = (Equal.trans -Cmp -(Word.cmp.fin x1 x3 (Word.cmp x0 x2 x4)) -(fin_flip x1 x3 (Flip (Word.cmp x0 x2 x4))) -(fin_flip x1 x3 (Flip (Flip (Word.cmp x0 x4 x2)))) x8 x9); (Equal.trans -Cmp -(Word.cmp.fin x1 x3 (Word.cmp x0 x2 x4)) -(fin_flip x1 x3 (Flip (Flip (Word.cmp x0 x4 x2)))) -(fin_flip x1 x3 (Word.cmp x0 x4 x2)) x11 x10); λ{}}}}; λ{}}}; λ{}}}}; λ{}}}; λ{}}}; λ{}}}}
+
+Unit.arms : ∀x0 : <Unit> -> *2 =
+  λ{.Unit: <()>; λ{}}
+
+Unit : *2 =
+  Σx0 : <Unit> -> (Unit.arms x0)
+
+Empty.arms : ∀x0 : <> -> *2 =
+  λ{}
+
+Empty : *2 =
+  Σx0 : <> -> (Empty.arms x0)
+
+Empty.efq : ∀x0 : Empty -> <> =
+  λ{(,): λ{}}
+
+ULE.cmp : ∀x0 : Cmp -> *2 =
+  λ{(,): λ{.LT: λ{(): Unit; λ{}}; λ{.EQ: λ{(): Unit; λ{}}; λ{.GT: λ{(): Empty; λ{}}; λ{}}}}}
+
+ULE : ∀x0 : U32 -> ∀x1 : U32 -> *2 =
+  λ{(,): λ{.U32: λ{(,): λx0 => λ{(): λ{(,): λ{.U32: λ{(,): λx1 => λ{(): (ULE.cmp (Word.cmp (.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Zero, ()), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())) x0 x1)); λ{}}}; λ{}}}; λ{}}}; λ{}}}
+
+UChoice.arms : ∀-x0 : U32 -> ∀-x1 : U32 -> ∀x2 : <Before, After> -> *2 =
+  λ-x0 => λ-x1 => λ{.Before: Σx2 : (ULE x0 x1) -> Σx3 : {(U32.is_le x0 x1) == (.True, ()) : Bool} -> <()>; λ{.After: Σx2 : (ULE x1 x0) -> Σx3 : {(U32.is_le x0 x1) == (.False, ()) : Bool} -> <()>; λ{}}}
+
+UChoice : ∀-x0 : U32 -> ∀-x1 : U32 -> *2 =
+  λ-x0 => λ-x1 => Σx2 : <Before, After> -> (UChoice.arms -x0 -x1 x2)
+
+IsGT : ∀x0 : Cmp -> *2 =
+  λ{(,): λ{.GT: λ{(): Unit; λ{}}; λ{.LT: λ{(): Empty; λ{}}; λ{.EQ: λ{(): Empty; λ{}}; λ{}}}}}
+
+gt_transport : ∀x0 : Cmp -> ∀x1 : {(.GT, ()) == (Flip x0) : Cmp} -> (IsGT (Flip x0)) =
+  λx0 => λx1 => %x1 : x2, x3 => (IsGT x2); (.Unit, ())
+
+Equal.sym : ∀-x0 : *1 -> ∀-x1 : x0 -> ∀-x2 : x0 -> ∀x3 : {x1 == x2 : x0} -> {x2 == x1 : x0} =
+  λ-x0 => λ-x1 => λ-x2 => λx3 => %x3 : x4, x5 => {x4 == x1 : x0}; {==}
+
+le_from_lt : ∀x0 : Cmp -> ∀x1 : {x0 == (.LT, ()) : Cmp} -> (ULE.cmp x0) =
+  λx0 => λx1 => !+x2 = (Equal.sym -Cmp -x0 -(.LT, ()) x1); %x2 : x3, x4 => (ULE.cmp x3); (.Unit, ())
+
+le_false_from_gt : ∀x0 : Cmp -> ∀x1 : {x0 == (.GT, ()) : Cmp} -> {(Cmp.is_le x0) == (.False, ()) : Bool} =
+  λx0 => λx1 => !+x2 = (Equal.sym -Cmp -x0 -(.GT, ()) x1); %x2 : x3, x4 => {(Cmp.is_le x3) == (.False, ()) : Bool}; {==}
+
+le_from_eq : ∀x0 : Cmp -> ∀x1 : {x0 == (.EQ, ()) : Cmp} -> (ULE.cmp x0) =
+  λx0 => λx1 => !+x2 = (Equal.sym -Cmp -x0 -(.EQ, ()) x1); %x2 : x3, x4 => (ULE.cmp x3); (.Unit, ())
+
+le_true_from_lt : ∀x0 : Cmp -> ∀x1 : {x0 == (.LT, ()) : Cmp} -> {(Cmp.is_le x0) == (.True, ()) : Bool} =
+  λx0 => λx1 => !+x2 = (Equal.sym -Cmp -x0 -(.LT, ()) x1); %x2 : x3, x4 => {(Cmp.is_le x3) == (.True, ()) : Bool}; {==}
+
+le_true_from_eq : ∀x0 : Cmp -> ∀x1 : {x0 == (.EQ, ()) : Cmp} -> {(Cmp.is_le x0) == (.True, ()) : Bool} =
+  λx0 => λx1 => !+x2 = (Equal.sym -Cmp -x0 -(.EQ, ()) x1); %x2 : x3, x4 => {(Cmp.is_le x3) == (.True, ()) : Bool}; {==}
+
+Empty.absurd : ∀-x0 : *1 -> ∀x1 : Empty -> x0 =
+  λ-x0 => λ{(,): λ{}}
+
+u32_choice.gt : ∀+x0 : (Word (.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Zero, ()), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ()))) -> ∀+x1 : (Word (.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Zero, ()), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ()))) -> ∀x2 : Cmp -> ∀x3 : {(Word.cmp (.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Zero, ()), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())) x0 x1) == (.GT, ()) : Cmp} -> ∀x4 : {(Word.cmp (.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Zero, ()), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())) x1 x0) == x2 : Cmp} -> ∀x5 : {(.GT, ()) == (Flip x2) : Cmp} -> (UChoice -(.U32, (x0, ())) -(.U32, (x1, ()))) =
+  λ+x0 => λ+x1 => λ{(,): λ{.LT: λ{(): λx2 => λx3 => λx4 => (.After, ((le_from_lt (Word.cmp (.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Zero, ()), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())) x1 x0) x3), ((le_false_from_gt (Word.cmp (.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Zero, ()), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())) x0 x1) x2), ()))); λ{}}; λ{.EQ: λ{(): λx2 => λx3 => λx4 => !+x5 = (gt_transport (.EQ, ()) x4); (Empty.absurd -(UChoice -(.U32, (x0, ())) -(.U32, (x1, ()))) x5); λ{}}; λ{.GT: λ{(): λx2 => λx3 => λx4 => !+x5 = (gt_transport (.GT, ()) x4); (Empty.absurd -(UChoice -(.U32, (x0, ())) -(.U32, (x1, ()))) x5); λ{}}; λ{}}}}}
+
+u32_choice.fin : ∀+x0 : (Word (.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Zero, ()), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ()))) -> ∀+x1 : (Word (.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Zero, ()), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ()))) -> ∀x2 : Cmp -> ∀+x3 : {(Word.cmp (.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Zero, ()), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())) x0 x1) == x2 : Cmp} -> ∀x4 : {x2 == (Flip (Word.cmp (.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Zero, ()), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())) x1 x0)) : Cmp} -> (UChoice -(.U32, (x0, ())) -(.U32, (x1, ()))) =
+  λ+x0 => λ+x1 => λ{(,): λ{.LT: λ{(): λ+x2 => λx3 => (.Before, ((le_from_lt (Word.cmp (.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Zero, ()), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())) x0 x1) x2), ((le_true_from_lt (Word.cmp (.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Zero, ()), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())) x0 x1) x2), ()))); λ{}}; λ{.EQ: λ{(): λ+x2 => λx3 => (.Before, ((le_from_eq (Word.cmp (.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Zero, ()), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())) x0 x1) x2), ((le_true_from_eq (Word.cmp (.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Zero, ()), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())) x0 x1) x2), ()))); λ{}}; λ{.GT: λ{(): λ+x2 => λx3 => (u32_choice.gt +x0 +x1 (Word.cmp (.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Zero, ()), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())) x1 x0) x2 {==} x3); λ{}}; λ{}}}}}
+
+u32_choice : ∀+x0 : U32 -> ∀+x1 : U32 -> (UChoice -x0 -x1) =
+  λ{(,): λ{.U32: λ{(,): λ+x0 => λ{(): λ{(,): λ{.U32: λ{(,): λ+x1 => λ{(): (u32_choice.fin +x0 +x1 (Word.cmp (.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Zero, ()), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())) x0 x1) +{==} (word_cmp_swap +(.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Zero, ()), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())) +x0 +x1)); λ{}}}; λ{}}}; λ{}}}; λ{}}}
+
+transport_le : ∀x0 : Cmp -> ∀x1 : Cmp -> ∀x2 : {x0 == x1 : Cmp} -> ∀x3 : (ULE.cmp x0) -> (ULE.cmp x1) =
+  λx0 => λx1 => λx2 => λx3 => %x2 : x4, x5 => (ULE.cmp x4); x3
+
+zero_word : ∀x0 : Nat -> (Word x0) =
+  λ{(,): λ{.Zero: λ{(): (.WNil, ()); λ{}}; λ{.Succ: λ{(,): λx0 => λ{(): (.WCon, ((.False, ()), ((zero_word x0), ()))); λ{}}}; λ{}}}}
+
+zero_word_le.fin : ∀+x0 : Nat -> ∀x1 : Bool -> ∀x2 : (Word x0) -> ∀x3 : Cmp -> ∀x4 : {(Word.cmp x0 (zero_word x0) x2) == x3 : Cmp} -> ∀x5 : (ULE.cmp (Word.cmp x0 (zero_word x0) x2)) -> (ULE.cmp (Word.cmp.fin (.False, ()) x1 x3)) =
+  λ+x0 => λ{(,): λ{.False: λ{(): λx1 => λ{(,): λ{.LT: λ{(): λx2 => λx3 => (.Unit, ()); λ{}}; λ{.EQ: λ{(): λx2 => λx3 => (.Unit, ()); λ{}}; λ{.GT: λ{(): λx2 => λx3 => !+x4 = (transport_le (Word.cmp x0 (zero_word x0) x1) (.GT, ()) x2 x3); (Empty.absurd -(ULE.cmp (Word.cmp.fin (.False, ()) (.False, ()) (.GT, ()))) x4); λ{}}; λ{}}}}}; λ{}}; λ{.True: λ{(): λx1 => λ{(,): λ{.LT: λ{(): λx2 => λx3 => (.Unit, ()); λ{}}; λ{.EQ: λ{(): λx2 => λx3 => (.Unit, ()); λ{}}; λ{.GT: λ{(): λx2 => λx3 => !+x4 = (transport_le (Word.cmp x0 (zero_word x0) x1) (.GT, ()) x2 x3); (Empty.absurd -(ULE.cmp (Word.cmp.fin (.False, ()) (.True, ()) (.GT, ()))) x4); λ{}}; λ{}}}}}; λ{}}; λ{}}}}
+
+zero_word_le : ∀+x0 : Nat -> ∀x1 : (Word x0) -> (ULE.cmp (Word.cmp x0 (zero_word x0) x1)) =
+  λ{(,): λ{.Zero: λ{(): λx0 => (.Unit, ()); λ{}}; λ{.Succ: λ{(,): λ+x0 => λ{(): λ{(,): λ{.WCon: λ{(,): λx1 => λ{(,): λ+x2 => λ{(): (zero_word_le.fin +x0 x1 x2 (Word.cmp x0 (zero_word x0) x2) {==} (zero_word_le +x0 x2)); λ{}}}}; λ{}}}; λ{}}}; λ{}}}}
+
+zero_le : ∀x0 : U32 -> (ULE U32.lit0 x0) =
+  λ{(,): λ{.U32: λ{(,): λx0 => λ{(): (zero_word_le +(.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Zero, ()), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())) x0); λ{}}}; λ{}}}
+
+Sigma.q11.arms : ∀-x0 : *1 -> ∀-x1 : ∀-x1 : x0 -> *1 -> ∀x2 : <Tuple> -> *1 =
+  λ-x0 => λ-x1 => λ{.Tuple: Σx2 : x0 -> Σx3 : (x1 -x2) -> <()>; λ{}}
+
+Sigma.q11 : ∀-x0 : *1 -> ∀-x1 : ∀-x1 : x0 -> *1 -> *1 =
+  λ-x0 => λ-x1 => Σx2 : <Tuple> -> (Sigma.q11.arms -x0 -x1 x2)
+
+Pair : ∀-x0 : *1 -> ∀-x1 : *1 -> *1 =
+  λ-x0 => λ-x1 => (Sigma.q11 -x0 -λ-x2 => x1)
+
+SortedB : ∀x0 : (List.q2 -U32) -> ∀x1 : U32 -> *1 =
+  λ{(,): λ{.Nil: λ{(): λx0 => Unit; λ{}}; λ{.Con: λ{(,): λx0 => λ{(,): λx1 => λ{(): λx2 => (Pair -(ULE x2 x0) -(SortedB x1 x0)); λ{}}}}; λ{}}}}
+
+sorted_ins.fin : ∀-x0 : U32 -> ∀-x1 : U32 -> ∀-x2 : U32 -> ∀-x3 : (List.q2 -U32) -> ∀x4 : (SortedB (.Con, (x2, (x3, ()))) x0) -> ∀x5 : (ULE x0 x1) -> ∀x6 : ∀x6 : (SortedB x3 x2) -> ∀x7 : (ULE x2 x1) -> (SortedB (sort.insert +x1 +x3) x2) -> ∀x7 : (UChoice -x1 -x2) -> (SortedB (sort.insert_choice x1 x2 x3 (sort.insert +x1 +x3) (U32.is_le x1 x2)) x0) =
+  λ-x0 => λ-x1 => λ-x2 => λ-x3 => λ{(,): λ{.Tuple: λ{(,): λx4 => λ{(,): λx5 => λ{(): λx6 => λx7 => λx8 => (λ{(,): λ{.Before: λ{(,): λx9 => λ{(,): λx10 => λ{(): λx11 => !+x12 = (Equal.sym -Bool -(U32.is_le x1 x2) -(.True, ()) x10); %x12 : x13, x14 => (SortedB (sort.insert_choice x1 x2 x3 (sort.insert +x1 +x3) x13) x0); (.Tuple, (x6, ((.Tuple, (x9, (x11, ()))), ()))); λ{}}}}; λ{.After: λ{(,): λx9 => λ{(,): λx10 => λ{(): λx11 => !+x12 = (Equal.sym -Bool -(U32.is_le x1 x2) -(.False, ()) x10); %x12 : x13, x14 => (SortedB (sort.insert_choice x1 x2 x3 (sort.insert +x1 +x3) x13) x0); (.Tuple, (x4, ((x7 x11 x9), ()))); λ{}}}}; λ{}}}} x8 x5); λ{}}}}; λ{}}}
+
+sorted_ins : ∀x0 : (List.q2 -U32) -> ∀-x1 : U32 -> ∀+x2 : U32 -> ∀x3 : (SortedB x0 x1) -> ∀x4 : (ULE x1 x2) -> (SortedB (sort.insert +x2 +x0) x1) =
+  λ{(,): λ{.Nil: λ{(): λ-x0 => λ+x1 => λx2 => λx3 => (.Tuple, (x3, ((.Unit, ()), ()))); λ{}}; λ{.Con: λ{(,): λx0 => λ{(,): λx1 => λ{(): λ-x2 => λ+x3 => λx4 => λx5 => (sorted_ins.fin -x2 -x3 -x0 -x1 x4 x5 λx6 => λx7 => (sorted_ins x1 -x0 +x3 x6 x7) (u32_choice +x3 +x0)); λ{}}}}; λ{}}}}
+
+sorted_sort : ∀+x0 : (List.q2 -U32) -> (SortedB (sort.sort x0) U32.lit0) =
+  λ{(,): λ{.Nil: λ{(): (.Unit, ()); λ{}}; λ{.Con: λ{(,): λ+x0 => λ{(,): λ+x1 => λ{(): (sorted_ins (sort.sort x1) -U32.lit0 +x0 (sorted_sort +x1) (zero_le x0)); λ{}}}}; λ{}}}}
+
+count_step : ∀x0 : Bool -> ∀x1 : Nat -> Nat =
+  λ{(,): λ{.False: λ{(): λx0 => x0; λ{}}; λ{.True: λ{(): λx0 => (.Succ, (x0, ())); λ{}}; λ{}}}}
+
+Cmp.is_eq : ∀x0 : Cmp -> Bool =
+  λ{(,): λ{.EQ: λ{(): (.True, ()); λ{}}; λx0 => λx1 => (.False, ())}}
+
+U32.is_eq : ∀x0 : U32 -> ∀x1 : U32 -> Bool =
+  λx0 => λx1 => (Cmp.is_eq (U32.cmp x0 x1))
+
+count : ∀+x0 : U32 -> ∀x1 : (List.q2 -U32) -> Nat =
+  λ+x0 => λ{(,): λ{.Nil: λ{(): (.Zero, ()); λ{}}; λ{.Con: λ{(,): λx1 => λ{(,): λx2 => λ{(): (count_step (U32.is_eq x0 x1) (count +x0 x2)); λ{}}}}; λ{}}}}
+
+count_step_swap : ∀x0 : Bool -> ∀x1 : Bool -> ∀x2 : Nat -> {(count_step x0 (count_step x1 x2)) == (count_step x1 (count_step x0 x2)) : Nat} =
+  λ{(,): λ{.False: λ{(): λ{(,): λ{.False: λ{(): λx0 => {==}; λ{}}; λ{.True: λ{(): λx0 => {==}; λ{}}; λ{}}}}; λ{}}; λ{.True: λ{(): λ{(,): λ{.False: λ{(): λx0 => {==}; λ{}}; λ{.True: λ{(): λx0 => {==}; λ{}}; λ{}}}}; λ{}}; λ{}}}}
+
+count_insert.fin : ∀+x0 : U32 -> ∀+x1 : U32 -> ∀+x2 : U32 -> ∀+x3 : (List.q2 -U32) -> ∀x4 : {(count +x0 (sort.insert +x1 +x3)) == (count_step (U32.is_eq x0 x1) (count +x0 x3)) : Nat} -> ∀x5 : Bool -> {(count +x0 (sort.insert_choice x1 x2 x3 (sort.insert +x1 +x3) x5)) == (count_step (U32.is_eq x0 x1) (count +x0 (.Con, (x2, (x3, ()))))) : Nat} =
+  λ+x0 => λ+x1 => λ+x2 => λ+x3 => λx4 => λ{(,): λ{.True: λ{(): {==}; λ{}}; λ{.False: λ{(): !+x5 = (Equal.cong -Nat -Nat -λx5 => (count_step (U32.is_eq x0 x2) x5) -(count +x0 (sort.insert +x1 +x3)) -(count_step (U32.is_eq x0 x1) (count +x0 x3)) x4); !+x6 = (count_step_swap (U32.is_eq x0 x2) (U32.is_eq x0 x1) (count +x0 x3)); (Equal.trans -Nat -(count_step (U32.is_eq x0 x2) (count +x0 (sort.insert +x1 +x3))) -(count_step (U32.is_eq x0 x2) (count_step (U32.is_eq x0 x1) (count +x0 x3))) -(count_step (U32.is_eq x0 x1) (count_step (U32.is_eq x0 x2) (count +x0 x3))) x5 x6); λ{}}; λ{}}}}
+
+count_insert : ∀+x0 : U32 -> ∀+x1 : U32 -> ∀x2 : (List.q2 -U32) -> {(count +x0 (sort.insert +x1 +x2)) == (count_step (U32.is_eq x0 x1) (count +x0 x2)) : Nat} =
+  λ+x0 => λ+x1 => λ{(,): λ{.Nil: λ{(): {==}; λ{}}; λ{.Con: λ{(,): λ+x2 => λ{(,): λ+x3 => λ{(): (count_insert.fin +x0 +x1 +x2 +x3 (count_insert +x0 +x1 x3) (U32.is_le x1 x2)); λ{}}}}; λ{}}}}
+
+count_sort : ∀+x0 : U32 -> ∀+x1 : (List.q2 -U32) -> {(count +x0 (sort.sort x1)) == (count +x0 x1) : Nat} =
+  λ+x0 => λ{(,): λ{.Nil: λ{(): {==}; λ{}}; λ{.Con: λ{(,): λ+x1 => λ{(,): λ+x2 => λ{(): !+x3 = (count_insert +x0 +x1 (sort.sort x2)); !+x4 = (Equal.cong -Nat -Nat -λx4 => (count_step (U32.is_eq x0 x1) x4) -(count +x0 (sort.sort x2)) -(count +x0 x2) (count_sort +x0 +x2)); (Equal.trans -Nat -(count +x0 (sort.insert +x1 +(sort.sort x2))) -(count_step (U32.is_eq x0 x1) (count +x0 (sort.sort x2))) -(count_step (U32.is_eq x0 x1) (count +x0 x2)) x3 x4); λ{}}}}; λ{}}}}
+
+String.arms : ∀x0 : <SNil, SCon> -> *2 =
+  λ{.SNil: <()>; λ{.SCon: Σx0 : Char -> Σx1 : String -> <()>; λ{}}}
+
+String : *2 =
+  Σx0 : <SNil, SCon> -> (String.arms x0)
+
+Char.arms : ∀x0 : <Chr> -> *2 =
+  λ{.Chr: Σx0 : U32 -> <()>; λ{}}
+
+Char : *2 =
+  Σx0 : <Chr> -> (Char.arms x0)
+
+IO : ∀-x0 : *1 -> *1 =
+  λ-x0 => ∀-x1 : *1 -> ∀x2 : ∀x2 : x0 -> (IO.OP -x1) -> (IO.OP -x1)
+
+IO.OP.arms : ∀-x0 : *1 -> ∀x1 : <Emit, Halt> -> *1 =
+  λ-x0 => λ{.Emit: Σx1 : x0 -> <()>; λ{.Halt: Σx1 : U32 -> Σx2 : String -> <()>; λ{}}}
+
+IO.OP : ∀-x0 : *1 -> *1 =
+  λ-x0 => Σx1 : <Emit, Halt> -> (IO.OP.arms -x0 x1)
+
+Word.Nil.arms : ∀x0 : <WNil> -> *2 =
+  λ{.WNil: <()>; λ{}}
+
+Word.Nil : *2 =
+  Σx0 : <WNil> -> (Word.Nil.arms x0)
+
+Word.Con.arms : ∀-x0 : Nat -> ∀x1 : <WCon> -> *2 =
+  λ-x0 => λ{.WCon: Σx1 : Bool -> Σx2 : (Word x0) -> <()>; λ{}}
+
+Word.Con : ∀-x0 : Nat -> *2 =
+  λ-x0 => Σx1 : <WCon> -> (Word.Con.arms -x0 x1)
+
+Word : ∀x0 : Nat -> *2 =
+  λ{(,): λ{.Zero: λ{(): Word.Nil; λ{}}; λ{.Succ: λ{(,): λx0 => λ{(): (Word.Con -x0); λ{}}}; λ{}}}}
+
+Nat.arms : ∀x0 : <Zero, Succ> -> *2 =
+  λ{.Zero: <()>; λ{.Succ: Σx0 : Nat -> <()>; λ{}}}
+
+Nat : *2 =
+  Σx0 : <Zero, Succ> -> (Nat.arms x0)
+
+Cmp.arms : ∀x0 : <LT, EQ, GT> -> *2 =
+  λ{.LT: <()>; λ{.EQ: <()>; λ{.GT: <()>; λ{}}}}
+
+Cmp : *2 =
+  Σx0 : <LT, EQ, GT> -> (Cmp.arms x0)
+
+Bool.arms : ∀x0 : <False, True> -> *2 =
+  λ{.False: <()>; λ{.True: <()>; λ{}}}
+
+Bool : *2 =
+  Σx0 : <False, True> -> (Bool.arms x0)
+
+List.q2.arms : ∀-x0 : *2 -> ∀x1 : <Nil, Con> -> *2 =
+  λ-x0 => λ{.Nil: <()>; λ{.Con: Σx1 : x0 -> Σx2 : (List.q2 -x0) -> <()>; λ{}}}
+
+List.q2 : ∀-x0 : *2 -> *2 =
+  λ-x0 => Σx1 : <Nil, Con> -> (List.q2.arms -x0 x1)
+
+U32.arms : ∀x0 : <U32> -> *2 =
+  λ{.U32: Σx0 : (Word (.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Succ, ((.Zero, ()), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ())), ()))) -> <()>; λ{}}
+
+U32 : *2 =
+  Σx0 : <U32> -> (U32.arms x0)

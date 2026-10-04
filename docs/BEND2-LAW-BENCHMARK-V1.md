@@ -26,6 +26,15 @@ later route preserves the generated artifact inventory in `replay-status.json`
 so earlier output remains reviewable. These orchestration receipts do not
 replace the individual routes' semantic validators or timing samples.
 
+`--verify-fresh CAPSULE --output-dir NEW_DIRECTORY` authenticates a completed
+non-agent capture offline: the exact artifact inventory and tool-pin digest,
+ordered successful command receipts, Boolean and RSS route validators, Bend
+universal proof validation, supplemental control outcomes, and retained Lean
+test output. Copying a capsule preserves original command paths. RSS sample
+commands must equal the captured provenance commands, which bind the pinned
+tools and exact retained input names; a same-named foreign input is rejected.
+This review does not execute a tool or reproduce timing measurements.
+
 Each cell declares its numeric semantics and equal law inventory. The runner
 executes the success subject once cold and at least thirty warm times, retains
 all raw warm samples with p50/p95, and runs every seeded law-gaming control.

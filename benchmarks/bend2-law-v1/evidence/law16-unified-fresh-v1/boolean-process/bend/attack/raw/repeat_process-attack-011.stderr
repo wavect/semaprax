@@ -1,0 +1,11 @@
+SOME PROOFS FAIL
+Error:
+- expected : value
+- observed : Bool.not(value)
+Context:
+- value : Bool
+Location: negate_matches_boolean_not
+10 | def negate_matches_boolean_not(value):
+11>|   {==}
+   |   ^^^^
+12 | 

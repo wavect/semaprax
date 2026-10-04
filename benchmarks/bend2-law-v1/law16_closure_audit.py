@@ -173,6 +173,7 @@ def render() -> dict:
     report = report_data()
     list_proof = verify_i64_list_capsule()
     profile_v2 = verify_guarded_i64_v2()
+    fresh_capture = module("law16_fresh_replay_for_audit", ROOT / "law16_replay.py").verify_fresh_capture(ROOT / "evidence/law16-unified-fresh-v1")
     current_report = "evidence/law16-current-report-v1.json"
     common = [evidence(current_report)]
     criteria = [
@@ -180,8 +181,8 @@ def render() -> dict:
             "id": "AC1",
             "text": ACCEPTANCE_TEXT[0],
             "status": "partial",
-            "assessment": "The benchmark README documents one pinned replay harness for retained verification and fresh capture routes. The retained replay authenticates the available capsules, including the recovered bounded-balance raw outputs. Fresh capture has not been exercised end to end, so this is not a complete reproduction of the benchmark cells.",
-            "evidence": common + [evidence("README.md"), evidence("law16_replay.py"), evidence("law16_current_report.py")],
+            "assessment": "The unified command has completed six fresh non-agent routes with raw artifacts and pinned tools, plus offline replay of retained bounded-balance agent evidence. Its copied capsule authenticates without the original temporary directory. The optional live agent continuation and separate guarded-i64 balance SMT source-proof route were not executed by this sequence, so full available-cell reproduction remains partial.",
+            "evidence": common + [evidence("README.md"), evidence("law16_replay.py"), evidence("law16_current_report.py"), evidence("evidence/law16-unified-fresh-v1/replay-status.json")],
         },
         {
             "id": "AC2",
@@ -388,6 +389,7 @@ def render() -> dict:
         "required_implementation_assessment": required,
         "supplemental_i64_list_proof": list_proof,
         "supplemental_guarded_i64_profile_v2": profile_v2,
+        "unified_fresh_capture": fresh_capture,
         "current_report_reconciliation": {
             "field": "unavailable_or_unsupported.Lean",
             "existing_report_value": unsupported["Lean"],
@@ -396,7 +398,7 @@ def render() -> dict:
         "unmet_requirements": [
             {
                 "id": "AC1",
-                "reason": "A single replay sequence authenticates retained capsules, but fresh capture has not been exercised end to end.",
+                "reason": "Six non-agent routes completed fresh execution; live agent continuation and the separate guarded-i64 balance SMT source-proof route were not rerun by this sequence.",
                 "kind": "reproducibility_harness_gap",
             },
             {

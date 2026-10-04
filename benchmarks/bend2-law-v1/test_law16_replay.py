@@ -4,6 +4,7 @@ import contextlib
 import io
 import json
 from pathlib import Path
+import shutil
 import tempfile
 import unittest
 from unittest import mock
@@ -16,6 +17,27 @@ SPEC.loader.exec_module(REPLAY)
 
 
 class Law16ReplayTests(unittest.TestCase):
+    def test_completed_fresh_capture_authenticates_and_rejects_failure_or_raw_drift(self):
+        capsule = ROOT / "evidence/law16-unified-fresh-v1"
+        result = REPLAY.verify_fresh_capture(capsule)
+        self.assertEqual(result["status"], "fresh_capture_authenticated")
+        self.assertEqual(result["fresh_route_count"], 6)
+        self.assertEqual(result["retained_agent_replay_count"], 1)
+        with tempfile.TemporaryDirectory() as directory:
+            copied = Path(directory) / "capsule"
+            shutil.copytree(capsule, copied)
+            status_path = copied / "replay-status.json"
+            original = status_path.read_text()
+            status = json.loads(original)
+            status["status"] = "failed_closed"
+            status_path.write_text(json.dumps(status))
+            with self.assertRaisesRegex(ValueError, "not a completed"):
+                REPLAY.verify_fresh_capture(copied)
+            status_path.write_text(original)
+            (copied / "lean-law15-raw/kernel-test.stdout").write_bytes(b"forged pass\n")
+            with self.assertRaisesRegex(ValueError, "inventory drifted"):
+                REPLAY.verify_fresh_capture(copied)
+
     def test_route_receipt_survives_success_failure_and_timeout(self):
         cases = [
             ("raise SystemExit(0)", None, 0),

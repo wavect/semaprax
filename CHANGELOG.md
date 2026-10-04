@@ -1,5 +1,11 @@
 # Changelog
 
+- Execute and retain six LAW16 unified fresh non-agent routes plus their
+  failed first attempt. Fix the forwarded compiler digest prefix and support
+  offline verification after copying the raw capsule, including strict RSS
+  command/provenance binding. Agent evidence remains retained replay; AC1 and
+  issue #392 remain partial/open.
+
 - Preserve LAW16 unified replay command receipts and partial stdout/stderr on
   timeout or failure, including a digest inventory of earlier output. Failed
   routes remain nonresults and never become successful attack rejections.

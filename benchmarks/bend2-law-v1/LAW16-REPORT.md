@@ -5,8 +5,21 @@ is generated from retained, offline-authenticated capsules. Its status is
 **incomplete**. It does not claim issue closure.
 The documented `law16_replay.py --verify-retained` sequence now authenticates
 the available capsules, including all 230 recovered bounded-balance raw outputs.
-It rechecks retained evidence; the fresh capture route has not been run end to
-end.
+The [unified fresh capture](evidence/law16-unified-fresh-v1/replay-status.json)
+also completed all six non-agent routes in that command, with 882 retained
+artifacts. Offline review of its copied capsule succeeds. The retained agent
+campaigns were re-authenticated, not rerun; the separate guarded-i64 balance
+SMT source-proof command was outside this capture. AC1 remains partial.
+
+The [preceding failed capture](evidence/law16-unified-fresh-pin-failure-v1/replay-status.json)
+retains all output from the first three routes and the following compiler-pin
+format refusal. The runner now preserves the required `sha256:` prefix. RSS
+review also authenticates original sample commands after the capsule is copied.
+The fresh capture uses the historical compiler pin below and a newly built
+Lean test harness associated locally with
+`fdc908ee98ea706dd0e905f36260557a493b908b`. Its source/binary association is
+not a reproducible-build attestation. Host quietness was not established, and
+these fresh timings introduce no new performance comparison or winner.
 
 ## Matched Boolean-negation evidence
 

@@ -33,6 +33,8 @@ class Law16ClosureAuditTests(unittest.TestCase):
         self.assertEqual(status["AC4"], "met")
         self.assertEqual(status["AC7"], "met")
         self.assertEqual(status["AC1"], "partial")
+        self.assertEqual(value["unified_fresh_capture"]["status"], "fresh_capture_authenticated")
+        self.assertEqual(value["unified_fresh_capture"]["fresh_route_count"], 6)
         self.assertEqual(status["AC5"], "partial")
         self.assertEqual(status["AC6"], "partial")
         required = {row["id"]: row["status"] for row in value["required_implementation_assessment"]}

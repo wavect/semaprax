@@ -1,0 +1,36 @@
+{
+  "nonclaims": [
+    "ordinary Bend checking is not Bend --verdict",
+    "SEMAPRAX check is not external-Z3 proof checking",
+    "successful checker execution does not establish law repair",
+    "no cross-route timing ratio, winner, or cache-isolation claim"
+  ],
+  "routes": {
+    "bend_ordinary": "BEND_NO_TELEMETRY=1 bun bend2/main.ts SOURCE",
+    "semaprax_check": "semaprax check SOURCE"
+  },
+  "schema": "semaprax.bend2-law-benchmark.boolean-negation-nonproof-process.v1",
+  "sources": {
+    "bend": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81",
+    "semaprax": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+  },
+  "status": "completed_local_process_provisioning",
+  "tools": {
+    "bend_commit": "947db722640c86247849343657bf2f7ef01cb7f1",
+    "bend_main": {
+      "bytes": 34607,
+      "path": "/private/tmp/bend2-law-source/bend2/main.ts",
+      "sha256": "sha256:c48a0274e661a3e529933550752578768e8f029219d814073fbf86537271d475"
+    },
+    "bun": {
+      "bytes": 57940512,
+      "path": "/Users/kevin/.bun/bin/bun",
+      "sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781"
+    },
+    "semaprax": {
+      "bytes": 172081112,
+      "path": "/private/tmp/semaprax-9a9db7a81",
+      "sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+    }
+  }
+}

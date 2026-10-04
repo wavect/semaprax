@@ -1,0 +1,86 @@
+{
+  "attacks": {
+    "duplicate_multiplicity": {
+      "bytes": 864,
+      "path": "examples/law-packs/collection/mutants/duplicate-element.spx",
+      "sha256": "sha256:1855e0087c1835ea3b9a9ef2502d36633bce2c6c0fdf788df8245642f2e82c2c"
+    },
+    "empty_sort": {
+      "bytes": 849,
+      "path": "examples/law-packs/collection/mutants/empty-output.spx",
+      "sha256": "sha256:5c5782b23addd64a1fabc5174dbf99c9c11f8430d28f13c518579aabedeaee6a"
+    }
+  },
+  "command": [
+    "/private/tmp/semaprax-law12-lane/target/law16-replay/debug/deps/language-a787188e3240809e",
+    "collection_law_pack::collection_law_pack_pinned_lean_rejects_empty_and_duplicate_outputs_and_repairs",
+    "--ignored",
+    "--exact",
+    "--nocapture"
+  ],
+  "command_sha256": "sha256:f4a63bb1eeed5e080489806927da0c1a2c970fcad60fd13d30d8da75983c20ec",
+  "coverage": {
+    "declarations": [
+      "law15.collection.insert",
+      "law15.collection.sort"
+    ],
+    "domain": "all finite List<i64>; guarded U32 values are a subset",
+    "laws": [
+      "sort_sorted",
+      "sort_permutation",
+      "sort_multiplicity"
+    ]
+  },
+  "harness": {
+    "bytes": 6381,
+    "path": "tests/language/collection_law_pack.rs",
+    "sha256": "sha256:8cde1133dd4d2b513c84681a4a54609fb4f7f9ed68937025457cad45f0ff7b2c"
+  },
+  "kernel": {
+    "pin": "leanprover/lean4:v4.34.0",
+    "tool": {
+      "bytes": 49968,
+      "path": "/Users/kevin/.elan/toolchains/leanprover--lean4---v4.34.0/bin/lean",
+      "sha256": "sha256:1b370cfcbf44e80d1b004ab1b1ab9a4c73951f9f7c242140bcff9bc577576554"
+    },
+    "version": "Lean (version 4.34.0, arm64-apple-darwin24.6.0, commit 293d5d0c0c3f3dded4688b3ccd6a33939ac5102b, Release)"
+  },
+  "nonclaims": [
+    "test-binary source association is local rather than a build attestation",
+    "no certificate for law16.* declarations",
+    "no Bend source proof",
+    "no runtime resource or lowering proof",
+    "no public list ABI proof"
+  ],
+  "original_law16_cell": "unchanged; its law16.* identities are not covered by this certificate",
+  "profile": "semaprax.collection-sort-i64.v1",
+  "proof_module": {
+    "bytes": 1459,
+    "path": "examples/law-packs/collection/lemmas.json",
+    "sha256": "sha256:8b0f09a42ce37bf578c61aacf5fa5aca11a5bee02fb24e76ec8bdfc3249cb8de"
+  },
+  "raw": {
+    "stderr": {
+      "bytes": 546,
+      "path": "kernel-test.stderr",
+      "sha256": "sha256:39f6b9522db41b7ef34a2a2bb2b2f2e701292e7911c504bd5aa9c5df9b4b6560"
+    },
+    "stdout": {
+      "bytes": 227,
+      "path": "kernel-test.stdout",
+      "sha256": "sha256:84fe744e252cc0d9c42e27330f168515c8857050062648e3263682f4a6c30d5b"
+    }
+  },
+  "schema": "semaprax.bend2-law-benchmark.law16-i64-list-proof-capsule.v1",
+  "source": {
+    "bytes": 863,
+    "path": "examples/law-packs/collection/sort.spx",
+    "sha256": "sha256:f729230754eae7b60b96bbdb9c4b30f1e4d14133fbdbf548c7040849983bc4b8"
+  },
+  "status": "supplemental_i64_list_profile_proved",
+  "test_binary": {
+    "bytes": 62068640,
+    "path": "target/law16-replay/debug/deps/language-a787188e3240809e",
+    "sha256": "sha256:380ac4804d311ebf53c3a87f2dbee7951ec9ed9604315b2c7ed88851d3c9a9f8"
+  }
+}

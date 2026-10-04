@@ -27,6 +27,8 @@ enum Reply {
 struct Paid {
     replies: Vec<Reply>,
     calls: Cell<u32>,
+    /// The model each outbound call was addressed to.
+    models: RefCell<Vec<String>>,
     support: GenerationSupport,
 }
 
@@ -35,6 +37,7 @@ impl Paid {
         Paid {
             replies,
             calls: Cell::new(0),
+            models: RefCell::default(),
             support: GenerationSupport {
                 output_cap: Support::Supported,
                 reasoning: Support::Unknown,
@@ -59,6 +62,7 @@ impl ProposalStage for PaidRef<'_> {
         let p = self.0;
         let i = p.calls.get() as usize;
         p.calls.set(p.calls.get() + 1);
+        p.models.borrow_mut().push(r.model.clone());
         let reply = p.replies[i.min(p.replies.len() - 1)].clone();
         let rc = |v: &Value| ProposalReceipt::from_result(&r.controls, &json!({ "receipt": v }));
         match reply {
@@ -625,4 +629,74 @@ fn tc03_monetary_budget_config_is_opt_in() {
     );
     assert!(parse("task_max_cost_micros = -1").is_err());
     assert!(parse("strict_monetary = \"yes\"").is_err());
+}
+
+// ---- TC-10 end to end: the real session loop over a two-rung ladder ---------
+
+const REJECT: &str = "SPX-G225 candidate intention is missing a required field";
+
+fn ladder_session(e: &Env) -> RunConfig {
+    let mut t = session(None);
+    t.family = "mechanical".into();
+    let mut c = cfg(e, t);
+    c.routing.cost_aware = true;
+    c.routing.ladders.insert(
+        "mechanical".into(),
+        semaprax_harness::profile::config::LadderConfig {
+            models: vec!["m-cheap".into(), "m-strong".into()],
+            max_escalations: 1,
+            min_tasks: 5,
+        },
+    );
+    c
+}
+
+fn reject() -> Reply {
+    Reply::Ok(Some(REJECT), receipt(Some(10), 5))
+}
+
+fn models(p: &Paid) -> Vec<String> {
+    p.models.borrow().clone()
+}
+
+#[test]
+fn tc10_e2e_a_known_failure_escalates_exactly_one_rung_and_records_it() {
+    let e = setup(FIXED);
+    let paid = Paid::new(vec![reject(), Reply::Ok(None, receipt(Some(10), 5))]);
+    let r = exec(&ladder_session(&e), &paid, None);
+    assert_eq!(r.status, "candidate-ready", "{:?}", r.refusals);
+    assert_eq!(models(&paid), ["m-cheap", "m-strong"]);
+    assert_eq!(r.route["cost_policy"]["action"], "escalate", "{}", r.route);
+    assert_eq!(r.route["cost_policy"]["escalations"], 1);
+}
+
+#[test]
+fn tc10_e2e_a_second_failure_does_not_escalate_beyond_max_escalations() {
+    let e = setup(FIXED);
+    let rej = |m: &'static str| Reply::Ok(Some(m), receipt(Some(10), 5));
+    let paid = Paid::new(vec![
+        rej("SPX-G225 one"),
+        rej("SPX-G225 two"),
+        rej("SPX-G225 three"),
+    ]);
+    let r = exec(&ladder_session(&e), &paid, None);
+    assert_eq!(r.status, "exhausted", "{:?}", r.refusals);
+    // cheap, one escalation to strong, then strong again: no third rung, no move back.
+    assert_eq!(models(&paid), ["m-cheap", "m-strong", "m-strong"]);
+    let cp = &r.route["cost_policy"];
+    assert_eq!(cp["action"], "retry_changed_input", "{cp}");
+    assert_eq!(cp["escalations"], 1);
+}
+
+#[test]
+fn tc10_e2e_an_uncertain_request_never_escalates_and_is_never_retried() {
+    let e = setup(FIXED);
+    let paid = Paid::new(vec![
+        Reply::Uncertain,
+        Reply::Ok(None, receipt(Some(10), 5)),
+    ]);
+    let r = exec(&ladder_session(&e), &paid, None);
+    assert_eq!(codes(&r), ["SPX-HPD072"], "{:?}", r.refusals);
+    assert_eq!(paid.calls.get(), 1, "exactly one outbound call");
+    assert_eq!(models(&paid), ["m-cheap"]);
 }

@@ -1,0 +1,70 @@
+{
+  "adapter": {
+    "entry": [
+      "adapter.py"
+    ],
+    "runtime": "python",
+    "version": "0.1.0"
+  },
+  "cancellation": "cooperative",
+  "capabilities": [
+    {
+      "kind": "decision.evaluate",
+      "operations": [
+        "evaluate"
+      ],
+      "required": true,
+      "version": 1
+    }
+  ],
+  "config": {
+    "fields": {}
+  },
+  "extensions": [],
+  "permissions": {
+    "network": [
+      "https://api.typesafe.ai"
+    ],
+    "process": [],
+    "read": [],
+    "secrets": [
+      "SEMAPRAX_HARNESS_SECRET_JEV"
+    ],
+    "write": []
+  },
+  "platforms": [
+    "macos-aarch64",
+    "linux-x86_64"
+  ],
+  "protocol": {
+    "max": 1,
+    "min": 1,
+    "name": "semaprax.harness-rpc.v1"
+  },
+  "provider": {
+    "id": "ai.typesafe/jev-decision",
+    "version": "0.1.0"
+  },
+  "resources": {
+    "handshake_timeout_ms": 5000,
+    "idle_shutdown_ms": 60000,
+    "invoke_timeout_ms": 30000,
+    "max_concurrency": 1,
+    "max_frame_bytes": 1048576
+  },
+  "schema": "semaprax.harness-provider.v1",
+  "support": {
+    "isolation": "subprocess",
+    "license": "Apache-2.0",
+    "tested": []
+  },
+  "upstream": {
+    "identity_probe": [],
+    "name": "typesafe-api",
+    "package": "hosted-api:api.typesafe.ai",
+    "repository": "https://api.typesafe.ai/redoc",
+    "versions": [
+      "typesafe-api-0.2.0"
+    ]
+  }
+}

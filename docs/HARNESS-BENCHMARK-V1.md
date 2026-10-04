@@ -1,5 +1,7 @@
 # Harness benchmark v1 (HP-17)
 
+Status: additive development-harness specification (HP-17); local macOS aarch64 evidence only.
+
 Audience: harness-provider maintainers deciding whether an integration may be
 enabled automatically. Owner: `crates/semaprax-harness/src/bench/`; verb
 `semaprax harness bench <corpus-dir>` (also `semaprax-harness bench`). Schema

@@ -33,6 +33,7 @@ Audience: all documentation readers.
 - [Harness observation attribution v1](HARNESS-OBSERVATION-V1.md)
 - [Harness adapter SDK v1](HARNESS-ADAPTER-SDK-V1.md)
 - [Harness toolchain integration v1](HARNESS-TOOLCHAIN-V1.md)
+- [Harness journey benchmark v1](HARNESS-BENCHMARK-V1.md)
 
 ## Agent workflows
 

@@ -43,9 +43,9 @@ has one accepted witness and one rejected attack witness, and their digests
 are bound into the result. The current SEMAPRAX scalar surface has no `u32`
 type (it admits `i32`, `i64`, and `u8`), while Bend uses `U32`; an `i32`
 substitute would narrow the domain and is therefore not presented as an equal
-source fixture. No pinned Bend executable is installed on this host, so the
-corresponding Bend source/proof files and a runnable local command
-configuration remain explicitly unavailable.
+source fixture. The pinned Bend source used for the Boolean smoke route does
+not supply matched checked-`u32` source/proof files or a runnable six-cell
+command configuration; those remain explicitly unavailable.
 
 The harness records local evidence only. It does not provision tools, clone
 repositories, generate source fixtures, publish results, or make a
@@ -59,3 +59,28 @@ toolchain run:
 python3 benchmarks/bend2-law-v1/fixture_receipt.py \
   --output /tmp/bend2-fixture-receipt.json
 ```
+
+## Pinned Bend Boolean smoke fixture
+
+The following local-only provisioning sequence fetches the pinned Bend source
+without building it or placing it in this repository:
+
+```sh
+git clone --filter=blob:none --no-checkout https://github.com/bendlang/bend.git /tmp/bend2-law-source
+git -C /tmp/bend2-law-source fetch --depth=1 origin 947db722640c86247849343657bf2f7ef01cb7f1
+git -C /tmp/bend2-law-source checkout --detach 947db722640c86247849343657bf2f7ef01cb7f1
+```
+
+`fixtures/bend-two-value-boolean-v1.bend` matches Bend `False{}` and `True{}`
+and prints `0` then `1`. Its driver separately invokes ordinary Bend checking
+and `--verdict` with `BEND_NO_TELEMETRY=1`:
+
+```sh
+python3 benchmarks/bend2-law-v1/bend_boolean_driver.py \
+  --bend-root /tmp/bend2-law-source \
+  --bun /absolute/path/to/bun \
+  --output /tmp/bend-two-value-boolean.json
+```
+
+This is a pinned upstream Boolean smoke fixture. It is outside the six
+checked-`u32` cells and records no comparison, timing result, or winner.

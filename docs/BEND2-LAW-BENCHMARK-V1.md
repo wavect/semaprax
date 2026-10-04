@@ -43,3 +43,14 @@ proof fixtures for each declared `u32 checked` domain, a quiet-host
 30-repetition run with both pinned checkouts, and agent trials with ten
 independent fixed-budget trials per admitted language/model plus token/cost
 event provenance. Runtime throughput and GPU scaling remain a separate family.
+
+## Pinned Boolean smoke route
+
+`benchmarks/bend2-law-v1/bend_boolean_driver.py` is a narrow provisioning
+check for the reviewed Bend revision. It verifies the checked-out source head,
+runs `fixtures/bend-two-value-boolean-v1.bend` through the normal path and the
+separate `--verdict` kernel path, and requires the normal output to be exactly
+`0` then `1` for `False{}` and `True{}`. The fixture proves its match agrees
+with Bend's `Bool.to_u32`; its result file names no SEMAPRAX subject and is not
+one of the checked-`u32` comparison cells. A driver failure or unavailable Bun,
+Lean kernel, or pinned checkout remains a non-result.

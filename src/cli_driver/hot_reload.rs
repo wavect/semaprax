@@ -26,7 +26,6 @@ enum OutputMode {
     Human,
 }
 
-#[derive(Clone, Copy)]
 enum Lane {
     Interpreter,
     SourceAgentUnsupported,
@@ -277,10 +276,10 @@ fn run_jsonl(
                 (Some(value), Some(plan)) => {
                     let retained_source_agent_plan =
                         matches!(&lane, Lane::SourceAgent { .. }).then(|| plan.clone());
+                    let mut refusal = None;
                     let activation = match &lane {
                         Lane::Interpreter | Lane::SourceAgentUnsupported => value.activate(plan),
                         Lane::SourceAgent { hook, arguments } => {
-                            let mut refusal = None;
                             let result = value.activate_source_agent(plan, |supervisor, plan| {
                                 match hook(supervisor, plan, arguments) {
                                     Ok(()) => Ok(()),

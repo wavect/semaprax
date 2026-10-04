@@ -1941,6 +1941,7 @@ dependencies = [
  "semaprax-native-rust-owned-data-package",
  "semaprax-project-revision-store-windows-sys",
  "semaprax-rust-api-index",
+ "serde",
  "serde_json",
  "sha2 0.11.0",
  "sigstore-verify",

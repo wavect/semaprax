@@ -78,7 +78,7 @@ assert environment["revision"] == (root / "revision").read_text().strip()
 combined = json.loads((root / "combined-receipt.json").read_text())
 assert [stage["stage"] for stage in combined["full_build_and_consumer_stages"]] == [
     "m1_prepare", "m1_consumer", "m2_prepare", "m2_consumer", "m3_prepare", "m3_consumer",
-    "linked_prepare", "linked_consumer", "m3_route_measurement", "m3_batch_throughput_measurement",
+    "m3_negative_controls", "linked_prepare", "linked_consumer",
 ]
 assert set(combined["batch_throughput"]["routes"]) == {
     "direct_rust", "handwritten_adapter", "generated_semaprax",

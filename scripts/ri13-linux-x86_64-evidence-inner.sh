@@ -7,6 +7,8 @@ set -euo pipefail
 test "$(uname -s)" = Linux
 test "$(uname -m)" = x86_64
 test -n "${RI13_EXPECTED_REVISION:-}"
+test -n "${RI13_IMAGE_TAG:-}"
+test -n "${RI13_IMAGE_DIGEST:-}"
 test "$(git rev-parse HEAD)" = "$RI13_EXPECTED_REVISION"
 test -z "$(git status --porcelain)"
 test -x /usr/bin/clang
@@ -37,6 +39,8 @@ print(json.dumps({
     "system": platform.system(),
     "machine": platform.machine(),
     "execution": "linux-x86_64-under-rosetta",
+    "image_tag": "${RI13_IMAGE_TAG}",
+    "image_digest": "${RI13_IMAGE_DIGEST}",
     "rustc": output("rustc", "--version"),
     "cargo": output("cargo", "--version"),
     "clang": output("/usr/bin/clang", "--version").splitlines()[0],
@@ -98,7 +102,7 @@ files = [
     "schema": "semaprax.ri13.linux-x86_64-receipt.v1",
     "revision": environment["revision"],
     "guest": {"system": environment["system"], "machine": environment["machine"]},
-    "container": {"architecture": "amd64", "rosetta": True, "memory": "4G", "network": "none"},
+    "container": {"architecture": "amd64", "rosetta": True, "memory": "4G", "network": "none", "image_tag": environment["image_tag"], "image_digest": environment["image_digest"]},
     "cargo": {"offline": True, "jobs": 1, "target_root": "/evidence/target"},
     "stages": [stage["stage"] for stage in combined["full_build_and_consumer_stages"]],
     "linked_check": "ri13-linked-project-ok",

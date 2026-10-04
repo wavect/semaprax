@@ -1,0 +1,1 @@
+{"code":"SPX-P003","severity":"error","message":"integer literals accept only an `i32`, `u8`, or `usize` suffix","path":"/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/fixtures/semaprax-checked-u32-success-v1.spx","location":{"line":5,"column":22,"start":131,"end":141},"help":null}

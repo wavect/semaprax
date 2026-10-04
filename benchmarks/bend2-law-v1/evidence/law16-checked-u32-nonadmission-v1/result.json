@@ -1,0 +1,83 @@
+{
+  "checks": {
+    "overflow_source": {
+      "argv": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/fixtures/semaprax-checked-u32-overflow-v1.spx",
+        "--json"
+      ],
+      "command_sha256": "sha256:d3d5270344aae6fd93e1e2e64793bc3c557ad3f4c7ff2643cb1aa460236a5d0c",
+      "elapsed_ns": 5473875,
+      "exit_code": 1,
+      "stderr": {
+        "bytes": 0,
+        "path": "overflow.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 296,
+        "path": "overflow.stdout",
+        "sha256": "sha256:1994883411f459ca8faff837123d3d2dc9753be8988d3ba33e4b33c1dababe74"
+      },
+      "timed_out": false
+    },
+    "success_source": {
+      "argv": [
+        "/tmp/semaprax-9a9db7a81",
+        "check",
+        "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/fixtures/semaprax-checked-u32-success-v1.spx",
+        "--json"
+      ],
+      "command_sha256": "sha256:0bd500cfb519ac6555225d4c7772a9596bc37963321aa0620c2c806cf8c71261",
+      "elapsed_ns": 7028083,
+      "exit_code": 1,
+      "stderr": {
+        "bytes": 0,
+        "path": "success.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 296,
+        "path": "success.stdout",
+        "sha256": "sha256:eef226c871f235e79a5d63ed05d25af1c6e92f957faec5181bf69a9126004a72"
+      },
+      "timed_out": false
+    }
+  },
+  "consequence": "the reviewed SEMAPRAX route cannot enter a matched checked-u32 success-plus-overflow gate; do not substitute i32, i64, u8, or usize",
+  "nonclaims": [
+    "not a matched Bend/SEMAPRAX result",
+    "not an overflow runtime observation",
+    "not an SMT or Lean checked-u32 proof result",
+    "not a task acceptance or timing result"
+  ],
+  "numeric_domain": "u32 checked",
+  "raw_artifact_dir": "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-checked-u32-nonadmission-v1/raw",
+  "required_diagnostic": {
+    "code": "SPX-P003",
+    "message": "integer literals accept only an `i32`, `u8`, or `usize` suffix"
+  },
+  "schema": "semaprax.bend2-law-benchmark.checked-u32-nonadmission.v1",
+  "semaprax": {
+    "commit": "9a9db7a8117ac8d292b24ffd5671ec3333272290",
+    "executable": {
+      "bytes": 172081112,
+      "path": "/private/tmp/semaprax-9a9db7a81",
+      "sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+    }
+  },
+  "sources": {
+    "overflow": {
+      "bytes": 226,
+      "path": "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/fixtures/semaprax-checked-u32-overflow-v1.spx",
+      "sha256": "sha256:513e6e823f2a3f41dfd531a5f22741978a00ce35a483c8c1e8bf46104f83d427"
+    },
+    "success": {
+      "bytes": 267,
+      "path": "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/fixtures/semaprax-checked-u32-success-v1.spx",
+      "sha256": "sha256:348dbde02c2f1956f982700ee0af57af577800800d2157230de1f4556f840a38"
+    }
+  },
+  "status": "unsupported_by_pinned_parser"
+}

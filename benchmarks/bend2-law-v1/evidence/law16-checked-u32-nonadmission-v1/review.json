@@ -1,0 +1,17 @@
+{
+  "checked_sources": 2,
+  "consequence": "the reviewed SEMAPRAX route cannot enter a matched checked-u32 success-plus-overflow gate; do not substitute i32, i64, u8, or usize",
+  "nonclaims": [
+    "not a matched Bend/SEMAPRAX result",
+    "not an overflow runtime observation",
+    "not an SMT or Lean checked-u32 proof result",
+    "not a task acceptance or timing result"
+  ],
+  "numeric_domain": "u32 checked",
+  "required_diagnostic": {
+    "code": "SPX-P003",
+    "message": "integer literals accept only an `i32`, `u8`, or `usize` suffix"
+  },
+  "schema": "semaprax.bend2-law-benchmark.checked-u32-nonadmission-review.v1",
+  "status": "authenticated_unsupported_by_pinned_parser"
+}

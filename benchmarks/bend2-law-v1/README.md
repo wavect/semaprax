@@ -681,3 +681,24 @@ SEMAPRAX's installed-Z3 source proof use separate trusted computing bases;
 process provisioning does not isolate operating-system or tool caches. These
 receipts do not establish checked-`u32`, lowering, execution, a general theorem,
 or a winner.
+
+## Executed checked-`u32` non-admission
+
+[`evidence/law16-checked-u32-nonadmission-v1/`](evidence/law16-checked-u32-nonadmission-v1/)
+retains a bounded negative capability observation for the pinned SEMAPRAX
+executable used by the local Boolean proof route. It invoked `check --json` on
+both the fixed `u32` successor and maximum-plus-one sources. Both exited
+nonzero with the exact `SPX-P003` diagnostic: integer literal suffixes admit
+only `i32`, `u8`, and `usize`. The offline verifier binds the executable digest,
+commit label, source bytes, and both raw streams:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_checked_u32_nonadmission_capsule.py \
+  --capsule benchmarks/bend2-law-v1/evidence/law16-checked-u32-nonadmission-v1 \
+  --output /tmp/law16-checked-u32-nonadmission-review.json
+```
+
+This is evidence that this pinned parser cannot enter a matched checked-`u32`
+success-plus-overflow cell. It does not show an overflow runtime behavior,
+SMT/Lean `u32` support, Bend parity, or a LAW-16 task outcome. In particular,
+`i32`, `i64`, `u8`, and `usize` remain inadmissible substitutes.

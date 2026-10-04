@@ -124,9 +124,9 @@ fn a_derived_arithmetic_value_never_gets_an_unconditional_range_axiom() {
     ));
     let encoding = translate_function(&f).expect("supported");
     let script = render_postcondition_script(&encoding, 0, 2000);
-    assert!(!script.contains("(and (>= result"));
-    assert!(script.contains("(assert (= result (+ a 1)))"));
-    assert!(script.contains("(>= (+ a 1)"));
+    assert!(!script.contains("(and (>= semaprax_smt_binding_1_0"));
+    assert!(script.contains("(assert (= semaprax_smt_binding_1_0 (+ semaprax_smt_binding_0_0 1)))"));
+    assert!(script.contains("(>= (+ semaprax_smt_binding_0_0 1)"));
 }
 
 #[test]
@@ -149,8 +149,11 @@ fn a_later_requires_cannot_justify_an_earlier_arithmetic_node() {
     assert_eq!(encoding.requires_obligations.len(), 2);
     assert_eq!(encoding.requires_obligations[0].len(), 1);
     let script = render_postcondition_script(&encoding, 0, 2000);
-    assert!(script.contains("(=> true (=> true (and (>= (+ a 1)"));
-    assert!(!script.contains(&format!("(assert (< a {}))", i64::MAX)));
+    assert!(script.contains("(=> true (=> true (and (>= (+ semaprax_smt_binding_0_0 1)"));
+    assert!(!script.contains(&format!(
+        "(assert (< semaprax_smt_binding_0_0 {}))",
+        i64::MAX
+    )));
 }
 
 #[test]

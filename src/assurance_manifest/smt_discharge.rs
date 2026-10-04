@@ -235,9 +235,10 @@ pub fn check_domain(
     let timeout_ms = u64::try_from(limits.timeout.as_millis()).unwrap_or(u64::MAX);
     let script = render_domain_witness_script(encoding, timeout_ms);
     match run(provisioning, &script, limits) {
-        Verdict::Sat(raw) => match parse_model(&raw)
-            .and_then(|model| validate_domain_witness(function, &model).map(|()| model))
-        {
+        Verdict::Sat(raw) => match parse_model(&raw).and_then(|model| {
+            let model = replay_model(encoding, model)?;
+            validate_domain_witness(function, &model).map(|()| model)
+        }) {
             Ok(model) => DomainStatus::Witness {
                 model,
                 source: "bounded_z3_checked_replay",
@@ -326,6 +327,7 @@ pub fn discharge_postcondition(
     interpret_verdict(
         verdict,
         function,
+        &encoding,
         &digest,
         provisioning.identity,
         version.as_deref(),
@@ -392,6 +394,7 @@ fn describe_non_result_verdict(verdict: &Verdict) -> String {
 fn interpret_verdict(
     verdict: Verdict,
     function: &Function,
+    encoding: &FunctionEncoding,
     script_digest: &str,
     solver_identity: &'static str,
     recorded_solver_version: Option<&str>,
@@ -411,7 +414,9 @@ fn interpret_verdict(
             Err(parse_error) => DischargeOutcome::Inconclusive {
                 reason: format!("sat but the model failed to parse: {parse_error}"),
             },
-            Ok(model) => match replay_function(function, &model) {
+            Ok(model) => match replay_model(encoding, model)
+                .and_then(|model| replay_function(function, &model))
+            {
                 Err(evaluation_error) => DischargeOutcome::Inconclusive {
                     reason: format!("sat model failed to replay: {evaluation_error}"),
                 },
@@ -431,6 +436,24 @@ fn interpret_verdict(
             reason: describe_non_result_verdict(&other),
         },
     }
+}
+
+fn replay_model(
+    encoding: &FunctionEncoding,
+    model: crate::assurance_manifest::smt_discharge::model::Model,
+) -> Result<crate::assurance_manifest::smt_discharge::model::Model, String> {
+    let mut replay = std::collections::BTreeMap::new();
+    for parameter in &encoding.parameter_symbols {
+        if let Some(value) = model.get(&parameter.symbol) {
+            if replay
+                .insert(parameter.source_name.clone(), *value)
+                .is_some()
+            {
+                return Err("duplicate source parameter in SMT replay map".to_owned());
+            }
+        }
+    }
+    Ok(replay)
 }
 
 /// Convert one [`DischargeOutcome`] into a [`MethodRecord`] suitable for

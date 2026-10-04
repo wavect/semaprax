@@ -123,6 +123,30 @@ attack, existing telemetry token/cost events, and separate proof-synthesis,
 law-kernel-check, and compile-or-runtime observations. These remain required
 observations, not invented measurements.
 
+The admitted local runner is `codex_agent_trial.py`. Its configuration fixes
+the `openai-codex-cli` model name and reviewed configuration digest, a token
+and wall-time budget, and `codex exec --json` with `--ephemeral`,
+`--ignore-user-config`, and the `read-only` sandbox. Every run starts in a new
+empty directory and has no repository workspace or additional writable
+directory. It retains the raw JSONL event stream, stderr, and Codex version
+bytes under a new operator-selected evidence directory:
+
+```sh
+python3 benchmarks/bend2-law-v1/codex_agent_trial.py \
+  --plan /secure/local/law16-agent-plan.json \
+  --trial scalar-contract-bug-v1:bend2:1 \
+  --evidence-dir /secure/local/law16-codex-trial-001 \
+  --output /secure/local/law16-codex-trial-001.json
+```
+
+The record derives only the input, cached-input, and output token counters in
+the retained `turn.completed` JSON event and rejects an absent or over-budget
+counter. Codex JSON events do not provide a monetary charge, and one turn does
+not separate proof synthesis, law-kernel checking, and compilation/runtime
+time. The runner therefore labels even a successful turn `executed_unassessed`:
+it is raw provenance for a later independent acceptance and phase-measurement
+route, never a completed LAW-16 trial or a cost observation.
+
 The reviewed SEMAPRAX scalar profile does not support the checked-`u32` cells.
 They remain explicitly `unsupported`, so the current mixed plan is
 `partially_preregistered` and exits nonzero. It cannot be relabeled as a
@@ -158,7 +182,7 @@ checked-`u32` cells and records no comparison, timing result, or winner.
 After an agent run, retain its existing telemetry export and its raw case
 transcripts outside the repository. Do not add a Boolean value such as
 `passed` to make the capture succeed. Instead, create a machine-readable
-`semaprax.bend2-law-benchmark.agent-telemetry-export.v1` document bound to the
+`semaprax.bend2-law-benchmark.agent-telemetry-export.v2` document bound to the
 exact preregistration digest. Each trial supplies its transcript digest, the
 existing `token_usage` and `cost_usage` telemetry events (with distinct event
 identities), completed wall-time observations for proof synthesis, law-kernel
@@ -174,6 +198,7 @@ The capture command validates that structure against the fixed plan:
 python3 benchmarks/bend2-law-v1/agent_trial_capture.py \
   --plan /secure/local/law16-agent-plan.json \
   --raw-export /secure/local/law16-agent-raw-export.json \
+  --artifact-root /secure/local/law16-agent-raw-artifacts \
   --output /secure/local/law16-agent-capture.json
 ```
 
@@ -185,6 +210,13 @@ refused. The output retains raw-export
 and transcript digests plus the telemetry values and separate phase durations.
 It does not authenticate an external telemetry provider, execute an agent, or
 state a comparison result.
+
+The v2 export replaces every digest-only reference with a `{path, sha256,
+bytes}` reference beneath `--artifact-root`. Capture reads each referenced
+regular file, checks the byte count and SHA-256 itself, enforces a 32 MiB
+per-artifact and 8 MiB export bound, and rejects absolute paths, `.`/`..`, and
+any symbolic link component. A v1 export with bare digest strings is refused:
+a claimed digest without its retained raw file is not evidence.
 
 The local pinned Bend Boolean smoke route was executed on 4 October 2026 with
 Bun 1.2.5 and `BEND_NO_TELEMETRY=1`. Its receipt is

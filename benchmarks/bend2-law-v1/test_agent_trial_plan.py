@@ -21,8 +21,9 @@ def config(trials=10):
             "name": "fixed-model",
             "configuration_sha256": "sha256:" + "a" * 64,
         },
-        "tool_access": {"network": "disabled", "filesystem": "sandboxed", "shell": "bounded"},
+        "tool_access": {"network": "provider-managed", "filesystem": "read-only", "shell": "read-only"},
         "fixed_budget": {"max_tokens": 1000, "max_cost_usd": "1.00"},
+        "execution": {"runner": "codex_exec_json_v1", "sandbox": "read-only", "working_directory": "fresh-empty-directory", "repository_access": "none", "max_wall_seconds": 60},
         "trials_per_cell": trials,
     }
 
@@ -34,6 +35,10 @@ class AgentTrialPlanTests(unittest.TestCase):
         invalid = config()
         invalid["model"]["configuration_sha256"] = "unpinned"
         with self.assertRaisesRegex(ValueError, "pinned sha256"):
+            PLAN.require_config(invalid)
+        invalid = config()
+        invalid["tool_access"]["filesystem"] = "workspace-write"
+        with self.assertRaisesRegex(ValueError, "isolated Codex policy"):
             PLAN.require_config(invalid)
 
     def test_u32_cells_are_explicitly_unavailable_for_the_reviewed_scalar_profile(self):
@@ -86,6 +91,7 @@ class AgentTrialPlanTests(unittest.TestCase):
         self.assertEqual({trial["language"] for trial in trials}, set(PLAN.LANGUAGES))
         self.assertEqual({trial["ordinal"] for trial in trials}, set(range(1, 11)))
         self.assertEqual(trials[0]["telemetry"]["events"], ["token_usage", "cost_usage"])
+        self.assertEqual(trials[0]["execution"]["repository_access"], "none")
         self.assertEqual(trials[0]["separate_measurements"], {phase: "required_on_execution" for phase in PLAN.MEASUREMENT_PHASES})
         self.assertIn("weakened-postcondition", trials[0]["acceptance"]["rejected_law_gaming_attacks"])
 

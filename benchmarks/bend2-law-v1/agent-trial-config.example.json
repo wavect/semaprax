@@ -1,8 +1,8 @@
 {
   "schema": "semaprax.bend2-law-benchmark.agent-trial-config.v1",
   "model": {
-    "provider": "operator-selected-provider",
-    "name": "exact-model-version",
+    "provider": "openai-codex-cli",
+    "name": "gpt-6-luna",
     "configuration_sha256": "sha256:replace-with-reviewed-model-tool-prompt-config-digest"
   },
   "tool_access": {
@@ -13,6 +13,13 @@
   "fixed_budget": {
     "max_tokens": 100000,
     "max_cost_usd": "25.00"
+  },
+  "execution": {
+    "runner": "codex_exec_json_v1",
+    "sandbox": "read-only",
+    "working_directory": "fresh-empty-directory",
+    "repository_access": "none",
+    "max_wall_seconds": 600
   },
   "trials_per_cell": 10
 }

@@ -59,7 +59,7 @@ def object_json(path: pathlib.Path, schema: str) -> dict:
 
 
 def require_config(config: dict) -> None:
-    if set(config) != {"schema", "model", "tool_access", "fixed_budget", "trials_per_cell"}:
+    if set(config) != {"schema", "model", "tool_access", "fixed_budget", "execution", "trials_per_cell"}:
         raise ValueError("agent trial config keys are not exact")
     model = config["model"]
     if not isinstance(model, dict) or set(model) != {"provider", "name", "configuration_sha256"}:
@@ -73,6 +73,8 @@ def require_config(config: dict) -> None:
         raise ValueError("agent tool access pin is incomplete")
     if not all(isinstance(value, str) and value for value in tool_access.values()):
         raise ValueError("agent tool access values must be nonempty")
+    if tool_access != {"network": "provider-managed", "filesystem": "read-only", "shell": "read-only"}:
+        raise ValueError("agent tool access must record the admitted isolated Codex policy")
     budget = config["fixed_budget"]
     if not isinstance(budget, dict) or set(budget) != {"max_tokens", "max_cost_usd"}:
         raise ValueError("agent fixed budget is incomplete")
@@ -82,6 +84,17 @@ def require_config(config: dict) -> None:
         raise ValueError("agent fixed cost budget must be canonical USD")
     if not isinstance(config["trials_per_cell"], int) or config["trials_per_cell"] < MIN_TRIALS:
         raise ValueError(f"agent trials per cell must be at least {MIN_TRIALS}")
+    execution = config["execution"]
+    if not isinstance(execution, dict) or set(execution) != {
+        "runner", "sandbox", "working_directory", "repository_access", "max_wall_seconds"
+    }:
+        raise ValueError("agent execution pin is incomplete")
+    if execution["runner"] != "codex_exec_json_v1" or execution["sandbox"] != "read-only":
+        raise ValueError("agent execution must use the admitted read-only Codex JSON runner")
+    if execution["working_directory"] != "fresh-empty-directory" or execution["repository_access"] != "none":
+        raise ValueError("agent execution must not expose a repository workspace")
+    if not isinstance(execution["max_wall_seconds"], int) or not 1 <= execution["max_wall_seconds"] <= 3600:
+        raise ValueError("agent execution wall bound is invalid")
 
 
 def semaprax_supports(domain: str) -> bool:
@@ -125,6 +138,12 @@ def trial_rows(cell: dict, fixture: dict, trials_per_cell: int) -> list[dict]:
             "language": language,
             "ordinal": ordinal,
             "status": "not_run",
+            "execution": {
+                "runner": "codex_exec_json_v1",
+                "sandbox": "read-only",
+                "working_directory": "fresh-empty-directory",
+                "repository_access": "none",
+            },
             "acceptance": acceptance,
             **observations,
         }
@@ -171,6 +190,7 @@ def plan(manifest_path: pathlib.Path, config_path: pathlib.Path) -> dict:
         "status": status,
         "manifest": {"path": str(manifest_path.resolve()), "sha256": digest(manifest_path)},
         "agent_configuration": {"path": str(config_path.resolve()), "sha256": digest(config_path), "value": config},
+        "execution": config["execution"],
         "cells": cells,
         "measurement_phases": list(MEASUREMENT_PHASES),
         "nonclaims": [

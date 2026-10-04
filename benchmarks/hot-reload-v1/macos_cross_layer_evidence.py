@@ -116,7 +116,19 @@ def compile_target(cargo, target, commit, name):
         stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
     )
     if completed.returncode:
-        raise RuntimeError("Cargo failed while building %s:\n%s" % (name, completed.stderr))
+        diagnostics = []
+        for line in completed.stdout.splitlines():
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if event.get("reason") == "compiler-message":
+                message = event.get("message", {})
+                if message.get("level") == "error":
+                    diagnostics.append(message.get("rendered") or message.get("message", "compiler error"))
+        raise RuntimeError("Cargo failed while building %s:\n%s\n%s" % (
+            name, "\n".join(diagnostics), completed.stderr,
+        ))
     binaries = []
     for line in completed.stdout.splitlines():
         try:

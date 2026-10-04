@@ -203,7 +203,7 @@ impl ProjectCandidate {
             .get("selection_digest")
             .and_then(Value::as_str)
             .ok_or_else(|| invalid("candidate assurance selection digest is absent"))?;
-        Ok(wire::render(
+        wire::render(
             json!({
                 "schema": PROJECT_CANDIDATE_ASSURANCE_SELECTION_VERIFICATION_SCHEMA,
                 "selection_digest": digest,
@@ -218,6 +218,6 @@ impl ProjectCandidate {
                 ],
             }),
             MAX_PROJECT_CANDIDATE_ASSURANCE_SELECTION_BYTES,
-        ))
+        )
     }
 }

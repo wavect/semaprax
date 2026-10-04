@@ -14,6 +14,9 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Freeze a separate LAW16 Claude Haiku Boolean campaign plan and bounded runner
+  with schema-checked edits, observed provider token/cost fields, sanitized
+  events, and independent proof/attack replay.
 - Retain 30 LAW16 local Boolean check/build/run phase samples per route with
   raw streams and generated-artifact digests; keep SEMAPRAX's internal build
   work combined and exclude cross-route performance claims.

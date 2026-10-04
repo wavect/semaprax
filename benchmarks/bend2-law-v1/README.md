@@ -65,6 +65,25 @@ This flag runs nine fresh pairs; it does not replace the pilot or turn one
 campaign into ten new trials. All modes preserve failed/incomplete status and
 publish no winner.
 
+The separate [Claude Boolean campaign plan](fixtures/law16-claude-boolean-campaign-plan-v1.json)
+freezes 10 matched pairs against Claude Haiku 4.5, Claude Code CLI 2.1.289,
+the fixed buggy source and attack fixtures, a $0.03 per-call cap, and a $0.60
+total cap. Its runner uses fresh empty directories, disabled tools, structured
+responses, and independent Bend verdict/SEMAPRAX Z3 replay. It retains
+sanitized provider events with token and monetary cost fields; failed trials
+stop the campaign. The earlier successful one-pair pilot predates this frozen
+plan and is not one of its 10 pairs. Run it only with pinned local tools:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_claude_boolean_campaign.py \
+  --output /absolute/new-claude-campaign --first 1 --last 10 \
+  --claude /absolute/pinned-claude --bend-root /absolute/pinned-bend \
+  --bun /absolute/pinned-bun --semaprax /absolute/pinned-semaprax \
+  --z3 /absolute/pinned-z3 --max-cost-usd 0.03
+python3 benchmarks/bend2-law-v1/law16_claude_boolean_campaign.py \
+  --review /absolute/new-claude-campaign
+```
+
 The retained [unified fresh capture](evidence/law16-unified-fresh-v1/replay-status.json)
 completed six non-agent routes: Boolean ordinary checking, Boolean verdict/Z3
 candidate and attack checking, peak RSS, guarded-i64 balance/sort controls,

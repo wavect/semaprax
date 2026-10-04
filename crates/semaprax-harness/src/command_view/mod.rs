@@ -9,13 +9,17 @@ pub mod executor;
 pub mod guard;
 pub mod intent;
 pub mod lineage;
+pub mod measure;
 pub mod policy;
+pub mod recover;
 pub mod result;
 pub mod retention;
 pub mod run;
 pub mod view;
 pub mod wrapper;
 
+pub use measure::{Measurement, ViewTokenizer};
+pub use recover::{recover, recover_by_id, Recovered};
 pub use result::{CommandResult, Envelope, ModelView};
 pub use run::{execute, ExecOptions, ExecReport};
 

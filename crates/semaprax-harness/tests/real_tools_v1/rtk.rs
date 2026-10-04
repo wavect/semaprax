@@ -788,3 +788,396 @@ fn wrapped_route_without_complete_raw_recovery_runs_unwrapped_once() {
         .contains("lacks complete raw recovery"));
     assert_eq!(fx.count(), 1);
 }
+
+// ---- HN-12: a real RTK view of a failing check reaches the next model attempt --------
+
+mod hn12 {
+    use super::*;
+    use semaprax_harness::command_view::retention::StreamName;
+    use semaprax_harness::command_view::{recover_by_id, ViewTokenizer};
+    use semaprax_harness::observe::{ExternalTokenizer, Observer, ObserverLimits};
+    use semaprax_harness::workflow::compiler::SubprocessCompiler;
+    use semaprax_harness::workflow::stages::{
+        NativeContext, ProposalRequest, ProposalStage, StageFailure, Task, TaskMode,
+    };
+    use semaprax_harness::workflow::{
+        CheckSpec, Composition, HostCommandChecks, RunConfig, SessionBounds, Snapshot, Stages,
+    };
+    use std::cell::{Cell, RefCell};
+
+    /// Reads the failing test name out of the delivered check output (the only place
+    /// it appears) and proposes the rename it names; otherwise repeats a wrong proposal.
+    struct Parser {
+        calls: Cell<u32>,
+        feedback: RefCell<Vec<Value>>,
+    }
+    impl Parser {
+        fn rename(name: &str) -> Vec<u8> {
+            serde_json::json!({"schema": "semaprax.harness-proposal.v1", "intent":
+                {"kind": "rename_declaration", "target": "ledger.line_total", "name": name}})
+            .to_string()
+            .into_bytes()
+        }
+    }
+    impl ProposalStage for &Parser {
+        fn id(&self) -> String {
+            "org.example/parser".into()
+        }
+        fn propose(&mut self, r: &ProposalRequest) -> Result<Vec<u8>, StageFailure> {
+            let n = self.calls.get();
+            self.calls.set(n + 1);
+            let fb = r.prompt["feedback"].clone();
+            self.feedback.borrow_mut().push(fb.clone());
+            let text = fb.to_string();
+            const KEY: &str = "must_be_named_";
+            let name = text.find(KEY).map(|i| {
+                text[i + KEY.len()..]
+                    .chars()
+                    .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
+                    .collect::<String>()
+            });
+            Ok(Parser::rename(name.as_deref().unwrap_or("line_cost")))
+        }
+        fn calls(&self) -> u32 {
+            self.calls.get()
+        }
+        fn side_effecting(&self) -> bool {
+            false
+        }
+    }
+
+    fn copy_dir(from: &Path, to: &Path) {
+        std::fs::create_dir_all(to).unwrap();
+        for e in std::fs::read_dir(from).unwrap() {
+            let e = e.unwrap();
+            if e.file_type().unwrap().is_dir() {
+                copy_dir(&e.path(), &to.join(e.file_name()));
+            } else {
+                std::fs::copy(e.path(), to.join(e.file_name())).unwrap();
+            }
+        }
+    }
+
+    fn tokenizer() -> Option<ViewTokenizer> {
+        let py = std::env::var_os("HARNESS_TOKENIZER_PYTHON")?;
+        let cache = std::env::var("HARNESS_TIKTOKEN_CACHE").ok()?;
+        let script = repo_root().join("scripts/harness_tokenize.py");
+        let env = BTreeMap::from([
+            ("PATH".to_string(), "/usr/bin:/bin".to_string()),
+            ("TIKTOKEN_CACHE_DIR".to_string(), cache),
+        ]);
+        let t = ExternalTokenizer::spawn(
+            Path::new(&py),
+            &[script.to_string_lossy().into_owned(), "cl100k_base".into()],
+            &env,
+        )
+        .ok()?;
+        Some(ViewTokenizer(std::rc::Rc::new(t)))
+    }
+
+    struct Outcome {
+        report: semaprax_harness::workflow::Report,
+        prompts: Vec<Value>,
+        runs: u32,
+        fx: Fx,
+    }
+
+    fn scenario(tok: Option<ViewTokenizer>, owner: Option<&str>) -> Outcome {
+        let fx = Fx::new(0, true);
+        let python = required_tool("HARNESS_PYTHON");
+        let compiler_exe = required_tool("SEMAPRAX_COMPILER");
+        let cargo = cargo_path();
+        let cdir = Path::new(&cargo).parent().unwrap().display().to_string();
+        let grant = [
+            "PATH",
+            "HOME",
+            "CARGO_HOME",
+            "CARGO_TARGET_DIR",
+            "CARGO_NET_OFFLINE",
+            "RUST_TEST_THREADS",
+        ];
+        write(
+            &fx.home,
+            "command-view.json",
+            &format!(
+                r#"{{"schema":"semaprax.harness-command-view-policy.v1","min_bytes":512,"runtimes":{{"python":"{}"}},"retention":{{"enabled":true,"ttl_secs":3600,"max_bytes":268435456}},"env_grant":{}}}"#,
+                python.display(),
+                serde_json::json!(grant)
+            ),
+        );
+        let fixtures = repo_root().join("crates/semaprax-harness/tests/fixtures/workflow/healthy");
+        copy_dir(&fixtures, &fx.project);
+        write(&fx.project, "rcheck/Cargo.toml", "[package]\nname = \"rcheck\"\nversion = \"0.1.0\"\nedition = \"2021\"\n[dependencies]\n");
+        let mut lib = String::from("#[cfg(test)]\nmod tests {\n");
+        for i in 0..400 {
+            lib += &format!("    #[test]\n    fn t_{i:03}() {{ assert_eq!(1 + 1, 2); }}\n");
+        }
+        lib += "    #[test]\n    fn must_be_named_zeta_9f3a() -> Result<(), String> {\n        let src = std::fs::read_to_string(\"../src/lib.spx\").map_err(|e| e.to_string())?;\n        if src.contains(\"fn zeta_9f3a(\") { Ok(()) } else { Err(\"the declaration under test has the wrong name\".to_string()) }\n    }\n}\n";
+        write(&fx.project, "rcheck/src/lib.rs", &lib);
+        let counter = fx.counter();
+        let shim = write(
+            &fx.project,
+            "tools/cargo",
+            &format!(
+                "#!/bin/sh\nf=\"{}\"\nn=$(cat \"$f\" 2>/dev/null || echo 0)\necho $((n+1)) > \"$f\"\nexec \"{cargo}\" \"$@\"\n",
+                counter.display()
+            ),
+        );
+        std::fs::set_permissions(&shim, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let mut env = fx.env.clone();
+        env.cwd = fx.project.clone();
+        for (k, v) in [
+            ("PATH", format!("{cdir}:/usr/bin:/bin")),
+            ("HOME", fx.root.join("userhome").display().to_string()),
+            (
+                "CARGO_HOME",
+                fx.root.join("cargo-home").display().to_string(),
+            ),
+            (
+                "CARGO_TARGET_DIR",
+                fx.root.join("cargo-target").display().to_string(),
+            ),
+            ("CARGO_NET_OFFLINE", "true".into()),
+            ("RUST_TEST_THREADS", "1".into()),
+        ] {
+            env.vars.insert(k.into(), v);
+        }
+        if let Some(o) = owner {
+            env.vars
+                .insert("SEMAPRAX_HARNESS_EXTERNAL_VIEW_OWNER".into(), o.into());
+        }
+        let mut stage = HostCommandChecks::new(env);
+        stage.tokenizer = tok;
+        let root = fx.root.clone();
+        let compiler = SubprocessCompiler::new(compiler_exe, root.join("compiler")).unwrap();
+        let cfg = RunConfig {
+            snapshot: Snapshot::capture(&fx.project).unwrap(),
+            task: Task {
+                schema_version: 2,
+                mode: TaskMode::Change,
+                goal: "rename line_total so the failing unit check passes".into(),
+                seed: Some("ledger.line_total".into()),
+                session: Some(SessionBounds {
+                    max_attempts: 3,
+                    ..Default::default()
+                }),
+                ..Task::default()
+            },
+            context_max_bytes: 16384,
+            cache_dir: root.join("cache"),
+            lock_digest: "sha256:lock".into(),
+            providers: vec![],
+            composition: Composition::from_profile(None, true, vec![], &[]).unwrap(),
+            apply_policy: None,
+            checks: vec![CheckSpec {
+                name: "unit".into(),
+                argv: s(&[
+                    "tools/cargo",
+                    "test",
+                    "--manifest-path",
+                    "rcheck/Cargo.toml",
+                    "--color",
+                    "never",
+                ]),
+            }],
+            skill_prompt: None,
+            endpoint_policy: Default::default(),
+            model_plans: None,
+            notes: vec![],
+            budget: Default::default(),
+            cancel: None,
+        };
+        let parser = Parser {
+            calls: Cell::new(0),
+            feedback: RefCell::default(),
+        };
+        let mut native = NativeContext::new(&compiler);
+        let mut p = &parser;
+        let report = semaprax_harness::workflow::run(
+            &cfg,
+            &compiler,
+            Stages {
+                decision: None,
+                native: &mut native,
+                external: None,
+                proposer: &mut p,
+                command: &mut stage,
+            },
+            &mut Observer::new(None, ObserverLimits::default()),
+        );
+        let prompts = parser.feedback.borrow().clone();
+        let runs = fx.count();
+        Outcome {
+            report,
+            prompts,
+            runs,
+            fx,
+        }
+    }
+
+    fn raw_of(o: &Outcome, rec: &Value, stream: StreamName) -> String {
+        let (pid, h) = (
+            rec["project_id"].as_str().unwrap(),
+            rec["handle"].as_str().unwrap(),
+        );
+        let before = o.fx.count();
+        let r = recover_by_id(&o.fx.env, pid, h, stream, 0, 4 << 20).unwrap();
+        assert_eq!(o.fx.count(), before, "recovery never re-executes the check");
+        r.text
+    }
+
+    #[test]
+    #[ignore = "provisioned: needs HARNESS_RTK HARNESS_PYTHON SEMAPRAX_COMPILER and a cargo on PATH (named tokenizer optional: HARNESS_TOKENIZER_PYTHON HARNESS_TIKTOKEN_CACHE)"]
+    fn real_rtk_view_of_a_failing_check_reaches_the_next_attempt_and_the_fix_is_derived_from_it() {
+        let named = tokenizer();
+        for tok in [named.clone(), None] {
+            let o = scenario(tok.clone(), None);
+            let r = &o.report;
+            assert_eq!(
+                r.status, "candidate-ready",
+                "{:?} {}",
+                r.refusals, r.session
+            );
+            assert_eq!(r.session["attempts"][0]["stage"], "checks");
+            assert_eq!(r.session["attempts"][1]["outcome"], "admitted");
+            assert_eq!(o.runs, 2, "one execution per attempt, none for recovery");
+            // The second request carried the RTK-transformed failing output.
+            let fb = &o.prompts[1][0];
+            let out = fb["check_output"]["output"].as_str().unwrap();
+            assert_eq!(fb["check_output"]["route"], "provider", "{fb}");
+            assert!(
+                out.contains("must_be_named_zeta_9f3a"),
+                "seeded failure in the view: {out}"
+            );
+            assert!(
+                out.contains("1 failed") && out.contains("400 passed"),
+                "{out}"
+            );
+            assert!(
+                out.matches("... ok").count() < 20,
+                "the ok lines were compressed away"
+            );
+            let d = &fb["check_output"]["delivered"];
+            assert_eq!(d["decision"], "provider-smaller");
+            let dm = &r.session["delivered_to_model"];
+            if tok.is_some() {
+                assert_eq!(d["basis"], "tokens");
+                let (raw, del) = (
+                    d["raw_tokens"].as_u64().unwrap(),
+                    d["delivered_tokens"].as_u64().unwrap(),
+                );
+                assert!(del < raw && d["saved_tokens"].as_i64().unwrap() > 0);
+                assert_eq!(dm["saved_tokens"], d["saved_tokens"]);
+                println!("HN-12 real session: cl100k_base raw {raw} -> delivered {del} tokens (saved {})", raw - del);
+            } else {
+                assert_eq!(d["basis"], "bytes-only");
+                assert!(
+                    d["saved_tokens"].is_null() && dm["saved_tokens"].is_null(),
+                    "unavailable counts claim nothing"
+                );
+            }
+            // Raw recovery after the failing run (handle bound in the feedback) and after the passing one.
+            let fail_rec = serde_json::json!({"project_id": fb["check_output"]["recovery_project_id"], "handle": fb["check_output"]["recovery_handle"]});
+            let raw = raw_of(&o, &fail_rec, StreamName::Stdout);
+            assert!(
+                raw.contains("test tests::t_000 ... ok")
+                    && raw.contains("must_be_named_zeta_9f3a ... FAILED")
+            );
+            let pass = &r.checks["commands"][0];
+            assert_eq!(pass["passed"], true);
+            let raw = raw_of(&o, &pass["recovery"], StreamName::Stdout);
+            assert!(
+                raw.contains("test result: ok. 401 passed"),
+                "{}",
+                &raw[raw.len().saturating_sub(300)..]
+            );
+            assert_eq!(o.fx.count(), 2);
+        }
+    }
+
+    #[test]
+    #[ignore = "provisioned: needs HARNESS_RTK HARNESS_PYTHON SEMAPRAX_COMPILER and a cargo on PATH"]
+    fn external_rtk_ownership_delivers_raw_and_the_session_still_finds_the_failure() {
+        let o = scenario(None, Some("rtk-hook"));
+        let r = &o.report;
+        assert_eq!(
+            r.status, "candidate-ready",
+            "{:?} {}",
+            r.refusals, r.session
+        );
+        let co = &o.prompts[1][0]["check_output"];
+        assert_eq!(
+            co["route"], "raw",
+            "no second transform under external ownership: {co}"
+        );
+        assert!(co["output"]
+            .as_str()
+            .unwrap()
+            .contains("must_be_named_zeta_9f3a"));
+        assert_eq!(co["delivered"]["decision"], "raw-by-policy");
+        assert_eq!(o.runs, 2);
+    }
+
+    #[test]
+    #[ignore = "provisioned: needs HARNESS_RTK HARNESS_PYTHON"]
+    fn real_rtk_expanded_tiny_structured_and_unknown_outputs_keep_raw_status_and_content() {
+        use semaprax_harness::command_view::{execute, ExecOptions};
+        let fx = Fx::new(0, true);
+        fx.git_repo();
+        let tok = tokenizer();
+        let opts = ExecOptions {
+            tokenizer: tok.clone(),
+            ..Default::default()
+        };
+        let go = |argv: &[&str]| execute(&fx.env, &fx.project, &s(argv), &opts, None).unwrap();
+        // Expanded view: real RTK turns a tiny match plus a stderr line into more bytes; raw is delivered.
+        let rg = "/opt/homebrew/bin/rg";
+        if Path::new(rg).exists() {
+            let r = go(&[
+                rg,
+                "-n",
+                "line 3 of file 1 ",
+                "src/f1.txt",
+                "src/missing.txt",
+            ]);
+            let (v, m) = (
+                &r.envelope.view,
+                r.envelope.view.measurement.clone().unwrap(),
+            );
+            assert_eq!(r.envelope.result.termination.label(), "exit:2");
+            assert_eq!(
+                (v.route.as_str(), m.decision),
+                ("raw", "provider-grew-raw-used"),
+                "{:?}",
+                v.notes
+            );
+            assert!(v.text.contains("missing.txt") && v.text.contains("line 3 of file 1"));
+            assert_eq!(m.saved_tokens().map(|n| n <= 0), tok.as_ref().map(|_| true));
+            println!("expanded view kept raw: {}", m.to_json());
+        }
+        // Structured data: JSON on stdout never reaches the lossy filter, even for an admitted family.
+        let json = fx.script(
+            "cargo",
+            "printf '{\"tests\":['; i=0; while [ $i -lt 300 ]; do printf '\"t-%s\",' $i; i=$((i+1)); done; printf '\"end\"]}'",
+        );
+        let r = go(&[&json, "test"]);
+        assert_eq!(r.envelope.view.route, "raw");
+        assert!(r.envelope.view.text.starts_with("{\"tests\":["));
+        assert!(r
+            .envelope
+            .view
+            .notes
+            .iter()
+            .any(|n| n.contains("machine-readable")));
+        // Unknown family with a nonzero exit: raw content, authoritative status.
+        let unk = fx.script("mystery-tool", "i=0; while [ $i -lt 200 ]; do echo \"unknown line $i\"; i=$((i+1)); done\necho BAD >&2\nexit 3");
+        let r = go(&[&unk]);
+        assert_eq!(r.envelope.result.termination.label(), "exit:3");
+        assert_eq!(r.envelope.view.route, "raw");
+        assert!(
+            r.envelope.view.text.contains("unknown line 199")
+                && r.envelope.view.text.contains("BAD")
+        );
+        assert_eq!(fx.count(), 2, "each counted script ran once");
+    }
+}

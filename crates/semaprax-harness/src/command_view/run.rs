@@ -5,7 +5,8 @@ use super::executor::{self, ExecSpec};
 use super::guard::{self, decode, raw_text, redact};
 use super::intent::{check_syntax, resolve_executable};
 use super::lineage;
-use super::policy::{exclusion, looks_like_json, Policy};
+use super::measure::{self, delivered_text, Measurement, ViewTokenizer};
+use super::policy::{exclusion, looks_binary, looks_like_digests, looks_like_json, Policy};
 use super::result::{argv_digest, CommandResult, Envelope, ModelView, StreamRecord};
 use super::retention::{handle_for, Retention, StreamName};
 use super::view::{lineage_env, PlanRoute, Provider, ViewOptions};
@@ -33,6 +34,8 @@ pub struct ExecOptions {
     pub extra_env: BTreeMap<String, String>,
     pub timeout_ms: Option<u64>,
     pub cancel: CancelToken,
+    /// Named tokenizer for delivered-view measurement and the growth guard.
+    pub tokenizer: Option<ViewTokenizer>,
 }
 
 pub struct ExecReport {
@@ -321,6 +324,28 @@ pub fn execute(
     if in_mem && looks_like_json(&so.head) {
         skip("machine-readable stdout", &mut use_provider, &mut notes);
     }
+    if looks_binary(&so.head) || looks_binary(&se.head) {
+        skip("binary output", &mut use_provider, &mut notes);
+    }
+    if se.total == 0 && looks_like_digests(&so.head) {
+        skip("hash output", &mut use_provider, &mut notes);
+    }
+    let tk = opts.tokenizer.as_ref();
+    let (raw_display, raw_cut) = guard::bound(&raw_all, display_cap);
+    let raw_delivered = delivered_text(&raw_display, raw_cut.then_some(()).and(handle.as_deref()));
+    let raw_tokens = measure::count(tk, &raw_delivered);
+    let mut below_tokens = false;
+    if let (Some(min), Some(t)) = (policy.min_tokens, raw_tokens) {
+        if t < min {
+            below_tokens = use_provider;
+            skip(
+                "below the measured token threshold",
+                &mut use_provider,
+                &mut notes,
+            );
+        }
+    }
+    let (mut grew, mut rejected_tokens, mut overhead_ms) = (false, None, 0u64);
     if !cap_run.termination.certain() {
         skip("status is uncertain", &mut use_provider, &mut notes);
     }
@@ -351,7 +376,10 @@ pub fn execute(
             max_bytes: display_cap as u64,
             recovery_handle: handle.clone(),
         };
-        match p.view(argv, &red_o, &red_e, &opts, &own.chain) {
+        let t0 = Instant::now();
+        let pres = p.view(argv, &red_o, &red_e, &opts, &own.chain);
+        overhead_ms = t0.elapsed().as_millis() as u64;
+        match pres {
             Ok(pv) => {
                 let (mut text, mut incomplete) = guard::bound(&pv.text, display_cap);
                 let reference = raw_text(&red_o, &red_e);
@@ -372,16 +400,32 @@ pub fn execute(
                     text: pv.text,
                 };
                 let lossy = !pv.lossless || pv.omissions > 0 || incomplete;
-                view = Some(ModelView {
-                    text,
-                    lossless: pv.lossless && !incomplete,
-                    omissions: pv.omissions,
-                    provenance: p.provider_id.clone(),
-                    recovery_handle: if lossy { handle.clone() } else { None },
-                    incomplete,
-                    route: "provider".into(),
-                    notes: vec![],
-                });
+                let cand = delivered_text(&text, if lossy { handle.as_deref() } else { None });
+                let cand_tokens = measure::count(tk, &cand);
+                // The view must be strictly smaller where it is measured; unavailable
+                // token counts fall back to bytes (growth only, never a savings claim).
+                grew = match (cand_tokens, raw_tokens) {
+                    (Some(c), Some(r)) => c >= r,
+                    _ => cand.len() >= raw_delivered.len(),
+                };
+                rejected_tokens = cand_tokens;
+                if grew {
+                    notes.push(
+                        "provider view did not reduce the delivered size: raw view used".into(),
+                    );
+                } else {
+                    view = Some(ModelView {
+                        text,
+                        lossless: pv.lossless && !incomplete,
+                        omissions: pv.omissions,
+                        provenance: p.provider_id.clone(),
+                        recovery_handle: if lossy { handle.clone() } else { None },
+                        incomplete,
+                        route: "provider".into(),
+                        notes: vec![],
+                        measurement: None,
+                    });
+                }
             }
             Err(m) => {
                 provider_failed = true;
@@ -443,6 +487,7 @@ pub fn execute(
             },
             text,
             notes: vec![],
+            measurement: None,
         }
     });
     if effective.is_some() {
@@ -465,6 +510,41 @@ pub fn execute(
         notes.push("raw output is not retained; enable retention to make it recoverable".into());
     }
     view.notes = notes;
+    let delivered = delivered_text(&view.text, view.recovery_handle.as_deref());
+    let dtokens = measure::count(tk, &delivered);
+    // The host's own raw view is the baseline; when it is what was delivered,
+    // nothing was saved (its critical-line guard text is part of both sides).
+    let (raw_delivered, raw_tokens) = if view.route == "provider" {
+        (raw_delivered, raw_tokens)
+    } else {
+        (delivered.clone(), dtokens)
+    };
+    let named = raw_tokens.is_some() && dtokens.is_some();
+    view.measurement = Some(Measurement {
+        decision: if view.route == "provider" {
+            "provider-smaller"
+        } else if grew {
+            "provider-grew-raw-used"
+        } else if below_tokens {
+            "below-token-threshold-raw-used"
+        } else if provider_failed {
+            "provider-failed-raw-used"
+        } else if provider.is_some() {
+            "provider-not-consulted"
+        } else {
+            "raw-by-policy"
+        },
+        basis: if named { "tokens" } else { "bytes-only" },
+        tokenizer: tk
+            .filter(|_| named)
+            .map(|t| (t.0.name().to_string(), t.0.fingerprint().to_string())),
+        raw_bytes: raw_delivered.len() as u64,
+        delivered_bytes: delivered.len() as u64,
+        raw_tokens: if named { raw_tokens } else { None },
+        delivered_tokens: if named { dtokens } else { None },
+        rejected_view_tokens: rejected_tokens,
+        overhead_ms,
+    });
 
     let envelope = Envelope { result, view };
     let display = if opts.json {
@@ -490,6 +570,14 @@ pub fn execute(
         o.latency_ms = started.elapsed().as_millis() as u64;
         o.before = Some(TokenCount::bytes(total));
         o.after = Some(TokenCount::bytes(display.len() as u64));
+        if let Some(m) = &envelope.view.measurement {
+            if let (Some((n, f)), Some(r), Some(d)) =
+                (&m.tokenizer, m.raw_tokens, m.delivered_tokens)
+            {
+                o.before = Some(TokenCount::named(n, f, r));
+                o.after = Some(TokenCount::named(n, f, d));
+            }
+        }
         o.model_visible = true;
         o.before_digest = Some(sha256_plain(
             format!("{}\0{}", so.digest, se.digest).as_bytes(),

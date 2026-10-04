@@ -8,6 +8,30 @@ import os
 import re
 
 PINNED_VERSION = "0.51.0"
+# Explicit qualification table (HN-12). A version outside it is never accepted
+# blindly: the adapter bypasses (plan) or reports unavailable (view) until a
+# new row is added together with re-measured tests for every listed family.
+FAMILIES = ("git-diff", "git-log", "git-status", "rg", "grep", "find", "ls", "cargo-test", "pytest", "ctest")
+QUALIFIED_VERSIONS = {PINNED_VERSION: frozenset(FAMILIES)}
+_IDENTITY = re.compile(r"rtk (\d+\.\d+\.\d+)")
+
+
+class Unqualified(Exception):
+    def __init__(self, reason, detail):
+        super().__init__(detail)
+        self.reason, self.detail = reason, detail
+
+
+def qualify(identity_text):
+    """Map `rtk --version` output to a qualified version, else raise Unqualified."""
+    m = _IDENTITY.fullmatch((identity_text or "").strip())
+    if not m:
+        raise Unqualified("rtk-identity", f"unrecognised identity {identity_text!r}")
+    v = m.group(1)
+    if v not in QUALIFIED_VERSIONS:
+        known = ", ".join(sorted(QUALIFIED_VERSIONS))
+        raise Unqualified("rtk-version-unqualified", f"rtk {v} is not in the qualified version table ({known})")
+    return v
 SHELL_TOKENS = {"|", "||", "&&", ";", "&", ">", ">>", "<", "<<", "2>&1", "2>"}
 # Flags that change output into something another tool may parse exactly.
 MACHINE = re.compile(
@@ -16,7 +40,7 @@ MACHINE = re.compile(
     r"--report|-print0$|-exec$|-delete$|-ls$|-printf$|--files(-with-matches|-without-match)?$|--count$|--only-matching$)"
 )
 # Families whose pipe filter also needs stderr (compiler/test runners print on both).
-MERGES_STDERR = {"cargo-test", "pytest"}
+MERGES_STDERR = {"cargo-test", "pytest", "ctest"}
 
 
 class Bypass(Exception):
@@ -39,7 +63,15 @@ def _paths_after(args):
     return rest
 
 
-def classify(argv):
+def classify(argv, version=PINNED_VERSION):
+    """Classify for a qualified `version`; a family the table does not list for it is bypassed."""
+    fam = _classify(argv)
+    if fam["family"] not in QUALIFIED_VERSIONS.get(version, ()):
+        raise Bypass("family-unqualified-for-version")
+    return fam
+
+
+def _classify(argv):
     """Return {family, filter, wrapper} for an allowlisted argv, else raise Bypass(reason).
 
     family: stable name. filter: `rtk pipe -f` filter (None when RTK offers no
@@ -92,6 +124,11 @@ def classify(argv):
     if name == "ls":
         if all(re.fullmatch(r"-[laAhR1]+", a) or not a.startswith("-") for a in args):
             return {"family": "ls", "filter": None, "wrapper": True}
+        raise Bypass("unverified-flag")
+    if name == "ctest":
+        # Synthetic-output tested only (no ctest binary here); `-V`/verbose and other shapes stay bypassed.
+        if not args:
+            return {"family": "ctest", "filter": "ctest", "wrapper": False}
         raise Bypass("unverified-flag")
     if name == "cargo":
         if len(args) >= 1 and args[0] == "test" and not any("format" in a or "json" in a for a in args):

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""command.view/v1 adapter for rtk-ai/rtk 0.51.0.
+"""command.view/v1 adapter for rtk-ai/rtk (qualified versions only: see rtk_families.QUALIFIED_VERSIONS).
 
 Operations
   plan  {argv, cwd_rel, estimated_output_bytes?, external_hooks?, lineage?, form?, config?}
@@ -23,7 +23,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "sdk", "python"))
 sys.path.insert(0, HERE)
 from semaprax_harness_adapter import AdapterError, serve  # noqa: E402
-from rtk_families import MERGES_STDERR, PINNED_VERSION, Bypass, classify  # noqa: E402
+from rtk_families import MERGES_STDERR, PINNED_VERSION, Bypass, Unqualified, classify, qualify  # noqa: E402
 
 PROVIDER = "ai.rtk/rtk-command-view"
 KIND = "command.view"
@@ -32,6 +32,13 @@ MAX_RAW = 8 * 1024 * 1024  # rtk pipe refuses > 10 MiB; stay below
 CRITICAL = re.compile(r"(?i)\b(error|fail(ed|ure|ures)?|panic(ked)?|fatal|critical|exception|traceback)\b")
 BENIGN = re.compile(r"\.\.\. (ok|ignored)\s*$")
 PRESERVE_LIMIT = 20
+BLOCK_LINES = 60
+BLOCK_BYTES = 6000
+MAX_BLOCKS = 5
+CARGO_BLOCK_START = re.compile(r"^---- .+ ----$")
+PYTEST_BLOCK_START = re.compile(r"^_{3,} .+ _{3,}$")
+# libtest ends a failure block at the next header or the trailing `failures:` list; pytest at the next rule line.
+BLOCK_END = re.compile(r"^(---- .+ ----|failures:|_{3,} .+ _{3,}|={3,} .*)$")
 
 
 def upstream():
@@ -64,11 +71,15 @@ def rtk_env(ret):
 
 
 def probe_identity(rtk):
+    """Run `rtk --version` and qualify it against the explicit version table."""
     out = subprocess.run([rtk, "--version"], capture_output=True, timeout=10, env={"PATH": "/usr/bin:/bin"})
     text = out.stdout.decode("utf-8", "replace").strip()
-    if out.returncode != 0 or text != f"rtk {PINNED_VERSION}":
-        raise AdapterError("unavailable", "rtk-version", f"expected 'rtk {PINNED_VERSION}', got {text!r}")
-    return text
+    if out.returncode != 0:
+        raise AdapterError("unavailable", "rtk-version", f"`rtk --version` exited {out.returncode}")
+    try:
+        return qualify(text)
+    except Unqualified as u:
+        raise AdapterError("unavailable", "rtk-version", f"{u.reason}: {u.detail}")
 
 
 def plan(req):
@@ -87,6 +98,12 @@ def plan(req):
         return "complete", {"form": "wrapper", "route": "bypass", "reason": "small-output"}, []
     rtk = upstream()
     ret = retention_dir()
+    try:
+        probe_identity(rtk)  # a version outside the qualified table never transforms
+    except AdapterError as e:
+        if e.code == "rtk-version":
+            return "complete", {"form": "wrapper", "route": "bypass", "reason": "rtk-version-unqualified"}, []
+        raise
     wants_wrapper = bool(cfg.get("allow_wrapper")) and (p.get("form") == "wrapper" or fam["filter"] is None)
     can_wrap = wants_wrapper and fam["wrapper"] and "/" not in argv[0]
     if fam["filter"] is not None and not can_wrap:
@@ -134,6 +151,43 @@ def _critical_missing(raw_text, view_text):
     return out
 
 
+def _failure_blocks(raw_text, family):
+    """Failure detail blocks of libtest (`---- t stdout ----`) or pytest (`___ t ___`) output."""
+    start = CARGO_BLOCK_START if family == "cargo-test" else PYTEST_BLOCK_START if family == "pytest" else None
+    if start is None:
+        return []
+    blocks, cur = [], None
+    for line in raw_text.splitlines():
+        if cur is not None and BLOCK_END.match(line.strip()) and not start.match(line.strip()):
+            blocks.append(cur)
+            cur = None
+        if start.match(line.strip()):
+            if cur is not None:
+                blocks.append(cur)
+            cur = [line]
+        elif cur is not None:
+            cur.append(line)
+    if cur is not None:
+        blocks.append(cur)
+    return blocks
+
+
+def _restore_blocks(raw_text, view_text, family):
+    """Whole failure blocks whose lines the filter cut (nested/multiline messages), bounded."""
+    out, used = [], 0
+    for blk in _failure_blocks(raw_text, family):
+        while blk and not blk[-1].strip():
+            blk.pop()
+        if all((l.strip() in view_text) for l in blk if l.strip()):
+            continue
+        text = "\n".join(blk[:BLOCK_LINES])
+        if used + len(text) > BLOCK_BYTES or len(out) >= MAX_BLOCKS:
+            break
+        used += len(text)
+        out.append(text + (f"\n[adapter: {len(blk) - BLOCK_LINES} more lines in recovered raw output]" if len(blk) > BLOCK_LINES else ""))
+    return out
+
+
 def view(req):
     p = req.get("payload") or {}
     try:
@@ -168,7 +222,14 @@ def view(req):
     omissions = max(0, decoded.count("\n") - filtered.count("\n")) + bad
     text = filtered
     if merged:
-        missing = _critical_missing(decoded, filtered)
+        restored = _restore_blocks(decoded, filtered, fam["family"])
+        if restored:
+            text += "\n[adapter: failure detail the filter cut, restored whole]\n" + "\n".join(restored)
+            filtered_for_critical = filtered + "\n" + "\n".join(restored)
+            omissions = max(0, omissions - sum(len(r.splitlines()) for r in restored))
+        else:
+            filtered_for_critical = filtered
+        missing = _critical_missing(decoded, filtered_for_critical)
         if missing:
             shown = missing[:PRESERVE_LIMIT]
             text += "\n[adapter: critical lines absent from the compressed view]\n" + "\n".join(shown)

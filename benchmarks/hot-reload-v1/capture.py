@@ -54,6 +54,7 @@ def current_commit():
 
 def plan(samples, warmups):
     manifest, cells = read_cross_layer_manifest()
+    scenarios = {item["id"]: {"status": "requires-prebuilt-semaprax"} for item in json.loads(BENCHMARK_MANIFEST.read_text())["scenario_matrix"]}
     return {
         "schema": SCHEMA,
         "mode": "plan",
@@ -63,7 +64,7 @@ def plan(samples, warmups):
         "samples": samples,
         "warmups": warmups,
         "cells": {
-            "interpreter-a-b": {"status": "requires-prebuilt-semaprax", "selector": "benchmarks/hot-reload-v1/run.py"},
+            "interpreter-a-b": {"status": "requires-prebuilt-semaprax", "selector": "benchmarks/hot-reload-v1/run.py", "scenario_matrix": scenarios},
             **{identifier: {"status": "unavailable", "selector": None, "requires": cells[identifier]["requires"]} for identifier in NATIVE_WASM_CELLS},
         },
         "nonclaims": manifest["nonclaims"],
@@ -122,6 +123,7 @@ def main():
                     "benchmark_report_sha256": digest(benchmark_output),
                     "compiler": report["compiler"],
                     "summary": report["loops"]["interpreter-save-to-ack"]["summary"],
+                    "scenario_matrix": {name: {"summary": row["summary"]} for name, row in report["scenario_matrix"].items()},
                     "runner_stdout_sha256": "sha256:" + hashlib.sha256(completed.stdout).hexdigest(),
                     "runner_stderr_sha256": "sha256:" + hashlib.sha256(completed.stderr).hexdigest(),
                 },

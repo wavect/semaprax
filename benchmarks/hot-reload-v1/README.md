@@ -16,11 +16,14 @@ benchmarks/hot-reload-v1/macos-pilot.sh \
 ```
 
 The Mac pilot refuses a non-macOS host and requires the CLI's embedded commit to
-match the current checkout before it runs. The runner creates a private temporary Project for every sample. It invokes A
-(42), writes exact B source (48), requires `candidate_admitted`, requires the
-`activated` acknowledgement, invokes B (48), then stops. The live loop keeps
-one `semaprax dev … --jsonl --interpreter` child for A through B, so it measures
-an actual save-to-ack activation rather than a process replacement.
+match the current checkout before it runs. The runner creates a private temporary
+Project for every sample. Its scenario matrix records a cold small A→B session,
+a warm A→B→A cycle in one interpreter child, an unchanged no-op plan, a
+core-plus-test import-closure edit, and an invalid-edit rejection followed by B
+repair. Each successful edit requires `candidate_admitted`, `activated`, and
+the expected invocation result. The failed-edit case requires
+`candidate_rejected`, invokes the retained A result, then repairs to B. Every
+live scenario ends with the JSONL `stopped` reply and a zero child exit.
 
 `full-restart` starts a fresh interpreter process after B is saved. The
 authenticated warm loop initializes a private cache store, persists A, saves B,
@@ -32,10 +35,12 @@ Each result includes every raw sample, measured and discarded warmup counts, med
 Git commit, host facts, the acceptance-manifest digest, and all fixture digests.
 `peak_rss_bytes` is `null` until a portable per-child measurement exists.
 The v1 control protocol exposes plan and activate acknowledgements but no
-internal admission timer: the report records candidate preparation as the full
-plan round trip and leaves `source_admission_check_ms` unavailable. The fixture
-has no outstanding invocation, so safe-point wait is zero. Those limitations
-are carried in each live record instead of being estimated.
+internal admission or candidate-preparation timers. Each phase therefore keeps
+the measured source-write duration, save-to-plan response, plan-control round
+trip, and activation-control round trip separate, while retaining
+`source_admission_check_ms` and `candidate_preparation_ms` as unavailable. The
+fixture has no outstanding invocation, so safe-point wait is exactly zero.
+Those limitations are carried in each live record instead of being estimated.
 
 Validate the committed contract without starting the compiler or timing a host:
 

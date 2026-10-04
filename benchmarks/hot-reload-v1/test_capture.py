@@ -16,6 +16,10 @@ class CaptureContract(unittest.TestCase):
     def test_plan_retains_interpreter_and_honest_native_wasm_cells(self):
         value = CAPTURE.plan(11, 3)
         self.assertEqual(value["cells"]["interpreter-a-b"]["status"], "requires-prebuilt-semaprax")
+        self.assertEqual(
+            set(value["cells"]["interpreter-a-b"]["scenario_matrix"]),
+            {"cold-small-a-to-b", "warm-repeated-a-b-a", "no-op", "multi-module-import-closure", "failed-edit-repair"},
+        )
         for identifier in CAPTURE.NATIVE_WASM_CELLS:
             self.assertEqual(value["cells"][identifier]["status"], "unavailable")
             self.assertIsNone(value["cells"][identifier]["selector"])

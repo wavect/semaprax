@@ -10,6 +10,10 @@ class Contract(unittest.TestCase):
         RUN.validate(manifest)
         self.assertEqual(manifest["scope"], "interpreter-only")
         self.assertIn("source-Agent journey", manifest["nonclaims"])
+        self.assertEqual(
+            {row["id"] for row in manifest["scenario_matrix"]},
+            {"cold-small-a-to-b", "warm-repeated-a-b-a", "no-op", "multi-module-import-closure", "failed-edit-repair"},
+        )
 
     def test_dry_run_retains_explicit_sample_and_warmup_counts(self):
         import sys, tempfile
@@ -33,5 +37,11 @@ class Contract(unittest.TestCase):
     def test_compiler_subject_refuses_a_missing_or_mismatched_embedded_commit(self):
         with self.assertRaises(RuntimeError):
             RUN.compiler_subject("/usr/bin/true", None)
+
+    def test_scenario_summary_uses_actual_phase_metric_or_noop_plan_round_trip(self):
+        records = [{"phases": [{"save_to_ack_ms": 4.0, "plan_control_round_trip_ms": 3.0}]}]
+        self.assertEqual(RUN.scenario_summary(records)["values_ms"], [4.0])
+        no_op = [{"phases": [{"plan_control_round_trip_ms": 2.0}]}]
+        self.assertEqual(RUN.scenario_summary(no_op)["values_ms"], [2.0])
 
 if __name__ == "__main__": unittest.main()

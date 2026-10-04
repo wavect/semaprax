@@ -27,7 +27,7 @@ def canonical(value):
 
 
 def validate(manifest):
-    if set(manifest) != {"schema", "scope", "compiler", "lanes", "fixture", "transitions", "required_test_counts", "nonclaims"}:
+    if set(manifest) != {"schema", "scope", "compiler", "lanes", "fixture", "transitions", "scenario_matrix", "required_test_counts", "nonclaims"}:
         raise ValueError("acceptance manifest has an unknown or missing top-level field")
     if manifest["schema"] != "semaprax.hot-reload-acceptance.v1" or manifest["scope"] != "interpreter-only":
         raise ValueError("acceptance manifest does not select the interpreter-only v1 contract")
@@ -37,6 +37,14 @@ def validate(manifest):
         raise ValueError("acceptance manifest has an incomplete required-test inventory")
     if "source-Agent journey" not in manifest["nonclaims"]:
         raise ValueError("interpreter benchmark must explicitly exclude the Agent journey")
+    scenarios = manifest["scenario_matrix"]
+    expected_scenarios = {
+        "cold-small-a-to-b", "warm-repeated-a-b-a", "no-op", "multi-module-import-closure", "failed-edit-repair"
+    }
+    if {item.get("id") for item in scenarios} != expected_scenarios:
+        raise ValueError("acceptance manifest has an incomplete scenario matrix")
+    if any(set(item) != {"id", "availability", "description"} or item["availability"] != "local" for item in scenarios):
+        raise ValueError("scenario matrix has an invalid local scenario")
     for item in manifest["fixture"]["sources"]:
         path = SUITE / item["path"]
         if set(item) != {"path", "sha256"} or not path.is_file() or digest(path) != item["sha256"]:
@@ -90,37 +98,114 @@ def outcome(row, expected):
         raise RuntimeError("unexpected invocation outcome: " + repr(actual))
 
 
-def hot(binary):
+def start_session(binary, root):
+    process = subprocess.Popen([binary, "dev", str(root / "semaprax.toml"), "--jsonl", "--interpreter"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    _, started = reply(process, 1, "start")
+    if started.get("event") != "started":
+        raise RuntimeError("interpreter session did not start")
+    return process, 2
+
+
+def stop_session(process, request_id):
+    _, stopped = reply(process, request_id, "stop")
+    if stopped.get("event") != "stopped":
+        raise RuntimeError("session did not stop")
+    process.wait(timeout=10)
+    if process.returncode:
+        raise RuntimeError(process.stderr.read())
+
+
+def invoke(process, request_id, expected):
+    _, value = reply(process, request_id, "invoke")
+    outcome(value, expected)
+    return request_id + 1
+
+
+def plan_after_write(process, request_id, root, writes, expected_event):
+    saved = time.perf_counter_ns()
+    for source, destination in writes:
+        shutil.copyfile(SUITE / "fixtures" / source, root / destination)
+    write_ms = (time.perf_counter_ns() - saved) / 1_000_000
+    plan_ms, planned = reply(process, request_id, "plan")
+    if planned.get("event") != expected_event:
+        raise RuntimeError("unexpected candidate plan event: " + repr(planned.get("event")))
+    if expected_event == "candidate_admitted" and planned.get("plan", {}).get("decision") != "eligible_code_replacement":
+        raise RuntimeError("saved source was not admitted as a code-replacement candidate")
+    return request_id + 1, {
+        "write_ms": write_ms,
+        "save_to_plan_response_ms": (time.perf_counter_ns() - saved) / 1_000_000,
+        "plan_control_round_trip_ms": plan_ms,
+        "source_admission_check_ms": None,
+        "candidate_preparation_ms": None,
+        "safe_point_wait_ms": 0.0,
+        "stage_limitations": [
+            "the JSONL plan reply combines source admission/check with candidate preparation",
+            "the fixture has no outstanding invocation, so safe-point wait is exactly zero",
+        ],
+    }
+
+
+def activate(process, request_id, phase):
+    pivot_ms, activated = reply(process, request_id, "activate")
+    if activated.get("event") != "activated":
+        raise RuntimeError("candidate did not receive an activation acknowledgement")
+    phase["activation_control_round_trip_ms"] = pivot_ms
+    phase["save_to_ack_ms"] = phase["save_to_plan_response_ms"] + pivot_ms
+    return request_id + 1
+
+
+def scenario(binary, scenario_id):
     root = fixture()
     process = None
     try:
-        process = subprocess.Popen([binary, "dev", str(root / "semaprax.toml"), "--jsonl", "--interpreter"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        _, started = reply(process, 1, "start")
-        if started.get("event") != "started": raise RuntimeError("interpreter session did not start")
-        _, before = reply(process, 2, "invoke"); outcome(before, {"kind": "returned", "value": 42})
-        save = time.perf_counter_ns()
-        shutil.copyfile(SUITE / "fixtures/b/src/app.spx", root / "src/app.spx")
-        plan_ms, planned = reply(process, 3, "plan")
-        if planned.get("event") != "candidate_admitted" or planned.get("plan", {}).get("decision") != "eligible_code_replacement":
-            raise RuntimeError("saved B was not admitted as a replacement candidate")
-        pivot_ms, activated = reply(process, 4, "activate")
-        if activated.get("event") != "activated": raise RuntimeError("B did not receive an activation acknowledgement")
-        acknowledged = time.perf_counter_ns()
-        _, after = reply(process, 5, "invoke"); outcome(after, {"kind": "returned", "value": 48})
-        _, stopped = reply(process, 6, "stop")
-        if stopped.get("event") != "stopped": raise RuntimeError("session did not stop")
-        process.wait(timeout=10)
-        if process.returncode: raise RuntimeError(process.stderr.read())
-        total = (acknowledged - save) / 1_000_000
-        return {"save_to_ack_ms": total, "debounce_wait_ms": 0.0,
-                "source_admission_check_ms": None, "candidate_preparation_ms": plan_ms,
-                "safe_point_wait_ms": 0.0, "pivot_ms": pivot_ms,
-                "stage_limitations": ["the v1 JSONL control reply combines source admission/check with candidate preparation", "the fixture has no outstanding invocation, so safe-point wait is exactly zero"], "clean_stop": {"event": "stopped", "process_exit": 0}}
+        process, request_id = start_session(binary, root)
+        request_id = invoke(process, request_id, {"kind": "returned", "value": 42})
+        phases = []
+        if scenario_id == "no-op":
+            plan_ms, planned = reply(process, request_id, "plan")
+            if planned.get("event") != "unchanged":
+                raise RuntimeError("unchanged source did not produce an unchanged plan")
+            phases.append({"plan_control_round_trip_ms": plan_ms, "source_admission_check_ms": None,
+                           "candidate_preparation_ms": None, "safe_point_wait_ms": 0.0,
+                           "stage_limitations": ["no candidate is built for an unchanged Project"]})
+            request_id += 1
+        elif scenario_id == "cold-small-a-to-b":
+            request_id, phase = plan_after_write(process, request_id, root, [("b/src/app.spx", "src/app.spx")], "candidate_admitted")
+            request_id = activate(process, request_id, phase); phases.append(phase)
+            request_id = invoke(process, request_id, {"kind": "returned", "value": 48})
+        elif scenario_id == "warm-repeated-a-b-a":
+            for source, expected in (("b/src/app.spx", 48), ("a/src/app.spx", 42)):
+                request_id, phase = plan_after_write(process, request_id, root, [(source, "src/app.spx")], "candidate_admitted")
+                request_id = activate(process, request_id, phase); phases.append(phase)
+                request_id = invoke(process, request_id, {"kind": "returned", "value": expected})
+        elif scenario_id == "multi-module-import-closure":
+            request_id, phase = plan_after_write(process, request_id, root, [("c/src/core.spx", "src/core.spx"), ("c/src/tests.spx", "src/tests.spx")], "candidate_admitted")
+            request_id = activate(process, request_id, phase); phases.append(phase)
+            request_id = invoke(process, request_id, {"kind": "returned", "value": 48})
+        elif scenario_id == "failed-edit-repair":
+            request_id, rejected = plan_after_write(process, request_id, root, [("invalid/src/app.spx", "src/app.spx")], "candidate_rejected")
+            rejected["activation_control_round_trip_ms"] = None; rejected["save_to_ack_ms"] = None
+            phases.append(rejected)
+            request_id = invoke(process, request_id, {"kind": "returned", "value": 42})
+            request_id, repaired = plan_after_write(process, request_id, root, [("b/src/app.spx", "src/app.spx")], "candidate_admitted")
+            request_id = activate(process, request_id, repaired); phases.append(repaired)
+            request_id = invoke(process, request_id, {"kind": "returned", "value": 48})
+        else:
+            raise ValueError("unsupported benchmark scenario: " + scenario_id)
+        stop_session(process, request_id)
+        process = None
+        return {"scenario": scenario_id, "phases": phases, "clean_stop": {"event": "stopped", "process_exit": 0}}
     finally:
         if process is not None and process.poll() is None:
             process.kill()
             process.communicate(timeout=10)
         shutil.rmtree(root, ignore_errors=True)
+
+
+def hot(binary):
+    """Compatibility projection for the legacy single A-to-B loop."""
+    record = scenario(binary, "cold-small-a-to-b")
+    return {**record["phases"][0], "clean_stop": record["clean_stop"]}
 
 
 def full_restart(binary):
@@ -168,6 +253,18 @@ def summary(samples):
     return {"samples": n, "median_ms": round(statistics.median(ordered), 3), "p95_ms": round(ordered[min(n - 1, max(0, (95 * n + 99) // 100 - 1))], 3), "values_ms": [round(value, 3) for value in samples]}
 
 
+def scenario_summary(records):
+    values = [
+        phase.get("save_to_ack_ms", phase["plan_control_round_trip_ms"])
+        for record in records
+        for phase in record["phases"]
+        if phase.get("save_to_ack_ms") is not None
+    ]
+    if not values:
+        values = [phase["plan_control_round_trip_ms"] for record in records for phase in record["phases"]]
+    return summary(values)
+
+
 def compiler_subject(binary, expected_commit):
     _, output = run([binary, "version", "--json"])
     try:
@@ -203,12 +300,18 @@ def main():
     if not args.semaprax or not pathlib.Path(args.semaprax).is_file(): raise SystemExit("--semaprax must name an already-built executable")
     binary = str(pathlib.Path(args.semaprax).resolve())
     subject = compiler_subject(binary, args.expected_commit)
-    records = {"interpreter-save-to-ack": [], "full-restart": [], "authenticated-warm-restart": []}
+    scenario_ids = [item["id"] for item in manifest["scenario_matrix"]]
+    scenario_records = {identifier: [] for identifier in scenario_ids}
+    records = {"full-restart": [], "authenticated-warm-restart": []}
     for _ in range(args.warmups):
-        hot(binary); full_restart(binary); warm_restart(binary)
+        for identifier in scenario_ids:
+            scenario(binary, identifier)
+        full_restart(binary); warm_restart(binary)
     for _ in range(args.samples):
-        records["interpreter-save-to-ack"].append(hot(binary)); records["full-restart"].append(full_restart(binary)); records["authenticated-warm-restart"].append(warm_restart(binary))
-    report = {"schema": SCHEMA, "acceptance_manifest_digest": digest(MANIFEST), "compiler": {**subject, "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()}, "host": {"system": platform.system(), "release": platform.release(), "machine": platform.machine(), "cpu_count": os.cpu_count()}, "samples": args.samples, "warmups": args.warmups, "peak_rss_bytes": None, "peak_rss_basis": "unavailable: portable per-child peak measurement is not implemented", "loops": {name: {"summary": summary([item["save_to_ack_ms"] for item in rows]), "records": rows} for name, rows in records.items()}, "nonclaims": manifest["nonclaims"]}
+        for identifier in scenario_ids:
+            scenario_records[identifier].append(scenario(binary, identifier))
+        records["full-restart"].append(full_restart(binary)); records["authenticated-warm-restart"].append(warm_restart(binary))
+    report = {"schema": SCHEMA, "acceptance_manifest_digest": digest(MANIFEST), "compiler": {**subject, "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()}, "host": {"system": platform.system(), "release": platform.release(), "machine": platform.machine(), "cpu_count": os.cpu_count()}, "samples": args.samples, "warmups": args.warmups, "peak_rss_bytes": None, "peak_rss_basis": "unavailable: portable per-child peak measurement is not implemented", "loops": {"interpreter-save-to-ack": {"summary": scenario_summary(scenario_records["cold-small-a-to-b"]), "records": scenario_records["cold-small-a-to-b"]}, **{name: {"summary": summary([item["save_to_ack_ms"] for item in rows]), "records": rows} for name, rows in records.items()}}, "scenario_matrix": {name: {"summary": scenario_summary(rows), "records": rows} for name, rows in scenario_records.items()}, "nonclaims": manifest["nonclaims"]}
     args.output.parent.mkdir(parents=True, exist_ok=True); args.output.write_text(canonical(report))
 
 

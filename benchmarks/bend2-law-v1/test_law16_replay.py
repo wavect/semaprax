@@ -23,9 +23,8 @@ class Law16ReplayTests(unittest.TestCase):
             self.assertIn("was rerun", result["execution_claim"])
             self.assertEqual(result["report_status"], "incomplete")
             self.assertIn("no:", result["report_closure_statement"])
-            self.assertEqual(result["status"], "partial_retained_evidence")
-            self.assertEqual(result["unavailable_cells"][0]["cell"], "bounded_balance_agent_campaign")
-            self.assertEqual(result["unavailable_cells"][0]["status"], "incomplete_missing_raw_artifact")
+            self.assertEqual(result["status"], "retained_evidence_verified")
+            self.assertEqual(result["unavailable_cells"], [])
             self.assertTrue(result["raw_artifacts"])
             for row in result["raw_artifacts"]:
                 path = REPLAY.PROJECT / row["path"]

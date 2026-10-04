@@ -19,6 +19,10 @@ const SAMPLES: usize = 90;
 const BATCH_WARMUP: usize = 3;
 const BATCH_SAMPLES: usize = 15;
 const BATCH_OPERATIONS: usize = 64;
+const NONTRIVIAL_BATCH_WARMUP: usize = 1;
+const NONTRIVIAL_BATCH_SAMPLES: usize = 5;
+const NONTRIVIAL_BATCH_OPERATIONS: usize = 16;
+const NONTRIVIAL_BODY_BYTES: usize = 4096;
 
 #[derive(Clone, Copy, Default)]
 struct AllocationMetrics {
@@ -35,6 +39,19 @@ struct AllocationMetrics {
 struct CopyMetrics {
     foreign_response_body_copied_bytes: u64,
     host_callback_captured_bytes: u64,
+}
+
+impl CopyMetrics {
+    fn add(&mut self, other: Self) {
+        self.foreign_response_body_copied_bytes = self
+            .foreign_response_body_copied_bytes
+            .checked_add(other.foreign_response_body_copied_bytes)
+            .expect("nontrivial batch foreign copy total fits u64");
+        self.host_callback_captured_bytes = self
+            .host_callback_captured_bytes
+            .checked_add(other.host_callback_captured_bytes)
+            .expect("nontrivial batch callback copy total fits u64");
+    }
 }
 
 #[derive(Clone, Default)]
@@ -157,6 +174,13 @@ impl Route {
 }
 
 fn local_server(expected_requests: usize) -> (String, thread::JoinHandle<()>) {
+    local_server_with_body(expected_requests, b"43".to_vec())
+}
+
+fn local_server_with_body(
+    expected_requests: usize,
+    body: Vec<u8>,
+) -> (String, thread::JoinHandle<()>) {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let endpoint = format!("http://{}", listener.local_addr().unwrap());
     let server = thread::spawn(move || {
@@ -173,12 +197,21 @@ fn local_server(expected_requests: usize) -> (String, thread::JoinHandle<()>) {
                 used += read;
             }
             assert!(header[..used].starts_with(b"GET /value/42 HTTP/1.1\r\n"));
-            stream
-                .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\n43")
-                .unwrap();
+            let header = format!(
+                "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                body.len()
+            );
+            stream.write_all(header.as_bytes()).unwrap();
+            stream.write_all(&body).unwrap();
         }
     });
     (endpoint, server)
+}
+
+fn nontrivial_body() -> Vec<u8> {
+    let mut body = vec![b'0'; NONTRIVIAL_BODY_BYTES - 2];
+    body.extend_from_slice(b"43");
+    body
 }
 
 async fn fetch(
@@ -292,6 +325,74 @@ fn run_batch_measurement(
     server.join().unwrap();
 }
 
+/// Compare the same direct, handwritten, and generated paths under a fixed
+/// 4 KiB response body. This remains local loopback evidence: it records raw
+/// per-batch latency and allocator requests instead of applying a threshold.
+fn run_nontrivial_batch_measurement(
+    runtime: &tokio::runtime::Runtime,
+    client: &reqwest::Client,
+    revision: &Arc<ProjectRevision>,
+) {
+    let routes = [Route::Direct, Route::Handwritten, Route::Generated];
+    let requests = (NONTRIVIAL_BATCH_WARMUP + NONTRIVIAL_BATCH_SAMPLES)
+        * routes.len()
+        * NONTRIVIAL_BATCH_OPERATIONS;
+    let (endpoint, server) = local_server_with_body(requests, nontrivial_body());
+    println!(
+        "route,iteration,operations,elapsed_ns,body_bytes,foreign_response_body_copied_bytes,host_callback_captured_bytes,allocation_calls,deallocation_calls,reallocation_calls,allocated_bytes,deallocated_bytes"
+    );
+    for iteration in 0..(NONTRIVIAL_BATCH_WARMUP + NONTRIVIAL_BATCH_SAMPLES) {
+        for shift in 0..routes.len() {
+            let route = routes[(iteration + shift) % routes.len()];
+            let start = Instant::now();
+            let ((completed, copies), allocations) = measure_allocations(|| {
+                let mut completed = 0usize;
+                let mut copies = CopyMetrics::default();
+                for _ in 0..NONTRIVIAL_BATCH_OPERATIONS {
+                    let (result, _, operation_copies) =
+                        execute(route, runtime, client, &endpoint, revision);
+                    assert_eq!(result, 84);
+                    copies.add(operation_copies);
+                    completed += 1;
+                }
+                (completed, copies)
+            });
+            let expected_body_bytes =
+                u64::try_from(NONTRIVIAL_BATCH_OPERATIONS * NONTRIVIAL_BODY_BYTES).unwrap();
+            assert_eq!(
+                copies.foreign_response_body_copied_bytes,
+                expected_body_bytes
+            );
+            assert_eq!(
+                copies.host_callback_captured_bytes,
+                if matches!(route, Route::Generated) {
+                    expected_body_bytes
+                } else {
+                    0
+                }
+            );
+            if iteration >= NONTRIVIAL_BATCH_WARMUP {
+                println!(
+                    "{},{},{},{},{},{},{},{},{},{},{},{}",
+                    route.label(),
+                    iteration - NONTRIVIAL_BATCH_WARMUP,
+                    completed,
+                    start.elapsed().as_nanos(),
+                    NONTRIVIAL_BODY_BYTES,
+                    copies.foreign_response_body_copied_bytes,
+                    copies.host_callback_captured_bytes,
+                    allocations.allocation_calls,
+                    allocations.deallocation_calls,
+                    allocations.reallocation_calls,
+                    allocations.allocated_bytes,
+                    allocations.deallocated_bytes,
+                );
+            }
+        }
+    }
+    server.join().unwrap();
+}
+
 fn main() {
     rustls::crypto::ring::default_provider()
         .install_default()
@@ -314,6 +415,10 @@ fn main() {
     let mode = std::env::args().nth(1);
     if mode.as_deref() == Some("batch") {
         run_batch_measurement(&runtime, &client, &revision);
+        return;
+    }
+    if mode.as_deref() == Some("nontrivial-batch") {
+        run_nontrivial_batch_measurement(&runtime, &client, &revision);
         return;
     }
     if mode.as_deref() == Some("probe") {

@@ -44,6 +44,28 @@ checkout, command and pass/fail receipt. Cold/warm build times, generated
 binary size, process-wide allocations, retained heap and total copied bytes
 need separate measurements; this run does not infer them from API shape.
 
+## Nontrivial response-body batch runner
+
+The existing `batch` mode keeps the two-byte scalar body and its historical
+CSV schema. The separate `nontrivial-batch` mode runs the same direct Rust,
+handwritten adapter, and generated checked-source routes over a 4,096-byte
+zero-padded numeric body. It emits five post-warmup batches of 16 operations
+per route, rotating route order. Each row contains raw elapsed nanoseconds,
+current-thread allocator requests, exact fixture-owned `Bytes` to `Vec<u8>`
+copied bytes, and the generated callback subset. Every route must return `84`;
+direct and handwritten routes report 65,536 foreign-body bytes per batch,
+while the generated route reports those same foreign bytes plus 65,536 bytes
+captured in its host callback.
+
+```sh
+cargo run --locked --offline --quiet --bin measure -- nontrivial-batch \
+  > measurements/local-nontrivial-batches.csv
+```
+
+This is a pinned local runner, not a threshold or portability claim. It does
+not count copies inside reqwest, HTTP decoding, UTF-8 validation, allocator
+activity on the server thread, retained heap, or process-wide allocation.
+
 The local `prepare` run on Darwin arm64 with Cargo/rustc 1.98.0 rendered a
 4,176-byte `src/generated.rs` file. That is the generated module's source
 size for this exact selected Project; it excludes linked binary size and

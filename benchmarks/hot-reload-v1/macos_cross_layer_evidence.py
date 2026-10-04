@@ -234,7 +234,7 @@ def exact_test(binary, selector):
 
 def exact_node_test(node, selector):
     before = {str(path.relative_to(ROOT)): digest(path) for path in NODE_SOURCE_FILES}
-    command = [str(node), "--test", "--test-name-pattern", "^" + selector + "$", str(NODE_SOURCE_FILES[1])]
+    command = [str(node), "--test", "--test-reporter=tap", "--test-name-pattern", "^" + selector + "$", str(NODE_SOURCE_FILES[1])]
     started = time.perf_counter_ns()
     completed = subprocess.run(command, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     elapsed = round((time.perf_counter_ns() - started) / 1_000_000, 3)

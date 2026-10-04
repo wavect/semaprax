@@ -26,17 +26,24 @@ Codex JSON records expose token counters but no monetary charge event.
 Bend is a local historical pin at `947db722640c86247849343657bf2f7ef01cb7f1`.
 SEMAPRAX is a local historical executable pin at
 `9a9db7a8117ac8d292b24ffd5671ec3333272290`, with installed-Z3 source proof.
-These are not current-head observations. Bend verdict and SEMAPRAX Z3 use
-distinct trusted computing bases; source proof does not prove lowering or
+They are labeled historical pins; #392 requires pinned identities and does not
+require a current-head observation. Bend verdict and SEMAPRAX Z3 use distinct
+trusted computing bases; source proof does not prove lowering or
 execution. Fresh/repeat paths do not isolate operating-system or tool caches.
 
 ## Remaining blockers
 
 The pinned SEMAPRAX parser does not admit checked `u32`; its retained
 non-admission receipt records `SPX-P003`. There is no retained cold-cache
-isolation, Lean export/kernel route, monetary cost event, current-head run, or
-matched project-sized/list/refactor/incremental cell. These blockers prevent
+isolation, Lean export/kernel route, monetary cost event, or matched
+project-sized/list/refactor/incremental cell. These blockers prevent
 honest closure of #392.
+
+The generated machine report also records retained tool identities, explicit
+unavailable hardware/OS and optimization-flag provenance, Boolean agent-turn
+proof-synthesis tokens, and historical bounded-balance annotation/changed-byte
+rows. Historical bounded-balance rows are retained source evidence only and do
+not satisfy the checked-`u32` cell.
 
 The remaining required list-theorem, law-preserving-refactor, and law-breaking
 edit fixtures have dedicated controls but are also blocked before a matched

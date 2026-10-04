@@ -13,8 +13,11 @@ test "$(uname -m)" = x86_64
 test -n "${RI13_EXPECTED_REVISION:-}"
 test -n "${RI13_IMAGE_TAG:-}"
 test -n "${RI13_IMAGE_DIGEST:-}"
-test "$(git rev-parse HEAD)" = "$RI13_EXPECTED_REVISION"
-test -z "$(git status --porcelain)"
+# The outer runner performs the clean-worktree check before mounting this source
+# read-only and writes the admitted revision before the guest begins. A managed
+# worktree's .git file points to host-only metadata, so re-running git here
+# would reject an otherwise immutable source mount before rustdoc can start.
+test "$(cat /output/revision)" = "$RI13_EXPECTED_REVISION"
 for executable in cargo rustc rustdoc; do
     test -f "$nightly/bin/$executable"
     test ! -L "$nightly/bin/$executable"

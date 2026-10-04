@@ -47,7 +47,7 @@ class Contract(unittest.TestCase):
         self.assertEqual(value["mode"], "plan")
         self.assertEqual(value["schema"], RUN.SCHEMA)
         self.assertEqual({cell["id"] for cell in value["cells"]}, {
-            "interpreter-a-b", "watcher-a-b-invalid-c", "watcher-invalid-c-repair", "source-agent-a-b", "source-agent-a-b-c", "prepared-worker-a-b-c-identity", "native-process-identity", "native-or-wasm-state-swap"})
+            "interpreter-a-b", "watcher-a-b-invalid-c", "watcher-invalid-c-repair", "source-agent-a-b", "source-agent-a-b-c", "prepared-worker-a-b-c-identity", "watcher-stop-resource-release", "native-process-identity", "native-or-wasm-state-swap"})
 
     def test_supplied_selector_has_actual_samples_and_unsupplied_cells_stay_unavailable(self):
         with tempfile.TemporaryDirectory() as directory:

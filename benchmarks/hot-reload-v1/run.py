@@ -108,7 +108,7 @@ def hot(binary):
         return {"save_to_ack_ms": total, "debounce_wait_ms": 0.0,
                 "source_admission_check_ms": None, "candidate_preparation_ms": plan_ms,
                 "safe_point_wait_ms": 0.0, "pivot_ms": pivot_ms,
-                "stage_limitations": ["the v1 JSONL control reply combines source admission/check with candidate preparation", "the fixture has no outstanding invocation, so safe-point wait is exactly zero"]}
+                "stage_limitations": ["the v1 JSONL control reply combines source admission/check with candidate preparation", "the fixture has no outstanding invocation, so safe-point wait is exactly zero"], "clean_stop": {"event": "stopped", "process_exit": 0}}
     finally:
         if process is not None and process.poll() is None:
             process.kill()
@@ -132,7 +132,7 @@ def full_restart(binary):
         if stopped.get("event") != "stopped": raise RuntimeError("restart did not stop")
         process.wait(timeout=10)
         if process.returncode: raise RuntimeError(process.stderr.read())
-        return {"save_to_ack_ms": (acknowledged - save) / 1_000_000, "process_start_to_ack_ms": (acknowledged - launched) / 1_000_000}
+        return {"save_to_ack_ms": (acknowledged - save) / 1_000_000, "process_start_to_ack_ms": (acknowledged - launched) / 1_000_000, "clean_stop": {"event": "stopped", "process_exit": 0}}
     finally:
         if process is not None and process.poll() is None:
             process.kill()

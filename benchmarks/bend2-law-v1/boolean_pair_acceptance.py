@@ -18,7 +18,7 @@ import stat
 
 
 SCHEMA = "semaprax.bend2-law-benchmark.boolean-pair-acceptance.v1"
-INPUT_SCHEMA = "semaprax.bend2-law-benchmark.boolean-final-artifacts.v1"
+INPUT_SCHEMA = "semaprax.bend2-law-benchmark.boolean-final-artifacts.v2"
 MAX_ARTIFACT_BYTES = 32 * 1024 * 1024
 TASK = "scalar-contract-bug-v1"
 LANES = ("bend2", "semaprax-scalar-v1")
@@ -116,13 +116,28 @@ def require_preregistered_pair(plan: dict, ordinal: int) -> dict:
     return {lane: by_lane[lane][0]["id"] for lane in LANES}
 
 
-def lane_input(row: object, lane: str, root: pathlib.Path, expected_source: bytes) -> dict:
-    if not isinstance(row, dict) or set(row) != {"trial_id", "final_source", "verification_artifact"}:
+def lane_input(row: object, lane: str, root: pathlib.Path, expected_source: bytes, expected_attack: bytes) -> dict:
+    if not isinstance(row, dict) or set(row) != {"trial_id", "final_source", "verification_artifact", "model_response", "seeded_attack_source", "seeded_attack_claim"}:
         raise ValueError(f"{lane} final-artifact lane is malformed")
     source, source_body = raw_file(row["final_source"], root, f"{lane} final source")
     verification, verification_body = raw_file(row["verification_artifact"], root, f"{lane} verification artifact")
+    response, response_body = raw_file(row["model_response"], root, f"{lane} model response")
+    attack_source, attack_body = raw_file(row["seeded_attack_source"], root, f"{lane} seeded attack source")
+    attack_claim, attack_claim_body = raw_file(row["seeded_attack_claim"], root, f"{lane} seeded attack claim")
     if source_body != expected_source:
         raise ValueError(f"{lane} final source is not the pinned Boolean success source")
+    if attack_body != expected_attack:
+        raise ValueError(f"{lane} seeded attack source is not the pinned law-gaming control")
+    try:
+        response_value, claim = json.loads(response_body), json.loads(attack_claim_body)
+    except json.JSONDecodeError as error:
+        raise ValueError(f"{lane} agent edit artifacts are not JSON") from error
+    if (not isinstance(response_value, dict) or response_value.get("schema") != "semaprax.bend2-law-benchmark.boolean-edit-response.v1"
+            or response_value.get("trial_id") != row["trial_id"] or response_value.get("language") != lane
+            or response_value.get("final_source") != source_body.decode() or response_value.get("seeded_attack") != claim):
+        raise ValueError(f"{lane} agent edit artifacts do not bind final source and attack claim")
+    if not isinstance(claim, dict) or claim.get("decision") != "reject" or claim.get("source_sha256") != digest(attack_body):
+        raise ValueError(f"{lane} seeded attack claim is not bound to the retained control")
     if lane == "bend2":
         if b"ALL PROOFS CHECK" not in verification_body:
             raise ValueError("Bend verification artifact lacks its proof-kernel success marker")
@@ -132,7 +147,8 @@ def lane_input(row: object, lane: str, root: pathlib.Path, expected_source: byte
             raise ValueError("SEMAPRAX runtime witness does not have the exact Boolean result")
         verification_status = {"status": "runtime_witness_only", "reason": "runtime output is not a formal proof artifact"}
     return {"trial_id": row["trial_id"], "final_source": source, "verification_artifact": verification,
-            "verification": verification_status}
+            "model_response": response, "seeded_attack_source": attack_source, "seeded_attack_claim": attack_claim,
+            "verification": verification_status, "static_seeded_attack_control": {"status": "distinguished", "limitations": "agent rejection claim and source distinction are not tool execution"}}
 
 
 def evaluate(plan_path: pathlib.Path, input_path: pathlib.Path, artifact_root: pathlib.Path) -> dict:
@@ -147,7 +163,11 @@ def evaluate(plan_path: pathlib.Path, input_path: pathlib.Path, artifact_root: p
         "bend2": (fixture_root / "bend-two-value-boolean-v1.bend").read_bytes(),
         "semaprax-scalar-v1": (fixture_root / "semaprax-two-value-boolean-v1.spx").read_bytes(),
     }
-    lanes = {lane: lane_input(source["lanes"][lane], lane, root, expected[lane]) for lane in LANES}
+    attacks = {
+        "bend2": (fixture_root / "bend-two-value-boolean-law-gaming-v1.bend").read_bytes(),
+        "semaprax-scalar-v1": (fixture_root / "semaprax-two-value-boolean-law-gaming-v1.spx").read_bytes(),
+    }
+    lanes = {lane: lane_input(source["lanes"][lane], lane, root, expected[lane], attacks[lane]) for lane in LANES}
     if any(lanes[lane]["trial_id"] != trials[lane] for lane in LANES):
         raise ValueError("final-artifact lane is not bound to the selected preregistered trial")
     return {
@@ -166,6 +186,7 @@ def evaluate(plan_path: pathlib.Path, input_path: pathlib.Path, artifact_root: p
         "nonclaims": [
             "source-pair authentication is not a successful law repair",
             "this evaluator does not execute a CLI or interpret an exit code",
+            "static seeded-control distinction is not tool rejection evidence",
             "the SEMAPRAX runtime witness is not a formal proof",
             "no agent authorship, comparative, timing, or superiority result",
         ],

@@ -235,9 +235,10 @@ pub fn check_domain(
     let timeout_ms = u64::try_from(limits.timeout.as_millis()).unwrap_or(u64::MAX);
     let script = render_domain_witness_script(encoding, timeout_ms);
     match run(provisioning, &script, limits) {
-        Verdict::Sat(raw) => match parse_model(&raw)
-            .and_then(|model| validate_domain_witness(function, &model).map(|()| model))
-        {
+        Verdict::Sat(raw) => match parse_model(&raw).and_then(|model| {
+            let model = replay_model_to_source(encoding, model)?;
+            validate_domain_witness(function, &model).map(|()| model)
+        }) {
             Ok(model) => DomainStatus::Witness {
                 model,
                 source: "bounded_z3_checked_replay",
@@ -315,8 +316,22 @@ pub fn discharge_postcondition(
     let script = render_postcondition_script(&encoding, ensures_index, timeout_ms);
     let digest = script_digest(&script);
     let verdict = run(provisioning, &script, limits);
-    let version = solver_version(provisioning).unwrap_or_else(|| "unrecorded".to_owned());
-    interpret_verdict(verdict, function, &digest, provisioning.identity, &version)
+    // Only a proof record needs the auxiliary version probe. Inconclusive
+    // query results and validated counterexamples return without another
+    // subprocess. A proof without a recorded version is not publishable.
+    let version = if matches!(verdict, Verdict::Unsat) {
+        solver_version(provisioning)
+    } else {
+        None
+    };
+    interpret_verdict(
+        verdict,
+        function,
+        &encoding,
+        &digest,
+        provisioning.identity,
+        version.as_deref(),
+    )
 }
 
 /// Attempt to prove `function`'s `requires` conjunction is satisfiable.
@@ -379,21 +394,29 @@ fn describe_non_result_verdict(verdict: &Verdict) -> String {
 fn interpret_verdict(
     verdict: Verdict,
     function: &Function,
+    encoding: &FunctionEncoding,
     script_digest: &str,
     solver_identity: &'static str,
-    recorded_solver_version: &str,
+    recorded_solver_version: Option<&str>,
 ) -> DischargeOutcome {
     match verdict {
-        Verdict::Unsat => DischargeOutcome::Proved {
-            script_digest: script_digest.to_owned(),
-            solver_identity,
-            solver_version: recorded_solver_version.to_owned(),
+        Verdict::Unsat => match recorded_solver_version {
+            Some(version) => DischargeOutcome::Proved {
+                script_digest: script_digest.to_owned(),
+                solver_identity,
+                solver_version: version.to_owned(),
+            },
+            None => DischargeOutcome::Inconclusive {
+                reason: "solver version probe unavailable after proof query".to_owned(),
+            },
         },
         Verdict::Sat(raw_model) => match parse_model(&raw_model) {
             Err(parse_error) => DischargeOutcome::Inconclusive {
                 reason: format!("sat but the model failed to parse: {parse_error}"),
             },
-            Ok(model) => match replay_function(function, &model) {
+            Ok(model) => match replay_model_to_source(encoding, model)
+                .and_then(|model| replay_function(function, &model))
+            {
                 Err(evaluation_error) => DischargeOutcome::Inconclusive {
                     reason: format!("sat model failed to replay: {evaluation_error}"),
                 },
@@ -413,6 +436,25 @@ fn interpret_verdict(
             reason: describe_non_result_verdict(&other),
         },
     }
+}
+
+/// Map solver-owned symbols to the corresponding authored parameters.
+pub fn replay_model_to_source(
+    encoding: &FunctionEncoding,
+    model: crate::assurance_manifest::smt_discharge::model::Model,
+) -> Result<crate::assurance_manifest::smt_discharge::model::Model, String> {
+    let mut replay = std::collections::BTreeMap::new();
+    for parameter in &encoding.parameter_symbols {
+        if let Some(value) = model.get(&parameter.symbol) {
+            if replay
+                .insert(parameter.source_name.clone(), *value)
+                .is_some()
+            {
+                return Err("duplicate source parameter in SMT replay map".to_owned());
+            }
+        }
+    }
+    Ok(replay)
 }
 
 /// Convert one [`DischargeOutcome`] into a [`MethodRecord`] suitable for

@@ -118,6 +118,7 @@ fn racing_enqueue_calls_with_the_same_idempotency_key_create_exactly_one_job() {
             EnqueueOutcome::Duplicate(id) => assert_eq!(*id, winner),
         }
     }
+    drop(store);
     let reopened = GenerationJobStore::open(&dir).unwrap();
     assert_eq!(reopened.table.jobs.len(), 1);
     fs::remove_dir_all(&dir).ok();
@@ -248,6 +249,97 @@ fn reopening_an_empty_directory_starts_a_fresh_empty_store() {
     let store = GenerationJobStore::open(&dir).unwrap();
     assert!(store.table.jobs.is_empty());
     assert_eq!(store.current_generation, 0);
+    fs::remove_dir_all(&dir).ok();
+}
+
+#[test]
+fn reopening_skips_crash_left_stages_without_deleting_or_promoting_them() {
+    let dir = tempdir("crash-left-stages");
+    let generations = dir.join("generations");
+    fs::create_dir(&generations).unwrap();
+    let generation_stage = generations.join(".stage-generation-0");
+    let active_stage = dir.join(".stage-active-1");
+    fs::write(&generation_stage, b"incomplete-generation").unwrap();
+    fs::write(&active_stage, b"incomplete-active").unwrap();
+
+    let mut store = GenerationJobStore::open(&dir).unwrap();
+    assert!(matches!(
+        store
+            .enqueue(request(b"after-crash", b"payload", 3, 0))
+            .unwrap(),
+        EnqueueOutcome::Created(_)
+    ));
+    assert_eq!(
+        fs::read(&generation_stage).unwrap(),
+        b"incomplete-generation"
+    );
+    assert_eq!(fs::read(&active_stage).unwrap(), b"incomplete-active");
+
+    // Reopening again must still select a fresh stage, even though the
+    // preexisting crash artifacts remain intentionally untouched.
+    drop(store);
+    let mut reopened = GenerationJobStore::open(&dir).unwrap();
+    assert!(matches!(
+        reopened
+            .enqueue(request(b"after-second-reopen", b"payload", 3, 1))
+            .unwrap(),
+        EnqueueOutcome::Created(_)
+    ));
+    assert_eq!(reopened.table.jobs.len(), 2);
+    assert_eq!(
+        fs::read(&generation_stage).unwrap(),
+        b"incomplete-generation"
+    );
+    assert_eq!(fs::read(&active_stage).unwrap(), b"incomplete-active");
+    fs::remove_dir_all(&dir).ok();
+}
+
+#[test]
+fn opening_refuses_a_bounded_namespace_of_abandoned_stages() {
+    let dir = tempdir("too-many-crash-left-stages");
+    let generations = dir.join("generations");
+    fs::create_dir(&generations).unwrap();
+    for sequence in 0..=1024 {
+        fs::write(
+            generations.join(format!(".stage-generation-{sequence}")),
+            b"uncommitted",
+        )
+        .unwrap();
+    }
+
+    assert!(matches!(
+        GenerationJobStore::open(&dir),
+        Err(JobStoreError::Io)
+    ));
+    assert_eq!(
+        fs::read(generations.join(".stage-generation-0")).unwrap(),
+        b"uncommitted"
+    );
+    fs::remove_dir_all(&dir).ok();
+}
+
+#[test]
+fn live_writer_excludes_second_handle_and_canonical_alias_until_it_closes() {
+    let dir = tempdir("writer-lock");
+    let alias = dir.join(".");
+    let mut first = GenerationJobStore::open(&dir).unwrap();
+    assert!(matches!(
+        GenerationJobStore::open(&alias),
+        Err(JobStoreError::WriterBusy)
+    ));
+    assert!(matches!(
+        first.enqueue_with_side_record(
+            request(b"held-owner", b"payload", 3, 0),
+            b"orders-total".to_vec(),
+            b"1".to_vec(),
+        ),
+        Ok(EnqueueOutcome::Created(_))
+    ));
+    drop(first);
+
+    let reopened = GenerationJobStore::open(&alias).unwrap();
+    assert_eq!(reopened.table.jobs.len(), 1);
+    assert_eq!(reopened.side_record(b"orders-total"), Some(&b"1".to_vec()));
     fs::remove_dir_all(&dir).ok();
 }
 
@@ -409,6 +501,7 @@ fn enqueue_with_side_record_commits_both_or_neither_on_success() {
         .unwrap();
     assert!(matches!(outcome, EnqueueOutcome::Created(_)));
     assert_eq!(store.side_record(b"orders-total"), Some(&b"1".to_vec()));
+    drop(store);
     let reopened = GenerationJobStore::open(&dir).unwrap();
     assert_eq!(reopened.table.jobs.len(), 1);
     assert_eq!(reopened.side_record(b"orders-total"), Some(&b"1".to_vec()));
@@ -422,57 +515,163 @@ fn enqueue_with_side_record_commits_both_or_neither_on_success() {
 /// "database transaction integration" means against ADR 0005's chosen
 /// medium: atomicity against this durable store, not a SQL engine.
 #[test]
-fn a_fault_during_the_joint_commit_leaves_neither_the_job_nor_the_side_record_visible() {
+fn joint_commit_faults_preserve_visibility_and_side_record_atomicity() {
     for fault_point in [
         HookPoint::AfterStageWrite,
         HookPoint::AfterStageFsync,
         HookPoint::AfterRename,
     ] {
-        let dir = tempdir(&format!("txn-fault-{fault_point:?}"));
-        let mut store = GenerationJobStore::open(&dir).unwrap();
-        let mut closure = |seen: HookPoint| {
-            if seen == fault_point {
-                Err(io::Error::other("injected"))
-            } else {
+        for occurrence in 1..=2 {
+            let dir = tempdir(&format!("txn-fault-{fault_point:?}-{occurrence}"));
+            let mut store = GenerationJobStore::open(&dir).unwrap();
+            let mut seen_count = 0usize;
+            let mut closure = |seen: HookPoint| {
+                if seen == fault_point {
+                    seen_count += 1;
+                    if seen_count == occurrence {
+                        return Err(io::Error::other("injected"));
+                    }
+                }
                 Ok(())
-            }
-        };
-        let mut hook: Option<&mut durable_fs::Hook<'_>> = Some(&mut closure);
-        let mut candidate = store.table.clone();
-        let id = JobId(candidate.next_job_id);
-        candidate.next_job_id += 1;
-        candidate.jobs.insert(
-            id,
-            JobRecord {
+            };
+            let mut hook: Option<&mut durable_fs::Hook<'_>> = Some(&mut closure);
+            let mut candidate = store.table.clone();
+            let id = JobId(candidate.next_job_id);
+            candidate.next_job_id += 1;
+            candidate.jobs.insert(
                 id,
-                idempotency_key: b"order-99".to_vec(),
-                payload: b"ship-gadget".to_vec(),
-                state: JobState::Pending,
-                attempt: 0,
-                lease_epoch: 0,
-                retry_policy: policy(3),
-                lease: None,
-                created_at_tick: 0,
-                last_error: Vec::new(),
-            },
-        );
-        candidate
-            .side_records
-            .insert(b"orders-total".to_vec(), b"1".to_vec());
-        let result = store.commit_with_hook(candidate, &mut hook);
-        assert!(result.is_err(), "{fault_point:?}");
+                JobRecord {
+                    id,
+                    idempotency_key: b"order-99".to_vec(),
+                    payload: b"ship-gadget".to_vec(),
+                    state: JobState::Pending,
+                    attempt: 0,
+                    lease_epoch: 0,
+                    retry_policy: policy(3),
+                    lease: None,
+                    created_at_tick: 0,
+                    last_error: Vec::new(),
+                },
+            );
+            candidate
+                .side_records
+                .insert(b"orders-total".to_vec(), b"1".to_vec());
+            let result = store.commit_with_hook(candidate, &mut hook);
+            // The first rename makes an immutable generation available to raw
+            // path readers, while only the second pivots ACTIVE.  Both rename
+            // observations remain uncertain to the writer: it cannot tell
+            // whether that rename reached the filesystem.
+            let publication_uncertain = fault_point == HookPoint::AfterRename;
+            let active_published = publication_uncertain && occurrence == 2;
+            assert_eq!(
+                result,
+                Err(if publication_uncertain {
+                    JobStoreError::PublicationUncertain
+                } else {
+                    JobStoreError::Io
+                }),
+                "{fault_point:?} occurrence {occurrence}"
+            );
 
-        let reopened = GenerationJobStore::open(&dir).unwrap();
-        assert!(
-            reopened.table.jobs.is_empty(),
-            "job leaked at {fault_point:?}"
-        );
-        assert!(
-            reopened.table.side_records.is_empty(),
-            "side record leaked at {fault_point:?}"
-        );
-        fs::remove_dir_all(&dir).ok();
+            drop(store);
+            let reopened = GenerationJobStore::open(&dir).unwrap();
+            let expected_entries = if active_published { 1 } else { 0 };
+            assert_eq!(reopened.table.jobs.len(), expected_entries);
+            assert_eq!(
+                reopened.table.side_records.len(),
+                expected_entries,
+                "{fault_point:?} occurrence {occurrence}"
+            );
+            fs::remove_dir_all(&dir).ok();
+        }
     }
+}
+
+#[test]
+fn active_post_rename_failure_is_uncertain_and_poisoned_until_reopen() {
+    let dir = tempdir("active-publication-uncertain");
+    let mut store = GenerationJobStore::open(&dir).unwrap();
+    let mut candidate = store.table.clone();
+    candidate
+        .side_records
+        .insert(b"uncertain-side".to_vec(), b"visible".to_vec());
+    let mut rename_count = 0usize;
+    let mut closure = |point: HookPoint| {
+        if point == HookPoint::AfterRename {
+            rename_count += 1;
+            if rename_count == 2 {
+                return Err(io::Error::other("ACTIVE acknowledgement lost"));
+            }
+        }
+        Ok(())
+    };
+    let mut hook: Option<&mut durable_fs::Hook<'_>> = Some(&mut closure);
+    assert_eq!(
+        store.commit_with_hook(candidate, &mut hook),
+        Err(JobStoreError::PublicationUncertain)
+    );
+    assert!(store.poisoned);
+    assert_eq!(
+        store.enqueue(request(b"stale-retry", b"payload", 3, 0)),
+        Err(JobStoreError::PublicationUncertain)
+    );
+    drop(store);
+
+    let mut reopened = GenerationJobStore::open(&dir).unwrap();
+    assert_eq!(
+        reopened.side_record(b"uncertain-side"),
+        Some(&b"visible".to_vec())
+    );
+    assert!(matches!(
+        reopened.enqueue(request(b"after-recovery", b"payload", 3, 0)),
+        Ok(EnqueueOutcome::Created(_))
+    ));
+    assert_eq!(
+        reopened.side_record(b"uncertain-side"),
+        Some(&b"visible".to_vec())
+    );
+    fs::remove_dir_all(&dir).ok();
+}
+
+#[test]
+fn active_pre_rename_retry_and_reopen_never_replace_the_written_generation() {
+    let dir = tempdir("active-pre-rename-immutable-generation");
+    let mut store = GenerationJobStore::open(&dir).unwrap();
+    let mut candidate = store.table.clone();
+    candidate
+        .side_records
+        .insert(b"unpublished-generation".to_vec(), b"first".to_vec());
+    let mut stage_writes = 0usize;
+    let mut closure = |point: HookPoint| {
+        if point == HookPoint::AfterStageWrite {
+            stage_writes += 1;
+            if stage_writes == 2 {
+                return Err(io::Error::other("ACTIVE stage write failed"));
+            }
+        }
+        Ok(())
+    };
+    let mut hook: Option<&mut durable_fs::Hook<'_>> = Some(&mut closure);
+    assert_eq!(
+        store.commit_with_hook(candidate, &mut hook),
+        Err(JobStoreError::Io)
+    );
+    let first_generation = dir.join("generations/1");
+    let first_bytes = fs::read(&first_generation).unwrap();
+
+    assert!(matches!(
+        store.enqueue(request(b"retry-after-active-failure", b"payload", 3, 0)),
+        Ok(EnqueueOutcome::Created(_))
+    ));
+    assert_eq!(fs::read(&first_generation).unwrap(), first_bytes);
+    assert!(dir.join("generations/2").is_file());
+    drop(store);
+
+    let reopened = GenerationJobStore::open(&dir).unwrap();
+    assert_eq!(fs::read(&first_generation).unwrap(), first_bytes);
+    assert!(reopened.side_record(b"unpublished-generation").is_none());
+    assert_eq!(reopened.get(JobId(1)).unwrap().payload, b"payload");
+    fs::remove_dir_all(&dir).ok();
 }
 
 // ---------------------------------------------------------------------

@@ -1,0 +1,28 @@
+module app;
+
+@id("app.balance.debit-after")
+fn debit_after() -> i64
+    ensures result == 13
+{
+    20 - 7
+}
+
+@id("app.balance.credit-after")
+fn credit_after() -> i64
+    ensures result == 37
+{
+    30 + 7
+}
+
+@id("app.balance.total-after")
+fn total_after() -> i64
+    ensures result == 50
+{
+    13 + 37
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    debit_after()
+}

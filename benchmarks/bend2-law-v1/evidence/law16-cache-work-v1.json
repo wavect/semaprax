@@ -1,0 +1,15 @@
+{
+  "schema": "semaprax.bend2-law-benchmark.cache-work-nonresult.v1",
+  "status": "unavailable",
+  "cell": "project-incremental-edit-v1",
+  "semaprax": {
+    "command_surface": "semaprax 0.7.0 --help",
+    "reason": "the installed public CLI exposes no changed-module recheck or unchanged-module reuse counter; project-proof-check measures one retained selected proof task, not project incremental work"
+  },
+  "bend": {
+    "commit": "947db722640c86247849343657bf2f7ef01cb7f1",
+    "evidence": "README: One C file per program: no separate compilation, no incremental builds.",
+    "reason": "no corresponding incremental route is available"
+  },
+  "nonclaims": ["fixture validation is not cache-work execution", "no timing, reuse count, or winner is reported"]
+}

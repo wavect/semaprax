@@ -203,30 +203,96 @@ pub fn run(provisioning: &Provisioning, script: &str, limits: &RunLimits) -> Ver
     classify(&stdout_text, exit_status.as_ref())
 }
 
-/// Run `provisioning.binary --version` under a short, fixed bound and
-/// return its first output line verbatim, or `None` if the process fails
-/// to start, exits non-zero, or produces no output within the bound. Used
+/// Run `provisioning.binary --version` under a one-second, 4-KiB bound and
+/// return its first UTF-8 output line, or `None` if the probe is unavailable.
+/// This is a separate bounded phase after a definitive query verdict. Used
 /// to record a pinned, reproducible `tool_version` on a `Proved`/
 /// `Refuted` method record instead of a placeholder string.
 #[must_use]
 pub fn solver_version(provisioning: &Provisioning) -> Option<String> {
-    let output = Command::new(&provisioning.binary)
+    solver_version_with_limits(provisioning, Duration::from_secs(1), 4096)
+}
+
+#[cfg(unix)]
+#[allow(unsafe_code)] // fcntl sets nonblocking mode on the owned stdout pipe.
+fn solver_version_with_limits(
+    provisioning: &Provisioning,
+    timeout: Duration,
+    max_output_bytes: usize,
+) -> Option<String> {
+    use std::os::fd::AsRawFd;
+
+    let mut child = Command::new(&provisioning.binary)
         .arg("--version")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
-        .output()
+        .spawn()
         .ok()?;
-    if !output.status.success() {
+    let mut stdout = child.stdout.take()?;
+    let fd = stdout.as_raw_fd();
+    let flags = unsafe { libc::fcntl(fd, libc::F_GETFL) };
+    if flags < 0 || unsafe { libc::fcntl(fd, libc::F_SETFL, flags | libc::O_NONBLOCK) } < 0 {
+        let _ = child.kill();
+        let _ = child.wait();
         return None;
     }
-    let text = String::from_utf8_lossy(&output.stdout);
+    let deadline = Instant::now().checked_add(timeout)?;
+    let mut bytes = Vec::new();
+    let mut eof = false;
+    let status = loop {
+        let mut chunk = [0_u8; 4096];
+        loop {
+            match stdout.read(&mut chunk) {
+                Ok(0) => {
+                    eof = true;
+                    break;
+                }
+                Ok(count) => {
+                    bytes.extend_from_slice(&chunk[..count]);
+                    if bytes.len() > max_output_bytes {
+                        let _ = child.kill();
+                        let _ = child.wait();
+                        return None;
+                    }
+                }
+                Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => break,
+                Err(_) => {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return None;
+                }
+            }
+        }
+        match child.try_wait() {
+            Ok(Some(status)) if eof => break status,
+            Ok(_) if Instant::now() < deadline => thread::sleep(Duration::from_millis(5)),
+            _ => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return None;
+            }
+        }
+    };
+    if !status.success() {
+        return None;
+    }
+    let text = std::str::from_utf8(&bytes).ok()?;
     let first_line = text.lines().next()?.trim();
     if first_line.is_empty() {
         None
     } else {
         Some(first_line.to_owned())
     }
+}
+
+#[cfg(not(unix))]
+fn solver_version_with_limits(
+    _provisioning: &Provisioning,
+    _timeout: Duration,
+    _max_output_bytes: usize,
+) -> Option<String> {
+    None
 }
 
 /// Classify already-bounded, already-collected solver stdout text (plus,
@@ -275,6 +341,85 @@ fn classify(stdout_text: &str, exit_status: Option<&std::process::ExitStatus>) -
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(unix)]
+    fn fake_solver(script: &str) -> Provisioning {
+        use std::os::unix::fs::PermissionsExt;
+        let path = std::env::temp_dir().join(format!(
+            "semaprax-version-probe-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::write(&path, format!("#!/bin/sh\n{script}\n")).unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
+        Provisioning {
+            binary: path,
+            identity: "z3",
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    #[allow(unsafe_code)] // kill(pid, 0) observes that the test child was reaped.
+    fn version_probe_bounds_time_and_reaps_child() {
+        let pid_file = std::env::temp_dir().join(format!(
+            "semaprax-version-probe-pid-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let fake = fake_solver(&format!(
+            "echo $$ > '{}'\nexec sleep 30",
+            pid_file.display()
+        ));
+        let start = Instant::now();
+        assert_eq!(
+            solver_version_with_limits(&fake, Duration::from_secs(1), 16),
+            None
+        );
+        assert!(start.elapsed() < Duration::from_secs(3));
+        let pid: i32 = std::fs::read_to_string(&pid_file)
+            .unwrap()
+            .trim()
+            .parse()
+            .unwrap();
+        assert_eq!(unsafe { libc::kill(pid, 0) }, -1);
+        assert_eq!(
+            std::io::Error::last_os_error().raw_os_error(),
+            Some(libc::ESRCH)
+        );
+        std::fs::remove_file(fake.binary).unwrap();
+        std::fs::remove_file(pid_file).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn version_probe_handles_exact_cap_overflow_and_invalid_results() {
+        for (script, expected) in [
+            ("printf ABCD", Some("ABCD")),
+            ("printf ABCDE", None),
+            ("exit 0", None),
+            ("printf BAD; exit 1", None),
+            ("printf '\\377'", None),
+        ] {
+            let fake = fake_solver(script);
+            assert_eq!(
+                solver_version_with_limits(&fake, Duration::from_secs(2), 4).as_deref(),
+                expected
+            );
+            std::fs::remove_file(fake.binary).unwrap();
+        }
+        let missing = Provisioning {
+            binary: PathBuf::from("/missing/semaprax-version-probe"),
+            identity: "z3",
+        };
+        assert_eq!(solver_version(&missing), None);
+    }
 
     #[test]
     fn provision_from_env_rejects_unset_empty_relative_and_missing_paths() {

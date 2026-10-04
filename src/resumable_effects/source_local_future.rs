@@ -153,7 +153,11 @@ where
         max_steps: usize,
         handler: H,
     ) -> Result<Self, Vec<Diagnostic>> {
-        if revision.manifest().project_profile() != ProjectProfile::SourceLocalFutureV1 {
+        if !revision
+            .manifest()
+            .project_profile()
+            .is_source_local_future()
+        {
             return Err(invalid("local Future Project profile is not selected"));
         }
         let function_id = revision

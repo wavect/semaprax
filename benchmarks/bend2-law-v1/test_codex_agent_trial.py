@@ -30,7 +30,7 @@ def configuration():
 def plan(root):
     path = root / "plan.json"
     path.write_text(json.dumps({"schema": RUNNER.PLAN.SCHEMA, "agent_configuration": {"value": configuration()}, "cells": [{"status": "preregistered", "trials": [{
-        "id": "boolean:bend2:1", "language": "bend2", "status": "not_run", "execution": {"repository_access": "none"},
+        "id": RUNNER.TASK + ":bend2:1", "language": "bend2", "status": "not_run", "execution": {"repository_access": "none"},
         "acceptance": {"success_witnesses": [{"input": False, "output": True}], "rejected_law_gaming_attacks": {"weakened-postcondition": [{"input": False, "output": False}]}},
     }]}]}))
     return path
@@ -38,24 +38,33 @@ def plan(root):
 
 class CodexTrialTests(unittest.TestCase):
     def test_runner_uses_empty_read_only_ephemeral_codex_and_retains_jsonl(self):
-        events = b'{"type":"turn.completed","usage":{"input_tokens":10,"cached_input_tokens":2,"output_tokens":3}}\n'
+        attack = (ROOT / "fixtures/bend-two-value-boolean-law-gaming-v1.bend").read_bytes()
+        source = (ROOT / "fixtures/bend-two-value-boolean-v1.bend").read_text()
+        response = {"schema": RUNNER.EDIT_RESPONSE_SCHEMA, "trial_id": RUNNER.TASK + ":bend2:1", "language": "bend2", "final_source": source,
+                    "proof_explanation": "restores the true branch and equality proof", "seeded_attack": {"source_sha256": digest(attack), "decision": "reject", "reason": "true maps to zero"}}
+        events = (json.dumps({"type": "item.completed", "item": {"type": "agent_message", "text": json.dumps(response)}}) + "\n" +
+                  json.dumps({"type": "turn.completed", "usage": {"input_tokens": 10, "cached_input_tokens": 2, "output_tokens": 3}}) + "\n").encode()
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory); path = plan(root)
             with mock.patch.object(RUNNER.subprocess, "run", side_effect=[
                 subprocess.CompletedProcess(["codex", "--version"], 0, b"codex 1", b""),
                 subprocess.CompletedProcess(["codex", "exec"], 0, events, b""),
             ]) as invoke:
-                record = RUNNER.run(path, "boolean:bend2:1", root / "evidence")
+                record = RUNNER.run(path, RUNNER.TASK + ":bend2:1", root / "evidence")
             command = invoke.call_args_list[1].args[0]
             self.assertIn("--skip-git-repo-check", command)
             self.assertIn("--ephemeral", command)
             self.assertIn("--ignore-user-config", command)
             self.assertEqual(command[command.index("-s") + 1], "read-only")
             self.assertEqual(invoke.call_args_list[1].kwargs["cwd"].name, "workspace")
-            self.assertEqual(record["status"], "executed_unassessed")
-            self.assertEqual(record["telemetry"]["token_usage"]["total_tokens"], 15)
+            self.assertEqual(record["status"], "edit_artifacts_captured")
+            self.assertEqual(record["telemetry"]["token_usage"]["total_tokens"], 13)
+            self.assertEqual(record["telemetry"]["token_usage"]["cached_input_tokens"], 2)
             self.assertEqual(record["telemetry"]["cost_usage"]["status"], "unavailable")
             self.assertTrue((root / "evidence" / "events.jsonl").is_file())
+            self.assertTrue((root / "evidence" / "final-source.bend").is_file())
+            self.assertIn("seeded_law_gaming_source", command[-1])
+            self.assertIn(digest(attack), command[-1])
 
     def test_missing_usage_or_a_token_overrun_is_ineligible_not_a_pass(self):
         for events in (b'{"type":"turn.completed"}\n', b'{"type":"turn.completed","usage":{"input_tokens":1000,"cached_input_tokens":1,"output_tokens":1}}\n'):
@@ -65,7 +74,7 @@ class CodexTrialTests(unittest.TestCase):
                     subprocess.CompletedProcess(["codex", "--version"], 0, b"codex 1", b""),
                     subprocess.CompletedProcess(["codex", "exec"], 0, events, b""),
                 ]):
-                    record = RUNNER.run(path, "boolean:bend2:1", root / "evidence")
+                    record = RUNNER.run(path, RUNNER.TASK + ":bend2:1", root / "evidence")
             self.assertEqual(record["status"], "ineligible")
 
 

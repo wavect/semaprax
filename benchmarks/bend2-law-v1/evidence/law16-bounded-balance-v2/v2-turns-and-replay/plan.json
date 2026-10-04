@@ -1,0 +1,134 @@
+{
+  "fixed_budget": {
+    "max_cost_usd": "0.00",
+    "max_tokens": 20000
+  },
+  "lineage": {
+    "ineligible_predecessor": "bounded-balance-transfer-v1:bend2:1",
+    "reason": "pinned Bend rejects computed record projection transfer().debit"
+  },
+  "schema": "semaprax.bend2-law-benchmark.bounded-balance-agent-plan.v2",
+  "status": "preregistered",
+  "trials": [
+    {
+      "id": "bounded-balance-transfer-v2:bend2:1",
+      "language": "bend2",
+      "ordinal": 1,
+      "status": "not_run"
+    },
+    {
+      "id": "bounded-balance-transfer-v2:bend2:2",
+      "language": "bend2",
+      "ordinal": 2,
+      "status": "not_run"
+    },
+    {
+      "id": "bounded-balance-transfer-v2:bend2:3",
+      "language": "bend2",
+      "ordinal": 3,
+      "status": "not_run"
+    },
+    {
+      "id": "bounded-balance-transfer-v2:bend2:4",
+      "language": "bend2",
+      "ordinal": 4,
+      "status": "not_run"
+    },
+    {
+      "id": "bounded-balance-transfer-v2:bend2:5",
+      "language": "bend2",
+      "ordinal": 5,
+      "status": "not_run"
+    },
+    {
+      "id": "bounded-balance-transfer-v2:bend2:6",
+      "language": "bend2",
+      "ordinal": 6,
+      "status": "not_run"
+    },
+    {
+      "id": "bounded-balance-transfer-v2:bend2:7",
+      "language": "bend2",
+      "ordinal": 7,
+      "status": "not_run"
+    },
+    {
+      "id": "bounded-balance-transfer-v2:bend2:8",
+      "language": "bend2",
+      "ordinal": 8,
+      "status": "not_run"
+    },
+    {
+      "id": "bounded-balance-transfer-v2:bend2:9",
+      "language": "bend2",
+      "ordinal": 9,
+      "status": "not_run"
+    },
+    {
+      "id": "bounded-balance-transfer-v2:bend2:10",
+      "language": "bend2",
+      "ordinal": 10,
+      "status": "not_run"
+    },
+    {
+      "id": "bounded-balance-transfer-v2:semaprax-scalar-v1:1",
+      "language": "semaprax-scalar-v1",
+      "ordinal": 1,
+      "status": "not_run"
+    },
+    {
+      "id": "bounded-balance-transfer-v2:semaprax-scalar-v1:2",
+      "language": "semaprax-scalar-v1",
+      "ordinal": 2,
+      "status": "not_run"
+    },
+    {
+      "id": "bounded-balance-transfer-v2:semaprax-scalar-v1:3",
+      "language": "semaprax-scalar-v1",
+      "ordinal": 3,
+      "status": "not_run"
+    },
+    {
+      "id": "bounded-balance-transfer-v2:semaprax-scalar-v1:4",
+      "language": "semaprax-scalar-v1",
+      "ordinal": 4,
+      "status": "not_run"
+    },
+    {
+      "id": "bounded-balance-transfer-v2:semaprax-scalar-v1:5",
+      "language": "semaprax-scalar-v1",
+      "ordinal": 5,
+      "status": "not_run"
+    },
+    {
+      "id": "bounded-balance-transfer-v2:semaprax-scalar-v1:6",
+      "language": "semaprax-scalar-v1",
+      "ordinal": 6,
+      "status": "not_run"
+    },
+    {
+      "id": "bounded-balance-transfer-v2:semaprax-scalar-v1:7",
+      "language": "semaprax-scalar-v1",
+      "ordinal": 7,
+      "status": "not_run"
+    },
+    {
+      "id": "bounded-balance-transfer-v2:semaprax-scalar-v1:8",
+      "language": "semaprax-scalar-v1",
+      "ordinal": 8,
+      "status": "not_run"
+    },
+    {
+      "id": "bounded-balance-transfer-v2:semaprax-scalar-v1:9",
+      "language": "semaprax-scalar-v1",
+      "ordinal": 9,
+      "status": "not_run"
+    },
+    {
+      "id": "bounded-balance-transfer-v2:semaprax-scalar-v1:10",
+      "language": "semaprax-scalar-v1",
+      "ordinal": 10,
+      "status": "not_run"
+    }
+  ]
+}

@@ -1,0 +1,238 @@
+{
+  "nonclaims": [
+    "byte difference is not semantic proof effort"
+  ],
+  "rows": [
+    {
+      "annotation_counts": {
+        "law": 3,
+        "proof_bodies": 4
+      },
+      "changed_bytes_vs_seed": 574,
+      "final_bytes": 842,
+      "final_sha256": "sha256:f0b8f79e6bfd409191f3c3577dfbac1b39ef1d82ac87e6e893480d0b87e5bcec",
+      "language": "bend2",
+      "ordinal": 1
+    },
+    {
+      "annotation_counts": {
+        "ensures": 3,
+        "requires": 0,
+        "stable_ids": 4
+      },
+      "changed_bytes_vs_seed": 244,
+      "final_bytes": 359,
+      "final_sha256": "sha256:5e6f5649dcb6f755c6b5a91a5b6c396f4ea9791a45bd02dbc3625be59a629b7e",
+      "language": "semaprax-scalar-v1",
+      "ordinal": 1
+    },
+    {
+      "annotation_counts": {
+        "law": 3,
+        "proof_bodies": 4
+      },
+      "changed_bytes_vs_seed": 592,
+      "final_bytes": 805,
+      "final_sha256": "sha256:5c59d7522c759b693d0c5c160dce6867a85bf4796754ed1f00204c70b9df6c60",
+      "language": "bend2",
+      "ordinal": 2
+    },
+    {
+      "annotation_counts": {
+        "ensures": 3,
+        "requires": 0,
+        "stable_ids": 4
+      },
+      "changed_bytes_vs_seed": 243,
+      "final_bytes": 359,
+      "final_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418",
+      "language": "semaprax-scalar-v1",
+      "ordinal": 2
+    },
+    {
+      "annotation_counts": {
+        "law": 3,
+        "proof_bodies": 4
+      },
+      "changed_bytes_vs_seed": 638,
+      "final_bytes": 855,
+      "final_sha256": "sha256:40a59a15b5ee2a9604c5df80d6fdfd0ccbd664ff208ad6e7aec7a843437766ba",
+      "language": "bend2",
+      "ordinal": 3
+    },
+    {
+      "annotation_counts": {
+        "ensures": 3,
+        "requires": 0,
+        "stable_ids": 4
+      },
+      "changed_bytes_vs_seed": 243,
+      "final_bytes": 359,
+      "final_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418",
+      "language": "semaprax-scalar-v1",
+      "ordinal": 3
+    },
+    {
+      "annotation_counts": {
+        "law": 0,
+        "proof_bodies": 4
+      },
+      "changed_bytes_vs_seed": 498,
+      "final_bytes": 654,
+      "final_sha256": "sha256:c9255f6bedfda5a40b3699ba82269d3cbf20648b52e29d7f40ed2a32a9da9ec0",
+      "language": "bend2",
+      "ordinal": 4
+    },
+    {
+      "annotation_counts": {
+        "ensures": 3,
+        "requires": 0,
+        "stable_ids": 4
+      },
+      "changed_bytes_vs_seed": 4,
+      "final_bytes": 355,
+      "final_sha256": "sha256:3097dbd73c9c9f7fee58355dc5adab956ba92b7db2e22148c1fac58ede22d445",
+      "language": "semaprax-scalar-v1",
+      "ordinal": 4
+    },
+    {
+      "annotation_counts": {
+        "law": 3,
+        "proof_bodies": 4
+      },
+      "changed_bytes_vs_seed": 549,
+      "final_bytes": 817,
+      "final_sha256": "sha256:2b6d4c7d3b2aa08ea568a313a4df597d3765f7da3b9812061d9a2a15dc15ae05",
+      "language": "bend2",
+      "ordinal": 5
+    },
+    {
+      "annotation_counts": {
+        "ensures": 3,
+        "requires": 0,
+        "stable_ids": 4
+      },
+      "changed_bytes_vs_seed": 243,
+      "final_bytes": 359,
+      "final_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418",
+      "language": "semaprax-scalar-v1",
+      "ordinal": 5
+    },
+    {
+      "annotation_counts": {
+        "law": 3,
+        "proof_bodies": 4
+      },
+      "changed_bytes_vs_seed": 574,
+      "final_bytes": 842,
+      "final_sha256": "sha256:f0b8f79e6bfd409191f3c3577dfbac1b39ef1d82ac87e6e893480d0b87e5bcec",
+      "language": "bend2",
+      "ordinal": 6
+    },
+    {
+      "annotation_counts": {
+        "ensures": 3,
+        "requires": 0,
+        "stable_ids": 4
+      },
+      "changed_bytes_vs_seed": 243,
+      "final_bytes": 359,
+      "final_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418",
+      "language": "semaprax-scalar-v1",
+      "ordinal": 6
+    },
+    {
+      "annotation_counts": {
+        "law": 3,
+        "proof_bodies": 4
+      },
+      "changed_bytes_vs_seed": 573,
+      "final_bytes": 843,
+      "final_sha256": "sha256:03e2fb340328b637f91b7148e6fb8a0b5fb3ba8980c8cbdb9b267465b862d522",
+      "language": "bend2",
+      "ordinal": 7
+    },
+    {
+      "annotation_counts": {
+        "ensures": 3,
+        "requires": 0,
+        "stable_ids": 4
+      },
+      "changed_bytes_vs_seed": 243,
+      "final_bytes": 359,
+      "final_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418",
+      "language": "semaprax-scalar-v1",
+      "ordinal": 7
+    },
+    {
+      "annotation_counts": {
+        "law": 3,
+        "proof_bodies": 4
+      },
+      "changed_bytes_vs_seed": 488,
+      "final_bytes": 782,
+      "final_sha256": "sha256:9912ceb695c0302adabb34c06c4f3353b38e10469ef54e0722603ebe51345b64",
+      "language": "bend2",
+      "ordinal": 8
+    },
+    {
+      "annotation_counts": {
+        "ensures": 3,
+        "requires": 0,
+        "stable_ids": 4
+      },
+      "changed_bytes_vs_seed": 243,
+      "final_bytes": 359,
+      "final_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418",
+      "language": "semaprax-scalar-v1",
+      "ordinal": 8
+    },
+    {
+      "annotation_counts": {
+        "law": 3,
+        "proof_bodies": 4
+      },
+      "changed_bytes_vs_seed": 574,
+      "final_bytes": 842,
+      "final_sha256": "sha256:f0b8f79e6bfd409191f3c3577dfbac1b39ef1d82ac87e6e893480d0b87e5bcec",
+      "language": "bend2",
+      "ordinal": 9
+    },
+    {
+      "annotation_counts": {
+        "ensures": 3,
+        "requires": 0,
+        "stable_ids": 4
+      },
+      "changed_bytes_vs_seed": 243,
+      "final_bytes": 359,
+      "final_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418",
+      "language": "semaprax-scalar-v1",
+      "ordinal": 9
+    },
+    {
+      "annotation_counts": {
+        "law": 3,
+        "proof_bodies": 4
+      },
+      "changed_bytes_vs_seed": 549,
+      "final_bytes": 817,
+      "final_sha256": "sha256:2b6d4c7d3b2aa08ea568a313a4df597d3765f7da3b9812061d9a2a15dc15ae05",
+      "language": "bend2",
+      "ordinal": 10
+    },
+    {
+      "annotation_counts": {
+        "ensures": 3,
+        "requires": 0,
+        "stable_ids": 4
+      },
+      "changed_bytes_vs_seed": 243,
+      "final_bytes": 359,
+      "final_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418",
+      "language": "semaprax-scalar-v1",
+      "ordinal": 10
+    }
+  ],
+  "schema": "semaprax.bend2-law-benchmark.annotation-summary.v1"
+}

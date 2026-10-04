@@ -33,9 +33,20 @@ def plan(root):
 def input_document(root, plan_path, artifacts):
     bend = (ROOT / "fixtures/bend-two-value-boolean-v1.bend").read_bytes()
     semaprax = (ROOT / "fixtures/semaprax-two-value-boolean-v1.spx").read_bytes()
+    bend_attack = (ROOT / "fixtures/bend-two-value-boolean-law-gaming-v1.bend").read_bytes()
+    semaprax_attack = (ROOT / "fixtures/semaprax-two-value-boolean-law-gaming-v1.spx").read_bytes()
+    def lane(language, trial_id, source, attack, prefix, verification):
+        claim = {"source_sha256": "sha256:" + hashlib.sha256(attack).hexdigest(), "decision": "reject", "reason": "seeded control changes the required Boolean result"}
+        response = {"schema": "semaprax.bend2-law-benchmark.boolean-edit-response.v1", "trial_id": trial_id, "language": language,
+                    "final_source": source.decode(), "proof_explanation": "restores the required source", "seeded_attack": claim}
+        return {"trial_id": trial_id, "final_source": reference(artifacts, prefix + "/final", source),
+                "verification_artifact": reference(artifacts, prefix + "/verification", verification),
+                "model_response": reference(artifacts, prefix + "/response.json", json.dumps(response, sort_keys=True).encode()),
+                "seeded_attack_source": reference(artifacts, prefix + "/attack", attack),
+                "seeded_attack_claim": reference(artifacts, prefix + "/claim.json", json.dumps(claim, sort_keys=True).encode())}
     value = {"schema": PAIR.INPUT_SCHEMA, "plan_sha256": PAIR.PLAN.digest(plan_path), "task": PAIR.TASK, "ordinal": 1, "lanes": {
-        "bend2": {"trial_id": PAIR.TASK + ":bend2:1", "final_source": reference(artifacts, "bend/final.bend", bend), "verification_artifact": reference(artifacts, "bend/verdict.stdout", b"ALL PROOFS CHECK\n")},
-        "semaprax-scalar-v1": {"trial_id": PAIR.TASK + ":semaprax-scalar-v1:1", "final_source": reference(artifacts, "semaprax/final.spx", semaprax), "verification_artifact": reference(artifacts, "semaprax/runtime.stdout", b"0\n")},
+        "bend2": lane("bend2", PAIR.TASK + ":bend2:1", bend, bend_attack, "bend", b"ALL PROOFS CHECK\n"),
+        "semaprax-scalar-v1": lane("semaprax-scalar-v1", PAIR.TASK + ":semaprax-scalar-v1:1", semaprax, semaprax_attack, "semaprax", b"0\n"),
     }}
     path = root / "final-artifacts.json"
     path.write_text(json.dumps(value))
@@ -57,12 +68,12 @@ class BooleanPairAcceptanceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory); artifacts = root / "artifacts"; artifacts.mkdir(); plan_path = plan(root)
             input_path, value = input_document(root, plan_path, artifacts)
-            (artifacts / "bend/final.bend").write_bytes(b"mutant")
+            (artifacts / "bend/final").write_bytes(b"mutant")
             with self.assertRaisesRegex(ValueError, "bytes disagree"):
                 PAIR.evaluate(plan_path, input_path, artifacts)
             input_path, value = input_document(root, plan_path, artifacts)
-            proof = artifacts / "bend/verdict.stdout"; proof.write_bytes(b"other proof output\n")
-            value["lanes"]["bend2"]["verification_artifact"] = reference(artifacts, "bend/verdict.stdout", proof.read_bytes())
+            proof = artifacts / "bend/verification"; proof.write_bytes(b"other proof output\n")
+            value["lanes"]["bend2"]["verification_artifact"] = reference(artifacts, "bend/verification", proof.read_bytes())
             input_path.write_text(json.dumps(value))
             with self.assertRaisesRegex(ValueError, "proof-kernel success marker"):
                 PAIR.evaluate(plan_path, input_path, artifacts)
@@ -71,13 +82,16 @@ class BooleanPairAcceptanceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory); artifacts = root / "artifacts"; artifacts.mkdir(); plan_path = plan(root)
             input_path, value = input_document(root, plan_path, artifacts)
-            (artifacts / "linked.spx").symlink_to(artifacts / "semaprax/final.spx")
+            (artifacts / "linked.spx").symlink_to(artifacts / "semaprax/final")
             value["lanes"]["semaprax-scalar-v1"]["final_source"]["path"] = "linked.spx"
             input_path.write_text(json.dumps(value))
             with self.assertRaisesRegex(ValueError, "symbolic link"):
                 PAIR.evaluate(plan_path, input_path, artifacts)
             input_path, value = input_document(root, plan_path, artifacts)
             value["lanes"]["bend2"]["trial_id"] = "different"
+            response = json.loads((artifacts / "bend/response.json").read_text())
+            response["trial_id"] = "different"
+            value["lanes"]["bend2"]["model_response"] = reference(artifacts, "bend/response.json", json.dumps(response, sort_keys=True).encode())
             input_path.write_text(json.dumps(value))
             with self.assertRaisesRegex(ValueError, "selected preregistered trial"):
                 PAIR.evaluate(plan_path, input_path, artifacts)

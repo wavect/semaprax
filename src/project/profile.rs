@@ -57,6 +57,10 @@ pub const PROJECT_PROFILE_PUBLIC_GENERIC_WASM_PROVIDER_V1: &str =
     crate::public_generic_abi::compiler_endpoint::PUBLIC_GENERIC_WASM_PROVIDER_PROFILE;
 /// Interpreter-only, caller-executor source Future selection.
 pub const PROJECT_PROFILE_SOURCE_LOCAL_FUTURE_V1: &str = "source-local-future.v1";
+/// One closed RI-13 profile: the source-local Future route plus the exact
+/// authenticated Regex/Url native-Rust dependency pair.
+pub const PROJECT_PROFILE_SOURCE_LOCAL_FUTURE_INDEXED_RUST_V1: &str =
+    "source-local-future-indexed-rust.v1";
 
 /// Frozen Project-v4 semantic stdout authority.
 pub const PROJECT_COMMAND_STDOUT_CAPABILITY: &str = "process.stdout.write";
@@ -124,6 +128,7 @@ pub enum ProjectProfile {
     NestedOwnedRecordApiV1,
     PublicGenericWasmProviderV1,
     SourceLocalFutureV1,
+    SourceLocalFutureIndexedRustV1,
 }
 
 impl ProjectProfile {
@@ -151,6 +156,14 @@ impl ProjectProfile {
                 | Self::NestedOwnedRecordApiV1
                 | Self::PublicGenericWasmProviderV1
                 | Self::SourceLocalFutureV1
+                | Self::SourceLocalFutureIndexedRustV1
+        )
+    }
+
+    pub(crate) const fn is_source_local_future(self) -> bool {
+        matches!(
+            self,
+            Self::SourceLocalFutureV1 | Self::SourceLocalFutureIndexedRustV1
         )
     }
 
@@ -179,6 +192,9 @@ impl ProjectProfile {
                 Some(PROJECT_PROFILE_PUBLIC_GENERIC_WASM_PROVIDER_V1)
             }
             Self::SourceLocalFutureV1 => Some(PROJECT_PROFILE_SOURCE_LOCAL_FUTURE_V1),
+            Self::SourceLocalFutureIndexedRustV1 => {
+                Some(PROJECT_PROFILE_SOURCE_LOCAL_FUTURE_INDEXED_RUST_V1)
+            }
         }
     }
 }

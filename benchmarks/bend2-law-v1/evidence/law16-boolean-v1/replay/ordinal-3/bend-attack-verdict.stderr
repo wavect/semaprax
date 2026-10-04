@@ -1,0 +1,9 @@
+SOME PROOFS FAIL
+Error:
+- expected : 0
+- observed : 1
+Location: boolean_score_matches_base
+20 |     case True{}:
+21>|       {==}
+   |       ^^^^
+22 | 

@@ -52,6 +52,8 @@ mod filesystem_v2_wasm;
 mod interpreter;
 #[path = "useful_data/job_service_project.rs"]
 mod job_service_project;
+#[path = "useful_data/durable_job_writer.rs"]
+mod durable_job_writer;
 #[path = "useful_data/language_command_io_native.rs"]
 mod language_command_io_native;
 #[path = "useful_data/line_command_io_native.rs"]

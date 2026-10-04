@@ -13,6 +13,12 @@ fn factory(offset:i64)->fn(i64)->i64 { fn(value:i64)->i64 {value+offset} }
 fn advance(state:i64,value:i64)->i64 requires value>=0 {state+value}
 @id("app.main") fn main()->i64 {0}
 "#;
+const RI13_M2_SOURCE: &str =
+    include_str!("../../../../examples/ri13-m2-record-iterator/project/app.spx");
+const RI13_M2_TESTS: &str =
+    include_str!("../../../../examples/ri13-m2-record-iterator/project/tests.spx");
+const RI13_M2_MANIFEST: &str =
+    include_str!("../../../../examples/ri13-m2-record-iterator/project/semaprax.toml");
 const FIXTURE: &str = r#"
 pub trait Accumulator {type Error;fn advance(&mut self,value:i64)->Result<i64,Self::Error>;}
 pub struct Registry<T:Accumulator>{implementation:Option<T>}
@@ -142,6 +148,51 @@ fn one_checked_record_and_stateful_callback_share_exact_source_revision() {
         prepare_native_rust_serde_callbacks(&source, path, "ri13.other", &selection()).unwrap_err();
     assert_eq!(wrong[0].code, "SPX-B154");
     assert!(wrong[0].message.contains("its selected record"));
+}
+
+#[test]
+fn saved_m2_project_refuses_stale_source_before_iterator_projection_releases() {
+    let root = Temp(std::env::temp_dir().join(format!(
+        "semaprax-ri13-m2-stale-{}-{}",
+        std::process::id(),
+        SERIAL.fetch_add(1, Ordering::Relaxed)
+    )));
+    fs::create_dir(&root.0).unwrap();
+    fs::write(root.0.join("app.spx"), RI13_M2_SOURCE).unwrap();
+    fs::write(root.0.join("tests.spx"), RI13_M2_TESTS).unwrap();
+    let manifest = root.0.join("semaprax.toml");
+    fs::write(&manifest, RI13_M2_MANIFEST).unwrap();
+
+    let source_path = root.0.join("app.spx");
+    let stale = semaprax::project::with_authenticated_project(&manifest, |snapshot| {
+        snapshot.check()?;
+        let source = snapshot
+            .sources()
+            .iter()
+            .find(|source| source.path() == "app.spx")
+            .expect("saved M2 manifest authenticates app.spx");
+        let projection = prepare_native_rust_serde_iterator_callbacks(
+            source.source(),
+            &source_path,
+            "ri13.event",
+            "callback.factory",
+            "callback.advance",
+        )?;
+        assert_eq!(projection.record.record_id, "ri13.event");
+        assert!(projection
+            .callback
+            .adapter_rust
+            .contains("pub fn as_fn_mut"));
+
+        let changed = source.source().replace("state + value", "state - value");
+        assert_ne!(source.source(), changed);
+        fs::write(&source_path, changed).unwrap();
+        Ok(())
+    });
+    assert!(
+        stale.is_err(),
+        "stale M2 source must refuse the authenticated projection release"
+    );
 }
 
 #[test]

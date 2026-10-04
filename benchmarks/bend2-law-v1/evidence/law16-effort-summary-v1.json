@@ -1,0 +1,238 @@
+{
+  "nonclaims": [
+    "source bytes are not proof quality"
+  ],
+  "phase_separation": {
+    "cold_isolation": {
+      "reason": "no reproducible clean tool/cache reset was retained",
+      "status": "unavailable"
+    },
+    "cost": {
+      "status": "unavailable"
+    },
+    "kernel_check": "retained local Bend/check/Z3 process samples"
+  },
+  "rows": [
+    {
+      "cached_input_tokens": 14080,
+      "chargeable_tokens": 19263,
+      "input_tokens": 18757,
+      "language": "bend2",
+      "ordinal": 1,
+      "output_tokens": 506,
+      "proof_synthesis": "one isolated agent turn; not kernel checking",
+      "source_bytes": 842,
+      "source_sha256": "sha256:f0b8f79e6bfd409191f3c3577dfbac1b39ef1d82ac87e6e893480d0b87e5bcec"
+    },
+    {
+      "cached_input_tokens": 11008,
+      "chargeable_tokens": 19052,
+      "input_tokens": 18570,
+      "language": "semaprax-scalar-v1",
+      "ordinal": 1,
+      "output_tokens": 482,
+      "proof_synthesis": "one isolated agent turn; not kernel checking",
+      "source_bytes": 359,
+      "source_sha256": "sha256:5e6f5649dcb6f755c6b5a91a5b6c396f4ea9791a45bd02dbc3625be59a629b7e"
+    },
+    {
+      "cached_input_tokens": 15104,
+      "chargeable_tokens": 19258,
+      "input_tokens": 18757,
+      "language": "bend2",
+      "ordinal": 2,
+      "output_tokens": 501,
+      "proof_synthesis": "one isolated agent turn; not kernel checking",
+      "source_bytes": 805,
+      "source_sha256": "sha256:5c59d7522c759b693d0c5c160dce6867a85bf4796754ed1f00204c70b9df6c60"
+    },
+    {
+      "cached_input_tokens": 14080,
+      "chargeable_tokens": 18906,
+      "input_tokens": 18570,
+      "language": "semaprax-scalar-v1",
+      "ordinal": 2,
+      "output_tokens": 336,
+      "proof_synthesis": "one isolated agent turn; not kernel checking",
+      "source_bytes": 359,
+      "source_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+    },
+    {
+      "cached_input_tokens": 14080,
+      "chargeable_tokens": 19254,
+      "input_tokens": 18757,
+      "language": "bend2",
+      "ordinal": 3,
+      "output_tokens": 497,
+      "proof_synthesis": "one isolated agent turn; not kernel checking",
+      "source_bytes": 855,
+      "source_sha256": "sha256:40a59a15b5ee2a9604c5df80d6fdfd0ccbd664ff208ad6e7aec7a843437766ba"
+    },
+    {
+      "cached_input_tokens": 14080,
+      "chargeable_tokens": 18901,
+      "input_tokens": 18570,
+      "language": "semaprax-scalar-v1",
+      "ordinal": 3,
+      "output_tokens": 331,
+      "proof_synthesis": "one isolated agent turn; not kernel checking",
+      "source_bytes": 359,
+      "source_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+    },
+    {
+      "cached_input_tokens": 18176,
+      "chargeable_tokens": 19197,
+      "input_tokens": 18757,
+      "language": "bend2",
+      "ordinal": 4,
+      "output_tokens": 440,
+      "proof_synthesis": "one isolated agent turn; not kernel checking",
+      "source_bytes": 654,
+      "source_sha256": "sha256:c9255f6bedfda5a40b3699ba82269d3cbf20648b52e29d7f40ed2a32a9da9ec0"
+    },
+    {
+      "cached_input_tokens": 11008,
+      "chargeable_tokens": 19001,
+      "input_tokens": 18570,
+      "language": "semaprax-scalar-v1",
+      "ordinal": 4,
+      "output_tokens": 431,
+      "proof_synthesis": "one isolated agent turn; not kernel checking",
+      "source_bytes": 355,
+      "source_sha256": "sha256:3097dbd73c9c9f7fee58355dc5adab956ba92b7db2e22148c1fac58ede22d445"
+    },
+    {
+      "cached_input_tokens": 14080,
+      "chargeable_tokens": 19229,
+      "input_tokens": 18757,
+      "language": "bend2",
+      "ordinal": 5,
+      "output_tokens": 472,
+      "proof_synthesis": "one isolated agent turn; not kernel checking",
+      "source_bytes": 817,
+      "source_sha256": "sha256:2b6d4c7d3b2aa08ea568a313a4df597d3765f7da3b9812061d9a2a15dc15ae05"
+    },
+    {
+      "cached_input_tokens": 18176,
+      "chargeable_tokens": 18897,
+      "input_tokens": 18570,
+      "language": "semaprax-scalar-v1",
+      "ordinal": 5,
+      "output_tokens": 327,
+      "proof_synthesis": "one isolated agent turn; not kernel checking",
+      "source_bytes": 359,
+      "source_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+    },
+    {
+      "cached_input_tokens": 18176,
+      "chargeable_tokens": 19260,
+      "input_tokens": 18757,
+      "language": "bend2",
+      "ordinal": 6,
+      "output_tokens": 503,
+      "proof_synthesis": "one isolated agent turn; not kernel checking",
+      "source_bytes": 842,
+      "source_sha256": "sha256:f0b8f79e6bfd409191f3c3577dfbac1b39ef1d82ac87e6e893480d0b87e5bcec"
+    },
+    {
+      "cached_input_tokens": 11008,
+      "chargeable_tokens": 18900,
+      "input_tokens": 18570,
+      "language": "semaprax-scalar-v1",
+      "ordinal": 6,
+      "output_tokens": 330,
+      "proof_synthesis": "one isolated agent turn; not kernel checking",
+      "source_bytes": 359,
+      "source_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+    },
+    {
+      "cached_input_tokens": 11008,
+      "chargeable_tokens": 19257,
+      "input_tokens": 18757,
+      "language": "bend2",
+      "ordinal": 7,
+      "output_tokens": 500,
+      "proof_synthesis": "one isolated agent turn; not kernel checking",
+      "source_bytes": 843,
+      "source_sha256": "sha256:03e2fb340328b637f91b7148e6fb8a0b5fb3ba8980c8cbdb9b267465b862d522"
+    },
+    {
+      "cached_input_tokens": 15104,
+      "chargeable_tokens": 18910,
+      "input_tokens": 18570,
+      "language": "semaprax-scalar-v1",
+      "ordinal": 7,
+      "output_tokens": 340,
+      "proof_synthesis": "one isolated agent turn; not kernel checking",
+      "source_bytes": 359,
+      "source_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+    },
+    {
+      "cached_input_tokens": 18176,
+      "chargeable_tokens": 19282,
+      "input_tokens": 18757,
+      "language": "bend2",
+      "ordinal": 8,
+      "output_tokens": 525,
+      "proof_synthesis": "one isolated agent turn; not kernel checking",
+      "source_bytes": 782,
+      "source_sha256": "sha256:9912ceb695c0302adabb34c06c4f3353b38e10469ef54e0722603ebe51345b64"
+    },
+    {
+      "cached_input_tokens": 18176,
+      "chargeable_tokens": 18907,
+      "input_tokens": 18570,
+      "language": "semaprax-scalar-v1",
+      "ordinal": 8,
+      "output_tokens": 337,
+      "proof_synthesis": "one isolated agent turn; not kernel checking",
+      "source_bytes": 359,
+      "source_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+    },
+    {
+      "cached_input_tokens": 18176,
+      "chargeable_tokens": 19261,
+      "input_tokens": 18757,
+      "language": "bend2",
+      "ordinal": 9,
+      "output_tokens": 504,
+      "proof_synthesis": "one isolated agent turn; not kernel checking",
+      "source_bytes": 842,
+      "source_sha256": "sha256:f0b8f79e6bfd409191f3c3577dfbac1b39ef1d82ac87e6e893480d0b87e5bcec"
+    },
+    {
+      "cached_input_tokens": 18176,
+      "chargeable_tokens": 18898,
+      "input_tokens": 18570,
+      "language": "semaprax-scalar-v1",
+      "ordinal": 9,
+      "output_tokens": 328,
+      "proof_synthesis": "one isolated agent turn; not kernel checking",
+      "source_bytes": 359,
+      "source_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+    },
+    {
+      "cached_input_tokens": 18176,
+      "chargeable_tokens": 19242,
+      "input_tokens": 18757,
+      "language": "bend2",
+      "ordinal": 10,
+      "output_tokens": 485,
+      "proof_synthesis": "one isolated agent turn; not kernel checking",
+      "source_bytes": 817,
+      "source_sha256": "sha256:2b6d4c7d3b2aa08ea568a313a4df597d3765f7da3b9812061d9a2a15dc15ae05"
+    },
+    {
+      "cached_input_tokens": 18176,
+      "chargeable_tokens": 18913,
+      "input_tokens": 18570,
+      "language": "semaprax-scalar-v1",
+      "ordinal": 10,
+      "output_tokens": 343,
+      "proof_synthesis": "one isolated agent turn; not kernel checking",
+      "source_bytes": 359,
+      "source_sha256": "sha256:8c8d35ab8bfe4db8a435311306387e2d2845d3214d917a8d2328687e33768418"
+    }
+  ],
+  "schema": "semaprax.bend2-law-benchmark.law16-effort-summary.v1"
+}

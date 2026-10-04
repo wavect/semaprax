@@ -325,6 +325,25 @@ confinement or distributed locking. The checkpoint is the persistence boundary;
 `DatabaseFixture` remains an in-memory decision mirror, not a physical database
 transaction with application state.
 
+The generation-backed job-store seam leaves a crash-left staging file in place:
+it never promotes, reads, or deletes that uncommitted file during `open`.
+Recovery scans its bounded owned staging namespace and allocates later names;
+an excessive or exhausted namespace refuses open. This avoids reusing an
+ambiguous stage while writer exclusion remains a separate store concern.
+
+`GenerationJobStore` supports one writable owner per canonical root. `open`
+holds an OS-backed advisory lock through the handle lifetime and returns a
+closed busy refusal to a second live writer, including relative and canonical
+path aliases. The fixed lock filename is only a rendezvous point: process exit
+releases the OS lock, so its retained name never blocks a later recovery.
+
+If a generation or `ACTIVE` rename has happened but its later hook or directory
+sync fails, the store reports `PublicationUncertain` and poisons that handle.
+The caller must drop it and reopen under the writer lock; it must never retry
+from the pre-commit table. Failures before rename remain ordinary retry-safe
+I/O refusals. Recovery reads only `ACTIVE`, so an acknowledged pointer keeps
+the job and its side record together.
+
 Execution checkpoints a claim and then `Running` before invoking the handler.
 Recovery replays the original attempt times, expires an unstarted lease at its
 recorded deadline, and turns a retained `Running` attempt into `Uncertain`.

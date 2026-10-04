@@ -188,9 +188,17 @@ pub enum JobStoreError {
     LeaseNotCurrent,
     /// The job is not in a state this operation is legal from.
     IllegalTransition,
-    /// A durable write failed; the store's on-disk state is exactly what it
-    /// was before the call (see `super::durable_fs`), so callers may retry.
+    /// A durable write definitely failed before its destination was
+    /// published. The live handle remains usable and callers may retry.
     Io,
+    /// Another live `GenerationJobStore` holds this root's OS-backed
+    /// exclusive writer lock. The caller must wait for that owner to close or
+    /// terminate, then open a fresh handle instead of writing a stale table.
+    WriterBusy,
+    /// A durable generation or `ACTIVE` pointer may already be visible even
+    /// though its acknowledgement failed. This handle is poisoned and must
+    /// be dropped; recovery requires opening a fresh writer handle.
+    PublicationUncertain,
     /// The persisted generation bytes were corrupt, truncated, or exceeded
     /// a bound. Refused rather than partially trusted.
     CorruptGeneration,

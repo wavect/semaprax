@@ -116,9 +116,9 @@ impl Ctx {
         self.declarations.push(Declaration { name, sort });
     }
 
-    fn fresh_name(&mut self, hint: &str) -> String {
+    fn fresh_name(&mut self, binding: usize) -> String {
         self.fresh += 1;
-        format!("smt_discharge_{hint}_{}", self.fresh)
+        format!("semaprax_smt_binding_{binding}_{}", self.fresh)
     }
 }
 
@@ -336,7 +336,7 @@ fn translate_block_body(
 ) -> Result<Translated, UnsupportedReason> {
     for definition in definitions {
         let translated = translate_expr(ctx, &definition.value, guard)?;
-        let bound_name = ctx.fresh_name(&definition.name);
+        let bound_name = ctx.fresh_name(definition.binding);
         let sort = translated.sort;
         ctx.declarations.push(Declaration {
             name: bound_name.clone(),
@@ -363,10 +363,18 @@ pub struct EnsuresEncoding {
     pub obligations: Vec<SideObligation>,
 }
 
+/// The solver-owned spelling of one authored parameter. Model replay uses
+/// this exact map instead of guessing from a source name.
+pub struct ParameterSymbol {
+    pub source_name: String,
+    pub symbol: String,
+}
+
 /// The complete deterministic encoding of one supported function: shared
 /// declarations/axioms/obligations (from parameters, `requires`, and the
 /// body), plus one independent [`EnsuresEncoding`] per `ensures` clause.
 pub struct FunctionEncoding {
+    pub parameter_symbols: Vec<ParameterSymbol>,
     pub declarations: Vec<Declaration>,
     pub range_axioms: Vec<String>,
     /// Unconditional definitional equalities (`result` and every `let`);
@@ -403,15 +411,21 @@ pub fn translate_function(function: &Function) -> Result<FunctionEncoding, Unsup
         fresh: 0,
         label_prefix: "requires".to_owned(),
     };
+    let mut parameter_symbols = Vec::new();
     for param in &subject.parameters {
-        ctx.declare(param.name.clone(), param.sort);
+        let symbol = format!("semaprax_smt_binding_{}_0", param.binding);
+        ctx.declare(symbol.clone(), param.sort);
         ctx.scope.push((
             param.binding,
             Translated {
-                term: param.name.clone(),
+                term: symbol.clone(),
                 sort: param.sort,
             },
         ));
+        parameter_symbols.push(ParameterSymbol {
+            source_name: param.name.clone(),
+            symbol,
+        });
     }
 
     let mut requires_terms = Vec::new();
@@ -437,7 +451,10 @@ pub fn translate_function(function: &Function) -> Result<FunctionEncoding, Unsup
                     .to_owned(),
             });
         }
-        let result_name = "result".to_owned();
+        let result_name = format!(
+            "semaprax_smt_binding_{}_0",
+            subject.result_binding.expect("result term has binding")
+        );
         // Deliberately not `ctx.declare()`: that also asserts an
         // unconditional range axiom, which would be unsound here. `result`
         // is defined equal to `body.term`, which may itself be an
@@ -525,6 +542,7 @@ pub fn translate_function(function: &Function) -> Result<FunctionEncoding, Unsup
     }
 
     Ok(FunctionEncoding {
+        parameter_symbols,
         declarations: ctx.declarations,
         range_axioms: ctx.range_axioms,
         definitions: ctx.definitions,
@@ -562,14 +580,17 @@ mod tests {
             "module app.t;\n@id(\"app.t.f\")\nfn f(a: i64) -> i64\n    requires a >= 0\n    ensures result >= 0\n{ a }\n",
         );
         let encoding = translate_function(&f).expect("supported");
-        assert_eq!(encoding.requires_terms, vec!["(>= a 0)".to_owned()]);
+        assert_eq!(
+            encoding.requires_terms,
+            vec!["(>= semaprax_smt_binding_0_0 0)".to_owned()]
+        );
         assert_eq!(encoding.ensures.len(), 1);
-        assert_eq!(encoding.ensures[0].term, "(>= result 0)");
+        assert_eq!(encoding.ensures[0].term, "(>= semaprax_smt_binding_1_0 0)");
         // `a` is a real input: it gets an unconditional i64 range axiom.
         assert!(encoding
             .range_axioms
             .iter()
-            .any(|axiom| axiom.contains('a')));
+            .any(|axiom| axiom.contains("semaprax_smt_binding_0_0")));
         // `result` must NOT get one: it is a derived value defined via
         // `definitions`, and its range is a provable obligation elsewhere,
         // never an axiom — asserting both would be unsound whenever the
@@ -579,11 +600,10 @@ mod tests {
         assert!(!encoding
             .range_axioms
             .iter()
-            .any(|axiom| axiom.contains("result")));
-        assert!(encoding
-            .definitions
-            .iter()
-            .any(|definition| definition == "(= result a)"));
+            .any(|axiom| axiom.contains("semaprax_smt_binding_1_0")));
+        assert!(encoding.definitions.iter().any(
+            |definition| definition == "(= semaprax_smt_binding_1_0 semaprax_smt_binding_0_0)"
+        ));
     }
 
     #[test]
@@ -595,7 +615,9 @@ mod tests {
         assert!(encoding
             .shared_obligations
             .iter()
-            .any(|obligation| obligation.formula.contains("(+ a b)")));
+            .any(|obligation| obligation
+                .formula
+                .contains("(+ semaprax_smt_binding_0_0 semaprax_smt_binding_1_0)")));
     }
 
     #[test]
@@ -613,9 +635,15 @@ fn f(a: i64) -> i64
         let add_obligation = encoding
             .shared_obligations
             .iter()
-            .find(|obligation| obligation.formula.contains("(+ a 1)"))
+            .find(|obligation| {
+                obligation
+                    .formula
+                    .contains("(+ semaprax_smt_binding_0_0 1)")
+            })
             .expect("the then-branch addition contributes an obligation");
-        assert!(add_obligation.guard.contains("(> a 0)"));
+        assert!(add_obligation
+            .guard
+            .contains("(> semaprax_smt_binding_0_0 0)"));
     }
 
     #[test]
@@ -634,9 +662,15 @@ fn f(a: i64) -> i64
         let add_obligation = encoding
             .shared_obligations
             .iter()
-            .find(|obligation| obligation.formula.contains("(+ a 1)"))
+            .find(|obligation| {
+                obligation
+                    .formula
+                    .contains("(+ semaprax_smt_binding_0_0 1)")
+            })
             .expect("the right operand's addition contributes an obligation");
-        assert!(add_obligation.guard.contains("(not (= a 0))"));
+        assert!(add_obligation
+            .guard
+            .contains("(not (= semaprax_smt_binding_0_0 0))"));
     }
 
     #[test]
@@ -670,7 +704,9 @@ fn f(a: i64) -> i64
         assert!(encoding
             .shared_obligations
             .iter()
-            .any(|obligation| obligation.formula.contains("(+ a a)")));
+            .any(|obligation| obligation
+                .formula
+                .contains("(+ semaprax_smt_binding_0_0 semaprax_smt_binding_0_0)")));
     }
 
     #[test]
@@ -691,6 +727,28 @@ fn f(a: i64) -> i64
             translate_function(&f),
             Err(UnsupportedReason::MutableLocalBinding { .. })
         ));
+    }
+
+    #[test]
+    fn source_names_cannot_collide_with_solver_binding_symbols() {
+        let f = function(
+            "module audit.smt_collision;\n@id(\"audit.smt_collision.f\")\nfn f(semaprax_smt_binding_1_1: i64) -> i64\n    ensures result == semaprax_smt_binding_1_1\n{ let x = 0; x + semaprax_smt_binding_1_1 }\n",
+        );
+        let encoding = translate_function(&f).expect("supported");
+        let names = encoding
+            .declarations
+            .iter()
+            .map(|declaration| declaration.name.as_str())
+            .collect::<std::collections::BTreeSet<_>>();
+        assert_eq!(names.len(), encoding.declarations.len());
+        assert_eq!(
+            encoding.parameter_symbols[0].source_name,
+            "semaprax_smt_binding_1_1"
+        );
+        assert_eq!(
+            encoding.parameter_symbols[0].symbol,
+            "semaprax_smt_binding_0_0"
+        );
     }
 
     #[test]
@@ -777,5 +835,11 @@ fn f(a: i64) -> i64
         );
         let encoding = translate_function(&f).expect("supported");
         assert_eq!(encoding.ensures.len(), 1);
+        let names = encoding
+            .declarations
+            .iter()
+            .map(|declaration| declaration.name.as_str())
+            .collect::<std::collections::BTreeSet<_>>();
+        assert_eq!(names.len(), encoding.declarations.len());
     }
 }

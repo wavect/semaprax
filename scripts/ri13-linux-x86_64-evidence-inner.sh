@@ -9,6 +9,9 @@ test "$(uname -m)" = x86_64
 test -n "${RI13_EXPECTED_REVISION:-}"
 test -n "${RI13_IMAGE_TAG:-}"
 test -n "${RI13_IMAGE_DIGEST:-}"
+test "${RI13_RUST_API_INDEX_DIR:-}" = /rust-api-index
+test -f "$RI13_RUST_API_INDEX_DIR/regex-1.13.1-index-envelope.json"
+test -f "$RI13_RUST_API_INDEX_DIR/url-2.5.8-index-envelope.json"
 test "$(git rev-parse HEAD)" = "$RI13_EXPECTED_REVISION"
 test -z "$(git status --porcelain)"
 test -x /usr/bin/clang
@@ -27,6 +30,7 @@ python3 examples/ri13-combined-app/linked-receipt.py --self-test \
 
 python3 - <<'PY' > /evidence/environment.json
 import json
+import os
 import platform
 import subprocess
 
@@ -39,8 +43,8 @@ print(json.dumps({
     "system": platform.system(),
     "machine": platform.machine(),
     "execution": "linux-x86_64-under-rosetta",
-    "image_tag": "${RI13_IMAGE_TAG}",
-    "image_digest": "${RI13_IMAGE_DIGEST}",
+    "image_tag": os.environ["RI13_IMAGE_TAG"],
+    "image_digest": os.environ["RI13_IMAGE_DIGEST"],
     "rustc": output("rustc", "--version"),
     "cargo": output("cargo", "--version"),
     "clang": output("/usr/bin/clang", "--version").splitlines()[0],

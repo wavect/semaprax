@@ -4,8 +4,65 @@ mod m2 {
 mod m3 {
     include!("../generated/m3.rs");
 }
-use semaprax::project::{with_authenticated_project, ProjectRevision};
+use semaprax::project::ProjectRevision;
+use semaprax_native_rust_interop::{
+    indexed_binding::SelectedPackage, with_authenticated_indexed_regex_url_project,
+    IndexedProjectRegexRegistrySelection, IndexedProjectUrlRegistrySelection,
+};
+use semaprax_rust_api_index::RustApiIndex;
 use std::sync::Arc;
+
+const REGEX_INDEX: &[u8] = include_bytes!(
+    "../../../../crates/semaprax-rust-api-index/fixtures/regex-1.13.1-index-envelope.json"
+);
+const URL_INDEX: &[u8] = include_bytes!(
+    "../../../../crates/semaprax-rust-api-index/fixtures/url-2.5.8-index-envelope.json"
+);
+
+fn unified_revision(manifest: &std::path::Path) -> Arc<ProjectRevision> {
+    let source = std::fs::read_to_string(manifest.parent().unwrap().join("src/app.spx"))
+        .expect("read unified authenticated Project source");
+    let regex_index = RustApiIndex::admit_extractor_output(REGEX_INDEX).unwrap();
+    let url_index = RustApiIndex::admit_extractor_output(URL_INDEX).unwrap();
+    let regex_package = SelectedPackage {
+        cargo_alias: "regex_alias",
+        name: "regex",
+        version: "1.13.1",
+        source_sha256: regex_index.package().source_sha256.as_str(),
+        target: regex_index.target(),
+        feature_digest: regex_index.feature_digest(),
+        stable_rustc_version: regex_index.stable_rustc_version(),
+    };
+    let url_package = SelectedPackage {
+        cargo_alias: "url_alias",
+        name: "url",
+        version: "2.5.8",
+        source_sha256: url_index.package().source_sha256.as_str(),
+        target: url_index.target(),
+        feature_digest: url_index.feature_digest(),
+        stable_rustc_version: url_index.stable_rustc_version(),
+    };
+    let regex =
+        ["regex.new", "regex.match"].map(|import_id| IndexedProjectRegexRegistrySelection {
+            source_path: "src/app.spx",
+            source: &source,
+            import_id,
+            index_bytes: regex_index.canonical_json().as_bytes(),
+            package: regex_package,
+        });
+    let url = ["url.new", "url.view"].map(|import_id| IndexedProjectUrlRegistrySelection {
+        source_path: "src/app.spx",
+        source: &source,
+        import_id,
+        index_bytes: url_index.canonical_json().as_bytes(),
+        package: url_package,
+    });
+    with_authenticated_indexed_regex_url_project(manifest, &regex, &url, |snapshot| {
+        snapshot.check()?;
+        Ok(snapshot.retain_revision())
+    })
+    .expect("admitted held indexed unified Project")
+}
 
 fn main() {
     assert_eq!(ri06_regex_owner::run(), Ok(41));
@@ -55,19 +112,8 @@ fn main() {
     drop(stateful);
     assert_eq!(domain.live_environments(), 0);
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let revision = with_authenticated_project(
-        &root
-            .parent()
-            .unwrap()
-            .parent()
-            .unwrap()
-            .join("ri13-m3-local-http/project/semaprax.toml"),
-        |snapshot| {
-            snapshot.check()?;
-            Ok(snapshot.retain_revision())
-        },
-    )
-    .unwrap();
+    let unified_manifest = root.parent().unwrap().join("unified-project/semaprax.toml");
+    let revision = unified_revision(&unified_manifest);
     let runtime = tokio::runtime::Builder::new_current_thread()
         .build()
         .unwrap();

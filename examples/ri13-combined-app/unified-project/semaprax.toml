@@ -1,0 +1,19 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "ri13-unified-project-candidate"
+version = "0.1.0"
+profile = "source-local-future-indexed-rust.v1"
+
+[modules]
+entry = "ri13.unified_project"
+sources = ["src/app.spx", "src/tests.spx"]
+tests = ["ri13.unified_project_tests"]
+
+[exports]
+web = ["regex.run", "url.run"]
+rust_async = ["ri13.m3.score"]
+
+[rust-dependencies]
+regex = ["=1.13.1"]
+url = ["=2.5.8"]

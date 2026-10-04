@@ -13,10 +13,24 @@ as one reproducible receipt:
 4. The linked route prepares all selected M1/M2/M3 generated packages and
    executes its one-process consumer after the three profile-specific routes.
 
-The profiles deliberately remain separate. The current Project Future profile
-does not admit the M1 owner imports or M2 record/callback projection in one
-Project. The receipt is a combined executable gate for the three
-real application paths, not a claim that those source profiles are one ABI.
+The standalone M1, M2, and M3 profiles remain as independent measurement
+routes. The linked preparation below uses one additional, closed Project
+profile rather than treating those standalone profiles as one ABI.
+
+`unified-project/` is the concrete authored one-Project route. It combines
+the M1 imports, M2 declarations, and M3 yielding export under
+`source-local-future-indexed-rust.v1`. That profile admits only the exact
+Regex/Url dependency pair and two M1 exports; putting those dependencies under
+the ordinary `source-local-future.v1` profile still rejects with `SPX-J100`.
+The successful `linked/prepare` path writes
+one generated subject binding for the authenticated M1, M2, and M3 inputs, and
+the consumer build refuses to link without it.
+
+M1's committed Regex and Url API indexes are `aarch64-apple-darwin` inputs.
+Their package generator requires the current native target, so a Linux x86_64
+attempt correctly stops at `SPX-B112` before it can produce the linked M1
+packages. This is an acceptance limit of the pinned M1 input, not a fallback
+or a reason to retarget its authenticated index.
 
 ## Reproduce
 
@@ -116,14 +130,14 @@ performance claim.
 
 ## Linked generated fixture
 
-`linked/prepare` authenticates the saved M1 Project, M2 source revision, and
-M3 Future Project independently, then derives their generated packages/modules
-into one local consumer. A single manifest cannot honestly carry all three:
-M1's `[rust-dependencies]` are admitted only by the scalar package profile,
-while M3 selects `source-local-future.v1`. The `consumer` binary links the M1
-owner crates, M2 C/Rust callback module, and M3 generated Future module in one
-process. It emits `ri13-linked-project-ok` only after all three routes return
-their checked values; it does not claim a mixed-profile Project ABI.
+`linked/prepare` authenticates `unified-project/` for all M1/M2/M3 generated
+outputs. The closed profile carries the exact M1 dependencies and exports,
+while retaining the M3 Future selection. It derives the M2 record/callback
+output and M3 Future module from one held snapshot, and the `consumer` retains
+that same unified Project revision before registering M3. The `consumer` binary
+links the M1 owner crates, M2 C/Rust callback module, and M3 generated Future
+module in one process. It emits `ri13-linked-project-ok` only after all three
+routes return their checked values.
 
 The prepare result is intentionally untracked. Reproduce the linked route with
 its own private target directory:
@@ -136,10 +150,10 @@ CLANG=/usr/bin/clang CARGO_TARGET_DIR="$PWD/target/ri13-linked" \
 ```
 
 `linked-receipt.py` performs the no-Cargo structural assertion for the route.
-It binds each independently admitted M1/M2/M3 source selection to its linked
-preparation path, generated C inputs, consumer result checks, and existing
-copied-byte ledger contract. It preserves unavailable foreign copy cells and
-does not replace the compiled linked consumer gate.
+It binds one authenticated Project selection to its M1/M2/M3 preparation
+paths, generated C inputs, consumer result checks, and existing copied-byte
+ledger contract. It preserves unavailable foreign copy cells and does not
+replace the compiled linked consumer gate.
 
 Run its static control without Cargo:
 
@@ -153,24 +167,75 @@ python3 examples/ri13-combined-app/linked-receipt.py --self-test
 run without starting a container by default. It requires an already-pulled
 Linux x86_64 toolchain image named by immutable digest and an existing Linux
 Cargo cache that contains the locked dependencies; it never pulls an image or
-permits guest network access. For example, this only prints the exact plan:
+permits guest network access. It also requires a directory containing separate
+Linux x86_64 Rustdoc extractor envelopes named
+`regex-1.13.1-index-envelope.json` and `url-2.5.8-index-envelope.json`.
+Capture those from the exact locked package sources with the pinned extractor
+and `--target x86_64-unknown-linux-gnu`, then convert them with
+`crates/semaprax-rust-api-index/tools/rustdoc_json_to_index.py` as specified in
+[Rust API Index v2](../../docs/RUST-API-INDEX-V2.md). Editing the committed
+Darwin envelopes is not an admissible substitute. The runner validates their
+schema, package identity, and Linux target before it starts a container; the
+M1 and linked preparation routes replay them and retain the existing exact
+target and package checks.
+
+The pinned evidence image supplies stable Rust 1.98 but does not contain the
+pinned nightly extractor. First provision the exact Linux x86_64
+`nightly-2026-10-02` toolchain with the bounded provisioner below. It starts a
+single 2 GiB guest, verifies the official dated manifest plus the `rustc`,
+`cargo`, and `rust-std` archive SHA-256 values, installs only those components,
+and verifies the exact rustdoc version. Its supplied Cargo home is read-only;
+it verifies the locked `regex` and `url` archives and that each mounted source
+directory matches its verified archive, but does not invoke Cargo. The output
+receipt records all those inputs. This is the one preparation step with guest
+network access.
+
+```sh
+scripts/ri13-linux-x86_64-nightly-provision.sh --run \
+  --image 'ri13-linux-evidence:rust-1.98.0@sha256:c9024b5897124ae3a7f124a41dbe4d301c7319daf4e9aed82b23424648eb311e' \
+  --cargo-home /absolute/linux-x86_64-cargo-home \
+  --output /absolute/ri13-nightly-2026-10-02-x86_64-linux
+```
+
+Then prepare the two envelopes. The preparation runner mounts the provisioned
+toolchain and Cargo inputs read-only, uses locked offline `cargo rustdoc`, and
+retains the raw JSON plus canonical envelopes and digest receipt. It does not
+run the M1/M2/M3 application gate:
+
+```sh
+scripts/ri13-linux-x86_64-index-prepare.sh --run \
+  --image 'ri13-linux-evidence:rust-1.98.0@sha256:c9024b5897124ae3a7f124a41dbe4d301c7319daf4e9aed82b23424648eb311e' \
+  --cargo-home /absolute/linux-x86_64-cargo-home \
+  --nightly-toolchain /absolute/ri13-nightly-2026-10-02-x86_64-linux/toolchain \
+  --output /absolute/ri13-linux-rust-api-index-preparation
+```
+
+Pass `/absolute/ri13-linux-rust-api-index-preparation/envelopes` to the evidence
+runner as `--rust-api-index-dir`. A missing exact nightly toolchain is an
+unavailable prerequisite, not permission to alter target facts in an envelope.
+
+For example, this only prints the exact plan:
 
 ```sh
 scripts/ri13-linux-x86_64-evidence.sh --plan \
   --image 'registry.example/ri13-toolchain@sha256:IMAGE_DIGEST' \
   --cargo-home /absolute/linux-x86_64-cargo-home \
+  --rust-api-index-dir /absolute/ri13-linux-rust-api-indexes \
   --evidence /absolute/ri13-linux-x86_64-evidence
 ```
 
 After provisioning those inputs, replace `--plan` with `--run`. The runner
 refuses a preexisting evidence directory, clones the checked revision into its
 own writable evidence worktree, mounts the original checkout nowhere in the
-guest, and uses `container run --rm --network none`. The guest rejects any
-platform other than Linux x86_64 and writes `environment.json`, M1/M2/M3
-combined receipt and batch measurement, linked Project receipt, and command
-logs to the named evidence directory. `output-digests.json` records SHA-256
-digests for those outputs. It therefore leaves no running container and does
-not turn a Mac-local result into Linux evidence.
+guest, and uses one named `container run --detach --network none` guest. It
+retains the guest launch, stdout/stderr, and stopped-container inspection
+records before deleting that container. The guest rejects any platform other
+than Linux x86_64 and writes `environment.json`, M1/M2/M3 combined receipt and
+batch measurement, linked Project receipt, and command logs to the named
+evidence directory. `output-digests.json` records SHA-256 digests for the
+admitted outputs. It therefore leaves no running container and does not turn a
+Mac-local result into Linux evidence. No Linux evidence has been recorded by
+this route yet.
 
 ## Explicit Wasm refusal evidence
 

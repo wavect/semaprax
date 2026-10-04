@@ -23,6 +23,38 @@ fn function(source: &str) -> Function {
     program.functions.swap_remove(0)
 }
 
+#[test]
+fn alpha_renamed_parameters_render_the_same_solver_script() {
+    let left = function(
+        "module app.t;\n@id(\"app.t.left\")\nfn left(a: i64) -> i64\n    ensures result == a\n{ let x = a + 1; x - 1 }\n",
+    );
+    let right = function(
+        "module app.t;\n@id(\"app.t.right\")\nfn right(semaprax_smt_binding_1_1: i64) -> i64\n    ensures result == semaprax_smt_binding_1_1\n{ let renamed = semaprax_smt_binding_1_1 + 1; renamed - 1 }\n",
+    );
+    let left = render_postcondition_script(&translate_function(&left).unwrap(), 0, 2000);
+    let right = render_postcondition_script(&translate_function(&right).unwrap(), 0, 2000);
+    assert_eq!(left, right);
+}
+
+#[test]
+fn solver_model_symbols_replay_as_authored_parameter_names() {
+    let f = function(
+        "module app.t;\n@id(\"app.t.f\")\nfn f(semaprax_smt_binding_1_1: i64) -> i64\n    ensures result != semaprax_smt_binding_1_1\n{ semaprax_smt_binding_1_1 }\n",
+    );
+    let encoding = translate_function(&f).unwrap();
+    let mut model = crate::assurance_manifest::smt_discharge::model::Model::new();
+    model.insert(
+        encoding.parameter_symbols[0].symbol.clone(),
+        crate::assurance_manifest::smt_discharge::model::ModelValue::Int(7),
+    );
+    let model = replay_model_to_source(&encoding, model).unwrap();
+    assert!(model.contains_key("semaprax_smt_binding_1_1"));
+    assert!(matches!(
+        replay_function(&f, &model),
+        Ok(ReplayOutcome::EnsuresViolated { ensures_index: 0 })
+    ));
+}
+
 /// Every executable module needs `fn main() -> i64`, exactly like
 /// `assurance_manifest`'s own `write_temp` test helper appends; `generate()`
 /// otherwise rejects the module before `derive_obligations` ever runs.
@@ -50,6 +82,124 @@ fn short_limits() -> RunLimits {
     }
 }
 
+#[cfg(unix)]
+fn fake_solver(label: &str, script: &str) -> (std::path::PathBuf, Provisioning) {
+    use std::os::unix::fs::PermissionsExt;
+
+    let path = std::env::temp_dir().join(format!(
+        "semaprax-smt-public-version-{label}-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    std::fs::write(&path, format!("#!/bin/sh\n{script}\n")).unwrap();
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
+    (
+        path.clone(),
+        Provisioning {
+            binary: path,
+            identity: "z3",
+        },
+    )
+}
+
+#[cfg(unix)]
+#[test]
+fn public_solver_version_refuses_empty_nonzero_malformed_and_missing_fixtures() {
+    for (label, script, expected) in [
+        (
+            "success",
+            "printf 'Z3 version fixture\\n'",
+            Some("Z3 version fixture"),
+        ),
+        ("empty", "exit 0", None),
+        ("nonzero", "printf bad; exit 1", None),
+        ("malformed", "printf '\\377'", None),
+    ] {
+        let (path, provisioning) = fake_solver(label, script);
+        assert_eq!(solver_version(&provisioning).as_deref(), expected);
+        std::fs::remove_file(path).unwrap();
+    }
+    assert_eq!(
+        solver_version(&Provisioning {
+            binary: std::path::PathBuf::from("/missing/semaprax-public-version"),
+            identity: "z3",
+        }),
+        None
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn proof_version_failure_is_inconclusive_and_timeout_skips_the_probe() {
+    let (path, provisioning) = fake_solver(
+        "broken-proof-version",
+        "if [ \"$1\" = --version ]; then exec sleep 30; fi\ncat >/dev/null\nprintf unsat",
+    );
+    let f =
+        function("module app.t; @id(\"app.t.f\") fn f(a: i64) -> i64 ensures result == a { a }");
+    let start = std::time::Instant::now();
+    let outcome = discharge_postcondition(&f, 0, Some(&provisioning), &short_limits());
+    assert!(
+        matches!(outcome, DischargeOutcome::Inconclusive { reason } if reason.contains("version probe unavailable"))
+    );
+    assert!(start.elapsed() < Duration::from_secs(2));
+    std::fs::remove_file(path).unwrap();
+
+    let (path, provisioning) = fake_solver(
+        "timeout-skips-version",
+        "if [ \"$1\" = --version ]; then exec sleep 30; fi\ncat >/dev/null\nprintf timeout",
+    );
+    let start = std::time::Instant::now();
+    let outcome = discharge_postcondition(&f, 0, Some(&provisioning), &short_limits());
+    assert!(
+        matches!(outcome, DischargeOutcome::Inconclusive { reason } if reason.contains("bounded timeout"))
+    );
+    assert!(start.elapsed() < Duration::from_millis(500));
+    std::fs::remove_file(path).unwrap();
+}
+
+#[cfg(unix)]
+#[test]
+fn unknown_query_does_not_wait_for_broken_version_probe() {
+    use std::os::unix::fs::PermissionsExt;
+    let path = std::env::temp_dir().join(format!(
+        "semaprax-smt-version-integration-{}",
+        std::process::id()
+    ));
+    std::fs::write(
+        &path,
+        "#!/bin/sh\nif [ \"$1\" = --version ]; then exec sleep 30; fi\ncat >/dev/null\nprintf 'unknown\\n'\n",
+    )
+    .unwrap();
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let provisioning = Provisioning {
+        binary: path.clone(),
+        identity: "z3",
+    };
+    let f = function(
+        "module app.t;\n@id(\"app.t.f\")\nfn f(a: i64) -> i64 ensures result == a { a }\n",
+    );
+    let start = std::time::Instant::now();
+    let outcome = discharge_postcondition(
+        &f,
+        0,
+        Some(&provisioning),
+        &RunLimits {
+            timeout: Duration::from_secs(2),
+            max_output_bytes: 1024,
+        },
+    );
+    assert!(
+        matches!(outcome, DischargeOutcome::Inconclusive { ref reason } if reason.contains("unknown")),
+        "{outcome:?}"
+    );
+    assert!(start.elapsed() < Duration::from_secs(3));
+    std::fs::remove_file(path).unwrap();
+}
+
 // ---------------------------------------------------------------------
 // Script rendering
 // ---------------------------------------------------------------------
@@ -63,8 +213,8 @@ fn postcondition_script_has_the_expected_shape() {
     let script = render_postcondition_script(&encoding, 0, 2000);
     assert!(script.contains("(set-option :timeout 2000)"));
     assert!(script.contains("(set-logic QF_LIA)"));
-    assert!(script.contains("(declare-const a Int)"));
-    assert!(script.contains("(=> (>= a 0) (>= result 0))"));
+    assert!(script.contains("(declare-const semaprax_smt_binding_0_0 Int)"));
+    assert!(script.contains("(=> (>= semaprax_smt_binding_0_0 0) (>= semaprax_smt_binding_1_0 0))"));
     assert!(script.contains("(assert (not"));
     assert!(script.contains("(check-sat)"));
     assert!(script.contains("(get-model)"));
@@ -86,9 +236,9 @@ fn a_derived_arithmetic_value_never_gets_an_unconditional_range_axiom() {
     ));
     let encoding = translate_function(&f).expect("supported");
     let script = render_postcondition_script(&encoding, 0, 2000);
-    assert!(!script.contains("(and (>= result"));
-    assert!(script.contains("(assert (= result (+ a 1)))"));
-    assert!(script.contains("(>= (+ a 1)"));
+    assert!(!script.contains("(and (>= semaprax_smt_binding_1_0"));
+    assert!(script.contains("(assert (= semaprax_smt_binding_1_0 (+ semaprax_smt_binding_0_0 1)))"));
+    assert!(script.contains("(>= (+ semaprax_smt_binding_0_0 1)"));
 }
 
 #[test]
@@ -111,8 +261,11 @@ fn a_later_requires_cannot_justify_an_earlier_arithmetic_node() {
     assert_eq!(encoding.requires_obligations.len(), 2);
     assert_eq!(encoding.requires_obligations[0].len(), 1);
     let script = render_postcondition_script(&encoding, 0, 2000);
-    assert!(script.contains("(=> true (=> true (and (>= (+ a 1)"));
-    assert!(!script.contains(&format!("(assert (< a {}))", i64::MAX)));
+    assert!(script.contains("(=> true (=> true (and (>= (+ semaprax_smt_binding_0_0 1)"));
+    assert!(!script.contains(&format!(
+        "(assert (< semaprax_smt_binding_0_0 {}))",
+        i64::MAX
+    )));
 }
 
 #[test]
@@ -129,7 +282,7 @@ fn variable_multiplication_cannot_claim_qf_lia() {
 #[test]
 fn checked_reference_witness_distinguishes_overflow_and_empty_domain() {
     let f = function(
-        "module app.t;\n@id(\"app.t.f\")\nfn f(a: i64) -> i64\n    requires a + 1 > a\n    ensures result == a\n{ a }\n"
+        "module app.t;\n@id(\"app.t.f\")\nfn f(a: i64) -> i64\n    requires a + 1 > a\n    ensures result == a\n{ a }\n",
     );
     let witness = bounded_domain_witness(&f, 8).expect("zero is a witness");
     validate_domain_witness(&f, &witness).expect("checked replay");

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run one preregistered LAW-16 review trial through ``codex exec``.
+"""Run one preregistered LAW-16 Boolean source/proof edit through ``codex exec``.
 
 The runner intentionally gives the model no checkout.  It starts Codex in a
 fresh empty directory with its read-only sandbox, retains its complete JSONL
@@ -21,8 +21,10 @@ import time
 from datetime import datetime, timezone
 
 
-SCHEMA = "semaprax.bend2-law-benchmark.codex-agent-trial.v1"
+SCHEMA = "semaprax.bend2-law-benchmark.codex-agent-trial.v2"
+EDIT_RESPONSE_SCHEMA = "semaprax.bend2-law-benchmark.boolean-edit-response.v1"
 MAX_EVENT_BYTES = 32 * 1024 * 1024
+TASK = "scalar-contract-bug-v1"
 
 
 def _plan_module():
@@ -64,6 +66,7 @@ def selected_trial(plan: dict, trial_id: str) -> dict:
 
 
 def usage(events: list[dict]) -> dict | None:
+    """Keep Codex cache telemetry, without charging its input-token subset twice."""
     completed = [event for event in events if event.get("type") == "turn.completed"]
     if len(completed) != 1 or not isinstance(completed[0].get("usage"), dict):
         return None
@@ -71,22 +74,79 @@ def usage(events: list[dict]) -> dict | None:
     fields = ("input_tokens", "cached_input_tokens", "output_tokens")
     if any(not isinstance(raw.get(field), int) or raw[field] < 0 for field in fields):
         return None
-    return {field: raw[field] for field in fields} | {"total_tokens": sum(raw[field] for field in fields)}
+    # Codex reports cached input as the reusable subset of input_tokens.  The
+    # fixed token budget charges the full input once plus generated output;
+    # cached_input_tokens is retained as provenance for later cost analysis.
+    return {field: raw[field] for field in fields} | {"total_tokens": raw["input_tokens"] + raw["output_tokens"]}
+
+
+def edit_context(trial: dict) -> dict:
+    if not trial["id"].startswith(TASK + ":"):
+        raise ValueError("isolated Codex edit route admits only the pinned Boolean task")
+    root = pathlib.Path(__file__).with_name("fixtures")
+    if trial["language"] == "bend2":
+        extension, attack, success = ".bend", "bend-two-value-boolean-law-gaming-v1.bend", "bend-two-value-boolean-v1.bend"
+    elif trial["language"] == "semaprax-scalar-v1":
+        extension, attack, success = ".spx", "semaprax-two-value-boolean-law-gaming-v1.spx", "semaprax-two-value-boolean-v1.spx"
+    else:
+        raise ValueError("isolated Codex edit route has an unsupported language")
+    attack_source = (root / attack).read_text()
+    return {"extension": extension, "attack_source": attack_source, "attack_sha256": sha256(attack_source.encode()),
+            "success_source": (root / success).read_text()}
 
 
 def prompt(trial: dict) -> str:
+    context = edit_context(trial)
+    request = {
+        "task": TASK, "trial_id": trial["id"], "language": trial["language"], "laws": trial["acceptance"],
+        "seeded_law_gaming_source": context["attack_source"], "seeded_law_gaming_source_sha256": context["attack_sha256"],
+        "required_success_case": trial["acceptance"]["success_witnesses"],
+        "response_schema": EDIT_RESPONSE_SCHEMA,
+        "response_fields": ["schema", "trial_id", "language", "final_source", "proof_explanation", "seeded_attack"],
+        "seeded_attack_fields": ["source_sha256", "decision", "reason"],
+    }
     return (
-        "You are participating in a LAW-16 evidence trial. Work only from this prompt; do not "
-        "attempt to inspect files, repositories, network resources, credentials, or tools. "
-        "State whether the following preregistered acceptance rule is logically complete, then "
-        "give one concise reason. This is a review response, not a code edit or proof execution.\n\n"
-        + json.dumps({"trial_id": trial["id"], "language": trial["language"], "acceptance": trial["acceptance"]}, sort_keys=True)
+        "Perform the bounded Boolean law repair from the embedded seeded law-gaming source. Do not inspect files, "
+        "repositories, network resources, credentials, or tools. Return only one compact JSON object with the requested "
+        "schema. `final_source` must contain the complete repaired source, preserving the stated law and any Bend proof body. "
+        "`seeded_attack.source_sha256` must copy `seeded_law_gaming_source_sha256` verbatim and its decision must be `reject`. "
+        "Your explanation is an agent claim, not proof execution.\n\n"
+        + json.dumps(request, sort_keys=True)
     )
+
+
+def final_response(events: list[dict]) -> str | None:
+    messages = []
+    for event in events:
+        item = event.get("item") if event.get("type") == "item.completed" else None
+        if isinstance(item, dict) and item.get("type") == "agent_message" and isinstance(item.get("text"), str):
+            messages.append(item["text"])
+    return messages[-1] if len(messages) == 1 else None
+
+
+def edit_response(text: str, trial: dict, context: dict) -> dict:
+    try:
+        value = json.loads(text)
+    except json.JSONDecodeError as error:
+        raise ValueError("Codex final response is not one JSON edit artifact") from error
+    if not isinstance(value, dict) or set(value) != {"schema", "trial_id", "language", "final_source", "proof_explanation", "seeded_attack"}:
+        raise ValueError("Codex final response has unexpected edit artifact fields")
+    if value["schema"] != EDIT_RESPONSE_SCHEMA or value["trial_id"] != trial["id"] or value["language"] != trial["language"]:
+        raise ValueError("Codex final response is not bound to the selected trial")
+    if not isinstance(value["final_source"], str) or not value["final_source"] or not isinstance(value["proof_explanation"], str) or not value["proof_explanation"]:
+        raise ValueError("Codex final response lacks source or proof explanation")
+    attack = value["seeded_attack"]
+    if not isinstance(attack, dict) or set(attack) != {"source_sha256", "decision", "reason"}:
+        raise ValueError("Codex final response lacks seeded-attack evidence")
+    if attack["source_sha256"] != sha256(context["attack_source"].encode()) or attack["decision"] != "reject" or not isinstance(attack["reason"], str) or not attack["reason"]:
+        raise ValueError("Codex seeded-attack evidence is not bound to the embedded control")
+    return value
 
 
 def run(plan_path: pathlib.Path, trial_id: str, evidence_dir: pathlib.Path, executable: str = "codex") -> dict:
     plan = PLAN.object_json(plan_path, PLAN.SCHEMA)
     trial = selected_trial(plan, trial_id)
+    context = edit_context(trial)
     configuration = plan.get("agent_configuration", {}).get("value")
     if not isinstance(configuration, dict):
         raise ValueError("trial plan lacks agent configuration")
@@ -122,10 +182,19 @@ def run(plan_path: pathlib.Path, trial_id: str, evidence_dir: pathlib.Path, exec
         raise ValueError("Codex trial did not emit valid JSONL events") from error
     observed_usage = usage(events)
     within_budget = observed_usage is not None and observed_usage["total_tokens"] <= configuration["fixed_budget"]["max_tokens"]
+    response = None
+    if completed.returncode == 0 and within_budget:
+        response = edit_response(final_response(events) or "", trial, context)
+        response_path = evidence_dir / "model-response.json"
+        final_source_path = evidence_dir / ("final-source" + context["extension"])
+        attack_path = evidence_dir / "seeded-attack-claim.json"
+        response_path.write_text(canonical(response))
+        final_source_path.write_text(response["final_source"])
+        attack_path.write_text(canonical(response["seeded_attack"]))
     return {
         "schema": SCHEMA,
         "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-        "status": "executed_unassessed" if completed.returncode == 0 and within_budget else "ineligible",
+        "status": "edit_artifacts_captured" if response is not None else "ineligible",
         "plan": {"path": str(plan_path.resolve()), "sha256": PLAN.digest(plan_path)},
         "trial": {"id": trial["id"], "language": trial["language"]},
         "execution": {"command": command[:-1] + ["<preregistered-prompt>"], "sandbox": "read-only",
@@ -133,11 +202,13 @@ def run(plan_path: pathlib.Path, trial_id: str, evidence_dir: pathlib.Path, exec
                       "exit_code": completed.returncode, "wall_ms": elapsed_ms},
         "artifacts": {"events": artifact(events_path, evidence_dir), "stderr": artifact(stderr_path, evidence_dir),
                       "codex_version": artifact(version_path, evidence_dir)},
+        "edit_artifacts": None if response is None else {"model_response": artifact(response_path, evidence_dir),
+            "final_source": artifact(final_source_path, evidence_dir), "seeded_attack_claim": artifact(attack_path, evidence_dir)},
         "telemetry": {"token_usage": observed_usage, "within_fixed_token_budget": within_budget,
                       "cost_usage": {"status": "unavailable", "reason": "codex_exec_json_events_do_not_supply_monetary_usage"}},
-        "phase_measurements": {phase: {"status": "unavailable", "reason": "one Codex turn does not isolate this phase"}
+        "phase_measurements": {phase: {"status": "unavailable", "reason": "one Codex turn does not independently execute this phase"}
                                for phase in PLAN.MEASUREMENT_PHASES},
-        "nonclaims": ["this record does not assess acceptance witnesses or attacks", "this record is not a completed LAW-16 agent trial", "no monetary cost observation was available"],
+        "nonclaims": ["captured edit bytes are not a successful law repair", "the seeded-attack claim is not independent rejection evidence", "this record is not a completed LAW-16 agent trial", "no monetary cost observation was available"],
     }
 
 
@@ -156,7 +227,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.output.exists() or not args.output.parent.is_dir():
         parser.error("output must be a new file beneath an existing directory")
     args.output.write_text(canonical(document))
-    return 0 if document["status"] == "executed_unassessed" else 1
+    return 0 if document["status"] == "edit_artifacts_captured" else 1
 
 
 if __name__ == "__main__":

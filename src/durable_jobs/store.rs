@@ -8,10 +8,10 @@
 //! ([`super::durable_fs::commit_bytes`], twice — once for the generation
 //! file, once for the `ACTIVE` pointer that selects it) before mutating
 //! `self` or returning success to the caller. A call that fails at any
-//! point in that sequence leaves both the in-memory table and the on-disk
-//! state exactly as they were before the call: there is no path that
-//! reports success without a durable commit, and no path that partially
-//! mutates the live table on failure.
+//! point before publication leaves both the in-memory table and the on-disk
+//! state unchanged. A failure after either rename is explicitly uncertain:
+//! the handle is poisoned and callers must reopen rather than retry from a
+//! stale table.
 //!
 //! This is deliberately simple rather than fast: a whole-table rewrite per
 //! mutation does not scale to a high-throughput queue, and does not try to.
@@ -19,7 +19,6 @@
 //! medium could sit behind without changing a caller — not a production
 //! scheduler.
 
-#[cfg(test)]
 use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -45,8 +44,8 @@ pub trait JobStore: sealed::Sealed {
 
     /// Same as `enqueue`, but atomically commits one additional
     /// caller-declared `(side_key, side_value)` entry into the same
-    /// generation. Both land together or neither does — see
-    /// `store::tests::a_fault_during_the_joint_commit_leaves_neither_the_job_nor_the_side_record_visible`.
+    /// generation. Recovery exposes both entries together through `ACTIVE` —
+    /// see `store::tests::joint_commit_faults_preserve_visibility_and_side_record_atomicity`.
     /// This is the seam's answer to issue #192's "database transaction
     /// integration for enqueue plus application state change" criterion,
     /// read as ADR 0005 re-scopes it: atomicity against this durable store,
@@ -87,11 +86,14 @@ pub trait JobStore: sealed::Sealed {
 /// `tests::module_source_never_reaches_for_network_process_or_env_authority`
 /// for an executable check of that claim across this whole module tree).
 pub struct GenerationJobStore {
+    _writer_lock: durable_fs::JobWriterLock,
     generations_dir: PathBuf,
     active_path: PathBuf,
     current_generation: u64,
+    next_generation: u64,
     table: JobTable,
     stage_seq: AtomicU64,
+    poisoned: bool,
 }
 
 fn active_bytes_to_generation(bytes: &[u8]) -> Option<u64> {
@@ -108,6 +110,14 @@ impl GenerationJobStore {
     /// a second at the same path.
     pub fn open(root: &Path) -> Result<Self, JobStoreError> {
         durable_fs::ensure_dir(root).map_err(|_| JobStoreError::Io)?;
+        let root = durable_fs::canonical_existing_dir(root).map_err(|_| JobStoreError::Io)?;
+        let writer_lock = match durable_fs::acquire_job_writer_lock(&root) {
+            Ok(lock) => lock,
+            Err(error) if error.kind() == io::ErrorKind::WouldBlock => {
+                return Err(JobStoreError::WriterBusy);
+            }
+            Err(_) => return Err(JobStoreError::Io),
+        };
         let generations_dir =
             durable_fs::ensure_dir(&root.join("generations")).map_err(|_| JobStoreError::Io)?;
         let active_path = root.join("ACTIVE");
@@ -127,66 +137,110 @@ impl GenerationJobStore {
                 (generation, table)
             }
         };
+        // A terminated process can leave a `create_new` stage behind.  Do
+        // not remove or promote it: it may be live, foreign, or incomplete.
+        // Start after every owned stage sequence observed in both directories
+        // so this reopened handle cannot collide with the crashed attempt.
+        let stage_seq = durable_fs::next_job_stage_sequence([&root, &generations_dir])
+            .map_err(|_| JobStoreError::Io)?;
+        let next_generation = durable_fs::highest_job_generation(&generations_dir)
+            .map_err(|_| JobStoreError::Io)?
+            .max(current_generation);
         Ok(GenerationJobStore {
+            _writer_lock: writer_lock,
             generations_dir,
             active_path,
             current_generation,
+            next_generation,
             table,
-            stage_seq: AtomicU64::new(0),
+            stage_seq: AtomicU64::new(stage_seq),
+            poisoned: false,
         })
     }
 
-    fn next_stage_name(&self, label: &str) -> String {
-        let seq = self.stage_seq.fetch_add(1, Ordering::Relaxed);
-        format!(".stage-{label}-{seq}")
+    fn next_stage_name(&self, label: &str) -> Result<String, JobStoreError> {
+        let seq = self
+            .stage_seq
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
+                current.checked_add(1)
+            })
+            .map_err(|_| JobStoreError::Io)?;
+        Ok(format!(".stage-{label}-{seq}"))
     }
 
     /// Durably publish `candidate` as the next generation, then adopt it as
-    /// the live table. On any error, `self` (both in-memory and on-disk)
-    /// remains exactly as it was: either the generation file write failed
-    /// (nothing new is reachable from `ACTIVE`), or it succeeded but the
-    /// `ACTIVE` pointer write failed (a stray but harmless generation file
-    /// exists; `ACTIVE` still names the previous one, which is what a later
-    /// `open` will load).
+    /// the live table. Before either rename, an I/O error leaves this handle
+    /// usable. After a rename, visibility may have occurred; that returns
+    /// `PublicationUncertain` and permanently poisons this handle.
     fn commit(&mut self, candidate: JobTable) -> Result<(), JobStoreError> {
+        if self.poisoned {
+            return Err(JobStoreError::PublicationUncertain);
+        }
         let bytes = codec::encode(&candidate).ok_or(JobStoreError::RecordTooLarge)?;
         let new_generation = self
-            .current_generation
+            .next_generation
             .checked_add(1)
             .ok_or(JobStoreError::TickOverflow)?;
         let generation_path = self.generations_dir.join(new_generation.to_string());
-        let generation_stage = self.next_stage_name("generation");
-        durable_fs::commit_bytes(&generation_path, &generation_stage, &bytes)
-            .map_err(|_| JobStoreError::Io)?;
-        let pointer_stage = self.next_stage_name("active");
-        durable_fs::commit_bytes(
-            &self.active_path,
-            &pointer_stage,
-            &new_generation.to_le_bytes(),
-        )
-        .map_err(|_| JobStoreError::Io)?;
+        let generation_stage = self.next_stage_name("generation")?;
+        self.commit_bytes(&generation_path, &generation_stage, &bytes)?;
+        // From this point the generation filename is immutable, even if the
+        // later ACTIVE write fails before its rename. Reserve the next name
+        // now so this live handle cannot replace it on an ordinary retry.
+        self.next_generation = new_generation;
+        let pointer_stage = self.next_stage_name("active")?;
+        let active_path = self.active_path.clone();
+        self.commit_bytes(&active_path, &pointer_stage, &new_generation.to_le_bytes())?;
         self.table = candidate;
         self.current_generation = new_generation;
         Ok(())
     }
 
-    /// Test-only hook into `commit`'s durable-write sequence, used to prove
-    /// that a fault at any point leaves the store's *readable* state
-    /// (`self.table` after a fresh `open`) unchanged.
+    fn commit_bytes(
+        &mut self,
+        destination: &Path,
+        stage_name: &str,
+        bytes: &[u8],
+    ) -> Result<(), JobStoreError> {
+        match durable_fs::commit_bytes(destination, stage_name, bytes) {
+            Ok(()) => Ok(()),
+            Err(durable_fs::CommitBytesError::NotPublished(_)) => Err(JobStoreError::Io),
+            Err(durable_fs::CommitBytesError::PublishedUncertain(_)) => {
+                self.poisoned = true;
+                Err(JobStoreError::PublicationUncertain)
+            }
+        }
+    }
+
+    /// Test-only hook into `commit`'s durable-write sequence. A pre-rename
+    /// fault is ordinary I/O; a post-rename fault poisons this handle and a
+    /// fresh open observes whatever `ACTIVE` selected.
     #[cfg(test)]
     fn commit_with_hook(
         &mut self,
         candidate: JobTable,
         hook: &mut Option<&mut durable_fs::Hook<'_>>,
-    ) -> Result<(), io::Error> {
-        let bytes = codec::encode(&candidate).ok_or_else(|| io::Error::other("too large"))?;
-        let new_generation = self.current_generation + 1;
+    ) -> Result<(), JobStoreError> {
+        if self.poisoned {
+            return Err(JobStoreError::PublicationUncertain);
+        }
+        let bytes = codec::encode(&candidate).ok_or(JobStoreError::RecordTooLarge)?;
+        let new_generation = self
+            .next_generation
+            .checked_add(1)
+            .ok_or(JobStoreError::TickOverflow)?;
         let generation_path = self.generations_dir.join(new_generation.to_string());
-        let generation_stage = self.next_stage_name("generation");
-        durable_fs::commit_bytes_with_hook(&generation_path, &generation_stage, &bytes, hook)?;
-        let pointer_stage = self.next_stage_name("active");
-        durable_fs::commit_bytes_with_hook(
-            &self.active_path,
+        let generation_stage = self
+            .next_stage_name("generation")
+            .map_err(|_| JobStoreError::Io)?;
+        self.commit_bytes_with_hook(&generation_path, &generation_stage, &bytes, hook)?;
+        self.next_generation = new_generation;
+        let pointer_stage = self
+            .next_stage_name("active")
+            .map_err(|_| JobStoreError::Io)?;
+        let active_path = self.active_path.clone();
+        self.commit_bytes_with_hook(
+            &active_path,
             &pointer_stage,
             &new_generation.to_le_bytes(),
             hook,
@@ -194,6 +248,24 @@ impl GenerationJobStore {
         self.table = candidate;
         self.current_generation = new_generation;
         Ok(())
+    }
+
+    #[cfg(test)]
+    fn commit_bytes_with_hook(
+        &mut self,
+        destination: &Path,
+        stage_name: &str,
+        bytes: &[u8],
+        hook: &mut Option<&mut durable_fs::Hook<'_>>,
+    ) -> Result<(), JobStoreError> {
+        match durable_fs::commit_bytes_with_hook(destination, stage_name, bytes, hook) {
+            Ok(()) => Ok(()),
+            Err(durable_fs::CommitBytesError::NotPublished(_)) => Err(JobStoreError::Io),
+            Err(durable_fs::CommitBytesError::PublishedUncertain(_)) => {
+                self.poisoned = true;
+                Err(JobStoreError::PublicationUncertain)
+            }
+        }
     }
 
     fn find_by_idempotency_key(&self, key: &[u8]) -> Option<&JobRecord> {
@@ -410,5 +482,8 @@ fn lease_is_current(record: &JobRecord, token: &LeaseToken, now_tick: u64) -> bo
     }
 }
 
+#[cfg(test)]
+#[path = "store/process_tests.rs"]
+mod process_tests;
 #[cfg(test)]
 mod tests;

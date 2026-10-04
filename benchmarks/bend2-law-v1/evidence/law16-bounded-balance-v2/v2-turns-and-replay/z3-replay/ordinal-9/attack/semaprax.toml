@@ -1,0 +1,6 @@
+schema = "semaprax.project.v1"
+name = "law16-bounded-balance"
+entry = "app"
+sources = ["core/core.spx", "src/app.spx", "tests/tests.spx"]
+web_exports = ["app.main"]
+tests = ["app.tests"]

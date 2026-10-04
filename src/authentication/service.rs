@@ -1,6 +1,8 @@
 //! Actual password/session composition for embedding applications.
 use super::password::{PasswordHasherHost, StoredPasswordHash};
-use super::session::{AuthenticatedSession, SessionService, SessionStore, SessionToken};
+use super::session::{
+    AuthenticatedSession, InMemorySessionStore, SessionService, SessionStore, SessionToken,
+};
 use super::{AuthEntropy, AuthError, SecretBytes};
 use std::collections::BTreeMap;
 
@@ -108,6 +110,15 @@ impl AuthService {
         self.passwords.verify(password, hash)?;
         self.sessions.issue(sessions, entropy, subject, now, ttl)
     }
+    /// Explicit host-time maintenance for the capped process-local session
+    /// store. Call before login when expired records may consume capacity.
+    pub fn purge_expired_sessions(
+        &self,
+        sessions: &mut InMemorySessionStore,
+        now: u64,
+    ) -> Result<usize, AuthError> {
+        sessions.purge_expired(now)
+    }
     pub fn protected(
         &self,
         sessions: &dyn SessionStore,
@@ -211,6 +222,19 @@ mod tests {
         );
         service.logout(&mut sessions, rotated.bearer(), 14).unwrap();
         assert!(service.protected(&sessions, rotated.bearer(), 15).is_err());
+        assert_eq!(service.purge_expired_sessions(&mut sessions, 32), Ok(2));
+        let later = service
+            .login(
+                &accounts,
+                &mut sessions,
+                &mut entropy,
+                "alice",
+                &password,
+                32,
+                20,
+            )
+            .unwrap();
+        assert!(service.protected(&sessions, later.bearer(), 32).is_ok());
         assert_eq!(format!("{:?}", password), "SecretBytes([REDACTED])");
     }
 }

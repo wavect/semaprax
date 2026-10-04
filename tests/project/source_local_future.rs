@@ -20,6 +20,11 @@ const MANIFEST: &str = "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \
 const APP: &str = "module local_future.app;\n@id(\"local_future.ask\")\nfn ask(seed: i64) -> i64 yields i64 -> i64 {\n    let answer = yield seed + 1;\n    answer + seed\n}\n@id(\"local_future.main\")\nfn main() -> i64 { 0 }\n";
 const TESTS: &str =
     "module local_future.tests;\n@id(\"local_future.tests.main\")\nfn main() -> i64 { 0 }\n";
+const RI13_MANIFEST: &str =
+    include_str!("../../examples/ri13-combined-app/unified-project/semaprax.toml");
+const RI13_APP: &str = include_str!("../../examples/ri13-combined-app/unified-project/src/app.spx");
+const RI13_TESTS: &str =
+    include_str!("../../examples/ri13-combined-app/unified-project/src/tests.spx");
 
 struct Fixture(PathBuf);
 impl Drop for Fixture {
@@ -118,6 +123,46 @@ fn authenticated_project_selected_async_export_awaits_host_future_and_refuses_dr
     std::fs::write(wrong.manifest(), wrong_manifest).unwrap();
     let refusal = with_authenticated_project(&wrong.manifest(), |_snapshot| Ok(())).unwrap_err();
     assert_eq!(refusal[0].code, "SPX-H006");
+}
+
+#[test]
+fn ri13_closed_indexed_rust_profile_requires_authenticated_indexed_selections() {
+    let root = std::env::temp_dir().join(format!(
+        "semaprax-ri13-unified-future-{}-{}",
+        std::process::id(),
+        SERIAL.fetch_add(1, Ordering::Relaxed)
+    ));
+    std::fs::create_dir_all(root.join("src")).unwrap();
+    let root = root.canonicalize().unwrap();
+    std::fs::write(root.join("semaprax.toml"), RI13_MANIFEST).unwrap();
+    for (name, source) in [("app.spx", RI13_APP), ("tests.spx", RI13_TESTS)] {
+        let parsed = semaprax::parse(source, Path::new(name)).unwrap();
+        std::fs::write(
+            root.join("src").join(name),
+            semaprax::format::canonical(&parsed),
+        )
+        .unwrap();
+    }
+    let manifest = root.join("semaprax.toml");
+    let refusal = with_authenticated_project(&manifest, |_snapshot| Ok(())).unwrap_err();
+    assert_eq!(refusal[0].code, "SPX-H006");
+    assert!(refusal[0]
+        .message
+        .contains("authenticated indexed Rust selections"));
+
+    let untrusted = RI13_MANIFEST.replace("url = [\"=2.5.8\"]", "url = [\"=2.5.7\"]");
+    std::fs::write(&manifest, untrusted).unwrap();
+    let refusal = with_authenticated_project(&manifest, |_snapshot| Ok(())).unwrap_err();
+    assert_eq!(refusal[0].code, "SPX-H006");
+
+    let unsupported = RI13_MANIFEST.replace(
+        "url = [\"=2.5.8\"]",
+        "url = [\"=2.5.8\"]\nserde = [\"=1.0.228\"]",
+    );
+    std::fs::write(&manifest, unsupported).unwrap();
+    let refusal = with_authenticated_project(&manifest, |_snapshot| Ok(())).unwrap_err();
+    assert_eq!(refusal[0].code, "SPX-H006");
+    let _ = std::fs::remove_dir_all(root);
 }
 
 #[test]

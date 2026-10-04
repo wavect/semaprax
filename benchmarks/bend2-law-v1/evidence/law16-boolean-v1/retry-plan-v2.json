@@ -1,0 +1,1036 @@
+{
+  "agent_configuration": {
+    "path": "/private/tmp/law16-codex-edit-pilot.CBbG5U/retry-config-v2.json",
+    "sha256": "sha256:91a97b9cd7685ea50abf4d42c49010d505de6cd2a1458b7fe0013c7650bb0d84",
+    "value": {
+      "execution": {
+        "max_wall_seconds": 600,
+        "repository_access": "none",
+        "runner": "codex_exec_json_v1",
+        "sandbox": "read-only",
+        "working_directory": "fresh-empty-directory"
+      },
+      "fixed_budget": {
+        "max_cost_usd": "0.00",
+        "max_tokens": 20000
+      },
+      "model": {
+        "configuration_sha256": "sha256:64447e79bd4a6066d11fff1887e71c2c10da34a14aa3d0399f004c381ca49898",
+        "name": "gpt-6-luna",
+        "provider": "openai-codex-cli"
+      },
+      "schema": "semaprax.bend2-law-benchmark.agent-trial-config.v1",
+      "tool_access": {
+        "filesystem": "read-only",
+        "network": "provider-managed",
+        "shell": "read-only"
+      },
+      "trials_per_cell": 10
+    }
+  },
+  "cells": [
+    {
+      "attacks": [
+        "weakened-postcondition"
+      ],
+      "fixture": {
+        "path": "fixtures/scalar-contract-bug-v1.json",
+        "sha256": "sha256:8324b19c20e73ac4eeea41896ed60b99db7dd007274fad3284dbfed92b83b93e"
+      },
+      "id": "scalar-contract-bug-v1",
+      "languages": [
+        "bend2",
+        "semaprax-scalar-v1"
+      ],
+      "laws": [
+        "postcondition",
+        "total-negation"
+      ],
+      "numeric_domain": "bool exact",
+      "status": "preregistered",
+      "trial_status": "not_run",
+      "trials": [
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "weakened-postcondition": [
+                {
+                  "input": false,
+                  "output": false
+                }
+              ]
+            },
+            "required_outcome": "each success witness is accepted and every seeded attack is rejected",
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              }
+            ]
+          },
+          "execution": {
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "scalar-contract-bug-v1:bend2:1",
+          "language": "bend2",
+          "ordinal": 1,
+          "separate_measurements": {
+            "compile_or_runtime": "required_on_execution",
+            "law_kernel_check": "required_on_execution",
+            "proof_synthesis": "required_on_execution"
+          },
+          "status": "not_run",
+          "telemetry": {
+            "events": [
+              "token_usage",
+              "cost_usage"
+            ],
+            "provenance": "existing agent telemetry export",
+            "status": "required_on_execution"
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "weakened-postcondition": [
+                {
+                  "input": false,
+                  "output": false
+                }
+              ]
+            },
+            "required_outcome": "each success witness is accepted and every seeded attack is rejected",
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              }
+            ]
+          },
+          "execution": {
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "scalar-contract-bug-v1:bend2:2",
+          "language": "bend2",
+          "ordinal": 2,
+          "separate_measurements": {
+            "compile_or_runtime": "required_on_execution",
+            "law_kernel_check": "required_on_execution",
+            "proof_synthesis": "required_on_execution"
+          },
+          "status": "not_run",
+          "telemetry": {
+            "events": [
+              "token_usage",
+              "cost_usage"
+            ],
+            "provenance": "existing agent telemetry export",
+            "status": "required_on_execution"
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "weakened-postcondition": [
+                {
+                  "input": false,
+                  "output": false
+                }
+              ]
+            },
+            "required_outcome": "each success witness is accepted and every seeded attack is rejected",
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              }
+            ]
+          },
+          "execution": {
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "scalar-contract-bug-v1:bend2:3",
+          "language": "bend2",
+          "ordinal": 3,
+          "separate_measurements": {
+            "compile_or_runtime": "required_on_execution",
+            "law_kernel_check": "required_on_execution",
+            "proof_synthesis": "required_on_execution"
+          },
+          "status": "not_run",
+          "telemetry": {
+            "events": [
+              "token_usage",
+              "cost_usage"
+            ],
+            "provenance": "existing agent telemetry export",
+            "status": "required_on_execution"
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "weakened-postcondition": [
+                {
+                  "input": false,
+                  "output": false
+                }
+              ]
+            },
+            "required_outcome": "each success witness is accepted and every seeded attack is rejected",
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              }
+            ]
+          },
+          "execution": {
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "scalar-contract-bug-v1:bend2:4",
+          "language": "bend2",
+          "ordinal": 4,
+          "separate_measurements": {
+            "compile_or_runtime": "required_on_execution",
+            "law_kernel_check": "required_on_execution",
+            "proof_synthesis": "required_on_execution"
+          },
+          "status": "not_run",
+          "telemetry": {
+            "events": [
+              "token_usage",
+              "cost_usage"
+            ],
+            "provenance": "existing agent telemetry export",
+            "status": "required_on_execution"
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "weakened-postcondition": [
+                {
+                  "input": false,
+                  "output": false
+                }
+              ]
+            },
+            "required_outcome": "each success witness is accepted and every seeded attack is rejected",
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              }
+            ]
+          },
+          "execution": {
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "scalar-contract-bug-v1:bend2:5",
+          "language": "bend2",
+          "ordinal": 5,
+          "separate_measurements": {
+            "compile_or_runtime": "required_on_execution",
+            "law_kernel_check": "required_on_execution",
+            "proof_synthesis": "required_on_execution"
+          },
+          "status": "not_run",
+          "telemetry": {
+            "events": [
+              "token_usage",
+              "cost_usage"
+            ],
+            "provenance": "existing agent telemetry export",
+            "status": "required_on_execution"
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "weakened-postcondition": [
+                {
+                  "input": false,
+                  "output": false
+                }
+              ]
+            },
+            "required_outcome": "each success witness is accepted and every seeded attack is rejected",
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              }
+            ]
+          },
+          "execution": {
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "scalar-contract-bug-v1:bend2:6",
+          "language": "bend2",
+          "ordinal": 6,
+          "separate_measurements": {
+            "compile_or_runtime": "required_on_execution",
+            "law_kernel_check": "required_on_execution",
+            "proof_synthesis": "required_on_execution"
+          },
+          "status": "not_run",
+          "telemetry": {
+            "events": [
+              "token_usage",
+              "cost_usage"
+            ],
+            "provenance": "existing agent telemetry export",
+            "status": "required_on_execution"
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "weakened-postcondition": [
+                {
+                  "input": false,
+                  "output": false
+                }
+              ]
+            },
+            "required_outcome": "each success witness is accepted and every seeded attack is rejected",
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              }
+            ]
+          },
+          "execution": {
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "scalar-contract-bug-v1:bend2:7",
+          "language": "bend2",
+          "ordinal": 7,
+          "separate_measurements": {
+            "compile_or_runtime": "required_on_execution",
+            "law_kernel_check": "required_on_execution",
+            "proof_synthesis": "required_on_execution"
+          },
+          "status": "not_run",
+          "telemetry": {
+            "events": [
+              "token_usage",
+              "cost_usage"
+            ],
+            "provenance": "existing agent telemetry export",
+            "status": "required_on_execution"
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "weakened-postcondition": [
+                {
+                  "input": false,
+                  "output": false
+                }
+              ]
+            },
+            "required_outcome": "each success witness is accepted and every seeded attack is rejected",
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              }
+            ]
+          },
+          "execution": {
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "scalar-contract-bug-v1:bend2:8",
+          "language": "bend2",
+          "ordinal": 8,
+          "separate_measurements": {
+            "compile_or_runtime": "required_on_execution",
+            "law_kernel_check": "required_on_execution",
+            "proof_synthesis": "required_on_execution"
+          },
+          "status": "not_run",
+          "telemetry": {
+            "events": [
+              "token_usage",
+              "cost_usage"
+            ],
+            "provenance": "existing agent telemetry export",
+            "status": "required_on_execution"
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "weakened-postcondition": [
+                {
+                  "input": false,
+                  "output": false
+                }
+              ]
+            },
+            "required_outcome": "each success witness is accepted and every seeded attack is rejected",
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              }
+            ]
+          },
+          "execution": {
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "scalar-contract-bug-v1:bend2:9",
+          "language": "bend2",
+          "ordinal": 9,
+          "separate_measurements": {
+            "compile_or_runtime": "required_on_execution",
+            "law_kernel_check": "required_on_execution",
+            "proof_synthesis": "required_on_execution"
+          },
+          "status": "not_run",
+          "telemetry": {
+            "events": [
+              "token_usage",
+              "cost_usage"
+            ],
+            "provenance": "existing agent telemetry export",
+            "status": "required_on_execution"
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "weakened-postcondition": [
+                {
+                  "input": false,
+                  "output": false
+                }
+              ]
+            },
+            "required_outcome": "each success witness is accepted and every seeded attack is rejected",
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              }
+            ]
+          },
+          "execution": {
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "scalar-contract-bug-v1:bend2:10",
+          "language": "bend2",
+          "ordinal": 10,
+          "separate_measurements": {
+            "compile_or_runtime": "required_on_execution",
+            "law_kernel_check": "required_on_execution",
+            "proof_synthesis": "required_on_execution"
+          },
+          "status": "not_run",
+          "telemetry": {
+            "events": [
+              "token_usage",
+              "cost_usage"
+            ],
+            "provenance": "existing agent telemetry export",
+            "status": "required_on_execution"
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "weakened-postcondition": [
+                {
+                  "input": false,
+                  "output": false
+                }
+              ]
+            },
+            "required_outcome": "each success witness is accepted and every seeded attack is rejected",
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              }
+            ]
+          },
+          "execution": {
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "scalar-contract-bug-v1:semaprax-scalar-v1:1",
+          "language": "semaprax-scalar-v1",
+          "ordinal": 1,
+          "separate_measurements": {
+            "compile_or_runtime": "required_on_execution",
+            "law_kernel_check": "required_on_execution",
+            "proof_synthesis": "required_on_execution"
+          },
+          "status": "not_run",
+          "telemetry": {
+            "events": [
+              "token_usage",
+              "cost_usage"
+            ],
+            "provenance": "existing agent telemetry export",
+            "status": "required_on_execution"
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "weakened-postcondition": [
+                {
+                  "input": false,
+                  "output": false
+                }
+              ]
+            },
+            "required_outcome": "each success witness is accepted and every seeded attack is rejected",
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              }
+            ]
+          },
+          "execution": {
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "scalar-contract-bug-v1:semaprax-scalar-v1:2",
+          "language": "semaprax-scalar-v1",
+          "ordinal": 2,
+          "separate_measurements": {
+            "compile_or_runtime": "required_on_execution",
+            "law_kernel_check": "required_on_execution",
+            "proof_synthesis": "required_on_execution"
+          },
+          "status": "not_run",
+          "telemetry": {
+            "events": [
+              "token_usage",
+              "cost_usage"
+            ],
+            "provenance": "existing agent telemetry export",
+            "status": "required_on_execution"
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "weakened-postcondition": [
+                {
+                  "input": false,
+                  "output": false
+                }
+              ]
+            },
+            "required_outcome": "each success witness is accepted and every seeded attack is rejected",
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              }
+            ]
+          },
+          "execution": {
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "scalar-contract-bug-v1:semaprax-scalar-v1:3",
+          "language": "semaprax-scalar-v1",
+          "ordinal": 3,
+          "separate_measurements": {
+            "compile_or_runtime": "required_on_execution",
+            "law_kernel_check": "required_on_execution",
+            "proof_synthesis": "required_on_execution"
+          },
+          "status": "not_run",
+          "telemetry": {
+            "events": [
+              "token_usage",
+              "cost_usage"
+            ],
+            "provenance": "existing agent telemetry export",
+            "status": "required_on_execution"
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "weakened-postcondition": [
+                {
+                  "input": false,
+                  "output": false
+                }
+              ]
+            },
+            "required_outcome": "each success witness is accepted and every seeded attack is rejected",
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              }
+            ]
+          },
+          "execution": {
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "scalar-contract-bug-v1:semaprax-scalar-v1:4",
+          "language": "semaprax-scalar-v1",
+          "ordinal": 4,
+          "separate_measurements": {
+            "compile_or_runtime": "required_on_execution",
+            "law_kernel_check": "required_on_execution",
+            "proof_synthesis": "required_on_execution"
+          },
+          "status": "not_run",
+          "telemetry": {
+            "events": [
+              "token_usage",
+              "cost_usage"
+            ],
+            "provenance": "existing agent telemetry export",
+            "status": "required_on_execution"
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "weakened-postcondition": [
+                {
+                  "input": false,
+                  "output": false
+                }
+              ]
+            },
+            "required_outcome": "each success witness is accepted and every seeded attack is rejected",
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              }
+            ]
+          },
+          "execution": {
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "scalar-contract-bug-v1:semaprax-scalar-v1:5",
+          "language": "semaprax-scalar-v1",
+          "ordinal": 5,
+          "separate_measurements": {
+            "compile_or_runtime": "required_on_execution",
+            "law_kernel_check": "required_on_execution",
+            "proof_synthesis": "required_on_execution"
+          },
+          "status": "not_run",
+          "telemetry": {
+            "events": [
+              "token_usage",
+              "cost_usage"
+            ],
+            "provenance": "existing agent telemetry export",
+            "status": "required_on_execution"
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "weakened-postcondition": [
+                {
+                  "input": false,
+                  "output": false
+                }
+              ]
+            },
+            "required_outcome": "each success witness is accepted and every seeded attack is rejected",
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              }
+            ]
+          },
+          "execution": {
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "scalar-contract-bug-v1:semaprax-scalar-v1:6",
+          "language": "semaprax-scalar-v1",
+          "ordinal": 6,
+          "separate_measurements": {
+            "compile_or_runtime": "required_on_execution",
+            "law_kernel_check": "required_on_execution",
+            "proof_synthesis": "required_on_execution"
+          },
+          "status": "not_run",
+          "telemetry": {
+            "events": [
+              "token_usage",
+              "cost_usage"
+            ],
+            "provenance": "existing agent telemetry export",
+            "status": "required_on_execution"
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "weakened-postcondition": [
+                {
+                  "input": false,
+                  "output": false
+                }
+              ]
+            },
+            "required_outcome": "each success witness is accepted and every seeded attack is rejected",
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              }
+            ]
+          },
+          "execution": {
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "scalar-contract-bug-v1:semaprax-scalar-v1:7",
+          "language": "semaprax-scalar-v1",
+          "ordinal": 7,
+          "separate_measurements": {
+            "compile_or_runtime": "required_on_execution",
+            "law_kernel_check": "required_on_execution",
+            "proof_synthesis": "required_on_execution"
+          },
+          "status": "not_run",
+          "telemetry": {
+            "events": [
+              "token_usage",
+              "cost_usage"
+            ],
+            "provenance": "existing agent telemetry export",
+            "status": "required_on_execution"
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "weakened-postcondition": [
+                {
+                  "input": false,
+                  "output": false
+                }
+              ]
+            },
+            "required_outcome": "each success witness is accepted and every seeded attack is rejected",
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              }
+            ]
+          },
+          "execution": {
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "scalar-contract-bug-v1:semaprax-scalar-v1:8",
+          "language": "semaprax-scalar-v1",
+          "ordinal": 8,
+          "separate_measurements": {
+            "compile_or_runtime": "required_on_execution",
+            "law_kernel_check": "required_on_execution",
+            "proof_synthesis": "required_on_execution"
+          },
+          "status": "not_run",
+          "telemetry": {
+            "events": [
+              "token_usage",
+              "cost_usage"
+            ],
+            "provenance": "existing agent telemetry export",
+            "status": "required_on_execution"
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "weakened-postcondition": [
+                {
+                  "input": false,
+                  "output": false
+                }
+              ]
+            },
+            "required_outcome": "each success witness is accepted and every seeded attack is rejected",
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              }
+            ]
+          },
+          "execution": {
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "scalar-contract-bug-v1:semaprax-scalar-v1:9",
+          "language": "semaprax-scalar-v1",
+          "ordinal": 9,
+          "separate_measurements": {
+            "compile_or_runtime": "required_on_execution",
+            "law_kernel_check": "required_on_execution",
+            "proof_synthesis": "required_on_execution"
+          },
+          "status": "not_run",
+          "telemetry": {
+            "events": [
+              "token_usage",
+              "cost_usage"
+            ],
+            "provenance": "existing agent telemetry export",
+            "status": "required_on_execution"
+          }
+        },
+        {
+          "acceptance": {
+            "rejected_law_gaming_attacks": {
+              "weakened-postcondition": [
+                {
+                  "input": false,
+                  "output": false
+                }
+              ]
+            },
+            "required_outcome": "each success witness is accepted and every seeded attack is rejected",
+            "success_witnesses": [
+              {
+                "input": false,
+                "output": true
+              }
+            ]
+          },
+          "execution": {
+            "repository_access": "none",
+            "runner": "codex_exec_json_v1",
+            "sandbox": "read-only",
+            "working_directory": "fresh-empty-directory"
+          },
+          "id": "scalar-contract-bug-v1:semaprax-scalar-v1:10",
+          "language": "semaprax-scalar-v1",
+          "ordinal": 10,
+          "separate_measurements": {
+            "compile_or_runtime": "required_on_execution",
+            "law_kernel_check": "required_on_execution",
+            "proof_synthesis": "required_on_execution"
+          },
+          "status": "not_run",
+          "telemetry": {
+            "events": [
+              "token_usage",
+              "cost_usage"
+            ],
+            "provenance": "existing agent telemetry export",
+            "status": "required_on_execution"
+          }
+        }
+      ],
+      "trials_per_language": 10
+    },
+    {
+      "attacks": [
+        "no-op-transfer"
+      ],
+      "fixture": {
+        "path": "fixtures/structured-balance-transfer-v1.json",
+        "sha256": "sha256:e755c21170231ba94d966744b21c842a92c145b35c8f7b2d3fa67f1a69ce564a"
+      },
+      "id": "structured-balance-transfer-v1",
+      "languages": [
+        "bend2",
+        "semaprax-scalar-v1"
+      ],
+      "laws": [
+        "conservation",
+        "intended-state-change",
+        "nonnegative-balances"
+      ],
+      "numeric_domain": "u32 checked",
+      "reason": "SEMAPRAX reviewed scalar profile does not admit numeric domain `u32 checked`",
+      "status": "unsupported",
+      "trials": [],
+      "trials_per_language": 10
+    },
+    {
+      "attacks": [
+        "empty-sort"
+      ],
+      "fixture": {
+        "path": "fixtures/supported-list-theorem-v1.json",
+        "sha256": "sha256:027f3548bd0282dc7e38fa1cd9ba822176a4c7d281b559720a9fad398f0fbccd"
+      },
+      "id": "supported-list-theorem-v1",
+      "languages": [
+        "bend2",
+        "semaprax-scalar-v1"
+      ],
+      "laws": [
+        "permutation-and-multiplicity",
+        "sortedness"
+      ],
+      "numeric_domain": "u32 checked",
+      "reason": "SEMAPRAX reviewed scalar profile does not admit numeric domain `u32 checked`",
+      "status": "unsupported",
+      "trials": [],
+      "trials_per_language": 10
+    },
+    {
+      "attacks": [
+        "law-dropped-during-refactor"
+      ],
+      "fixture": {
+        "path": "fixtures/law-preserving-refactor-v1.json",
+        "sha256": "sha256:d467b1a05ecac911f91247270440ad9b3915483efd8eba43d3aabfd68fbc16ff"
+      },
+      "id": "law-preserving-refactor-v1",
+      "languages": [
+        "bend2",
+        "semaprax-scalar-v1"
+      ],
+      "laws": [
+        "before-after-observational-equivalence"
+      ],
+      "numeric_domain": "u32 checked",
+      "reason": "SEMAPRAX reviewed scalar profile does not admit numeric domain `u32 checked`",
+      "status": "unsupported",
+      "trials": [],
+      "trials_per_language": 10
+    },
+    {
+      "attacks": [
+        "agent-law-gaming"
+      ],
+      "fixture": {
+        "path": "fixtures/law-breaking-agent-edit-v1.json",
+        "sha256": "sha256:359c01461d0a015cc523d2ec70acbfbfb4cf8da724cd490a84426bdcf765a013"
+      },
+      "id": "law-breaking-agent-edit-v1",
+      "languages": [
+        "bend2",
+        "semaprax-scalar-v1"
+      ],
+      "laws": [
+        "declared-law-inventory"
+      ],
+      "numeric_domain": "u32 checked",
+      "reason": "SEMAPRAX reviewed scalar profile does not admit numeric domain `u32 checked`",
+      "status": "unsupported",
+      "trials": [],
+      "trials_per_language": 10
+    },
+    {
+      "attacks": [
+        "stale-cache-reuse"
+      ],
+      "fixture": {
+        "path": "fixtures/project-incremental-edit-v1.json",
+        "sha256": "sha256:b6b8e0e6112d08da25e6aeb03337d34467cee8ded3c81339925dc0a0d812fbb0"
+      },
+      "id": "project-incremental-edit-v1",
+      "languages": [
+        "bend2",
+        "semaprax-scalar-v1"
+      ],
+      "laws": [
+        "unchanged-module-reuse",
+        "changed-module-recheck"
+      ],
+      "numeric_domain": "u32 checked",
+      "reason": "SEMAPRAX reviewed scalar profile does not admit numeric domain `u32 checked`",
+      "status": "unsupported",
+      "trials": [],
+      "trials_per_language": 10
+    }
+  ],
+  "execution": {
+    "max_wall_seconds": 600,
+    "repository_access": "none",
+    "runner": "codex_exec_json_v1",
+    "sandbox": "read-only",
+    "working_directory": "fresh-empty-directory"
+  },
+  "manifest": {
+    "path": "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/manifest.json",
+    "sha256": "sha256:5697bca4c2aa1b64b5122ea0e989e2497eb60b377b82f90203c404a02ea89d64"
+  },
+  "measurement_phases": [
+    "proof_synthesis",
+    "law_kernel_check",
+    "compile_or_runtime"
+  ],
+  "nonclaims": [
+    "no agent trial executed",
+    "no token or cost events observed",
+    "no proof synthesis, law-kernel check, or compile/runtime time observed",
+    "no comparative or superiority result"
+  ],
+  "schema": "semaprax.bend2-law-benchmark.agent-trial-plan.v1",
+  "status": "partially_preregistered",
+  "timestamp": "2026-10-04T08:00:20.405652Z"
+}

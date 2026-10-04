@@ -654,7 +654,8 @@ pub use indexed_project::{
     IndexedProjectScalarSelection,
 };
 pub use indexed_regex_url_project::{
-    prepare_indexed_regex_url_project_packages, PreparedRegexUrlProjectPackages,
+    prepare_indexed_regex_url_project_packages, with_authenticated_indexed_regex_url_project,
+    with_authenticated_indexed_regex_url_project_packages, PreparedRegexUrlProjectPackages,
 };
 pub use indexed_url_project::{
     prepare_indexed_url_project_package, IndexedProjectUrlRegistrySelection,

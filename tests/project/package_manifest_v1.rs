@@ -24,6 +24,10 @@ use semaprax::{audit_capsule, package_lock_v3, package_registry, package_report_
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 
 const CALCULATOR_TABLES: &str = "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"calculator\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"calculator.app\"\nsources = [\"src/app.spx\", \"src/core.spx\", \"src/tests.spx\"]\ntests = [\"calculator.tests\"]\n\n[exports]\nweb = [\"calculator.add\", \"calculator.divide\", \"calculator.is-negative\", \"calculator.multiply\", \"calculator.not\", \"calculator.subtract\"]\n";
+const RI13_UNIFIED_PROJECT_MANIFEST: &str =
+    include_str!("../../examples/ri13-combined-app/unified-project/semaprax.toml");
+const RI13_UNIFIED_PROJECT_SOURCE: &str =
+    include_str!("../../examples/ri13-combined-app/unified-project/src/app.spx");
 
 const SPXGREP_TABLES: &str = "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"spxgrep\"\nversion = \"0.1.0\"\nprofile = \"useful-data-command.v1\"\n\n[modules]\nentry = \"spxgrep.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"spxgrep.tests\"]\n\n[exports]\nweb = [\"spxgrep.contains\"]\n\n[command]\nfunction = \"spxgrep.contains\"\n\n[capabilities]\nrequired = [\"process.stdout.write\"]\n";
 
@@ -172,6 +176,43 @@ fn codes(errors: &[semaprax::diagnostic::Diagnostic]) -> Vec<&str> {
 
 fn reject(source: &str) -> Vec<semaprax::diagnostic::Diagnostic> {
     ProjectManifest::parse(source).expect_err("manifest must reject")
+}
+
+#[test]
+fn ri13_unified_project_profile_admits_only_the_closed_indexed_rust_shape() {
+    semaprax::parse(
+        RI13_UNIFIED_PROJECT_SOURCE,
+        Path::new("ri13-unified-project/src/app.spx"),
+    )
+    .expect("the unified candidate source remains parser-admitted");
+    let manifest = ProjectManifest::parse(RI13_UNIFIED_PROJECT_MANIFEST)
+        .expect("the closed indexed-Rust profile admits the exact RI-13 candidate");
+    assert_eq!(
+        manifest.project_profile(),
+        semaprax::project::ProjectProfile::SourceLocalFutureIndexedRustV1
+    );
+    let unsupported = RI13_UNIFIED_PROJECT_MANIFEST.replace(
+        "source-local-future-indexed-rust.v1",
+        "source-local-future.v1",
+    );
+    let errors = reject(&unsupported);
+    assert_eq!(codes(&errors), ["SPX-J100"]);
+    assert!(
+        errors[0]
+            .message
+            .contains("require the scalar profile"),
+        "{errors:?}"
+    );
+
+    let with_semantic_package = RI13_UNIFIED_PROJECT_MANIFEST.replace(
+        "\n[rust-dependencies]",
+        "\n[dependencies]\nacme.math = \"^1.0.0\"\n\n[rust-dependencies]",
+    );
+    let errors = reject(&with_semantic_package);
+    assert_eq!(codes(&errors), ["SPX-J100"]);
+    assert!(errors[0]
+        .message
+        .contains("does not admit `[dependencies]` or `[dependency-sources]`"));
 }
 
 #[test]

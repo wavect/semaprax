@@ -1,0 +1,683 @@
+{
+  "aggregate": {
+    "agent_records": 20,
+    "bend_runtime_authenticated": 10,
+    "numeric_domain": "bool exact only",
+    "ordinals": 10,
+    "semaprax_runtime_authenticated": 10
+  },
+  "evidence_location": "local_unhosted",
+  "nonclaims": [
+    "not a completed LAW-16 repair result",
+    "not a Bend-versus-SEMAPRAX comparison or superiority result",
+    "not checked-u32 evidence",
+    "not an agent-authorship result"
+  ],
+  "pairs": [
+    {
+      "bend2": {
+        "acceptance": {
+          "bytes": 4340,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o1-bend-acceptance.json",
+          "sha256": "sha256:ced9fde3a87c9127b4b9bfebfe1f81006ccf20309dbd4db05ce249a98cfabd3f"
+        },
+        "acceptance_status": "two_input_bend_runtime_authenticated",
+        "agent_record": {
+          "bytes": 2972,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o1-bend-result.json",
+          "sha256": "sha256:9c1567a4c542d661deeae8c186b0e6defb71d0b46cf61be72ffb3275cc27d8d1"
+        },
+        "agent_status": "edit_artifacts_captured",
+        "cost_usage": {
+          "reason": "raw Bend CLI evidence has no provider billing record",
+          "status": "unavailable"
+        },
+        "numeric_domain": {
+          "caveat": "this Boolean microcell does not establish matched checked-u32 support",
+          "status": "bool_exact_only"
+        },
+        "proof_phase": {
+          "limitations": "the retained Bend verdict marker is not independently replayed proof",
+          "status": "observed_raw_kernel_output"
+        },
+        "token_usage": {
+          "cached_input_tokens": 11008,
+          "input_tokens": 16284,
+          "output_tokens": 325,
+          "total_tokens": 16609
+        },
+        "trial": "scalar-contract-bug-v1:bend2:1"
+      },
+      "ordinal": 1,
+      "semaprax": {
+        "acceptance": {
+          "bytes": 2927,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o1-semaprax-acceptance.json",
+          "sha256": "sha256:be7d68d003a7e7d4e90934296f9996cbedefdd9443f51192b6248ec7d0c6a63d"
+        },
+        "acceptance_status": "two_input_runtime_authenticated",
+        "agent_record": {
+          "bytes": 2997,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o1-semaprax-result.json",
+          "sha256": "sha256:d514254cb80c8f10b4cc928e1c74f273119d511a832a22338cfa2a056a613d44"
+        },
+        "agent_status": "edit_artifacts_captured",
+        "cost_usage": {
+          "reason": "raw compiler/runtime evidence has no provider billing record",
+          "status": "unavailable"
+        },
+        "proof_phase": {
+          "reason": "the scalar runtime route supplies no admitted formal Boolean proof phase",
+          "status": "unavailable"
+        },
+        "token_usage": {
+          "cached_input_tokens": 11008,
+          "input_tokens": 16251,
+          "output_tokens": 300,
+          "total_tokens": 16551
+        },
+        "trial": "scalar-contract-bug-v1:semaprax-scalar-v1:1"
+      }
+    },
+    {
+      "bend2": {
+        "acceptance": {
+          "bytes": 4348,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/ordinal-2-bend-runtime-evidence/acceptance.json",
+          "sha256": "sha256:e9c91d3169b6f8430375614585ad44f751a2028353902a6e8ba0c2e250ee140e"
+        },
+        "acceptance_status": "two_input_bend_runtime_authenticated",
+        "agent_record": {
+          "bytes": 2971,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/ordinal-2-bend-result.json",
+          "sha256": "sha256:4bdfd3000cc5e0cf6a1646d9dec882f35b5e12f04b55eef0863a7bb6a29a0de6"
+        },
+        "agent_status": "edit_artifacts_captured",
+        "cost_usage": {
+          "reason": "raw Bend CLI evidence has no provider billing record",
+          "status": "unavailable"
+        },
+        "numeric_domain": {
+          "caveat": "this Boolean microcell does not establish matched checked-u32 support",
+          "status": "bool_exact_only"
+        },
+        "proof_phase": {
+          "limitations": "the retained Bend verdict marker is not independently replayed proof",
+          "status": "observed_raw_kernel_output"
+        },
+        "token_usage": {
+          "cached_input_tokens": 11008,
+          "input_tokens": 16284,
+          "output_tokens": 323,
+          "total_tokens": 16607
+        },
+        "trial": "scalar-contract-bug-v1:bend2:2"
+      },
+      "ordinal": 2,
+      "semaprax": {
+        "acceptance": {
+          "bytes": 2926,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/ordinal-2-runtime-evidence/acceptance.json",
+          "sha256": "sha256:0ad07fcf195d57c0be489cd6b486c138c1a9f27c5dbdc83d95e940f0351903ee"
+        },
+        "acceptance_status": "two_input_runtime_authenticated",
+        "agent_record": {
+          "bytes": 2994,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/ordinal-2-result.json",
+          "sha256": "sha256:1a1b1680e309a6737516250f860f66ebdb9d05275f2d961ed16ad951afbd0edd"
+        },
+        "agent_status": "edit_artifacts_captured",
+        "cost_usage": {
+          "reason": "raw compiler/runtime evidence has no provider billing record",
+          "status": "unavailable"
+        },
+        "proof_phase": {
+          "reason": "the scalar runtime route supplies no admitted formal Boolean proof phase",
+          "status": "unavailable"
+        },
+        "token_usage": {
+          "cached_input_tokens": 11008,
+          "input_tokens": 16245,
+          "output_tokens": 308,
+          "total_tokens": 16553
+        },
+        "trial": "scalar-contract-bug-v1:semaprax-scalar-v1:2"
+      }
+    },
+    {
+      "bend2": {
+        "acceptance": {
+          "bytes": 4340,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o3-bend-acceptance.json",
+          "sha256": "sha256:f3bd04d045860144d4083d5e919b673047c4bcc52f2d79aa0e4becedaef2f6ec"
+        },
+        "acceptance_status": "two_input_bend_runtime_authenticated",
+        "agent_record": {
+          "bytes": 2971,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o3-bend-result.json",
+          "sha256": "sha256:80b8fa3b2eabe51b418d16ffbfc99a76d10b2139c5f705a98e568d6707cc455e"
+        },
+        "agent_status": "edit_artifacts_captured",
+        "cost_usage": {
+          "reason": "raw Bend CLI evidence has no provider billing record",
+          "status": "unavailable"
+        },
+        "numeric_domain": {
+          "caveat": "this Boolean microcell does not establish matched checked-u32 support",
+          "status": "bool_exact_only"
+        },
+        "proof_phase": {
+          "limitations": "the retained Bend verdict marker is not independently replayed proof",
+          "status": "observed_raw_kernel_output"
+        },
+        "token_usage": {
+          "cached_input_tokens": 11008,
+          "input_tokens": 16284,
+          "output_tokens": 324,
+          "total_tokens": 16608
+        },
+        "trial": "scalar-contract-bug-v1:bend2:3"
+      },
+      "ordinal": 3,
+      "semaprax": {
+        "acceptance": {
+          "bytes": 2927,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o3-semaprax-acceptance.json",
+          "sha256": "sha256:b3207dce159a45ff9109c7acd8c6a63b74b4dc71c36ca32ef3c96597061da6f4"
+        },
+        "acceptance_status": "two_input_runtime_authenticated",
+        "agent_record": {
+          "bytes": 2998,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o3-semaprax-result.json",
+          "sha256": "sha256:40716164a3b3bb1aad77d330e660b18097eb327ceac4bccaca401c7a7e79c7f0"
+        },
+        "agent_status": "edit_artifacts_captured",
+        "cost_usage": {
+          "reason": "raw compiler/runtime evidence has no provider billing record",
+          "status": "unavailable"
+        },
+        "proof_phase": {
+          "reason": "the scalar runtime route supplies no admitted formal Boolean proof phase",
+          "status": "unavailable"
+        },
+        "token_usage": {
+          "cached_input_tokens": 11008,
+          "input_tokens": 16251,
+          "output_tokens": 304,
+          "total_tokens": 16555
+        },
+        "trial": "scalar-contract-bug-v1:semaprax-scalar-v1:3"
+      }
+    },
+    {
+      "bend2": {
+        "acceptance": {
+          "bytes": 4340,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o4-bend-acceptance.json",
+          "sha256": "sha256:cccf849f6443c3f6cf77d06efc669854e2b5d48f7da90ae03c260245ee347688"
+        },
+        "acceptance_status": "two_input_bend_runtime_authenticated",
+        "agent_record": {
+          "bytes": 2971,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o4-bend-result.json",
+          "sha256": "sha256:b89d8d025e62ae3d08d994076f19c6b5fed3e5b7273c548c2939c600fa464706"
+        },
+        "agent_status": "edit_artifacts_captured",
+        "cost_usage": {
+          "reason": "raw Bend CLI evidence has no provider billing record",
+          "status": "unavailable"
+        },
+        "numeric_domain": {
+          "caveat": "this Boolean microcell does not establish matched checked-u32 support",
+          "status": "bool_exact_only"
+        },
+        "proof_phase": {
+          "limitations": "the retained Bend verdict marker is not independently replayed proof",
+          "status": "observed_raw_kernel_output"
+        },
+        "token_usage": {
+          "cached_input_tokens": 14080,
+          "input_tokens": 16284,
+          "output_tokens": 338,
+          "total_tokens": 16622
+        },
+        "trial": "scalar-contract-bug-v1:bend2:4"
+      },
+      "ordinal": 4,
+      "semaprax": {
+        "acceptance": {
+          "bytes": 2927,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o4-semaprax-acceptance.json",
+          "sha256": "sha256:8f3bc172356496731653dd3d9649a45edf2eba79b3b2234155fea11f1d6179d7"
+        },
+        "acceptance_status": "two_input_runtime_authenticated",
+        "agent_record": {
+          "bytes": 2996,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o4-semaprax-result.json",
+          "sha256": "sha256:79e980e3f7db1f097dd711d4541a187c7bbc8e97b02d03c986536f349cafdeab"
+        },
+        "agent_status": "edit_artifacts_captured",
+        "cost_usage": {
+          "reason": "raw compiler/runtime evidence has no provider billing record",
+          "status": "unavailable"
+        },
+        "proof_phase": {
+          "reason": "the scalar runtime route supplies no admitted formal Boolean proof phase",
+          "status": "unavailable"
+        },
+        "token_usage": {
+          "cached_input_tokens": 11008,
+          "input_tokens": 16251,
+          "output_tokens": 300,
+          "total_tokens": 16551
+        },
+        "trial": "scalar-contract-bug-v1:semaprax-scalar-v1:4"
+      }
+    },
+    {
+      "bend2": {
+        "acceptance": {
+          "bytes": 4340,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o5-bend-acceptance.json",
+          "sha256": "sha256:c901a3f121bd2a91a18b87d83d80f97878f0c4a212f92b964da454e925565c14"
+        },
+        "acceptance_status": "two_input_bend_runtime_authenticated",
+        "agent_record": {
+          "bytes": 2971,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o5-bend-result.json",
+          "sha256": "sha256:d5248fdf607089491ad72763cc1c12e066fd91aa7ec9818e16a4c22cc402010d"
+        },
+        "agent_status": "edit_artifacts_captured",
+        "cost_usage": {
+          "reason": "raw Bend CLI evidence has no provider billing record",
+          "status": "unavailable"
+        },
+        "numeric_domain": {
+          "caveat": "this Boolean microcell does not establish matched checked-u32 support",
+          "status": "bool_exact_only"
+        },
+        "proof_phase": {
+          "limitations": "the retained Bend verdict marker is not independently replayed proof",
+          "status": "observed_raw_kernel_output"
+        },
+        "token_usage": {
+          "cached_input_tokens": 11008,
+          "input_tokens": 16284,
+          "output_tokens": 318,
+          "total_tokens": 16602
+        },
+        "trial": "scalar-contract-bug-v1:bend2:5"
+      },
+      "ordinal": 5,
+      "semaprax": {
+        "acceptance": {
+          "bytes": 2927,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o5-semaprax-acceptance.json",
+          "sha256": "sha256:3584ba64488888b8462ac4593cc0f3396f567964ed9069eacfaddb385ce41502"
+        },
+        "acceptance_status": "two_input_runtime_authenticated",
+        "agent_record": {
+          "bytes": 2997,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o5-semaprax-result.json",
+          "sha256": "sha256:37bdb34ebcce89d3382adaa8654f20fe440eeca6451c10709eb70bd7a544abd0"
+        },
+        "agent_status": "edit_artifacts_captured",
+        "cost_usage": {
+          "reason": "raw compiler/runtime evidence has no provider billing record",
+          "status": "unavailable"
+        },
+        "proof_phase": {
+          "reason": "the scalar runtime route supplies no admitted formal Boolean proof phase",
+          "status": "unavailable"
+        },
+        "token_usage": {
+          "cached_input_tokens": 11008,
+          "input_tokens": 16251,
+          "output_tokens": 299,
+          "total_tokens": 16550
+        },
+        "trial": "scalar-contract-bug-v1:semaprax-scalar-v1:5"
+      }
+    },
+    {
+      "bend2": {
+        "acceptance": {
+          "bytes": 4340,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o6-bend-acceptance.json",
+          "sha256": "sha256:d179f607879e3ee2734ecf261011d98069cf0b3df2ab64466973b25c4b957e30"
+        },
+        "acceptance_status": "two_input_bend_runtime_authenticated",
+        "agent_record": {
+          "bytes": 2972,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o6-bend-result.json",
+          "sha256": "sha256:b6dbf707308235fb9f7256be8e559d336e030a3e6833a51f44eccbeab9e678e4"
+        },
+        "agent_status": "edit_artifacts_captured",
+        "cost_usage": {
+          "reason": "raw Bend CLI evidence has no provider billing record",
+          "status": "unavailable"
+        },
+        "numeric_domain": {
+          "caveat": "this Boolean microcell does not establish matched checked-u32 support",
+          "status": "bool_exact_only"
+        },
+        "proof_phase": {
+          "limitations": "the retained Bend verdict marker is not independently replayed proof",
+          "status": "observed_raw_kernel_output"
+        },
+        "token_usage": {
+          "cached_input_tokens": 15104,
+          "input_tokens": 16284,
+          "output_tokens": 341,
+          "total_tokens": 16625
+        },
+        "trial": "scalar-contract-bug-v1:bend2:6"
+      },
+      "ordinal": 6,
+      "semaprax": {
+        "acceptance": {
+          "bytes": 2927,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o6-semaprax-acceptance.json",
+          "sha256": "sha256:3bbbabe24b996ff9076c6adc574603b1effdcd12000cb55d9298659e82dbbcdf"
+        },
+        "acceptance_status": "two_input_runtime_authenticated",
+        "agent_record": {
+          "bytes": 2997,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o6-semaprax-result.json",
+          "sha256": "sha256:dbd8ce181619cfe1a32565ac527dea46ed16b7d5956da63740770c7bdf4a2329"
+        },
+        "agent_status": "edit_artifacts_captured",
+        "cost_usage": {
+          "reason": "raw compiler/runtime evidence has no provider billing record",
+          "status": "unavailable"
+        },
+        "proof_phase": {
+          "reason": "the scalar runtime route supplies no admitted formal Boolean proof phase",
+          "status": "unavailable"
+        },
+        "token_usage": {
+          "cached_input_tokens": 14080,
+          "input_tokens": 16251,
+          "output_tokens": 292,
+          "total_tokens": 16543
+        },
+        "trial": "scalar-contract-bug-v1:semaprax-scalar-v1:6"
+      }
+    },
+    {
+      "bend2": {
+        "acceptance": {
+          "bytes": 4340,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o7-bend-acceptance.json",
+          "sha256": "sha256:91b916c88a63002c2bfd3046fc17d3159b20ea8d060ca59dc2f08a77e0f995d2"
+        },
+        "acceptance_status": "two_input_bend_runtime_authenticated",
+        "agent_record": {
+          "bytes": 2972,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o7-bend-result.json",
+          "sha256": "sha256:57e13e69a8ede877b37a5d1863acb9773ea174910cb1d94ef21060cbdba93861"
+        },
+        "agent_status": "edit_artifacts_captured",
+        "cost_usage": {
+          "reason": "raw Bend CLI evidence has no provider billing record",
+          "status": "unavailable"
+        },
+        "numeric_domain": {
+          "caveat": "this Boolean microcell does not establish matched checked-u32 support",
+          "status": "bool_exact_only"
+        },
+        "proof_phase": {
+          "limitations": "the retained Bend verdict marker is not independently replayed proof",
+          "status": "observed_raw_kernel_output"
+        },
+        "token_usage": {
+          "cached_input_tokens": 11008,
+          "input_tokens": 16284,
+          "output_tokens": 351,
+          "total_tokens": 16635
+        },
+        "trial": "scalar-contract-bug-v1:bend2:7"
+      },
+      "ordinal": 7,
+      "semaprax": {
+        "acceptance": {
+          "bytes": 2927,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o7-semaprax-acceptance.json",
+          "sha256": "sha256:d38eca71320507320e3969b9c31c65e56b5dff2fd7e943bebc14209ee908b460"
+        },
+        "acceptance_status": "two_input_runtime_authenticated",
+        "agent_record": {
+          "bytes": 2995,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o7-semaprax-result.json",
+          "sha256": "sha256:6a76e34af5e4409d20d9cb1166930f8eec34258335cf526022e1989ffc6e5223"
+        },
+        "agent_status": "edit_artifacts_captured",
+        "cost_usage": {
+          "reason": "raw compiler/runtime evidence has no provider billing record",
+          "status": "unavailable"
+        },
+        "proof_phase": {
+          "reason": "the scalar runtime route supplies no admitted formal Boolean proof phase",
+          "status": "unavailable"
+        },
+        "token_usage": {
+          "cached_input_tokens": 1792,
+          "input_tokens": 16251,
+          "output_tokens": 308,
+          "total_tokens": 16559
+        },
+        "trial": "scalar-contract-bug-v1:semaprax-scalar-v1:7"
+      }
+    },
+    {
+      "bend2": {
+        "acceptance": {
+          "bytes": 4340,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o8-bend-acceptance.json",
+          "sha256": "sha256:0c67fa4ec5f986341f689f0cca107cffa813fb119c08a00846a5ed56c8b08497"
+        },
+        "acceptance_status": "two_input_bend_runtime_authenticated",
+        "agent_record": {
+          "bytes": 2972,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o8-bend-result.json",
+          "sha256": "sha256:d8c3fa197452afe99090604418f0305f2bfeed9f33225cb80858ed51dcdaf8a7"
+        },
+        "agent_status": "edit_artifacts_captured",
+        "cost_usage": {
+          "reason": "raw Bend CLI evidence has no provider billing record",
+          "status": "unavailable"
+        },
+        "numeric_domain": {
+          "caveat": "this Boolean microcell does not establish matched checked-u32 support",
+          "status": "bool_exact_only"
+        },
+        "proof_phase": {
+          "limitations": "the retained Bend verdict marker is not independently replayed proof",
+          "status": "observed_raw_kernel_output"
+        },
+        "token_usage": {
+          "cached_input_tokens": 11008,
+          "input_tokens": 16284,
+          "output_tokens": 324,
+          "total_tokens": 16608
+        },
+        "trial": "scalar-contract-bug-v1:bend2:8"
+      },
+      "ordinal": 8,
+      "semaprax": {
+        "acceptance": {
+          "bytes": 2927,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o8-semaprax-acceptance.json",
+          "sha256": "sha256:8d3a0f750505d89dd4b69847e9fe3d3c388a418076cbba6abbb43d4a563518da"
+        },
+        "acceptance_status": "two_input_runtime_authenticated",
+        "agent_record": {
+          "bytes": 2997,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o8-semaprax-result.json",
+          "sha256": "sha256:6e8217767c4c06e25b981631ff1054efeb40c3feab47dd9cb181fae5bacb78d1"
+        },
+        "agent_status": "edit_artifacts_captured",
+        "cost_usage": {
+          "reason": "raw compiler/runtime evidence has no provider billing record",
+          "status": "unavailable"
+        },
+        "proof_phase": {
+          "reason": "the scalar runtime route supplies no admitted formal Boolean proof phase",
+          "status": "unavailable"
+        },
+        "token_usage": {
+          "cached_input_tokens": 14080,
+          "input_tokens": 16251,
+          "output_tokens": 292,
+          "total_tokens": 16543
+        },
+        "trial": "scalar-contract-bug-v1:semaprax-scalar-v1:8"
+      }
+    },
+    {
+      "bend2": {
+        "acceptance": {
+          "bytes": 4340,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o9-bend-acceptance.json",
+          "sha256": "sha256:7611f3fb9c6eb717fc3a0819dba9b6e3881869501c5424e49d7896c886a6c2e0"
+        },
+        "acceptance_status": "two_input_bend_runtime_authenticated",
+        "agent_record": {
+          "bytes": 2971,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o9-bend-result.json",
+          "sha256": "sha256:ed4ff0079fa552a6c96d25b494c21d5d781bb3ff69c92768b25a41cb8a15bf5b"
+        },
+        "agent_status": "edit_artifacts_captured",
+        "cost_usage": {
+          "reason": "raw Bend CLI evidence has no provider billing record",
+          "status": "unavailable"
+        },
+        "numeric_domain": {
+          "caveat": "this Boolean microcell does not establish matched checked-u32 support",
+          "status": "bool_exact_only"
+        },
+        "proof_phase": {
+          "limitations": "the retained Bend verdict marker is not independently replayed proof",
+          "status": "observed_raw_kernel_output"
+        },
+        "token_usage": {
+          "cached_input_tokens": 11008,
+          "input_tokens": 16284,
+          "output_tokens": 311,
+          "total_tokens": 16595
+        },
+        "trial": "scalar-contract-bug-v1:bend2:9"
+      },
+      "ordinal": 9,
+      "semaprax": {
+        "acceptance": {
+          "bytes": 2927,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o9-semaprax-acceptance.json",
+          "sha256": "sha256:fd8ed3b3ad4cebb39fd6ffb95942e5262fab0706a3e67c07538c9cc784fcde32"
+        },
+        "acceptance_status": "two_input_runtime_authenticated",
+        "agent_record": {
+          "bytes": 2997,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o9-semaprax-result.json",
+          "sha256": "sha256:42ad0c647d02dcf922a551485c29f2344a47a1c386bb65160039e6c8e88fbed1"
+        },
+        "agent_status": "edit_artifacts_captured",
+        "cost_usage": {
+          "reason": "raw compiler/runtime evidence has no provider billing record",
+          "status": "unavailable"
+        },
+        "proof_phase": {
+          "reason": "the scalar runtime route supplies no admitted formal Boolean proof phase",
+          "status": "unavailable"
+        },
+        "token_usage": {
+          "cached_input_tokens": 14080,
+          "input_tokens": 16251,
+          "output_tokens": 308,
+          "total_tokens": 16559
+        },
+        "trial": "scalar-contract-bug-v1:semaprax-scalar-v1:9"
+      }
+    },
+    {
+      "bend2": {
+        "acceptance": {
+          "bytes": 4342,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o10-bend-acceptance.json",
+          "sha256": "sha256:31603ddec06d895045c1bda8193b411d3963f96fc62d0b4267ed9481e0775a5e"
+        },
+        "acceptance_status": "two_input_bend_runtime_authenticated",
+        "agent_record": {
+          "bytes": 2973,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o10-bend-result.json",
+          "sha256": "sha256:989e9ba316b8c98d90064e8c61b3e9f04ee1dce0d346ba6680733da7d246bac7"
+        },
+        "agent_status": "edit_artifacts_captured",
+        "cost_usage": {
+          "reason": "raw Bend CLI evidence has no provider billing record",
+          "status": "unavailable"
+        },
+        "numeric_domain": {
+          "caveat": "this Boolean microcell does not establish matched checked-u32 support",
+          "status": "bool_exact_only"
+        },
+        "proof_phase": {
+          "limitations": "the retained Bend verdict marker is not independently replayed proof",
+          "status": "observed_raw_kernel_output"
+        },
+        "token_usage": {
+          "cached_input_tokens": 14080,
+          "input_tokens": 16284,
+          "output_tokens": 408,
+          "total_tokens": 16692
+        },
+        "trial": "scalar-contract-bug-v1:bend2:10"
+      },
+      "ordinal": 10,
+      "semaprax": {
+        "acceptance": {
+          "bytes": 2929,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o10-semaprax-acceptance.json",
+          "sha256": "sha256:30fc7b3b8b2d3036a1468df39748773d23581d9131cba9267fbfd8d47589876b"
+        },
+        "acceptance_status": "two_input_runtime_authenticated",
+        "agent_record": {
+          "bytes": 2998,
+          "path": "/tmp/law16-codex-edit-pilot.CBbG5U/matched-o10-semaprax-result.json",
+          "sha256": "sha256:70dc263a21751dc4a48f9b5c34f289071123aa1aac93085883aabdd3e0a36fd6"
+        },
+        "agent_status": "edit_artifacts_captured",
+        "cost_usage": {
+          "reason": "raw compiler/runtime evidence has no provider billing record",
+          "status": "unavailable"
+        },
+        "proof_phase": {
+          "reason": "the scalar runtime route supplies no admitted formal Boolean proof phase",
+          "status": "unavailable"
+        },
+        "token_usage": {
+          "cached_input_tokens": 14080,
+          "input_tokens": 16251,
+          "output_tokens": 303,
+          "total_tokens": 16554
+        },
+        "trial": "scalar-contract-bug-v1:semaprax-scalar-v1:10"
+      }
+    }
+  ],
+  "plan": {
+    "bytes": 32915,
+    "path": "/tmp/law16-codex-edit-pilot.CBbG5U/retry-plan-v2.json",
+    "sha256": "sha256:420d835c2efe53bad16418fc41481e2b21ec8bd5fe2a2f61c4e5f3e8f10669e1"
+  },
+  "remaining_requirements": [
+    "the five checked-u32 cells remain unsupported by the reviewed SEMAPRAX scalar profile",
+    "the SEMAPRAX scalar route has no admitted formal Boolean proof phase",
+    "provider monetary cost observations are unavailable from Codex JSON events",
+    "the retained executable/source identities are local pinned observations, not current-head or hosted evidence",
+    "the ordinary Bend checker output and retained Bend verdict marker are not independently replayed proof",
+    "this local Boolean campaign does not complete the full LAW-16 matrix"
+  ],
+  "schema": "semaprax.bend2-law-benchmark.boolean-agent-local-summary.v1",
+  "status": "ten_boolean_pairs_local_runtime_evidence"
+}

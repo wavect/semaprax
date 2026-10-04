@@ -12,6 +12,7 @@ mod nested_record;
 mod owned;
 mod public_generic_wasm;
 mod source_local_future;
+mod source_local_future_indexed_rust;
 
 #[cfg(test)]
 mod tests;
@@ -58,6 +59,9 @@ pub(super) enum PreparedProjectAdmission {
     NestedOwnedRecordApiV1(Box<NestedOwnedRecordApiDescriptor>),
     PublicGenericWasmProviderV1(Box<AdmittedPublicGenericEndpointV1>),
     SourceLocalFutureV1(Box<crate::resumable_effects::source_signature::SourceEffectSignature>),
+    SourceLocalFutureIndexedRustV1(
+        Box<crate::resumable_effects::source_signature::SourceEffectSignature>,
+    ),
 }
 
 impl PreparedProjectAdmission {
@@ -84,6 +88,9 @@ impl PreparedProjectAdmission {
             Self::NestedOwnedRecordApiV1(_descriptor) => ProjectProfile::NestedOwnedRecordApiV1,
             Self::PublicGenericWasmProviderV1(_) => ProjectProfile::PublicGenericWasmProviderV1,
             Self::SourceLocalFutureV1(_) => ProjectProfile::SourceLocalFutureV1,
+            Self::SourceLocalFutureIndexedRustV1(_) => {
+                ProjectProfile::SourceLocalFutureIndexedRustV1
+            }
         }
     }
 
@@ -130,7 +137,8 @@ impl PreparedProjectAdmission {
         &self,
     ) -> Option<&crate::resumable_effects::source_signature::SourceEffectSignature> {
         match self {
-            Self::SourceLocalFutureV1(signature) => Some(signature),
+            Self::SourceLocalFutureV1(signature)
+            | Self::SourceLocalFutureIndexedRustV1(signature) => Some(signature),
             _ => None,
         }
     }
@@ -256,5 +264,10 @@ pub(super) fn prepare(
         ProjectProfile::SourceLocalFutureV1 => source_local_future::prepare(program, manifest)
             .map(Box::new)
             .map(PreparedProjectAdmission::SourceLocalFutureV1),
+        ProjectProfile::SourceLocalFutureIndexedRustV1 => {
+            source_local_future_indexed_rust::prepare(program, manifest)
+                .map(Box::new)
+                .map(PreparedProjectAdmission::SourceLocalFutureIndexedRustV1)
+        }
     }
 }

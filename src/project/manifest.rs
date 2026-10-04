@@ -71,6 +71,8 @@ pub const PROJECT_SCHEMA_V19: &str = "semaprax.project.v19";
 pub const PROJECT_SCHEMA_V20: &str = "semaprax.project.v20";
 /// Additive interpreter-only contract selected through Package Manifest tables.
 pub const PROJECT_SCHEMA_V21: &str = "semaprax.project.v21";
+/// Additive closed source-local Future + indexed native-Rust dependency route.
+pub const PROJECT_SCHEMA_V22: &str = "semaprax.project.v22";
 pub const PROJECT_SCHEMA_V16: &str = "semaprax.project.v16";
 pub const PROJECT_SCHEMA_V15: &str = "semaprax.project.v15";
 pub const PROJECT_SCHEMA_V14: &str = "semaprax.project.v14";
@@ -868,7 +870,7 @@ impl ProjectManifest {
             && profile != ProjectProfile::EnvironmentIoV1
             && profile != ProjectProfile::ProcessIoV1
             && profile != ProjectProfile::UsefulDataV2
-            && profile != ProjectProfile::SourceLocalFutureV1
+            && !profile.is_source_local_future()
         {
             return Err(grammar(format!(
                 "{version_label} requires 1..=32 explicit web export identities"
@@ -878,14 +880,16 @@ impl ProjectManifest {
             return Err(capacity("web_exports", MAX_WEB_EXPORTS));
         }
         require_strict_order(&web_exports, "web export identities")?;
-        if profile == ProjectProfile::SourceLocalFutureV1 {
+        if profile.is_source_local_future() {
             if rust_async_exports.len() != 1 || !valid_stable_id(&rust_async_exports[0]) {
                 return Err(grammar(
                     "source-local-future.v1 requires exactly one valid rust_async stable ID",
                 ));
             }
         } else if !rust_async_exports.is_empty() {
-            return Err(grammar("rust_async exports require source-local-future.v1"));
+            return Err(grammar(
+                "rust_async exports require a source-local-future profile",
+            ));
         }
         if web_exports.iter().any(|id| !valid_stable_id(id)) {
             return Err(grammar(format!(

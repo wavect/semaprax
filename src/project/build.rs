@@ -204,8 +204,7 @@ fn finish_build(
         manifest.entry(),
         manifest.test_module(),
         crate::workspace_graph::ProjectWebRoots {
-            stable_ids: if manifest.project_profile() == super::ProjectProfile::SourceLocalFutureV1
-            {
+            stable_ids: if manifest.project_profile().is_source_local_future() {
                 manifest.rust_async_exports()
             } else if manifest.project_profile().is_filesystem()
                 || manifest.project_profile() == super::ProjectProfile::EnvironmentIoV1

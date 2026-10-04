@@ -1,0 +1,1892 @@
+{
+  "identities": {
+    "bend": {
+      "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+      "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+    },
+    "semaprax": {
+      "commit": "9a9db7a8117ac8d292b24ffd5671ec3333272290",
+      "executable_sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+    }
+  },
+  "nonclaims": [
+    "raw replay records are local pinned-tool evidence",
+    "Bend outputs are not independently replayed formal proof",
+    "SEMAPRAX check is not a provider-cost observation",
+    "Boolean evidence does not establish checked-u32 support or complete LAW-16"
+  ],
+  "ordinals": [
+    {
+      "bend": {
+        "attack": {
+          "normal": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-1/bend-attack.bend"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 1,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6",
+            "stderr": {
+              "bytes": 151,
+              "path": "bend-attack-normal.stderr",
+              "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+            },
+            "stdout": {
+              "bytes": 0,
+              "path": "bend-attack-normal.stdout",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          },
+          "verdict": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-1/bend-attack.bend",
+              "--verdict"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 1,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6",
+            "stderr": {
+              "bytes": 151,
+              "path": "bend-attack-verdict.stderr",
+              "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+            },
+            "stdout": {
+              "bytes": 0,
+              "path": "bend-attack-verdict.stdout",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          }
+        },
+        "candidate": {
+          "normal": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-1/bend-candidate.bend"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 0,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46",
+            "stderr": {
+              "bytes": 0,
+              "path": "bend-candidate-normal.stderr",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "stdout": {
+              "bytes": 58,
+              "path": "bend-candidate-normal.stdout",
+              "sha256": "sha256:931f1e664a679af1355a9ca547ac1daef9f7b14137bc7cc21b110b0cc504b5b1"
+            }
+          },
+          "verdict": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-1/bend-candidate.bend",
+              "--verdict"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 0,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46",
+            "stderr": {
+              "bytes": 0,
+              "path": "bend-candidate-verdict.stderr",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "stdout": {
+              "bytes": 17,
+              "path": "bend-candidate-verdict.stdout",
+              "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+            }
+          }
+        }
+      },
+      "ordinal": 1,
+      "semaprax_check": {
+        "attack": {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-1/semaprax-attack.spx",
+            "--json"
+          ],
+          "exit_code": 0,
+          "identity": {
+            "commit": "9a9db7a8117ac8d292b24ffd5671ec3333272290",
+            "executable_sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+          },
+          "source_sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b",
+          "stderr": {
+            "bytes": 0,
+            "path": "semaprax-attack-check.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 209,
+            "path": "semaprax-attack-check.stdout",
+            "sha256": "sha256:0a4aa8987a9a3b1460fb625bb637e47f10357a4f0239eaaf74683752077d31ec"
+          }
+        },
+        "candidate": {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-1/semaprax-candidate.spx",
+            "--json"
+          ],
+          "exit_code": 0,
+          "identity": {
+            "commit": "9a9db7a8117ac8d292b24ffd5671ec3333272290",
+            "executable_sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+          },
+          "source_sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82",
+          "stderr": {
+            "bytes": 0,
+            "path": "semaprax-candidate-check.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 212,
+            "path": "semaprax-candidate-check.stdout",
+            "sha256": "sha256:962c87a99a0f83f26e730d8a853ffea3cf6f2617462814dfa09911af4956efcd"
+          }
+        }
+      },
+      "sources": {
+        "bend_attack": {
+          "bytes": 513,
+          "path": "bend-attack.bend",
+          "sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6"
+        },
+        "bend_candidate": {
+          "bytes": 513,
+          "path": "bend-candidate.bend",
+          "sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46"
+        },
+        "semaprax_attack": {
+          "bytes": 337,
+          "path": "semaprax-attack.spx",
+          "sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+        },
+        "semaprax_candidate": {
+          "bytes": 338,
+          "path": "semaprax-candidate.spx",
+          "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+        }
+      }
+    },
+    {
+      "bend": {
+        "attack": {
+          "normal": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-2/bend-attack.bend"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 1,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6",
+            "stderr": {
+              "bytes": 151,
+              "path": "bend-attack-normal.stderr",
+              "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+            },
+            "stdout": {
+              "bytes": 0,
+              "path": "bend-attack-normal.stdout",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          },
+          "verdict": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-2/bend-attack.bend",
+              "--verdict"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 1,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6",
+            "stderr": {
+              "bytes": 151,
+              "path": "bend-attack-verdict.stderr",
+              "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+            },
+            "stdout": {
+              "bytes": 0,
+              "path": "bend-attack-verdict.stdout",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          }
+        },
+        "candidate": {
+          "normal": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-2/bend-candidate.bend"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 0,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46",
+            "stderr": {
+              "bytes": 0,
+              "path": "bend-candidate-normal.stderr",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "stdout": {
+              "bytes": 58,
+              "path": "bend-candidate-normal.stdout",
+              "sha256": "sha256:931f1e664a679af1355a9ca547ac1daef9f7b14137bc7cc21b110b0cc504b5b1"
+            }
+          },
+          "verdict": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-2/bend-candidate.bend",
+              "--verdict"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 0,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46",
+            "stderr": {
+              "bytes": 0,
+              "path": "bend-candidate-verdict.stderr",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "stdout": {
+              "bytes": 17,
+              "path": "bend-candidate-verdict.stdout",
+              "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+            }
+          }
+        }
+      },
+      "ordinal": 2,
+      "semaprax_check": {
+        "attack": {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-2/semaprax-attack.spx",
+            "--json"
+          ],
+          "exit_code": 0,
+          "identity": {
+            "commit": "9a9db7a8117ac8d292b24ffd5671ec3333272290",
+            "executable_sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+          },
+          "source_sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b",
+          "stderr": {
+            "bytes": 0,
+            "path": "semaprax-attack-check.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 209,
+            "path": "semaprax-attack-check.stdout",
+            "sha256": "sha256:c00ce4dde68471d59551cb5cc27010d98295d4148fbcd07cfec2e1c79851d651"
+          }
+        },
+        "candidate": {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-2/semaprax-candidate.spx",
+            "--json"
+          ],
+          "exit_code": 0,
+          "identity": {
+            "commit": "9a9db7a8117ac8d292b24ffd5671ec3333272290",
+            "executable_sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+          },
+          "source_sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82",
+          "stderr": {
+            "bytes": 0,
+            "path": "semaprax-candidate-check.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 212,
+            "path": "semaprax-candidate-check.stdout",
+            "sha256": "sha256:27670a409e648882232c873f45986f31969b3d7ee656e85ce3846986495592c0"
+          }
+        }
+      },
+      "sources": {
+        "bend_attack": {
+          "bytes": 513,
+          "path": "bend-attack.bend",
+          "sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6"
+        },
+        "bend_candidate": {
+          "bytes": 513,
+          "path": "bend-candidate.bend",
+          "sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46"
+        },
+        "semaprax_attack": {
+          "bytes": 337,
+          "path": "semaprax-attack.spx",
+          "sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+        },
+        "semaprax_candidate": {
+          "bytes": 338,
+          "path": "semaprax-candidate.spx",
+          "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+        }
+      }
+    },
+    {
+      "bend": {
+        "attack": {
+          "normal": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-3/bend-attack.bend"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 1,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6",
+            "stderr": {
+              "bytes": 151,
+              "path": "bend-attack-normal.stderr",
+              "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+            },
+            "stdout": {
+              "bytes": 0,
+              "path": "bend-attack-normal.stdout",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          },
+          "verdict": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-3/bend-attack.bend",
+              "--verdict"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 1,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6",
+            "stderr": {
+              "bytes": 151,
+              "path": "bend-attack-verdict.stderr",
+              "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+            },
+            "stdout": {
+              "bytes": 0,
+              "path": "bend-attack-verdict.stdout",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          }
+        },
+        "candidate": {
+          "normal": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-3/bend-candidate.bend"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 0,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46",
+            "stderr": {
+              "bytes": 0,
+              "path": "bend-candidate-normal.stderr",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "stdout": {
+              "bytes": 58,
+              "path": "bend-candidate-normal.stdout",
+              "sha256": "sha256:931f1e664a679af1355a9ca547ac1daef9f7b14137bc7cc21b110b0cc504b5b1"
+            }
+          },
+          "verdict": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-3/bend-candidate.bend",
+              "--verdict"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 0,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46",
+            "stderr": {
+              "bytes": 0,
+              "path": "bend-candidate-verdict.stderr",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "stdout": {
+              "bytes": 17,
+              "path": "bend-candidate-verdict.stdout",
+              "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+            }
+          }
+        }
+      },
+      "ordinal": 3,
+      "semaprax_check": {
+        "attack": {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-3/semaprax-attack.spx",
+            "--json"
+          ],
+          "exit_code": 0,
+          "identity": {
+            "commit": "9a9db7a8117ac8d292b24ffd5671ec3333272290",
+            "executable_sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+          },
+          "source_sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b",
+          "stderr": {
+            "bytes": 0,
+            "path": "semaprax-attack-check.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 209,
+            "path": "semaprax-attack-check.stdout",
+            "sha256": "sha256:3511077cfce40d18bece38b9c508f79e80ea6e5eb72dfd82e859da52004b045c"
+          }
+        },
+        "candidate": {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-3/semaprax-candidate.spx",
+            "--json"
+          ],
+          "exit_code": 0,
+          "identity": {
+            "commit": "9a9db7a8117ac8d292b24ffd5671ec3333272290",
+            "executable_sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+          },
+          "source_sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82",
+          "stderr": {
+            "bytes": 0,
+            "path": "semaprax-candidate-check.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 212,
+            "path": "semaprax-candidate-check.stdout",
+            "sha256": "sha256:c2874019cdd3c4e8d2c5ae7acb3fe2402023e3b2a0a726f67fe9c066daa04928"
+          }
+        }
+      },
+      "sources": {
+        "bend_attack": {
+          "bytes": 513,
+          "path": "bend-attack.bend",
+          "sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6"
+        },
+        "bend_candidate": {
+          "bytes": 513,
+          "path": "bend-candidate.bend",
+          "sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46"
+        },
+        "semaprax_attack": {
+          "bytes": 337,
+          "path": "semaprax-attack.spx",
+          "sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+        },
+        "semaprax_candidate": {
+          "bytes": 338,
+          "path": "semaprax-candidate.spx",
+          "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+        }
+      }
+    },
+    {
+      "bend": {
+        "attack": {
+          "normal": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-4/bend-attack.bend"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 1,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6",
+            "stderr": {
+              "bytes": 151,
+              "path": "bend-attack-normal.stderr",
+              "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+            },
+            "stdout": {
+              "bytes": 0,
+              "path": "bend-attack-normal.stdout",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          },
+          "verdict": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-4/bend-attack.bend",
+              "--verdict"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 1,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6",
+            "stderr": {
+              "bytes": 151,
+              "path": "bend-attack-verdict.stderr",
+              "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+            },
+            "stdout": {
+              "bytes": 0,
+              "path": "bend-attack-verdict.stdout",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          }
+        },
+        "candidate": {
+          "normal": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-4/bend-candidate.bend"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 0,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:39ed6a67d90b93cab9783e21754fd185d9302f82a02d530f5403b0ed373d329c",
+            "stderr": {
+              "bytes": 0,
+              "path": "bend-candidate-normal.stderr",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "stdout": {
+              "bytes": 58,
+              "path": "bend-candidate-normal.stdout",
+              "sha256": "sha256:931f1e664a679af1355a9ca547ac1daef9f7b14137bc7cc21b110b0cc504b5b1"
+            }
+          },
+          "verdict": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-4/bend-candidate.bend",
+              "--verdict"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 0,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:39ed6a67d90b93cab9783e21754fd185d9302f82a02d530f5403b0ed373d329c",
+            "stderr": {
+              "bytes": 0,
+              "path": "bend-candidate-verdict.stderr",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "stdout": {
+              "bytes": 17,
+              "path": "bend-candidate-verdict.stdout",
+              "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+            }
+          }
+        }
+      },
+      "ordinal": 4,
+      "semaprax_check": {
+        "attack": {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-4/semaprax-attack.spx",
+            "--json"
+          ],
+          "exit_code": 0,
+          "identity": {
+            "commit": "9a9db7a8117ac8d292b24ffd5671ec3333272290",
+            "executable_sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+          },
+          "source_sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b",
+          "stderr": {
+            "bytes": 0,
+            "path": "semaprax-attack-check.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 209,
+            "path": "semaprax-attack-check.stdout",
+            "sha256": "sha256:3cf3645fb551c60919f142a7dffb5e192f2ed9ceee1083dbadf22d9aaab5792e"
+          }
+        },
+        "candidate": {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-4/semaprax-candidate.spx",
+            "--json"
+          ],
+          "exit_code": 0,
+          "identity": {
+            "commit": "9a9db7a8117ac8d292b24ffd5671ec3333272290",
+            "executable_sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+          },
+          "source_sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82",
+          "stderr": {
+            "bytes": 0,
+            "path": "semaprax-candidate-check.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 212,
+            "path": "semaprax-candidate-check.stdout",
+            "sha256": "sha256:47f132237a3705ac9ba30221c260224f58d4841918bf3b03b6fe3d6b2806b3d1"
+          }
+        }
+      },
+      "sources": {
+        "bend_attack": {
+          "bytes": 513,
+          "path": "bend-attack.bend",
+          "sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6"
+        },
+        "bend_candidate": {
+          "bytes": 334,
+          "path": "bend-candidate.bend",
+          "sha256": "sha256:39ed6a67d90b93cab9783e21754fd185d9302f82a02d530f5403b0ed373d329c"
+        },
+        "semaprax_attack": {
+          "bytes": 337,
+          "path": "semaprax-attack.spx",
+          "sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+        },
+        "semaprax_candidate": {
+          "bytes": 338,
+          "path": "semaprax-candidate.spx",
+          "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+        }
+      }
+    },
+    {
+      "bend": {
+        "attack": {
+          "normal": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-5/bend-attack.bend"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 1,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6",
+            "stderr": {
+              "bytes": 151,
+              "path": "bend-attack-normal.stderr",
+              "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+            },
+            "stdout": {
+              "bytes": 0,
+              "path": "bend-attack-normal.stdout",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          },
+          "verdict": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-5/bend-attack.bend",
+              "--verdict"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 1,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6",
+            "stderr": {
+              "bytes": 151,
+              "path": "bend-attack-verdict.stderr",
+              "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+            },
+            "stdout": {
+              "bytes": 0,
+              "path": "bend-attack-verdict.stdout",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          }
+        },
+        "candidate": {
+          "normal": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-5/bend-candidate.bend"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 0,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46",
+            "stderr": {
+              "bytes": 0,
+              "path": "bend-candidate-normal.stderr",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "stdout": {
+              "bytes": 58,
+              "path": "bend-candidate-normal.stdout",
+              "sha256": "sha256:931f1e664a679af1355a9ca547ac1daef9f7b14137bc7cc21b110b0cc504b5b1"
+            }
+          },
+          "verdict": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-5/bend-candidate.bend",
+              "--verdict"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 0,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46",
+            "stderr": {
+              "bytes": 0,
+              "path": "bend-candidate-verdict.stderr",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "stdout": {
+              "bytes": 17,
+              "path": "bend-candidate-verdict.stdout",
+              "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+            }
+          }
+        }
+      },
+      "ordinal": 5,
+      "semaprax_check": {
+        "attack": {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-5/semaprax-attack.spx",
+            "--json"
+          ],
+          "exit_code": 0,
+          "identity": {
+            "commit": "9a9db7a8117ac8d292b24ffd5671ec3333272290",
+            "executable_sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+          },
+          "source_sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b",
+          "stderr": {
+            "bytes": 0,
+            "path": "semaprax-attack-check.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 209,
+            "path": "semaprax-attack-check.stdout",
+            "sha256": "sha256:119eb1be8ba8befe74aaea460cc078e1849347b426a801e9af4651277ec9eb66"
+          }
+        },
+        "candidate": {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-5/semaprax-candidate.spx",
+            "--json"
+          ],
+          "exit_code": 0,
+          "identity": {
+            "commit": "9a9db7a8117ac8d292b24ffd5671ec3333272290",
+            "executable_sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+          },
+          "source_sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82",
+          "stderr": {
+            "bytes": 0,
+            "path": "semaprax-candidate-check.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 212,
+            "path": "semaprax-candidate-check.stdout",
+            "sha256": "sha256:838a35464e3ff55f8acbe078638eaf788afc8547e720b5d71dae41f413be5cb6"
+          }
+        }
+      },
+      "sources": {
+        "bend_attack": {
+          "bytes": 513,
+          "path": "bend-attack.bend",
+          "sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6"
+        },
+        "bend_candidate": {
+          "bytes": 513,
+          "path": "bend-candidate.bend",
+          "sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46"
+        },
+        "semaprax_attack": {
+          "bytes": 337,
+          "path": "semaprax-attack.spx",
+          "sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+        },
+        "semaprax_candidate": {
+          "bytes": 338,
+          "path": "semaprax-candidate.spx",
+          "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+        }
+      }
+    },
+    {
+      "bend": {
+        "attack": {
+          "normal": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-6/bend-attack.bend"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 1,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6",
+            "stderr": {
+              "bytes": 151,
+              "path": "bend-attack-normal.stderr",
+              "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+            },
+            "stdout": {
+              "bytes": 0,
+              "path": "bend-attack-normal.stdout",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          },
+          "verdict": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-6/bend-attack.bend",
+              "--verdict"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 1,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6",
+            "stderr": {
+              "bytes": 151,
+              "path": "bend-attack-verdict.stderr",
+              "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+            },
+            "stdout": {
+              "bytes": 0,
+              "path": "bend-attack-verdict.stdout",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          }
+        },
+        "candidate": {
+          "normal": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-6/bend-candidate.bend"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 0,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46",
+            "stderr": {
+              "bytes": 0,
+              "path": "bend-candidate-normal.stderr",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "stdout": {
+              "bytes": 58,
+              "path": "bend-candidate-normal.stdout",
+              "sha256": "sha256:931f1e664a679af1355a9ca547ac1daef9f7b14137bc7cc21b110b0cc504b5b1"
+            }
+          },
+          "verdict": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-6/bend-candidate.bend",
+              "--verdict"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 0,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46",
+            "stderr": {
+              "bytes": 0,
+              "path": "bend-candidate-verdict.stderr",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "stdout": {
+              "bytes": 17,
+              "path": "bend-candidate-verdict.stdout",
+              "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+            }
+          }
+        }
+      },
+      "ordinal": 6,
+      "semaprax_check": {
+        "attack": {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-6/semaprax-attack.spx",
+            "--json"
+          ],
+          "exit_code": 0,
+          "identity": {
+            "commit": "9a9db7a8117ac8d292b24ffd5671ec3333272290",
+            "executable_sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+          },
+          "source_sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b",
+          "stderr": {
+            "bytes": 0,
+            "path": "semaprax-attack-check.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 209,
+            "path": "semaprax-attack-check.stdout",
+            "sha256": "sha256:97c02169c4fb8b1c4892a2d8cf0ff750962fc057a7153add59b187b6974a905a"
+          }
+        },
+        "candidate": {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-6/semaprax-candidate.spx",
+            "--json"
+          ],
+          "exit_code": 0,
+          "identity": {
+            "commit": "9a9db7a8117ac8d292b24ffd5671ec3333272290",
+            "executable_sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+          },
+          "source_sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82",
+          "stderr": {
+            "bytes": 0,
+            "path": "semaprax-candidate-check.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 212,
+            "path": "semaprax-candidate-check.stdout",
+            "sha256": "sha256:d9ef06892c4a204846b610822b213170f47b3c8a77d91adc784810416d4a148a"
+          }
+        }
+      },
+      "sources": {
+        "bend_attack": {
+          "bytes": 513,
+          "path": "bend-attack.bend",
+          "sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6"
+        },
+        "bend_candidate": {
+          "bytes": 513,
+          "path": "bend-candidate.bend",
+          "sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46"
+        },
+        "semaprax_attack": {
+          "bytes": 337,
+          "path": "semaprax-attack.spx",
+          "sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+        },
+        "semaprax_candidate": {
+          "bytes": 338,
+          "path": "semaprax-candidate.spx",
+          "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+        }
+      }
+    },
+    {
+      "bend": {
+        "attack": {
+          "normal": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-7/bend-attack.bend"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 1,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6",
+            "stderr": {
+              "bytes": 151,
+              "path": "bend-attack-normal.stderr",
+              "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+            },
+            "stdout": {
+              "bytes": 0,
+              "path": "bend-attack-normal.stdout",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          },
+          "verdict": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-7/bend-attack.bend",
+              "--verdict"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 1,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6",
+            "stderr": {
+              "bytes": 151,
+              "path": "bend-attack-verdict.stderr",
+              "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+            },
+            "stdout": {
+              "bytes": 0,
+              "path": "bend-attack-verdict.stdout",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          }
+        },
+        "candidate": {
+          "normal": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-7/bend-candidate.bend"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 0,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46",
+            "stderr": {
+              "bytes": 0,
+              "path": "bend-candidate-normal.stderr",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "stdout": {
+              "bytes": 58,
+              "path": "bend-candidate-normal.stdout",
+              "sha256": "sha256:931f1e664a679af1355a9ca547ac1daef9f7b14137bc7cc21b110b0cc504b5b1"
+            }
+          },
+          "verdict": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-7/bend-candidate.bend",
+              "--verdict"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 0,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46",
+            "stderr": {
+              "bytes": 0,
+              "path": "bend-candidate-verdict.stderr",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "stdout": {
+              "bytes": 17,
+              "path": "bend-candidate-verdict.stdout",
+              "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+            }
+          }
+        }
+      },
+      "ordinal": 7,
+      "semaprax_check": {
+        "attack": {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-7/semaprax-attack.spx",
+            "--json"
+          ],
+          "exit_code": 0,
+          "identity": {
+            "commit": "9a9db7a8117ac8d292b24ffd5671ec3333272290",
+            "executable_sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+          },
+          "source_sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b",
+          "stderr": {
+            "bytes": 0,
+            "path": "semaprax-attack-check.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 209,
+            "path": "semaprax-attack-check.stdout",
+            "sha256": "sha256:621ef578cbb947b0afcc336570bcb16d54bf23c8aa4eecebdab383edd95f7a1a"
+          }
+        },
+        "candidate": {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-7/semaprax-candidate.spx",
+            "--json"
+          ],
+          "exit_code": 0,
+          "identity": {
+            "commit": "9a9db7a8117ac8d292b24ffd5671ec3333272290",
+            "executable_sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+          },
+          "source_sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82",
+          "stderr": {
+            "bytes": 0,
+            "path": "semaprax-candidate-check.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 212,
+            "path": "semaprax-candidate-check.stdout",
+            "sha256": "sha256:3d20563f9c03ac09b9ba1f2028336be366f48f252da5a9a96ca4765b66305881"
+          }
+        }
+      },
+      "sources": {
+        "bend_attack": {
+          "bytes": 513,
+          "path": "bend-attack.bend",
+          "sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6"
+        },
+        "bend_candidate": {
+          "bytes": 513,
+          "path": "bend-candidate.bend",
+          "sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46"
+        },
+        "semaprax_attack": {
+          "bytes": 337,
+          "path": "semaprax-attack.spx",
+          "sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+        },
+        "semaprax_candidate": {
+          "bytes": 338,
+          "path": "semaprax-candidate.spx",
+          "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+        }
+      }
+    },
+    {
+      "bend": {
+        "attack": {
+          "normal": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-8/bend-attack.bend"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 1,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6",
+            "stderr": {
+              "bytes": 151,
+              "path": "bend-attack-normal.stderr",
+              "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+            },
+            "stdout": {
+              "bytes": 0,
+              "path": "bend-attack-normal.stdout",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          },
+          "verdict": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-8/bend-attack.bend",
+              "--verdict"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 1,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6",
+            "stderr": {
+              "bytes": 151,
+              "path": "bend-attack-verdict.stderr",
+              "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+            },
+            "stdout": {
+              "bytes": 0,
+              "path": "bend-attack-verdict.stdout",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          }
+        },
+        "candidate": {
+          "normal": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-8/bend-candidate.bend"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 0,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:3c0eb478a298c015481345f513053f0fa711c3aeeede7dc6b084552b6d3f30e2",
+            "stderr": {
+              "bytes": 0,
+              "path": "bend-candidate-normal.stderr",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "stdout": {
+              "bytes": 58,
+              "path": "bend-candidate-normal.stdout",
+              "sha256": "sha256:931f1e664a679af1355a9ca547ac1daef9f7b14137bc7cc21b110b0cc504b5b1"
+            }
+          },
+          "verdict": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-8/bend-candidate.bend",
+              "--verdict"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 0,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:3c0eb478a298c015481345f513053f0fa711c3aeeede7dc6b084552b6d3f30e2",
+            "stderr": {
+              "bytes": 0,
+              "path": "bend-candidate-verdict.stderr",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "stdout": {
+              "bytes": 17,
+              "path": "bend-candidate-verdict.stdout",
+              "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+            }
+          }
+        }
+      },
+      "ordinal": 8,
+      "semaprax_check": {
+        "attack": {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-8/semaprax-attack.spx",
+            "--json"
+          ],
+          "exit_code": 0,
+          "identity": {
+            "commit": "9a9db7a8117ac8d292b24ffd5671ec3333272290",
+            "executable_sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+          },
+          "source_sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b",
+          "stderr": {
+            "bytes": 0,
+            "path": "semaprax-attack-check.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 209,
+            "path": "semaprax-attack-check.stdout",
+            "sha256": "sha256:de640f863ba5affeace3fe82e77060bd9f28286f73000913e8d2c1b592b181ac"
+          }
+        },
+        "candidate": {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-8/semaprax-candidate.spx",
+            "--json"
+          ],
+          "exit_code": 0,
+          "identity": {
+            "commit": "9a9db7a8117ac8d292b24ffd5671ec3333272290",
+            "executable_sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+          },
+          "source_sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82",
+          "stderr": {
+            "bytes": 0,
+            "path": "semaprax-candidate-check.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 212,
+            "path": "semaprax-candidate-check.stdout",
+            "sha256": "sha256:5279c596321eae0376bdefbb8a9f804d201704cac203aa132421942ba809898f"
+          }
+        }
+      },
+      "sources": {
+        "bend_attack": {
+          "bytes": 513,
+          "path": "bend-attack.bend",
+          "sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6"
+        },
+        "bend_candidate": {
+          "bytes": 493,
+          "path": "bend-candidate.bend",
+          "sha256": "sha256:3c0eb478a298c015481345f513053f0fa711c3aeeede7dc6b084552b6d3f30e2"
+        },
+        "semaprax_attack": {
+          "bytes": 337,
+          "path": "semaprax-attack.spx",
+          "sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+        },
+        "semaprax_candidate": {
+          "bytes": 338,
+          "path": "semaprax-candidate.spx",
+          "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+        }
+      }
+    },
+    {
+      "bend": {
+        "attack": {
+          "normal": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-9/bend-attack.bend"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 1,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6",
+            "stderr": {
+              "bytes": 151,
+              "path": "bend-attack-normal.stderr",
+              "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+            },
+            "stdout": {
+              "bytes": 0,
+              "path": "bend-attack-normal.stdout",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          },
+          "verdict": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-9/bend-attack.bend",
+              "--verdict"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 1,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6",
+            "stderr": {
+              "bytes": 151,
+              "path": "bend-attack-verdict.stderr",
+              "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+            },
+            "stdout": {
+              "bytes": 0,
+              "path": "bend-attack-verdict.stdout",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          }
+        },
+        "candidate": {
+          "normal": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-9/bend-candidate.bend"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 0,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:2aa127efecbde1e0a3ac833acbb22ae2dae5f00264c5e053cc3eafe14fb87b81",
+            "stderr": {
+              "bytes": 0,
+              "path": "bend-candidate-normal.stderr",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "stdout": {
+              "bytes": 58,
+              "path": "bend-candidate-normal.stdout",
+              "sha256": "sha256:931f1e664a679af1355a9ca547ac1daef9f7b14137bc7cc21b110b0cc504b5b1"
+            }
+          },
+          "verdict": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-9/bend-candidate.bend",
+              "--verdict"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 0,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:2aa127efecbde1e0a3ac833acbb22ae2dae5f00264c5e053cc3eafe14fb87b81",
+            "stderr": {
+              "bytes": 0,
+              "path": "bend-candidate-verdict.stderr",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "stdout": {
+              "bytes": 17,
+              "path": "bend-candidate-verdict.stdout",
+              "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+            }
+          }
+        }
+      },
+      "ordinal": 9,
+      "semaprax_check": {
+        "attack": {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-9/semaprax-attack.spx",
+            "--json"
+          ],
+          "exit_code": 0,
+          "identity": {
+            "commit": "9a9db7a8117ac8d292b24ffd5671ec3333272290",
+            "executable_sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+          },
+          "source_sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b",
+          "stderr": {
+            "bytes": 0,
+            "path": "semaprax-attack-check.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 209,
+            "path": "semaprax-attack-check.stdout",
+            "sha256": "sha256:7847939c58d6db694213261fa6e24ff56504b985eebd3fb5a309545f208910f8"
+          }
+        },
+        "candidate": {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-9/semaprax-candidate.spx",
+            "--json"
+          ],
+          "exit_code": 0,
+          "identity": {
+            "commit": "9a9db7a8117ac8d292b24ffd5671ec3333272290",
+            "executable_sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+          },
+          "source_sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82",
+          "stderr": {
+            "bytes": 0,
+            "path": "semaprax-candidate-check.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 212,
+            "path": "semaprax-candidate-check.stdout",
+            "sha256": "sha256:decf515b69c911c6495f708d58d9aee215893397b7e4c9b984555acf2c512fa9"
+          }
+        }
+      },
+      "sources": {
+        "bend_attack": {
+          "bytes": 513,
+          "path": "bend-attack.bend",
+          "sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6"
+        },
+        "bend_candidate": {
+          "bytes": 405,
+          "path": "bend-candidate.bend",
+          "sha256": "sha256:2aa127efecbde1e0a3ac833acbb22ae2dae5f00264c5e053cc3eafe14fb87b81"
+        },
+        "semaprax_attack": {
+          "bytes": 337,
+          "path": "semaprax-attack.spx",
+          "sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+        },
+        "semaprax_candidate": {
+          "bytes": 338,
+          "path": "semaprax-candidate.spx",
+          "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+        }
+      }
+    },
+    {
+      "bend": {
+        "attack": {
+          "normal": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-10/bend-attack.bend"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 1,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6",
+            "stderr": {
+              "bytes": 151,
+              "path": "bend-attack-normal.stderr",
+              "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+            },
+            "stdout": {
+              "bytes": 0,
+              "path": "bend-attack-normal.stdout",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          },
+          "verdict": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-10/bend-attack.bend",
+              "--verdict"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 1,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6",
+            "stderr": {
+              "bytes": 151,
+              "path": "bend-attack-verdict.stderr",
+              "sha256": "sha256:4cc85e4970c77b689659d540e90bcb15b08167d159dedfadde5240650ac5acff"
+            },
+            "stdout": {
+              "bytes": 0,
+              "path": "bend-attack-verdict.stdout",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          }
+        },
+        "candidate": {
+          "normal": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-10/bend-candidate.bend"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 0,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46",
+            "stderr": {
+              "bytes": 0,
+              "path": "bend-candidate-normal.stderr",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "stdout": {
+              "bytes": 58,
+              "path": "bend-candidate-normal.stdout",
+              "sha256": "sha256:931f1e664a679af1355a9ca547ac1daef9f7b14137bc7cc21b110b0cc504b5b1"
+            }
+          },
+          "verdict": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "/tmp/bend2-law-source/bend2/main.ts",
+              "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-10/bend-candidate.bend",
+              "--verdict"
+            ],
+            "environment": {
+              "BEND_NO_TELEMETRY": "1"
+            },
+            "exit_code": 0,
+            "identity": {
+              "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
+              "commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+            },
+            "source_sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46",
+            "stderr": {
+              "bytes": 0,
+              "path": "bend-candidate-verdict.stderr",
+              "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "stdout": {
+              "bytes": 17,
+              "path": "bend-candidate-verdict.stdout",
+              "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+            }
+          }
+        }
+      },
+      "ordinal": 10,
+      "semaprax_check": {
+        "attack": {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-10/semaprax-attack.spx",
+            "--json"
+          ],
+          "exit_code": 0,
+          "identity": {
+            "commit": "9a9db7a8117ac8d292b24ffd5671ec3333272290",
+            "executable_sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+          },
+          "source_sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b",
+          "stderr": {
+            "bytes": 0,
+            "path": "semaprax-attack-check.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 210,
+            "path": "semaprax-attack-check.stdout",
+            "sha256": "sha256:93e5d909cd25ce59d8fd6cf544720ea4ec3ecf112a3d40b311d140320189d575"
+          }
+        },
+        "candidate": {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-codex-edit-pilot.CBbG5U/ten-pair-independent-replay/ordinal-10/semaprax-candidate.spx",
+            "--json"
+          ],
+          "exit_code": 0,
+          "identity": {
+            "commit": "9a9db7a8117ac8d292b24ffd5671ec3333272290",
+            "executable_sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+          },
+          "source_sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82",
+          "stderr": {
+            "bytes": 0,
+            "path": "semaprax-candidate-check.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 213,
+            "path": "semaprax-candidate-check.stdout",
+            "sha256": "sha256:a8c6c4065555287bc17980c92eeea6fdde26d51be1d22596262caf726e02179b"
+          }
+        }
+      },
+      "sources": {
+        "bend_attack": {
+          "bytes": 513,
+          "path": "bend-attack.bend",
+          "sha256": "sha256:04dca595aa9ecbfae2617ed99f16441a20564ef8272b94173fcb574b140a97a6"
+        },
+        "bend_candidate": {
+          "bytes": 513,
+          "path": "bend-candidate.bend",
+          "sha256": "sha256:205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46"
+        },
+        "semaprax_attack": {
+          "bytes": 337,
+          "path": "semaprax-attack.spx",
+          "sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+        },
+        "semaprax_candidate": {
+          "bytes": 338,
+          "path": "semaprax-candidate.spx",
+          "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+        }
+      }
+    }
+  ],
+  "schema": "semaprax.bend2-law-benchmark.ten-boolean-independent-replay.v1",
+  "status": "completed_local_replay"
+}

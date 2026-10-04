@@ -52,6 +52,17 @@ revoked, and generation-mismatched records. `InMemorySessionStore` is a capped
 process-local reference implementation. It is neither a durable database nor a
 distributed transaction implementation.
 
+The host can call `AuthService::purge_expired_sessions(&mut store, now)` before
+login to reclaim records with `expires_at <= now`, including retired records.
+This keeps the same capped store usable across repeated issue/expiry cycles;
+unexpired active and retired records remain until their expiry. `now` is a
+trusted host-supplied tick, never read from an ambient clock. The store
+rejects maintenance time regression and subsequent issuance using a tick
+earlier than its last purge. This preserves refusal of old bearers if a
+random session id is ever reused after cleanup. For example, a host with a
+capacity-two store can issue at tick 10 with TTL 1, purge at tick 11, then
+issue again at tick 11 without reconstructing the store.
+
 The service has no source-language operation, ambient clock, entropy, key,
 filesystem, network, HTTP middleware, authorization policy, rate limit, or
 production external-store implementation. A successful authentication result

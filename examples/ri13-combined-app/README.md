@@ -288,8 +288,10 @@ After provisioning those inputs, replace `--plan` with `--run`. The runner
 refuses a preexisting evidence directory, clones the checked revision into its
 own writable evidence worktree, mounts the original checkout nowhere in the
 guest, and uses one named `container run --detach --network none` guest. It
-retains the guest launch, stdout/stderr, and stopped-container inspection
-records before deleting that container. The guest rejects any platform other
+allows at most 45 minutes for that guest, covering the observed cold combined
+stages, linked build, and the separately executed warm stage pass. On expiry
+its existing cleanup trap retains launch/stdout/stderr/inspection records and
+deletes the stopped container. The guest rejects any platform other
 than Linux x86_64 and writes `environment.json`, M1/M2/M3 combined receipt and
 batch measurement, linked Project receipt, and command logs to the named
 evidence directory. `output-digests.json` records SHA-256 digests for the

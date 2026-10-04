@@ -28,7 +28,7 @@ generates Rustdoc data during the evidence run.
 
 --plan is the default and has no filesystem or container side effects.  --run
 requires a nonexistent evidence path, creates a detached checked-out clone
-there, waits up to 30 minutes for the guest, retains the guest stdout/stderr
+there, waits up to 45 minutes for the guest, retains the guest stdout/stderr
 and inspect record, then removes the stopped container.
 EOF
 }
@@ -264,7 +264,7 @@ container_started=true
 
 # Apple Container's `logs --follow` can return before a guest has stopped.
 # Poll inspect state first so cleanup cannot terminate a live evidence run.
-deadline=$(( $(date +%s) + 1800 ))
+deadline=$(( $(date +%s) + 2700 ))
 while :; do
     inspect_json=$(container inspect "$container_name") || {
         status=$?
@@ -282,7 +282,7 @@ except (IndexError, KeyError, TypeError, json.JSONDecodeError) as error:
     case "$state" in
         running|created)
             if [ "$(date +%s)" -ge "$deadline" ]; then
-                printf '%s\n' "guest remained $state for 1800 seconds" > "$evidence/container-timeout.txt"
+                printf '%s\n' "guest remained $state for 2700 seconds" > "$evidence/container-timeout.txt"
                 exit 124
             fi
             sleep 1

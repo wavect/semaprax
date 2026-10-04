@@ -1915,7 +1915,7 @@ jobs:
         # scripts/ci-msrv.py deals the sorted case list round-robin, so the
         # shards together run every repair case exactly once.
         shard: [0, 1]
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os == 'ubuntu-latest' && 'ubuntu-24.04' || matrix.os }}
     timeout-minutes: 360
     env:
       CARGO_PROFILE_DEV_DEBUG: "0"

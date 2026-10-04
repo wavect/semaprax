@@ -10,7 +10,7 @@ your own pace.
 > **0.8.0**. The **v0.7.0 prerelease** was published on October 1, 2026;
 > the current source includes later changes. Use the
 > [installation guide](getting-started/install.md) to choose your build.
-> Semaprax is **research software**: syntax, protocols, and binary
+> Semaprax is **beta software**: syntax, protocols, and binary
 > interfaces can change. Experiment and prototype; don't ship production or
 > safety-critical workloads on it yet.
 

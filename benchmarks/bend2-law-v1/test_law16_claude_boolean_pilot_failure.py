@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Verify the bounded Claude Bend failure capsule without provider access."""
 import hashlib
+import base64
 import json
 import pathlib
 import unittest
@@ -23,7 +24,7 @@ class ClaudeBooleanPilotFailureTests(unittest.TestCase):
         self.assertEqual("sha256:" + hashlib.sha256(config.read_bytes()).hexdigest(), value["config"]["sha256"])
         for ref in value["attempts"][0]["artifacts"].values():
             path = CAPSULE_ROOT / ref["path"]
-            body = path.read_bytes()
+            body = base64.b64decode(path.read_bytes()) if ref.get("encoding") == "base64" else path.read_bytes()
             self.assertEqual(len(body), ref["bytes"])
             self.assertEqual("sha256:" + hashlib.sha256(body).hexdigest(), ref["sha256"])
 

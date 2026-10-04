@@ -123,10 +123,10 @@ fn publication_waits_for_all_artifacts_and_owns_the_only_write_authority() {
         "python3 scripts/release-notes.py --version \"$version\"",
         "--notes-file \"$RUNNER_TEMP/release-notes.md\"",
         "--verify-tag",
-        "--prerelease",
     ] {
         assert!(publish.contains(exact), "publication job lost: {exact}");
     }
+    assert!(!publish.contains("--prerelease"));
     assert_eq!(workflow.matches("contents: write").count(), 1);
     for archive in [
         "semaprax-v$version-x86_64-unknown-linux-gnu.tar.gz",
@@ -187,7 +187,7 @@ fn release_automation_checks_version_surfaces_and_renders_only_one_changelog_buc
         String::from_utf8_lossy(&notes.stderr)
     );
     let notes = String::from_utf8(notes.stdout).expect("release notes must be UTF-8");
-    let title = format!("SEMAPRAX v{version} is research software.");
+    let title = format!("SEMAPRAX v{version} is beta software.");
     // Three sampled entries of the current bucket, taken from the top, middle,
     // and bottom of its section, plus the fixed frame. Samples are re-picked
     // each release; the point they hold is that the renderer emits this
@@ -317,7 +317,7 @@ fn both_packagers_bind_version_commit_manifest_inventory_and_smoke() {
             "stable language ABI",
             "stable public protocol",
             "safety-critical suitability",
-            "research",
+            "beta",
             "release-manifest.json",
             "smoke/meaning.spx",
             "semaprax.version.v1",
@@ -373,6 +373,7 @@ fn release_documentation_preserves_all_nonclaims() {
         "integrity facts, not signatures",
         "does not promote any completion-matrix row",
         "prerelease",
+        "a regular GitHub release",
     ] {
         assert!(docs.contains(exact), "release nonclaim lost: {exact}");
     }
@@ -499,10 +500,10 @@ candidate_state = module['candidate_state']
 verify_local_release_directory = module['verify_local_release_directory']
 live_release_agrees = module['live_release_agrees']
 
-def readme(date, commit, anchor, version='9.9.9'):
+def readme(date, commit, anchor, version='9.9.9', kind='prerelease'):
     return (
         'The published tag is the\n'
-        f'[v{version} prerelease](https://github.com/wavect/semaprax/releases/tag/v{version})\n'
+        f'[v{version} {kind}](https://github.com/wavect/semaprax/releases/tag/v{version})\n'
         f'({date}, `{commit}`) with smoke-tested archives, SHA256 checksums, and\n'
         'hosted release evidence in the\n'
         f'[release process](docs/RELEASE-PROCESS.md#{anchor}).\n'
@@ -522,6 +523,11 @@ problems = reconcile_doc_claim(
     EVIDENCE_OK,
 )
 assert problems == [], problems
+assert reconcile_doc_claim(
+    readme('2027-01-01', COMMIT[:8], '999-hosted-release-evidence', kind='release'),
+    CHANGELOG_OK,
+    EVIDENCE_OK,
+) == []
 
 # --- the exact real #167 shape: claim with no recorded evidence section -----
 problems = reconcile_doc_claim(
@@ -605,6 +611,9 @@ assert any('tag_name' in p for p in live_release_agrees('9.9.9', COMMIT, {
 reconcile_changelog_summary = module['reconcile_changelog_summary']
 SUMMARY_OK = '## Latest published milestone\n\n- `v9.9.9` is the current prerelease tag used by installation and distribution docs.\n'
 assert reconcile_changelog_summary(SUMMARY_OK, '9.9.9') == []
+assert reconcile_changelog_summary(
+    SUMMARY_OK.replace('current prerelease tag', 'current release tag'), '9.9.9'
+) == []
 problems = reconcile_changelog_summary(SUMMARY_OK, '9.9.10')
 assert any('claims v9.9.9' in p and 'is 9.9.10' in p for p in problems), problems
 # A file that makes no such claim at all is not itself a problem.
@@ -657,7 +666,7 @@ def manifest_bytes(version, commit, target):
         'version': version,
         'commit': commit,
         'target': target,
-        'maturity': 'research',
+        'maturity': 'beta',
         'binaries': ['semaprax', 'semapraxd'],
         'nonclaims': [],
     }).encode('utf-8')

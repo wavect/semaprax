@@ -1,6 +1,6 @@
 # Using the SEMAPRAX CLI
 
-Status: public research user guide.
+Status: public beta user guide.
 
 Audience: language users running the compiler locally or from automation.
 
@@ -238,7 +238,7 @@ the scoped-help hint in its diagnostic.
 
 Compiler errors have `SPX-...` codes. Use those codes in tests and tools,
 not whole English messages. Human output includes `path:line:column` where
-available; use `--json` for automation. SEMAPRAX is research software, so check release
+available; use `--json` for automation. SEMAPRAX is beta software, so check release
 notes before assuming a cross-release diagnostic or ABI guarantee.
 
 ## Source checkout binaries

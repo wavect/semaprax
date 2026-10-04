@@ -407,8 +407,8 @@ SLSA provenance for its own already smoke-tested archive. The final
 capability needed to sign the final aggregate provenance. It authenticates the
 exact three-archive inventory, writes one `SHA256SUMS`, creates the final
 manifest and provenance, and keylessly signs that provenance before publishing
-a GitHub prerelease while the release policy retains prerelease status. No repository signing key
-exists. The publisher derives the body with `scripts/release-notes.py`: it
+a regular GitHub release. No repository signing key exists. The publisher
+derives the body with `scripts/release-notes.py`: it
 selects only the tagged version's dated `CHANGELOG.md` section, stopping at the
 next release heading, and surrounds it with the release nonclaims. A missing,
 duplicate, or empty section fails the publication instead of silently creating

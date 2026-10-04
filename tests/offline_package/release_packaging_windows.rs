@@ -262,7 +262,7 @@ fn windows_packager_uses_fresh_explicit_builds_and_powershell_paths() {
         let manifest = fs::read_to_string(unpacked.join("release-manifest.json")).unwrap();
         assert!(!manifest.contains('\r') && !manifest.starts_with('\u{feff}'));
         let expected_manifest = format!(
-            "{{\n  \"schema\": \"semaprax.release-artifact.v1\",\n  \"version\": \"0.2.0\",\n  \"commit\": \"{COMMIT}\",\n  \"target\": \"{TARGET}\",\n  \"maturity\": \"research\",\n  \"binaries\": [\"semaprax\", \"semapraxd\"],\n  \"nonclaims\": [\n    \"production-ready\",\n    \"stable language ABI\",\n    \"stable public protocol\",\n    \"safety-critical suitability\"\n  ]\n}}\n"
+            "{{\n  \"schema\": \"semaprax.release-artifact.v1\",\n  \"version\": \"0.2.0\",\n  \"commit\": \"{COMMIT}\",\n  \"target\": \"{TARGET}\",\n  \"maturity\": \"beta\",\n  \"binaries\": [\"semaprax\", \"semapraxd\"],\n  \"nonclaims\": [\n    \"production-ready\",\n    \"stable language ABI\",\n    \"stable public protocol\",\n    \"safety-critical suitability\"\n  ]\n}}\n"
         );
         assert_eq!(manifest, expected_manifest);
         assert!(case.output().join(format!("{PACKAGE}.zip")).is_file());

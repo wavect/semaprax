@@ -317,15 +317,6 @@ def main(argv=None):
         type=Path,
         help="diff an existing manifest at this path against the recomputed one instead of writing",
     )
-    prerelease_group = parser.add_mutually_exclusive_group()
-    prerelease_group.add_argument(
-        "--prerelease",
-        dest="prerelease",
-        action="store_true",
-        help="SEMAPRAX research releases remain GitHub prereleases by default",
-    )
-    prerelease_group.add_argument("--no-prerelease", dest="prerelease", action="store_false")
-    parser.set_defaults(prerelease=True)
     args = parser.parse_args(argv)
 
     cargo_text = (ROOT / "Cargo.toml").read_text(encoding="utf-8")
@@ -343,7 +334,7 @@ def main(argv=None):
     changelog_text = args.changelog.read_text(encoding="utf-8")
 
     manifest = build_manifest(
-        version, tag, args.commit, args.prerelease, workflow_text, changelog_text, args.archives_dir
+        version, tag, args.commit, False, workflow_text, changelog_text, args.archives_dir
     )
 
     if args.check is not None:

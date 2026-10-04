@@ -57,7 +57,7 @@ fn build_synthetic_archives(archives_dir: &Path, tag: &str, version: &str, commi
          tag = {tag:?}\n\
          commit = {commit:?}\n\
          def manifest_bytes(target):\n\
-         \treturn json.dumps({{'schema': 'semaprax.release-artifact.v1', 'version': version, 'commit': commit, 'target': target, 'maturity': 'research', 'binaries': ['semaprax', 'semapraxd'], 'nonclaims': []}}).encode('utf-8')\n\
+         \treturn json.dumps({{'schema': 'semaprax.release-artifact.v1', 'version': version, 'commit': commit, 'target': target, 'maturity': 'beta', 'binaries': ['semaprax', 'semapraxd'], 'nonclaims': []}}).encode('utf-8')\n\
          def write_tar(name, target):\n\
          \twith tarfile.open(archives_dir / name, 'w:gz') as archive:\n\
          \t\tdata = manifest_bytes(target)\n\

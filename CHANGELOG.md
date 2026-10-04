@@ -19,6 +19,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## 0.8.0 — 2026-10-04
 
+- Re-pin all three generated Rust ownership caller digests to the 0.8.0
+  package identity after the physical moves, allocating, and nested-moves
+  controls passed on the current source. Release manifests and GitHub
+  publication now mark beta builds as regular releases.
+
 - Re-pin the private Wasmtime Component runner's four independent known-answer
   sets to the 0.8.0 package identity. The owning contract test now reports
   all mismatches together; unchanged source descriptor digests stay pinned.

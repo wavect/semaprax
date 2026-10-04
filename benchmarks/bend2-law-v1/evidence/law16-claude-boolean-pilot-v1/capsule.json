@@ -2,7 +2,7 @@
   "attempts": [
     {
       "artifacts": {
-        "attack_stderr": {"path": "attempt-1/attack.stderr", "bytes": 249, "sha256": "sha256:7c5d175fb1e481952bc15aba882682625de7d2b5c5f5f4cd7ede7f5d9ad583a9"},
+        "attack_stderr": {"encoding": "base64", "path": "attempt-1/attack.stderr.base64", "bytes": 249, "sha256": "sha256:7c5d175fb1e481952bc15aba882682625de7d2b5c5f5f4cd7ede7f5d9ad583a9"},
         "candidate_stderr": {"path": "attempt-1/candidate.stderr", "bytes": 220, "sha256": "sha256:0a5626a2464271f85be4ff5d5f6418e8cc5a208b03546fbec5d7f5308025e297"},
         "candidate_source": {"path": "attempt-1/final-source.bend", "bytes": 149, "sha256": "sha256:3a521e801f02dacd269a15ae8d87f8915871f6a22babda95cd661a56ee5d3585"}
       },

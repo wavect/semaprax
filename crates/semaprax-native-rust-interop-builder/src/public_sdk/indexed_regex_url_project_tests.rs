@@ -261,6 +261,11 @@ fn closed_ri13_profile_binds_indexed_m1_signatures_before_future_admission() {
         "import rust selected fn regex_new",
         "import rust fn regex_new",
     );
+    assert_ne!(unselected, source);
+    assert_eq!(
+        semaprax::check(&unselected, Path::new("src/app.spx")).unwrap_err()[0].code,
+        "SPX-P106"
+    );
     fs::write(root.0.join("src/app.spx"), &unselected).unwrap();
     let unselected_regex =
         ["regex.new", "regex.match"].map(|import_id| IndexedProjectRegexRegistrySelection {
@@ -282,6 +287,24 @@ fn closed_ri13_profile_binds_indexed_m1_signatures_before_future_admission() {
         &manifest_path,
         &unselected_regex,
         &unselected_url,
+        |_| Ok(()),
+    )
+    .unwrap_err();
+    assert_eq!(refusal[0].code, "SPX-P106");
+
+    fs::write(root.0.join("src/app.spx"), &source).unwrap();
+    let unselected_regex =
+        ["regex.drop", "regex.match"].map(|import_id| IndexedProjectRegexRegistrySelection {
+            source_path: "src/app.spx",
+            source: &source,
+            import_id,
+            index_bytes: regex_json.as_bytes(),
+            package: regex_package,
+        });
+    let refusal = with_authenticated_indexed_regex_url_project(
+        &manifest_path,
+        &unselected_regex,
+        &url,
         |_| Ok(()),
     )
     .unwrap_err();

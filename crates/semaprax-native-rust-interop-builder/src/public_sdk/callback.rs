@@ -203,7 +203,7 @@ fn prepare_serde_callbacks_from_authenticated_project_source(
     semaprax::hir::validate(&resolved).map_err(located)?;
     let record = prepare_serde_record_projection(&resolved, record_id).map_err(located)?;
     let callback = prepare_checked(
-        parsed,
+        isolated,
         resolved,
         source_revision,
         path,

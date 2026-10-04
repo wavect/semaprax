@@ -260,11 +260,11 @@ fn authenticated_project_source_route_refuses_selected_import_dependency() {
 module ri13.imported_callback;
 @id("ri13.event") record Event { @id("ri13.event.value") value: i64, }
 @id("ri13.host") interface Host permits { } {
-    @id("ri13.import") import rust selected fn selected(value:i64)->i64 effects { } failure infallible;
+    @id("ri13.import") import rust selected fn selected(value: i64) -> i64 effects { } failure infallible;
 }
-@id("callback.factory") fn factory(offset:i64)->fn(i64)->i64 { fn(value:i64)->i64 { selected(value)+offset } }
-@id("callback.advance") fn advance(state:i64,value:i64)->i64 { state+value }
-@id("app.main") fn main()->i64 { 0 }
+@id("callback.factory") fn factory(offset: i64) -> fn(i64) -> i64 { fn(value: i64) -> i64 { selected(value) + offset } }
+@id("callback.advance") fn advance(state: i64, value: i64) -> i64 { state + value }
+@id("app.main") fn main() -> i64 { 0 }
 "#;
     let ordinary = prepare_native_rust_serde_iterator_callbacks(
         source,

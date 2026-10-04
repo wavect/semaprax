@@ -487,3 +487,8 @@ python3 benchmarks/bend2-law-v1/boolean_measure.py \
 This command is prepared but not run against a current-head SEMAPRAX binary.
 Its timing values must remain separate route observations; it emits no ratio,
 winner, GPU result, or claim about the unavailable checked-`u32` cells.
+
+`law16_cold_warm_cell.py` is a lower-level 30-sample process-state cell for
+already pinned commands and artifacts. It records both command streams and
+artifact digests, but always marks OS-cache coldness unavailable: fresh
+processes cannot isolate Darwin page, executable, solver, or tool caches.

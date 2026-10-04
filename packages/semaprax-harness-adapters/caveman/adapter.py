@@ -1,26 +1,27 @@
 #!/usr/bin/env python3
-"""command.view/v1 adapter for Caveman input compression (pinned runtime 3.1.0).
+"""command.view/v1 adapter for Caveman input compression (pinned 3.1.0, commit 8af1f1b9).
 
-The runtime is host-provisioned and adopted explicitly (`adopt --upstream <abs path>`);
-this adapter never installs, logs in, fetches or reaches the network. It runs the
-upstream executable once per `view` as `<upstream> input-compress` with a JSON request on
-stdin and expects one JSON reply on stdout:
+Wire contract (read at the pin; see README.md for the files and what is still unverified):
+the host-started local runtime (`caveman start`, 127.0.0.1:8787, started by the user with
+DO_NOT_TRACK=1 and CAVEMAN_WORK_TAGS=0) serves the middleware protocol 1.1 under
+`/caveman/v1/middleware/`. This adapter sends already-captured output to
+`POST optimize` as one `tool_result` segment with `mode:"compress"`, after `GET capabilities`.
+It never re-runs the command, never starts or installs the runtime, never posts receipts, and
+refuses any endpoint that is not loopback. The Caveman recovery header and handle are dropped:
+the Semaprax retention store is the only authoritative raw recovery.
 
-  request  {"kind":"command-output","text":"..."}
-  reply    {"mode":"compress"|"record","text":"...","runtime":{"bind":"127.0.0.1","telemetry":false}}
-
-Anything but `mode == "compress"`, a loopback bind and telemetry off is refused (the
-host then delivers raw). The adapter also refuses a view that is not smaller (bytes) or
-that drops an error/fatal line the raw output carried, so the host falls back to raw.
-It never runs the user's command and never compresses stderr-less structured output.
+Endpoint override: `<retention>/caveman-endpoint` (one line `host:port`, loopback only); optional
+bearer token in `<retention>/caveman-token` (0600). Both are explicit host provisioning.
 """
 import base64
+import hashlib
+import http.client
 import ipaddress
 import json
 import os
 import re
-import subprocess
 import sys
+import uuid
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "sdk", "python"))
@@ -35,14 +36,6 @@ CALL_TIMEOUT = 20
 CRITICAL = re.compile(r"(?i)\b(error|fail(ed|ure|ures)?|panic(ked)?|fatal|critical|exception|traceback)\b")
 BENIGN = re.compile(r"\.\.\. (ok|ignored)\s*$")
 PATCH = re.compile(r"^(diff --git |--- a/|\+\+\+ b/|@@ -\d)", re.M)
-IDENTITY = re.compile(r"caveman (\d+\.\d+\.\d+)")
-
-
-def upstream():
-    path = os.environ.get("SEMAPRAX_HARNESS_UPSTREAM", "")
-    if not os.path.isabs(path) or not os.path.isfile(path):
-        raise AdapterError("unavailable", "caveman-missing", "SEMAPRAX_HARNESS_UPSTREAM is not an absolute path to the Caveman runtime")
-    return path
 
 
 def retention_dir():
@@ -52,29 +45,51 @@ def retention_dir():
     return d
 
 
-def runtime_env(ret):
-    """Closed environment: no ambient config or credentials, telemetry off, loopback only."""
-    home = os.path.join(ret, "caveman-home")
-    os.makedirs(home, mode=0o700, exist_ok=True)
-    return {
-        "PATH": "/usr/bin:/bin",
-        "HOME": home,
-        "CAVEMAN_TELEMETRY": "0",
-        "CAVEMAN_TELEMETRY_DISABLED": "1",
-        "DO_NOT_TRACK": "1",
-        "CAVEMAN_WORK_TAGS": "0",
-        "CAVEMAN_BIND": "127.0.0.1",
-        "CAVEMAN_OFFLINE": "1",
-        "CAVEMAN_NO_LOGIN": "1",
-        "CAVEMAN_MODE": "compress",
-    }
+PREFIX = "/caveman/v1/middleware/"
+DEFAULT_ENDPOINT = "127.0.0.1:8787"
+HEADER = re.compile(r"\A\[caveman: shortened; exact original via caveman_retrieve handle=cmw_[a-f0-9]{48}\]\n")
+OK_STATUS = ("applied", "reused", "optimized")
 
 
-def probe_identity(exe, env):
-    out = subprocess.run([exe, "--version"], capture_output=True, timeout=10, env=env)
-    m = IDENTITY.fullmatch(out.stdout.decode("utf-8", "replace").strip())
-    if out.returncode != 0 or not m or m.group(1) != PINNED_VERSION:
-        raise AdapterError("unavailable", "caveman-version", f"runtime identity is not caveman {PINNED_VERSION}")
+def endpoint(ret):
+    path = os.path.join(ret, "caveman-endpoint")
+    text = open(path).read().strip() if os.path.isfile(path) else DEFAULT_ENDPOINT
+    host, _, port = text.rpartition(":")
+    if not host or not port.isdigit() or not _loopback(host):
+        raise AdapterError("refused", "caveman-egress", "endpoint is not a loopback host:port")
+    return host, int(port)
+
+
+def call(ret, method, path, body=None):
+    """One loopback HTTP call; http.client never consults proxy environment variables."""
+    host, port = endpoint(ret)
+    headers = {"Accept": "application/json"}
+    tok = os.path.join(ret, "caveman-token")
+    if os.path.isfile(tok):
+        headers["Authorization"] = "Bearer " + open(tok).read().strip()
+    data = None
+    if body is not None:
+        data = json.dumps(body).encode()
+        headers["Content-Type"] = "application/json"
+    conn = http.client.HTTPConnection(host, port, timeout=CALL_TIMEOUT)
+    try:
+        conn.request(method, PREFIX + path, body=data, headers=headers)
+        resp = conn.getresponse()
+        raw = resp.read(4 << 20)
+    except (OSError, http.client.HTTPException):
+        raise AdapterError("unavailable", "caveman-unreachable", "local Caveman runtime is not reachable")
+    finally:
+        conn.close()
+    try:
+        doc = json.loads(raw.decode("utf-8"))
+    except ValueError:
+        raise AdapterError("failed", "caveman-invalid-output", "runtime reply is not JSON")
+    if resp.status != 200:
+        code = (doc.get("error") or {}).get("code", "error") if isinstance(doc, dict) else "error"
+        raise AdapterError("failed", "caveman-http", f"runtime answered {resp.status} {code}")
+    if not isinstance(doc, dict) or doc.get("schema_version") != 1:
+        raise AdapterError("failed", "caveman-invalid-output", "runtime reply has no schema_version 1")
+    return doc
 
 
 def plan(req):
@@ -119,8 +134,7 @@ def _unsupported(code):
 
 def view(req):
     p = req.get("payload") or {}
-    exe, ret = upstream(), retention_dir()
-    env = runtime_env(ret)
+    ret = retention_dir()
     out_b, err_b = _stream(p, "stdout", ret), _stream(p, "stderr", ret)
     total = len(out_b) + len(err_b)
     if total > MAX_RAW:
@@ -134,25 +148,40 @@ def view(req):
         return _unsupported("not-utf8")
     if "\x00" in text or text.lstrip()[:1] in ("{", "[") or PATCH.search(text):
         return _unsupported("unsupported-format")
-    probe_identity(exe, env)
-    try:
-        proc = subprocess.run([exe, "input-compress"], input=json.dumps({"kind": "command-output", "text": text}).encode(),
-                              capture_output=True, timeout=CALL_TIMEOUT, env=env)
-    except subprocess.TimeoutExpired:
-        raise AdapterError("failed", "caveman-timeout", "runtime exceeded its time limit")
-    if proc.returncode != 0:
-        raise AdapterError("failed", "caveman-failed", f"runtime exited {proc.returncode}")
-    try:
-        reply = json.loads(proc.stdout.decode("utf-8"))
-        out, mode, rt = reply["text"], reply["mode"], reply["runtime"]
-        if not isinstance(out, str) or not isinstance(rt, dict):
-            raise ValueError("shape")
-    except (ValueError, KeyError, TypeError):
-        raise AdapterError("failed", "caveman-invalid-output", "runtime reply is not the pinned input-compress shape")
-    if rt.get("telemetry") is not False or not _loopback(str(rt.get("bind", ""))):
-        raise AdapterError("refused", "caveman-egress", "runtime reports telemetry or a non-loopback bind")
+    caps = call(ret, "GET", "capabilities")
+    transforms = [t["transform_id"] for t in caps.get("transforms", [])
+                  if isinstance(t, dict) and t.get("deterministic") is True and t.get("recovery") == "exact_ccr"
+                  and "tool_result" in (t.get("eligible_segment_kinds") or [])]
+    if not transforms:
+        return _unsupported("no-eligible-transform")
+    rid = str(uuid.uuid4())
+    seg = "cv-" + hashlib.sha256(text.encode()).hexdigest()[:24]
+    sess = hashlib.sha256(str((req.get("project") or {}).get("id", "")).encode()).hexdigest()[:32]
+    body = {
+        "schema_version": 1, "request_id": rid, "idempotency_key": rid, "logical_call_id": rid, "attempt_id": 1,
+        "scope": {"namespace": "semaprax", "session_id": sess, "branch_id": "main", "cache_epoch": "0"},
+        "adapter": None, "model": "semaprax-command-view", "mode": "compress",
+        "policy": {"revision": caps.get("policy_revision"), "transforms": transforms},
+        "segments": [{"id": seg, "source_id": seg, "kind": "tool_result", "cache_region": "live_zone",
+                      "content": text, "sha256": hashlib.sha256(text.encode()).hexdigest(),
+                      "protected": False, "opaque": False}],
+        "context_manifest": [],
+        "recovery_binding": {"id": "semaprax-host-recovery", "kind": "host_tool", "tool_name": "caveman_retrieve",
+                             "overhead_text": "Exact output is recoverable through the Semaprax recovery handle."},
+    }
+    reply = call(ret, "POST", "optimize", body)
+    mode = reply.get("mode")
     if mode != "compress":
         return _unsupported(f"runtime-mode-{mode}")  # record mode changes no payload: no saving to claim
+    if reply.get("status") not in OK_STATUS:
+        return _unsupported(f"runtime-status-{reply.get('status')}")
+    reps = [r for r in reply.get("replacements", []) if isinstance(r, dict) and r.get("segment_id") == seg]
+    if len(reps) != 1 or not isinstance(reps[0].get("text"), str):
+        return _unsupported("no-replacement")
+    out = reps[0]["text"]
+    if hashlib.sha256(out.encode()).hexdigest() != reps[0].get("sha256"):
+        raise AdapterError("failed", "caveman-invalid-output", "replacement sha256 does not match its text")
+    out = HEADER.sub("", out, count=1)  # Semaprax's own recovery reference replaces Caveman's
     if len(out.encode("utf-8")) >= len(text.encode("utf-8")):
         return _unsupported("not-smaller")
     missing = _critical_missing(text, out)

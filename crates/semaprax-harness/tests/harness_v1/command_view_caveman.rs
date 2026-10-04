@@ -13,7 +13,7 @@ use semaprax_harness::workflow::stages::CommandStage;
 use semaprax_harness::workflow::{CheckSpec, HostCommandChecks};
 use std::collections::BTreeMap;
 use std::os::unix::fs::PermissionsExt;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 const ID: &str = "ai.caveman/caveman-command-view";
 
@@ -53,6 +53,16 @@ struct Fx {
     root: PathBuf,
     project: PathBuf,
     env: Environment,
+    server: Option<std::process::Child>,
+}
+
+impl Drop for Fx {
+    fn drop(&mut self) {
+        if let Some(c) = self.server.as_mut() {
+            let _ = c.kill();
+            let _ = c.wait();
+        }
+    }
 }
 
 /// Raw stdout of the noisy command: 2000 repeats, one decisive error, 500 repeats.
@@ -78,22 +88,28 @@ impl Fx {
                 python().display()
             ),
         );
-        let fake = std::fs::read_to_string(
-            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-                .join("tests/fixtures/caveman/fake_runtime.py"),
-        )
-        .unwrap();
-        write(&root, "tools/fake_runtime.py", &fake);
+        let fake =
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/caveman/fake_runtime.py");
+        // The adopted upstream only answers the identity probe; the runtime is a separate loopback server.
         let up = write(
             &root,
             "tools/caveman",
-            &format!(
-                "#!/bin/sh\nexec \"{}\" \"{}/tools/fake_runtime.py\" \"$@\"\n",
-                python().display(),
-                root.display()
-            ),
+            "#!/bin/sh\necho \"caveman 3.1.0\"\n",
         );
         std::fs::set_permissions(&up, std::fs::Permissions::from_mode(0o755)).unwrap();
+        std::fs::create_dir_all(root.join("tools")).unwrap();
+        let server = std::process::Command::new(python())
+            .arg(&fake)
+            .arg(root.join("tools"))
+            .spawn()
+            .unwrap();
+        let portf = root.join("tools/port");
+        for _ in 0..200 {
+            if portf.exists() && !std::fs::read_to_string(&portf).unwrap().is_empty() {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(25));
+        }
         let mut vars = BTreeMap::new();
         vars.insert("PATH".to_string(), "/usr/bin:/bin".to_string());
         vars.insert("HARNESS_PYTHON".to_string(), python().display().to_string());
@@ -104,7 +120,13 @@ impl Fx {
             cwd: project.clone(),
             vars,
         };
-        let fx = Fx { root, project, env };
+        let mut fx = Fx {
+            root,
+            project,
+            env,
+            server: Some(server),
+        };
+        fx.provision_endpoint();
         if adopt {
             let d = repo_root()
                 .join("packages/semaprax-harness-adapters/caveman/harness-provider.json");
@@ -122,6 +144,45 @@ impl Fx {
             assert_eq!(o.code, 0, "trust: {}", o.stderr);
         }
         fx
+    }
+
+    /// Host provisioning: point the adapter at the fixture server (loopback, ephemeral port).
+    fn provision_endpoint(&mut self) {
+        let port = std::fs::read_to_string(self.root.join("tools/port")).unwrap();
+        self.provision(&format!("127.0.0.1:{port}"));
+    }
+
+    fn provider_dir(&self) -> PathBuf {
+        let pid = semaprax_harness::json::sha256_plain(
+            self.project
+                .canonicalize()
+                .unwrap()
+                .to_string_lossy()
+                .as_bytes(),
+        );
+        let dir = self
+            .env
+            .harness_home
+            .clone()
+            .unwrap()
+            .join("retention")
+            .join(pid.trim_start_matches("sha256:"))
+            .join("providers")
+            .join("ai.caveman_caveman-command-view");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700)).unwrap();
+        dir
+    }
+
+    fn provision(&self, endpoint: &str) {
+        std::fs::write(self.provider_dir().join("caveman-endpoint"), endpoint).unwrap();
+    }
+
+    fn stop_runtime(&mut self) {
+        if let Some(mut c) = self.server.take() {
+            let _ = c.kill();
+            let _ = c.wait();
+        }
     }
 
     fn mode(&self, m: &str) {
@@ -252,27 +313,28 @@ fn caveman_keeps_planted_errors_saves_named_tokens_and_raw_is_exactly_recoverabl
 
 #[test]
 fn caveman_fallbacks_deliver_raw_with_no_false_saving() {
-    let fx = Fx::new(true, "");
+    let mut fx = Fx::new(true, "");
     let noisy = fx.noisy();
     let tiny = fx.script("tiny.sh", "echo \"ERROR: small 1\"");
     let diff = fx.script(
         "diff.sh",
         "echo 'diff --git a/x b/x'; i=0; while [ $i -lt 400 ]; do echo \"+line $i of patch text here\"; i=$((i+1)); done",
     );
-    let cases: [(&str, &str, &str, &str); 6] = [
+    let cases: [(&str, &str, &str, &str); 7] = [
         ("compress", &tiny, "tiny", "small output"),
         ("compress", &diff, "unsupported-format", "unsupported"),
         ("record", &noisy, "record-only", "unsupported"),
         ("grow", &noisy, "enlarged", "unsupported"),
         ("drop_error", &noisy, "dropped-error", "failed"),
+        ("bad_sha", &noisy, "bad-replacement-digest", "failed"),
         ("compress", &noisy, "missing-runtime", "unavailable"),
     ];
     for (mode, cmd, label, status) in cases {
         fx.mode(mode);
         if label == "missing-runtime" {
-            std::fs::remove_file(fx.root.join("tools/caveman")).unwrap();
+            fx.stop_runtime();
         }
-        let before = fx.runtime_calls("input-compress");
+        let before = fx.runtime_calls("POST optimize");
         let r = fx.exec(cmd, true);
         let v = &r.envelope.view;
         assert_eq!(v.route, "raw", "{label}: {:?}", v.notes);
@@ -282,12 +344,10 @@ fn caveman_fallbacks_deliver_raw_with_no_false_saving() {
             "{label}: raw delivered, nothing saved"
         );
         assert!(!v.lossless || v.omissions == 0);
-        // An ineligible (missing) runtime resolves to no provider at all.
         assert!(
-            label == "missing-runtime"
-                || v.notes
-                    .iter()
-                    .any(|n| n.contains("raw view used") || n.contains("provider not consulted")),
+            v.notes
+                .iter()
+                .any(|n| n.contains("raw view used") || n.contains("provider not consulted")),
             "{label}: {status}: {:?}",
             v.notes
         );
@@ -297,15 +357,16 @@ fn caveman_fallbacks_deliver_raw_with_no_false_saving() {
                 || v.text.contains("patch text"),
             "{label}"
         );
-        let calls = fx.runtime_calls("input-compress") - before;
-        if label == "tiny" || label == "missing-runtime" {
+        let calls = fx.runtime_calls("POST optimize") - before;
+        assert!(calls <= 1, "{label}: at most one optimize call");
+        if label == "tiny" {
             assert_eq!(calls, 0, "{label}: runtime not consulted");
         }
     }
 }
 
 #[test]
-fn caveman_runs_with_a_closed_loopback_telemetry_off_environment_and_refuses_egress() {
+fn caveman_sends_captured_output_to_loopback_in_compress_mode_and_refuses_egress() {
     let d: serde_json::Value = serde_json::from_slice(
         &std::fs::read(
             repo_root().join("packages/semaprax-harness-adapters/caveman/harness-provider.json"),
@@ -313,41 +374,59 @@ fn caveman_runs_with_a_closed_loopback_telemetry_off_environment_and_refuses_egr
         .unwrap(),
     )
     .unwrap();
-    assert_eq!(d["permissions"]["network"], serde_json::json!([]));
+    assert_eq!(
+        d["permissions"]["network"],
+        serde_json::json!(["loopback:127.0.0.1:8787"])
+    );
     assert_eq!(d["permissions"]["secrets"], serde_json::json!([]));
     assert_eq!(d["capabilities"][0]["required"], false);
     let fx = Fx::new(true, "");
     let cmd = fx.noisy();
     let r = fx.exec(&cmd, true);
     assert_eq!(r.envelope.view.route, "provider");
-    let env: BTreeMap<String, String> =
-        serde_json::from_slice(&std::fs::read(fx.root.join("tools/env.json")).unwrap()).unwrap();
-    assert_eq!(env["CAVEMAN_TELEMETRY"], "0");
-    assert_eq!(env["DO_NOT_TRACK"], "1");
-    assert_eq!(env["CAVEMAN_BIND"], "127.0.0.1");
-    assert_eq!(env["CAVEMAN_OFFLINE"], "1");
     assert!(
-        !env.contains_key("SECRET_TOKEN"),
-        "no ambient secret reaches the runtime"
+        !r.envelope.view.text.contains("caveman_retrieve"),
+        "only Semaprax's own recovery reference is shown"
     );
+    let sent: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(fx.root.join("tools/last_optimize.json")).unwrap())
+            .unwrap();
+    let b = &sent["body"];
+    assert_eq!(b["mode"], "compress");
+    assert_eq!(b["schema_version"], 1);
+    assert_eq!(b["scope"]["namespace"], "semaprax");
+    assert_eq!(b["segments"][0]["kind"], "tool_result");
+    assert!(b["segments"][0]["content"]
+        .as_str()
+        .unwrap()
+        .starts_with(&raw_stdout()));
     assert!(
-        env["HOME"].contains("caveman-home"),
-        "state is private, not the user's home"
+        sent["auth"].is_null(),
+        "no credential unless host-provisioned"
     );
-    // A runtime that reports telemetry or a non-loopback bind is refused.
-    for mode in ["telemetry_on", "egress_bind"] {
-        fx.mode(mode);
-        let r = fx.exec(&cmd, true);
-        assert_eq!(r.envelope.view.route, "raw", "{mode}");
-        assert!(
-            r.envelope
-                .view
-                .notes
-                .iter()
-                .any(|n| n.contains("raw view used")),
-            "{mode}"
-        );
-    }
+    assert_eq!(fx.runtime_calls("GET capabilities"), 1);
+    assert_eq!(
+        std::fs::read_to_string(fx.root.join("tools/calls.log"))
+            .unwrap()
+            .lines()
+            .filter(|l| l.contains("receipts"))
+            .count(),
+        0,
+        "no telemetry or receipts"
+    );
+    // A host-provisioned token is sent as a bearer credential.
+    std::fs::write(fx.provider_dir().join("caveman-token"), "tok-1").unwrap();
+    fx.exec(&cmd, true);
+    let sent: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(fx.root.join("tools/last_optimize.json")).unwrap())
+            .unwrap();
+    assert_eq!(sent["auth"], "Bearer tok-1");
+    // A non-loopback endpoint is refused without any connection; raw is delivered.
+    let before = fx.runtime_calls("POST optimize");
+    fx.provision("example.com:80");
+    let r = fx.exec(&cmd, true);
+    assert_eq!(r.envelope.view.route, "raw");
+    assert_eq!(fx.runtime_calls("POST optimize"), before);
 }
 
 #[test]
@@ -379,7 +458,7 @@ fn caveman_is_opt_in_unadopted_or_disabled_means_raw_and_the_runtime_is_never_ca
     let cmd = fx.noisy();
     let r = fx.exec(&cmd, false);
     assert_eq!(r.envelope.view.route, "raw");
-    assert_eq!(fx.runtime_calls("input-compress"), 0);
+    assert_eq!(fx.runtime_calls("POST optimize"), 0);
     // Adopted, then switched off by explicit project configuration.
     let fx = Fx::new(true, "");
     write(
@@ -390,7 +469,7 @@ fn caveman_is_opt_in_unadopted_or_disabled_means_raw_and_the_runtime_is_never_ca
     let cmd = fx.noisy();
     let r = fx.exec(&cmd, false);
     assert_eq!(r.envelope.view.route, "raw");
-    assert_eq!(fx.runtime_calls("input-compress"), 0);
+    assert_eq!(fx.runtime_calls("POST optimize"), 0);
     // An explicit pin selects it.
     write(
         &fx.project,

@@ -10,7 +10,7 @@
   "extensions": [],
   "platforms": ["macos-aarch64", "linux-aarch64", "linux-x86_64"],
   "config": {"fields": {}},
-  "permissions": {"read": ["retention"], "write": ["retention"], "network": [], "process": ["upstream"], "secrets": []},
+  "permissions": {"read": ["retention"], "write": ["retention"], "network": ["loopback:127.0.0.1:8787"], "process": [], "secrets": []},
   "resources": {"handshake_timeout_ms": 5000, "invoke_timeout_ms": 30000, "max_frame_bytes": 1048576, "max_concurrency": 1, "idle_shutdown_ms": 60000},
   "cancellation": "cooperative",
   "support": {"license": "MIT", "isolation": "subprocess", "tested": []}

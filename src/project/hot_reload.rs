@@ -1,7 +1,7 @@
 //! Bounded, authority-neutral planning for a prepared Project interpreter.
 //! A plan is a private in-memory value; its JSON is diagnostic evidence only.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use sha2::{Digest as _, Sha256};
@@ -689,27 +689,65 @@ fn compatible_program(old: &ResolvedProgram, candidate: &ResolvedProgram) -> boo
     {
         return false;
     }
-    let old_functions = old
-        .functions
-        .iter()
-        .map(|function| (function.id.as_str(), function))
-        .collect::<BTreeMap<_, _>>();
-    let new_functions = candidate
-        .functions
-        .iter()
-        .map(|function| (function.id.as_str(), function))
-        .collect::<BTreeMap<_, _>>();
-    if old_functions.len() != old.functions.len()
-        || new_functions.len() != candidate.functions.len()
-        || old_functions.len() != new_functions.len()
-    {
+    let Some(old_closure) = reachable_callable_closure(old) else {
         return false;
+    };
+    let Some(candidate_closure) = reachable_callable_closure(candidate) else {
+        return false;
+    };
+    old_closure.len() == candidate_closure.len()
+        && old_closure.iter().all(|(id, left)| {
+            candidate_closure
+                .get(id)
+                .is_some_and(|right| compatible_function(left, right))
+        })
+}
+
+/// Derive the complete callable set from the two retained execution roots.
+///
+/// This deliberately traverses checked HIR rather than source spelling, a
+/// previously rendered plan, or an interpreter cache. Contracts participate:
+/// a function mentioned only by a precondition or postcondition is still a
+/// callable dependency of the prepared execution state. A missing or
+/// ambiguous target fails closed, including instantiated function targets.
+fn reachable_callable_closure<'a>(
+    program: &'a ResolvedProgram,
+) -> Option<BTreeMap<String, &'a ResolvedFunction>> {
+    let mut functions = BTreeMap::new();
+    for function in &program.functions {
+        functions.insert(function.id.as_str(), function).is_none()?;
     }
-    old_functions.iter().all(|(id, left)| {
-        new_functions
-            .get(id)
-            .is_some_and(|right| compatible_function(left, right))
-    })
+    for instance in &program.function_instances {
+        functions
+            .insert(instance.id.as_str(), &instance.function)
+            .is_none()?;
+    }
+
+    let mut reachable = BTreeMap::new();
+    let mut pending = vec![program.entrypoint.as_str().to_owned()];
+    while let Some(id) = pending.pop() {
+        if reachable.contains_key(&id) {
+            continue;
+        }
+        let function = *functions.get(id.as_str())?;
+        reachable.insert(id, function);
+        let mut calls = BTreeSet::new();
+        for expression in function
+            .requires
+            .iter()
+            .chain(&function.ensures)
+            .chain(std::iter::once(&function.body))
+        {
+            crate::hir::inspection::visit_resolved_calls(expression, &mut |callee, instance, _| {
+                calls.insert(
+                    instance
+                        .map_or_else(|| callee.as_str().to_owned(), |id| id.as_str().to_owned()),
+                );
+            });
+        }
+        pending.extend(calls.into_iter().rev());
+    }
+    Some(reachable)
 }
 
 fn compatible_function(left: &ResolvedFunction, right: &ResolvedFunction) -> bool {
@@ -719,6 +757,9 @@ fn compatible_function(left: &ResolvedFunction, right: &ResolvedFunction) -> boo
         && left.yields == right.yields
         && left.requires == right.requires
         && left.ensures == right.ensures
+        && left.cleanup == right.cleanup
+        && left.cleanup_plan == right.cleanup_plan
+        && left.loan_plan == right.loan_plan
         && left.params.len() == right.params.len()
         && left.params.iter().zip(&right.params).all(|(left, right)| {
             left.id == right.id && left.ty == right.ty && left.ownership == right.ownership

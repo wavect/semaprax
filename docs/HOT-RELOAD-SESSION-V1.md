@@ -33,10 +33,14 @@ only against A after B or C is active.
 
 ## Current compatibility rule
 
-The local prepared-interpreter lane admits a changed code body only when the
-checked entry and test programs retain their selected entrypoints, permit set,
-type and interface records, the exact function stable-ID set, return/parameter types and
-ownership, declared effects and yields, and checked pre/postconditions.
+The local prepared-interpreter lane derives the callable closure from each
+checked entry/test root, including calls in checked pre/postconditions and
+instantiated targets. It admits a changed code body only when the entrypoints,
+permit set, type and interface records, exact reachable callable stable-ID set,
+return/parameter types and ownership, declared effects and yields, checked
+pre/postconditions, cleanup inventory/plan, and loan plan agree. A missing or
+ambiguous closure target fails closed. Unreachable functions remain outside
+this local prepared-worker state compatibility decision.
 For every source Agent, planning retains the predecessor and candidate
 AgentDefinition, AgentGraph, Runtime v1 profile, Proposal and Observation
 schema digests in a stable-ID ordered opaque handoff row. The row contains no
@@ -94,8 +98,7 @@ not hosted or source-Agent handoff evidence.
 
 ## Completion work
 
-HR-01 still needs the source-Agent durable-checkpoint execution lane,
-compiler-derived reachable closure and state compatibility, a shared
+HR-01 still needs the source-Agent durable-checkpoint execution lane, a shared
 table-driven transition suite including a physical busy boundary and
 first-over-bound inputs, and broader adversarial coverage of rename, entry,
 effects, contracts, and missing stable IDs.

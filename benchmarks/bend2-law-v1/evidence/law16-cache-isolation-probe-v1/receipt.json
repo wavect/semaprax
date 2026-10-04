@@ -1,0 +1,74 @@
+{
+  "checking_measurements": {
+    "samples": 0,
+    "status": "not_collected"
+  },
+  "cold_state": {
+    "reason": "container guest mounted /proc/sys read-only, so /proc/sys/vm/drop_caches is not writable even as uid 0 with all capabilities; the prior host purge attempt was permission denied",
+    "status": "unavailable"
+  },
+  "container_cli": {
+    "client_version": "1.4.1",
+    "path": "/opt/homebrew/bin/container",
+    "server_version": "1.4.1",
+    "version_source": "container system status output"
+  },
+  "container_state": {
+    "after_observation": "container list had no rows after probe",
+    "after_running": 0,
+    "before_observation": "container list had no rows immediately before probe",
+    "before_running": 0
+  },
+  "guest_probe": {
+    "argv": [
+      "container",
+      "run",
+      "--rm",
+      "--memory",
+      "256M",
+      "--cpus",
+      "1",
+      "--arch",
+      "amd64",
+      "--rosetta",
+      "--cap-add",
+      "ALL",
+      "rust:1.98.0-slim-bookworm",
+      "bash",
+      "-lc",
+      "set +e; echo \"arch=$(uname -m)\"; id; echo \"drop_caches_mount:\"; grep \" /proc/sys \" /proc/mounts; if test -w /proc/sys/vm/drop_caches; then echo writable; else echo not_writable; fi; ls -l /proc/sys/vm/drop_caches; test -e /usr/bin/sync && echo sync_available; exit 0"
+    ],
+    "command_sha256": "sha256:abc2ab02f6d00aa88f68ed861dea4c3d6778f185707463a764769653230e359b",
+    "drop_caches_not_writable_marker": true,
+    "drop_caches_writable": false,
+    "exit_code": 0,
+    "measurement_samples": 0,
+    "transcript": {
+      "bytes": 440,
+      "capture_kind": "combined tool response transcript; child stdout and stderr were not independently retained",
+      "path": "raw/container-run-transcript.txt",
+      "sha256": "sha256:7e70bead4a8304d8483c291d88ae8c776c1d1aed18f269588a8d802d0b900729"
+    }
+  },
+  "host": {
+    "machine": "arm64",
+    "os_version": "Version 26.5.1 (Build 25F80)",
+    "system": "Darwin"
+  },
+  "nonclaims": [
+    "no cache-cold or cache-warm checker timings were collected",
+    "fresh process and fresh paths are not OS-cache-cold evidence",
+    "the probe did not write to /proc/sys/vm/drop_caches",
+    "an empty post-probe container list does not prove that caches were cleared",
+    "host purge permission denial is recorded from the prior attempt and was not retried"
+  ],
+  "observed_at": "2026-10-04",
+  "probe_image": {
+    "digest": "sha256:1469a27c125cb5a3aebfa4f4e4665d935b02fb72cc093b2c974b3d740e43f157",
+    "name": "rust:1.98.0-slim-bookworm",
+    "platform": "linux/amd64",
+    "size_bytes": 312880894
+  },
+  "schema": "semaprax.bend2-law-benchmark.cache-isolation-probe.v1",
+  "status": "capability_probe_only"
+}

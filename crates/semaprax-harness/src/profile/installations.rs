@@ -38,6 +38,15 @@ pub struct Installation {
     pub descriptor_digest: String,
     pub entry_digest: Option<String>,
     pub upstream: Option<UpstreamRecord>,
+    /// Explicit adapter runtime executable (`node`/`python`), machine-local.
+    pub runtime: Option<PathBuf>,
+}
+
+/// A machine-local approved skill root (never read from a project).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SkillRootRecord {
+    pub path: PathBuf,
+    pub origin: String,
 }
 
 /// Digests of what exists on disk right now; trust is bound to these.
@@ -66,6 +75,7 @@ pub struct LocalState {
     pub installations: BTreeMap<String, Installation>,
     pub trust: BTreeMap<String, TrustRecord>,
     pub preferences: BTreeMap<CapabilityKind, String>,
+    pub skill_roots: Vec<SkillRootRecord>,
 }
 
 pub fn file_digest(path: &Path) -> std::io::Result<String> {
@@ -292,8 +302,23 @@ impl LocalState {
                         descriptor_digest: str_field(m, F, "descriptor_digest")?,
                         entry_digest: opt_str(m, F, "entry_digest")?,
                         upstream,
+                        runtime: opt_str(m, F, "runtime")?
+                            .map(|r| abs_path(r, F, "runtime"))
+                            .transpose()?,
                     },
                 );
+            }
+            if let Some(roots) = doc.get("skill_roots") {
+                let arr = roots.as_array().ok_or_else(|| {
+                    bad("SPX-HPB020", format!("{F}: `skill_roots` must be an array"))
+                })?;
+                for r in arr {
+                    let m = obj(r, F, "a skill root")?;
+                    st.skill_roots.push(SkillRootRecord {
+                        path: abs_path(str_field(m, F, "path")?, F, "skill_roots.path")?,
+                        origin: str_field(m, F, "origin")?,
+                    });
+                }
             }
         }
         const P: &str = "preferences.json";
@@ -329,13 +354,22 @@ impl LocalState {
             let upstream = i.upstream.as_ref().map_or(Value::Null, |u| {
                 json!({"path": u.path.to_string_lossy(), "digest": u.digest, "version": u.version, "compatible": u.compatible})
             });
-            list.insert(
-                id.clone(),
-                json!({"descriptor_path": i.descriptor_path.to_string_lossy(), "descriptor_digest": i.descriptor_digest,
-                       "entry_digest": i.entry_digest, "upstream": upstream}),
+            let mut rec = json!({"descriptor_path": i.descriptor_path.to_string_lossy(), "descriptor_digest": i.descriptor_digest,
+                       "entry_digest": i.entry_digest, "upstream": upstream});
+            if let Some(r) = &i.runtime {
+                rec["runtime"] = json!(r.to_string_lossy());
+            }
+            list.insert(id.clone(), rec);
+        }
+        let mut doc = json!({"schema": INSTALLATIONS_SCHEMA, "installations": list});
+        if !self.skill_roots.is_empty() {
+            doc["skill_roots"] = Value::Array(
+                self.skill_roots
+                    .iter()
+                    .map(|r| json!({"path": r.path.to_string_lossy(), "origin": r.origin}))
+                    .collect(),
             );
         }
-        let doc = json!({"schema": INSTALLATIONS_SCHEMA, "installations": list});
         write_atomic(
             &self.home_dir()?.join("installations.json"),
             format!("{}\n", json::canonical(&doc)).as_bytes(),

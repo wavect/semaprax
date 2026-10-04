@@ -115,20 +115,56 @@ fn hp_hp16b_skill_fixture_passes_skill_suite() {
     assert_clean(&r, "skill.catalog");
 }
 
-/// Copy the prebuilt Rust example adapter next to a descriptor in a temp dir.
-fn rust_example(tmp: &Path) -> PathBuf {
+/// Locate the Rust example adapter next to the running test binary, building
+/// it (offline, same target directory and profile) when it is missing, so a
+/// clean target passes without a manual `cargo build --example` step.
+fn built_rust_example() -> PathBuf {
+    static BUILD: std::sync::Once = std::sync::Once::new();
     let exe = std::env::current_exe().unwrap();
-    let bin = exe
-        .parent()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .join("examples/context_adapter_rust");
+    // <target>/<profile>/deps/<test-binary>
+    let profile_dir = exe.parent().unwrap().parent().unwrap().to_path_buf();
+    let target_dir = profile_dir.parent().unwrap().to_path_buf();
+    let bin = profile_dir.join("examples/context_adapter_rust");
+    BUILD.call_once(|| {
+        if bin.is_file() {
+            return;
+        }
+        let mut cmd = std::process::Command::new(env!("CARGO"));
+        cmd.args([
+            "build",
+            "--offline",
+            "-p",
+            "semaprax-harness",
+            "--example",
+            "context_adapter_rust",
+        ])
+        .arg("--manifest-path")
+        .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.toml"))
+        .arg("--target-dir")
+        .arg(&target_dir);
+        if profile_dir.file_name().is_some_and(|n| n == "release") {
+            cmd.arg("--release");
+        }
+        let out = cmd
+            .output()
+            .expect("run cargo to build the Rust example adapter");
+        assert!(
+            out.status.success(),
+            "cargo build --example context_adapter_rust failed: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+    });
     assert!(
         bin.is_file(),
-        "build with `cargo build --example context_adapter_rust` first: {}",
+        "example adapter missing after build: {}",
         bin.display()
     );
+    bin
+}
+
+/// Copy the Rust example adapter next to a descriptor in a temp dir.
+fn rust_example(tmp: &Path) -> PathBuf {
+    let bin = built_rust_example();
     let dst = tmp.join("target/debug/examples");
     std::fs::create_dir_all(&dst).unwrap();
     std::fs::copy(&bin, dst.join("context_adapter_rust")).unwrap();

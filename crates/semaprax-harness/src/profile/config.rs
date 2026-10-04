@@ -86,12 +86,29 @@ impl Default for SkillsConfig {
     }
 }
 
+/// `[workflow.check.<name>] argv = [...]`: authorized checks, argv only (never a shell line).
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct WorkflowConfig {
+    pub checks: BTreeMap<String, Vec<String>>,
+}
+
+/// `[model]`: project guarantees the model route must be able to enforce.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct ModelConfig {
+    pub local_only: bool,
+    pub strict_one_attempt: bool,
+    /// Logical model id (bound machine-locally by `endpoints`).
+    pub logical: Option<String>,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct HarnessConfig {
     pub profile_enabled: bool,
     pub capabilities: BTreeMap<CapabilityKind, CapabilityConfig>,
     pub budget: BudgetConfig,
     pub skills: SkillsConfig,
+    pub workflow: WorkflowConfig,
+    pub model: ModelConfig,
     /// Namespaced `x.` capability tables: visible, always inactive.
     pub inactive: Vec<String>,
 }
@@ -103,6 +120,8 @@ impl Default for HarnessConfig {
             capabilities: BTreeMap::new(),
             budget: BudgetConfig::default(),
             skills: SkillsConfig::default(),
+            workflow: WorkflowConfig::default(),
+            model: ModelConfig::default(),
             inactive: Vec::new(),
         }
     }
@@ -126,7 +145,7 @@ impl HarnessConfig {
             o.insert("scope".into(), json!(c.scope));
             caps.insert(k.as_str().into(), Value::Object(o));
         }
-        json!({
+        let mut doc = json!({
             "schema": CONFIG_SCHEMA,
             "profile": {"enabled": self.profile_enabled},
             "capabilities": caps,
@@ -140,7 +159,16 @@ impl HarnessConfig {
                 "max_bytes": self.skills.max_bytes,
             },
             "inactive": self.inactive,
-        })
+        });
+        // Only present when set, so existing configurations keep their digest.
+        if !self.workflow.checks.is_empty() {
+            doc["workflow"] = json!({"checks": self.workflow.checks});
+        }
+        if self.model != ModelConfig::default() {
+            doc["model"] = json!({"local_only": self.model.local_only,
+                "strict_one_attempt": self.model.strict_one_attempt, "logical": self.model.logical});
+        }
+        doc
     }
 
     pub fn digest(&self) -> String {
@@ -635,6 +663,34 @@ pub fn parse(bytes: &[u8]) -> HarnessResult<HarnessConfig> {
                 }
                 t.finish(&["enabled", "select", "max_bytes"])?;
             }
+            ["workflow", "check", name] => {
+                let what = format!("[workflow.check.{name}]");
+                let mut t = Tab::new(&what, entries.clone());
+                let (argv, l) = t
+                    .list("argv")?
+                    .ok_or_else(|| bad("SPX-HPB004", line, format!("{what} needs `argv`")))?;
+                if argv.is_empty() || argv.iter().any(String::is_empty) || name.is_empty() {
+                    return Err(bad("SPX-HPB004", l, "`argv` must hold non-empty strings"));
+                }
+                t.finish(&["argv"])?;
+                cfg.workflow.checks.insert((*name).to_string(), argv);
+            }
+            ["model"] => {
+                let mut t = Tab::new("[model]", entries.clone());
+                if let Some(b) = t.boolean("local_only")? {
+                    cfg.model.local_only = b;
+                }
+                if let Some(b) = t.boolean("strict_one_attempt")? {
+                    cfg.model.strict_one_attempt = b;
+                }
+                if let Some((id, l)) = t.string("logical")? {
+                    if id.is_empty() || id.len() > 128 {
+                        return Err(bad("SPX-HPB004", l, "`logical` must be a short model id"));
+                    }
+                    cfg.model.logical = Some(id);
+                }
+                t.finish(&["local_only", "strict_one_attempt", "logical"])?;
+            }
             ["capability", name] => {
                 let Some(kind) = CapabilityKind::parse(name) else {
                     if name.starts_with("x.") {
@@ -702,7 +758,17 @@ pub fn parse(bytes: &[u8]) -> HarnessResult<HarnessConfig> {
                     line,
                     format!(
                         "unknown table [{name}]{}",
-                        hint(&name, &["profile", "budget", "skills", "capability"])
+                        hint(
+                            &name,
+                            &[
+                                "profile",
+                                "budget",
+                                "skills",
+                                "capability",
+                                "workflow",
+                                "model"
+                            ]
+                        )
                     ),
                 ));
             }

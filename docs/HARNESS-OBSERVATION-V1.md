@@ -85,3 +85,12 @@ traffic. No remote telemetry.
 real-tokenizer test is `#[ignore]`: it needs `HP15_PYTHON` (python3 with
 tiktoken) and `HP15_TIKTOKEN_CACHE_DIR` (cached encodings). Without
 tiktoken the helper test asserts the explicit refusal instead.
+
+## Token-observation export
+
+`report <observations.jsonl> --export token-observation [--output <new file>] [--session <id>]` maps each event to
+one `semaprax.token-observation.v1` row (`observe::export`). `Transform` events measure `after` against the
+`before` baseline of the same named tokenizer (`status: measured`, `referenceKind: source_context`); a named count
+without a baseline is `baseline_unavailable`; byte-only sizes are `tokenizer_unavailable` with `bytes` set;
+unmeasured events are `incomplete`. `Incurred` events measure `incurred`. Metadata only: digests, sizes, identities.
+Consume with `python3 scripts/token_report.py session --events <rows.jsonl> --output <report.json>`.

@@ -165,16 +165,53 @@ pub fn adopt_verb(args: &[String], env: &Environment) -> Outcome {
     finish((|| {
         let a = parse_args(
             args,
-            &["--project", "--upstream"],
+            &[
+                "--project",
+                "--upstream",
+                "--runtime",
+                "--skills",
+                "--origin",
+            ],
             &["--allow-project-local", "--json"],
         )?;
+        if let Some(dir) = a.val.get("--skills") {
+            if !a.pos.is_empty() || a.val.contains_key("--runtime") {
+                return Err(usage(
+                    "`adopt --skills <dir>` takes no descriptor or --runtime",
+                ));
+            }
+            let r = super::adopt::add_skill_root(
+                env,
+                std::path::Path::new(dir),
+                a.val.get("--origin").map(String::as_str),
+                &a.project(env),
+            )?;
+            return Ok(emit(
+                a.has("--json"),
+                format!(
+                    "approved skill root {} (origin {})\n",
+                    r.path.display(),
+                    r.origin
+                ),
+                json!({"ok": true, "skill_root": r.path.to_string_lossy(), "origin": r.origin}),
+            ));
+        }
         let desc = env.cwd.join(a.one("descriptor path")?);
         let opts = AdoptOptions {
             upstream: a.val.get("--upstream").map(PathBuf::from),
             project: a.project(env),
             allow_project_local: a.has("--allow-project-local"),
         };
-        let r = adopt(env, &desc, &opts)?;
+        let mut r = adopt(env, &desc, &opts)?;
+        if let Some(rt) = a.val.get("--runtime") {
+            let exe = super::adopt::set_runtime(
+                env,
+                &r.installation.provider_id,
+                std::path::Path::new(rt),
+                &opts.project,
+            )?;
+            r.installation.runtime = Some(exe);
+        }
         let i = &r.installation;
         let mut human = format!(
             "adopted {} (descriptor {})\n",
@@ -186,6 +223,9 @@ pub fn adopt_verb(args: &[String], env: &Environment) -> Outcome {
                 u.version.as_deref().unwrap_or("unidentified"),
                 u.compatible
             ));
+        }
+        if let Some(rt) = &i.runtime {
+            human.push_str(&format!("runtime {}\n", rt.display()));
         }
         for n in &r.notes {
             human.push_str(&format!("note: {n}\n"));

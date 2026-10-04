@@ -8,6 +8,7 @@
 pub mod aggregate;
 pub mod cli;
 pub mod event;
+pub mod export;
 pub mod lineage;
 pub mod report;
 pub mod sink;

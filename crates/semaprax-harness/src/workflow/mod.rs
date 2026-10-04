@@ -6,6 +6,8 @@
 //! route under a preexisting host policy.
 
 mod b64;
+pub mod broker_stage;
+pub mod checks;
 mod cli;
 pub mod compiler;
 pub mod composition;
@@ -20,12 +22,14 @@ pub mod stages;
 pub use cli::{cli_run, run_with, RunOptions};
 pub use compiler::{CompilerService, SubprocessCompiler};
 
+pub use broker_stage::BrokerContext;
+pub use checks::{CheckRun, CheckSpec, HostCommandChecks};
 pub use compiler::{
     CandidatePreview, Capsule, CheckReport, CompilerDiagnostic, PublishError, PublishReceipt,
     SourceChange, TestReport,
 };
 pub use composition::{Composition, Interception, Slot, StageId};
-pub use pipeline::{change_bytes, run, RunConfig, Stages};
+pub use pipeline::{change_bytes, run, DecisionStage, RunConfig, SkillPromptUse, Stages};
 pub use policy::{check_protected_facts, ApplyPolicy};
 pub use report::{ProviderUse, Report};
 pub use snapshot::Snapshot;

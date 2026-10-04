@@ -355,3 +355,38 @@ fn hp_hp13_cli_list_and_load() {
         1
     );
 }
+
+// ---- hpwire: builtin plain-skills provider and contract payloads ----
+
+#[test]
+fn hp_hpwire_plain_skills_payloads_pass_the_contract_validators() {
+    use semaprax_harness::contract::{validate_payload, CapabilityKind, Direction};
+    let dir = fixture_dir("hp-hpwire-skills");
+    skill(
+        &dir,
+        "reuse-api",
+        "reuse existing apis",
+        "api-reuse",
+        "Prefer the existing API.",
+    );
+    let mut p = PlainSkills::new(vec![root(&dir)], cfg(8192));
+    let k = CapabilityKind::SkillCatalog;
+    let list_req = serde_json::json!({"limit": 10});
+    validate_payload(k, "list", Direction::Request, &list_req).unwrap();
+    let listed = p.handle("list", &list_req).unwrap();
+    validate_payload(k, "list", Direction::Result, &listed).unwrap();
+    let digest = listed["skills"][0]["digest"].as_str().unwrap().to_string();
+    let load_req = serde_json::json!({"digest": digest});
+    validate_payload(k, "load", Direction::Request, &load_req).unwrap();
+    let loaded = p.handle("load", &load_req).unwrap();
+    validate_payload(k, "load", Direction::Result, &loaded).unwrap();
+    assert!(loaded["text"]
+        .as_str()
+        .unwrap()
+        .contains("Prefer the existing API."));
+    assert_eq!(p.handle("bogus", &load_req).unwrap_err().code, "SPX-HPM001");
+    // The rendered prompt for task tags counts its model-visible bytes.
+    let prompt = p.service().render_prompt(&task_tags("api-reuse"));
+    assert_eq!(prompt.loaded.len(), 1);
+    assert_eq!(prompt.model_visible_bytes, prompt.text.len());
+}

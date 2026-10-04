@@ -3,6 +3,7 @@
 //! generate -> validate -> check -> present -> publish. Publication happens
 //! only through the compiler's route under a preexisting host policy.
 
+use super::checks::CheckSpec;
 use super::compiler::{CandidatePreview, CompilerDiagnostic, CompilerService, PublishError};
 use super::composition::Composition;
 use super::journal::Journal;
@@ -12,12 +13,15 @@ use super::report::{ProviderUse, Report};
 use super::snapshot::Snapshot;
 use super::stages::*;
 use crate::decision::{
-    decide, Budget, Confidentiality, Destination, LatencyClass, ModelPlan, RouteContext,
+    decide, Budget, Confidentiality, ConfiguredProvider, DecisionInvoker, Destination,
+    EnablementGate, LatencyClass, ModelPlan, ProviderMode, ProviderProfile, RouteContext,
     RouteInputs, RoutePolicy, RouteRequest, TaskFamily, TaskFeatures,
 };
 use crate::diag::{HarnessDiagnostic, HarnessResult};
 use crate::json::{canonical, sha256_plain};
-use crate::observe::{Availability, Observation, Observer, Outcome as ObsOutcome, Role, Stage};
+use crate::observe::{
+    Availability, Observation, Observer, Outcome as ObsOutcome, Role, Stage, TokenCount,
+};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 use std::time::Instant;
@@ -31,11 +35,37 @@ pub struct RunConfig {
     pub providers: Vec<ProviderUse>,
     pub composition: Composition,
     pub apply_policy: Option<ApplyPolicy>,
+    /// Authorized checks run on the candidate after the compiler's own checks.
+    pub checks: Vec<CheckSpec>,
+    /// Rendered skill prompt included in the proposal request (HP-13).
+    pub skill_prompt: Option<SkillPromptUse>,
+    /// `[model]` guarantees; enforced on every candidate model of the route.
+    pub endpoint_policy: crate::endpoint::EndpointPolicy,
+    /// Plans from a machine-local logical model binding (`[model] logical`).
+    pub model_plans: Option<Vec<ModelPlan>>,
     /// Setup-time notes (for example a provider that could not be launched).
     pub notes: Vec<String>,
 }
 
+/// Skill prompt chosen for this task and its model-visible size.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SkillPromptUse {
+    pub text: String,
+    pub model_visible_bytes: usize,
+    pub loaded: Vec<String>,
+}
+
+/// An external `decision.evaluate` provider offered to the router. The router
+/// consults it only when its mode is explicit or its enablement gate passed.
+pub struct DecisionStage<'a> {
+    pub invoker: &'a mut dyn DecisionInvoker,
+    pub profile: ProviderProfile,
+    pub mode: ProviderMode,
+    pub gate: EnablementGate,
+}
+
 pub struct Stages<'a> {
+    pub decision: Option<DecisionStage<'a>>,
     pub native: &'a mut dyn ContextStage,
     pub external: Option<&'a mut dyn ContextStage>,
     pub proposer: &'a mut dyn ProposalStage,
@@ -54,6 +84,7 @@ struct Ctx<'a> {
 }
 
 impl Ctx<'_> {
+    #[allow(clippy::too_many_arguments)]
     fn observe(
         &mut self,
         provider: &str,
@@ -63,6 +94,32 @@ impl Ctx<'_> {
         avail: Availability,
         ok: bool,
         started: Instant,
+    ) {
+        self.observe_sized(
+            provider,
+            capability,
+            stage,
+            role,
+            avail,
+            ok,
+            started,
+            (None, None, false),
+        );
+    }
+
+    /// Record one metadata-only event; `sizes` are exact byte counts
+    /// (before, after/incurred, model-visible) at the measurement boundary.
+    #[allow(clippy::too_many_arguments)]
+    fn observe_sized(
+        &mut self,
+        provider: &str,
+        capability: &str,
+        stage: Stage,
+        role: Role,
+        avail: Availability,
+        ok: bool,
+        started: Instant,
+        sizes: (Option<u64>, Option<u64>, bool),
     ) {
         let mut o = Observation::new(
             provider,
@@ -82,6 +139,11 @@ impl Ctx<'_> {
         o.latency_ms = started.elapsed().as_millis() as u64;
         if role == Role::Transform {
             o.payload_id = Some(self.lineage.id.clone());
+            o.before = sizes.0.map(TokenCount::bytes);
+            o.after = sizes.1.map(TokenCount::bytes);
+            o.model_visible = sizes.2;
+        } else {
+            o.incurred = sizes.1.map(TokenCount::bytes);
         }
         self.observer.record(o);
     }
@@ -116,12 +178,24 @@ pub fn run(
     }
     report.compiler_commands = compiler.commands();
     let ext = stages.external.as_ref().map(|e| (e.id(), e.calls()));
+    let nat = (stages.native.id(), stages.native.calls());
+    let dec = stages
+        .decision
+        .as_ref()
+        .map(|d| d.profile.provider_id.clone());
+    let router_calls = report.route["router_calls"].as_u64().unwrap_or(0) as u32;
     let prop = (stages.proposer.id(), stages.proposer.calls());
     for p in &mut report.providers {
         if let Some((id, n)) = &ext {
             if &p.provider == id {
                 p.invoked = *n;
             }
+        }
+        if dec.as_deref() == Some(p.provider.as_str()) {
+            p.invoked = router_calls;
+        }
+        if p.provider == nat.0 && p.provider != NATIVE_CONTEXT_ID {
+            p.invoked = nat.1;
         }
         if p.provider == prop.0 {
             p.invoked = prop.1;
@@ -228,9 +302,13 @@ fn drive(cx: &mut Ctx, st: &mut Stages, r: &mut Report) -> HarnessResult<()> {
         seed: seed.as_deref(),
         query: diag_text.chars().take(256).collect(),
         max_bytes: budget,
+        external: cfg.task.external_context,
     };
     let started = Instant::now();
     let native = st.native.collect(&creq);
+    if let Some(n) = st.native.take_note() {
+        r.notes.push(n);
+    }
     cx.observe(
         &st.native.id(),
         "context.repository",
@@ -297,8 +375,8 @@ fn drive(cx: &mut Ctx, st: &mut Stages, r: &mut Report) -> HarnessResult<()> {
     let mut kept: Vec<ContextItem> = Vec::new();
     let (mut used, mut dropped) = (0usize, 0usize);
     for p in &packets {
-        let native_packet = p.provider == NATIVE_CONTEXT_ID;
         for it in &p.items {
+            let native_packet = it.provenance == super::broker_stage::COMPILER_VERIFIED;
             if used + it.bytes() <= budget {
                 used += it.bytes();
                 kept.push(it.clone());
@@ -312,28 +390,85 @@ fn drive(cx: &mut Ctx, st: &mut Stages, r: &mut Report) -> HarnessResult<()> {
     r.context = json!({"budget_bytes": budget, "used_bytes": used, "items": kept.len(), "dropped_external_items": dropped,
                        "providers": packets.iter().map(|p| p.provider.clone()).collect::<Vec<_>>()});
     step(r, "budget", &format!("{used}/{budget} bytes"));
-
-    // 5. route (policy first; rules only, zero router calls).
-    let (route_json, model) = route(cx, &cfg.task, used)?;
-    r.route = route_json;
-    cx.observe(
-        "semaprax/rules-decision",
-        "decision.evaluate",
-        Stage::Decision,
-        Role::Local,
+    // Skills: the exact model-visible prompt block, counted at its boundary.
+    if let Some(sp) = &cfg.skill_prompt {
+        cx.observe_sized(
+            "semaprax/plain-skills",
+            "skill.catalog",
+            Stage::SkillCatalog,
+            Role::Transform,
+            Availability::Available,
+            true,
+            Instant::now(),
+            (None, Some(sp.model_visible_bytes as u64), true),
+        );
+        r.context["skills"] =
+            json!({"loaded": sp.loaded, "model_visible_bytes": sp.model_visible_bytes});
+        step(
+            r,
+            "skills",
+            &format!(
+                "{} skill(s), {} bytes",
+                sp.loaded.len(),
+                sp.model_visible_bytes
+            ),
+        );
+    }
+    cx.observe_sized(
+        "semaprax/context-budget",
+        "context.repository",
+        Stage::ContextSelect,
+        Role::Transform,
         Availability::Available,
         true,
         Instant::now(),
+        (
+            Some(
+                packets
+                    .iter()
+                    .flat_map(|p| p.items.iter())
+                    .map(|i| i.bytes() as u64)
+                    .sum(),
+            ),
+            Some(used as u64),
+            false,
+        ),
+    );
+
+    // 5. route (policy first; rules only, zero router calls).
+    let started = Instant::now();
+    let (route_json, model) = route(cx, &cfg.task, used, st.decision.as_mut())?;
+    let used_provider = route_json["provider"].as_str().unwrap_or("").to_string();
+    let fell_back = route_json["source"]
+        .as_str()
+        .is_some_and(|s| s.starts_with("Fallback"));
+    r.route = route_json;
+    cx.observe(
+        &used_provider,
+        "decision.evaluate",
+        Stage::Decision,
+        Role::Local,
+        if fell_back {
+            Availability::Fallback
+        } else {
+            Availability::Available
+        },
+        true,
+        started,
     );
     step(r, "route", &model);
 
     // 6. generate a proposal.
     cfg.snapshot.verify_current()?;
-    let prompt = json!({
+    let mut prompt = json!({
         "schema": "semaprax.harness-prompt.v1", "revision": compiler_revision, "goal": cfg.task.goal,
         "seed": seed, "diagnostics": diag_view, "intents": INTENT_KINDS,
         "context": kept.iter().map(|i| json!({"label": i.label, "provenance": i.provenance, "text": i.text})).collect::<Vec<_>>(),
     });
+    if let Some(sp) = &cfg.skill_prompt {
+        // Quoted data below host and compiler authority (framed by the skill service).
+        prompt["skills"] = json!(sp.text);
+    }
     let bytes = generate(cx, st, &mut journal, prompt, model, r)?;
     let proposal = parse_proposal(&bytes)?;
     if let Some(c) = proposal.claims.as_object() {
@@ -352,7 +487,7 @@ fn drive(cx: &mut Ctx, st: &mut Stages, r: &mut Report) -> HarnessResult<()> {
     step(r, "validate", "candidate admitted by the compiler");
 
     // 8. authorized checks on the candidate: the verdict is the compiler's.
-    let checks = candidate_checks(cx, &preview, r)?;
+    let checks = candidate_checks(cx, st.command, &preview, r)?;
     r.checks = checks;
     step(r, "check", "candidate verified and tests passed");
 
@@ -441,7 +576,12 @@ fn failure_text(e: &StageFailure) -> String {
     }
 }
 
-fn route(cx: &mut Ctx, task: &Task, context_bytes: usize) -> HarnessResult<(Value, String)> {
+fn route(
+    cx: &mut Ctx,
+    task: &Task,
+    context_bytes: usize,
+    decision: Option<&mut DecisionStage>,
+) -> HarnessResult<(Value, String)> {
     let family = TaskFamily::parse(&task.family).ok_or_else(|| {
         d(
             "SPX-HPD081",
@@ -456,9 +596,10 @@ fn route(cx: &mut Ctx, task: &Task, context_bytes: usize) -> HarnessResult<(Valu
         confidentiality: Confidentiality::Project,
         latency_class: LatencyClass::Interactive,
     };
-    let catalog = match &task.models {
-        Some(m) => RouteRequest::catalog_from_json(m)?,
-        None => vec![ModelPlan {
+    let catalog = match (&task.models, &cx.cfg.model_plans) {
+        (Some(m), _) => RouteRequest::catalog_from_json(m)?,
+        (None, Some(p)) => p.clone(),
+        (None, None) => vec![ModelPlan {
             id: "workflow-default".into(),
             destination: Destination::Local,
             structured_output: true,
@@ -469,13 +610,20 @@ fn route(cx: &mut Ctx, task: &Task, context_bytes: usize) -> HarnessResult<(Valu
             strength_rank: 1,
         }],
     };
+    for m in &catalog {
+        crate::endpoint::check_policy(
+            cx.cfg.endpoint_policy,
+            &crate::endpoint::AttemptOwnership::direct(),
+            &m.destination,
+        )?;
+    }
     let request = RouteRequest::new(
         features,
         catalog,
         Budget {
             max_cost_micros: 1_000_000,
             max_latency_ms: 60_000,
-            max_router_calls: 0,
+            max_router_calls: u32::from(decision.is_some()),
         },
     )?;
     let inputs = RouteInputs {
@@ -492,9 +640,22 @@ fn route(cx: &mut Ctx, task: &Task, context_bytes: usize) -> HarnessResult<(Valu
         router_ms_used: 0,
     };
     let live = inputs.clone();
-    let dec = decide(&inputs, &rctx, None, &move || live.clone(), None)?;
+    let mut configured = decision.map(|d| ConfiguredProvider {
+        profile: d.profile.clone(),
+        invoker: &mut *d.invoker,
+        mode: d.mode,
+        gate: d.gate.clone(),
+    });
+    let dec = decide(
+        &inputs,
+        &rctx,
+        configured.as_mut(),
+        &move || live.clone(),
+        None,
+    )?;
     Ok((
-        json!({"choice": dec.choice, "provider": dec.provider_id, "router_calls": dec.router_calls}),
+        json!({"choice": dec.choice, "provider": dec.provider_id, "router_calls": dec.router_calls,
+               "status": dec.provider_status, "source": format!("{:?}", dec.source)}),
         dec.choice,
     ))
 }
@@ -541,7 +702,8 @@ fn generate(
         model,
     };
     let got = st.proposer.propose(&req);
-    cx.observe(
+    let prompt_bytes = crate::json::canonical(&req.prompt).len() as u64;
+    cx.observe_sized(
         &st.proposer.id(),
         "model.generate",
         Stage::Generation,
@@ -553,6 +715,7 @@ fn generate(
         },
         got.is_ok(),
         started,
+        (None, Some(prompt_bytes), false),
     );
     match got {
         Ok(b) => {
@@ -623,6 +786,7 @@ fn copy_tree(from: &Path, to: &Path, depth: usize) -> HarnessResult<()> {
 /// copy (never the project) and have the compiler check and test it.
 fn candidate_checks(
     cx: &mut Ctx,
+    command: &mut dyn CommandStage,
     preview: &CandidatePreview,
     r: &mut Report,
 ) -> HarnessResult<Value> {
@@ -672,8 +836,48 @@ fn candidate_checks(
                 ),
             ));
         }
+        let mut runs: Vec<Value> = Vec::new();
+        if !cx.cfg.checks.is_empty() {
+            // Authorized checks see the project's own configuration (scope, mode).
+            let cfg_file = cx
+                .cfg
+                .snapshot
+                .root
+                .join(crate::profile::config::CONFIG_FILE);
+            if cfg_file.is_file() {
+                let _ = std::fs::copy(&cfg_file, scratch.join(crate::profile::config::CONFIG_FILE));
+            }
+            for c in &cx.cfg.checks {
+                let run = match command.run_check(c, &scratch, &mut *cx.observer) {
+                    None => {
+                        return Err(d(
+                            "SPX-HPD051",
+                            format!("authorized check `{}` cannot run: the command stage executes no checks", c.name),
+                        ))
+                    }
+                    Some(Err(e)) => {
+                        return Err(d(
+                            "SPX-HPD051",
+                            format!("authorized check `{}` was refused: {} {}", c.name, e.code, e.message),
+                        ))
+                    }
+                    Some(Ok(run)) => run,
+                };
+                runs.push(run.to_json());
+                if !run.passed {
+                    r.checks = json!({"check": "verified", "tests": "passed", "commands": runs});
+                    return Err(d(
+                        "SPX-HPD050",
+                        format!(
+                            "candidate rejected: authorized check `{}` failed ({})",
+                            c.name, run.status
+                        ),
+                    ));
+                }
+            }
+        }
         Ok(
-            json!({"check": "verified", "tests": "passed", "candidate_revision": preview.candidate_revision, "report_digest": test.report_digest}),
+            json!({"check": "verified", "tests": "passed", "candidate_revision": preview.candidate_revision, "report_digest": test.report_digest, "commands": runs}),
         )
     })();
     let _ = std::fs::remove_dir_all(&scratch);

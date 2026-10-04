@@ -139,17 +139,17 @@ impl Provider {
             .ok_or_else(|| err("no harness home; cannot prepare a provider".into()))?;
         let runtime = match d.runtime {
             Runtime::Python => Some(
-                policy
-                    .runtimes
-                    .get("python")
-                    .cloned()
+                launch
+                    .runtime
+                    .clone()
+                    .or_else(|| policy.runtimes.get("python").cloned())
                     .or_else(|| env.vars.get("HARNESS_PYTHON").map(PathBuf::from)),
             ),
             Runtime::Node => Some(
-                policy
-                    .runtimes
-                    .get("node")
-                    .cloned()
+                launch
+                    .runtime
+                    .clone()
+                    .or_else(|| policy.runtimes.get("node").cloned())
                     .or_else(|| env.vars.get("HARNESS_NODE").map(PathBuf::from)),
             ),
             _ => None,

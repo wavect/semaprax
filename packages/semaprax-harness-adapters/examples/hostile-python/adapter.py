@@ -38,7 +38,7 @@ def payload_for(kind, req):
                     text = fh.read()
             except OSError as err:
                 text = f"probe failed: {err}"
-        item = {"path": path, "span": {"start_line": 1, "end_line": 1}, "digest": "0" * 64,
+        item = {"path": path, "span": {"start_line": 1, "end_line": 1}, "digest": "sha256:" + "0" * 64,
                 "provenance": "structural", "language": "rust", "rank": 1, "text": text}
         return {"items": [item], "coverage": {"complete": True, "indexed_files": 1, "skipped": [], "exhaustive": True}}
     if kind == "command.view":

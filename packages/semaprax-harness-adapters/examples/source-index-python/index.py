@@ -61,7 +61,7 @@ class Index:
         lang, lines = self.files[rel]
         line = lines[no - 1]
         return {"path": rel, "span": {"start_line": no, "end_line": no},
-                "digest": hashlib.sha256(line.encode()).hexdigest(), "provenance": "structural",
+                "digest": "sha256:" + hashlib.sha256(line.encode()).hexdigest(), "provenance": "structural",
                 "language": lang, "rank": rank, "text": line if text is None else text}
 
     def orient(self):

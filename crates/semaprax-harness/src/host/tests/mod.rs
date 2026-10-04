@@ -132,9 +132,8 @@ pub(crate) fn hostile(fx: &Fx, mode: &str) -> LaunchSpec {
     )
 }
 
-/// Source-index example copied into the fixture with its bare-hex digest
-/// patched to the `sha256:<hex>` form the HP-01 validator requires (the
-/// shipped example emits bare hex, which the host correctly refuses).
+/// Source-index example copied into the fixture (it emits `sha256:<hex>`
+/// digests, the form the HP-01 validator requires).
 pub(crate) fn source_index(fx: &Fx) -> LaunchSpec {
     let src = examples().join("source-index-python");
     let dir = fx.root.join("examples/source-index-python");
@@ -148,13 +147,6 @@ pub(crate) fn source_index(fx: &Fx) -> LaunchSpec {
     for f in ["adapter.py", "harness-provider.json", "index.py"] {
         std::fs::copy(src.join(f), dir.join(f)).unwrap();
     }
-    let idx = std::fs::read_to_string(dir.join("index.py")).unwrap();
-    let patched = idx.replace(
-        "hashlib.sha256(line.encode()).hexdigest()",
-        "\"sha256:\" + hashlib.sha256(line.encode()).hexdigest()",
-    );
-    assert_ne!(idx, patched, "digest expression not found in index.py");
-    std::fs::write(dir.join("index.py"), patched).unwrap();
     spec_in(
         &dir,
         descriptor_from(&dir, |_| {}),

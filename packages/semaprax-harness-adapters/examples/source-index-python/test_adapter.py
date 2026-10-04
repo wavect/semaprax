@@ -54,7 +54,7 @@ class SourceIndexTest(unittest.TestCase):
         self.assertEqual(top["span"], {"start_line": 1, "end_line": 1})
         self.assertEqual(top["provenance"], "structural")
         import hashlib
-        self.assertEqual(top["digest"], hashlib.sha256(b"def greet(name):").hexdigest())
+        self.assertEqual(top["digest"], "sha256:" + hashlib.sha256(b"def greet(name):").hexdigest())
         self.assertTrue(r["payload"]["coverage"]["exhaustive"])
         for item in r["payload"]["items"]:
             self.assertFalse(os.path.isabs(item["path"]) or ".." in item["path"])

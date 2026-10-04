@@ -97,7 +97,7 @@ fn search(root: Option<&str>, query: &str) -> Value {
             if !query.is_empty() && line.contains(query) {
                 items.push(json!({
                     "path": path, "span": {"start_line": i + 1, "end_line": i + 1},
-                    "digest": hex(&Sha256::digest(line.as_bytes())), "provenance": "structural",
+                    "digest": format!("sha256:{}", hex(&Sha256::digest(line.as_bytes()))), "provenance": "structural",
                     "language": "rust", "rank": 1, "text": line,
                 }));
             }

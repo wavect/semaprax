@@ -284,6 +284,32 @@ agent-authorship result, a matched Bend result, current-head evidence, or a
 checked-`u32` result. The formal proof and cost fields in the receipt are both
 `unavailable`.
 
+The corresponding Bend lane uses `bend_boolean_runtime_acceptance.py`. It
+requires retained ordinary-check and `--verdict` receipts for the candidate,
+and rejection receipts with `SOME PROOFS FAIL` for the exact seeded attack on
+both routes. Its `two_input_bend_runtime_authenticated` result records an
+observed raw verdict marker, not independently replayed proof. It also labels
+the cell `bool_exact_only`: the Boolean microcell does not supply checked-`u32`
+evidence.
+
+On 4 October 2026, Bend ordinal 2 used source commit
+`947db722640c86247849343657bf2f7ef01cb7f1` and Bun SHA-256
+`abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781`.
+The model source digest was
+`205c46ac3bcb0620e0c11d55732614c83026d74de9d023050e4cc45b9d46da46`.
+Raw candidate and attack receipts are under
+`/tmp/law16-codex-edit-pilot.CBbG5U/ordinal-2-bend-runtime-evidence/`; its
+`acceptance.json` has status `two_input_bend_runtime_authenticated`.
+
+The 20,000-token v2 plan already reserves ten ordinals for each Boolean lane.
+After the ordinal-2 pair, the least additional agent work is nine sequential
+matched pairs (ordinals 1 and 3 through 10), each followed by both local raw
+route captures and evaluators. A pilot's observed chargeable use was about
+16.6k tokens per lane, so that schedule is roughly 299k additional chargeable
+tokens before any unavailable provider-cost conversion. It remains a Boolean
+microcell campaign until all ten pairs have retained evidence; it is not a
+checked-`u32` benchmark or a comparison result.
+
 The local pinned Bend Boolean smoke route was executed on 4 October 2026 with
 Bun 1.2.5 and `BEND_NO_TELEMETRY=1`. Its receipt is
 `/tmp/bend-two-value-boolean.json`: the checked-out source was

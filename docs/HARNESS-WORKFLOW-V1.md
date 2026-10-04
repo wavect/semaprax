@@ -395,7 +395,7 @@ Each route records a `cost_policy` object: action, reason, escalation count and 
 
 **Limits:**
 - Failure classification is a heuristic over stage, code and message.
-- The scratch-repair loop does not escalate.
+- The scratch-repair loop uses the same bounded policy.
 - Promotion needs TC-12 evidence.
 
 The TC-12 `spend-ledger` and `cost-aware-routing` arms report `not-applicable` for app tasks. Those trials run one

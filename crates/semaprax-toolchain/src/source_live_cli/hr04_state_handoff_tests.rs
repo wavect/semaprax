@@ -44,7 +44,7 @@ fn retained_a_to_b_to_c_handoff_carries_state_without_initialize_or_redispatch()
 
     let b_source = successor_source().replace(
         "Step::Complete { summary: state.objective, budget: state.budget, status: state.epoch }",
-        "Step::Suspend { objective: state.objective, budget: state.budget, epoch: state.epoch }",
+        "Step::Suspend { objective: state.objective, budget: state.budget, epoch: state.epoch, marker: state.marker }",
     );
     let b_manifest = source_project(
         &fixture.0.join("project-b"),

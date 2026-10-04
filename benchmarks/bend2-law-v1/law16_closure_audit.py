@@ -187,7 +187,7 @@ def render() -> dict:
             "id": "AC2",
             "text": ACCEPTANCE_TEXT[1],
             "status": "partial",
-            "assessment": "Supplemental guarded-i64/U32 v2 retains one candidate/attack pair for balance and sort across Bend ordinary, Bend verdict, and SEMAPRAX native routes, plus four SEMAPRAX domain refusals. Its bitvector representation model is full-domain but has no source translation/lowering certificate; the sort model is universal only for four-element U32 lists. The separate Lean capsule proves LAW15 collection.sort over List<i64>, with no matched Bend theorem. No LAW16 source theorem is established; original checked-u32 syntax remains unsupported.",
+            "assessment": "Supplemental guarded-i64/U32 v2 retains one candidate/attack pair for balance and sort across Bend ordinary, Bend verdict, and SEMAPRAX native routes, plus four SEMAPRAX domain refusals. A separate Bend source theorem proves sortedness and multiplicity for all finite U32 lists, while Lean proves the aligned laws for LAW15 collection.sort over all finite List<i64>. These authenticate distinct source algorithms and trusted computing bases. No LAW16 source theorem or source translation/lowering certificate is established; original checked-u32 syntax remains unsupported.",
             "evidence": common + [
                 evidence("evidence/full-u32-encoding-controls-v1/report.json"),
                 evidence("full_u32_equal_spec.py"),
@@ -264,7 +264,7 @@ def render() -> dict:
         ),
         (
             "partial",
-            "Supplemental controls pair full-U32 Bend values with guarded-i64 SEMAPRAX source, with explicit state-preserving failure cases, all-U32 representation bitvector checks, and a four-element U32 sort model. These do not prove source translation/lowering or unbounded LAW16 laws. A separate Lean capsule reports LAW15 identities only. The original checked-u32 source profile remains unadmitted.",
+            "Supplemental controls pair full-U32 Bend values with guarded-i64 SEMAPRAX source, with explicit state-preserving failure cases and all-U32 representation bitvector checks. Separate Bend and Lean source theorems establish aligned universal sort laws over the U32 subdomain for distinct algorithms. They do not prove source translation/lowering or the original LAW16 identities. The checked-u32 source profile remains unadmitted.",
         ),
         (
             "partial",
@@ -303,8 +303,8 @@ def render() -> dict:
             "id": "supported_list_theorem",
             "classification": "supplemental_profile_only",
             "blocking_requirements": ["AC2", "R2", "R3"],
-            "status": "A retained Lean kernel test proves generic LAW15 collection.sort over all finite List<i64> and rejects empty/duplicate mutants, but it does not cover law16.* declarations or establish a matched Bend source proof. The separate U32 SMT model checks only length-four lists.",
-            "evidence": [evidence("evidence/law16-i64-list-proof-v1/capsule.json"), evidence("fixtures/full-u32-encoding-v1/sort-equal-spec.smt2"), evidence("evidence/law16-checked-u32-nonadmission-v1/review.json")],
+            "status": "Retained Bend and Lean source theorems prove aligned universal sortedness and multiplicity laws over the U32 subdomain, with separate empty/duplicate attack controls. They authenticate distinct algorithms and source identities; neither proves the original law16.* declarations. The separate U32 SMT model remains limited to four-element lists.",
+            "evidence": [evidence("evidence/bend-u32-sort-universal-v1/capsule.json"), evidence("evidence/law16-i64-list-proof-v1/capsule.json"), evidence("fixtures/full-u32-encoding-v1/sort-equal-spec.smt2"), evidence("evidence/law16-checked-u32-nonadmission-v1/review.json")],
         },
         {
             "id": "law16_list_source_theorem",
@@ -345,7 +345,7 @@ def render() -> dict:
             "id": "external_lean_export_kernel",
             "classification": "supplemental_route_available_but_not_law16_cell",
             "blocking_requirements": ["R1", "R2"],
-            "status": "a retained pinned Lean kernel route covers LAW15 collection.sort over List<i64>; the original report's no-Lean-route statement predates this supplemental capsule, which does not prove a LAW16 declaration",
+            "status": "a retained pinned Lean kernel route covers LAW15 collection.sort over List<i64>; this supplemental capsule does not prove a LAW16 declaration",
             "evidence": [evidence("evidence/law16-i64-list-proof-v1/capsule.json")],
         },
         {

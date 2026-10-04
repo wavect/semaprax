@@ -29,7 +29,7 @@
       "text": "A single documented command or harness sequence reproduces each available benchmark cell with raw artifacts and pinned identities."
     },
     {
-      "assessment": "Supplemental guarded-i64/U32 v2 retains one candidate/attack pair for balance and sort across Bend ordinary, Bend verdict, and SEMAPRAX native routes, plus four SEMAPRAX domain refusals. Its bitvector representation model is full-domain but has no source translation/lowering certificate; the sort model is universal only for four-element U32 lists. The separate Lean capsule proves LAW15 collection.sort over List<i64>, with no matched Bend theorem. No LAW16 source theorem is established; original checked-u32 syntax remains unsupported.",
+      "assessment": "Supplemental guarded-i64/U32 v2 retains one candidate/attack pair for balance and sort across Bend ordinary, Bend verdict, and SEMAPRAX native routes, plus four SEMAPRAX domain refusals. A separate Bend source theorem proves sortedness and multiplicity for all finite U32 lists, while Lean proves the aligned laws for LAW15 collection.sort over all finite List<i64>. These authenticate distinct source algorithms and trusted computing bases. No LAW16 source theorem or source translation/lowering certificate is established; original checked-u32 syntax remains unsupported.",
       "evidence": [
         {
           "bytes": 78546,
@@ -223,7 +223,7 @@
     }
   ],
   "audit_status": "open_requirements_remain",
-  "audited_repository_commit": "1fdeae07b0a4e4facd1735b7b6df9c9263106d67",
+  "audited_repository_commit": "90a3687cb60c2303f0e6e8b96c72015d03631eae",
   "closure": "not_satisfied",
   "current_report_reconciliation": {
     "audit_update": "The current report includes the LAW15 collection List<i64> Lean proof test. It is supplemental and does not close or prove the original LAW16 list cell.",
@@ -257,6 +257,11 @@
       "classification": "supplemental_profile_only",
       "evidence": [
         {
+          "bytes": 6851,
+          "path": "evidence/bend-u32-sort-universal-v1/capsule.json",
+          "sha256": "sha256:7707ac0797579e47c8575cec6aefeeaa68532a4745ccf6163b9793a4cb355d9c"
+        },
+        {
           "bytes": 3144,
           "path": "evidence/law16-i64-list-proof-v1/capsule.json",
           "sha256": "sha256:a14878d87d8f63cb472916239d3e07f9bac46265291159ef4dc994d5735d5b0d"
@@ -273,7 +278,7 @@
         }
       ],
       "id": "supported_list_theorem",
-      "status": "A retained Lean kernel test proves generic LAW15 collection.sort over all finite List<i64> and rejects empty/duplicate mutants, but it does not cover law16.* declarations or establish a matched Bend source proof. The separate U32 SMT model checks only length-four lists."
+      "status": "Retained Bend and Lean source theorems prove aligned universal sortedness and multiplicity laws over the U32 subdomain, with separate empty/duplicate attack controls. They authenticate distinct algorithms and source identities; neither proves the original law16.* declarations. The separate U32 SMT model remains limited to four-element lists."
     },
     {
       "blocking_requirements": [
@@ -371,7 +376,7 @@
         }
       ],
       "id": "external_lean_export_kernel",
-      "status": "a retained pinned Lean kernel route covers LAW15 collection.sort over List<i64>; the original report's no-Lean-route statement predates this supplemental capsule, which does not prove a LAW16 declaration"
+      "status": "a retained pinned Lean kernel route covers LAW15 collection.sort over List<i64>; this supplemental capsule does not prove a LAW16 declaration"
     },
     {
       "blocking_requirements": [
@@ -531,7 +536,7 @@
       "text": "Define matched tasks: scalar contract bug, structured balance transfer, supported list theorem, law-preserving refactor, law-breaking agent edit, and a project-sized incremental edit. State unsupported cells rather than substituting a weaker task."
     },
     {
-      "assessment": "Supplemental controls pair full-U32 Bend values with guarded-i64 SEMAPRAX source, with explicit state-preserving failure cases, all-U32 representation bitvector checks, and a four-element U32 sort model. These do not prove source translation/lowering or unbounded LAW16 laws. A separate Lean capsule reports LAW15 identities only. The original checked-u32 source profile remains unadmitted.",
+      "assessment": "Supplemental controls pair full-U32 Bend values with guarded-i64 SEMAPRAX source, with explicit state-preserving failure cases and all-U32 representation bitvector checks. Separate Bend and Lean source theorems establish aligned universal sort laws over the U32 subdomain for distinct algorithms. They do not prove source translation/lowering or the original LAW16 identities. The checked-u32 source profile remains unadmitted.",
       "id": "R3",
       "status": "partial",
       "text": "Equalize law strength: sorting includes permutation/multiplicity and sortedness; balances include intended state change, not only conservation; compare the same domain/overflow semantics. Bend Nat/U32 and Semaprax checked integers are not interchangeable by default."

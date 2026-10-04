@@ -226,7 +226,7 @@ def main():
         if observation["cancellation"] != {"state":"cancelled","before_step":1,"steps_used":0,"report_released":False,"source_authority":False}: raise Failure("host cancellation boundary mismatch")
         if observation["test_task_authority"] != {"source_write":False,"process":False,"network":False,"target_runtime":False,"publication":False}: raise Failure("candidate test task authority widened")
         if observation["authority"] != {"source_write":False,"build":False,"commit":False,"publication":False}: raise Failure("editor authority widened")
-        if observation["hot_reload"] != {"interpreter_child":True,"migration_required":True,"waiting_safe_point":True,"terminal_unknown":True,"source_agent_selected":False}: raise Failure("hot reload Extension Host coverage is incomplete")
+        if observation["hot_reload"] != {"interpreter_child":True,"migration_required":True,"waiting_safe_point":True,"terminal_unknown":True,"stale_after_stop":True,"stop_while_plan_pending":True,"source_agent_selected":False}: raise Failure("hot reload Extension Host coverage is incomplete")
         rendered=observation["webview_rendered_views"]
         expected_renders=[
             {"mode":"overview","target":None,"side":"current","loaded":["declarations","modules"]},

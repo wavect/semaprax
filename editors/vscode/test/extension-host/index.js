@@ -150,11 +150,14 @@ async function run() {
   // scripted protocol child covers the adapter's visible refusal/migration,
   // safe-point wait, and terminal uncertainty states without claiming that
   // the unavailable lane ran.
-  const fakeCli = path.join(os.tmpdir(), `semaprax-hot-reload-${process.pid}.js`);
-  fs.writeFileSync(fakeCli, `#!/usr/bin/env node
+const fakeCli = path.join(os.tmpdir(), `semaprax-hot-reload-${process.pid}.js`);
+fs.writeFileSync(fakeCli, `#!/usr/bin/env node
 const readline=require('node:readline');
 const revision='sha256:${'f'.repeat(64)}';
-readline.createInterface({input:process.stdin}).on('line',line=>{const row=JSON.parse(line);let value={schema:'semaprax.hot-reload-control.v1',id:row.id,event:'started',generation:0,active_project_revision:revision,terminal_uncertainty:false};if(row.op==='status')value={schema:value.schema,id:row.id,event:'rejected',message:'source-Agent development sessions require the authenticated source-live migration adapter'};if(row.op==='plan')value={...value,event:'waiting_safe_point'};if(row.op==='activate')value={...value,event:'terminal_uncertainty',terminal_uncertainty:true};if(row.op==='stop')value={schema:value.schema,id:row.id,event:'stopped'};console.log(JSON.stringify(value));});
+let session=0,lastPlan;
+const output=value=>console.log(JSON.stringify(value));
+readline.createInterface({input:process.stdin}).on('line',line=>{const row=JSON.parse(line);if(row.op==='start')session++;let value={schema:'semaprax.hot-reload-control.v1',id:row.id,event:'started',generation:0,active_project_revision:revision,terminal_uncertainty:false};if(row.op==='status')value={schema:value.schema,id:row.id,event:'rejected',message:'source-Agent development sessions require the authenticated source-live migration adapter'};if(row.op==='plan'&&session===2){lastPlan=row.id;return;}if(row.op==='plan')value={...value,event:'waiting_safe_point'};if(row.op==='activate')value={...value,event:'terminal_uncertainty',terminal_uncertainty:true};if(row.op==='stop')value={schema:value.schema,id:row.id,event:'stopped'};output(value);});
+process.on('SIGTERM',()=>{if(lastPlan)output({schema:'semaprax.hot-reload-control.v1',id:lastPlan,event:'status',generation:0,active_project_revision:revision,terminal_uncertainty:false});setTimeout(()=>process.exit(0),25);});
 `, { mode: 0o700 });
   try {
     await settings.update('compilerPath', fakeCli, vscode.ConfigurationTarget.Global);
@@ -183,6 +186,19 @@ readline.createInterface({input:process.stdin}).on('line',line=>{const row=JSON.
     assert.equal((await waitForHotReload(api, 'terminal_uncertainty')).event, 'terminal_uncertainty');
     await api.execute('stopHotReload');
     assert.match(api.state().status, /unknown/);
+    // A planning/check reply may arrive after Stop. The controller has already
+    // discarded the child, so the late response cannot recreate the session.
+    await api.execute('startHotReload');
+    await waitForHotReload(api, 'started');
+    await api.execute('hotReloadPlan');
+    await new Promise(resolve => setTimeout(resolve, 25));
+    await api.execute('stopHotReload');
+    await new Promise(resolve => setTimeout(resolve, 100));
+    assert.equal(api.state().hotReload, null);
+    assert.equal(api.state().status, 'SEMAPRAX hot reload: stopped');
+    await settings.update('compilerPath', compiler, vscode.ConfigurationTarget.Global);
+    assert.equal(api.state().hotReload, null, 'settings change keeps the stopped reload session disposed');
+    assert.equal(api.state().status, 'SEMAPRAX: stopped');
   } finally {
     await settings.update('compilerPath', compiler, vscode.ConfigurationTarget.Global);
     fs.rmSync(fakeCli, { force: true });
@@ -516,6 +532,8 @@ readline.createInterface({input:process.stdin}).on('line',line=>{const row=JSON.
       migration_required: true,
       waiting_safe_point: true,
       terminal_unknown: true,
+      stale_after_stop: true,
+      stop_while_plan_pending: true,
       source_agent_selected: false
     }
   }));

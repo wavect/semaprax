@@ -1,7 +1,6 @@
-use semaprax::project::with_authenticated_project;
 use semaprax_native_rust_interop::{
-    indexed_binding::SelectedPackage, prepare_indexed_regex_url_project_packages,
-    prepare_native_rust_serde_iterator_callbacks, IndexedProjectRegexRegistrySelection,
+    indexed_binding::SelectedPackage, prepare_native_rust_serde_iterator_callbacks,
+    with_authenticated_indexed_regex_url_project_packages, IndexedProjectRegexRegistrySelection,
     IndexedProjectUrlRegistrySelection,
 };
 use semaprax_rust_api_index::RustApiIndex;
@@ -133,7 +132,10 @@ fn main() {
         index_bytes: url_index.canonical_json().as_bytes(),
         package: url_package,
     });
-    let m1 = prepare_indexed_regex_url_project_packages(
+    // M1 package facts, M2 projection, and M3 Future rendering are all derived
+    // before the held indexed Project snapshot is released. The callback has no
+    // path or selection input, so it cannot substitute a later source revision.
+    let (m1, m2, m3, project_revision) = with_authenticated_indexed_regex_url_project_packages(
         &unified.join("semaprax.toml"),
         &regex,
         &url,
@@ -141,41 +143,7 @@ fn main() {
         "url.run",
         REGEX_LOCK,
         URL_LOCK,
-    )
-    .expect("one held unified Project M1 selection");
-    let destination = root.join("generated/regex");
-    fs::create_dir_all(destination.join("src")).unwrap();
-    for (path, bytes) in [
-        ("Cargo.toml", m1.regex.cargo_toml()),
-        ("Cargo.lock", m1.regex.cargo_lock()),
-        ("src/lib.rs", m1.regex.lib_rs()),
-        ("src/regex_project.c", m1.regex.c_source()),
-        ("src/regex_project.h", m1.regex.header()),
-        ("binding-plan.json", m1.regex.binding_plan()),
-        ("descriptor.json", m1.regex.descriptor()),
-    ] {
-        fs::write(destination.join(path), bytes).unwrap();
-    }
-    embed_generated_package(&destination);
-    let destination = root.join("generated/url");
-    fs::create_dir_all(destination.join("src")).unwrap();
-    for (path, bytes) in [
-        ("Cargo.toml", m1.url.cargo_toml()),
-        ("Cargo.lock", m1.url.cargo_lock()),
-        ("src/lib.rs", m1.url.lib_rs()),
-        ("src/url_project.c", m1.url.c_source()),
-        ("src/url_project.h", m1.url.header()),
-        ("binding-plan.json", m1.url.binding_plan()),
-        ("descriptor.json", m1.url.descriptor()),
-    ] {
-        fs::write(destination.join(path), bytes).unwrap();
-    }
-    embed_generated_package(&destination);
-    // M2's record/callback output and M3's Future module must arise from one
-    // held Project snapshot. A second source read could otherwise assemble
-    // generated modules from different authenticated revisions.
-    let (m2, m3, m3_revision) =
-        with_authenticated_project(&unified.join("semaprax.toml"), |snapshot| {
+        |snapshot, m1| {
             snapshot.check()?;
             let source = snapshot
                 .sources()
@@ -189,11 +157,12 @@ fn main() {
                 "callback.factory",
                 "callback.advance",
             )?;
-            let revision = snapshot.retain_revision();
+            let project_revision = snapshot.retain_revision().project_revision().to_owned();
             let m3 = snapshot.render_source_local_future_rust_module()?;
-            Ok((m2, m3, revision.project_revision().to_owned()))
-        })
-        .expect("held unified Project M2/M3 selection");
+            Ok((m1, m2, m3, project_revision))
+        },
+    )
+    .expect("one held unified Project M1/M2/M3 selection");
     let m2_dir = root.join("generated/m2");
     fs::create_dir_all(&m2_dir).unwrap();
     fs::write(m2_dir.join("module.c"), &m2.callback.c_source).unwrap();
@@ -223,12 +192,13 @@ fn main() {
                 "{\n",
                 "  \"schema\": \"semaprax.ri13.linked-subject.v1\",\n",
                 "  \"m1_project_subject\": {:?},\n",
+                "  \"project_revision\": {:?},\n",
                 "  \"m2_source_revision\": {:?},\n",
                 "  \"m3_project_revision\": {:?},\n",
                 "  \"candidate\": \"unified-project/semaprax.toml\"\n",
                 "}\n"
             ),
-            m1.subject_digest, m2.source_revision, m3_revision,
+            m1.subject_digest, project_revision, m2.source_revision, project_revision,
         ),
     )
     .expect("linked subject binding");

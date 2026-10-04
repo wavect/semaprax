@@ -18,6 +18,7 @@ fn main() {
     for fragment in [
         "\"schema\": \"semaprax.ri13.linked-subject.v1\"",
         "\"m1_project_subject\": \"sha256:",
+        "\"project_revision\": \"sha256:",
         "\"m2_source_revision\": \"sha256:",
         "\"m3_project_revision\": \"sha256:",
         "\"candidate\": \"unified-project/semaprax.toml\"",

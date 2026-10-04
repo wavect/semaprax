@@ -85,21 +85,21 @@ def validate_sources(sources):
     for index in ("m1_regex_index", "m1_url_index"):
         require(sources, index, '"target":"aarch64-apple-darwin"')
 
-    unified_snapshot = 'with_authenticated_project(&unified.join("semaprax.toml"),'
-    if sources["prepare"].count(unified_snapshot) != 1:
-        raise ValueError("linked preparation must derive M2 and M3 from one unified snapshot")
+    indexed_snapshot = 'with_authenticated_indexed_regex_url_project_packages('
+    if sources["prepare"].count(indexed_snapshot) != 1:
+        raise ValueError("linked preparation must derive M1, M2, and M3 from one indexed snapshot")
     for fragment in (
         'let unified = root.parent().unwrap().join("unified-project")',
-        "prepare_indexed_regex_url_project_packages(",
+        "with_authenticated_indexed_regex_url_project_packages(",
         "&unified.join(\"semaprax.toml\")",
         '"regex.run"',
         '"url.run"',
-        unified_snapshot,
+        indexed_snapshot,
         "prepare_native_rust_serde_iterator_callbacks(",
         '"ri13.event"',
         '"callback.factory"',
         '"callback.advance"',
-        "with_authenticated_project(&unified.join(\"semaprax.toml\"),",
+        "let (m1, m2, m3, project_revision) = with_authenticated_indexed_regex_url_project_packages(",
         "snapshot.render_source_local_future_rust_module()",
         'root.join("generated/m3.rs")',
         'root.join("generated/linked-subject.json")',
@@ -121,6 +121,8 @@ def validate_sources(sources):
         'path = "src/main.rs"',
         'ri06-regex-owner = { path = "generated/regex"',
         'ri06-url-owner = { path = "generated/url"',
+        'semaprax-native-rust-interop = { path = "../../../crates/semaprax-native-rust-interop-builder"',
+        'semaprax-rust-api-index = { path = "../../../crates/semaprax-rust-api-index"',
     ):
         require(sources, "consumer_cargo", fragment)
     for fragment in (
@@ -128,6 +130,7 @@ def validate_sources(sources):
         'root.join("generated/url/src/url_project.c")',
         'root.join("generated/m2/module.c")',
         'root.join("generated/linked-subject.json")',
+        '\\"project_revision\\": \\"sha256:',
     ):
         require(sources, "build", fragment)
 
@@ -140,6 +143,7 @@ def validate_sources(sources):
         "SpxStatefulProxy::new",
         ".map(stateful.as_fn_mut())",
         "assert_eq!(states, [11, 13])",
+        "with_authenticated_indexed_regex_url_project(manifest,",
         "m3::register",
         'join("unified-project/semaprax.toml")',
         "Ok::<i64, ()>(43)",
@@ -210,7 +214,9 @@ def self_test():
     for name, fragment in (
         ("prepare", "prepare_native_rust_serde_iterator_callbacks("),
         ("prepare", 'let Some(directory) = env::var_os("RI13_RUST_API_INDEX_DIR")'),
-        ("prepare", 'with_authenticated_project(&unified.join("semaprax.toml"),'),
+        ("prepare", 'with_authenticated_indexed_regex_url_project_packages('),
+        ("consumer", 'with_authenticated_indexed_regex_url_project(manifest,'),
+        ("build", '\\"project_revision\\": \\"sha256:'),
         ("consumer", "m3::register"),
         ("consumer", 'join("unified-project/semaprax.toml")'),
         ("m1_source", '@id("regex.run")'),

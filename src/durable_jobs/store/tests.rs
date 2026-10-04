@@ -573,7 +573,7 @@ fn a_fault_during_the_joint_commit_leaves_neither_the_job_nor_the_side_record_vi
             let expected_entries = if published { 1 } else { 0 };
             assert_eq!(reopened.table.jobs.len(), expected_entries);
             assert_eq!(
-                reopened.side_records.len(),
+                reopened.table.side_records.len(),
                 expected_entries,
                 "{fault_point:?} occurrence {occurrence}"
             );

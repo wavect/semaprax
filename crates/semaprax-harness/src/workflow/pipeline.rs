@@ -682,7 +682,8 @@ pub(super) fn gather_context(
     let mut target_report: Option<Value> = None;
     if let Some(tc) = &cfg.context_target {
         let all: Vec<ContextItem> = packets.iter().flat_map(|p| p.items.clone()).collect();
-        let (k, om, rep) = super::context_target::select_for_run(cfg, tc, &r.context, all, &r.diagnostics)?;
+        let (k, om, rep) =
+            super::context_target::select_for_run(cfg, tc, &r.context, all, &r.diagnostics)?;
         used = k.iter().map(ContextItem::bytes).sum();
         dropped = om;
         kept = k;
@@ -866,9 +867,14 @@ pub(super) fn follow_up_context(
         Ok(Some(p)) => {
             let n = p.items.len();
             let dropped = match &cfg.context_target {
-                Some(tc) => {
-                    super::context_target::merge_for_run(cfg, tc, &mut r.context, failure, kept, p.items)
-                }
+                Some(tc) => super::context_target::merge_for_run(
+                    cfg,
+                    tc,
+                    &mut r.context,
+                    failure,
+                    kept,
+                    p.items,
+                ),
                 None => merge_fitting(kept, p.items, cfg.context_max_bytes),
             };
             r.context["plan"]["follow_up"] = json!({"added_items": n.saturating_sub(dropped), "dropped_items": dropped, "report": report});
@@ -921,7 +927,9 @@ pub(super) fn expand_context(
     })?;
     let n = p.items.len();
     let dropped = match &cfg.context_target {
-        Some(tc) => super::context_target::merge_for_run(cfg, tc, &mut r.context, failure, kept, p.items),
+        Some(tc) => {
+            super::context_target::merge_for_run(cfg, tc, &mut r.context, failure, kept, p.items)
+        }
         None => merge_fitting(kept, p.items, cfg.context_max_bytes),
     };
     if dropped > 0 {

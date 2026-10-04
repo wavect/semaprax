@@ -399,7 +399,8 @@ pub(super) fn route_and_fit(
         let mut routed = route_models(
             cx,
             task,
-            cost.as_ref().map_or_else(|| pool.clone(), |c| c.pool.clone()),
+            cost.as_ref()
+                .map_or_else(|| pool.clone(), |c| c.pool.clone()),
             est,
             decision,
             &budget,

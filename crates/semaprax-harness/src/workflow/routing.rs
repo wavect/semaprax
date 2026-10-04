@@ -10,9 +10,9 @@ use crate::decision::{
 };
 use crate::diag::{HarnessDiagnostic, HarnessResult};
 use crate::profile::config::{LadderConfig, RoutingSection};
-use std::collections::BTreeMap;
 use serde_json::Value;
 use std::cell::RefCell;
+use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::path::Path;
 

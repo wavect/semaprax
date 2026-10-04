@@ -118,7 +118,7 @@ RI-13 Linux x86_64 evidence plan
 
 --run will create a detached clean clone at $workspace, then run:
   container run --arch amd64 --rosetta --rm --init --network none \\
-    --memory 4G --read-only --tmpfs /tmp --tmpfs /work \\
+    --memory 6G --read-only --tmpfs /tmp --tmpfs /work \\
     --mount type=bind,source=$workspace,target=/repo \\
     --mount type=bind,source=$evidence,target=/evidence \\
     --mount type=bind,source=$cargo_home,target=/cargo-home,readonly \\
@@ -176,7 +176,7 @@ mkdir -p "$target"
 printf '%s\n' "$revision" > "$evidence/revision"
 
 container run --arch amd64 --rosetta --rm --init --network none \
-    --memory 4G --read-only --tmpfs /tmp --tmpfs /work \
+    --memory 6G --read-only --tmpfs /tmp --tmpfs /work \
     --mount "type=bind,source=$workspace,target=/repo" \
     --mount "type=bind,source=$evidence,target=/evidence" \
     --mount "type=bind,source=$cargo_home,target=/cargo-home,readonly" \

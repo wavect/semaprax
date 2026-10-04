@@ -62,6 +62,7 @@ The JSON receipt intentionally separates three quantities:
 | `route_timing_and_allocator_requests.routes.*.allocator_requests` | Current-thread allocator calls and requested bytes while one M3 route or batch runs | Copied bytes, retained heap, peak memory, process-wide allocation, or allocations in the server thread |
 | `m3_copy_ledger` | Response wire bytes, the fixture's exact `Bytes` to `Vec<u8>` response copy, its generated host callback subset, and zero-byte scalar boundaries | Copies inside reqwest or HTTP decoding before the observed copy, UTF-8 validation, or a complete application copy total |
 | `linked-receipt.py` `copied_byte_ledger` | Exact scalar M3 boundary/callback payload cells and an explicit unavailable foreign HTTP-body cell for the linked no-HTTP callback | A measurement of foreign HTTP-body copies |
+| `linked_copy_ledger` | M1 Regex owner copy events, M2 generated mirror clone bytes, and scalar callback boundaries | Url parsing and Serde deserialization copies, which remain unavailable |
 
 The M3 measurement requires the allocator instrumentation added with the
 RI-13 measurement work. The request count deliberately records `realloc` as
@@ -80,13 +81,22 @@ normalized operations per second separately from scalar samples and includes
 generated registration in every operation, so it is a reproducible local batch
 path without claiming a universal threshold result.
 
+The linked consumer emits its own one-line canonical ledger after it executes
+the M1 owners and M2 record/callback routes. The measurement parser requires
+the Regex carrier to report zero adapter copy events and zero adapter bytes,
+and it binds the M2 record fixture's 25-byte JSON plus the generated mirror's
+three-byte label clone. It also exercises one `Fn` and one `FnMut` invocation;
+their `i64` argument/result boundary carries zero buffer bytes. This does not
+turn the uninstrumented foreign Url parser or `serde_json` deserializer into a
+zero-copy claim: both are retained as unavailable byte observations.
+
 ## Acceptance still open
 
 This gate does not close #371. It still needs exact copied-byte evidence for
-the issue's buffer scan, ownership transfer, generic record, and stateful
-callback cases, a nontrivial batch comparison that meets its acceptance target,
-and fresh Linux x86_64 and macOS arm64 evidence. The receipt makes those gaps
-explicit rather than converting one local run into a portability or
+the issue’s buffer scan and the uninstrumented foreign portions of ownership
+transfer and deserialization, a nontrivial batch regression investigation, and
+fresh Linux x86_64 evidence. The receipt makes those gaps explicit rather than
+converting one local run into a portability or
 performance claim.
 
 ## Linked generated fixture

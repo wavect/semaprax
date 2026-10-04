@@ -28,6 +28,8 @@ COPY_COLUMNS = (
     "host_callback_captured_bytes",
 )
 M3_COPY_LEDGER_SCHEMA = "semaprax.ri13.m3-copy-ledger.v1"
+LINKED_COPY_LEDGER_SCHEMA = "semaprax.ri13.linked-copy-ledger.v1"
+LINKED_COPY_PREFIX = "ri13-linked-copy-ledger:"
 
 
 def percentile(values, percent):
@@ -216,6 +218,45 @@ def m3_copy_ledger(measurement):
     }
 
 
+def parse_linked_copy_ledger(text):
+    rows = [
+        line.removeprefix(LINKED_COPY_PREFIX)
+        for line in text.splitlines()
+        if line.startswith(LINKED_COPY_PREFIX)
+    ]
+    if len(rows) != 1:
+        raise ValueError("linked consumer must emit exactly one copied-byte ledger")
+    try:
+        ledger = json.loads(rows[0])
+    except json.JSONDecodeError as error:
+        raise ValueError("linked copied-byte ledger is not JSON") from error
+    if set(ledger) != {"schema", "m1", "m2"} or ledger["schema"] != LINKED_COPY_LEDGER_SCHEMA:
+        raise ValueError("linked copied-byte ledger has an unsupported schema")
+    regex = ledger["m1"].get("regex_result_owner")
+    url = ledger["m1"].get("url_owner_view")
+    record = ledger["m2"].get("serde_record")
+    callback = ledger["m2"].get("iterator_callback")
+    if not all(isinstance(value, dict) for value in (regex, url, record, callback)):
+        raise ValueError("linked copied-byte ledger has missing route evidence")
+    if regex != {
+        "status": "measured",
+        "adapter_copy_events": 0,
+        "adapter_copied_bytes": 0,
+        "borrow_matches_target": True,
+    }:
+        raise ValueError("linked Regex owner evidence is not an exact zero-copy observation")
+    if url.get("status") != "unavailable" or url.get("borrow_matches_target") is not True or not isinstance(url.get("reason"), str):
+        raise ValueError("linked Url ownership evidence must retain its unavailable byte count")
+    if record.get("input_json_bytes") != 25 or record.get("output_json_bytes") != 25 or record.get("generated_mirror_string_clone_copied_bytes") != 3:
+        raise ValueError("linked Serde record evidence changed its exact fixture bytes")
+    deserialization = record.get("deserialize_owned_string_copied_bytes")
+    if not isinstance(deserialization, dict) or deserialization.get("status") != "unavailable" or not isinstance(deserialization.get("reason"), str):
+        raise ValueError("linked Serde deserialization must retain its unavailable byte count")
+    if callback != {"fn_invocations": 1, "fn_mut_invocations": 1, "scalar_argument_result_copied_bytes": 0}:
+        raise ValueError("linked iterator callback evidence changed its scalar copy accounting")
+    return ledger
+
+
 def cargo_command(manifest, binary):
     return [
         "cargo",
@@ -285,6 +326,18 @@ def self_test():
     batch = parse_m3_batch_samples("\n".join(",".join(row) for row in batch_rows))
     assert batch["routes"]["generated_semaprax"]["total_operations"] == 128
     assert batch["routes"]["generated_semaprax"]["normalized_operations_per_second"] == 10_000_000.0
+    linked = parse_linked_copy_ledger(
+        "ri13-linked-copy-ledger:{\"schema\":\"semaprax.ri13.linked-copy-ledger.v1\",\"m1\":{\"regex_result_owner\":{\"status\":\"measured\",\"adapter_copy_events\":0,\"adapter_copied_bytes\":0,\"borrow_matches_target\":true},\"url_owner_view\":{\"status\":\"unavailable\",\"reason\":\"no counter\",\"borrow_matches_target\":true}},\"m2\":{\"serde_record\":{\"input_json_bytes\":25,\"output_json_bytes\":25,\"generated_mirror_string_clone_copied_bytes\":3,\"deserialize_owned_string_copied_bytes\":{\"status\":\"unavailable\",\"reason\":\"no counter\"}},\"iterator_callback\":{\"fn_invocations\":1,\"fn_mut_invocations\":1,\"scalar_argument_result_copied_bytes\":0}}}"
+    )
+    assert linked["m2"]["serde_record"]["generated_mirror_string_clone_copied_bytes"] == 3
+    try:
+        parse_linked_copy_ledger(
+            "ri13-linked-copy-ledger:{\"schema\":\"semaprax.ri13.linked-copy-ledger.v1\",\"m1\":{},\"m2\":{}}"
+        )
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("linked ledger accepted missing unavailable evidence")
     print("ri13-combined-measure-self-test-ok")
 
 
@@ -325,6 +378,7 @@ def main():
         raise SystemExit("CLANG must name the explicit compiler for the M1 generated C consumers")
 
     stages = []
+    linked_copy_ledger = None
     for name, command, expected in [
         (
             "m1_prepare",
@@ -369,9 +423,14 @@ def main():
             "ri13-linked-project-ok",
         ),
     ]:
-        result, _ = run(command, environment, expected)
+        result, stdout = run(command, environment, expected)
         result["stage"] = name
         stages.append(result)
+        if name == "linked_consumer":
+            linked_copy_ledger = parse_linked_copy_ledger(stdout)
+
+    if linked_copy_ledger is None:
+        raise RuntimeError("linked consumer did not produce copied-byte evidence")
 
     measure_command = cargo_command("examples/ri13-m3-local-http/Cargo.toml", "measure")
     measure_result, samples = run(measure_command, environment, "generated_semaprax")
@@ -394,11 +453,13 @@ def main():
         "batch_throughput_measurement_command": batch_result,
         "batch_throughput": batch_measurement,
         "m3_copy_ledger": m3_copy_ledger(route_measurement),
+        "linked_copy_ledger": linked_copy_ledger,
         "limits": [
             "The first six stages retain separately admitted M1, M2, and M3 profiles. The final two stages prepare and execute the distinct held linked Project, without claiming that it is one public SDK profile.",
             "Build-and-consumer stage elapsed times include Cargo work and process startup; they are not route latency.",
             "Scalar route timings include loopback HTTP and two-byte response parsing; the separate 64-operation batch rows retain their own normalized throughput and remain local evidence.",
             "Allocator values count current-thread requests and do not infer copies. The ledger records exact zero-byte scalar generated and host-callback payload boundaries, response wire bytes, and explicit unavailable cells for reqwest/HTTP/text/capture copies.",
+            "The linked ledger measures only the generated Regex owner carrier, generated Serde mirror clone, and scalar iterator callback boundaries. Url::parse and serde_json deserialization retain unavailable copied-byte states.",
         ],
     }
     arguments.output.parent.mkdir(parents=True, exist_ok=True)

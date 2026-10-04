@@ -1,14 +1,28 @@
 module ri13.m2_record_iterator;
-@id("ri13.event") record Event {
-    @id("ri13.event.value") value: i64,
-    @id("ri13.event.label") label: string,
+
+@id("ri13.event")
+record Event {
+    @id("ri13.event.value")
+    value: i64,
+    @id("ri13.event.label")
+    label: string,
 }
+
 @id("callback.factory")
-fn factory(offset: i64) -> fn(i64) -> i64 {
+fn factory(offset: i64) -> fn(i64) -> i64
+{
     fn(value: i64) -> i64 { value + offset }
 }
+
 @id("callback.advance")
-fn advance(state: i64, value: i64) -> i64 requires value >= 0 {
+fn advance(state: i64, value: i64) -> i64
+    requires value >= 0
+{
     state + value
 }
-@id("app.main") fn main() -> i64 { 0 }
+
+@id("app.main")
+fn main() -> i64
+{
+    0
+}

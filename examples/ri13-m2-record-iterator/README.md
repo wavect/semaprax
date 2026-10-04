@@ -47,3 +47,5 @@ not count foreign allocator activity. `adapter_buffer_copied_bytes=0` means
 the fixture's scalar callback bridge performs no explicit buffer copy; owned
 JSON strings still allocate, and hidden library copies are not measured.
 This comparison is exploratory, not a support or threshold result.
+The [raw local samples](measurements/README.md) retain exact environment,
+CSV digest, generated-code byte counts, and route-specific limitations.

@@ -9,12 +9,11 @@ use super::stages::Task;
 use crate::decision::ModelPlan;
 use crate::diag::{HarnessDiagnostic, HarnessResult};
 use crate::json::canonical;
-use crate::observe::{TokenCount, Tokenizer};
+use crate::observe::TokenCount;
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 
-/// Tokenizers the local helper can serve.
-pub const TOKENIZER_NAMES: [&str; 2] = ["cl100k_base", "o200k_base"];
+pub use super::tokenizers::{CountCache, TokenizerSet, BUILTIN_TOKENIZER_NAMES as TOKENIZER_NAMES};
 
 /// Explicit model-id prefix to tokenizer data (longest prefix wins). Anything
 /// not listed is `unknown`; a name is never guessed.
@@ -61,6 +60,10 @@ impl ModelTokenizerMap {
     }
     /// Task-supplied overrides (`tokenizer_map`: prefix to supported name).
     pub fn from_json(v: &Value) -> HarnessResult<Self> {
+        Self::from_json_with(v, &TokenizerSet::default())
+    }
+    /// As `from_json`, also admitting names the host approved in `set`.
+    pub fn from_json_with(v: &Value, set: &TokenizerSet) -> HarnessResult<Self> {
         let m = v
             .as_object()
             .ok_or_else(|| d("SPX-HPD081", "`tokenizer_map` must be an object"))?;
@@ -68,11 +71,11 @@ impl ModelTokenizerMap {
         for (k, t) in m {
             let t = t
                 .as_str()
-                .filter(|t| TOKENIZER_NAMES.contains(t))
+                .filter(|t| set.is_approved_name(t))
                 .ok_or_else(|| {
                     d(
                         "SPX-HPD081",
-                        format!("`tokenizer_map.{k}` must be one of {TOKENIZER_NAMES:?}"),
+                        format!("`tokenizer_map.{k}` must name a built-in {TOKENIZER_NAMES:?} or host-approved tokenizer"),
                     )
                 })?;
             out.0.insert(k.clone(), t.into());
@@ -85,19 +88,6 @@ impl ModelTokenizerMap {
             .filter(|(p, _)| model_id.starts_with(p.as_str()))
             .max_by_key(|(p, _)| p.len())
             .map(|(_, t)| t.as_str())
-    }
-}
-
-/// Supplied tokenizers by name (for example `ExternalTokenizer` instances).
-#[derive(Default)]
-pub struct TokenizerSet(BTreeMap<String, Box<dyn Tokenizer>>);
-
-impl TokenizerSet {
-    pub fn add(&mut self, t: Box<dyn Tokenizer>) {
-        self.0.insert(t.name().to_string(), t);
-    }
-    pub fn get(&self, name: &str) -> Option<&dyn Tokenizer> {
-        self.0.get(name).map(|b| b.as_ref())
     }
 }
 
@@ -199,6 +189,7 @@ pub struct BudgetConfig {
     pub policy: BudgetPolicy,
     pub map: ModelTokenizerMap,
     pub tokenizers: TokenizerSet,
+    pub cache: CountCache,
 }
 
 impl BudgetConfig {
@@ -210,6 +201,7 @@ impl BudgetConfig {
                 .clone()
                 .unwrap_or_else(|| self.map.clone()),
             tokenizers: &self.tokenizers,
+            cache: &self.cache,
         }
     }
 }
@@ -218,6 +210,7 @@ pub struct RequestBudget<'a> {
     pub policy: BudgetPolicy,
     pub map: ModelTokenizerMap,
     pub tokenizers: &'a TokenizerSet,
+    pub cache: &'a CountCache,
 }
 
 impl RequestBudget<'_> {
@@ -236,10 +229,23 @@ impl RequestBudget<'_> {
         let Some(t) = self.tokenizers.get(name) else {
             return unknown(&format!("tokenizer `{name}` is not provisioned"));
         };
-        match t.try_count(text) {
+        let Some(ap) = self.tokenizers.approval(name) else {
+            return unknown(&format!("tokenizer `{name}` is not approved"));
+        };
+        if ap.fingerprint != t.fingerprint() {
+            return unknown(&format!(
+                "tokenizer `{name}` fingerprint differs from approval"
+            ));
+        }
+        let counted = self
+            .cache
+            .count_with(t.name(), t.fingerprint(), &ap.semantics, text, || {
+                t.try_count(text).map(|n| n as u64)
+            });
+        match counted {
             Ok(n) => RequestCount {
                 bytes,
-                tokens: Some(n as u64),
+                tokens: Some(n),
                 tokenizer: Some((t.name().into(), t.fingerprint().into())),
                 note: None,
             },

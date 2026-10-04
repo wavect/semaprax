@@ -25,6 +25,7 @@ pub mod session;
 mod session_repair;
 pub mod snapshot;
 pub mod stages;
+pub mod tokenizers;
 mod updates_hook;
 
 pub use cli::{cli_run, run_with, RunOptions};

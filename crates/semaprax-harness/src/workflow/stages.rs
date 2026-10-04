@@ -143,6 +143,10 @@ const V2_MEMBERS: [&str; 7] = [
 
 impl Task {
     pub fn parse(bytes: &[u8]) -> HarnessResult<Task> {
+        Self::parse_with(bytes, &super::tokenizers::TokenizerSet::default())
+    }
+    /// As `parse`; `tokenizer_map` may also name tokenizers approved in `set`.
+    pub fn parse_with(bytes: &[u8], set: &super::tokenizers::TokenizerSet) -> HarnessResult<Task> {
         let bad = |m: String| d("SPX-HPD081", m);
         let v = crate::json::parse_strict(
             bytes,
@@ -211,12 +215,16 @@ impl Task {
         }
         t.models = m.get("models").cloned();
         if version == 2 {
-            t.parse_v2(m)?;
+            t.parse_v2(m, set)?;
         }
         Ok(t)
     }
 
-    fn parse_v2(&mut self, m: &Map<String, Value>) -> HarnessResult<()> {
+    fn parse_v2(
+        &mut self,
+        m: &Map<String, Value>,
+        set: &super::tokenizers::TokenizerSet,
+    ) -> HarnessResult<()> {
         let bad = |m: String| d("SPX-HPD081", m);
         self.mode = match m.get("mode").and_then(Value::as_str) {
             None | Some("repair") => TaskMode::Repair,
@@ -288,7 +296,7 @@ impl Task {
             self.budget = Some(p);
         }
         if let Some(t) = m.get("tokenizer_map") {
-            self.tokenizer_map = Some(super::budget::ModelTokenizerMap::from_json(t)?);
+            self.tokenizer_map = Some(super::budget::ModelTokenizerMap::from_json_with(t, set)?);
         }
         if let Some(s) = m.get("session") {
             self.session = Some(super::session::SessionBounds::from_json(s)?);

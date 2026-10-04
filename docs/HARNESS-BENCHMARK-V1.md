@@ -305,3 +305,59 @@ semaprax-harness bench app report <dir>
 The campaign is resumable (`trials.jsonl` is append-only; recorded trials are
 skipped) and rep-major, so a stopped or capped run leaves every cell with the
 same number of repetitions.
+
+## TC-12: cost-profile qualification (offline path shipped; paid qualification unrun)
+
+`bench app run --profile-arms <list|all> --max-usd <N> [--max-calls N] [--dry-run]` screens these arms on the existing
+app-task set, graded by the existing immutable graders:
+- the current defaults;
+- each opt-in cost policy on its own: compact skills, context target, feedback allowance, output tiers, the Caveman
+  view and the `ordered-v1` prompt renderer;
+- one combined candidate.
+
+There is no combinatorial sweep. Arms whose implementation has not landed (the TC-03 spend ledger, TC-10 routing)
+report `unavailable` and are left out of the combined arm, with the reason recorded.
+
+`--max-usd` is required. `SpendLedger::reserve` refuses any call that could cross the cap (spent + in-flight + the
+per-call ceiling) and persists `<dir>/ledger.json`. The first refusal marks that trial `budget_aborted` and every
+remaining planned trial `not_run`. The cap, `paid_qualification: "unrun"` and the predeclared criterion (with its
+digest) are written to `campaign.json` before the first trial, and a changed criterion is refused. The criterion:
+- acceptance margin `QUALITY_TOLERANCE` (0);
+- first-pass margin 0.10;
+- minimum cost saving 0.10;
+- latency ratio ≤ 1.5;
+- at least 30 matched items.
+
+Schemas:
+- `semaprax.harness-profile-campaign.v1` (`campaign.json`)
+- `semaprax.harness-profile-trial.v1` (`trials.jsonl`)
+- `semaprax.harness-profile-qualification.v1` (`qualification.json`)
+
+Every trial is retained. Outcomes are `accepted | failed | untested | unavailable | budget_aborted`. Each record also
+carries:
+- `path`: `production-harness` or `raw-model-loop`;
+- `origin`: `real` or `fixture`;
+- every dispatched router, generator or recovery attempt, with usage and cost, unknown included;
+- `spend` with its completeness;
+- provider cache state (`cold | warm | expired | unknown`, from receipt categories), kept apart from the
+  repository/index cache;
+- latency and local overhead;
+- the profile digest and pins.
+
+The primary metric is total billed spend / independently accepted tasks. It is `null`, never zero, when no task is
+accepted or any cost is unknown. First-pass success, acceptance, spend distribution, attempts and latency are reported
+alongside it.
+
+`bench app qualify <dir> --ident model=… --ident tools=… --ident taskset=…` applies the HN-16 evidence registry and
+gates. Only a complete, pinned, `real`-origin cohort that ran the `production-harness` path can promote. Fixture or
+raw-loop evidence, unknown cost, an incomplete cohort or an unavailable arm is inconclusive. A failed gate is a no-go,
+and pin drift invalidates the result. Anything short of a pass leaves defaults unchanged.
+
+Current limits:
+- The production path (`ProductionClient`) drives the real `model.generate` contract (HostModel request/interpret,
+  `segments`, receipts, price book, Observer), but app tasks are not SEMAPRAX source, so it does not run the whole
+  workflow pipeline.
+- Only the prompt-renderer overlay is applied to the prompt. The other overlays are recorded as pins.
+- `--profile-arms` from the CLI runs the labelled raw loop, which cannot promote. A promotable paid run needs a
+  production `HostModel` backend, which is library API only.
+- No paid run has been made.

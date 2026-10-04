@@ -106,6 +106,10 @@ pub struct SkillsConfig {
     /// Project preset for the curated official skills (HN-06): the one switch
     /// `official`, `preset`, and per-skill modes `ponytail` / `caveman`.
     pub prefs: crate::skills::modes::Prefs,
+    /// Opt-in `standard` (default) or `compact` cost profile (TC-08).
+    pub cost_profile: Option<String>,
+    /// Skill ids the outer host already delivers; never injected again.
+    pub host_delivered: Vec<String>,
 }
 
 impl Default for SkillsConfig {
@@ -115,6 +119,8 @@ impl Default for SkillsConfig {
             select: Vec::new(),
             max_bytes: 65536,
             prefs: Default::default(),
+            cost_profile: None,
+            host_delivered: Vec::new(),
         }
     }
 }
@@ -201,6 +207,12 @@ impl HarnessConfig {
         // Only present when set, so existing configurations keep their digest.
         if !self.skills.prefs.is_empty() {
             doc["skills"]["prefs"] = self.skills.prefs.to_json();
+        }
+        if let Some(c) = &self.skills.cost_profile {
+            doc["skills"]["cost_profile"] = json!(c);
+        }
+        if !self.skills.host_delivered.is_empty() {
+            doc["skills"]["host_delivered"] = json!(self.skills.host_delivered);
         }
         if !self.workflow.checks.is_empty() {
             doc["workflow"] = json!({"checks": self.workflow.checks});
@@ -722,10 +734,25 @@ pub fn parse(bytes: &[u8]) -> HarnessResult<HarnessConfig> {
                         cfg.skills.prefs.modes.insert(id.to_string(), m);
                     }
                 }
+                if let Some((c, l)) = t.string("cost_profile")? {
+                    if crate::skills::cost_profile::CostProfile::parse(&c).is_none() {
+                        return Err(bad(
+                            "SPX-HPB004",
+                            l,
+                            format!("`cost_profile` must be `standard` or `compact`, not `{c}`"),
+                        ));
+                    }
+                    cfg.skills.cost_profile = Some(c);
+                }
+                if let Some((v, _)) = t.list("host_delivered")? {
+                    cfg.skills.host_delivered = v;
+                }
                 t.finish(&[
                     "enabled",
                     "select",
                     "max_bytes",
+                    "cost_profile",
+                    "host_delivered",
                     "official",
                     "preset",
                     "ponytail",

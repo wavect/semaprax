@@ -447,6 +447,7 @@ fn hp_hn11_skill_plus_framing_over_the_limit_repacks_reroutes_or_refuses_before_
         cfg.skill_prompt = Some(SkillPromptUse {
             model_visible_bytes: skill.len(),
             loaded: vec!["official".into()],
+            cost_report: None,
             text: skill.clone(),
         });
     };
@@ -558,6 +559,7 @@ fn hp_hn11_code_and_unicode_input_defeat_the_byte_heuristic_and_required_parts_s
     cfg.skill_prompt = Some(SkillPromptUse {
         model_visible_bytes: skill.len(),
         loaded: vec![],
+        cost_report: None,
         text: skill,
     });
     let seq = Seq::new(vec![ok_body()]);

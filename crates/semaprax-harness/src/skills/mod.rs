@@ -9,6 +9,7 @@ pub mod bundle;
 pub mod catalog;
 pub mod cli;
 pub mod cli_defaults;
+pub mod cost_profile;
 pub mod defaults;
 pub mod frame;
 pub mod inventory;

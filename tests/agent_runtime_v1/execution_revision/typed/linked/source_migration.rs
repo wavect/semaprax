@@ -4,7 +4,8 @@ use super::*;
 use semaprax::agent_lifecycle::iterative::driver::{ProposalRequest, ProposalSource};
 use semaprax::agent_lifecycle::iterative::source_live::{
     prepare_source_live_migration, prepare_source_live_migration_from_hot_reload_handoff,
-    prepare_source_live_priced_migration, SourceAttemptIdentity, SourceLiveMigrationEndpoint,
+    prepare_source_live_priced_migration, run_source_live_migration_from_hot_reload_session,
+    SourceAgentHandoffFailure, SourceAttemptIdentity, SourceLiveMigrationEndpoint,
     SourceLiveMigrationRequest, SourceLivePolicy, SourceLivePricing, SourceLiveRequest,
     SourceProposalOutcome, SourceProposalPolicy,
 };
@@ -21,7 +22,10 @@ use semaprax::live_invocation::source_journal::{
     SourceInvocationBinding, SourceJournalEntry, SourceJournalError, SourceTerminalStatus,
 };
 use semaprax::live_invocation::{CumulativeBudgetLedger, InvocationClock, SourceInvocationClock};
-use semaprax::project::{HotReloadDecision, HotReloadSession, PreparedProjectInterpreterOptions};
+use semaprax::project::{
+    HotReloadDecision, HotReloadSession, HotReloadSourceAgentHandoffStatus,
+    PreparedProjectInterpreterOptions,
+};
 use sha2::{Digest, Sha256};
 use std::cell::Cell;
 use std::rc::Rc;
@@ -451,6 +455,148 @@ fn source_migration_consumes_hot_reload_selection_only_through_authenticated_han
     );
     assert_eq!(error.model_dispatches, 0);
     assert_eq!(destination_store.document, checkpoint_before_refusal);
+}
+
+#[test]
+fn source_agent_handoff_supervisor_activates_once_and_terminalizes_lost_ack() {
+    let a = durable::first();
+    let b = durable::successor(&a, "State", "StateB", "b", &["marker"], false);
+    let old = suspended(&a);
+    let project_b = retained(&b);
+    let life_b = compiled(&project_b);
+    let policy_b = policy(&project_b);
+    let clock = Clock::at(0);
+    let cancel = AgentCancellation::new();
+    let request = || SourceLiveMigrationRequest {
+        previous: endpoint(&old.project, &old.life, &old.policy),
+        previous_binding: &old.binding,
+        previous_checkpoint: &old.store.document,
+        destination: endpoint(&project_b, &life_b, &policy_b),
+        task: &old.task,
+        migration_function: "fixture.agent.fn.migrate_b",
+        max_migration_steps: 10_000,
+        expected_handoff_digest: None,
+    };
+    let plan = |session: &mut HotReloadSession| {
+        session.admit_candidate(Arc::clone(&project_b)).unwrap();
+        let plan = session.plan().unwrap();
+        assert_eq!(
+            plan.decision(),
+            HotReloadDecision::EligibleSourceAgentCheckpointHandoff
+        );
+        plan
+    };
+
+    let mut activated = HotReloadSession::new(
+        Arc::clone(&old.project),
+        PreparedProjectInterpreterOptions::default(),
+    )
+    .unwrap();
+    let mut destination_store = Store::default();
+    let mut model = Model::new(&life_b);
+    let mut read = Read::default();
+    let activated_plan = plan(&mut activated);
+    let outcome = run_source_live_migration_from_hot_reload_session(
+        &mut activated,
+        activated_plan,
+        request(),
+        &mut model,
+        &mut read,
+        &mut destination_store,
+        &clock,
+        &cancel,
+    )
+    .unwrap();
+    assert_eq!(
+        activated.source_agent_handoff_status(),
+        HotReloadSourceAgentHandoffStatus::Activated
+    );
+    assert_eq!(activated.generation(), 1);
+    assert_eq!(
+        activated.active_project_revision(),
+        project_b.project_revision()
+    );
+    assert_eq!((model.calls, read.calls), (3, 3));
+    assert!(outcome
+        .checked_run
+        .as_ref()
+        .unwrap()
+        .stages()
+        .iter()
+        .all(|stage| stage.role() != "initialize"));
+    assert!(activated
+        .execute_entry(
+            &semaprax::project::PreparedProjectExecutionOptions::default(),
+            &semaprax::project::ProjectExecutionCancellation::new(),
+        )
+        .is_err());
+
+    let mut refused = HotReloadSession::new(
+        Arc::clone(&old.project),
+        PreparedProjectInterpreterOptions::default(),
+    )
+    .unwrap();
+    let mut refused_store = Store::default();
+    let mut refused_model = Model::new(&life_b);
+    let mut refused_read = Read::default();
+    let mut bad_request = request();
+    bad_request.migration_function = "fixture.agent.fn.migrate_c";
+    let refused_plan = plan(&mut refused);
+    let refusal = run_source_live_migration_from_hot_reload_session(
+        &mut refused,
+        refused_plan,
+        bad_request,
+        &mut refused_model,
+        &mut refused_read,
+        &mut refused_store,
+        &clock,
+        &cancel,
+    );
+    assert!(matches!(
+        refusal,
+        Err(SourceAgentHandoffFailure::Migration(_))
+    ));
+    assert_eq!(
+        refused.source_agent_handoff_status(),
+        HotReloadSourceAgentHandoffStatus::MigrationRequired
+    );
+    assert_eq!(refused.generation(), 0);
+    assert_eq!((refused_model.calls, refused_read.calls), (0, 0));
+    assert!(refused_store.document.is_empty());
+
+    let mut uncertain = HotReloadSession::new(
+        Arc::clone(&old.project),
+        PreparedProjectInterpreterOptions::default(),
+    )
+    .unwrap();
+    let mut uncertain_store = Store {
+        lose_ack_on: Some(2),
+        ..Store::default()
+    };
+    let mut uncertain_model = Model::new(&life_b);
+    let mut uncertain_read = Read::default();
+    let uncertain_plan = plan(&mut uncertain);
+    let loss = run_source_live_migration_from_hot_reload_session(
+        &mut uncertain,
+        uncertain_plan,
+        request(),
+        &mut uncertain_model,
+        &mut uncertain_read,
+        &mut uncertain_store,
+        &clock,
+        &cancel,
+    );
+    assert!(matches!(loss, Err(SourceAgentHandoffFailure::Migration(_))));
+    assert_eq!(
+        uncertain.source_agent_handoff_status(),
+        HotReloadSourceAgentHandoffStatus::TerminalUncertainty
+    );
+    assert!(uncertain.terminal());
+    assert_eq!(uncertain.generation(), 0);
+    assert_eq!((uncertain_model.calls, uncertain_read.calls), (0, 0));
+    assert!(uncertain_store
+        .document
+        .contains("migration_evaluation_intent"));
 }
 
 #[test]

@@ -21,7 +21,8 @@ use crate::live_invocation::{
 pub use migration::{
     prepare_source_live_migration, prepare_source_live_migration_from_hot_reload_handoff,
     prepare_source_live_migration_with_io_limits, prepare_source_live_priced_migration,
-    PreparedSourceLiveMigration, SourceLiveMigrationEndpoint, SourceLiveMigrationRequest,
+    run_source_live_migration_from_hot_reload_session, PreparedSourceLiveMigration,
+    SourceAgentHandoffFailure, SourceLiveMigrationEndpoint, SourceLiveMigrationRequest,
 };
 pub(crate) use migration::{
     prepare_source_live_policy_migration_profiled,

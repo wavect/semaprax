@@ -49,6 +49,27 @@ impl HotReloadReason {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum HotReloadSourceAgentHandoffStatus {
+    Ready,
+    WaitingForCheckpoint,
+    MigrationRequired,
+    Activated,
+    TerminalUncertainty,
+}
+
+impl HotReloadSourceAgentHandoffStatus {
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::Ready => "ready",
+            Self::WaitingForCheckpoint => "waiting_for_checkpoint",
+            Self::MigrationRequired => "migration_required",
+            Self::Activated => "activated",
+            Self::TerminalUncertainty => "terminal_uncertainty",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HotReloadDecision {
     EligibleCodeReplacement,
     EligibleSourceAgentCheckpointHandoff,
@@ -95,6 +116,7 @@ impl HotReloadFailure {
 
 /// A view can be serialized, but it cannot be parsed into an activation plan.
 /// All fields are private, including the exact pending-submission identity.
+#[derive(Clone)]
 pub struct HotReloadPlan {
     generation: u64,
     submission: u64,
@@ -117,6 +139,7 @@ pub struct HotReloadPlan {
 /// bytes, lifecycle binding, store, host capability, or migration function. The
 /// source-live migration owner must independently bind and replay all of those
 /// before it can run a destination.
+#[derive(Clone)]
 pub struct HotReloadSourceAgentHandoff {
     agent_id: String,
     previous: SourceAgentEndpointFacts,
@@ -124,6 +147,7 @@ pub struct HotReloadSourceAgentHandoff {
     digest: String,
 }
 
+#[derive(Clone)]
 struct SourceAgentEndpointFacts {
     definition_digest: String,
     graph_digest: String,
@@ -227,6 +251,7 @@ pub struct HotReloadSession {
     pending: Option<Arc<ProjectRevision>>,
     worker: PreparedProjectInterpreter,
     terminal: bool,
+    source_agent_handoff_status: HotReloadSourceAgentHandoffStatus,
 }
 
 impl HotReloadSession {
@@ -245,6 +270,7 @@ impl HotReloadSession {
             pending: None,
             worker,
             terminal: false,
+            source_agent_handoff_status: HotReloadSourceAgentHandoffStatus::Ready,
         })
     }
 
@@ -258,6 +284,12 @@ impl HotReloadSession {
 
     pub fn terminal(&self) -> bool {
         self.terminal
+    }
+
+    /// The source-Agent handoff lifecycle is observational coordination only.
+    /// Migration and checkpoint authority remain with the source-live owner.
+    pub fn source_agent_handoff_status(&self) -> HotReloadSourceAgentHandoffStatus {
+        self.source_agent_handoff_status
     }
 
     /// Opaque identity of the prepared worker retained for this explicit
@@ -390,6 +422,141 @@ impl HotReloadSession {
         })
     }
 
+    /// Enters the source-Agent checkpoint handoff lifecycle after replaying the
+    /// retained plan. This does not expose a checkpoint or start a destination.
+    pub fn wait_for_source_agent_handoff(
+        &mut self,
+        plan: &HotReloadPlan,
+        agent_id: &str,
+    ) -> Result<HotReloadSourceAgentHandoff, HotReloadFailure> {
+        self.validate_source_agent_handoff_plan(plan)?;
+        let handoff = plan
+            .source_agent_handoffs
+            .iter()
+            .find(|handoff| handoff.agent_id == agent_id)
+            .cloned()
+            .ok_or_else(|| {
+                HotReloadFailure::new(
+                    HotReloadReason::UnsupportedTarget,
+                    "hot reload plan does not select the requested source Agent",
+                )
+            })?;
+        self.source_agent_handoff_status = HotReloadSourceAgentHandoffStatus::WaitingForCheckpoint;
+        Ok(handoff)
+    }
+
+    /// Records that the existing source-live owner has authenticated a
+    /// checkpoint and needs its explicit checked State migration.
+    pub(crate) fn require_source_agent_migration(
+        &mut self,
+        plan: &HotReloadPlan,
+        handoff: &HotReloadSourceAgentHandoff,
+    ) -> Result<(), HotReloadFailure> {
+        self.validate_source_agent_handoff_plan(plan)?;
+        if !plan
+            .source_agent_handoffs
+            .iter()
+            .any(|row| row.agent_id == handoff.agent_id && row.digest == handoff.digest)
+        {
+            return Err(HotReloadFailure::new(
+                HotReloadReason::StaleCandidate,
+                "source Agent handoff no longer matches the retained plan",
+            ));
+        }
+        self.source_agent_handoff_status = HotReloadSourceAgentHandoffStatus::MigrationRequired;
+        Ok(())
+    }
+
+    /// Commits the supervisor projection only after the authenticated
+    /// source-live owner has completed its one destination traversal. It never
+    /// pivots the prepared interpreter or creates a second dispatch path.
+    pub(crate) fn activate_source_agent_handoff(
+        &mut self,
+        plan: HotReloadPlan,
+        handoff: &HotReloadSourceAgentHandoff,
+    ) -> Result<(), HotReloadFailure> {
+        self.require_source_agent_migration(&plan, handoff)?;
+        let next = self.generation.checked_add(1).ok_or_else(|| {
+            HotReloadFailure::new(
+                HotReloadReason::GenerationExhausted,
+                "hot reload generation is exhausted",
+            )
+        })?;
+        self.active = self.pending.take().expect("validated pending candidate");
+        self.generation = next;
+        self.source_agent_handoff_status = HotReloadSourceAgentHandoffStatus::Activated;
+        Ok(())
+    }
+
+    /// A refusal keeps the pending candidate for a later explicitly prepared
+    /// attempt. Uncertain journal state is terminal and never supports an
+    /// in-memory rollback or retry.
+    pub(crate) fn refuse_source_agent_handoff(&mut self, uncertainty: bool) {
+        if uncertainty {
+            self.terminal = true;
+            self.source_agent_handoff_status =
+                HotReloadSourceAgentHandoffStatus::TerminalUncertainty;
+        } else {
+            self.source_agent_handoff_status = HotReloadSourceAgentHandoffStatus::MigrationRequired;
+        }
+    }
+
+    fn validate_source_agent_handoff_plan(
+        &self,
+        plan: &HotReloadPlan,
+    ) -> Result<(), HotReloadFailure> {
+        if self.terminal {
+            return Err(HotReloadFailure::new(
+                HotReloadReason::TerminalUncertainty,
+                "hot reload worker is terminal",
+            ));
+        }
+        if plan.generation != self.generation {
+            return Err(HotReloadFailure::new(
+                HotReloadReason::StaleGeneration,
+                "hot reload plan targets an older generation",
+            ));
+        }
+        let pending = self.pending.as_ref().ok_or_else(|| {
+            HotReloadFailure::new(
+                HotReloadReason::StaleCandidate,
+                "hot reload candidate is no longer pending",
+            )
+        })?;
+        if plan.submission != self.submission
+            || plan.expected_project_revision != self.active.project_revision()
+            || plan.candidate_project_revision != pending.project_revision()
+            || plan.decision != HotReloadDecision::EligibleSourceAgentCheckpointHandoff
+            || plan.digest
+                != plan_digest(
+                    plan.generation,
+                    plan.submission,
+                    &plan.expected_project_revision,
+                    &plan.expected_program_root,
+                    &plan.candidate_project_revision,
+                    &plan.candidate_program_root,
+                    &plan.entry_id,
+                    &plan.test_id,
+                    plan.decision,
+                    plan.reason,
+                    &plan.source_agent_handoff_digest,
+                )
+        {
+            return Err(HotReloadFailure::new(
+                HotReloadReason::StaleCandidate,
+                "hot reload plan no longer matches admitted source Agent candidate",
+            ));
+        }
+        let fresh = self.plan()?;
+        if fresh.digest != plan.digest {
+            return Err(HotReloadFailure::new(
+                HotReloadReason::StaleCandidate,
+                "hot reload compatibility facts changed",
+            ));
+        }
+        Ok(())
+    }
+
     pub fn activate(&mut self, plan: HotReloadPlan) -> Result<(), HotReloadFailure> {
         if self.terminal {
             return Err(HotReloadFailure::new(
@@ -502,6 +669,12 @@ impl HotReloadSession {
             return Err(vec![Diagnostic::io(
                 "SPX-HR400",
                 "hot reload worker has terminal uncertainty",
+            )]);
+        }
+        if self.source_agent_handoff_status == HotReloadSourceAgentHandoffStatus::Activated {
+            return Err(vec![Diagnostic::io(
+                "SPX-HR400",
+                "source Agent handoff execution remains owned by the source journal",
             )]);
         }
         self.worker.execute_entry(options, cancellation)

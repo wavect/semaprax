@@ -1,9 +1,9 @@
 # Hot Reload Session v1
 
-Status: partial local library profile for HR-03. The prepared interpreter lane
-has a checked revision coordinator. Its plans now retain compiler-derived
-source-Agent checkpoint handoff facts, while durable migration and destination
-execution remain owned by the source-live migration protocol.
+Status: partial local library profile for HR-04. The prepared interpreter lane
+has a checked revision coordinator. Source-Agent handoff selection now has a
+same-supervisor lifecycle, while durable migration, checkpoint claim, and
+destination execution remain owned by the source-live migration protocol.
 
 ## Boundary
 
@@ -42,16 +42,20 @@ AgentDefinition, AgentGraph, Runtime v1 profile, Proposal and Observation
 schema digests in a stable-ID ordered opaque handoff row. The row contains no
 checkpoint bytes, lifecycle binding, store, host capability, or migration
 function. It is therefore a selection record for the source-live migration
-owner, never permission to restore or run a checkpoint. Such a plan has the
-distinct `eligible_source_agent_checkpoint_handoff` decision and `activate`
-refuses it. The source-live preparation adapter replays the row against both
+owner, never permission to restore or run a checkpoint. A source-Agent plan
+enters the supervisor states `waiting_for_checkpoint` and
+`migration_required`; the source-live adapter replays the row against both
 retained Projects, then still authenticates the predecessor checkpoint,
 selection, schema transition, pure migration and destination journal before
-dispatch. A changed row does not grant a policy or capability widening.
-This rule remains conservative and incomplete: it does not yet
-compute a reachable callable closure or select and execute an Agent state
-migration. A positive decision is limited to the checked scalar
-prepared-interpreter profile; it is not a general hot reload guarantee.
+one destination traversal. Only that traversal may mark the supervisor
+`activated`; the prepared interpreter never pivots or dispatches this Agent.
+An acknowledged-journal ambiguity terminalizes the supervisor as
+`terminal_uncertainty`, without in-memory retry or rollback. The physical CLI
+claim remains a cooperating-CLI single-destination rule: a post-claim,
+pre-settlement crash needs explicit operator reconciliation. A changed row
+does not grant a policy or capability widening.
+This rule remains conservative and incomplete: it does not compute a reachable
+callable closure, and is not a general hot reload guarantee.
 
 ## Transition table
 
@@ -61,8 +65,10 @@ prepared-interpreter profile; it is not a general hot reload guarantee.
 | Live; invalid candidate or exhausted submission identity | Reject with `invalid_candidate` or `generation_exhausted` | Unchanged |
 | Live; plan pending candidate | Read-only eligible, unchanged, unsupported, or rejected decision | Unchanged |
 | Live; activate matching eligible plan | Delegate one worker pivot; advance generation on acknowledgement | New complete revision |
-| Live; plan source-Agent-compatible candidate | Emit checkpoint-handoff selection facts only | Unchanged |
-| Live; activate source-Agent checkpoint-handoff selection | Reject `unsupported_target`; source-live migration must authenticate and run the handoff | Unchanged |
+| Live; plan source-Agent-compatible candidate | Emit checkpoint-handoff selection facts; source-live coordinator may enter `waiting_for_checkpoint` | Unchanged |
+| Waiting; authenticated checkpoint and checked State migration prepared | Enter `migration_required`; no destination dispatch yet | Unchanged |
+| Migration required; source-live destination traversal acknowledges | Mark `activated`; advance supervisor generation without pivoting the prepared interpreter | New source-journal generation |
+| Waiting or migration required; source journal has ambiguous acknowledgement | Enter `terminal_uncertainty`; no in-memory retry or rollback | Unknown; explicit journal recovery/reconciliation required |
 | Live; activate stale generation or superseded candidate | Reject `stale_generation` or `stale_candidate` | Unchanged |
 | Live; worker has an outstanding invocation | Reject `busy_boundary`; preserve pending plan for an explicit later attempt | Unchanged |
 | Live; activate identical or incompatible plan | Reject `identical_revision`, `incompatible_closure`, `policy_changed`, or `unsupported_target` | Unchanged |

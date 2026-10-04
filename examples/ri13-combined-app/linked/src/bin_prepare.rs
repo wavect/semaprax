@@ -5,7 +5,10 @@ use semaprax_native_rust_interop::{
     IndexedProjectUrlRegistrySelection,
 };
 use semaprax_rust_api_index::RustApiIndex;
-use std::{fs, path::Path};
+use std::{
+    env, fs,
+    path::{Path, PathBuf},
+};
 
 const REGEX_INDEX: &[u8] = include_bytes!(
     "../../../../crates/semaprax-rust-api-index/fixtures/regex-1.13.1-index-envelope.json"
@@ -18,6 +21,39 @@ const REGEX_LOCK: &[u8] = include_bytes!(
 );
 const URL_LOCK: &[u8] =
     include_bytes!("../../../../crates/semaprax-toolchain/src/fixtures/ri06-url-2.5.8.Cargo.lock");
+
+const LINUX_X86_64_TARGET: &str = "x86_64-unknown-linux-gnu";
+
+fn selected_index(name: &str, built_in: &[u8]) -> Vec<u8> {
+    let Some(directory) = env::var_os("RI13_RUST_API_INDEX_DIR") else {
+        return built_in.to_vec();
+    };
+    let directory = PathBuf::from(directory);
+    assert!(
+        directory.is_absolute(),
+        "RI13 Rust API index directory must be absolute"
+    );
+    let path = directory.join(name);
+    let metadata = fs::symlink_metadata(&path).expect("selected RI13 Rust API index metadata");
+    assert!(
+        metadata.file_type().is_file(),
+        "selected RI13 Rust API index must be a regular file"
+    );
+    fs::read(path).expect("selected RI13 Rust API index")
+}
+
+fn admit_linux_index(name: &str, built_in: &[u8]) -> RustApiIndex {
+    let index = RustApiIndex::admit_extractor_output(&selected_index(name, built_in))
+        .expect("admitted selected RI13 Rust API index");
+    if env::var_os("RI13_RUST_API_INDEX_DIR").is_some() {
+        assert_eq!(
+            index.target(),
+            LINUX_X86_64_TARGET,
+            "selected RI13 Rust API index target"
+        );
+    }
+    index
+}
 
 fn embed_generated_package(destination: &Path) {
     let manifest = destination.join("Cargo.toml");
@@ -75,8 +111,8 @@ fn main() {
     ] {
         require_fragment(&unified_source, &format!("@id(\"{identity}\")"), "source");
     }
-    let regex_index = RustApiIndex::admit_extractor_output(REGEX_INDEX).unwrap();
-    let url_index = RustApiIndex::admit_extractor_output(URL_INDEX).unwrap();
+    let regex_index = admit_linux_index("regex-1.13.1-index-envelope.json", REGEX_INDEX);
+    let url_index = admit_linux_index("url-2.5.8-index-envelope.json", URL_INDEX);
     let regex_package = SelectedPackage {
         cargo_alias: "regex_alias",
         name: "regex",

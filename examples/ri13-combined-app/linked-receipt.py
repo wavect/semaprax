@@ -101,6 +101,10 @@ def validate_sources(sources):
         'root.join("generated/m3.rs")',
         'root.join("generated/linked-subject.json")',
         "semaprax.ri13.linked-subject.v1",
+        'let Some(directory) = env::var_os("RI13_RUST_API_INDEX_DIR")',
+        'admit_linux_index("regex-1.13.1-index-envelope.json", REGEX_INDEX)',
+        'admit_linux_index("url-2.5.8-index-envelope.json", URL_INDEX)',
+        "LINUX_X86_64_TARGET",
     ):
         require(sources, "prepare", fragment)
 
@@ -203,6 +207,7 @@ def self_test():
     }
     for name, fragment in (
         ("prepare", "prepare_native_rust_serde_iterator_callbacks("),
+        ("prepare", 'let Some(directory) = env::var_os("RI13_RUST_API_INDEX_DIR")'),
         ("consumer", "m3::register"),
         ("m1_source", '@id("regex.run")'),
     ):

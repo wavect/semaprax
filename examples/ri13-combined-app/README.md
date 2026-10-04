@@ -167,12 +167,25 @@ python3 examples/ri13-combined-app/linked-receipt.py --self-test
 run without starting a container by default. It requires an already-pulled
 Linux x86_64 toolchain image named by immutable digest and an existing Linux
 Cargo cache that contains the locked dependencies; it never pulls an image or
-permits guest network access. For example, this only prints the exact plan:
+permits guest network access. It also requires a directory containing separate
+Linux x86_64 Rustdoc extractor envelopes named
+`regex-1.13.1-index-envelope.json` and `url-2.5.8-index-envelope.json`.
+Capture those from the exact locked package sources with the pinned extractor
+and `--target x86_64-unknown-linux-gnu`, then convert them with
+`crates/semaprax-rust-api-index/tools/rustdoc_json_to_index.py` as specified in
+[Rust API Index v2](../../docs/RUST-API-INDEX-V2.md). Editing the committed
+Darwin envelopes is not an admissible substitute. The runner validates their
+schema, package identity, and Linux target before it starts a container; the
+M1 and linked preparation routes replay them and retain the existing exact
+target and package checks.
+
+For example, this only prints the exact plan:
 
 ```sh
 scripts/ri13-linux-x86_64-evidence.sh --plan \
   --image 'registry.example/ri13-toolchain@sha256:IMAGE_DIGEST' \
   --cargo-home /absolute/linux-x86_64-cargo-home \
+  --rust-api-index-dir /absolute/ri13-linux-rust-api-indexes \
   --evidence /absolute/ri13-linux-x86_64-evidence
 ```
 
@@ -184,7 +197,8 @@ platform other than Linux x86_64 and writes `environment.json`, M1/M2/M3
 combined receipt and batch measurement, linked Project receipt, and command
 logs to the named evidence directory. `output-digests.json` records SHA-256
 digests for those outputs. It therefore leaves no running container and does
-not turn a Mac-local result into Linux evidence.
+not turn a Mac-local result into Linux evidence. No Linux evidence has been
+recorded by this route yet.
 
 ## Explicit Wasm refusal evidence
 

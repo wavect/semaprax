@@ -382,4 +382,17 @@ Current limits:
   `segments`, receipts, price book, Observer), but app tasks are not SEMAPRAX source, so it does not run the whole
   workflow pipeline.
 - Without `--production-adapter`, `--profile-arms` runs the labelled raw loop, which cannot promote.
-- No paid run has been made.
+- One paid run has been made (2026-10-05, `benchmarks/harness/2026-10-05-tc12/`). It used `claude-haiku-4-5` through
+  the Claude Code CLI behind a loopback metering shim, with both a USD 5 harness cap and a USD 5 shim cap. The shim
+  measured USD 3.10 of real spend over 711 calls.
+  - Arms: defaults, tiers, feedback allowance, the `ordered-v1` renderer, and the combined profile.
+  - Scale: 12 tasks × 10 repetitions; 109/120 accepted per arm.
+  - Result: no arm qualified. The best saving was about 1% in cost per accepted task, against the predeclared 10%
+    minimum. Haiku also sits at the acceptance ceiling on this set. The registry result is inconclusive, so defaults
+    are unchanged.
+- Traps found in that run:
+  - Set `SEMAPRAX_COMPILER` before starting. Campaign pins are immutable, so the `.spx` cells otherwise stay untested.
+  - Long campaigns hit the adapter host's session time budget (`SPX-HPC022`, after about 3 hours).
+  - A failed call with no cost report is charged its whole reservation in the harness ledger. This is conservative,
+    but it can halt a campaign before real spend reaches the cap.
+  - `HARNESS_PYTHON` is not forwarded to adopted adapters, so adopt them with `--runtime`.

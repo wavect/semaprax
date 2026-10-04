@@ -65,6 +65,8 @@ def render():
     pilot = PILOT.review(ROOT / "evidence/law16-boolean-negation-agent-pilot-v1")
     campaign = CAMPAIGN.review(ROOT / "evidence/law16-boolean-negation-agent-campaign-v1")
     process = PROCESS.review(ROOT / "evidence/law16-boolean-negation-process-v1")
+    process_v2 = PROCESS.review(ROOT / "evidence/law16-boolean-negation-process-v2")
+    process_v2_provenance = read(ROOT / "evidence/law16-boolean-negation-process-v2/provenance.json")
     effort = read(ROOT / "evidence/law16-effort-summary-v1.json")
     annotations = read(ROOT / "evidence/law16-annotation-summary-v1.json")
     nonproof_identity = read(
@@ -80,7 +82,14 @@ def render():
         "scope": "local pinned historical Boolean-negation evidence only",
         "matched_boolean": {
             "semantic_contract": process["semantic_contract"],
-            "process_routes": process["process_states"],
+            "process_routes": process_v2["process_states"],
+            "historical_process_routes": process["process_states"],
+            "process_provenance": {
+                "source": "evidence/law16-boolean-negation-process-v2/provenance.json",
+                "command_count": process_v2_provenance["command_count"],
+                "process_states": process_v2_provenance["process_states"],
+                "cold_cache": process_v2_provenance["cold_cache"],
+            },
             "ordinary_and_nonproof_process_routes": nonproof["routes"],
             "bounded_proof_and_verdict_process_routes": proof_verdict["routes"],
             "proof_path_nonresult": proof_verdict["path_admission_nonresult"],
@@ -113,34 +122,44 @@ def render():
             ),
         },
         "measurement_provenance": {
-            "identity_scope": "pinned historical local executable observations; not current-head claims",
+            "identity_scope": "machine-local observations bound to the process-v2 raw samples; not current-head claims",
             "hardware": {
-                "status": "unavailable",
-                "reason": "no retained machine-model or CPU-topology record binds these samples",
+                "status": "observed",
+                "source": "evidence/law16-boolean-negation-process-v2/provenance.json",
+                "observation": process_v2["measurement_provenance"]["host"]["hardware"],
             },
             "operating_system": {
-                "status": "unavailable",
-                "reason": "no retained OS-version record binds these samples",
+                "status": "observed",
+                "source": "evidence/law16-boolean-negation-process-v2/provenance.json",
+                "observation": {
+                    "system": process_v2["measurement_provenance"]["host"]["system"],
+                    "machine": process_v2["measurement_provenance"]["host"]["machine"],
+                    "release": process_v2["measurement_provenance"]["host"]["release"],
+                    "detail": process_v2["measurement_provenance"]["host"]["operating_system"],
+                },
             },
             "backend": {
                 "status": "observed",
-                "bend": "ordinary Bend and separate Bend --verdict routes",
-                "semaprax": "separate SEMAPRAX check and installed-Z3 source-proof routes",
-                "z3_sha256": proof_identity["z3_sha256"],
+                "source": "evidence/law16-boolean-negation-process-v2/provenance.json",
+                "observation": process_v2_provenance["backend_and_flags"],
             },
             "flags": {
-                "status": "partially_observed",
-                "bend_nonproof_environment": {"BEND_NO_TELEMETRY": "1"},
+                "status": "observed",
+                "source": "evidence/law16-boolean-negation-process-v2/provenance.json",
+                "observation": process_v2_provenance["backend_and_flags"],
                 "compiler_optimization": {
                     "status": "unavailable",
-                    "reason": "no retained compiler optimization-flag record",
+                    "reason": "the observed process cell invokes retained executables and does not compile them",
                 },
             },
             "tool_identities": {
-                "bend_commit": nonproof_identity["tools"]["bend_commit"],
-                "bend_main_sha256": nonproof_identity["tools"]["bend_main"]["sha256"],
-                "bun_sha256": nonproof_identity["tools"]["bun"]["sha256"],
-                "semaprax_sha256": proof_identity["semaprax_sha256"],
+                "status": "observed",
+                "source": "evidence/law16-boolean-negation-process-v2/provenance.json",
+                "observation": process_v2_provenance["toolchain"],
+            },
+            "process_state_and_cache_boundary": {
+                "states": process_v2_provenance["process_states"],
+                "cold_cache": process_v2_provenance["cold_cache"],
             },
         },
         "proof_effort": {

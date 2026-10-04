@@ -36,14 +36,17 @@ class CurrentReportTests(unittest.TestCase):
         )
         self.assertEqual(value["matched_boolean"]["proof_path_nonresult"]["samples"], 60)
 
-    def test_report_marks_missing_provenance_and_boolean_changed_bytes_unavailable(self):
+    def test_report_uses_v2_provenance_only_for_its_own_bound_samples(self):
         value = REPORT.render()
         provenance = value["measurement_provenance"]
-        self.assertEqual(provenance["identity_scope"], "pinned historical local executable observations; not current-head claims")
-        self.assertEqual(provenance["hardware"]["status"], "unavailable")
-        self.assertEqual(provenance["operating_system"]["status"], "unavailable")
+        self.assertIn("process-v2 raw samples", provenance["identity_scope"])
+        self.assertEqual(provenance["hardware"]["status"], "observed")
+        self.assertEqual(provenance["operating_system"]["status"], "observed")
         self.assertEqual(provenance["backend"]["status"], "observed")
         self.assertEqual(provenance["flags"]["compiler_optimization"]["status"], "unavailable")
+        process = value["matched_boolean"]["process_provenance"]
+        self.assertEqual(process["command_count"], 240)
+        self.assertEqual(process["cold_cache"]["status"], "unavailable")
         effort = value["proof_effort"]["boolean_agent_synthesis"]
         self.assertEqual(effort["matched_pairs"], 10)
         self.assertEqual(effort["per_language"]["bend2"]["agent_turns"], 10)

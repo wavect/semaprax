@@ -1090,3 +1090,8 @@ fn hp_hn19_adapter_closure_refuses_symlink_and_hardlink_aliases() {
     std::fs::remove_file(dir.join("alias.txt")).unwrap();
     assert!(ok().is_ok());
 }
+
+// ---- HN-04 / HN-06: curated official skills (tests in skills/defaults.rs) ----
+
+#[path = "skills/defaults.rs"]
+mod defaults;

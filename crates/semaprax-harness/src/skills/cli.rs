@@ -8,7 +8,11 @@ use crate::cli::{Environment, Outcome};
 use serde_json::{json, Value};
 use std::path::PathBuf;
 
-pub fn cli_skills(args: &[String], _env: &Environment) -> Outcome {
+pub fn cli_skills(args: &[String], env: &Environment) -> Outcome {
+    // Without `--root` the verb serves the curated default skills.
+    if !args.iter().any(|a| a == "--root") {
+        return super::cli_defaults::run(args, env);
+    }
     let mut action = None::<String>;
     let mut load_digest = None::<String>;
     let mut roots = Vec::new();

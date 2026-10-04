@@ -74,6 +74,9 @@ pub struct SkillsConfig {
     pub enabled: bool,
     pub select: Vec<String>,
     pub max_bytes: u64,
+    /// Project preset for the curated official skills (HN-06): the one switch
+    /// `official`, `preset`, and per-skill modes `ponytail` / `caveman`.
+    pub prefs: crate::skills::modes::Prefs,
 }
 
 impl Default for SkillsConfig {
@@ -82,6 +85,7 @@ impl Default for SkillsConfig {
             enabled: true,
             select: Vec::new(),
             max_bytes: 65536,
+            prefs: Default::default(),
         }
     }
 }
@@ -161,6 +165,9 @@ impl HarnessConfig {
             "inactive": self.inactive,
         });
         // Only present when set, so existing configurations keep their digest.
+        if !self.skills.prefs.is_empty() {
+            doc["skills"]["prefs"] = self.skills.prefs.to_json();
+        }
         if !self.workflow.checks.is_empty() {
             doc["workflow"] = json!({"checks": self.workflow.checks});
         }
@@ -661,7 +668,31 @@ pub fn parse(bytes: &[u8]) -> HarnessResult<HarnessConfig> {
                 if let Some(n) = t.size("max_bytes")? {
                     cfg.skills.max_bytes = n;
                 }
-                t.finish(&["enabled", "select", "max_bytes"])?;
+                let set = crate::skills::official::embedded_cached();
+                if let Some(b) = t.boolean("official")? {
+                    cfg.skills.prefs.official = Some(b);
+                }
+                if let Some((p, l)) = t.string("preset")? {
+                    cfg.skills.prefs.preset = Some(p);
+                    crate::skills::modes::validate_prefs(set, &cfg.skills.prefs)
+                        .map_err(|e| bad("SPX-HPB004", l, e.message))?;
+                }
+                for id in ["ponytail", "caveman"] {
+                    if let Some((m, l)) = t.string(id)? {
+                        crate::skills::modes::validate_mode(set, id, &m)
+                            .map_err(|e| bad("SPX-HPB004", l, e.message))?;
+                        cfg.skills.prefs.modes.insert(id.to_string(), m);
+                    }
+                }
+                t.finish(&[
+                    "enabled",
+                    "select",
+                    "max_bytes",
+                    "official",
+                    "preset",
+                    "ponytail",
+                    "caveman",
+                ])?;
             }
             ["workflow", "check", name] => {
                 let what = format!("[workflow.check.{name}]");

@@ -116,11 +116,12 @@ failures. A caller must inspect the typed reason as well as the diagnostic.
 The focused local gates use transition tables at
 `project::hot_reload::tests::coordinator_transition_table_preserves_the_active_revision`
 and `agent_runtime_v1::source_migration::source_agent_handoff_supervisor_activates_once_and_terminalizes_lost_ack`.
-They cover admitted and activated code replacement, incompatible closure,
-checked stale and identical refusal, generation-overflow and first-over-bound
-submission refusal, busy safe-boundary retention, and terminal uncertainty;
-the source-Agent table covers checkpoint waiting, activation, clean refusal and
-terminal uncertainty. Every ordinary refusal preserves the active revision. The
+Together they cover admitted and activated code replacement, incompatible
+closure, checked stale and identical refusal, generation-overflow and
+first-over-bound submission refusal, busy safe-boundary retention, terminal
+uncertainty, and the source-Agent checkpoint-waiting, activation, clean-refusal,
+and terminal-uncertainty states. Every ordinary refusal preserves the active
+revision. The
 `project::hot_reload::tests::indirect_changed_effect_is_refused_by_a_session_and_keeps_active_worker_usable`
 gate carries a changed declared effect on a compiler-derived indirect target
 through session admission, planning, refusal and a subsequent active-worker
@@ -136,9 +137,11 @@ terminalizes without retry. The physical source-live gates
 and `source_live_cli::hr04_handoff_fault_tests::physical_migration_reservation_and_handoff_claim_faults_block_successor_dispatch`
 exercise retained A-to-B-to-C journal/accounting, journal acknowledgement loss,
 and migration-reservation/claim durability faults. This is local library
-evidence, not hosted or source-Agent handoff evidence.
+evidence, not hosted or cross-process production evidence.
 
 ## Completion work
 
-HR-01 still needs physical source-Agent durable-checkpoint execution evidence
-and broader adversarial effects coverage.
+The focused source-Agent durable-checkpoint execution gates now cover the
+A-to-B-to-C retained-journal path, acknowledgement loss, and migration
+reservation/claim faults. Broader adversarial effect and closed-state
+compatibility coverage remains open.

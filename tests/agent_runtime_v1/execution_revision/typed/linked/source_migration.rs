@@ -487,36 +487,20 @@ fn source_agent_handoff_supervisor_activates_once_and_terminalizes_lost_ack() {
         plan
     };
 
-    let mut waiting = HotReloadSession::new(
-        Arc::clone(&old.project),
-        PreparedProjectInterpreterOptions::default(),
-    )
-    .unwrap();
-    let waiting_plan = plan(&mut waiting);
-    let waiting_handoff = waiting
-        .wait_for_source_agent_handoff(&waiting_plan, "fixture.agent")
-        .unwrap();
-    assert_eq!(waiting_handoff.agent_id(), "fixture.agent");
-    assert_eq!(
-        waiting.source_agent_handoff_status(),
-        HotReloadSourceAgentHandoffStatus::WaitingForCheckpoint
-    );
-    assert_eq!(
-        waiting.observation().lifecycle(),
-        semaprax::project::HotReloadLifecycle::WaitingForSafePoint
-    );
-
     #[derive(Clone, Copy)]
     enum Transition {
+        WaitForCheckpoint,
         Activate,
         Refuse,
         Uncertain,
     }
 
-    // These cases share the same compiler-derived handoff and exercise every
-    // source-Agent coordinator terminal: authenticated activation, a clean
-    // migration refusal, and an ambiguous journal acknowledgement.
+    // These rows share the same compiler-derived handoff and exercise every
+    // source-Agent coordinator state: checkpoint waiting, authenticated
+    // activation, a clean migration refusal, and an ambiguous journal
+    // acknowledgement.
     for transition in [
+        Transition::WaitForCheckpoint,
         Transition::Activate,
         Transition::Refuse,
         Transition::Uncertain,
@@ -540,6 +524,29 @@ fn source_agent_handoff_supervisor_activates_once_and_terminalizes_lost_ack() {
             migration_request.migration_function = "fixture.agent.fn.migrate_c";
         }
         let selected_plan = plan(&mut session);
+        if matches!(transition, Transition::WaitForCheckpoint) {
+            let handoff = session
+                .wait_for_source_agent_handoff(&selected_plan, "fixture.agent")
+                .unwrap();
+            assert_eq!(handoff.agent_id(), "fixture.agent");
+            assert_eq!(
+                session.source_agent_handoff_status(),
+                HotReloadSourceAgentHandoffStatus::WaitingForCheckpoint
+            );
+            assert_eq!(
+                session.observation().lifecycle(),
+                semaprax::project::HotReloadLifecycle::WaitingForSafePoint
+            );
+            assert_eq!(session.generation(), 0);
+            assert_eq!(
+                session.active_project_revision(),
+                old.project.project_revision()
+            );
+            assert!(session.retained_source_agent_binding().is_none());
+            assert_eq!((model.calls, read.calls), (0, 0));
+            assert!(store.document.is_empty());
+            continue;
+        }
         let result = run_source_live_migration_from_hot_reload_session(
             &mut session,
             selected_plan,
@@ -552,6 +559,7 @@ fn source_agent_handoff_supervisor_activates_once_and_terminalizes_lost_ack() {
         );
 
         match transition {
+            Transition::WaitForCheckpoint => unreachable!("handled before migration"),
             Transition::Activate => {
                 let outcome = result.unwrap();
                 assert_eq!(
@@ -605,6 +613,10 @@ fn source_agent_handoff_supervisor_activates_once_and_terminalizes_lost_ack() {
                     semaprax::project::HotReloadLifecycle::Refused
                 );
                 assert_eq!(session.generation(), 0);
+                assert_eq!(
+                    session.active_project_revision(),
+                    old.project.project_revision()
+                );
                 assert!(session.retained_source_agent_binding().is_none());
                 assert_eq!((model.calls, read.calls), (0, 0));
                 assert!(store.document.is_empty());

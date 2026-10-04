@@ -143,6 +143,7 @@ fn local_server_bytes(
                 Err(error) => panic!("local accept: {error}"),
             }
         };
+        socket.set_nonblocking(false).unwrap();
         receive_request(&mut socket);
         let _ = received_tx.send(());
         std::thread::sleep(delay);
@@ -294,7 +295,10 @@ fn main() {
         ),
         (
             Err(AsyncCallError::Host(DemoError::HttpStatus(503))),
-            CopyMetrics::default()
+            CopyMetrics {
+                foreign_response_body_copied_bytes: 0,
+                host_callback_captured_bytes: 0,
+            }
         )
     ));
     assert!(matches!(
@@ -353,7 +357,10 @@ fn main() {
             ),
             (
                 Err(AsyncCallError::Host(DemoError::Timeout)),
-                CopyMetrics::default()
+                CopyMetrics {
+                    foreign_response_body_copied_bytes: 0,
+                    host_callback_captured_bytes: 0,
+                }
             )
         ),
         "timeout guard did not reject delayed response"

@@ -120,6 +120,7 @@ fn local_server_bytes(
                 Err(error) => panic!("local accept: {error}"),
             }
         };
+        socket.set_nonblocking(false).unwrap();
         receive_request(&mut socket);
         let _ = received_tx.send(());
         std::thread::sleep(delay);

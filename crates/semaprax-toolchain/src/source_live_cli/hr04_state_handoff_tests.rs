@@ -33,6 +33,17 @@ fn migration_arguments(
     ]
 }
 
+fn chain_config(fixture: &Fixture, manifest: &std::path::Path, name: &str) -> std::path::PathBuf {
+    let config = source_config(fixture, manifest);
+    let mut value: serde_json::Value = serde_json::from_slice(&fs::read(&config).unwrap()).unwrap();
+    value["max_iterations"] = serde_json::json!(3);
+    value["max_stages"] = serde_json::json!(64);
+    value["max_total_steps"] = serde_json::json!(20_000);
+    let saved = fixture.0.join(name);
+    fs::write(&saved, serde_json::to_vec(&value).unwrap()).unwrap();
+    saved
+}
+
 #[test]
 fn retained_a_to_b_to_c_handoff_carries_state_without_initialize_or_redispatch() {
     use semaprax::interpreter::retained_call::RetainedValue;
@@ -52,9 +63,7 @@ fn retained_a_to_b_to_c_handoff_carries_state_without_initialize_or_redispatch()
         "Step::Suspend { objective: state.objective, budget: state.budget, epoch: state.epoch }",
     );
     let manifest = source_project(&project, &a_source, "fixture.agent.type.state");
-    let a_config = source_config(&fixture, &manifest);
-    let saved_a_config = fixture.0.join("config-a.json");
-    fs::rename(a_config, &saved_a_config).unwrap();
+    let saved_a_config = chain_config(&fixture, &manifest, "config-a.json");
     let a_checkpoint = fixture.0.join("checkpoint-a");
     let a_calls = Rc::new(Cell::new(0));
     let a = super::super::run::execute_with_runner(
@@ -80,9 +89,7 @@ fn retained_a_to_b_to_c_handoff_carries_state_without_initialize_or_redispatch()
     );
     let manifest = source_project(&project, &b_source, "fixture.agent.type.state_b");
     let b_answer = recorded_answer(&manifest);
-    let b_config = source_config(&fixture, &manifest);
-    let saved_b_config = fixture.0.join("config-b.json");
-    fs::rename(b_config, &saved_b_config).unwrap();
+    let saved_b_config = chain_config(&fixture, &manifest, "config-b.json");
     let b_project =
         with_authenticated_project(&manifest, |snapshot| Ok(snapshot.retain_revision())).unwrap();
     let mut supervisor =
@@ -135,9 +142,7 @@ fn retained_a_to_b_to_c_handoff_carries_state_without_initialize_or_redispatch()
     );
     let manifest = source_project(&project, &c_source, "fixture.agent.type.state_b");
     let c_answer = recorded_answer(&manifest);
-    let c_config = source_config(&fixture, &manifest);
-    let saved_c_config = fixture.0.join("config-c.json");
-    fs::rename(c_config, &saved_c_config).unwrap();
+    let saved_c_config = chain_config(&fixture, &manifest, "config-c.json");
     let c_project =
         with_authenticated_project(&manifest, |snapshot| Ok(snapshot.retain_revision())).unwrap();
     supervisor.admit_candidate(c_project.clone()).unwrap();

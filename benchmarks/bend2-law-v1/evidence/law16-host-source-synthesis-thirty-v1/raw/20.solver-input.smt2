@@ -1,0 +1,7 @@
+(set-option :timeout 10000)
+(set-logic QF_LIA)
+(declare-const semaprax_smt_binding_0_0 Bool)
+(declare-const semaprax_smt_binding_1_0 Bool)
+(assert (= semaprax_smt_binding_1_0 (not semaprax_smt_binding_0_0)))
+(assert (not (= semaprax_smt_binding_1_0 (not semaprax_smt_binding_0_0))))
+(check-sat)

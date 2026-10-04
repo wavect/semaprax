@@ -18,11 +18,14 @@ python3 benchmarks/bend2-law-v1/law16_replay.py \
 
 This renders the current report, which independently reviews the retained
 Boolean check, process, proof/verdict, RSS, agent, refactor, native-phase,
-guest-cache, project-incremental, guarded-i64, Bend proof, and bounded-balance
-capsules. It also records a digest inventory of the raw evidence directories.
+ordinary/check guest-cache, both proof/verdict guest-cache profiles, host
+source-to-SMT synthesis, project-incremental, guarded-i64, Bend proof, and
+bounded-balance capsules. It also records a digest inventory of the raw
+evidence directories.
 `retained_evidence_verified` means those retained bytes passed their current
-reviewers; it does not mean a tool was rerun. The report remains incomplete
-while checked-u32 admission and other stated issue requirements remain open.
+reviewers; it does not mean a tool was rerun. The report marks AC1–AC7 met
+under #392's available-cell policy while preserving unsupported checked-u32
+cells as nonresults; that status does not admit checked-u32 source support.
 
 ## 2. Physically rerun the seven pinned non-agent routes
 
@@ -73,6 +76,57 @@ These cells have distinct instrumentation or prerequisites and are not part
 of the seven-route command above. Run each into a new output directory. Their
 existing evidence is reviewed by step 1; replaying the capsule does not run
 these commands.
+
+**Proof/verdict guest file-page cache.** The retained x86/Rosetta Bend verdict
+and native ARM64 direct-Z3 source-obligation captures are separate profiles;
+they run different routes on different architectures and must not be compared
+by timing ratio. The ARM route checks the retained source-derived SMT-LIB
+obligation directly with Z3, not a SEMAPRAX project-proof-check. Offline review
+of the retained profiles is:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_guest_cache_proof.py \
+  --review benchmarks/bend2-law-v1/evidence/law16-boolean-negation-proof-verdict-v1/guest-x86-rosetta-bend-v1
+
+python3 benchmarks/bend2-law-v1/law16_guest_cache_proof.py \
+  --review benchmarks/bend2-law-v1/evidence/law16-boolean-negation-proof-verdict-v1/guest-arm64-z3-source-obligation-v1 \
+  --expected-pins-sha256 sha256:57119843e75f276a185e58edf0b5bdfb8272640d98906bdb4a7e718c876f39d7
+```
+
+To capture into new directories, provide the independently pinned guest tools
+and input files:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_guest_cache_proof.py \
+  --profile pinned_x86_rosetta_bend_verdict \
+  --bun /absolute/pinned/bun --bendtt /absolute/pinned/bendtt \
+  --bend /absolute/clean-bend2-checkout \
+  --output /absolute/new/law16-proof-verdict-x86
+
+python3 benchmarks/bend2-law-v1/law16_guest_cache_proof.py \
+  --profile native_arm64_z3_source_obligation \
+  --z3 /absolute/pinned/z3 \
+  --arm64-pins /absolute/pinned/arm64-source-obligation-pins.json \
+  --expected-pins-sha256 sha256:57119843e75f276a185e58edf0b5bdfb8272640d98906bdb4a7e718c876f39d7 \
+  --obligation /absolute/pinned/app-negate.smt2 \
+  --source-script /absolute/pinned/law16-render-source.rs \
+  --output /absolute/new/law16-proof-verdict-arm64
+```
+
+**Host source-to-SMT synthesis.** This times 30 fresh invocations of the
+pinned renderer helper plus exact removal of its `(get-model)` trailer. It
+does not measure end-to-end project proof checking, isolate host caches, or
+attest how the helper binary was built. The normalized solver-input bytes are
+hash-bound to the ARM64 guest's Z3 input. Capture and offline review are:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_source_synthesis_capture.py \
+  --helper /absolute/pinned/law16_render_app_negate_smt \
+  --output /absolute/new/law16-host-source-synthesis
+
+python3 benchmarks/bend2-law-v1/law16_source_synthesis_capture.py \
+  --review /absolute/retained/law16-host-source-synthesis
+```
 
 **Native phases.** Requires the exact Bend source pin plus pinned Bun,
 SEMAPRAX, and Clang executables. Thirty repetitions capture the seven timed

@@ -12,8 +12,13 @@ class CurrentReportTests(unittest.TestCase):
     def test_acceptance_policy_preserves_every_original_u32_cell_without_promotion(self):
         value = REPORT.render()
         acceptance = value["issue_acceptance"]
-        self.assertEqual(acceptance["status"], "open")
-        self.assertIn("AC5", acceptance["remaining_measurement"])
+        self.assertEqual(acceptance["status"], "met")
+        self.assertIsNone(acceptance["remaining_measurement"])
+        self.assertEqual(len(value["proof_verdict_guest_file_cache_cold_warm"]["profiles"]), 2)
+        synthesis = value["host_source_to_smt_synthesis"]
+        self.assertEqual(synthesis["status"], "thirty_repetitions_authenticated")
+        self.assertEqual(synthesis["summary"]["count"], 30)
+        self.assertEqual(synthesis["solver_input_sha256"], "sha256:f0938ea89248af8556a3a623759eeba7193213301b2d3bc4f1c478c113490e88")
         cells = acceptance["original_manifest_cells"]
         self.assertEqual(
             {row["id"] for row in cells},
@@ -39,12 +44,12 @@ class CurrentReportTests(unittest.TestCase):
             self.assertTrue(row["laws"])
             self.assertTrue(row["attacks"])
 
-    def test_report_preserves_ten_pairs_separate_timing_and_open_closure(self):
+    def test_report_preserves_ten_pairs_separate_timing_and_available_cell_closure(self):
         value = REPORT.render()
-        self.assertEqual(value["status"], "incomplete")
+        self.assertEqual(value["status"], "acceptance_criteria_met_with_explicit_unsupported_cells")
         self.assertEqual(value["matched_boolean"]["agent_pairs"]["total_pairs"], 10)
         self.assertTrue(any("no cross-route timing ratio" in row for row in value["nonclaims"]))
-        self.assertTrue(value["closure"].startswith("no:"))
+        self.assertTrue(value["closure"].startswith("yes:"))
         self.assertNotIn("current_head", value["pins_and_trust"])
         self.assertEqual(
             value["matched_boolean"]["ordinary_and_nonproof_process_routes"]["bend-ordinary"][
@@ -127,8 +132,8 @@ class CurrentReportTests(unittest.TestCase):
         self.assertTrue(controls["original_manifest_unchanged"])
         self.assertEqual(controls["candidate_and_attack_routes"], 12)
         self.assertEqual(controls["domain_boundary_controls"], 4)
-        self.assertEqual(value["status"], "incomplete")
-        self.assertTrue(value["closure"].startswith("no:"))
+        self.assertEqual(value["status"], "acceptance_criteria_met_with_explicit_unsupported_cells")
+        self.assertTrue(value["closure"].startswith("yes:"))
         self.assertTrue(any("original checked-u32 cells remain unadmitted" in row for row in controls["nonclaims"]))
 
     def test_report_names_bounded_model_level_sort_check_without_source_theorem_claim(self):
@@ -142,7 +147,7 @@ class CurrentReportTests(unittest.TestCase):
         self.assertIn("exactly four elements", result["scope"])
         self.assertIn("not an unbounded-list theorem", result["claim_boundary"])
         self.assertIn("not a source-translation", result["claim_boundary"])
-        self.assertEqual(value["status"], "incomplete")
+        self.assertEqual(value["status"], "acceptance_criteria_met_with_explicit_unsupported_cells")
 
     def test_report_exposes_authenticated_per_cell_mad_without_confidence_claim(self):
         value = REPORT.render()
@@ -167,7 +172,7 @@ class CurrentReportTests(unittest.TestCase):
         self.assertIn("unclaimed", proof["no_op_negative"]["solver_outcome_classification"])
         self.assertEqual(proof["full_u32_original"], "unsupported_by_this_source_profile")
         self.assertEqual(proof["overall_law16"], "incomplete")
-        self.assertEqual(value["status"], "incomplete")
+        self.assertEqual(value["status"], "acceptance_criteria_met_with_explicit_unsupported_cells")
         self.assertTrue(any("does not prove source lowering" in row for row in proof["nonclaims"]))
 
     def test_report_keeps_source_distinct_universal_sort_and_cost_provenance_incomplete(self):
@@ -195,7 +200,7 @@ class CurrentReportTests(unittest.TestCase):
         self.assertEqual(refactor["raw_streams"], 16)
         self.assertEqual(refactor["checked_u32"], "not_admitted_by_this_boolean_cell")
         self.assertFalse(value["claude_boolean_pilot"]["campaign_admission"])
-        self.assertEqual(value["status"], "incomplete")
+        self.assertEqual(value["status"], "acceptance_criteria_met_with_explicit_unsupported_cells")
 
 
 if __name__ == "__main__":

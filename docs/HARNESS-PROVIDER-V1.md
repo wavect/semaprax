@@ -273,6 +273,34 @@ runs and is not re-evaluated mid-step. `--frozen` refuses any difference from
 the committed lock and names the exact missing/incompatible identity. The
 committed files contain no absolute paths, secrets or trust grants.
 
+Further keys: `[capability."<kind>"] scope = ["src"]` (project-relative
+prefixes), `[budget] command_view_max_bytes`, and `[skills] enabled | select |
+max_bytes`. A capability without a table is `auto`. `required` never falls back
+to a builtin: it must be met by a pin, a user preference or the single compatible
+trusted installation, otherwise `resolve` fails naming the identity. A table
+named `[capability."x.<org>/<name>"]` is visible and always inactive. Absolute
+paths and secret-looking values are refused (`SPX-HPB007`).
+
+Machine-local state in `$SEMAPRAX_HARNESS_HOME`: `installations.json` (adopted
+descriptor path, descriptor/entry/upstream digests, probed upstream version),
+`trust.json` (granted permissions bound to those digests) and
+`preferences.json`. `adopt` is the only action that runs anything: the
+descriptor's `identity_probe` against an absolute `--upstream` path, with a
+cleared environment (`PATH=/usr/bin:/bin`, private `HOME` and cwd), 5 s and
+64 KiB bounds. An upstream inside the project is refused without
+`--allow-project-local`. `trust` is the user's approval; `grant_for` is the
+only issuer of a `Grant`, and `check_grant_current` re-verifies it before every
+dispatch so `revoke` takes effect on the next call. Resolution reads only these
+files and the project; it never scans `PATH` or `$HOME`.
+
+Diagnostics `SPX-HPB`: 001 syntax, 002 duplicate, 003 unknown key/table, 004
+type/value, 005 schema, 006 capability kind, 007 path/secret, 008 read; 010-014
+lock (011 refused content, 012 missing for `--frozen`, 013 config changed, 014
+identity mismatch); 020-024 local state and adoption (024 project-local
+upstream); 030-034 trust (030 untrusted, 031 digest changed, 032 widened, 033
+upstream missing/incompatible, 034 stale grant); 040-042 required capability
+(040 pin unusable, 041 none, 042 ambiguous); 050 usage.
+
 ## CLI
 
 `semaprax harness <verb>` (and `semaprax-harness <verb>`):

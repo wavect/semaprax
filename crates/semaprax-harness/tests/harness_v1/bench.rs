@@ -142,11 +142,19 @@ fn hp_hp17_deterministic_cells_third_party_adapter_and_reconciliation() {
     let work = fixture_dir("hp-hp17").canonicalize().unwrap();
     let a = matrix(&corpus, &work.join("a"), &["native+source-index"]);
     let b = matrix(&corpus, &work.join("b"), &["native+source-index"]);
-    // Injected clock: the whole result set is reproducible byte for byte.
+    // Injected clock: the whole result set is reproducible byte for byte,
+    // except `disk_bytes`, which measures real provider cache files whose
+    // contents (refresh timings) may differ by a few bytes between runs; it
+    // is compared within a small tolerance below.
+    let strip = |c: &Value| {
+        let mut c = c.clone();
+        c.as_object_mut().unwrap().remove("disk_bytes");
+        c
+    };
     let canon = |o: &RunOutput| {
         o.cells
             .iter()
-            .map(semaprax_harness::json::canonical)
+            .map(|c| semaprax_harness::json::canonical(&strip(c)))
             .collect::<Vec<_>>()
     };
     assert_eq!(a.cells.len(), b.cells.len());
@@ -155,7 +163,7 @@ fn hp_hp17_deterministic_cells_third_party_adapter_and_reconciliation() {
             .as_object()
             .unwrap()
             .iter()
-            .filter(|(k, v)| &y[k.as_str()] != *v)
+            .filter(|(k, v)| k.as_str() != "disk_bytes" && &y[k.as_str()] != *v)
             .map(|(k, v)| format!("{k}: {v} vs {}", y[k.as_str()]))
             .collect();
         assert!(
@@ -167,6 +175,13 @@ fn hp_hp17_deterministic_cells_third_party_adapter_and_reconciliation() {
         );
     }
     assert_eq!(canon(&a), canon(&b));
+    for (x, y) in a.cells.iter().zip(&b.cells) {
+        let (dx, dy) = (
+            x["disk_bytes"].as_u64().unwrap(),
+            y["disk_bytes"].as_u64().unwrap(),
+        );
+        assert!(dx.abs_diff(dy) <= 64, "disk_bytes {dx} vs {dy}");
+    }
     assert!(!a.cells.is_empty());
 
     // Same contract, no vendor branch: the third-party adapter's cells ran

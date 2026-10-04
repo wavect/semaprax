@@ -515,7 +515,9 @@ fn source_agent_handoff_supervisor_activates_once_and_terminalizes_lost_ack() {
                 lose_ack_on: Some(2),
                 ..Store::default()
             },
-            Transition::Activate | Transition::Refuse => Store::default(),
+            Transition::WaitForCheckpoint | Transition::Activate | Transition::Refuse => {
+                Store::default()
+            }
         };
         let mut model = Model::new(&life_b);
         let mut read = Read::default();

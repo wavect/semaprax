@@ -492,3 +492,29 @@ winner, GPU result, or claim about the unavailable checked-`u32` cells.
 already pinned commands and artifacts. It records both command streams and
 artifact digests, but always marks OS-cache coldness unavailable: fresh
 processes cannot isolate Darwin page, executable, solver, or tool caches.
+
+Use it only for a pair of already reproduced paths: a fresh copy of the same
+project or fixture and a repeat path with the same source bytes. Supply the
+two source paths, the pinned executable, and its retained version receipt as
+`--artifact` inputs. It writes all 120 child streams (stdout and stderr for 30
+fresh-path plus 30 repeat-path children) beneath a new raw-artifact directory,
+and the JSON receipt binds each stream's relative path, byte count, digest,
+argv, and command digest. The process-state plan is committed as
+[`evidence/law16-process-state-plan-v1.json`](evidence/law16-process-state-plan-v1.json).
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_cold_warm_cell.py \
+  --fresh-command '["/absolute/path/to/semaprax", "check", "/secure/local/law16-fresh/src/app.spx", "--json"]' \
+  --repeat-command '["/absolute/path/to/semaprax", "check", "/secure/local/law16-repeat/src/app.spx", "--json"]' \
+  --fresh-input /secure/local/law16-fresh/src/app.spx \
+  --repeat-input /secure/local/law16-repeat/src/app.spx \
+  --artifact /absolute/path/to/semaprax \
+  --artifact /secure/local/semaprax-version-receipt.txt \
+  --timeout-seconds 120 \
+  --raw-artifact-dir /secure/local/law16-process-state-streams \
+  --output /secure/local/law16-process-state.json
+```
+
+This is process provisioning evidence, not a cold-cache result. Preserve the
+fresh and repeat source byte digests in the receipt; if they differ, the
+result compares different programs and must be rejected during review.

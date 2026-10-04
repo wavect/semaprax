@@ -34,6 +34,11 @@ Audience: all documentation readers.
 - [Harness adapter SDK v1](HARNESS-ADAPTER-SDK-V1.md)
 - [Harness toolchain integration v1](HARNESS-TOOLCHAIN-V1.md)
 - [Harness journey benchmark v1](HARNESS-BENCHMARK-V1.md)
+- [Harness artifact identity v1](HARNESS-ARTIFACT-IDENTITY-V1.md)
+- [Harness updates v1](HARNESS-UPDATES-V1.md)
+- [Harness setup v1](HARNESS-SETUP-V1.md)
+- [Harness platforms v1](HARNESS-PLATFORMS-V1.md)
+- [Harness skill evolution v1](HARNESS-EVOLUTION-V1.md)
 
 ## Agent workflows
 

@@ -19,6 +19,10 @@ const tokenReport = require('./token-report');
 const harness = require('./harness');
 const { HotReload } = require('./hot-reload');
 const { ContentStore, REVIEW_LIMITS, TOKEN_REPORT_LIMITS } = require('./virtual-documents');
+// Grace before a closed view's content is released; a reopen of the same URI
+// (a language change) within it cancels the release.
+const VIEW_RELEASE_GRACE_MS = 50;
+const pendingViewRelease = new Map();
 let stopActive = () => {};
 // Check-on-save: run the user-selected compiler's read-only `check --json` on
 // the saved file's project and publish the result as editor diagnostics. It
@@ -1229,12 +1233,24 @@ function activate(context) {
     holeScratch.delete(key); scratch.delete(key);
     // Presentation state only: a retired view's content and quota are
     // released, never a candidate, session, approval or unrelated work.
-    // A language change closes and reopens the same URI in one delta, so the
-    // decision waits for the next macrotask and releases only when no open
-    // document (in any editor) still shows the URI.
+    // A language change closes and then reopens the same URI; in a real
+    // Extension Host the reopen can arrive after the next macrotask. The
+    // decision therefore waits a short grace period, a reopen of the URI
+    // cancels it, and the content is released only when no open document (in
+    // any editor) still shows the URI.
     const store = doc.uri.scheme === 'semaprax-review' ? documents : doc.uri.scheme === 'semaprax-token-report' ? tokenDocuments : null;
-    if (store) setTimeout(() => store.closed(key, vscode.workspace.textDocuments.some(open => open !== doc && !open.isClosed && open.uri.toString() === key)), 0);
-  }), { dispose: () => tokenDocuments.clear() }, vscode.workspace.onDidChangeConfiguration(event => { if (event.affectsConfiguration('semaprax')) stop(); }), { dispose: stop });
+    if (store) {
+      clearTimeout(pendingViewRelease.get(key));
+      pendingViewRelease.set(key, setTimeout(() => {
+        pendingViewRelease.delete(key);
+        store.closed(key, vscode.workspace.textDocuments.some(open => open !== doc && !open.isClosed && open.uri.toString() === key));
+      }, VIEW_RELEASE_GRACE_MS));
+    }
+  }), vscode.workspace.onDidOpenTextDocument(doc => {
+    const key = doc.uri.toString();
+    const pending = pendingViewRelease.get(key);
+    if (pending !== undefined) { clearTimeout(pending); pendingViewRelease.delete(key); }
+  }), { dispose: () => { for (const timer of pendingViewRelease.values()) clearTimeout(timer); pendingViewRelease.clear(); tokenDocuments.clear(); } }, vscode.workspace.onDidChangeConfiguration(event => { if (event.affectsConfiguration('semaprax')) stop(); }), { dispose: stop });
   for (const [name, command] of Object.entries(commands)) context.subscriptions.push(vscode.commands.registerCommand('semaprax.' + name, async () => {
     if (name === 'stop') { stop(); return; }
     if (name === 'cancelCandidateTests') {

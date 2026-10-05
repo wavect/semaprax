@@ -587,20 +587,23 @@ pub(super) fn generate(
     attempt: &Attempt,
 ) -> HarnessResult<Vec<u8>> {
     let side = st.proposer.side_effecting();
-    let cache = cx.cfg.cache_dir.join(if step == "generate" {
-        format!("{}.proposal.json", cx.lineage.id)
-    } else {
-        format!("{}.{step}.proposal.json", cx.lineage.id)
-    });
+    let cache = super::acquire::cache_path(cx, step);
     if side {
-        if matches!(journal.state(step).map(|x| x.state.as_str()), Some("done")) {
-            if let Ok(b) = std::fs::read(&cache) {
-                super::spend_dispatch::release(cx, journal, attempt, "reused_not_dispatched")?;
-                r.notes.push(
-                    "proposal reused from the journal; the model was not invoked again".into(),
-                );
-                return Ok(b);
-            }
+        // A completed step is reused only through the shared artifact validator
+        // (MN-01): no unchecked cache read, and a failed check is never replaced
+        // by a fresh billable request.
+        if let Some(rec) = journal.state(step).filter(|x| x.state == "done").cloned() {
+            let checked = super::acquire::validate_done(cx, step, &rec);
+            let why = if checked.is_ok() {
+                "reused_not_dispatched"
+            } else {
+                "refused_not_dispatched"
+            };
+            super::spend_dispatch::release(cx, journal, attempt, why)?;
+            let b = checked?;
+            r.notes
+                .push("proposal reused from the journal; the model was not invoked again".into());
+            return Ok(b);
         }
         if journal.unfinished(step)
             || matches!(
@@ -685,9 +688,14 @@ pub(super) fn generate(
     }
 }
 
+/// Admission of an output-cap retry by the enclosing owner (MN-04): a session
+/// applies its attempt, cancellation and elapsed limits and charges the retry
+/// once; the single-shot pipeline admits it unconditionally.
+pub(super) type RetryGate<'g> = &'g mut dyn FnMut(&Ctx, &mut Journal) -> HarnessResult<()>;
+
 /// Route, fit, reserve and generate on the model branch. A length-limited reply
-/// is a known terminal outcome: when configured, one new attempt at the larger
-/// cap, reserved before dispatch like any other.
+/// is a known terminal outcome: when configured and admitted by `gate`, one new
+/// attempt at the larger cap, reserved before dispatch like any other.
 fn generate_with_retry(
     cx: &mut Ctx,
     st: &mut Stages,
@@ -695,6 +703,7 @@ fn generate_with_retry(
     r: &mut Report,
     p: &PromptCtx,
     step: &str,
+    gate: RetryGate,
 ) -> HarnessResult<Vec<u8>> {
     let (mut fit, route_json, mut attempt) = route_and_fit(cx, st, journal, r, p, step)?;
     r.route = route_json;
@@ -727,8 +736,10 @@ fn generate_with_retry(
                         .length_retry_cap
                         .is_some_and(|c| c > fit.output_reserve) =>
             {
+                // The enclosing limits are checked before routing or reservation.
+                gate(cx, journal)?;
                 cx.reserve_override = cx.cfg.budget.generation.length_retry_cap;
-                gstep = format!("{step}-lcap");
+                gstep = super::acquire::retry_step(step);
                 r.notes.push(format!(
                     "reply length-limited at {} output tokens; one new attempt at the larger cap",
                     fit.output_reserve
@@ -753,9 +764,22 @@ pub(super) fn propose_step(
     p: &PromptCtx,
     step: &str,
 ) -> HarnessResult<Proposal> {
+    propose_step_gated(cx, st, journal, r, p, step, &mut |_, _| Ok(()))
+}
+
+/// `propose_step` whose output-cap retry is admitted by `gate` (MN-04).
+pub(super) fn propose_step_gated(
+    cx: &mut Ctx,
+    st: &mut Stages,
+    journal: &mut Journal,
+    r: &mut Report,
+    p: &PromptCtx,
+    step: &str,
+    gate: RetryGate,
+) -> HarnessResult<Proposal> {
     let bytes = match super::acquire::local_proposal(cx, st, journal, r, step)? {
         Some(b) => b,
-        None => generate_with_retry(cx, st, journal, r, p, step)?,
+        None => generate_with_retry(cx, st, journal, r, p, step, gate)?,
     };
     let v2 = cx.cfg.task.schema_version == 2;
     let proposal = parse_proposal(&bytes).map_err(|e| {

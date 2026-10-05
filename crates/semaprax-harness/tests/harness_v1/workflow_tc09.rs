@@ -51,6 +51,7 @@ fn exec(cfg: &RunConfig, prop: &mut dyn ProposalStage, router: &mut Router) -> R
         min_confidence: None,
         max_context_tokens: None,
         supported_families: None,
+        ..Default::default()
     };
     let gate = EnablementGate::not_evaluated("model-route/v1", &profile.provider_id);
     run(

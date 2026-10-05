@@ -35,6 +35,11 @@ pub struct RoutePolicy {
     /// Router call ceiling (the request budget may only lower it).
     pub router_max_calls: u32,
     pub lineage_budgets: LineageBudgets,
+    /// MR-01 routing-disclosure rule for the router endpoint itself: the
+    /// highest confidentiality whose bounded task excerpt a router may see.
+    /// `None` (default) is metadata-only routing. Independent of the remote
+    /// generation approval above.
+    pub router_excerpt_max_confidentiality: Option<Confidentiality>,
 }
 
 impl Default for RoutePolicy {
@@ -52,6 +57,7 @@ impl Default for RoutePolicy {
                 reasoning_escalation: 1,
                 transport_retry: 2,
             },
+            router_excerpt_max_confidentiality: None,
         }
     }
 }
@@ -72,7 +78,7 @@ impl RoutePolicy {
 
     pub fn to_json(&self) -> Value {
         let fam = |s: &BTreeSet<TaskFamily>| s.iter().map(|f| f.as_str()).collect::<Vec<_>>();
-        json!({
+        let mut v = json!({
             "remote_max_confidentiality": self.remote_max_confidentiality.map(|c| c.as_str()),
             "allowed_origins": self.allowed_origins,
             "hard_families": fam(&self.hard_families),
@@ -85,7 +91,12 @@ impl RoutePolicy {
                 "reasoning_escalation": self.lineage_budgets.reasoning_escalation,
                 "transport_retry": self.lineage_budgets.transport_retry,
             },
-        })
+        });
+        // Present only when set, so the default policy keeps its v1 digest.
+        if let Some(c) = self.router_excerpt_max_confidentiality {
+            v["router_excerpt_max_confidentiality"] = json!(c.as_str());
+        }
+        v
     }
 
     pub fn digest(&self) -> String {
@@ -108,10 +119,19 @@ impl RoutePolicy {
                 "router_max_latency_ms",
                 "router_max_calls",
                 "lineage_budgets",
+                "router_excerpt_max_confidentiality",
             ],
             C,
         )?;
         let mut p = Self::default();
+        if m.contains_key("router_excerpt_max_confidentiality") {
+            p.router_excerpt_max_confidentiality = Some(enum_of(
+                m,
+                "router_excerpt_max_confidentiality",
+                Confidentiality::parse,
+                C,
+            )?);
+        }
         if let Some(x) = m.get("remote_max_confidentiality") {
             p.remote_max_confidentiality = match x {
                 Value::Null => None,

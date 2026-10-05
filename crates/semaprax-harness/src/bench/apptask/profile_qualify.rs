@@ -302,6 +302,7 @@ pub fn qualify(
                 eval_items: base_items.clone(),
                 trained_on: BTreeSet::new(),
                 outcomes,
+                calibration: None,
             };
             record_digest = json!(rec.digest());
             let _ = registry.register(rec.clone());

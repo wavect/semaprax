@@ -259,6 +259,7 @@ impl Criterion {
             min_cost_saving: v["min_cost_saving"].as_f64()?,
             max_extra_regressions: v["max_extra_regressions"].as_u64()? as u32,
             max_latency_ratio: v["max_latency_ratio"].as_f64()?,
+            ..GateSpec::default()
         };
         Some(Self {
             gate,

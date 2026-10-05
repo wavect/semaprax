@@ -148,6 +148,20 @@ impl AdapterHandle {
             .as_ref()
             .map_or_else(|| c.last_stderr.clone(), |p| p.stderr_tail())
     }
+    /// Contract versions of `kind` negotiated for this handle: the adapter's
+    /// accepted set once it has initialized, else what the host offered.
+    pub fn negotiated_versions(&self, kind: crate::contract::CapabilityKind) -> Vec<u32> {
+        let c = lock(&self.core);
+        let from = if c.accepted.is_empty() {
+            &self.offered
+        } else {
+            &c.accepted
+        };
+        from.iter()
+            .filter(|a| a.kind == kind)
+            .map(|a| a.version)
+            .collect()
+    }
     /// Number of `harness/invoke` frames this handle has queued so far.
     pub fn invoke_frames_queued(&self) -> u64 {
         self.invoke_frames.load(Ordering::SeqCst)

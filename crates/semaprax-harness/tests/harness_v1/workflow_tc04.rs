@@ -86,6 +86,7 @@ fn task() -> Task {
             est_cost_micros: 0,
             est_latency_ms: 10,
             strength_rank: 1,
+            descriptor: Default::default(),
         }
         .to_json()])),
         budget: Some(BudgetPolicy {

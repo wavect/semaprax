@@ -3,6 +3,7 @@
 
 use super::policy::RoutePolicy;
 use super::registry;
+use super::route_v2::{PlanDescriptor, RouteSignals};
 use crate::diag::{HarnessDiagnostic, HarnessResult};
 use crate::json;
 use serde_json::{json, Map, Value};
@@ -162,9 +163,18 @@ pub struct ModelPlan {
     pub est_cost_micros: u64,
     pub est_latency_ms: u64,
     pub strength_rank: u32,
+    /// Optional MR-01 comparison descriptor; the default serializes to nothing.
+    pub descriptor: PlanDescriptor,
 }
 
 impl ModelPlan {
+    /// The cost estimate unless its descriptor marks it unknown: an unknown
+    /// cost never ranks as the cheapest plan.
+    pub fn known_cost(&self) -> Option<u64> {
+        (self.descriptor.cost_basis() != super::route_v2::EstimateBasis::Unknown)
+            .then_some(self.est_cost_micros)
+    }
+
     pub fn to_json(&self) -> Value {
         let dest = match &self.destination {
             Destination::Local => json!({"kind": "local"}),
@@ -177,11 +187,15 @@ impl ModelPlan {
         if self.tools {
             caps.push("tools");
         }
-        json!({
+        let mut v = json!({
             "id": self.id, "destination": dest, "capabilities": caps,
             "max_context": self.max_context, "est_cost_micros": self.est_cost_micros,
             "est_latency_ms": self.est_latency_ms, "strength_rank": self.strength_rank,
-        })
+        });
+        if let Some(m) = v.as_object_mut() {
+            self.descriptor.write(m);
+        }
+        v
     }
 
     pub fn from_json(v: &Value) -> HarnessResult<Self> {
@@ -198,9 +212,10 @@ impl ModelPlan {
                 "est_latency_ms",
                 "strength_rank",
             ],
-            &[],
+            &PlanDescriptor::MEMBERS,
             C,
         )?;
+        let descriptor = PlanDescriptor::read(m, C)?;
         let d = shape(&m["destination"], "destination", &["kind"], &["origin"], C)?;
         let destination = match d["kind"].as_str() {
             Some("local") if !d.contains_key("origin") => Destination::Local,
@@ -235,6 +250,7 @@ impl ModelPlan {
             est_cost_micros: uint(m, "est_cost_micros", 1_000_000_000_000, C)?,
             est_latency_ms: uint(m, "est_latency_ms", 86_400_000, C)?,
             strength_rank: uint(m, "strength_rank", 1_000_000, C)? as u32,
+            descriptor,
         })
     }
 }
@@ -275,6 +291,9 @@ pub struct RouteRequest {
     pub features: TaskFeatures,
     pub catalog: Vec<ModelPlan>,
     pub budget: Budget,
+    /// MR-01 host signals for `model-route/v2`; unknown by default. They never
+    /// enter the v1 digests.
+    pub signals: RouteSignals,
 }
 
 pub const MAX_CATALOG: usize = 256;
@@ -296,7 +315,14 @@ impl RouteRequest {
             features,
             catalog,
             budget,
+            signals: RouteSignals::default(),
         })
+    }
+
+    /// The same request with host routing signals attached.
+    pub fn with_signals(mut self, signals: RouteSignals) -> Self {
+        self.signals = signals;
+        self
     }
 
     /// Parse `{task, features, budget, catalog?}`; the task must be an active
@@ -306,7 +332,7 @@ impl RouteRequest {
             v,
             "route request",
             &["task", "features", "budget"],
-            &["catalog", "policy", "lineage_id"],
+            &["catalog", "policy", "lineage_id", "signals"],
             "SPX-HPJ003",
         )?;
         registry::resolve(m["task"].as_str().unwrap_or(""))?;
@@ -314,11 +340,16 @@ impl RouteRequest {
             Some(c) => Self::catalog_from_json(c)?,
             None => Vec::new(),
         };
-        Self::new(
+        let signals = match m.get("signals") {
+            Some(s) => RouteSignals::from_json(s)?,
+            None => RouteSignals::default(),
+        };
+        Ok(Self::new(
             TaskFeatures::from_json(&m["features"])?,
             catalog,
             Budget::from_json(&m["budget"])?,
-        )
+        )?
+        .with_signals(signals))
     }
 
     pub fn catalog_from_json(v: &Value) -> HarnessResult<Vec<ModelPlan>> {

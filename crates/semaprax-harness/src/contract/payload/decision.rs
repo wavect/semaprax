@@ -1,9 +1,121 @@
-//! `decision.evaluate/v1`: choices and scores for registered decision tasks only.
+//! `decision.evaluate/v1` and `/v2`: choices and scores for registered
+//! decision tasks only. The v2 request is recognized by its task id and the
+//! v2 result by its `score_kind` member; v1 shapes are unchanged.
 
 use super::*;
+use crate::decision::call::ResultV2;
+use crate::decision::render::{RenderedRequest, MAX_CANDIDATES_V2, MAX_STATE_BYTES, RENDERER_V2};
+use crate::decision::route_v2::{TaskFeaturesV2, MAX_EXCERPT};
+
+const V2_TASK: &str = "model-route/v2";
+
+fn is_v2_request(v: &Value) -> bool {
+    v.get("task").and_then(Value::as_str) == Some(V2_TASK)
+}
+
+fn is_v2_result(v: &Value) -> bool {
+    v.get("score_kind").is_some()
+}
+
+fn validate_v2_request(v: &Value) -> HarnessResult<()> {
+    let m = shape(
+        v,
+        "decision request",
+        &[
+            "task",
+            "features",
+            "candidates",
+            "options",
+            "disclosure",
+            "rendered",
+            "max_wire_bytes",
+        ],
+        &["excerpt"],
+    )?;
+    TaskFeaturesV2::from_json(&m["features"])?;
+    let ids = options(m)?;
+    if ids.is_empty() || ids.len() > MAX_CANDIDATES_V2 {
+        return Err(e(
+            "SPX-HPA040",
+            "v2 `options` must hold 1..=16 selection ids",
+        ));
+    }
+    if ids.iter().enumerate().any(|(i, s)| *s != format!("m{i}")) {
+        return Err(e(
+            "SPX-HPA040",
+            "v2 selection ids must be `m0..m{n-1}` in order",
+        ));
+    }
+    let cands = array_of(m, "candidates", MAX_CANDIDATES_V2)?;
+    let cids: Vec<&str> = cands.iter().filter_map(|c| c["id"].as_str()).collect();
+    if cids != ids {
+        return Err(e("SPX-HPA040", "`candidates[*].id` must equal `options`"));
+    }
+    let disclosure = str_of(m, "disclosure", 32)?;
+    match (disclosure, m.get("excerpt")) {
+        ("metadata_only", None) => {}
+        ("excerpt", Some(Value::String(x))) if !x.is_empty() && x.len() <= MAX_EXCERPT => {}
+        _ => {
+            return Err(e(
+                "SPX-HPA040",
+                "`excerpt` must be present (1..=1024 bytes) exactly when disclosure is `excerpt`",
+            ))
+        }
+    }
+    let r = shape(
+        &m["rendered"],
+        "rendered",
+        &[
+            "renderer",
+            "instructions",
+            "state",
+            "option_labels",
+            "digest",
+        ],
+        &[],
+    )?;
+    if str_of(r, "renderer", 64)? != RENDERER_V2 {
+        return Err(e("SPX-HPA040", "unknown renderer"));
+    }
+    str_of(r, "state", MAX_STATE_BYTES)?;
+    str_of(r, "instructions", 1024)?;
+    let labels = r["option_labels"]
+        .as_object()
+        .ok_or_else(|| e("SPX-HPA040", "`option_labels` must be an object"))?;
+    let mut lk: Vec<&str> = labels.keys().map(String::as_str).collect();
+    let mut want = ids.clone();
+    lk.sort_unstable();
+    want.sort_unstable();
+    if lk != want
+        || labels
+            .values()
+            .any(|l| !l.as_str().is_some_and(|s| s.len() <= 80))
+    {
+        return Err(e(
+            "SPX-HPA040",
+            "`option_labels` must label exactly the options",
+        ));
+    }
+    let mut body = m["rendered"].clone();
+    if let Some(o) = body.as_object_mut() {
+        o.remove("digest");
+    }
+    if r["digest"].as_str() != Some(RenderedRequest::digest_of(&body).as_str()) {
+        return Err(e(
+            "SPX-HPA040",
+            "`rendered.digest` does not match the rendered content",
+        ));
+    }
+    uint_of(m, "max_wire_bytes")?;
+    Ok(())
+}
 
 pub fn validate(dir: Direction, v: &Value) -> HarnessResult<()> {
     match dir {
+        Direction::Request if is_v2_request(v) => validate_v2_request(v)?,
+        Direction::Result if is_v2_result(v) => {
+            ResultV2::from_json(v)?;
+        }
         Direction::Request => {
             let m = shape(v, "decision request", &["task", "features", "options"], &[])?;
             if str_of(m, "task", 64)? != "model-route/v1" {
@@ -65,6 +177,24 @@ fn options(m: &Map<String, Value>) -> HarnessResult<Vec<&str>> {
 }
 
 pub fn check_against_request(request: &Value, result: &Value) -> HarnessResult<()> {
+    // A v2 request takes only a v2 result, and a v1 request only a v1 result.
+    if is_v2_request(request) != is_v2_result(result) {
+        return Err(e(
+            "SPX-HPA040",
+            "result payload version does not match the request task",
+        ));
+    }
+    if is_v2_request(request) {
+        let m = request
+            .as_object()
+            .ok_or_else(|| e("SPX-HPA040", "request payload is not an object"))?;
+        let ids = options(m)?;
+        return ResultV2::from_json(result)?.check_against(
+            &ids,
+            request["rendered"]["digest"].as_str().unwrap_or(""),
+            request["max_wire_bytes"].as_u64().unwrap_or(0),
+        );
+    }
     let ids = options(
         request
             .as_object()

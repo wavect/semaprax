@@ -1,8 +1,10 @@
 //! Recorded decisions and deterministic replay: no router call, current
 //! inputs must still match every recorded digest.
 
+use super::call::CallMetadata;
 use super::plan::FrozenRoutePlan;
-use super::registry::{self, DecisionTask};
+use super::registry;
+use super::render::V2Digests;
 use super::route::{bad, screen, shape, text};
 use super::router::{choice_digest, DecisionSource, Digests, RouteDecision, RouteInputs};
 use crate::diag::HarnessResult;
@@ -18,6 +20,9 @@ pub struct DecisionRecord {
     pub choice: String,
     pub digests: Digests,
     pub plan: FrozenRoutePlan,
+    /// MR-03: answering identity/usage of the router call that produced the
+    /// choice, journaled so resume never re-infers it. Absent for rules.
+    pub identity: Option<CallMetadata>,
 }
 
 impl DecisionRecord {
@@ -33,15 +38,20 @@ impl DecisionRecord {
             choice: d.choice.clone(),
             digests: d.digests.clone(),
             plan: d.plan.clone(),
+            identity: d.wire.call.clone(),
         }
     }
 
     pub fn to_json(&self) -> Value {
-        json!({
-            "schema": RECORD_SCHEMA, "task": DecisionTask::ModelRoute.id(),
+        let mut v = json!({
+            "schema": RECORD_SCHEMA, "task": self.digests.task(),
             "provider_id": self.provider_id, "checkpoint": self.checkpoint, "source": self.source,
             "choice": self.choice, "digests": self.digests.to_json(), "plan": self.plan.to_json(),
-        })
+        });
+        if let Some(c) = &self.identity {
+            v["identity"] = c.to_json();
+        }
+        v
     }
 
     pub fn from_json(v: &Value) -> HarnessResult<Self> {
@@ -59,7 +69,7 @@ impl DecisionRecord {
                 "digests",
                 "plan",
             ],
-            &[],
+            &["identity"],
             C,
         )?;
         if m["schema"] != RECORD_SCHEMA {
@@ -70,9 +80,38 @@ impl DecisionRecord {
             &m["digests"],
             "digests",
             &["features", "catalog", "policy", "candidates"],
-            &[],
+            &["v2"],
             C,
         )?;
+        let v2 = match dm.get("v2") {
+            None => None,
+            Some(x) => {
+                let x = shape(
+                    x,
+                    "v2 digests",
+                    &["features", "candidates", "renderer", "disclosure"],
+                    &[],
+                    C,
+                )?;
+                Some(V2Digests {
+                    features: text(x, "features", C)?,
+                    candidates: text(x, "candidates", C)?,
+                    renderer: text(x, "renderer", C)?,
+                    disclosure: text(x, "disclosure", C)?,
+                })
+            }
+        };
+        let task = m["task"].as_str().unwrap_or("");
+        if (task == "model-route/v2") != v2.is_some() {
+            return Err(bad(
+                C,
+                "record task and digests disagree on the routing version",
+            ));
+        }
+        let identity = match m.get("identity") {
+            None => None,
+            Some(c) => Some(CallMetadata::from_json(c).map_err(|e| bad(C, e.message))?),
+        };
         Ok(Self {
             provider_id: text(m, "provider_id", C)?,
             checkpoint: text(m, "checkpoint", C)?,
@@ -83,8 +122,10 @@ impl DecisionRecord {
                 catalog: text(dm, "catalog", C)?,
                 policy: text(dm, "policy", C)?,
                 candidates: text(dm, "candidates", C)?,
+                v2,
             },
             plan: FrozenRoutePlan::from_json(&m["plan"])?,
+            identity,
         })
     }
 }
@@ -93,7 +134,17 @@ impl DecisionRecord {
 /// changed feature, catalog, policy or candidate set is a refusal (`SPX-HPJ007`).
 pub fn replay(record: &DecisionRecord, inputs: &RouteInputs) -> HarnessResult<FrozenRoutePlan> {
     let scr = screen(&inputs.request, &inputs.policy);
-    let now = inputs.digests(&scr);
+    let mut now = inputs.digests(&scr);
+    if record.digests.v2.is_some() {
+        // Recompute the v2 projection deterministically: no router call.
+        now.v2 = inputs.prepare_v2(&scr).ok().map(|p| p.digests());
+        if now.v2 != record.digests.v2 {
+            return Err(bad(
+                "SPX-HPJ007",
+                "replay refused: v2 feature/candidate/renderer/disclosure digest changed since the decision was recorded",
+            ));
+        }
+    }
     for (name, a, b) in [
         ("features", &now.features, &record.digests.features),
         ("catalog", &now.catalog, &record.digests.catalog),

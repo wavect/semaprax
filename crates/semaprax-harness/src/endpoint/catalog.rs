@@ -338,6 +338,7 @@ impl LogicalModel {
             est_cost_micros,
             est_latency_ms,
             strength_rank: self.strength_rank,
+            descriptor: Default::default(),
         }
     }
 

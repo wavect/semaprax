@@ -6,6 +6,8 @@ use crate::diag::{HarnessDiagnostic, HarnessResult};
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum DecisionTask {
     ModelRoute,
+    /// MR-01: negotiated `decision.evaluate` v2 routing task. v1 is unchanged.
+    ModelRouteV2,
     ToolSelect,
     ContextPlan,
 }
@@ -21,6 +23,11 @@ pub const TASKS: &[TaskEntry] = &[
     TaskEntry {
         task: DecisionTask::ModelRoute,
         id: "model-route/v1",
+        active: true,
+    },
+    TaskEntry {
+        task: DecisionTask::ModelRouteV2,
+        id: "model-route/v2",
         active: true,
     },
     TaskEntry {

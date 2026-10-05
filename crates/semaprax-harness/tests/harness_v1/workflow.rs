@@ -948,6 +948,7 @@ impl DecisionInvoker for Router {
         DecisionCall::Answered {
             result: json!({"choice": self.1, "scores": {self.1: 0.9}, "abstain": false}),
             elapsed_ms: 1,
+            call: None,
         }
     }
 }
@@ -962,6 +963,7 @@ fn two_models() -> Value {
         est_cost_micros: 0,
         est_latency_ms: 10,
         strength_rank: rank,
+        descriptor: Default::default(),
     };
     json!([m("cheap", 1).to_json(), m("strong", 2).to_json()])
 }
@@ -989,6 +991,7 @@ fn route_with(mode: ProviderMode, inv: &mut Router) -> Report {
         min_confidence: None,
         max_context_tokens: None,
         supported_families: None,
+        ..Default::default()
     };
     let gate = EnablementGate::not_evaluated("model-route/v1", &profile.provider_id);
     run(
@@ -1047,6 +1050,7 @@ fn hp_hpwire_model_policy_refuses_a_remote_model_under_local_only() {
         est_cost_micros: 0,
         est_latency_ms: 10,
         strength_rank: 1,
+        descriptor: Default::default(),
     };
     let mut cfg = config(&e, Task::default(), None);
     cfg.model_plans = Some(vec![remote]);

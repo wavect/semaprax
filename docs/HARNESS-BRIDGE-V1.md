@@ -218,3 +218,16 @@ reasons; a failed query is shown as a stated reason. No second dashboard and no 
   `external_host::hn14_opencode_...` reaches the same catalog and records the same Ponytail revision. opencode is a fixture
   config in the test, not a supported `--setup` target.
 - A generic stdio MCP client (`bridge::hn14_real_process_generic_mcp_client_over_stdio`) runs against the real binary.
+
+## Parent model ownership (MR-14)
+
+Every `bridge/handshake` response carries `parent_model`
+(`workflow::phases::parent_model_routing`). A host that does not delegate
+`model_routing` (Claude Code and every host that omits the declaration) gets
+`{"mode": "host-controlled", "advisory_only": true, "changes_parent_model":
+false, "semaprax_controlled_parent_model": false, "statement": "Semaprax did
+not control the parent model: ..."}`; a delegating host gets `"mode":
+"delegated"` and still `changes_parent_model: false`, because Semaprax routes
+only its own worker requests. The static Claude Code host profile (`bridge
+<project> --host claude-code`) states the same. Test:
+`mr14_bridge_handshake_reports_who_controlled_the_parent_model`.

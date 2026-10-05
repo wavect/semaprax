@@ -465,7 +465,7 @@ fn generate_role(
             let shape = super::generation::ResponseShape::StructuredIntent;
             let controls = cx.cfg.budget.generation.controls(shape, fit.output_reserve);
             let route = json!({"model": fit.model, "source": route["source"], "router_calls": route["router_calls"],
-                               "reuse": route["reuse"]});
+                               "reuse": route["reuse"], "explain": route["explain"]});
             match generate(
                 cx,
                 st,
@@ -550,7 +550,7 @@ pub(super) fn run_plan(
                 r,
                 json!({"phase": "plan", "source": "generated", "why": why, "model": route["model"],
                           "route_source": route["source"], "router_calls": route["router_calls"],
-                          "reuse": route["reuse"], "artifact_digest": digest,
+                          "reuse": route["reuse"], "explain": route["explain"], "artifact_digest": digest,
                           "steps": plan["steps"].as_array().map_or(0, Vec::len), "ignored_claims": ignored}),
             );
             Ok(Some(plan))
@@ -652,7 +652,7 @@ pub(super) fn run_review(
                 entry(
                     "generated",
                     json!({"model": route["model"], "route_source": route["source"],
-                "router_calls": route["router_calls"], "reuse": route["reuse"], "artifact_digest": digest,
+                "router_calls": route["router_calls"], "reuse": route["reuse"], "explain": route["explain"], "artifact_digest": digest,
                 "findings": counts, "ignored_claims": ignored}),
                 ),
             );
@@ -677,7 +677,8 @@ pub fn parent_model_routing(owner: Owner) -> Value {
             "changes_parent_model": false,
             "scope": "the host delegated model choice; Semaprax answers through the profile's decision binding and routes its own worker requests"}),
         _ => json!({"owner": owner.as_str(), "mode": "host-controlled", "advisory_only": true,
-            "changes_parent_model": false,
+            "changes_parent_model": false, "semaprax_controlled_parent_model": false,
+            "statement": "Semaprax did not control the parent model: the host chose it and Semaprax neither selected nor rerouted it",
             "scope": "the host did not delegate model choice; phase routing applies to Semaprax-owned worker requests only and reports advice"}),
     }
 }

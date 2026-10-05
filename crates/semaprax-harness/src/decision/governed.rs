@@ -200,7 +200,7 @@ pub fn recheck_dispatch(
     match s.excluded.first() {
         Some((_, why)) => Err(HarnessDiagnostic::new(
             "SPX-HPJ018",
-            format!("`{choice}` failed the pre-dispatch recheck: {why}"),
+            format!("`{choice}` failed the pre-dispatch recheck: {why} (final context {final_required_tokens} tokens differs from what was routed); an unpinned route excludes it and routes again, a pinned one refuses: shorten the protected context or pin a model whose limits admit the final request"),
         )),
         None => Ok(()),
     }

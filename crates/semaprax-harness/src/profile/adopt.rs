@@ -182,6 +182,18 @@ pub fn adopt(
                 "the descriptor declares no upstream; --upstream does not apply",
             ))
         }
+        (Some(up), Some(_)) if super::installations::is_service(up, &d.permissions) => {
+            return Err(bad(
+                "SPX-HPB021",
+                format!("upstream `{}` is a network service reached only through the declared network permission ({}); it has no executable, so --upstream does not apply", up.name, d.permissions.network.join(", ")),
+            ))
+        }
+        (Some(up), None) if super::installations::is_service(up, &d.permissions) => {
+            notes.push(format!(
+                "upstream `{}` ({}) is a network service reached only through the declared network permission ({}); no executable is adopted, and its identity is checked per call from the decision call metadata",
+                up.name, up.package, d.permissions.network.join(", ")
+            ));
+        }
         (Some(up), None) => {
             if let Some(old) = state
                 .installations

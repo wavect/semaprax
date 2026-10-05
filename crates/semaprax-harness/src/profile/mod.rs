@@ -11,6 +11,7 @@ pub mod config;
 pub mod installations;
 pub mod lock;
 pub mod resolve;
+pub mod routing_status;
 pub mod runtime;
 pub mod setup;
 mod setup_find;

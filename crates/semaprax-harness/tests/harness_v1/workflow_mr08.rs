@@ -852,3 +852,6 @@ fn mr12_the_session_cache_in_the_route_path_reuses_an_identical_route_and_charge
     let r = exec(&cancelled, &fake, &roles, Some(&mut router));
     assert_eq!((r.status, router.0), ("cancelled", 0));
 }
+
+#[path = "workflow_mr14.rs"]
+mod workflow_mr14;

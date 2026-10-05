@@ -184,6 +184,7 @@ pub fn host_profile() -> Value {
             "tool_result_observation": {"owner": "external-host", "reason": "no PostToolUse adapter is shipped"},
             "cancellation": {"owner": "external-host", "reason": "the host cancels its own tool calls"}
         },
+        "parent_model": crate::workflow::phases::parent_model_routing(super::negotiate::Owner::ExternalHost),
         "observed_scope": {
             "observed": "semaprax-routed-bash-calls-only",
             "not_observed": ["other host tools", "conversation history", "model choice"],

@@ -291,6 +291,11 @@ impl EvidenceRegistry {
         self.records.get(&key.digest())
     }
 
+    /// The keys of every record (read-only; MR-14 staleness review).
+    pub fn keys(&self) -> impl Iterator<Item = &EvidenceKey> {
+        self.records.values().map(|r| &r.key)
+    }
+
     pub fn len(&self) -> usize {
         self.records.len()
     }

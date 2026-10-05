@@ -16,6 +16,7 @@ use crate::diag::{HarnessDiagnostic, HarnessResult};
 use crate::json::canonical;
 use serde_json::json;
 use std::collections::BTreeMap;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::mpsc::Receiver;
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
@@ -93,6 +94,8 @@ pub struct AdapterHandle {
     cv: Condvar,
     start: Mutex<()>,
     core: Mutex<Core>,
+    /// `harness/invoke` frames queued to an adapter (test and audit probe).
+    invoke_frames: AtomicU64,
 }
 
 enum Wait {
@@ -145,6 +148,10 @@ impl AdapterHandle {
             .as_ref()
             .map_or_else(|| c.last_stderr.clone(), |p| p.stderr_tail())
     }
+    /// Number of `harness/invoke` frames this handle has queued so far.
+    pub fn invoke_frames_queued(&self) -> u64 {
+        self.invoke_frames.load(Ordering::SeqCst)
+    }
     /// Pid of the live adapter process (also its process-group id).
     pub fn pid(&self) -> Option<i32> {
         lock(&self.core).proc.as_ref().map(|p| p.pid())
@@ -187,14 +194,58 @@ impl AdapterHandle {
         };
     }
 
+    /// Pre-dispatch refusal: nothing was written to the adapter, so the
+    /// caller may retry or fall back.
+    fn pre_dispatch_stop(until: Instant, cancel: &CancelToken) -> Option<Outcome> {
+        if cancel.is_cancelled() {
+            Some(Outcome::Cancelled)
+        } else if Instant::now() >= until {
+            Some(Outcome::Unavailable {
+                reason: diag(
+                    "SPX-HPC008",
+                    "invocation deadline elapsed before dispatch; nothing was sent",
+                ),
+                request_sent: false,
+                fallback_allowed: true,
+            })
+        } else {
+            None
+        }
+    }
+
+    /// Wait for start ownership, honouring cancellation and the deadline.
+    // Outcome is the intentionally rich terminal value returned verbatim to callers.
+    #[allow(clippy::result_large_err)]
+    fn lock_start(
+        &self,
+        until: Instant,
+        cancel: &CancelToken,
+    ) -> Result<MutexGuard<'_, ()>, Outcome> {
+        loop {
+            match self.start.try_lock() {
+                Ok(g) => return Ok(g),
+                Err(std::sync::TryLockError::Poisoned(p)) => return Ok(p.into_inner()),
+                Err(std::sync::TryLockError::WouldBlock) => {}
+            }
+            if let Some(o) = Self::pre_dispatch_stop(until, cancel) {
+                return Err(o);
+            }
+            std::thread::sleep(Duration::from_millis(2));
+        }
+    }
+
     // Outcome is the intentionally rich terminal value returned verbatim to callers.
     #[allow(clippy::result_large_err)]
     fn ensure_running(
         &self,
         project: &ProjectBinding,
         cancel: &CancelToken,
+        deadline: Instant,
     ) -> Result<Arc<Proc>, Outcome> {
-        let _start = lock(&self.start);
+        let _start = self.lock_start(deadline, cancel)?;
+        if let Some(o) = Self::pre_dispatch_stop(deadline, cancel) {
+            return Err(o);
+        }
         {
             let c = lock(&self.core);
             match &c.state {
@@ -249,8 +300,10 @@ impl AdapterHandle {
                 rpc::initialize_params(&self.spec.descriptor, &self.offered, project),
             )
             .map_err(|_| unavailable(diag("SPX-HPC007", "adapter exited before the handshake")))?;
-        let until = Instant::now()
+        let hs_until = Instant::now()
             + Duration::from_millis(self.spec.descriptor.resources.handshake_timeout_ms);
+        // The handshake is bounded by its own cap and the invocation deadline.
+        let until = hs_until.min(deadline);
         match wait(&rx, until, cancel) {
             Wait::Got(Delivery::Result(v)) => match rpc::parse_initialize(&v, &self.offered) {
                 Ok(acc) => {
@@ -277,6 +330,14 @@ impl AdapterHandle {
                 let d = diag("SPX-HPC007", "adapter exited during the handshake");
                 self.record_failure(&proc, d.clone());
                 Err(unavailable(d))
+            }
+            Wait::Timeout if deadline < hs_until => {
+                // The invocation ran out of time, not the adapter: no crash is
+                // counted and nothing was dispatched.
+                self.drop_proc(&proc, Closed::Host("deadline"));
+                self.set_state(AdapterState::Prepared);
+                Err(Self::pre_dispatch_stop(deadline, &CancelToken::new())
+                    .expect("deadline elapsed"))
             }
             Wait::Timeout => {
                 let d = diag(
@@ -307,6 +368,9 @@ impl AdapterHandle {
                 "SPX-HPC021",
                 "adapter handle is closing",
             )));
+        }
+        if let Some(o) = Self::pre_dispatch_stop(until, cancel) {
+            return Err(o);
         }
         if g.in_flight >= self.limit {
             if g.waiting >= self.config.max_queue {
@@ -397,7 +461,7 @@ impl AdapterHandle {
         cancel: &CancelToken,
         until: Instant,
     ) -> Outcome {
-        let proc = match self.ensure_running(&req.project, cancel) {
+        let proc = match self.ensure_running(&req.project, cancel, until) {
             Ok(p) => p,
             Err(o) => return o,
         };
@@ -423,6 +487,11 @@ impl AdapterHandle {
                 c.state = AdapterState::Active;
             }
         }
+        // Last host check before the side-effect boundary.
+        if let Some(o) = Self::pre_dispatch_stop(until, cancel) {
+            return o;
+        }
+        self.invoke_frames.fetch_add(1, Ordering::SeqCst);
         let rx = match proc.request("harness/invoke", req.to_json()) {
             Ok(rx) => rx,
             Err(c) => return self.closed_outcome(&proc, c, class, false),
@@ -454,11 +523,13 @@ impl AdapterHandle {
             }
         }
         match got {
-            Wait::Got(Delivery::Result(v)) => self.accept_result(&proc, req, &v),
-            Wait::Got(Delivery::Error(m)) => Outcome::Refused(diag(
-                "SPX-HPC024",
-                format!("adapter returned an error: {m}"),
-            )),
+            Wait::Got(Delivery::Result(v)) => self.accept_result(&proc, req, class, &v),
+            // The request was dispatched: an adapter error does not prove it
+            // never ran, so side-effecting work stays non-replayable.
+            Wait::Got(Delivery::Error(m)) => {
+                let d = diag("SPX-HPC024", format!("adapter returned an error: {m}"));
+                Self::post_dispatch_refusal(class, d)
+            }
             Wait::Got(Delivery::Closed(c)) => self.closed_outcome(&proc, c, class, true),
             Wait::Timeout => {
                 let d = diag(
@@ -479,6 +550,7 @@ impl AdapterHandle {
         &self,
         proc: &Arc<Proc>,
         req: &RequestEnvelope,
+        class: InvocationClass,
         v: &serde_json::Value,
     ) -> Outcome {
         match ResultEnvelope::parse_for(req, canonical(v).as_bytes()) {
@@ -501,9 +573,19 @@ impl AdapterHandle {
                     self.quarantine(proc, q.clone());
                     Outcome::Quarantined(q)
                 } else {
-                    Outcome::Refused(d)
+                    Self::post_dispatch_refusal(class, d)
                 }
             }
+        }
+    }
+
+    /// A refusal after `harness/invoke` was written. Only safe classes may
+    /// treat it as a plain refusal; a side-effecting step may have executed.
+    fn post_dispatch_refusal(class: InvocationClass, d: HarnessDiagnostic) -> Outcome {
+        if class.may_fall_back() {
+            Outcome::Refused(d)
+        } else {
+            Outcome::Uncertain(d)
         }
     }
 
@@ -643,6 +725,15 @@ impl AdapterManager {
                     "a different descriptor is already bound to this (project, provider)",
                 ));
             }
+            if let Some(what) = h.spec.launch_difference(&spec) {
+                return Err(diag(
+                    "SPX-HPC001",
+                    format!(
+                        "this (project, provider) is already bound to a handle with a different launch identity ({what}); \
+                         close the handle explicitly before re-preparing"
+                    ),
+                ));
+            }
             return Ok(h.clone());
         }
         let prepared = spec.prepare(&self.config.backend)?;
@@ -668,6 +759,7 @@ impl AdapterManager {
             gate: Mutex::default(),
             cv: Condvar::new(),
             start: Mutex::new(()),
+            invoke_frames: AtomicU64::new(0),
             core: Mutex::new(Core {
                 state: AdapterState::Prepared,
                 proc: None,

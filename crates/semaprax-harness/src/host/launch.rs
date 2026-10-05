@@ -64,6 +64,42 @@ fn require_abs(what: &str, p: &Path) -> HarnessResult<()> {
 }
 
 impl LaunchSpec {
+    /// First security-relevant launch input that differs from `other`, or
+    /// `None` when the complete launch identity is the same. The descriptor is
+    /// compared by digest; everything else by value.
+    pub(crate) fn launch_difference(&self, other: &Self) -> Option<&'static str> {
+        if self.descriptor.digest() != other.descriptor.digest() {
+            return Some("descriptor");
+        }
+        let checks: [(&'static str, bool); 9] = [
+            ("isolation request", self.isolation == other.isolation),
+            ("grant", self.grant == other.grant),
+            (
+                "runtime executable",
+                self.runtime_executable == other.runtime_executable,
+            ),
+            (
+                "upstream executable",
+                self.upstream_executable == other.upstream_executable,
+            ),
+            (
+                "descriptor directory",
+                self.descriptor_dir == other.descriptor_dir,
+            ),
+            ("project root", self.project_root == other.project_root),
+            ("cache directory", self.cache_dir == other.cache_dir),
+            (
+                "retention directory",
+                self.retention_dir == other.retention_dir,
+            ),
+            (
+                "forwarded environment",
+                self.forward_env == other.forward_env,
+            ),
+        ];
+        checks.iter().find(|(_, same)| !same).map(|(n, _)| *n)
+    }
+
     /// Verify grant, digests, paths and isolation; derive the command.
     pub(crate) fn prepare(&self, backend: &IsolationBackend) -> HarnessResult<Prepared> {
         let d = &self.descriptor;

@@ -5,7 +5,7 @@ HOSTILE_MODE selects one misbehaviour; unset behaves correctly. Modes:
 spoof_invocation spoof_project wrong_protocol flood oversized_frame malformed_frame
 unsolicited_request sampling_request path_escape absolute_path drop_critical_error
 fake_revision forbidden_model ignore_cancel crash_on_invoke hang_on_initialize
-stderr_flood secret_probe
+stderr_flood secret_probe error_on_invoke slow_initialize
 """
 import json
 import os
@@ -54,6 +54,14 @@ def payload_for(kind, req):
 
 
 def invoke(mid, req):
+    if MODE == "error_on_invoke":
+        # MA-02: count the (billable) execution, then fail with a JSON-RPC error.
+        counter = os.environ.get("HOSTILE_COUNTER")
+        if counter:
+            with open(counter, "a") as fh:
+                fh.write("x\n")
+        send({"jsonrpc": "2.0", "id": mid, "error": {"code": -32000, "message": "provider failed after accepting"}})
+        return
     if MODE == "crash_on_invoke":
         os._exit(3)
     if MODE == "ignore_cancel":
@@ -104,6 +112,8 @@ def main():
         if method == "harness/initialize":
             if MODE == "hang_on_initialize":
                 time.sleep(3600)
+            if MODE == "slow_initialize":  # MA-04: HOSTILE_INIT_MS of handshake latency
+                time.sleep(int(os.environ.get("HOSTILE_INIT_MS", "0")) / 1000.0)
             proto = "semaprax.harness-rpc.v2" if MODE == "wrong_protocol" else PROTOCOL
             ops = {"context.repository": ["orient", "search", "skeleton", "references"],
                    "command.view": ["view"], "decision.evaluate": ["evaluate"]}

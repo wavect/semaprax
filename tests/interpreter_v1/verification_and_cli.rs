@@ -285,3 +285,21 @@ fn single_file_run_falls_back_to_main_under_any_stable_id() {
     assert_eq!((code, stdout.as_str()), (0, "hi0\n"));
     cleanup(&printing);
 }
+
+#[test]
+fn interpreter_admission_refusal_points_at_the_native_route() {
+    let path = write_temp(
+        "module calc.option;\n@id(\"app.main\")\nfn main() -> i64\n{\n    let o = Option<i64>::Some { value: 1 };\n    match o { Option::Some { value } => value, Option::None {} => 0, }\n}\n",
+    );
+    let (code, _, stderr) = cli(&["run", path.to_str().unwrap()]);
+    assert_eq!(code, 1);
+    assert!(stderr.contains("SPX-F102"), "{stderr}");
+    assert!(
+        stderr
+            .contains("help: the bounded reference interpreter does not admit this program shape"),
+        "{stderr}"
+    );
+    let (code, stdout, _) = cli(&["run", path.to_str().unwrap(), "--native"]);
+    assert_eq!((code, stdout.as_str()), (0, "1\n"));
+    cleanup(&path);
+}

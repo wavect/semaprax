@@ -451,6 +451,15 @@ fn operators_and_statements_from_other_languages_name_the_admitted_form() {
         ),
         ("    let a = [1, 2, 3];\n    0", "SPX-T262", "`Vec`"),
         (
+            "    let o = Option<i64>::Some { value: 1 };\n    if let Option::Some { value: v } = o { v } else { 0 }",
+            "SPX-P106",
+            "there is no `if let`",
+        ),
+        ("    let x = 2;\n    match x { 0..=5 => 1, _ => 0, }", "SPX-P106", "guard the arm"),
+        ("    let mut i = 0;\n    i++;\n    i", "SPX-P201", "`i = i + 1;`"),
+        ("    let mut i = 0;\n    i--;\n    i", "SPX-P201", "`i = i + 1;`"),
+        ("    let x = 2;\n    match x { 1 => 10 _ => 0, }", "SPX-P106", "every match arm ends with `,`"),
+        (
             "    println(\"hi\");\n    0",
             "SPX-P106",
             "stdout_write(str_as_bytes(view))",

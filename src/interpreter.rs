@@ -245,7 +245,14 @@ fn selection_error(reason: &str, detail: String) -> Diagnostic {
         "SPX-F102",
         format!("interpreter admission failed ({reason}): {detail}"),
     )
+    .with_help(ADMISSION_HELP)
 }
+
+/// The reference interpreter admits a closed subset; the native route admits
+/// every verified single file.
+pub(crate) const ADMISSION_HELP: &str = "the bounded reference interpreter does not admit this \
+                                         program shape; run a single file natively with \
+                                         `semaprax run <file> --native`";
 
 fn argument_error(message: String) -> Diagnostic {
     Diagnostic::io("SPX-F103", message)

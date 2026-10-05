@@ -542,3 +542,30 @@ fn unresolved_import_hint_names_the_unlisted_source_file() {
     let run = cli(&fixture.root, &["run", "."]);
     assert_eq!(stdout(&run), "84\n", "{}", stderr(&run));
 }
+
+/// A call to a function another listed module declares, without its `use`,
+/// keeps `SPX-T203`; the project layer replaces the generic import template
+/// with the exact `use` line for that declaration.
+#[test]
+fn unknown_function_hint_names_the_exact_import_line() {
+    let fixture = fixture("missing-import");
+    let app = fixture.root.join("src/app.spx");
+    let source = std::fs::read_to_string(&app).unwrap();
+    let without_import = source.replacen(
+        "use function @id(\"calculator.divide\") from calculator.core as divide;\n",
+        "",
+        1,
+    );
+    assert_ne!(without_import, source, "the fixture imports divide");
+    std::fs::write(&app, &without_import).unwrap();
+
+    let output = cli(&fixture.root, &["check", "."]);
+    assert_eq!(output.status.code(), Some(1));
+    assert!(
+        stderr(&output).contains(
+            "help: `divide` is declared in module `calculator.core`; import it directly after the `module` line: `use function @id(\"calculator.divide\") from calculator.core as divide;`"
+        ),
+        "{}",
+        stderr(&output)
+    );
+}

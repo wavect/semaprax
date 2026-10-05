@@ -49,8 +49,9 @@ const PRINT_HELP: &str =
 /// Compiler-bundled standard-library functions are discoverable without a
 /// checkout through `semaprax help library <name>`. Keep this lookup bound to the
 /// same generated catalog rather than duplicating its growing function list.
-fn standard_library_package(name: &str) -> Option<&'static str> {
-    static FUNCTIONS: OnceLock<HashMap<String, Option<String>>> = OnceLock::new();
+/// An unambiguous name yields its package, stable identity, and signature line.
+fn standard_library_function(name: &str) -> Option<&'static StandardFunction> {
+    static FUNCTIONS: OnceLock<HashMap<String, Option<StandardFunction>>> = OnceLock::new();
     let functions = FUNCTIONS.get_or_init(|| {
         let catalog: serde_json::Value =
             serde_json::from_str(include_str!("../../std/catalog.json"))
@@ -74,15 +75,45 @@ fn standard_library_package(name: &str) -> Option<&'static str> {
                     .as_str()
                     .expect("a standard-library function has a name")
                     .to_owned();
+                let entry = StandardFunction {
+                    package: package.to_owned(),
+                    id: declaration["id"].as_str().unwrap_or_default().to_owned(),
+                    signature: declaration["head"][0]
+                        .as_str()
+                        .unwrap_or_default()
+                        .to_owned(),
+                };
                 functions
                     .entry(function)
                     .and_modify(|selected| *selected = None)
-                    .or_insert_with(|| Some(package.to_owned()));
+                    .or_insert_with(|| Some(entry));
             }
         }
         functions
     });
-    functions.get(name).and_then(|package| package.as_deref())
+    functions.get(name).and_then(Option::as_ref)
+}
+
+struct StandardFunction {
+    package: String,
+    id: String,
+    signature: String,
+}
+
+/// Foreign spellings of an operation the language provides under another name.
+fn foreign_function_help(name: &str) -> Option<&'static str> {
+    match name {
+        "to_string" | "toString" | "str" | "itoa" | "string" | "String" => Some(
+            "render an integer with the compiler-owned `string_from_i64(value)` or \
+             `string_from_usize(value)`",
+        ),
+        "assert" | "assert_eq" | "assertEqual" | "expect" | "panic" => Some(
+            "there is no assert or panic; a test returns `0` on success, as in \
+             `if <condition> { 0 } else { 1 }`, and a checked condition is a `requires` or \
+             `ensures` line",
+        ),
+        _ => None,
+    }
 }
 
 /// `unknown function` with the nearest declared or compiler-owned name when one
@@ -102,22 +133,29 @@ pub(super) fn unknown_function(
     if PRINT_FAMILY.contains(&name) {
         return diagnostic.with_help(PRINT_HELP);
     }
-    if let Some(help) = variant_shorthand_help(name) {
+    if let Some(help) = variant_shorthand_help(name).or_else(|| foreign_function_help(name)) {
         return diagnostic.with_help(help);
+    }
+    // An exact standard-library name outranks a near local spelling: `min`
+    // is `std.core`'s, not a typo of `main`.
+    if let Some(function) = standard_library_function(name) {
+        let StandardFunction {
+            package,
+            id,
+            signature,
+        } = function;
+        return diagnostic.with_help(format!(
+            "`{signature}` is in `{package}`: add `[dependencies] {package} = \"^0.1.0\"` to \
+             `semaprax.toml` and import it directly after the `module` line: `use function \
+             @id(\"{id}\") from {package} as {name};`"
+        ));
     }
     match nearest_function_name(name, functions) {
         Some(candidate) => diagnostic.with_help(format!("did you mean `{candidate}`?")),
-        None => match standard_library_package(name) {
-            Some(package) => diagnostic.with_help(format!(
-                "`{name}` is available from `{package}`: add `[dependencies] {package} = \
-                 \"^0.1.0\"` to `semaprax.toml`, then import its stable identity directly \
-                 after the `module` line; run `semaprax help library {name}` for the exact declaration"
-            )),
-            None => diagnostic.with_help(format!(
-                "declare `{name}` in this module, or in a project import it directly after the \
-                 `module` line: `use function @id(\"stable.id\") from other.module as {name};`"
-            )),
-        },
+        None => diagnostic.with_help(format!(
+            "declare `{name}` in this module, or in a project import it directly after the \
+             `module` line: `use function @id(\"stable.id\") from other.module as {name};`"
+        )),
     }
 }
 

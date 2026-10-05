@@ -121,7 +121,37 @@ fn bundled_standard_library_function_names_the_dependency_route() {
         help(&diagnostic).contains("[dependencies] std.num = \"^0.1.0\""),
         "{diagnostic}"
     );
-    assert!(help(&diagnostic).contains("help library"), "{diagnostic}");
+    assert!(
+        help(&diagnostic).contains("`use function @id(\"std.num.abs\") from std.num as abs;`"),
+        "{diagnostic}"
+    );
+    assert!(
+        help(&diagnostic).contains("`fn abs(value: i64) -> i64`"),
+        "{diagnostic}"
+    );
+
+    // An exact standard-library name outranks a near local name (`main`).
+    let min = only(
+        "module habit.std;\n@id(\"app.main\")\nfn main() -> i64\n{\n    min(1, 2)\n}\n",
+        "SPX-T203",
+    );
+    assert!(help(&min).contains("from std.core as min;"), "{min}");
+}
+
+#[test]
+fn foreign_conversion_and_assert_names_point_at_the_admitted_route() {
+    for (name, expected) in [
+        ("to_string", "string_from_i64(value)"),
+        ("assert", "a test returns `0` on success"),
+    ] {
+        let diagnostic = only(
+            &format!(
+                "module habit.f;\n@id(\"app.main\")\nfn main() -> i64\n{{\n    {name}(1)\n}}\n"
+            ),
+            "SPX-T203",
+        );
+        assert!(help(&diagnostic).contains(expected), "{name}: {diagnostic}");
+    }
 }
 
 #[test]

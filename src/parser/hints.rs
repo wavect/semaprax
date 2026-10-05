@@ -73,6 +73,13 @@ const USE_HELP: &str = "`use` imports one declaration of a project module: `use 
 /// `[1, 2, 3]`: array literals hold only bytes.
 pub(super) const ARRAY_LITERAL_HELP: &str = "array literals hold bytes: `[1u8, 2u8]`; a list of other \
                                              values is a `Vec`: `vec_push<i64>(vec_with_capacity<i64>(3usize), 1)`";
+const IF_LET_HELP: &str = "there is no `if let` or `while let`; `match` the value: `match o { \
+                           Option::Some { value: v } => v, Option::None {} => 0, }`";
+const RANGE_PATTERN_HELP: &str = "range patterns are not admitted; bind the value and guard the \
+                                  arm: `n if n >= 0 && n <= 5 => …,`";
+/// `i++` or `i--`: increment operators from C-family languages.
+pub(super) const INCREMENT_HELP: &str =
+    "there is no `++` or `--`; write `i = i + 1;` with `i` declared `let mut`";
 const INDEX_HELP: &str = "there is no indexing syntax; read a byte with `byte_get(view, index)`, which \
                           returns `Option<u8>`, after `array_as_slice(array)` or `bytes_as_slice(bytes)`";
 
@@ -298,9 +305,20 @@ impl Parser {
                     "every {noun} ends with `,`, including the last one before `}}`"
                 ));
             }
-            return diagnostic;
+            return diagnostic.with_help(format!("every {noun} ends with `,`"));
         }
+        let previous_is_let = self
+            .cursor
+            .checked_sub(1)
+            .and_then(|index| self.tokens.get(index))
+            .is_some_and(|token| matches!(&token.kind, TokenKind::Ident(word) if word == "let"));
         match description {
+            "`{` before `if` condition" | "`{` before `while` body" if previous_is_let => {
+                diagnostic.with_help(IF_LET_HELP)
+            }
+            "`=>` after match pattern" if self.at(&TokenKind::Dot) => {
+                diagnostic.with_help(RANGE_PATTERN_HELP)
+            }
             "`->` before return type" => diagnostic.with_help(RETURN_TYPE_HELP),
             "`=` in local binding" if self.at(&TokenKind::Semicolon) => {
                 diagnostic.with_help(LET_VALUE_HELP)

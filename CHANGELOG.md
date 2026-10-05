@@ -22,6 +22,13 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- More one-step fixes for agents. An unknown function that a listed project
+  module declares gets the exact `use function @id("…") from … as …;` line,
+  and a standard-library name gets its signature plus the exact dependency
+  and `use` lines (an exact library name now outranks a near local spelling,
+  so `min` no longer suggests `main`). New hints for `to_string`, `assert`,
+  `if let`, `0..=5` patterns, `i++`/`i--`, and a missing comma between match
+  arms; an interpreter admission refusal (`SPX-F102`) names `run --native`.
 - Cut edit-check round trips for agents writing SEMAPRAX. New `help:` fixes for
   `c ? a : b`, `break`/`continue`, `as` casts, `and`/`or`, `|x|` closures,
   `use std::…`, `println(…);`, `[1, 2, 3]`, `Circle(i64)`, string `+` (`SPX-T250`),

@@ -265,6 +265,7 @@ fn located(reason: &str, detail: String, span: Span) -> Diagnostic {
         format!("interpreter admission failed ({reason}): {detail}"),
         span,
     )
+    .with_help(super::ADMISSION_HELP)
 }
 
 /// Admit and retain one non-entrypoint or entrypoint call once.

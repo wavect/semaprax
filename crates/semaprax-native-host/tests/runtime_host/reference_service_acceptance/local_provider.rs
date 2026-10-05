@@ -258,9 +258,11 @@ fn run_provider_child() {
         .expect("provider fixture certificate is valid");
     let mut provider = TcpNetworkProvider::with_server_tls_config(server_config)
         .with_deadline_policy(semaprax::network_provider::deadline::DeadlinePolicy::new(
-            // The same deadline covers accept and the TLS handshake. Busy CI
-            // runners can exceed 100 ms before the request is admitted.
-            Duration::from_secs(2),
+            // The same deadline covers accept, TLS, and the response. Keep the
+            // fixture's budget above the client's 10-second delivery deadline
+            // so runner scheduling cannot turn a partial response into an
+            // unrelated uncertain transport outcome.
+            Duration::from_secs(15),
         ));
     let listener = serve::listen_loopback(&mut provider, port).expect("bind provider loopback TLS");
     println!("provider-ready port={port}");

@@ -576,15 +576,27 @@ mod tests {
             SERIAL.fetch_add(1, Ordering::Relaxed)
         ));
         fs::create_dir_all(root.join("src")).unwrap();
-        let original =
-            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/calculator-project");
-        for relative in [
-            "semaprax.toml",
-            "src/app.spx",
-            "src/core.spx",
-            "src/tests.spx",
+        // Embed the same fixture bytes for the root CLI and toolchain crate;
+        // their CARGO_MANIFEST_DIR values point at different directories.
+        for (relative, bytes) in [
+            (
+                "semaprax.toml",
+                include_bytes!("../../examples/calculator-project/semaprax.toml").as_slice(),
+            ),
+            (
+                "src/app.spx",
+                include_bytes!("../../examples/calculator-project/src/app.spx").as_slice(),
+            ),
+            (
+                "src/core.spx",
+                include_bytes!("../../examples/calculator-project/src/core.spx").as_slice(),
+            ),
+            (
+                "src/tests.spx",
+                include_bytes!("../../examples/calculator-project/src/tests.spx").as_slice(),
+            ),
         ] {
-            fs::copy(original.join(relative), root.join(relative)).unwrap();
+            fs::write(root.join(relative), bytes).unwrap();
         }
         root
     }

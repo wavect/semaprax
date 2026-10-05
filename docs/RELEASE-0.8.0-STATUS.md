@@ -1,6 +1,7 @@
 # v0.8.0 release status
 
-Status: source candidate; no v0.8.0 tag, signed release, or archive is claimed.
+Status: v0.8.0 release candidate. Hosted release evidence determines whether
+the tag has produced a signed release and verified archives.
 
 Audience: release reviewers, maintainers, and readers checking hosted claims.
 

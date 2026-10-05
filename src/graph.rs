@@ -23,8 +23,10 @@ macro_rules! format {
 }
 
 mod affine;
+mod work_counter;
 mod agent_execution;
 mod agent_instances;
+mod agent_query;
 mod environment;
 mod expression;
 mod filesystem;
@@ -468,8 +470,10 @@ struct AgentContextV2Index<'a> {
     program: &'a ResolvedProgram,
     calls_by_id: &'a BTreeMap<DeclarationId, BTreeSet<DeclarationId>>,
     callers_by_id: &'a BTreeMap<DeclarationId, BTreeSet<DeclarationId>>,
-    functions: &'a BTreeMap<DeclarationId, &'a ResolvedFunction>,
-    templates: &'a BTreeMap<DeclarationId, &'a crate::hir::ResolvedFunctionTemplate>,
+    callables: &'a agent_query::AgentCallables<'a>,
+    /// The v2 function-fact payload schema, selected once on first use so
+    /// its error, if any, surfaces exactly where the first function fact did.
+    fact_schema: std::cell::OnceCell<Result<&'static str, Diagnostic>>,
 }
 
 struct AgentRenderSelection<'a> {
@@ -499,55 +503,49 @@ fn agent_context_hir_json(
     let Some(root) = find_context_root(program, symbol) else {
         return Ok(None);
     };
-    let functions = program
-        .functions
-        .iter()
-        .map(|function| (function.id.clone(), function))
-        .collect::<BTreeMap<_, _>>();
-    let templates = program
-        .function_templates
-        .iter()
-        .map(|template| (template.id.clone(), template))
-        .collect::<BTreeMap<_, _>>();
+    let callables = agent_query::AgentCallables::new(program);
     let mut seen = BTreeSet::from([root.clone()]);
     let mut queue = VecDeque::from([(root.clone(), 0_usize)]);
     let mut ordered = Vec::new();
     let mut depth_frontier = BTreeSet::new();
     while let Some((function_id, current_depth)) = queue.pop_front() {
-        ordered.push((function_id.clone(), current_depth));
-        let calls = if let Some(function) = functions.get(&function_id) {
+        let calls = if let Some(function) = callables.functions.get(&function_id) {
             function_calls(function)
-        } else if let Some(template) = templates.get(&function_id) {
+        } else if let Some(template) = callables.templates.get(&function_id) {
             template_calls(template)
         } else {
             return Err(graph_reference_error("function", &function_id));
         };
-        for callee in calls {
-            if !functions.contains_key(&callee) && !templates.contains_key(&callee) {
+        for callee in &calls {
+            if !callables.contains(callee) {
                 continue;
             }
             if current_depth >= options.depth {
-                if !seen.contains(&callee) {
-                    depth_frontier.insert(callee);
+                if !seen.contains(callee) {
+                    depth_frontier.insert(callee.clone());
                 }
             } else if seen.insert(callee.clone()) {
-                queue.push_back((callee, current_depth + 1));
+                queue.push_back((callee.clone(), current_depth + 1));
             }
         }
+        ordered.push((function_id, current_depth, calls));
     }
 
     let mut facts = Vec::with_capacity(ordered.len());
-    for (id, depth) in ordered {
-        let (calls, json) = if let Some(function) = functions.get(&id) {
-            (
-                agent_function_calls(program, function),
-                agent_function_json(program, function, &options.filters)?,
-            )
-        } else if let Some(template) = templates.get(&id) {
-            (
-                template_calls(template),
-                agent_template_json(program, template, &options.filters)?,
-            )
+    for (id, depth, authored_calls) in ordered {
+        let (calls, json) = if let Some(function) = callables.functions.get(&id) {
+            let calls = callables.restrict(&authored_calls);
+            let json = function_facts::agent_function_json_for_schema(
+                program,
+                function,
+                &options.filters,
+                source_graph_schema,
+                &calls,
+            )?;
+            (calls, json)
+        } else if let Some(template) = callables.templates.get(&id) {
+            let json = agent_template_json(program, template, &options.filters, &authored_calls)?;
+            (authored_calls, json)
         } else {
             return Err(graph_reference_error("function", &id));
         };
@@ -621,16 +619,7 @@ fn agent_context_v2_hir_json(
     let Some(root) = find_context_root(program, symbol) else {
         return Ok(None);
     };
-    let functions = program
-        .functions
-        .iter()
-        .map(|function| (function.id.clone(), function))
-        .collect::<BTreeMap<_, _>>();
-    let templates = program
-        .function_templates
-        .iter()
-        .map(|template| (template.id.clone(), template))
-        .collect::<BTreeMap<_, _>>();
+    let callables = agent_query::AgentCallables::new(program);
     let call_index = PersistentCallIndex::build(program)?;
     let calls_by_id = call_index.calls_by_owner();
     let callers_by_id = call_index.callers_by_callee();
@@ -639,8 +628,8 @@ fn agent_context_v2_hir_json(
         program,
         calls_by_id,
         callers_by_id,
-        functions: &functions,
-        templates: &templates,
+        callables: &callables,
+        fact_schema: std::cell::OnceCell::new(),
     };
 
     let mut minimum_depth = BTreeMap::from([(root.clone(), 0_usize)]);
@@ -750,9 +739,18 @@ fn agent_context_v2_hir_json(
             resume_targets.extend(facts[selected..].iter().map(|fact| fact.id.clone()));
             resume_targets.retain(|id| !selected_ids.contains(id));
             for target in resume_targets {
-                let target_fact =
-                    index.build_fact(&target, 0, BTreeSet::new(), &options.base.filters)?;
-                if !individual_agent_v2_fact_fits(program, source_identity, options, &target_fact) {
+                // A traversed but unselected fact is reused: its JSON does not
+                // depend on depth or direction, which the fit check resets.
+                let built;
+                let target_fact = match facts[selected..].iter().find(|fact| fact.id == target) {
+                    Some(fact) => fact,
+                    None => {
+                        built =
+                            index.build_fact(&target, 0, BTreeSet::new(), &options.base.filters)?;
+                        &built
+                    }
+                };
+                if !individual_agent_v2_fact_fits(program, source_identity, options, target_fact) {
                     return Err(agent_context_option_error(format!(
                         "agent context reference fact `{target}` is permanently unavailable within the {MAX_AGENT_CONTEXT_BYTES}-byte v2 contract maximum"
                     )));
@@ -895,6 +893,7 @@ fn find_context_root(program: &ResolvedProgram, symbol: &str) -> Option<Declarat
 }
 
 fn function_calls(function: &ResolvedFunction) -> BTreeSet<DeclarationId> {
+    work_counter::record(work_counter::Work::CallSetComputation, 1);
     let mut calls = BTreeSet::new();
     visit_function_calls(function, &mut |callee| {
         calls.insert(callee.clone());
@@ -903,6 +902,7 @@ fn function_calls(function: &ResolvedFunction) -> BTreeSet<DeclarationId> {
 }
 
 fn template_calls(template: &crate::hir::ResolvedFunctionTemplate) -> BTreeSet<DeclarationId> {
+    work_counter::record(work_counter::Work::CallSetComputation, 1);
     let mut calls = BTreeSet::new();
     for expression in template
         .requires
@@ -917,27 +917,7 @@ fn template_calls(template: &crate::hir::ResolvedFunctionTemplate) -> BTreeSet<D
     calls
 }
 
-fn agent_function_calls(
-    program: &ResolvedProgram,
-    function: &ResolvedFunction,
-) -> BTreeSet<DeclarationId> {
-    let function_ids = program
-        .functions
-        .iter()
-        .map(|candidate| candidate.id.clone())
-        .chain(
-            program
-                .function_templates
-                .iter()
-                .map(|template| template.id.clone()),
-        )
-        .collect::<BTreeSet<_>>();
-    function_calls(function)
-        .into_iter()
-        .filter(|callee| function_ids.contains(callee))
-        .collect()
-}
-
+#[cfg(test)]
 use function_facts::agent_function_json;
 
 fn agent_call_instances_json(function: &ResolvedFunction) -> String {
@@ -972,8 +952,8 @@ fn agent_template_json(
     program: &ResolvedProgram,
     template: &crate::hir::ResolvedFunctionTemplate,
     filters: &BTreeSet<AgentContextFilter>,
+    calls: &BTreeSet<DeclarationId>,
 ) -> Result<String, Diagnostic> {
-    let calls = template_calls(template);
     let instances = program
         .function_instances
         .iter()
@@ -3202,9 +3182,12 @@ fn render_agent_context(
             facts_json
         )
     };
+    work_counter::record(work_counter::Work::ResponseSizeEvaluation, 1);
     let mut used_bytes = 0;
     loop {
         let output = render(used_bytes);
+        work_counter::record(work_counter::Work::FullResponseMaterialization, 1);
+        work_counter::record(work_counter::Work::MaterializedResponseBytes, output.len());
         let actual = output.len();
         if actual == used_bytes {
             return output;
@@ -3443,9 +3426,12 @@ fn render_agent_context_v2(
             facts_json
         )
     };
+    work_counter::record(work_counter::Work::ResponseSizeEvaluation, 1);
     let mut used_bytes = 0;
     loop {
         let output = render(used_bytes);
+        work_counter::record(work_counter::Work::FullResponseMaterialization, 1);
+        work_counter::record(work_counter::Work::MaterializedResponseBytes, output.len());
         let actual = output.len();
         if actual == used_bytes {
             return output;
@@ -5594,3 +5580,7 @@ mod iterator_loop_tests;
 
 #[cfg(test)]
 mod iterator_operations_tests;
+#[cfg(test)]
+mod agent_query_tests;
+#[cfg(test)]
+mod agent_fit_tests;

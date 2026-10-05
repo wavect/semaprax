@@ -466,6 +466,7 @@ fn program_schema(
     program: &ResolvedProgram,
     generic_composition: bool,
 ) -> Result<&'static str, Diagnostic> {
+    super::work_counter::record(super::work_counter::Work::SchemaSelection, 1);
     let iterator_schema = iterator_loop_schema(
         program.functions.iter().chain(
             program

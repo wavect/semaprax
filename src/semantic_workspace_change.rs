@@ -336,7 +336,7 @@ fn prepare_project_candidate_change(
     );
     let result = (|| {
         let graph = authority.take_graph()?;
-        let sources = authority.take_sources();
+        let sources = authority.take_sources()?;
         // The source inventory remains authenticated by the held authority and
         // is compared with the independently admitted Project base by derive.
         let changes = derive(&base_revision, &sources)?;
@@ -1131,7 +1131,7 @@ fn prepare_authenticated_change_authority(
     );
     let result = (|| {
         let base_graph = authority.take_graph()?;
-        let sources = authority.take_sources();
+        let sources = authority.take_sources()?;
         prepare_owned(
             base_workspace_revision,
             sources,

@@ -529,7 +529,7 @@ fn prepare_authenticated_structural_authority(
     );
     let result = (|| {
         let base_graph = authority.take_graph()?;
-        let sources = authority.take_sources();
+        let sources = authority.take_sources()?;
         prepare_owned(
             base_workspace_revision,
             sources,

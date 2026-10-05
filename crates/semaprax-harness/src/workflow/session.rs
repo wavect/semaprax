@@ -392,6 +392,9 @@ pub(super) fn loop_steps(
     let diag_view = String::new();
     let mut need_context = true;
     let mut kept: Vec<ContextItem> = Vec::new();
+    // MR-08: the optional plan runs once, before the first implementation attempt.
+    let mut plan: Option<Value> = None;
+    let mut planned = false;
     loop {
         s.check_bounds(cx)?;
         cancelled(cx, journal)?;
@@ -403,6 +406,10 @@ pub(super) fn loop_steps(
             kept = gather_context(cx, st, r, &work, &seed, query)?.0;
             need_context = false;
         }
+        if !planned {
+            planned = true;
+            plan = super::phases::run_plan(cx, st, journal, r, &revision, &kept, &ops)?;
+        }
         let n = s.attempts.len() as u32 + 1;
         let stepname = format!("gen-{n}");
         super::cost_ladder::observe(cx, &s.feedback, s.last_failures.len());
@@ -410,6 +417,7 @@ pub(super) fn loop_steps(
         s.ctx_revision = revision.clone();
         s.ctx_candidate = None;
         s.ctx_proposed = Value::Null;
+        let view = super::phases::implement_view(cx, plan.as_ref(), &revision, &projected, n);
         let pc = PromptCtx {
             revision: &revision,
             seed: seed.as_deref(),
@@ -419,9 +427,20 @@ pub(super) fn loop_steps(
             feedback: &projected,
             attempt: n,
             scratch_repair: false,
+            phase: view.as_ref(),
         };
         s.attempts.push(json!({"attempt": n, "outcome": "started"}));
-        let proposal = attempt::propose_step(cx, st, journal, r, &pc, &stepname)?;
+        let failure = super::route_signals::last_failure(&s.feedback);
+        let proposal = match attempt::propose_step(cx, st, journal, r, &pc, &stepname) {
+            Ok(p) => p,
+            Err(e) => {
+                if e.code == "SPX-HPD072" {
+                    super::phases::note_stop(cx, r, n, "transport or dispatch outcome uncertain: not retried as a reasoning attempt");
+                }
+                return Err(e);
+            }
+        };
+        super::phases::note_attempt(cx, r, n, failure);
         cancelled(cx, journal)?;
         let pdigest = sha256_plain(
             crate::json::canonical(&json!([proposal.kind, proposal.intent, proposal.done]))
@@ -514,7 +533,19 @@ pub(super) fn loop_steps(
             continue;
         }
         match attempt::candidate_checks(cx, st.command, &work, &n.to_string(), &preview, r, false) {
-            Ok(c) => r.checks = c,
+            Ok(c) => {
+                r.checks = c;
+                super::phases::run_review(
+                    cx,
+                    st,
+                    journal,
+                    r,
+                    &revision,
+                    &preview,
+                    &ops,
+                    &n.to_string(),
+                )?;
+            }
             Err(e) if e.code == "SPX-HPD050" => {
                 let (msg, fb) = super::checks::check_feedback(&r.checks, &e.message);
                 s.record_failure(n, "checks", e.code, &msg, journal)?;

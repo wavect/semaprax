@@ -48,6 +48,8 @@ class Handler(BaseHTTPRequestHandler):
         if s.flavor == "jev" and self.headers.get("Authorization") != "Bearer " + KEY:
             return self._send(401, json.dumps({"detail": "bad key " + KEY}).encode())
         mode = s.mode
+        if mode == "entitlement_revoked":
+            return self._send(403, json.dumps({"detail": "revoked " + KEY}).encode())
         if mode == "crash":
             self.close_connection = True
             try:

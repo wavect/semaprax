@@ -1166,3 +1166,6 @@ mod tc04;
 
 #[path = "workflow_tc12.rs"]
 mod tc12;
+
+#[path = "workflow_mr08.rs"]
+mod mr08;

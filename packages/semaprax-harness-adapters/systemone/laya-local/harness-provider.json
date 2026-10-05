@@ -27,6 +27,7 @@
   ],
   "config": {
     "fields": {
+      "endpoint": {"default": "", "type": "string"},
       "instance_id": {"default": "", "type": "string"},
       "model_profile": {"default": "", "type": "string"}
     }

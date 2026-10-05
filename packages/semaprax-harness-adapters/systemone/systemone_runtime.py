@@ -50,7 +50,9 @@ class Config:
         self.env = env
         self.backend = backend
         self.secret = backend.secret
-        self.endpoint = env.get("SEMAPRAX_HARNESS_ENDPOINT") or backend.default_endpoint
+        # The harness host forwards descriptor config field `endpoint` as
+        # SEMAPRAX_HARNESS_CFG_ENDPOINT; the direct variable stays an alias.
+        self.endpoint = env.get("SEMAPRAX_HARNESS_CFG_ENDPOINT") or env.get("SEMAPRAX_HARNESS_ENDPOINT") or backend.default_endpoint
         self.approved = env.get("SEMAPRAX_HARNESS_REMOTE_APPROVED") == "1"
         self.min_score = _float_env(env, "SEMAPRAX_HARNESS_MIN_SCORE")
         self.native_min = _float_env(env, "SEMAPRAX_HARNESS_NATIVE_MIN_CONFIDENCE")
@@ -255,6 +257,8 @@ def evaluate(cfg, req, inv, provenance=None):
         parts.append(f"checkpoint={info['checkpoint']}")
     if "input_tokens" in info:
         parts.append(f"input_tokens={info['input_tokens']}")
+    if getattr(backend, "last_discovery", None):
+        parts.append(f"discovery={backend.last_discovery}")
     if backend.call_identity(info, cfg)[2] == "mutable_service":
         parts.append("model_is_mutable_alias=true")
     return "complete", out, [{"code": "SPX-HPK100", "message": cfg.scrub("; ".join(parts))}] + cfg.warnings()

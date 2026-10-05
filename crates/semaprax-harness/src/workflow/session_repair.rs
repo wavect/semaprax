@@ -256,6 +256,7 @@ pub(super) fn repair_loop(
             feedback: &projected,
             attempt: n,
             scratch_repair: true,
+            phase: None,
         };
         s.attempts
             .push(json!({"attempt": n, "outcome": "started", "mode": "scratch-repair"}));

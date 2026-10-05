@@ -509,3 +509,114 @@ class Codec(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class JevDiscovery(unittest.TestCase):
+    """MR-12: the entitlement listing is off the repeated inference hot path."""
+
+    def setUp(self):
+        sys.path.insert(0, ROOT)
+        import systemone_backend as be
+        import systemone_runtime as rt
+        self.be, self.rt = be, rt
+        self.srv = fs.start("jev")
+        self.addCleanup(self.srv.stop)
+        self.now = [0.0]
+
+    def backend(self, **extra):
+        env = env_for("jev", self.srv, **extra)
+        b = self.be.JevBackend(env)
+        b.discovery.clock = lambda: self.now[0]
+        return env, b
+
+    def call(self, env, b, inv="inv-000001"):
+        cfg = self.rt.Config(env, b)
+        return self.rt.evaluate(cfg, request(inv=inv), self.rt.Invocation(5000, 65536))
+
+    def gets(self):
+        return sum(1 for x in self.srv.log if x[0] == "GET")
+
+    def posts(self):
+        return sum(1 for x in self.srv.log if x[0] == "POST")
+
+    def test_repeated_calls_reuse_one_listing_until_expiry(self):
+        env, b = self.backend()
+        status, _, diags = self.call(env, b)
+        self.assertEqual(status, "complete")
+        self.assertIn("discovery=fresh", diags[0]["message"])
+        _, _, diags = self.call(env, b, "inv-000002")
+        self.assertIn("discovery=cached", diags[0]["message"])
+        self.assertEqual((self.gets(), self.posts()), (1, 2))
+        self.now[0] += b.discovery.ttl + 1
+        self.call(env, b, "inv-000003")
+        self.assertEqual((self.gets(), self.posts()), (2, 3), "an expired listing is fetched again")
+
+    def test_key_is_scoped_to_endpoint_credential_model_and_profile_without_token_material(self):
+        env, b = self.backend()
+        self.call(env, b)
+        (key,) = b.discovery.entries
+        self.assertNotIn(fs.KEY, repr(b.discovery.entries))
+        self.assertEqual(key[0], env["SEMAPRAX_HARNESS_ENDPOINT"])
+        self.assertEqual(len(key[1]), 16)
+        # A changed model (configuration change) is a different key: discovery runs again.
+        env2 = dict(env, SEMAPRAX_HARNESS_MODEL="jev-test-2")
+        self.call(env2, b)
+        self.assertEqual(self.gets(), 2)
+        self.assertEqual(len(b.discovery.entries), 2)
+        # Bounded.
+        for i in range(20):
+            b.discovery.store(("e", "c", f"m{i}", "p"))
+        self.assertLessEqual(len(b.discovery.entries), b.discovery.max)
+
+    def test_inference_auth_refusal_invalidates_and_is_not_retried_or_rediscovered(self):
+        env, b = self.backend()
+        self.call(env, b)
+        self.srv.mode = "entitlement_revoked"
+        with self.assertRaises(Exception) as cm:
+            self.call(env, b, "inv-000002")
+        self.assertEqual(cm.exception.code, "SPX-HPK012")
+        self.assertNotIn(fs.KEY, str(cm.exception.message))
+        self.assertEqual((self.gets(), self.posts()), (1, 2), "one POST, no hidden retry, no rediscovery")
+        self.assertFalse(b.discovery.entries, "cached eligibility dropped")
+        self.srv.mode = "ok"
+        self.call(env, b, "inv-000003")
+        self.assertEqual(self.gets(), 2, "the next call re-checks entitlement")
+
+    def test_unauthorized_or_unentitled_discovery_is_never_cached_and_sends_no_inference(self):
+        env, b = self.backend(SEMAPRAX_HARNESS_SECRET_JEV="wrong-key-value")
+        for i in range(2):
+            with self.assertRaises(Exception) as cm:
+                self.call(env, b, f"inv-00000{i}")
+            self.assertEqual(cm.exception.code, "SPX-HPK012")
+        self.assertEqual((self.gets(), self.posts()), (2, 0))
+        self.assertFalse(b.discovery.entries)
+        self.assertNotIn("wrong-key-value", repr(b.discovery.entries))
+        env, b = self.backend(SEMAPRAX_HARNESS_MODEL="jev-not-mine")
+        with self.assertRaises(Exception) as cm:
+            self.call(env, b)
+        self.assertEqual(cm.exception.code, "SPX-HPK014")
+        self.assertEqual(self.posts(), 0)
+        self.assertFalse(b.discovery.entries)
+
+    def test_one_adapter_process_discovers_once_for_two_invocations(self):
+        a = Adapter("jev", env_for("jev", self.srv))
+        r1 = a.invoke(request(inv="inv-000001"))
+        r2 = a.invoke(request(inv="inv-000002"))
+        out, err = a.close()
+        self.assertEqual((r1["status"], r2["status"]), ("complete", "complete"))
+        self.assertEqual((self.gets(), self.posts()), (1, 2))
+        self.assertNotIn(fs.KEY.encode(), out + err)
+
+
+class HostConfigEndpoint(unittest.TestCase):
+    def test_host_forwarded_endpoint_config_field_is_read_first(self):
+        srv = fs.start("laya")
+        self.addCleanup(srv.stop)
+        a = Adapter("laya", {"SEMAPRAX_HARNESS_CFG_ENDPOINT": f"http://127.0.0.1:{srv.server_port}"})
+        res = a.invoke(request())
+        a.close()
+        self.assertEqual(res["status"], "complete")
+        for flavor in FLAVORS.values():
+            with open(os.path.join(ROOT, flavor, "harness-provider.json")) as f:
+                desc = json.load(f)
+            self.assertEqual(desc["config"]["fields"]["endpoint"]["type"], "string")

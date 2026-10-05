@@ -75,6 +75,26 @@ pub struct RoutingSection {
     pub cost_aware: bool,
     /// `[routing.ladder.<family>]`: approved models, weakest first.
     pub ladders: BTreeMap<String, LadderConfig>,
+    /// `[routing.phase.<plan|implement|review>]` (MR-08): optional role policies.
+    pub phases: BTreeMap<String, PhaseConfig>,
+}
+
+/// Roles a `[routing.phase.<role>]` table may name (MR-08).
+pub const PHASE_ROLES: [&str; 3] = ["plan", "implement", "review"];
+
+/// One optional role policy (MR-08). Planning and review run only when
+/// `enabled` or when the task family matches the deterministic `risk_families`
+/// rule; implementation always runs and only narrows its candidates.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct PhaseConfig {
+    pub enabled: bool,
+    pub risk_families: Vec<String>,
+    /// Approved candidate subset of the task catalog (`None`: the whole catalog).
+    pub models: Option<Vec<String>>,
+    /// Role pin; a project `[routing] pin` keeps precedence.
+    pub pin: Option<String>,
+    /// `rules` (default) or `router` (the configured decision provider).
+    pub decision: String,
 }
 
 /// One task family's approved escalation ladder (TC-10).
@@ -96,6 +116,7 @@ impl Default for RoutingSection {
             explicit: false,
             cost_aware: false,
             ladders: BTreeMap::new(),
+            phases: BTreeMap::new(),
         }
     }
 }
@@ -340,6 +361,9 @@ impl HarnessConfig {
             }
             if !self.routing.ladders.is_empty() {
                 doc["routing"]["ladders"] = json!(self.routing.ladders.iter().map(|(f, l)| (f.clone(), json!({"models": l.models, "max_escalations": l.max_escalations, "min_tasks": l.min_tasks}))).collect::<serde_json::Map<_, _>>());
+            }
+            if !self.routing.phases.is_empty() {
+                doc["routing"]["phases"] = json!(self.routing.phases.iter().map(|(r, p)| (r.clone(), json!({"enabled": p.enabled, "risk_families": p.risk_families, "models": p.models, "pin": p.pin, "decision": p.decision}))).collect::<serde_json::Map<_, _>>());
             }
         }
         doc
@@ -767,6 +791,74 @@ impl Tab {
     }
 }
 
+/// `[routing.phase.<role>]` (MR-08): a bounded role policy over the task catalog.
+fn parse_phase(role: &str, line: usize, mut t: Tab) -> HarnessResult<PhaseConfig> {
+    let e = |l: usize, m: String| bad("SPX-HPB004", l, m);
+    if !PHASE_ROLES.contains(&role) {
+        return Err(e(
+            line,
+            format!("unknown phase `{role}`; phases are plan, implement and review"),
+        ));
+    }
+    let short = |v: &[String]| {
+        !v.is_empty() && v.len() <= 8 && v.iter().all(|m| !m.is_empty() && m.len() <= 128)
+    };
+    let mut p = PhaseConfig {
+        decision: "rules".into(),
+        ..PhaseConfig::default()
+    };
+    let enabled = t.boolean("enabled")?;
+    let risk = t.list("risk_families")?;
+    if role == "implement" && (enabled.is_some() || risk.is_some()) {
+        return Err(e(
+            line,
+            "implementation always runs; `enabled` and `risk_families` apply to plan and review only".into(),
+        ));
+    }
+    p.enabled = enabled.unwrap_or(false);
+    if let Some((fams, l)) = risk {
+        if let Some(f) = fams
+            .iter()
+            .find(|f| crate::decision::TaskFamily::parse(f).is_none())
+        {
+            return Err(e(
+                l,
+                format!("unknown task family `{f}` in `risk_families`"),
+            ));
+        }
+        p.risk_families = fams;
+    }
+    if let Some((models, l)) = t.list("models")? {
+        if !short(&models) {
+            return Err(e(l, "`models` must list 1..=8 short model ids".into()));
+        }
+        p.models = Some(models);
+    }
+    if let Some((pin, l)) = t.string("pin")? {
+        if pin.is_empty() || pin.len() > 128 {
+            return Err(e(l, "`pin` must be a short logical model id".into()));
+        }
+        if p.models.as_ref().is_some_and(|m| !m.contains(&pin)) {
+            return Err(e(
+                l,
+                format!("phase pin `{pin}` is outside the phase `models`"),
+            ));
+        }
+        p.pin = Some(pin);
+    }
+    if let Some((dec, l)) = t.string("decision")? {
+        if dec != "rules" && dec != "router" {
+            return Err(e(
+                l,
+                format!("`decision` must be rules or router, found `{dec}`"),
+            ));
+        }
+        p.decision = dec;
+    }
+    t.finish(&["enabled", "risk_families", "models", "pin", "decision"])?;
+    Ok(p)
+}
+
 /// Parse and validate a configuration document.
 pub fn parse(bytes: &[u8]) -> HarnessResult<HarnessConfig> {
     if bytes.len() > MAX_CONFIG_BYTES {
@@ -1085,6 +1177,10 @@ pub fn parse(bytes: &[u8]) -> HarnessResult<HarnessConfig> {
                         min_tasks,
                     },
                 );
+            }
+            ["routing", "phase", role] => {
+                let phase = parse_phase(role, line, Tab::new("[routing.phase]", entries.clone()))?;
+                cfg.routing.phases.insert(role.to_string(), phase);
             }
             ["capability", name, "config"] => {
                 let Some(kind) = CapabilityKind::parse(name) else {

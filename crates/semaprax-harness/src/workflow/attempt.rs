@@ -13,8 +13,8 @@ use super::route_signals::route_signals;
 use super::spend_dispatch::Attempt;
 use super::stages::*;
 use crate::decision::{
-    gate_attests_key, governed_decide, recheck_dispatch, router_output_reserve, wire_version,
-    Budget, Confidentiality, ConfiguredProvider, Destination, EvidenceKey, Governor, LatencyClass,
+    gate_attests_key, recheck_dispatch, router_output_reserve, wire_version, Budget,
+    Confidentiality, ConfiguredProvider, Destination, EvidenceKey, Governor, LatencyClass,
     ModelPlan, PreparedRouteV2, ProviderMode, RouteContext, RouteInputs, RoutePolicy, RouteRequest,
     RouteSignals, RoutingConfig, RoutingMode, TaskFamily, TaskFeatures,
 };
@@ -57,6 +57,8 @@ pub(super) struct PromptCtx<'a> {
     pub attempt: u32,
     /// Extra framing for an unverified-baseline scratch repair.
     pub scratch_repair: bool,
+    /// MR-08 role request material; `None` is the single-proposer request.
+    pub phase: Option<&'a super::phases::PhaseView>,
 }
 
 fn item_label(i: usize, it: &ContextItem) -> String {
@@ -81,6 +83,11 @@ fn optional_labels(p: &PromptCtx, has_skills: bool) -> Vec<String> {
 }
 
 fn build_prompt(cx: &Ctx, p: &PromptCtx, dropped: &BTreeSet<String>) -> Value {
+    use super::phases::Role;
+    if let Some(v) = p.phase.filter(|v| v.role != Role::Implement) {
+        // A plan/review request is its own bounded host-built document.
+        return v.body.clone();
+    }
     let task = &cx.cfg.task;
     let context: Vec<Value> = p
         .kept
@@ -104,6 +111,17 @@ fn build_prompt(cx: &Ctx, p: &PromptCtx, dropped: &BTreeSet<String>) -> Value {
     }
     if p.scratch_repair {
         prompt["scratch_repair"] = json!(true);
+    }
+    if let Some(v) = p.phase {
+        // The compact host handoff replaces raw feedback (MR-08).
+        if v.body.get("handoff").is_some() {
+            if let Some(o) = prompt.as_object_mut() {
+                o.remove("feedback");
+            }
+        }
+        for (k, x) in v.body.as_object().into_iter().flatten() {
+            prompt[k] = x.clone();
+        }
     }
     if let Some(sp) = &cx.cfg.skill_prompt {
         if !dropped.contains("skills") {
@@ -322,13 +340,13 @@ fn route_models(
         router_headroom_tokens,
         router_request_tokens,
     };
-    let gr = governed_decide(
+    // The session-owned cache and readiness (MR-12); hits are revalidated.
+    let (gr, reuse) = cx.cfg.routing.decisions.borrow_mut().decide(
         &g,
         &inputs,
         &rctx,
         configured.as_mut(),
         &move || live.clone(),
-        None,
     )?;
     let dec = gr.decision;
     Ok(Routed {
@@ -336,7 +354,7 @@ fn route_models(
         json: json!({"choice": dec.choice, "provider": dec.provider_id, "router_calls": dec.router_calls,
                "status": dec.provider_status, "source": format!("{:?}", dec.source),
                "mode": gr.mode, "rules_reason": gr.rules_reason, "explanation": gr.explanation,
-               "wire": dec.wire.to_json(),
+               "wire": dec.wire.to_json(), "reuse": reuse.to_json(),
                "policy": {"allow_remote": cfg.user_allow_remote, "project_pin": cfg.project_pin}}),
         model: dec.choice,
         router_calls: dec.router_calls,
@@ -364,7 +382,9 @@ pub(super) fn route_and_fit(
     cfg.budget
         .generation
         .gate(shape, &st.proposer.generation_support())?;
-    let all = catalog(cx, task)?;
+    let role = p.phase.map_or(super::phases::Role::Implement, |v| v.role);
+    let implement = role == super::phases::Role::Implement;
+    let all = super::phases::narrow(cx, role, catalog(cx, task)?)?;
     let mut budget = cfg.budget.for_task(task);
     // Accepted output reservation: a bounded retry's cap, else the configured tier, else the budget default.
     budget.policy.output_reserve_tokens = cx.reserve_override.take().unwrap_or_else(|| {
@@ -411,17 +431,21 @@ pub(super) fn route_and_fit(
             .unwrap_or(DEFAULT_ROUTE_ALLOWANCE_MICROS);
         // Opt-in cost-aware ladder (TC-10): narrows the pool before rules decide
         // and bypasses a paid router whose benefit is unknown.
-        let cost = super::cost_ladder::apply(
-            cx,
-            &pool,
-            est,
-            budget.policy.output_reserve_tokens,
-            st.decision.as_ref().map(|d| &d.profile),
-        );
+        let cost = if implement {
+            super::cost_ladder::apply(
+                cx,
+                &pool,
+                est,
+                budget.policy.output_reserve_tokens,
+                st.decision.as_ref().map(|d| &d.profile),
+            )
+        } else {
+            None
+        };
         // A router call is admitted and journaled before it can happen; when it
         // is unaffordable (or unpriced under strict money) rules decide alone.
         let signals = route_signals(task, p, cx.ledger.spend.available_cost());
-        let router = if cost.is_some() {
+        let router = if cost.is_some() || !super::phases::router_allowed(cx, role, &pool) {
             None
         } else {
             super::spend_dispatch::reserve_router(
@@ -501,7 +525,9 @@ pub(super) fn route_and_fit(
             .find(|m| m.id == routed.model)
             .expect("router chose a catalog model")
             .clone();
-        super::cost_ladder::note_model(cx, &plan.id);
+        if implement {
+            super::cost_ladder::note_model(cx, &plan.id);
+        }
         if let Some(c) = &cost {
             routed.json["cost_policy"] = c.json.clone();
         }

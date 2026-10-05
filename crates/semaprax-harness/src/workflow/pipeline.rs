@@ -262,7 +262,9 @@ pub fn run(
         reserve_override: None,
         ladder: Default::default(),
     };
+    let reuse_before = cfg.routing.decisions.borrow().stats().clone();
     let result = drive(&mut cx, &mut stages, &mut report);
+    let reuse = cfg.routing.decisions.borrow().stats().since(&reuse_before);
     if let Err(e) = result {
         report.status = match e.code {
             "SPX-HPD050" => "rejected",
@@ -286,6 +288,12 @@ pub fn run(
             report.context = json!({});
         }
         report.context["spend"] = cx.ledger.spend.to_json();
+    }
+    if reuse.decisions > 0 && (reuse.hits + reuse.misses + reuse.bypasses) > 0 {
+        if report.context.is_null() {
+            report.context = json!({});
+        }
+        report.context["decision_reuse"] = reuse.to_json();
     }
     if !cx.receipts.is_empty() {
         if report.context.is_null() {
@@ -483,6 +491,9 @@ fn drive(cx: &mut Ctx, st: &mut Stages, r: &mut Report) -> HarnessResult<()> {
 
     // 5-6. route, fit the exact request to the model, generate a proposal.
     cfg.snapshot.verify_current()?;
+    // Optional planning (MR-08); `None` without a `[routing.phase.plan]` rule.
+    let plan = super::phases::run_plan(cx, st, &mut journal, r, &compiler_revision, &kept, &ops)?;
+    let view = super::phases::implement_view(cx, plan.as_ref(), &compiler_revision, &[], 1);
     let pc = PromptCtx {
         revision: &compiler_revision,
         seed: seed.as_deref(),
@@ -492,6 +503,7 @@ fn drive(cx: &mut Ctx, st: &mut Stages, r: &mut Report) -> HarnessResult<()> {
         feedback: &[],
         attempt: 1,
         scratch_repair: false,
+        phase: view.as_ref(),
     };
     let proposal = match attempt::propose_step(cx, st, &mut journal, r, &pc, "generate") {
         Err(e) if e.code == "SPX-HPD090" && task.mode == TaskMode::Plan => {
@@ -500,8 +512,20 @@ fn drive(cx: &mut Ctx, st: &mut Stages, r: &mut Report) -> HarnessResult<()> {
             r.notes.push(format!("plan without a proposal source: {}; context and installed operations are reported only", e.message));
             return Ok(());
         }
-        other => other?,
+        Err(e) => {
+            if e.code == "SPX-HPD072" {
+                super::phases::note_stop(
+                    cx,
+                    r,
+                    1,
+                    "transport or dispatch outcome uncertain: not retried as a reasoning attempt",
+                );
+            }
+            return Err(e);
+        }
+        Ok(p) => p,
     };
+    super::phases::note_attempt(cx, r, 1, crate::decision::PreviousFailure::None);
     #[allow(clippy::unnecessary_to_owned)]
     step(
         r,
@@ -526,6 +550,17 @@ fn drive(cx: &mut Ctx, st: &mut Stages, r: &mut Report) -> HarnessResult<()> {
     let checks = attempt::candidate_checks(cx, st.command, &root, "1", &preview, r, true)?;
     r.checks = checks;
     step(r, "check", "candidate verified and tests passed");
+    // Optional advisory review of the frozen, verified candidate (MR-08).
+    super::phases::run_review(
+        cx,
+        st,
+        &mut journal,
+        r,
+        &compiler_revision,
+        &preview,
+        &ops,
+        "1",
+    )?;
 
     // 9. present + approval requirement; 10. publish only under a host policy.
     cfg.snapshot.verify_current()?;

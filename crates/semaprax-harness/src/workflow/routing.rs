@@ -9,7 +9,7 @@ use crate::decision::{
     EvidenceKey, EvidenceRegistry, GateSpec, RoutingConfig, RoutingMode, SessionLock,
 };
 use crate::diag::{HarnessDiagnostic, HarnessResult};
-use crate::profile::config::{LadderConfig, RoutingSection};
+use crate::profile::config::{LadderConfig, PhaseConfig, RoutingSection};
 use serde_json::Value;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
@@ -38,6 +38,10 @@ pub struct RoutingWiring {
     /// Locked at the first route of the run; later routes of the same run
     /// compare against it, so a changed profile cannot slip in mid-session.
     pub session_lock: RefCell<Option<SessionLock>>,
+    /// `[routing.phase.<role>]` (MR-08); empty keeps the single-proposer loop.
+    pub phases: BTreeMap<String, PhaseConfig>,
+    /// The session-owned decision cache and router readiness (MR-12).
+    pub decisions: RefCell<super::decision_reuse::SessionDecisions>,
 }
 
 impl Default for RoutingWiring {
@@ -51,6 +55,8 @@ impl Default for RoutingWiring {
             cost_aware: false,
             ladders: BTreeMap::new(),
             session_lock: RefCell::new(None),
+            phases: BTreeMap::new(),
+            decisions: RefCell::new(Default::default()),
         }
     }
 }
@@ -85,6 +91,7 @@ impl RoutingWiring {
             registry,
             cost_aware: sec.cost_aware,
             ladders: sec.ladders.clone(),
+            phases: sec.phases.clone(),
             ..Self::default()
         })
     }

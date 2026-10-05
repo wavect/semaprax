@@ -18,6 +18,9 @@ A backend provides:
 A non-HTTP backend (a local scorer) overrides `send` and ignores the HTTP bits.
 """
 
+import hashlib
+import json
+import time
 import urllib.parse
 
 import model_profile
@@ -97,6 +100,48 @@ class Backend:
         return info.get("model"), None, "unknown"
 
 
+class DiscoveryCache:
+    """Bounded in-process entitlement cache for one adapter process (MR-12).
+
+    A key is (endpoint, credential identity, model, profile digest): the
+    credential identity is a truncated SHA-256 of the secret, never token
+    material, and a changed endpoint, key, model or profile is a different key.
+    Entries expire after `ttl_s` and are dropped on any 401/403 or entitlement
+    refusal. Only a successful listing that names the model is stored; the
+    listing says nothing about immutable weights.
+    """
+
+    def __init__(self, ttl_s=300.0, max_entries=8, clock=time.monotonic):
+        self.ttl, self.max, self.clock = ttl_s, max_entries, clock
+        self.entries = {}
+        self.lookups = 0
+
+    @staticmethod
+    def key(endpoint, secret, model, profile):
+        cred = hashlib.sha256(secret.encode()).hexdigest()[:16] if secret else ""
+        conf = hashlib.sha256(json.dumps(profile, sort_keys=True).encode()).hexdigest()[:16]
+        return (endpoint or "", cred, model, conf)
+
+    def valid(self, key):
+        exp = self.entries.get(key)
+        if exp is None:
+            return False
+        if self.clock() >= exp:
+            del self.entries[key]
+            return False
+        return True
+
+    def store(self, key):
+        while len(self.entries) >= self.max:
+            del self.entries[min(self.entries, key=self.entries.get)]
+        self.entries[key] = self.clock() + self.ttl
+
+    def invalidate(self, cred=None):
+        """Drop every entry (or every entry of one credential identity)."""
+        for k in [k for k in self.entries if cred is None or k[1] == cred]:
+            del self.entries[k]
+
+
 class JevBackend(Backend):
     """Hosted TypeSafe API: bearer key, model entitlement via GET /v1/models."""
 
@@ -106,6 +151,12 @@ class JevBackend(Backend):
     billing = "api"
     confidence_kind = "jev.confidence"
     MODELS_MAX = 65536
+
+    def __init__(self, env):
+        super().__init__(env)
+        self.discovery = DiscoveryCache()
+        self.last_discovery = None
+        self._key = None
 
     def default_profile(self, env):
         p = super().default_profile(env)
@@ -130,14 +181,36 @@ class JevBackend(Backend):
         return u.scheme, u.hostname, port or (443 if u.scheme == "https" else 80), not loop
 
     def discover(self, ctx):
+        """Entitlement check off the repeated hot path: a fresh listing is
+        reused until it expires or an auth/entitlement refusal drops it."""
         import systemone_codec as codec
+        key = self.discovery.key(ctx.cfg.endpoint, self.secret, ctx.cfg.profile["model"], ctx.cfg.profile)
+        self._key = key
+        if self.discovery.valid(key):
+            self.last_discovery = "cached"
+            return
+        self.last_discovery = "fresh"
+        self.discovery.lookups += 1
         code, raw = ctx.get("/v1/models", self.MODELS_MAX)
         if code != 200:
+            if code in (401, 403):
+                self.discovery.invalidate(key[1])
             raise ctx.status_error(code)
         doc = codec.parse_json(raw, self.MODELS_MAX)
         names = [m.get("name") for m in (doc.get("models") if isinstance(doc, dict) else None) or [] if isinstance(m, dict)]
         if ctx.cfg.profile["model"] not in names:
+            self.discovery.invalidate(key[1])
             raise CodecError("refused", "SPX-HPK014", "configured model is not listed for this account")
+        self.discovery.store(key)
+
+    def send(self, ctx, wire):
+        """One inference POST. An auth/entitlement refusal drops the cached
+        listing for this credential and is returned as-is: it is never retried
+        here and never followed by a hidden rediscovery."""
+        code, raw = ctx.post(self.path, wire)
+        if code in (401, 403) and self._key is not None:
+            self.discovery.invalidate(self._key[1])
+        return code, raw
 
     def call_identity(self, info, cfg):
         p = cfg.profile

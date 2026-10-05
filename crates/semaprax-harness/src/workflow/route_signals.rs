@@ -29,6 +29,19 @@ fn classify_failure(stage: &str, code: &str) -> PreviousFailure {
     }
 }
 
+/// Host classification of the newest recorded failure (MR-08 handoff/report).
+pub(super) fn last_failure(feedback: &[serde_json::Value]) -> PreviousFailure {
+    feedback
+        .last()
+        .and_then(|e| {
+            Some(classify_failure(
+                e["stage"].as_str()?,
+                e["code"].as_str().unwrap_or(""),
+            ))
+        })
+        .unwrap_or(PreviousFailure::None)
+}
+
 /// MR-01 routing signals for one attempt, derived from the prompt context the
 /// host already holds: attempt number, recorded failures, the task mode.
 pub(super) fn route_signals(
@@ -57,7 +70,10 @@ pub(super) fn route_signals(
         None if attempt_index == 0 => PreviousFailure::None,
         None => PreviousFailure::Unknown,
     };
-    let phase = if task.mode == TaskMode::Plan {
+    let role = p.phase.map(|v| v.role);
+    let phase = if role == Some(super::phases::Role::Review) {
+        Phase::Review
+    } else if task.mode == TaskMode::Plan || role == Some(super::phases::Role::Plan) {
         Phase::Plan
     } else if p.scratch_repair || !failures.is_empty() || task.mode == TaskMode::Repair {
         Phase::Repair
@@ -91,6 +107,7 @@ mod tests {
             feedback,
             attempt,
             scratch_repair: false,
+            phase: None,
         }
     }
 

@@ -14,7 +14,7 @@ use crate::host::{
     LaunchSpec, NetworkPolicy, Outcome,
 };
 use crate::profile::resolve::BindingState;
-use crate::workflow::journal::Journal;
+use crate::workflow::journal::{FaultHook, Journal};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, VecDeque};
 use std::path::{Path, PathBuf};
@@ -25,6 +25,12 @@ use std::sync::{Mutex, MutexGuard};
 pub const MAX_IN_FLIGHT: usize = 4;
 /// Settled ids remembered so a delayed `bridge/cancel` gets the real answer.
 const SETTLED_KEPT: usize = 256;
+/// Longest a claim or settlement waits for another writer's brief journal lock.
+const JOURNAL_WAIT: std::time::Duration = std::time::Duration::from_secs(10);
+/// Accepted `deadline_ms` range (inclusive); the default applies when absent.
+pub const DEADLINE_MS_RANGE: std::ops::RangeInclusive<u64> = 1..=600_000;
+const DEADLINE_MS_DEFAULT: u64 = 30_000;
+const STEP_MAX_LEN: usize = 128;
 
 fn diag(code: &'static str, msg: impl Into<String>) -> HarnessDiagnostic {
     HarnessDiagnostic::new(code, msg)
@@ -135,7 +141,9 @@ pub struct Invoker {
     project: PathBuf,
     manager: AdapterManager,
     counter: AtomicU64,
-    journal: Mutex<Option<Journal>>,
+    /// Restart-unique session token for default step identities.
+    session: String,
+    fault: Mutex<Option<FaultHook>>,
     pub registry: Registry,
 }
 
@@ -159,14 +167,100 @@ fn isolation_json(mode: IsolationMode) -> Value {
     }
 }
 
+/// Unguessable-enough, restart-unique token: pid, wall clock nanoseconds and a
+/// process-wide sequence, hashed. It never repeats across restarts because the
+/// clock and pid do not both repeat, and never within a process (sequence).
+fn session_token() -> String {
+    use sha2::{Digest, Sha256};
+    static SEQ: AtomicU64 = AtomicU64::new(0);
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let h = Sha256::digest(
+        format!(
+            "{}:{nanos}:{}",
+            std::process::id(),
+            SEQ.fetch_add(1, Ordering::SeqCst)
+        )
+        .as_bytes(),
+    );
+    h.iter().take(8).map(|b| format!("{b:02x}")).collect()
+}
+
+fn param_err(msg: String) -> HarnessDiagnostic {
+    diag("SPX-HPN005", msg)
+}
+
+/// Optional controls, validated by presence: absent takes the documented
+/// default, present must have the documented type and value.
+struct Controls {
+    deadline_ms: u64,
+    required_isolation: bool,
+    step: Option<String>,
+}
+
+fn parse_controls(obj: &serde_json::Map<String, Value>) -> HarnessResult<Controls> {
+    let deadline_ms = match obj.get("deadline_ms") {
+        None => DEADLINE_MS_DEFAULT,
+        Some(v) => match v.as_u64() {
+            Some(n) if DEADLINE_MS_RANGE.contains(&n) => n,
+            _ => {
+                return Err(param_err(format!(
+                    "`deadline_ms` must be an integer in {}..={}",
+                    DEADLINE_MS_RANGE.start(),
+                    DEADLINE_MS_RANGE.end()
+                )))
+            }
+        },
+    };
+    let required_isolation = match obj.get("isolation") {
+        None => false,
+        Some(Value::String(o)) if o == "required" => true,
+        Some(_) => {
+            return Err(param_err(
+                "`isolation` must be the string `required`".into(),
+            ))
+        }
+    };
+    let step = match obj.get("step") {
+        None => None,
+        Some(Value::String(st))
+            if !st.is_empty()
+                && st.len() <= STEP_MAX_LEN
+                && st
+                    .bytes()
+                    .all(|b| b.is_ascii_alphanumeric() || b"._:@/+-".contains(&b)) =>
+        {
+            Some(st.clone())
+        }
+        Some(_) => {
+            return Err(param_err(format!(
+                "`step` must be a non-empty string of at most {STEP_MAX_LEN} characters from [A-Za-z0-9._:@/+-]"
+            )))
+        }
+    };
+    Ok(Controls {
+        deadline_ms,
+        required_isolation,
+        step,
+    })
+}
+
 impl Invoker {
+    /// Install a journal persistence fault injector (tests).
+    pub fn set_journal_fault(&self, hook: Option<FaultHook>) {
+        *lock(&self.fault) = hook;
+    }
+
     pub fn new(env: &Environment, project: &Path, config: HostConfig) -> Self {
         Self {
             env: env.clone(),
             project: project.to_path_buf(),
             manager: AdapterManager::new(config),
             counter: AtomicU64::new(0),
-            journal: Mutex::new(None),
+            session: session_token(),
+            fault: Mutex::new(None),
             registry: Registry::default(),
         }
     }
@@ -201,20 +295,11 @@ impl Invoker {
             .ok_or_else(|| diag("SPX-HPN005", "`operation` must be a string"))?
             .to_string();
         let payload = obj.get("payload").cloned().unwrap_or_else(|| json!({}));
-        let deadline_ms = obj
-            .get("deadline_ms")
-            .and_then(Value::as_u64)
-            .unwrap_or(30_000);
-        let required_isolation = match obj.get("isolation").and_then(Value::as_str) {
-            None => false,
-            Some("required") => true,
-            Some(o) => {
-                return Err(diag(
-                    "SPX-HPN005",
-                    format!("`isolation` must be `required`, not `{o}`"),
-                ))
-            }
-        };
+        let Controls {
+            deadline_ms,
+            required_isolation,
+            step,
+        } = parse_controls(obj)?;
         let class = class_of(kind);
 
         let res = crate::profile::resolve_project(&self.env, &self.project)?;
@@ -274,26 +359,24 @@ impl Invoker {
         // A required-isolation request the host cannot enforce is refused here
         // (SPX-HPC003); it is never downgraded to a plain subprocess.
         let handle = self.manager.prepare(&project_id, spec)?;
-        let step = obj
-            .get("step")
-            .and_then(Value::as_str)
-            .map(str::to_string)
-            .unwrap_or_else(|| format!("{}:{}", kind.as_str(), operation));
+        let n = self.counter.fetch_add(1, Ordering::SeqCst) + 1;
+        // Omitted `step`: a host-assigned identity unique to this session and
+        // invocation, journaled before dispatch and returned to the client.
+        let step = step.unwrap_or_else(|| format!("auto-{}-{n:06}", self.session));
         if class == InvocationClass::SideEffecting {
             self.journal_begin(&home, &project_id, &step)?;
         }
-        let n = self.counter.fetch_add(1, Ordering::SeqCst) + 1;
         let req = RequestEnvelope {
             invocation_id: format!("inv-bridge-{n:06}"),
             project: ProjectBinding {
                 id: project_id.clone(),
-                worktree: project_id,
+                worktree: project_id.clone(),
                 revision: "bridge".into(),
             },
             lock_digest: res.profile.lock_digest(),
             capability: CapabilityRef { kind, version: 1 },
             operation,
-            deadline_ms: deadline_ms.clamp(1, 600_000),
+            deadline_ms,
             max_result_bytes: 1 << 20,
             remaining_calls: 8,
             lineage: vec![],
@@ -302,19 +385,30 @@ impl Invoker {
         let out = handle.invoke(&req, class, token);
         let cancelled = token.is_cancelled();
         let iso = isolation_json(handle.isolation_mode());
-        self.settle_journal(&step, class, &out, cancelled);
-        Ok(describe(&out, class, cancelled, iso))
+        let durability = self.settle_journal(&home, &project_id, &step, class, &out, cancelled);
+        let mut v = describe(&out, class, cancelled, iso);
+        v["step"] = json!(step);
+        if let Err(d) = durability {
+            // The provider outcome above is unchanged; only its receipt is lost.
+            // The surviving `begin` keeps the step non-replayable.
+            v["durable"] = json!(false);
+            v["journal_error"] = d.json();
+        }
+        Ok(v)
     }
 
+    fn open_journal(&self, home: &Path, project_id: &str) -> HarnessResult<Journal> {
+        let mut j =
+            Journal::open_wait(&home.join("cache").join("bridge"), project_id, JOURNAL_WAIT)?;
+        j.set_fault(lock(&self.fault).clone());
+        Ok(j)
+    }
+
+    /// Claim `step` and append `begin` while holding the lineage's exclusive
+    /// writer lock, so the decision and the durable `begin` are one critical
+    /// section across sessions and processes. The lock is released on return.
     fn journal_begin(&self, home: &Path, project_id: &str, step: &str) -> HarnessResult<()> {
-        let mut g = lock(&self.journal);
-        if g.is_none() {
-            *g = Some(Journal::open(
-                &home.join("cache").join("bridge"),
-                project_id,
-            )?);
-        }
-        let j = g.as_mut().expect("journal opened");
+        let mut j = self.open_journal(home, project_id)?;
         if !j.may_run(step) {
             return Err(diag(
                 "SPX-HPN015",
@@ -324,13 +418,20 @@ impl Invoker {
         j.append(step, "begin", json!({}))
     }
 
-    fn settle_journal(&self, step: &str, class: InvocationClass, out: &Outcome, cancelled: bool) {
+    fn settle_journal(
+        &self,
+        home: &Path,
+        project_id: &str,
+        step: &str,
+        class: InvocationClass,
+        out: &Outcome,
+        cancelled: bool,
+    ) -> HarnessResult<()> {
         if class != InvocationClass::SideEffecting {
-            return;
+            return Ok(());
         }
-        let mut g = lock(&self.journal);
-        let Some(j) = g.as_mut() else { return };
-        let _ = match out {
+        let mut j = self.open_journal(home, project_id)?;
+        match out {
             Outcome::Completed(_) if !cancelled => j.append(step, "done", json!({})),
             Outcome::Refused(d) if !cancelled => j.append(step, "refused", json!({"code": d.code})),
             // Cancelled before the request was written: provably never ran.
@@ -343,7 +444,7 @@ impl Invoker {
                     "outcome-unknown"
                 },
             ),
-        };
+        }
     }
 
     /// Stop adapters idle past their `idle_shutdown_ms` as of `now` (MA-10). The

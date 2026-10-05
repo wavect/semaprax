@@ -1,6 +1,7 @@
 //! Bounded routing-decision cache. Entries are keyed by provider/model/
-//! checkpoint plus feature, catalog and policy digests; a hit is still
-//! revalidated against the live admissible set by the caller.
+//! checkpoint plus feature, catalog and policy digests, the routing task
+//! (schema) and the v2/instance scope; a hit is still revalidated against the
+//! live admissible set by the caller. v1 and v2 never share an entry.
 
 use std::collections::{BTreeMap, VecDeque};
 
@@ -12,6 +13,11 @@ pub struct CacheKey {
     pub features: String,
     pub catalog: String,
     pub policy: String,
+    /// Routing task id (`model-route/v1` or `model-route/v2`).
+    pub schema: String,
+    /// Digest of the v2 feature/candidate/renderer/disclosure digests plus the
+    /// adapter/profile/instance scope (empty for a legacy v1 profile).
+    pub scope: String,
 }
 
 #[derive(Debug)]

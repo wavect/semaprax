@@ -9,13 +9,14 @@ use super::journal::Journal;
 use super::pipeline::{change_bytes, Ctx, Stages};
 use super::policy::check_protected_facts;
 use super::report::Report;
+use super::route_signals::route_signals;
 use super::spend_dispatch::Attempt;
 use super::stages::*;
 use crate::decision::{
-    gate_attests_key, governed_decide, recheck_dispatch, Budget, Confidentiality,
-    ConfiguredProvider, Destination, EvidenceKey, Governor, LatencyClass, ModelPlan, ProviderMode,
-    RouteContext, RouteInputs, RoutePolicy, RouteRequest, RoutingConfig, RoutingMode, TaskFamily,
-    TaskFeatures,
+    gate_attests_key, governed_decide, recheck_dispatch, router_output_reserve, wire_version,
+    Budget, Confidentiality, ConfiguredProvider, Destination, EvidenceKey, Governor, LatencyClass,
+    ModelPlan, PreparedRouteV2, ProviderMode, RouteContext, RouteInputs, RoutePolicy, RouteRequest,
+    RouteSignals, RoutingConfig, RoutingMode, TaskFamily, TaskFeatures,
 };
 use crate::diag::{HarnessDiagnostic, HarnessResult};
 use crate::json::sha256_plain;
@@ -26,7 +27,11 @@ use std::collections::BTreeSet;
 use std::path::Path;
 use std::time::Instant;
 
-pub(super) const ROUTER_OUTPUT_RESERVE: u64 = 256;
+/// Closed-choice router output reserve for a pool (MR-03): protocol-derived
+/// from the option count, not a generation-sized constant.
+pub(super) fn router_reserve(pool: &[ModelPlan]) -> u64 {
+    router_output_reserve(pool.len().min(crate::decision::render::MAX_CANDIDATES_V2))
+}
 
 fn d(code: &'static str, msg: impl Into<String>) -> HarnessDiagnostic {
     HarnessDiagnostic::new(code, msg)
@@ -136,6 +141,7 @@ fn catalog(cx: &Ctx, task: &Task) -> HarnessResult<Vec<ModelPlan>> {
             est_cost_micros: 0,
             est_latency_ms: 1000,
             strength_rank: 1,
+            descriptor: Default::default(),
         }],
     };
     for m in &catalog {
@@ -157,19 +163,25 @@ struct Routed {
     router_calls_total: u32,
     request_text: String,
     provider: String,
+    /// MR-03 typed identity/usage of the answering router call, if any.
+    call: Option<crate::decision::CallMetadata>,
 }
 
 /// Routing allowance when no task cost limit is set (the earlier fixed figure).
 const DEFAULT_ROUTE_ALLOWANCE_MICROS: u64 = 1_000_000;
 
-/// Route features, budget and the exact serialized router request. The cost
-/// allowance is the task's remaining cost budget when one is set (TC-03).
+/// Route features, budget and the router request text the host reserves
+/// against. The cost allowance is the task's remaining cost budget when one is
+/// set (TC-03). For a v2 router the text is the host-rendered prepared request
+/// over the whole pool (MR-03: a conservative superset of what is sent).
 pub(super) fn route_parts(
     task: &Task,
     catalog: &[ModelPlan],
     estimated_tokens: u64,
     allowance_micros: u64,
     router: bool,
+    signals: &RouteSignals,
+    wire_v2: bool,
 ) -> HarnessResult<(TaskFeatures, Budget, String)> {
     let family = TaskFamily::parse(&task.family).ok_or_else(|| {
         d(
@@ -190,8 +202,19 @@ pub(super) fn route_parts(
         max_latency_ms: 60_000,
         max_router_calls: u32::from(router),
     };
-    let text = crate::json::canonical(&json!({"features": features.to_json(),
-        "catalog": catalog.iter().map(ModelPlan::to_json).collect::<Vec<_>>(), "budget": budget.to_json()}));
+    let v1_text = || {
+        crate::json::canonical(&json!({"features": features.to_json(),
+        "catalog": catalog.iter().map(ModelPlan::to_json).collect::<Vec<_>>(), "budget": budget.to_json()}))
+    };
+    let text = if wire_v2 {
+        RouteRequest::new(features.clone(), catalog.to_vec(), budget.clone())
+            .map(|r| r.with_signals(signals.clone()))
+            .and_then(|r| PreparedRouteV2::prepare(&r, &RoutePolicy::default(), &r.catalog))
+            .map(|p| p.accounting_text())
+            .unwrap_or_else(|_| v1_text())
+    } else {
+        v1_text()
+    };
     Ok((features, budget, text))
 }
 
@@ -205,15 +228,22 @@ fn route_models(
     rb: &super::budget::RequestBudget,
     router_headroom_tokens: Option<u64>,
     allowance_micros: u64,
+    signals: &RouteSignals,
 ) -> HarnessResult<Routed> {
+    let wire_v2 = decision
+        .as_ref()
+        .is_some_and(|d| wire_version(&d.profile, &*d.invoker) == 2);
     let (features, budget, text) = route_parts(
         task,
         &catalog,
         estimated_tokens,
         allowance_micros,
         decision.is_some(),
+        signals,
+        wire_v2,
     )?;
-    let request = RouteRequest::new(features, catalog, budget)?;
+    let reserve = router_reserve(&catalog);
+    let request = RouteRequest::new(features, catalog, budget)?.with_signals(signals.clone());
     let mut policy = RoutePolicy::default();
     if cx.cfg.routing.approve_remote {
         // The project explicitly allows remote routing: the origins of the
@@ -239,16 +269,20 @@ fn route_models(
         router_ms_used: 0,
     };
     let router_request_tokens = decision.as_ref().map_or(0, |d| {
-        rb.count(&d.profile.provider_id, &text).admission_tokens() + ROUTER_OUTPUT_RESERVE
+        rb.count(&d.profile.provider_id, &text).admission_tokens() + reserve
     });
     let live = inputs.clone();
     // The workflow carries only the stage's gate: a learned provider is
     // consulted in `Auto` mode only when that gate attests the live key
     // (provider, weights, approved catalog); otherwise rules decide (HN-16).
     let wiring = &cx.cfg.routing;
-    let live_key = decision
-        .as_ref()
-        .map(|d| EvidenceKey::live(&d.profile, &inputs.request.catalog_digest()));
+    let live_key = decision.as_ref().map(|d| {
+        EvidenceKey::live_versioned(
+            &d.profile,
+            &inputs.request.catalog_digest(),
+            wire_version(&d.profile, &*d.invoker),
+        )
+    });
     let mode = if wiring.explicit_mode || wiring.cfg.project_pin.is_some() {
         // `[routing]` decides: the project's mode and pin, never the provider's own.
         wiring.cfg.mode.clone()
@@ -302,12 +336,14 @@ fn route_models(
         json: json!({"choice": dec.choice, "provider": dec.provider_id, "router_calls": dec.router_calls,
                "status": dec.provider_status, "source": format!("{:?}", dec.source),
                "mode": gr.mode, "rules_reason": gr.rules_reason, "explanation": gr.explanation,
+               "wire": dec.wire.to_json(),
                "policy": {"allow_remote": cfg.user_allow_remote, "project_pin": cfg.project_pin}}),
         model: dec.choice,
         router_calls: dec.router_calls,
         router_calls_total: gr.router_calls_total,
         request_text: text,
         provider: dec.provider_id,
+        call: dec.wire.call,
     })
 }
 
@@ -384,11 +420,12 @@ pub(super) fn route_and_fit(
         );
         // A router call is admitted and journaled before it can happen; when it
         // is unaffordable (or unpriced under strict money) rules decide alone.
+        let signals = route_signals(task, p, cx.ledger.spend.available_cost());
         let router = if cost.is_some() {
             None
         } else {
             super::spend_dispatch::reserve_router(
-                cx, st, journal, r, &budget, &pool, est, allowance, label,
+                cx, st, journal, r, &budget, &pool, est, allowance, label, &signals,
             )?
         };
         let decision = if router.is_some() {
@@ -406,9 +443,22 @@ pub(super) fn route_and_fit(
             &budget,
             headroom,
             allowance,
+            &signals,
         )?;
         if let Some(id) = &router {
-            super::spend_dispatch::settle_router(cx, journal, id, routed.router_calls_total)?;
+            let model = st
+                .decision
+                .as_ref()
+                .map_or_else(String::new, |d| d.profile.model_id.clone());
+            super::spend_dispatch::settle_router(
+                cx,
+                journal,
+                id,
+                routed.router_calls_total,
+                routed.call.as_ref(),
+                &model,
+                router_reserve(&pool),
+            )?;
         }
         if routed.router_calls > 0 {
             let count = budget.count(&routed.provider, &routed.request_text);
@@ -417,7 +467,7 @@ pub(super) fn route_and_fit(
                 label: format!("{label}-router"),
                 kind: "router".into(),
                 count: count.clone(),
-                output_reserve: ROUTER_OUTPUT_RESERVE,
+                output_reserve: router_reserve(&pool),
                 cost_micros: router
                     .as_deref()
                     .and_then(|id| cx.ledger.spend.record(id))

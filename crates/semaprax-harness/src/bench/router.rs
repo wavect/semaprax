@@ -104,6 +104,7 @@ impl DecisionInvoker for AdapterInvoker {
                 ("complete", Some(p)) => DecisionCall::Answered {
                     result: p.clone(),
                     elapsed_ms,
+                    call: None,
                 },
                 _ if env.diagnostics.iter().any(|(c, _)| c == "SPX-HPK011") => {
                     DecisionCall::Timeout
@@ -138,6 +139,7 @@ impl DecisionInvoker for ScriptedInvoker {
         DecisionCall::Answered {
             result: self.answer.clone(),
             elapsed_ms: 1,
+            call: None,
         }
     }
 }
@@ -178,6 +180,7 @@ pub fn route(
                     min_confidence: None,
                     max_context_tokens: Some(100_000),
                     supported_families: None,
+                    ..Default::default()
                 },
                 invoker,
                 mode: ProviderMode::Explicit,

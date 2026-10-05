@@ -16,6 +16,7 @@ fn plan(id: &str, ctx: u64) -> ModelPlan {
         est_cost_micros: 1,
         est_latency_ms: 100,
         strength_rank: 1,
+        descriptor: Default::default(),
     }
 }
 
@@ -78,6 +79,7 @@ fn record(outcomes: Vec<Outcome>) -> EvidenceRecord {
         eval_items: BTreeSet::new(),
         trained_on: BTreeSet::new(),
         outcomes,
+        calibration: None,
     }
 }
 

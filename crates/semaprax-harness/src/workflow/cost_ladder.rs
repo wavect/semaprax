@@ -62,7 +62,16 @@ pub(super) fn apply(
     }
     let task = &cx.cfg.task;
     let lad = &cx.cfg.routing.ladders[&task.family];
-    let (features, budget, _) = route_parts(task, pool, input_tokens, 1, false).ok()?;
+    let (features, budget, _) = route_parts(
+        task,
+        pool,
+        input_tokens,
+        1,
+        false,
+        &crate::decision::RouteSignals::default(),
+        false,
+    )
+    .ok()?;
     let evidence = profile.and_then(|p| {
         let digest = RouteRequest::new(features.clone(), pool.to_vec(), budget)
             .ok()?

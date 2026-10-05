@@ -649,6 +649,7 @@ fn plan_of(id: &str, rank: u32, remote: bool) -> ModelPlan {
         est_cost_micros: 0,
         est_latency_ms: 10,
         strength_rank: rank,
+        descriptor: Default::default(),
     }
 }
 
@@ -748,6 +749,7 @@ impl DecisionInvoker for Pick {
         DecisionCall::Answered {
             result: json!({"choice": self.1, "scores": {self.1: 0.9}, "abstain": false}),
             elapsed_ms: 1,
+            call: None,
         }
     }
 }
@@ -760,6 +762,7 @@ fn profile() -> ProviderProfile {
         min_confidence: None,
         max_context_tokens: None,
         supported_families: None,
+        ..Default::default()
     }
 }
 

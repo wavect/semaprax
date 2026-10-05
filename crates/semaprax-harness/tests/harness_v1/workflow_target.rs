@@ -279,6 +279,7 @@ fn hp_tc05_named_tokenizer_selects_token_units_and_unknown_falls_back_to_labelle
         est_cost_micros: 1,
         est_latency_ms: 1,
         strength_rank: 1,
+        descriptor: Default::default(),
     }
     .to_json()]);
     let go_one = |with_tok: bool| {

@@ -65,8 +65,11 @@ pub(crate) fn parse_initialize(
                 kind.as_str()
             )));
         };
-        if out.iter().any(|a| a.kind == kind) {
-            return Err(bad(format!("adapter accepted {} twice", kind.as_str())));
+        if out.iter().any(|a| a.kind == kind && a.version == version) {
+            return Err(bad(format!(
+                "adapter accepted {} v{version} twice",
+                kind.as_str()
+            )));
         }
         let ops: Vec<String> = item
             .get("operations")

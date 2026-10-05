@@ -148,6 +148,26 @@ fn outcome(v: &Value) -> HarnessResult<Outcome> {
     })
 }
 
+/// Optional MR-02 outcome calibration of a record; absent is uncalibrated.
+fn calibration(v: &Value) -> HarnessResult<Option<crate::decision::Calibration>> {
+    if v.is_null() {
+        return Ok(None);
+    }
+    let kind = v["score_kind"]
+        .as_str()
+        .and_then(crate::decision::ScoreKind::parse)
+        .filter(|k| *k != crate::decision::ScoreKind::None)
+        .ok_or_else(|| bad("calibration `score_kind` must be a scored kind"))?;
+    Ok(Some(crate::decision::Calibration {
+        calibration_id: s(v, "calibration_id")?,
+        score_kind: kind,
+        key_digest: s(v, "key_digest")?,
+        success_estimate: v["success_estimate"]
+            .as_f64()
+            .ok_or_else(|| bad("calibration `success_estimate` must be a number"))?,
+    }))
+}
+
 /// Parse an evidence document (`semaprax.harness-routing-evidence.v1`).
 pub fn parse_registry(bytes: &[u8]) -> HarnessResult<EvidenceRegistry> {
     let doc: Value =
@@ -181,6 +201,7 @@ pub fn parse_registry(bytes: &[u8]) -> HarnessResult<EvidenceRegistry> {
             eval_items: set(&r["eval_items"]),
             trained_on: set(&r["trained_on"]),
             outcomes,
+            calibration: calibration(&r["calibration"])?,
         })?;
     }
     Ok(reg)

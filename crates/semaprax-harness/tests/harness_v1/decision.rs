@@ -44,6 +44,7 @@ fn answer(choice: Option<&str>, scores: &[(&str, f64)], ms: u64) -> DecisionCall
     DecisionCall::Answered {
         result: json!({"choice": choice, "scores": s, "abstain": choice.is_none()}),
         elapsed_ms: ms,
+        call: None,
     }
 }
 
@@ -57,6 +58,7 @@ fn plan(id: &str, dest: Destination, cost: u64, rank: u32) -> ModelPlan {
         est_cost_micros: cost,
         est_latency_ms: 500,
         strength_rank: rank,
+        descriptor: Default::default(),
     }
 }
 
@@ -133,6 +135,7 @@ fn profile(id: &str) -> ProviderProfile {
         min_confidence: None,
         max_context_tokens: None,
         supported_families: None,
+        ..Default::default()
     }
 }
 
@@ -391,6 +394,7 @@ fn hp_hp10_router_failures_fall_back_deterministically_within_budget() {
             Box::new(|_| DecisionCall::Answered {
                 result: json!({"choice": 7}),
                 elapsed_ms: 1,
+                call: None,
             }),
             FallbackReason::InvalidResult,
         ),
@@ -929,6 +933,7 @@ mod hn16 {
             eval_items: items,
             trained_on: (0..n).map(|i| format!("t{i}")).collect(),
             outcomes,
+            calibration: None,
         }
     }
 

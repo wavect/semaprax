@@ -3,8 +3,9 @@
 //! which kills the adapter's process group when it passes; this type adds no
 //! second clock of its own beyond measuring elapsed time.
 
+use super::call::CallMetadata;
 use super::provider::{DecisionCall, DecisionInvoker};
-use crate::contract::RequestEnvelope;
+use crate::contract::{CapabilityKind, RequestEnvelope};
 use crate::host::{AdapterHandle, CancelToken, InvocationClass, Outcome};
 use std::sync::Arc;
 use std::time::Instant;
@@ -41,6 +42,11 @@ impl DecisionInvoker for HostDecisionInvoker {
         {
             Outcome::Completed(r) => match r.payload {
                 Some(result) => DecisionCall::Answered {
+                    // Typed identity/usage from the payload's `call` member
+                    // (MR-03); malformed metadata is refused by the router.
+                    call: result
+                        .get("call")
+                        .and_then(|c| CallMetadata::from_json(c).ok()),
                     result,
                     elapsed_ms: started.elapsed().as_millis() as u64,
                 },
@@ -51,5 +57,10 @@ impl DecisionInvoker for HostDecisionInvoker {
             }
             _ => DecisionCall::Unavailable,
         }
+    }
+
+    fn decision_versions(&self) -> Vec<u32> {
+        self.handle
+            .negotiated_versions(CapabilityKind::DecisionEvaluate)
     }
 }

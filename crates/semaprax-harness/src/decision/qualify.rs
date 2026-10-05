@@ -10,9 +10,21 @@ use std::collections::BTreeMap;
 
 pub const RULES_ARM: &str = "rules";
 
+/// What a qualification rests on (MR-02).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum GateBasis {
+    /// Matched verified outcomes only; makes no confidence claim. The only
+    /// basis a scoreless or uncalibrated provider can qualify under.
+    Outcome,
+    /// Outcomes plus an outcome-calibrated score estimate of at least this
+    /// value, bound to the evaluated key. Unknown calibration never passes.
+    CalibratedConfidence { min_success_estimate: f64 },
+}
+
 /// Thresholds fixed before the evaluation runs; their digest is recorded.
 #[derive(Clone, Debug, PartialEq)]
 pub struct GateSpec {
+    pub basis: GateBasis,
     pub min_items: usize,
     /// Learned completion rate may trail rules by at most this much.
     pub completion_margin: f64,
@@ -27,6 +39,7 @@ pub struct GateSpec {
 impl Default for GateSpec {
     fn default() -> Self {
         Self {
+            basis: GateBasis::Outcome,
             min_items: 30,
             completion_margin: 0.0,
             min_cost_saving: 0.10,
@@ -38,13 +51,17 @@ impl Default for GateSpec {
 
 impl GateSpec {
     pub fn digest(&self) -> String {
-        json::digest(
-            "semaprax.decision.gate-spec.v1",
-            &json!({"min_items": self.min_items, "completion_margin": self.completion_margin,
+        let mut v = json!({"min_items": self.min_items, "completion_margin": self.completion_margin,
                     "min_cost_saving": self.min_cost_saving,
                     "max_extra_regressions": self.max_extra_regressions,
-                    "max_latency_ratio": self.max_latency_ratio}),
-        )
+                    "max_latency_ratio": self.max_latency_ratio});
+        if let GateBasis::CalibratedConfidence {
+            min_success_estimate,
+        } = self.basis
+        {
+            v["basis"] = json!({"calibrated_confidence": min_success_estimate});
+        }
+        json::digest("semaprax.decision.gate-spec.v1", &v)
     }
 }
 
@@ -113,6 +130,33 @@ pub fn evaluate(spec: &GateSpec, rec: &EvidenceRecord) -> GateDecision {
             rec.eval_items.len(),
             spec.min_items
         ));
+    }
+    if let GateBasis::CalibratedConfidence {
+        min_success_estimate,
+    } = spec.basis
+    {
+        match &rec.calibration {
+            None => why.push(
+                "unknown calibration cannot satisfy a confidence-based gate (declare an outcome-based gate)"
+                    .into(),
+            ),
+            Some(c) if c.score_kind == super::call::ScoreKind::None => {
+                why.push("a scoreless provider has no confidence to calibrate".into())
+            }
+            Some(c) if c.key_digest != rec.key.digest() => why.push(
+                "calibration is bound to a different provider/checkpoint/renderer/candidate regime"
+                    .into(),
+            ),
+            Some(c)
+                if !c.success_estimate.is_finite() || c.success_estimate < min_success_estimate =>
+            {
+                why.push(format!(
+                    "calibrated success estimate {:.3} below {min_success_estimate:.3}",
+                    c.success_estimate
+                ))
+            }
+            Some(_) => {}
+        }
     }
     let leaked: Vec<&String> = rec.eval_items.intersection(&rec.trained_on).collect();
     if !leaked.is_empty() {

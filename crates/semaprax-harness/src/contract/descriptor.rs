@@ -607,10 +607,15 @@ fn parse_capabilities(v: &Value) -> HarnessResult<Vec<DeclaredCapability>> {
                 format!("malformed capability kind `{kind_name}`"),
             ));
         }
-        if out.iter().any(|d| d.kind_name == kind_name) {
+        let version = version_u32(c, "version")?;
+        // One kind may be declared at several distinct versions (MR-01).
+        if out
+            .iter()
+            .any(|d| d.kind_name == kind_name && d.version == version)
+        {
             return Err(bad(
                 "SPX-HPA017",
-                format!("duplicate capability declaration `{kind_name}`"),
+                format!("duplicate capability declaration `{kind_name}` v{version}"),
             ));
         }
         let kind = CapabilityKind::parse(&kind_name);
@@ -639,7 +644,7 @@ fn parse_capabilities(v: &Value) -> HarnessResult<Vec<DeclaredCapability>> {
         out.push(DeclaredCapability {
             kind_name,
             kind,
-            version: version_u32(c, "version")?,
+            version,
             required,
             operations,
         });

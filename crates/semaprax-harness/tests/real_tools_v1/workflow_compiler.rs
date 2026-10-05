@@ -1189,6 +1189,7 @@ mod hnwire {
                 est_cost_micros: 0,
                 est_latency_ms: 10,
                 strength_rank: rank,
+                descriptor: Default::default(),
             }
             .to_json()
         };

@@ -20,6 +20,12 @@ mod context;
 mod contract;
 #[path = "harness_v1/decision.rs"]
 mod decision;
+#[path = "harness_v1/decision_adapter.rs"]
+mod decision_adapter;
+#[path = "harness_v1/decision_v2.rs"]
+mod decision_v2;
+#[path = "harness_v1/decision_v2_scores.rs"]
+mod decision_v2_scores;
 #[path = "harness_v1/endpoint.rs"]
 mod endpoint;
 #[path = "harness_v1/host.rs"]

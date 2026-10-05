@@ -527,7 +527,8 @@ fn hp_hn11_real_o200k_counts_the_exact_request_and_bytes_div_4_would_admit_an_ov
             max_context: max,
             est_cost_micros: 0,
             est_latency_ms: 1,
-            strength_rank: 1
+            strength_rank: 1,
+            descriptor: Default::default(),
         }
         .to_json()])
     };

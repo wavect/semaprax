@@ -330,6 +330,15 @@ process.on('SIGTERM',()=>{if(lastPlan)output({schema:'semaprax.hot-reload-contro
     assert.equal(empty.failure, 'check exited 0 without printing a verified record');
     assert.equal(api.checks.collection.get(vscode.Uri.file(probe)).length, 1);
 
+    // A verified record carrying a raw malformed byte is a transport failure:
+    // it is neither replacement-decoded nor allowed to clear the diagnostics.
+    const corrupt = path.join(probeDirectory, 'corrupt-compiler');
+    fs.writeFileSync(corrupt, `#!/bin/sh\nprintf '{"status":"verified","path":"/fixture/\\377.spx","revision":"sha256:${'a'.repeat(64)}"}\\n'\nexit 0\n`, { mode: 0o700 });
+    const undecodable = await api.checks.check(probe, corrupt);
+    assert.equal(undecodable.failure, 'check output is not valid UTF-8');
+    assert.equal(undecodable.retained, true);
+    assert.equal(api.checks.collection.get(vscode.Uri.file(probe)).length, 1, 'an undecodable check keeps the previous diagnostics');
+
     // Only a believable verified run clears them.
     fs.writeFileSync(probe, 'module probe;\n\n@id("probe.main")\nfn main() -> i64\n{\n    0\n}\n');
     const verified = await api.checks.check(probe, compiler);

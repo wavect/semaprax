@@ -339,3 +339,73 @@ test('diagnostic records use the saved source when it is supplied and fall back 
   assert.deepEqual(toDiagnosticRecords(rows, subject, path.dirname(subject), file => (file === main ? new SourceIndex(text) : null))[0].range,
     { startLine: 0, startColumn: 3, endLine: 0, endColumn: 7 });
 });
+
+// Machine stdout is admitted only as strict UTF-8 (REF-16). A lossy decoder
+// would turn a raw malformed byte into U+FFFD inside an otherwise valid record.
+const { TextDecoder: StrictDecoder } = require('node:util');
+const rawRecord = (middle, suffix = '.spx') => Buffer.concat([
+  Buffer.from('{"status":"verified","path":"/fixture/'), middle, Buffer.from(`${suffix}","revision":"sha256:${'a'.repeat(64)}"}\n`)
+]);
+async function capture(chunks, close = 0, options = {}) {
+  const child = new Child();
+  const pending = runCheck(spawnInto([], child), at('bin', 'semaprax'), at('app', MANIFEST), options);
+  for (const chunk of chunks) child.stdout.emit('data', chunk);
+  if (close !== 'pending') child.emit('close', close);
+  return pending;
+}
+
+test('raw invalid UTF-8 in a verified record or a diagnostic is a transport failure, not replacement text', async () => {
+  const bytes = rawRecord(Buffer.from([0xff]));
+  assert.throws(() => new StrictDecoder('utf-8', { fatal: true }).decode(bytes), 'the control decoder rejects the original bytes');
+  const result = await capture([bytes]);
+  assert.equal(result.invalidUtf8, true);
+  assert.ok(!String(result.stdout).includes('�'), 'no replacement-decoded text is returned');
+  const outcome = checkOutcome(result, at('bin', 'semaprax'));
+  assert.equal(outcome.status, 'failed');
+  assert.equal(outcome.failure, 'check output is not valid UTF-8');
+  assert.deepEqual(outcome.diagnostics, []);
+  assert.equal(outcome.verified, null);
+
+  const diagnostic = Buffer.concat([Buffer.from('{"code":"SPX-P104","severity":"error","message":"bad '), Buffer.from([0xc3, 0x28]), Buffer.from('","path":null,"location":null,"help":null}\n')]);
+  assert.equal(checkOutcome(await capture([diagnostic], 1)).failure, 'check output is not valid UTF-8');
+});
+
+test('a literal U+FFFD and a multibyte scalar split across chunks stay admissible', async () => {
+  const literal = await capture([rawRecord(Buffer.from('�', 'utf8'))]);
+  assert.equal(literal.invalidUtf8, undefined);
+  assert.equal(checkOutcome(literal).status, 'verified');
+  assert.equal(checkOutcome(literal).verified.path, '/fixture/�.spx');
+
+  const emoji = rawRecord(Buffer.from('\u{1F600}', 'utf8'));
+  const split = emoji.indexOf(0xf0) + 2;
+  const joined = await capture([emoji.subarray(0, split), emoji.subarray(split)]);
+  assert.equal(checkOutcome(joined).verified.path, '/fixture/\u{1F600}.spx');
+  // A truncated final sequence on ordinary completion is rejected.
+  const truncated = await capture([Buffer.concat([Buffer.from(line(verified)), Buffer.from([0xf0, 0x9f])])]);
+  assert.equal(checkOutcome(truncated).failure, 'check output is not valid UTF-8');
+  // Ordinary error and warning-plus-verified streams are unchanged.
+  assert.equal(checkOutcome(await capture([Buffer.from(warningLine + line(verified))])).status, 'verified');
+  assert.equal(checkOutcome(await capture([Buffer.from(errorLine)], 1)).status, 'diagnostics');
+});
+
+test('timeout, byte-cap and spawn failures keep their classification with incomplete trailing UTF-8', async () => {
+  const partial = Buffer.from([0x7b, 0xe2, 0x82]);
+  const capped = await capture([partial, Buffer.alloc(20, 0x20)], 'pending', { maxBytes: 16 });
+  assert.equal(checkOutcome(capped).failure, `check output exceeded ${MAX_OUTPUT_BYTES} bytes`);
+  const slow = await capture([partial], 'pending', { timeoutMs: 5 });
+  assert.equal(checkOutcome(slow).failure, `check timed out after ${TIMEOUT_MS / 1000}s`);
+  const child = new Child();
+  const pending = runCheck(spawnInto([], child), at('bin', 'missing'), at('app', MANIFEST));
+  child.stdout.emit('data', partial);
+  child.emit('error', new Error('spawn ENOENT'));
+  assert.equal(checkOutcome(await pending, 'x').failure, 'could not start x: spawn ENOENT');
+});
+
+test('a check whose output fails to decode retains the published diagnostics', async () => {
+  const subject = at('app', MANIFEST);
+  const ledger = new DiagnosticLedger();
+  await publish(ledger, new Child(), errorLine, 1, subject);
+  const outcome = checkOutcome(await capture([rawRecord(Buffer.from([0xff]))]));
+  assert.ok(outcome.failure);
+  assert.deepEqual(ledger.subjects(), [subject], 'a decode failure is not a clean result');
+});

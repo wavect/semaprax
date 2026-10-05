@@ -334,3 +334,37 @@ test('the project context route drops the facet filter the compiler refuses', ()
   assert.deepEqual(contextArguments(at('m.spx'), 'm.f'),
     ['context', at('m.spx'), 'm.f', '--depth', '1', '--filters', 'contracts,ownership,effects', '--max-bytes', String(CONTEXT_MAX_BYTES)]);
 });
+
+// Navigation stdout is admitted only as strict UTF-8 (REF-16).
+async function navigate(chunks, close = 0, options = {}) {
+  const child = new Child();
+  const pending = runCommand(spawnInto([], child), at('bin', 'semaprax'), queryArguments(at('m.spx')), root, options);
+  for (const chunk of chunks) child.stdout.emit('data', chunk);
+  if (close !== 'pending') child.emit('close', close);
+  return pending;
+}
+
+test('raw invalid UTF-8 in a navigation field is a transport failure, not a successful query', async () => {
+  const bad = Buffer.from(JSON.stringify({ ...result, module: 'examples.XX' }) + '\n');
+  bad[bad.indexOf('XX')] = 0xff;
+  const run = await navigate([bad]);
+  assert.equal(run.invalidUtf8, true);
+  assert.equal(failureReason(run, 'x'), 'command output is not valid UTF-8');
+  assert.equal(parseQueryResult(run.stdout), null);
+  // A literal U+FFFD is valid UTF-8 and an emoji split across chunks survives.
+  const literal = await navigate([Buffer.from(JSON.stringify({ ...result, module: 'examples.�' }) + '\n')]);
+  assert.equal(failureReason(literal, 'x'), null);
+  assert.equal(parseQueryResult(literal.stdout).module, 'examples.�');
+  const emoji = Buffer.from(JSON.stringify({ ...result, module: 'examples.\u{1F600}' }) + '\n');
+  const split = emoji.indexOf(0xf0) + 1;
+  const joined = await navigate([emoji.subarray(0, split), emoji.subarray(split)]);
+  assert.equal(parseQueryResult(joined.stdout).module, 'examples.\u{1F600}');
+  assert.equal(failureReason(await navigate([Buffer.from(text), Buffer.from([0xe2])]), 'x'), 'command output is not valid UTF-8');
+});
+
+test('navigation timeout and byte-cap keep their reason with incomplete trailing UTF-8', async () => {
+  const capped = await navigate([Buffer.from([0xf0, 0x9f]), Buffer.alloc(20, 0x20)], 'pending', { maxBytes: 16 });
+  assert.equal(failureReason(capped, 'x'), `command output exceeded ${MAX_OUTPUT_BYTES} bytes`);
+  const slow = await navigate([Buffer.from([0xf0, 0x9f])], 'pending', { timeoutMs: 5 });
+  assert.equal(failureReason(slow, 'x'), `command timed out after ${TIMEOUT_MS / 1000}s`);
+});

@@ -151,7 +151,11 @@ function activateChecks(context, testMode) {
     if (reason) {
       output.appendLine(`${file}: ${reason}`);
       if (result.stderr) output.appendLine(result.stderr.trimEnd());
-      throw new Error(result.stderr.trim() ? `${reason}\n${result.stderr.trim().slice(0, 2048)}` : reason);
+      const error = new Error(result.stderr.trim() ? `${reason}\n${result.stderr.trim().slice(0, 2048)}` : reason);
+      // The child ran but its output could not be admitted: whatever it did
+      // may have completed, so a mutation-bearing caller must not repeat it.
+      error.unreadableOutput = Boolean(result.invalidUtf8 || result.truncated || result.timedOut);
+      throw error;
     }
     return result.stdout;
   }
@@ -446,7 +450,14 @@ function activateChecks(context, testMode) {
       ], { placeHolder: 'Impact of the rename' });
       if (!apply || !apply.apply) return impact;
       revalidateBeforePatch();
-      const applied = await runNavigation(binary, navigation.patchArguments(doc.uri.fsPath, patchPath), doc.uri.fsPath);
+      let applied;
+      try { applied = await runNavigation(binary, navigation.patchArguments(doc.uri.fsPath, patchPath), doc.uri.fsPath); }
+      catch (error) {
+        // Never replayed: a dispatched patch whose reply is unreadable may
+        // already have rewritten the saved file.
+        if (error.unreadableOutput) throw new Error(`${error.message}\nThe patch was dispatched but its result could not be read; the source may already be rewritten. Inspect ${path.basename(doc.uri.fsPath)} before repeating the rename.`);
+        throw error;
+      }
       void vscode.window.showInformationMessage(`SEMAPRAX: ${applied.trim()}`);
       return { ...impact, applied: applied.trim() };
     } finally {

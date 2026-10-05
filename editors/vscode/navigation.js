@@ -10,6 +10,7 @@
 // token; `start`/`end` are byte offsets of that token. `doc <file>` prints the
 // module's Markdown documentation.
 const path = require('node:path');
+const { TextDecoder } = require('node:util');
 const { SourceIndex, locationRange } = require('./positions');
 
 const MAX_OUTPUT_BYTES = 4 * 1024 * 1024;
@@ -153,6 +154,14 @@ function parseSchemaDocument(text, prefix) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   if (typeof value.schema !== 'string' || !value.schema.startsWith(prefix)) return null;
   return value;
+}
+
+// The bounded stdout bytes as text, or null when they are not whole UTF-8:
+// a malformed sequence or a truncated final scalar. A BOM is kept as text,
+// exactly as the former lossy conversion kept it.
+const machineDecoder = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
+function strictUtf8(bytes) {
+  try { return machineDecoder.decode(bytes); } catch { return null; }
 }
 
 function safeOffset(value) { return Number.isSafeInteger(value) && value >= 0 ? value : null; }
@@ -338,7 +347,10 @@ function runCommand(spawnFn, compiler, args, cwd, options = {}) {
     const finish = result => {
       if (settled) return;
       settled = true; clearTimeout(timer); clearKillEscalation();
-      resolve({ stdout: Buffer.concat(stdout).toString('utf8'), stderr: Buffer.concat(stderr).toString('utf8'), ...result });
+      // Stdout is protocol data: it is admitted only as strict UTF-8, never
+      // replacement-decoded. Stderr stays lossy human text and is never parsed.
+      const text = strictUtf8(Buffer.concat(stdout));
+      resolve({ stdout: text === null ? '' : text, stderr: Buffer.concat(stderr).toString('utf8'), ...(text === null ? { invalidUtf8: true } : {}), ...result });
     };
     const timer = setTimeout(() => { timedOut = true; requestKill(); }, timeoutMs);
     const collect = sink => chunk => {
@@ -360,6 +372,7 @@ function failureReason(result, compiler) {
   if (result.error) return `could not start ${compiler}: ${result.error}`;
   if (result.timedOut) return `command timed out after ${TIMEOUT_MS / 1000}s`;
   if (result.truncated) return `command output exceeded ${MAX_OUTPUT_BYTES} bytes`;
+  if (result.invalidUtf8) return 'command output is not valid UTF-8';
   if (result.code !== 0) return `command exited with status ${result.code}`;
   return null;
 }

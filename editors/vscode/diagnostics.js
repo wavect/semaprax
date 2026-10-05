@@ -8,6 +8,7 @@
 // with `path`, `location` and `help` nullable. `line` and `column` are
 // one-based; `start`/`end` are byte offsets into the file.
 const path = require('node:path');
+const { TextDecoder } = require('node:util');
 const { SourceIndex, locationRange } = require('./positions');
 
 const MANIFEST = 'semaprax.toml';
@@ -108,6 +109,7 @@ function checkOutcome(result, compiler = 'the selected compiler') {
   if (result.error) return failed(`could not start ${compiler}: ${result.error}`);
   if (result.timedOut) return failed(`check timed out after ${TIMEOUT_MS / 1000}s`);
   if (result.truncated) return failed(`check output exceeded ${MAX_OUTPUT_BYTES} bytes`);
+  if (result.invalidUtf8) return failed('check output is not valid UTF-8');
   if (result.code !== 0 && result.code !== 1) return failed(`check exited with status ${result.code}`);
   const parsed = parseCheckOutput(result.stdout);
   if (parsed.malformed) return failed(parsed.malformed === 1 ? 'check printed 1 line that is neither a diagnostic nor a verified record' : `check printed ${parsed.malformed} lines that are neither a diagnostic nor a verified record`);
@@ -121,6 +123,14 @@ function checkOutcome(result, compiler = 'the selected compiler') {
   if (parsed.verified) return failed('check exited 1 after printing a verified record');
   if (!errors) return failed('check exited 1 without reporting an error diagnostic');
   return { status: 'diagnostics', failure: null, diagnostics: parsed.diagnostics, verified: null };
+}
+
+// The bounded stdout bytes as text, or null when they are not whole UTF-8:
+// a malformed sequence or a truncated final scalar. A BOM is kept as text,
+// exactly as the former lossy conversion kept it.
+const machineDecoder = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
+function strictUtf8(bytes) {
+  try { return machineDecoder.decode(bytes); } catch { return null; }
 }
 
 function safeOffset(value) { return Number.isSafeInteger(value) && value >= 0 ? value : null; }
@@ -201,7 +211,10 @@ function runCheck(spawnFn, compiler, subject, options = {}) {
     const finish = result => {
       if (settled) return;
       settled = true; clearTimeout(timer); clearKillEscalation();
-      resolve({ stdout: Buffer.concat(stdout).toString('utf8'), stderr: Buffer.concat(stderr).toString('utf8'), ...result });
+      // Stdout is protocol data: it is admitted only as strict UTF-8, never
+      // replacement-decoded. Stderr stays lossy human text and is never parsed.
+      const text = strictUtf8(Buffer.concat(stdout));
+      resolve({ stdout: text === null ? '' : text, stderr: Buffer.concat(stderr).toString('utf8'), ...(text === null ? { invalidUtf8: true } : {}), ...result });
     };
     const timer = setTimeout(() => { timedOut = true; requestKill(); }, timeoutMs);
     const collect = sink => chunk => {

@@ -71,6 +71,9 @@ struct Gate {
     in_flight: u32,
     waiting: usize,
     closing: bool,
+    /// The one absolute shutdown deadline. No business invocation is
+    /// dispatched once it has passed.
+    close_by: Option<Instant>,
 }
 
 struct Core {
@@ -93,6 +96,9 @@ pub struct AdapterHandle {
     gate: Mutex<Gate>,
     cv: Condvar,
     start: Mutex<()>,
+    /// Shutdown-owned stop condition. Startup observes it while waiting for
+    /// the start gate and the handshake; it is never a caller's token.
+    halt: CancelToken,
     core: Mutex<Core>,
     /// `harness/invoke` frames queued to an adapter (test and audit probe).
     invoke_frames: AtomicU64,
@@ -102,12 +108,26 @@ enum Wait {
     Got(Delivery),
     Timeout,
     Cancelled,
+    /// The handle began shutting down (only for waits that observe `halt`).
+    Halted,
 }
 
 fn wait(rx: &Receiver<Delivery>, until: Instant, cancel: &CancelToken) -> Wait {
+    wait_or_halt(rx, until, cancel, None)
+}
+
+fn wait_or_halt(
+    rx: &Receiver<Delivery>,
+    until: Instant,
+    cancel: &CancelToken,
+    halt: Option<&CancelToken>,
+) -> Wait {
     loop {
         if cancel.is_cancelled() {
             return Wait::Cancelled;
+        }
+        if halt.is_some_and(CancelToken::is_cancelled) {
+            return Wait::Halted;
         }
         let now = Instant::now();
         if now >= until {
@@ -171,8 +191,31 @@ impl AdapterHandle {
         lock(&self.core).proc.as_ref().map(|p| p.pid())
     }
 
+    /// Write a live (non-terminal) state. A handle that is draining or closed
+    /// is never revived by a late startup, cancel or deadline path.
     fn set_state(&self, s: AdapterState) {
-        lock(&self.core).state = s;
+        let mut c = lock(&self.core);
+        if !matches!(c.state, AdapterState::Draining | AdapterState::Closed) {
+            c.state = s;
+        }
+    }
+
+    /// Refusal for work that met a closing handle before anything was sent.
+    fn closed_refusal(msg: &'static str) -> Outcome {
+        Outcome::Refused(diag("SPX-HPC021", msg))
+    }
+
+    /// Whether the shutdown deadline has passed (no dispatch after it).
+    fn past_close_by(&self) -> bool {
+        lock(&self.gate)
+            .close_by
+            .is_some_and(|d| Instant::now() >= d)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn gate_counts(&self) -> (u32, usize) {
+        let g = lock(&self.gate);
+        (g.in_flight, g.waiting)
     }
 
     /// Terminate and forget the process, keeping its stderr tail.
@@ -187,7 +230,7 @@ impl AdapterHandle {
 
     fn quarantine(&self, proc: &Arc<Proc>, d: HarnessDiagnostic) {
         self.drop_proc(proc, Closed::Violation(d.clone()));
-        self.set_state(AdapterState::Quarantined(d));
+        lock(&self.core).state = AdapterState::Quarantined(d);
     }
 
     /// A crash/hang: count it; open the breaker at the threshold.
@@ -206,6 +249,11 @@ impl AdapterHandle {
         c.last_stderr = proc.stderr_tail();
         c.proc = None;
         c.crashes += 1;
+        if c.crashes < self.config.crash_threshold
+            && matches!(c.state, AdapterState::Draining | AdapterState::Closed)
+        {
+            return;
+        }
         c.state = if c.crashes >= self.config.crash_threshold {
             AdapterState::Quarantined(diag(
                 "SPX-HPC016",
@@ -238,7 +286,16 @@ impl AdapterHandle {
         }
     }
 
-    /// Wait for start ownership, honouring cancellation and the deadline.
+    fn try_start(&self) -> Option<MutexGuard<'_, ()>> {
+        match self.start.try_lock() {
+            Ok(g) => Some(g),
+            Err(std::sync::TryLockError::Poisoned(p)) => Some(p.into_inner()),
+            Err(std::sync::TryLockError::WouldBlock) => None,
+        }
+    }
+
+    /// Wait for start ownership, honouring cancellation, the deadline and
+    /// handle shutdown (a queued waiter never outlives a closing handle).
     // Outcome is the intentionally rich terminal value returned verbatim to callers.
     #[allow(clippy::result_large_err)]
     fn lock_start(
@@ -247,13 +304,27 @@ impl AdapterHandle {
         cancel: &CancelToken,
     ) -> Result<MutexGuard<'_, ()>, Outcome> {
         loop {
-            match self.start.try_lock() {
-                Ok(g) => return Ok(g),
-                Err(std::sync::TryLockError::Poisoned(p)) => return Ok(p.into_inner()),
-                Err(std::sync::TryLockError::WouldBlock) => {}
+            if self.halt.is_cancelled() {
+                return Err(Self::closed_refusal("adapter handle is closing"));
+            }
+            if let Some(g) = self.try_start() {
+                return Ok(g);
             }
             if let Some(o) = Self::pre_dispatch_stop(until, cancel) {
                 return Err(o);
+            }
+            std::thread::sleep(Duration::from_millis(2));
+        }
+    }
+
+    /// Start ownership for shutdown, bounded by its absolute deadline.
+    fn lock_start_by(&self, deadline: Instant) -> Option<MutexGuard<'_, ()>> {
+        loop {
+            if let Some(g) = self.try_start() {
+                return Some(g);
+            }
+            if Instant::now() >= deadline {
+                return None;
             }
             std::thread::sleep(Duration::from_millis(2));
         }
@@ -270,6 +341,9 @@ impl AdapterHandle {
         let _start = self.lock_start(deadline, cancel)?;
         if let Some(o) = Self::pre_dispatch_stop(deadline, cancel) {
             return Err(o);
+        }
+        if self.halt.is_cancelled() {
+            return Err(Self::closed_refusal("adapter handle is closing"));
         }
         {
             let c = lock(&self.core);
@@ -310,7 +384,17 @@ impl AdapterHandle {
             })?,
         );
         {
+            // Publish the new generation only while the handle is open; the
+            // halt check and the publish share the core lock that shutdown
+            // reads the current generation under.
             let mut c = lock(&self.core);
+            if self.halt.is_cancelled() {
+                drop(c);
+                proc.terminate(Closed::Host("shutdown"));
+                return Err(Self::closed_refusal(
+                    "adapter handle closed during startup; nothing was sent",
+                ));
+            }
             c.mode = prepared.mode;
             c.proc = Some(proc.clone());
         }
@@ -329,10 +413,32 @@ impl AdapterHandle {
             + Duration::from_millis(self.spec.descriptor.resources.handshake_timeout_ms);
         // The handshake is bounded by its own cap and the invocation deadline.
         let until = hs_until.min(deadline);
-        match wait(&rx, until, cancel) {
+        let got = wait_or_halt(&rx, until, cancel, Some(&self.halt));
+        // Shutdown owns the outcome of an interrupted startup: a late reply,
+        // a host stop or the halt itself all end in the same closed refusal.
+        if self.halt.is_cancelled()
+            && !matches!(got, Wait::Got(Delivery::Closed(Closed::Violation(_))))
+        {
+            self.drop_proc(&proc, Closed::Host("shutdown"));
+            return Err(Self::closed_refusal(
+                "adapter handle closed during startup; nothing was sent",
+            ));
+        }
+        match got {
             Wait::Got(Delivery::Result(v)) => match rpc::parse_initialize(&v, &self.offered) {
                 Ok(acc) => {
                     let mut c = lock(&self.core);
+                    // Commit only into an open handle (rechecked under the lock
+                    // shutdown publishes `Draining` under).
+                    if self.halt.is_cancelled()
+                        || matches!(c.state, AdapterState::Draining | AdapterState::Closed)
+                    {
+                        drop(c);
+                        self.drop_proc(&proc, Closed::Host("shutdown"));
+                        return Err(Self::closed_refusal(
+                            "adapter handle closed during startup; nothing was sent",
+                        ));
+                    }
                     c.accepted = acc;
                     c.state = AdapterState::Negotiated;
                     Ok(proc)
@@ -380,6 +486,7 @@ impl AdapterHandle {
                 self.set_state(AdapterState::Prepared);
                 Err(Outcome::Cancelled)
             }
+            Wait::Halted => unreachable!("handled above"),
         }
     }
 
@@ -406,6 +513,10 @@ impl AdapterHandle {
             }
             g.waiting += 1;
             while g.in_flight >= self.limit {
+                if g.closing {
+                    g.waiting -= 1;
+                    return Err(Self::closed_refusal("adapter handle is closing"));
+                }
                 let now = Instant::now();
                 if cancel.is_cancelled() || now >= until {
                     g.waiting -= 1;
@@ -516,6 +627,11 @@ impl AdapterHandle {
         if let Some(o) = Self::pre_dispatch_stop(until, cancel) {
             return o;
         }
+        if self.past_close_by() {
+            return Self::closed_refusal(
+                "adapter handle shutdown deadline passed before dispatch; nothing was sent",
+            );
+        }
         self.invoke_frames.fetch_add(1, Ordering::SeqCst);
         let rx = match proc.request("harness/invoke", req.to_json()) {
             Ok(rx) => rx,
@@ -567,7 +683,7 @@ impl AdapterHandle {
                 self.record_failure(&proc, d.clone());
                 self.fail(class, true, d)
             }
-            Wait::Cancelled => unreachable!("handled above"),
+            Wait::Cancelled | Wait::Halted => unreachable!("handled above"),
         }
     }
 
@@ -655,12 +771,13 @@ impl AdapterHandle {
         }
     }
 
-    /// Graceful stop of one process: `harness/shutdown`, bounded wait, then the
-    /// group is killed regardless so no grandchild survives.
-    fn stop(&self, proc: &Arc<Proc>) {
-        if proc.closed().is_none() {
+    /// Graceful stop of one process: `harness/shutdown` with a reply wait
+    /// bounded by `until`, then the group is killed regardless so no
+    /// grandchild survives. Past `until` it goes straight to the kill.
+    fn stop(&self, proc: &Arc<Proc>, until: Instant) {
+        if proc.closed().is_none() && Instant::now() < until {
             if let Ok(rx) = proc.request("harness/shutdown", json!({})) {
-                let _ = rx.recv_timeout(Duration::from_millis(self.config.shutdown_grace_ms));
+                let _ = rx.recv_timeout(until.saturating_duration_since(Instant::now()));
             }
         }
         self.drop_proc(proc, Closed::Host("shutdown"));
@@ -672,17 +789,34 @@ impl AdapterHandle {
         self.state() == AdapterState::Closed
     }
 
-    /// Drain in-flight work (bounded), stop the adapter, close the handle.
+    /// Drain in-flight work, stop the adapter, close the handle.
+    ///
+    /// One absolute deadline (`shutdown_grace_ms` from the first call) bounds
+    /// the drain, the wait for start ownership and the graceful
+    /// `harness/shutdown` reply. A startup in progress observes the halt and
+    /// abandons its handshake without dispatching anything. After the
+    /// deadline only the forced cleanup remains: a process-group `SIGKILL`
+    /// and reaping the killed child, bounded by the OS rather than by a
+    /// promise of hard real-time termination.
+    ///
     /// The handle stays closed permanently; `AdapterManager::prepare` replaces
     /// a closed entry with a fresh handle and `AdapterManager::close_and_evict`
     /// / `reprepare` do so explicitly.
     pub fn shutdown(&self) {
-        lock(&self.gate).closing = true;
-        let proc = lock(&self.core).proc.clone();
-        if !matches!(self.state(), AdapterState::Quarantined(_)) {
-            self.set_state(AdapterState::Draining);
+        let deadline = {
+            let mut g = lock(&self.gate);
+            g.closing = true;
+            let d = Instant::now() + Duration::from_millis(self.config.shutdown_grace_ms);
+            *g.close_by.get_or_insert(d)
+        };
+        self.halt.cancel();
+        self.cv.notify_all();
+        {
+            let mut c = lock(&self.core);
+            if !matches!(c.state, AdapterState::Quarantined(_) | AdapterState::Closed) {
+                c.state = AdapterState::Draining;
+            }
         }
-        let deadline = Instant::now() + Duration::from_millis(self.config.shutdown_grace_ms);
         let mut g = lock(&self.gate);
         while g.in_flight > 0 && Instant::now() < deadline {
             g = self
@@ -692,10 +826,21 @@ impl AdapterHandle {
                 .0;
         }
         drop(g);
-        let _start = lock(&self.start);
-        if let Some(p) = proc.or_else(|| lock(&self.core).proc.clone()) {
-            self.stop(&p);
+        // Bounded: a startup owner that still holds the gate is stopped below
+        // through the generation it published, never waited on past `deadline`.
+        let start = self.lock_start_by(deadline);
+        // The current generation, read after the halt: no startup can publish
+        // a newer one now, so nothing captured earlier can be stale.
+        let current = lock(&self.core).proc.clone();
+        if let Some(p) = current {
+            let until = if start.is_some() {
+                deadline
+            } else {
+                Instant::now()
+            };
+            self.stop(&p, until);
         }
+        drop(start);
         let mut c = lock(&self.core);
         if !matches!(c.state, AdapterState::Quarantined(_)) {
             c.state = AdapterState::Closed;
@@ -719,7 +864,10 @@ impl AdapterHandle {
             c.proc.clone()
         };
         let Some(p) = proc else { return false };
-        self.stop(&p);
+        self.stop(
+            &p,
+            Instant::now() + Duration::from_millis(self.config.shutdown_grace_ms),
+        );
         let mut c = lock(&self.core);
         if matches!(c.state, AdapterState::Negotiated | AdapterState::Active) {
             c.state = AdapterState::Prepared;
@@ -794,6 +942,7 @@ impl AdapterManager {
             gate: Mutex::default(),
             cv: Condvar::new(),
             start: Mutex::new(()),
+            halt: CancelToken::new(),
             invoke_frames: AtomicU64::new(0),
             core: Mutex::new(Core {
                 state: AdapterState::Prepared,

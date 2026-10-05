@@ -10,6 +10,8 @@ mod ma_lane_m_tests;
 mod mf_lifecycle_tests;
 mod model_tests;
 mod net;
+mod stb01_shutdown_tests;
+mod stb_fixture;
 
 use super::grant::{Grant, GrantedPermissions};
 use super::*;

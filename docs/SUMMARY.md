@@ -31,6 +31,7 @@ Audience: all documentation readers.
 - [Cloudflare-hosted Clef decision adapters v1](HARNESS-CLOUDFLARE-CLEF-V1.md)
 - [Self-hosted Clef decision adapter v1](HARNESS-CLEF-LOCAL-V1.md)
 - [Decision core v1](DECISION-CORE-V1.md)
+- [Runtime model routing v1](RUNTIME-MODEL-ROUTING-V1.md)
 - [Harness model endpoints v1](HARNESS-ENDPOINTS-V1.md)
 - [Harness skill catalog v1](HARNESS-SKILLS-V1.md)
 - [Harness external-host bridge v1](HARNESS-BRIDGE-V1.md)

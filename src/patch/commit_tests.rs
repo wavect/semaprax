@@ -474,7 +474,7 @@ fn target_preflight_constructs_four_thousand_edits_in_one_source_pass() {
 fn typed_v2_selectors_distinguish_colons_and_reject_true_duplicates() {
     let distinct = "schema semaprax.semantic-patch.v2\nbase sha256:0\nrename-member owner a:b member c to first\nrename-member owner a member b:c to second\n";
     let parsed = parse_patch(distinct).unwrap();
-    assert_eq!(parsed.operations.len(), 2);
+    assert_eq!(parsed.operations().len(), 2);
 
     let duplicate = "schema semaprax.semantic-patch.v2\nbase sha256:0\nrename-member owner a:b member c to first\nrename-member owner a:b member c to second\n";
     let error = parse_patch(duplicate).unwrap_err();

@@ -179,9 +179,10 @@ pub(super) fn push_array_pattern_slots(
 }
 
 pub(super) fn byte_slice_transcript_source(
-    program: &ResolvedProgram,
+    facts: &ValueFactIndex<'_>,
     expression: &ResolvedExpr,
 ) -> crate::byte_data_capacity::TranscriptSource {
+    let program = facts.program;
     use crate::byte_data_capacity::TranscriptSource;
     enum Frame<'a> {
         Visit(&'a ResolvedExpr),
@@ -206,9 +207,7 @@ pub(super) fn byte_slice_transcript_source(
                                     TranscriptSource::Unknown
                                 }
                             },
-                            ByteSliceRootKind::OwnedBytes
-                                if resolved_value_is_stdin(program, &fact.root) =>
-                            {
+                            ByteSliceRootKind::OwnedBytes if facts.is_stdin(&fact.root) => {
                                 TranscriptSource::Stdin
                             }
                             ByteSliceRootKind::FunctionParameter
@@ -216,7 +215,7 @@ pub(super) fn byte_slice_transcript_source(
                             | ByteSliceRootKind::BorrowedStr => TranscriptSource::Unknown,
                         });
                     } else {
-                        results.push(resolved_value_type(program, &place.root).map_or(
+                        results.push(facts.value_type(&place.root).map_or(
                             TranscriptSource::Unknown,
                             |ty| match ty {
                                 ResolvedType::ArrayU8(length) => {
@@ -352,7 +351,11 @@ pub(crate) fn push_resolved_expression_children_in_authored_order<'a>(
     }
 }
 
+/// Whole-program search the per-analysis index replaced; kept as the
+/// baseline oracle for the index's corpus comparison.
+#[cfg(test)]
 pub(super) fn resolved_value_is_stdin(program: &ResolvedProgram, value: &ValueId) -> bool {
+    value_index_counters::BASELINE_SEARCHES.with(|count| count.set(count.get() + 1));
     let in_expression = |root: &ResolvedExpr| {
         let mut pending = vec![root];
         while let Some(expression) = pending.pop() {
@@ -394,6 +397,8 @@ pub(super) fn resolved_value_type(
     program: &ResolvedProgram,
     value: &ValueId,
 ) -> Option<ResolvedType> {
+    #[cfg(test)]
+    value_index_counters::BASELINE_SEARCHES.with(|count| count.set(count.get() + 1));
     let in_expression = |root: &ResolvedExpr| {
         let mut pending = vec![root];
         while let Some(expression) = pending.pop() {
@@ -431,14 +436,150 @@ pub(super) fn resolved_value_type(
                 .or_else(|| in_expression(&function.body))
         })
 }
+/// Value facts the transcript classifier needs, indexed once per analysis.
+///
+/// This is a read-only projection of one exact `ResolvedProgram`: it borrows
+/// that program and is dropped with the analysis, so a different program or
+/// revision always gets fresh facts. It records only what the two former
+/// whole-program searches answered, with their precedence:
+///
+/// - `value_type`: ordinary functions, then concrete instances; within each,
+///   parameters, then body `let`/`assign` bindings in authored traversal
+///   order. The first fact wins; a later binding of the same identity (a
+///   normal repeated `assign`) never overwrites it and is not an error.
+/// - `is_stdin`: some function or instance whose first `let` of the identity
+///   is initialized directly by `stdin_read`.
+///
+/// Like the searches it replaces, the walk uses
+/// `push_resolved_expression_children_in_authored_order`, so closure bodies
+/// stay outside the index, and lookups are keyed by binding identity, never
+/// by authored name.
+pub(super) struct ValueFactIndex<'a> {
+    program: &'a ResolvedProgram,
+    facts: std::cell::OnceCell<ValueFacts<'a>>,
+    #[cfg(test)]
+    baseline: bool,
+}
+
+struct ValueFacts<'a> {
+    types: std::collections::BTreeMap<&'a ValueId, &'a ResolvedType>,
+    stdin: std::collections::BTreeSet<&'a ValueId>,
+}
+
+impl<'a> ValueFactIndex<'a> {
+    pub(super) fn new(program: &'a ResolvedProgram) -> Self {
+        Self {
+            program,
+            facts: std::cell::OnceCell::new(),
+            #[cfg(test)]
+            baseline: value_index_counters::USE_BASELINE.with(std::cell::Cell::get),
+        }
+    }
+
+    fn facts(&self) -> &ValueFacts<'a> {
+        self.facts.get_or_init(|| ValueFacts::build(self.program))
+    }
+
+    fn is_stdin(&self, value: &ValueId) -> bool {
+        #[cfg(test)]
+        if self.baseline {
+            return resolved_value_is_stdin(self.program, value);
+        }
+        self.facts().stdin.contains(value)
+    }
+
+    fn value_type(&self, value: &ValueId) -> Option<ResolvedType> {
+        #[cfg(test)]
+        if self.baseline {
+            return resolved_value_type(self.program, value);
+        }
+        self.facts().types.get(value).map(|ty| (*ty).clone())
+    }
+}
+
+impl<'a> ValueFacts<'a> {
+    fn build(program: &'a ResolvedProgram) -> Self {
+        #[cfg(test)]
+        value_index_counters::BUILDS.with(|count| count.set(count.get() + 1));
+        let mut facts = Self {
+            types: std::collections::BTreeMap::new(),
+            stdin: std::collections::BTreeSet::new(),
+        };
+        let functions = program.functions.iter().chain(
+            program
+                .function_instances
+                .iter()
+                .map(|instance| &instance.function),
+        );
+        let mut first_let = std::collections::BTreeSet::new();
+        for function in functions {
+            for parameter in &function.params {
+                facts.types.entry(&parameter.id).or_insert(&parameter.ty);
+            }
+            first_let.clear();
+            let mut pending = vec![&function.body];
+            while let Some(expression) = pending.pop() {
+                #[cfg(test)]
+                value_index_counters::VISITS.with(|count| count.set(count.get() + 1));
+                if let ResolvedExprKind::Block { statements, .. } = &expression.kind {
+                    for statement in statements {
+                        match statement {
+                            ResolvedStatement::Let {
+                                binding,
+                                value: initializer,
+                                ..
+                            } => {
+                                facts.types.entry(&binding.id).or_insert(&binding.ty);
+                                if first_let.insert(&binding.id)
+                                    && matches!(
+                                        &initializer.kind,
+                                        ResolvedExprKind::HostCommandCall(
+                                            ResolvedHostCommandCall {
+                                                operation: ResolvedHostCommandOperation::StdinRead,
+                                                ..
+                                            }
+                                        )
+                                    )
+                                {
+                                    facts.stdin.insert(&binding.id);
+                                }
+                            }
+                            ResolvedStatement::Assign { binding, .. } => {
+                                facts.types.entry(&binding.id).or_insert(&binding.ty);
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+                push_resolved_expression_children_in_authored_order(expression, &mut pending);
+            }
+        }
+        facts
+    }
+}
+
+/// Deterministic, thread-scoped instrumentation for the value-fact index.
+#[cfg(test)]
+pub(super) mod value_index_counters {
+    use std::cell::Cell;
+
+    thread_local! {
+        pub(in crate::hir) static BUILDS: Cell<usize> = const { Cell::new(0) };
+        pub(in crate::hir) static VISITS: Cell<usize> = const { Cell::new(0) };
+        pub(in crate::hir) static BASELINE_SEARCHES: Cell<usize> = const { Cell::new(0) };
+        pub(in crate::hir) static USE_BASELINE: Cell<bool> = const { Cell::new(false) };
+    }
+}
+
 pub(super) fn byte_capacity_expression(
-    program: &ResolvedProgram,
+    facts: &ValueFactIndex<'_>,
     expression: &ResolvedExpr,
     slots: &mut Vec<crate::byte_data_capacity::ArrayStorageSlot>,
     direct_destination: bool,
 ) -> Result<crate::byte_data_capacity::CapacityFlow, Diagnostic> {
     use crate::byte_data_capacity::{ArrayStorageKind, CapacityFlow};
 
+    let program = facts.program;
     enum Frame<'a> {
         Visit(&'a ResolvedExpr, bool),
         Argument(
@@ -560,7 +701,7 @@ pub(super) fn byte_capacity_expression(
                         } else if callee.as_str() == crate::host_io_ops::STDOUT_WRITE_ID {
                             Some(CapacityFlow::StdoutWrite {
                                 site: expression.id.as_str().to_owned(),
-                                source: byte_slice_transcript_source(program, &args[0]),
+                                source: byte_slice_transcript_source(facts, &args[0]),
                             })
                         } else if program
                             .resolve_call_target(callee, instance.as_ref())
@@ -627,7 +768,7 @@ pub(super) fn byte_capacity_expression(
                         } else if call.operation == ResolvedHostCommandOperation::StderrWrite {
                             Some(CapacityFlow::StderrWrite {
                                 site: expression.id.as_str().to_owned(),
-                                source: byte_slice_transcript_source(program, &call.args[0]),
+                                source: byte_slice_transcript_source(facts, &call.args[0]),
                             })
                         } else if matches!(
                             call.operation,
@@ -835,6 +976,9 @@ pub(crate) fn byte_data_capacity_inputs(
 ) -> Result<Vec<crate::byte_data_capacity::FunctionCapacityInput>, Diagnostic> {
     use crate::byte_data_capacity::{ArrayStorageKind, CapacityFlow, FunctionCapacityInput};
 
+    // One value-fact index per analysis, built on the first transcript lookup.
+    let facts = ValueFactIndex::new(program);
+
     let closure_functions = super::closure::inventory(program)
         .into_iter()
         .map(|expression| super::closure::closure_function(program, expression))
@@ -872,10 +1016,10 @@ pub(crate) fn byte_data_capacity_inputs(
             let mut execution = function
                 .requires
                 .iter()
-                .map(|expression| byte_capacity_expression(program, expression, &mut slots, false))
+                .map(|expression| byte_capacity_expression(&facts, expression, &mut slots, false))
                 .collect::<Result<Vec<_>, _>>()?;
             execution.push(byte_capacity_expression(
-                program,
+                &facts,
                 &function.body,
                 &mut slots,
                 true,
@@ -885,7 +1029,7 @@ pub(crate) fn byte_data_capacity_inputs(
                     .ensures
                     .iter()
                     .map(|expression| {
-                        byte_capacity_expression(program, expression, &mut slots, false)
+                        byte_capacity_expression(&facts, expression, &mut slots, false)
                     })
                     .collect::<Result<Vec<_>, _>>()?,
             );

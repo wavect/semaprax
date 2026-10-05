@@ -1,0 +1,18 @@
+{
+  "schema": "semaprax.example.runtime-routing-config.v1",
+  "agent_id": "fixture.agent",
+  "profiles": [
+    {"id": "billing", "deployment": "deployments/billing.json", "alias": "local-basic",
+     "est_cost_micros": 10, "est_latency_ms": 100, "strength_rank": 1, "max_context": 4096},
+    {"id": "technical", "deployment": "deployments/technical.json", "alias": "local-standard",
+     "est_cost_micros": 50, "est_latency_ms": 400, "strength_rank": 9, "max_context": 4096}
+  ],
+  "choice": {
+    "question": "support.route.v1",
+    "input_type": "support.ticket.v1",
+    "output_type": "support.reply.v1",
+    "allowed_effects": [],
+    "excerpt_max_confidentiality": "project",
+    "decision_provider": {"mode": "explicit", "provider_id": "example-choice-fixture"}
+  }
+}

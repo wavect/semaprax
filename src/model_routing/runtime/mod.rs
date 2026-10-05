@@ -33,8 +33,14 @@
 //! uncertain dispatch or external effect halts the session for the existing
 //! reconciliation path and is never replayed with another model.
 //!
+//! [`choice`] (MR-11) is the runtime half of `choice-select/v1`: candidate
+//! tools from a deployment's grants, candidate agents from a configured
+//! [`SpecialistRegistry`], and the authorize stage that rechecks a typed
+//! selection before any effect.
+//!
 //! Contract: `docs/RUNTIME-MODEL-ROUTING-V1.md`.
 
+pub mod choice;
 mod envelope;
 mod error;
 mod features;
@@ -44,6 +50,11 @@ mod record;
 mod select;
 mod session;
 
+pub use choice::{
+    authorize_specialist_choice, authorize_tool_choice, granted_tool_options, tool_schema_type,
+    AuthorizedSpecialist, AuthorizedTool, SpecialistEntry, SpecialistRegistry,
+    SPECIALIST_REGISTRY_SCHEMA,
+};
 pub use envelope::ENVELOPE_SCHEMA;
 pub use error::RuntimeRoutingError;
 pub use features::{RuntimeFeatures, MAX_REQUIRED_MODALITIES};

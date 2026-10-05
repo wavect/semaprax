@@ -285,6 +285,47 @@ impl DurablePolicyBinding {
         })
     }
 
+    /// Pre-admits one deployment profile's ordered provider policy and limits
+    /// with the same order, primary, limit and context checks [`Self::bind`]
+    /// applies, before any execution root or seed exists. Runtime routing
+    /// (MR-09) uses it so an incompatible profile is never offered to a
+    /// router; `bind` still rechecks every fact at dispatch.
+    pub fn admit_profile(
+        deployment: &BoundAgentDeployment,
+        policy: &ProviderPolicy,
+        limits: EffectiveModelBudget,
+    ) -> Result<(), DurablePolicyBindingRefusal> {
+        let Some(primary) = policy.primary() else {
+            return Err(DurablePolicyBindingRefusal::EmptyProviderPolicy);
+        };
+        if !primary.authorized {
+            return Err(DurablePolicyBindingRefusal::UnauthorizedPrimary);
+        }
+        let selected = deployment.model_selections();
+        if policy.len() != selected.len()
+            || selected.iter().enumerate().any(|(index, selected)| {
+                policy
+                    .slot(index)
+                    .is_none_or(|slot| slot.id != selected.provider_id())
+            })
+        {
+            return Err(DurablePolicyBindingRefusal::ProviderOrderMismatch);
+        }
+        check_retained_limits(deployment, limits)?;
+        let context = selected
+            .iter()
+            .map(|item| item.max_context_tokens())
+            .min()
+            .ok_or(DurablePolicyBindingRefusal::EmptyProviderPolicy)?;
+        if limits.limits().max_context_tokens > context {
+            return Err(DurablePolicyBindingRefusal::ContextLimitExceedsDeployment {
+                requested: limits.limits().max_context_tokens,
+                max: context,
+            });
+        }
+        Ok(())
+    }
+
     #[must_use]
     pub fn invocation(&self) -> &LiveInvocationId {
         &self.invocation

@@ -138,9 +138,20 @@ def file_sha(path):
     return h.hexdigest()
 
 
+def is_unconsumed_media(rel):
+    """Binary media the code-only extractor provably never opens (see `skip_reason`). Their bytes cannot change
+    the code graph, so they stay in the coverage inventory but out of the invalidation identity."""
+    return os.path.splitext(rel)[1].lower() in MEDIA_EXT
+
+
 def source_digest(root, files):
-    h = hashlib.sha256(b"semaprax.graphify-source-set.v1\0")
+    """Invalidation identity of the code graph: path and content of every file the extractor may consume.
+    Unconsumed media are excluded entirely (not read, not named), so editing, adding or deleting one neither
+    re-reads it nor re-extracts; `Index.refresh_coverage` keeps the skipped inventory exact instead."""
+    h = hashlib.sha256(b"semaprax.graphify-source-set.v2\0")
     for rel in files:
+        if is_unconsumed_media(rel):
+            continue
         try:
             h.update(f"{rel}\0{file_sha(os.path.join(root, rel))}\n".encode())
         except OSError:
@@ -578,10 +589,21 @@ class Index:
             return None
 
     def ensure(self, refresh):
-        """Return (state, stale_flag)."""
+        """Return (state, stale_flag). The skipped/indexed inventory always describes the current tree."""
         self.check_identity()
         files = walk_files(self.root)
-        digest = source_digest(self.root, files)
+        st, stale = self.ensure_for(refresh, files, source_digest(self.root, files))
+        self.refresh_coverage(st, files)
+        return st, stale
+
+    @staticmethod
+    def refresh_coverage(st, files):
+        """Recompute skipped coverage from the current file list. Indexed files are fixed by the digest (any change
+        to one re-extracts); skipped files (media included) may come and go without touching the code graph."""
+        indexed = set(st["indexed"])
+        st["skipped"] = [{"path": f, "reason": skip_reason(f)} for f in files if f not in indexed]
+
+    def ensure_for(self, refresh, files, digest):
         ac = adoption_config()
         # A forced rebuild outranks first-use adoption: it runs one owned extraction and never touches the user index.
         if self.state is None and ac and self.adoption_note is None and refresh != "rebuild":

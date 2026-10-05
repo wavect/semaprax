@@ -125,8 +125,8 @@ pub fn lex_with_comments(source: &str, path: &str) -> Result<(Vec<Token>, Commen
     lex_source(source, path, true)
 }
 
-/// Test-only count of retained comment rows and comment-text bytes copied by
-/// the lexer on the current thread, proving token-only lexing allocates none.
+// Test-only count of retained comment rows and comment-text bytes copied by
+// the lexer on the current thread, proving token-only lexing allocates none.
 #[cfg(test)]
 thread_local! {
     pub(crate) static TEST_COMMENT_MATERIALIZATION: std::cell::Cell<(usize, usize)> =

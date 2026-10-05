@@ -1,15 +1,3 @@
-#![allow(clippy::all)]
-#![allow(clippy::result_large_err)]
-#![allow(unused)]
-#![allow(
-    clippy::too_many_arguments,
-    clippy::large_enum_variant,
-    clippy::drop_non_drop,
-    clippy::needless_borrow,
-    clippy::items_after_test_module,
-    clippy::bool_assert_comparison
-)]
-#![allow(dead_code)]
 #![allow(
     rustdoc::broken_intra_doc_links,
     rustdoc::private_intra_doc_links,
@@ -31,11 +19,32 @@ pub mod agent_deployment;
 pub mod agent_economics;
 pub mod agent_harness;
 pub mod agent_interaction_schema;
+#[allow(
+    dead_code,
+    unused_imports,
+    unused_mut,
+    unused_variables,
+    clippy::filter_map_bool_then,
+    clippy::large_enum_variant,
+    clippy::manual_is_multiple_of,
+    clippy::needless_option_as_deref,
+    clippy::too_many_arguments,
+    clippy::type_complexity,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub mod agent_lifecycle;
 pub mod agent_lifecycle_typed_carrier;
 pub mod agent_observation;
 pub mod agent_proposal;
+#[allow(
+    unused_imports,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub mod agent_runtime;
+#[allow(
+    clippy::assertions_on_constants,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub mod agent_runtime_v2;
 pub mod agent_skill_bundle;
 pub mod agent_trajectory_export;
@@ -44,10 +53,27 @@ pub mod agent_transport;
 pub(crate) mod aggregate_layout;
 pub mod arc_zones;
 pub mod architecture_claims;
+#[allow(
+    unused_imports,
+    clippy::needless_lifetimes,
+    clippy::ptr_arg,
+    clippy::replace_box,
+    clippy::too_many_arguments,
+    clippy::type_complexity,
+    clippy::unnecessary_literal_unwrap,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub mod assurance_manifest;
 pub mod assurance_policy;
 pub mod ast;
 pub mod audit_capsule;
+#[allow(
+    dead_code,
+    clippy::err_expect,
+    clippy::map_identity,
+    clippy::needless_as_bytes,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub mod authentication;
 pub(crate) mod bounded_output;
 pub(crate) mod box_ops;
@@ -58,12 +84,33 @@ pub(crate) mod cache_codec;
 pub(crate) mod call_index;
 pub mod candidate_archive_store;
 pub mod capability_manifest;
+#[allow(
+    unreachable_patterns,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub mod cleanup;
+#[allow(
+    dead_code,
+    unreachable_patterns,
+    clippy::unnecessary_lazy_evaluations,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub mod cleanup_plan;
+#[allow(
+    dead_code,
+    unused_variables,
+    clippy::needless_borrow,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub mod codegen;
 pub(crate) mod command_io_ops;
 pub(crate) mod command_profile;
 pub mod compact_semantic_projection;
+#[allow(
+    unused_imports,
+    clippy::too_many_arguments,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub mod compute_profile;
 pub mod conformance;
 pub mod cxx_shim;
@@ -76,11 +123,27 @@ pub mod economic_agent;
 pub mod embedding_api;
 pub(crate) mod environment_ops;
 pub mod environment_snapshot;
+#[allow(
+    dead_code,
+    unused_imports,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub mod execution_revision;
 pub(crate) mod filesystem_ops;
 pub mod format;
 pub mod freestanding_object;
+#[allow(
+    dead_code,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub mod graph;
+#[allow(
+    unused_imports,
+    clippy::needless_borrows_for_generic_args,
+    clippy::too_many_arguments,
+    clippy::unnecessary_map_or,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub mod hir;
 pub mod hosted_interpreter;
 #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
@@ -92,23 +155,97 @@ pub mod impact;
 pub mod installed_diagnostics;
 pub mod installed_fix_plan;
 pub mod installed_guidance;
+#[allow(
+    dead_code,
+    unused_imports,
+    unused_mut,
+    unused_variables,
+    clippy::arc_with_non_send_sync,
+    clippy::cloned_ref_to_slice_refs,
+    clippy::large_enum_variant,
+    clippy::needless_borrow,
+    clippy::too_many_arguments,
+    clippy::type_complexity,
+    clippy::unnecessary_cast,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub mod interpreter;
 pub(crate) mod iterator_ops;
+#[allow(
+    dead_code,
+    unused_imports,
+    clippy::needless_borrow,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub(crate) mod kernel_zero;
 pub mod lexer;
 mod list_ops;
+#[allow(
+    dead_code,
+    unused_imports,
+    unused_variables,
+    clippy::arc_with_non_send_sync,
+    clippy::bool_assert_comparison,
+    clippy::clone_on_copy,
+    clippy::collapsible_if,
+    clippy::double_ended_iterator_last,
+    clippy::drop_non_drop,
+    clippy::empty_line_after_doc_comments,
+    clippy::enum_variant_names,
+    clippy::err_expect,
+    clippy::infallible_destructuring_match,
+    clippy::int_plus_one,
+    clippy::items_after_test_module,
+    clippy::large_enum_variant,
+    clippy::match_like_matches_macro,
+    clippy::needless_borrow,
+    clippy::needless_range_loop,
+    clippy::op_ref,
+    clippy::too_many_arguments,
+    clippy::type_complexity,
+    clippy::unnecessary_cast,
+    clippy::useless_vec,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub mod live_invocation;
 pub mod loan_plan;
+#[allow(
+    clippy::too_many_arguments,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub mod model_budget_policy;
 pub mod model_call_receipt;
+#[allow(
+    clippy::large_enum_variant,
+    clippy::manual_contains,
+    clippy::manual_is_multiple_of,
+    clippy::type_complexity,
+    clippy::unnecessary_sort_by,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub mod model_routing;
 pub mod native_law_source;
 pub mod native_rust_binding;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
 #[doc(hidden)]
 pub(crate) mod native_settlement;
+#[allow(
+    dead_code,
+    unused_imports,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub(crate) mod oci_package;
 pub mod openapi;
+#[allow(
+    dead_code,
+    unused_imports,
+    clippy::chunks_exact_to_as_chunks,
+    clippy::len_without_is_empty,
+    clippy::manual_is_multiple_of,
+    clippy::too_many_arguments,
+    clippy::type_complexity,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub mod outbound_host_adapter;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
 #[doc(hidden)]
@@ -130,6 +267,13 @@ pub mod package_lock;
 pub mod package_lock_v2;
 pub mod package_lock_v3;
 mod package_range;
+#[allow(
+    unused_imports,
+    clippy::collapsible_if,
+    clippy::type_complexity,
+    clippy::useless_vec,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub mod package_registry;
 pub mod package_report;
 pub mod package_report_v2;
@@ -139,6 +283,11 @@ pub mod package_resolver_v2;
 pub mod package_semantic_graph;
 pub mod package_source_capsule;
 pub mod parser;
+#[allow(
+    clippy::needless_borrow,
+    clippy::needless_borrows_for_generic_args,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub mod patch;
 pub mod patch_evidence;
 pub mod plugin_manifest;
@@ -146,14 +295,52 @@ pub mod plugin_manifest;
 mod private_capacity_contract;
 pub(crate) mod process_ops;
 pub mod process_provider;
+#[allow(
+    dead_code,
+    unused_imports,
+    unused_mut,
+    clippy::collapsible_if,
+    clippy::manual_is_multiple_of,
+    clippy::needless_lifetimes,
+    clippy::needless_question_mark,
+    clippy::question_mark,
+    clippy::redundant_closure,
+    clippy::redundant_iter_cloned,
+    clippy::too_many_arguments,
+    clippy::type_complexity,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub mod project;
 pub mod project_revision_store;
 #[doc(hidden)]
+#[allow(
+    dead_code,
+    unused_imports,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub mod project_transport;
+#[allow(
+    clippy::cloned_ref_to_slice_refs,
+    clippy::needless_lifetimes,
+    clippy::too_many_arguments,
+    clippy::type_complexity,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub mod proof_export;
 pub mod properties;
 pub mod protocol_check;
+#[allow(
+    dead_code,
+    unused_imports,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub mod provider_adapter_sdk;
+#[allow(
+    unused_mut,
+    clippy::manual_repeat_n,
+    clippy::needless_borrow,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub mod public_generic_abi;
 pub mod public_generic_consumer;
 pub mod public_generic_settlement;
@@ -162,9 +349,31 @@ pub mod public_generic_type;
 pub mod quality_route;
 pub mod query;
 pub mod region_report;
+#[allow(
+    clippy::chunks_exact_to_as_chunks,
+    clippy::manual_div_ceil,
+    clippy::manual_is_multiple_of,
+    clippy::too_many_arguments,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub mod release_provenance;
 pub mod repair;
 pub mod requirement_traceability;
+#[allow(
+    dead_code,
+    unused_imports,
+    clippy::chunks_exact_to_as_chunks,
+    clippy::cloned_ref_to_slice_refs,
+    clippy::items_after_test_module,
+    clippy::large_enum_variant,
+    clippy::manual_is_multiple_of,
+    clippy::manual_noop_waker,
+    clippy::needless_lifetimes,
+    clippy::redundant_async_block,
+    clippy::replace_box,
+    clippy::too_many_arguments,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub mod resumable_effects;
 pub mod review;
 pub mod runtime_status;
@@ -176,11 +385,20 @@ pub mod semantic_cache_store;
 pub mod semantic_discovery;
 pub mod semantic_embedding;
 pub mod semantic_retention;
+#[allow(
+    clippy::large_enum_variant,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub mod semantic_retention_lifecycle;
 pub mod semantic_retention_registry;
 pub mod semantic_retention_store;
 pub mod semantic_service_mcp;
 pub mod semantic_service_transport;
+#[allow(
+    unused_mut,
+    clippy::doc_lazy_continuation,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub mod semantic_task_context;
 pub mod semantic_trace;
 pub mod simd_report;
@@ -205,6 +423,15 @@ pub mod ui_schema;
 pub(crate) mod variant_layout;
 pub(crate) mod vec_ops;
 pub mod verify;
+#[allow(
+    dead_code,
+    unused_imports,
+    clippy::cloned_ref_to_slice_refs,
+    clippy::manual_is_multiple_of,
+    clippy::needless_return,
+    clippy::unnecessary_cast,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub mod wasm;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 #[doc(hidden)]
@@ -213,6 +440,15 @@ pub mod workspace;
 pub mod workspace_patch_evidence;
 
 pub mod database_fixture;
+#[allow(
+    dead_code,
+    unused_imports,
+    clippy::enum_variant_names,
+    clippy::explicit_counter_loop,
+    clippy::field_reassign_with_default,
+    clippy::suspicious_open_options,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub mod durable_jobs;
 pub mod filesystem_provider;
 mod graph_cleanup;
@@ -221,15 +457,33 @@ pub(crate) mod host_io_ops;
 mod host_ownership;
 pub mod job_evidence;
 pub mod job_fixture;
+#[allow(
+    clippy::filter_map_identity,
+    clippy::too_many_arguments,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub mod job_runtime;
 pub(crate) mod network_io_ops;
+#[allow(
+    clippy::field_reassign_with_default,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub mod network_provider;
 mod prelude;
 pub mod semantic_workspace;
 pub mod semantic_workspace_change;
 pub mod semantic_workspace_operations;
 pub mod semantic_workspace_structural_change;
+#[allow(
+    clippy::explicit_auto_deref,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 pub mod session_protocol;
+#[allow(
+    clippy::needless_borrows_for_generic_args,
+    clippy::needless_return,
+    reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
+)]
 mod source_verify;
 pub mod typed_workflow;
 #[cfg(feature = "unstable-workflow-profiling")]

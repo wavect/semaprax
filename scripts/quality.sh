@@ -126,6 +126,29 @@ if [ "$plan_only" -eq 1 ]; then
     exit 0
 fi
 
+# REF-24 (#543): the Clippy gates pass `-D warnings`, which rejects nothing a
+# crate-root attribute has already allowed. Refuse to run any profile while the
+# compiler root (or the package `[lints]` table) re-enables a blanket escape
+# hatch; remaining exceptions must be named lints scoped to a module.
+printf '==> lint-policy\n' >&2
+python3 - <<'LINT_POLICY'
+import re, sys
+blanket = {"clippy::all", "unused", "dead_code", "warnings"}
+found = []
+root = open("src/lib.rs", encoding="utf-8").read()
+for attribute in re.finditer(r"#!\[\s*(allow|expect)\s*\((.*?)\)\s*\]", root, re.S):
+    names = {name.strip() for name in re.sub(r"reason\s*=\s*\"[^\"]*\"", "", attribute.group(2)).split(",")}
+    found += sorted(names & blanket)
+manifest = open("Cargo.toml", encoding="utf-8").read()
+for name in blanket:
+    table, _, lint = name.rpartition("::")
+    key = lint if table else name
+    if re.search(r"^\s*\"?" + re.escape(key) + r"\"?\s*=\s*(\"allow\"|\{[^}]*level\s*=\s*\"allow\")", manifest, re.M):
+        found.append(name + " (Cargo.toml)")
+if found:
+    sys.exit("blanket lint suppression is not allowed at the compiler root: " + ", ".join(found))
+LINT_POLICY
+
 # Dispatch only the exact, validated gate identifiers emitted by the plan.
 while IFS="$tab" read -r kind gate _rest; do
     [ "$kind" = gate ] || continue

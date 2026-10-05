@@ -4,7 +4,10 @@ Status: additive development-harness specification (HP-00); local macOS aarch64 
 
 Audience: toolchain contributors and harness adapter authors.
 
-Owner: `crates/semaprax-harness/src/decision/`. Contract: `decision.evaluate/v1`
+Owner: `crates/semaprax-harness/src/decision/`; the deterministic engine it
+re-exports (screening, rules, policy, plans, validation, rendering, cache and
+replay) is the shared decision core in `src/model_routing/engine/`, see
+[DECISION-CORE-V1](DECISION-CORE-V1.md) (MR-07). Contract: `decision.evaluate/v1`
 in [HARNESS-PROVIDER-V1](HARNESS-PROVIDER-V1.md). Diagnostics letter `J`.
 
 ## Flow

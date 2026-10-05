@@ -191,9 +191,20 @@ impl AdapterHandle {
     }
 
     /// A crash/hang: count it; open the breaker at the threshold.
+    ///
+    /// Charged once per process generation: only the caller that still finds
+    /// `proc` installed in `core` (checked and cleared under the same lock)
+    /// counts it. Every other waiter of the same exit, and any delayed waiter
+    /// of an older generation, finds a different or absent process and leaves
+    /// the shared state alone.
     fn record_failure(&self, proc: &Arc<Proc>, d: HarnessDiagnostic) {
-        self.drop_proc(proc, Closed::Host("failed"));
+        proc.terminate(Closed::Host("failed"));
         let mut c = lock(&self.core);
+        if !c.proc.as_ref().is_some_and(|p| Arc::ptr_eq(p, proc)) {
+            return;
+        }
+        c.last_stderr = proc.stderr_tail();
+        c.proc = None;
         c.crashes += 1;
         c.state = if c.crashes >= self.config.crash_threshold {
             AdapterState::Quarantined(diag(
@@ -655,7 +666,16 @@ impl AdapterHandle {
         self.drop_proc(proc, Closed::Host("shutdown"));
     }
 
+    /// True once `shutdown` has completed on a handle that was not
+    /// quarantined. A closed handle never serves another invocation.
+    pub fn is_closed(&self) -> bool {
+        self.state() == AdapterState::Closed
+    }
+
     /// Drain in-flight work (bounded), stop the adapter, close the handle.
+    /// The handle stays closed permanently; `AdapterManager::prepare` replaces
+    /// a closed entry with a fresh handle and `AdapterManager::close_and_evict`
+    /// / `reprepare` do so explicitly.
     pub fn shutdown(&self) {
         lock(&self.gate).closing = true;
         let proc = lock(&self.core).proc.clone();
@@ -725,31 +745,32 @@ impl AdapterManager {
         }
     }
 
-    /// Verify the launch (grant, digests, isolation) and register the handle
-    /// in state `Prepared`. Nothing is started until the first invocation. A
-    /// second call for the same key returns the existing handle if the
-    /// descriptor digest is unchanged.
-    pub fn prepare(&self, project_id: &str, spec: LaunchSpec) -> HarnessResult<Arc<AdapterHandle>> {
-        let key = (project_id.to_string(), spec.descriptor.provider_id.clone());
-        let mut handles = lock(&self.handles);
-        if let Some(h) = handles.get(&key) {
-            if h.spec.descriptor.digest() != spec.descriptor.digest() {
-                return Err(diag(
-                    "SPX-HPC001",
-                    "a different descriptor is already bound to this (project, provider)",
-                ));
-            }
-            if let Some(what) = h.spec.launch_difference(&spec) {
-                return Err(diag(
-                    "SPX-HPC001",
-                    format!(
-                        "this (project, provider) is already bound to a handle with a different launch identity ({what}); \
-                         close the handle explicitly before re-preparing"
-                    ),
-                ));
-            }
-            return Ok(h.clone());
+    /// Same-key identity check for an entry that is still bound.
+    fn same_identity(
+        h: &Arc<AdapterHandle>,
+        spec: &LaunchSpec,
+    ) -> HarnessResult<Arc<AdapterHandle>> {
+        if h.spec.descriptor.digest() != spec.descriptor.digest() {
+            return Err(diag(
+                "SPX-HPC001",
+                "a different descriptor is already bound to this (project, provider)",
+            ));
         }
+        if let Some(what) = h.spec.launch_difference(spec) {
+            return Err(diag(
+                "SPX-HPC001",
+                format!(
+                    "this (project, provider) is already bound to a handle with a different launch identity ({what}); \
+                     close it first with AdapterHandle::shutdown (a closed entry is then replaced by prepare) \
+                     or AdapterManager::reprepare"
+                ),
+            ));
+        }
+        Ok(h.clone())
+    }
+
+    /// Validate the launch fully and build an unregistered `Prepared` handle.
+    fn build(&self, project_id: &str, spec: LaunchSpec) -> HarnessResult<Arc<AdapterHandle>> {
         let prepared = spec.prepare(&self.config.backend)?;
         let negotiation = negotiate(&spec.descriptor, &HostSupport::first_wave())?;
         if negotiation.active.is_empty() {
@@ -764,7 +785,7 @@ impl AdapterManager {
             .max_concurrency
             .min(self.config.host_max_concurrency)
             .max(1);
-        let h = Arc::new(AdapterHandle {
+        Ok(Arc::new(AdapterHandle {
             project_id: project_id.to_string(),
             config: self.config.clone(),
             ledger: self.ledger.clone(),
@@ -784,9 +805,74 @@ impl AdapterManager {
                 last_stderr: (String::new(), 0),
             }),
             spec,
-        });
+        }))
+    }
+
+    /// Verify the launch (grant, digests, isolation) and register the handle
+    /// in state `Prepared`. Nothing is started until the first invocation. A
+    /// second call for the same key returns the existing handle if the full
+    /// launch identity is unchanged. An entry whose handle has been closed
+    /// (`AdapterHandle::shutdown` completed) is replaced by a fresh handle; a
+    /// quarantined entry is never replaced here (use `close_and_evict` or
+    /// `reprepare`).
+    pub fn prepare(&self, project_id: &str, spec: LaunchSpec) -> HarnessResult<Arc<AdapterHandle>> {
+        let key = (project_id.to_string(), spec.descriptor.provider_id.clone());
+        let mut handles = lock(&self.handles);
+        if let Some(h) = handles.get(&key) {
+            if !h.is_closed() {
+                return Self::same_identity(h, &spec);
+            }
+        }
+        let h = self.build(project_id, spec)?;
         handles.insert(key, h.clone());
         Ok(h)
+    }
+
+    /// Explicitly close the handle bound to the key and drop it from the
+    /// registry; the old `Arc` stays permanently closed. Returns whether an
+    /// entry existed. The slow shutdown runs without the registry lock; the
+    /// entry stays registered (and so blocks a second owner) until the old
+    /// process is stopped. This is also the explicit recovery path for a
+    /// quarantined adapter.
+    pub fn close_and_evict(&self, project_id: &str, provider_id: &str) -> bool {
+        let key = (project_id.to_string(), provider_id.to_string());
+        let Some(old) = lock(&self.handles).get(&key).cloned() else {
+            return false;
+        };
+        old.shutdown();
+        let mut handles = lock(&self.handles);
+        if handles.get(&key).is_some_and(|h| Arc::ptr_eq(h, &old)) {
+            handles.remove(&key);
+        }
+        true
+    }
+
+    /// Validate `spec` in full, then close and replace the entry for its key
+    /// (whatever its identity or state, including quarantine) with a fresh
+    /// `Prepared` handle. A failed validation leaves the existing handle
+    /// untouched. If a concurrent caller already installed a replacement, that
+    /// handle is returned when its identity matches `spec` and refused
+    /// otherwise, so two active owners can never coexist.
+    pub fn reprepare(
+        &self,
+        project_id: &str,
+        spec: LaunchSpec,
+    ) -> HarnessResult<Arc<AdapterHandle>> {
+        let key = (project_id.to_string(), spec.descriptor.provider_id.clone());
+        let fresh = self.build(project_id, spec)?;
+        let old = lock(&self.handles).get(&key).cloned();
+        if let Some(o) = &old {
+            o.shutdown();
+        }
+        let mut handles = lock(&self.handles);
+        if let Some(cur) = handles.get(&key) {
+            let replaced = old.as_ref().is_some_and(|o| Arc::ptr_eq(o, cur));
+            if !replaced && !cur.is_closed() {
+                return Self::same_identity(cur, &fresh.spec);
+            }
+        }
+        handles.insert(key, fresh.clone());
+        Ok(fresh)
     }
 
     pub fn handle(&self, project_id: &str, provider_id: &str) -> Option<Arc<AdapterHandle>> {

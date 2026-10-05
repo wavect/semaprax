@@ -14,12 +14,12 @@ use crate::host::{
     LaunchSpec, NetworkPolicy, Outcome,
 };
 use crate::profile::resolve::BindingState;
-use crate::workflow::journal::{FaultHook, Journal};
+use crate::workflow::journal::{FaultHook, Journal, JournalIndex};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, VecDeque};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 /// Concurrent in-flight invocations per session; further requests are refused.
 pub const MAX_IN_FLIGHT: usize = 4;
@@ -144,6 +144,8 @@ pub struct Invoker {
     /// Restart-unique session token for default step identities.
     session: String,
     fault: Mutex<Option<FaultHook>>,
+    /// Validated journal state retained across claims and settlements (MF-02).
+    journal_index: Arc<JournalIndex>,
     pub registry: Registry,
 }
 
@@ -253,6 +255,12 @@ impl Invoker {
         *lock(&self.fault) = hook;
     }
 
+    /// Journal records decoded from disk by this invoker (test instrumentation).
+    #[doc(hidden)]
+    pub fn journal_decoded(&self) -> u64 {
+        self.journal_index.decoded()
+    }
+
     pub fn new(env: &Environment, project: &Path, config: HostConfig) -> Self {
         Self {
             env: env.clone(),
@@ -261,6 +269,7 @@ impl Invoker {
             counter: AtomicU64::new(0),
             session: session_token(),
             fault: Mutex::new(None),
+            journal_index: Arc::default(),
             registry: Registry::default(),
         }
     }
@@ -398,8 +407,12 @@ impl Invoker {
     }
 
     fn open_journal(&self, home: &Path, project_id: &str) -> HarnessResult<Journal> {
-        let mut j =
-            Journal::open_wait(&home.join("cache").join("bridge"), project_id, JOURNAL_WAIT)?;
+        let mut j = Journal::open_wait_indexed(
+            &home.join("cache").join("bridge"),
+            project_id,
+            JOURNAL_WAIT,
+            &self.journal_index,
+        )?;
         j.set_fault(lock(&self.fault).clone());
         Ok(j)
     }
@@ -436,6 +449,19 @@ impl Invoker {
             Outcome::Refused(d) if !cancelled => j.append(step, "refused", json!({"code": d.code})),
             // Cancelled before the request was written: provably never ran.
             Outcome::Cancelled => j.append(step, "cancelled", json!({})),
+            // The host proved nothing was written to the adapter (typed
+            // `request_sent`, never a message or `fallback_allowed`): the same
+            // nonexecution terminal as a pre-write cancellation, so the step
+            // stays retryable. A failed append leaves `begin`: not replayable.
+            Outcome::Unavailable {
+                reason,
+                request_sent: false,
+                ..
+            } if !cancelled => j.append(
+                step,
+                "cancelled",
+                json!({"cause": "unsent", "code": reason.code}),
+            ),
             _ => j.record_uncertain(
                 step,
                 if cancelled {
@@ -506,5 +532,117 @@ pub fn settled_state(v: &Value) -> &'static str {
         Some("confirmed-terminated") => "confirmed-terminated",
         Some("uncertain-external-effect") => "uncertain-external-effect",
         _ => "completed",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::workflow::journal::Fault;
+    use std::sync::Arc;
+
+    fn invoker(root: &Path) -> Invoker {
+        let env = Environment {
+            harness_home: Some(root.join("home")),
+            compiler: None,
+            cwd: root.to_path_buf(),
+            vars: BTreeMap::new(),
+        };
+        Invoker::new(&env, root, HostConfig::default())
+    }
+
+    fn unavailable(sent: bool, fallback: bool, msg: &str) -> Outcome {
+        Outcome::Unavailable {
+            reason: diag("SPX-HPC008", msg),
+            request_sent: sent,
+            fallback_allowed: fallback,
+        }
+    }
+
+    /// Settle `out` for `step`, then report whether a restarted invoker would
+    /// admit the same step again.
+    fn replayable_after(name: &str, out: &Outcome, cancelled: bool) -> (bool, Value) {
+        let root = std::env::temp_dir().join(format!("hp-mf04-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).unwrap();
+        let inv = invoker(&root);
+        let home = root.join("home");
+        inv.journal_begin(&home, "p", "s").unwrap();
+        assert!(inv.journal_begin(&home, "p", "s").is_err(), "begun");
+        let class = InvocationClass::SideEffecting;
+        inv.settle_journal(&home, "p", "s", class, out, cancelled)
+            .unwrap();
+        let text = std::fs::read_dir(home.join("cache/bridge"))
+            .unwrap()
+            .flatten()
+            .filter(|e| e.file_name().to_string_lossy().ends_with(".jsonl"))
+            .map(|e| std::fs::read_to_string(e.path()).unwrap())
+            .collect::<String>();
+        let last: Value = serde_json::from_str(text.lines().last().unwrap()).unwrap();
+        let again = invoker(&root).journal_begin(&home, "p", "s").is_ok();
+        let _ = std::fs::remove_dir_all(&root);
+        (again, last)
+    }
+
+    #[test]
+    fn typed_unsent_unavailable_settles_as_nonexecution_and_stays_retryable() {
+        // The typed field decides: the message and `fallback_allowed` do not.
+        for fallback in [true, false] {
+            let (again, rec) = replayable_after(
+                "unsent",
+                &unavailable(false, fallback, "request was sent and executed"),
+                false,
+            );
+            assert!(again, "fallback_allowed={fallback}");
+            assert_eq!(rec["state"], "cancelled");
+            assert_eq!(rec["detail"]["cause"], "unsent");
+        }
+    }
+
+    #[test]
+    fn dispatched_or_unproven_outcomes_stay_non_replayable() {
+        for (name, out, cancelled) in [
+            ("sent", unavailable(true, true, "nothing was sent"), false),
+            ("sent2", unavailable(true, false, "nothing was sent"), false),
+            (
+                "uncertain",
+                Outcome::Uncertain(diag("SPX-HPC007", "x")),
+                false,
+            ),
+            (
+                "quarantine",
+                Outcome::Quarantined(diag("SPX-HPC009", "x")),
+                false,
+            ),
+            ("cancelled-flag", unavailable(false, true, "x"), true),
+        ] {
+            let (again, rec) = replayable_after(name, &out, cancelled);
+            assert!(!again, "{name}");
+            assert_eq!(rec["state"], "uncertain", "{name}");
+        }
+    }
+
+    #[test]
+    fn failed_unsent_terminal_is_surfaced_and_does_not_authorize_retry() {
+        let root = std::env::temp_dir().join(format!("hp-mf04-fault-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).unwrap();
+        let home = root.join("home");
+        let inv = invoker(&root);
+        inv.journal_begin(&home, "p", "s").unwrap();
+        inv.set_journal_fault(Some(Arc::new(|st| {
+            (st == "cancelled").then_some(Fault::Write)
+        })));
+        let r = inv.settle_journal(
+            &home,
+            "p",
+            "s",
+            InvocationClass::SideEffecting,
+            &unavailable(false, true, "x"),
+            false,
+        );
+        assert_eq!(r.unwrap_err().code, "SPX-HPD070");
+        assert!(invoker(&root).journal_begin(&home, "p", "s").is_err());
+        let _ = std::fs::remove_dir_all(&root);
     }
 }

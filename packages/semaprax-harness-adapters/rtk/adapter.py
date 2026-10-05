@@ -206,14 +206,15 @@ def view(req):
     raw_in = out_b + (err_b if merged else b"")
     decoded = raw_in.decode("utf-8", "replace")
     bad = decoded.count("�") - raw_in.decode("utf-8", "ignore").count("�")
+    err_text, err_bad = ("", 0) if merged else _decode_stream(err_b)
     total = len(out_b) + len(err_b)
     min_bytes = int(p.get("min_bytes", (p.get("config") or {}).get("min_bytes", DEFAULT_MIN_BYTES)))
     handle = {"recovery_handle": p["recovery_handle"]} if p.get("recovery_handle") else {}
     diags = []
     if total < min_bytes:
-        text = decoded + _stderr_tail(err_b, merged)
+        text = decoded + _stderr_tail(err_text, merged)
         diags.append({"code": "rtk.small-output-bypass", "message": f"raw_bytes={total} min_bytes={min_bytes}"})
-        return "complete", _result(text, bad == 0 and _utf8_ok(err_b), bad, handle), diags
+        return "complete", _result(text, bad + err_bad == 0, bad + err_bad, handle), diags
     proc = subprocess.run([rtk, "pipe", "-f", fam["filter"]], input=decoded.encode("utf-8"),
                           capture_output=True, timeout=20, env=rtk_env(ret))
     if proc.returncode != 0:
@@ -237,24 +238,23 @@ def view(req):
                 text += f"\n[adapter: {len(missing) - len(shown)} more critical lines in recovered raw output]"
             omissions = max(0, omissions - len(shown))
     else:
-        text += _stderr_tail(err_b, merged)
-    lossless = filtered == decoded and bad == 0
+        text += _stderr_tail(err_text, merged)
+        omissions += err_bad
+    lossless = filtered == decoded and bad == 0 and err_bad == 0
     diags.append({"code": "rtk.filter", "message": f"filter={fam['filter']} raw_bytes={total} view_bytes={len(text.encode())}"})
     return "complete", _result(text, lossless, omissions, handle), diags
 
 
-def _utf8_ok(b):
-    try:
-        b.decode("utf-8")
-        return True
-    except UnicodeDecodeError:
-        return False
+def _decode_stream(b):
+    """Decode with replacement; count U+FFFD introduced by invalid bytes, not authored ones."""
+    text = b.decode("utf-8", "replace")
+    return text, text.count("\ufffd") - b.decode("utf-8", "ignore").count("\ufffd")
 
 
-def _stderr_tail(err_b, merged):
-    if merged or not err_b:
+def _stderr_tail(err_text, merged):
+    if merged or not err_text:
         return ""
-    return "\n[stderr]\n" + err_b.decode("utf-8", "replace")
+    return "\n[stderr]\n" + err_text
 
 
 def _result(text, lossless, omissions, handle):

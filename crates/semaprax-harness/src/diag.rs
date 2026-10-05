@@ -1,34 +1,10 @@
 //! Harness diagnostics: stable `SPX-HP<letter><3 digits>` codes (see the
 //! specification's Diagnostics section for the per-work-item letter).
+//!
+//! The type is the decision core's `Diagnostic` (MR-07): one code-and-message
+//! shape, so a routing refusal is identical through the harness and the
+//! runtime boundary. The historical name stays the harness's public name.
 
-use std::fmt;
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct HarnessDiagnostic {
-    pub code: &'static str,
-    pub message: String,
-}
-
-impl HarnessDiagnostic {
-    pub fn new(code: &'static str, message: impl Into<String>) -> Self {
-        Self {
-            code,
-            message: message.into(),
-        }
-    }
-
-    /// One JSON object `{"code":..,"message":..}`.
-    pub fn json(&self) -> serde_json::Value {
-        serde_json::json!({"code": self.code, "message": self.message})
-    }
-}
-
-impl fmt::Display for HarnessDiagnostic {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "error[{}]: {}", self.code, self.message)
-    }
-}
-
-impl std::error::Error for HarnessDiagnostic {}
+pub use semaprax_decision_core::diag::Diagnostic as HarnessDiagnostic;
 
 pub type HarnessResult<T> = Result<T, HarnessDiagnostic>;

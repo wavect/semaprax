@@ -1,10 +1,10 @@
 //! Frozen fallback plan per attempt lineage and the attempt ledger that
 //! meters initial-route, reasoning-escalation and transport-retry events.
 
+use super::diag::DecisionResult;
+use super::json;
 use super::policy::LineageBudgets;
 use super::route::{bad, shape, text, Destination, ModelPlan};
-use crate::diag::HarnessResult;
-use crate::json;
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
 
@@ -35,7 +35,7 @@ impl FrozenRoutePlan {
         admissible: &[ModelPlan],
         decision_digest: String,
         policy_digest: String,
-    ) -> HarnessResult<Self> {
+    ) -> DecisionResult<Self> {
         let first = admissible
             .iter()
             .find(|p| p.id == chosen)
@@ -97,7 +97,7 @@ impl FrozenRoutePlan {
         json!({"lineage_id": self.lineage_id, "ordered": slots, "decision_digest": self.decision_digest, "policy_digest": self.policy_digest})
     }
 
-    pub fn from_json(v: &Value) -> HarnessResult<Self> {
+    pub fn from_json(v: &Value) -> DecisionResult<Self> {
         const C: &str = "SPX-HPJ008";
         let m = shape(
             v,
@@ -202,7 +202,7 @@ impl AttemptLedger {
         self.duplicates
     }
 
-    pub fn begin(&mut self, kind: AttemptKind, attempt_id: &str) -> HarnessResult<AttemptGrant> {
+    pub fn begin(&mut self, kind: AttemptKind, attempt_id: &str) -> DecisionResult<AttemptGrant> {
         if let Some((k, g)) = self.seen.get(attempt_id) {
             if *k != kind {
                 return Err(bad(

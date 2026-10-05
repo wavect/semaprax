@@ -10,11 +10,11 @@
 //! vendor or model name; everything below is declared data.
 
 use super::call::{IdentityKind, ScoreKind};
+use super::diag::DecisionResult;
+use super::json;
 use super::render::RENDERER_V2;
 use super::route::{bad, enum_of, flag, shape, uint};
 use super::route_v2::{modalities, Modality};
-use crate::diag::HarnessResult;
-use crate::json;
 use serde_json::{json, Value};
 use std::collections::BTreeSet;
 
@@ -28,7 +28,7 @@ pub const RENDERERS: [&str; 1] = [RENDERER_V2];
 
 const C: &str = "SPX-HPJ020";
 
-fn ident(v: &Value, k: &str, max: usize) -> HarnessResult<String> {
+fn ident(v: &Value, k: &str, max: usize) -> DecisionResult<String> {
     match v.get(k).and_then(Value::as_str) {
         Some(s) if super::call::ident_ok(s, max) => Ok(s.to_string()),
         _ => Err(bad(
@@ -72,7 +72,7 @@ pub struct ModelProfile {
 impl ModelProfile {
     /// Strict parse; unknown members, an unknown renderer (contract version),
     /// inconsistent identity or score declarations are refused (`SPX-HPJ020`).
-    pub fn from_json(v: &Value) -> HarnessResult<Self> {
+    pub fn from_json(v: &Value) -> DecisionResult<Self> {
         let m = shape(
             v,
             "model profile",

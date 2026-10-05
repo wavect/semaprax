@@ -1340,41 +1340,5 @@ pub fn looks_like_absolute_path(s: &str) -> bool {
         || s.contains("/home/")
 }
 
-/// Conservative secret heuristics: well-known token prefixes, credentials in a
-/// URL, `key=value` credential assignments and long opaque tokens.
-pub fn looks_like_secret(s: &str) -> bool {
-    const PREFIXES: [&str; 11] = [
-        "sk-",
-        "ghp_",
-        "gho_",
-        "ghs_",
-        "github_pat_",
-        "xox",
-        "AKIA",
-        "AIza",
-        "-----BEGIN",
-        "Bearer ",
-        "eyJ",
-    ];
-    if PREFIXES.iter().any(|p| s.starts_with(p)) {
-        return true;
-    }
-    let lower = s.to_ascii_lowercase();
-    if ["api_key=", "apikey=", "token=", "password=", "secret="]
-        .iter()
-        .any(|p| lower.contains(p))
-    {
-        return true;
-    }
-    if let Some((_, rest)) = s.split_once("://") {
-        let authority = rest.split('/').next().unwrap_or("");
-        if authority.contains('@') && authority.split('@').next().is_some_and(|u| u.contains(':')) {
-            return true;
-        }
-    }
-    s.len() >= 32
-        && s.bytes()
-            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'+' | b'=' | b'_' | b'-'))
-        && s.bytes().any(|b| b.is_ascii_digit())
-        && s.bytes().any(|b| b.is_ascii_alphabetic())
-}
+/// Conservative secret heuristics (the decision core's single implementation).
+pub use semaprax_decision_core::text::looks_like_secret;

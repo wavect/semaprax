@@ -338,6 +338,14 @@ charges in memory without claiming generic-journal crash recovery.
 and the reservation trail. It consumes an explicit provider factory and host
 backoff/classification seams; it adds no durable journal or deployment authority.
 `model_budget_policy/durable` derives retained execution and deployment limits.
+`model_routing/engine` is the one deterministic model-routing decision core
+(screen, rules, policy, frozen plans, advisory validation, v2 rendering,
+cache/replay), also mounted as the `publish = false` workspace crate
+`semaprax-decision-core` that `semaprax-harness` re-exports; it has no I/O and
+mints no deployment, grant or transport. `model_routing` is its runtime-facing
+boundary: an untrusted recommendation over host-admitted ids that existing
+deployment and durable-policy authority rechecks
+([decision core](DECISION-CORE-V1.md)).
 `live_invocation/policy_kernel` and `policy_kernel_v3` compose that scheduler
 with caller-owned checkpoints; the V3 journal binds exact SDK envelope-byte
 reservations beside frozen V2 policy bytes. Journal recovery validates all

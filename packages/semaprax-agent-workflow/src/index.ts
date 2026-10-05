@@ -352,15 +352,34 @@ export function observeDirectWorkflowTransport(transport: WorkflowTransport, obs
     const request = parseObjectFrame(frame, 'generated v5 request');
     const method = typeof request.method === 'string' ? request.method : 'unknown';
     const subjectRevision = requestSubjectRevision(request);
+    let response: string;
     try {
-      const response = await transport.exchange(frame);
-      observer.observe({ method, boundary: 'direct_v5_response', subjectRevision, outcome: 'success' }, response);
-      return response;
+      response = await transport.exchange(frame);
     } catch (error) {
-      observer.observe({ method, boundary: 'direct_v5_response', subjectRevision, outcome: classifyObservationFailure(error) }, null);
+      safeObserve(observer, { method, boundary: 'direct_v5_response', subjectRevision, outcome: classifyObservationFailure(error) }, null);
       throw error;
     }
+    safeObserve(observer, { method, boundary: 'direct_v5_response', subjectRevision, outcome: classifyDirectResponse(response, request.id) }, response);
+    return response;
   }});
+}
+
+/** Observational only: never decides acceptance, never alters the returned bytes. */
+function classifyDirectResponse(response: string, requestId: unknown): ToolPayloadObservationContext['outcome'] {
+  try {
+    const value = parseObjectFrame(response, 'direct v5 response');
+    const result = Object.hasOwn(value, 'result');
+    const failure = Object.hasOwn(value, 'error');
+    if (value.jsonrpc !== '2.0' || value.id !== requestId || result === failure ||
+        !same(Object.keys(value).sort(), ['jsonrpc', 'id', result ? 'result' : 'error'].sort())) return 'malformed';
+    return failure ? 'error' : 'success';
+  } catch {
+    return 'malformed';
+  }
+}
+
+function safeObserve(observer: ToolPayloadObserver | undefined, input: Parameters<ToolPayloadObserver['observe']>[0], payload: string | null): void {
+  try { observer?.observe(input, payload); } catch { /* observation is never authoritative */ }
 }
 
 /**
@@ -406,49 +425,68 @@ export async function connectMcpWorkflowTransport(wire: McpWireTransport, observ
       const innerId = request.id;
       sequence += 1;
       const outerId = `semaprax-workflow-call:${sequence}`;
-      const outer = await wire.exchange(`${JSON.stringify({
-        jsonrpc: '2.0',
-        id: outerId,
-        method: 'tools/call',
-        params: {
-          name: request.method.replaceAll('/', '__'),
-          arguments: request.params,
-        },
-      })}\n`);
-      const call = parseObjectFrame(outer, 'MCP tools/call response');
-      if (!same(Object.keys(call).sort(), ['jsonrpc', 'id', 'result'].sort()) || call.jsonrpc !== '2.0' || call.id !== outerId) {
-        throw new Error('MCP tools/call response is not the exact result envelope');
-      }
-      const callResult = record(call.result, 'MCP tools/call result');
-      if (!same(Object.keys(callResult).sort(), ['content', 'isError'].sort()) ||
-          typeof callResult.isError !== 'boolean' || !Array.isArray(callResult.content) || callResult.content.length !== 1) {
-        throw new Error('MCP tools/call result is not the exact Semaprax text envelope');
-      }
-      const content = record(callResult.content[0], 'MCP tools/call content');
-      if (!same(Object.keys(content).sort(), ['type', 'text'].sort()) || content.type !== 'text' || typeof content.text !== 'string') {
-        throw new Error('MCP tools/call content is not one text item');
-      }
+      const subjectRevision = requestSubjectRevision(request);
+      let observed = false;
+      const finish = (outcome: ToolPayloadObservationContext['outcome'], payload: string | null): void => {
+        if (observed) return;
+        observed = true;
+        safeObserve(observer, { method: request.method as string, boundary: 'mcp_content_0_text', subjectRevision, outcome }, payload);
+      };
       let inner: Record<string, unknown>;
-      let resultResponse: boolean;
-      let errorResponse: boolean;
       try {
-        inner = parseObjectFrame(content.text, 'MCP inner v5 response') as Record<string, unknown>;
-        resultResponse = Object.hasOwn(inner, 'result');
-        errorResponse = Object.hasOwn(inner, 'error');
-        if (inner.jsonrpc !== '2.0' || inner.id !== 0 || resultResponse === errorResponse ||
-            callResult.isError !== errorResponse ||
-            !same(Object.keys(inner).sort(), ['jsonrpc', 'id', resultResponse ? 'result' : 'error'].sort())) {
-          throw new Error('MCP inner v5 response is not exactly correlated');
+        let outer: string;
+        try {
+          outer = await wire.exchange(`${JSON.stringify({
+            jsonrpc: '2.0',
+            id: outerId,
+            method: 'tools/call',
+            params: {
+              name: request.method.replaceAll('/', '__'),
+              arguments: request.params,
+            },
+          })}\n`);
+        } catch (error) {
+          // Timeout or disconnect: no tool text was received, so counts stay unknown.
+          const outcome = classifyObservationFailure(error);
+          finish(outcome === 'malformed' ? 'incomplete' : outcome, null);
+          throw error;
         }
+        const call = parseObjectFrame(outer, 'MCP tools/call response');
+        if (!same(Object.keys(call).sort(), ['jsonrpc', 'id', 'result'].sort()) || call.jsonrpc !== '2.0' || call.id !== outerId) {
+          throw new Error('MCP tools/call response is not the exact result envelope');
+        }
+        const callResult = record(call.result, 'MCP tools/call result');
+        if (!same(Object.keys(callResult).sort(), ['content', 'isError'].sort()) ||
+            typeof callResult.isError !== 'boolean' || !Array.isArray(callResult.content) || callResult.content.length !== 1) {
+          throw new Error('MCP tools/call result is not the exact Semaprax text envelope');
+        }
+        const content = record(callResult.content[0], 'MCP tools/call content');
+        if (!same(Object.keys(content).sort(), ['type', 'text'].sort()) || content.type !== 'text' || typeof content.text !== 'string') {
+          throw new Error('MCP tools/call content is not one text item');
+        }
+        try {
+          inner = parseObjectFrame(content.text, 'MCP inner v5 response') as Record<string, unknown>;
+          const resultResponse = Object.hasOwn(inner, 'result');
+          const errorResponse = Object.hasOwn(inner, 'error');
+          if (inner.jsonrpc !== '2.0' || inner.id !== 0 || resultResponse === errorResponse ||
+              callResult.isError !== errorResponse ||
+              !same(Object.keys(inner).sort(), ['jsonrpc', 'id', resultResponse ? 'result' : 'error'].sort())) {
+            throw new Error('MCP inner v5 response is not exactly correlated');
+          }
+        } catch (error) {
+          // The decoded tool text exists even though it is malformed; retain its
+          // measurement without changing the original protocol failure.
+          finish('malformed', content.text);
+          throw error;
+        }
+        // This is the decoded MCP text before correlation-ID rewriting. It is the
+        // only primary tool-payload boundary and is charged once per delivery.
+        finish(callResult.isError ? 'error' : 'success', content.text);
       } catch (error) {
-        // The decoded tool text exists even though it is malformed; retain its
-        // measurement without changing the original protocol failure.
-        observer?.observe({ method: request.method, boundary: 'mcp_content_0_text', subjectRevision: requestSubjectRevision(request), outcome: 'malformed' }, content.text);
+        // Invalid outer JSON, identity, or content shape: no usable text, one terminal event.
+        finish('malformed', null);
         throw error;
       }
-      // This is the decoded MCP text before correlation-ID rewriting. It is the
-      // only primary tool-payload boundary and is charged once per delivery.
-      observer?.observe({ method: request.method, boundary: 'mcp_content_0_text', subjectRevision: requestSubjectRevision(request), outcome: callResult.isError ? 'error' : 'success' }, content.text);
       inner.id = innerId;
       return JSON.stringify(inner);
     },

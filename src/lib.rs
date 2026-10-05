@@ -101,6 +101,7 @@ pub mod live_invocation;
 pub mod loan_plan;
 pub mod model_budget_policy;
 pub mod model_call_receipt;
+pub mod model_routing;
 pub mod native_law_source;
 pub mod native_rust_binding;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]

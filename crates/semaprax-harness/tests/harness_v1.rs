@@ -22,6 +22,8 @@ mod contract;
 mod decision;
 #[path = "harness_v1/decision_adapter.rs"]
 mod decision_adapter;
+#[path = "harness_v1/decision_core.rs"]
+mod decision_core;
 #[path = "harness_v1/decision_reuse.rs"]
 mod decision_reuse;
 #[path = "harness_v1/decision_v2.rs"]

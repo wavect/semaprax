@@ -585,12 +585,6 @@ mod tests {
                             .into(),
                 },
                 LockedCargoSource::Registry {
-                    package_id: regex.into(),
-                    checksum:
-                        "sha256:f020237b6c8eed93db2e2cb53c00c60a8e1bc73da7d073199a1180401450218d"
-                            .into(),
-                },
-                LockedCargoSource::Registry {
                     package_id: automata.into(),
                     checksum:
                         "sha256:ad8553b9b26413251cbf30e620595c7a41b3887f03da04579c0e6b0d6a06b4b2"
@@ -600,6 +594,12 @@ mod tests {
                     package_id: syntax.into(),
                     checksum:
                         "sha256:d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
+                            .into(),
+                },
+                LockedCargoSource::Registry {
+                    package_id: regex.into(),
+                    checksum:
+                        "sha256:f020237b6c8eed93db2e2cb53c00c60a8e1bc73da7d073199a1180401450218d"
                             .into(),
                 },
             ],
@@ -617,7 +617,7 @@ mod tests {
             |input: &mut CargoPreparationInput| input.target = "x86_64-unknown-linux-gnu".into(),
             |input: &mut CargoPreparationInput| input.selected_features.push("unicode".into()),
             |input: &mut CargoPreparationInput| {
-                input.sources[3] = LockedCargoSource::Registry {
+                input.sources[5] = LockedCargoSource::Registry {
                     package_id:
                         "registry+https://github.com/rust-lang/crates.io-index#regex@1.13.1".into(),
                     checksum:

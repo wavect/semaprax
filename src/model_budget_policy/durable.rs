@@ -188,7 +188,7 @@ impl DurablePolicyBinding {
         if !primary.authorized {
             return Err(DurablePolicyBindingRefusal::UnauthorizedPrimary);
         }
-        let selected = deployment.model_selections();
+        let selected = deployment.model_selection_refs().collect::<Vec<_>>();
         if policy.len() != seed.approved_providers.len()
             || policy.len() != selected.len()
             || seed
@@ -277,7 +277,9 @@ impl DurablePolicyBinding {
             interaction_schema_digest: seed.interaction_schema_digest.clone(),
             task_budget: seed.budget,
             policy,
-            model_selections: Some(selected),
+            // The one retained ownership copy: the binding outlives the
+            // borrowed deployment rows it was checked against.
+            model_selections: Some(deployment.model_selections()),
             limits,
             retained_byte_budget: Some(retained_byte_budget),
             deadline_millis,
@@ -301,7 +303,7 @@ impl DurablePolicyBinding {
         if !primary.authorized {
             return Err(DurablePolicyBindingRefusal::UnauthorizedPrimary);
         }
-        let selected = deployment.model_selections();
+        let selected = deployment.model_selection_refs().collect::<Vec<_>>();
         if policy.len() != selected.len()
             || selected.iter().enumerate().any(|(index, selected)| {
                 policy

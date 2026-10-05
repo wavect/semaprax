@@ -31,9 +31,11 @@ mod documents;
 mod migrate;
 
 use documents::{
-    parse_definition_v2, parse_deployment, render_list, tool_capabilities, tool_ids,
-    unsigned_limits, DefinitionV2, Deployment, QUALITY_TIERS,
+    models_value, parse_definition_v2, parse_deployment, render_list, tool_capabilities, tool_ids,
+    unsigned_limits, DefinitionV2, Deployment, DeploymentModel, QUALITY_TIERS,
 };
+
+pub(crate) use documents::ModelSelectionRef;
 
 pub use migrate::migrate_agent_definition_v1;
 
@@ -233,44 +235,30 @@ impl BoundAgentDeployment {
 
     /// Returns the exact provider/model pairs already admitted by this
     /// deployment. This is a projection of validated closed document data,
-    /// never a transport or credential lookup.
+    /// never a transport or credential lookup. Each call returns an
+    /// independently owned copy; read-only crate consumers borrow through
+    /// `model_selection_refs` instead.
     #[must_use]
     pub fn model_selections(&self) -> Vec<DeploymentModelSelection> {
+        self.model_selection_refs()
+            .map(|selection| DeploymentModelSelection {
+                provider_id: selection.provider_id().to_owned(),
+                model_id: selection.model_id().to_owned(),
+                capabilities: selection.capabilities().map(str::to_owned).collect(),
+                max_context_tokens: selection.max_context_tokens(),
+            })
+            .collect()
+    }
+
+    /// Borrows the admitted provider/model rows in deployment order without
+    /// decoding JSON or copying a string. Binding refused any row without a
+    /// complete typed selection, so every admitted row is yielded.
+    pub(crate) fn model_selection_refs(&self) -> impl Iterator<Item = ModelSelectionRef<'_>> + '_ {
         self.deployment
             .parsed
             .models
-            .as_array()
-            .expect("admitted deployment models remain an array")
             .iter()
-            .map(|row| DeploymentModelSelection {
-                provider_id: row
-                    .get("provider_id")
-                    .and_then(serde_json::Value::as_str)
-                    .expect("admitted model retains provider_id")
-                    .to_owned(),
-                model_id: row
-                    .get("model_id")
-                    .and_then(serde_json::Value::as_str)
-                    .expect("admitted model retains model_id")
-                    .to_owned(),
-                capabilities: row
-                    .get("capabilities")
-                    .and_then(serde_json::Value::as_array)
-                    .expect("admitted model retains capabilities")
-                    .iter()
-                    .map(|value| {
-                        value
-                            .as_str()
-                            .expect("admitted model capability remains text")
-                            .to_owned()
-                    })
-                    .collect(),
-                max_context_tokens: row
-                    .get("max_context_tokens")
-                    .and_then(serde_json::Value::as_u64)
-                    .expect("admitted model retains max_context_tokens"),
-            })
-            .collect()
+            .filter_map(DeploymentModel::selection)
     }
 
     /// Returns the deployment's validated explicit capability grants.
@@ -334,6 +322,16 @@ pub fn bind_agent_deployment(
     check_compatibility(&definition, &deployment).map_err(|diagnostic| vec![diagnostic])?;
     let v1_source = project_v1(&definition, &deployment).map_err(|diagnostic| vec![diagnostic])?;
     let compiled_v1 = compile_agent_definition(&v1_source)?;
+    // Runtime v1 admission above already typed every model row; this keeps the
+    // borrowed selection projection total without an `expect`.
+    if deployment
+        .parsed
+        .models
+        .iter()
+        .any(|row| row.selection().is_none())
+    {
+        return Err(vec![incompatible("models")]);
+    }
     let source = render_bound(&definition, &deployment, &compiled_v1);
     if source.len() > MAX_BOUND_BYTES {
         return Err(vec![incompatible("bound_bytes")]);
@@ -421,46 +419,34 @@ fn check_models(source: &DefinitionV2, bound: &Deployment) -> Result<(), Diagnos
         .iter()
         .position(|tier| *tier == source.minimum_quality_tier)
         .ok_or_else(|| incompatible("minimum_quality_tier"))?;
-    for row in bound
-        .models
-        .as_array()
-        .ok_or_else(|| incompatible("models"))?
-    {
-        let text = |key: &str| row.get(key).and_then(serde_json::Value::as_str);
-        let provider_id = text("provider_id").ok_or_else(|| incompatible("models"))?;
-        let model_id = text("model_id").ok_or_else(|| incompatible("models"))?;
-        if !bound
-            .allowed_provider_ids
-            .iter()
-            .any(|allowed| allowed == provider_id)
-            || !bound
-                .allowed_model_ids
-                .iter()
-                .any(|allowed| allowed == model_id)
+    for row in &bound.models {
+        let provider_id = row
+            .provider_id
+            .typed()
+            .ok_or_else(|| incompatible("models"))?;
+        let model_id = row.model_id.typed().ok_or_else(|| incompatible("models"))?;
+        if !bound.allowed_provider_ids.contains(provider_id)
+            || !bound.allowed_model_ids.contains(model_id)
         {
             return Err(incompatible("selection"));
         }
         if source.required_locality == "local_only"
-            && text("locality").ok_or_else(|| incompatible("models"))? != "local"
+            && row.locality.typed().ok_or_else(|| incompatible("models"))? != "local"
         {
             return Err(incompatible("required_locality"));
         }
-        let tier = text("quality_tier").ok_or_else(|| incompatible("models"))?;
-        let rank = QUALITY_TIERS
-            .iter()
-            .position(|candidate| *candidate == tier)
-            .ok_or_else(|| incompatible("models"))?;
+        let rank = row.quality_rank().ok_or_else(|| incompatible("models"))?;
         if rank < minimum {
             return Err(incompatible("minimum_quality_tier"));
         }
         let capabilities = row
-            .get("capabilities")
-            .and_then(serde_json::Value::as_array)
+            .capabilities
+            .typed()
             .ok_or_else(|| incompatible("models"))?;
         if source.required_model_capabilities.iter().any(|required| {
             !capabilities
                 .iter()
-                .any(|value| value.as_str() == Some(required.as_str()))
+                .any(|value| value.typed() == Some(required))
         }) {
             return Err(incompatible("required_model_capabilities"));
         }
@@ -505,7 +491,7 @@ fn project_v1(
         list_value(&bound.allowed_tool_ids),
     );
     let mut runtime = serde_json::Map::new();
-    runtime.insert("models".to_owned(), bound.models.clone());
+    runtime.insert("models".to_owned(), models_value(&bound.models));
     runtime.insert("tools".to_owned(), source.tools.clone());
     runtime.insert("policy".to_owned(), serde_json::Value::Object(policy));
     runtime.insert("limits".to_owned(), bound.limits.clone());
@@ -615,3 +601,6 @@ fn bound_mismatch() -> Diagnostic {
         "BoundAgentDeployment is not the exact replay of its definition and deployment",
     )
 }
+
+#[cfg(test)]
+mod tests;

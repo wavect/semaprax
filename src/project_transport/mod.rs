@@ -7,6 +7,8 @@
 pub(crate) mod codec;
 mod config;
 pub(crate) mod framing;
+#[cfg(test)]
+mod oversize_tests;
 mod sdk;
 mod selected_law;
 mod selected_law_mcp;

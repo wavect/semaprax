@@ -295,6 +295,8 @@ fn tc03_settled_headroom_returns_while_uncertain_and_reserved_stay_counted() {
         "SPX-HPD070"
     );
     // Restoring the same journal reproduces the same account.
+    // (The single-writer lock is released first: reopening needs the sole writer.)
+    drop(j);
     let mut again = SpendBook::default();
     again.restore(&Journal::open(&d, "l").unwrap()).unwrap();
     assert_eq!(

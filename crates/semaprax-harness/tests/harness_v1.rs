@@ -24,6 +24,8 @@ mod decision;
 mod endpoint;
 #[path = "harness_v1/host.rs"]
 mod host;
+#[path = "harness_v1/j_ma.rs"]
+mod j_ma;
 #[path = "harness_v1/observe.rs"]
 mod observe;
 #[path = "harness_v1/profile.rs"]

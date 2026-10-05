@@ -56,7 +56,10 @@ is served concurrently. The invoke's JSON-RPC `id` (string or number, required) 
 per-request `CancelToken`. It invents nothing per adapter: deadline, cooperative cancel, process-group kill and reap,
 the crash breaker and the retry boundary are the host's (`docs/HARNESS-HOST-V1.md`). Class by kind:
 `model.generate` is `SideEffecting` (possibly billed), `decision.evaluate` is `Decision`, the rest `SafeRead`.
-`isolation: "required"` requests the OS-enforced restriction; without `sandbox-exec`/`bwrap` the call is an error
+Optional controls are validated by presence before profile resolution, handle preparation, journal or dispatch
+(`SPX-HPN005`): absent takes the default; present must have the documented type and value, never a silent default.
+`deadline_ms` is an integer in `1..=600000` (default `30000`); outside it is refused, not clamped. `step` is a string of
+1 to 128 characters from `[A-Za-z0-9._:@/+-]`. `isolation` is exactly the string `required`. `isolation: "required"` requests the OS-enforced restriction; without `sandbox-exec`/`bwrap` the call is an error
 (`SPX-HPC003`), never a plain subprocess. Every result reports `isolation {mode, isolated}`: a plain subprocess is
 `mode: subprocess, isolated: false`.
 
@@ -80,9 +83,27 @@ survives until the adapter exits or its idle/deadline limits fire (Unix offers n
 
 **Side-effecting steps and the journal.** A `SideEffecting` invoke appends `begin` to the append-only journal
 `<harness home>/cache/bridge/<project id>.journal.jsonl` (`workflow::journal`) and then `done`, `refused`, `cancelled`
-(request never written) or `uncertain`. A later invoke with the same `step` (default `<capability>:<operation>`) is refused
-as `SPX-HPN015` unless its last record is `refused` or `cancelled`; a begun, completed or uncertain step is never
-replayed, across restarts.
+(request never written) or `uncertain`. A later invoke with the same `step` is refused as `SPX-HPN015` unless its last
+record is `refused` or `cancelled`; a begun, completed or uncertain step is never replayed, across restarts.
+
+*Single writer.* `Journal::open` holds an exclusive advisory `flock` on `<project id>.journal.flock` for the journal's
+lifetime and reads the records only after it holds the lock. The bridge opens the journal per claim and per settlement
+(the lock is held only for the claim-and-`begin` critical section, never across the provider call), so concurrent
+sessions and processes on one project serialise: exactly one claims a given `step`, the others get `SPX-HPN015` (or
+`SPX-HPD070` busy if the lock stays held for 10 s). The lock is released by drop or process exit; the lock file is never
+deleted, and durable `begin`/`uncertain` records are untouched. Projects and lineages lock independently.
+
+*Step identity.* `step` is the caller's durable idempotency key and keeps replay protection across restarts. When omitted,
+the host assigns `auto-<session>-<n>` (session token from pid, clock and a process sequence; `n` the invocation counter),
+journals it with `begin` before dispatch and returns it as `step` in the response, so independent calls never collide and
+a restart or reused JSON-RPC id cannot alias earlier work. Journals written by earlier versions (default
+`<capability>:<operation>` keys) are read unchanged: an old `begin`/`uncertain` entry is never made retryable, and a caller
+that passes that old key explicitly is still refused.
+
+*Terminal persistence failure.* If appending `done`/`refused`/`cancelled`/`uncertain` fails (open, write or sync), the
+provider outcome is returned unchanged and the response adds `durable: false` and `journal_error {code, message}`; absent
+on healthy settlement. The provider is never retried, the surviving `begin` keeps the step non-replayable, and a torn
+tail makes the next open fail closed (`SPX-HPD070`).
 
 ## Claude Code (pinned 2.1.289)
 

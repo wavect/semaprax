@@ -80,9 +80,7 @@ struct Route {
 }
 
 pub(super) fn parse_profile(source: &str) -> Result<Profile, Diagnostic> {
-    canonical_document(source, "profile", PROFILE_SCHEMA, MAX_PROFILE_BYTES)?;
-    let value: Value =
-        serde_json::from_str(source.trim_end()).map_err(|_| g204("profile", PROFILE_SCHEMA))?;
+    let value = canonical_document(source, "profile", PROFILE_SCHEMA, MAX_PROFILE_BYTES)?;
     let top = object(&value, "profile", PROFILE_SCHEMA)?;
     if !exact_keys(
         top,
@@ -540,9 +538,7 @@ fn parse_effective_limits(value: &Value) -> Result<EffectiveLimits, Diagnostic> 
 }
 
 pub(super) fn parse_task(source: &str) -> Result<Task, Diagnostic> {
-    canonical_document(source, "task", TASK_SCHEMA, MAX_TASK_BYTES)?;
-    let value: Value =
-        serde_json::from_str(source.trim_end()).map_err(|_| g204("task", TASK_SCHEMA))?;
+    let value = canonical_document(source, "task", TASK_SCHEMA, MAX_TASK_BYTES)?;
     let top = object(&value, "task", TASK_SCHEMA)?;
     if !exact_keys(top, &["schema", "nonce", "objective", "context"]) {
         return Err(g204("task", TASK_SCHEMA));
@@ -617,15 +613,14 @@ pub(super) fn render_task(task: &Task) -> String {
 }
 
 fn parse_action(source: String, maximum: usize) -> Result<Action, Diagnostic> {
-    canonical_document(&source, "action", ACTION_SCHEMA, maximum).map_err(|diagnostic| {
-        if crate::bounded_output::active_remaining() == Some(0) {
-            g208("builder_bytes", MAX_BUILDER_BYTES as u64)
-        } else {
-            diagnostic
-        }
-    })?;
-    let value: Value =
-        serde_json::from_str(source.trim_end()).map_err(|_| g204("action", ACTION_SCHEMA))?;
+    let value =
+        canonical_document(&source, "action", ACTION_SCHEMA, maximum).map_err(|diagnostic| {
+            if crate::bounded_output::active_remaining() == Some(0) {
+                g208("builder_bytes", MAX_BUILDER_BYTES as u64)
+            } else {
+                diagnostic
+            }
+        })?;
     let Value::Object(mut top) = value else {
         return Err(g204("action", ACTION_SCHEMA));
     };
@@ -886,16 +881,10 @@ impl<H: AgentHost> Agent<H> {
         host: H,
         cancellation: AgentCancellation,
     ) -> Result<Self, Vec<Diagnostic>> {
-        let (profile, overflowed, used) = with_limit_usage(MAX_BUILDER_BYTES, || {
-            reserve_parse_bound(profile_source)?;
-            parse_profile(profile_source)
-        });
-        if overflowed {
-            return Err(vec![g208("builder_bytes", MAX_BUILDER_BYTES as u64)]);
-        }
+        let admitted = admit_profile(profile_source)?;
         Ok(Self {
-            profile: profile.map_err(|diagnostic| vec![diagnostic])?,
-            profile_builder_bytes: used as u64,
+            profile: admitted.profile,
+            profile_builder_bytes: admitted.builder_bytes,
             host,
             cancellation,
         })
@@ -973,6 +962,39 @@ impl<H: AgentHost> Agent<H> {
         }
         Ok(result.0)
     }
+}
+
+/// One Runtime v1 profile admitted without a host, cancellation or Agent.
+///
+/// The fields stay private to this module, so the admitted representation is
+/// only ever attached to an execution host by `Agent::new`.
+pub(super) struct AdmittedProfile {
+    profile: Profile,
+    builder_bytes: u64,
+}
+
+#[cfg(test)]
+impl AdmittedProfile {
+    pub(super) fn builder_bytes(&self) -> u64 {
+        self.builder_bytes
+    }
+}
+
+/// Pure profile admission shared by `Agent::new` and AgentDefinition
+/// validation: builder-budgeted parsing and every profile invariant, with no
+/// host observation and no cancellation handle.
+pub(super) fn admit_profile(profile_source: &str) -> Result<AdmittedProfile, Vec<Diagnostic>> {
+    let (profile, overflowed, used) = with_limit_usage(MAX_BUILDER_BYTES, || {
+        reserve_parse_bound(profile_source)?;
+        parse_profile(profile_source)
+    });
+    if overflowed {
+        return Err(vec![g208("builder_bytes", MAX_BUILDER_BYTES as u64)]);
+    }
+    Ok(AdmittedProfile {
+        profile: profile.map_err(|diagnostic| vec![diagnostic])?,
+        builder_bytes: used as u64,
+    })
 }
 
 fn reserve_parse_bound(source: &str) -> Result<(), Diagnostic> {
@@ -1792,10 +1814,10 @@ fn provider_turn<H: AgentHost>(
             remaining_deadline_ms,
             &mut sink,
         );
-        if cancellation.is_cancelled() && sink.boundary.is_none() {
-            sink.boundary = Some(RunStatus::Cancelled);
+        if cancellation.is_cancelled() && sink.bounded.boundary.is_none() {
+            sink.bounded.boundary = Some(RunStatus::Cancelled);
         }
-        if let Some(boundary) = sink.boundary {
+        if let Some(boundary) = sink.bounded.boundary {
             account_partial_provider(state, &sink, attempt.usage, route, profile.limits)?;
             state.termination = termination_for_status(boundary);
             let status = boundary.text();
@@ -1807,10 +1829,10 @@ fn provider_turn<H: AgentHost>(
                 Some(model),
                 None,
                 None,
-                Some(digest(PROVIDER_RESPONSE_DOMAIN, &sink.bytes)),
+                Some(digest(PROVIDER_RESPONSE_DOMAIN, &sink.bounded.bytes)),
                 status,
                 UsageDelta {
-                    provider_output_bytes: sink.bytes.len() as u64,
+                    provider_output_bytes: sink.bounded.bytes.len() as u64,
                     reported_model_output_tokens: attempt.usage.output_tokens,
                     ..UsageDelta::default()
                 },
@@ -1829,17 +1851,17 @@ fn provider_turn<H: AgentHost>(
                 Some(model),
                 None,
                 None,
-                Some(digest(PROVIDER_RESPONSE_DOMAIN, &sink.bytes)),
+                Some(digest(PROVIDER_RESPONSE_DOMAIN, &sink.bounded.bytes)),
                 status,
                 UsageDelta {
-                    provider_output_bytes: sink.bytes.len() as u64,
+                    provider_output_bytes: sink.bounded.bytes.len() as u64,
                     reported_model_output_tokens: attempt.usage.output_tokens,
                     ..UsageDelta::default()
                 },
             )?;
             return Ok(None);
         }
-        let exact_zero = sink.bytes.is_empty()
+        let exact_zero = sink.bounded.bytes.is_empty()
             && sink.chunks == 0
             && attempt.usage.input_tokens == 0
             && attempt.usage.output_tokens == 0
@@ -1883,10 +1905,10 @@ fn provider_turn<H: AgentHost>(
                     Some(model),
                     None,
                     None,
-                    Some(digest(PROVIDER_RESPONSE_DOMAIN, &sink.bytes)),
+                    Some(digest(PROVIDER_RESPONSE_DOMAIN, &sink.bounded.bytes)),
                     "failed_uncertain",
                     UsageDelta {
-                        provider_output_bytes: sink.bytes.len() as u64,
+                        provider_output_bytes: sink.bounded.bytes.len() as u64,
                         reported_model_output_tokens: attempt.usage.output_tokens,
                         ..UsageDelta::default()
                     },
@@ -1932,10 +1954,10 @@ fn provider_turn<H: AgentHost>(
                     Some(model),
                     None,
                     None,
-                    Some(digest(PROVIDER_RESPONSE_DOMAIN, &sink.bytes)),
+                    Some(digest(PROVIDER_RESPONSE_DOMAIN, &sink.bounded.bytes)),
                     "failed_uncertain",
                     UsageDelta {
-                        provider_output_bytes: sink.bytes.len() as u64,
+                        provider_output_bytes: sink.bounded.bytes.len() as u64,
                         reported_model_output_tokens: attempt.usage.output_tokens,
                         ..UsageDelta::default()
                     },
@@ -1944,7 +1966,7 @@ fn provider_turn<H: AgentHost>(
             }
             ProviderDisposition::Succeeded => {}
         }
-        if let Some(rejection) = sink.rejection {
+        if let Some(rejection) = sink.bounded.rejection {
             account_partial_provider(state, &sink, attempt.usage, route, profile.limits)?;
             let diagnostic = match rejection {
                 SinkRejection::Builder => g208("builder_bytes", profile.limits.max_builder_bytes),
@@ -1963,17 +1985,17 @@ fn provider_turn<H: AgentHost>(
                 Some(model),
                 None,
                 None,
-                Some(digest(PROVIDER_RESPONSE_DOMAIN, &sink.bytes)),
+                Some(digest(PROVIDER_RESPONSE_DOMAIN, &sink.bounded.bytes)),
                 "failed_uncertain",
                 UsageDelta {
-                    provider_output_bytes: sink.bytes.len() as u64,
+                    provider_output_bytes: sink.bounded.bytes.len() as u64,
                     reported_model_output_tokens: attempt.usage.output_tokens,
                     ..UsageDelta::default()
                 },
             )?;
             return Ok(None);
         }
-        let response_bytes = sink.bytes;
+        let response_bytes = sink.bounded.bytes;
         let response = match String::from_utf8(response_bytes) {
             Ok(response) => response,
             Err(error) => {
@@ -2237,13 +2259,13 @@ fn execute_tool<H: AgentHost>(
         remaining_deadline_ms,
         &mut sink,
     );
-    if cancellation.is_cancelled() && sink.boundary.is_none() {
-        sink.boundary = Some(RunStatus::Cancelled);
+    if cancellation.is_cancelled() && sink.bounded.boundary.is_none() {
+        sink.bounded.boundary = Some(RunStatus::Cancelled);
     }
-    if let Some(boundary) = sink.boundary {
+    if let Some(boundary) = sink.bounded.boundary {
         checked_add(
             &mut state.usage.tool_result_bytes,
-            sink.bytes.len() as u64,
+            sink.bounded.bytes.len() as u64,
             "total_tool_bytes",
             profile.limits.max_total_tool_bytes,
         )?;
@@ -2260,17 +2282,17 @@ fn execute_tool<H: AgentHost>(
             None,
             status,
             UsageDelta {
-                tool_result_bytes: sink.bytes.len() as u64,
+                tool_result_bytes: sink.bounded.bytes.len() as u64,
                 ..UsageDelta::default()
             },
         )?;
         return Ok(());
     }
-    if let Some(rejection) = sink.rejection {
+    if let Some(rejection) = sink.bounded.rejection {
         state.usage.tool_result_bytes = state
             .usage
             .tool_result_bytes
-            .checked_add(sink.bytes.len() as u64)
+            .checked_add(sink.bounded.bytes.len() as u64)
             .ok_or_else(|| g208("total_tool_bytes", profile.limits.max_total_tool_bytes))?;
         let diagnostic = match rejection {
             SinkRejection::Builder => g208("builder_bytes", profile.limits.max_builder_bytes),
@@ -2290,7 +2312,7 @@ fn execute_tool<H: AgentHost>(
             None,
             "failed",
             UsageDelta {
-                tool_result_bytes: sink.bytes.len() as u64,
+                tool_result_bytes: sink.bounded.bytes.len() as u64,
                 ..UsageDelta::default()
             },
         )?;
@@ -2299,7 +2321,7 @@ fn execute_tool<H: AgentHost>(
     if !invocation {
         checked_add(
             &mut state.usage.tool_result_bytes,
-            sink.bytes.len() as u64,
+            sink.bounded.bytes.len() as u64,
             "total_tool_bytes",
             profile.limits.max_total_tool_bytes,
         )?;
@@ -2318,7 +2340,7 @@ fn execute_tool<H: AgentHost>(
             None,
             "failed",
             UsageDelta {
-                tool_result_bytes: sink.bytes.len() as u64,
+                tool_result_bytes: sink.bounded.bytes.len() as u64,
                 ..UsageDelta::default()
             },
         )?;
@@ -2327,7 +2349,7 @@ fn execute_tool<H: AgentHost>(
     if let Some(termination) = boundary_termination(profile, host, cancellation, policy_epoch) {
         checked_add(
             &mut state.usage.tool_result_bytes,
-            sink.bytes.len() as u64,
+            sink.bounded.bytes.len() as u64,
             "total_tool_bytes",
             profile.limits.max_total_tool_bytes,
         )?;
@@ -2344,14 +2366,14 @@ fn execute_tool<H: AgentHost>(
             None,
             status,
             UsageDelta {
-                tool_result_bytes: sink.bytes.len() as u64,
+                tool_result_bytes: sink.bounded.bytes.len() as u64,
                 ..UsageDelta::default()
             },
         )?;
         return Ok(());
     }
-    let received_bytes = sink.bytes.len() as u64;
-    let value: Value = match serde_json::from_slice(&sink.bytes) {
+    let received_bytes = sink.bounded.bytes.len() as u64;
+    let value: Value = match serde_json::from_slice(&sink.bounded.bytes) {
         Ok(value) => value,
         Err(_) => {
             return finish_failed_tool_result(
@@ -2819,14 +2841,12 @@ fn provider_request_builder_bound(
 }
 
 fn validate_provider_request(source: &str) -> Result<(), Diagnostic> {
-    canonical_document(
+    let value = canonical_document(
         source,
         "provider request",
         PROVIDER_REQUEST_SCHEMA,
         MAX_PROVIDER_REQUEST_BYTES as usize,
     )?;
-    let value: Value = serde_json::from_str(source.trim_end())
-        .map_err(|_| g204("provider request", PROVIDER_REQUEST_SCHEMA))?;
     let top = object(&value, "provider request", PROVIDER_REQUEST_SCHEMA)?;
     if !exact_keys(
         top,
@@ -2897,7 +2917,7 @@ fn render_tool_result(call_id: &str, tool_id: &str, result: &str) -> String {
 }
 
 fn collect_response(sink: ProviderSink, limits: EffectiveLimits) -> Result<String, Diagnostic> {
-    if let Some(rejection) = sink.rejection {
+    if let Some(rejection) = sink.bounded.rejection {
         return Err(match rejection {
             SinkRejection::Builder => g208("builder_bytes", limits.max_builder_bytes),
             SinkRejection::Chunks => g208("stream_chunks", limits.max_stream_chunks),
@@ -2907,7 +2927,7 @@ fn collect_response(sink: ProviderSink, limits: EffectiveLimits) -> Result<Strin
             ),
         });
     }
-    String::from_utf8(sink.bytes).map_err(|_| {
+    String::from_utf8(sink.bounded.bytes).map_err(|_| {
         operational(
             "SPX-I218",
             "Agent Runtime provider adapter failed: response invalid",
@@ -3382,9 +3402,7 @@ fn write_budget<W: fmt::Write>(output: &mut W, budget: &EvidenceBudget) -> fmt::
 }
 
 pub(super) fn replay_trace(source: &str) -> Result<(), Diagnostic> {
-    canonical_document(source, "trace", TRACE_SCHEMA, MAX_TRACE_BYTES as usize)?;
-    let value: Value =
-        serde_json::from_str(source.trim_end()).map_err(|_| g204("trace", TRACE_SCHEMA))?;
+    let value = canonical_document(source, "trace", TRACE_SCHEMA, MAX_TRACE_BYTES as usize)?;
     let top = object(&value, "trace", TRACE_SCHEMA)?;
     if !exact_keys(
         top,
@@ -3891,14 +3909,12 @@ fn replay_evidence_inner(
     expected_trace: &str,
     expected_budget: &EvidenceBudget,
 ) -> Result<(), Diagnostic> {
-    canonical_document(
+    let value = canonical_document(
         source,
         "evidence",
         EVIDENCE_SCHEMA,
         MAX_EVIDENCE_BYTES as usize,
     )?;
-    let value: Value =
-        serde_json::from_str(source.trim_end()).map_err(|_| g204("evidence", EVIDENCE_SCHEMA))?;
     let top = object(&value, "evidence", EVIDENCE_SCHEMA)?;
     if !exact_keys(
         top,

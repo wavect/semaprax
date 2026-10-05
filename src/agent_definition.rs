@@ -10,10 +10,7 @@ use std::collections::BTreeSet;
 use serde_json::{Map, Value};
 use sha2::{Digest, Sha256};
 
-use crate::agent_runtime::{
-    Agent, AgentBoundaryProbe, AgentCancellation, AgentHost, AgentProviderAttempt,
-    AgentProviderSink, AgentToolResultSink,
-};
+use crate::agent_runtime::{admit_runtime_v1_profile, Agent, AgentCancellation, AgentHost};
 use crate::diagnostic::{quote_json, Diagnostic};
 
 const DEFINITION_SCHEMA: &str = "semaprax.agent-definition.v1";
@@ -320,8 +317,9 @@ impl CompiledAgentDefinition {
 /// Compiles one canonical AgentDefinition v1 into a deterministic AgentGraph v1.
 ///
 /// Compilation is pure and grants no provider, tool, filesystem, process, or
-/// publication authority. The Runtime v1 profile is validated through the
-/// frozen public constructor and returned byte-for-byte unchanged.
+/// publication authority. The Runtime v1 profile is validated by the same pure
+/// admission as the frozen public constructor and returned byte-for-byte
+/// unchanged.
 pub fn compile_agent_definition(source: &str) -> Result<CompiledAgentDefinition, Vec<Diagnostic>> {
     compile(source).map_err(|diagnostic| vec![diagnostic])
 }
@@ -631,10 +629,10 @@ fn render_json(value: &Value) -> Result<String, Diagnostic> {
     serde_json::to_string(value).map_err(|_| malformed())
 }
 
+/// Validates the projected profile through the runtime's pure admission, the
+/// same checks `Agent::new` runs, without an Agent, host or cancellation.
 fn validate_profile(profile: &str) -> Result<(), Diagnostic> {
-    Agent::new(profile, ValidationHost, AgentCancellation::new())
-        .map(|_| ())
-        .map_err(|_| profile_failure())
+    admit_runtime_v1_profile(profile).map_err(|_| profile_failure())
 }
 
 /// The exact canonical Runtime v1 policy key order.
@@ -970,53 +968,6 @@ fn profile_mismatch() -> Diagnostic {
         "SPX-G504",
         "Agent Runtime Profile v1 is not the exact AgentDefinition projection",
     )
-}
-
-struct ValidationProbe;
-
-impl AgentBoundaryProbe for ValidationProbe {
-    fn policy_epoch(&self) -> u64 {
-        0
-    }
-
-    fn elapsed_ms(&self) -> u64 {
-        0
-    }
-}
-
-struct ValidationHost;
-
-impl AgentHost for ValidationHost {
-    fn policy_epoch(&self) -> u64 {
-        0
-    }
-
-    fn elapsed_ms(&self) -> u64 {
-        0
-    }
-
-    fn boundary_probe(&self) -> Box<dyn AgentBoundaryProbe> {
-        Box::new(ValidationProbe)
-    }
-
-    fn tokenize(&mut self, _: &str, _: &str) -> Option<u64> {
-        None
-    }
-
-    fn attempt_provider(
-        &mut self,
-        _: &str,
-        _: &str,
-        _: &str,
-        _: u64,
-        _: &mut AgentProviderSink,
-    ) -> AgentProviderAttempt {
-        unreachable!("profile validation never invokes a provider")
-    }
-
-    fn invoke_tool(&mut self, _: &str, _: &str, _: &str, _: &mut AgentToolResultSink) -> bool {
-        unreachable!("profile validation never invokes a tool")
-    }
 }
 
 #[cfg(test)]

@@ -669,7 +669,9 @@ fn provider_streaming_retry_and_uncertainty_are_exact() {
 }
 
 mod accounting;
+mod admission;
 mod deadline;
+mod sinks;
 
 #[test]
 fn tool_authority_schema_and_preinvoke_budgets_fail_without_a_call() {

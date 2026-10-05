@@ -1,5 +1,5 @@
 use semaprax::agent_definition::{compile_agent_definition, verify_agent_graph_bundle};
-use semaprax::agent_runtime::{AgentCancellation, AgentRunStatus};
+use semaprax::agent_runtime::{Agent, AgentCancellation, AgentRunStatus};
 
 use super::{profile, raw_sha, task, Host};
 
@@ -249,4 +249,91 @@ fn graph_sections_track_definition_semantics_without_changing_stable_v1_behavior
         baseline.definition().digest()
     );
     assert_ne!(identity_changed.graph().digest(), baseline.graph().digest());
+}
+
+#[test]
+fn definition_profile_validation_is_pure_admission_without_a_runtime_instance() {
+    // REF-03: the compiler validates its projection through the runtime's pure
+    // admission; it constructs no Agent, host or cancellation handle.
+    let compiler = include_str!("../../src/agent_definition.rs");
+    let validate = compiler
+        .split_once("fn validate_profile(")
+        .unwrap()
+        .1
+        .split_once("\n}\n")
+        .unwrap()
+        .0;
+    assert!(validate.contains("admit_runtime_v1_profile(profile)"));
+    for forbidden in [
+        "Agent::new",
+        "AgentCancellation::new",
+        "ValidationHost",
+        "impl AgentHost for",
+        "impl AgentBoundaryProbe for",
+    ] {
+        assert!(
+            !validate.contains(forbidden),
+            "validate_profile uses {forbidden}"
+        );
+    }
+    assert!(!compiler.contains("impl AgentHost for"));
+    assert!(!compiler.contains("impl AgentBoundaryProbe for"));
+    assert!(!compiler.contains("ValidationHost"));
+
+    // Accept/reject parity with the public constructor over one corpus, each
+    // side keeping its own diagnostic mapping.
+    let valid = profile();
+    let corpus = [
+        valid.clone(),
+        valid.replacen("\"max_turns\":2", "\"max_turns\":17", 1),
+        valid.replacen("\"max_concurrency\":1", "\"max_concurrency\":0", 1),
+        valid.replacen("\"max_concurrency\":1", "\"max_concurrency\":2", 1),
+        valid.replacen(
+            "\"granted_capabilities\":[\"tool.read\"]",
+            "\"granted_capabilities\":[\"*\"]",
+            1,
+        ),
+        valid.replacen(
+            "\"allowed_model_ids\":[\"fake-basic\"]",
+            "\"allowed_model_ids\":[\"fake-other\"]",
+            1,
+        ),
+        valid.replacen(
+            "\"allowed_tool_ids\":[\"fixture.read\"]",
+            "\"allowed_tool_ids\":[\"fixture.other\"]",
+            1,
+        ),
+        valid.replacen(
+            "\"max_builder_bytes\":1048576",
+            "\"max_builder_bytes\":67108865",
+            1,
+        ),
+    ];
+    for (index, candidate) in corpus.iter().enumerate() {
+        let constructed = Agent::new(candidate, Host::new(), AgentCancellation::new());
+        let compiled = compile_agent_definition(&definition(candidate));
+        assert_eq!(
+            constructed.is_ok(),
+            compiled.is_ok(),
+            "corpus entry {index} disagrees"
+        );
+        match compiled {
+            Ok(compiled) => {
+                assert_eq!(
+                    compiled.runtime_v1_profile().as_bytes(),
+                    candidate.as_bytes()
+                )
+            }
+            Err(error) => {
+                assert_eq!(error.len(), 1);
+                assert_eq!(error[0].code, "SPX-G502");
+                assert_eq!(
+                    error[0].message,
+                    "AgentDefinition invariant failed: runtime_v1_profile"
+                );
+                let runtime = constructed.err().unwrap();
+                assert!(matches!(runtime[0].code, "SPX-G205" | "SPX-G208"));
+            }
+        }
+    }
 }

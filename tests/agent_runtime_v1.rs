@@ -676,3 +676,6 @@ mod execution_revision;
 
 #[path = "agent_runtime_v1/source_agent_embedded.rs"]
 mod source_agent_embedded;
+
+#[path = "agent_runtime_v1/runtime_routing.rs"]
+mod runtime_routing;

@@ -81,7 +81,12 @@ function activateChecks(context, testMode) {
     // even when the new result is empty.
     const stalenessCandidates = new Set(records.map(record => record.path));
     stalenessCandidates.add(subject);
-    for (const file of ledger.owned.get(subject) || []) stalenessCandidates.add(file);
+    for (const file of ledger.paths(subject)) stalenessCandidates.add(file);
+    // A subject the routing no longer supports (a standalone file a project
+    // now owns, or a project whose manifest is gone) is retired with this
+    // publication; its files are republished from their remaining owners.
+    const retire = checks.obsoleteSubjects(ledger.subjects(), subject, exists);
+    for (const owner of retire) for (const file of ledger.paths(owner)) stalenessCandidates.add(file);
     // For a project subject, any open project member edited during the check
     // must also prevent a stale clear; otherwise a member absent from the new
     // empty list would lose its previous diagnostics.
@@ -98,7 +103,7 @@ function activateChecks(context, testMode) {
       output.appendLine(`${subject}: ${reason}`);
       return { ...result, failure: reason, retained: ledger.subjects().includes(subject) };
     }
-    const update = ledger.apply(subject, records);
+    const update = ledger.apply(subject, records, { retire });
     for (const file of update.clear) collection.delete(vscode.Uri.file(file));
     for (const [file, rows] of update.set) {
       collection.set(vscode.Uri.file(file), rows.map(row => {

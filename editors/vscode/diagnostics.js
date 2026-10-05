@@ -166,24 +166,84 @@ function toDiagnosticRecords(rows, subject, cwd = path.dirname(subject), sources
   });
 }
 
-// Which files hold diagnostics for which checked subject, so a re-check can
-// replace exactly the entries it owns and clear the ones that went away.
+// Every subject's retained contribution, so a re-check can replace exactly
+// what that subject reported. A file may be reported by more than one subject
+// (overlapping projects, or a standalone and a project check of one file);
+// its published rows are the merge of every retained contribution, and it is
+// cleared only when none remains. The merge is deterministic: subjects in
+// sorted order, each in the compiler's own order, and a record identical in
+// severity, code, message and range to one an earlier subject already
+// contributed appears once while both subjects keep owning it.
 class DiagnosticLedger {
-  constructor() { this.owned = new Map(); }
-  // Returns { set: Map<path, records[]>, clear: path[] } for the subject.
-  apply(subject, records) {
-    const set = new Map();
+  constructor() {
+    this.contributions = new Map(); // subject -> Map<path, records[]>
+    this.owners = new Map(); // path -> Set<subject>
+  }
+  // Replaces `subject`'s contribution and retires each subject in
+  // `options.retire` (an obsolete owner, such as a standalone check of a file a
+  // project now owns). Returns { set: Map<path, records[]>, clear: path[] }
+  // for exactly the files whose published rows this changes.
+  apply(subject, records, options = {}) {
+    const affected = new Set();
+    const drop = owner => {
+      for (const file of this.contributions.get(owner)?.keys() || []) {
+        affected.add(file);
+        const owners = this.owners.get(file);
+        owners.delete(owner);
+        if (!owners.size) this.owners.delete(file);
+      }
+      this.contributions.delete(owner);
+    };
+    for (const owner of options.retire || []) if (owner !== subject) drop(owner);
+    drop(subject);
+    const contribution = new Map();
     for (const record of records) {
-      if (!set.has(record.path)) set.set(record.path, []);
-      set.get(record.path).push(record);
+      if (!contribution.has(record.path)) contribution.set(record.path, []);
+      contribution.get(record.path).push(record);
     }
-    const previous = this.owned.get(subject) || new Set();
-    const clear = [...previous].filter(file => !set.has(file)).sort();
-    if (set.size) this.owned.set(subject, new Set(set.keys())); else this.owned.delete(subject);
+    if (contribution.size) this.contributions.set(subject, contribution);
+    for (const file of contribution.keys()) {
+      affected.add(file);
+      if (!this.owners.has(file)) this.owners.set(file, new Set());
+      this.owners.get(file).add(subject);
+    }
+    const set = new Map(), clear = [];
+    for (const file of [...affected].sort()) {
+      const rows = this.merged(file);
+      if (rows.length) set.set(file, rows); else clear.push(file);
+    }
     return { set, clear };
   }
-  release(subject) { return this.apply(subject, []).clear; }
-  subjects() { return [...this.owned.keys()].sort(); }
+  merged(file) {
+    const rows = [], earlier = new Set();
+    for (const owner of [...(this.owners.get(file) || [])].sort()) {
+      const keys = [];
+      for (const record of this.contributions.get(owner).get(file)) {
+        const key = JSON.stringify([record.severity, record.code, record.message, record.range]);
+        if (earlier.has(key)) continue;
+        keys.push(key); rows.push(record);
+      }
+      for (const key of keys) earlier.add(key);
+    }
+    return rows;
+  }
+  // Retires one subject: its files are re-published from the remaining owners
+  // or cleared when it was their last.
+  release(subject) { return this.apply(subject, []); }
+  subjects() { return [...this.contributions.keys()].sort(); }
+  // The files `subject` currently contributes to, for staleness checks.
+  paths(subject) { return [...(this.contributions.get(subject)?.keys() || [])].sort(); }
+}
+
+// Subjects other than `current` whose ownership the routing no longer
+// supports: a standalone file a project manifest now owns, or a project whose
+// manifest is gone. `existing` is as for `findManifest`. A clean result is
+// never by itself a reason to retire an independent subject.
+function obsoleteSubjects(subjects, current, existing) {
+  const exists = typeof existing === 'function' ? existing : (set => candidate => set.has(candidate))(new Set(existing));
+  return [...subjects].filter(subject => subject !== current && (path.basename(subject) === MANIFEST
+    ? !exists(subject)
+    : checkSubject(subject, exists) !== subject)).sort();
 }
 
 // Run one bounded `check <subject> --json`. `spawnFn` is Node's spawn or a
@@ -233,5 +293,5 @@ function runCheck(spawnFn, compiler, subject, options = {}) {
 
 module.exports = {
   MANIFEST, MAX_OUTPUT_BYTES, TIMEOUT_MS,
-  findManifest, checkSubject, parseDiagnosticLines, parseCheckOutput, checkOutcome, toDiagnosticRecords, DiagnosticLedger, runCheck, SourceIndex
+  findManifest, checkSubject, parseDiagnosticLines, parseCheckOutput, checkOutcome, toDiagnosticRecords, DiagnosticLedger, obsoleteSubjects, runCheck, SourceIndex
 };

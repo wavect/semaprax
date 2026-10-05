@@ -350,6 +350,29 @@ process.on('SIGTERM',()=>{if(lastPlan)output({schema:'semaprax.hot-reload-contro
     assert.equal(api.checks.collection.has(vscode.Uri.file(probe)), false, 'the entry is removed, not emptied');
     assert.deepEqual(api.checks.collection.get(vscode.Uri.file(probe)), []);
 
+    // Overlapping subjects: a second standalone subject also reports the probe
+    // file. Each contribution is retained, a clean result for one subject
+    // keeps the other's diagnostic, a failed run changes nothing, and only the
+    // last owner's clean result removes the entry.
+    const other = path.join(probeDirectory, 'other.spx');
+    fs.writeFileSync(other, 'module other;\n');
+    const overlapError = path.join(probeDirectory, 'overlap-error-compiler');
+    fs.writeFileSync(overlapError, `#!/bin/sh\nprintf '%s\\n' '${JSON.stringify({ code: 'SPX-T999', severity: 'error', message: 'overlap', path: probe, location: null, help: null })}'\nexit 1\n`, { mode: 0o700 });
+    const overlapClean = path.join(probeDirectory, 'overlap-clean-compiler');
+    fs.writeFileSync(overlapClean, `#!/bin/sh\nprintf '%s\\n' '${JSON.stringify({ status: 'verified', path: other, revision: 'sha256:' + 'c'.repeat(64) })}'\nexit 0\n`, { mode: 0o700 });
+    fs.writeFileSync(probe, 'module probe;\n\n@id("probe.main")\nfn main() -> i64\n{\n    let greeting: string = "\u{1F600}"; undefined_call()\n}\n');
+    assert.equal((await api.checks.check(probe, compiler)).failure, undefined);
+    assert.equal((await api.checks.check(other, overlapError)).failure, undefined);
+    const codes = () => api.checks.collection.get(vscode.Uri.file(probe)).map(diagnostic => String(diagnostic.code)).sort();
+    assert.deepEqual(codes(), ['SPX-T203', 'SPX-T999'], 'both subjects contribute to the shared file');
+    fs.writeFileSync(probe, 'module probe;\n\n@id("probe.main")\nfn main() -> i64\n{\n    0\n}\n');
+    assert.equal((await api.checks.check(probe, compiler)).failure, undefined);
+    assert.deepEqual(codes(), ['SPX-T999'], 'a clean probe check keeps the other subject\'s diagnostic');
+    assert.match((await api.checks.check(other, broken)).failure, /neither a diagnostic nor a verified record/);
+    assert.deepEqual(codes(), ['SPX-T999'], 'a failed check leaves every contribution unchanged');
+    assert.equal((await api.checks.check(other, overlapClean)).failure, undefined);
+    assert.equal(api.checks.collection.has(vscode.Uri.file(probe)), false, 'the last owner\'s clean result removes the entry');
+
     // A query with a malformed row is an invalid result: the commands report
     // that, never "declares nothing" or "nothing calls", and lenses decline.
     const malformedQuery = path.join(probeDirectory, 'malformed-query-compiler');

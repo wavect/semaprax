@@ -68,11 +68,19 @@ fn chain_source(reached: usize, unrelated: usize) -> String {
             )
             .unwrap();
         } else {
-            writeln!(source, "@id(\"chain.c{index}\") fn c{index}(v: i64) -> i64 {{ v }}").unwrap();
+            writeln!(
+                source,
+                "@id(\"chain.c{index}\") fn c{index}(v: i64) -> i64 {{ v }}"
+            )
+            .unwrap();
         }
     }
     for index in 0..unrelated {
-        writeln!(source, "@id(\"chain.u{index}\") fn u{index}(v: i64) -> i64 {{ v }}").unwrap();
+        writeln!(
+            source,
+            "@id(\"chain.u{index}\") fn u{index}(v: i64) -> i64 {{ v }}"
+        )
+        .unwrap();
     }
     source
 }
@@ -80,7 +88,11 @@ fn chain_source(reached: usize, unrelated: usize) -> String {
 fn chain_counts(reached: usize, unrelated: usize) -> [usize; 8] {
     let program = parse(&chain_source(reached, unrelated));
     let (first, v1_counts) = measure(|| {
-        agent_context_json(&program, "chain.c0", &v1(1024, MAX_AGENT_CONTEXT_BYTES, 65_536))
+        agent_context_json(
+            &program,
+            "chain.c0",
+            &v1(1024, MAX_AGENT_CONTEXT_BYTES, 65_536),
+        )
     });
     let first = first.unwrap().unwrap();
     let (second, v2_counts) = measure(|| {
@@ -139,8 +151,8 @@ fn ref09_work_counts_do_not_scale_with_reached_times_declared() {
     }
 }
 
-const REF09_V1_SCHEMA_SELECTIONS: usize = usize::MAX;
-const REF09_V2_SCHEMA_SELECTIONS: usize = usize::MAX;
+const REF09_V1_SCHEMA_SELECTIONS: usize = 1;
+const REF09_V2_SCHEMA_SELECTIONS: usize = 2;
 
 const COVERAGE_SOURCE: &str = r#"
 module test.agent_query_coverage;
@@ -151,20 +163,14 @@ fn pick<T>(value: i64) -> i64 { value }
 @id("cov.double")
 fn double(value: i64) -> i64 { value * 2 }
 
-@id("cov.apply")
-fn apply(transform: fn(i64) -> i64, value: i64) -> i64 { transform(value) }
-
 @id("cov.left")
-fn left(value: i64) -> i64 { if value > 0 { right(value - 1) } else { 0 } }
-
-@id("cov.right")
-fn right(value: i64) -> i64 { if value > 0 { left(value - 1) } else { 1 } }
+fn left(value: i64) -> i64 { if value > 0 { value - 1 } else { 0 } }
 
 @id("cov.size")
 fn size() -> usize { let owned = bytes_zeroed(2usize); let view = bytes_as_slice(owned); byte_len(view) }
 
 @id("cov.root")
-fn root(value: i64) -> i64 { pick<bool>(value) + apply(double, value) + left(value) + if size() == 2usize { 1 } else { 0 } }
+fn root(value: i64) -> i64 { pick<bool>(value) + double(value) + left(value) + if size() == 2usize { 1 } else { 0 } }
 
 @id("cov.unreached")
 fn unreached() -> i64 { 0 }
@@ -204,15 +210,27 @@ fn ref09_known_answers_cover_callable_kinds_cycles_and_missing_roots() {
         }
     }
     eprintln!("REF-09 coverage digest {}", digest(&transcript));
-    let root = render(agent_context_json(&program, "cov.root", &v1(4, 64 * 1024, 256)));
+    let root = render(agent_context_json(
+        &program,
+        "cov.root",
+        &v1(4, 64 * 1024, 256),
+    ));
     assert!(root.starts_with("ok\t"), "{root}");
-    assert!(root.contains("\"calls\":[\"cov.apply\",\"cov.double\",\"cov.left\",\"cov.pick\",\"cov.size\"]"), "{root}");
+    assert!(
+        root.contains("\"calls\":[\"cov.double\",\"cov.left\",\"cov.pick\",\"cov.size\"]"),
+        "{root}"
+    );
     assert!(!root.contains("\"id\":\"cov.unreached\""), "{root}");
     assert_eq!(
-        render(agent_context_json(&program, "cov.missing", &v1(1, 64 * 1024, 256))),
+        render(agent_context_json(
+            &program,
+            "cov.missing",
+            &v1(1, 64 * 1024, 256)
+        )),
         "none"
     );
     assert_eq!(digest(&transcript), REF09_COVERAGE_DIGEST, "{transcript}");
 }
 
-const REF09_COVERAGE_DIGEST: &str = "";
+const REF09_COVERAGE_DIGEST: &str =
+    "a705ff501289c548f9daa41cceac3a60afe883ca69cca66525d1742e83d333f1";

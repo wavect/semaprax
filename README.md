@@ -18,7 +18,7 @@ Build runtime agents whose proposals must pass checked code before they can act.
 [Build agents](#agents-as-programs-not-just-prompts) ·
 [Handbook](handbook/README.md) · [Examples](examples/README.md) · [Spec library](docs/index.md)
 
-<a href="https://www.youtube.com/watch?v=8w41xJxE_G0" title="Watch video" target="_blank"><img width="1672" height="941" alt="Semaprax-vid" src="https://github.com/user-attachments/assets/3a67ed9c-80f2-4420-ade2-f47cad3e7c6b" /></a>
+<a href="https://www.youtube.com/watch?v=8w41xJxE_G0" title="Watch video" target="_blank"><img width="1672" height="941" alt="KI-native 2026 YouTube-Thumbnail" src="https://github.com/user-attachments/assets/cc2143c3-4402-42ef-9952-b1c2fcc0b8ba" /></a>
 
 
 </div>

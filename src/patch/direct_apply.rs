@@ -15,7 +15,7 @@ pub(super) fn apply_with_commit_hook(
         )]
     })?;
     let parsed_patch = parse_patch(&patch_source)?;
-    let bounded_v3 = parsed_patch.schema == PatchSchema::V3;
+    let bounded_v3 = parsed_patch.schema() == PatchSchema::V3;
     let authenticated = if bounded_v3 {
         authenticate_a0_source(&guard, Some((crate::repair::MAX_SOURCE_BYTES, "SPX-R101")))?
     } else {

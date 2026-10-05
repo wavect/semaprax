@@ -25,7 +25,7 @@ src/native_settlement.rs	2055
 src/native_settlement/tests.rs	1667
 src/outbound_host_adapter/mod.rs	1519
 src/parser.rs	1870
-src/patch.rs	3280
+src/patch.rs	3064
 src/patch_evidence.rs	1914
 src/properties.rs	1549
 src/project/npm.rs	1519

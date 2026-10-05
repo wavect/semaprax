@@ -1,4 +1,5 @@
 mod direct_apply;
+mod operations;
 mod source_index;
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -12,168 +13,9 @@ use crate::diagnostic::Diagnostic;
 use crate::{graph, hir, lexer, parse, verify};
 
 use self::direct_apply::apply_with_commit_hook;
+use self::operations::{PatchSchema, PatchSelector, ReplaceCallTypeArgument, SemanticPatch};
+pub(crate) use self::operations::{PreflightOperation, ScalarType};
 use self::source_index::SemanticSourceIndex;
-
-#[derive(Debug)]
-struct Rename {
-    stable_id: String,
-    new_name: String,
-    operation_index: usize,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum PatchSchema {
-    V1,
-    V2,
-    V3,
-}
-
-#[allow(
-    dead_code,
-    reason = "consumed by the held Semantic Workspace Transaction v1 module"
-)]
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
-enum PatchSelector {
-    AssignFunctionId(String),
-    Rename(String),
-    RenameMember(String, String),
-    RenameCase(String, String),
-    ReplaceCallTypeArgument(String, u32),
-    RequireNoNewEffects,
-}
-
-impl PatchSelector {
-    fn label(&self) -> String {
-        match self {
-            Self::AssignFunctionId(target) => format!("assign:{target}"),
-            Self::Rename(target) => format!("rename:{target}"),
-            Self::RenameMember(owner, member) => format!("member:{owner}:{member}"),
-            Self::RenameCase(owner, case) => format!("case:{owner}:{case}"),
-            Self::ReplaceCallTypeArgument(expression, index) => {
-                format!("call:{expression}:{index}")
-            }
-            Self::RequireNoNewEffects => "require:no-new-effects".to_owned(),
-        }
-    }
-}
-
-#[derive(Debug)]
-struct AssignFunctionId {
-    repair_id: String,
-    target: String,
-    name: String,
-    to: String,
-}
-
-#[derive(Debug)]
-struct RenameMember {
-    owner: String,
-    member: String,
-    new_name: String,
-    operation_index: usize,
-}
-
-#[derive(Debug)]
-struct RenameCase {
-    owner: String,
-    case: String,
-    new_name: String,
-    operation_index: usize,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum ScalarType {
-    I64,
-    Bool,
-}
-
-impl ScalarType {
-    fn parse(value: &str) -> Option<Self> {
-        match value {
-            "i64" => Some(Self::I64),
-            "bool" => Some(Self::Bool),
-            _ => None,
-        }
-    }
-
-    pub(crate) fn text(self) -> &'static str {
-        match self {
-            Self::I64 => "i64",
-            Self::Bool => "bool",
-        }
-    }
-
-    fn resolved(self) -> hir::ResolvedType {
-        match self {
-            Self::I64 => hir::ResolvedType::I64,
-            Self::Bool => hir::ResolvedType::Bool,
-        }
-    }
-}
-
-#[derive(Debug)]
-struct ReplaceCallTypeArgument {
-    expression: String,
-    template: String,
-    old_instance: String,
-    index: u32,
-    from: ScalarType,
-    to: ScalarType,
-    operation_index: usize,
-}
-
-#[derive(Debug)]
-struct SemanticPatch {
-    schema: PatchSchema,
-    base: String,
-    renames: Vec<Rename>,
-    member_renames: Vec<RenameMember>,
-    case_renames: Vec<RenameCase>,
-    call_type_argument_replacements: Vec<ReplaceCallTypeArgument>,
-    no_new_effects: bool,
-    assign_function_id: Option<AssignFunctionId>,
-    operations: Vec<PreflightOperation>,
-}
-
-#[derive(Clone, Debug)]
-pub(crate) enum PreflightOperation {
-    AssignFunctionId {
-        index: usize,
-        repair_id: String,
-        target: String,
-        name: String,
-        to: String,
-    },
-    Rename {
-        index: usize,
-        target: String,
-        to: String,
-    },
-    RenameMember {
-        index: usize,
-        owner: String,
-        member: String,
-        to: String,
-    },
-    RenameCase {
-        index: usize,
-        owner: String,
-        case: String,
-        to: String,
-    },
-    ReplaceCallTypeArgument {
-        index: usize,
-        expression: String,
-        template: String,
-        old_instance: String,
-        argument_index: u32,
-        from: ScalarType,
-        to: ScalarType,
-    },
-    RequireNoNewEffects {
-        index: usize,
-    },
-}
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub(crate) enum SourceConsumerKind {
@@ -272,7 +114,6 @@ pub(crate) struct PatchPreflight {
     base_revision: String,
     candidate_revision: String,
     canonical_candidate: String,
-    operations: Vec<PreflightOperation>,
     changes: Vec<PreflightChange>,
     planned_edits: Vec<PlannedEdit>,
     identity_rebase: Option<crate::repair::IdentityRebaseEvidence>,
@@ -308,7 +149,7 @@ impl PatchPreflight {
     }
 
     pub(crate) fn schema_label(&self) -> &'static str {
-        match self.patch.schema {
+        match self.patch.schema() {
             PatchSchema::V1 => "semaprax.semantic-patch.v1",
             PatchSchema::V2 => "semaprax.semantic-patch.v2",
             PatchSchema::V3 => "semaprax.semantic-patch.v3",
@@ -316,7 +157,7 @@ impl PatchPreflight {
     }
 
     pub(crate) fn operations(&self) -> &[PreflightOperation] {
-        &self.operations
+        self.patch.operations()
     }
 
     pub(crate) fn changes(&self) -> &[PreflightChange] {
@@ -977,7 +818,7 @@ pub(crate) fn prepare_owned_a0_patch_bytes(
         )]
     })?;
     let parsed_patch = parse_patch(&patch_source)?;
-    let bounded_v3 = parsed_patch.schema == PatchSchema::V3;
+    let bounded_v3 = parsed_patch.schema() == PatchSchema::V3;
     let authenticated = if bounded_v3 {
         authenticate_a0_source(&guard, Some((crate::repair::MAX_SOURCE_BYTES, "SPX-R101")))?
     } else {
@@ -1073,7 +914,7 @@ pub(crate) fn preflight_impact_owned(
     diagnostic_path: PathBuf,
 ) -> Result<PatchPreflight, Vec<Diagnostic>> {
     let patch = parse_patch(&patch_source)?;
-    if patch.schema == PatchSchema::V3 {
+    if patch.schema() == PatchSchema::V3 {
         return Err(vec![Diagnostic::io(
             "SPX-G110",
             "Semantic Impact v1 accepts only Semantic Patch v1/v2",
@@ -1106,10 +947,10 @@ fn preflight_project_rename_parts(
     diagnostic_path: PathBuf,
 ) -> Result<PatchPreflight, Vec<Diagnostic>> {
     let patch = parse_patch(&patch_source)?;
-    if patch.schema != PatchSchema::V1
-        || patch.operations.len() != 1
-        || patch.renames.len() != 1
-        || patch.no_new_effects
+    if patch.schema() != PatchSchema::V1
+        || patch.operations().len() != 1
+        || patch.renames().count() != 1
+        || patch.no_new_effects()
     {
         return Err(vec![Diagnostic::io(
             "SPX-J109",
@@ -1134,7 +975,7 @@ pub(crate) fn preflight_review_owned(
     max_operations: usize,
 ) -> Result<PatchPreflight, Vec<Diagnostic>> {
     let patch = parse_patch(&patch_source)?;
-    if patch.operations.len() > max_operations {
+    if patch.operations().len() > max_operations {
         return Err(vec![Diagnostic::io(
             "SPX-G120",
             format!("semantic review patch exceeds {max_operations} operations"),
@@ -1159,7 +1000,7 @@ pub(crate) fn preflight_target_owned(
     max_candidate_bytes: usize,
 ) -> Result<PatchPreflight, Vec<Diagnostic>> {
     let patch = parse_patch(&patch_source)?;
-    if patch.operations.len() > max_operations {
+    if patch.operations().len() > max_operations {
         return Err(vec![Diagnostic::io(
             "SPX-G140",
             format!("semantic target evidence patch exceeds {max_operations} operations"),
@@ -1257,7 +1098,7 @@ fn preflight_workspace_owned_with_formatter_limit(
         )]);
     }
     let mut selectors = BTreeSet::new();
-    for operation in &patch.operations {
+    for operation in patch.operations() {
         let selector = operation_selector(operation);
         if !selectors.insert(selector.clone()) {
             return Err(vec![Diagnostic::io(
@@ -1269,7 +1110,7 @@ fn preflight_workspace_owned_with_formatter_limit(
             )]);
         }
     }
-    if patch.operations.len() > limits.max_operations {
+    if patch.operations().len() > limits.max_operations {
         return Err(vec![Diagnostic::io(
             "SPX-G151",
             format!(
@@ -1357,15 +1198,15 @@ fn operation_selector(operation: &PreflightOperation) -> PatchSelector {
 )]
 fn canonical_patch(patch: &SemanticPatch) -> String {
     let mut output = String::new();
-    if patch.schema == PatchSchema::V2 {
+    if patch.schema() == PatchSchema::V2 {
         output.push_str("schema semaprax.semantic-patch.v2\n");
-    } else if patch.schema == PatchSchema::V3 {
+    } else if patch.schema() == PatchSchema::V3 {
         output.push_str("schema semaprax.semantic-patch.v3\n");
     }
     output.push_str("base ");
-    output.push_str(&patch.base);
+    output.push_str(patch.base());
     output.push('\n');
-    for operation in &patch.operations {
+    for operation in patch.operations() {
         match operation {
             PreflightOperation::AssignFunctionId {
                 repair_id,
@@ -1480,30 +1321,29 @@ fn preflight_parsed_owned(
         }
     }
     let base_revision = graph::revision(&before);
-    if base_revision != patch.base {
+    if base_revision != patch.base() {
         return Err(vec![Diagnostic::io(
             "SPX-G409",
             format!(
                 "stale semantic patch: expected graph {}, current graph {base_revision}",
-                patch.base
+                patch.base()
             ),
         )
         .with_help("regenerate the patch against the current semantic graph")]);
     }
 
-    if patch.schema == PatchSchema::V3 {
+    if patch.schema() == PatchSchema::V3 {
         crate::repair::precheck_program(&before)?;
     }
 
-    let before_resolved = if matches!(patch.schema, PatchSchema::V2 | PatchSchema::V3) {
+    let before_resolved = if matches!(patch.schema(), PatchSchema::V2 | PatchSchema::V3) {
         Some(hir::resolve(&before)?)
     } else {
         None
     };
-    if patch.schema == PatchSchema::V3 {
+    if patch.schema() == PatchSchema::V3 {
         let assignment = patch
-            .assign_function_id
-            .as_ref()
+            .assign_function_id()
             .expect("v3 grammar admits exactly one assignment");
         let candidate =
             crate::repair::preflight_patch_assignment(crate::repair::PatchAssignmentInput {
@@ -1514,10 +1354,10 @@ fn preflight_parsed_owned(
                     .as_ref()
                     .expect("v3 resolves before assignment"),
                 base_revision: &base_revision,
-                repair_id: &assignment.repair_id,
-                target_id: &assignment.target,
-                target_name: &assignment.name,
-                persistent_id: &assignment.to,
+                repair_id: assignment.repair_id,
+                target_id: assignment.target,
+                target_name: assignment.name,
+                persistent_id: assignment.to,
             })?;
         let (candidate, canonical_candidate, candidate_revision, identity_rebase) =
             candidate.into_parts();
@@ -1527,7 +1367,6 @@ fn preflight_parsed_owned(
                 "semantic target evidence candidate exceeds its bounded construction limit",
             )]);
         }
-        let operations = patch.operations.clone();
         return Ok(PatchPreflight {
             source,
             patch_source,
@@ -1537,7 +1376,6 @@ fn preflight_parsed_owned(
             base_revision,
             candidate_revision,
             canonical_candidate,
-            operations,
             changes: Vec::new(),
             planned_edits: Vec::new(),
             identity_rebase: Some(identity_rebase),
@@ -1549,7 +1387,7 @@ fn preflight_parsed_owned(
     let mut changes = Vec::new();
     let tokens =
         lexer::lex(&source, &diagnostic_path.display().to_string()).map_err(|error| vec![error])?;
-    for rename in &patch.renames {
+    for rename in patch.renames() {
         if !is_identifier(&rename.new_name) {
             return Err(vec![Diagnostic::io(
                 "SPX-G103",
@@ -1573,18 +1411,18 @@ fn preflight_parsed_owned(
             let operation_indices = BTreeSet::from([rename.operation_index]);
             let change = changes.len();
             changes.push(PreflightChange::Rename {
-                target: rename.stable_id.clone(),
+                target: rename.stable_id.to_owned(),
                 target_kind: if function.type_parameters.is_empty() {
                     SourceConsumerKind::Function
                 } else {
                     SourceConsumerKind::FunctionTemplate
                 },
                 before: function.name.clone(),
-                after: rename.new_name.clone(),
+                after: rename.new_name.to_owned(),
                 operation_indices: operation_indices.clone(),
             });
             for (start, end) in function_name_positions(&before, &tokens, function) {
-                let replacement = rename.new_name.clone();
+                let replacement = rename.new_name.to_owned();
                 planned_edits.push(planned_edit(
                     start,
                     end,
@@ -1612,14 +1450,14 @@ fn preflight_parsed_owned(
             let operation_indices = BTreeSet::from([rename.operation_index]);
             let change = changes.len();
             changes.push(PreflightChange::Rename {
-                target: rename.stable_id.clone(),
+                target: rename.stable_id.to_owned(),
                 target_kind: SourceConsumerKind::Resource,
                 before: resource.name.clone(),
-                after: rename.new_name.clone(),
+                after: rename.new_name.to_owned(),
                 operation_indices: operation_indices.clone(),
             });
             for (start, end) in resource_type_positions(&before, &tokens, resource) {
-                let replacement = rename.new_name.clone();
+                let replacement = rename.new_name.to_owned();
                 planned_edits.push(planned_edit(
                     start,
                     end,
@@ -1647,7 +1485,7 @@ fn preflight_parsed_owned(
         ),
         None => None,
     };
-    for rename in &patch.member_renames {
+    for rename in patch.member_renames() {
         validate_new_name(&rename.new_name)?;
         let identity =
             member_identity(&before, &rename.owner, &rename.member).ok_or_else(|| {
@@ -1671,17 +1509,17 @@ fn preflight_parsed_owned(
         let operation_indices = BTreeSet::from([rename.operation_index]);
         let change = changes.len();
         changes.push(PreflightChange::Rename {
-            target: rename.member.clone(),
+            target: rename.member.to_owned(),
             target_kind: identity.kind,
             before: identity.name.clone(),
-            after: rename.new_name.clone(),
+            after: rename.new_name.to_owned(),
             operation_indices: operation_indices.clone(),
         });
         let sites = source_index
             .as_ref()
             .expect("v2 operations have a semantic source index")
             .members
-            .get(&(rename.owner.clone(), rename.member.clone()))
+            .get(&(rename.owner.to_owned(), rename.member.to_owned()))
             .ok_or_else(|| {
                 vec![Diagnostic::io(
                     "SPX-G108",
@@ -1693,7 +1531,7 @@ fn preflight_parsed_owned(
             })?;
         for site in sites {
             let replacement = site.shorthand_binding.as_ref().map_or_else(
-                || rename.new_name.clone(),
+                || rename.new_name.to_owned(),
                 |binding| format!("{}: {binding}", rename.new_name),
             );
             planned_edits.push(planned_edit(
@@ -1706,7 +1544,7 @@ fn preflight_parsed_owned(
             replacements.push((site.span.start, site.span.end, replacement));
         }
     }
-    for rename in &patch.case_renames {
+    for rename in patch.case_renames() {
         validate_new_name(&rename.new_name)?;
         let identity = case_identity(&before, &rename.owner, &rename.case).ok_or_else(|| {
             vec![Diagnostic::io(
@@ -1729,17 +1567,17 @@ fn preflight_parsed_owned(
         let operation_indices = BTreeSet::from([rename.operation_index]);
         let change = changes.len();
         changes.push(PreflightChange::Rename {
-            target: rename.case.clone(),
+            target: rename.case.to_owned(),
             target_kind: SourceConsumerKind::VariantCase,
             before: identity.name.clone(),
-            after: rename.new_name.clone(),
+            after: rename.new_name.to_owned(),
             operation_indices: operation_indices.clone(),
         });
         let sites = source_index
             .as_ref()
             .expect("v2 operations have a semantic source index")
             .cases
-            .get(&(rename.owner.clone(), rename.case.clone()))
+            .get(&(rename.owner.to_owned(), rename.case.to_owned()))
             .ok_or_else(|| {
                 vec![Diagnostic::io(
                     "SPX-G108",
@@ -1750,7 +1588,7 @@ fn preflight_parsed_owned(
                 )]
             })?;
         for span in sites {
-            let replacement = rename.new_name.clone();
+            let replacement = rename.new_name.to_owned();
             planned_edits.push(planned_edit(
                 span.start,
                 span.end,
@@ -1764,7 +1602,7 @@ fn preflight_parsed_owned(
 
     let mut expected_call_arguments = BTreeMap::<String, Vec<hir::ResolvedType>>::new();
     let mut call_change_indices = BTreeMap::<String, usize>::new();
-    for replacement in &patch.call_type_argument_replacements {
+    for replacement in patch.call_type_argument_replacements() {
         if replacement.from == replacement.to {
             return Err(patch_conflict(format!(
                 "call type argument {} is already `{}`",
@@ -1776,7 +1614,7 @@ fn preflight_parsed_owned(
             .as_ref()
             .expect("v2 operations have a semantic source index")
             .calls
-            .get(&replacement.expression)
+            .get(replacement.expression)
             .ok_or_else(|| {
                 call_selector_error(replacement, "expression does not identify a source call")
             })?;
@@ -1784,7 +1622,7 @@ fn preflight_parsed_owned(
             call_selector_error(replacement, "type argument index is not addressable")
         })?;
         if site.template != replacement.template
-            || site.instance.as_deref() != Some(replacement.old_instance.as_str())
+            || site.instance.as_deref() != Some(replacement.old_instance)
             || site.type_arguments.get(index) != Some(&replacement.from.resolved())
         {
             return Err(call_selector_error(
@@ -1802,24 +1640,24 @@ fn preflight_parsed_owned(
             ));
         }
         let arguments = expected_call_arguments
-            .entry(replacement.expression.clone())
+            .entry(replacement.expression.to_owned())
             .or_insert_with(|| site.type_arguments.clone());
         arguments[index] = replacement.to.resolved();
         let operation_indices = BTreeSet::from([replacement.operation_index]);
-        let change = if let Some(change) = call_change_indices.get(&replacement.expression) {
+        let change = if let Some(change) = call_change_indices.get(replacement.expression) {
             *change
         } else {
             let change = changes.len();
             changes.push(PreflightChange::CallInstance {
-                expression: replacement.expression.clone(),
-                template: replacement.template.clone(),
+                expression: replacement.expression.to_owned(),
+                template: replacement.template.to_owned(),
                 before_arguments: site.type_arguments.clone(),
                 after_arguments: site.type_arguments.clone(),
-                before_instance: replacement.old_instance.clone(),
-                after_instance: replacement.old_instance.clone(),
+                before_instance: replacement.old_instance.to_owned(),
+                after_instance: replacement.old_instance.to_owned(),
                 operation_indices: BTreeSet::new(),
             });
-            call_change_indices.insert(replacement.expression.clone(), change);
+            call_change_indices.insert(replacement.expression.to_owned(), change);
             change
         };
         let PreflightChange::CallInstance {
@@ -1959,7 +1797,7 @@ fn preflight_parsed_owned(
             return Err(diagnostics);
         }
     }
-    if patch.no_new_effects && !effect_set(&candidate).is_subset(&before_effects) {
+    if patch.no_new_effects() && !effect_set(&candidate).is_subset(&before_effects) {
         return Err(vec![Diagnostic::io(
             "SPX-G105",
             "semantic patch violates requirement `no-new-effects`",
@@ -1980,7 +1818,6 @@ fn preflight_parsed_owned(
         })?;
     }
     let candidate_revision = graph::revision(&candidate);
-    let operations = patch.operations.clone();
     Ok(PatchPreflight {
         source,
         patch_source,
@@ -1990,7 +1827,6 @@ fn preflight_parsed_owned(
         base_revision,
         candidate_revision,
         canonical_candidate,
-        operations,
         changes,
         planned_edits: checked_planned_edits,
         identity_rebase: None,
@@ -2532,11 +2368,6 @@ fn parse_patch(source: &str) -> Result<SemanticPatch, Vec<Diagnostic>> {
         _ => PatchSchema::V1,
     };
     let mut base = None;
-    let mut renames = Vec::new();
-    let mut member_renames = Vec::new();
-    let mut case_renames = Vec::new();
-    let mut call_type_argument_replacements = Vec::new();
-    let mut no_new_effects = false;
     let mut selectors = BTreeSet::new();
     let mut operations = Vec::new();
     for (meaningful_index, (line_index, line)) in meaningful.into_iter().enumerate() {
@@ -2563,11 +2394,6 @@ fn parse_patch(source: &str) -> Result<SemanticPatch, Vec<Diagnostic>> {
                     target: (*stable_id).to_owned(),
                     to: (*new_name).to_owned(),
                 });
-                renames.push(Rename {
-                    stable_id: (*stable_id).to_owned(),
-                    new_name: (*new_name).to_owned(),
-                    operation_index,
-                });
             }
             ["rename-member", "owner", owner, "member", member, "to", new_name]
                 if schema == PatchSchema::V2 =>
@@ -2584,12 +2410,6 @@ fn parse_patch(source: &str) -> Result<SemanticPatch, Vec<Diagnostic>> {
                     member: (*member).to_owned(),
                     to: (*new_name).to_owned(),
                 });
-                member_renames.push(RenameMember {
-                    owner: (*owner).to_owned(),
-                    member: (*member).to_owned(),
-                    new_name: (*new_name).to_owned(),
-                    operation_index,
-                });
             }
             ["rename-case", "owner", owner, "case", case, "to", new_name]
                 if schema == PatchSchema::V2 =>
@@ -2605,12 +2425,6 @@ fn parse_patch(source: &str) -> Result<SemanticPatch, Vec<Diagnostic>> {
                     owner: (*owner).to_owned(),
                     case: (*case).to_owned(),
                     to: (*new_name).to_owned(),
-                });
-                case_renames.push(RenameCase {
-                    owner: (*owner).to_owned(),
-                    case: (*case).to_owned(),
-                    new_name: (*new_name).to_owned(),
-                    operation_index,
                 });
             }
             ["replace-call-type-argument", "expression", expression, "template", template, "old-instance", old_instance, "index", index, "from", from, "to", to]
@@ -2646,15 +2460,6 @@ fn parse_patch(source: &str) -> Result<SemanticPatch, Vec<Diagnostic>> {
                     from,
                     to,
                 });
-                call_type_argument_replacements.push(ReplaceCallTypeArgument {
-                    expression: (*expression).to_owned(),
-                    template: (*template).to_owned(),
-                    old_instance: (*old_instance).to_owned(),
-                    index,
-                    from,
-                    to,
-                    operation_index,
-                });
             }
             ["require", "no-new-effects"] => {
                 reject_duplicate_selector(
@@ -2665,7 +2470,6 @@ fn parse_patch(source: &str) -> Result<SemanticPatch, Vec<Diagnostic>> {
                 operations.push(PreflightOperation::RequireNoNewEffects {
                     index: operations.len(),
                 });
-                no_new_effects = true;
             }
             _ => {
                 return Err(vec![Diagnostic::io(
@@ -2684,17 +2488,7 @@ fn parse_patch(source: &str) -> Result<SemanticPatch, Vec<Diagnostic>> {
             "semantic patch is missing a `base <revision>` instruction",
         )]);
     };
-    Ok(SemanticPatch {
-        schema,
-        base,
-        renames,
-        member_renames,
-        case_renames,
-        call_type_argument_replacements,
-        no_new_effects,
-        assign_function_id: None,
-        operations,
-    })
+    Ok(SemanticPatch::admitted(schema, base, operations))
 }
 
 fn parse_patch_v3(source: &str) -> Result<SemanticPatch, Vec<Diagnostic>> {
@@ -2756,22 +2550,11 @@ fn parse_patch_v3(source: &str) -> Result<SemanticPatch, Vec<Diagnostic>> {
         name: (*name).to_owned(),
         to: (*to).to_owned(),
     };
-    Ok(SemanticPatch {
-        schema: PatchSchema::V3,
-        base: (*base_revision).to_owned(),
-        renames: Vec::new(),
-        member_renames: Vec::new(),
-        case_renames: Vec::new(),
-        call_type_argument_replacements: Vec::new(),
-        no_new_effects: false,
-        assign_function_id: Some(AssignFunctionId {
-            repair_id: (*repair_id).to_owned(),
-            target: (*target).to_owned(),
-            name: (*name).to_owned(),
-            to: (*to).to_owned(),
-        }),
-        operations: vec![operation],
-    })
+    Ok(SemanticPatch::admitted(
+        PatchSchema::V3,
+        (*base_revision).to_owned(),
+        vec![operation],
+    ))
 }
 
 fn reject_duplicate_selector(
@@ -2891,7 +2674,7 @@ fn case_identity(program: &crate::ast::Program, owner: &str, case: &str) -> Opti
     })
 }
 
-fn call_selector_error(replacement: &ReplaceCallTypeArgument, reason: &str) -> Vec<Diagnostic> {
+fn call_selector_error(replacement: ReplaceCallTypeArgument<'_>, reason: &str) -> Vec<Diagnostic> {
     vec![Diagnostic::io(
         "SPX-G108",
         format!(
@@ -2936,21 +2719,18 @@ fn validate_semantic_delta(inputs: SemanticDeltaInputs<'_>) -> Result<(), Vec<Di
         .collect::<BTreeSet<_>>();
     allowed_instances.extend(
         patch
-            .call_type_argument_replacements
-            .iter()
-            .map(|replacement| replacement.old_instance.clone()),
+            .call_type_argument_replacements()
+            .map(|replacement| replacement.old_instance.to_owned()),
     );
     let renamed_declarations = patch
-        .renames
-        .iter()
-        .map(|rename| rename.stable_id.clone())
+        .renames()
+        .map(|rename| rename.stable_id.to_owned())
         .chain(
             patch
-                .member_renames
-                .iter()
-                .map(|rename| rename.member.clone()),
+                .member_renames()
+                .map(|rename| rename.member.to_owned()),
         )
-        .chain(patch.case_renames.iter().map(|rename| rename.case.clone()))
+        .chain(patch.case_renames().map(|rename| rename.case.to_owned()))
         .collect::<BTreeSet<_>>();
     let before_graph =
         normalized_semantic_graph(before, &targeted, &allowed_instances, &renamed_declarations)?;
@@ -2963,7 +2743,7 @@ fn validate_semantic_delta(inputs: SemanticDeltaInputs<'_>) -> Result<(), Vec<Di
         )]);
     }
 
-    if patch.call_type_argument_replacements.is_empty() {
+    if patch.call_type_argument_replacements().next().is_none() {
         return Ok(());
     }
     let before_instances = before_resolved
@@ -3004,21 +2784,21 @@ fn validate_semantic_delta(inputs: SemanticDeltaInputs<'_>) -> Result<(), Vec<Di
             )]
         })?;
 
-    for replacement in &patch.call_type_argument_replacements {
+    for replacement in patch.call_type_argument_replacements() {
         let before_call = before_index
             .calls
-            .get(&replacement.expression)
+            .get(replacement.expression)
             .ok_or_else(|| call_selector_error(replacement, "pre-patch call disappeared"))?;
         let after_call = after_index
             .calls
-            .get(&replacement.expression)
+            .get(replacement.expression)
             .ok_or_else(|| call_selector_error(replacement, "post-patch call disappeared"))?;
         let index = replacement.index as usize;
         let expected = expected_call_instances
-            .get(&replacement.expression)
+            .get(replacement.expression)
             .expect("each replacement records an expected instance");
         let expected_arguments = expected_call_arguments
-            .get(&replacement.expression)
+            .get(replacement.expression)
             .expect("each replacement records expected arguments");
         if after_call.template != before_call.template
             || after_call.instance.as_deref() != Some(expected.as_str())
@@ -3278,3 +3058,7 @@ fn insert_named_type_token(
 #[cfg(test)]
 #[path = "patch/commit_tests.rs"]
 mod commit_tests;
+
+#[cfg(test)]
+#[path = "patch/operation_tests.rs"]
+mod operation_tests;

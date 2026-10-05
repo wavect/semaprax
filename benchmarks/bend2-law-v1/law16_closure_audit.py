@@ -201,8 +201,8 @@ def render() -> dict:
             "id": "AC1",
             "text": ACCEPTANCE_TEXT[0],
             "status": "met",
-            "assessment": "The committed reproducibility sequence documents fresh commands for the seven pinned non-agent routes, specialized physical cells including the separate proof/verdict guest profiles, and the costed Claude campaign. Retained captures authenticate the six-route unified run and the separate seventh guarded-i64 source-proof route; the completed Claude campaign retains all 20 trial outcomes, provider token/cost events, raw streams, and pinned plan/tool identities. Offline review authenticates these historical artifacts without claiming to rerun their tools or timings.",
-            "evidence": common + [evidence("LAW16-AC1-REPRODUCIBILITY.md"), evidence("README.md"), evidence("law16_replay.py"), evidence("law16_current_report.py"), evidence("law16_source_synthesis_capture.py"), evidence("law16_guest_cache_proof.py"), evidence("evidence/law16-unified-fresh-v1/replay-status.json"), evidence("evidence/law16-unified-fresh-guarded-i64-v1/result.json"), evidence("evidence/law16-host-source-synthesis-thirty-v1/result.json"), evidence("evidence/law16-boolean-negation-proof-verdict-v1/guest-x86-rosetta-bend-v1/receipt.json"), evidence("evidence/law16-boolean-negation-proof-verdict-v1/guest-arm64-z3-source-obligation-v1/receipt.json"), evidence("evidence/law16-claude-campaign-twenty-v2/summary.json")],
+            "assessment": "The committed reproducibility sequence documents fresh commands for the seven pinned non-agent routes, specialized physical cells including separate proof/verdict guests and the supplemental matched Boolean Project edit, and the costed Claude campaign. Retained captures authenticate the six-route unified run and separate seventh guarded-i64 source-proof route; the completed Claude campaign retains all 20 trial outcomes, provider token/cost events, raw streams, and pinned plan/tool identities. Offline review authenticates these historical artifacts without claiming to rerun their tools or timings.",
+            "evidence": common + [evidence("LAW16-AC1-REPRODUCIBILITY.md"), evidence("README.md"), evidence("law16_replay.py"), evidence("law16_current_report.py"), evidence("law16_source_synthesis_capture.py"), evidence("law16_guest_cache_proof.py"), evidence("law16_boolean_project_edit.py"), evidence("evidence/law16-unified-fresh-v1/replay-status.json"), evidence("evidence/law16-unified-fresh-guarded-i64-v1/result.json"), evidence("evidence/law16-host-source-synthesis-thirty-v1/result.json"), evidence("evidence/law16-boolean-project-edit-v1/result.json"), evidence("evidence/law16-boolean-negation-proof-verdict-v1/guest-x86-rosetta-bend-v1/receipt.json"), evidence("evidence/law16-boolean-negation-proof-verdict-v1/guest-arm64-z3-source-obligation-v1/receipt.json"), evidence("evidence/law16-claude-campaign-twenty-v2/summary.json")],
         },
         {
             "id": "AC2",
@@ -259,6 +259,7 @@ def render() -> dict:
                 evidence("evidence/law16-boolean-negation-proof-verdict-v1/guest-x86-rosetta-bend-v1/receipt.json"),
                 evidence("evidence/law16-boolean-negation-proof-verdict-v1/guest-arm64-z3-source-obligation-v1/receipt.json"),
                 evidence("evidence/law16-host-source-synthesis-thirty-v1/result.json"),
+                evidence("evidence/law16-boolean-project-edit-v1/result.json"),
                 evidence("evidence/law16-effort-summary-v1.json"),
                 evidence("evidence/full-u32-encoding-controls-v1/report.json"),
             ],
@@ -294,7 +295,7 @@ def render() -> dict:
         ),
         (
             "partial",
-            "Boolean, balance, and sort controls are retained, including a supplemental LAW15 List<i64> Lean proof test and a matched Boolean refactor candidate/attack cell. A local three-module SEMAPRAX incremental cache control executed, but it is not a matched Bend or large-project comparison. The original checked-u32 refactor and law-breaking agent edit remain unsupported.",
+            "Boolean, balance, and sort controls are retained, including a supplemental LAW15 List<i64> Lean proof test and matched Boolean refactor controls. A separate matched Boolean Project edit now executes four-source SEMAPRAX and three-module Bend import closures before and after an unchanged-law provider edit, rejects a provider-signature attack on both sides, and retains 30 ordinary-check samples per lane/state plus Bend verdict-kernel outcomes. The local SEMAPRAX calculator control separately records compiler reuse. Neither route is the original checked-u32 project-sized cell or a large-project incremental comparison; the original checked-u32 refactor and law-breaking agent edit remain unsupported.",
         ),
         (
             "partial",
@@ -302,7 +303,7 @@ def render() -> dict:
         ),
         (
             "partial",
-            "Available process cells have 30 samples, p50/p95, peak RSS, and descriptive MAD; host source-to-SMT synthesis wall time, guest cold/warm proof checking, proof synthesis tokens, Boolean annotation/changed-byte counts, and route checks are separately reported. A local three-module cache invalidation control is retained. Local native phase samples separate Bend Clang compilation and both run phases; SEMAPRAX build internals remain combined. The completed Claude Boolean campaign adds monetary cost observations.",
+            "Available process cells have 30 samples, p50/p95, peak RSS, and descriptive MAD; host source-to-SMT synthesis wall time, guest cold/warm proof checking, proof synthesis tokens, Boolean annotation/changed-byte counts, and route checks are separately reported. The supplemental matched Boolean Project edit adds 30 ordinary-check samples per lane/state with uncontrolled guest cache; the local SEMAPRAX calculator control records cache invalidation without a matched Bend reuse metric. Local native phase samples separate Bend Clang compilation and both run phases; SEMAPRAX build internals remain combined. The completed Claude Boolean campaign adds monetary cost observations.",
         ),
         (
             "partial",

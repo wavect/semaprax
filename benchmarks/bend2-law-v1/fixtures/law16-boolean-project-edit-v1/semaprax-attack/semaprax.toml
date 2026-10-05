@@ -1,0 +1,6 @@
+schema = "semaprax.project.v1"
+name = "law16-boolean-project-edit"
+entry = "app"
+sources = ["core/core.spx", "relay/relay.spx", "src/app.spx", "tests/tests.spx"]
+web_exports = ["app.main"]
+tests = ["app.tests"]

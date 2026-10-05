@@ -1,0 +1,8 @@
+module app.relay;
+use function @id("app.core.negate") from app.core as negate;
+
+@id("app.relay.probe")
+fn probe() -> bool
+{
+    negate(false)
+}

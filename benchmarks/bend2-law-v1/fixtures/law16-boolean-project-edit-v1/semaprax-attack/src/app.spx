@@ -1,0 +1,9 @@
+module app;
+use function @id("app.core.negate") from app.core as negate;
+use function @id("app.relay.probe") from app.relay as probe;
+
+@id("app.main")
+fn main() -> i64
+{
+    if negate(false) && probe() { 0 } else { 1 }
+}

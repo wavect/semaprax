@@ -1,0 +1,11 @@
+SOME PROOFS FAIL
+Error:
+- expected : Bool
+- observed : @extra:Bool -> Bool
+Context:
+- value : Bool
+Location: negate_matches_boolean_not
+7 |   for value: Bool
+8>|   {negate(value) == Bool.not(value) : Bool}
+  |    ^^^^^^^^^^^^^
+9 | 

@@ -37,6 +37,7 @@ CACHE_ISOLATION = module("law16_cache_isolation_probe")
 BOOLEAN_REFACTOR = module("law16_boolean_refactor_cell")
 GUEST_CACHE = module("law16_guest_cache")
 PROJECT_INCREMENTAL = module("law16_project_incremental_cell")
+BOOLEAN_PROJECT_EDIT = module("law16_boolean_project_edit")
 NATIVE_PHASES = module("law16_boolean_native_phases")
 PROOF_GUEST = module("law16_guest_cache_proof")
 SOURCE_SYNTHESIS = module("law16_source_synthesis_capture")
@@ -206,6 +207,7 @@ def render():
     cache_probe = CACHE_ISOLATION.review()
     guest_cache = GUEST_CACHE.review(ROOT / "evidence/law16-guest-cache-thirty-v1")
     project_incremental = PROJECT_INCREMENTAL.verify(ROOT / "evidence/law16-project-incremental-cell-v1")
+    boolean_project_edit = BOOLEAN_PROJECT_EDIT.review(ROOT / "evidence/law16-boolean-project-edit-v1")
     native_phases = NATIVE_PHASES.review(ROOT / "evidence/law16-native-phase-thirty-v1")
     proof_verdict_guests = proof_verdict_guest_cache()
     source_synthesis = host_source_synthesis()
@@ -498,6 +500,11 @@ def render():
             **project_incremental,
             "scope": "local three-module SEMAPRAX compiler cache control; no matched Bend route or project-sized timing comparison",
         },
+        "supplemental_matched_boolean_project_edit": {
+            "source": "evidence/law16-boolean-project-edit-v1/result.json",
+            **boolean_project_edit,
+            "scope": "matched Boolean provider-body and signature edits across a four-source SEMAPRAX Project and a three-module Bend import closure; 30 ordinary-check samples per lane/state, no incremental-cache or original checked-u32 claim",
+        },
         "supplemental_boolean_native_phases": {
             "source": "evidence/law16-native-phase-thirty-v1/receipt.json",
             **native_phases,
@@ -540,7 +547,7 @@ def render():
             "cold_cache": "30 guest file-page-cache cold/warm pairs per ordinary/check route, plus 30 pairs each for pinned x86/Rosetta Bend verdict and native ARM64 direct-Z3 source-obligation routes; host, hardware, solver-internal, and translation cache state remain unknown",
             "Lean": "supplemental LAW15 collection source theorem physically checked by Lean; no Boolean or original law16.* Lean export",
             "cost": "observed for a complete twenty-trial Claude Boolean campaign: $0.291235 provider-reported total with token events and one failed Bend candidate; Codex monetary charges and other task cells remain unavailable",
-            "project_sized": "partial: three-module SEMAPRAX calculator core edit and signature negative control exercised; no matched Bend route, large project, or incremental timing comparison",
+            "project_sized": "partial: a matched Boolean provider edit and signature refusal now execute across multi-module SEMAPRAX and Bend fixtures, with 30 ordinary-check samples per lane/state; the original checked-u32 project-sized cell, a large project, and matched incremental-cache work remain unsupported. A separate SEMAPRAX calculator control records local compiler reuse",
             "list_refactor_lawbreaking": remaining,
         },
         "closure": (

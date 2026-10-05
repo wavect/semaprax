@@ -231,6 +231,21 @@ python3 benchmarks/bend2-law-v1/law16_project_incremental_cell.py \
   --output /absolute/new-project-incremental-capsule
 ```
 
+The [matched Boolean Project edit capsule](evidence/law16-boolean-project-edit-v1/result.json)
+records a provider-body edit and provider-signature refusal across a four-source
+SEMAPRAX Project and three-module Bend import closure. It retains 30 ordinary
+checker process samples for each before/after lane and separate Bend verdict
+checks. Review the input hashes, exact commands, and raw outcomes offline with:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_boolean_project_edit.py \
+  --review benchmarks/bend2-law-v1/evidence/law16-boolean-project-edit-v1
+```
+
+This supplemental Boolean profile does not admit the original checked-`u32`
+cell or measure cross-language incremental reuse. The capture command and tool
+pins are in [the reproducibility record](LAW16-AC1-REPRODUCIBILITY.md).
+
 The harness records local evidence only. It does not provision tools, clone
 repositories, generate source fixtures, publish results, or make a
 superiority claim. Unimplemented fixture/tool combinations remain

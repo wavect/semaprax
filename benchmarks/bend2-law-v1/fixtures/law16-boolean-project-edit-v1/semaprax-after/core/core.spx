@@ -1,0 +1,8 @@
+module app.core;
+
+@id("app.core.negate")
+fn negate(value: bool) -> bool
+    ensures result == !value
+{
+    if value { false } else { true }
+}

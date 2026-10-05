@@ -1,0 +1,8 @@
+module app.tests;
+use function @id("app.core.negate") from app.core as negate;
+
+@id("app.tests.main")
+fn main() -> i64
+{
+    if negate(false) { 0 } else { 1 }
+}

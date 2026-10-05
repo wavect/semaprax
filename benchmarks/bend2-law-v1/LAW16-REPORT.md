@@ -173,6 +173,17 @@ The separate [three-module calculator capsule](evidence/law16-project-incrementa
 executes SEMAPRAX compiler cache tests for a provider body edit and a rejected
 provider-signature edit. It is local incremental behavior, with no matched Bend
 route or large-project timing result.
+The new [matched Boolean Project edit capsule](evidence/law16-boolean-project-edit-v1/result.json)
+executes an unchanged-law provider-body edit across a four-source SEMAPRAX
+Project and a three-module Bend import closure. The two ordinary checkers
+accepted both before and after states in 30 retained process samples per
+lane/state; Bend's separate verdict kernel accepted both proofs. A provider
+signature change was rejected by both checkers without changing either law.
+The guest ran on x86/Rosetta with exact tool and input hashes. These are
+supplemental Boolean observations: they establish neither incremental cache
+reuse in Bend nor a large-project or original checked-`u32` result. Guest
+cache state was not isolated, so the descriptive process times are not a
+cross-language ranking.
 The [Boolean native phase capsule](evidence/law16-native-phase-thirty-v1/receipt.json)
 retains 30 local samples for each Bend check, C emission, Clang compilation,
 and run phase and each SEMAPRAX check, combined native build, and run phase.

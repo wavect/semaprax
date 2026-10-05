@@ -2596,6 +2596,49 @@
     "source": "fixtures/full-u32-guarded-i64-profile-v2.json",
     "status": "supplemental_controls_and_matched_sort_law_route_no_timing"
   },
+  "supplemental_matched_boolean_project_edit": {
+    "bend_verdict_routes": [
+      "bend_before_verdict",
+      "bend_after_verdict"
+    ],
+    "negative_controls": [
+      "bend_attack",
+      "semaprax_attack"
+    ],
+    "nonclaims": [
+      "the original checked-u32 project-incremental cell remains unsupported and is not replaced by this Boolean profile",
+      "this is a four-source SEMAPRAX Project and a three-module Bend import closure, not a large-project claim",
+      "SEMAPRAX ordinary check does not discharge its source postcondition; Bend ordinary check is distinct from the separately recorded verdict-kernel route",
+      "process times include launch and guest-local cache state is uncontrolled; no cold/warm, incremental reuse, cross-language ratio, or winner is claimed",
+      "the SEMAPRAX executable SHA binds bytes but its source-build association is historical local provenance, not a reproducible-build attestation"
+    ],
+    "ordinary_check_summaries": {
+      "bend_after": {
+        "count": 30,
+        "p50_ns": 1310802896.5,
+        "p95_ns": 1413261626
+      },
+      "bend_before": {
+        "count": 30,
+        "p50_ns": 1328616063.0,
+        "p95_ns": 1408677126
+      },
+      "semaprax_after": {
+        "count": 30,
+        "p50_ns": 300687646.0,
+        "p95_ns": 307176042
+      },
+      "semaprax_before": {
+        "count": 30,
+        "p50_ns": 299585188.0,
+        "p95_ns": 335989500
+      }
+    },
+    "repetitions_per_ordinary_route": 30,
+    "scope": "matched Boolean provider-body and signature edits across a four-source SEMAPRAX Project and a three-module Bend import closure; 30 ordinary-check samples per lane/state, no incremental-cache or original checked-u32 claim",
+    "source": "evidence/law16-boolean-project-edit-v1/result.json",
+    "status": "matched_boolean_project_edit_observed"
+  },
   "supplemental_project_incremental_cell": {
     "overall_law16": "incomplete",
     "project_modules": 3,
@@ -2746,6 +2789,6 @@
       "schema": "semaprax.bend2-law-benchmark.remaining-u32-cells-admission.v1",
       "status": "unsupported"
     },
-    "project_sized": "partial: three-module SEMAPRAX calculator core edit and signature negative control exercised; no matched Bend route, large project, or incremental timing comparison"
+    "project_sized": "partial: a matched Boolean provider edit and signature refusal now execute across multi-module SEMAPRAX and Bend fixtures, with 30 ordinary-check samples per lane/state; the original checked-u32 project-sized cell, a large project, and matched incremental-cache work remain unsupported. A separate SEMAPRAX calculator control records local compiler reuse"
   }
 }

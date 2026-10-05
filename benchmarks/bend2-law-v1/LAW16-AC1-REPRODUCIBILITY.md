@@ -128,6 +128,44 @@ python3 benchmarks/bend2-law-v1/law16_source_synthesis_capture.py \
   --review /absolute/retained/law16-host-source-synthesis
 ```
 
+**Supplemental matched Boolean Project edit.** The retained capsule exercises
+one provider-body edit in a four-source SEMAPRAX Project and three-module Bend
+import closure, plus an unchanged-law provider-signature refusal on both
+sides. Thirty ordinary-check processes per lane and state retain raw streams;
+Bend verdict-kernel checks are separate. This does not admit the original
+checked-`u32` incremental cell, measure cache reuse, or provide a
+cross-language timing ratio. Review the raw capsule offline:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_boolean_project_edit.py \
+  --review benchmarks/bend2-law-v1/evidence/law16-boolean-project-edit-v1
+```
+
+Fresh capture runs in the pinned `ri13-linux-evidence:rust-1.98.0` x86/Rosetta
+image (`sha256:c9024b5897124ae3a7f124a41dbe4d301c7319daf4e9aed82b23424648eb311e`).
+Mount a clean Bend checkout at commit
+`947db722640c86247849343657bf2f7ef01cb7f1`, Bun SHA-256 `c356f5fb…`,
+BendTT SHA-256 `72e11a86…`, and SEMAPRAX SHA-256 `5d2ecf0a…` at the exact
+guest paths checked by the runner. The runner hashes every executable and
+source file before executing. From the repository root, with a new output
+directory name under `benchmarks/bend2-law-v1/evidence`:
+
+```sh
+container run --rm --arch amd64 --rosetta --memory 512M --cpus 1 --no-dns \
+  -e BEND_NO_TELEMETRY=1 -e DO_NOT_TRACK=1 \
+  --mount type=bind,source=/absolute/clean-bend-checkout,target=/bend-root,readonly \
+  --mount type=bind,source=/absolute/bun-directory,target=/bun-dir,readonly \
+  --mount type=bind,source=/absolute/bendtt-directory,target=/kernel,readonly \
+  --mount type=bind,source=/absolute/semaprax-binary-directory,target=/sem-dir,readonly \
+  --mount type=bind,source=/absolute/current/benchmarks/bend2-law-v1,target=/bench,readonly \
+  --mount type=bind,source=/absolute/current/benchmarks/bend2-law-v1/evidence,target=/out \
+  ri13-linux-evidence:rust-1.98.0 python3 /bench/law16_boolean_project_edit.py \
+  --capture /out/new-boolean-project-edit \
+  --fixture /bench/fixtures/law16-boolean-project-edit-v1 \
+  --bun /bun-dir/bun --bend-root /bend-root --bendtt /kernel/bendtt \
+  --semaprax /sem-dir/semaprax
+```
+
 **Native phases.** Requires the exact Bend source pin plus pinned Bun,
 SEMAPRAX, and Clang executables. Thirty repetitions capture the seven timed
 phases listed in its receipt:

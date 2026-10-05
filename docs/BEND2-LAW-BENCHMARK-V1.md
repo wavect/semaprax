@@ -91,16 +91,23 @@ numeric domains, laws and attacks; they contribute no timing result,
 successful task outcome or superiority claim. Completing the benchmark does
 not admit checked-`u32` source syntax. Supplemental profiles remain separately
 identified and do not replace original manifest cells.
+The supplemental matched Boolean Project edit records three-module Bend and
+four-source SEMAPRAX check routes, an unchanged-law provider-body edit, a
+signature attack rejected on both sides, and thirty ordinary-check samples
+per lane/state. It does not establish incremental cache reuse, a large-project
+result, or admission of the original checked-`u32` Project cell.
 
 Available configurations must satisfy the required repetition, phase
 separation, provenance, control and agent-trial gates, including thirty timed
 repetitions per microbenchmark configuration and ten independent fixed-budget
 trials per admitted task/language/model with token/cost provenance. Retained
-local results exist, but acceptance remains open for AC5's proof/verdict
-cold/warm measurement. Guest file-page-cache observations retain their exact
-scope; host and Rosetta cache state are unobserved. SEMAPRAX's combined native
-build metric does not establish isolated compilation time. Runtime throughput
-and GPU scaling remain a separate family.
+ordinary/check and proof/verdict guest capsules now authenticate thirty
+cold/warm file-page-cache pairs per admitted route. A separate host capture
+records thirty source-to-SMT process samples. Guest file-page-cache
+observations retain their exact scope; host and Rosetta cache state are
+unobserved. SEMAPRAX's combined native build metric does not establish
+isolated compilation time. Runtime throughput and GPU scaling remain a
+separate family.
 
 `benchmarks/bend2-law-v1/agent_trial_plan.py` provides the prior static
 preregistration boundary. It authenticates the manifest/fixture bytes and a
@@ -190,8 +197,9 @@ contradict this explicitly different guest configuration.
 The local pilot and thirty-pair capture are retained under
 `benchmarks/bend2-law-v1/evidence/law16-guest-cache-{pilot,thirty}-v1/`.
 A preceding missing-Bend-effect-file preflight remains a separate nonresult
-with zero benchmark samples. These observations advance only this guest
-profile; they do not close AC5 or issue #392.
+with zero benchmark samples. These ordinary-check observations alone did not
+close AC5; the separate proof/verdict guest and host source-to-SMT capsules
+provide the later phase evidence.
 
 Method references: [Apple Container command reference](https://github.com/apple/container/blob/main/docs/command-reference.md),
 [Linux drop_caches](https://kernel.org/doc/html/v6.15/admin-guide/sysctl/vm.html#drop-caches),

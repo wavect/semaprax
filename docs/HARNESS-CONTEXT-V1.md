@@ -27,6 +27,33 @@ handles included, fits `--max-bytes`.
   provider answer with nothing omitted by budget and an explicit
   `no_references`. Otherwise a source-search recommendation is given.
 
+## Revision binding (MN-05)
+
+The capture's per-file digests are the only evidence of the captured revision.
+Every source read the broker renders from (`Snapshot::read_bound`) hashes the
+exact bytes it returns and compares the whole-file digest with the capture, so a
+span digest is only ever compared against bytes of the captured revision. A
+matching span in a file that changed elsewhere is therefore still unverified.
+Outcomes, reported as the item's `omission_reason` (item `verified=false`,
+`complete=false`, provenance `inferred`, revision unchanged and never relabelled):
+
+| Source state | Reason |
+| --- | --- |
+| unchanged, span matches | verified |
+| unchanged, span differs | `stale-digest` |
+| edited (same size or not) or replaced by another file kind | `source-changed` |
+| deleted, renamed, or not in the capture | `deleted-or-renamed` |
+| read failure or non-UTF-8 | `unreadable` |
+
+`.spx` declaration scanning uses the same bound read, so a changed `.spx` file
+contributes no declarations. A native item whose declaring file no longer matches
+the capture is also reported unverified, incomplete and not `compiler-verified`;
+the compiler's facts keep their own `provider_id` and are never merged into the
+external tier. A provider response is written to the cache only after every
+returned item verified and a fresh capture still names the same revision; a
+failed binding is never cached. A mutable path is not an immutable snapshot:
+this is a point-in-time proof at each read, not protection against a later edit.
+
 ## External `.spx` references
 
 Each external item's span digest is re-hashed against the current working

@@ -86,6 +86,40 @@ impl Snapshot {
     }
 }
 
+/// Why a captured file cannot be read back as the captured revision.
+pub mod unbound {
+    pub const MISSING: &str = "deleted-or-renamed";
+    pub const UNREADABLE: &str = "unreadable";
+    /// Whole-file digest differs from the capture: a same-size edit, any other
+    /// edit, or a replacement by a different file kind.
+    pub const CHANGED: &str = "source-changed";
+}
+
+impl Snapshot {
+    /// Read `rel` and prove the bytes are the captured ones: the whole-file digest
+    /// must equal the capture's. The returned text is the very buffer that was
+    /// hashed, so a span derived from it belongs to the captured revision. A
+    /// mutable path is not an immutable snapshot: a later edit can still follow
+    /// this read, which is why callers treat the result as a point-in-time proof.
+    pub fn read_bound(&self, rel: &str) -> Result<String, &'static str> {
+        let Some(want) = self.files.get(rel) else {
+            return Err(unbound::MISSING);
+        };
+        let p = self.root.join(rel);
+        if std::fs::symlink_metadata(&p).is_ok_and(|m| !m.is_file()) {
+            return Err(unbound::CHANGED);
+        }
+        let bytes = std::fs::read(&p).map_err(|e| match e.kind() {
+            std::io::ErrorKind::NotFound => unbound::MISSING,
+            _ => unbound::UNREADABLE,
+        })?;
+        if sha256_plain(&bytes) != *want {
+            return Err(unbound::CHANGED);
+        }
+        String::from_utf8(bytes).map_err(|_| unbound::UNREADABLE)
+    }
+}
+
 fn walk(base: &Path, dir: &Path, out: &mut BTreeMap<String, String>) -> HarnessResult<()> {
     let rd = std::fs::read_dir(dir).map_err(|e| err(format!("{}: {e}", dir.display())))?;
     let mut entries: Vec<_> = rd.flatten().collect();
@@ -169,8 +203,8 @@ fn name_of(line: &str) -> Option<String> {
 pub fn scan_spx(snap: &Snapshot) -> Vec<SpxDecl> {
     let mut out = Vec::new();
     for rel in snap.files.keys().filter(|p| p.ends_with(".spx")) {
-        let Ok(text) = std::fs::read_to_string(snap.root.join(rel)) else {
-            continue;
+        let Ok(text) = snap.read_bound(rel) else {
+            continue; // not the captured bytes: no declaration is claimed from it
         };
         let lines: Vec<&str> = text.split('\n').collect();
         let starts: Vec<usize> = (0..lines.len())

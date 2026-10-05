@@ -243,14 +243,15 @@ impl Broker {
         let mut reports: Vec<Value> = Vec::new();
         let mut candidates: Vec<(String, ContextItem)> = Vec::new();
         let mut hits: BTreeMap<String, bool> = BTreeMap::new();
+        let mut reads: BTreeMap<String, Result<String, &'static str>> = BTreeMap::new();
         let (mut all_exhaustive, mut all_none, mut all_complete) =
             (!self.providers.is_empty(), !self.providers.is_empty(), true);
         for src in &self.providers {
             let ident = src.identity();
             let query = external_query(req);
             let mut diags: Vec<Value> = Vec::new();
-            let resp = self.fetch(src.as_ref(), &ident, &snap, &query, &mut hits, &mut diags);
-            let Some(resp) = resp else {
+            let fetched = self.fetch(src.as_ref(), &ident, &snap, &query, &mut hits, &mut diags);
+            let Some((resp, pending)) = fetched else {
                 all_exhaustive = false;
                 all_none = false;
                 all_complete = false;
@@ -266,6 +267,7 @@ impl Broker {
                 continue;
             };
             let scope = src.scope();
+            let raw_resp = pending.is_some().then(|| resp.clone());
             let mut normalized = normalize(&ident, resp, &mut diags);
             let offered = normalized.items.len();
             normalized.items.retain(|i| under(&i.path, &scope));
@@ -283,9 +285,11 @@ impl Broker {
             }
             // Task-filtered items mean the answer is not the whole truth.
             let mut verified_all = by_task == 0;
+            let mut bound_all = true;
             for raw in &normalized.items {
-                let mut it = make_item(&snap, &ident.provider_id, raw);
+                let mut it = make_item(&snap, &ident.provider_id, raw, &mut reads);
                 verified_all &= it.verified;
+                bound_all &= it.verified;
                 link_spx(
                     &mut it,
                     &snap,
@@ -302,6 +306,15 @@ impl Broker {
                     }
                 }
                 candidates.push((ident.provider_id.clone(), it));
+            }
+            // Cache only after final verification: every returned item bound to the
+            // captured revision, and the tree still that revision after the query.
+            if let (Some(key), Some(raw_resp), Some(c)) = (&pending, &raw_resp, &self.cache) {
+                if bound_all
+                    && Snapshot::capture(&snap.root).is_ok_and(|n| n.revision == snap.revision)
+                {
+                    c.put(key, raw_resp);
+                }
             }
             let cov = &normalized.coverage;
             let exhaustive = normalized.status == "complete"
@@ -367,6 +380,7 @@ impl Broker {
     }
 
     /// Authority first, then cache, then the provider. `None` = provider unusable.
+    /// The key is returned (not stored) for a fresh cacheable response.
     fn fetch(
         &self,
         src: &dyn ExternalSource,
@@ -375,7 +389,7 @@ impl Broker {
         q: &ExternalQuery,
         hits: &mut BTreeMap<String, bool>,
         diags: &mut Vec<Value>,
-    ) -> Option<ExternalResponse> {
+    ) -> Option<(ExternalResponse, Option<CacheKey>)> {
         if let Err(e) = src.recheck_authority() {
             if let Some(c) = &self.cache {
                 c.purge_provider(&ident.provider_id);
@@ -386,17 +400,14 @@ impl Broker {
         let key = CacheKey::new(snap, ident, q);
         if let Some(r) = self.cache.as_ref().and_then(|c| c.get(&key)) {
             hits.insert(ident.provider_id.clone(), true);
-            return Some(r);
+            return Some((r, None));
         }
         hits.insert(ident.provider_id.clone(), false);
         match src.query(snap, q, 1 << 20) {
             Ok(r) => {
-                if matches!(r.status.as_str(), "complete" | "partial") {
-                    if let Some(c) = &self.cache {
-                        c.put(&key, &r);
-                    }
-                }
-                Some(r)
+                // Stored later, by `context`, once the items are verified.
+                let cacheable = matches!(r.status.as_str(), "complete" | "partial");
+                Some((r, cacheable.then_some(key)))
             }
             Err(e) => {
                 diags.push(json!({"code": e.code, "message": e.message}));
@@ -467,8 +478,16 @@ fn native_item(
             format!("compiler root `{root}` was not located in the project's `.spx` sources"),
         )
     })?;
-    let text = std::fs::read_to_string(snap.root.join(&d.path)).unwrap_or_default();
-    let digest = span_digest(&text, d.start_line, d.end_line).unwrap_or_default();
+    // The compiler's facts are authoritative; whether they describe the captured
+    // revision is not. A file that no longer matches the capture is reported
+    // unverified and incomplete rather than relabelled with the old revision.
+    let bound = snap.read_bound(&d.path);
+    let digest = bound
+        .as_ref()
+        .ok()
+        .and_then(|t| span_digest(t, d.start_line, d.end_line))
+        .unwrap_or_default();
+    let stale = bound.as_ref().err().copied();
     Ok(ContextItem {
         project_id: snap.project_id.clone(),
         worktree_id: snap.worktree_id.clone(),
@@ -480,17 +499,23 @@ fn native_item(
         },
         span_kind: Some("definition".into()),
         digest,
-        provenance: Tier::CompilerVerified,
+        provenance: if stale.is_some() {
+            Tier::Inferred
+        } else {
+            Tier::CompilerVerified
+        },
         language: "semaprax".into(),
         provider_id: NATIVE_PROVIDER.into(),
         provider_rank: None,
-        complete: !truncated,
-        omission_reason: truncated.then(|| "compiler-truncated".to_string()),
+        complete: !truncated && stale.is_none(),
+        omission_reason: stale
+            .map(str::to_string)
+            .or_else(|| truncated.then(|| "compiler-truncated".to_string())),
         edges: vec![],
         text: Some(raw.to_string()),
         stable_id: Some(root.to_string()),
         link: Link::None,
-        verified: true,
+        verified: stale.is_none(),
         retrieval_handle: truncated.then(|| {
             format!(
                 "semaprax context <project> {root} --depth {} --max-bytes <larger>",
@@ -547,14 +572,23 @@ fn normalize(
     r
 }
 
-fn make_item(snap: &Snapshot, provider: &str, raw: &super::external::RawItem) -> ContextItem {
-    let (verified, why) = match std::fs::read_to_string(snap.root.join(&raw.path)) {
-        _ if !snap.files.contains_key(&raw.path) => (false, Some("deleted-or-renamed")),
-        Ok(t) => match span_digest(&t, raw.span.start_line, raw.span.end_line) {
+/// Verify a provider item against the captured revision: the file must still
+/// hash to the capture, and only then is the span digest compared.
+fn make_item(
+    snap: &Snapshot,
+    provider: &str,
+    raw: &super::external::RawItem,
+    reads: &mut BTreeMap<String, Result<String, &'static str>>,
+) -> ContextItem {
+    let bound = reads
+        .entry(raw.path.clone())
+        .or_insert_with(|| snap.read_bound(&raw.path));
+    let (verified, why) = match bound {
+        Err(why) => (false, Some(*why)),
+        Ok(t) => match span_digest(t, raw.span.start_line, raw.span.end_line) {
             Some(d) if d == raw.digest => (true, None),
             _ => (false, Some("stale-digest")),
         },
-        Err(_) => (false, Some("unreadable")),
     };
     ContextItem {
         project_id: snap.project_id.clone(),

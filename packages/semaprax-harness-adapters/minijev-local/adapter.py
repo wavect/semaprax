@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Mini Jev local closed-choice decision.evaluate v2 adapter (EXPERIMENTAL).
+"""Mini Jev local closed-choice decision.evaluate v2/v3 adapter (EXPERIMENTAL).
+
+v3 is the finite runtime choice task choice-select/v1 (MR-11). Mini Jev's
+support is finite choice only (letter scoring over the host-rendered options),
+not upstream score/noul parity.
 
 Talks to ONE explicitly started warm worker (worker.py) on loopback. It never
 starts, installs, downloads or restarts anything: a missing worker is
@@ -31,7 +35,7 @@ import systemone_codec as codec  # noqa: E402
 PROVIDER_ID = "org.r-ms/minijev-local"
 ADAPTER_VERSION = "0.1.0"
 SECRET_ENV = "SEMAPRAX_HARNESS_SECRET_MINIJEV"
-ACCEPTED = [{"kind": "decision.evaluate", "version": 2, "operations": ["evaluate"]}]
+ACCEPTED = [{"kind": "decision.evaluate", "version": v, "operations": ["evaluate"]} for v in (2, 3)]
 PROVENANCE = {"provider_id": PROVIDER_ID, "adapter_version": ADAPTER_VERSION, "upstream_version": "mini-jev@" + w.PINNED_CODE_COMMIT}
 SCORE_TOLERANCE = 1e-3
 STATUS_BY_WORKER_CODE = {
@@ -158,15 +162,20 @@ def validate_scores(doc, k):
 def handle(req, cancelled, env=None):
     env = os.environ if env is None else env
     p = req.get("payload")
-    if not isinstance(p, dict) or p.get("task") != codec.TASK_V2:
-        raise _err("unsupported", "SPX-HPK004", "only model-route/v2 is supported (Mini Jev needs the host-rendered options)")
+    task = p.get("task") if isinstance(p, dict) else None
+    version = req.get("capability", {}).get("version")
+    if (task, version) not in ((codec.TASK_V2, 2), (codec.TASK_CHOICE, codec.CHOICE_VERSION)):
+        raise _err("unsupported", "SPX-HPK004",
+                   "only model-route/v2 (v2) and choice-select/v1 (v3) are supported (Mini Jev needs the host-rendered options)")
+    choice = task == codec.TASK_CHOICE
     try:
-        v2 = codec.validate_request_v2(p)
+        v2 = codec.validate_request_choice(p) if choice else codec.validate_request_v2(p)
     except codec.CodecError as err:
         raise _err(err.status, err.code, err.message)
     options, rendered = v2["options"], v2["rendered"]
     k = len(options)
-    if len(set(options)) != k or list(rendered["option_labels"]) != options:
+    # Host JSON objects arrive key-sorted (m10 < m2): compare label keys as a set.
+    if len(set(options)) != k or set(rendered["option_labels"]) != set(options):
         raise _err("refused", "SPX-HPK010", "duplicate or foreign options")
     if k < w.MIN_OPTIONS:
         raise _err("unsupported", "SPX-HPK004", "a single admissible option needs no inference (host bypass)")
@@ -174,7 +183,7 @@ def handle(req, cancelled, env=None):
         raise _err("refused", "SPX-HPK005", "too many options")
     if v2["features"]["input_modalities"] != ["text"]:
         raise _err("unsupported", "SPX-HPK004", "only text input is supported")
-    user = w.render_user(rendered)
+    user = w.render_user(rendered, options)
     if len(user.encode()) > w.MAX_USER_BYTES:
         raise _err("refused", "SPX-HPK005", "rendered prompt exceeds the context bound")
     deadline = time.monotonic() + max(req.get("deadline_ms", 1000), 1) / 1000.0
@@ -201,7 +210,7 @@ def handle(req, cancelled, env=None):
         check_identity(ident, profile, env)                       # BEFORE any scoring work
         if len(options) > profile["max_options"] or len(rendered["state"].encode()) > profile["max_state_bytes"]:
             raise _err("refused", "SPX-HPK005", "request exceeds the model profile limits")
-        if rendered["renderer"] != profile["renderer"]:
+        if not choice and rendered["renderer"] != profile["renderer"]:
             raise _err("unsupported", "SPX-HPK004", "renderer is outside the model profile")
         link.send_line(score_line)
         doc = link.recv_line()

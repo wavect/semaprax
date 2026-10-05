@@ -335,7 +335,7 @@ impl RouteRequest {
             &["catalog", "policy", "lineage_id", "signals"],
             "SPX-HPJ003",
         )?;
-        registry::resolve(m["task"].as_str().unwrap_or(""))?;
+        registry::resolve_route(m["task"].as_str().unwrap_or(""))?;
         let catalog = match m.get("catalog") {
             Some(c) => Self::catalog_from_json(c)?,
             None => Vec::new(),

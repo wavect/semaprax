@@ -15,7 +15,8 @@
 //! the host adapter invoker, and adapts its envelope invoker in `provider`.
 
 pub use semaprax_decision_core::{
-    cache, call, model_profile, plan, policy, registry, render, replay, route, route_v2, rules,
+    cache, call, choice, choice_fixture, choice_select, model_profile, plan, policy, registry,
+    render, replay, route, route_v2, rules,
 };
 pub mod cli;
 pub mod cost_route;
@@ -29,6 +30,17 @@ pub mod router;
 pub use cache::{CacheKey, DecisionCache};
 pub use call::{
     AbstentionReason, Billing, CallMetadata, IdentityKind, ResultV2, ScoreKind, Usage, UsageBasis,
+};
+// MR-11: the finite-choice runtime task over the same decision adapters. The
+// harness `ConfiguredProvider` (over its envelope invoker) is accepted as is.
+pub use choice::{
+    ChoiceInputs, ChoiceOption, ChoicePolicy, ChoiceQuestion, DestinationKind, PreparedChoice,
+    Rejection, SingleOption, CHOICE_NORMALIZATION, CHOICE_RENDERER, CHOICE_TASK,
+    CHOICE_WIRE_VERSION,
+};
+pub use choice_fixture::FixtureChoiceInvoker;
+pub use choice_select::{
+    select_choice, ChoiceAbstain, ChoiceOutcome, ChoiceReport, ChoiceSelection, ChoiceSource,
 };
 pub use evidence::{
     Calibration, EvidenceKey, EvidenceRecord, EvidenceRegistry, MatchedBudget, Origin, Outcome,
@@ -49,7 +61,7 @@ pub use provider::{
 pub use qualify::{
     calibrate_min_confidence, evaluate, gate_for, GateBasis, GateDecision, GateSpec, RULES_ARM,
 };
-pub use registry::{resolve, DecisionTask, TASKS};
+pub use registry::{resolve, resolve_route, DecisionTask, TASKS};
 pub use render::{
     router_output_reserve, CandidateV2, Estimate, PreparedRouteV2, RenderedRequest, V2Digests,
     RENDERER_V2,

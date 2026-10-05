@@ -15,6 +15,8 @@
 //! renderer and digests, choice digests, the decision cache and replay record,
 //! and [`router::decide`] over the host-supplied MR-15
 //! [`provider::DecisionInvoker`]. [`boundary`] is the runtime-safe entry.
+//! MR-11 adds the finite-choice runtime task `choice-select/v1`
+//! ([`choice`], [`choice_select::select_choice`]) over the same invoker.
 //!
 //! Dependencies are `serde_json` and `sha2` only. The core performs no
 //! filesystem, process, network, environment or clock access: elapsed time
@@ -25,6 +27,9 @@
 pub mod boundary;
 pub mod cache;
 pub mod call;
+pub mod choice;
+pub mod choice_fixture;
+pub mod choice_select;
 mod consult;
 pub mod diag;
 pub mod json;
@@ -49,6 +54,15 @@ pub use cache::{CacheKey, DecisionCache};
 pub use call::{
     AbstentionReason, Billing, CallMetadata, IdentityKind, ResultV2, ScoreKind, Usage, UsageBasis,
 };
+pub use choice::{
+    ChoiceInputs, ChoiceOption, ChoicePolicy, ChoiceQuestion, DestinationKind, PreparedChoice,
+    Rejection, SingleOption, CHOICE_NORMALIZATION, CHOICE_RENDERER, CHOICE_TASK,
+    CHOICE_WIRE_VERSION,
+};
+pub use choice_fixture::FixtureChoiceInvoker;
+pub use choice_select::{
+    select_choice, ChoiceAbstain, ChoiceOutcome, ChoiceReport, ChoiceSelection, ChoiceSource,
+};
 pub use diag::{DecisionResult, Diagnostic};
 pub use model_profile::{AdapterIdentity, InstanceConfig, ModelProfile};
 pub use plan::{AttemptGrant, AttemptKind, AttemptLedger, FrozenRoutePlan, PlanSlot};
@@ -57,7 +71,7 @@ pub use provider::{
     wire_version, ConfiguredProvider, DecisionCall, DecisionInvoker, EnablementGate, GateStatus,
     ProviderMode, ProviderProfile,
 };
-pub use registry::{resolve, DecisionTask, TASKS};
+pub use registry::{resolve, resolve_route, DecisionTask, TASKS};
 pub use render::{
     router_output_reserve, CandidateV2, Estimate, PreparedRouteV2, RenderedRequest, V2Digests,
     RENDERER_V2,

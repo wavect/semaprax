@@ -8,10 +8,14 @@ with an injected behavior ("fault"); `conformance_case(target)` returns a
                                            has an upstream, upstream-side)
   abstention, timeout, cancellation, crash, excessive output, secret redaction
   over-limit request, unsupported modality, scoreless honesty, v1 compatibility
+  choice-select/v1 (MR-11): round trip over decision.evaluate v3, refusal before
+                                           inference when v3 was not negotiated or
+                                           the task rides another version
 
 Target contract (duck-typed):
 
   name: str            scoreless: bool          supports_v1: bool
+  supports_choice: bool (optional, default True): advertises choice-select/v1
   crash_kind: "process" | "upstream"
   start(fault, **env) -> Running   fault in FAULTS; raises NotImplementedError never:
                                    every fault must be mappable (see FAULTS)
@@ -85,11 +89,11 @@ def conformance_case(target):
     class Conformance(unittest.TestCase):
         maxDiff = None
 
-        def run_fault(self, fault, req, **env):
+        def run_fault(self, fault, req, versions=(1, 2), **env):
             running = target.start(fault, **env)
             if hasattr(running, "mutate") and running.mutate:
                 req = dict(req, payload=running.mutate(json.loads(json.dumps(req["payload"]))))
-            s = Session(running)
+            s = Session(running, versions)
             res = s.invoke(req)
             out, err = s.close()
             self.assertNotIn(running.secret.encode(), out + err, "secret leaked on the wire or stderr")
@@ -127,6 +131,39 @@ def conformance_case(target):
             s = Session(target.start("ok"))
             self.addCleanup(s.close)
             self.assertEqual(sorted(c["version"] for c in s.accepted), [1, 2])
+
+        # -- choice-select/v1 over decision.evaluate v3 (MR-11) -------------
+        def test_choice_round_trip_over_v3(self):
+            s = Session(target.start("ok"), (1, 2, 3))
+            self.addCleanup(s.close)
+            advertised = 3 in [c["version"] for c in s.accepted]
+            self.assertEqual(advertised, getattr(target, "supports_choice", True))
+            if not advertised:
+                return
+            req = fx.choice_request()
+            res = s.invoke(req)
+            self.assertEqual(res["status"], "complete", res["diagnostics"])
+            fx.validate_choice_result(res["payload"], req["payload"], scoreless=target.scoreless)
+            self.assertFalse(res["payload"]["abstain"])
+
+        def test_choice_without_negotiated_v3_is_refused_before_inference(self):
+            res, running = self.run_fault("ok", fx.choice_request(), versions=(1, 2))
+            self.refused(res, "SPX-HPK004", ("unsupported",))
+            self.assertFalse(self.posts(running), "nothing is dispatched for an unnegotiated task")
+
+        def test_choice_task_on_another_version_is_refused(self):
+            res, running = self.run_fault("ok", fx.choice_request(version=2), versions=(1, 2, 3))
+            self.refused(res, "SPX-HPK004", ("unsupported",))
+            self.assertFalse(self.posts(running))
+
+        def test_choice_tampered_options_are_refused(self):
+            if not getattr(target, "supports_choice", True):
+                self.skipTest("target does not advertise choice-select/v1")
+            req = fx.choice_request()
+            req["payload"]["options"] = ["c0", "rm -rf /"]
+            res, running = self.run_fault("ok", req, versions=(1, 2, 3))
+            self.refused(res)
+            self.assertFalse(self.posts(running))
 
         # -- wrong question / candidate / identity ---------------------------
         def test_wrong_question_request(self):

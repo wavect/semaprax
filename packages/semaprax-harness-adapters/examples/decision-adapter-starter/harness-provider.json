@@ -41,6 +41,14 @@
       "operations": [
         "evaluate"
       ]
+    },
+    {
+      "kind": "decision.evaluate",
+      "version": 3,
+      "required": false,
+      "operations": [
+        "evaluate"
+      ]
     }
   ],
   "extensions": [],

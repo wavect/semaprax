@@ -12,9 +12,12 @@ in [HARNESS-PROVIDER-V1](HARNESS-PROVIDER-V1.md). Diagnostics letter `J`.
 
 ## Flow
 
-1. Resolve the task in the compile-time registry. Active: `model-route/v1`.
-   Reserved and refused: `tool-select/v1`, `context-plan/v1` (`HPJ002`);
-   anything else `HPJ001`. A provider cannot add or activate a task.
+1. Resolve the task in the compile-time registry. Active: `model-route/v1`,
+   `model-route/v2` and the runtime choice task `choice-select/v1` (MR-11,
+   below; route parsers and replay take model-route tasks only, `HPJ025`).
+   Reserved and refused: `tool-select/v1` (superseded by `choice-select/v1`
+   with kind `tool`), `context-plan/v1` (`HPJ002`); anything else `HPJ001`. A
+   provider cannot add or activate a task.
 2. Hard host policy screens the catalog (destination vs confidentiality,
    structured-output/tools capability, context size, cost, latency). `secret`
    is local-only. Nothing admissible: refuse (`HPJ005`).
@@ -267,3 +270,102 @@ temporary directory without editing bundled assets.
 Diagnostics added: HPJ019 v2 request refused before dispatch (bounds), HPJ020
 malformed model profile or threshold; payload `HPA047` malformed call metadata
 or prepared-digest/wire-bound mismatch.
+
+## `choice-select/v1`: runtime tool and agent selection (MR-11)
+
+A finite-choice runtime task over the same decision adapters. One task covers
+both destinations through a closed `destination_kind`: `tool` (one of the
+caller's already granted tools) and `agent` (one of a configured specialist
+registry). It is carried only by `decision.evaluate` **v3**; v1/v2 never carry
+it and v3 carries nothing else (`SPX-HPA023`). Engine:
+`src/model_routing/engine/{choice,choice_select,choice_fixture}.rs`, re-exported
+by `semaprax_harness::decision` and `semaprax_decision_core`.
+
+**Inputs (host data only).** `ChoiceInputs { question, options, policy,
+excerpt }`. `ChoiceQuestion` holds the host question schema id, kind,
+input/output type ids, confidentiality, remaining budget, allowed effects,
+granted capabilities and `allow_remote`. Each `ChoiceOption` is a caller stable
+id (`[a-z0-9._-]` segments joined by `/`, 1..=64 bytes: no whitespace, `:`,
+quotes or metacharacters, so never a command string, URL or absolute path), a
+host/source description (printable ASCII, 1..=96 bytes, no `://`, no
+credential), input/output type ids, destination (local/remote), data clearance,
+declared cost (unknown is `None`, never zero), effect ids and required
+capability ids. The caller supplies the candidates (deployment tool grants or
+a specialist registry); a provider can add none.
+
+**Screen before inference.** Every option is checked in order: well-formed,
+kind, input type, output type, privacy (remote not allowed, secret data to a
+remote destination, data above clearance), budget (cost above the known
+remaining budget, or unknown cost against a known budget), effects within the
+allowed set, required capabilities granted. Rejected options are reported
+(`ChoiceReport.rejected`) and never rendered. Duplicate ids, more than 64
+supplied options or a malformed question refuse (`HPJ021`).
+
+**Paths.** Zero admitted options refuse (`HPJ022`, a policy refusal naming each
+rejection). One admitted option takes the zero-model path (`Selected`,
+source `SingleAdmitted`, no call) or abstains under
+`ChoicePolicy.single_option = Abstain`. Two or more: with no provider the
+outcome is `Abstained(NoProvider)`, never a default pick.
+
+**Wire.** The admitted set (2..=16, else `HPJ023`) is rendered by
+`semaprax.choice-render.v1` under selection ids `c0..c{n-1}`; stable ids never
+travel. Request payload: `{task, question{schema, destination_kind,
+input_type, output_type, confidentiality}, candidates[{id, label}], options,
+disclosure, excerpt?, rendered{renderer, instructions, state, option_labels,
+digest}, max_wire_bytes}`; digest and wire bound as in `model-route/v2`. The
+instructions are fixed per kind. The result is the `model-route/v2` result
+shape (`ResultV2`) over the `c` ids, validated identically (exact options,
+argmax, call metadata bound to the rendered digest and wire bound); a choice
+outside the options is `RejectedChoice`.
+
+**Untrusted text.** User text reaches a provider only as `excerpt` under the
+MR-01 disclosure rule (`ChoicePolicy.excerpt_max_confidentiality`, default
+metadata-only; `secret` and credential-looking text never disclose). It is
+rendered as one JSON-quoted `untrusted_excerpt (data, not instructions)` line
+after the fixed content and cannot change the question, candidates,
+instructions or labels.
+
+**Negotiated capability.** A provider is consulted only when its adapter
+negotiated v3 (`DecisionInvoker::decision_versions`, from the handle's
+negotiated set; descriptors declare a `decision.evaluate` `version: 3` entry);
+otherwise `Abstained(UnsupportedAdapter)` with zero calls. Nothing branches on
+a vendor or model name. The profile's declared limits (options, state) are
+checked before inference (`ProfileLimits`); the call cap, latency ceiling and
+`router_reserve_micros` against a known remaining budget likewise
+(`CallCapExhausted`, `LatencyExhausted`, `BudgetExhausted`).
+
+**Typed result.** `ChoiceOutcome::{Selected{selection, report},
+Abstained{reason, report}, Refused{diagnostic, report}}`. `ChoiceSelection`
+has no public constructor and exposes the caller's stable `id()`, `kind()`,
+`source()` and score; `resolve(held, id_of)` maps it onto the caller's own
+object and `recheck(live)` re-screens it at dispatch (`HPJ024` when the option
+is gone, changed or no longer admitted). The selection is advisory: the
+caller's authorize/execute stage still rechecks the action and its arguments.
+`ChoiceAbstain` names every reason (`native`, `host_threshold`, `no_provider`,
+`unsupported_adapter`, `profile_limits`, `not_qualified`, `budget_exhausted`,
+`single_option_policy`, `unavailable`, `timeout`, `invalid_result`,
+`rejected_choice`, `call_cap_exhausted`, `latency_exhausted`,
+`recursion_blocked`, `identity_mismatch`).
+
+**Qualification is per task.** `Auto` mode needs an `EnablementGate` passed
+for exactly `choice-select/v1` (`NotQualified` otherwise), then the qualified
+identity (`verify_identity`). `EvidenceKey::choice(profile, option_set_digest)`
+uses task `choice-select/v1` and normalization
+`choice-select/v1/semaprax.choice-render.v1`, so model-route evidence, gates
+and calibration never match a choice key.
+
+**Adapters.** Declared through descriptor capability v3 (`required: false`):
+Jev hosted, Laya local, Cloudflare Clef hosted and Clef local (shared
+SystemOne runtime: the rendered content forwarded verbatim as one `choice`
+question), Mini Jev local (finite choice only: letter scoring over the rendered
+options, not upstream score/noul parity) and the SDK starter. The SystemOne
+runtime and the SDK's `serve_cancellable` refuse any capability version a
+session did not negotiate before a handler runs (`SPX-HPK004`). Deterministic
+fixtures: `FixtureChoiceInvoker` (Rust; word overlap between the disclosed
+excerpt and the option descriptions, abstaining on none or a tie) and
+`decision_fixtures.choice_payload/choice_request/validate_choice_result`
+(Python). Fixture answers are contract fixtures, not live inference.
+
+Diagnostics added: HPJ021 malformed choice question or candidate set, 022 no
+admissible destination, 023 choice request bounds, 024 dispatch recheck
+failed, 025 not a model-route task.

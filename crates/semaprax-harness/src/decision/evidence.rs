@@ -70,6 +70,25 @@ impl EvidenceKey {
         }
     }
 
+    /// The key of a `choice-select/v1` profile over one admitted option set
+    /// (MR-11). Task and normalization are the choice task's own, so no
+    /// model-route evidence, gate or calibration ever matches it.
+    pub fn choice(profile: &ProviderProfile, option_set_digest: &str) -> Self {
+        let scope = profile.scope_json();
+        let distribution = json::digest(
+            "semaprax.decision.distribution.v1",
+            &json!({"task": DecisionTask::ChoiceSelect.id(), "scope": scope}),
+        );
+        Self {
+            task: DecisionTask::ChoiceSelect.id().into(),
+            provider_id: profile.provider_id.clone(),
+            weights_digest: profile.checkpoint.clone(),
+            catalog_digest: option_set_digest.into(),
+            normalization: semaprax_decision_core::CHOICE_NORMALIZATION.into(),
+            distribution,
+        }
+    }
+
     pub fn to_json(&self) -> Value {
         json!({"task": self.task, "provider": self.provider_id, "weights": self.weights_digest,
                "catalog": self.catalog_digest, "normalization": self.normalization,

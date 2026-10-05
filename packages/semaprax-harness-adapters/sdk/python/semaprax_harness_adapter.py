@@ -98,7 +98,8 @@ def serve_cancellable(accepted, handlers, provenance, secret_env=(), env=None, s
 
     handlers: {(kind, operation): fn(request, cancelled) -> (status, payload, diagnostics)}
     where `cancelled` is a threading.Event the handler should poll or wait on.
-    The loop itself enforces: `harness/cancel` -> refused/cancelled, the request
+    The loop itself enforces: a capability version outside the negotiated set ->
+    unsupported/SPX-HPK004 before the handler runs, `harness/cancel` -> refused/cancelled, the request
     deadline -> failed/timeout, a payload larger than budget.max_result_bytes ->
     refused/SPX-HPK007 (never truncated), and any unexpected exception ->
     failed/SPX-HPK099 naming only the exception type. Values of the environment
@@ -166,6 +167,7 @@ def serve_cancellable(accepted, handlers, provenance, secret_env=(), env=None, s
 
     pending = []
     cancelled_early = set()
+    negotiated = None  # set of (kind, version) once initialized
     for raw in stdin:
         line = raw.rstrip(b"\n")
         if not line:
@@ -178,8 +180,9 @@ def serve_cancellable(accepted, handlers, provenance, secret_env=(), env=None, s
                 send({"jsonrpc": "2.0", "id": mid, "error": {"code": -32600, "message": "unsupported protocol"}})
                 continue
             offered = {(c["kind"], c["version"]) for c in params.get("offered", [])}
-            send({"jsonrpc": "2.0", "id": mid, "result": {
-                "protocol": PROTOCOL, "accepted": [c for c in accepted if (c["kind"], c["version"]) in offered]}})
+            acc = [c for c in accepted if (c["kind"], c["version"]) in offered]
+            negotiated = {(c["kind"], c["version"]) for c in acc}
+            send({"jsonrpc": "2.0", "id": mid, "result": {"protocol": PROTOCOL, "accepted": acc}})
         elif method == "harness/cancel":
             iid = msg.get("params", {}).get("invocation_id")
             cancelled_early.add(iid)
@@ -192,6 +195,12 @@ def serve_cancellable(accepted, handlers, provenance, secret_env=(), env=None, s
             return
         elif method == "harness/invoke":
             req = msg["params"]
+            cap = (req["capability"]["kind"], req["capability"].get("version"))
+            if negotiated is not None and cap not in negotiated:
+                # Never run a handler for a capability version this session did
+                # not negotiate (MR-11: choice-select/v1 needs decision.evaluate v3).
+                send({"jsonrpc": "2.0", "id": mid, "result": fail(req, "unsupported", "SPX-HPK004", "capability version was not negotiated")})
+                continue
             slot = {"cancel": threading.Event(), "done": threading.Event(), "env": None}
             if req["invocation_id"] in cancelled_early:
                 slot["cancel"].set()

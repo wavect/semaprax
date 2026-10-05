@@ -10,6 +10,9 @@ pub enum DecisionTask {
     ModelRouteV2,
     ToolSelect,
     ContextPlan,
+    /// MR-11: finite runtime choice over caller-admitted tools or agents
+    /// (`decision.evaluate` v3). Supersedes the reserved `tool-select/v1`.
+    ChoiceSelect,
 }
 
 pub struct TaskEntry {
@@ -40,6 +43,11 @@ pub const TASKS: &[TaskEntry] = &[
         id: "context-plan/v1",
         active: false,
     },
+    TaskEntry {
+        task: DecisionTask::ChoiceSelect,
+        id: "choice-select/v1",
+        active: true,
+    },
 ];
 
 impl DecisionTask {
@@ -64,5 +72,17 @@ pub fn resolve(id: &str) -> DecisionResult<DecisionTask> {
             format!("decision task `{id}` is reserved and not active"),
         )),
         Some(t) => Ok(t.task),
+    }
+}
+
+/// Resolve a task id to an active model-route task. A choice task is not a
+/// route request and its records never replay as one (`SPX-HPJ025`).
+pub fn resolve_route(id: &str) -> DecisionResult<DecisionTask> {
+    match resolve(id)? {
+        t @ (DecisionTask::ModelRoute | DecisionTask::ModelRouteV2) => Ok(t),
+        _ => Err(Diagnostic::new(
+            "SPX-HPJ025",
+            format!("decision task `{id}` is not a model-route task"),
+        )),
     }
 }

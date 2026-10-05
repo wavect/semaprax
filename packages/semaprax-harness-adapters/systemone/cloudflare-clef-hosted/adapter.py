@@ -17,7 +17,7 @@ import systemone_runtime as rt  # noqa: E402
 PROVIDER_ID = "com.cloudflare/clef-decision"
 UPSTREAM_VERSION = "workers-ai-clef"
 
-ACCEPTED = [{"kind": "decision.evaluate", "version": v, "operations": ["evaluate"]} for v in (1, 2)]
+ACCEPTED = [{"kind": "decision.evaluate", "version": v, "operations": ["evaluate"]} for v in (1, 2, 3)]
 
 if __name__ == "__main__":
     rt.run(

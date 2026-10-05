@@ -263,6 +263,13 @@ mod tests {
 
     #[test]
     fn grammar_is_closed_and_receipts_are_values_not_paths() {
+        // This module is tested by both the root CLI and semaprax-toolchain.
+        let project = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .ancestors()
+            .map(|root| root.join("examples/calculator-project"))
+            .find(|path| path.join("semaprax.toml").is_file())
+            .expect("the checked-in calculator Project fixture must resolve");
+        let project = project.to_str().unwrap();
         let args = |values: &[&str]| {
             values
                 .iter()
@@ -271,7 +278,7 @@ mod tests {
         };
         assert!(matches!(
             parse(&args(&[
-                "examples/calculator-project",
+                project,
                 "render",
                 "{\"schema\":\"semaprax.semantic-transaction.v1\"}",
                 "sha256:abc"
@@ -280,7 +287,7 @@ mod tests {
         ));
         assert!(matches!(
             parse(&args(&[
-                "examples/calculator-project",
+                project,
                 "evidence-summary",
                 "{\"schema\":\"semaprax.semantic-transaction.v1\"}",
                 "sha256:abc"
@@ -289,7 +296,7 @@ mod tests {
         ));
         assert!(matches!(
             parse(&args(&[
-                "examples/calculator-project",
+                project,
                 "refusal",
                 "{\"schema\":\"semaprax.semantic-transaction.v1\"}",
                 "sha256:stale"
@@ -298,7 +305,7 @@ mod tests {
         ));
         assert!(matches!(
             parse(&args(&[
-                "examples/calculator-project",
+                project,
                 "verify-refusal",
                 "{\"schema\":\"semaprax.semantic-transaction.v1\"}",
                 "sha256:stale",
@@ -308,7 +315,7 @@ mod tests {
         ));
         assert!(matches!(
             parse(&args(&[
-                "examples/calculator-project",
+                project,
                 "evidence-page",
                 "{\"schema\":\"semaprax.semantic-transaction.v1\"}",
                 "sha256:abc",
@@ -320,7 +327,7 @@ mod tests {
         ));
         assert!(matches!(
             parse(&args(&[
-                "examples/calculator-project",
+                project,
                 "compare-set",
                 "{\"schema\":\"semaprax.semantic-transaction.v1\"}",
                 "sha256:one",
@@ -336,20 +343,9 @@ mod tests {
         ));
         for malformed in [
             args(&[]),
-            args(&[
-                "examples/calculator-project",
-                "render",
-                "receipt.json",
-                "sha256:abc",
-                "extra",
-            ]),
-            args(&["examples/calculator-project", "verify", "tx", "digest"]),
-            args(&[
-                "examples/calculator-project",
-                "evidence-page",
-                "tx",
-                "digest",
-            ]),
+            args(&[project, "render", "receipt.json", "sha256:abc", "extra"]),
+            args(&[project, "verify", "tx", "digest"]),
+            args(&[project, "evidence-page", "tx", "digest"]),
         ] {
             assert!(parse(&malformed).is_err());
         }

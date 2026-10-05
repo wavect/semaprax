@@ -28151,9 +28151,10 @@
         "arm": "learned:ai.convai/laya-decision/laya-multilingual",
         "decision_versions": [
           1,
-          2
+          2,
+          3
         ],
-        "descriptor_digest": "sha256:d26e1f3c274d01c73234a3f8a0a7129d97a96965bb9ff4d32a0557f7ec2a0637",
+        "descriptor_digest": "sha256:1903a4a4af53a60c560df74907f280581e01b43ada67da41472914dcac2dfcdb",
         "instance": "laya-loopback",
         "model_profile_digest": "sha256:f848448dbea64154e4cad4d19a71030fa47fc7b0dc88ba2336e3b20a847cf9a1"
       },
@@ -28162,9 +28163,10 @@
         "arm": "learned:ai.typesafe/jev-decision/jev-latest",
         "decision_versions": [
           1,
-          2
+          2,
+          3
         ],
-        "descriptor_digest": "sha256:254091fa4c317a060e6e835bb9de26a136e09f9587bf3ad7ac166b9b72382454",
+        "descriptor_digest": "sha256:a865a75146550fe638edcc8dc2461bfdcd2db9f61f11b462b8486f897711d36e",
         "instance": "jev-hosted",
         "model_profile_digest": "sha256:10e4839b5c00a7ce9d6b1b8a3976937c9bdfa12275b4eeb74c8a6cedb2cf6709"
       },
@@ -28172,9 +28174,10 @@
         "adapter": "org.r-ms/minijev-local@0.1.0",
         "arm": "learned:org.r-ms/minijev-local/minijev-local",
         "decision_versions": [
-          2
+          2,
+          3
         ],
-        "descriptor_digest": "sha256:d25f7e41c3fe0cb9541f67347f5398b8db356c78033480d185451886f6d3b822",
+        "descriptor_digest": "sha256:212e059fb479d9ee2353612abe1e0769aabf557af0eeea1a89d8e368b84ce658",
         "instance": "minijev-worker",
         "model_profile_digest": "sha256:df94200e27ea3a6af22b3fa535ed6351145fe2db7c9b4b37b311a66de2f12121"
       },
@@ -28183,9 +28186,10 @@
         "arm": "learned:com.cloudflare/clef-decision/cf-clef",
         "decision_versions": [
           1,
-          2
+          2,
+          3
         ],
-        "descriptor_digest": "sha256:04121769f7596d35d439b8f958779ea6a1cc23b21561f27a049c8084d1796dde",
+        "descriptor_digest": "sha256:042b58bc4b86e34de6f3cda53431ebd37481f89a0f5b236a5d314ebb3b31c15c",
         "instance": "clef-hosted",
         "model_profile_digest": "sha256:2cbe89c473d8edc1e0011c9a08ffa4eb99ed760b35b009bbe2a382bb310d15a0"
       },
@@ -28194,9 +28198,10 @@
         "arm": "learned:com.cloudflare/clef-decision/cf-clef-flash",
         "decision_versions": [
           1,
-          2
+          2,
+          3
         ],
-        "descriptor_digest": "sha256:04121769f7596d35d439b8f958779ea6a1cc23b21561f27a049c8084d1796dde",
+        "descriptor_digest": "sha256:042b58bc4b86e34de6f3cda53431ebd37481f89a0f5b236a5d314ebb3b31c15c",
         "instance": "clef-flash-hosted",
         "model_profile_digest": "sha256:6b3a2e68762f6c437ef02e7b8e62fff605d78068dacc64b4d6f27c0ed7cd1bc2"
       },
@@ -28205,9 +28210,10 @@
         "arm": "learned:ai.cloudflare/clef-local-decision/clef-local",
         "decision_versions": [
           1,
-          2
+          2,
+          3
         ],
-        "descriptor_digest": "sha256:ecb8fd6df8432c72bab53a2a067ff7a88aaa37c29cddb7c610f353913deaf19e",
+        "descriptor_digest": "sha256:4b6e26fd4d8d91a68782e022393f5fe972dd26ef1b2658d0146420e6d9369c34",
         "instance": "clef-local-worker",
         "model_profile_digest": "sha256:f7d780beeab51a27bf4dc6e66c2368b81ca0fa8da052a74bb1ae355780747928"
       }

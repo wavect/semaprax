@@ -5,25 +5,23 @@
 
 use super::cache::{CacheKey, DecisionCache};
 use super::call::{AbstentionReason, ResultV2, ScoreKind};
-use super::provider::{ConfiguredProvider, DecisionCall, ProviderMode};
+use super::json;
+use super::provider::{ConfiguredProvider, DecisionCall, DecisionInvoker, ProviderMode};
 use super::registry::DecisionTask;
 use super::render::PreparedRouteV2;
+use super::request::DecisionRequest;
 use super::route::Screening;
 use super::route_v2::Modality;
 use super::router::{Consulted, Digests, FallbackReason, RouteContext, RouteInputs, WireInfo};
-use crate::contract::payload::check_against_request;
-use crate::contract::{
-    validate_payload, CapabilityKind, CapabilityRef, Direction, RequestEnvelope,
-};
-use crate::json;
+use super::wire::{self, check_against_request, Direction};
 use serde_json::{json, Value};
 
 /// Pre-call guards, the router call, and structural validation of its answer.
 #[allow(clippy::too_many_arguments)]
-pub(super) fn consult(
+pub(super) fn consult<I: ?Sized + DecisionInvoker>(
     inputs: &RouteInputs,
     ctx: &RouteContext,
-    p: &mut ConfiguredProvider<'_>,
+    p: &mut ConfiguredProvider<'_, I>,
     scr: &Screening,
     d: &Digests,
     prepared: Option<&PreparedRouteV2>,
@@ -109,15 +107,11 @@ pub(super) fn consult(
     };
     let mut lineage = ctx.router_lineage.clone();
     lineage.push(pid);
-    let env = RequestEnvelope {
+    let env = DecisionRequest {
         invocation_id: ctx.invocation_id.clone(),
         project: ctx.project.clone(),
         lock_digest: ctx.lock_digest.clone(),
-        capability: CapabilityRef {
-            kind: CapabilityKind::DecisionEvaluate,
-            version,
-        },
-        operation: "evaluate".into(),
+        version,
         deadline_ms: latency_left.clamp(1, 600_000),
         max_result_bytes: 65_536,
         remaining_calls: remaining,
@@ -142,23 +136,15 @@ pub(super) fn consult(
     if elapsed > latency_left {
         return Err(R::Timeout);
     }
-    validate_payload(
-        CapabilityKind::DecisionEvaluate,
-        "evaluate",
-        Direction::Result,
-        &result,
-    )
-    .map_err(|_| R::InvalidResult)?;
+    wire::validate(Direction::Result, &result).map_err(|_| R::InvalidResult)?;
     // Choices outside the admissible options (nonexistent or disallowed) fail here.
-    check_against_request(CapabilityKind::DecisionEvaluate, &env.payload, &result).map_err(
-        |e| {
-            if e.code == "SPX-HPA043" {
-                R::RejectedChoice
-            } else {
-                R::InvalidResult
-            }
-        },
-    )?;
+    check_against_request(&env.payload, &result).map_err(|e| {
+        if e.code == "SPX-HPA043" {
+            R::RejectedChoice
+        } else {
+            R::InvalidResult
+        }
+    })?;
     let choice = match prepared {
         None => v1_choice(p, &result)?,
         Some(pr) => v2_choice(p, pr, &result, call, wire)?,
@@ -172,7 +158,10 @@ pub(super) fn consult(
     })
 }
 
-fn v1_choice(p: &ConfiguredProvider<'_>, result: &Value) -> Result<String, FallbackReason> {
+fn v1_choice<I: ?Sized>(
+    p: &ConfiguredProvider<'_, I>,
+    result: &Value,
+) -> Result<String, FallbackReason> {
     let Some(choice) = result["choice"].as_str() else {
         return Err(FallbackReason::Abstain);
     };
@@ -189,8 +178,8 @@ fn v1_choice(p: &ConfiguredProvider<'_>, result: &Value) -> Result<String, Fallb
     Ok(choice.to_string())
 }
 
-fn v2_choice(
-    p: &ConfiguredProvider<'_>,
+fn v2_choice<I: ?Sized>(
+    p: &ConfiguredProvider<'_, I>,
     pr: &PreparedRouteV2,
     result: &Value,
     call: Option<super::call::CallMetadata>,

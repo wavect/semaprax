@@ -1,0 +1,22 @@
+[package]
+name = "semaprax-decision-core"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.88"
+# The sources are the standalone package's `src/model_routing/engine/` (one
+# implementation compiled in both places; see docs/DECISION-CORE-V1.md). This
+# crate is the workspace-local mounting for the private harness and toolchain.
+publish = false
+description = "SEMAPRAX deterministic model-routing decision core (docs/DECISION-CORE-V1.md)"
+license = "Apache-2.0"
+
+[lib]
+name = "semaprax_decision_core"
+path = "../../src/model_routing/engine/mod.rs"
+
+[dependencies]
+serde_json = "=1.0.151"
+sha2 = "=0.11.0"
+
+[lints.rust]
+unsafe_code = "forbid"

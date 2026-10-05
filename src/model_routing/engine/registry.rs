@@ -1,7 +1,7 @@
 //! Decision-task registry. Tasks are compile-time constants: a provider or
 //! model can neither add a task nor activate a reserved one.
 
-use crate::diag::{HarnessDiagnostic, HarnessResult};
+use super::diag::{DecisionResult, Diagnostic};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum DecisionTask {
@@ -53,13 +53,13 @@ impl DecisionTask {
 }
 
 /// Resolve a task id to an active registered task.
-pub fn resolve(id: &str) -> HarnessResult<DecisionTask> {
+pub fn resolve(id: &str) -> DecisionResult<DecisionTask> {
     match TASKS.iter().find(|t| t.id == id) {
-        None => Err(HarnessDiagnostic::new(
+        None => Err(Diagnostic::new(
             "SPX-HPJ001",
             format!("unregistered decision task `{id}`"),
         )),
-        Some(t) if !t.active => Err(HarnessDiagnostic::new(
+        Some(t) if !t.active => Err(Diagnostic::new(
             "SPX-HPJ002",
             format!("decision task `{id}` is reserved and not active"),
         )),

@@ -6,27 +6,25 @@
 //! back deterministically or refuses. Diagnostics: `SPX-HPJ001..` (see
 //! `docs/HARNESS-DECISION-V1.md`). The frozen plan maps 1:1 onto the compiler
 //! crate's `ProviderPolicy::new(Vec<ProviderSlot>)` via a later bridge.
+//!
+//! MR-07: the deterministic engine (screening, rules, policy, plans, advisory
+//! validation, v2 rendering, cache and replay) lives once in the decision core
+//! (`semaprax_decision_core`, the standalone package's `model_routing::engine`).
+//! Its modules are re-exported here under their historical paths; the harness
+//! keeps the CLI, evidence/qualification, governed routing, cost routing and
+//! the host adapter invoker, and adapts its envelope invoker in `provider`.
 
-pub mod cache;
-pub mod call;
+pub use semaprax_decision_core::{
+    cache, call, model_profile, plan, policy, registry, render, replay, route, route_v2, rules,
+};
 pub mod cli;
-mod consult;
 pub mod cost_route;
 pub mod evidence;
 pub mod governed;
 pub mod host_invoker;
-pub mod model_profile;
-pub mod plan;
-pub mod policy;
 pub mod provider;
 pub mod qualify;
-pub mod registry;
-pub mod render;
-pub mod replay;
-pub mod route;
-pub mod route_v2;
 pub mod router;
-pub mod rules;
 
 pub use cache::{CacheKey, DecisionCache};
 pub use call::{
@@ -56,7 +54,8 @@ pub use render::{
     router_output_reserve, CandidateV2, Estimate, PreparedRouteV2, RenderedRequest, V2Digests,
     RENDERER_V2,
 };
-pub use replay::{replay, DecisionRecord};
+// `replay` (module and function) arrives with the module re-export above.
+pub use replay::DecisionRecord;
 pub use route::{
     screen, Budget, Confidentiality, Destination, LatencyClass, ModelPlan, RouteRequest, Screening,
     TaskFamily, TaskFeatures,

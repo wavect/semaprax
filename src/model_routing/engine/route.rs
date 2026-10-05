@@ -1,16 +1,16 @@
 //! `model-route/v1` request types, strict parsing, digests and the hard host
 //! policy screen that runs before any decision provider is consulted.
 
+use super::diag::{DecisionResult, Diagnostic};
+use super::json;
 use super::policy::RoutePolicy;
 use super::registry;
 use super::route_v2::{PlanDescriptor, RouteSignals};
-use crate::diag::{HarnessDiagnostic, HarnessResult};
-use crate::json;
 use serde_json::{json, Map, Value};
 use std::collections::BTreeSet;
 
-pub(crate) fn bad(code: &'static str, msg: impl Into<String>) -> HarnessDiagnostic {
-    HarnessDiagnostic::new(code, msg)
+pub(crate) fn bad(code: &'static str, msg: impl Into<String>) -> Diagnostic {
+    Diagnostic::new(code, msg)
 }
 
 pub(crate) fn shape<'a>(
@@ -19,7 +19,7 @@ pub(crate) fn shape<'a>(
     required: &[&str],
     optional: &[&str],
     code: &'static str,
-) -> HarnessResult<&'a Map<String, Value>> {
+) -> DecisionResult<&'a Map<String, Value>> {
     let m = v
         .as_object()
         .ok_or_else(|| bad(code, format!("{what} must be an object")))?;
@@ -36,7 +36,7 @@ pub(crate) fn shape<'a>(
     Ok(m)
 }
 
-pub(crate) fn text(m: &Map<String, Value>, k: &str, code: &'static str) -> HarnessResult<String> {
+pub(crate) fn text(m: &Map<String, Value>, k: &str, code: &'static str) -> DecisionResult<String> {
     match m.get(k).and_then(Value::as_str) {
         Some(s) if !s.is_empty() && s.len() <= 128 && s.is_ascii() => Ok(s.to_string()),
         _ => Err(bad(
@@ -51,7 +51,7 @@ pub(crate) fn uint(
     k: &str,
     max: u64,
     code: &'static str,
-) -> HarnessResult<u64> {
+) -> DecisionResult<u64> {
     match m.get(k).and_then(Value::as_u64) {
         Some(n) if n <= max => Ok(n),
         _ => Err(bad(
@@ -61,7 +61,7 @@ pub(crate) fn uint(
     }
 }
 
-pub(crate) fn flag(m: &Map<String, Value>, k: &str, code: &'static str) -> HarnessResult<bool> {
+pub(crate) fn flag(m: &Map<String, Value>, k: &str, code: &'static str) -> DecisionResult<bool> {
     m.get(k)
         .and_then(Value::as_bool)
         .ok_or_else(|| bad(code, format!("`{k}` must be a boolean")))
@@ -90,7 +90,7 @@ pub(crate) fn enum_of<T>(
     k: &str,
     parse: fn(&str) -> Option<T>,
     code: &'static str,
-) -> HarnessResult<T> {
+) -> DecisionResult<T> {
     m.get(k)
         .and_then(Value::as_str)
         .and_then(parse)
@@ -120,7 +120,7 @@ impl TaskFeatures {
         })
     }
 
-    pub fn from_json(v: &Value) -> HarnessResult<Self> {
+    pub fn from_json(v: &Value) -> DecisionResult<Self> {
         const C: &str = "SPX-HPJ003";
         let m = shape(
             v,
@@ -198,7 +198,7 @@ impl ModelPlan {
         v
     }
 
-    pub fn from_json(v: &Value) -> HarnessResult<Self> {
+    pub fn from_json(v: &Value) -> DecisionResult<Self> {
         const C: &str = "SPX-HPJ003";
         let m = shape(
             v,
@@ -267,7 +267,7 @@ impl Budget {
         json!({"max_cost_micros": self.max_cost_micros, "max_latency_ms": self.max_latency_ms, "max_router_calls": self.max_router_calls})
     }
 
-    pub fn from_json(v: &Value) -> HarnessResult<Self> {
+    pub fn from_json(v: &Value) -> DecisionResult<Self> {
         const C: &str = "SPX-HPJ003";
         let m = shape(
             v,
@@ -303,7 +303,7 @@ impl RouteRequest {
         features: TaskFeatures,
         mut catalog: Vec<ModelPlan>,
         budget: Budget,
-    ) -> HarnessResult<Self> {
+    ) -> DecisionResult<Self> {
         if catalog.len() > MAX_CATALOG {
             return Err(bad("SPX-HPJ003", "catalog exceeds 256 plans"));
         }
@@ -327,7 +327,7 @@ impl RouteRequest {
 
     /// Parse `{task, features, budget, catalog?}`; the task must be an active
     /// registered one. A missing catalog is empty (supply it separately).
-    pub fn from_json(v: &Value) -> HarnessResult<Self> {
+    pub fn from_json(v: &Value) -> DecisionResult<Self> {
         let m = shape(
             v,
             "route request",
@@ -352,7 +352,7 @@ impl RouteRequest {
         .with_signals(signals))
     }
 
-    pub fn catalog_from_json(v: &Value) -> HarnessResult<Vec<ModelPlan>> {
+    pub fn catalog_from_json(v: &Value) -> DecisionResult<Vec<ModelPlan>> {
         v.as_array()
             .ok_or_else(|| bad("SPX-HPJ003", "catalog must be an array"))?
             .iter()

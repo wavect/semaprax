@@ -4,11 +4,11 @@
 //! Every signal is a host/compiler/runtime fact; nothing here is produced by a
 //! model. Unknown values are explicit (`unknown`, `null`), never zero.
 
+use super::diag::DecisionResult;
+use super::json;
 use super::route::{
     bad, enum_of, flag, shape, str_enum, uint, Confidentiality, LatencyClass, TaskFeatures,
 };
-use crate::diag::HarnessResult;
-use crate::json;
 use serde_json::{json, Map, Value};
 use std::collections::BTreeSet;
 
@@ -109,7 +109,7 @@ impl RouteSignals {
 
     /// Parse the optional `signals` member of a route request; absent members
     /// keep their unknown defaults.
-    pub fn from_json(v: &Value) -> HarnessResult<Self> {
+    pub fn from_json(v: &Value) -> DecisionResult<Self> {
         const C: &str = "SPX-HPJ003";
         let m = shape(
             v,
@@ -172,7 +172,7 @@ impl RouteSignals {
     }
 }
 
-fn task_profile(s: &str) -> HarnessResult<String> {
+fn task_profile(s: &str) -> DecisionResult<String> {
     let ok = !s.is_empty()
         && s.len() <= MAX_TASK_PROFILE
         && s.bytes()
@@ -190,7 +190,7 @@ fn task_profile(s: &str) -> HarnessResult<String> {
 pub(crate) fn modalities(
     m: &Map<String, Value>,
     code: &'static str,
-) -> HarnessResult<BTreeSet<Modality>> {
+) -> DecisionResult<BTreeSet<Modality>> {
     let arr = m
         .get("input_modalities")
         .or_else(|| m.get("modalities"))
@@ -234,7 +234,7 @@ pub struct TaskFeaturesV2 {
 impl TaskFeaturesV2 {
     /// Project the v1 features plus host signals. Signal bounds are checked
     /// here so an out-of-range host value is refused, never clamped.
-    pub fn project(f: &TaskFeatures, s: &RouteSignals) -> HarnessResult<Self> {
+    pub fn project(f: &TaskFeatures, s: &RouteSignals) -> DecisionResult<Self> {
         let profile = match &s.task_profile {
             Some(p) => task_profile(p)?,
             None => f.task_family.as_str().to_string(),
@@ -287,7 +287,7 @@ impl TaskFeaturesV2 {
     }
 
     /// Strict parse of the wire projection (used by validators and fixtures).
-    pub fn from_json(v: &Value) -> HarnessResult<Self> {
+    pub fn from_json(v: &Value) -> DecisionResult<Self> {
         const C: &str = "SPX-HPA040";
         let m = shape(
             v,
@@ -394,7 +394,7 @@ impl PlanDescriptor {
         }
     }
 
-    pub fn read(m: &Map<String, Value>, code: &'static str) -> HarnessResult<Self> {
+    pub fn read(m: &Map<String, Value>, code: &'static str) -> DecisionResult<Self> {
         let mut d = Self::default();
         if m.contains_key("quality_tier") {
             d.quality_tier = Some(enum_of(m, "quality_tier", QualityTier::parse, code)?);

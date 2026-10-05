@@ -1838,6 +1838,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "semaprax-decision-core"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "sha2 0.11.0",
+]
+
+[[package]]
 name = "semaprax-doctor-capsule"
 version = "0.1.0"
 dependencies = [
@@ -1872,6 +1880,7 @@ name = "semaprax-harness"
 version = "0.1.0"
 dependencies = [
  "rustix",
+ "semaprax-decision-core",
  "serde_json",
  "sha2 0.11.0",
  "yaml-rust2",

@@ -2,10 +2,20 @@
 //! decision tasks only. The v2 request is recognized by its task id and the
 //! v2 result by its `score_kind` member; v1 shapes are unchanged.
 
-use super::*;
-use crate::decision::call::ResultV2;
-use crate::decision::render::{RenderedRequest, MAX_CANDIDATES_V2, MAX_STATE_BYTES, RENDERER_V2};
-use crate::decision::route_v2::{TaskFeaturesV2, MAX_EXCERPT};
+use super::call::ResultV2;
+use super::diag::DecisionResult;
+use super::render::{RenderedRequest, MAX_CANDIDATES_V2, MAX_STATE_BYTES, RENDERER_V2};
+use super::route_v2::{TaskFeaturesV2, MAX_EXCERPT};
+use super::shape::{array_of, bool_of, e, shape, str_of, uint_of};
+
+use serde_json::{Map, Value};
+
+/// Which side of the envelope a payload travels on.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Direction {
+    Request,
+    Result,
+}
 
 const V2_TASK: &str = "model-route/v2";
 
@@ -17,7 +27,7 @@ fn is_v2_result(v: &Value) -> bool {
     v.get("score_kind").is_some()
 }
 
-fn validate_v2_request(v: &Value) -> HarnessResult<()> {
+fn validate_v2_request(v: &Value) -> DecisionResult<()> {
     let m = shape(
         v,
         "decision request",
@@ -110,7 +120,7 @@ fn validate_v2_request(v: &Value) -> HarnessResult<()> {
     Ok(())
 }
 
-pub fn validate(dir: Direction, v: &Value) -> HarnessResult<()> {
+pub fn validate(dir: Direction, v: &Value) -> DecisionResult<()> {
     match dir {
         Direction::Request if is_v2_request(v) => validate_v2_request(v)?,
         Direction::Result if is_v2_result(v) => {
@@ -161,7 +171,7 @@ pub fn validate(dir: Direction, v: &Value) -> HarnessResult<()> {
     Ok(())
 }
 
-fn options(m: &Map<String, Value>) -> HarnessResult<Vec<&str>> {
+fn options(m: &Map<String, Value>) -> DecisionResult<Vec<&str>> {
     let mut ids: Vec<&str> = Vec::new();
     for o in array_of(m, "options", 1024)? {
         let s = o
@@ -176,7 +186,7 @@ fn options(m: &Map<String, Value>) -> HarnessResult<Vec<&str>> {
     Ok(ids)
 }
 
-pub fn check_against_request(request: &Value, result: &Value) -> HarnessResult<()> {
+pub fn check_against_request(request: &Value, result: &Value) -> DecisionResult<()> {
     // A v2 request takes only a v2 result, and a v1 request only a v1 result.
     if is_v2_request(request) != is_v2_result(result) {
         return Err(e(

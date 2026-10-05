@@ -1,0 +1,79 @@
+{
+  "adapter": {
+    "entry": [
+      "adapter.py"
+    ],
+    "runtime": "python",
+    "version": "0.2.0"
+  },
+  "cancellation": "cooperative",
+  "capabilities": [
+    {
+      "kind": "decision.evaluate",
+      "operations": [
+        "evaluate"
+      ],
+      "required": true,
+      "version": 1
+    },
+    {
+      "kind": "decision.evaluate",
+      "operations": [
+        "evaluate"
+      ],
+      "required": false,
+      "version": 2
+    }
+  ],
+  "config": {
+    "fields": {}
+  },
+  "extensions": [],
+  "permissions": {
+    "network": [
+      "https://api.cloudflare.com"
+    ],
+    "process": [],
+    "read": [],
+    "secrets": [
+      "SEMAPRAX_HARNESS_SECRET_CLOUDFLARE"
+    ],
+    "write": []
+  },
+  "platforms": [
+    "macos-aarch64",
+    "linux-x86_64",
+    "linux-aarch64"
+  ],
+  "protocol": {
+    "max": 1,
+    "min": 1,
+    "name": "semaprax.harness-rpc.v1"
+  },
+  "provider": {
+    "id": "com.cloudflare/clef-decision",
+    "version": "0.2.0"
+  },
+  "resources": {
+    "handshake_timeout_ms": 5000,
+    "idle_shutdown_ms": 60000,
+    "invoke_timeout_ms": 30000,
+    "max_concurrency": 1,
+    "max_frame_bytes": 1048576
+  },
+  "schema": "semaprax.harness-provider.v1",
+  "support": {
+    "isolation": "subprocess",
+    "license": "Apache-2.0",
+    "tested": []
+  },
+  "upstream": {
+    "identity_probe": [],
+    "name": "cloudflare-workers-ai-clef",
+    "package": "hosted-api:api.cloudflare.com",
+    "repository": "https://developers.cloudflare.com/workers-ai/models/clef/",
+    "versions": [
+      "workers-ai-clef"
+    ]
+  }
+}

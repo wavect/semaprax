@@ -1,0 +1,12 @@
+{
+  "_provenance": "documentation-derived: Workers AI REST envelope with success=false and an errors array of {code,message} (Cloudflare API error convention); schema-derived, not a live capture.",
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10000,
+      "message": "Authentication error: token Bearer-SECRET-ECHO"
+    }
+  ],
+  "messages": []
+}

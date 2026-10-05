@@ -1,0 +1,25 @@
+{
+  "_provenance": "documentation-derived: envelope members from the Workers AI REST page (result, success, errors, messages); inner result members (model, answers, usage) from the Clef output schema; the choice answer shape follows the SystemOne/Jev answer used by codec.parse_response. The docs pages show no response example, so this is a schema-derived fixture, NOT a live capture. __QID__/__MODEL__ are substituted per request.",
+  "result": {
+    "model": "__MODEL__",
+    "answers": {
+      "__QID__": {
+        "type": "choice",
+        "choice": "m1",
+        "probabilities": {
+          "m0": 0.2,
+          "m1": 0.7,
+          "m2": 0.1
+        },
+        "confidence": 0.7
+      }
+    },
+    "usage": {
+      "input_tokens": 212,
+      "output_tokens": 3
+    }
+  },
+  "success": true,
+  "errors": [],
+  "messages": []
+}

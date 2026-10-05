@@ -10,6 +10,8 @@ use super::*;
 /// `STB_INVOKE_MODE`  – `hang` never answers an invocation.
 /// `STB_CLOSE_STDIN`  – after the initialize reply close fd 0 (stdout stays
 ///                      open), write own pid here, then wait for `STB_EXIT`.
+/// `STB_ENVELOPE`     – malformed outer envelope around a valid inner reply:
+///                      `init-version`, `invoke-no-version` or `invoke-bad-error`.
 pub(crate) const STB_ADAPTER: &str = r#"#!/usr/bin/env python3
 import json, os, sys, time
 OUT = sys.stdout.buffer
@@ -17,6 +19,13 @@ ENV = os.environ.get
 
 
 def send(obj):
+    env = ENV("STB_ENVELOPE", "")
+    if env == "init-version" and "protocol" in (obj.get("result") or {}):
+        obj["jsonrpc"] = "1.0"
+    if env == "invoke-no-version" and "schema" in (obj.get("result") or {}):
+        del obj["jsonrpc"]
+    if env == "invoke-bad-error" and "schema" in (obj.get("result") or {}):
+        obj = {"jsonrpc": "2.0", "id": obj["id"], "error": {"message": "no code"}}
     OUT.write(json.dumps(obj, separators=(",", ":"), sort_keys=True).encode() + b"\n")
     OUT.flush()
 

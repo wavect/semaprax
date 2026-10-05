@@ -265,6 +265,24 @@ fn read_frame<R: BufRead>(r: &mut R, cap: usize) -> Result<Option<Vec<u8>>, Harn
     }
 }
 
+/// A JSON-RPC error object: an object with an integer `code` and a string
+/// `message` (optional `data` and other members are left untouched).
+/// Anything else is protocol corruption, not an ordinary adapter error.
+fn error_message(e: &Value) -> Result<String, HarnessDiagnostic> {
+    let bad = |what: &str| violation("SPX-HPC009", format!("adapter error {what}"));
+    let e = e
+        .as_object()
+        .ok_or_else(|| bad("must be a JSON-RPC error object"))?;
+    if !e.get("code").is_some_and(|c| c.is_i64() || c.is_u64()) {
+        return Err(bad("object needs an integer `code`"));
+    }
+    let m = e
+        .get("message")
+        .and_then(Value::as_str)
+        .ok_or_else(|| bad("object needs a string `message`"))?;
+    Ok(m.chars().take(200).collect())
+}
+
 fn dispatch(shared: &Shared, frame: &[u8], cap: usize) -> Result<(), HarnessDiagnostic> {
     let v = parse_frame(frame, &JsonLimits::frame(cap)).map_err(|d| {
         violation(
@@ -285,6 +303,14 @@ fn dispatch(shared: &Shared, frame: &[u8], cap: usize) -> Result<(), HarnessDiag
             format!("adapter initiated `{m}`; adapters may not send requests or notifications"),
         ));
     }
+    // Strict syntax is not the JSON-RPC envelope: the version is part of the
+    // protocol contract and is checked before anything is delivered.
+    if obj.get("jsonrpc").and_then(Value::as_str) != Some("2.0") {
+        return Err(violation(
+            "SPX-HPC009",
+            "adapter response must carry \"jsonrpc\": \"2.0\"".into(),
+        ));
+    }
     let id = obj.get("id").and_then(Value::as_u64).ok_or_else(|| {
         violation(
             "SPX-HPC009",
@@ -293,14 +319,7 @@ fn dispatch(shared: &Shared, frame: &[u8], cap: usize) -> Result<(), HarnessDiag
     })?;
     let delivery = match (obj.get("result"), obj.get("error")) {
         (Some(r), None) => Delivery::Result(r.clone()),
-        (None, Some(e)) => Delivery::Error(
-            e.get("message")
-                .and_then(Value::as_str)
-                .unwrap_or("error")
-                .chars()
-                .take(200)
-                .collect(),
-        ),
+        (None, Some(e)) => Delivery::Error(error_message(e)?),
         _ => {
             return Err(violation(
                 "SPX-HPC009",

@@ -17,7 +17,7 @@ is a separate, host-side surface; it adds no process, filesystem or network auth
 
 ## Protocol `semaprax.harness-bridge.v1`
 
-LF-delimited JSON-RPC 2.0 on stdio, frames parsed with the strict `crate::json` parser (1 MiB limit).
+LF-delimited JSON-RPC 2.0 on stdio, frames parsed with the strict `crate::json` parser (1 MiB limit, enforced while reading: see *Transport bounds and session end*).
 `bridge/handshake` first; `params`: `{protocol, version: 1, host: {name, version}, capabilities:
 {semantic_query, tool_result_observation, command_wrapper, model_routing, cancellation, publication:
 bool}, command_rewriter: null|"name", bridge_depth?, lineage?}` (closed object).
@@ -77,6 +77,29 @@ Bounds: at most 4 invocations in flight (`SPX-HPN012`), unique ids (`SPX-HPN013`
 queue and concurrency limits. A client that closes stdin (crash or hang-up) cancels every live invocation and the session
 returns only after they are reaped. A bridge killed by `SIGKILL` cannot run that cleanup: its adapter's process group
 survives until the adapter exits or its idle/deadline limits fire (Unix offers no parent-death signal in safe std).
+
+### Transport bounds and session end (MA-05, MA-06, MA-10)
+
+Both stdio servers (`--stdio` and the skills `--mcp`) read frames through one bounded LF reader
+(`bridge::frame::read_frame`, the `fill_buf`/`consume` pattern of the adapter-stdout reader). A frame is the bytes up to
+LF (one trailing CR dropped); an unterminated tail at EOF is a frame; empty input is clean EOF. The 1 MiB cap is checked
+on every buffered chunk before it is copied, so a hostile client cannot grow memory past the cap plus the reader's fixed
+buffer and no newline is needed to detect it. A frame of exactly the cap is accepted, one byte more is refused. Oversize
+answers one `SPX-HPA002` error frame and **closes the session** (no drain-to-newline); invalid UTF-8 or a read error also
+ends the session. The original I/O error is returned to the caller (`SPX-HPN007` on the CLI, nonzero exit). The compiler
+MCP facade is untouched and gains no authority.
+
+Every exit from the serving loop (EOF, `bridge/shutdown`, read error, invalid UTF-8, oversize, an output write failure,
+a panic) cancels every live token **before** scoped workers are joined, so owned adapters settle within the host's
+ordinary cancellation allowance rather than the invocation deadline. A worker whose response write fails marks the
+output channel broken, cancels all live work and ends the session at the next frame boundary (a blocking read cannot be
+interrupted portably). Post-dispatch `SideEffecting` work keeps its `uncertain-external-effect` handling and is not retried.
+
+While waiting for input the session runs a lifecycle-owned maintenance tick (every 250 ms, a few cheap scans per
+second) that calls the host's `AdapterManager::reap_idle(now)`. An adapter idle past its descriptor `idle_shutdown_ms` is
+stopped while stdin stays open; the next `bridge/invoke` restarts and renegotiates it lazily, and an adapter with a live
+invocation is never reaped. The tick is stopped and joined on EOF, shutdown and transport errors; nothing outlives
+the session. Reaping latency is `idle_shutdown_ms` plus at most one tick.
 
 **Side-effecting steps and the journal.** A `SideEffecting` invoke appends `begin` to the append-only journal
 `<harness home>/cache/bridge/<project id>.journal.jsonl` (`workflow::journal`) and then `done`, `refused`, `cancelled`

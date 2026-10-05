@@ -36,3 +36,5 @@ mod receipt;
 mod skills;
 #[path = "harness_v1/workflow.rs"]
 mod workflow;
+#[path = "harness_v1/t_ma.rs"]
+mod t_ma;

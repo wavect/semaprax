@@ -612,3 +612,106 @@ fn public_selected_package_limit_accepts_four_and_rejects_five() {
         "SPX-PR603"
     );
 }
+
+#[test]
+fn verified_receipt_is_moved_from_the_single_independent_rebuild() {
+    let meaning = report("examples/meaning.spx");
+    let calculator = report("examples/calculator.spx");
+    let dependency = package_lock_v3::Coordinate {
+        package: "examples.calculator".to_owned(),
+        version: "1.0.0".to_owned(),
+    };
+    let root = subject(
+        "examples.meaning",
+        "1.0.0",
+        &meaning,
+        std::slice::from_ref(&dependency),
+        &["root.execute"],
+    );
+    let dependency_subject = subject(
+        "examples.calculator",
+        "1.0.0",
+        &calculator,
+        &[],
+        &["dependency.read"],
+    );
+    let mut admitted = input(vec![root, dependency_subject], "=1.0.0");
+    admitted.allowed_capabilities = vec!["dependency.read".to_owned(), "root.execute".to_owned()];
+    let options = ResolutionOptions::default();
+    let evidence = generate(&admitted, &options).expect("multi-package evidence");
+
+    let before = counters::snapshot();
+    let verified = verify(&evidence, &admitted, &options).expect("replay");
+    let after = counters::snapshot();
+    // Exactly one independent rebuild and one full-evidence DOM decode (the
+    // untrusted wrapper validation); none is spent building the receipt.
+    assert_eq!((after.0 - before.0, after.1 - before.1), (1, 1));
+
+    // Equivalence with the former receipt projection: selected-row order and
+    // the exact embedded Lock-v3 bytes, escapes and terminal byte included.
+    let value: serde_json::Value = serde_json::from_str(&evidence).unwrap();
+    let rows = value["payload"]["selected"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|row| package_lock_v3::Coordinate {
+            package: row["package"].as_str().unwrap().to_owned(),
+            version: row["version"].as_str().unwrap().to_owned(),
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(rows.len(), 2);
+    assert_eq!(verified.packages, rows);
+    assert_eq!(verified.lock, model::exact_lock_bytes(&evidence).unwrap());
+
+    // Tampered selected rows, altered embedded lock bytes and changed options
+    // are rejected before any receipt is exposed.
+    let marker = "\"payload\":";
+    let offset = evidence.find(marker).unwrap() + marker.len();
+    let payload = &evidence[offset..evidence.len() - 1];
+    let swapped = payload.replacen(
+        "\"package\":\"examples.calculator\"",
+        "\"package\":\"examples.calculatoR\"",
+        1,
+    );
+    assert_ne!(swapped, payload);
+    let lock_altered = payload.replacen("\"capability_closure\":[", "\"capability_closure\": [", 1);
+    assert_ne!(lock_altered, payload);
+    for tampered in [swapped, lock_altered] {
+        let reminted = wire::render_wrapper(&tampered);
+        assert!(verify(&reminted, &admitted, &options).is_err());
+    }
+    let smaller = ResolutionOptions::new(MAX_OUTPUT_BYTES - 1).unwrap();
+    assert_eq!(
+        verify(&evidence, &admitted, &smaller).unwrap_err().code,
+        "SPX-PR607"
+    );
+    let mut reversed = admitted.clone();
+    reversed.subjects.reverse();
+    let reordered = generate(&reversed, &options).expect("permuted catalog");
+    assert_eq!(
+        verify(&reordered, &reversed, &options)
+            .expect("replay")
+            .lock,
+        verified.lock
+    );
+}
+
+#[test]
+fn verified_receipt_keeps_the_logical_lock_charge() {
+    let meaning = report("examples/meaning.spx");
+    let valid = input(
+        vec![subject("examples.meaning", "1.0.0", &meaning, &[], &[])],
+        "=1.0.0",
+    );
+    let options = ResolutionOptions::default();
+    let evidence = generate(&valid, &options).expect("evidence");
+    let lock = model::exact_lock_bytes(&evidence).unwrap().len();
+    let (_, _, rebuild_and_wrapper) = bounded_output::with_limit_usage(MAX_RENDER_BYTES, || {
+        wire::parse_wrapper(&evidence).unwrap();
+        build(&valid, &options).map(|_| ())
+    });
+    let (verified, overflowed, total) =
+        bounded_output::with_limit_usage(MAX_RENDER_BYTES, || verify(&evidence, &valid, &options));
+    assert!(verified.is_ok() && !overflowed);
+    assert_eq!(total, rebuild_and_wrapper + lock);
+}

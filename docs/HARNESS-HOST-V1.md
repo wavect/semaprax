@@ -110,3 +110,6 @@ The authoritative per-platform pass/fail/untested matrix is `docs/HARNESS-PLATFO
 Outbound MCP client bridge is HP-14. TLS and remote HTTP are not implemented.
 Concurrent invocations share one adapter process and are demultiplexed by
 JSON-RPC id; an adapter that serialises internally gains no parallelism.
+
+The bridge `--stdio` session drives `reap_idle` from a 250 ms maintenance tick while waiting for input
+(`docs/HARNESS-BRIDGE-V1.md`); embedders that do not serve a bridge session still call it themselves.

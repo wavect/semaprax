@@ -345,6 +345,13 @@ impl Invoker {
             ),
         };
     }
+
+    /// Stop adapters idle past their `idle_shutdown_ms` as of `now` (MA-10). The
+    /// serving session drives this from its maintenance tick; the host keeps
+    /// in-flight work alive and restarts a reaped adapter lazily.
+    pub(crate) fn reap_idle(&self, now: std::time::Instant) -> usize {
+        self.manager.reap_idle(now).len()
+    }
 }
 
 /// Result frame body. A result that arrives after cancellation was requested

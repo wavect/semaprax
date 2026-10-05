@@ -272,8 +272,10 @@ fn current_rust_matrix_reuses_the_exact_inventory_in_parallel_platform_shards() 
         "\"semaprax/unstable-native-host-internal,semaprax/unstable-wit-component-harness,\"",
         "\"semaprax/unstable-workflow-profiling\",",
         "REPAIR_FILTER = \"source_live_cli::repair::tests::\"",
-        "REPAIR_TEST + [REPAIR_FILTER, \"--\", \"--list\", \"--format\", \"terse\"],",
-        "REPAIR_TEST + [\"--\", \"--exact\", \"--test-threads=1\", *names],",
+        "inventory, ignored = discover(base, cargo_env)",
+        "names = repair_shard_names(inventory, int(index), int(count))",
+        "base, [\"--exact\", *names], expected, len(inventory), cargo_env,",
+        "harness=[\"--test-threads=1\"], label=f\"{label} {selector}\", out=out,",
     ] {
         assert!(router.contains(required), "missing repair router contract: {required}");
     }
@@ -326,6 +328,111 @@ fn windows_typed_agent_corpus_moves_without_losing_coverage() {
         .0;
     assert!(dedicated.contains("cargo test --locked --offline --workspace --all-features --exclude semaprax-native-rust-interop --exclude semaprax-harness --test agent_runtime_v1 -- --skip execution_revision::typed::"));
     assert!(!dedicated.contains("continue-on-error"));
+}
+
+#[test]
+fn gen05b_exact_selectors_run_through_the_checked_controller() {
+    let workflow = std::fs::read_to_string(root().join(".github/workflows/ci.yml")).unwrap();
+    let job = workflow
+        .split_once("\n  gen05b-generic-instance-closure:\n")
+        .unwrap()
+        .1
+        .split_once("\n      - name: Check frozen Component bytes and closed public mappings\n")
+        .unwrap()
+        .0;
+    for required in [
+        "name: GEN-05B generic instance semantic closure",
+        "runs-on: ubuntu-24.04",
+        "timeout-minutes: 360",
+        "CARGO_TARGET_DIR: target/gen05b",
+        "SEMAPRAX_REQUIRE_GENERIC_OWNED_BACKENDS: \"1\"",
+        "toolchain: 1.97.1",
+        "- name: Require graph and cleanup closure with internal expression and dependency composition",
+        "set -euo pipefail",
+    ] {
+        assert!(job.contains(required), "missing GEN-05B contract: {required}");
+    }
+    let step = job.split_once("composition\n").unwrap().1;
+    assert!(!step.contains("cargo test"), "unchecked GEN-05B selector");
+    let checked: Vec<_> = step
+        .lines()
+        .map(str::trim)
+        .filter(|line| line.starts_with("python3 scripts/ci-msrv.py checked"))
+        .collect();
+    assert_eq!(checked.len(), 22);
+    let mut selectors = BTreeSet::new();
+    for line in &checked {
+        let words: Vec<_> = line.split(' ').collect();
+        assert_eq!(
+            &words[..8],
+            [
+                "python3",
+                "scripts/ci-msrv.py",
+                "checked",
+                "--label",
+                "GEN-05B",
+                "-p",
+                "semaprax",
+                words[7]
+            ]
+        );
+        let exact = words.iter().position(|word| *word == "--exact").unwrap();
+        assert_eq!(words.len(), exact + 3, "{line}");
+        assert_eq!(words[exact + 2], "--nocapture");
+        assert!(matches!(words[7], "--test" | "--lib"));
+        let target = if words[7] == "--lib" { "lib" } else { words[8] };
+        assert!(
+            selectors.insert((target, words[exact + 1])),
+            "duplicate selector {line}"
+        );
+    }
+    for (target, count) in [
+        ("agent_context_v2", 1),
+        ("workspace", 2),
+        ("ir", 9),
+        ("lib", 2),
+        ("owned_data", 6),
+        ("project", 2),
+    ] {
+        assert_eq!(
+            selectors.iter().filter(|(t, _)| *t == target).count(),
+            count,
+            "GEN-05B {target} selector count changed"
+        );
+    }
+}
+
+#[test]
+fn checked_selector_controller_fake_cargo_failure_paths() {
+    let output = Command::new("python3")
+        .args(["-B", "scripts/test-ci-msrv.py", "fake"])
+        .current_dir(root())
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        output.status.success(),
+        "{stdout}{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(stdout.contains("fake level: 21 run, 0 skipped"), "{stdout}");
+}
+
+#[test]
+fn checked_selector_controller_matches_the_real_toolchain() {
+    let output = Command::new("python3")
+        .args(["-B", "scripts/test-ci-msrv.py", "real"])
+        .env("CARGO", env!("CARGO"))
+        .current_dir(root())
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        output.status.success(),
+        "{stdout}{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(stdout.contains("real level: 6 run, 0 skipped"), "{stdout}");
 }
 
 const ROUTER_FAILURES: &str = r#"
@@ -457,14 +564,27 @@ for harness in ('project', 'project_candidate'):
         assert selected_git == [True], harness
         assert run.call_args_list[1].kwargs['env']['SEMAPRAX_TEST_GIT'] == sys.executable
         assert run.call_args_list[1].args[0][-2:] == ['--', '--test-threads=1']
-with patch('subprocess.run', side_effect=[
-    subprocess.CompletedProcess([], 0, stdout=json.dumps(metadata)),
-    subprocess.CompletedProcess([], 0),
-    subprocess.CompletedProcess([], 0),
-]) as run:
-    with contextlib.redirect_stdout(io.StringIO()):
-        assert router['main'](['--shard', 'unit-heavy']) == 0
-    assert [call.args[0][7] for call in run.call_args_list[1:]] == list(router['HEAVY_UNIT_FILTERS'])
+assert router['HEAVY_UNIT_TEST'] == ['cargo', 'test', '--locked', '-p', 'semaprax', '--all-features', '--lib']
+for arguments, codes, harness in (
+    (['--shard', 'unit-heavy'], [0, 0], []),
+    (['--shard', 'unit-heavy', '--nocapture'], [0, 0], ['--nocapture']),
+    (['--shard', 'unit-heavy'], [101, 0], []),
+):
+    checked = []
+    def heavy(base, environment, **selection):
+        checked.append((base, selection))
+        return codes[len(checked) - 1]
+    with patch('subprocess.run', side_effect=[
+        subprocess.CompletedProcess([], 0, stdout=json.dumps(metadata)),
+    ]), patch.dict(router['main'].__globals__, {'run_checked_selection': heavy}):
+        with contextlib.redirect_stdout(io.StringIO()):
+            assert router['main'](arguments) == max(codes)
+    # Each family is a checked module-prefix selection; the first failure stops.
+    expected = list(router['HEAVY_UNIT_FILTERS'])[:1 if codes[0] else 2]
+    assert [selection['prefix'] for _, selection in checked] == expected
+    assert all(base == router['HEAVY_UNIT_TEST'] for base, _ in checked)
+    assert all(selection['harness'] == harness for _, selection in checked)
+    assert all('exact' not in selection for _, selection in checked)
 with patch('subprocess.run', side_effect=[
     subprocess.CompletedProcess([], 0, stdout=json.dumps(metadata)),
     subprocess.CompletedProcess([], 0),
@@ -491,7 +611,7 @@ for platform, label, dedicated in (
         assert (repair_filter in command) == dedicated, (platform, label, command)
         if dedicated:
             assert command[command.index(repair_filter) - 1] == '--skip'
-listing = ''.join(f'{repair_filter}{name}: test\n' for name in 'edcba') + '5 tests, 0 benchmarks\n'
+listing = [repair_filter + name for name in 'edcba'] + ['other::test']
 select = router['repair_shard_names']
 assert select(listing, 0, 1) == [repair_filter + name for name in 'abcde']
 shards = [select(listing, index, 2) for index in range(2)]
@@ -504,22 +624,35 @@ for index, count, message in ((2, 2, 'out of range'), (-1, 2, 'out of range'), (
         assert message in str(error), str(error)
     else:
         raise AssertionError('invalid repair shard accepted')
-for bad, message in (('', 'no case'), ('other::test: test\n', 'escaped')):
+for bad, message in (([], 'no case'), (['other::test'], 'no case'), (['x::' + repair_filter + 'a'], 'escaped')):
     try:
         select(bad, 0, 1)
     except ValueError as error:
         assert message in str(error), str(error)
     else:
         raise AssertionError('invalid repair listing accepted')
-with patch('subprocess.run', side_effect=[
-    subprocess.CompletedProcess([], 0, stdout=listing),
-    subprocess.CompletedProcess([], 101),
-]) as run:
+discovered, executed = [], []
+def repair_inventory(base, environment):
+    discovered.append(base)
+    return listing, frozenset()
+def repair_run(base, filters, expected, count, environment, **options):
+    executed.append((base, filters, expected, count, options))
+    return 101
+with patch('subprocess.run') as run, patch.dict(router['main'].__globals__, {
+    'discover': repair_inventory, 'run_checked': repair_run,
+}):
     with contextlib.redirect_stdout(io.StringIO()):
         assert router['main'](['--label', 'Rust source repair', '--repair-shard', '1/2']) == 101
-    assert run.call_args_list[0].args[0] == router['REPAIR_TEST'] + [repair_filter, '--', '--list', '--format', 'terse']
-    assert run.call_args_list[0].kwargs['check'] is True
-    assert run.call_args_list[1].args[0] == router['REPAIR_TEST'] + ['--', '--exact', '--test-threads=1', *shards[1]]
+    run.assert_not_called()
+    # The whole target is inventoried; the shard runs serially through the
+    # checked seam, which requires one passing record per dealt case.
+    assert discovered == [router['REPAIR_TEST']]
+    [(base, filters, expected, count, options)] = executed
+    assert base == router['REPAIR_TEST']
+    assert filters == ['--exact', *shards[1]]
+    assert expected == {name: 'ok' for name in shards[1]}
+    assert count == len(listing)
+    assert options['harness'] == ['--test-threads=1']
 for arguments in (['--repair-shard', '1'], ['--repair-shard', 'a/2']):
     with patch('subprocess.run') as run:
         try:

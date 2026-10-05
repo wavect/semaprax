@@ -206,6 +206,23 @@ case list round-robin, so each case runs exactly once per host. Windows runs
 its complete set, mostly Unix-checkpoint refusal tests, in the single
 `windows-source-repair` job.
 
+A Cargo test command whose selector matches nothing still exits 0, so a
+renamed test can silently stop running. `python3 scripts/ci-msrv.py checked`
+lists the one selected target with the same package, target, features and
+toolchain it then executes, refuses a missing, malformed, out-of-scope or
+ignored-only selection before execution, and accepts a run only when every
+selected case has exactly one completion record and libtest's summary counts
+(passed, failed, ignored, filtered out) match the listed target. It prints
+discovered, selected, executed, passed and ignored counts per invocation; a
+`--list` alone is never execution evidence. The GEN-05B exact-selector step,
+both `unit-heavy` families and the source-repair shards run through it. Other
+direct `cargo test ... -- --exact` selectors in the workflows remain
+unchecked. `scripts/test-ci-msrv.py fake` covers its failure paths against a
+fake Cargo, and `scripts/test-ci-msrv.py real` proves the listing, ignore and
+execution behaviour against the real toolchain on
+`scripts/tests/checked-selector-fixture`; `ci_msrv_sharding_contract` runs
+both levels.
+
 The source Agent lifecycle suite runs once in the sharded matrix. The separate
 Rust evidence job runs only the provisioned Proposal-client case under its
 explicit environment flag; repeating the entire Agent Runtime harness there

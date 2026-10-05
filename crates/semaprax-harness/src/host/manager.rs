@@ -747,6 +747,12 @@ impl AdapterHandle {
                 self.record_failure(proc, d.clone());
                 self.fail(class, sent, d)
             }
+            // A failed stdin write is a transport failure of this generation;
+            // a partial write may have reached the adapter, so `sent` holds.
+            Closed::Transport(d) => {
+                self.record_failure(proc, d.clone());
+                self.fail(class, sent, d)
+            }
             Closed::Host(why) => {
                 let d = diag(
                     "SPX-HPC007",

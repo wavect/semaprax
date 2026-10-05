@@ -21,7 +21,7 @@ use serde_json::{json, Value};
 use std::collections::{HashMap, VecDeque};
 use std::io::{BufRead, BufReader, Read, Write};
 use std::os::unix::process::CommandExt;
-use std::process::{Child, Command, Stdio};
+use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::mpsc::{sync_channel, Receiver, SyncSender};
 use std::sync::{Arc, Mutex, MutexGuard};
 
@@ -34,6 +34,9 @@ pub(crate) enum Closed {
     Host(&'static str),
     /// Protocol violation; the adapter must be quarantined.
     Violation(HarnessDiagnostic),
+    /// Writing to the adapter's stdin failed. A frame may have been partly
+    /// transmitted, so pending requests stay "sent".
+    Transport(HarnessDiagnostic),
 }
 
 pub(crate) enum Delivery {
@@ -66,6 +69,10 @@ pub(crate) trait Sys: Send + Sync {
     /// Reap the group leader.
     fn wait(&self, child: &mut Child) -> std::io::Result<()> {
         child.wait().map(drop)
+    }
+    /// The byte sink the stdin writer uses.
+    fn stdin(&self, s: ChildStdin) -> Box<dyn Write + Send> {
+        Box::new(s)
     }
 }
 
@@ -303,6 +310,25 @@ fn dispatch(shared: &Shared, frame: &[u8], cap: usize) -> Result<(), HarnessDiag
     }
 }
 
+/// The stdin writer worker. A terminal write or flush failure is reported
+/// through the shared first-failure close (waking every pending waiter) and
+/// the single process owner; queued frames are then dropped with their
+/// callers already released.
+fn write_frames(mut w: Box<dyn Write + Send>, rx: Receiver<Vec<u8>>, shared: &Shared) {
+    while let Ok(mut f) = rx.recv() {
+        f.push(b'\n');
+        if let Err(e) = w.write_all(&f).and_then(|_| w.flush()) {
+            let msg: String = format!("adapter stdin write failed: {e}")
+                .chars()
+                .take(200)
+                .collect();
+            shared.close(Closed::Transport(violation("SPX-HPC007", msg)));
+            shared.settle();
+            return;
+        }
+    }
+}
+
 impl Proc {
     pub(crate) fn spawn(p: &Prepared, frame_cap: usize, ring_cap: usize) -> std::io::Result<Proc> {
         Self::spawn_with(p, frame_cap, ring_cap, Arc::new(RealSys))
@@ -329,7 +355,8 @@ impl Proc {
             child.stdout.take().expect("piped"),
             child.stderr.take().expect("piped"),
         );
-        let (mut stdin, mut stderr) = (stdin, stderr);
+        let mut stderr = stderr;
+        let stdin = sys.stdin(stdin);
         let shared = Arc::new(Shared {
             pid: child.id() as i32,
             inner: Mutex::new(Inner::default()),
@@ -343,14 +370,8 @@ impl Proc {
         });
 
         let (wtx, wrx) = sync_channel::<Vec<u8>>(8);
-        std::thread::spawn(move || {
-            while let Ok(mut f) = wrx.recv() {
-                f.push(b'\n');
-                if stdin.write_all(&f).and_then(|_| stdin.flush()).is_err() {
-                    break;
-                }
-            }
-        });
+        let s = shared.clone();
+        std::thread::spawn(move || write_frames(stdin, wrx, &s));
 
         let s = shared.clone();
         std::thread::spawn(move || {

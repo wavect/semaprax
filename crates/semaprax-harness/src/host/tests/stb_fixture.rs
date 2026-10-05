@@ -8,6 +8,8 @@ use super::*;
 /// `STB_INIT_RELEASE` – withhold the initialize reply until this file exists.
 /// `STB_INVOKE_LOG`   – append one line per `harness/invoke` frame received.
 /// `STB_INVOKE_MODE`  – `hang` never answers an invocation.
+/// `STB_CLOSE_STDIN`  – after the initialize reply close fd 0 (stdout stays
+///                      open), write own pid here, then wait for `STB_EXIT`.
 pub(crate) const STB_ADAPTER: &str = r#"#!/usr/bin/env python3
 import json, os, sys, time
 OUT = sys.stdout.buffer
@@ -63,6 +65,11 @@ def main():
             if ENV("STB_INIT_RELEASE"):
                 wait_file(ENV("STB_INIT_RELEASE"))
             send(init_reply(mid, msg))
+            if ENV("STB_CLOSE_STDIN"):
+                os.close(0)
+                touch(ENV("STB_CLOSE_STDIN"), str(os.getpid()))
+                wait_file(ENV("STB_EXIT"))
+                return
         elif method == "harness/invoke":
             if ENV("STB_INVOKE_LOG"):
                 with open(ENV("STB_INVOKE_LOG"), "a") as fh:

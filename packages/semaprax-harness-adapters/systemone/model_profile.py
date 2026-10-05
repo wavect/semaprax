@@ -11,6 +11,8 @@ import json
 from systemone_codec import CodecError
 
 ENV = "SEMAPRAX_HARNESS_MODEL_PROFILE"
+# The harness host forwards descriptor config field `model_profile` under this name.
+HOST_ENV = "SEMAPRAX_HARNESS_CFG_MODEL_PROFILE"
 MAX_PROFILE_BYTES = 4096
 DEFAULT_RENDERER = "semaprax.route-render.v2"
 IDENTITY_KINDS = ("immutable_checkpoint", "mutable_service", "local_declared", "unknown")
@@ -87,7 +89,7 @@ def validate(doc):
 
 def load(env, derive):
     """Profile from the environment, else `derive()` (the backend's defaults)."""
-    raw = env.get(ENV)
+    raw = env.get(HOST_ENV) or env.get(ENV)
     if not raw:
         return validate(derive())
     if len(raw.encode()) > MAX_PROFILE_BYTES:

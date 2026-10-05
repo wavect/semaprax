@@ -18,7 +18,10 @@
     }
   ],
   "config": {
-    "fields": {}
+    "fields": {
+      "instance_id": {"default": "", "type": "string"},
+      "model_profile": {"default": "", "type": "string"}
+    }
   },
   "extensions": [],
   "permissions": {

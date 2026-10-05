@@ -59,7 +59,7 @@ fn localized_task_starts_below_the_ceiling() {
         &CostMeter::bytes(),
     )
     .unwrap();
-    assert!(sel.used <= 400 && sel.used < 16384);
+    assert!(sel.used <= 400);
     assert!(sel.items.iter().any(|i| i.label == "src/a.spx:1-3"));
     assert!(
         sel.items.iter().any(|i| i.label == "hit.py:1-1"),

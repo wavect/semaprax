@@ -232,8 +232,10 @@ impl Criterion {
     /// The existing quality gate (`QUALITY_TOLERANCE`: no acceptance drop) plus the
     /// HN-16 cost/latency defaults, declared up front.
     pub fn predeclared() -> Self {
-        let mut gate = GateSpec::default();
-        gate.completion_margin = crate::bench::gates::QUALITY_TOLERANCE;
+        let gate = GateSpec {
+            completion_margin: crate::bench::gates::QUALITY_TOLERANCE,
+            ..GateSpec::default()
+        };
         Self {
             gate,
             first_pass_margin: 0.10,
@@ -251,12 +253,13 @@ impl Criterion {
     }
 
     pub fn from_json(v: &Value) -> Option<Self> {
-        let mut gate = GateSpec::default();
-        gate.min_items = v["min_items"].as_u64()? as usize;
-        gate.completion_margin = v["acceptance_margin"].as_f64()?;
-        gate.min_cost_saving = v["min_cost_saving"].as_f64()?;
-        gate.max_extra_regressions = v["max_extra_regressions"].as_u64()? as u32;
-        gate.max_latency_ratio = v["max_latency_ratio"].as_f64()?;
+        let gate = GateSpec {
+            min_items: v["min_items"].as_u64()? as usize,
+            completion_margin: v["acceptance_margin"].as_f64()?,
+            min_cost_saving: v["min_cost_saving"].as_f64()?,
+            max_extra_regressions: v["max_extra_regressions"].as_u64()? as u32,
+            max_latency_ratio: v["max_latency_ratio"].as_f64()?,
+        };
         Some(Self {
             gate,
             first_pass_margin: v["first_pass_margin"].as_f64()?,
@@ -349,8 +352,10 @@ pub fn load(dir: &Path) -> Result<(Value, Criterion), String> {
 /// feedback allowance, read from the arm's pinned configuration.
 pub fn overlays_of(arm: &ProfileArm) -> super::production::Overlays {
     let o = arm.overlay();
-    let mut g = crate::profile::config::GenerationSection::default();
-    g.repair_cap = o.get("budget.repair_cap").and_then(Value::as_u64);
+    let g = crate::profile::config::GenerationSection {
+        repair_cap: o.get("budget.repair_cap").and_then(Value::as_u64),
+        ..Default::default()
+    };
     super::production::Overlays {
         generation: g
             .repair_cap

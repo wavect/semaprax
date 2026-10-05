@@ -550,7 +550,7 @@ fn public_api_cli_bytes_getters_and_read_only_locking_are_exact() {
         // `budget.used_builder_bytes` and this digest move; this fixture
         // declares no session protocol, so nothing else in the document
         // moves.
-        "sha256:c2d3393662749691f2d650e35b91c23f4dd6b897fa5e819cd3551ec178678bb9"
+        "sha256:64b518d842f71b593e6e99bda6066b7e117a495aa8877c6936e070ed01de1045"
     );
 
     let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
@@ -974,14 +974,14 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
             document_digest(capability_review.as_bytes()),
         ],
         [
-            "sha256:bfa136767d49a59bf7a8bb187fd79d3013288d14aac6053867e82552e5ba9f7f",
-            "sha256:b1d50c937e6be902438f125b7320f67f66308e5df2fb03ec2f99653353b3504f",
-            "sha256:ac7ad3f96ac8cc4cf5ad345c7ef61559b3b49e00940ca3905d9ac1ebbc179be6",
-            "sha256:304aab6ee37e77978c9e02b37860060046684e9bb57a2c9ab2b8ed8a22da2f7a",
-            "sha256:03243980f9defc9042f3e2bab591bd0091f8e4c23bb88e5e715d158e8ef927ac",
-            "sha256:d2cc58da151b0ae854e072bacc001ce6ce8411abfacdfb8f74fa32f3d7789ede",
-            "sha256:bd4a2ca0eeee7e838357bca2bd4cb40ff48e7f8715aff3153faa532f84f6a019",
-            "sha256:9c0b497bfbb39ba4387d47ee5ff1bf23e83677ba860d3f1b4e1ac6ccea16d90a",
+            "sha256:5b49e4c6880ee7b1274ba99d9fdf4b0185df1039009929662336aa4d38850c5d",
+            "sha256:a0fa8ec8363354f8b45108bf5ca8844cf0b7bc52949007ffbca43b160a23e263",
+            "sha256:c8755b7ff75dd95c98a9ae8c2605d56d4acb12c28d21201294ce07dbac454bb7",
+            "sha256:f5e70735b4332cd8a3cf2cce131f1e3b1068c1a44208a640c97f663bf50f44a3",
+            "sha256:9eb13231083209875ab5b186750c584db1f581348b1e048dbe436b882d28899e",
+            "sha256:a04d80b41be697d2ef94c7dd431bf1bfa9619ab32ece8f8e8397e2c242a06d31",
+            "sha256:4612e4029c7a179b258d5ef765133eef399aa85279b825e780a2e22a8ffcc10c",
+            "sha256:0cc9ccb672b6c0724c3733d77ce54e041e7098f82a6e7c3b02dadc2f7d4f4114",
         ]
     );
 

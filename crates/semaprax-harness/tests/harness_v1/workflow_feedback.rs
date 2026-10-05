@@ -56,7 +56,7 @@ fn hp_tc06_next_request_is_smaller_and_carries_the_current_diagnostic_verbatim()
     // Older failures are compact, not repeated whole.
     assert!(fb[..fb.len() - 1]
         .iter()
-        .all(|x| x["message"].as_str().map_or(true, |m| m.len() <= 130)));
+        .all(|x| x["message"].as_str().is_none_or(|m| m.len() <= 130)));
     // Accounting-only fields are in the report, not the prompt.
     assert!(r.session["feedback_projection"].as_array().unwrap().len() >= 4);
     assert!(!after.to_string().contains("raw_bytes"));

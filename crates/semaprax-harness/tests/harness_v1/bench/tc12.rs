@@ -768,8 +768,8 @@ fn tc12_missing_model_and_budget_abort_are_retained_and_raw_loop_is_labelled_and
             t: &'a CacheTracker,
             _k: &TrialKey,
         ) -> Result<Box<dyn TrialClient + 'a>, String> {
-            static C: Scripted<fn(&str, u64) -> Result<Generation, ModelError>> =
-                Scripted(|_p, _s| Ok(Generation::default()));
+            type RawScript = Scripted<fn(&str, u64) -> Result<Generation, ModelError>>;
+            static C: RawScript = Scripted(|_p, _s| Ok(Generation::default()));
             Ok(Box::new(RawClient::new(&C, t, &m.id, m.billed)))
         }
     }

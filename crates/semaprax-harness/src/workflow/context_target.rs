@@ -38,11 +38,13 @@ impl CostUnit {
 }
 
 /// Measures item cost in one unit.
+type TokenCounter<'a> = Box<dyn Fn(&str) -> u64 + 'a>;
+
 pub struct CostMeter<'a> {
     unit: CostUnit,
     source: Option<(&'a RequestBudget<'a>, String)>,
     /// A caller-supplied named-token counter (a measurement the caller owns).
-    counter: Option<Box<dyn Fn(&str) -> u64 + 'a>>,
+    counter: Option<TokenCounter<'a>>,
 }
 
 impl<'a> CostMeter<'a> {
@@ -651,34 +653,7 @@ pub(super) fn merge_for_run(
 ) -> usize {
     let rb = cfg.budget.for_task(&cfg.task);
     let (meter, hard) = meter_for(&rb, plans_of(cfg).as_deref());
-    merge_escalating(
-        tc,
-        cfg.context_max_bytes,
-        ctx,
-        &cfg.snapshot.revision,
-        failure,
-        kept,
-        items,
-        &meter,
-        hard,
-    )
-}
-
-/// Follow-up/handle merge under the (possibly escalated) target. Escalates
-/// once per call on a validation failure when the bound allows, records the
-/// outcome in `ctx["target"]`, and returns the number of new items dropped.
-pub fn merge_escalating(
-    cfg: &TargetConfig,
-    safety_bound_bytes: usize,
-    ctx: &mut Value,
-    revision: &str,
-    failure: &str,
-    kept: &mut Vec<ContextItem>,
-    items: Vec<ContextItem>,
-    meter: &CostMeter,
-    hard_capacity: Option<u64>,
-) -> usize {
-    let mut t = cfg.target(safety_bound_bytes, ctx, hard_capacity);
+    let mut t = tc.target(cfg.context_max_bytes, ctx, hard);
     let named: String = failure
         .lines()
         .next()
@@ -704,7 +679,7 @@ pub fn merge_escalating(
             .chain(items)
             .map(|item| SpanEntry {
                 item,
-                revision: revision.into(),
+                revision: cfg.snapshot.revision.clone(),
             })
             .collect(),
     );
@@ -716,7 +691,7 @@ pub fn merge_escalating(
         if i < before
             || it.provenance == COMPILER_VERIFIED
             || it.label.starts_with(REQUIRED_PREFIX)
-            || (used + c <= limit && used_bytes + it.bytes() <= safety_bound_bytes)
+            || (used + c <= limit && used_bytes + it.bytes() <= cfg.context_max_bytes)
         {
             used += c;
             used_bytes += it.bytes();

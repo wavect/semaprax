@@ -612,8 +612,10 @@ use the unpublished semaprax-full toolchain CLI\n"
         );
         assert!(documentation.contains("semaprax new first-semaprax"));
         assert!(documentation.contains("semaprax-full new first-semaprax"));
-        assert!(documentation.contains("The archives are unsigned and are not notarized."));
-        assert!(documentation.contains("(RELEASE-PROCESS.md#nonclaims)"));
+        assert!(documentation.contains("The archives are not notarized."));
+        assert!(documentation.contains("Verify the supplied signature bundle"));
+        assert!(documentation.contains("(RELEASE-SIGNING-POLICY-V1.md)"));
+        assert!(documentation.contains("(RELEASE-PROCESS.md)"));
         assert!(documentation.contains("(COMPLETION-MATRIX.md)"));
     }
 

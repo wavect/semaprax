@@ -20,6 +20,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Repair the 0.8.0 CI matrix: keep the Unix-only harness out of Windows Cargo
+  targets, restore its strict Clippy checks, align release and workspace known
+  answers with current artifacts, correct the indexed owner physical link and
+  static reference-service acceptance setup, and serialize native SDK cases
+  that contend when run as separate libtest threads.
 - Restore CI's focused dependency and formatting checks: admit the locked
   `foldhash` Zlib license and format the harness sources checked by rustfmt.
 - Complete and retain the preregistered 20-trial LAW16 Claude Boolean campaign:

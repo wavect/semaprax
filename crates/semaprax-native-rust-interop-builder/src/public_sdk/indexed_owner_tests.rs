@@ -190,7 +190,14 @@ fn execute(rustc: &str, clang: &str, root: &Path, output: &Path, label: &str) ->
         .arg(&source)
         .args(["-C", &format!("linker={clang}"), "-L"])
         .arg(output)
-        .args(["-l", "static=semaprax_native_rust_owned_data_sdk", "-o"])
+        .args(["-C"])
+        .arg(format!(
+            "link-arg={}",
+            output
+                .join("libsemaprax_native_rust_owned_data_sdk.a")
+                .display()
+        ))
+        .arg("-o")
         .arg(&binary)
         .output()
         .unwrap();

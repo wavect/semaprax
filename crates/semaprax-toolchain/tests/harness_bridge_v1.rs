@@ -1,4 +1,5 @@
 //! HP-04/10/12/16 evidence: harness host bridged to the compiler SDK.
+#![cfg(unix)]
 
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};

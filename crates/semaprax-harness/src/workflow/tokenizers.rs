@@ -217,8 +217,10 @@ mod tests {
     }
     fn cfg(fp: &'static str, fail: bool) -> (BudgetConfig, Rc<Cell<u32>>) {
         let calls = Rc::new(Cell::new(0));
-        let mut c = BudgetConfig::default();
-        c.map = ModelTokenizerMap::empty().with("fam-", "words-x");
+        let mut c = BudgetConfig {
+            map: ModelTokenizerMap::empty().with("fam-", "words-x"),
+            ..BudgetConfig::default()
+        };
         c.tokenizers.add(Box::new(Words {
             fp,
             calls: calls.clone(),
@@ -296,8 +298,10 @@ mod tests {
         let r = budget(&c).count("other-model", "x y");
         assert_eq!(r.tokens, None);
         // Mapped to a name nobody provisioned.
-        let mut c2 = BudgetConfig::default();
-        c2.map = ModelTokenizerMap::empty().with("fam-", "words-x");
+        let c2 = BudgetConfig {
+            map: ModelTokenizerMap::empty().with("fam-", "words-x"),
+            ..BudgetConfig::default()
+        };
         assert_eq!(budget(&c2).count("fam-a", "x y").tokens, None);
         // A task cannot name an unapproved tokenizer, but can name a host-approved one.
         let v = json!({"fam-": "words-x"});

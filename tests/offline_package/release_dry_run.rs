@@ -211,7 +211,7 @@ fn dry_run_full_flow_builds_manifest_and_publishes_exactly_once() {
         serde_json::from_slice(&after.stdout).expect("view must print JSON");
     assert_eq!(record["tag"], tag);
     assert_eq!(record["commit"], commit);
-    assert_eq!(record["prerelease"], serde_json::Value::Bool(true));
+    assert_eq!(record["prerelease"], serde_json::Value::Bool(false));
     let recorded_assets = record["assets"]
         .as_array()
         .expect("assets must be an array");

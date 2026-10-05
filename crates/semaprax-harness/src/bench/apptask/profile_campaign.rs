@@ -77,19 +77,34 @@ fn status_record(mut v: Value, status: &str, outcome: &str, reason: &str) -> Val
     v
 }
 
-/// Fold a finished apptask trial record and its attempt log into the profile record.
-pub fn wrap(
-    key: &TrialKey,
-    class: &str,
-    arm: &ProfileArm,
-    model: &ModelSpec,
-    origin: &str,
-    path: &str,
-    attempts: &[Attempt],
+/// Inputs retained for one completed profile trial.
+struct CompletedTrial<'a> {
+    key: &'a TrialKey,
+    class: &'a str,
+    arm: &'a ProfileArm,
+    model: &'a ModelSpec,
+    origin: &'a str,
+    path: &'a str,
+    attempts: &'a [Attempt],
     observations: usize,
     overlays: Value,
     trial: Value,
-) -> Value {
+}
+
+/// Fold a finished apptask trial record and its attempt log into the profile record.
+fn wrap(input: CompletedTrial<'_>) -> Value {
+    let CompletedTrial {
+        key,
+        class,
+        arm,
+        model,
+        origin,
+        path,
+        attempts,
+        observations,
+        overlays,
+        trial,
+    } = input;
     let mut v = base(key, class, arm, model, origin);
     let st = trial["status"].as_str().unwrap_or("error").to_string();
     let accepted = st == "ok" && trial["passed"] == true;
@@ -266,18 +281,22 @@ pub fn run(
                                 if trial["status"] == "budget" {
                                     aborted = true;
                                 }
-                                wrap(
-                                    &key,
-                                    &task.class,
+                                wrap(CompletedTrial {
+                                    key: &key,
+                                    class: &task.class,
                                     arm,
-                                    m,
-                                    backend.origin(m),
-                                    client.path(),
-                                    &attempts,
-                                    client.observations().len(),
-                                    overlay_states(arm, client.path(), &client.overlay_reports()),
+                                    model: m,
+                                    origin: backend.origin(m),
+                                    path: client.path(),
+                                    attempts: &attempts,
+                                    observations: client.observations().len(),
+                                    overlays: overlay_states(
+                                        arm,
+                                        client.path(),
+                                        &client.overlay_reports(),
+                                    ),
                                     trial,
-                                )
+                                })
                             }
                         }
                     };

@@ -188,12 +188,13 @@ does not narrow coverage.
 
 On Linux, macOS, and Windows, the current-toolchain Rust lane runs the same
 closed six-way Cargo target inventory: one lib/bin shard and five parallel
-integration-target shards. Each host keeps focused runtime tests, sanitizers,
+integration-target shards, with the Unix-only development harness excluded on
+Windows. Each host keeps focused runtime tests, sanitizers,
 and physical-platform gates in a separate blocking evidence job.
 Formatting, Clippy, doctests, rustdoc, release builds, packaging, and examples
 run in the independent `verify-build` matrix, so they no longer wait for that
-evidence. Windows retains its existing exclusion of
-the separately owned native-Rust-interop package; the router validates that
+evidence. Windows also retains its existing exclusion of
+the separately owned native-Rust-interop package; the router validates those
 exclusion against Cargo metadata instead of accepting a free-form omitted
 target. Unknown target kinds or package exclusions fail closed. The release
 gate requires all three matrices.

@@ -221,7 +221,7 @@ fn current_rust_matrix_reuses_the_exact_inventory_in_parallel_platform_shards() 
         "os: [ubuntu-latest, macos-latest, windows-latest]",
         "shard: [unit, unit-heavy, integration-0, integration-1, integration-2, integration-3, integration-4, integration-5]",
         "python3 scripts/ci-msrv.py --label \"Rust $RUNNER_OS\" --shard \"${{ matrix.shard }}\"",
-        "python3 scripts/ci-msrv.py --label \"Rust Windows\" --shard \"${{ matrix.shard }}\" --exclude-package semaprax-native-rust-interop --nocapture @split",
+        "python3 scripts/ci-msrv.py --label \"Rust Windows\" --shard \"${{ matrix.shard }}\" --exclude-package semaprax-native-rust-interop --exclude-package semaprax-harness --nocapture @split",
         "if ('${{ matrix.shard }}' -eq 'integration-3') { $split = @('--split-windows-agent-runtime') }",
     ] {
         assert!(tests.contains(required), "missing Rust shard contract: {required}");

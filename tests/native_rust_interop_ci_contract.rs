@@ -1044,7 +1044,7 @@ fn hosted_workflow_names_all_private_interop_evidence_boundaries() {
         "Test the complete workspace target shard without duplicate Windows native interop",
         "python3 scripts/ci-msrv.py --label \"Rust Windows\" --shard \"${{ matrix.shard }}\" --exclude-package semaprax-native-rust-interop",
         "Require private Native Rust Interop A+B replay, static-link, runtime, and hostile evidence",
-        "cargo test --locked -p semaprax-native-rust-interop -- --nocapture",
+        "cargo test --locked -p semaprax-native-rust-interop -- --nocapture --test-threads=1",
         "Require private Native Rust Interop platform authority evidence",
         "cargo test --locked -p semaprax-native-rust-interop-platform --all-targets -- --nocapture",
         "Require private Native Rust Interop ASan + UBSan round trip (Linux)",
@@ -1077,7 +1077,7 @@ fn hosted_workflow_names_all_private_interop_evidence_boundaries() {
             .lines()
             .filter(|line| {
                 line.trim()
-                    == "run: cargo test --locked -p semaprax-native-rust-interop -- --nocapture"
+                    == "run: cargo test --locked -p semaprax-native-rust-interop -- --nocapture --test-threads=1"
             })
             .count(),
         1

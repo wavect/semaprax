@@ -295,7 +295,9 @@ int32_t ri06_url_callback_relay(uint64_t context, relay_owner owner, void *state
         );
         assert!(
             String::from_utf8_lossy(&failed.stderr).contains("panicked"),
-            "control must fail at runtime, not compilation: {}",
+            "control must fail at runtime, not compilation ({needle}): status={:?}, stdout={}, stderr={}",
+            failed.status,
+            String::from_utf8_lossy(&failed.stdout),
             String::from_utf8_lossy(&failed.stderr)
         );
     }

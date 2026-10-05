@@ -128,7 +128,7 @@ fn callee_precondition_and_summary_contract_changes_stale_caller_identity() {
 
 #[test]
 fn repeated_calls_have_distinct_resolved_occurrence_identities() {
-    let extra = "@id(\"accounting.repeat\")\nfn repeat(value: i64) -> i64\n requires value >= 0\n requires value <= 100\n ensures result == value + value + 2\n{ value + value + 2 }\n";
+    let extra = "@id(\"accounting.repeat\")\nfn repeat(value: i64) -> i64\n requires value >= 0\n requires value <= 100\n ensures result == value + value + 2\n{ base(value) + base(value) }\n";
     let fixture = Fixture::new("repeated", CORE, extra);
     let revision = with_authenticated_project(&fixture.root.join("semaprax.toml"), |snapshot| {
         Ok(snapshot.retain_revision())

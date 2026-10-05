@@ -30,9 +30,11 @@ mod bounded_capture;
 pub mod claude_host;
 
 /// Private harness provider host entry point (`semaprax-full harness`).
+#[cfg(unix)]
 pub mod harness_cli;
 
 /// Bridges from the harness host to the compiler's model/policy SDK.
+#[cfg(unix)]
 pub mod harness_bridge;
 
 /// Explicit durable source-agent sessions in the private host.

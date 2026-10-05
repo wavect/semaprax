@@ -1599,7 +1599,9 @@ jobs:
           cargo test --locked -p semaprax --test native_rust_interop_ci_contract -- --nocapture
       - name: Require private Native Rust Interop A+B replay, static-link, runtime, and hostile evidence
         if: runner.os != 'Windows'
-        run: cargo test --locked -p semaprax-native-rust-interop -- --nocapture
+        # Physical SDK cases build and run independent Cargo projects. Keep
+        # their child processes from contending across libtest cases.
+        run: cargo test --locked -p semaprax-native-rust-interop -- --nocapture --test-threads=1
       - name: Require private Native Rust Interop platform authority evidence
         run: cargo test --locked -p semaprax-native-rust-interop-platform --all-targets -- --nocapture
       - name: Require Windows callable-v2 and private callable-v3 physical evidence
@@ -1753,12 +1755,28 @@ jobs:
       - name: Fetch the standalone owned-data Rust setup dependency closure
         run: cargo fetch --locked --manifest-path examples/owned-data-rust/Cargo.toml
       - run: cargo fmt --all --check
-      - run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
-      - run: cargo test --locked --workspace --all-features --doc
-      - run: cargo doc --locked --workspace --all-features --no-deps
+      - shell: bash
+        run: |
+          exclude=()
+          if [[ "$RUNNER_OS" == Windows ]]; then exclude=(--exclude semaprax-harness); fi
+          cargo clippy --locked --workspace "${exclude[@]}" --all-targets --all-features -- -D warnings
+      - shell: bash
+        run: |
+          exclude=()
+          if [[ "$RUNNER_OS" == Windows ]]; then exclude=(--exclude semaprax-harness); fi
+          cargo test --locked --workspace "${exclude[@]}" --all-features --doc
+      - shell: bash
+        run: |
+          exclude=()
+          if [[ "$RUNNER_OS" == Windows ]]; then exclude=(--exclude semaprax-harness); fi
+          cargo doc --locked --workspace "${exclude[@]}" --all-features --no-deps
         env:
           RUSTDOCFLAGS: -D warnings
-      - run: cargo build --locked --workspace --release
+      - shell: bash
+        run: |
+          exclude=()
+          if [[ "$RUNNER_OS" == Windows ]]; then exclude=(--exclude semaprax-harness); fi
+          cargo build --locked --workspace "${exclude[@]}" --release
       - run: cargo run --locked -p semaprax -- check examples/meaning.spx
       - run: cargo run --locked -p semaprax -- check examples/ownership.spx
       - run: cargo run --locked -p semaprax -- check examples/lifecycle.spx
@@ -1922,7 +1940,7 @@ jobs:
             cargo fetch --locked --manifest-path platform-tests/public-scalar-wit-interface/Cargo.toml
           fi
       - name: Build the static Linux reference service for its packaging acceptance
-        if: runner.os == 'Linux' && matrix.shard == 'integration-0'
+        if: runner.os == 'Linux' && matrix.shard == 'integration-3'
         shell: bash
         env:
           CC_x86_64_unknown_linux_musl: musl-gcc
@@ -1954,7 +1972,7 @@ jobs:
         run: |
           $split = @()
           if ('${{ matrix.shard }}' -eq 'integration-3') { $split = @('--split-windows-agent-runtime') }
-          python3 scripts/ci-msrv.py --label "Rust Windows" --shard "${{ matrix.shard }}" --exclude-package semaprax-native-rust-interop --nocapture @split
+          python3 scripts/ci-msrv.py --label "Rust Windows" --shard "${{ matrix.shard }}" --exclude-package semaprax-native-rust-interop --exclude-package semaprax-harness --nocapture @split
 
   unix-source-repair:
     name: Rust source repair (${{ matrix.os }}, ${{ matrix.shard }}/2)
@@ -2065,7 +2083,7 @@ jobs:
         run: cargo fetch --locked
       - name: Test Windows agent runtime except the AGENT-06 typed corpus
         run: |
-          cargo test --locked --offline --workspace --all-features --exclude semaprax-native-rust-interop --test agent_runtime_v1 -- --skip execution_revision::typed::
+          cargo test --locked --offline --workspace --all-features --exclude semaprax-native-rust-interop --exclude semaprax-harness --test agent_runtime_v1 -- --skip execution_revision::typed::
 
   windows-source-repair:
     name: Rust Windows source repair

@@ -479,7 +479,7 @@ fn refresh_is_atomic_reusable_cold_equivalent_and_rolls_back_stale_or_failed_inp
             "workspace/query",
             json!({"query":old_query.to_json()}),
         )),
-        "SPX-G530"
+        "SPX-G533"
     );
     let status = result(&call(&mut session, json!(7), "workspace/status", json!({}))).clone();
     assert_eq!(status["workspace_revision"], current);

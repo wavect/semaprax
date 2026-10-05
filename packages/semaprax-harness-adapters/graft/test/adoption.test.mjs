@@ -1,9 +1,12 @@
 // HN-10: opt-in adoption of a user-owned graft index. Real graft, every provisioned install.
 import assert from 'node:assert/strict';
-import { cpSync, existsSync, readFileSync, readdirSync, renameSync, rmSync, statSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { chmodSync, cpSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { before, describe, test } from 'node:test';
-import { ADOPT, Adapter, GRAFT, GRAFT_NEW, buildUserIndex, makeProject, tmp, treeHash, versionOf } from './helpers.mjs';
+import { treeDigest } from '../lib/adopt.mjs';
+import { ensureFresh, loadConfig, probeIdentity } from '../lib/project.mjs';
+import { ADOPT, Adapter, GIT, GRAFT, GRAFT_NEW, buildUserIndex, makeProject, tmp, treeHash, versionOf } from './helpers.mjs';
 
 const INSTALLS = [['global', GRAFT], ['newer', GRAFT_NEW]].filter(([, b]) => b);
 const refresh = (r) => r.payload.metadata.refresh;
@@ -169,5 +172,201 @@ describe('index adoption across versions', { skip: GRAFT && GRAFT_NEW ? false : 
       await a.close();
     }
     Adapter.upstream = null;
+  });
+});
+
+// MC-01 / MC-02: the copied snapshot is an explicit, link-free inventory, staged once, validated as staged,
+// and only then published. In-process cases drive ensureFresh with a controlled schedule (`cfg.adoptHooks`).
+const modeOf = (p) => lstatSync(p).mode & 0o7777;
+const adoptedDirs = (cfg) => (existsSync(join(cfg.work, 'adopted')) ? readdirSync(join(cfg.work, 'adopted')) : []);
+async function inproc(bin, root, cache, adoptHooks = null) {
+  const env = {
+    SEMAPRAX_HARNESS_UPSTREAM: bin, SEMAPRAX_HARNESS_PROJECT_ROOT: root, SEMAPRAX_HARNESS_CACHE_DIR: cache,
+    ...(GIT ? { SEMAPRAX_HARNESS_GIT: GIT } : {}), ...ADOPT('copied-snapshot'),
+  };
+  const cfg = loadConfig(env);
+  cfg.adoptHooks = adoptHooks;
+  const identity = await probeIdentity(cfg);
+  const run = () => ensureFresh(cfg, identity, { deadline: Date.now() + 120000 });
+  return { cfg, identity, run };
+}
+const workOf = (cache) => join(ownedDir(cache), readdirSync(ownedDir(cache))[0]);
+
+for (const [label, bin] of INSTALLS) describe(`copied snapshot inventory and binding (real graft, ${label})`, () => {
+  before(() => { Adapter.upstream = bin; });
+
+  for (const kind of ['index file', 'project source file', 'outside-project file']) {
+    test(`a nested symlink to an ${kind} is refused; no original is chmod-ed or changed`, async () => {
+      const root = makeProject('mc1-link'); buildUserIndex(bin, root);
+      const outside = join(tmp('outside'), 'original.py'); writeFileSync(outside, 'x = 1\n');
+      const target = { 'index file': join(root, 'graft', '.graph', 'wiring.json'), 'project source file': join(root, 'util.py'), 'outside-project file': outside }[kind];
+      symlinkSync(target, join(root, 'graft', 'alias.txt'));
+      const bytes = readFileSync(target); const mode = modeOf(target);
+      const cache = tmp('c');
+      const a = new Adapter({ root, cache, env: ADOPT('copied-snapshot') });
+      const r = await a.call('orient', {});
+      assert.equal(refresh(r).outcome, 'incompatible');
+      assert.equal(refresh(r).served_by, 'rebuilt', 'falls back to an owned build');
+      assert.match(r.payload.metadata.index_adoption.reasons, /symlink/);
+      assert.ok(r.payload.metadata.index_adoption.reasons.length < 1500, 'bounded diagnostic');
+      assert.deepEqual(readFileSync(target), bytes); assert.equal(modeOf(target), mode, 'original mode untouched');
+      const adopted = join(workOf(cache), 'adopted');
+      assert.ok(!existsSync(adopted) || readdirSync(adopted).length === 0, 'no snapshot, sealed or partial');
+      assert.ok(lstatSync(join(root, 'graft', 'alias.txt')).isSymbolicLink());
+      await a.close();
+    });
+  }
+
+  test('a directory symlink and a dangling link give a bounded diagnostic and leave the target directory mode alone', async () => {
+    for (const make of [(root) => symlinkSync(join(root, 'src'), join(root, 'graft', 'dirlink')), (root) => symlinkSync(join(root, 'nowhere'), join(root, 'graft', 'dangling'))]) {
+      const root = makeProject('mc1-dir'); buildUserIndex(bin, root);
+      make(root);
+      const srcMode = modeOf(join(root, 'src')); const srcFile = modeOf(join(root, 'src', 'greet.ts'));
+      const { cfg, run } = await inproc(bin, root, tmp('c'));
+      const r = await run();
+      assert.equal(r.adoption.outcome, 'incompatible');
+      assert.match(r.adoption.reasons.join(';'), /symlink/);
+      assert.ok(r.adoption.reasons.length <= 8);
+      assert.equal(modeOf(join(root, 'src')), srcMode); assert.equal(modeOf(join(root, 'src', 'greet.ts')), srcFile);
+      assert.deepEqual(adoptedDirs(cfg), [], 'no partial sealed snapshot');
+    }
+  });
+
+  test('a special file (fifo) anywhere in the index is refused', async () => {
+    const root = makeProject('mc1-fifo'); buildUserIndex(bin, root);
+    mkdirSync(join(root, 'graft', 'deep', 'er'), { recursive: true });
+    execFileSync('mkfifo', [join(root, 'graft', 'deep', 'er', 'pipe')]);
+    const { cfg, run } = await inproc(bin, root, tmp('c'));
+    const r = await run();
+    assert.equal(r.adoption.outcome, 'incompatible');
+    assert.match(r.adoption.reasons.join(';'), /special file/);
+    assert.deepEqual(adoptedDirs(cfg), []);
+  });
+
+  test('a regular file turned into a link while staging cannot pass; nothing is published or chmod-ed', async () => {
+    const root = makeProject('mc1-race'); buildUserIndex(bin, root);
+    const outside = join(tmp('outside'), 'victim.txt'); writeFileSync(outside, 'secret\n'); chmodSync(outside, 0o644);
+    const hooks = { beforeFile(rel, src) { if (rel === '.graph/wiring.json') { rmSync(src); symlinkSync(outside, src); } } };
+    const { cfg, run } = await inproc(bin, root, tmp('c'), hooks);
+    const r = await run();
+    assert.equal(r.adoption.outcome, 'incompatible');
+    assert.deepEqual(adoptedDirs(cfg), []);
+    assert.equal(modeOf(outside), 0o644); assert.equal(readFileSync(outside, 'utf8'), 'secret\n');
+  });
+
+  test('final inventory validation rejects a staged file that became a link before sealing', async () => {
+    const root = makeProject('mc1-final'); buildUserIndex(bin, root);
+    const outside = join(tmp('outside'), 'victim.txt'); writeFileSync(outside, 'secret\n'); chmodSync(outside, 0o644);
+    const hooks = { afterCopy(stage) { const f = join(stage, '.graph', 'wiring.json'); rmSync(f); symlinkSync(outside, f); } };
+    const { cfg, run } = await inproc(bin, root, tmp('c'), hooks);
+    const r = await run();
+    assert.equal(r.adoption.outcome, 'incompatible');
+    assert.deepEqual(adoptedDirs(cfg), []);
+    assert.equal(modeOf(outside), 0o644);
+  });
+
+  test('a valid snapshot is independent regular files matching the admitted digest', async () => {
+    const root = makeProject('mc1-ok'); buildUserIndex(bin, root);
+    const treeBefore = treeHash(join(root, 'graft'));
+    const { run } = await inproc(bin, root, tmp('c'));
+    const r = await run();
+    assert.equal(r.outcome, 'copied-validated-index');
+    assert.equal(r.snapshotDigest, treeDigest(r.dir).digest);
+    assert.equal(r.snapshotDigest, treeDigest(join(root, 'graft')).digest);
+    assert.equal(treeHash(r.dir), treeBefore);
+    const walk = (d) => readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(join(d, e.name)) : [join(d, e.name)]));
+    for (const f of walk(r.dir)) {
+      const st = lstatSync(f); assert.ok(st.isFile() && !st.isSymbolicLink() && st.nlink === 1, f); assert.equal(st.mode & 0o222, 0);
+      assert.notEqual(st.ino, lstatSync(join(root, 'graft', f.slice(r.dir.length + 1))).ino, 'independent copy, not a hard link');
+    }
+    assert.equal(modeOf(join(root, 'graft', '.graph', 'wiring.json')) & 0o200, 0o200, 'user file stays writable');
+  });
+
+  const markB = (root, tag = 'B') => {
+    const f = join(root, 'graft', '.graph', 'wiring.json');
+    const w = JSON.parse(readFileSync(f, 'utf8')); w.meta.audit_marker = tag; writeFileSync(f, JSON.stringify(w));
+  };
+
+  test('an edit after validation but before copy is never reported as the validated digest (MC-02 schedule)', async () => {
+    const root = makeProject('mc2-pause'); buildUserIndex(bin, root);
+    let fired = 0;
+    const hooks = { afterDigest() { if (!fired++) markB(root); } };
+    const { run } = await inproc(bin, root, tmp('c'), hooks);
+    const r = await run();
+    assert.equal(r.outcome, 'copied-validated-index', JSON.stringify(r.adoption));
+    assert.equal(r.snapshotDigest, treeDigest(r.dir).digest, 'returned digest describes the returned directory');
+    assert.equal(r.snapshotDigest, treeDigest(join(root, 'graft')).digest, 'and the index that was admitted');
+    const w = JSON.parse(readFileSync(join(r.dir, '.graph', 'wiring.json'), 'utf8'));
+    assert.equal(w.meta.audit_marker, 'B');
+    const fileNodes = new Map(w.nodes.filter((n) => n.kind === 'file').map((n) => [n.path, n.body_hash]));
+    assert.deepEqual([...r.files].sort(), [...fileNodes].sort(), 'source-binding map comes from the admitted snapshot');
+    assert.equal(r.adoption.coverage.files, fileNodes.size);
+    assert.equal(r.index_digest, r.adoption.inputs_digest);
+    assert.ok(fired >= 2, 'the first attempt was retried');
+  });
+
+  test('drift between copied files (graph/manifest metadata) is retried within a fixed bound', async () => {
+    const root = makeProject('mc2-mid'); buildUserIndex(bin, root);
+    let fired = 0;
+    const hooks = { afterFile(rel) { if (rel.startsWith('.cache/') && !fired++) markB(root); } };
+    const { run } = await inproc(bin, root, tmp('c'), hooks);
+    const r = await run();
+    assert.equal(r.outcome, 'copied-validated-index');
+    assert.equal(treeHash(r.dir), treeHash(join(root, 'graft')), 'published bytes equal the final user index');
+    assert.equal(r.snapshotDigest, treeDigest(r.dir).digest);
+    assert.equal(JSON.parse(readFileSync(join(r.dir, '.graph', 'wiring.json'), 'utf8')).meta.audit_marker, 'B');
+  });
+
+  test('a source that never settles falls back to an owned build after a bounded number of attempts; last good snapshot and user index survive', async () => {
+    const root = makeProject('mc2-move'); buildUserIndex(bin, root);
+    const cache = tmp('c');
+    const good = await (await inproc(bin, root, cache)).run();
+    assert.equal(good.outcome, 'copied-validated-index');
+    const goodTree = treeHash(good.dir);
+    let n = 0;
+    const hooks = { afterDigest() { markB(root, `m${++n}`); } };
+    const { cfg, run } = await inproc(bin, root, cache, hooks);
+    const r = await run();
+    assert.equal(r.adoption.outcome, 'incompatible');
+    assert.match(r.adoption.reasons.join(';'), /changing/);
+    assert.ok(n >= 2 && n <= 5, `bounded attempts, saw ${n}`);
+    assert.ok(['rebuilt', 'incremental-refresh'].includes(r.outcome));
+    assert.equal(treeHash(good.dir), goodTree, 'last good snapshot intact');
+    assert.ok(!adoptedDirs(cfg).some((d) => d.includes('partial')), 'no staging leftovers');
+    assert.equal(JSON.parse(readFileSync(join(root, 'graft', '.graph', 'wiring.json'), 'utf8')).meta.audit_marker, `m${n}`, 'user index not repaired or reverted');
+  });
+
+  test('a staged copy that fails source binding is not served even when the index validated before the copy', async () => {
+    const root = makeProject('mc2-bind'); buildUserIndex(bin, root);
+    const hooks = { afterDigest() {
+      const f = join(root, 'graft', '.graph', 'wiring.json'); const w = JSON.parse(readFileSync(f, 'utf8'));
+      w.nodes.find((x) => x.kind === 'file').body_hash = 'f'.repeat(64); writeFileSync(f, JSON.stringify(w));
+    } };
+    const { cfg, run } = await inproc(bin, root, tmp('c'), hooks);
+    const r = await run();
+    assert.equal(r.adoption?.outcome, 'incompatible');
+    assert.deepEqual(adoptedDirs(cfg), []);
+  });
+
+  test('a reused destination with altered contents is verified, not trusted by name', async () => {
+    const root = makeProject('mc2-reuse'); buildUserIndex(bin, root);
+    const cache = tmp('c');
+    const one = await (await inproc(bin, root, cache)).run();
+    const again = await (await inproc(bin, root, cache)).run();
+    assert.equal(again.work.copied_bytes, 0, 'an intact snapshot is reused');
+    assert.equal(again.dir, one.dir);
+    for (const tamper of [
+      (d) => { const f = join(d, '.graph', 'wiring.json'); chmodSync(f, 0o644); writeFileSync(f, '{"meta":{"version":1},"nodes":[]}'); },
+      (d) => { writeFileSync(join(d, 'extra.txt'), 'planted'); },
+    ]) {
+      tamper(one.dir);
+      const r = await (await inproc(bin, root, cache)).run();
+      assert.equal(r.outcome, 'copied-validated-index');
+      assert.ok(r.work.copied_bytes > 0, 'altered destination was not reused');
+      assert.equal(treeHash(r.dir), treeHash(join(root, 'graft')));
+      assert.equal(r.dir, one.dir);
+      assert.ok(!existsSync(join(r.dir, 'extra.txt')));
+      assert.equal(readdirSync(join(workOf(cache), 'adopted')).length, 1);
+    }
   });
 });

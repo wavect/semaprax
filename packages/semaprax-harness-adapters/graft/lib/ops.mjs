@@ -261,61 +261,65 @@ export async function invoke(cfg, req, signal, session) {
   const refresh = payload.refresh ?? 'auto';
   if (!['auto', 'rebuild', 'never'].includes(refresh)) throw new Refusal('refused', 'graft.bad-payload', 'refresh must be auto, rebuild or never');
   let index = await ensureFresh(cfg, identity, { signal, deadline, force: refresh === 'rebuild', readOnly: refresh === 'never' });
-  if (index.action === 'drift') return ['stale', null, [{ code: 'graft.index-stale', message: 'index is behind the working tree and refresh=never' }]];
-  let result;
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const ctx = new Context(cfg, req, signal, { index, profile: identity.profile });
-    result = { ctx, ...(await OPS[req.operation](ctx, payload)) };
-    if (!ctx.stale.size) break;
-    if (attempt === 0 && refresh !== 'never') {
-      // Content changed under an index graft's own check considered fresh (e.g. mtime preserved), or an
-      // adopted index went stale mid-call: force an owned rebuild.
-      const again = await ensureFresh(cfg, identity, { signal, deadline, force: true });
-      again.ms += index.ms; again.action = 'refresh'; again.files_changed = Math.max(again.files_changed, ctx.stale.size);
-      again.adoption = index.adoption ? { outcome: 'incompatible', reasons: ['index changed under the query'], fallback: again.outcome } : again.adoption;
-      index = again;
+  // The index generation stays pinned from selection through the last read of this query.
+  try {
+    if (index.action === 'drift') return ['stale', null, [{ code: 'graft.index-stale', message: 'index is behind the working tree and refresh=never' }]];
+    let result;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const ctx = new Context(cfg, req, signal, { index, profile: identity.profile });
+      result = { ctx, ...(await OPS[req.operation](ctx, payload)) };
+      if (!ctx.stale.size) break;
+      if (attempt === 0 && refresh !== 'never') {
+        // Content changed under an index graft's own check considered fresh (e.g. mtime preserved), or an
+        // adopted index went stale mid-call: force an owned rebuild.
+        const again = await ensureFresh(cfg, identity, { signal, deadline, force: true });
+        again.ms += index.ms; again.action = 'refresh'; again.files_changed = Math.max(again.files_changed, ctx.stale.size);
+        again.adoption = index.adoption ? { outcome: 'incompatible', reasons: ['index changed under the query'], fallback: again.outcome } : again.adoption;
+        index.release?.();
+        index = again;
+      }
     }
-  }
-  const { ctx } = result;
-  if (ctx.stale.size) {
-    return ['stale', null, [{ code: 'graft.index-stale', message: `index disagrees with ${ctx.stale.size} file(s) on disk after refresh: ${[...ctx.stale].slice(0, 3).join(', ')}` }]];
-  }
-  const diags0 = [];
-  if (index.userDir && index.userIndexDigest && treeDigest(index.userDir).digest !== index.userIndexDigest) {
-    diags0.push({ code: 'graft.user-index-modified', message: 'the user index changed while it was being queried; its answers are not used as evidence' });
-    return ['failed', null, diags0];
-  }
-  const cov = coverageFor(cfg, index.files, identity.profile);
-  const diags = [...(result.diags ?? [])];
-  if (index.adoption?.outcome === 'incompatible') diags.push({ code: 'graft.index-incompatible', message: `user index not adopted (${index.adoption.reasons.slice(0, 3).join('; ')}); served from ${index.adoption.fallback}` });
-  if (!cfg.git) diags.push({ code: 'graft.gitignore-unavailable', message: 'git not available to graft; .gitignore is not honoured and ignored files may be indexed' });
-  if (cov.skipped.length) diags.push({ code: 'graft.coverage-incomplete', message: `${cov.skipped.length + cov.skipped_omitted} source file(s) are not covered by graft` });
-  const payloadOut = {
-    items: result.items,
-    coverage: {
-      complete: false, exhaustive: false, indexed_files: cov.indexed_files, skipped: cov.skipped,
-    },
-    metadata: {
-      ...result.extra,
-      refresh: {
-        action: index.action, outcome: index.adoption?.outcome === 'incompatible' ? 'incompatible' : index.outcome, served_by: index.outcome, ms: index.ms,
-        files_changed: index.files_changed, files_indexed: index.files.size, coalesced: Boolean(index.coalesced),
-        verification_ms: index.work.verification_ms ?? 0, index_ms: index.work.index_ms ?? 0, files_verified: index.work.files_verified ?? 0,
-        bytes_hashed: index.work.bytes_hashed ?? 0, copied_bytes: index.work.copied_bytes ?? 0,
+    const { ctx } = result;
+    if (ctx.stale.size) {
+      return ['stale', null, [{ code: 'graft.index-stale', message: `index disagrees with ${ctx.stale.size} file(s) on disk after refresh: ${[...ctx.stale].slice(0, 3).join(', ')}` }]];
+    }
+    const diags0 = [];
+    if (index.userDir && index.userIndexDigest && treeDigest(index.userDir).digest !== index.userIndexDigest) {
+      diags0.push({ code: 'graft.user-index-modified', message: 'the user index changed while it was being queried; its answers are not used as evidence' });
+      return ['failed', null, diags0];
+    }
+    const cov = coverageFor(cfg, index.files, identity.profile);
+    const diags = [...(result.diags ?? [])];
+    if (index.adoption?.outcome === 'incompatible') diags.push({ code: 'graft.index-incompatible', message: `user index not adopted (${index.adoption.reasons.slice(0, 3).join('; ')}); served from ${index.adoption.fallback}` });
+    if (!cfg.git) diags.push({ code: 'graft.gitignore-unavailable', message: 'git not available to graft; .gitignore is not honoured and ignored files may be indexed' });
+    if (cov.skipped.length) diags.push({ code: 'graft.coverage-incomplete', message: `${cov.skipped.length + cov.skipped_omitted} source file(s) are not covered by graft` });
+    const payloadOut = {
+      items: result.items,
+      coverage: {
+        complete: false, exhaustive: false, indexed_files: cov.indexed_files, skipped: cov.skipped,
       },
-      ...(index.adoption ? { index_adoption: flatAdoption(index.adoption) } : {}),
-      index_digest: index.index_digest,
-      upstream_version: session.identity.version,
-      skipped_omitted: cov.skipped_omitted,
-    },
-  };
-  let truncated = result.truncated || cov.walk_truncated;
-  if (fit(payloadOut, ctx.budget - 1024)) truncated = true;
-  payloadOut.coverage.complete = !truncated && !cov.skipped.length && !cov.skipped_omitted;
-  payloadOut.coverage.exhaustive = Boolean(result.exhaustive) && !truncated;
-  // Absence may be asserted only for an exhaustive, complete, fresh answer.
-  payloadOut.metadata.absence_proven = payloadOut.coverage.exhaustive && payloadOut.coverage.complete;
-  if (truncated) diags.push({ code: 'graft.truncated', message: 'result truncated; coverage.complete=false and absence is not proven' });
-  const status = truncated || (!cfg.git) ? 'partial' : 'complete';
-  return [status, payloadOut, diags];
+      metadata: {
+        ...result.extra,
+        refresh: {
+          action: index.action, outcome: index.adoption?.outcome === 'incompatible' ? 'incompatible' : index.outcome, served_by: index.outcome, ms: index.ms,
+          files_changed: index.files_changed, files_indexed: index.files.size, coalesced: Boolean(index.coalesced),
+          verification_ms: index.work.verification_ms ?? 0, index_ms: index.work.index_ms ?? 0, files_verified: index.work.files_verified ?? 0,
+          bytes_hashed: index.work.bytes_hashed ?? 0, copied_bytes: index.work.copied_bytes ?? 0,
+        },
+        ...(index.adoption ? { index_adoption: flatAdoption(index.adoption) } : {}),
+        index_digest: index.index_digest,
+        upstream_version: session.identity.version,
+        skipped_omitted: cov.skipped_omitted,
+      },
+    };
+    let truncated = result.truncated || cov.walk_truncated;
+    if (fit(payloadOut, ctx.budget - 1024)) truncated = true;
+    payloadOut.coverage.complete = !truncated && !cov.skipped.length && !cov.skipped_omitted;
+    payloadOut.coverage.exhaustive = Boolean(result.exhaustive) && !truncated;
+    // Absence may be asserted only for an exhaustive, complete, fresh answer.
+    payloadOut.metadata.absence_proven = payloadOut.coverage.exhaustive && payloadOut.coverage.complete;
+    if (truncated) diags.push({ code: 'graft.truncated', message: 'result truncated; coverage.complete=false and absence is not proven' });
+    const status = truncated || (!cfg.git) ? 'partial' : 'complete';
+    return [status, payloadOut, diags];
+  } finally { index.release?.(); }
 }

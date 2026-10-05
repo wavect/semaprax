@@ -131,7 +131,7 @@ export function makeShim({ name = '@nanonets/graft', version = '0.18.0', mode = 
   writeFileSync(join(dir, 'mode.json'), JSON.stringify(mode));
   const cli = join(dir, 'dist', 'cli.js');
   writeFileSync(cli, `#!/usr/bin/env node
-import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 const pkg = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -148,8 +148,20 @@ else if (argv[0] === 'build') {
   writeFileSync(join(idx, '.graph', 'wiring.json'), JSON.stringify({ meta: { version: 1 }, nodes: [] }));
 } else if (argv[0] === 'check') { console.log(JSON.stringify({ graph: mode.failBuild ? { ok: false, missing: false, changed: ['util.py'] } : { ok: true, missing: false } })); }
 else if (mode.hang) { setInterval(() => {}, 1000); }
-else if (argv[0] === 'map') { console.log(JSON.stringify({ totals: { files: 0, symbols: 0, edges: 0, languages: [] }, dirs: [], hotspots: [], dropped: 0 })); }
-else { process.exit(2); }
+else if (argv[0] === 'map') {
+  // mapGate: the first map call holds the generation it was pointed at until <pkg>/gate.open exists, then reads
+  // that generation's index (a pruned generation fails here exactly as a real query would).
+  if (mode.mapGate) {
+    let first = false;
+    try { writeFileSync(join(pkg, 'gate.claimed'), String(process.pid), { flag: 'wx' }); first = true; } catch { /* a later query */ }
+    if (first) {
+      appendFileSync(join(pkg, 'gate.held'), idx + '\\n');
+      for (let i = 0; i < 1200 && !existsSync(join(pkg, 'gate.open')); i++) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 25);
+      JSON.parse(readFileSync(join(idx, '.graph', 'wiring.json'), 'utf8'));
+    }
+  }
+  console.log(JSON.stringify({ totals: { files: 0, symbols: 0, edges: 0, languages: [] }, dirs: [], hotspots: [], dropped: 0 }));
+} else { process.exit(2); }
 `);
   chmodSync(cli, 0o755);
   return { dir, bin: cli, calls: () => (existsSync(join(dir, 'calls.jsonl')) ? readFileSync(join(dir, 'calls.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l)) : []) };

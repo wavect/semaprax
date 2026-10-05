@@ -1006,5 +1006,141 @@ class ResultBudget(unittest.TestCase):
         self.assertLess(len(less[1]["items"]), 50)
 
 
+class MediaInvalidation(unittest.TestCase):
+    """MN-06: unconsumed media stay in coverage but never enter the code graph's invalidation identity."""
+
+    MEDIA = 2 * 1024 * 1024
+    REAL = os.path.exists(UPSTREAM)
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="mn06-")
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+        self.root, self.cache = os.path.realpath(os.path.join(self.tmp, "proj")), os.path.join(self.tmp, "cache")
+        os.makedirs(self.root)
+        os.makedirs(self.cache)
+        make_project(self.root)
+        self.media = os.path.join(self.root, "assets", "big.png")
+        os.makedirs(os.path.dirname(self.media))
+        self.put(self.media, b"\x01" * self.MEDIA)
+        self.ix = gadapter.Index(self.root, self.cache)
+        self.hashed, self.builds = 0, 0
+        self.orig_sha = gadapter.file_sha
+        self.addCleanup(setattr, gadapter, "file_sha", self.orig_sha)
+        gadapter.file_sha = self.counting_sha
+        if self.REAL:
+            self.ix.upstream, self.ix.identity = UPSTREAM, gadapter.verify_identity(UPSTREAM)
+            self.real_build = self.ix.build
+        else:
+            self.ix.identity = "0.9.25"
+        self.ix.bind(os.path.join(self.cache, "graphify-index", self.ix.identity))
+        self.ix.build = self.counting_build
+
+    @staticmethod
+    def put(path, data):
+        with open(path, "wb") as fh:
+            fh.write(data)
+
+    def counting_sha(self, path):
+        if path.startswith(self.root):
+            self.hashed += os.path.getsize(path)
+        return self.orig_sha(path)
+
+    def counting_build(self, digest, files):
+        self.builds += 1
+        if self.REAL:
+            return self.real_build(digest, files)
+        indexed = [f for f in files if f.endswith((".py", ".ts"))]
+        self.ix.state = {"digest": digest, "graph": None, "indexed": indexed, "errors": [],
+                         "skipped": [{"path": f, "reason": gadapter.skip_reason(f)} for f in files if f not in indexed]}
+        return self.ix.state
+
+    def ensure(self, refresh="auto"):
+        st, stale = self.ix.ensure(refresh)
+        self.assertFalse(stale)
+        return st
+
+    def skipped(self, st):
+        return {s["path"] for s in st["skipped"]}
+
+    def test_warm_lookups_never_read_media_and_media_edits_do_not_rebuild(self):
+        self.ensure()
+        self.assertEqual(self.builds, 1)
+        self.hashed = 0
+        for _ in range(2):
+            self.assertEqual(self.ensure()["action"], "reuse")
+        self.assertEqual((self.builds, self.hashed > self.MEDIA), (1, False))
+        code_bytes = sum(len(t) for t in FILES.values())
+        self.assertLessEqual(self.hashed, 2 * code_bytes)
+        self.put(self.media, b"\x02" * self.MEDIA)  # same-size media-only edit
+        self.put(self.media, b"\x03" * (self.MEDIA + 7))  # and a resize
+        st = self.ensure()
+        self.assertEqual((st["action"], self.builds), ("reuse", 1))
+        self.assertIn("assets/big.png", self.skipped(st))
+        print(f"MN06 warm: builds={self.builds} bytes_hashed_for_2_warm_calls+edits={self.hashed} (media {self.MEDIA})")
+
+    def test_source_edits_still_invalidate_including_same_size(self):
+        self.ensure()
+        util = os.path.join(self.root, "py", "util.py")
+        with open(util) as fh:
+            text = fh.read()
+        with open(util, "w") as fh:
+            fh.write(text.replace("x + 1", "x + 2"))  # same size
+        self.assertEqual(self.ensure()["action"], "refresh")
+        self.assertEqual(self.builds, 2)
+        with open(util, "a") as fh:
+            fh.write("# more\n")
+        self.ensure()
+        self.assertEqual(self.builds, 3)
+
+    def test_other_inputs_still_count_as_source(self):
+        self.ensure()
+        manifest = os.path.join(self.root, "Cargo.toml")
+        with open(manifest, "a") as fh:
+            fh.write("# edit\n")
+        self.ensure()
+        self.assertEqual(self.builds, 2)  # manifests and docs are not exempted
+
+    def test_media_additions_and_deletions_update_coverage_without_rebuild(self):
+        st = self.ensure()
+        self.put(os.path.join(self.root, "assets", "new.MP4"), b"v")
+        st = self.ensure()
+        self.assertEqual(self.builds, 1)
+        self.assertIn("assets/new.MP4", self.skipped(st))
+        os.remove(self.media)
+        st = self.ensure()
+        self.assertEqual(self.builds, 1)
+        self.assertNotIn("assets/big.png", self.skipped(st))
+        self.assertTrue(self.skipped(st), "coverage is still incomplete: skipped sources remain listed")
+
+    def test_added_or_deleted_source_rebuilds_and_digest_ignores_media_only(self):
+        self.ensure()
+        self.put(os.path.join(self.root, "py", "extra.py"), b"def f():\n    pass\n")
+        self.ensure()
+        self.assertEqual(self.builds, 2)
+        os.remove(os.path.join(self.root, "py", "extra.py"))
+        self.ensure()
+        self.assertEqual(self.builds, 3)
+        files = gadapter.walk_files(self.root)
+        base = gadapter.source_digest(self.root, files)
+        self.put(self.media, b"changed")
+        self.assertEqual(gadapter.source_digest(self.root, gadapter.walk_files(self.root)), base)
+
+    def test_rebuild_forces_and_never_does_not_build(self):
+        self.ensure()
+        self.ensure("rebuild")
+        self.assertEqual(self.builds, 2)
+        with open(os.path.join(self.root, "py", "util.py"), "a") as fh:
+            fh.write("# edit\n")
+        st, stale = self.ix.ensure("never")
+        self.assertEqual((self.builds, stale), (2, True))
+        self.assertIn("assets/big.png", self.skipped(st))
+        fresh = gadapter.Index(self.root, os.path.join(self.tmp, "cache2"))
+        fresh.identity = self.ix.identity
+        fresh.bind(os.path.join(self.tmp, "cache2", "graphify-index", fresh.identity))
+        with self.assertRaises(gadapter.AdapterError):
+            fresh.ensure("never")
+        self.assertEqual(self.builds, 2)
+
+
 if __name__ == "__main__":
     unittest.main()

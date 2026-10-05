@@ -84,7 +84,11 @@ tree; `never` answers `stale`). Digests are `sha256:<hex>` of one line without t
   result always carries a diagnostic that absence is not proof of no callers.
   Mixed `.spx` projects are therefore never exhaustive.
 * Staleness: a SHA-256 over the sorted (path, content-hash) set of all non-hidden
-  files is recorded at build. A changed set returns `stale` (`SPX-HPG002`) or, with
+  files except unconsumed media (`png jpg jpeg gif svg webp mp3 mp4 wav mov webm`, which
+  code-only extraction never opens) is recorded at build. Media are never read or hashed
+  to validate the index; their additions, deletions and edits do not re-extract, and the
+  skipped-coverage list is recomputed from the current tree on every lookup. Documents,
+  manifests and other files stay in the identity. A changed set returns `stale` (`SPX-HPG002`) or, with
   `refresh: "rebuild"`, rebuilds. A new adapter process reuses the on-disk index
   only if root, upstream version and digest all match; otherwise it rebuilds.
 * Results are truncated to 80% of `budget.max_result_bytes` and marked incomplete.

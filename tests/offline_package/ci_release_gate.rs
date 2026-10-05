@@ -744,12 +744,21 @@ fn build_validation_runs_independently_without_losing_platform_coverage() {
         assert!(lane.contains("toolchain: 1.97.1"));
         assert!(lane.contains("CARGO_PROFILE_TEST_DEBUG: \"0\""));
     }
+    assert_eq!(
+        build
+            .matches(
+                "if [[ \"$RUNNER_OS\" == Windows ]]; then exclude=(--exclude semaprax-harness); fi"
+            )
+            .count(),
+        4,
+        "Windows-only harness exclusion must cover all four workspace build checks"
+    );
     for command in [
         "cargo fmt --all --check",
-        "cargo clippy --locked --workspace --all-targets --all-features -- -D warnings",
-        "cargo test --locked --workspace --all-features --doc",
-        "cargo doc --locked --workspace --all-features --no-deps",
-        "cargo build --locked --workspace --release",
+        "cargo clippy --locked --workspace \"${exclude[@]}\" --all-targets --all-features -- -D warnings",
+        "cargo test --locked --workspace \"${exclude[@]}\" --all-features --doc",
+        "cargo doc --locked --workspace \"${exclude[@]}\" --all-features --no-deps",
+        "cargo build --locked --workspace \"${exclude[@]}\" --release",
         "cargo package --locked -p semaprax",
         "node scripts/verify-web.mjs target/control-flow-web",
     ] {

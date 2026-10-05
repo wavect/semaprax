@@ -323,7 +323,7 @@ fn windows_typed_agent_corpus_moves_without_losing_coverage() {
         .split_once("\n  desktop-native-product:\n")
         .unwrap()
         .0;
-    assert!(dedicated.contains("cargo test --locked --offline --workspace --all-features --exclude semaprax-native-rust-interop --test agent_runtime_v1 -- --skip execution_revision::typed::"));
+    assert!(dedicated.contains("cargo test --locked --offline --workspace --all-features --exclude semaprax-native-rust-interop --exclude semaprax-harness --test agent_runtime_v1 -- --skip execution_revision::typed::"));
     assert!(!dedicated.contains("continue-on-error"));
 }
 

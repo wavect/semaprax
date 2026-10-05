@@ -20,6 +20,9 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Keep CI workflow contract checks aligned with the Windows harness exclusion,
+  and give the local TLS provider enough time to accept and handshake on busy
+  runners while retaining its bounded shutdown and duplicate-delivery checks.
 - Repair the 0.8.0 CI matrix: keep the Unix-only harness out of Windows Cargo
   targets, restore its strict Clippy checks, align release and workspace known
   answers with current artifacts, correct the indexed owner physical link and

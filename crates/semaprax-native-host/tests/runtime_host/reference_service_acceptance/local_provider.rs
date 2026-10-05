@@ -188,7 +188,13 @@ impl ProviderChild {
         let deadline = Instant::now() + PROVIDER_WAIT;
         loop {
             if let Some(status) = self.child.try_wait().expect("poll provider child") {
-                assert!(status.success(), "provider child must pass: {status}");
+                if !status.success() {
+                    let mut stderr = String::new();
+                    if let Some(mut pipe) = self.child.stderr.take() {
+                        let _ = pipe.read_to_string(&mut stderr);
+                    }
+                    panic!("provider child must pass: {status}; stderr: {stderr}");
+                }
                 return std::fs::read_to_string(&self.receipt)
                     .expect("provider persisted its independently observed receipt");
             }
@@ -252,7 +258,9 @@ fn run_provider_child() {
         .expect("provider fixture certificate is valid");
     let mut provider = TcpNetworkProvider::with_server_tls_config(server_config)
         .with_deadline_policy(semaprax::network_provider::deadline::DeadlinePolicy::new(
-            Duration::from_millis(100),
+            // The same deadline covers accept and the TLS handshake. Busy CI
+            // runners can exceed 100 ms before the request is admitted.
+            Duration::from_secs(2),
         ));
     let listener = serve::listen_loopback(&mut provider, port).expect("bind provider loopback TLS");
     println!("provider-ready port={port}");

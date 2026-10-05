@@ -281,4 +281,67 @@ mod tests {
         drop(j);
         let _ = std::fs::remove_dir_all(&dir);
     }
+
+    /// Child half of the two-process tests (selected by env). Parent half is
+    /// `two_real_processes_claim_one_step_and_exit_releases_ownership`.
+    fn child(mode: &str) {
+        let dir = PathBuf::from(std::env::var("JMA_DIR").unwrap());
+        let id = std::env::var("JMA_ID").unwrap();
+        std::fs::write(dir.join(format!("ready-{id}")), "").unwrap();
+        while !dir.join("go").exists() {
+            std::thread::sleep(Duration::from_millis(2));
+        }
+        let mut j = Journal::open_wait(&dir.join("j"), "l", Duration::from_secs(30)).unwrap();
+        if !j.may_run("s") {
+            println!("JMA:LOST");
+            return;
+        }
+        j.append("s", "begin", json!({"by": id})).unwrap();
+        println!("JMA:CLAIMED");
+        if mode == "exit" {
+            // Exit while holding the lock: no drop, no cleanup.
+            std::process::exit(0);
+        }
+    }
+
+    #[test]
+    fn two_real_processes_claim_one_step_and_exit_releases_ownership() {
+        if let Ok(mode) = std::env::var("JMA_CHILD") {
+            return child(&mode);
+        }
+        let dir = std::env::temp_dir().join(format!("hp-ma03-proc-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let name = "workflow::journal::tests::two_real_processes_claim_one_step_and_exit_releases_ownership";
+        let spawn = |mode: &str, id: &str| {
+            std::process::Command::new(std::env::current_exe().unwrap())
+                .args(["--exact", name, "--nocapture", "--test-threads=1"])
+                .env("JMA_CHILD", mode)
+                .env("JMA_DIR", &dir)
+                .env("JMA_ID", id)
+                .stdout(std::process::Stdio::piped())
+                .spawn()
+                .unwrap()
+        };
+        // Two racing claimants; the one that wins exits holding the lock.
+        let kids = [spawn("exit", "a"), spawn("exit", "b")];
+        while !(dir.join("ready-a").exists() && dir.join("ready-b").exists()) {
+            std::thread::sleep(Duration::from_millis(2));
+        }
+        std::fs::write(dir.join("go"), "").unwrap();
+        let outs: Vec<String> = kids
+            .into_iter()
+            .map(|k| String::from_utf8(k.wait_with_output().unwrap().stdout).unwrap())
+            .collect();
+        let claimed = outs.iter().filter(|o| o.contains("JMA:CLAIMED")).count();
+        let lost = outs.iter().filter(|o| o.contains("JMA:LOST")).count();
+        assert_eq!((claimed, lost), (1, 1), "{outs:?}");
+        // The claimant died without dropping: ownership is released, the
+        // durable begin remains, and the step is not replayable.
+        let j = Journal::open(&dir.join("j"), "l").unwrap();
+        assert_eq!(j.records().len(), 1);
+        assert!(j.unfinished("s") && !j.may_run("s"));
+        drop(j);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }

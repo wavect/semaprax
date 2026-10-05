@@ -29,6 +29,10 @@ struct World {
 
 impl World {
     fn new() -> World {
+        World::with_mode("")
+    }
+
+    fn with_mode(mode: &str) -> World {
         let root = fixture_dir("hp-jma").canonicalize().unwrap();
         let ex = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../packages/semaprax-harness-adapters/examples/hostile-python");
@@ -41,6 +45,10 @@ impl World {
                     "    if kind == \"model.generate\":\n        open(\"{}\", \"a\").write(\"x\")\n        return {{\"model\": p.get(\"model\"), \"output_base64\": \"aGk=\", \"usage\": {{\"input_bytes\": 4, \"output_bytes\": 2}}}}\n    if kind == \"decision.evaluate\":",
                     count.display()
                 ),
+            )
+            .replace(
+                "os.environ.get(\"HOSTILE_MODE\", \"\")",
+                &format!("\"{mode}\""),
             )
             .replace(
                 "\"decision.evaluate\": [\"evaluate\"]}",
@@ -347,4 +355,42 @@ fn ma09_healthy_settlement_has_no_journal_error_fields() {
         "{r}"
     );
     assert!(w.journal_text().contains("\"state\":\"done\""));
+}
+
+#[test]
+fn ma09_failed_refused_uncertain_and_cancelled_terminals_surface_and_stay_blocked() {
+    // (mode, pre-cancelled token): an adapter dying after dispatch settles as
+    // refused or uncertain depending on the host; a pre-cancelled call as
+    // cancelled or uncertain. Every one of those terminals is faulted.
+    for (mode, precancel) in [("crash_on_invoke", false), ("", true)] {
+        let w = World::with_mode(mode);
+        let tok = CancelToken::new();
+        if precancel {
+            tok.cancel();
+        }
+        let inv = w.invoker();
+        let hook: FaultHook = Arc::new(|st| {
+            matches!(st, "refused" | "uncertain" | "cancelled").then_some(Fault::Write)
+        });
+        inv.set_journal_fault(Some(hook));
+        let r = inv.run(&gen_params(Some("t")), &tok).unwrap();
+        assert_eq!(r["durable"], false, "{mode}/{precancel}: {r}");
+        assert_eq!(r["journal_error"]["code"], "SPX-HPD070", "{r}");
+        let dispatched = w.dispatches();
+        inv.set_journal_fault(None);
+        for i in [&inv, &w.invoker()] {
+            let e = i
+                .run(&gen_params(Some("t")), &CancelToken::new())
+                .unwrap_err();
+            assert_eq!(
+                code(&e),
+                "SPX-HPN015",
+                "{mode}: step must stay non-replayable"
+            );
+        }
+        assert_eq!(w.dispatches(), dispatched);
+        let text = w.journal_text();
+        assert!(text.contains("\"state\":\"begin\""), "{text}");
+        assert_eq!(text.lines().count(), 1, "{text}");
+    }
 }

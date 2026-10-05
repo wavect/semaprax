@@ -6,6 +6,18 @@ Status: HP-04 (#420) implementation contract for `crates/semaprax-harness/src/wo
 Local executable evidence only; see `crates/semaprax-harness/tests/`. Diagnostics are
 `SPX-HPD001..`. This document extends `docs/HARNESS-PROVIDER-V1.md`.
 
+## Current status (2026-10-05)
+
+Routing in `harness run` is policy-first with explicit modes (`rules` by default, `pin`, `experimental`,
+qualified `auto`; HN-16 below), optional phase role policies (MR-08) and session decision reuse (MR-12). The single
+current support matrix (decision provider vs generation model, development vs runtime, hosted vs local,
+conformance-tested vs live-tested vs qualified), the setup/check/probe commands and the side-by-side examples are in
+[Harness decision v1, *Current status*](HARNESS-DECISION-V1.md#current-status-2026-10-05). In short: no learned
+decision adapter is live-tested on this host, the MR-13 gate is not evaluated (no-go), and rules decide unless a
+provider is explicitly selected. Every route in a report carries `route.explain` (MR-14). Sections below are dated
+history in implementation order; where an older section states a limitation that a later one lifts, the later
+section and this status win.
+
 ## Command
 
 ```text
@@ -33,8 +45,9 @@ journal. Every step re-verifies the snapshot; a changed tree is `SPX-HPD005`.
    and native context is missing/incomplete (`never` forbids it).
 4. Final budget (`[budget] context_max_bytes`): native items are protected (overflow is `SPX-HPD020`);
    external items fill the remainder, the rest are dropped and counted.
-5. Route with `decision::decide` (rules, zero router calls) and generate: `--proposal` file, else a selected
-   `model.generate` provider (side-effecting class, never retried), else `SPX-HPD090`.
+5. Route through the one governed routing engine (rules by default with zero router calls; see *Current status*)
+   and generate: `--proposal` file, else a selected `model.generate` provider (side-effecting class, never retried),
+   else `SPX-HPD090`.
 6. Validate: `semaprax project-candidate-preview` on a change the host builds (schema, base revision and the
    full nine requirements are host-owned). Protected facts are then checked on the compiler's output.
 7. Checks: the compiler-produced candidate sources are overlaid on a private scratch copy; `check` and `test`
@@ -86,11 +99,12 @@ composition, 020 context budget, 021 context unavailable, 030-033 proposal, 040 
 060 policy location, 061 publication refused, 062 publication uncertain, 070 journal/cache io, 071-072 resume
 uncertain, 080 usage, 081 task, 082 apply policy, 090 no proposal, 091 runtime path missing.
 
-## Known limits
+## Known limits (HP-04 history, updated 2026-10-05)
 
-Decision providers (`decision.evaluate`) are reported but rules decide; the model bridge is a `model.generate`
-adapter call, not the root `ProviderAdapter`; candidate checks use a scratch overlay because the compiler has no
-CLI that tests a candidate in place.
+When HP-04 shipped, decision providers were reported but rules always decided; that limit was lifted by HN-16 modes
+and MR-08 phase routing (see *Current status*). Still true: the model bridge is a `model.generate` adapter call, not
+the root `ProviderAdapter`, and candidate checks use a scratch overlay because the compiler has no CLI that tests a
+candidate in place.
 
 ## Integration (hpwire)
 
@@ -470,5 +484,7 @@ Adapter side (`systemone`): Jev entitlement discovery (`GET /v1/models`) is cach
 prefix of the credential, model, profile digest) for 300 s, bounded, and dropped on any 401/403 or entitlement
 refusal; an inference 401/403 is returned as-is, never retried or followed by a hidden rediscovery. The SystemOne
 descriptors declare an `endpoint` config field (forwarded as `SEMAPRAX_HARNESS_CFG_ENDPOINT`, read before
-`SEMAPRAX_HARNESS_ENDPOINT`). Known gap: their `upstream` blocks name a server/service, not an executable, so `trust`
-refuses them with `SPX-HPB033`; the cross-language test adopts the bundled code from a copy without that block.
+`SEMAPRAX_HARNESS_ENDPOINT`). Their `upstream` blocks name a network service or worker, not an executable; since
+MR-14 (2026-10-05) such a service upstream needs no adopted executable, so these adapters adopt and trust directly
+from the checkout (the earlier `SPX-HPB033` refusal and its copy-without-upstream workaround are gone; see
+[Harness decision v1, MR-14](HARNESS-DECISION-V1.md#routing-setup-check-and-explain-mr-14)).

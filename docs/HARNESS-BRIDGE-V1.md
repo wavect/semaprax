@@ -15,6 +15,13 @@ unsupported host version.
 The root MCP facade `src/semantic_service_mcp.rs` is untouched: it stays authority-free. The bridge
 is a separate, host-side surface; it adds no process, filesystem or network authority to semantic methods.
 
+## Current status (2026-10-05)
+
+A bridge host owns its own (parent) model. Claude Code does not delegate model choice, so Semaprax never claims to
+have routed it: every handshake response states the owner in `parent_model` (*Parent model ownership (MR-14)*
+below), and phase routing applies only to Semaprax-owned worker requests. The single current routing support matrix
+is in [Harness decision v1, *Current status*](HARNESS-DECISION-V1.md#current-status-2026-10-05).
+
 ## Protocol `semaprax.harness-bridge.v1`
 
 LF-delimited JSON-RPC 2.0 on stdio, frames parsed with the strict `crate::json` parser (1 MiB limit, enforced while reading: see *Transport bounds and session end*).

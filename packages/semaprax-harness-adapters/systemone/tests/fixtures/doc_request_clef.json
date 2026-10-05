@@ -1,0 +1,31 @@
+{
+  "_provenance": "documentation-derived: request body from the curl example at https://developers.cloudflare.com/workers-ai/models/clef/ (fetched 2026-10-05); not a live capture",
+  "_route": "/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/ai/run/@cf/cloudflare/clef",
+  "model": "clef",
+  "state": "Checkout has been failing for every customer for the last hour.",
+  "questions": {
+    "urgent": {
+      "type": "noul",
+      "instructions": "Is this support request urgent?"
+    },
+    "team": {
+      "type": "choice",
+      "instructions": "Which team should handle this request?",
+      "criteria": {
+        "billing": "Payments, invoices, and refunds",
+        "technical": "Outages, errors, and configuration",
+        "sales": "Plans and upgrades"
+      }
+    },
+    "severity": {
+      "type": "score",
+      "instructions": "How severe is the customer impact?",
+      "criteria": [
+        "No impact",
+        "Minor",
+        "Major",
+        "Critical"
+      ]
+    }
+  }
+}

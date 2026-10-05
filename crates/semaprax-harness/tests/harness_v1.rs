@@ -34,6 +34,8 @@ mod decision_v2;
 mod decision_v2_scores;
 #[path = "harness_v1/endpoint.rs"]
 mod endpoint;
+#[path = "harness_v1/graphify_budget.rs"]
+mod graphify_budget;
 #[path = "harness_v1/host.rs"]
 mod host;
 #[path = "harness_v1/j_ma.rs"]

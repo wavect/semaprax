@@ -1,3 +1,7 @@
+use std::fmt::Write as _;
+
+use super::execution::checked_add;
+use super::replay::canonical_sha256;
 use super::*;
 
 pub(super) const ACCOUNTING_RECEIPT_SCHEMA: &str = "semaprax.agent-runtime-accounting-receipt.v1";

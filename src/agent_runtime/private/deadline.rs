@@ -1,3 +1,4 @@
+use super::execution::termination_from_diagnostic;
 use super::*;
 
 pub(super) fn boundary_termination<H: AgentHost>(

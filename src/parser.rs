@@ -211,10 +211,10 @@ impl Parser {
             self.bump();
             ModuleUseKind::Protocol
         } else {
-            return Err(self.error_here(
+            return Err(Self::use_path_help(self.error_here(
                 "SPX-G170",
                 "workspace module use expects `function`, `type`, or `protocol`",
-            ));
+            )));
         };
         if !self.take(&TokenKind::At) {
             return Err(self.error_here(
@@ -1215,7 +1215,7 @@ impl Parser {
         }
         let tail = self.expression(0)?;
         if self.take(&TokenKind::Semicolon) {
-            return Err(self.expression_statement());
+            return Err(self.expression_statement(&tail));
         }
         let end = self.expect(&TokenKind::RBrace, "`}` after block")?.span;
         Ok(Expr {
@@ -1571,7 +1571,8 @@ impl Parser {
                 "fixed byte-array literal elements must be exact `u8` literals",
                 first.span,
             )
-            .at_path(&self.path));
+            .at_path(&self.path)
+            .with_help(hints::ARRAY_LITERAL_HELP));
         };
         if self.take(&TokenKind::Semicolon) {
             let count = self.fixed_array_count()?;

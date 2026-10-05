@@ -368,7 +368,7 @@ fn foreign_type_names_point_at_the_admitted_types() {
         ("int", "`i64` (the literal default)"),
         ("double", "`f64` and `f32`"),
         ("boolean", "spelled `bool`"),
-        ("Array", "no general collection type"),
+        ("Array", "a list is `Vec<T>`"),
     ];
     for (name, expected_help) in cases {
         let diagnostic = only(
@@ -427,7 +427,7 @@ fn borrowed_view_of_a_literal_names_the_binding_step() {
         "borrowed view `str_as_bytes` requires an exact admitted storage place"
     );
     assert!(
-        help(&diagnostic).contains("str_as_bytes(string_as_str(text))"),
+        help(&diagnostic).contains("let view = string_as_str(text); str_as_bytes(view)"),
         "{diagnostic}"
     );
 }
@@ -441,5 +441,72 @@ fn borrowed_view_of_an_array_literal_names_the_binding_step() {
     assert!(
         help(&diagnostic).contains("array_as_slice(bytes)"),
         "{diagnostic}"
+    );
+}
+
+#[test]
+fn rust_and_python_habits_in_bodies_name_the_admitted_form() {
+    let main = |body: &str| {
+        format!("module habit.v;\n@id(\"app.main\")\nfn main() -> i64\n{{\n{body}\n}}\n")
+    };
+    let cases = [
+        (main("    let s = \"a\" + \"b\";\n    0"), "SPX-T250", "string_concat(a, b)"),
+        (main("    let x = 1;\n    let x = x + 1;\n    x"), "SPX-T209", "no shadowing"),
+        (main("    let a: i32 = 5;\n    0"), "SPX-T232", "`5i32`"),
+        (main("    let s: String = \"abc\";\n    0"), "SPX-T232", "owned text is `string`"),
+        (
+            "module habit.v;\n@id(\"app.main\")\nfn main() -> bool\n{\n    true\n}\n".to_owned(),
+            "SPX-T104",
+            "`main` returns `i64`",
+        ),
+        (
+            "module habit.v;\n@id(\"habit.f\")\nfn f() -> Result<i64, i64>\n{\n    Result<i64, i64>::Ok { value: 1 }\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    let x = f()?;\n    x\n}\n".to_owned(),
+            "SPX-T218",
+            "Result::Ok { value: v } => v",
+        ),
+        (
+            main("    let mut v = vec_with_capacity<i64>(1usize);\n    v = vec_push<i64>(v, 1);\n    for x in v { 0 }\n    0"),
+            "SPX-T284",
+            "`let values = building;`",
+        ),
+    ];
+    for (source, code, expected_help) in cases {
+        let diagnostic = only(&source, code);
+        assert!(
+            help(&diagnostic).contains(expected_help),
+            "{source}: {diagnostic}"
+        );
+    }
+}
+
+#[test]
+fn nested_views_and_missing_effects_name_the_complete_fix() {
+    let nested = only(
+        "module habit.view;\n@id(\"app.main\")\nfn main() -> i64\n{\n    let text = \"hi\";\n    let b = str_as_bytes(string_as_str(text));\n    0\n}\n",
+        "SPX-T266",
+    );
+    assert!(
+        help(&nested).contains("let view = string_as_str(text); str_as_bytes(view)"),
+        "{nested}"
+    );
+
+    let unpermitted = only(
+        "module habit.fx;\n@id(\"app.main\")\nfn main() -> i64\n{\n    let text = \"hi\";\n    let view = string_as_str(text);\n    let n = stdout_write(str_as_bytes(view));\n    0\n}\n",
+        "SPX-E102",
+    );
+    assert!(
+        help(&unpermitted).contains("`uses { process.stdout.write }`")
+            && help(&unpermitted).contains("`permit { process.stdout.write }`"),
+        "{unpermitted}"
+    );
+
+    let permitted = only(
+        "module habit.fx;\npermit { process.stdout.write }\n@id(\"app.main\")\nfn main() -> i64\n{\n    let text = \"hi\";\n    let view = string_as_str(text);\n    let n = stdout_write(str_as_bytes(view));\n    0\n}\n",
+        "SPX-E102",
+    );
+    assert!(
+        help(&permitted).contains("`uses { process.stdout.write }`")
+            && !help(&permitted).contains("permit"),
+        "{permitted}"
     );
 }

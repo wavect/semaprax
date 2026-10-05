@@ -32,6 +32,7 @@ const LANGUAGE_TOPICS: &str = concat!(
     "  ownership       Ownership and resources\n",
     "  strings         Strings and bytes\n",
     "  builtins        Compiler-owned functions\n",
+    "  lists           Lists and iterators\n",
     "  mistakes-code   Habits from other languages: diagnostic examples\n",
     "  mistakes-index  Habits from other languages: diagnostic index\n",
     "  projects        Projects\n",
@@ -39,9 +40,9 @@ const LANGUAGE_TOPICS: &str = concat!(
 );
 const DIAGNOSTIC_CODES: &str = concat!(
     "Diagnostic codes:\n",
-    "  SPX-O101 SPX-P003 SPX-P104 SPX-P105 SPX-P106 SPX-P201 SPX-P203 SPX-T001 ",
-    "SPX-T104 SPX-T202 SPX-T203 SPX-T205 SPX-T208 SPX-T209 SPX-T221 SPX-T225 ",
-    "SPX-T232 SPX-T250 SPX-T263 SPX-T266 SPX-T281 SPX-U101\n",
+    "  SPX-G170 SPX-O101 SPX-P003 SPX-P104 SPX-P105 SPX-P106 SPX-P201 SPX-P203 ",
+    "SPX-T001 SPX-T104 SPX-T202 SPX-T203 SPX-T205 SPX-T208 SPX-T209 SPX-T218 ",
+    "SPX-T221 SPX-T232 SPX-T250 SPX-T262 SPX-T263 SPX-T266 SPX-T281 SPX-U101\n",
 );
 const DIAGNOSTIC_T208: &str = concat!(
     "SPX-T208\n",
@@ -261,7 +262,7 @@ fn full_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
             .windows(b"\nwrote: ".len())
             .filter(|window| *window == b"\nwrote: ")
             .count(),
-        6
+        9
     );
     assert!(p106.stdout.len() <= 1_024);
     std::fs::remove_dir(p106_dir).unwrap();

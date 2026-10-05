@@ -365,7 +365,7 @@ pub(super) fn check_expr(
                     "SPX-T250",
                     format!("operator `{}` does not support string operands", op.text()),
                     expr.span,
-                ));
+                ).with_help(crate::source_verify::hints::STRING_OPERATOR_HELP));
             }
             let (expected, output) = match op {
                 BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem => {
@@ -787,7 +787,7 @@ pub(super) fn check_expr(
                             current.name
                         ),
                         expr.span,
-                    ));
+                    ).with_help(crate::source_verify::hints::TRY_RESULT_RETURN_HELP));
                     return Some(CheckedValue::value(ok.clone()));
                 };
                 if error_ty != residual_error_ty {
@@ -1092,7 +1092,7 @@ pub(super) fn check_expr(
                                 "SPX-T209",
                                 format!("local binding `{name}` shadows an existing value"),
                                 *name_span,
-                            ));
+                            ).with_help(crate::source_verify::hints::SHADOW_HELP));
                             continue;
                         }
                         if let Some(actual) = actual {
@@ -1272,7 +1272,7 @@ pub(super) fn check_expr(
                         if source.is_some_and(|name| scope.get(name).is_some_and(|binding| binding.mutable)) {
                             diagnostics.push(error(
                                 program, "SPX-T284", "for traversal source must be an immutable Vec binding", values.span,
-                            ));
+                            ).with_help(crate::source_verify::hints::IMMUTABLE_TRAVERSAL_HELP));
                         }
                         let source_name = source.map(str::to_owned);
                         let _ = reject_while_disallowed_oracle(program, body, functions, diagnostics);

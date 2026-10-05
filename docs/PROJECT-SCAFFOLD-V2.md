@@ -60,7 +60,8 @@ The manifests and source modules of both templates are byte-identical to v1.
 Each template's `README.md` now shows the directory-operand forms
 (`semaprax check .`) and points the reader at `AGENTS.md`. `AGENTS.md` substitutes the project name and
 module name like the other files and states, in this order: what the project
-is and where to read the language card (`semaprax help language`); the five
+is and how to read one language-card topic at a time (`semaprax help
+language topics`, then `semaprax help language <topic>`); the five
 commands; and the rules that differ from other languages, namely the `module`
 header and `@id` identities, the tail-expression body rule, `if`/`else` and
 `while` shape, contracts and effects, whole-project checking, manifest

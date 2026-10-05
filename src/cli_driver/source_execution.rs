@@ -192,18 +192,33 @@ pub(super) fn run_interpreted_source(
     // Preliminary loading and verification publish through the requested
     // diagnostic mode so that `run --json` never falls back to human text.
     let program = checked_for_output(path, options.json)?;
+    // `check` accepts any `@id` on `fn main`, so a file whose entry is not
+    // `app.main` runs its `main` instead of failing selection.
+    let entry = if program
+        .functions
+        .iter()
+        .any(|function| function.stable_id == "app.main")
+    {
+        "app.main".to_owned()
+    } else {
+        program
+            .functions
+            .iter()
+            .find(|function| function.name == "main")
+            .map_or_else(|| "app.main".to_owned(), |main| main.stable_id.clone())
+    };
     if program.permits == ["process.stdout.write"] {
         let resolved = hir::resolve(&program).map_err(|errors| report(&errors, options.json))?;
         let hosted = hosted_interpreter::execute_stdout_transcript(
             &resolved,
-            "app.main",
+            &entry,
             interpreter_options.max_steps,
         )
         .map_err(|errors| report(&errors, options.json))?;
         return publish_interpreted_stdout(hosted, &interpreter_options, options.json);
     }
 
-    let interpretation = interpreter::interpret(path, "app.main", &[], &interpreter_options)
+    let interpretation = interpreter::interpret(path, &entry, &[], &interpreter_options)
         .map_err(|errors| report(&errors, options.json))?;
     if options.json {
         println!("{}", interpretation.envelope);
@@ -363,11 +378,12 @@ pub(super) fn publish_interpretation(envelope: &str) -> Result<(), u8> {
         }
         Some("failed") => {
             let status = &outcome["status"];
+            let domain = status["domain_id"].as_str().unwrap_or("unknown");
+            let code = status["code"].as_u64().unwrap_or(0);
             eprintln!(
-                "single-file execution failed with language status {}/{}/{}",
+                "single-file execution failed with language status {}/{domain}/{code}{}",
                 status["schema"].as_str().unwrap_or("semaprax.status.v1"),
-                status["domain_id"].as_str().unwrap_or("unknown"),
-                status["code"].as_u64().unwrap_or(0)
+                status_meaning(domain, code)
             );
             Err(1)
         }
@@ -452,8 +468,9 @@ pub(super) fn publish_interpreted_stdout(
         ResolvedEvaluationOutcome::LanguageFailure(status) => {
             if !json {
                 eprintln!(
-                    "single-file execution failed with language status {}",
-                    status.to_json()
+                    "single-file execution failed with language status {}{}",
+                    status.to_json(),
+                    status_meaning(status.domain_id(), u64::from(status.code()))
                 );
             }
             Err(1)
@@ -556,4 +573,27 @@ pub(super) fn run_project_assurance(args: &[String]) -> Result<(), u8> {
         .map_err(|errors| report(&errors, false))?;
     print!("{envelope}");
     Ok(())
+}
+
+/// A plain-language reading of a compiler-owned failure status, so a reader
+/// does not need the status registry to learn that `arithmetic.v1/4` is a
+/// division by zero.
+fn status_meaning(domain: &str, code: u64) -> &'static str {
+    match (domain, code) {
+        ("semaprax.arithmetic.v1", 1) => " (addition overflow)",
+        ("semaprax.arithmetic.v1", 2) => " (subtraction overflow)",
+        ("semaprax.arithmetic.v1", 3) => " (multiplication overflow)",
+        ("semaprax.arithmetic.v1", 4) => " (division by zero)",
+        ("semaprax.arithmetic.v1", 5) => " (division overflow)",
+        ("semaprax.arithmetic.v1", 6) => " (remainder by zero)",
+        ("semaprax.arithmetic.v1", 7) => " (remainder overflow)",
+        ("semaprax.arithmetic.v1", 8) => " (negation overflow)",
+        ("semaprax.contract.v1", 1) => " (a `requires` precondition was false)",
+        ("semaprax.contract.v1", 2) => " (an `ensures` postcondition was false)",
+        ("semaprax.vec.v1", 1) => " (vec_push beyond capacity; reserve more)",
+        ("semaprax.vec.v1", 2) => " (vector index out of bounds)",
+        ("semaprax.vec.v1", 3) => " (vector allocation failure)",
+        ("semaprax.box.v1", 1) => " (box allocation failure)",
+        _ => "",
+    }
 }

@@ -53,6 +53,11 @@ impl Parser {
             TokenKind::IntMinMagnitude | TokenKind::Int32MinMagnitude => {
                 out_of_range(token, &self.path)
             }
+            TokenKind::Pipe | TokenKind::OrOr => {
+                Diagnostic::error("SPX-P201", "expected an expression", token.span)
+                    .at_path(&self.path)
+                    .with_help(super::hints::CLOSURE_HELP)
+            }
             _ => Diagnostic::error("SPX-P201", "expected an expression", token.span)
                 .at_path(&self.path),
         }

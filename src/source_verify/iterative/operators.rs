@@ -185,12 +185,15 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 .as_ref()
                 .is_some_and(|value| value.ty == Type::String);
         if !native_unit && !matches!(op, BinaryOp::Eq | BinaryOp::Ne) && string_operands {
-            self.diagnostics.push(error(
-                self.program,
-                "SPX-T250",
-                format!("operator `{}` does not support string operands", op.text()),
-                expression.span,
-            ));
+            self.diagnostics.push(
+                error(
+                    self.program,
+                    "SPX-T250",
+                    format!("operator `{}` does not support string operands", op.text()),
+                    expression.span,
+                )
+                .with_help(crate::source_verify::hints::STRING_OPERATOR_HELP),
+            );
         }
         let (expected, output) = match op {
             BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem => {

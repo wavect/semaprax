@@ -130,12 +130,15 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
             || !main.params.is_empty()
             || main.return_type != Type::I64
         {
-            diagnostics.push(error(
-                program,
-                "SPX-T104",
-                "entry function must be monomorphic with signature `fn main() -> i64`",
-                main.span,
-            ));
+            diagnostics.push(
+                error(
+                    program,
+                    "SPX-T104",
+                    "entry function must be monomorphic with signature `fn main() -> i64`",
+                    main.span,
+                )
+                .with_help(crate::source_verify::hints::entry_signature_help(main)),
+            );
         }
     } else {
         diagnostics.push(

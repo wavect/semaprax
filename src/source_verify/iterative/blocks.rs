@@ -35,12 +35,15 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 ..
             } => {
                 if self.scopes[block_scope].bindings.contains_key(name) {
-                    self.diagnostics.push(error(
-                        self.program,
-                        "SPX-T209",
-                        format!("local binding `{name}` shadows an existing value"),
-                        *name_span,
-                    ));
+                    self.diagnostics.push(
+                        error(
+                            self.program,
+                            "SPX-T209",
+                            format!("local binding `{name}` shadows an existing value"),
+                            *name_span,
+                        )
+                        .with_help(crate::source_verify::hints::SHADOW_HELP),
+                    );
                 } else if let Some(actual) = actual {
                     if actual.ty == Type::SliceU8 && *mutable {
                         self.diagnostics.push(error(
@@ -102,14 +105,25 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             } else {
                                 "SPX-T232"
                             };
-                            self.diagnostics.push(error(
-                                self.program,
-                                diagnostic,
-                                format!(
-                                    "declared binding type `{declared_ty}` does not accept value type `{}`",
-                                    actual.ty
+                            let help = (diagnostic == "SPX-T232")
+                                .then(|| {
+                                    crate::source_verify::hints::declared_binding_help(
+                                        declared_ty,
+                                        value,
+                                    )
+                                })
+                                .flatten();
+                            self.diagnostics.push(crate::source_verify::hints::with_optional_help(
+                                error(
+                                    self.program,
+                                    diagnostic,
+                                    format!(
+                                        "declared binding type `{declared_ty}` does not accept value type `{}`",
+                                        actual.ty
+                                    ),
+                                    value.span,
                                 ),
-                                value.span,
+                                help,
                             ));
                         }
                     }
@@ -579,12 +593,15 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 .get(source)
                 .is_some_and(|binding| binding.mutable)
             {
-                self.diagnostics.push(error(
-                    self.program,
-                    "SPX-T284",
-                    "for traversal source must be an immutable Vec binding",
-                    values.span,
-                ));
+                self.diagnostics.push(
+                    error(
+                        self.program,
+                        "SPX-T284",
+                        "for traversal source must be an immutable Vec binding",
+                        values.span,
+                    )
+                    .with_help(crate::source_verify::hints::IMMUTABLE_TRAVERSAL_HELP),
+                );
             }
             let _ = self.reject_for_body_disallowed(body, source);
         }

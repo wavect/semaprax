@@ -22,6 +22,20 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Cut edit-check round trips for agents writing SEMAPRAX. New `help:` fixes for
+  `c ? a : b`, `break`/`continue`, `as` casts, `and`/`or`, `|x|` closures,
+  `use std::…`, `println(…);`, `[1, 2, 3]`, `Circle(i64)`, string `+` (`SPX-T250`),
+  shadowing (`SPX-T209`), unsuffixed narrow literals and foreign type names in
+  `let` (`SPX-T232`), `main -> bool` (`SPX-T104`), `?` outside a
+  `Result` function (`SPX-T218`), a `let mut` `for` source (`SPX-T284`), an
+  empty `for` body, and missing `permit`/`uses` (`SPX-E101`, `SPX-E102`, now
+  naming both edits). View hints no longer suggest the rejected nested
+  `str_as_bytes(string_as_str(x))`. Single-file `run` falls back to `fn main`
+  under any `@id` and names runtime statuses (`… (division by zero)`); bare
+  `semaprax help diagnostic` lists the indexed codes instead of failing. The quick reference gains a checked `lists` topic for
+  `Vec<T>`, recommends one `fmt && run` call with plain output, and drops a
+  stale row; the scaffolded `AGENTS.md` points agents at one language topic
+  instead of the whole 33 KB card.
 - MR-00..MR-15: model routing and runtime choice over pluggable decision
   adapters. `decision.evaluate` v2/v3 with disclosure, score semantics and
   call identity (MR-01..MR-03, MR-15); one shared decision core

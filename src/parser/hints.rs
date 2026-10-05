@@ -11,7 +11,7 @@
 //! the grammar produced for that input, and no hint admits new syntax: each
 //! recogniser fires only on a token sequence that was already an error.
 
-use crate::ast::MatchPattern;
+use crate::ast::{Expr, ExprKind, MatchPattern};
 use crate::diagnostic::Diagnostic;
 use crate::lexer::TokenKind;
 
@@ -27,8 +27,15 @@ const LOOP_HELP: &str =
 const EXPRESSION_STATEMENT_HELP: &str = "a block is statements followed by exactly one final value \
                                          expression; discard an intermediate call with `let _ = …;` \
                                          or move it to the end of the block";
+/// `println("…");` as a statement: the habit is printing, not the statement.
+const PRINT_NAMES: [&str; 6] = ["print", "println", "printf", "puts", "console_log", "echo"];
+const PRINT_HELP: &str = "there is no print routine; bind the text, then `let view = \
+                          string_as_str(text); let written = stdout_write(str_as_bytes(view));` \
+                          under `permit { process.stdout.write }` and `uses { process.stdout.write }`";
 const WHILE_BODY_HELP: &str = "end the `while` body with a final expression; its value is \
                                discarded because the condition controls repetition";
+const FOR_BODY_HELP: &str = "end the `for` body with a final expression, such as `0`; its value \
+                             is discarded";
 const BRANCH_HELP: &str = "`if` cannot stand as a statement: add an `else` branch, end both branches \
                            with values, and bind or discard the result with `let _ = if … { …; value } \
                            else { value };`";
@@ -50,6 +57,22 @@ const LET_VALUE_HELP: &str =
     "every `let` binds a value at its declaration; there is no uninitialised binding";
 const CONDITION_ASSIGN_HELP: &str =
     "comparison is `==`; a single `=` is assignment, which is a statement and never a condition";
+const TERNARY_HELP: &str =
+    "there is no `? :` operator; `if` is an expression: `if <condition> { a } else { b }`";
+const CAST_HELP: &str =
+    "there are no casts or numeric conversions; keep a computation in one integer \
+                         type and suffix literals to match it, such as `5i32` or `5usize`";
+const BREAK_HELP: &str = "there is no `break` or `continue`; put the exit test in the `while` \
+                          condition, for example with a `let mut done = false;` flag";
+/// `|x| …` or `|| …` where an expression was expected: closure syntax.
+pub(super) const CLOSURE_HELP: &str =
+    "an anonymous function is `fn(x: i64) -> i64 { x + 1 }`; parameter and result types are required";
+const USE_HELP: &str = "`use` imports one declaration of a project module: `use function \
+                        @id(\"stable.id\") from other.module as name;`; compiler-owned functions such \
+                        as `string_concat` need no import";
+/// `[1, 2, 3]`: array literals hold only bytes.
+pub(super) const ARRAY_LITERAL_HELP: &str = "array literals hold bytes: `[1u8, 2u8]`; a list of other \
+                                             values is a `Vec`: `vec_push<i64>(vec_with_capacity<i64>(3usize), 1)`";
 const INDEX_HELP: &str = "there is no indexing syntax; read a byte with `byte_get(view, index)`, which \
                           returns `Option<u8>`, after `array_as_slice(array)` or `bytes_as_slice(bytes)`";
 
@@ -93,6 +116,14 @@ impl Parser {
             return None;
         };
         let next = self.tokens.get(self.cursor + 1).map(|token| &token.kind)?;
+        if matches!(word.as_str(), "break" | "continue")
+            && matches!(next, TokenKind::Semicolon | TokenKind::RBrace)
+        {
+            return Some(
+                self.error_here("SPX-P106", format!("`{word}` is not admitted"))
+                    .with_help(BREAK_HELP),
+            );
+        }
         if matches!(next, TokenKind::Semicolon) {
             return Some(
                 self.error_here("SPX-P106", "expected `}` after block")
@@ -125,9 +156,13 @@ impl Parser {
 
     /// A tail expression was terminated with `;` and the block continues, which
     /// is how every other language spells an expression statement.
-    pub(super) fn expression_statement(&self) -> Diagnostic {
+    pub(super) fn expression_statement(&self, tail: &Expr) -> Diagnostic {
+        let help = match &tail.kind {
+            ExprKind::Call { name, .. } if PRINT_NAMES.contains(&name.as_str()) => PRINT_HELP,
+            _ => EXPRESSION_STATEMENT_HELP,
+        };
         self.error_here("SPX-P106", "expected `}` after block")
-            .with_help(EXPRESSION_STATEMENT_HELP)
+            .with_help(help)
     }
 
     /// Give a block that ended without a value the help that fits the position
@@ -138,6 +173,7 @@ impl Parser {
         }
         let help = match description {
             "`while` body" => WHILE_BODY_HELP,
+            "`for` body" => FOR_BODY_HELP,
             "`if` condition" | "`else`" => BRANCH_HELP,
             "function body" => FUNCTION_BODY_HELP,
             _ => return diagnostic,
@@ -247,7 +283,16 @@ impl Parser {
         if self.at(&TokenKind::LBracket) {
             return diagnostic.with_help(INDEX_HELP);
         }
+        if let Some(help) = self.foreign_operator_help() {
+            return diagnostic.with_help(help);
+        }
         if let Some(noun) = description.strip_prefix("`,` after ") {
+            if noun == "variant case" && self.at(&TokenKind::LParen) {
+                return diagnostic.with_help(
+                    "variant cases name their fields: `Circle { @id(\"shape.circle.radius\") \
+                     radius: i64, },`; a case without data is `Empty {},`",
+                );
+            }
             if self.at(&TokenKind::RBrace) {
                 return diagnostic.with_help(format!(
                     "every {noun} ends with `,`, including the last one before `}}`"
@@ -273,5 +318,30 @@ impl Parser {
             self.error_here("SPX-P106", "expected `)` after expression")
                 .with_help(TUPLE_HELP)
         })
+    }
+
+    /// An operator spelled the way other languages spell it, found where the
+    /// expression it should continue has already ended: `c ? a : b` (the `?`
+    /// parses as propagation), `x as i64`, or the word operators `and`/`or`.
+    fn foreign_operator_help(&self) -> Option<&'static str> {
+        let previous = self
+            .cursor
+            .checked_sub(1)
+            .and_then(|index| self.tokens.get(index))
+            .map(|token| &token.kind);
+        if previous == Some(&TokenKind::Question) && !self.at(&TokenKind::RBrace) {
+            return Some(TERNARY_HELP);
+        }
+        match &self.current().kind {
+            TokenKind::Ident(word) if word == "as" => Some(CAST_HELP),
+            TokenKind::Ident(word) if word == "and" => Some("logical and is `&&`"),
+            TokenKind::Ident(word) if word == "or" => Some("logical or is `||`"),
+            _ => None,
+        }
+    }
+
+    /// `use std::io;` or `use crate::x;`: a path import from another language.
+    pub(super) fn use_path_help(diagnostic: Diagnostic) -> Diagnostic {
+        diagnostic.with_help(USE_HELP)
     }
 }

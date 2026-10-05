@@ -1,0 +1,12 @@
+# Real libtest target for the toolchain evidence level of
+# scripts/test-ci-msrv.py. Standalone: no dependencies, no network.
+[package]
+name = "checked-selector-fixture"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]

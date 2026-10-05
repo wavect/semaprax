@@ -220,34 +220,50 @@ function parseProjectMatch(value, root) {
   };
 }
 
+// Every row of a closed-schema match array, or null when any one row fails
+// validation. A result is admitted whole: silently dropping a row would let the
+// survivors, or an empty list, pose as the complete answer.
+function allMatches(values, parse) {
+  const matches = [];
+  for (const value of values) {
+    const match = parse(value);
+    if (!match) return null;
+    matches.push(match);
+  }
+  return matches;
+}
+
 // The whole project query result, or null when the document is not one.
-// `root` is the directory of the manifest the query answered for; matches
-// outside it are dropped rather than trusted.
+// `root` is the directory of the manifest the query answered for; a match
+// outside it is never trusted, and makes the whole result unusable.
 function parseProjectQueryResult(text, root) {
   if (typeof text !== 'string') return null;
   let value;
   try { value = JSON.parse(text.trim()); } catch { return null; }
   if (!value || typeof value !== 'object' || Array.isArray(value) || value.schema !== PROJECT_QUERY_SCHEMA) return null;
   if (typeof value.project !== 'string' || typeof value.project_revision !== 'string' || typeof value.graph_revision !== 'string' || !Array.isArray(value.matches)) return null;
+  const matches = allMatches(value.matches, match => parseProjectMatch(match, root));
+  if (!matches) return null;
   return {
     schema: PROJECT_QUERY_SCHEMA,
     project: value.project,
     projectRevision: value.project_revision,
     graphRevision: value.graph_revision,
     revision: null,
-    matches: value.matches.map(match => parseProjectMatch(match, root)).filter(Boolean)
+    matches
   };
 }
 
-// The whole query result, or null when the document is not a query result.
-// Malformed matches are dropped rather than trusted.
+// The whole query result, or null when the document is not a query result
+// or any one of its matches is malformed.
 function parseQueryResult(text) {
   if (typeof text !== 'string') return null;
   let value;
   try { value = JSON.parse(text.trim()); } catch { return null; }
   if (!value || typeof value !== 'object' || Array.isArray(value) || value.schema !== QUERY_SCHEMA) return null;
   if (typeof value.module !== 'string' || typeof value.revision !== 'string' || !Array.isArray(value.matches)) return null;
-  return { module: value.module, revision: value.revision, matches: value.matches.map(parseMatch).filter(Boolean) };
+  const matches = allMatches(value.matches, parseMatch);
+  return matches ? { module: value.module, revision: value.revision, matches } : null;
 }
 
 // Zero-based editor range of the declaration's name token. `index` is the

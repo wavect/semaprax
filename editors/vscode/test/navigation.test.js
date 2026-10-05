@@ -35,7 +35,7 @@ test('query and doc argument vectors are exact and end with the JSON flag', () =
   assert.deepEqual(docArguments(at('m.spx')), ['doc', at('m.spx')]);
 });
 
-test('a query result is accepted only with its schema, and malformed matches are dropped', () => {
+test('a query result is accepted only with its schema, and only when every match is well formed', () => {
   const parsed = parseQueryResult(text);
   assert.equal(parsed.module, 'examples.effects');
   assert.equal(parsed.revision, 'sha256:00');
@@ -54,7 +54,7 @@ test('a query result is accepted only with its schema, and malformed matches are
     { ...tick, location: null },
     'nope'
   ] });
-  assert.equal(parseQueryResult(mixed).matches.length, 1);
+  assert.equal(parseQueryResult(mixed), null);
   const bare = parseQueryResult(JSON.stringify({ ...result, matches: [{ ...tick, location: { line: 2, column: 3, start: -1, end: 'x' } }] }));
   assert.deepEqual(bare.matches[0].location, { line: 2, column: 3, start: null, end: null });
   assert.deepEqual(toRange(bare.matches[0].location), { startLine: 1, startColumn: 2, endLine: 1, endColumn: 3 });
@@ -283,7 +283,7 @@ test('a project query result binds every match to its authenticated file and rev
   assert.equal(parseQueryResult(projectText), null);
 });
 
-test('a project match outside the project root, or without its revision binding, is dropped', () => {
+test('a project match outside the project root, or without its revision binding, rejects the result', () => {
   const hostile = value => JSON.stringify({
     schema: 'semaprax.project-query.v1', project: 'calculator',
     project_revision: projectRevision, graph_revision: graphRevision, filters: {}, matches: [value]
@@ -300,7 +300,7 @@ test('a project match outside the project root, or without its revision binding,
     { ...good, location: [0, 4, 50, 53] },
     { ...good, called_by: [1] }
   ]) {
-    assert.deepEqual(parseProjectQueryResult(hostile(broken), projectRoot).matches, [], JSON.stringify(broken.path ?? broken.location));
+    assert.equal(parseProjectQueryResult(hostile(broken), projectRoot), null, JSON.stringify(broken.path ?? broken.location));
   }
   assert.equal(resolveInRoot(projectRoot, 'src/core.spx'), at('calculator', 'src', 'core.spx'));
   assert.equal(resolveInRoot(projectRoot, '../escape.spx'), null);
@@ -367,4 +367,36 @@ test('navigation timeout and byte-cap keep their reason with incomplete trailing
   assert.equal(failureReason(capped, 'x'), `command output exceeded ${MAX_OUTPUT_BYTES} bytes`);
   const slow = await navigate([Buffer.from([0xf0, 0x9f])], 'pending', { timeoutMs: 5 });
   assert.equal(failureReason(slow, 'x'), `command timed out after ${TIMEOUT_MS / 1000}s`);
+});
+
+// A query result is admitted whole or not at all (REF-18). Dropping one bad
+// row would present the survivors, or an empty list, as a complete answer.
+test('one malformed module match makes the whole query result unusable, not a shorter one', () => {
+  const malformed = { ...tick, effects: 'clock.read' };
+  assert.equal(parseQueryResult(JSON.stringify({ ...result, matches: [malformed] })), null, 'malformed-only is not a successful empty result');
+  assert.equal(parseQueryResult(JSON.stringify({ ...result, matches: [main, malformed] })), null, 'mixed rows are not silently shortened');
+  for (const broken of [{ ...tick, location: { line: 0, column: 1 } }, { ...tick, id: '' }, { ...tick, location: null }, 'nope', null]) {
+    assert.equal(parseQueryResult(JSON.stringify({ ...result, matches: [tick, broken] })), null, JSON.stringify(broken));
+  }
+  // A genuinely empty valid result stays an ordinary empty answer.
+  const empty = parseQueryResult(JSON.stringify({ ...result, matches: [] }));
+  assert.deepEqual(empty.matches, []);
+  assert.equal(empty.revision, 'sha256:00');
+  assert.equal(parseQueryResult(text).matches.length, 2);
+});
+
+test('one malformed or out-of-root project match makes the whole project result unusable', () => {
+  const document = matches => JSON.stringify({
+    schema: 'semaprax.project-query.v1', project: 'calculator',
+    project_revision: projectRevision, graph_revision: graphRevision, filters: {}, matches
+  });
+  const good = projectMatch('src/core.spx', 'calculator.core', 'calculator.add', 'add', [4, 4, 50, 53]);
+  const caller = projectMatch('src/app.spx', 'calculator.app', 'calculator.app.main', 'main', [8, 4, 336, 340], ['calculator.add']);
+  assert.equal(parseProjectQueryResult(document([{ ...good, effects: 'x' }]), projectRoot), null);
+  assert.equal(parseProjectQueryResult(document([caller, { ...good, effects: 'x' }]), projectRoot), null);
+  // An out-of-root row is never opened, and its omission cannot support a
+  // claim that nothing else calls the target.
+  assert.equal(parseProjectQueryResult(document([caller, { ...caller, path: '../outside/app.spx' }]), projectRoot), null);
+  assert.deepEqual(parseProjectQueryResult(document([]), projectRoot).matches, []);
+  assert.equal(parseProjectQueryResult(document([caller, good]), projectRoot).matches.length, 2);
 });

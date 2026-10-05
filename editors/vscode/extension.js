@@ -288,7 +288,9 @@ function activateChecks(context, testMode) {
       .map(d => [d.uri.fsPath, d.version]));
     const stdout = await runNavigation(binary, navigation.queryArguments(subject.subject, filters), subject.subject);
     const parsed = subject.project ? navigation.parseProjectQueryResult(stdout, subject.root) : navigation.parseQueryResult(stdout);
-    if (!parsed) throw new Error(`The compiler returned an unexpected ${subject.project ? 'project ' : ''}query result`);
+    // A result with any malformed or out-of-root row is rejected whole; it is
+    // an invalid answer, never an empty one.
+    if (!parsed) throw new Error(`The compiler returned an invalid ${subject.project ? 'project ' : ''}query result; nothing is reported from it`);
     if (doc.isDirty || doc.version !== version) throw new Error('The document changed while the compiler ran; save it and repeat the command');
     // Validate that any destination that was open at query start is still at
     // the same saved snapshot; a dirty or version-changed destination would

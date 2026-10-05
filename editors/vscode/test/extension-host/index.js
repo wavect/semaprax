@@ -350,6 +350,23 @@ process.on('SIGTERM',()=>{if(lastPlan)output({schema:'semaprax.hot-reload-contro
     assert.equal(api.checks.collection.has(vscode.Uri.file(probe)), false, 'the entry is removed, not emptied');
     assert.deepEqual(api.checks.collection.get(vscode.Uri.file(probe)), []);
 
+    // A query with a malformed row is an invalid result: the commands report
+    // that, never "declares nothing" or "nothing calls", and lenses decline.
+    const malformedQuery = path.join(probeDirectory, 'malformed-query-compiler');
+    const malformedRow = { kind: 'function', id: 'probe.main', name: 'main', persistent: true, signature: 'fn main() -> i64', location: { line: 4, column: 4, start: 34, end: 38 }, effects: 'clock.read', calls: [], called_by: [] };
+    fs.writeFileSync(malformedQuery, `#!/bin/sh\nprintf '%s\\n' '${JSON.stringify({ schema: 'semaprax.query.v1', module: 'probe', revision: 'sha256:' + 'b'.repeat(64), filters: {}, matches: [malformedRow] })}'\nexit 0\n`, { mode: 0o700 });
+    await settings.update('compilerPath', malformedQuery, vscode.ConfigurationTarget.Global);
+    try {
+      const probeDocument = await vscode.workspace.openTextDocument(vscode.Uri.file(probe));
+      await vscode.window.showTextDocument(probeDocument, { preview: false });
+      await assert.rejects(api.execute('goToDeclaration'), /invalid query result/);
+      await assert.rejects(api.execute('showReferences'), /invalid query result/);
+      assert.deepEqual(await api.checks.lensProvider.provideCodeLenses(probeDocument), []);
+    } finally {
+      await settings.update('compilerPath', compiler, vscode.ConfigurationTarget.Global);
+      await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+    }
+
     // The project route: an importing module has no standalone meaning, so
     // `app.spx` resolves its declarations, callers and lenses through the
     // project that owns it and reaches the other two files.

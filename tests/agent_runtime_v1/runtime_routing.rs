@@ -271,7 +271,12 @@ pub(super) struct World {
 
 pub(super) fn with_world(test: impl FnOnce(&World)) {
     let fixture = Fixture::new();
-    with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
+    with_world_at(&fixture.0, test);
+}
+
+/// The routing world of the authenticated project rooted at `dir`.
+pub(super) fn with_world_at(dir: &std::path::Path, test: impl FnOnce(&World)) {
+    with_authenticated_project(&dir.join("semaprax.toml"), |snapshot| {
         let project = snapshot.retain_revision();
         let root = project.program_root()?;
         let (semantic, fast) = migrate_agent_definition_v1(
@@ -292,7 +297,7 @@ pub(super) fn with_world(test: impl FnOnce(&World)) {
             "1",
         );
         let schema = compile_agent_interaction_schema(
-            &fixture.0.join("src/app.spx"),
+            &dir.join("src/app.spx"),
             "fixture.agent.type.proposal",
         )?;
         let strong = strong_deployment(&fast);
@@ -370,8 +375,8 @@ pub(super) fn handlers<'h>(
 
 macro_rules! host {
     ($clock:ident, $cancel:ident, $classifier:ident, $backoff:ident) => {
-        let $clock = StepClock::new(0);
-        let $cancel = AgentCancellation::new();
+        let $clock = semaprax::live_invocation::fixture::StepClock::new(0);
+        let $cancel = semaprax::agent_runtime::AgentCancellation::new();
         let mut $classifier = semaprax::model_budget_policy::retry::ConservativeFailureClassifier;
         let mut $backoff = semaprax::model_budget_policy::NoDelayBackoff;
     };

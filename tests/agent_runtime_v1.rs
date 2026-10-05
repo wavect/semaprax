@@ -679,3 +679,9 @@ mod source_agent_embedded;
 
 #[path = "agent_runtime_v1/runtime_routing.rs"]
 mod runtime_routing;
+
+#[path = "agent_runtime_v1/runtime_reroute.rs"]
+mod runtime_reroute;
+
+#[path = "agent_runtime_v1/routed_agent_example.rs"]
+mod routed_agent_example;

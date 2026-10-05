@@ -42,6 +42,7 @@ mod invoke;
 mod profiles;
 mod record;
 mod select;
+mod session;
 
 pub use envelope::ENVELOPE_SCHEMA;
 pub use error::RuntimeRoutingError;
@@ -53,3 +54,8 @@ pub use invoke::{
 pub use profiles::{ApprovedProfile, ApprovedProfileSet, ProfileModel, ProfileSpec};
 pub use record::{RouteRecord, RouteSource, ROUTE_RECORD_SCHEMA};
 pub use select::{route_new_invocation, RoutedProfile};
+pub use session::{
+    ChildGrant, DelegationRequest, EscalationRule, Handoff, LastOutcome, ProgressCounters,
+    RerouteBoundary, RouteReason, RoutedSession, SessionPolicy, SpecialistGrant, TurnFeatures,
+    TurnOutcome, TurnRequest, TurnStatus, TurnVerdict, HANDOFF_SCHEMA, SESSION_SCHEMA,
+};

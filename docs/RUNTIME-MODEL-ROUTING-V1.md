@@ -87,6 +87,11 @@ multi-agent runtime.
 
 ## Evidence
 
-`cargo test --locked -p semaprax --test agent_runtime_v1 runtime_` runs the
-`runtime_routing`, `runtime_reroute` and `routed_agent_example` modules
-against the fixture project and `examples/routed-agent-project`.
+Local macOS aarch64, offline fixture adapters and a fixture decision invoker:
+
+- `cargo test --locked -p semaprax --test agent_runtime_v1 -- runtime_reroute routed_agent_example runtime_routing`:
+  14 passed (6 `runtime_routing` for MR-09, 6 `runtime_reroute` for MR-10,
+  1 `routed_agent_example`, plus a no-op helper).
+- `cargo test --locked -p semaprax --test agent_runtime_v1 -- execution_revision`:
+  the existing retained-root and durable-binding tests pass unchanged.
+- `cargo test --locked -p semaprax --lib model_routing`: 11 passed.

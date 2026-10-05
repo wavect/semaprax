@@ -1,3 +1,4 @@
+use super::super::private::admit_profile;
 use super::*;
 
 // Codes come from the runtime's own constructors, so this file adds no source
@@ -133,4 +134,120 @@ fn profile_byte_and_depth_boundaries_are_exact_after_sharing_the_parse() {
     let (code, message, parses) = rejected_profile(&over_depth);
     assert_eq!((code, parses), (g208_code(), 1));
     assert_eq!(message, format!("json_depth exceeds {MAX_JSON_DEPTH}"));
+}
+
+/// A host that counts every observation; admission must never reach it.
+struct ObservedHost(Rc<Cell<u64>>);
+
+impl ObservedHost {
+    fn observe(&self) {
+        self.0.set(self.0.get() + 1);
+    }
+}
+
+impl AgentHost for ObservedHost {
+    fn policy_epoch(&self) -> u64 {
+        self.observe();
+        0
+    }
+    fn elapsed_ms(&self) -> u64 {
+        self.observe();
+        0
+    }
+    fn boundary_probe(&self) -> Box<dyn AgentBoundaryProbe> {
+        self.observe();
+        panic!("profile admission requested a boundary probe")
+    }
+    fn tokenize(&mut self, _: &str, _: &str) -> Option<u64> {
+        self.observe();
+        None
+    }
+    fn attempt_provider(
+        &mut self,
+        _: &str,
+        _: &str,
+        _: &str,
+        _: u64,
+        _: &mut ProviderSink,
+    ) -> ProviderAttempt {
+        self.observe();
+        panic!("profile admission attempted a provider")
+    }
+    fn invoke_tool(&mut self, _: &str, _: &str, _: &str, _: &mut ToolResultSink) -> bool {
+        self.observe();
+        panic!("profile admission invoked a tool")
+    }
+}
+
+fn outcome(result: Result<u64, Vec<Diagnostic>>) -> Result<u64, Vec<(&'static str, String)>> {
+    result.map_err(|errors| {
+        errors
+            .into_iter()
+            .map(|error| (error.code, error.message))
+            .collect()
+    })
+}
+
+#[test]
+fn pure_admission_and_the_constructor_accept_and_reject_the_same_corpus() {
+    let profile = fixture_profile();
+    let body = profile.trim_end();
+    let mutate = |change: &dyn Fn(&mut Profile)| {
+        let mut parsed = parse_profile(&profile).unwrap();
+        change(&mut parsed);
+        render_profile(&parsed)
+    };
+    let corpus = [
+        profile.clone(),
+        body.to_owned(),
+        profile.replace('\n', "\r\n"),
+        profile.replacen('{', "{{", 1),
+        profile.replacen(PROFILE_SCHEMA, TASK_SCHEMA, 1),
+        nested_capability_profile(&profile, MAX_JSON_DEPTH - 3),
+        format!("{body}{}\n", " ".repeat(MAX_PROFILE_BYTES - profile.len())),
+        format!(
+            "{body}{}\n",
+            " ".repeat(MAX_PROFILE_BYTES + 1 - profile.len())
+        ),
+        mutate(&|p| p.models.push(p.models[0].clone())),
+        mutate(&|p| p.models[0].model_id = String::new()),
+        mutate(&|p| p.policy.allowed_model_ids = vec!["fake-other".to_owned()]),
+        mutate(&|p| p.policy.granted_capabilities = vec!["*".to_owned()]),
+        mutate(&|p| p.policy.allowed_tool_ids = vec!["fixture.other".to_owned()]),
+        mutate(&|p| p.tools[0].required_capabilities = vec!["tool.read".to_owned(); 2]),
+        mutate(&|p| p.limits.max_turns = MAX_TURNS + 1),
+        mutate(&|p| p.limits.max_concurrency = 0),
+        mutate(&|p| p.limits.max_builder_bytes = MAX_BUILDER_BYTES as u64),
+        mutate(&|p| p.limits.max_builder_bytes = MAX_BUILDER_BYTES as u64 + 1),
+    ];
+    let mut accepted = 0;
+    for (index, candidate) in corpus.iter().enumerate() {
+        let observations = Rc::new(Cell::new(0));
+        let constructed = outcome(
+            Agent::new(
+                candidate,
+                ObservedHost(observations.clone()),
+                AgentCancellation::new(),
+            )
+            .map(|agent| agent.profile_builder_bytes),
+        );
+        let admitted = outcome(admit_profile(candidate).map(|admitted| admitted.builder_bytes()));
+        assert_eq!(constructed, admitted, "corpus entry {index}");
+        assert_eq!(
+            admit_runtime_v1_profile(candidate).is_ok(),
+            admitted.is_ok(),
+            "corpus entry {index}"
+        );
+        assert_eq!(
+            observations.get(),
+            0,
+            "corpus entry {index} observed the host"
+        );
+        if let Ok(builder_bytes) = admitted {
+            accepted += 1;
+            // The builder charge still covers the conservative parse bound.
+            assert!(builder_bytes >= candidate.len() as u64 * 8 + 4096);
+        }
+    }
+    assert_eq!(accepted, 2);
 }

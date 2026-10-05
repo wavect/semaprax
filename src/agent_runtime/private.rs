@@ -881,16 +881,10 @@ impl<H: AgentHost> Agent<H> {
         host: H,
         cancellation: AgentCancellation,
     ) -> Result<Self, Vec<Diagnostic>> {
-        let (profile, overflowed, used) = with_limit_usage(MAX_BUILDER_BYTES, || {
-            reserve_parse_bound(profile_source)?;
-            parse_profile(profile_source)
-        });
-        if overflowed {
-            return Err(vec![g208("builder_bytes", MAX_BUILDER_BYTES as u64)]);
-        }
+        let admitted = admit_profile(profile_source)?;
         Ok(Self {
-            profile: profile.map_err(|diagnostic| vec![diagnostic])?,
-            profile_builder_bytes: used as u64,
+            profile: admitted.profile,
+            profile_builder_bytes: admitted.builder_bytes,
             host,
             cancellation,
         })
@@ -968,6 +962,39 @@ impl<H: AgentHost> Agent<H> {
         }
         Ok(result.0)
     }
+}
+
+/// One Runtime v1 profile admitted without a host, cancellation or Agent.
+///
+/// The fields stay private to this module, so the admitted representation is
+/// only ever attached to an execution host by `Agent::new`.
+pub(super) struct AdmittedProfile {
+    profile: Profile,
+    builder_bytes: u64,
+}
+
+#[cfg(test)]
+impl AdmittedProfile {
+    pub(super) fn builder_bytes(&self) -> u64 {
+        self.builder_bytes
+    }
+}
+
+/// Pure profile admission shared by `Agent::new` and AgentDefinition
+/// validation: builder-budgeted parsing and every profile invariant, with no
+/// host observation and no cancellation handle.
+pub(super) fn admit_profile(profile_source: &str) -> Result<AdmittedProfile, Vec<Diagnostic>> {
+    let (profile, overflowed, used) = with_limit_usage(MAX_BUILDER_BYTES, || {
+        reserve_parse_bound(profile_source)?;
+        parse_profile(profile_source)
+    });
+    if overflowed {
+        return Err(vec![g208("builder_bytes", MAX_BUILDER_BYTES as u64)]);
+    }
+    Ok(AdmittedProfile {
+        profile: profile.map_err(|diagnostic| vec![diagnostic])?,
+        builder_bytes: used as u64,
+    })
 }
 
 fn reserve_parse_bound(source: &str) -> Result<(), Diagnostic> {

@@ -1205,6 +1205,15 @@ fn render_effective_limits(limits: EffectiveLimits) -> String {
 mod compatibility;
 mod private;
 
+/// Admits one Runtime v1 profile exactly as `Agent::new` does, without
+/// constructing an Agent, observing a host or creating a cancellation handle.
+///
+/// The admitted representation stays private to the runtime; callers learn
+/// only acceptance or the constructor's own diagnostics.
+pub(crate) fn admit_runtime_v1_profile(profile_source: &str) -> Result<(), Vec<Diagnostic>> {
+    private::admit_profile(profile_source).map(|_| ())
+}
+
 pub(crate) type RuntimeV1CompatibilityProfile = compatibility::RuntimeV1CompatibilityProfile;
 
 pub(crate) fn proposal_compatibility_profile(

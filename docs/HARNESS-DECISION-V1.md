@@ -267,3 +267,74 @@ temporary directory without editing bundled assets.
 Diagnostics added: HPJ019 v2 request refused before dispatch (bounds), HPJ020
 malformed model profile or threshold; payload `HPA047` malformed call metadata
 or prepared-digest/wire-bound mismatch.
+
+## Matched routing evidence (MR-13)
+
+`bench routing-matrix` (`crates/semaprax-harness/src/bench/routing_matrix/`) collects matched,
+per-domain routing evidence and feeds it to the HN-16 registry and gate; it adds no second
+registry, engine or gate.
+
+- **Discovery.** Arms come from the approved registry (`semaprax.harness-routing-registry.v1`):
+  `rules`, `cost-aware` (TC-10 `choose_start`), one `fixed:<model>` per approved generation
+  profile in the task catalog, and one `learned:<provider>/<profile>` per approved decision
+  profile (adopted descriptor + MR-15 model profile + instance). A descriptor without
+  `decision.evaluate` or a profile without text routing state is listed under
+  `excluded_decision_entries`. No vendor or model name appears in code; a new provider is a
+  registry entry (the `routing_matrix` test adopts an out-of-tree router that way).
+- **Availability.** Requirements are variable names (descriptor `permissions.secrets` plus
+  declared endpoints), hardware tags (`SEMAPRAX_MATRIX_HARDWARE`) and a bound live adapter
+  session. An unmet requirement makes every cell of the arm `unavailable` with its reason;
+  such an arm is `not-evaluated`, never a zero-cost success.
+- **Execution and labels.** Each (item, model) runs once and is shared by every arm that chose
+  it. Labels come only from the item's independent verifier, `verified_by =
+  <kind>:<id>@<revision>`: `compiler`, `tests`, `acceptance` for development;
+  `typed_outcome`, `policy_invariant` for application. A router, another model or a fixture is
+  never a verifier. Executors declare their class: the fixture table can never yield `real`; a
+  row that claims more is downgraded and counted as forged, which blocks qualification.
+- **Cost.** The runner prices every attempt from the task set's price book (failures and
+  retries included). Router overhead follows MR-03: provider-reported usage of one priced call
+  settles exactly; otherwise each call keeps the registry's reserved ceiling, whatever the
+  adapter's `billing` claim. Receipts must reconcile: cache read ≤ input, the final attempt's
+  verdict equals completion, gateway-owned transport retries are not retried by the host and
+  the host-owned path reports no gateway retries. Total cost per accepted task is `null` when
+  any executed cell's cost is unknown.
+- **Sealing and calibration.** Eval items are sealed (digest of ids, domain and content) before
+  anything runs. Calibration items run first and are the only data the cost-aware arm and the
+  score calibration read. Eval items whose id is in a profile's `trained_on`, or whose content
+  digest equals a calibration or trained item's, count as trained-on and fail the gate.
+- **Domains and identity.** `EvidenceKey::bound` binds the execution domain, the candidate-set
+  revision and the renderer revision into the key's distribution; `qualify::evaluate_domain`
+  adds to the HN-16 `evaluate`: the spec's domain must equal the evidence domain (development
+  and application never cross-qualify), the key must equal the live key, every counted outcome
+  needs a verifier of that domain, and forged, unreconciled or shadow-only evidence fails.
+- **Strata and shadow.** Items carry a stratum (mechanical, tests, localized debug, hard
+  semantic, runtime classification, multi-turn recovery, agent/tool selection). Where policy
+  prohibits automatic routing (hard or rules-only families) the learned provider runs in
+  shadow: its recommendation is executed as a counterfactual and reported, never routed and
+  never in the gate record.
+- **Gates.** `DomainGateSpec` (`semaprax.harness-routing-gate-spec.v1`) is a reviewed,
+  versioned per-domain spec; `check_floor` refuses any threshold weaker than `GateSpec::default()`
+  and the run refuses to start with one. The recorded specs (`mr13-development-v1`,
+  `mr13-application-v1`) equal the floor and were written before any MR-13 cell ran.
+- **Activation and rollback.** Only a `go` registers the record and installs a `SessionLock`
+  for exactly that key in the domain's `ProfileStore`; `session_admits` admits a new session
+  only for that key. `DriftMonitor::enforce` rolls new sessions back; a running session's lock
+  does not change. A no-go keeps rules and claims no saving.
+- **Report.** `run-manifest.json` (`semaprax.harness-routing-matrix.v1`) records pins (registry,
+  tasks, seal, gate-spec digests, candidate/renderer revisions, executor identity and class,
+  learned profile digests), budgets and the real-run cost ceiling, hardware/backend text, the
+  real/fixture/unavailable matrix per domain, arm and stratum, verifier identities, billable
+  usage (real apart from fixture), cold/warm latency, fallback and escalation rates, per-partition
+  metrics, calibration (raw option calibration and downstream success reported separately;
+  option mass is not a success probability), gate decisions and activation.
+  `gate-decision.json` is its compact summary.
+
+Recorded run: `benchmarks/harness/2026-10-05-routing-matrix/` — fixture lane only (no network,
+adapter process or paid call). Rules, fixed and cost-aware arms ran over 71 fixture items in
+both domains; every learned profile (the bundled local and hosted decision adapters) is
+`unavailable` with its reason. Decision: **not evaluated; rules stay active in both domains**.
+The `routing_matrix` integration test regenerates it byte for byte (`SEMAPRAX_MR13_RECORD=1`
+rewrites it). The real lane is `run-real.sh` in that directory: it prints the cost ceiling,
+then refuses without an operator executor (`SEMAPRAX_MATRIX_EXECUTOR`, protocol
+`semaprax.harness-routing-cell.v1`), at least two available generation profiles and
+`SEMAPRAX_MATRIX_MAX_USD` at or above the ceiling.

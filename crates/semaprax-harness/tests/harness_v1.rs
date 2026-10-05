@@ -44,6 +44,8 @@ mod observe;
 mod profile;
 #[path = "harness_v1/receipt.rs"]
 mod receipt;
+#[path = "harness_v1/routing_matrix.rs"]
+mod routing_matrix;
 #[path = "harness_v1/skills.rs"]
 mod skills;
 #[path = "harness_v1/t_ma.rs"]

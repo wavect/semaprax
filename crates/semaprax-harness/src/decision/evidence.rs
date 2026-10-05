@@ -70,6 +70,26 @@ impl EvidenceKey {
         }
     }
 
+    /// MR-13: the same key bound to one execution domain and the exact
+    /// candidate-set and renderer revisions the evidence was collected under.
+    /// Development and application evidence never share a key, and a changed
+    /// candidate or renderer revision is a different key.
+    pub fn bound(
+        &self,
+        domain: super::route_v2::ExecutionDomain,
+        candidate_revision: &str,
+        renderer_revision: &str,
+    ) -> Self {
+        let mut k = self.clone();
+        k.distribution = json::digest(
+            "semaprax.decision.distribution.mr13.v1",
+            &json!({"base": self.distribution, "execution_domain": domain.as_str(),
+                    "candidate_revision": candidate_revision,
+                    "renderer_revision": renderer_revision}),
+        );
+        k
+    }
+
     pub fn to_json(&self) -> Value {
         json!({"task": self.task, "provider": self.provider_id, "weights": self.weights_digest,
                "catalog": self.catalog_digest, "normalization": self.normalization,

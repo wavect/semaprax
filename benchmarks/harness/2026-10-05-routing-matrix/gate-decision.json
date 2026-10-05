@@ -1,0 +1,1001 @@
+{
+  "active": {
+    "application": {
+      "mode": "rules",
+      "reason": "no profile qualified for this domain; rules stay active"
+    },
+    "development": {
+      "mode": "rules",
+      "reason": "no profile qualified for this domain; rules stay active"
+    }
+  },
+  "claims": [
+    "results cover only the sampled tasks, strata, partitions and the declared hardware/backend",
+    "fixture cells are contract fixtures, never runs; unavailable cells are neither successes nor zero-cost",
+    "option-mass calibration is reported apart from, and is not, a probability of downstream task success",
+    "a no-go keeps rules active; no saving is claimed for an arm that did not qualify"
+  ],
+  "decision": "not-evaluated",
+  "gate": [
+    {
+      "arm": "learned:ai.convai/laya-decision/laya-multilingual",
+      "domain": "development",
+      "key": null,
+      "key_digest": null,
+      "metrics": null,
+      "reasons": [
+        "arm unavailable: missing credential/endpoint variable(s): SEMAPRAX_MATRIX_LAYA_READY"
+      ],
+      "record_digest": null,
+      "spec_digest": "sha256:7a730ccded3389789dd013a633f30f756cbc1af0cba467d6941a45302706157c",
+      "status": "not-evaluated"
+    },
+    {
+      "arm": "learned:ai.typesafe/jev-decision/jev-latest",
+      "domain": "development",
+      "key": null,
+      "key_digest": null,
+      "metrics": null,
+      "reasons": [
+        "arm unavailable: missing credential/endpoint variable(s): SEMAPRAX_HARNESS_SECRET_JEV"
+      ],
+      "record_digest": null,
+      "spec_digest": "sha256:7a730ccded3389789dd013a633f30f756cbc1af0cba467d6941a45302706157c",
+      "status": "not-evaluated"
+    },
+    {
+      "arm": "learned:org.r-ms/minijev-local/minijev-local",
+      "domain": "development",
+      "key": null,
+      "key_digest": null,
+      "metrics": null,
+      "reasons": [
+        "arm unavailable: missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER"
+      ],
+      "record_digest": null,
+      "spec_digest": "sha256:7a730ccded3389789dd013a633f30f756cbc1af0cba467d6941a45302706157c",
+      "status": "not-evaluated"
+    },
+    {
+      "arm": "learned:com.cloudflare/clef-decision/cf-clef",
+      "domain": "development",
+      "key": null,
+      "key_digest": null,
+      "metrics": null,
+      "reasons": [
+        "arm unavailable: missing credential/endpoint variable(s): SEMAPRAX_HARNESS_SECRET_CLOUDFLARE"
+      ],
+      "record_digest": null,
+      "spec_digest": "sha256:7a730ccded3389789dd013a633f30f756cbc1af0cba467d6941a45302706157c",
+      "status": "not-evaluated"
+    },
+    {
+      "arm": "learned:com.cloudflare/clef-decision/cf-clef-flash",
+      "domain": "development",
+      "key": null,
+      "key_digest": null,
+      "metrics": null,
+      "reasons": [
+        "arm unavailable: missing credential/endpoint variable(s): SEMAPRAX_HARNESS_SECRET_CLOUDFLARE"
+      ],
+      "record_digest": null,
+      "spec_digest": "sha256:7a730ccded3389789dd013a633f30f756cbc1af0cba467d6941a45302706157c",
+      "status": "not-evaluated"
+    },
+    {
+      "arm": "learned:ai.cloudflare/clef-local-decision/clef-local",
+      "domain": "development",
+      "key": null,
+      "key_digest": null,
+      "metrics": null,
+      "reasons": [
+        "arm unavailable: missing credential/endpoint variable(s): SEMAPRAX_MATRIX_CLEF_WORKER; required hardware not declared on this host: cuda"
+      ],
+      "record_digest": null,
+      "spec_digest": "sha256:7a730ccded3389789dd013a633f30f756cbc1af0cba467d6941a45302706157c",
+      "status": "not-evaluated"
+    },
+    {
+      "arm": "learned:ai.convai/laya-decision/laya-multilingual",
+      "domain": "application",
+      "key": null,
+      "key_digest": null,
+      "metrics": null,
+      "reasons": [
+        "arm unavailable: missing credential/endpoint variable(s): SEMAPRAX_MATRIX_LAYA_READY"
+      ],
+      "record_digest": null,
+      "spec_digest": "sha256:e675f4e86b39be3dd3b68142e7904ec9fabb146e4b3c90a732b6c9b6c3295576",
+      "status": "not-evaluated"
+    },
+    {
+      "arm": "learned:ai.typesafe/jev-decision/jev-latest",
+      "domain": "application",
+      "key": null,
+      "key_digest": null,
+      "metrics": null,
+      "reasons": [
+        "arm unavailable: missing credential/endpoint variable(s): SEMAPRAX_HARNESS_SECRET_JEV"
+      ],
+      "record_digest": null,
+      "spec_digest": "sha256:e675f4e86b39be3dd3b68142e7904ec9fabb146e4b3c90a732b6c9b6c3295576",
+      "status": "not-evaluated"
+    },
+    {
+      "arm": "learned:org.r-ms/minijev-local/minijev-local",
+      "domain": "application",
+      "key": null,
+      "key_digest": null,
+      "metrics": null,
+      "reasons": [
+        "arm unavailable: missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER"
+      ],
+      "record_digest": null,
+      "spec_digest": "sha256:e675f4e86b39be3dd3b68142e7904ec9fabb146e4b3c90a732b6c9b6c3295576",
+      "status": "not-evaluated"
+    },
+    {
+      "arm": "learned:com.cloudflare/clef-decision/cf-clef",
+      "domain": "application",
+      "key": null,
+      "key_digest": null,
+      "metrics": null,
+      "reasons": [
+        "arm unavailable: missing credential/endpoint variable(s): SEMAPRAX_HARNESS_SECRET_CLOUDFLARE"
+      ],
+      "record_digest": null,
+      "spec_digest": "sha256:e675f4e86b39be3dd3b68142e7904ec9fabb146e4b3c90a732b6c9b6c3295576",
+      "status": "not-evaluated"
+    },
+    {
+      "arm": "learned:com.cloudflare/clef-decision/cf-clef-flash",
+      "domain": "application",
+      "key": null,
+      "key_digest": null,
+      "metrics": null,
+      "reasons": [
+        "arm unavailable: missing credential/endpoint variable(s): SEMAPRAX_HARNESS_SECRET_CLOUDFLARE"
+      ],
+      "record_digest": null,
+      "spec_digest": "sha256:e675f4e86b39be3dd3b68142e7904ec9fabb146e4b3c90a732b6c9b6c3295576",
+      "status": "not-evaluated"
+    },
+    {
+      "arm": "learned:ai.cloudflare/clef-local-decision/clef-local",
+      "domain": "application",
+      "key": null,
+      "key_digest": null,
+      "metrics": null,
+      "reasons": [
+        "arm unavailable: missing credential/endpoint variable(s): SEMAPRAX_MATRIX_CLEF_WORKER; required hardware not declared on this host: cuda"
+      ],
+      "record_digest": null,
+      "spec_digest": "sha256:e675f4e86b39be3dd3b68142e7904ec9fabb146e4b3c90a732b6c9b6c3295576",
+      "status": "not-evaluated"
+    }
+  ],
+  "gate_specs": [
+    {
+      "completion_margin": 0.0,
+      "digest": "sha256:7a730ccded3389789dd013a633f30f756cbc1af0cba467d6941a45302706157c",
+      "domain": "development",
+      "max_extra_regressions": 0,
+      "max_latency_ratio": 1.5,
+      "min_cost_saving": 0.1,
+      "min_items": 30,
+      "reviewed": "docs/HARNESS-DECISION-V1.md#matched-routing-evidence-mr-13",
+      "version": "mr13-development-v1"
+    },
+    {
+      "completion_margin": 0.0,
+      "digest": "sha256:e675f4e86b39be3dd3b68142e7904ec9fabb146e4b3c90a732b6c9b6c3295576",
+      "domain": "application",
+      "max_extra_regressions": 0,
+      "max_latency_ratio": 1.5,
+      "min_cost_saving": 0.1,
+      "min_items": 30,
+      "reviewed": "docs/HARNESS-DECISION-V1.md#matched-routing-evidence-mr-13",
+      "version": "mr13-application-v1"
+    }
+  ],
+  "matrix": {
+    "application": {
+      "cost-aware": {
+        "calibration": {
+          "fixture": 0,
+          "real": 0,
+          "unavailable": 0
+        },
+        "eval": {
+          "fixture": 24,
+          "real": 0,
+          "unavailable": 0
+        },
+        "eval_by_stratum": {
+          "agent_tool_selection": {
+            "fixture": 10,
+            "real": 0,
+            "unavailable": 0
+          },
+          "multi_turn_recovery": {
+            "fixture": 5,
+            "real": 0,
+            "unavailable": 0
+          },
+          "runtime_classification": {
+            "fixture": 9,
+            "real": 0,
+            "unavailable": 0
+          }
+        },
+        "reason": null,
+        "status": "available"
+      },
+      "fixed:m-cheap": {
+        "calibration": {
+          "fixture": 7,
+          "real": 0,
+          "unavailable": 0
+        },
+        "eval": {
+          "fixture": 24,
+          "real": 0,
+          "unavailable": 0
+        },
+        "eval_by_stratum": {
+          "agent_tool_selection": {
+            "fixture": 10,
+            "real": 0,
+            "unavailable": 0
+          },
+          "multi_turn_recovery": {
+            "fixture": 5,
+            "real": 0,
+            "unavailable": 0
+          },
+          "runtime_classification": {
+            "fixture": 9,
+            "real": 0,
+            "unavailable": 0
+          }
+        },
+        "reason": null,
+        "status": "available"
+      },
+      "fixed:m-mid": {
+        "calibration": {
+          "fixture": 7,
+          "real": 0,
+          "unavailable": 0
+        },
+        "eval": {
+          "fixture": 24,
+          "real": 0,
+          "unavailable": 0
+        },
+        "eval_by_stratum": {
+          "agent_tool_selection": {
+            "fixture": 10,
+            "real": 0,
+            "unavailable": 0
+          },
+          "multi_turn_recovery": {
+            "fixture": 5,
+            "real": 0,
+            "unavailable": 0
+          },
+          "runtime_classification": {
+            "fixture": 9,
+            "real": 0,
+            "unavailable": 0
+          }
+        },
+        "reason": null,
+        "status": "available"
+      },
+      "fixed:m-strong": {
+        "calibration": {
+          "fixture": 7,
+          "real": 0,
+          "unavailable": 0
+        },
+        "eval": {
+          "fixture": 24,
+          "real": 0,
+          "unavailable": 0
+        },
+        "eval_by_stratum": {
+          "agent_tool_selection": {
+            "fixture": 10,
+            "real": 0,
+            "unavailable": 0
+          },
+          "multi_turn_recovery": {
+            "fixture": 5,
+            "real": 0,
+            "unavailable": 0
+          },
+          "runtime_classification": {
+            "fixture": 9,
+            "real": 0,
+            "unavailable": 0
+          }
+        },
+        "reason": null,
+        "status": "available"
+      },
+      "learned:ai.cloudflare/clef-local-decision/clef-local": {
+        "calibration": {
+          "fixture": 0,
+          "real": 0,
+          "unavailable": 7
+        },
+        "eval": {
+          "fixture": 0,
+          "real": 0,
+          "unavailable": 24
+        },
+        "eval_by_stratum": {
+          "agent_tool_selection": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 10
+          },
+          "multi_turn_recovery": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 5
+          },
+          "runtime_classification": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 9
+          }
+        },
+        "reason": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_CLEF_WORKER; required hardware not declared on this host: cuda",
+        "status": "unavailable"
+      },
+      "learned:ai.convai/laya-decision/laya-multilingual": {
+        "calibration": {
+          "fixture": 0,
+          "real": 0,
+          "unavailable": 7
+        },
+        "eval": {
+          "fixture": 0,
+          "real": 0,
+          "unavailable": 24
+        },
+        "eval_by_stratum": {
+          "agent_tool_selection": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 10
+          },
+          "multi_turn_recovery": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 5
+          },
+          "runtime_classification": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 9
+          }
+        },
+        "reason": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_LAYA_READY",
+        "status": "unavailable"
+      },
+      "learned:ai.typesafe/jev-decision/jev-latest": {
+        "calibration": {
+          "fixture": 0,
+          "real": 0,
+          "unavailable": 7
+        },
+        "eval": {
+          "fixture": 0,
+          "real": 0,
+          "unavailable": 24
+        },
+        "eval_by_stratum": {
+          "agent_tool_selection": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 10
+          },
+          "multi_turn_recovery": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 5
+          },
+          "runtime_classification": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 9
+          }
+        },
+        "reason": "missing credential/endpoint variable(s): SEMAPRAX_HARNESS_SECRET_JEV",
+        "status": "unavailable"
+      },
+      "learned:com.cloudflare/clef-decision/cf-clef": {
+        "calibration": {
+          "fixture": 0,
+          "real": 0,
+          "unavailable": 7
+        },
+        "eval": {
+          "fixture": 0,
+          "real": 0,
+          "unavailable": 24
+        },
+        "eval_by_stratum": {
+          "agent_tool_selection": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 10
+          },
+          "multi_turn_recovery": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 5
+          },
+          "runtime_classification": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 9
+          }
+        },
+        "reason": "missing credential/endpoint variable(s): SEMAPRAX_HARNESS_SECRET_CLOUDFLARE",
+        "status": "unavailable"
+      },
+      "learned:com.cloudflare/clef-decision/cf-clef-flash": {
+        "calibration": {
+          "fixture": 0,
+          "real": 0,
+          "unavailable": 7
+        },
+        "eval": {
+          "fixture": 0,
+          "real": 0,
+          "unavailable": 24
+        },
+        "eval_by_stratum": {
+          "agent_tool_selection": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 10
+          },
+          "multi_turn_recovery": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 5
+          },
+          "runtime_classification": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 9
+          }
+        },
+        "reason": "missing credential/endpoint variable(s): SEMAPRAX_HARNESS_SECRET_CLOUDFLARE",
+        "status": "unavailable"
+      },
+      "learned:org.r-ms/minijev-local/minijev-local": {
+        "calibration": {
+          "fixture": 0,
+          "real": 0,
+          "unavailable": 7
+        },
+        "eval": {
+          "fixture": 0,
+          "real": 0,
+          "unavailable": 24
+        },
+        "eval_by_stratum": {
+          "agent_tool_selection": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 10
+          },
+          "multi_turn_recovery": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 5
+          },
+          "runtime_classification": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 9
+          }
+        },
+        "reason": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+        "status": "unavailable"
+      },
+      "rules": {
+        "calibration": {
+          "fixture": 7,
+          "real": 0,
+          "unavailable": 0
+        },
+        "eval": {
+          "fixture": 24,
+          "real": 0,
+          "unavailable": 0
+        },
+        "eval_by_stratum": {
+          "agent_tool_selection": {
+            "fixture": 10,
+            "real": 0,
+            "unavailable": 0
+          },
+          "multi_turn_recovery": {
+            "fixture": 5,
+            "real": 0,
+            "unavailable": 0
+          },
+          "runtime_classification": {
+            "fixture": 9,
+            "real": 0,
+            "unavailable": 0
+          }
+        },
+        "reason": null,
+        "status": "available"
+      }
+    },
+    "development": {
+      "cost-aware": {
+        "calibration": {
+          "fixture": 0,
+          "real": 0,
+          "unavailable": 0
+        },
+        "eval": {
+          "fixture": 31,
+          "real": 0,
+          "unavailable": 0
+        },
+        "eval_by_stratum": {
+          "hard_semantic": {
+            "fixture": 4,
+            "real": 0,
+            "unavailable": 0
+          },
+          "localized_debug": {
+            "fixture": 12,
+            "real": 0,
+            "unavailable": 0
+          },
+          "mechanical": {
+            "fixture": 4,
+            "real": 0,
+            "unavailable": 0
+          },
+          "multi_turn_recovery": {
+            "fixture": 4,
+            "real": 0,
+            "unavailable": 0
+          },
+          "tests": {
+            "fixture": 7,
+            "real": 0,
+            "unavailable": 0
+          }
+        },
+        "reason": null,
+        "status": "available"
+      },
+      "fixed:m-cheap": {
+        "calibration": {
+          "fixture": 9,
+          "real": 0,
+          "unavailable": 0
+        },
+        "eval": {
+          "fixture": 31,
+          "real": 0,
+          "unavailable": 0
+        },
+        "eval_by_stratum": {
+          "hard_semantic": {
+            "fixture": 4,
+            "real": 0,
+            "unavailable": 0
+          },
+          "localized_debug": {
+            "fixture": 12,
+            "real": 0,
+            "unavailable": 0
+          },
+          "mechanical": {
+            "fixture": 4,
+            "real": 0,
+            "unavailable": 0
+          },
+          "multi_turn_recovery": {
+            "fixture": 4,
+            "real": 0,
+            "unavailable": 0
+          },
+          "tests": {
+            "fixture": 7,
+            "real": 0,
+            "unavailable": 0
+          }
+        },
+        "reason": null,
+        "status": "available"
+      },
+      "fixed:m-mid": {
+        "calibration": {
+          "fixture": 9,
+          "real": 0,
+          "unavailable": 0
+        },
+        "eval": {
+          "fixture": 31,
+          "real": 0,
+          "unavailable": 0
+        },
+        "eval_by_stratum": {
+          "hard_semantic": {
+            "fixture": 4,
+            "real": 0,
+            "unavailable": 0
+          },
+          "localized_debug": {
+            "fixture": 12,
+            "real": 0,
+            "unavailable": 0
+          },
+          "mechanical": {
+            "fixture": 4,
+            "real": 0,
+            "unavailable": 0
+          },
+          "multi_turn_recovery": {
+            "fixture": 4,
+            "real": 0,
+            "unavailable": 0
+          },
+          "tests": {
+            "fixture": 7,
+            "real": 0,
+            "unavailable": 0
+          }
+        },
+        "reason": null,
+        "status": "available"
+      },
+      "fixed:m-strong": {
+        "calibration": {
+          "fixture": 9,
+          "real": 0,
+          "unavailable": 0
+        },
+        "eval": {
+          "fixture": 31,
+          "real": 0,
+          "unavailable": 0
+        },
+        "eval_by_stratum": {
+          "hard_semantic": {
+            "fixture": 4,
+            "real": 0,
+            "unavailable": 0
+          },
+          "localized_debug": {
+            "fixture": 12,
+            "real": 0,
+            "unavailable": 0
+          },
+          "mechanical": {
+            "fixture": 4,
+            "real": 0,
+            "unavailable": 0
+          },
+          "multi_turn_recovery": {
+            "fixture": 4,
+            "real": 0,
+            "unavailable": 0
+          },
+          "tests": {
+            "fixture": 7,
+            "real": 0,
+            "unavailable": 0
+          }
+        },
+        "reason": null,
+        "status": "available"
+      },
+      "learned:ai.cloudflare/clef-local-decision/clef-local": {
+        "calibration": {
+          "fixture": 0,
+          "real": 0,
+          "unavailable": 9
+        },
+        "eval": {
+          "fixture": 0,
+          "real": 0,
+          "unavailable": 31
+        },
+        "eval_by_stratum": {
+          "hard_semantic": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 4
+          },
+          "localized_debug": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 12
+          },
+          "mechanical": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 4
+          },
+          "multi_turn_recovery": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 4
+          },
+          "tests": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 7
+          }
+        },
+        "reason": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_CLEF_WORKER; required hardware not declared on this host: cuda",
+        "status": "unavailable"
+      },
+      "learned:ai.convai/laya-decision/laya-multilingual": {
+        "calibration": {
+          "fixture": 0,
+          "real": 0,
+          "unavailable": 9
+        },
+        "eval": {
+          "fixture": 0,
+          "real": 0,
+          "unavailable": 31
+        },
+        "eval_by_stratum": {
+          "hard_semantic": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 4
+          },
+          "localized_debug": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 12
+          },
+          "mechanical": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 4
+          },
+          "multi_turn_recovery": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 4
+          },
+          "tests": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 7
+          }
+        },
+        "reason": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_LAYA_READY",
+        "status": "unavailable"
+      },
+      "learned:ai.typesafe/jev-decision/jev-latest": {
+        "calibration": {
+          "fixture": 0,
+          "real": 0,
+          "unavailable": 9
+        },
+        "eval": {
+          "fixture": 0,
+          "real": 0,
+          "unavailable": 31
+        },
+        "eval_by_stratum": {
+          "hard_semantic": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 4
+          },
+          "localized_debug": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 12
+          },
+          "mechanical": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 4
+          },
+          "multi_turn_recovery": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 4
+          },
+          "tests": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 7
+          }
+        },
+        "reason": "missing credential/endpoint variable(s): SEMAPRAX_HARNESS_SECRET_JEV",
+        "status": "unavailable"
+      },
+      "learned:com.cloudflare/clef-decision/cf-clef": {
+        "calibration": {
+          "fixture": 0,
+          "real": 0,
+          "unavailable": 9
+        },
+        "eval": {
+          "fixture": 0,
+          "real": 0,
+          "unavailable": 31
+        },
+        "eval_by_stratum": {
+          "hard_semantic": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 4
+          },
+          "localized_debug": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 12
+          },
+          "mechanical": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 4
+          },
+          "multi_turn_recovery": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 4
+          },
+          "tests": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 7
+          }
+        },
+        "reason": "missing credential/endpoint variable(s): SEMAPRAX_HARNESS_SECRET_CLOUDFLARE",
+        "status": "unavailable"
+      },
+      "learned:com.cloudflare/clef-decision/cf-clef-flash": {
+        "calibration": {
+          "fixture": 0,
+          "real": 0,
+          "unavailable": 9
+        },
+        "eval": {
+          "fixture": 0,
+          "real": 0,
+          "unavailable": 31
+        },
+        "eval_by_stratum": {
+          "hard_semantic": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 4
+          },
+          "localized_debug": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 12
+          },
+          "mechanical": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 4
+          },
+          "multi_turn_recovery": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 4
+          },
+          "tests": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 7
+          }
+        },
+        "reason": "missing credential/endpoint variable(s): SEMAPRAX_HARNESS_SECRET_CLOUDFLARE",
+        "status": "unavailable"
+      },
+      "learned:org.r-ms/minijev-local/minijev-local": {
+        "calibration": {
+          "fixture": 0,
+          "real": 0,
+          "unavailable": 9
+        },
+        "eval": {
+          "fixture": 0,
+          "real": 0,
+          "unavailable": 31
+        },
+        "eval_by_stratum": {
+          "hard_semantic": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 4
+          },
+          "localized_debug": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 12
+          },
+          "mechanical": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 4
+          },
+          "multi_turn_recovery": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 4
+          },
+          "tests": {
+            "fixture": 0,
+            "real": 0,
+            "unavailable": 7
+          }
+        },
+        "reason": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+        "status": "unavailable"
+      },
+      "rules": {
+        "calibration": {
+          "fixture": 9,
+          "real": 0,
+          "unavailable": 0
+        },
+        "eval": {
+          "fixture": 31,
+          "real": 0,
+          "unavailable": 0
+        },
+        "eval_by_stratum": {
+          "hard_semantic": {
+            "fixture": 4,
+            "real": 0,
+            "unavailable": 0
+          },
+          "localized_debug": {
+            "fixture": 12,
+            "real": 0,
+            "unavailable": 0
+          },
+          "mechanical": {
+            "fixture": 4,
+            "real": 0,
+            "unavailable": 0
+          },
+          "multi_turn_recovery": {
+            "fixture": 4,
+            "real": 0,
+            "unavailable": 0
+          },
+          "tests": {
+            "fixture": 7,
+            "real": 0,
+            "unavailable": 0
+          }
+        },
+        "reason": null,
+        "status": "available"
+      }
+    }
+  },
+  "schema": "semaprax.harness-routing-gate-decision.v1",
+  "seal": "sha256:d3b8ad3a0eca80101557a1e39072b273a1068f149f777ea95d90077d02d467ac"
+}

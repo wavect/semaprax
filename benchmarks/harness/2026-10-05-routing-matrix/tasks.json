@@ -1,0 +1,1328 @@
+{
+  "budget": {
+    "max_cost_micros": 1000000,
+    "max_latency_ms": 60000,
+    "max_router_calls": 1
+  },
+  "candidate_revision": "catalog-mr13-v1",
+  "catalog": [
+    {
+      "capabilities": [
+        "structured_output",
+        "tools"
+      ],
+      "destination": {
+        "kind": "local"
+      },
+      "est_cost_micros": 1000,
+      "est_latency_ms": 1000,
+      "id": "m-cheap",
+      "max_context": 200000,
+      "strength_rank": 1
+    },
+    {
+      "capabilities": [
+        "structured_output",
+        "tools"
+      ],
+      "destination": {
+        "kind": "local"
+      },
+      "est_cost_micros": 4000,
+      "est_latency_ms": 1000,
+      "id": "m-mid",
+      "max_context": 200000,
+      "strength_rank": 2
+    },
+    {
+      "capabilities": [
+        "structured_output",
+        "tools"
+      ],
+      "destination": {
+        "kind": "local"
+      },
+      "est_cost_micros": 20000,
+      "est_latency_ms": 1000,
+      "id": "m-strong",
+      "max_context": 200000,
+      "strength_rank": 3
+    }
+  ],
+  "description": "MR-13 fixture task set: item ids, strata, partitions and verifier identities are contract fixtures; no item here was executed by a model.",
+  "items": [
+    {
+      "content_digest": "sha256:dc73c7d084c12a4779c974452887471c1dd72b686296e1127289fc04148539ed",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "mechanical"
+      },
+      "id": "d-semaprax-mechanical-eva-00",
+      "partition": "repo:semaprax",
+      "split": "eval",
+      "stratum": "mechanical",
+      "verifier": "dev-compiler"
+    },
+    {
+      "content_digest": "sha256:c273ae1752d403c1eafa13de118e2153a18778e7c7881b06cf42015c2c8ff86b",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "mechanical"
+      },
+      "id": "d-semaprax-mechanical-eva-01",
+      "partition": "repo:semaprax",
+      "split": "eval",
+      "stratum": "mechanical",
+      "verifier": "dev-compiler"
+    },
+    {
+      "content_digest": "sha256:6d98ebb156a43c5b421ac0cf39b62229ab4ddfce17a1aa60f931a06985abac5a",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "mechanical"
+      },
+      "id": "d-semaprax-mechanical-eva-02",
+      "partition": "repo:semaprax",
+      "split": "eval",
+      "stratum": "mechanical",
+      "verifier": "dev-compiler"
+    },
+    {
+      "content_digest": "sha256:9138791d1347ba4d52f70da5a904705ec3fa95f023a91b2546049a0c51203d2a",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "mechanical"
+      },
+      "id": "d-semaprax-mechanical-eva-03",
+      "partition": "repo:semaprax",
+      "split": "eval",
+      "stratum": "mechanical",
+      "verifier": "dev-compiler"
+    },
+    {
+      "content_digest": "sha256:64874f69e9aaad1a094227e364fc27fbdb35ca12dcf6746a9ffc54d612b9f683",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "mechanical"
+      },
+      "id": "d-semaprax-mechanical-cal-00",
+      "partition": "repo:semaprax",
+      "split": "calibration",
+      "stratum": "mechanical",
+      "verifier": "dev-compiler"
+    },
+    {
+      "content_digest": "sha256:a51533b4e2c8ca654be760493edd02fd74a9821045e2df1785c6dc523d4e05d3",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "tests_docs"
+      },
+      "id": "d-semaprax-tests-eva-00",
+      "partition": "repo:semaprax",
+      "split": "eval",
+      "stratum": "tests",
+      "verifier": "dev-tests"
+    },
+    {
+      "content_digest": "sha256:2f4055528855c9c6e1b075954556dbbdeda0d221d44849d1848cdc82272e397f",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "tests_docs"
+      },
+      "id": "d-semaprax-tests-eva-01",
+      "partition": "repo:semaprax",
+      "split": "eval",
+      "stratum": "tests",
+      "verifier": "dev-tests"
+    },
+    {
+      "content_digest": "sha256:66a9aaa99ae32db8bd4838641dcab1f2c53a2fd4fd33904d5ada8ac27abeadf0",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "tests_docs"
+      },
+      "id": "d-semaprax-tests-eva-02",
+      "partition": "repo:semaprax",
+      "split": "eval",
+      "stratum": "tests",
+      "verifier": "dev-tests"
+    },
+    {
+      "content_digest": "sha256:af0cb6129e92b520a822f50f00d548c168ffb007ddb890b36e1c6b410e3c7d32",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "tests_docs"
+      },
+      "id": "d-semaprax-tests-eva-03",
+      "partition": "repo:semaprax",
+      "split": "eval",
+      "stratum": "tests",
+      "verifier": "dev-tests"
+    },
+    {
+      "content_digest": "sha256:743174726608b7ef586c986235f3b1d76b789af54d398d1215cc68a5defa795d",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "tests_docs"
+      },
+      "id": "d-semaprax-tests-cal-00",
+      "partition": "repo:semaprax",
+      "split": "calibration",
+      "stratum": "tests",
+      "verifier": "dev-tests"
+    },
+    {
+      "content_digest": "sha256:f71c893151c5adeb14cc9816bd25b81bc382946aad12ba10f9d2f88ae2de2aec",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "localized_debug"
+      },
+      "id": "d-semaprax-localized_debug-eva-00",
+      "partition": "repo:semaprax",
+      "split": "eval",
+      "stratum": "localized_debug",
+      "verifier": "dev-tests"
+    },
+    {
+      "content_digest": "sha256:3fbd1f7fe89f4ce854491e272e29bc347ba2cbbec869ea70976e57926a0b27ec",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "localized_debug"
+      },
+      "id": "d-semaprax-localized_debug-eva-01",
+      "partition": "repo:semaprax",
+      "split": "eval",
+      "stratum": "localized_debug",
+      "verifier": "dev-tests"
+    },
+    {
+      "content_digest": "sha256:565378c2ef9471b0970b155e4885e90b5997bfc365d5b9afafcac4ea9c6fe3df",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "localized_debug"
+      },
+      "id": "d-semaprax-localized_debug-eva-02",
+      "partition": "repo:semaprax",
+      "split": "eval",
+      "stratum": "localized_debug",
+      "verifier": "dev-tests"
+    },
+    {
+      "content_digest": "sha256:7b322f8cfa7e5fa8826a430c55b5409a210789d0ecd3fabddd575afd618ef152",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "localized_debug"
+      },
+      "id": "d-semaprax-localized_debug-eva-03",
+      "partition": "repo:semaprax",
+      "split": "eval",
+      "stratum": "localized_debug",
+      "verifier": "dev-tests"
+    },
+    {
+      "content_digest": "sha256:95bff81e50e5b7b60ae181b7e2773310b716fcf398cdc07f398c243047224fa9",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "localized_debug"
+      },
+      "id": "d-semaprax-localized_debug-eva-04",
+      "partition": "repo:semaprax",
+      "split": "eval",
+      "stratum": "localized_debug",
+      "verifier": "dev-tests"
+    },
+    {
+      "content_digest": "sha256:a290bc12e249ec19cafed7a36e469416c452f556bf70a01bc68773b556d398dc",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "localized_debug"
+      },
+      "id": "d-semaprax-localized_debug-eva-05",
+      "partition": "repo:semaprax",
+      "split": "eval",
+      "stratum": "localized_debug",
+      "verifier": "dev-tests"
+    },
+    {
+      "content_digest": "sha256:523d5958850ddfdb8c821f16953e7c1f7535e14c037dffa8a8e379b02176ee03",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "localized_debug"
+      },
+      "id": "d-semaprax-localized_debug-cal-00",
+      "partition": "repo:semaprax",
+      "split": "calibration",
+      "stratum": "localized_debug",
+      "verifier": "dev-tests"
+    },
+    {
+      "content_digest": "sha256:33c615a66bc7ceaae596d4d1be57361d318ce81a8b8cdaaa4d329b047a8c47e2",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "localized_debug"
+      },
+      "id": "d-semaprax-localized_debug-cal-01",
+      "partition": "repo:semaprax",
+      "split": "calibration",
+      "stratum": "localized_debug",
+      "verifier": "dev-tests"
+    },
+    {
+      "content_digest": "sha256:ccd56ddaf5896c6da1b1128941642554f4e66a492114a232f1d9a52a5f561c6c",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "semantic_law"
+      },
+      "id": "d-semaprax-hard_semantic-eva-00",
+      "partition": "repo:semaprax",
+      "split": "eval",
+      "stratum": "hard_semantic",
+      "verifier": "dev-compiler"
+    },
+    {
+      "content_digest": "sha256:46e1fe32e9d52a723edeb74e1bd0c54613ea6680d119697ce9ef2c12e9bb4b36",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "semantic_law"
+      },
+      "id": "d-semaprax-hard_semantic-eva-01",
+      "partition": "repo:semaprax",
+      "split": "eval",
+      "stratum": "hard_semantic",
+      "verifier": "dev-compiler"
+    },
+    {
+      "content_digest": "sha256:fad143eaa6647d709280a519b4c9119c1f47286dc3d177dd3fe76c96f94be2ee",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "semantic_law"
+      },
+      "id": "d-semaprax-hard_semantic-eva-02",
+      "partition": "repo:semaprax",
+      "split": "eval",
+      "stratum": "hard_semantic",
+      "verifier": "dev-compiler"
+    },
+    {
+      "content_digest": "sha256:4eaae6055f757dfdcfec9f33bc4fbd1a878ec2a522c5632e47a3901655f18cc3",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "semantic_law"
+      },
+      "id": "d-semaprax-hard_semantic-eva-03",
+      "partition": "repo:semaprax",
+      "split": "eval",
+      "stratum": "hard_semantic",
+      "verifier": "dev-compiler"
+    },
+    {
+      "content_digest": "sha256:2f492f1f12e03eee22c62e335f28ce8407086d3ae3fd2ecac8f012dfb003e0c3",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "semantic_law"
+      },
+      "id": "d-semaprax-hard_semantic-cal-00",
+      "partition": "repo:semaprax",
+      "split": "calibration",
+      "stratum": "hard_semantic",
+      "verifier": "dev-compiler"
+    },
+    {
+      "content_digest": "sha256:c64cad26adf4875b13ce4f5806476aeef5dc9b0b5763b1faeaba264af5522d9d",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "localized_debug"
+      },
+      "id": "d-semaprax-harness-localized_debug-eva-00",
+      "partition": "repo:semaprax-harness",
+      "split": "eval",
+      "stratum": "localized_debug",
+      "verifier": "dev-tests"
+    },
+    {
+      "content_digest": "sha256:aaf5079b5760c8a138b32839d33cfec81af3f156cbe01b6c68761db34915de6a",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "localized_debug"
+      },
+      "id": "d-semaprax-harness-localized_debug-eva-01",
+      "partition": "repo:semaprax-harness",
+      "split": "eval",
+      "stratum": "localized_debug",
+      "verifier": "dev-tests"
+    },
+    {
+      "content_digest": "sha256:9085b68f957c5db502c62611d07913c535f977ecc5e176ea4bb9ee42d0649670",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "localized_debug"
+      },
+      "id": "d-semaprax-harness-localized_debug-eva-02",
+      "partition": "repo:semaprax-harness",
+      "split": "eval",
+      "stratum": "localized_debug",
+      "verifier": "dev-tests"
+    },
+    {
+      "content_digest": "sha256:6a4f158cd932c97922e33eda0e8dc6ff07c4c219fe356281887598f213bc7599",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "localized_debug"
+      },
+      "id": "d-semaprax-harness-localized_debug-eva-03",
+      "partition": "repo:semaprax-harness",
+      "split": "eval",
+      "stratum": "localized_debug",
+      "verifier": "dev-tests"
+    },
+    {
+      "content_digest": "sha256:bd89d860e69ac8c7254f205baefc5b54855d09171cdd7c368c2866e2c8a0b1d7",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "localized_debug"
+      },
+      "id": "d-semaprax-harness-localized_debug-eva-04",
+      "partition": "repo:semaprax-harness",
+      "split": "eval",
+      "stratum": "localized_debug",
+      "verifier": "dev-tests"
+    },
+    {
+      "content_digest": "sha256:f0a3f0f55fe2130503bd0d1787184f500cef78c4e76f5975fcf92e5166b16337",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "localized_debug"
+      },
+      "id": "d-semaprax-harness-localized_debug-eva-05",
+      "partition": "repo:semaprax-harness",
+      "split": "eval",
+      "stratum": "localized_debug",
+      "verifier": "dev-tests"
+    },
+    {
+      "content_digest": "sha256:6c7d3b62ade4ae11e05b2671639202a2cfedc5ed65ce91be79b56597d5078d8c",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "localized_debug"
+      },
+      "id": "d-semaprax-harness-localized_debug-cal-00",
+      "partition": "repo:semaprax-harness",
+      "split": "calibration",
+      "stratum": "localized_debug",
+      "verifier": "dev-tests"
+    },
+    {
+      "content_digest": "sha256:3bca390f23270ef96ee7a1ae9770b6fb982534585511c7cabc1aa9f704dc7740",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "localized_debug"
+      },
+      "id": "d-semaprax-harness-localized_debug-cal-01",
+      "partition": "repo:semaprax-harness",
+      "split": "calibration",
+      "stratum": "localized_debug",
+      "verifier": "dev-tests"
+    },
+    {
+      "content_digest": "sha256:86ddee6a5fd48124eee603d940f8280fdf84283693ebe1c65a0deff089fed745",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "localized_debug"
+      },
+      "id": "d-semaprax-harness-multi_turn_recovery-eva-00",
+      "partition": "repo:semaprax-harness",
+      "split": "eval",
+      "stratum": "multi_turn_recovery",
+      "verifier": "dev-acceptance"
+    },
+    {
+      "content_digest": "sha256:dd18f32219e0cb0491f492c2b42037a2d3e6b36b6ccf5b7d6faa53eb9a4e00b8",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "localized_debug"
+      },
+      "id": "d-semaprax-harness-multi_turn_recovery-eva-01",
+      "partition": "repo:semaprax-harness",
+      "split": "eval",
+      "stratum": "multi_turn_recovery",
+      "verifier": "dev-acceptance"
+    },
+    {
+      "content_digest": "sha256:f8afb97c4532f33bb732608050b853c62ab7c92154000978aa19b72130549733",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "localized_debug"
+      },
+      "id": "d-semaprax-harness-multi_turn_recovery-eva-02",
+      "partition": "repo:semaprax-harness",
+      "split": "eval",
+      "stratum": "multi_turn_recovery",
+      "verifier": "dev-acceptance"
+    },
+    {
+      "content_digest": "sha256:04d2c05f1a2239540b8d19787d33c2adc0185fddb93cfc4dd6ebbe2345824384",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "localized_debug"
+      },
+      "id": "d-semaprax-harness-multi_turn_recovery-eva-03",
+      "partition": "repo:semaprax-harness",
+      "split": "eval",
+      "stratum": "multi_turn_recovery",
+      "verifier": "dev-acceptance"
+    },
+    {
+      "content_digest": "sha256:f1eb75d6fdf448ffce138132b4f53a0d5d16abd3eb53761a3f658a4c187ffb52",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "localized_debug"
+      },
+      "id": "d-semaprax-harness-multi_turn_recovery-cal-00",
+      "partition": "repo:semaprax-harness",
+      "split": "calibration",
+      "stratum": "multi_turn_recovery",
+      "verifier": "dev-acceptance"
+    },
+    {
+      "content_digest": "sha256:49627ed2103022e0ea789be7ec7ea3e06d5568e968a8f7402de20fe7f08f0477",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "tests_docs"
+      },
+      "id": "d-semaprax-harness-tests-eva-00",
+      "partition": "repo:semaprax-harness",
+      "split": "eval",
+      "stratum": "tests",
+      "verifier": "dev-tests"
+    },
+    {
+      "content_digest": "sha256:35db85696999f77bc13cb6598d38382b67a589f47c3f4903ec5f1d81fc874b94",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "tests_docs"
+      },
+      "id": "d-semaprax-harness-tests-eva-01",
+      "partition": "repo:semaprax-harness",
+      "split": "eval",
+      "stratum": "tests",
+      "verifier": "dev-tests"
+    },
+    {
+      "content_digest": "sha256:ccf3d25fdceef3fde0e0a39f4ec33ff5ae8e7525e20d559da7dae868fd779207",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "tests_docs"
+      },
+      "id": "d-semaprax-harness-tests-eva-02",
+      "partition": "repo:semaprax-harness",
+      "split": "eval",
+      "stratum": "tests",
+      "verifier": "dev-tests"
+    },
+    {
+      "content_digest": "sha256:8087d7f6f51b18d8201f527dd647a9569d67a27caef50ecce0e10a0e59f49335",
+      "domain": "development",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "tests_docs"
+      },
+      "id": "d-semaprax-harness-tests-cal-00",
+      "partition": "repo:semaprax-harness",
+      "split": "calibration",
+      "stratum": "tests",
+      "verifier": "dev-tests"
+    },
+    {
+      "content_digest": "sha256:edbbfb228f2a124843b84d75b6c9789a2307313db4be539d2f7811a55d60cdd7",
+      "domain": "application",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "mechanical"
+      },
+      "id": "a-support-triage-runtime_classification-eva-00",
+      "partition": "app:support-triage/uniform",
+      "split": "eval",
+      "stratum": "runtime_classification",
+      "verifier": "app-typed"
+    },
+    {
+      "content_digest": "sha256:ec39f82462582975488c878dd85267310fc8916ba31bba7923bbfdc020dc4782",
+      "domain": "application",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "mechanical"
+      },
+      "id": "a-support-triage-runtime_classification-eva-01",
+      "partition": "app:support-triage/uniform",
+      "split": "eval",
+      "stratum": "runtime_classification",
+      "verifier": "app-typed"
+    },
+    {
+      "content_digest": "sha256:bb480850c37d6e7dd73f544ca0cb0e46da166e40a9ed5a2065584ad0eba0c2ca",
+      "domain": "application",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "mechanical"
+      },
+      "id": "a-support-triage-runtime_classification-eva-02",
+      "partition": "app:support-triage/uniform",
+      "split": "eval",
+      "stratum": "runtime_classification",
+      "verifier": "app-typed"
+    },
+    {
+      "content_digest": "sha256:52632735cf38e4470b196574fb262c57ac3d2e4f8eb983549ee49896930dc704",
+      "domain": "application",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "mechanical"
+      },
+      "id": "a-support-triage-runtime_classification-eva-03",
+      "partition": "app:support-triage/uniform",
+      "split": "eval",
+      "stratum": "runtime_classification",
+      "verifier": "app-typed"
+    },
+    {
+      "content_digest": "sha256:6b1db0858613f2c5853c67988731ded82f697796c7b7551242f7b5b84abe2869",
+      "domain": "application",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "mechanical"
+      },
+      "id": "a-support-triage-runtime_classification-eva-04",
+      "partition": "app:support-triage/uniform",
+      "split": "eval",
+      "stratum": "runtime_classification",
+      "verifier": "app-typed"
+    },
+    {
+      "content_digest": "sha256:c95bf066fff2b652e33821e11a2e0445fa1c1a33e8f38d5061e5f9cc186bdabc",
+      "domain": "application",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "mechanical"
+      },
+      "id": "a-support-triage-runtime_classification-eva-05",
+      "partition": "app:support-triage/uniform",
+      "split": "eval",
+      "stratum": "runtime_classification",
+      "verifier": "app-typed"
+    },
+    {
+      "content_digest": "sha256:f1a48e705ea14932076415c93cc41f366244ba6f9b02349b226cd3b25124ed3e",
+      "domain": "application",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "mechanical"
+      },
+      "id": "a-support-triage-runtime_classification-cal-00",
+      "partition": "app:support-triage/uniform",
+      "split": "calibration",
+      "stratum": "runtime_classification",
+      "verifier": "app-typed"
+    },
+    {
+      "content_digest": "sha256:5a927253449740c995c0c18481e025395e8cbc877d0b3868ea8ef2cf6b724f99",
+      "domain": "application",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "mechanical"
+      },
+      "id": "a-support-triage-runtime_classification-cal-01",
+      "partition": "app:support-triage/uniform",
+      "split": "calibration",
+      "stratum": "runtime_classification",
+      "verifier": "app-typed"
+    },
+    {
+      "content_digest": "sha256:dc92e255c53d8e779cd96e18f696b1e6b176eaeb0185daa635272cc087d0bc85",
+      "domain": "application",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": true,
+        "task_family": "localized_debug"
+      },
+      "id": "a-support-triage-agent_tool_selection-eva-00",
+      "partition": "app:support-triage/uniform",
+      "split": "eval",
+      "stratum": "agent_tool_selection",
+      "verifier": "app-policy"
+    },
+    {
+      "content_digest": "sha256:9314fb8ac59b721bd271d3744feddc54ad9d631b8ce59572b632e5ca36c65209",
+      "domain": "application",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": true,
+        "task_family": "localized_debug"
+      },
+      "id": "a-support-triage-agent_tool_selection-eva-01",
+      "partition": "app:support-triage/uniform",
+      "split": "eval",
+      "stratum": "agent_tool_selection",
+      "verifier": "app-policy"
+    },
+    {
+      "content_digest": "sha256:63dec38179336388dd04db15bbe1aa50517fa050a4078bd245ae046eabefc358",
+      "domain": "application",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": true,
+        "task_family": "localized_debug"
+      },
+      "id": "a-support-triage-agent_tool_selection-eva-02",
+      "partition": "app:support-triage/uniform",
+      "split": "eval",
+      "stratum": "agent_tool_selection",
+      "verifier": "app-policy"
+    },
+    {
+      "content_digest": "sha256:b6069fa5139eab47c176799960243ddc4dae7c0570ef6329cc177c26b8d54f1a",
+      "domain": "application",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": true,
+        "task_family": "localized_debug"
+      },
+      "id": "a-support-triage-agent_tool_selection-eva-03",
+      "partition": "app:support-triage/uniform",
+      "split": "eval",
+      "stratum": "agent_tool_selection",
+      "verifier": "app-policy"
+    },
+    {
+      "content_digest": "sha256:f86d0b35d136e6fd456246ffbacb914eb5651975229ad822531975613a94c2cc",
+      "domain": "application",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": true,
+        "task_family": "localized_debug"
+      },
+      "id": "a-support-triage-agent_tool_selection-eva-04",
+      "partition": "app:support-triage/uniform",
+      "split": "eval",
+      "stratum": "agent_tool_selection",
+      "verifier": "app-policy"
+    },
+    {
+      "content_digest": "sha256:a128f51238dc3c2e9db9b1534f6031776860a43c3f983aba30e3a6d8ee9a1b79",
+      "domain": "application",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": true,
+        "task_family": "localized_debug"
+      },
+      "id": "a-support-triage-agent_tool_selection-cal-00",
+      "partition": "app:support-triage/uniform",
+      "split": "calibration",
+      "stratum": "agent_tool_selection",
+      "verifier": "app-policy"
+    },
+    {
+      "content_digest": "sha256:e037979ee8941eb706fac0ceb48eabd8800dbb20e1404f68666054b5066e790c",
+      "domain": "application",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": true,
+        "task_family": "localized_debug"
+      },
+      "id": "a-support-triage-agent_tool_selection-cal-01",
+      "partition": "app:support-triage/uniform",
+      "split": "calibration",
+      "stratum": "agent_tool_selection",
+      "verifier": "app-policy"
+    },
+    {
+      "content_digest": "sha256:337dc800a234f04d14dd966bfa010d8e8b12ad5f22aa0e6c1f147ab3400c8721",
+      "domain": "application",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": true,
+        "task_family": "localized_debug"
+      },
+      "id": "a-order-agent-agent_tool_selection-eva-00",
+      "partition": "app:order-agent/heavy-tail",
+      "split": "eval",
+      "stratum": "agent_tool_selection",
+      "verifier": "app-policy"
+    },
+    {
+      "content_digest": "sha256:dc27513c9d6d7d3cf9d350722008a8808fd826f26e314201830509fc6f54af93",
+      "domain": "application",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": true,
+        "task_family": "localized_debug"
+      },
+      "id": "a-order-agent-agent_tool_selection-eva-01",
+      "partition": "app:order-agent/heavy-tail",
+      "split": "eval",
+      "stratum": "agent_tool_selection",
+      "verifier": "app-policy"
+    },
+    {
+      "content_digest": "sha256:96eadfffdfd33e280d4ff596242dbd8a367200aa219693600250df66a8224435",
+      "domain": "application",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": true,
+        "task_family": "localized_debug"
+      },
+      "id": "a-order-agent-agent_tool_selection-eva-02",
+      "partition": "app:order-agent/heavy-tail",
+      "split": "eval",
+      "stratum": "agent_tool_selection",
+      "verifier": "app-policy"
+    },
+    {
+      "content_digest": "sha256:3b09dad5cc66901c7189b4ba6feb5050f6546f71e16def65120708d476e11500",
+      "domain": "application",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": true,
+        "task_family": "localized_debug"
+      },
+      "id": "a-order-agent-agent_tool_selection-eva-03",
+      "partition": "app:order-agent/heavy-tail",
+      "split": "eval",
+      "stratum": "agent_tool_selection",
+      "verifier": "app-policy"
+    },
+    {
+      "content_digest": "sha256:92ab057a3079c3a241397144b307448c1a8cd2caaa1f6cdfb211b6ad1401573c",
+      "domain": "application",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": true,
+        "task_family": "localized_debug"
+      },
+      "id": "a-order-agent-agent_tool_selection-eva-04",
+      "partition": "app:order-agent/heavy-tail",
+      "split": "eval",
+      "stratum": "agent_tool_selection",
+      "verifier": "app-policy"
+    },
+    {
+      "content_digest": "sha256:d27e05779a79321f7e619654f21673575f7c613485f075deb91763adfead945b",
+      "domain": "application",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": true,
+        "task_family": "localized_debug"
+      },
+      "id": "a-order-agent-agent_tool_selection-cal-00",
+      "partition": "app:order-agent/heavy-tail",
+      "split": "calibration",
+      "stratum": "agent_tool_selection",
+      "verifier": "app-policy"
+    },
+    {
+      "content_digest": "sha256:e9709190dfc6ad296f842e22954fee554ef3cdd74eb2af4480fc5f7168bf7272",
+      "domain": "application",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "localized_debug"
+      },
+      "id": "a-order-agent-multi_turn_recovery-eva-00",
+      "partition": "app:order-agent/heavy-tail",
+      "split": "eval",
+      "stratum": "multi_turn_recovery",
+      "verifier": "app-policy"
+    },
+    {
+      "content_digest": "sha256:01c286779dbce47cecb85b8b16ab5b3224be630f7af7ca567ad8cfff6bed4c75",
+      "domain": "application",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "localized_debug"
+      },
+      "id": "a-order-agent-multi_turn_recovery-eva-01",
+      "partition": "app:order-agent/heavy-tail",
+      "split": "eval",
+      "stratum": "multi_turn_recovery",
+      "verifier": "app-policy"
+    },
+    {
+      "content_digest": "sha256:8c69a0ed5d445a8e268c378db2100de09a208f5418e8b6076b54865b519ed198",
+      "domain": "application",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "localized_debug"
+      },
+      "id": "a-order-agent-multi_turn_recovery-eva-02",
+      "partition": "app:order-agent/heavy-tail",
+      "split": "eval",
+      "stratum": "multi_turn_recovery",
+      "verifier": "app-policy"
+    },
+    {
+      "content_digest": "sha256:e5cf3fff174269735b9ba40a8871cd6c3503f318c637cf2b2866923c90b8653d",
+      "domain": "application",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "localized_debug"
+      },
+      "id": "a-order-agent-multi_turn_recovery-eva-03",
+      "partition": "app:order-agent/heavy-tail",
+      "split": "eval",
+      "stratum": "multi_turn_recovery",
+      "verifier": "app-policy"
+    },
+    {
+      "content_digest": "sha256:c5917185ddb2894b5978bf7ff3f0c2322a80fd7ef7fb64015a4b83ee367b97d9",
+      "domain": "application",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "localized_debug"
+      },
+      "id": "a-order-agent-multi_turn_recovery-eva-04",
+      "partition": "app:order-agent/heavy-tail",
+      "split": "eval",
+      "stratum": "multi_turn_recovery",
+      "verifier": "app-policy"
+    },
+    {
+      "content_digest": "sha256:0590b7ea85b119c06a5ceacf322712c356026345240b463aa5e745468a26b562",
+      "domain": "application",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "localized_debug"
+      },
+      "id": "a-order-agent-multi_turn_recovery-cal-00",
+      "partition": "app:order-agent/heavy-tail",
+      "split": "calibration",
+      "stratum": "multi_turn_recovery",
+      "verifier": "app-policy"
+    },
+    {
+      "content_digest": "sha256:f4ca4c7b7321c0413b3b9e30ad2be3b1543fa6d90a2ee4b144ea4ce1965de1c2",
+      "domain": "application",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "mechanical"
+      },
+      "id": "a-order-agent-runtime_classification-eva-00",
+      "partition": "app:order-agent/heavy-tail",
+      "split": "eval",
+      "stratum": "runtime_classification",
+      "verifier": "app-typed"
+    },
+    {
+      "content_digest": "sha256:8bef8d8b70fd62d793c40bee7326444191e7a788613249c89aa82160d5358e6f",
+      "domain": "application",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "mechanical"
+      },
+      "id": "a-order-agent-runtime_classification-eva-01",
+      "partition": "app:order-agent/heavy-tail",
+      "split": "eval",
+      "stratum": "runtime_classification",
+      "verifier": "app-typed"
+    },
+    {
+      "content_digest": "sha256:fc0fcdc6b9f0ca62a2df12d85330cc8ea7cf3dd76389fb6eb0bc78966ce80db7",
+      "domain": "application",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "mechanical"
+      },
+      "id": "a-order-agent-runtime_classification-eva-02",
+      "partition": "app:order-agent/heavy-tail",
+      "split": "eval",
+      "stratum": "runtime_classification",
+      "verifier": "app-typed"
+    },
+    {
+      "content_digest": "sha256:4d422570852a312913daaa9789aa5f2e9a65dcb69679f6ad99c111c2c5902ad7",
+      "domain": "application",
+      "features": {
+        "confidentiality": "project",
+        "estimated_context_tokens": 6000,
+        "latency_class": "interactive",
+        "requires_structured_output": false,
+        "requires_tools": false,
+        "task_family": "mechanical"
+      },
+      "id": "a-order-agent-runtime_classification-cal-00",
+      "partition": "app:order-agent/heavy-tail",
+      "split": "calibration",
+      "stratum": "runtime_classification",
+      "verifier": "app-typed"
+    }
+  ],
+  "matched_budget": {
+    "max_attempts": 3,
+    "max_cost_micros": 200000
+  },
+  "price_book": {
+    "records": [
+      {
+        "model_prefix": "m-cheap",
+        "pricing": {
+          "cache_read": 15000,
+          "input": 150000,
+          "output": 600000
+        },
+        "version": "mr13-fixture-2026-10-05"
+      },
+      {
+        "model_prefix": "m-mid",
+        "pricing": {
+          "cache_read": 60000,
+          "input": 600000,
+          "output": 2400000
+        },
+        "version": "mr13-fixture-2026-10-05"
+      },
+      {
+        "model_prefix": "m-strong",
+        "pricing": {
+          "cache_read": 300000,
+          "input": 3000000,
+          "output": 15000000
+        },
+        "version": "mr13-fixture-2026-10-05"
+      }
+    ],
+    "schema": "semaprax.harness-price-book.v1"
+  },
+  "renderer_revision": "semaprax.route-render.v2",
+  "schema": "semaprax.harness-routing-tasks.v1",
+  "task": "model-route/v1",
+  "verifiers": [
+    {
+      "id": "dev-compiler",
+      "kind": "compiler",
+      "revision": "semaprax-check-v1"
+    },
+    {
+      "id": "dev-tests",
+      "kind": "tests",
+      "revision": "cargo-test-v1"
+    },
+    {
+      "id": "dev-acceptance",
+      "kind": "acceptance",
+      "revision": "acceptance-v1"
+    },
+    {
+      "id": "app-typed",
+      "kind": "typed_outcome",
+      "revision": "typed-assertions-v1"
+    },
+    {
+      "id": "app-policy",
+      "kind": "policy_invariant",
+      "revision": "policy-side-effect-v1"
+    }
+  ]
+}

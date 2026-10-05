@@ -100,7 +100,7 @@ def implementation_identity():
 
 def runner_revision():
     result = subprocess.run(["/usr/bin/git", "-C", str(provenance.ROOT), "rev-parse", "HEAD"],
-                            env={"PATH": "/usr/bin:/bin"}, capture_output=True, timeout=5, check=True)
+                            env={"PATH": "/usr/bin:/bin"}, capture_output=True, timeout=60, check=True)
     revision = result.stdout.decode().strip()
     if not re.fullmatch(r"[0-9a-f]{40}", revision):
         raise ValueError("runner_revision_refused")

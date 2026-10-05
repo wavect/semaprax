@@ -33,6 +33,10 @@ impl World {
     }
 
     fn with_mode(mode: &str) -> World {
+        World::with_patch(mode, &|_, src| src)
+    }
+
+    fn with_patch(mode: &str, patch: &dyn Fn(&Path, String) -> String) -> World {
         let root = fixture_dir("hp-jma").canonicalize().unwrap();
         let ex = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../packages/semaprax-harness-adapters/examples/hostile-python");
@@ -54,6 +58,7 @@ impl World {
                 "\"decision.evaluate\": [\"evaluate\"]}",
                 "\"decision.evaluate\": [\"evaluate\"], \"model.generate\": [\"generate\"]}",
             );
+        let src = patch(&root, src);
         write(&root, "adapter/adapter.py", &src);
         let mut d: Value =
             serde_json::from_slice(&std::fs::read(ex.join("harness-provider.json")).unwrap())
@@ -393,4 +398,157 @@ fn ma09_failed_refused_uncertain_and_cancelled_terminals_surface_and_stay_blocke
         assert!(text.contains("\"state\":\"begin\""), "{text}");
         assert_eq!(text.lines().count(), 1, "{text}");
     }
+}
+
+#[test]
+fn mf02_sequential_bridge_calls_decode_no_journal_record_and_history_once() {
+    let w = World::new();
+    let inv = w.invoker();
+    let tok = CancelToken::new();
+    for i in 0..4 {
+        let r = inv
+            .run(&gen_params(Some(&format!("seq{i}"))), &tok)
+            .unwrap();
+        assert_eq!(r["state"], "completed", "{r}");
+    }
+    // 4 calls = 8 journal opens, 8 records, all appended by this invoker.
+    assert_eq!(w.journal_text().lines().count(), 8);
+    assert_eq!(inv.journal_decoded(), 0, "own appends are never reparsed");
+    // A restarted bridge parses the 8 historical records once, then nothing.
+    let inv2 = w.invoker();
+    for i in 0..4 {
+        inv2.run(&gen_params(Some(&format!("more{i}"))), &tok)
+            .unwrap();
+    }
+    assert_eq!(inv2.journal_decoded(), 8);
+    assert_eq!(w.journal_text().lines().count(), 16);
+    // Interleaved writer: inv catches up on inv2's 8 records, nothing else.
+    let r = inv.run(&gen_params(Some("late")), &tok).unwrap();
+    assert_eq!(r["state"], "completed");
+    assert_eq!(inv.journal_decoded(), 8);
+    let e = inv.run(&gen_params(Some("more0")), &tok).unwrap_err();
+    assert_eq!(
+        code(&e),
+        "SPX-HPN015",
+        "sees the other writer's completed step"
+    );
+    assert_eq!(w.dispatches(), 9);
+}
+
+#[test]
+fn mf02_primed_independent_invokers_still_dispatch_a_raced_step_once() {
+    let w = Arc::new(World::new());
+    let n = 6;
+    let barrier = Arc::new(Barrier::new(n));
+    let results: Vec<Result<Value, String>> = (0..n)
+        .map(|i| {
+            let (w, b) = (w.clone(), barrier.clone());
+            std::thread::spawn(move || {
+                let inv = w.invoker();
+                inv.run(&gen_params(Some(&format!("prime{i}"))), &CancelToken::new())
+                    .unwrap();
+                b.wait();
+                inv.run(&gen_params(Some("race2")), &CancelToken::new())
+                    .map_err(|e| e.code.to_string())
+            })
+        })
+        .collect::<Vec<_>>()
+        .into_iter()
+        .map(|h| h.join().unwrap())
+        .collect();
+    assert_eq!(
+        results.iter().filter(|r| r.is_ok()).count(),
+        1,
+        "{results:?}"
+    );
+    assert_eq!(w.dispatches(), n + 1);
+}
+
+#[test]
+fn mf02_truncated_journal_fails_closed_for_a_live_bridge() {
+    let w = World::new();
+    let inv = w.invoker();
+    let tok = CancelToken::new();
+    inv.run(&gen_params(Some("t1")), &tok).unwrap();
+    let dir = w.home.join("cache").join("bridge");
+    for e in std::fs::read_dir(&dir).unwrap().flatten() {
+        if e.file_name().to_string_lossy().ends_with(".journal.jsonl") {
+            std::fs::write(e.path(), "").unwrap();
+        }
+    }
+    let e = inv.run(&gen_params(Some("t1")), &tok).unwrap_err();
+    assert_eq!(code(&e), "SPX-HPD070");
+    assert_eq!(
+        w.dispatches(),
+        1,
+        "a truncated journal never authorizes replay"
+    );
+}
+
+fn gated_world(mode: &str) -> World {
+    World::with_patch(mode, &|root, src| {
+        let count = root.join("count");
+        src.replace(
+            "time.sleep(int(os.environ.get(\"HOSTILE_INIT_MS\", \"0\")) / 1000.0)",
+            &format!(
+                "while not os.path.exists(\"{}\"):\n                    time.sleep(0.02)",
+                root.join("gate").display()
+            ),
+        )
+        .replace(
+            "os._exit(3)",
+            &format!(
+                "open(\"{}\", \"a\").write(\"x\"); os._exit(3)",
+                count.display()
+            ),
+        )
+    })
+}
+
+fn short(step: &str) -> Value {
+    let mut p = gen_params(Some(step));
+    p["deadline_ms"] = json!(300);
+    p
+}
+
+#[test]
+fn mf04_unsent_deadline_failure_is_retryable_under_the_same_step_and_survives_restart() {
+    for restart in [false, true] {
+        let w = gated_world("slow_initialize");
+        let inv = w.invoker();
+        let tok = CancelToken::new();
+        let r = inv.run(&short("u1"), &tok).unwrap();
+        assert_eq!(r["state"], "unavailable", "{r}");
+        assert_eq!(r["request_sent"], false, "{r}");
+        assert!(r.get("durable").is_none(), "{r}");
+        assert_eq!(w.dispatches(), 0, "zero invoke frames reached the adapter");
+        let text = w.journal_text();
+        assert!(text.contains("\"state\":\"cancelled\""), "{text}");
+        assert!(!text.contains("uncertain"), "{text}");
+        // Correct the condition, then retry the same explicit step.
+        write(&w.root, "gate", "");
+        let retry = if restart { w.invoker() } else { inv };
+        let r = retry.run(&gen_params(Some("u1")), &tok).unwrap();
+        assert_eq!(r["state"], "completed", "restart={restart}: {r}");
+        assert_eq!(w.dispatches(), 1);
+        // Now completed: replay protection applies again.
+        let e = w.invoker().run(&gen_params(Some("u1")), &tok).unwrap_err();
+        assert_eq!(code(&e), "SPX-HPN015");
+    }
+}
+
+#[test]
+fn mf04_received_then_dropped_invocation_stays_non_replayable_in_session_and_after_restart() {
+    let w = gated_world("crash_on_invoke");
+    let inv = w.invoker();
+    let tok = CancelToken::new();
+    let r = inv.run(&gen_params(Some("d1")), &tok).unwrap();
+    assert_ne!(r["state"], "completed", "{r}");
+    assert_eq!(w.dispatches(), 1, "the adapter received the invoke");
+    for i in [&inv, &w.invoker()] {
+        let e = i.run(&gen_params(Some("d1")), &tok).unwrap_err();
+        assert_eq!(code(&e), "SPX-HPN015");
+    }
+    assert_eq!(w.dispatches(), 1);
+    assert!(w.journal_text().contains("\"state\":\"uncertain\""));
 }

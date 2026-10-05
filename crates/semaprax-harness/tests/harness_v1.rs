@@ -36,7 +36,7 @@ mod profile;
 mod receipt;
 #[path = "harness_v1/skills.rs"]
 mod skills;
-#[path = "harness_v1/workflow.rs"]
-mod workflow;
 #[path = "harness_v1/t_ma.rs"]
 mod t_ma;
+#[path = "harness_v1/workflow.rs"]
+mod workflow;

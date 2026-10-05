@@ -164,11 +164,6 @@ impl Bridge {
         assert_eq!(r["result"]["lifecycle"]["invoke"], true, "{r}");
         b
     }
-    fn send_raw(&mut self, line: &str) {
-        let i = self.stdin.as_mut().unwrap();
-        writeln!(i, "{line}").unwrap();
-        i.flush().unwrap();
-    }
     fn send(&mut self, f: Value) {
         let i = self.stdin.as_mut().unwrap();
         writeln!(i, "{f}").unwrap();

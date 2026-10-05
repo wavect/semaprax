@@ -1003,19 +1003,22 @@ fn continued_reduce_chain_step_ack(fault: u8, three_turns: bool, later_observe_e
                                                         if fault == 21 { 0 } else { expected_actions },
                                                         "only the Started prewrite refusal can avoid the one physical cleanup",
                                                     );
-                                                    assert!(weak
-                                                        .iter()
-                                                        .any(|owner| owner.strong_count() == 1));
+                                                    // Started retains one leaf; Receipt and Stop
+                                                    // refuse after physical cleanup released both.
+                                                    let held = weak[0].strong_count()
+                                                        + weak[1].strong_count();
+                                                    assert_eq!(held, usize::from(fault == 21));
                                                     assert!(journal.begin_session().is_err());
                                                     #[cfg(unix)]
-                                                    assert_eq!(
-                                                        journal
+                                                    persisted::assert_cleanup_prewrite_snapshot(
+                                                        &persisted_before_cleanup,
+                                                        &journal
                                                             .lease
                                                             .try_borrow()
                                                             .unwrap()
                                                             .test_persisted_snapshot()
                                                             .unwrap(),
-                                                        persisted_before_cleanup
+                                                        fault,
                                                     );
                                                     drop(quarantined);
                                                 } else {
@@ -1492,4 +1495,5 @@ fn owned_continued_step_turn_two_failed_observe_stop_prewrite_retains_released_s
 mod actual_state;
 mod composed;
 mod faults;
+mod persisted;
 mod prepared;

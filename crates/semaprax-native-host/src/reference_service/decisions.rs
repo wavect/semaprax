@@ -722,8 +722,8 @@ mod tests {
                 DECISION_MAX_STEPS
             )
             .is_err());
-        // The contract-bearing standard function remains outside the service
-        // vocabulary, while the scaffold wrapper above is admitted.
+        // A standard function that the scaffold does not link remains outside
+        // the service vocabulary, while its local wrapper above is admitted.
         let enqueue = revision.evaluate_service_decision_v1(
             "std.jobs.idempotency.enqueue_outcome",
             &[
@@ -737,7 +737,9 @@ mod tests {
         let diagnostics = enqueue.err().unwrap();
         assert_eq!(diagnostics.len(), 1);
         assert_eq!(diagnostics[0].code, "SPX-F102");
-        assert!(diagnostics[0].message.contains("std.bytes.byte_to_i64"));
+        assert!(diagnostics[0].message.contains(
+            "resolved public API export `std.jobs.idempotency.enqueue_outcome` is absent"
+        ));
         // The entry closure root itself is not invocable: its closure
         // reaches contract-bearing callees, so the host never selects it
         // and resolves only the admission decisions above.

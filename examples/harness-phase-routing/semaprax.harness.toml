@@ -1,0 +1,34 @@
+# Harness phase routing (MR-08/MR-14): development-domain example.
+#
+# This file names logical model ids from the task's own model catalog and a
+# routing policy only. It carries no endpoint, credential, account id or
+# machine path: those stay in the machine-local harness home (adoption,
+# trust, endpoint catalog) and in the shell environment, never in project
+# files. Review the decision-provider profiles with
+#   semaprax-harness status --routing
+# and check one without any inference call with
+#   semaprax-harness status --routing --check laya --task model-route/v2
+#
+# Exercised by `cargo test -p semaprax-harness --test harness_v1 mr14_phase_routing_example`.
+schema = "semaprax.harness-config.v1"
+
+[routing]
+# Rules decide unless a learned profile is explicitly selected or qualified;
+# `experimental` lets the implement phase consult the configured decision
+# provider, visibly experimental.
+mode = "experimental"
+allow_remote = false
+
+[routing.phase.plan]
+enabled = true
+models = ["m-plan"]
+decision = "rules"
+
+[routing.phase.implement]
+models = ["m-cheap", "m-strong"]
+decision = "router"
+
+[routing.phase.review]
+enabled = true
+models = ["m-review"]
+decision = "rules"

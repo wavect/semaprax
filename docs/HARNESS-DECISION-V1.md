@@ -10,6 +10,121 @@ replay) is the shared decision core in `src/model_routing/engine/`, see
 [DECISION-CORE-V1](DECISION-CORE-V1.md) (MR-07). Contract: `decision.evaluate/v1`
 in [HARNESS-PROVIDER-V1](HARNESS-PROVIDER-V1.md). Diagnostics letter `J`.
 
+## Current status (2026-10-05)
+
+This section is the one current support statement for model routing and
+runtime choice. It supersedes the limitation notes in older sections of this
+document, [Harness workflow v1](HARNESS-WORKFLOW-V1.md) and
+[Harness bridge v1](HARNESS-BRIDGE-V1.md); those sections are kept as dated
+history (HP-04 on 2026-09, HN-16 on 2026-10-04, MR-13 on 2026-10-05).
+
+Three things are kept apart throughout:
+
+- *Supported now*: the code path exists and is exercised by contract tests
+  with deterministic fixtures.
+- *Live-tested now*: a real model answered through that path on this host.
+- *Qualified*: an MR-13 gate passed for exactly that profile, task and
+  domain, so `auto` may use it without an explicit selection.
+
+An installed or adopted descriptor proves none of the three. **No learned
+decision adapter is live-tested on this host, and the MR-13 gate of record is
+not evaluated (no-go): rules stay active in both domains**
+(`benchmarks/harness/2026-10-05-routing-matrix/gate-decision.json`).
+
+### Decision providers (choose a route or an option; never generate)
+
+| Profile (`status --routing`) | Adapter | Hosted or local | Tasks (`decision.evaluate`) | Development (harness) | Runtime (application) | Conformance-tested | Live-tested here | Qualified |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `rules` | built-in `semaprax/rules-decision` | in-process | `model-route/v1`, `model-route/v2`; `choice-select/v1` only on its zero/one-option paths | default | default (`recommend_static`, rules route, `select_choice` with no adapter abstains on two or more options) | deterministic tests | not applicable (no model) | default policy, not a learned qualification |
+| `jev` | `systemone/jev-hosted` | hosted, vendor endpoint, secret `SEMAPRAX_HARNESS_SECRET_JEV` | v1, v2, v3 | adopt and trust from the checkout; `experimental`, or `auto` after a gate | host `DecisionInvoker` over the host's own approved transport | shared conformance matrix (fake server) | no | no |
+| `laya` | `systemone/laya-local` | local, user-selected loopback server | v1, v2, v3 | as above | as above | shared conformance matrix (fake server) | no | no |
+| `minijev` | `minijev-local` | local, user-selected loopback worker | v2, v3 (finite-choice letter scoring only, not upstream score/noul parity) | as above | as above | shared conformance matrix (fake engine) | no | no |
+| `clef-hosted` | `systemone/cloudflare-clef-hosted`, model `@cf/cloudflare/clef` | hosted (Cloudflare Workers AI), secret `SEMAPRAX_HARNESS_SECRET_CLOUDFLARE` | v1, v2, v3 | as above | as above | contract tests over a fake runner, not the shared conformance matrix | no | no |
+| `clef-flash-hosted` | same adapter, model `@cf/cloudflare/clef-flash` | hosted, same secret | v1, v2, v3 | as above | as above | contract tests over a fake runner, not the shared conformance matrix | no | no |
+| `clef-local` | `clef-local` | local worker; **unavailable unless provisioned** (weights and worker are installed by the operator, never by setup) | v1, v2, v3 | only after provisioning, adoption and trust | as above | shared conformance matrix (fake model worker) | no | no |
+| SDK starter | `packages/semaprax-harness-adapters/examples/decision-adapter-starter` | local keyword scorer, no model | v1, v2, v3 | out-of-tree copy adopts normally | not applicable | shared conformance matrix | not applicable | no |
+| fixtures | `FixtureChoiceInvoker`, `decision_fixtures`, test routers | in-process | v1, v2, v3 | tests only | tests and examples only | they are the contract | never evidence | never |
+
+"As above" means the same path as the `jev` row. The runtime consumers
+(`model_routing::runtime` routing and `choice-select/v1`) take any
+`DecisionInvoker`; the runtime ships no transport to these adapters, so an
+application attaches one over its own approved transport and credentials.
+Development qualification never qualifies runtime routing or runtime
+choice: evidence keys carry the execution domain and the task.
+
+### Generation models (produce the answer; chosen by a route)
+
+| Consumer | Where the model is named | What "actual model" means | Live-tested here |
+| --- | --- | --- | --- |
+| Development harness | task catalog logical models, served by an adopted `model.generate` adapter | `route.explain.generation_model`: requested, and the answering model the generation adapter reported (or `reported: false`) | HN-16 recorded one local Ollama `qwen2.5:0.5b` generation profile on 2026-10-04 (see *Evidence, modes and qualification*); no other generation profile |
+| Runtime application | the `models` rows of each approved AgentDeployment profile | the bound deployment's provider/model (`RouteRecord.deployment`, `model_selections()`) | no; examples and tests use offline fixture adapters |
+| External host (Claude Code bridge) | the host itself | Semaprax did not control the parent model; the handshake says so (`parent_model`) | the host's own model, not routed by Semaprax |
+
+### Setup, check and explanation
+
+- Review profiles: `semaprax-harness status --routing [--json]`. Zero
+  inference calls. See *Routing setup, check and explain (MR-14)* below for
+  the non-billable `--check`, the announced and metered `--probe ... --yes`,
+  and the diagnostics `SPX-HPB070..077`.
+- Every development route carries `route.explain` (domain, phase, owner,
+  pin, candidates and exclusions, decision provider and answering model,
+  generation model, score semantics, cache/bypass/fallback reason, evidence
+  key, deployment, router overhead). The runtime equivalent is the
+  `ChoiceReport` plus the `RouteRecord` of the dispatched deployment.
+
+### Side-by-side examples
+
+| Consumer | Example | Test |
+| --- | --- | --- |
+| Development: harness phase routing | `examples/harness-phase-routing/semaprax.harness.toml` | `cargo test --locked -p semaprax-harness --test harness_v1 mr14_phase_routing_example` |
+| Runtime: deployment-profile routing | `examples/routed-agent-project` | `cargo test --locked -p semaprax --test agent_runtime_v1 routed_agent_example` |
+| Runtime: agent selection | `examples/support-routing-project` | `cargo test --locked -p semaprax --test agent_runtime_v1 choice_examples::support` |
+| Runtime: tool selection | `examples/tool-choice-project` | `cargo test --locked -p semaprax --test agent_runtime_v1 choice_examples::tool` |
+| End-to-end lane (CI) | config, negotiation, selection, authorized dispatch, report, resume | `cargo test --locked -p semaprax --test agent_runtime_v1 routing_e2e_lane` |
+
+Committed configuration names logical models, profile ids and secret
+*names* only. Endpoints, credentials and machine paths stay in the harness
+home and the environment (development) or in the host's own deployment
+configuration (runtime); a developer machine's adoption or trust never
+carries into an application deployment.
+
+### Adding a model or an adapter (MR-15)
+
+*A compatible new model or checkpoint is configuration only.* Development:
+set `[capability."decision.evaluate".config] model_profile = '<json>'` in
+`semaprax.harness.toml` (`{profile_id, model, checkpoint, identity_kind,
+score_kind, scoreless, max_options, max_state_bytes, modalities, renderer}`,
+strict, see *Adapter identities* below), run `status --routing --check
+<profile>`, and qualify it separately: its evidence key differs, so no earlier
+evidence transfers. Runtime: a new decision model is a new `ProviderProfile`
+for the same `DecisionInvoker`; a new generation model is a new deployment
+document plus one `ProfileSpec` in the host routing configuration (see
+`examples/routed-agent-project/routing.json`), validated by
+`ApprovedProfileSet::approve`.
+
+*A new protocol or inference mechanism is an out-of-tree adapter.* Copy
+`packages/semaprax-harness-adapters/examples/decision-adapter-starter`
+(descriptor, `adapter.py`, `test_adapter.py`, `conformance_target.py`), give
+it its own `provider.id`, replace `score_options`, keep the validation and
+result shape, then `adopt` and `trust` it from its own directory and run
+`conformance`. For the runtime, implement `DecisionInvoker`
+(`evaluate`, `decision_versions`) in the host. No routing, workflow or
+runtime dispatch code changes: `routing_setup_mr14::mr14_out_of_tree_starter_copy_decides_through_the_normal_harness_path`
+(harness) and `routing_e2e_lane::an_out_of_tree_adapter_serves_both_runtime_consumers_unchanged`
+(runtime) prove it with fixture answers. That is extensibility evidence, not
+routing quality.
+
+### Known gaps (2026-10-05)
+
+- `harness run` does not forward a provider's declared
+  `SEMAPRAX_HARNESS_SECRET_*` variables to the adapter process (the bench and
+  the endpoint catalog do), so hosted Jev and Clef can show a secret as set in
+  `status --routing` and still not receive it during a run.
+- The `minijev-local` descriptor declares no secret although its adapter
+  reads `SEMAPRAX_HARNESS_SECRET_MINIJEV`.
+- MR-11 runtime choice has no live decision adapter evidence; its examples run
+  on the deterministic fixture only.
+
 ## Flow
 
 1. Resolve the task in the compile-time registry. Active: `model-route/v1`,
@@ -439,4 +554,81 @@ excerpt and the option descriptions, abstaining on none or a tie) and
 
 Diagnostics added: HPJ021 malformed choice question or candidate set, 022 no
 admissible destination, 023 choice request bounds, 024 dispatch recheck
-failed, 025 not a model-route task.
+failed, 025 not a model-route task, 026 runtime authorize stage refused the
+selection (the live deployment no longer grants the tool or registry entry,
+its contract changed, or the arguments fail the tool's closed schema;
+`model_routing::runtime::choice`).
+
+## Routing setup, check and explain (MR-14)
+
+Owner: `crates/semaprax-harness/src/profile/routing_status.rs` (setup/status
+view, check, probe) and `src/workflow/route_explain.rs` (route report).
+
+**Review the decision-provider profiles** on the existing status verb:
+`semaprax-harness status --routing [--json] [--project <dir>]`. It lists
+`rules`, `jev`, `laya`, `minijev`, `clef-hosted` (`@cf/cloudflare/clef`),
+`clef-flash-hosted` (`@cf/cloudflare/clef-flash`) and `clef-local` (shown as
+"unavailable unless provisioned" until a local worker is adopted, trusted and
+reachable). Each row shows the tasks its bundled descriptor declares
+(`decision.evaluate` v1 → `model-route/v1`, v2 → `model-route/v2`, v3 →
+`choice-select/v1`), the selected model, who owns the endpoint
+(vendor-hosted, user-selected loopback, none), the declared secret names and
+whether each is set (never its value), adoption, trust, readiness and the
+qualification state. It makes zero inference calls. Qualification is
+`not-evaluated` on this machine unless a gate passed; the MR-13 gate of record
+(`benchmarks/harness/2026-10-05-routing-matrix/gate-decision.json`) is
+not-evaluated, so rules stay active.
+
+**Non-billable check**: `status --routing --check <profile> [--task <task>]
+[--json]` exits 1 with actionable findings and makes zero inference calls (at
+most one TCP connect to a configured loopback endpoint). **Explicit probe**:
+`status --routing --probe <profile> --yes [--project <dir>] [--python <exe>]`
+first prints that it sends one decision request and may incur a billable
+provider call; without `--yes` it stops there (`SPX-HPB075`). With `--yes` it
+sends one `model-route/v2` request over a synthetic two-candidate catalog (no
+task text, no project content) through the project's selected provider and
+appends a metered record (router calls, latency, answering model, usage,
+billing) to `<harness home>/routing/probes.jsonl`.
+
+| Code | Meaning and fix |
+| --- | --- |
+| `SPX-HPB070` | A declared secret variable is not set: export it where the harness runs. |
+| `SPX-HPB071` | Runtime/worker unavailable: loopback endpoint unset, not loopback, or not accepting connections. |
+| `SPX-HPB072` | The adapter does not declare the `decision.evaluate` version the task needs (or unknown task). |
+| `SPX-HPB073` | Stale evidence: records exist for another checkpoint; they qualify nothing until re-evaluated. |
+| `SPX-HPB074` | The probe was not answered by the provider (abstention, unavailable, invalid); rules decide. |
+| `SPX-HPB075` | Probe not confirmed: pass `--yes`. |
+| `SPX-HPB076` | Profile not adopted: adopt and trust it (`setup` for bundled adapters). |
+| `SPX-HPB077` | Unknown routing profile id. |
+| `SPX-HPJ018` | Final-context mismatch at dispatch: the message names the final token count and the fix. |
+
+**Service upstreams.** An `upstream` with no identity probe whose adapter
+requests no `process` permission but does request `network` is a network
+service or worker (hosted API or user-selected loopback server), not an
+executable: `adopt` records a note and adopts no executable, `adopt
+--upstream` is refused (`SPX-HPB021`), and `trust` needs no upstream digest.
+This covers `laya-local`, `jev-hosted`, `cloudflare-clef-hosted`,
+`minijev-local` and `clef-local`, which therefore adopt and trust directly
+from the checkout. An upstream with an identity probe, or an adapter that
+requests `process` (Graft, RTK, Graphify, Caveman), is still an executable
+and `trust` refuses it without `adopt --upstream` (`SPX-HPB033`).
+
+**Route explain.** Every model route in a workflow report carries
+`route.explain` (`semaprax.harness-route-explain.v1`): `execution_domain`
+(`development`), `phase` (plan, implement or review), `routing_owner`,
+`authoritative_pin` (project or user pin, else null), `mode`, `candidates`
+(`admitted`, policy-`excluded` with reasons, pre-dispatch `rerouted`),
+`decision` (source, choice, decision provider, checkpoint, status, wire
+version, the router's answering model and identity kind), `score_semantics`,
+`reason` (cache outcome and reason, rules bypass reason, fallback reason,
+abstention), `evidence_key` (applied and live digests), `deployment` (the
+generation provider and logical model dispatched to), `generation_model`
+(requested, and the answering model the generation provider reported, or
+`reported: false`) and `router_overhead` (calls, ms, reserved request tokens,
+reported router tokens, billing). Plan and review phase log entries carry
+their own `explain`. It holds ids, digests, counts and closed reason words
+only: never the task text, the rendered router request, a prompt or a secret.
+
+The committed development example is
+`examples/harness-phase-routing/semaprax.harness.toml` (no endpoint,
+credential or path), exercised by `mr14_phase_routing_example_*`.

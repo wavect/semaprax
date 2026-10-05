@@ -172,12 +172,11 @@ fn evaluate<'a>(inst: &'a Installation, state: &LocalState) -> Eval<'a> {
             Some(insp),
         );
     }
-    // Bundled code (a `local:` package with no probe) has no executable to adopt.
-    if let Some(up) = d
-        .upstream
-        .as_ref()
-        .filter(|u| !super::installations::is_bundled(u))
-    {
+    // Bundled code (a `local:` package with no probe) and a network service
+    // upstream have no executable to adopt.
+    if let Some(up) = d.upstream.as_ref().filter(|u| {
+        !super::installations::is_bundled(u) && !super::installations::is_service(u, &d.permissions)
+    }) {
         let Some(rec) = &inst.upstream else {
             let detail = format!(
                 "upstream `{}` is not adopted; install it yourself ({} from {}) and run `semaprax harness adopt <descriptor> --upstream <absolute path>`",

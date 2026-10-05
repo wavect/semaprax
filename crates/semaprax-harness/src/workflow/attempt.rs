@@ -348,13 +348,22 @@ fn route_models(
         configured.as_mut(),
         &move || live.clone(),
     )?;
+    let reuse_json = reuse.to_json();
+    let explain = super::route_explain::explain(
+        &inputs,
+        &cfg,
+        &gr,
+        &reuse_json,
+        live_key.as_ref().map(|k| k.digest()),
+        router_request_tokens,
+    );
     let dec = gr.decision;
     Ok(Routed {
         inputs,
-        json: json!({"choice": dec.choice, "provider": dec.provider_id, "router_calls": dec.router_calls,
+        json: json!({"explain": explain, "choice": dec.choice, "provider": dec.provider_id, "router_calls": dec.router_calls,
                "status": dec.provider_status, "source": format!("{:?}", dec.source),
                "mode": gr.mode, "rules_reason": gr.rules_reason, "explanation": gr.explanation,
-               "wire": dec.wire.to_json(), "reuse": reuse.to_json(),
+               "wire": dec.wire.to_json(), "reuse": reuse_json,
                "policy": {"allow_remote": cfg.user_allow_remote, "project_pin": cfg.project_pin}}),
         model: dec.choice,
         router_calls: dec.router_calls,
@@ -547,6 +556,8 @@ pub(super) fn route_and_fit(
                 pool.retain(|m| m.id != plan.id);
                 continue;
             }
+            super::route_explain::set_phase(&mut routed.json, role.as_str(), &excluded);
+            super::route_explain::set_deployment(&mut routed.json, &st.proposer.id(), &plan.id);
             let mut bj = fit.to_json(&budget.policy);
             bj["rerouted_from"] = json!(excluded);
             r.context["request_budget"] = bj;
@@ -628,6 +639,12 @@ pub(super) fn generate(
         controls: controls.clone(),
     };
     let (got, receipt) = st.proposer.propose_receipted(&req);
+    super::route_explain::set_generation(
+        &mut r.route,
+        &st.proposer.id(),
+        &req.model,
+        receipt.model.as_deref(),
+    );
     let estimate = cx.cfg.budget.prices.estimate(&req.model, &receipt.usage);
     cx.observe_incurred_at(
         &st.proposer.id(),

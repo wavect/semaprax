@@ -50,6 +50,8 @@ mod profile;
 mod receipt;
 #[path = "harness_v1/routing_matrix.rs"]
 mod routing_matrix;
+#[path = "harness_v1/routing_setup_mr14.rs"]
+mod routing_setup_mr14;
 #[path = "harness_v1/skills.rs"]
 mod skills;
 #[path = "harness_v1/t_ma.rs"]

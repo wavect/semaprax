@@ -46,6 +46,9 @@ pub enum RuntimeRoutingError {
     Checkpoint,
     /// MR-10: a turn or delegation was refused at the session boundary.
     Session(String),
+    /// MR-11: a runtime choice selection was refused at the authorize stage
+    /// (`SPX-HPJ024` recheck, `SPX-HPJ026` grant or argument mismatch).
+    Choice { code: String, message: String },
 }
 
 impl RuntimeRoutingError {

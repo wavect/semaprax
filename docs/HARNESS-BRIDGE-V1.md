@@ -15,6 +15,13 @@ unsupported host version.
 The root MCP facade `src/semantic_service_mcp.rs` is untouched: it stays authority-free. The bridge
 is a separate, host-side surface; it adds no process, filesystem or network authority to semantic methods.
 
+## Current status (2026-10-05)
+
+A bridge host owns its own (parent) model. Claude Code does not delegate model choice, so Semaprax never claims to
+have routed it: every handshake response states the owner in `parent_model` (*Parent model ownership (MR-14)*
+below), and phase routing applies only to Semaprax-owned worker requests. The single current routing support matrix
+is in [Harness decision v1, *Current status*](HARNESS-DECISION-V1.md#current-status-2026-10-05).
+
 ## Protocol `semaprax.harness-bridge.v1`
 
 LF-delimited JSON-RPC 2.0 on stdio, frames parsed with the strict `crate::json` parser (1 MiB limit, enforced while reading: see *Transport bounds and session end*).
@@ -218,3 +225,16 @@ reasons; a failed query is shown as a stated reason. No second dashboard and no 
   `external_host::hn14_opencode_...` reaches the same catalog and records the same Ponytail revision. opencode is a fixture
   config in the test, not a supported `--setup` target.
 - A generic stdio MCP client (`bridge::hn14_real_process_generic_mcp_client_over_stdio`) runs against the real binary.
+
+## Parent model ownership (MR-14)
+
+Every `bridge/handshake` response carries `parent_model`
+(`workflow::phases::parent_model_routing`). A host that does not delegate
+`model_routing` (Claude Code and every host that omits the declaration) gets
+`{"mode": "host-controlled", "advisory_only": true, "changes_parent_model":
+false, "semaprax_controlled_parent_model": false, "statement": "Semaprax did
+not control the parent model: ..."}`; a delegating host gets `"mode":
+"delegated"` and still `changes_parent_model: false`, because Semaprax routes
+only its own worker requests. The static Claude Code host profile (`bridge
+<project> --host claude-code`) states the same. Test:
+`mr14_bridge_handshake_reports_who_controlled_the_parent_model`.

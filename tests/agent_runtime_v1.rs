@@ -685,3 +685,9 @@ mod runtime_reroute;
 
 #[path = "agent_runtime_v1/routed_agent_example.rs"]
 mod routed_agent_example;
+
+#[path = "agent_runtime_v1/choice_examples.rs"]
+mod choice_examples;
+
+#[path = "agent_runtime_v1/routing_e2e_lane.rs"]
+mod routing_e2e_lane;

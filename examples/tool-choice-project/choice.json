@@ -1,0 +1,11 @@
+{
+  "schema": "semaprax.example.runtime-tool-choice.v1",
+  "deployment": "deployments/tools.json",
+  "question": {
+    "schema": "kb.lookup.v1",
+    "allowed_effects": ["read"],
+    "arguments_schema": {"type":"object","fields":[{"name":"query","type":"string","required":true,"max_bytes":64}],"additional_properties":false},
+    "result_schema": {"type":"object","fields":[{"name":"value","type":"string","required":true,"max_bytes":64}],"additional_properties":false}
+  },
+  "decision_provider": {"mode": "explicit", "provider_id": "example-choice-fixture"}
+}

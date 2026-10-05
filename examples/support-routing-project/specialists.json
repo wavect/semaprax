@@ -1,0 +1,13 @@
+{
+  "schema": "semaprax.runtime-specialist-registry.v1",
+  "specialists": [
+    {"id": "support.billing", "profile": "billing",
+     "description": "billing specialist: invoice, refund, payment, charge",
+     "input_type": "support.ticket.v1", "output_type": "support.reply.v1",
+     "max_confidentiality": "project", "effects": [], "requires": [], "delegable": false},
+    {"id": "support.technical", "profile": "technical",
+     "description": "technical specialist: login, password, crash, error",
+     "input_type": "support.ticket.v1", "output_type": "support.reply.v1",
+     "max_confidentiality": "project", "effects": [], "requires": [], "delegable": false}
+  ]
+}

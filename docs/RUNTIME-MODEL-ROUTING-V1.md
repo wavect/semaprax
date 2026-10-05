@@ -77,10 +77,40 @@ journaled as `semaprax.runtime-route-session.v1` through the host's
   completed boundaries without route, model or effect calls; an in-flight
   turn reuses its recorded route and handoff bytes with zero router calls.
 
+## Agent and tool selection (MR-11)
+
+The runtime half of the finite-choice task `choice-select/v1` (engine and wire
+in [Harness decision v1](HARNESS-DECISION-V1.md), section
+`choice-select/v1`) lives in `model_routing::runtime::choice`. A decision
+adapter recommends one already authorized destination; it cannot create one.
+
+| Item | Role |
+| --- | --- |
+| `granted_tool_options(runtime_profile)` | `tool` options from an Agent Runtime Profile v1 (`BoundAgentDeployment::runtime_v1_profile()`): exactly the tools in `policy.allowed_tool_ids`, with their effects and required capabilities, typed by `tool_schema_type` of their argument/result schemas (cost unknown, never zero). Also returns the granted capability set for `ChoiceQuestion::granted`. |
+| `SpecialistRegistry` (`semaprax.runtime-specialist-registry.v1`) | A configured specialist registry: stable id, approved profile, bounded host description, input/output type, data clearance, effects, required capabilities, delegability. Strict closed parse. `options(&set)` builds the `agent` options (an entry naming an unapproved profile is `InvalidConfig`); `grants()` builds `SessionPolicy::specialists` from the same document. |
+| `select_choice` (engine) | Screens before inference, takes the zero/one-option paths without a call, consults an adapter only if it negotiated `decision.evaluate` v3, and returns `ChoiceOutcome::{Selected, Abstained, Refused}`. |
+| `authorize_tool_choice(selection, live, runtime_profile, arguments)` | Authorize stage for a tool: recheck against the live inputs (`SPX-HPJ024`), against the live profile's grant and contract, and the arguments against the tool's closed argument schema (`SPX-HPJ026`). Returns `AuthorizedTool` (no public constructor). |
+| `authorize_specialist_choice(selection, live, registry, set)` | Authorize stage for an agent: recheck against the live inputs (`SPX-HPJ024`) and the live registry and approved set (`SPX-HPJ026`). Returns `AuthorizedSpecialist` (id, profile, deployment digest), dispatched as `TurnRequest::specialist`. |
+
+Refusals of the authorize stage are `RuntimeRoutingError::Choice { code,
+message }`. The application dispatches with an exhaustive `match`: only
+`Selected` followed by a successful authorize stage runs anything; `Abstained`
+(including `unsupported_adapter` and `no_provider`) and `Refused` are explicit
+non-actions, never a default destination. The existing boundaries recheck
+once more: Runtime v1 refuses a tool the profile does not allow or arguments
+its schema rejects, and a session refuses a specialist it does not authorize.
+Development-routing qualification never qualifies runtime choice (separate
+task, normalization and execution domain in the evidence key).
+
+Examples: `examples/support-routing-project` (route a support request to one
+of two approved agents) and `examples/tool-choice-project` (select one of two
+granted read-only tools), both through the same adapter contract.
+
 ## Non-claims
 
 No live provider, network or billing evidence; the decision provider in the
-tests and example is a deterministic fixture invoker. No dynamic source
+tests and examples is a deterministic fixture invoker (MR-11 runtime choice
+included). No dynamic source
 loading, unbounded delegation, parallel child execution or mid-stream route
 change. Child sessions run under the same host; there is no distributed
 multi-agent runtime.
@@ -95,3 +125,8 @@ Local macOS aarch64, offline fixture adapters and a fixture decision invoker:
 - `cargo test --locked -p semaprax --test agent_runtime_v1 -- execution_revision`:
   the existing retained-root and durable-binding tests pass unchanged.
 - `cargo test --locked -p semaprax --lib model_routing`: 11 passed.
+- MR-11/MR-14 (2026-10-05): `cargo test --locked -p semaprax --test agent_runtime_v1 -- choice_examples routing_e2e_lane routed_agent_example`:
+  7 passed (4 `choice_examples`, 2 `routing_e2e_lane`, 1 `routed_agent_example`);
+  `cargo test --locked -p semaprax --lib model_routing::runtime::choice`: 2 passed.
+  Deterministic `FixtureChoiceInvoker` and an out-of-tree test adapter only;
+  no provisioned decision adapter answered.

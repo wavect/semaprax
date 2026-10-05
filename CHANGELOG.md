@@ -22,6 +22,26 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- MR-00..MR-15: model routing and runtime choice over pluggable decision
+  adapters. `decision.evaluate` v2/v3 with disclosure, score semantics and
+  call identity (MR-01..MR-03, MR-15); one shared decision core
+  (`semaprax::model_routing`, `semaprax-decision-core`, MR-07); Jev, Laya,
+  Mini Jev, hosted Clef/Clef-Flash and local Clef adapters plus a copyable
+  SDK starter (MR-04..MR-06, MR-15); harness phase role routing and session
+  decision reuse (MR-08, MR-12); runtime routing over approved deployment
+  profiles with turn re-routing, handoff and delegation (MR-09, MR-10);
+  `choice-select/v1` typed agent and tool selection with deployment-grant and
+  specialist-registry candidate sets, an authorize-stage recheck
+  (`SPX-HPJ026`) and two runnable examples (`examples/support-routing-project`,
+  `examples/tool-choice-project`, MR-11); matched routing evidence
+  (`bench routing-matrix`, MR-13: not evaluated, rules stay active); and
+  routing setup, explainability and end-to-end examples (MR-14):
+  `harness status --routing` profiles with a non-billable `--check` and an
+  announced, metered `--probe`, `route.explain` in reports, parent-model
+  ownership in the bridge handshake, service upstreams that adopt and trust
+  from the checkout, an end-to-end routing CI lane and a dated current support
+  matrix. No learned decision adapter is live-tested on this host.
+- MF-01..MF-06, MC-01..MC-06: harden Graft/Graphify cache adoption.
 - Resolve the conformance fixture's Node interpreter to an absolute host path
   on Unix CI, and refresh the pinned agent skill bundle after the diagnostic
   inventory changed.

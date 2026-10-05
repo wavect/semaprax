@@ -30,6 +30,7 @@ pub mod policy;
 pub mod prompt_render;
 pub mod report;
 mod route_signals;
+pub mod route_explain;
 pub mod routing;
 pub mod session;
 mod session_repair;

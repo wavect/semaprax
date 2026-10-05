@@ -53,6 +53,15 @@ impl CostEstimate {
     }
 }
 
+/// The rounding contract shared by estimates and spend reservations (MN-02):
+/// each priced usage category is rounded up to whole micro-units on its own,
+/// then the categories are summed. A reservation that covers usage must
+/// therefore cover the per-category rounding, not a single combined ceiling.
+/// `u64 * u64` always fits a `u128`; callers sum with checked arithmetic.
+pub fn price_line(count: u64, price_per_million: u64) -> u128 {
+    (count as u128 * price_per_million as u128).div_ceil(1_000_000)
+}
+
 pub const PRICE_BOOK_SCHEMA: &str = "semaprax.harness-price-book.v1";
 
 impl PriceBook {
@@ -191,8 +200,7 @@ impl PriceBook {
             let Some(price) = price else {
                 return CostEstimate::unknown("missing_price", v);
             };
-            // Round up: an estimate never under-reports a priced category.
-            let line = (count as u128 * price as u128).div_ceil(1_000_000);
+            let line = price_line(count, price);
             total = match total.checked_add(line) {
                 Some(t) => t,
                 None => return CostEstimate::unknown("overflow", v),

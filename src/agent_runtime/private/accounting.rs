@@ -156,13 +156,12 @@ pub(super) fn reconcile_accounting_receipt(
     trace_digest: &str,
     evidence_digest: &str,
 ) -> Result<(), Diagnostic> {
-    canonical_document(
+    let value = canonical_document(
         source,
         "accounting receipt",
         ACCOUNTING_RECEIPT_SCHEMA,
         MAX_ACCOUNTING_RECEIPT_BYTES,
     )?;
-    let value: Value = serde_json::from_str(source.trim_end()).map_err(|_| g209())?;
     let top = value.as_object().ok_or_else(g209)?;
     if !exact_keys(
         top,

@@ -80,9 +80,7 @@ struct Route {
 }
 
 pub(super) fn parse_profile(source: &str) -> Result<Profile, Diagnostic> {
-    canonical_document(source, "profile", PROFILE_SCHEMA, MAX_PROFILE_BYTES)?;
-    let value: Value =
-        serde_json::from_str(source.trim_end()).map_err(|_| g204("profile", PROFILE_SCHEMA))?;
+    let value = canonical_document(source, "profile", PROFILE_SCHEMA, MAX_PROFILE_BYTES)?;
     let top = object(&value, "profile", PROFILE_SCHEMA)?;
     if !exact_keys(
         top,
@@ -540,9 +538,7 @@ fn parse_effective_limits(value: &Value) -> Result<EffectiveLimits, Diagnostic> 
 }
 
 pub(super) fn parse_task(source: &str) -> Result<Task, Diagnostic> {
-    canonical_document(source, "task", TASK_SCHEMA, MAX_TASK_BYTES)?;
-    let value: Value =
-        serde_json::from_str(source.trim_end()).map_err(|_| g204("task", TASK_SCHEMA))?;
+    let value = canonical_document(source, "task", TASK_SCHEMA, MAX_TASK_BYTES)?;
     let top = object(&value, "task", TASK_SCHEMA)?;
     if !exact_keys(top, &["schema", "nonce", "objective", "context"]) {
         return Err(g204("task", TASK_SCHEMA));
@@ -617,15 +613,14 @@ pub(super) fn render_task(task: &Task) -> String {
 }
 
 fn parse_action(source: String, maximum: usize) -> Result<Action, Diagnostic> {
-    canonical_document(&source, "action", ACTION_SCHEMA, maximum).map_err(|diagnostic| {
-        if crate::bounded_output::active_remaining() == Some(0) {
-            g208("builder_bytes", MAX_BUILDER_BYTES as u64)
-        } else {
-            diagnostic
-        }
-    })?;
-    let value: Value =
-        serde_json::from_str(source.trim_end()).map_err(|_| g204("action", ACTION_SCHEMA))?;
+    let value =
+        canonical_document(&source, "action", ACTION_SCHEMA, maximum).map_err(|diagnostic| {
+            if crate::bounded_output::active_remaining() == Some(0) {
+                g208("builder_bytes", MAX_BUILDER_BYTES as u64)
+            } else {
+                diagnostic
+            }
+        })?;
     let Value::Object(mut top) = value else {
         return Err(g204("action", ACTION_SCHEMA));
     };
@@ -2819,14 +2814,12 @@ fn provider_request_builder_bound(
 }
 
 fn validate_provider_request(source: &str) -> Result<(), Diagnostic> {
-    canonical_document(
+    let value = canonical_document(
         source,
         "provider request",
         PROVIDER_REQUEST_SCHEMA,
         MAX_PROVIDER_REQUEST_BYTES as usize,
     )?;
-    let value: Value = serde_json::from_str(source.trim_end())
-        .map_err(|_| g204("provider request", PROVIDER_REQUEST_SCHEMA))?;
     let top = object(&value, "provider request", PROVIDER_REQUEST_SCHEMA)?;
     if !exact_keys(
         top,
@@ -3382,9 +3375,7 @@ fn write_budget<W: fmt::Write>(output: &mut W, budget: &EvidenceBudget) -> fmt::
 }
 
 pub(super) fn replay_trace(source: &str) -> Result<(), Diagnostic> {
-    canonical_document(source, "trace", TRACE_SCHEMA, MAX_TRACE_BYTES as usize)?;
-    let value: Value =
-        serde_json::from_str(source.trim_end()).map_err(|_| g204("trace", TRACE_SCHEMA))?;
+    let value = canonical_document(source, "trace", TRACE_SCHEMA, MAX_TRACE_BYTES as usize)?;
     let top = object(&value, "trace", TRACE_SCHEMA)?;
     if !exact_keys(
         top,
@@ -3891,14 +3882,12 @@ fn replay_evidence_inner(
     expected_trace: &str,
     expected_budget: &EvidenceBudget,
 ) -> Result<(), Diagnostic> {
-    canonical_document(
+    let value = canonical_document(
         source,
         "evidence",
         EVIDENCE_SCHEMA,
         MAX_EVIDENCE_BYTES as usize,
     )?;
-    let value: Value =
-        serde_json::from_str(source.trim_end()).map_err(|_| g204("evidence", EVIDENCE_SCHEMA))?;
     let top = object(&value, "evidence", EVIDENCE_SCHEMA)?;
     if !exact_keys(
         top,

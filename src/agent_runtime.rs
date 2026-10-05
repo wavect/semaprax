@@ -883,12 +883,18 @@ fn decode_hex_32(value: &str) -> Option<[u8; 32]> {
     Some(output)
 }
 
-fn canonical_document<'a>(
-    source: &'a str,
+/// Checks size, LF framing, JSON syntax, nesting depth and the schema member,
+/// in that order, and returns the one untrusted parse of the document body.
+///
+/// The returned value is syntax only: callers still run their exact-key,
+/// semantic and canonical re-render checks against the retained source bytes,
+/// which stay authoritative for digests and replay.
+fn canonical_document(
+    source: &str,
     label: &str,
     schema: &str,
     maximum: usize,
-) -> Result<&'a str, Diagnostic> {
+) -> Result<Value, Diagnostic> {
     if source.len() > maximum {
         return Err(g208(
             match label {
@@ -911,7 +917,7 @@ fn canonical_document<'a>(
     {
         return Err(g204(label, schema));
     }
-    let value: Value = serde_json::from_str(body).map_err(|_| g204(label, schema))?;
+    let value = deserialize_document(body).map_err(|_| g204(label, schema))?;
     if json_depth(&value) > MAX_JSON_DEPTH {
         return Err(g208("json_depth", MAX_JSON_DEPTH as u64));
     }
@@ -923,7 +929,29 @@ fn canonical_document<'a>(
     {
         return Err(g204(label, schema));
     }
-    Ok(body)
+    Ok(value)
+}
+
+/// The only JSON deserialization of an admitted Runtime v1 document body.
+fn deserialize_document(body: &str) -> Result<Value, serde_json::Error> {
+    #[cfg(test)]
+    DOCUMENT_DESERIALIZATIONS.with(|count| count.set(count.get() + 1));
+    serde_json::from_str(body)
+}
+
+#[cfg(test)]
+thread_local! {
+    /// Thread-local, so concurrently running tests never observe each other.
+    static DOCUMENT_DESERIALIZATIONS: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
+}
+
+/// Returns how many document bodies this thread deserialized while `body` ran.
+#[cfg(test)]
+fn counting_document_deserializations<T>(body: impl FnOnce() -> T) -> (T, u64) {
+    let before = DOCUMENT_DESERIALIZATIONS.with(std::cell::Cell::get);
+    let result = body();
+    let after = DOCUMENT_DESERIALIZATIONS.with(std::cell::Cell::get);
+    (result, after - before)
 }
 
 fn json_depth(value: &Value) -> usize {

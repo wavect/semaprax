@@ -669,6 +669,7 @@ fn provider_streaming_retry_and_uncertainty_are_exact() {
 }
 
 mod accounting;
+mod admission;
 mod deadline;
 
 #[test]

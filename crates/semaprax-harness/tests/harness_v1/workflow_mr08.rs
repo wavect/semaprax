@@ -473,20 +473,24 @@ fn mr08_a_verified_reasoning_failure_changes_route_and_handoff_and_transport_unc
 ) {
     // TC-10 ladder stays the single decision owner: a compiler-rejected
     // candidate escalates cheap -> strong and the next worker gets a compact handoff.
+    let ladder = |e: &Env| {
+        let mut cfg = three_roles(e, task(&catalog(), 3));
+        cfg.routing.phases.remove("plan");
+        cfg.routing.phases.remove("review");
+        cfg.routing.cost_aware = true;
+        cfg.routing.ladders.insert(
+            "mechanical".into(),
+            semaprax_harness::profile::config::LadderConfig {
+                models: vec!["m-cheap".into(), "m-strong".into()],
+                max_escalations: 1,
+                min_tasks: 5,
+            },
+        );
+        cfg
+    };
     let e = setup(FIXED);
     let fake = Fake::new(CHANGED);
-    let mut cfg = three_roles(&e, task(&catalog(), 3));
-    cfg.routing.phases.remove("plan");
-    cfg.routing.phases.remove("review");
-    cfg.routing.cost_aware = true;
-    cfg.routing.ladders.insert(
-        "mechanical".into(),
-        semaprax_harness::profile::config::LadderConfig {
-            models: vec!["m-cheap".into(), "m-strong".into()],
-            max_escalations: 1,
-            min_tasks: 5,
-        },
-    );
+    let cfg = ladder(&e);
     let roles = Roles::new(
         vec![],
         vec![
@@ -539,11 +543,12 @@ fn mr08_a_verified_reasoning_failure_changes_route_and_handoff_and_transport_unc
     // A transport-uncertain first attempt: stopped, one billable dispatch, no
     // escalation, and a rerun of the lineage does not replay it.
     let e = setup(FIXED);
+    let cfg = ladder(&e);
     let roles = Roles::new(vec![], vec![R::Uncertain, intent(json!({}))], vec![]);
     let r = exec(&cfg, &fake, &roles, None);
     assert_eq!(r.status, "uncertain", "{:?}", r.refusals);
     assert_eq!(roles.calls(), pairs(&[("implement", "m-cheap")]));
-    let stop = entry(&entries(&r), "implement");
+    let stop = entry(&entries(&r), "implement").clone();
     assert_eq!(
         (stop["outcome"].as_str(), stop["retry"].as_str()),
         (Some("stopped"), Some("none"))
@@ -551,7 +556,6 @@ fn mr08_a_verified_reasoning_failure_changes_route_and_handoff_and_transport_unc
     let again = exec(&cfg, &fake, &roles, None);
     assert_eq!(codes(&again), ["SPX-HPD072"]);
     assert_eq!(roles.calls().len(), 1, "never replayed");
-    let _ = e;
 }
 
 #[test]
@@ -570,9 +574,7 @@ fn mr08_model_written_confidence_or_tests_passed_cannot_finish_or_bypass_compile
                           "claims": {"tests_passed": true, "confidence": 1.0}}),
             ),
             // A candidate whose tests fail: the compiler, not the claim, decides.
-            intent(
-                json!({"fake_source": "module t.lib;\n@id(\"t.f\")\nfn f(x: i64) -> i64\n{\n    BUG\n}\n"}),
-            ),
+            intent(json!({"fake_source": LIB})),
             intent(json!({})),
         ],
         vec![review_doc(json!({"approve": true, "tests_passed": true}))],
@@ -805,6 +807,8 @@ fn mr12_the_session_cache_in_the_route_path_reuses_an_identical_route_and_charge
     let cat = [model("m-cheap", 1, 10), model("m-strong", 2, 20)];
     let mut t = task(&cat, 3);
     t.session = None;
+    // `mechanical` is a rules-only family; this one may consult a router.
+    t.family = "localized_debug".into();
     let mut cfg = config(&e, t, None);
     cfg.routing.explicit_mode = true;
     cfg.routing.cfg.mode = semaprax_harness::decision::RoutingMode::Experimental;

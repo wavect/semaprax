@@ -5,11 +5,18 @@
 //! rendered digest round-trips, the typed call metadata lands in the
 //! decision, and an identical second decision is a session cache hit with no
 //! new adapter or upstream call. Needs python3 (HARNESS_PYTHON or PATH).
+//!
+//! Known host gap: the bundled descriptor's `upstream` block names the
+//! user-run Laya server package (`pypi:laya`, no identity probe), which `trust`
+//! treats as an executable to adopt and refuses (`SPX-HPB033`); the adapter
+//! never executes it. The cell therefore adopts the bundled adapter code
+//! byte-for-byte from a copy whose descriptor omits only that block.
 
 use super::*;
 use crate::support::{fixture_dir, repo_root, write};
 use semaprax_harness::cli::{run, Environment};
 use semaprax_harness::workflow::decision_open::open_decision;
+use serde_json::Value;
 use std::collections::BTreeMap;
 use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
@@ -77,6 +84,38 @@ impl Drop for FakeLaya {
     }
 }
 
+/// The bundled adapter code verbatim (systemone runtime, codec, backends,
+/// laya-local entry and the SDK helper); the descriptor without `upstream`.
+fn vendor_copy(root: &std::path::Path) -> PathBuf {
+    let pkg = repo_root().join("packages/semaprax-harness-adapters");
+    let to = root.join("vendor");
+    let copy_py = |from: &std::path::Path, dest: &std::path::Path| {
+        std::fs::create_dir_all(dest).unwrap();
+        for e in std::fs::read_dir(from).unwrap().flatten() {
+            let p = e.path();
+            if p.extension().is_some_and(|x| x == "py") {
+                std::fs::copy(&p, dest.join(e.file_name())).unwrap();
+            }
+        }
+    };
+    copy_py(&pkg.join("systemone"), &to.join("systemone"));
+    copy_py(
+        &pkg.join("systemone/laya-local"),
+        &to.join("systemone/laya-local"),
+    );
+    copy_py(&pkg.join("sdk/python"), &to.join("sdk/python"));
+    let mut d: Value = serde_json::from_slice(
+        &std::fs::read(pkg.join("systemone/laya-local/harness-provider.json")).unwrap(),
+    )
+    .unwrap();
+    d.as_object_mut().unwrap().remove("upstream");
+    write(
+        &to,
+        "systemone/laya-local/harness-provider.json",
+        &d.to_string(),
+    )
+}
+
 fn s(a: &[&str]) -> Vec<String> {
     a.iter().map(|x| x.to_string()).collect()
 }
@@ -93,9 +132,7 @@ fn mr12_laya_local_adapter_negotiates_v2_routes_and_a_repeat_is_a_session_cache_
         cwd: root.clone(),
         vars: BTreeMap::from([("PATH".to_string(), "/usr/bin:/bin".to_string())]),
     };
-    // Adopt the bundled adapter from the checkout path (no copy, no install).
-    let desc = repo_root()
-        .join("packages/semaprax-harness-adapters/systemone/laya-local/harness-provider.json");
+    let desc = vendor_copy(&root);
     let py = python();
     let o = run(
         &s(&[

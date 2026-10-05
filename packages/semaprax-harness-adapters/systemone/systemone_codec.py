@@ -327,9 +327,9 @@ def validate_request_v2(payload):
     if len(r["state"].encode()) > V2_MAX_STATE_BYTES or len(r["instructions"].encode()) > V2_MAX_INSTRUCTIONS_BYTES:
         raise _refuse("SPX-HPK005", "rendered state or instructions exceed their bound")
     labels = r["option_labels"]
-    if not isinstance(labels, dict) or list(labels) != options or any(
+    if not isinstance(labels, dict) or set(labels) != set(options) or len(labels) != len(options) or any(
             not isinstance(v, str) or not v or len(v.encode()) > V2_MAX_LABEL_BYTES for v in labels.values()):
-        raise _refuse("SPX-HPK010", "`option_labels` must cover exactly the options in order")
+        raise _refuse("SPX-HPK010", "`option_labels` must cover exactly the options")
     if r["digest"] != rendered_digest(r):
         raise _refuse("SPX-HPK006", "rendered digest does not match the rendered content")
     return {"features": payload["features"], "options": list(options), "rendered": r, "max_wire_bytes": payload["max_wire_bytes"]}
@@ -346,7 +346,7 @@ def build_body_v2(invocation_id, req):
     qid = question_id_v2(invocation_id, req["options"], r["digest"])
     body = {
         "state": r["state"],
-        "questions": {qid: {"type": "choice", "instructions": r["instructions"], "criteria": dict(r["option_labels"])}},
+        "questions": {qid: {"type": "choice", "instructions": r["instructions"], "criteria": {o: r["option_labels"][o] for o in req["options"]}}},
     }
     return qid, body
 

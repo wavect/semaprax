@@ -294,6 +294,30 @@ process.on('SIGTERM',()=>{if(lastPlan)output({schema:'semaprax.hot-reload-contro
     assert.match(vscode.window.activeTextEditor.document.getText(), /2 tokens saved versus reference/);
     const hostile = path.join(reportDirectory, 'hostile.json'); fs.writeFileSync(hostile, '{"schema":"x","schema":"y"}');
     api.enqueueReport(vscode.Uri.file(hostile)); await assert.rejects(api.execute('showTokenReport'), /Duplicate JSON key/);
+    // View lifecycle: a failed load admits nothing, a language change keeps
+    // the content, and the view is released only when VS Code retires its
+    // document; a tab-only close of a still-live document keeps it.
+    const tick = () => new Promise(resolve => setTimeout(resolve, 100));
+    const views = () => api.state().virtualStores.tokenReports;
+    const live = views().count;
+    assert.ok(live >= 1 && live <= 4, `report views are bounded by the views opened: ${live}`);
+    const shown = vscode.window.activeTextEditor.document;
+    const key = shown.uri.toString();
+    assert.ok(views().uris.includes(key), 'the shown report view is retained');
+    const switched = await vscode.languages.setTextDocumentLanguage(shown, 'markdown');
+    await tick();
+    assert.ok(views().uris.includes(key), 'a language change does not retire the view');
+    assert.match(switched.getText(), /Measured pairs/);
+    const retired = new Promise(resolve => {
+      const subscription = vscode.workspace.onDidCloseTextDocument(doc => { if (doc.uri.toString() === key) { subscription.dispose(); resolve(true); } });
+      setTimeout(() => { subscription.dispose(); resolve(false); }, 3000);
+    });
+    await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+    const disposed = await retired;
+    await tick();
+    if (disposed) assert.ok(!views().uris.includes(key), 'a retired document releases its view');
+    else assert.ok(views().uris.includes(key), 'a tab-only close keeps the still-live document');
+    assert.ok(views().bytes >= 0);
     assert.equal(api.state().running, false, 'report snapshots must not start a compiler or MCP session');
     assert.deepEqual(fs.readFileSync(source), reportSourceBefore, 'report snapshots must not write source');
   } finally { fs.rmSync(reportDirectory, { recursive: true, force: true }); }

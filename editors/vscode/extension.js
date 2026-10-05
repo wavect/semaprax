@@ -18,6 +18,7 @@ const { revealCurrentSource } = require('./explorer-reveal');
 const tokenReport = require('./token-report');
 const harness = require('./harness');
 const { HotReload } = require('./hot-reload');
+const { ContentStore, REVIEW_LIMITS, TOKEN_REPORT_LIMITS } = require('./virtual-documents');
 let stopActive = () => {};
 // Check-on-save: run the user-selected compiler's read-only `check --json` on
 // the saved file's project and publish the result as editor diagnostics. It
@@ -584,11 +585,16 @@ function activate(context) {
     if (!selected) throw new Error(`Extension-host test selection is unavailable: ${label}`);
     return Promise.resolve(selected);
   };
-  const documents = new Map(), scratch = new Set(), changed = new vscode.EventEmitter();
-  const tokenDocuments = new Map(), tokenChanged = new vscode.EventEmitter();
-  const holeScratch = new Map();
+  // Review views are source-bound session state: invalidated by `clear`,
+  // released by `stop`. Token reports are independent snapshots with their own
+  // bounds, released when their document is retired or the extension is
+  // disposed. Either store reclaims a view's quota once VS Code retires it.
   const holeReports = new Set();
   const attemptReports = new Set();
+  const documents = new ContentStore({ ...REVIEW_LIMITS, onRelease: uri => { holeReports.delete(uri); attemptReports.delete(uri); } });
+  const scratch = new Set(), changed = new vscode.EventEmitter();
+  const tokenDocuments = new ContentStore(TOKEN_REPORT_LIMITS), tokenChanged = new vscode.EventEmitter();
+  const holeScratch = new Map();
   const status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
   status.text = 'SEMAPRAX: stopped'; status.show();
   const clear = label => {
@@ -758,14 +764,15 @@ function activate(context) {
   }
   async function virtual(text, suffix, language = 'plaintext', current = epoch) {
     ensureEpoch(current);
-    const retained = [...documents.values()].reduce((sum, value) => sum + Buffer.byteLength(value), 0);
-    if (Buffer.byteLength(text) > 16 * 1024 * 1024 || retained + Buffer.byteLength(text) > 32 * 1024 * 1024 || documents.size >= 64) throw new Error('Virtual document budget reached; restart session');
     const uri = vscode.Uri.from({ scheme: 'semaprax-review', path: '/' + crypto.randomUUID() + '/' + suffix });
-    documents.set(uri.toString(), text);
+    // Pinned until the open settles: the language change below emits a close
+    // and an open for this URI, and that close must not retire it.
+    documents.admit(uri.toString(), text);
     try {
       const doc = await vscode.workspace.openTextDocument(uri); ensureEpoch(current);
-      await vscode.languages.setTextDocumentLanguage(doc, language); ensureEpoch(current); return uri;
-    } catch (error) { documents.delete(uri.toString()); changed.fire(uri); throw error; }
+      await vscode.languages.setTextDocumentLanguage(doc, language); ensureEpoch(current);
+      documents.unpin(uri.toString()); return uri;
+    } catch (error) { documents.rollback(uri.toString()); changed.fire(uri); throw error; }
   }
   function readSelectedTokenReport(uri) {
     if (!uri || uri.scheme !== 'file') throw new Error('Select one local token report file');
@@ -830,9 +837,12 @@ function activate(context) {
     const report = tokenReport.validate(readSelectedTokenReport(uri));
     const text = tokenReport.render(report, { activeProjectRevision: activeTokenReportProjectRevision() });
     const view = vscode.Uri.from({ scheme: 'semaprax-token-report', path: '/' + crypto.randomUUID() + '/report.txt' });
-    tokenDocuments.set(view.toString(), text);
-    const doc = await vscode.workspace.openTextDocument(view);
-    await vscode.window.showTextDocument(doc, { preview: true });
+    tokenDocuments.admit(view.toString(), text);
+    try {
+      const doc = await vscode.workspace.openTextDocument(view);
+      await vscode.window.showTextDocument(doc, { preview: true });
+      tokenDocuments.unpin(view.toString());
+    } catch (error) { tokenDocuments.rollback(view.toString()); tokenChanged.fire(view); throw error; }
     return report;
   }
   async function catalog(selectedTarget = target) {
@@ -1215,8 +1225,16 @@ function activate(context) {
   }), vscode.workspace.onDidSaveTextDocument(document => {
     if (document.uri.path.endsWith('.spx') || path.basename(document.uri.path) === 'semaprax.toml') hotReload?.markSaved();
   }), vscode.workspace.onDidCloseTextDocument(doc => {
-    holeScratch.delete(doc.uri.toString()); scratch.delete(doc.uri.toString());
-  }), vscode.workspace.onDidChangeConfiguration(event => { if (event.affectsConfiguration('semaprax')) stop(); }), { dispose: stop });
+    const key = doc.uri.toString();
+    holeScratch.delete(key); scratch.delete(key);
+    // Presentation state only: a retired view's content and quota are
+    // released, never a candidate, session, approval or unrelated work.
+    // A language change closes and reopens the same URI in one delta, so the
+    // decision waits for the next macrotask and releases only when no open
+    // document (in any editor) still shows the URI.
+    const store = doc.uri.scheme === 'semaprax-review' ? documents : doc.uri.scheme === 'semaprax-token-report' ? tokenDocuments : null;
+    if (store) setTimeout(() => store.closed(key, vscode.workspace.textDocuments.some(open => open !== doc && !open.isClosed && open.uri.toString() === key)), 0);
+  }), { dispose: () => tokenDocuments.clear() }, vscode.workspace.onDidChangeConfiguration(event => { if (event.affectsConfiguration('semaprax')) stop(); }), { dispose: stop });
   for (const [name, command] of Object.entries(commands)) context.subscriptions.push(vscode.commands.registerCommand('semaprax.' + name, async () => {
     if (name === 'stop') { stop(); return; }
     if (name === 'cancelCandidateTests') {
@@ -1246,7 +1264,8 @@ function activate(context) {
         explorerRenders: explorerRenders.map(value => ({ ...value, loaded: [...value.loaded] })),
         explorerActions: [...explorerActions],
         explorerReplies: [...explorerReplies],
-        documents: [...documents].map(([uri, text]) => ({ uri, text }))
+        documents: documents.list().map(([uri, text]) => ({ uri, text })),
+        virtualStores: { review: { count: documents.size, bytes: documents.bytes }, tokenReports: { count: tokenDocuments.size, bytes: tokenDocuments.bytes, uris: tokenDocuments.keys() } }
       };
     },
     // The check-on-save half, so the host test can exercise the diagnostic

@@ -12,6 +12,7 @@ use semaprax_harness::observe::Tokenizer;
 use semaprax_harness::workflow::stages::CommandStage;
 use semaprax_harness::workflow::{CheckSpec, HostCommandChecks};
 use std::collections::BTreeMap;
+use std::io::Read;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 
@@ -98,17 +99,36 @@ impl Fx {
         );
         std::fs::set_permissions(&up, std::fs::Permissions::from_mode(0o755)).unwrap();
         std::fs::create_dir_all(root.join("tools")).unwrap();
-        let server = std::process::Command::new(python())
+        let mut server = std::process::Command::new(python())
             .arg(&fake)
             .arg(root.join("tools"))
+            .stderr(std::process::Stdio::piped())
             .spawn()
             .unwrap();
         let portf = root.join("tools/port");
-        for _ in 0..200 {
-            if portf.exists() && !std::fs::read_to_string(&portf).unwrap().is_empty() {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
+        loop {
+            if std::fs::read_to_string(&portf).is_ok_and(|port| !port.is_empty()) {
                 break;
             }
-            std::thread::sleep(std::time::Duration::from_millis(25));
+            if let Some(status) = server.try_wait().unwrap() {
+                let mut stderr = String::new();
+                server
+                    .stderr
+                    .take()
+                    .unwrap()
+                    .read_to_string(&mut stderr)
+                    .unwrap();
+                panic!(
+                    "fake Caveman runtime exited before publishing its port ({status}): {stderr}"
+                );
+            }
+            if std::time::Instant::now() >= deadline {
+                let _ = server.kill();
+                let _ = server.wait();
+                panic!("fake Caveman runtime did not publish its port within 60 seconds");
+            }
+            std::thread::sleep(std::time::Duration::from_millis(50));
         }
         let mut vars = BTreeMap::new();
         vars.insert("PATH".to_string(), "/usr/bin:/bin".to_string());

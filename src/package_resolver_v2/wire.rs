@@ -410,13 +410,6 @@ impl DuplicateParser<'_> {
     }
 }
 
-pub(super) fn required_str<'a>(value: &'a Value, key: &str) -> Result<&'a str, Diagnostic> {
-    value
-        .get(key)
-        .and_then(Value::as_str)
-        .ok_or_else(|| wire_error(format!("{key} must be string")))
-}
-
 pub(super) fn digest(domain: &[u8], bytes: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(domain);

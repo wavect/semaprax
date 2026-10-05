@@ -267,24 +267,6 @@ pub(crate) fn models_value(models: &[DeploymentModel]) -> Value {
     Value::Array(models.iter().map(DeploymentModel::to_value).collect())
 }
 
-#[cfg(test)]
-pub(crate) mod model_decode_counter {
-    use std::cell::Cell;
-
-    thread_local! {
-        static DECODES: Cell<usize> = const { Cell::new(0) };
-    }
-
-    pub(crate) fn record() {
-        DECODES.with(|count| count.set(count.get() + 1));
-    }
-
-    /// Model rows decoded from dynamic JSON on this thread.
-    pub(crate) fn snapshot() -> usize {
-        DECODES.with(Cell::get)
-    }
-}
-
 pub(crate) fn parse_definition_v2(source: &str) -> Result<DefinitionV2, Diagnostic> {
     let top = canonical_top(source, definition_malformed)?;
     if !exact_keys(
@@ -753,5 +735,23 @@ fn json_depth(value: &Value) -> usize {
         Value::Array(values) => 1 + values.iter().map(json_depth).max().unwrap_or(0),
         Value::Object(entries) => 1 + entries.values().map(json_depth).max().unwrap_or(0),
         _ => 1,
+    }
+}
+
+#[cfg(test)]
+pub(crate) mod model_decode_counter {
+    use std::cell::Cell;
+
+    thread_local! {
+        static DECODES: Cell<usize> = const { Cell::new(0) };
+    }
+
+    pub(crate) fn record() {
+        DECODES.with(|count| count.set(count.get() + 1));
+    }
+
+    /// Model rows decoded from dynamic JSON on this thread.
+    pub(crate) fn snapshot() -> usize {
+        DECODES.with(Cell::get)
     }
 }

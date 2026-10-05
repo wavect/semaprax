@@ -239,6 +239,7 @@ pub mod openapi;
 #[allow(
     dead_code,
     unused_imports,
+    unknown_lints,
     clippy::chunks_exact_to_as_chunks,
     clippy::len_without_is_empty,
     clippy::manual_is_multiple_of,
@@ -350,6 +351,7 @@ pub mod quality_route;
 pub mod query;
 pub mod region_report;
 #[allow(
+    unknown_lints,
     clippy::chunks_exact_to_as_chunks,
     clippy::manual_div_ceil,
     clippy::manual_is_multiple_of,
@@ -362,6 +364,7 @@ pub mod requirement_traceability;
 #[allow(
     dead_code,
     unused_imports,
+    unknown_lints,
     clippy::chunks_exact_to_as_chunks,
     clippy::cloned_ref_to_slice_refs,
     clippy::items_after_test_module,

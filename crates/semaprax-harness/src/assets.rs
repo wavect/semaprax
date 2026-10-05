@@ -165,6 +165,7 @@ mod tests {
                 } else if !(name.starts_with("EVIDENCE")
                     || name.starts_with("RESEARCH")
                     || name.starts_with("test_")
+                    || name.starts_with("fake_")
                     || name.ends_with(".pyc")
                     || name == ".DS_Store")
                 {
@@ -175,8 +176,10 @@ mod tests {
         let mut found = Vec::new();
         for r in [
             "caveman",
+            "clef-local",
             "graft",
             "graphify",
+            "minijev-local",
             "rtk",
             "systemone",
             "examples/source-index-python",

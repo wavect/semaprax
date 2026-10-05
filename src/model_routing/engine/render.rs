@@ -75,7 +75,7 @@ impl CandidateV2 {
 }
 
 fn context_text(n: u64) -> String {
-    if n >= 1_000_000 && n % 1_000_000 == 0 {
+    if n >= 1_000_000 && n.is_multiple_of(1_000_000) {
         format!("{}M", n / 1_000_000)
     } else if n >= 1000 {
         format!("{}k", n / 1000)

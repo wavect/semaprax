@@ -151,7 +151,8 @@ fn mn01_unresolved_retry_in_session_stops_before_any_further_dispatch() {
 #[test]
 fn mn01_missing_tampered_or_oversized_retry_artifacts_fail_closed_without_a_paid_replacement() {
     let fake = Fake::new(CHANGED);
-    let tamper: [(&str, fn(&std::path::Path)); 3] = [
+    type Tamper = (&'static str, fn(&std::path::Path));
+    let tamper: [Tamper; 3] = [
         ("missing", |p| std::fs::remove_file(p).unwrap()),
         ("digest mismatch", |p| {
             std::fs::write(p, body(json!({"claims": {"tampered": true}}))).unwrap()
@@ -463,8 +464,7 @@ fn mn07_invalid_controls_cause_no_workflow_or_provider_work_and_no_durable_attem
         };
         let snap = Snapshot::capture(&e.project).unwrap();
         let err = run_with(&o, &env, snap, e.cache.clone(), &fake)
-            .err()
-            .expect("invalid task controls are refused");
+            .expect_err("invalid task controls are refused");
         assert_eq!(err.code, "SPX-HPD081", "{bad}");
         assert!(err.message.contains(member), "{bad}: {}", err.message);
         assert!(

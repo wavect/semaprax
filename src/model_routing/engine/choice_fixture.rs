@@ -82,7 +82,7 @@ impl FixtureChoiceInvoker {
             let n = words(label).intersection(&excerpt).count();
             best.push((n, o.to_string()));
         }
-        best.sort_by(|a, b| b.0.cmp(&a.0));
+        best.sort_by_key(|b| std::cmp::Reverse(b.0));
         match best.as_slice() {
             [(n, o), rest @ ..] if *n > 0 && rest.first().is_none_or(|r| r.0 < *n) => {
                 Some(o.clone())

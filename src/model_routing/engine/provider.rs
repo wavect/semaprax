@@ -13,6 +13,10 @@ use std::collections::BTreeSet;
 /// What one `decision.evaluate` invocation produced. A returned payload is
 /// untrusted data; the router validates it before any use.
 #[derive(Clone, Debug, PartialEq)]
+#[allow(
+    clippy::large_enum_variant,
+    reason = "one short-lived value per adapter call; boxing would change the MR-15 boundary type"
+)]
 pub enum DecisionCall {
     /// Result payload and injected elapsed time. `call` is the typed v2 call
     /// metadata (MR-03) taken from the payload's `call` member by the host

@@ -442,7 +442,7 @@ fn a_qualifying_profile_activates_only_under_its_exact_key_and_rolls_back() {
         ..key.clone()
     };
     assert!(!session_admits(store, &renderer));
-    assert!(r.stores.get(&ExecutionDomain::Application).is_none());
+    assert!(!r.stores.contains_key(&ExecutionDomain::Application));
     // Shadow strata never route and never enter the gate record.
     let rec = r.registry.get(&key).unwrap();
     assert_eq!(rec.eval_items.len(), 30);

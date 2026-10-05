@@ -435,6 +435,7 @@ fn cancelled(cx: &Ctx) -> HarnessResult<()> {
 
 /// One routed, reserved, journaled role generation. `Ok(None)` is a known
 /// skip (budget, availability, refusal); an unresolved dispatch propagates.
+#[allow(clippy::too_many_arguments)]
 fn generate_role(
     cx: &mut Ctx,
     st: &mut Stages,

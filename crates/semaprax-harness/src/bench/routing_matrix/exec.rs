@@ -290,7 +290,7 @@ pub fn reconcile(
     let mut cache = Vec::new();
     let last = run.attempts.len().saturating_sub(1);
     for (i, a) in run.attempts.iter().enumerate() {
-        let mut u = a.usage.clone();
+        let mut u = a.usage;
         // The uncached share follows from a complete split; nothing else is inferred.
         if u.uncached_input.is_none() {
             if let (Some(t), Some(r), Some(w)) = (u.input_total, u.cache_read, u.cache_write) {

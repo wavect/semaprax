@@ -206,8 +206,10 @@ impl Recording<'_> {
 }
 
 pub(crate) fn inputs_for(tasks: &TaskSet, item: &Item) -> HarnessResult<RouteInputs> {
-    let mut sig = RouteSignals::default();
-    sig.execution_domain = item.domain;
+    let sig = RouteSignals {
+        execution_domain: item.domain,
+        ..RouteSignals::default()
+    };
     let request = RouteRequest::from_json(&tasks.route_doc(item))?.with_signals(sig);
     Ok(RouteInputs {
         request,

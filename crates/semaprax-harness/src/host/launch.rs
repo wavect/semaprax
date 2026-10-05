@@ -439,7 +439,7 @@ mod tests {
         ] {
             let mut t = s.clone();
             t.forward_env.insert(key.into(), "x".into());
-            let e = t.environment(&None, Runtime::Native).err().expect(key);
+            let e = t.environment(&None, Runtime::Native).expect_err(key);
             assert_eq!(e.code, "SPX-HPC001", "{key}");
         }
     }

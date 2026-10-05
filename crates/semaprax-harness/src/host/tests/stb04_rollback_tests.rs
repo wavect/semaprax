@@ -72,16 +72,13 @@ fn spawn(fx: &Fx, sys: &Arc<FailSys>) -> std::io::Result<Proc> {
 
 #[test]
 fn each_worker_creation_failure_rolls_back_the_started_child() {
-    for k in 0..WORKERS.len() {
+    for (k, worker) in WORKERS.iter().enumerate() {
         let fx = fixture();
         let sys = FailSys::new(Some(k));
         let err = spawn(&fx, &sys).err().expect("ordinary error, not a Proc");
         assert_eq!(err.kind(), std::io::ErrorKind::WouldBlock, "worker {k}");
         let msg = err.to_string();
-        assert!(
-            msg.contains(WORKERS[k]) && msg.contains("injected"),
-            "{msg}"
-        );
+        assert!(msg.contains(worker) && msg.contains("injected"), "{msg}");
         let ev = sys.rec.events();
         // The child was settled exactly once by the owner, after the failure.
         let fail_at = ev.iter().position(|e| *e == format!("spawn-fail {k}"));

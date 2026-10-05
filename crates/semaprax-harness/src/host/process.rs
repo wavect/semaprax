@@ -74,6 +74,17 @@ pub(crate) trait Sys: Send + Sync {
     fn stdin(&self, s: ChildStdin) -> Box<dyn Write + Send> {
         Box::new(s)
     }
+    /// Create one I/O worker thread (`role` indexes [`WORKERS`]). Fallible:
+    /// thread creation can fail under resource exhaustion.
+    fn spawn_worker(
+        &self,
+        role: usize,
+        name: &'static str,
+        f: Box<dyn FnOnce() + Send>,
+    ) -> std::io::Result<std::thread::JoinHandle<()>> {
+        let _ = role;
+        std::thread::Builder::new().name(name.into()).spawn(f)
+    }
 }
 
 pub(crate) struct RealSys;
@@ -310,6 +321,19 @@ fn dispatch(shared: &Shared, frame: &[u8], cap: usize) -> Result<(), HarnessDiag
     }
 }
 
+/// Names of the three mandatory I/O workers, in start order.
+pub(crate) const WORKERS: [&str; 3] = [
+    "spx-adapter-stdin",
+    "spx-adapter-stdout",
+    "spx-adapter-stderr",
+];
+
+type Pipes = (
+    Box<dyn Write + Send>,
+    std::process::ChildStdout,
+    std::process::ChildStderr,
+);
+
 /// The stdin writer worker. A terminal write or flush failure is reported
 /// through the shared first-failure close (waking every pending waiter) and
 /// the single process owner; queued frames are then dropped with their
@@ -330,10 +354,8 @@ fn write_frames(mut w: Box<dyn Write + Send>, rx: Receiver<Vec<u8>>, shared: &Sh
 }
 
 impl Proc {
-    pub(crate) fn spawn(p: &Prepared, frame_cap: usize, ring_cap: usize) -> std::io::Result<Proc> {
-        Self::spawn_with(p, frame_cap, ring_cap, Arc::new(RealSys))
-    }
-
+    /// Launch the adapter in its own process group and start its three I/O
+    /// workers. Production passes [`RealSys`]; tests pass a seam.
     pub(crate) fn spawn_with(
         p: &Prepared,
         frame_cap: usize,
@@ -355,8 +377,9 @@ impl Proc {
             child.stdout.take().expect("piped"),
             child.stderr.take().expect("piped"),
         );
-        let mut stderr = stderr;
         let stdin = sys.stdin(stdin);
+        // From here the shared owner holds the child, so every exit below
+        // (success or rollback) settles it through the one cleanup path.
         let shared = Arc::new(Shared {
             pid: child.id() as i32,
             inner: Mutex::new(Inner::default()),
@@ -368,50 +391,106 @@ impl Proc {
             owner: Mutex::new(Settle::Live(child)),
             sys,
         });
-
         let (wtx, wrx) = sync_channel::<Vec<u8>>(8);
-        let s = shared.clone();
-        std::thread::spawn(move || write_frames(stdin, wrx, &s));
-
-        let s = shared.clone();
-        std::thread::spawn(move || {
-            let mut r = BufReader::with_capacity(8192, stdout);
-            loop {
-                match read_frame(&mut r, frame_cap) {
-                    Ok(Some(frame)) => {
-                        if let Err(d) = dispatch(&s, &frame, frame_cap) {
-                            s.violate(d);
-                            return;
-                        }
-                    }
-                    Ok(None) => return s.close(Closed::Exited),
-                    Err(d) if d.code == "SPX-HPC007" => return s.close(Closed::Exited),
-                    Err(d) => return s.violate(d),
-                }
+        let mut workers = Vec::with_capacity(3);
+        let started = Self::start_workers(
+            &shared,
+            &mut workers,
+            (stdin, stdout, stderr),
+            wrx,
+            frame_cap,
+        );
+        if let Err(e) = started {
+            // Rollback: no `Proc` is published. Closing the queue ends the
+            // writer; settling kills the group and reaps the leader, so the
+            // readers reach EOF. Already-started workers get a bounded wait,
+            // never an unbounded join.
+            drop(wtx);
+            shared.close(Closed::Host("startup"));
+            shared.settle();
+            let end = std::time::Instant::now() + std::time::Duration::from_secs(2);
+            while workers.iter().any(|w| !w.is_finished()) && std::time::Instant::now() < end {
+                std::thread::sleep(std::time::Duration::from_millis(1));
             }
-        });
-
-        let s = shared.clone();
-        std::thread::spawn(move || {
-            let mut chunk = [0u8; 8192];
-            while let Ok(n) = stderr.read(&mut chunk) {
-                if n == 0 {
-                    break;
-                }
-                let mut g = lock(&s.ring);
-                g.buf.extend(&chunk[..n]);
-                while g.buf.len() > g.cap {
-                    g.buf.pop_front();
-                    g.dropped += 1;
-                }
-            }
-        });
+            return Err(match shared.settlement() {
+                Settlement::Incomplete(why) => std::io::Error::new(
+                    e.kind(),
+                    format!("{e}; rollback cleanup incomplete: {why}"),
+                ),
+                _ => e,
+            });
+        }
 
         Ok(Proc {
             shared,
             writer: wtx,
             next_id: std::sync::atomic::AtomicU64::new(1),
         })
+    }
+
+    /// Start the writer, stdout reader and stderr reader with fallible
+    /// thread creation; each started handle is pushed to `workers`.
+    fn start_workers(
+        shared: &Arc<Shared>,
+        workers: &mut Vec<std::thread::JoinHandle<()>>,
+        (stdin, stdout, mut stderr): Pipes,
+        wrx: Receiver<Vec<u8>>,
+        frame_cap: usize,
+    ) -> std::io::Result<()> {
+        let spawn = |role: usize, f: Box<dyn FnOnce() + Send>| {
+            shared
+                .sys
+                .spawn_worker(role, WORKERS[role], f)
+                .map_err(|e| {
+                    std::io::Error::new(
+                        e.kind(),
+                        format!("cannot start adapter I/O worker `{}`: {e}", WORKERS[role]),
+                    )
+                })
+        };
+        let s = shared.clone();
+        workers.push(spawn(0, Box::new(move || write_frames(stdin, wrx, &s)))?);
+
+        let s = shared.clone();
+        workers.push(spawn(
+            1,
+            Box::new(move || {
+                let mut r = BufReader::with_capacity(8192, stdout);
+                loop {
+                    match read_frame(&mut r, frame_cap) {
+                        Ok(Some(frame)) => {
+                            if let Err(d) = dispatch(&s, &frame, frame_cap) {
+                                s.violate(d);
+                                return;
+                            }
+                        }
+                        Ok(None) => return s.close(Closed::Exited),
+                        Err(d) if d.code == "SPX-HPC007" => return s.close(Closed::Exited),
+                        Err(d) => return s.violate(d),
+                    }
+                }
+            }),
+        )?);
+
+        let s = shared.clone();
+        workers.push(spawn(
+            2,
+            Box::new(move || {
+                let mut chunk = [0u8; 8192];
+                while let Ok(n) = stderr.read(&mut chunk) {
+                    if n == 0 {
+                        break;
+                    }
+                    let mut g = lock(&s.ring);
+                    g.buf.extend(&chunk[..n]);
+                    while g.buf.len() > g.cap {
+                        g.buf.pop_front();
+                        g.dropped += 1;
+                    }
+                }
+            }),
+        )?);
+        Ok(())
     }
 
     pub(crate) fn closed(&self) -> Option<Closed> {

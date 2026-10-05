@@ -213,7 +213,7 @@ fn failed_group_signal_is_incomplete_and_retires_authority_after_reap() {
 #[test]
 fn real_owner_settles_the_child_and_its_group() {
     let fx = fixture();
-    let p = Proc::spawn(&sh_prepared(&fx), 1 << 20, 4096).unwrap();
+    let p = Proc::spawn_with(&sh_prepared(&fx), 1 << 20, 4096, Arc::new(RealSys)).unwrap();
     let (leader, grandchild) = owner_pids(&fx);
     assert!(pid_alive(leader) && pid_alive(grandchild));
     assert_eq!(p.terminate(Closed::Host("shutdown")), Settlement::Settled);

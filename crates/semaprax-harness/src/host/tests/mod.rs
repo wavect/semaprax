@@ -13,6 +13,7 @@ mod net;
 mod stb01_shutdown_tests;
 mod stb02_owner_tests;
 mod stb03_writer_tests;
+mod stb04_rollback_tests;
 mod stb_fixture;
 
 use super::grant::{Grant, GrantedPermissions};

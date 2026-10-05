@@ -6,7 +6,7 @@ use super::budget::{BudgetLedger, HostBudget};
 use super::isolation::{IsolationBackend, IsolationMode};
 use super::launch::LaunchSpec;
 use super::lifecycle::{AdapterState, CancelToken, InvocationClass, Outcome};
-use super::process::{Closed, Delivery, Proc};
+use super::process::{Closed, Delivery, Proc, RealSys, Sys};
 use super::rpc;
 use crate::contract::{
     negotiate, ActiveCapability, CancellationMode, HostSupport, ProjectBinding, RequestEnvelope,
@@ -102,6 +102,9 @@ pub struct AdapterHandle {
     core: Mutex<Core>,
     /// `harness/invoke` frames queued to an adapter (test and audit probe).
     invoke_frames: AtomicU64,
+    /// Test seam: the OS boundary used for the next process spawn.
+    #[cfg(test)]
+    sys_override: Mutex<Option<Arc<dyn Sys>>>,
 }
 
 enum Wait {
@@ -210,6 +213,19 @@ impl AdapterHandle {
         lock(&self.gate)
             .close_by
             .is_some_and(|d| Instant::now() >= d)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn set_test_sys(&self, sys: Option<Arc<dyn Sys>>) {
+        *lock(&self.sys_override) = sys;
+    }
+
+    fn spawn_sys(&self) -> Arc<dyn Sys> {
+        #[cfg(test)]
+        if let Some(s) = lock(&self.sys_override).clone() {
+            return s;
+        }
+        Arc::new(RealSys)
     }
 
     #[cfg(test)]
@@ -372,10 +388,11 @@ impl AdapterHandle {
             .prepare(&self.config.backend)
             .map_err(Outcome::Refused)?;
         let proc = Arc::new(
-            Proc::spawn(
+            Proc::spawn_with(
                 &prepared,
                 frame_cap(&self.spec),
                 self.config.stderr_ring_bytes,
+                self.spawn_sys(),
             )
             .map_err(|e| Outcome::Unavailable {
                 reason: diag("SPX-HPC004", format!("cannot start adapter: {e}")),
@@ -950,6 +967,8 @@ impl AdapterManager {
             start: Mutex::new(()),
             halt: CancelToken::new(),
             invoke_frames: AtomicU64::new(0),
+            #[cfg(test)]
+            sys_override: Mutex::new(None),
             core: Mutex::new(Core {
                 state: AdapterState::Prepared,
                 proc: None,

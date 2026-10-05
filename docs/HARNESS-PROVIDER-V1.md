@@ -191,7 +191,11 @@ lazy (first invocation); an idle shutdown returns to `prepared`. Each
 bounded by the descriptor and host caps; deadlines and cancellation kill the
 whole process group (`process_group(0)` + group `SIGKILL`) and every child is
 reaped before return. A crash circuit breaker quarantines after repeated
-failures. A protocol violation quarantines immediately with a structured
+failed process generations (one process exit counts once however many
+invocations were pending). A closed handle stays closed; `AdapterManager::prepare`
+replaces a closed entry with a fresh handle, `close_and_evict` and `reprepare`
+close and replace one explicitly (also the recovery path for a quarantined
+adapter), and a changed launch identity is refused while the handle is open. A protocol violation quarantines immediately with a structured
 `SPX-HPC` reason. Only `SafeRead`/`Decision` invocations may fall back after a
 crash, and only when no response arrived; a side-effecting invocation whose
 request was sent is `Uncertain` and never retried. Restricted mode

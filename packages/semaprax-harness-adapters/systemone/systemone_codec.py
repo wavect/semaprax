@@ -12,7 +12,7 @@ import math
 
 TASK = "model-route/v1"
 
-# Closed feature set of model-route/v1 (crates/semaprax-harness/src/decision/route.rs).
+# Closed feature set of model-route/v1 (src/model_routing/engine/route.rs).
 ENUMS = {
     "task_family": ("mechanical", "tests_docs", "localized_debug", "semantic_law"),
     "confidentiality": ("public", "project", "secret"),

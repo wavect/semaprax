@@ -25,8 +25,8 @@ For implementation status and required evidence, use the
   package lockfile classification, native tool setup, and service packaging
   have focused local fixes awaiting hosted verification.
 
-The source package version is `0.8.0`. No v0.8.0 tag or release archives are
-claimed. See [v0.8.0 status](RELEASE-0.8.0-STATUS.md).
+The source package version is `0.8.0`. Check the Git tag and hosted release
+workflow for tag and archive status. See [v0.8.0 status](RELEASE-0.8.0-STATUS.md).
 
 ## v0.7.0 historical summary
 

@@ -621,3 +621,69 @@ fn comment_text_keeps_interior_bytes_and_drops_trailing_whitespace() {
     assert_eq!(comments("//x").items[0].text, "x");
     assert_eq!(comments("//").items[0].text, "");
 }
+
+/// Debug rendering of a token-only lex result, so tokens (kind and every span
+/// field) and diagnostics (path, code, message, span and help) compare whole.
+fn token_only(source: &str) -> String {
+    format!("{:?}", lex(source, PATH))
+}
+
+fn token_half_of_preserving(source: &str) -> String {
+    format!(
+        "{:?}",
+        lex_with_comments(source, PATH).map(|(tokens, _)| tokens)
+    )
+}
+
+#[test]
+fn token_only_lexing_matches_the_token_half_of_comment_preserving_lexing() {
+    let fixtures: &[(&str, &str)] = &[
+        ("empty", ""),
+        ("whitespace only", "  \n\t \r\n  "),
+        ("comments only", "// one\n// two\n"),
+        (
+            "header and trailing comments",
+            "// header\nmodule demo @id(\"m\") { // trailing\n}\n// tail\n",
+        ),
+        ("consecutive comments", "a\n// one\n// two\n//\nb"),
+        ("comment at eof without newline", "a // end"),
+        ("crlf", "a // one\r\n// two\r\nb\r\n"),
+        ("unicode comment text", "a // grüße, 名前, 🦀 \nb"),
+        (
+            "multiline string then comment",
+            "\"line\nnext\" // after\nb",
+        ),
+        ("slashes inside string", "\"http://x // y\" // real\nb"),
+        ("bom", "\u{feff}// comment\nmodule"),
+        ("malformed string after comment", "// lead\n\"unterminated"),
+        ("malformed char after comment", "// lead\n'ab'"),
+        ("malformed escape after comment", "// lead\n\"bad \\q\""),
+        ("stray character after comment", "// lead\n#"),
+    ];
+    for (name, source) in fixtures {
+        assert_eq!(
+            token_only(source),
+            token_half_of_preserving(source),
+            "{name}: token-only and comment-preserving lexing diverge"
+        );
+    }
+}
+
+#[test]
+fn token_only_lexing_materializes_no_comment_rows_or_text() {
+    let large_comment = "x".repeat(64 * 1024);
+    let source = format!("// {large_comment}\nmodule demo @id(\"m\") {{}}\n");
+    let reset = || TEST_COMMENT_MATERIALIZATION.with(|count| count.set((0, 0)));
+    let read = || TEST_COMMENT_MATERIALIZATION.with(std::cell::Cell::get);
+
+    reset();
+    lex(&source, PATH).expect("token-only lex");
+    assert_eq!(read(), (0, 0), "token-only lexing must retain no comments");
+
+    reset();
+    let (_, comments) = lex_with_comments(&source, PATH).expect("preserving lex");
+    assert_eq!(read(), (1, large_comment.len() + 1));
+    assert_eq!(comments.items.len(), 1);
+    assert_eq!(comments.items[0].text, format!(" {large_comment}"));
+    assert!(comments.items[0].own_line);
+}

@@ -269,6 +269,75 @@ fn strict_framing_notifications_and_response_overflow_fail_closed() {
 }
 
 #[test]
+fn oversized_unterminated_request_ends_the_session_while_input_stays_open() {
+    use std::sync::mpsc;
+    use std::time::{Duration, Instant};
+
+    /// Kills the daemon if an assertion fails before it exits on its own.
+    struct KillOnDrop(Child);
+    impl Drop for KillOnDrop {
+        fn drop(&mut self) {
+            let _ = self.0.kill();
+            let _ = self.0.wait();
+        }
+    }
+
+    let fixture = Fixture::new("oversize-open-pipe");
+    let before = inventory(&fixture.0);
+    let Daemon {
+        child,
+        mut input,
+        output,
+    } = Daemon::start(&fixture, &["--max-request-bytes", "64"]);
+    let mut child = KillOnDrop(child);
+    // Cap plus one, then a request that must never execute. No LF ends the
+    // oversized frame and the pipe stays open until the test has finished.
+    input.write_all(&[b'x'; 65]).unwrap();
+    input.flush().unwrap();
+    let (sender, receiver) = mpsc::channel();
+    std::thread::spawn(move || {
+        let mut output = output;
+        let mut lines = Vec::new();
+        loop {
+            let mut line = String::new();
+            match output.read_line(&mut line) {
+                Ok(0) | Err(_) => break,
+                Ok(_) => lines.push(line),
+            }
+        }
+        let _ = sender.send(lines);
+    });
+    let lines = receiver
+        .recv_timeout(Duration::from_secs(60))
+        .expect("daemon kept its stdout open while waiting for LF or EOF");
+    assert_eq!(lines.len(), 1, "{lines:?}");
+    let response: Value = serde_json::from_str(lines[0].trim_end_matches('\n')).unwrap();
+    assert_eq!(response["id"], Value::Null);
+    assert_eq!(response["error"]["code"], -32700);
+    let deadline = Instant::now() + Duration::from_secs(60);
+    let status = loop {
+        if let Some(status) = child.0.try_wait().unwrap() {
+            break status;
+        }
+        assert!(Instant::now() < deadline, "daemon did not exit");
+        std::thread::sleep(Duration::from_millis(20));
+    };
+    let mut stderr = String::new();
+    child
+        .0
+        .stderr
+        .take()
+        .unwrap()
+        .read_to_string(&mut stderr)
+        .unwrap();
+    assert!(status.success(), "daemon failed: {stderr}");
+    // A request written after the rejection reaches no reader.
+    let _ = input.write_all(b"\n{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"ping\"}\n");
+    drop(input);
+    assert_eq!(inventory(&fixture.0), before);
+}
+
+#[test]
 fn input_drift_invalidates_the_session_before_cached_meaning_can_escape() {
     let fixture = Fixture::new("drift");
     let mut daemon = Daemon::start(&fixture, &[]);

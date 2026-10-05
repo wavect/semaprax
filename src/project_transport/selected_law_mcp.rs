@@ -27,6 +27,16 @@ pub(super) fn serve<R: BufRead, W: Write>(
     config: ServerConfig,
 ) -> io::Result<()> {
     selected_law::authenticate(config.manifest_path())?;
+    serve_authenticated(input, output, &config)
+}
+
+/// The MCP frame loop after startup authentication; see
+/// `selected_law::serve_authenticated`.
+pub(super) fn serve_authenticated<R: BufRead, W: Write>(
+    input: R,
+    output: W,
+    config: &ServerConfig,
+) -> io::Result<()> {
     let outer_limits = StdioLimits::new(config.limits().request_bytes(), MAX_MCP_RESPONSE_BYTES)
         .expect("fixed MCP response bound is within stdio limits");
     let mut input = FrameReader::new(input, outer_limits);
@@ -74,13 +84,7 @@ pub(super) fn serve<R: BufRead, W: Write>(
             }
             continue;
         };
-        let response = dispatch(
-            &id,
-            &request.method,
-            request.params,
-            &config,
-            &mut lifecycle,
-        );
+        let response = dispatch(&id, &request.method, request.params, config, &mut lifecycle);
         let overflow = codec::is_overflow_response(&response);
         output.write_response(&response)?;
         if overflow {

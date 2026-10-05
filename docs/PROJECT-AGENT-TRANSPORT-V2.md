@@ -32,8 +32,11 @@ v1](PROJECT-RENAME-TRANSACTION-V1.md).
 The wire is one JSON-RPC 2.0 object per LF-delimited UTF-8 frame. The raw frame
 is bounded before decoding. Duplicate keys at any nesting depth, unknown
 top-level keys, CR bytes, invalid UTF-8, batches, signed/floating/null IDs, and
-non-object params fail closed. Oversized input is drained without unbounded
-allocation, emits at most one bounded error, and terminates. Every response is
+non-object params fail closed. Oversized input is rejected as soon as the cap
+is exceeded: the session retains at most the cap, emits at most one bounded
+error, and terminates without waiting for the frame's LF or EOF, so a client
+that keeps its input open cannot hold the daemon in rejected-input work.
+Bytes after the rejection are never read or executed. Every response is
 one complete JSON object plus exactly one LF and an immediate flush; the
 configured response budget includes that LF. An oversized response is replaced
 as a whole by the fixed `-32001` error and the session stops.

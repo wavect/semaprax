@@ -76,22 +76,21 @@ impl<R: BufRead> FrameReader<R> {
         }
     }
 
-    /// Read and drain exactly one LF-delimited frame. Once a frame exceeds the
-    /// cap, its remainder is drained without buffering and the reader becomes
-    /// terminal after reporting the condition once.
+    /// Read exactly one LF-delimited frame. As soon as the retained bytes
+    /// would exceed the cap, the reader becomes terminal and reports the
+    /// condition once without another blocking read: a rejected session is
+    /// never resynchronized, so waiting for its LF or EOF would only let a
+    /// client hold the sequential daemon in unbounded rejected-input work.
     pub(crate) fn read_frame(&mut self) -> io::Result<Frame> {
         if self.terminal {
             return Ok(Frame::Eof);
         }
         let mut frame = Vec::new();
-        let mut oversized = false;
         loop {
             let available = self.inner.fill_buf()?;
             if available.is_empty() {
                 self.terminal = true;
-                return if oversized {
-                    Ok(Frame::OversizedTerminal)
-                } else if frame.is_empty() {
+                return if frame.is_empty() {
                     Ok(Frame::Eof)
                 } else {
                     Ok(Frame::Data(frame))
@@ -99,22 +98,16 @@ impl<R: BufRead> FrameReader<R> {
             }
             let newline = available.iter().position(|byte| *byte == b'\n');
             let payload_len = newline.unwrap_or(available.len());
-            if !oversized {
-                let remaining = self.max_bytes.saturating_sub(frame.len());
-                if payload_len <= remaining {
-                    frame.extend_from_slice(&available[..payload_len]);
-                } else {
-                    oversized = true;
-                    frame.clear();
-                }
+            if payload_len > self.max_bytes - frame.len() {
+                // Only bytes already delivered by this one read are consumed.
+                self.inner.consume(payload_len);
+                self.terminal = true;
+                return Ok(Frame::OversizedTerminal);
             }
+            frame.extend_from_slice(&available[..payload_len]);
             let consumed = newline.map_or(payload_len, |position| position + 1);
             self.inner.consume(consumed);
             if newline.is_some() {
-                if oversized {
-                    self.terminal = true;
-                    return Ok(Frame::OversizedTerminal);
-                }
                 return Ok(Frame::Data(frame));
             }
         }
@@ -196,14 +189,86 @@ mod tests {
         assert_eq!(reader.read_frame().unwrap(), Frame::Eof);
     }
 
+    /// Serves scripted chunks, then fails every further read. A reader that
+    /// asks for more input after the cap is exceeded observes the sentinel.
+    struct ScriptedChunks {
+        chunks: std::collections::VecDeque<Vec<u8>>,
+        offset: usize,
+        reads: usize,
+    }
+
+    impl ScriptedChunks {
+        fn new(chunks: &[&[u8]]) -> Self {
+            Self {
+                chunks: chunks.iter().map(|chunk| chunk.to_vec()).collect(),
+                offset: 0,
+                reads: 0,
+            }
+        }
+    }
+
+    impl io::Read for ScriptedChunks {
+        fn read(&mut self, buffer: &mut [u8]) -> io::Result<usize> {
+            let available = self.fill_buf()?;
+            let count = available.len().min(buffer.len());
+            buffer[..count].copy_from_slice(&available[..count]);
+            self.consume(count);
+            Ok(count)
+        }
+    }
+
+    impl BufRead for ScriptedChunks {
+        fn fill_buf(&mut self) -> io::Result<&[u8]> {
+            if self
+                .chunks
+                .front()
+                .is_some_and(|chunk| self.offset == chunk.len())
+            {
+                self.chunks.pop_front();
+                self.offset = 0;
+            }
+            self.reads += 1;
+            match self.chunks.front() {
+                Some(chunk) => Ok(&chunk[self.offset..]),
+                None => Err(io::Error::other("sentinel: read past rejected frame")),
+            }
+        }
+
+        fn consume(&mut self, amount: usize) {
+            self.offset += amount;
+        }
+    }
+
     #[test]
-    fn oversized_frame_is_fully_drained_and_terminal() {
+    fn oversized_frame_is_terminal_without_a_further_read() {
+        let mut reader = FrameReader::new(ScriptedChunks::new(&[b"12345"]), limits(4, 256));
+        assert_eq!(reader.read_frame().unwrap(), Frame::OversizedTerminal);
+        assert_eq!(reader.read_frame().unwrap(), Frame::Eof);
+        let inner = reader.into_inner();
+        assert_eq!(inner.reads, 1, "rejection waited for LF or EOF");
+        assert_eq!(inner.offset, 5, "only the delivered chunk is consumed");
+    }
+
+    #[test]
+    fn cap_crossed_across_chunks_rejects_on_the_crossing_read() {
+        let chunks: &[&[u8]] = &[b"1234", b"5", b"never requested"];
+        let mut reader = FrameReader::new(ScriptedChunks::new(chunks), limits(4, 256));
+        assert_eq!(reader.read_frame().unwrap(), Frame::OversizedTerminal);
+        assert_eq!(reader.read_frame().unwrap(), Frame::Eof);
+        let inner = reader.into_inner();
+        assert_eq!(inner.reads, 2);
+        assert_eq!(inner.chunks.back().unwrap(), b"never requested");
+    }
+
+    #[test]
+    fn oversized_frame_is_terminal_and_trailing_frames_never_surface() {
         let input = Cursor::new(b"12345\nignored\n".to_vec());
         let mut reader = FrameReader::new(BufReader::with_capacity(2, input), limits(4, 256));
         assert_eq!(reader.read_frame().unwrap(), Frame::OversizedTerminal);
         assert_eq!(reader.read_frame().unwrap(), Frame::Eof);
+        // Bounded read: only the cap plus one transport buffer was pulled.
         let inner = reader.into_inner().into_inner();
-        assert_eq!(inner.position(), 6);
+        assert!(inner.position() <= 4 + 2, "read {}", inner.position());
     }
 
     #[test]
@@ -212,6 +277,20 @@ mod tests {
         let mut reader = FrameReader::new(BufReader::with_capacity(7, input), limits(4, 256));
         assert_eq!(reader.read_frame().unwrap(), Frame::OversizedTerminal);
         assert_eq!(reader.read_frame().unwrap(), Frame::Eof);
+        let inner = reader.into_inner().into_inner();
+        assert_eq!(inner.position(), 7, "rejection drained past one buffer");
+    }
+
+    #[test]
+    fn exact_cap_frames_split_across_chunks_stay_admitted() {
+        let chunks: &[&[u8]] = &[b"12", b"34", b"\n\n{}", b"\nab", b"cd"];
+        let mut reader = FrameReader::new(ScriptedChunks::new(chunks), limits(4, 256));
+        assert_eq!(reader.read_frame().unwrap(), Frame::Data(b"1234".to_vec()));
+        assert_eq!(reader.read_frame().unwrap(), Frame::Data(Vec::new()));
+        assert_eq!(reader.read_frame().unwrap(), Frame::Data(b"{}".to_vec()));
+        // The exact-cap final frame waits for its terminator like any frame.
+        let error = reader.read_frame().unwrap_err();
+        assert!(error.to_string().starts_with("sentinel"));
     }
 
     #[test]

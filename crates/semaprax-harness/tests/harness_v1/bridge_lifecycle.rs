@@ -164,11 +164,6 @@ impl Bridge {
         assert_eq!(r["result"]["lifecycle"]["invoke"], true, "{r}");
         b
     }
-    fn send_raw(&mut self, line: &str) {
-        let i = self.stdin.as_mut().unwrap();
-        writeln!(i, "{line}").unwrap();
-        i.flush().unwrap();
-    }
     fn send(&mut self, f: Value) {
         let i = self.stdin.as_mut().unwrap();
         writeln!(i, "{f}").unwrap();
@@ -308,12 +303,7 @@ fn hn18_pipe_floods_in_both_directions_do_not_wedge_the_session() {
     let r = b.reply(json!(1));
     assert_eq!(r["result"]["state"], "refused", "{r}");
     assert_eq!(r["result"]["code"], "SPX-HPC010", "{r}");
-    // Client floods: an oversized frame and thousands of stray cancels.
-    let big = format!(
-        "{{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"x\",\"params\":{{\"p\":\"{}\"}}}}",
-        "A".repeat(2 << 20)
-    );
-    b.send_raw(&big);
+    // Client floods: thousands of stray cancels are all answered.
     for i in 0..3000u64 {
         b.send(json!({"jsonrpc":"2.0","id":10_000 + i,"method":"bridge/cancel","params":{"id":i}}));
     }
@@ -321,6 +311,18 @@ fn hn18_pipe_floods_in_both_directions_do_not_wedge_the_session() {
     assert_eq!(last["result"]["state"], "unknown-id");
     b.send(json!({"jsonrpc":"2.0","id":3,"method":"bridge/status","params":{}}));
     assert!(b.reply(json!(3))["result"].is_object());
+    // An oversized frame is refused by the bounded reader (SPX-HPA002) and the
+    // faulty session is closed (MA-06) instead of buffering the whole line.
+    let big = format!(
+        "{{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"x\",\"params\":{{\"p\":\"{}\"}}}}",
+        "A".repeat(2 << 20)
+    );
+    if let Some(i) = b.stdin.as_mut() {
+        let _ = writeln!(i, "{big}").and_then(|()| i.flush());
+    }
+    let r = b.reply(Value::Null);
+    assert_eq!(r["error"]["data"]["code"], "SPX-HPA002", "{r}");
+    assert!(!b.child.wait().unwrap().success());
 }
 
 #[test]

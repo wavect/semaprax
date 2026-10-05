@@ -1,6 +1,7 @@
 //! `semaprax.harness-bridge.v1` stdio server: LF-delimited JSON-RPC 2.0 frames.
 //! Every method delegates to the existing single-source implementation.
 
+use super::frame::{read_frame, FrameError};
 use super::hostskills;
 use super::inflight::{self, Invoker};
 use super::negotiate::{self, Availability, HostDeclaration, Owner, DEPTH_VAR};
@@ -15,7 +16,9 @@ use crate::profile::{status, HarnessConfig, LocalState, Mode};
 use serde_json::{json, Value};
 use std::io::{BufRead, Write};
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Condvar, Mutex};
+use std::time::{Duration, Instant};
 
 const FRAME_LIMIT: usize = 1 << 20;
 
@@ -258,9 +261,48 @@ pub fn serve<R: BufRead, W: Write + Send>(
     serve_with(reader, out, Server::new(env, project))
 }
 
+/// Maintenance tick that drives the idle reaper while the session waits for
+/// input (MA-10). Bounded: a handful of cheap scans per second, never per ms.
+const IDLE_TICK: Duration = Duration::from_millis(250);
+
+/// Session-end signal for the maintenance tick.
+#[derive(Default)]
+struct Stop(Mutex<bool>, Condvar);
+
+impl Stop {
+    fn set(&self) {
+        *self.0.lock().unwrap_or_else(|p| p.into_inner()) = true;
+        self.1.notify_all();
+    }
+    /// Sleep one tick; `true` once the session has ended.
+    fn wait_tick(&self) -> bool {
+        let g = self.0.lock().unwrap_or_else(|p| p.into_inner());
+        *self
+            .1
+            .wait_timeout_while(g, IDLE_TICK, |stopped| !*stopped)
+            .unwrap_or_else(|p| p.into_inner())
+            .0
+    }
+}
+
+/// Runs on EVERY exit from the scope closure (EOF, shutdown, read, UTF-8,
+/// oversize or write error, panic) before scoped workers are joined: nothing
+/// may outlive the session, and the maintenance tick stops.
+struct EndOfSession<'a> {
+    invoker: &'a Invoker,
+    stop: &'a Stop,
+}
+
+impl Drop for EndOfSession<'_> {
+    fn drop(&mut self) {
+        self.invoker.registry.cancel_all();
+        self.stop.set();
+    }
+}
+
 /// Serve with a preconfigured server (session, host skills directory, log).
 pub fn serve_with<R: BufRead, W: Write + Send>(
-    reader: R,
+    mut reader: R,
     out: W,
     mut server: Server,
 ) -> std::io::Result<()> {
@@ -272,9 +314,39 @@ pub fn serve_with<R: BufRead, W: Write + Send>(
         o.flush()
     };
     let invoker = server.invoker.clone();
-    let result = std::thread::scope(|scope| -> std::io::Result<()> {
-        for line in reader.lines() {
-            let line = line?;
+    let stop = Stop::default();
+    // First worker write failure: the client can no longer hear us.
+    let broken: Mutex<Option<std::io::Error>> = Mutex::new(None);
+    let broken_flag = AtomicBool::new(false);
+    std::thread::scope(|scope| -> std::io::Result<()> {
+        let _end = EndOfSession {
+            invoker: &invoker,
+            stop: &stop,
+        };
+        scope.spawn(|| {
+            while !stop.wait_tick() {
+                invoker.reap_idle(Instant::now());
+            }
+        });
+        loop {
+            if broken_flag.load(Ordering::SeqCst) {
+                let e = broken.lock().unwrap_or_else(|p| p.into_inner()).take();
+                return Err(e.unwrap_or_else(|| std::io::ErrorKind::BrokenPipe.into()));
+            }
+            let line = match read_frame(&mut reader, FRAME_LIMIT) {
+                Ok(Some(l)) => l,
+                Ok(None) => break,
+                Err(e) => {
+                    if let FrameError::TooLarge { .. } = e {
+                        let d = diag(
+                            "SPX-HPA002",
+                            format!("frame exceeds the {FRAME_LIMIT}-byte limit; session closed"),
+                        );
+                        let _ = send(&error_frame(&Value::Null, &d));
+                    }
+                    return Err(e.into_io());
+                }
+            };
             if line.trim().is_empty() {
                 continue;
             }
@@ -287,15 +359,24 @@ pub fn serve_with<R: BufRead, W: Write + Send>(
                 Ok(v) if v.get("method").and_then(Value::as_str) == Some("bridge/invoke") => {
                     match start_invoke(&server, &v) {
                         Ok((key, id, params, token, inv)) => {
-                            let send = &send;
+                            let (send, broken, broken_flag) = (&send, &broken, &broken_flag);
                             scope.spawn(move || {
                                 let r = inv.run(&params, &token);
                                 let state = r.as_ref().map_or("refused", inflight::settled_state);
                                 inv.registry.settle(&key, state);
-                                let _ = send(&match r {
+                                let sent = send(&match r {
                                     Ok(res) => json!({"jsonrpc": "2.0", "id": id, "result": res}),
                                     Err(d) => error_frame(&id, &d),
                                 });
+                                if let Err(e) = sent {
+                                    // The output channel is gone: end the session.
+                                    broken
+                                        .lock()
+                                        .unwrap_or_else(|p| p.into_inner())
+                                        .get_or_insert(e);
+                                    broken_flag.store(true, Ordering::SeqCst);
+                                    inv.registry.cancel_all();
+                                }
                             });
                             None
                         }
@@ -311,11 +392,8 @@ pub fn serve_with<R: BufRead, W: Write + Send>(
                 break;
             }
         }
-        // EOF, shutdown or a read error: nothing may outlive the session.
-        invoker.registry.cancel_all();
         Ok(())
-    });
-    result
+    })
 }
 
 type Started = (String, Value, Value, CancelToken, Arc<Invoker>);

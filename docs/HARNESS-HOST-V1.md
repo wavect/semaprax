@@ -24,6 +24,12 @@ host caller invokes `AdapterHandle::invoke`, after a trust `Grant`.
   (`HPC003`). The digest is re-checked on every (re)start. Hashing and exec are
   separate steps (no held-fd exec in `std`), so a swap between them is not
   excluded; the window is the same as for any path-based launch.
+  A second `prepare` for the same `(project, provider)` reuses the cached
+  handle only when the complete launch identity is equal: descriptor digest,
+  isolation request, grant, runtime and upstream executables, descriptor, project,
+  cache and retention paths, and `forward_env`. Any difference is refused with
+  `HPC001` naming the differing input; a live handle is never mutated in place
+  and replacement requires an explicit close first (MA-01).
 - `AdapterManager::new(HostConfig)`, `prepare(project_id, LaunchSpec) -> HarnessResult<Arc<AdapterHandle>>`,
   `handle(project, provider)`, `reap_idle(now: Instant)`, `shutdown_all()`, `budget_used()`.
 - `AdapterHandle::invoke(&RequestEnvelope, InvocationClass, &CancelToken) -> Outcome`,
@@ -94,6 +100,21 @@ to name a destination is `ApprovedEndpoint::from_host_config`.
 confirmed termination (group killed and reaped); `Uncertain` (`SPX-HPC018`, side-effecting request already sent) is an
 uncertain external effect and is never retried. Admission and the queue (`SPX-HPC017`) apply unchanged.
 
+## Pre-dispatch checks and post-dispatch uncertainty (MA-02, MA-04)
+
+One absolute deadline (`min(request deadline, invoke_timeout_ms)`) bounds admission, waiting for start ownership,
+the handshake (`min(handshake_timeout_ms, remaining deadline)`) and dispatch. Cancellation and expiry are checked on
+the free-slot admit path, while waiting for the start gate, after the handshake and immediately before
+`harness/invoke` is queued. A stop at any of these points sends nothing: it returns `Cancelled`, or `Unavailable`
+(`SPX-HPC008`, `request_sent: false`), releases the gate slot and job counter once, and does not count as an adapter
+crash. A handshake cut short by the invocation deadline kills that process and returns the handle to `Prepared`.
+The race after the final host check is not an atomic remote-cancellation guarantee.
+
+After `harness/invoke` was queued, a JSON-RPC error (`SPX-HPC024`) or a result that fails payload validation is not
+proof of non-execution: for `SideEffecting` it returns `Uncertain` (never `Refused`), so the journal records it as
+non-replayable. `SafeRead` and `Decision` keep `Refused`. Pre-dispatch rejections (validation, undeclared operation)
+remain `Refused` and retryable.
+
 ## Platform evidence
 
 The authoritative per-platform pass/fail/untested matrix is `docs/HARNESS-PLATFORMS-V1.md`.
@@ -110,3 +131,6 @@ The authoritative per-platform pass/fail/untested matrix is `docs/HARNESS-PLATFO
 Outbound MCP client bridge is HP-14. TLS and remote HTTP are not implemented.
 Concurrent invocations share one adapter process and are demultiplexed by
 JSON-RPC id; an adapter that serialises internally gains no parallelism.
+
+The bridge `--stdio` session drives `reap_idle` from a 250 ms maintenance tick while waiting for input
+(`docs/HARNESS-BRIDGE-V1.md`); embedders that do not serve a bridge session still call it themselves.

@@ -7,6 +7,7 @@
 //! replayed (HN-18).
 
 pub mod claude;
+pub mod frame;
 pub mod hostskills;
 pub mod inflight;
 pub mod mcp;

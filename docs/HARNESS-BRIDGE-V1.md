@@ -17,7 +17,7 @@ is a separate, host-side surface; it adds no process, filesystem or network auth
 
 ## Protocol `semaprax.harness-bridge.v1`
 
-LF-delimited JSON-RPC 2.0 on stdio, frames parsed with the strict `crate::json` parser (1 MiB limit).
+LF-delimited JSON-RPC 2.0 on stdio, frames parsed with the strict `crate::json` parser (1 MiB limit, enforced while reading: see *Transport bounds and session end*).
 `bridge/handshake` first; `params`: `{protocol, version: 1, host: {name, version}, capabilities:
 {semantic_query, tool_result_observation, command_wrapper, model_routing, cancellation, publication:
 bool}, command_rewriter: null|"name", bridge_depth?, lineage?}` (closed object).
@@ -56,7 +56,10 @@ is served concurrently. The invoke's JSON-RPC `id` (string or number, required) 
 per-request `CancelToken`. It invents nothing per adapter: deadline, cooperative cancel, process-group kill and reap,
 the crash breaker and the retry boundary are the host's (`docs/HARNESS-HOST-V1.md`). Class by kind:
 `model.generate` is `SideEffecting` (possibly billed), `decision.evaluate` is `Decision`, the rest `SafeRead`.
-`isolation: "required"` requests the OS-enforced restriction; without `sandbox-exec`/`bwrap` the call is an error
+Optional controls are validated by presence before profile resolution, handle preparation, journal or dispatch
+(`SPX-HPN005`): absent takes the default; present must have the documented type and value, never a silent default.
+`deadline_ms` is an integer in `1..=600000` (default `30000`); outside it is refused, not clamped. `step` is a string of
+1 to 128 characters from `[A-Za-z0-9._:@/+-]`. `isolation` is exactly the string `required`. `isolation: "required"` requests the OS-enforced restriction; without `sandbox-exec`/`bwrap` the call is an error
 (`SPX-HPC003`), never a plain subprocess. Every result reports `isolation {mode, isolated}`: a plain subprocess is
 `mode: subprocess, isolated: false`.
 
@@ -78,11 +81,52 @@ queue and concurrency limits. A client that closes stdin (crash or hang-up) canc
 returns only after they are reaped. A bridge killed by `SIGKILL` cannot run that cleanup: its adapter's process group
 survives until the adapter exits or its idle/deadline limits fire (Unix offers no parent-death signal in safe std).
 
+### Transport bounds and session end (MA-05, MA-06, MA-10)
+
+Both stdio servers (`--stdio` and the skills `--mcp`) read frames through one bounded LF reader
+(`bridge::frame::read_frame`, the `fill_buf`/`consume` pattern of the adapter-stdout reader). A frame is the bytes up to
+LF (one trailing CR dropped); an unterminated tail at EOF is a frame; empty input is clean EOF. The 1 MiB cap is checked
+on every buffered chunk before it is copied, so a hostile client cannot grow memory past the cap plus the reader's fixed
+buffer and no newline is needed to detect it. A frame of exactly the cap is accepted, one byte more is refused. Oversize
+answers one `SPX-HPA002` error frame and **closes the session** (no drain-to-newline); invalid UTF-8 or a read error also
+ends the session. The original I/O error is returned to the caller (`SPX-HPN007` on the CLI, nonzero exit). The compiler
+MCP facade is untouched and gains no authority.
+
+Every exit from the serving loop (EOF, `bridge/shutdown`, read error, invalid UTF-8, oversize, an output write failure,
+a panic) cancels every live token **before** scoped workers are joined, so owned adapters settle within the host's
+ordinary cancellation allowance rather than the invocation deadline. A worker whose response write fails marks the
+output channel broken, cancels all live work and ends the session at the next frame boundary (a blocking read cannot be
+interrupted portably). Post-dispatch `SideEffecting` work keeps its `uncertain-external-effect` handling and is not retried.
+
+While waiting for input the session runs a lifecycle-owned maintenance tick (every 250 ms, a few cheap scans per
+second) that calls the host's `AdapterManager::reap_idle(now)`. An adapter idle past its descriptor `idle_shutdown_ms` is
+stopped while stdin stays open; the next `bridge/invoke` restarts and renegotiates it lazily, and an adapter with a live
+invocation is never reaped. The tick is stopped and joined on EOF, shutdown and transport errors; nothing outlives
+the session. Reaping latency is `idle_shutdown_ms` plus at most one tick.
+
 **Side-effecting steps and the journal.** A `SideEffecting` invoke appends `begin` to the append-only journal
 `<harness home>/cache/bridge/<project id>.journal.jsonl` (`workflow::journal`) and then `done`, `refused`, `cancelled`
-(request never written) or `uncertain`. A later invoke with the same `step` (default `<capability>:<operation>`) is refused
-as `SPX-HPN015` unless its last record is `refused` or `cancelled`; a begun, completed or uncertain step is never
-replayed, across restarts.
+(request never written) or `uncertain`. A later invoke with the same `step` is refused as `SPX-HPN015` unless its last
+record is `refused` or `cancelled`; a begun, completed or uncertain step is never replayed, across restarts.
+
+*Single writer.* `Journal::open` holds an exclusive advisory `flock` on `<project id>.journal.flock` for the journal's
+lifetime and reads the records only after it holds the lock. The bridge opens the journal per claim and per settlement
+(the lock is held only for the claim-and-`begin` critical section, never across the provider call), so concurrent
+sessions and processes on one project serialise: exactly one claims a given `step`, the others get `SPX-HPN015` (or
+`SPX-HPD070` busy if the lock stays held for 10 s). The lock is released by drop or process exit; the lock file is never
+deleted, and durable `begin`/`uncertain` records are untouched. Projects and lineages lock independently.
+
+*Step identity.* `step` is the caller's durable idempotency key and keeps replay protection across restarts. When omitted,
+the host assigns `auto-<session>-<n>` (session token from pid, clock and a process sequence; `n` the invocation counter),
+journals it with `begin` before dispatch and returns it as `step` in the response, so independent calls never collide and
+a restart or reused JSON-RPC id cannot alias earlier work. Journals written by earlier versions (default
+`<capability>:<operation>` keys) are read unchanged: an old `begin`/`uncertain` entry is never made retryable, and a caller
+that passes that old key explicitly is still refused.
+
+*Terminal persistence failure.* If appending `done`/`refused`/`cancelled`/`uncertain` fails (open, write or sync), the
+provider outcome is returned unchanged and the response adds `durable: false` and `journal_error {code, message}`; absent
+on healthy settlement. The provider is never retried, the surviving `begin` keeps the step non-replayable, and a torn
+tail makes the next open fail closed (`SPX-HPD070`).
 
 ## Claude Code (pinned 2.1.289)
 

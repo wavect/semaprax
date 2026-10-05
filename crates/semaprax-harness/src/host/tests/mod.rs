@@ -6,6 +6,7 @@
 mod hostile;
 mod isolation_tests;
 mod lifecycle_tests;
+mod ma_lane_m_tests;
 mod model_tests;
 mod net;
 

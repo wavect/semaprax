@@ -20,6 +20,9 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Resolve the conformance fixture's Node interpreter to an absolute host path
+  on Unix CI, and refresh the pinned agent skill bundle after the diagnostic
+  inventory changed.
 - Align Windows standalone-lockfile dependency prefetch with the same harness
   exclusion used by its test shard, so the offline lockfile gate sees every
   required package.

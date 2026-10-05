@@ -13,11 +13,18 @@ use serde_json::{json, Value};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-const NODE_MACOS: &str = "/Users/kevin/.nvm/versions/node/v24.3.0/bin/node";
-
-/// Node interpreter for the node adapter: `SEMAPRAX_TEST_NODE` (hosted CI) or the macOS dev path.
+/// Resolve the test host's Node executable, then pass its absolute path to the
+/// adapter. The adapter itself never searches PATH.
 fn node() -> PathBuf {
-    std::env::var_os("SEMAPRAX_TEST_NODE").map_or_else(|| PathBuf::from(NODE_MACOS), PathBuf::from)
+    if let Some(path) = std::env::var_os("SEMAPRAX_TEST_NODE") {
+        return PathBuf::from(path);
+    }
+    let output = std::process::Command::new("/usr/bin/which")
+        .arg("node")
+        .output()
+        .expect("find test host Node interpreter");
+    assert!(output.status.success(), "test host needs Node");
+    PathBuf::from(String::from_utf8_lossy(&output.stdout).trim())
 }
 
 fn python() -> PathBuf {

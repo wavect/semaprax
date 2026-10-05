@@ -2,12 +2,12 @@
 //! inputs must still match every recorded digest.
 
 use super::call::CallMetadata;
+use super::diag::DecisionResult;
 use super::plan::FrozenRoutePlan;
 use super::registry;
 use super::render::V2Digests;
 use super::route::{bad, screen, shape, text};
 use super::router::{choice_digest, DecisionSource, Digests, RouteDecision, RouteInputs};
-use crate::diag::HarnessResult;
 use serde_json::{json, Value};
 
 pub const RECORD_SCHEMA: &str = "semaprax.decision-record.v1";
@@ -54,7 +54,7 @@ impl DecisionRecord {
         v
     }
 
-    pub fn from_json(v: &Value) -> HarnessResult<Self> {
+    pub fn from_json(v: &Value) -> DecisionResult<Self> {
         const C: &str = "SPX-HPJ008";
         let m = shape(
             v,
@@ -132,7 +132,7 @@ impl DecisionRecord {
 
 /// Rebuild the frozen plan from a record against the current inputs. Any
 /// changed feature, catalog, policy or candidate set is a refusal (`SPX-HPJ007`).
-pub fn replay(record: &DecisionRecord, inputs: &RouteInputs) -> HarnessResult<FrozenRoutePlan> {
+pub fn replay(record: &DecisionRecord, inputs: &RouteInputs) -> DecisionResult<FrozenRoutePlan> {
     let scr = screen(&inputs.request, &inputs.policy);
     let mut now = inputs.digests(&scr);
     if record.digests.v2.is_some() {

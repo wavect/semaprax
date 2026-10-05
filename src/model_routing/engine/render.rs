@@ -7,14 +7,14 @@
 //! answer back to the opaque model id exactly. Oversized input is refused,
 //! never truncated.
 
+use super::diag::DecisionResult;
+use super::json::{self, canonical, sha256_plain};
 use super::policy::RoutePolicy;
 use super::registry::DecisionTask;
 use super::route::{bad, Confidentiality, ModelPlan, RouteRequest};
 use super::route_v2::{
     Disclosure, EstimateBasis, QualityTier, TaskFeaturesV2, MAX_EXCERPT, MAX_LABEL,
 };
-use crate::diag::HarnessResult;
-use crate::json::{self, canonical, sha256_plain};
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
 
@@ -180,9 +180,7 @@ fn disclosure(
             Some("task confidentiality exceeds the routing-disclosure policy")
         }
         _ if ex.len() > MAX_EXCERPT => Some("excerpt exceeds 1024 bytes"),
-        _ if crate::profile::config::looks_like_secret(ex) => {
-            Some("excerpt looks like a credential")
-        }
+        _ if super::text::looks_like_secret(ex) => Some("excerpt looks like a credential"),
         _ => None,
     };
     match why {
@@ -248,7 +246,7 @@ impl PreparedRouteV2 {
         request: &RouteRequest,
         policy: &RoutePolicy,
         admissible: &[ModelPlan],
-    ) -> HarnessResult<Self> {
+    ) -> DecisionResult<Self> {
         const C: &str = "SPX-HPJ019";
         if admissible.is_empty() || admissible.len() > MAX_CANDIDATES_V2 {
             return Err(bad(

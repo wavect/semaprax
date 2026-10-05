@@ -4,8 +4,8 @@
 //! never from human diagnostic text. Every string is a bounded identifier, so
 //! raw task text or a secret cannot ride along in identity or usage fields.
 
+use super::diag::{DecisionResult, Diagnostic};
 use super::route::str_enum;
-use crate::diag::{HarnessDiagnostic, HarnessResult};
 use serde_json::{json, Map, Value};
 use std::collections::BTreeMap;
 
@@ -22,8 +22,8 @@ str_enum!(AbstentionReason { None = "none", Native = "native", HostThreshold = "
 str_enum!(UsageBasis { ProviderReported = "provider_reported", LocalMeasured = "local_measured", Unknown = "unknown" });
 str_enum!(Billing { Api = "api", Local = "local", Unknown = "unknown" });
 
-fn bad(code: &'static str, msg: impl Into<String>) -> HarnessDiagnostic {
-    HarnessDiagnostic::new(code, msg)
+fn bad(code: &'static str, msg: impl Into<String>) -> Diagnostic {
+    Diagnostic::new(code, msg)
 }
 
 /// Identifier charset of call metadata: no whitespace, so no prose.
@@ -32,10 +32,10 @@ pub(crate) fn ident_ok(s: &str, max: usize) -> bool {
         && s.len() <= max
         && s.bytes()
             .all(|b| b.is_ascii_alphanumeric() || b"._:@/+-".contains(&b))
-        && !crate::profile::config::looks_like_secret(s)
+        && !super::text::looks_like_secret(s)
 }
 
-fn opt_ident(m: &Map<String, Value>, k: &str, max: usize) -> HarnessResult<Option<String>> {
+fn opt_ident(m: &Map<String, Value>, k: &str, max: usize) -> DecisionResult<Option<String>> {
     match m.get(k) {
         Some(Value::Null) => Ok(None),
         Some(Value::String(s)) if ident_ok(s, max) => Ok(Some(s.clone())),
@@ -46,7 +46,7 @@ fn opt_ident(m: &Map<String, Value>, k: &str, max: usize) -> HarnessResult<Optio
     }
 }
 
-fn opt_u64(m: &Map<String, Value>, k: &str) -> HarnessResult<Option<u64>> {
+fn opt_u64(m: &Map<String, Value>, k: &str) -> DecisionResult<Option<u64>> {
     match m.get(k) {
         Some(Value::Null) => Ok(None),
         Some(v) => v.as_u64().map(Some).ok_or_else(|| {
@@ -59,7 +59,7 @@ fn opt_u64(m: &Map<String, Value>, k: &str) -> HarnessResult<Option<u64>> {
     }
 }
 
-fn closed<'a>(v: &'a Value, what: &str, keys: &[&str]) -> HarnessResult<&'a Map<String, Value>> {
+fn closed<'a>(v: &'a Value, what: &str, keys: &[&str]) -> DecisionResult<&'a Map<String, Value>> {
     let m = v
         .as_object()
         .ok_or_else(|| bad("SPX-HPA047", format!("{what} must be an object")))?;
@@ -83,7 +83,7 @@ fn closed_enum<T>(
     m: &Map<String, Value>,
     k: &str,
     parse: fn(&str) -> Option<T>,
-) -> HarnessResult<T> {
+) -> DecisionResult<T> {
     m.get(k)
         .and_then(Value::as_str)
         .and_then(parse)
@@ -138,7 +138,7 @@ impl CallMetadata {
         "billing",
     ];
 
-    pub fn from_json(v: &Value) -> HarnessResult<Self> {
+    pub fn from_json(v: &Value) -> DecisionResult<Self> {
         let m = closed(v, "call", &Self::MEMBERS)?;
         let adapter = match m["adapter"].as_str() {
             Some(s) if ident_ok(s, 128) => s.to_string(),
@@ -146,7 +146,7 @@ impl CallMetadata {
         };
         let rendered_digest = m["rendered_digest"]
             .as_str()
-            .filter(|s| crate::contract::payload::is_digest(s))
+            .filter(|s| super::text::is_digest(s))
             .ok_or_else(|| {
                 bad(
                     "SPX-HPA047",
@@ -226,7 +226,7 @@ fn num01(x: &Value) -> Option<f64> {
 
 impl ResultV2 {
     /// Structural validation of a v2 result on its own (`SPX-HPA040/044/047`).
-    pub fn from_json(v: &Value) -> HarnessResult<Self> {
+    pub fn from_json(v: &Value) -> DecisionResult<Self> {
         let m = v
             .as_object()
             .ok_or_else(|| bad("SPX-HPA040", "decision result must be an object"))?;
@@ -359,7 +359,7 @@ impl ResultV2 {
         options: &[&str],
         rendered_digest: &str,
         max_wire_bytes: u64,
-    ) -> HarnessResult<()> {
+    ) -> DecisionResult<()> {
         if let Some(c) = &self.choice {
             if !options.contains(&c.as_str()) {
                 return Err(bad(

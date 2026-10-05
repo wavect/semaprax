@@ -16,26 +16,16 @@ fn bad(code: &'static str, msg: impl Into<String>) -> HarnessDiagnostic {
     HarnessDiagnostic::new(code, msg)
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ProjectBinding {
-    pub id: String,
-    pub worktree: String,
-    pub revision: String,
-}
+/// The project binding is part of the decision core's bounded request (MR-07).
+pub use semaprax_decision_core::request::ProjectBinding;
 
-impl ProjectBinding {
-    fn to_json(&self) -> Value {
-        json!({"id": self.id, "worktree": self.worktree, "revision": self.revision})
-    }
-
-    fn from_json(v: &Value) -> HarnessResult<Self> {
-        let m = exact(v, "project", &["id", "worktree", "revision"], &[])?;
-        Ok(Self {
-            id: text(m, "id")?,
-            worktree: text(m, "worktree")?,
-            revision: text(m, "revision")?,
-        })
-    }
+fn project_from_json(v: &Value) -> HarnessResult<ProjectBinding> {
+    let m = exact(v, "project", &["id", "worktree", "revision"], &[])?;
+    Ok(ProjectBinding {
+        id: text(m, "id")?,
+        worktree: text(m, "worktree")?,
+        revision: text(m, "revision")?,
+    })
 }
 
 fn exact<'a>(
@@ -170,7 +160,7 @@ impl RequestEnvelope {
             .ok_or_else(|| bad("SPX-HPA037", "`lineage` must be an array"))?;
         let req = Self {
             invocation_id: text(m, "invocation_id")?,
-            project: ProjectBinding::from_json(&m["project"])?,
+            project: project_from_json(&m["project"])?,
             lock_digest: text(m, "lock_digest")?,
             capability: parse_cap(&m["capability"])?,
             operation: text(m, "operation")?,
@@ -421,7 +411,7 @@ impl ResultEnvelope {
                 format!("result invocation id `{invocation_id}` does not match the request"),
             ));
         }
-        let project = ProjectBinding::from_json(&m["project"])?;
+        let project = project_from_json(&m["project"])?;
         if project != request.project {
             return Err(bad(
                 "SPX-HPA032",

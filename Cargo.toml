@@ -28,6 +28,7 @@ members = [
     "crates/semaprax-project-revision-store-windows-sys",
     "crates/semaprax-toolchain",
     "crates/semaprax-harness",
+    "crates/semaprax-decision-core",
 ]
 default-members = ["."]
 resolver = "2"

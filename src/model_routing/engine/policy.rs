@@ -1,9 +1,9 @@
 //! Project-defined routing policy: destination rules, task-family classes,
 //! fallback mode and router ceilings. Digested into every decision.
 
+use super::diag::DecisionResult;
+use super::json;
 use super::route::{bad, enum_of, shape, str_enum, uint, Confidentiality, Destination, TaskFamily};
-use crate::diag::HarnessResult;
-use crate::json;
 use serde_json::{json, Value};
 use std::collections::BTreeSet;
 
@@ -104,7 +104,7 @@ impl RoutePolicy {
     }
 
     /// Parse a policy; every member is optional and defaults conservatively.
-    pub fn from_json(v: &Value) -> HarnessResult<Self> {
+    pub fn from_json(v: &Value) -> DecisionResult<Self> {
         const C: &str = "SPX-HPJ004";
         let m = shape(
             v,
@@ -143,7 +143,7 @@ impl RoutePolicy {
                 )?),
             };
         }
-        let strs = |k: &str| -> HarnessResult<Option<Vec<String>>> {
+        let strs = |k: &str| -> DecisionResult<Option<Vec<String>>> {
             match m.get(k) {
                 None => Ok(None),
                 Some(a) => a
@@ -155,7 +155,7 @@ impl RoutePolicy {
                             .map(str::to_string)
                             .ok_or_else(|| bad(C, format!("`{k}` holds a non-string")))
                     })
-                    .collect::<HarnessResult<Vec<_>>>()
+                    .collect::<DecisionResult<Vec<_>>>()
                     .map(Some),
             }
         };
@@ -170,7 +170,7 @@ impl RoutePolicy {
                         TaskFamily::parse(s)
                             .ok_or_else(|| bad(C, format!("unknown task family `{s}`")))
                     })
-                    .collect::<HarnessResult<BTreeSet<_>>>()?;
+                    .collect::<DecisionResult<BTreeSet<_>>>()?;
                 if slot == 0 {
                     p.hard_families = set
                 } else {

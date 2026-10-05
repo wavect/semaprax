@@ -546,10 +546,25 @@ pub trait AgentBoundaryProbe {
 
 /// Opaque runtime-owned bounded provider response sink.
 pub struct AgentProviderSink {
-    bytes: Vec<u8>,
+    bounded: BoundedByteSink,
     chunks: u64,
-    byte_limit: usize,
     chunk_limit: u64,
+}
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum SinkRejection {
+    Bytes,
+    Chunks,
+    Builder,
+}
+
+/// Boundary state and byte accounting shared by the provider and tool sinks.
+///
+/// The first refused push selects one sticky outcome: a recorded `boundary`
+/// or `rejection` refuses every later push before any check is repeated.
+struct BoundedByteSink {
+    bytes: Vec<u8>,
+    byte_limit: usize,
     rejection: Option<SinkRejection>,
     probe: Box<dyn AgentBoundaryProbe>,
     admitted_policy_epoch: u64,
@@ -559,11 +574,74 @@ pub struct AgentProviderSink {
     builder_prepaid: bool,
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
-enum SinkRejection {
-    Bytes,
-    Chunks,
-    Builder,
+impl BoundedByteSink {
+    fn new(
+        byte_limit: usize,
+        probe: Box<dyn AgentBoundaryProbe>,
+        admitted_policy_epoch: u64,
+        deadline_ms: u64,
+        cancellation: AgentCancellation,
+    ) -> Self {
+        Self {
+            bytes: Vec::new(),
+            byte_limit,
+            rejection: None,
+            probe,
+            admitted_policy_epoch,
+            deadline_ms,
+            boundary: None,
+            cancellation,
+            builder_prepaid: true,
+        }
+    }
+
+    /// Sticky refusal, then cancellation, then deadline (`elapsed >= deadline`),
+    /// then policy epoch. Returns `false` once any of them closes the sink.
+    fn admit_push(&mut self) -> bool {
+        if self.rejection.is_some() || self.boundary.is_some() {
+            return false;
+        }
+        if self.cancellation.is_cancelled() {
+            self.boundary = Some(AgentRunStatus::Cancelled);
+            return false;
+        }
+        if self.probe.elapsed_ms() >= self.deadline_ms {
+            self.boundary = Some(AgentRunStatus::DeadlineExceeded);
+            return false;
+        }
+        if self.probe.policy_epoch() != self.admitted_policy_epoch {
+            self.boundary = Some(AgentRunStatus::PolicyRejected);
+            return false;
+        }
+        true
+    }
+
+    /// The buffered length after `chunk`; an overflow is a byte rejection.
+    fn checked_length(&mut self, chunk: &[u8]) -> Option<usize> {
+        let length = self.bytes.len().checked_add(chunk.len());
+        if length.is_none() {
+            self.rejection = Some(SinkRejection::Bytes);
+        }
+        length
+    }
+
+    /// Records `rejection` as the sink's sticky outcome and refuses the push.
+    fn reject(&mut self, rejection: SinkRejection) -> bool {
+        self.rejection = Some(rejection);
+        false
+    }
+
+    /// The byte cap, then any incremental builder reservation, then the append.
+    fn append(&mut self, chunk: &[u8], length: usize) -> bool {
+        if length > self.byte_limit {
+            return self.reject(SinkRejection::Bytes);
+        }
+        if !self.builder_prepaid && !reserve_active(chunk.len()) {
+            return self.reject(SinkRejection::Builder);
+        }
+        self.bytes.extend_from_slice(chunk);
+        true
+    }
 }
 
 impl AgentProviderSink {
@@ -575,70 +653,39 @@ impl AgentProviderSink {
         cancellation: AgentCancellation,
     ) -> Self {
         Self {
-            bytes: Vec::new(),
+            bounded: BoundedByteSink::new(
+                byte_limit.min(limits.max_provider_response_bytes) as usize,
+                probe,
+                admitted_policy_epoch,
+                limits.max_elapsed_ms,
+                cancellation,
+            ),
             chunks: 0,
-            byte_limit: byte_limit.min(limits.max_provider_response_bytes) as usize,
             chunk_limit: limits.max_stream_chunks,
-            rejection: None,
-            probe,
-            admitted_policy_epoch,
-            deadline_ms: limits.max_elapsed_ms,
-            boundary: None,
-            cancellation,
-            builder_prepaid: true,
         }
     }
 
     /// Appends one bounded chunk; after the first `false`, all later pushes fail.
     pub fn push(&mut self, chunk: &[u8]) -> bool {
-        if self.rejection.is_some() || self.boundary.is_some() {
+        if !self.bounded.admit_push() {
             return false;
         }
-        if self.cancellation.is_cancelled() {
-            self.boundary = Some(AgentRunStatus::Cancelled);
-            return false;
-        }
-        if self.probe.elapsed_ms() >= self.deadline_ms {
-            self.boundary = Some(AgentRunStatus::DeadlineExceeded);
-            return false;
-        }
-        if self.probe.policy_epoch() != self.admitted_policy_epoch {
-            self.boundary = Some(AgentRunStatus::PolicyRejected);
-            return false;
-        }
+        // Every push that passes the boundary consumes a chunk, including an
+        // empty one and one later refused for its bytes or the chunk limit.
         self.chunks = self.chunks.saturating_add(1);
-        let Some(length) = self.bytes.len().checked_add(chunk.len()) else {
-            self.rejection = Some(SinkRejection::Bytes);
+        let Some(length) = self.bounded.checked_length(chunk) else {
             return false;
         };
         if self.chunks > self.chunk_limit {
-            self.rejection = Some(SinkRejection::Chunks);
-            return false;
+            return self.bounded.reject(SinkRejection::Chunks);
         }
-        if length > self.byte_limit {
-            self.rejection = Some(SinkRejection::Bytes);
-            return false;
-        }
-        if !self.builder_prepaid && !reserve_active(chunk.len()) {
-            self.rejection = Some(SinkRejection::Builder);
-            return false;
-        }
-        self.bytes.extend_from_slice(chunk);
-        true
+        self.bounded.append(chunk, length)
     }
 }
 
 /// Opaque runtime-owned bounded tool-result sink.
 pub struct AgentToolResultSink {
-    bytes: Vec<u8>,
-    byte_limit: usize,
-    rejection: Option<SinkRejection>,
-    probe: Box<dyn AgentBoundaryProbe>,
-    admitted_policy_epoch: u64,
-    deadline_ms: u64,
-    boundary: Option<AgentRunStatus>,
-    cancellation: AgentCancellation,
-    builder_prepaid: bool,
+    bounded: BoundedByteSink,
 }
 
 impl AgentToolResultSink {
@@ -650,48 +697,26 @@ impl AgentToolResultSink {
         cancellation: AgentCancellation,
     ) -> Self {
         Self {
-            bytes: Vec::new(),
-            byte_limit: limit as usize,
-            rejection: None,
-            probe,
-            admitted_policy_epoch,
-            deadline_ms,
-            boundary: None,
-            cancellation,
-            builder_prepaid: true,
+            bounded: BoundedByteSink::new(
+                limit as usize,
+                probe,
+                admitted_policy_epoch,
+                deadline_ms,
+                cancellation,
+            ),
         }
     }
     /// Appends one bounded chunk; after the first `false`, all later pushes fail.
+    ///
+    /// Tool results have no chunk limit.
     pub fn push(&mut self, chunk: &[u8]) -> bool {
-        if self.rejection.is_some() || self.boundary.is_some() {
+        if !self.bounded.admit_push() {
             return false;
         }
-        if self.cancellation.is_cancelled() {
-            self.boundary = Some(AgentRunStatus::Cancelled);
-            return false;
-        }
-        if self.probe.elapsed_ms() >= self.deadline_ms {
-            self.boundary = Some(AgentRunStatus::DeadlineExceeded);
-            return false;
-        }
-        if self.probe.policy_epoch() != self.admitted_policy_epoch {
-            self.boundary = Some(AgentRunStatus::PolicyRejected);
-            return false;
-        }
-        let Some(length) = self.bytes.len().checked_add(chunk.len()) else {
-            self.rejection = Some(SinkRejection::Bytes);
+        let Some(length) = self.bounded.checked_length(chunk) else {
             return false;
         };
-        if length > self.byte_limit {
-            self.rejection = Some(SinkRejection::Bytes);
-            return false;
-        }
-        if !self.builder_prepaid && !reserve_active(chunk.len()) {
-            self.rejection = Some(SinkRejection::Builder);
-            return false;
-        }
-        self.bytes.extend_from_slice(chunk);
-        true
+        self.bounded.append(chunk, length)
     }
 }
 

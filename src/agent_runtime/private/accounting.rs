@@ -74,7 +74,7 @@ pub(super) fn account_uncertain(
     }
     checked_add(
         &mut usage.provider_output_bytes,
-        sink.bytes.len() as u64,
+        sink.bounded.bytes.len() as u64,
         "total_provider_output_bytes",
         limits.max_total_provider_output_bytes,
     )?;

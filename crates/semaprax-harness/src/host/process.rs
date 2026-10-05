@@ -7,6 +7,12 @@
 //! declares a protocol violation, kills the process group and wakes every
 //! waiter. Waiters poll with `recv_timeout`, so cancellation never sits behind
 //! a blocking read.
+//!
+//! Signal and reap authority has exactly one owner per process generation
+//! (`Shared::settle`): termination, violation, cancellation, timeout and drop
+//! all serialize through it. The numeric process-group id is signalled only
+//! while the group leader is still unreaped (so the id cannot have been
+//! reused); once the leader is reaped that authority is retired for good.
 
 use super::launch::Prepared;
 use crate::diag::HarnessDiagnostic;
@@ -48,10 +54,83 @@ struct Ring {
     dropped: u64,
 }
 
+/// The OS boundary of the process owner. Production uses [`RealSys`]; tests
+/// substitute a recording seam to observe signal/wait ordering.
+pub(crate) trait Sys: Send + Sync {
+    /// `SIGKILL` the whole process group. A group with no members is `Ok`.
+    fn signal_group(&self, pgid: i32) -> std::io::Result<()>;
+    /// `SIGKILL` the (unreaped) group leader itself.
+    fn kill(&self, child: &mut Child) -> std::io::Result<()> {
+        child.kill()
+    }
+    /// Reap the group leader.
+    fn wait(&self, child: &mut Child) -> std::io::Result<()> {
+        child.wait().map(drop)
+    }
+}
+
+pub(crate) struct RealSys;
+
+impl Sys for RealSys {
+    fn signal_group(&self, pgid: i32) -> std::io::Result<()> {
+        let Some(pid) = rustix::process::Pid::from_raw(pgid) else {
+            return Err(std::io::Error::other("invalid process-group id"));
+        };
+        match rustix::process::kill_process_group(pid, rustix::process::Signal::KILL) {
+            Ok(()) | Err(rustix::io::Errno::SRCH) => Ok(()),
+            // macOS answers EPERM for a group whose members are all exiting
+            // or zombies (it signals every live permitted member and succeeds
+            // otherwise). The group id is the unreaped leader's pid, so a
+            // non-reaping `waitid` confirms that case within a short bound.
+            Err(rustix::io::Errno::PERM) if leader_exits(pid) => Ok(()),
+            Err(e) => Err(e.into()),
+        }
+    }
+}
+
+/// Whether the (unreaped, owned) leader has exited, or does so within a
+/// short bound, without reaping it.
+fn leader_exits(pid: rustix::process::Pid) -> bool {
+    use rustix::process::{waitid, WaitId, WaitIdOptions};
+    let opts = WaitIdOptions::EXITED | WaitIdOptions::NOWAIT | WaitIdOptions::NOHANG;
+    let end = std::time::Instant::now() + std::time::Duration::from_millis(250);
+    loop {
+        if matches!(waitid(WaitId::Pid(pid), opts), Ok(Some(_))) {
+            return true;
+        }
+        if std::time::Instant::now() >= end {
+            return false;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(1));
+    }
+}
+
+/// Physical settlement of one process generation.
+enum Settle {
+    /// Owned and unreaped: the group id is still ours to signal.
+    Live(Child),
+    /// Leader reaped after a confirmed group signal; no authority remains.
+    Settled,
+    /// Cleanup did not complete. With `Some(child)` the leader is still
+    /// unreaped and owned, so a later settle may retry; with `None` it was
+    /// reaped but the group signal failed, and nothing may be signalled again.
+    Incomplete { child: Option<Child>, why: String },
+}
+
+/// Observable cleanup outcome (tests and audit).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) enum Settlement {
+    Live,
+    Settled,
+    Incomplete(String),
+}
+
 struct Shared {
     pid: i32,
     inner: Mutex<Inner>,
     ring: Mutex<Ring>,
+    owner: Mutex<Settle>,
+    sys: Arc<dyn Sys>,
 }
 
 fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -59,9 +138,53 @@ fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
 }
 
 impl Shared {
-    fn kill_group(&self) {
-        if let Some(pid) = rustix::process::Pid::from_raw(self.pid) {
-            let _ = rustix::process::kill_process_group(pid, rustix::process::Signal::KILL);
+    /// Kill the group and reap the leader, once. Concurrent callers serialize
+    /// on the owner lock: the first does the work, later ones observe the
+    /// settled state and send no signal. Lock order: `owner` is never held
+    /// while taking `inner` or `ring`.
+    fn settle(&self) {
+        let mut o = lock(&self.owner);
+        let mut child = match std::mem::replace(&mut *o, Settle::Settled) {
+            Settle::Live(c) | Settle::Incomplete { child: Some(c), .. } => c,
+            done => {
+                *o = done;
+                return;
+            }
+        };
+        // The leader is unreaped here, so the group id cannot be reused yet.
+        let group = self.sys.signal_group(self.pid);
+        let leader = self.sys.kill(&mut child);
+        if let (Err(g), Err(k)) = (&group, &leader) {
+            // Nothing proves the leader was signalled: waiting could block
+            // forever. Keep ownership so an explicit retry stays possible.
+            *o = Settle::Incomplete {
+                why: format!("cannot signal adapter process: group: {g}; leader: {k}"),
+                child: Some(child),
+            };
+            return;
+        }
+        if let Err(e) = self.sys.wait(&mut child) {
+            *o = Settle::Incomplete {
+                why: format!("cannot reap adapter process: {e}"),
+                child: Some(child),
+            };
+            return;
+        }
+        // Reaped: the numeric id is no longer ours. Retire it either way.
+        *o = match group {
+            Ok(()) => Settle::Settled,
+            Err(e) => Settle::Incomplete {
+                why: format!("process-group signal failed: {e}"),
+                child: None,
+            },
+        };
+    }
+
+    fn settlement(&self) -> Settlement {
+        match &*lock(&self.owner) {
+            Settle::Live(_) => Settlement::Live,
+            Settle::Settled => Settlement::Settled,
+            Settle::Incomplete { why, .. } => Settlement::Incomplete(why.clone()),
         }
     }
 
@@ -82,13 +205,12 @@ impl Shared {
 
     fn violate(&self, d: HarnessDiagnostic) {
         self.close(Closed::Violation(d));
-        self.kill_group();
+        self.settle();
     }
 }
 
 pub(crate) struct Proc {
     shared: Arc<Shared>,
-    child: Mutex<Option<Child>>,
     writer: SyncSender<Vec<u8>>,
     next_id: std::sync::atomic::AtomicU64,
 }
@@ -183,6 +305,15 @@ fn dispatch(shared: &Shared, frame: &[u8], cap: usize) -> Result<(), HarnessDiag
 
 impl Proc {
     pub(crate) fn spawn(p: &Prepared, frame_cap: usize, ring_cap: usize) -> std::io::Result<Proc> {
+        Self::spawn_with(p, frame_cap, ring_cap, Arc::new(RealSys))
+    }
+
+    pub(crate) fn spawn_with(
+        p: &Prepared,
+        frame_cap: usize,
+        ring_cap: usize,
+        sys: Arc<dyn Sys>,
+    ) -> std::io::Result<Proc> {
         let mut cmd = Command::new(&p.program);
         cmd.args(&p.args)
             .env_clear()
@@ -193,6 +324,12 @@ impl Proc {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
         let mut child = cmd.spawn()?;
+        let (stdin, stdout, stderr) = (
+            child.stdin.take().expect("piped"),
+            child.stdout.take().expect("piped"),
+            child.stderr.take().expect("piped"),
+        );
+        let (mut stdin, mut stderr) = (stdin, stderr);
         let shared = Arc::new(Shared {
             pid: child.id() as i32,
             inner: Mutex::new(Inner::default()),
@@ -201,12 +338,9 @@ impl Proc {
                 cap: ring_cap,
                 dropped: 0,
             }),
+            owner: Mutex::new(Settle::Live(child)),
+            sys,
         });
-        let (mut stdin, stdout, mut stderr) = (
-            child.stdin.take().expect("piped"),
-            child.stdout.take().expect("piped"),
-            child.stderr.take().expect("piped"),
-        );
 
         let (wtx, wrx) = sync_channel::<Vec<u8>>(8);
         std::thread::spawn(move || {
@@ -254,7 +388,6 @@ impl Proc {
 
         Ok(Proc {
             shared,
-            child: Mutex::new(Some(child)),
             writer: wtx,
             next_id: std::sync::atomic::AtomicU64::new(1),
         })
@@ -300,13 +433,26 @@ impl Proc {
         let _ = self.writer.try_send(frame);
     }
 
-    /// Kill the whole process group, reap the child, wake waiters. Idempotent.
-    pub(crate) fn terminate(&self, why: Closed) {
+    /// Wake waiters (first reason wins), then kill the whole process group
+    /// and reap the leader through the single owner. Idempotent: once the
+    /// leader is reaped no further signal is sent.
+    /// Returns the physical cleanup state; `Incomplete` is never reported as
+    /// settled.
+    pub(crate) fn terminate(&self, why: Closed) -> Settlement {
         self.shared.close(why);
-        self.shared.kill_group();
-        if let Some(mut c) = lock(&self.child).take() {
-            let _ = c.wait();
-        }
+        self.shared.settle();
+        self.shared.settlement()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn settlement(&self) -> Settlement {
+        self.shared.settlement()
+    }
+
+    /// Test seam: the reader's protocol-violation cleanup path.
+    #[cfg(test)]
+    pub(crate) fn inject_violation(&self, d: HarnessDiagnostic) {
+        self.shared.violate(d);
     }
 
     /// Captured stderr tail and the number of bytes dropped from the ring.
@@ -325,6 +471,6 @@ impl Proc {
 
 impl Drop for Proc {
     fn drop(&mut self) {
-        self.terminate(Closed::Host("dropped"));
+        let _ = self.terminate(Closed::Host("dropped"));
     }
 }

@@ -11,6 +11,7 @@ mod mf_lifecycle_tests;
 mod model_tests;
 mod net;
 mod stb01_shutdown_tests;
+mod stb02_owner_tests;
 mod stb_fixture;
 
 use super::grant::{Grant, GrantedPermissions};

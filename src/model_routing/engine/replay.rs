@@ -75,7 +75,7 @@ impl DecisionRecord {
         if m["schema"] != RECORD_SCHEMA {
             return Err(bad(C, "unknown record schema"));
         }
-        registry::resolve(m["task"].as_str().unwrap_or(""))?;
+        registry::resolve_route(m["task"].as_str().unwrap_or(""))?;
         let dm = shape(
             &m["digests"],
             "digests",

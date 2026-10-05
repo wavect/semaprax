@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Copyable minimal decision.evaluate adapter (v1 and v2). Deliberately not SystemOne.
+"""Copyable minimal decision.evaluate adapter (v1, v2 and v3). Deliberately not SystemOne.
+
+v3 is the finite runtime choice task choice-select/v1 (MR-11): the same scorer
+over the host-rendered option descriptions, answered in the v2 result shape.
 
 A deterministic keyword scorer: each candidate scores 1 + the number of its
 label words found in STARTER_KEYWORDS (comma list, default "frontier,tools").
@@ -19,14 +22,14 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "..", "sdk", "python"))
 from semaprax_harness_adapter import AdapterError, serve_cancellable  # noqa: E402
-from decision_fixtures import canonical_json, rendered_digest  # noqa: E402
+from decision_fixtures import CHOICE_TASK, CHOICE_VERSION, Invalid, canonical_json, rendered_digest, validate_choice_request  # noqa: E402
 
 PROVIDER_ID = "org.example/keyword-decision"
 ADAPTER_VERSION = "0.1.0"
 SECRET_ENV = "SEMAPRAX_HARNESS_SECRET_STARTER"
 MODEL = "keyword-scorer"
 CHECKPOINT = "keyword-v1"
-ACCEPTED = [{"kind": "decision.evaluate", "version": v, "operations": ["evaluate"]} for v in (1, 2)]
+ACCEPTED = [{"kind": "decision.evaluate", "version": v, "operations": ["evaluate"]} for v in (1, 2, 3)]
 PROVENANCE = {"provider_id": PROVIDER_ID, "adapter_version": ADAPTER_VERSION, "upstream_version": "builtin-0.1.0"}
 
 
@@ -80,8 +83,10 @@ def _validate_v2(p):
 def handle(req, cancelled):
     p = req.get("payload")
     task = p.get("task") if isinstance(p, dict) else None
-    if task not in ("model-route/v1", "model-route/v2"):
-        raise _refuse("SPX-HPK004", "only model-route/v1 and v2 are supported", "unsupported")
+    if task not in ("model-route/v1", "model-route/v2", CHOICE_TASK):
+        raise _refuse("SPX-HPK004", "only model-route/v1, v2 and choice-select/v1 are supported", "unsupported")
+    if (task == CHOICE_TASK) != (req["capability"]["version"] == CHOICE_VERSION):
+        raise _refuse("SPX-HPK004", "choice-select/v1 travels only as decision.evaluate v3", "unsupported")
     leaked = _fault(os.environ.get("STARTER_FAULT"), cancelled)
     if os.environ.get("STARTER_FAULT") == "slow":
         raise _refuse("SPX-HPK013", "cancelled")
@@ -95,7 +100,13 @@ def handle(req, cancelled):
         labels = _validate_v1(p)
         choice, scores = score_options(labels, keywords, False)
         return "complete", {"choice": None if abstain else choice, "scores": scores, "abstain": abstain}, diags
-    labels, rendered = _validate_v2(p)
+    if task == CHOICE_TASK:
+        try:
+            labels, rendered = validate_choice_request(p)
+        except Invalid as err:
+            raise _refuse("SPX-HPK006", f"malformed choice request: {err}")
+    else:
+        labels, rendered = _validate_v2(p)
     choice, scores = score_options(labels, keywords, scoreless)
     wire = len(canonical_json(rendered))  # no upstream request: the rendered block is the "wire"
     if wire > p["max_wire_bytes"]:

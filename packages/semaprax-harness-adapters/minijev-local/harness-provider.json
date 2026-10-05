@@ -15,6 +15,14 @@
       ],
       "required": true,
       "version": 2
+    },
+    {
+      "kind": "decision.evaluate",
+      "operations": [
+        "evaluate"
+      ],
+      "required": false,
+      "version": 3
     }
   ],
   "config": {

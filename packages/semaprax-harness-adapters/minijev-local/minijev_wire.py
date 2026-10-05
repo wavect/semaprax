@@ -27,9 +27,14 @@ def letter(i):
     return chr(65 + i)
 
 
-def render_user(rendered):
-    """Fixed template around the host-rendered content; instructions/state/labels are verbatim."""
-    lines = [f"{letter(i)} = {label}" for i, label in enumerate(rendered["option_labels"].values())]
+def render_user(rendered, options=None):
+    """Fixed template around the host-rendered content; instructions/state/labels are verbatim.
+
+    Letters follow `options` order (the request array), never the key order of
+    `option_labels`, which the host serializes sorted.
+    """
+    options = list(rendered["option_labels"]) if options is None else options
+    lines = [f"{letter(i)} = {rendered['option_labels'][o]}" for i, o in enumerate(options)]
     return f"TEXT:\n{rendered['state']}\n\nQUESTION: {rendered['instructions']}\n" + "\n".join(lines) + "\n\nANSWER:"
 
 

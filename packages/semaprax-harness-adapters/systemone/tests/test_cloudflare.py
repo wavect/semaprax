@@ -30,7 +30,7 @@ def fixture(name):
 
 
 class Run:
-    def __init__(self, test, mode="ok", model="@cf/cloudflare/clef", drop=(), **extra):
+    def __init__(self, test, mode="ok", model="@cf/cloudflare/clef", drop=(), versions=(1, 2), **extra):
         fd, self.log = tempfile.mkstemp()
         os.close(fd)
         test.addCleanup(os.unlink, self.log)
@@ -43,8 +43,8 @@ class Run:
         self.p = subprocess.Popen([sys.executable, os.path.join(HERE, "cf_fake_runner.py")], stdin=subprocess.PIPE,
                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
         self.send({"jsonrpc": "2.0", "id": 1, "method": "harness/initialize", "params": {
-            "protocol": "semaprax.harness-rpc.v1", "offered": [{"kind": "decision.evaluate", "version": v} for v in (1, 2)]}})
-        self.read()
+            "protocol": "semaprax.harness-rpc.v1", "offered": [{"kind": "decision.evaluate", "version": v} for v in versions]}})
+        self.accepted = self.read()["result"]["accepted"]
 
     def send(self, obj):
         self.p.stdin.write(json.dumps(obj).encode() + b"\n")
@@ -97,6 +97,19 @@ class CloudflareContract(unittest.TestCase):
             self.assertEqual((call["identity_kind"], call["billing"], call["checkpoint"]), ("mutable_service", "api", None))
             self.assertEqual(call["usage"], {"input_tokens": 212, "output_tokens": 3, "basis": "provider_reported"})
             self.assertIn("profile=cf-" + sel, res["diagnostics"][0]["message"])
+
+    def test_choice_select_round_trips_only_over_negotiated_v3(self):
+        req = fx.choice_request()
+        res, r = self.go("ok", req, versions=(1, 2, 3))
+        self.assertEqual([c["version"] for c in r.accepted], [1, 2, 3])
+        self.assertEqual(res["status"], "complete", res)
+        fx.validate_choice_result(res["payload"], req["payload"])
+        (rec,) = r.requests()
+        (q,) = rec["body"]["questions"].values()
+        self.assertEqual(list(q["criteria"]), ["c0", "c1"])
+        self.assertEqual(rec["body"]["state"], req["payload"]["rendered"]["state"])
+        res, r = self.go("ok", fx.choice_request())
+        self.refused(res, "SPX-HPK004", r, 0)
 
     def test_v1_request_also_works(self):
         res, r = self.go("ok", fx.v1_request(), model="@cf/cloudflare/clef-flash")

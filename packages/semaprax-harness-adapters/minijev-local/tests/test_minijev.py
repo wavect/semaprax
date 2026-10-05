@@ -435,9 +435,10 @@ class NoDownloads(unittest.TestCase):
         with self.assertRaises(ValueError):
             w.letter(26)
 
-    def test_descriptor_is_v2_local_loopback_and_untested(self):
+    def test_descriptor_is_v2_v3_local_loopback_and_untested(self):
         d = json.loads(_read("harness-provider.json"))
-        self.assertEqual([c["version"] for c in d["capabilities"]], [2])
+        # v2: model-route/v2; v3: choice-select/v1 (finite choice only, MR-11).
+        self.assertEqual([c["version"] for c in d["capabilities"]], [2, 3])
         self.assertEqual(d["permissions"]["network"], ["loopback:user-selected-worker"])
         self.assertEqual(d["permissions"]["process"], [])
         self.assertEqual(d["support"]["tested"], [])
@@ -498,6 +499,19 @@ class Conformance_minijev(dc.conformance_case(MiniJevTarget())):
         s = dc.Session(MiniJevTarget().start("ok"))
         self.addCleanup(s.close)
         self.assertEqual([c["version"] for c in s.accepted], [2])
+
+    def test_choice_letters_follow_option_order_not_label_key_order(self):
+        descs = [f"specialist number {i}" for i in range(12)]
+        req = fx.choice_request(n=12, descriptions=descs)
+        running = MiniJevTarget().start("ok")
+        s = dc.Session(running, (2, 3))
+        self.addCleanup(s.close)
+        res = s.invoke(req)
+        self.assertEqual(res["status"], "complete", res["diagnostics"])
+        user, k = running.posts()[-1]
+        self.assertEqual(k, 12)
+        self.assertIn("K = c10: specialist number 10", user)
+        self.assertIn("C = c2: specialist number 2", user)
 
     def test_leak_is_refused_not_accepted(self):
         res, _ = self.run_fault("leak", fx.v2_request())

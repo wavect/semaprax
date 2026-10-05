@@ -16,7 +16,7 @@ import systemone_runtime as rt  # noqa: E402
 PROVIDER_ID = "ai.convai/laya-decision"
 UPSTREAM_VERSION = "laya-0.3.26"
 
-ACCEPTED = [{"kind": "decision.evaluate", "version": v, "operations": ["evaluate"]} for v in (1, 2)]
+ACCEPTED = [{"kind": "decision.evaluate", "version": v, "operations": ["evaluate"]} for v in (1, 2, 3)]
 
 if __name__ == "__main__":
     rt.run(

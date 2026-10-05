@@ -1,4 +1,4 @@
-"""Shared SystemOne codec for decision.evaluate v1 (model-route/v1) and v2 (model-route/v2).
+"""Shared SystemOne codec for decision.evaluate v1 (model-route/v1), v2 (model-route/v2) and v3 (choice-select/v1).
 
 Standard library only, no I/O. Renders the bounded feature text, builds the
 documented `POST /v1/systemone` choice question, and validates the documented
@@ -382,3 +382,91 @@ def build_result_v2(payload, info, cfg, adapter_ref, digest, wire_bytes):
             "billing": backend.billing,
         },
     }
+
+
+# ---------------------------------------------------------------------------
+# choice-select/v1 (MR-11): finite runtime choice over host-admitted tools or
+# agents, carried only by decision.evaluate v3. The host screens and renders;
+# selection ids are c0..c{n-1}; the adapter forwards the rendered content
+# verbatim and answers with the model-route/v2 result shape.
+# ---------------------------------------------------------------------------
+
+TASK_CHOICE = "choice-select/v1"
+CHOICE_VERSION = 3
+CHOICE_RENDERER = "semaprax.choice-render.v1"
+CHOICE_KINDS = ("tool", "agent")
+CHOICE_QUESTION_KEYS = {"schema", "destination_kind", "input_type", "output_type", "confidentiality"}
+CHOICE_MAX_DESCRIPTION = 96
+
+
+def _stable_id(s):
+    if not isinstance(s, str) or not 1 <= len(s) <= 64 or not (s[0].islower() or s[0].isdigit()) or not s.isascii():
+        return False
+    return all(seg not in ("", ".", "..") and all(c.islower() or c.isdigit() or c in "._-" for c in seg) for seg in s.split("/"))
+
+
+def validate_request_choice(payload):
+    """Return {task, features, options, rendered, max_wire_bytes} after checking choice-select/v1."""
+    if not isinstance(payload, dict) or payload.get("task") != TASK_CHOICE:
+        raise CodecError("unsupported", "SPX-HPK004", "only task choice-select/v1 is supported here")
+    allowed = {"task", "question", "candidates", "options", "disclosure", "rendered", "max_wire_bytes", "excerpt"}
+    if set(payload) - allowed:
+        raise _refuse("SPX-HPK006", "malformed choice request payload")
+    for key in allowed - {"excerpt"}:
+        if key not in payload:
+            raise _refuse("SPX-HPK006", f"`{key}` is missing")
+    q = payload["question"]
+    if not isinstance(q, dict) or set(q) != CHOICE_QUESTION_KEYS:
+        raise _refuse("SPX-HPK006", "`question` is malformed")
+    if not all(_stable_id(q[k]) for k in ("schema", "input_type", "output_type")):
+        raise _refuse("SPX-HPK006", "question schema and types must be stable ids")
+    if q["destination_kind"] not in CHOICE_KINDS or q["confidentiality"] not in ENUMS["confidentiality"]:
+        raise CodecError("unsupported", "SPX-HPK004", "question kind or confidentiality outside the supported set")
+    cands = payload["candidates"]
+    if not isinstance(cands, list) or not 2 <= len(cands) <= MAX_OPTIONS:
+        raise _refuse("SPX-HPK005", f"choice takes 2..{MAX_OPTIONS} candidates")
+    for i, c in enumerate(cands):
+        if not isinstance(c, dict) or set(c) != {"id", "label"} or c["id"] != f"c{i}":
+            raise _refuse("SPX-HPK010", "candidates must be exactly c0..c{n-1} in order")
+        lab = c["label"]
+        if not isinstance(lab, str) or not lab.isascii() or not 1 <= len(lab) <= CHOICE_MAX_DESCRIPTION or "://" in lab:
+            raise _refuse("SPX-HPK006", "candidate label must be a bounded ASCII description")
+    options = payload["options"]
+    if options != [c["id"] for c in cands]:
+        raise _refuse("SPX-HPK010", "`options` must equal the candidate ids in the same order")
+    if payload["disclosure"] not in V2_DISCLOSURES:
+        raise _refuse("SPX-HPK006", "`disclosure` outside the closed set")
+    if (payload["disclosure"] == "excerpt") != ("excerpt" in payload):
+        raise _refuse("SPX-HPK006", "`excerpt` is present exactly when disclosure is excerpt")
+    if "excerpt" in payload and (not isinstance(payload["excerpt"], str) or len(payload["excerpt"].encode()) > V2_MAX_EXCERPT_BYTES):
+        raise _refuse("SPX-HPK005", "excerpt exceeds its bound")
+    if not _is_int(payload["max_wire_bytes"], 1, MAX_U64):
+        raise _refuse("SPX-HPK006", "`max_wire_bytes` must be a positive integer")
+    r = payload["rendered"]
+    if not isinstance(r, dict) or set(r) != V2_RENDERED_KEYS or r.get("renderer") != CHOICE_RENDERER:
+        raise _refuse("SPX-HPK006", "`rendered` is malformed or not the choice renderer")
+    for key in ("instructions", "state", "digest"):
+        if not isinstance(r[key], str) or not r[key]:
+            raise _refuse("SPX-HPK006", f"rendered `{key}` must be a string")
+    if len(r["state"].encode()) > V2_MAX_STATE_BYTES or len(r["instructions"].encode()) > V2_MAX_INSTRUCTIONS_BYTES:
+        raise _refuse("SPX-HPK005", "rendered state or instructions exceed their bound")
+    labels = r["option_labels"]
+    if not isinstance(labels, dict) or set(labels) != set(options) or any(
+            not isinstance(v, str) or not v or len(v.encode()) > V2_MAX_LABEL_BYTES for v in labels.values()):
+        raise _refuse("SPX-HPK010", "`option_labels` must cover exactly the options")
+    if r["digest"] != rendered_digest(r):
+        raise _refuse("SPX-HPK006", "rendered digest does not match the rendered content")
+    return {"task": TASK_CHOICE, "features": {"input_modalities": ["text"]}, "options": list(options),
+            "rendered": r, "max_wire_bytes": payload["max_wire_bytes"]}
+
+
+def build_body_choice(invocation_id, req):
+    """SystemOne `choice` question over the host-rendered choice content, verbatim."""
+    r = req["rendered"]
+    h = hashlib.sha256(("\n".join([invocation_id, TASK_CHOICE] + req["options"] + [r["digest"]])).encode()).hexdigest()
+    qid = "choice-" + h[:16]
+    body = {
+        "state": r["state"],
+        "questions": {qid: {"type": "choice", "instructions": r["instructions"], "criteria": {o: r["option_labels"][o] for o in req["options"]}}},
+    }
+    return qid, body

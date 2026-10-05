@@ -213,14 +213,29 @@ def _adapter_ref(provenance):
 
 
 def evaluate(cfg, req, inv, provenance=None):
-    """decision.evaluate v1/v2 -> (status, payload, diagnostics). Task selects the wire."""
+    """decision.evaluate v1/v2/v3 -> (status, payload, diagnostics). Task selects the wire.
+
+    v3 carries only choice-select/v1 (MR-11) and v1/v2 never carry it; the
+    choice content is host-rendered and forwarded verbatim like v2.
+    """
     started = time.monotonic()
     cfg.validate()
     backend = cfg.backend
     payload = req.get("payload")
-    v2 = isinstance(payload, dict) and payload.get("task") == codec.TASK_V2
+    choice = isinstance(payload, dict) and payload.get("task") == codec.TASK_CHOICE
+    if choice != (req.get("capability", {}).get("version") == codec.CHOICE_VERSION):
+        raise codec.CodecError("unsupported", "SPX-HPK004", "choice-select/v1 travels only as decision.evaluate v3")
+    v2 = choice or (isinstance(payload, dict) and payload.get("task") == codec.TASK_V2)
     digest, extra_diag = None, []
-    if v2:
+    if choice:
+        v2req = codec.validate_request_choice(payload)
+        options = v2req["options"]
+        prof = cfg.profile
+        if len(options) > prof["max_options"] or len(v2req["rendered"]["state"].encode()) > prof["max_state_bytes"]:
+            raise codec.CodecError("refused", "SPX-HPK005", "request exceeds the model profile limits")
+        qid, body = codec.build_body_choice(req["invocation_id"], v2req)
+        digest = v2req["rendered"]["digest"]
+    elif v2:
         v2req = codec.validate_request_v2(payload)
         options = v2req["options"]
         prof = cfg.profile
@@ -279,6 +294,8 @@ def run(cfg, accepted, provenance, stdin=None, stdout=None):
             stdout.write(line)
             stdout.flush()
 
+    negotiated = {"set": None}  # (kind, version) pairs once initialized
+
     def invoke(mid, req):
         inv = Invocation(req.get("deadline_ms", 1000), min(req["budget"]["max_result_bytes"], DEFAULT_MAX_RESPONSE))
         active[req["invocation_id"]] = inv
@@ -287,6 +304,10 @@ def run(cfg, accepted, provenance, stdin=None, stdout=None):
         try:
             if (req["capability"]["kind"], req["operation"]) != ("decision.evaluate", "evaluate"):
                 env = result(req, "unsupported", None, provenance, [{"code": "unsupported", "message": "operation not implemented"}])
+            elif negotiated["set"] is not None and (req["capability"]["kind"], req["capability"].get("version")) not in negotiated["set"]:
+                # A capability version this session did not negotiate (for example
+                # choice-select/v1 without v3) is refused before any inference.
+                env = result(req, "unsupported", None, provenance, [{"code": "SPX-HPK004", "message": "capability version was not negotiated"}])
             else:
                 try:
                     status, payload, diags = evaluate(cfg, req, inv, provenance)
@@ -311,7 +332,9 @@ def run(cfg, accepted, provenance, stdin=None, stdout=None):
                 send({"jsonrpc": "2.0", "id": mid, "error": {"code": -32600, "message": "unsupported protocol"}})
                 continue
             offered = {(c["kind"], c["version"]) for c in params.get("offered", [])}
-            send({"jsonrpc": "2.0", "id": mid, "result": {"protocol": PROTOCOL, "accepted": [c for c in accepted if (c["kind"], c["version"]) in offered]}})
+            acc = [c for c in accepted if (c["kind"], c["version"]) in offered]
+            negotiated["set"] = {(c["kind"], c["version"]) for c in acc}
+            send({"jsonrpc": "2.0", "id": mid, "result": {"protocol": PROTOCOL, "accepted": acc}})
         elif method == "harness/cancel":
             iid = msg.get("params", {}).get("invocation_id")
             cancelled_early.add(iid)

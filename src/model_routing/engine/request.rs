@@ -8,7 +8,7 @@ use super::wire;
 use serde_json::{json, Value};
 
 /// `decision.evaluate` versions this core can prepare and validate.
-pub const DECISION_VERSIONS: &[u32] = &[1, 2];
+pub const DECISION_VERSIONS: &[u32] = &[1, 2, 3];
 const MAX_RESULT_BYTES: usize = 4 * 1024 * 1024;
 const MAX_DEADLINE_MS: u64 = 600_000;
 
@@ -32,7 +32,8 @@ pub struct DecisionRequest {
     pub invocation_id: String,
     pub project: ProjectBinding,
     pub lock_digest: String,
-    /// `decision.evaluate` contract version (1: `model-route/v1`, 2: `/v2`).
+    /// `decision.evaluate` contract version (1: `model-route/v1`, 2: `/v2`,
+    /// 3: `choice-select/v1`).
     pub version: u32,
     pub deadline_ms: u64,
     pub max_result_bytes: usize,
@@ -79,6 +80,19 @@ impl DecisionRequest {
                     format!("{what} must be a non-empty identifier"),
                 ));
             }
+        }
+        // The version names the task: a choice payload travels only as v3
+        // and v3 carries only a choice payload.
+        let choice =
+            self.payload.get("task").and_then(Value::as_str) == Some(super::choice::CHOICE_TASK);
+        if choice != (self.version == super::choice::CHOICE_WIRE_VERSION) {
+            return Err(Diagnostic::new(
+                "SPX-HPA023",
+                format!(
+                    "decision.evaluate v{} does not carry this payload task",
+                    self.version
+                ),
+            ));
         }
         wire::validate(wire::Direction::Request, &self.payload)
     }

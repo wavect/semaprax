@@ -1,8 +1,10 @@
-//! `decision.evaluate/v1` and `/v2`: choices and scores for registered
-//! decision tasks only. The v2 request is recognized by its task id and the
-//! v2 result by its `score_kind` member; v1 shapes are unchanged.
+//! `decision.evaluate/v1`, `/v2` and `/v3`: choices and scores for registered
+//! decision tasks only. The v2 (`model-route/v2`) and v3 (`choice-select/v1`)
+//! requests are recognized by their task id and their shared result shape by
+//! its `score_kind` member; v1 shapes are unchanged.
 
 use super::call::ResultV2;
+use super::choice::{self, CHOICE_TASK};
 use super::diag::DecisionResult;
 use super::render::{RenderedRequest, MAX_CANDIDATES_V2, MAX_STATE_BYTES, RENDERER_V2};
 use super::route_v2::{TaskFeaturesV2, MAX_EXCERPT};
@@ -21,6 +23,15 @@ const V2_TASK: &str = "model-route/v2";
 
 fn is_v2_request(v: &Value) -> bool {
     v.get("task").and_then(Value::as_str) == Some(V2_TASK)
+}
+
+fn is_choice_request(v: &Value) -> bool {
+    v.get("task").and_then(Value::as_str) == Some(CHOICE_TASK)
+}
+
+/// Requests whose result is the typed v2 result shape (`ResultV2`).
+fn takes_v2_result(v: &Value) -> bool {
+    is_v2_request(v) || is_choice_request(v)
 }
 
 fn is_v2_result(v: &Value) -> bool {
@@ -123,6 +134,7 @@ fn validate_v2_request(v: &Value) -> DecisionResult<()> {
 pub fn validate(dir: Direction, v: &Value) -> DecisionResult<()> {
     match dir {
         Direction::Request if is_v2_request(v) => validate_v2_request(v)?,
+        Direction::Request if is_choice_request(v) => choice::validate_request(v)?,
         Direction::Result if is_v2_result(v) => {
             ResultV2::from_json(v)?;
         }
@@ -187,14 +199,15 @@ fn options(m: &Map<String, Value>) -> DecisionResult<Vec<&str>> {
 }
 
 pub fn check_against_request(request: &Value, result: &Value) -> DecisionResult<()> {
-    // A v2 request takes only a v2 result, and a v1 request only a v1 result.
-    if is_v2_request(request) != is_v2_result(result) {
+    // A v2 or choice request takes only a v2-shaped result, and a v1 request
+    // only a v1 result.
+    if takes_v2_result(request) != is_v2_result(result) {
         return Err(e(
             "SPX-HPA040",
             "result payload version does not match the request task",
         ));
     }
-    if is_v2_request(request) {
+    if takes_v2_result(request) {
         let m = request
             .as_object()
             .ok_or_else(|| e("SPX-HPA040", "request payload is not an object"))?;

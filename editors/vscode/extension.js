@@ -513,18 +513,31 @@ function activateChecks(context, testMode) {
     return openBeside(text, 'json');
   }
   const lensesEnabled = () => machineSetting('codeLens') !== false;
+  // Concurrent lens requests for members of one project share one in-flight
+  // query. Any relevant source, manifest, compiler, configuration or trust
+  // change advances the generation, which both separates new requests from
+  // old ones and discards results that were in flight across the change.
+  const lensQueries = new navigation.SharedLensQueries();
+  let lensGeneration = 0;
+  const invalidateLenses = () => { lensGeneration++; lensQueries.invalidate(); };
+  const relevantSource = uri => uri.scheme === 'file' && (uri.fsPath.endsWith('.spx') || path.basename(uri.fsPath) === checks.MANIFEST);
+  const runLensQuery = async (binary, args, subject, signal) => {
+    const result = await navigation.runCommand(spawn, binary, args, subject.root, { signal });
+    if (navigation.failureReason(result, binary)) return null;
+    return subject.project ? navigation.parseProjectQueryResult(result.stdout, subject.root) : navigation.parseQueryResult(result.stdout);
+  };
   const lensProvider = {
-    async provideCodeLenses(doc) {
+    async provideCodeLenses(doc, token) {
       const binary = compiler();
       if (!binary || !lensesEnabled() || !vscode.workspace.isTrusted || doc.uri.scheme !== 'file' || doc.isDirty || !doc.uri.fsPath.endsWith('.spx')) return [];
-      const version = doc.version;
+      const version = doc.version, generation = lensGeneration;
       // An importing module would fail every standalone query, so the lenses
       // come from its project when it has one, filtered to this file.
       const subject = navigationSubject(doc);
-      const result = await navigation.runCommand(spawn, binary, navigation.queryArguments(subject.subject, {}), subject.root);
-      if (navigation.failureReason(result, binary)) return [];
-      const parsed = subject.project ? navigation.parseProjectQueryResult(result.stdout, subject.root) : navigation.parseQueryResult(result.stdout);
-      if (!parsed) return [];
+      const args = navigation.queryArguments(subject.subject, {});
+      const key = navigation.lensQueryKey({ binary, subject: subject.subject, project: subject.project, cwd: subject.root, args, generation });
+      const parsed = await lensQueries.request(key, signal => runLensQuery(binary, args, subject, signal), token);
+      if (!parsed || token?.isCancellationRequested || generation !== lensGeneration) return [];
       const here = { ...parsed, matches: parsed.matches.filter(match => !match.file || match.file === subject.file) };
       // The lens ranges are byte offsets into the saved source the query
       // answered for; a document edited since is left to the next request.
@@ -535,14 +548,20 @@ function activateChecks(context, testMode) {
       ));
     }
   };
-  const dispose = () => { for (const child of running.values()) child.kill(); running.clear(); };
-  context.subscriptions.push(collection, output, vscode.workspace.onDidSaveTextDocument(onSave), { dispose },
+  const dispose = () => { for (const child of running.values()) child.kill(); running.clear(); lensQueries.dispose(); };
+  const sourceWatcher = vscode.workspace.createFileSystemWatcher('**/{*.spx,semaprax.toml}');
+  for (const event of [sourceWatcher.onDidCreate, sourceWatcher.onDidChange, sourceWatcher.onDidDelete]) context.subscriptions.push(event(uri => { if (relevantSource(uri)) invalidateLenses(); }));
+  context.subscriptions.push(collection, output, vscode.workspace.onDidSaveTextDocument(onSave), { dispose }, sourceWatcher,
+    vscode.workspace.onDidChangeTextDocument(event => { if (relevantSource(event.document.uri)) invalidateLenses(); }),
+    vscode.workspace.onDidSaveTextDocument(doc => { if (relevantSource(doc.uri)) invalidateLenses(); }),
+    vscode.workspace.onDidChangeConfiguration(event => { if (event.affectsConfiguration('semaprax')) invalidateLenses(); }),
+    vscode.workspace.onDidGrantWorkspaceTrust(invalidateLenses),
     vscode.languages.registerCodeLensProvider({ language: 'semaprax', scheme: 'file' }, lensProvider),
     vscode.languages.registerHoverProvider({ language: 'semaprax', scheme: 'file' }, { provideHover: rustImportHover }),
     vscode.languages.registerCompletionItemProvider({ language: 'semaprax', scheme: 'file' }, rustCompletionProvider, ':'),
     vscode.languages.registerDefinitionProvider({ language: 'semaprax', scheme: 'file' }, rustDefinitionProvider),
     vscode.languages.registerCodeActionsProvider({ language: 'semaprax', scheme: 'file' }, rustImportFixProvider));
-  return { checkProject, goToDeclaration, showReferences, showDocumentation, showOwnership, inspectAgent, safeRename, showCleanupPlan, runAgentTranscript, test: testMode ? { check, ledger, collection, lensProvider } : undefined };
+  return { checkProject, goToDeclaration, showReferences, showDocumentation, showOwnership, inspectAgent, safeRename, showCleanupPlan, runAgentTranscript, test: testMode ? { check, ledger, collection, lensProvider, lensQueries, invalidateLenses } : undefined };
 }
 function activate(context) {
   let hotReload;

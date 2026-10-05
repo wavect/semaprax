@@ -348,8 +348,10 @@ function lensRecords(result, sources = null) {
 // selected timeout/overflow status.
 function runCommand(spawnFn, compiler, args, cwd, options = {}) {
   const maxBytes = options.maxBytes ?? MAX_OUTPUT_BYTES, timeoutMs = options.timeoutMs ?? TIMEOUT_MS;
+  const signal = options.signal;
   return new Promise(resolve => {
-    let stdout = [], stderr = [], bytes = 0, settled = false, timedOut = false, truncated = false;
+    let stdout = [], stderr = [], bytes = 0, settled = false, timedOut = false, truncated = false, cancelled = false;
+    if (signal?.aborted) { resolve({ stdout: '', stderr: '', code: null, timedOut, truncated, cancelled: true }); return; }
     const child = spawnFn(compiler, args, { shell: false, windowsHide: true, cwd, stdio: ['ignore', 'pipe', 'pipe'] });
     let killTimer = null;
     const clearKillEscalation = () => { if (killTimer !== null) { clearTimeout(killTimer); killTimer = null; } };
@@ -360,9 +362,12 @@ function runCommand(spawnFn, compiler, args, cwd, options = {}) {
       try { child.kill(); } catch {}
       if (killTimer === null) killTimer = setTimeout(escalateKill, 2000);
     };
+    const onAbort = () => { if (!settled) { cancelled = true; requestKill(); } };
     const finish = result => {
       if (settled) return;
       settled = true; clearTimeout(timer); clearKillEscalation();
+      signal?.removeEventListener('abort', onAbort);
+      if (cancelled) result = { ...result, code: null, cancelled: true };
       // Stdout is protocol data: it is admitted only as strict UTF-8, never
       // replacement-decoded. Stderr stays lossy human text and is never parsed.
       const text = strictUtf8(Buffer.concat(stdout));
@@ -379,8 +384,75 @@ function runCommand(spawnFn, compiler, args, cwd, options = {}) {
     child.stderr.on('data', collect(stderr));
     child.on('error', error => finish({ code: null, timedOut, truncated, error: String(error.message || error) }));
     child.on('close', code => finish({ code: timedOut || truncated ? null : code, timedOut, truncated }));
+    // A cancelled run is terminated through the same owned SIGTERM-then-SIGKILL
+    // path and still resolves only once the child is observed to exit.
+    signal?.addEventListener('abort', onAbort, { once: true });
     if (typeof options.onChild === 'function') options.onChild(child);
   });
+}
+
+// In-flight sharing for the one whitelisted read-only route: the unfiltered
+// code-lens `query <subject> --json`. Identical concurrent requests share one
+// compiler run and its one admitted result; the entry is removed on every
+// completion, so nothing is cached and a failure is never reused. This is not
+// a general `runCommand` memo: that runner also carries mutation-bearing
+// routes such as `patch`, which are never shared.
+const MAX_SHARED_QUERIES = 16;
+// The sharing key. `generation` is the caller's count of relevant source,
+// manifest, compiler, configuration and trust changes; `cwd` names the
+// worktree. Any other argument vector is refused.
+function lensQueryKey({ binary, subject, project, cwd, args, generation }) {
+  const expected = queryArguments(subject, {});
+  if (!Array.isArray(args) || args.length !== expected.length || args.some((arg, index) => arg !== expected[index])) throw new Error('Sharing admits only the lens query');
+  return JSON.stringify([binary, subject, Boolean(project), cwd, args, generation]);
+}
+class SharedLensQueries {
+  constructor(maxEntries = MAX_SHARED_QUERIES) { this.entries = new Map(); this.maxEntries = maxEntries; }
+  get size() { return this.entries.size; }
+  // `start(signal)` runs the query and resolves to its admitted value (null
+  // for a failed or invalid reply). Resolves to that value, or undefined when
+  // this subscriber was cancelled, the entry was invalidated, or the registry
+  // is full. `token` is a VS Code CancellationToken or absent.
+  request(key, start, token) {
+    if (token?.isCancellationRequested) return Promise.resolve(undefined);
+    let entry = this.entries.get(key);
+    if (!entry) {
+      if (this.entries.size >= this.maxEntries) return Promise.resolve(undefined);
+      const controller = new AbortController();
+      entry = { subscribers: 0, controller, stale: false };
+      const current = entry;
+      current.promise = Promise.resolve()
+        .then(() => start(controller.signal))
+        .catch(() => null)
+        .finally(() => { if (this.entries.get(key) === current) this.entries.delete(key); });
+      this.entries.set(key, entry);
+    }
+    const shared = entry;
+    shared.subscribers++;
+    return new Promise(resolve => {
+      let done = false, subscription;
+      const leave = value => {
+        if (done) return;
+        done = true; shared.subscribers--;
+        subscription?.dispose();
+        resolve(value);
+      };
+      subscription = token?.onCancellationRequested?.(() => {
+        leave(undefined);
+        if (shared.subscribers === 0) this.abandon(key, shared);
+      });
+      shared.promise.then(value => leave(shared.stale ? undefined : value));
+    });
+  }
+  abandon(key, entry) {
+    entry.stale = true;
+    if (this.entries.get(key) === entry) this.entries.delete(key);
+    entry.controller.abort();
+  }
+  // A relevant change: in-flight results are discarded and their children
+  // terminated; later requests start fresh.
+  invalidate() { for (const [key, entry] of [...this.entries]) this.abandon(key, entry); }
+  dispose() { this.invalidate(); }
 }
 
 // The reason a run cannot be trusted, or null when it exited with status zero.
@@ -388,6 +460,7 @@ function failureReason(result, compiler) {
   if (result.error) return `could not start ${compiler}: ${result.error}`;
   if (result.timedOut) return `command timed out after ${TIMEOUT_MS / 1000}s`;
   if (result.truncated) return `command output exceeded ${MAX_OUTPUT_BYTES} bytes`;
+  if (result.cancelled) return 'command was cancelled';
   if (result.invalidUtf8) return 'command output is not valid UTF-8';
   if (result.code !== 0) return `command exited with status ${result.code}`;
   return null;
@@ -397,5 +470,6 @@ module.exports = {
   MAX_OUTPUT_BYTES, TIMEOUT_MS, QUERY_SCHEMA, PROJECT_QUERY_SCHEMA,
   queryArguments, docArguments, contextArguments, rustImportContextArguments, rustCandidateArguments, parseRustCandidates, parseRustImportContext, RUST_CONTEXT_MAX_BYTES, resolveInRoot, parseProjectQueryResult, agentInspectArguments, parseSchemaDocument, CONTEXT_MAX_BYTES, parseQueryResult,
   SourceIndex, renamePatch, impactArguments, patchArguments, impactSummary, graphArguments, cleanupPlan, agentRunArguments, toRange, header, declarationItems, referenceItems, lensRecords, runCommand, failureReason,
+  MAX_SHARED_QUERIES, lensQueryKey, SharedLensQueries,
   cwdOf: file => path.dirname(file)
 };

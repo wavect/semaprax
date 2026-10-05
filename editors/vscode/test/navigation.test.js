@@ -400,3 +400,134 @@ test('one malformed or out-of-root project match makes the whole project result 
   assert.deepEqual(parseProjectQueryResult(document([]), projectRoot).matches, []);
   assert.equal(parseProjectQueryResult(document([caller, good]), projectRoot).matches.length, 2);
 });
+
+// In-flight sharing of the one whitelisted read-only lens query (REF-19).
+const navigationModule = require('../navigation');
+const { SharedLensQueries, lensQueryKey } = navigationModule;
+class Token {
+  constructor() { this.isCancellationRequested = false; this.listeners = []; }
+  onCancellationRequested(listener) { this.listeners.push(listener); return { dispose: () => { this.listeners = this.listeners.filter(item => item !== listener); } }; }
+  cancel() { this.isCancellationRequested = true; for (const listener of this.listeners.slice()) listener(); }
+}
+const settle = () => new Promise(resolve => setImmediate(resolve));
+const lensKey = (overrides = {}) => lensQueryKey({ binary: at('bin', 'semaprax'), subject: at('calculator', 'semaprax.toml'), project: true, cwd: projectRoot, args: queryArguments(at('calculator', 'semaprax.toml')), generation: 0, ...overrides });
+// The shared start: one bounded runCommand, admitted once (REF-16/REF-18).
+const lensStart = (calls, child) => signal => runCommand(spawnInto(calls, child), at('bin', 'semaprax'), queryArguments(at('calculator', 'semaprax.toml')), projectRoot, { signal })
+  .then(run => (failureReason(run, 'x') ? null : parseProjectQueryResult(run.stdout, projectRoot)));
+
+test('two simultaneous lens requests for one unchanged project share exactly one query', async () => {
+  const registry = new SharedLensQueries(), calls = [], child = new Child();
+  const first = registry.request(lensKey(), lensStart(calls, child), new Token());
+  const second = registry.request(lensKey(), lensStart(calls, child), new Token());
+  await settle();
+  assert.equal(calls.length, 1, 'one compiler dispatch for both members');
+  child.stdout.emit('data', Buffer.from(projectText)); child.emit('close', 0);
+  const [one, two] = await Promise.all([first, second]);
+  assert.equal(one, two, 'both subscribers receive the one validated result');
+  const app = lensRecords({ ...one, matches: one.matches.filter(match => match.file === at('calculator', 'src', 'app.spx')) });
+  const core = lensRecords({ ...two, matches: two.matches.filter(match => match.file === at('calculator', 'src', 'core.spx')) });
+  assert.deepEqual(app.map(lens => lens.title), ['@id calculator.app.main']);
+  assert.deepEqual(core.map(lens => lens.title), ['@id calculator.add']);
+  assert.equal(registry.size, 0, 'nothing is retained after completion');
+  // A later request is a new query: there is no warm cache.
+  const later = registry.request(lensKey(), lensStart(calls, new Child()), new Token());
+  await settle();
+  assert.equal(calls.length, 2);
+  registry.dispose(); assert.equal(await later, undefined);
+});
+
+test('different compilers, subjects, worktrees, arguments or source generations never share', async () => {
+  const base = lensKey();
+  for (const changed of [{ binary: at('bin', 'other') }, { subject: at('other', 'semaprax.toml'), args: queryArguments(at('other', 'semaprax.toml')) }, { cwd: at('worktree') }, { subject: at('calculator', 'nested', 'semaprax.toml'), args: queryArguments(at('calculator', 'nested', 'semaprax.toml')) }, { generation: 1 }, { project: false }]) {
+    assert.notEqual(lensQueryKey({ binary: at('bin', 'semaprax'), subject: at('calculator', 'semaprax.toml'), project: true, cwd: projectRoot, args: queryArguments(at('calculator', 'semaprax.toml')), generation: 0, ...changed }), base, JSON.stringify(changed));
+  }
+  const registry = new SharedLensQueries();
+  let starts = 0;
+  const start = () => { starts++; return new Promise(() => {}); };
+  registry.request(lensKey(), start); registry.request(lensKey({ generation: 1 }), start);
+  await settle();
+  assert.equal(starts, 2);
+  registry.dispose();
+});
+
+test('a cancelled subscriber does not disturb another; when all cancel the child is terminated and released', async () => {
+  const registry = new SharedLensQueries(), calls = [], child = new Child();
+  const leaving = new Token(), staying = new Token();
+  const gone = registry.request(lensKey(), lensStart(calls, child), leaving);
+  const kept = registry.request(lensKey(), lensStart(calls, child), staying);
+  await settle();
+  leaving.cancel();
+  assert.equal(await gone, undefined, 'a cancelled subscriber gets no result');
+  assert.equal(child.killed, false, 'the child is still needed by the other subscriber');
+  child.stdout.emit('data', Buffer.from(projectText)); child.emit('close', 0);
+  assert.equal((await kept).matches.length, 3);
+
+  const lone = new Child(), token = new Token();
+  const abandoned = registry.request(lensKey(), lensStart(calls, lone), token);
+  await settle();
+  token.cancel();
+  assert.equal(await abandoned, undefined);
+  assert.equal(registry.size, 0, 'the entry is released once no subscriber remains');
+  await settle();
+  assert.equal(lone.killed, true, 'the owned child is terminated through the existing path');
+  // An already-cancelled token never starts work.
+  const before = calls.length, cancelled = new Token(); cancelled.cancel();
+  assert.equal(await registry.request(lensKey(), lensStart(calls, new Child()), cancelled), undefined);
+  await settle();
+  assert.equal(calls.length, before);
+});
+
+test('invalidation during a request discards its result and failures are never cached', async () => {
+  const registry = new SharedLensQueries(), calls = [], child = new Child();
+  const pending = registry.request(lensKey(), lensStart(calls, child), new Token());
+  await settle();
+  registry.invalidate();
+  assert.equal(await pending, undefined, 'a result started before a relevant change is not published');
+  await settle();
+  assert.equal(child.killed, true);
+  assert.equal(registry.size, 0);
+
+  const failing = new Child();
+  const failed = registry.request(lensKey(), lensStart(calls, failing), new Token());
+  await settle();
+  failing.stdout.emit('data', Buffer.from(JSON.stringify({ ...JSON.parse(projectText), matches: [{ effects: 'x' }] })));
+  failing.emit('close', 0);
+  assert.equal(await failed, null, 'an invalid reply is a failure, not a successful empty result');
+  assert.equal(registry.size, 0);
+  const retry = new Child();
+  const again = registry.request(lensKey(), lensStart(calls, retry), new Token());
+  await settle();
+  retry.stdout.emit('data', Buffer.from(projectText)); retry.emit('close', 0);
+  assert.equal((await again).matches.length, 3, 'a later independent request executes normally');
+});
+
+test('the registry is bounded and the runner honours cancellation without losing settlement', async () => {
+  const registry = new SharedLensQueries(2);
+  let starts = 0;
+  const start = () => { starts++; return new Promise(() => {}); };
+  registry.request(lensKey({ generation: 1 }), start); registry.request(lensKey({ generation: 2 }), start);
+  assert.equal(await registry.request(lensKey({ generation: 3 }), start), undefined, 'a full registry declines instead of queueing');
+  await settle();
+  assert.equal(starts, 2);
+  registry.dispose();
+  assert.equal(registry.size, 0);
+
+  const child = new Child(), controller = new AbortController();
+  child.kill = function () { this.killed = true; };
+  let settled = false;
+  const pending = runCommand(spawnInto([], child), at('bin', 'semaprax'), ['query', at('m.spx'), '--json'], root, { signal: controller.signal }).then(value => { settled = true; return value; });
+  controller.abort();
+  await settle();
+  assert.equal(child.killed, true);
+  assert.equal(settled, false, 'ownership is kept until the child is observed to exit');
+  child.emit('close', null);
+  const run = await pending;
+  assert.equal(run.cancelled, true);
+  assert.equal(failureReason(run, 'x'), 'command was cancelled');
+});
+
+test('no mutation-bearing route is shared: only the lens query is whitelisted', () => {
+  assert.equal(typeof navigationModule.runCommand, 'function');
+  assert.throws(() => lensQueryKey({ binary: at('bin', 'semaprax'), subject: at('m.spx'), project: false, cwd: root, args: patchArguments(at('m.spx'), at('p.spatch')), generation: 0 }), /only the lens query/);
+  assert.throws(() => lensQueryKey({ binary: at('bin', 'semaprax'), subject: at('m.spx'), project: false, cwd: root, args: queryArguments(at('m.spx'), { calls: 'x' }), generation: 0 }), /only the lens query/);
+});

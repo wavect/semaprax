@@ -420,6 +420,23 @@ process.on('SIGTERM',()=>{if(lastPlan)output({schema:'semaprax.hot-reload-contro
     assert.equal(lenses.length, 1);
     assert.equal(lenses[0].command.title, '@id calculator.app.main');
 
+    // Two members of one unchanged project requested together share one real
+    // project query, and each receives its own file's lenses. A cancelled
+    // subscriber gets nothing without disturbing the other.
+    const coreDocument = await vscode.workspace.openTextDocument(vscode.Uri.file(path.join(path.dirname(manifest), 'src', 'core.spx')));
+    const leaving = new vscode.CancellationTokenSource(), staying = new vscode.CancellationTokenSource();
+    const appLenses = api.checks.lensProvider.provideCodeLenses(appDocument, leaving.token);
+    const coreLenses = api.checks.lensProvider.provideCodeLenses(coreDocument, staying.token);
+    assert.equal(api.checks.lensQueries.size, 1, 'one in-flight query serves both members');
+    leaving.cancel();
+    assert.deepEqual(await appLenses, []);
+    assert.ok((await coreLenses).some(lens => lens.command.title === '@id calculator.add'), 'the remaining subscriber receives its file\'s lenses');
+    assert.equal(api.checks.lensQueries.size, 0, 'nothing is retained after completion');
+    const together = await Promise.all([api.checks.lensProvider.provideCodeLenses(appDocument), api.checks.lensProvider.provideCodeLenses(coreDocument)]);
+    assert.deepEqual(together[0].map(lens => lens.command.title), ['@id calculator.app.main']);
+    assert.ok(together[1].some(lens => lens.command.title === '@id calculator.add'));
+    leaving.dispose(); staying.dispose();
+
     // Navigation reads saved source: a dirty buffer is refused, not guessed.
     const dirtyEditor = await vscode.window.showTextDocument(appDocument, { preview: false });
     assert.equal(await dirtyEditor.edit(edit => edit.insert(appDocument.lineAt(0).range.end, ' ')), true);

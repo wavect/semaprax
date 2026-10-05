@@ -2727,7 +2727,7 @@ fn build_from_authenticated_authority(
         unexpected_inventory_entries: 0,
     };
     let mut source_facts = BTreeMap::new();
-    for source in authority.take_sources() {
+    for source in authority.take_sources()? {
         let path = source.path;
         source_facts.insert(
             path.clone(),

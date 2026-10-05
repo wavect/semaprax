@@ -480,7 +480,7 @@ fn generate_evidence_with_hook(
         );
         let authenticated_revision = authority.workspace_revision().to_owned();
         let graph = authority.take_graph()?;
-        let sources = authority.take_sources();
+        let sources = authority.take_sources()?;
         let base = semantic_workspace::authenticated_operations_preflight(
             &authenticated_revision,
             sources,
@@ -562,7 +562,7 @@ pub(crate) fn apply_with_hook(
         );
         let authenticated_revision = authority.workspace_revision().to_owned();
         let graph = authority.take_graph()?;
-        let sources = authority.take_sources();
+        let sources = authority.take_sources()?;
         let base = semantic_workspace::authenticated_operations_preflight(
             &authenticated_revision,
             sources,
@@ -679,7 +679,7 @@ fn verify_with_hook(
         );
         let authenticated_revision = authority.workspace_revision().to_owned();
         let graph = authority.take_graph()?;
-        let sources = authority.take_sources();
+        let sources = authority.take_sources()?;
         let base = semantic_workspace::authenticated_operations_preflight(
             &authenticated_revision,
             sources,
@@ -730,7 +730,7 @@ pub(crate) fn derive_with_hook(
     let result = (|| {
         let authenticated_revision = authority.workspace_revision().to_owned();
         let graph = authority.take_graph()?;
-        let sources = authority.take_sources();
+        let sources = authority.take_sources()?;
         let base = semantic_workspace::authenticated_operations_preflight(
             &authenticated_revision,
             sources,

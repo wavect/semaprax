@@ -8,7 +8,7 @@
 use sha2::{Digest, Sha256};
 
 use crate::agent_definition::{
-    compile_agent_definition, verify_agent_graph_bundle, CompiledAgentDefinition,
+    compile_agent_definition, verify_compiled_agent_graph, CompiledAgentDefinition,
 };
 use crate::agent_runtime::{Agent, AgentCancellation, AgentHost, AgentRun};
 use crate::diagnostic::{quote_json, Diagnostic};
@@ -179,6 +179,11 @@ pub fn compile_agent_payment_graph(
 
 /// Independently recompiles every source-owned input and exact-compares both
 /// compiler-owned graph projections.
+///
+/// The definition and economic policy compile exactly once per call. Both
+/// submitted graphs are then compared against that one immutable compilation
+/// product, which this call derived from authoritative source; neither
+/// submitted graph is trusted.
 pub fn verify_agent_payment_graph_bundle(
     agent_definition: &str,
     economic_policy: &str,
@@ -189,11 +194,7 @@ pub fn verify_agent_payment_graph_bundle(
         return Err(vec![graph_mismatch()]);
     }
     let compiled = compile_agent_payment_graph(agent_definition, economic_policy)?;
-    verify_agent_graph_bundle(
-        agent_definition,
-        compiled.agent().runtime_v1_profile(),
-        agent_graph,
-    )?;
+    verify_compiled_agent_graph(compiled.agent(), agent_graph)?;
     if compiled.graph().canonical_json().as_bytes() != payment_graph.as_bytes() {
         return Err(vec![graph_mismatch()]);
     }
@@ -237,3 +238,6 @@ fn graph_mismatch() -> Diagnostic {
         "Agent Payment Graph is not the exact replay of its AgentDefinition and Economic Policy",
     )
 }
+
+#[cfg(test)]
+mod tests;

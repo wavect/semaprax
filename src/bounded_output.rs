@@ -145,23 +145,73 @@ fn reserve_sink(captured: Option<&Rc<Budget>>, length: usize) -> bool {
     )
 }
 
+/// Formats `arguments` in one pass, charging every append to the active
+/// budget before it is written.
+///
+/// Each placeholder's formatter runs exactly once, so a formatter that emits
+/// different bytes on different invocations cannot return bytes it was not
+/// charged for. A refused append stops formatting. Bytes already appended stay
+/// charged: the work was done even though the artifact is discarded.
+///
+/// Failure is never a successful artifact. A refused append, or a formatter
+/// that returns `fmt::Error` after a partial write, yields an empty string and
+/// fails the active budget closed through its overflow flag. Outside any
+/// budget a formatter error panics, as `std::format!` does, rather than
+/// publishing partial text.
 pub(crate) fn budgeted_format(arguments: fmt::Arguments<'_>) -> String {
-    struct Counter(usize);
-    impl fmt::Write for Counter {
+    let budget = active();
+    match format_within(budget.as_deref(), arguments) {
+        Ok(output) => output,
+        Err(FormatFailure::Refused) => String::new(),
+        Err(FormatFailure::Formatter) => match budget {
+            Some(budget) => {
+                budget.overflowed.set(true);
+                String::new()
+            }
+            None => panic!("a formatting trait implementation returned an error"),
+        },
+    }
+}
+
+/// Why single-pass formatting produced no artifact.
+#[derive(Debug, PartialEq, Eq)]
+enum FormatFailure {
+    /// The budget refused an append. `reserve` has already recorded whether
+    /// that refusal was an overflow or a reserved-floor boundary.
+    Refused,
+    /// A formatter returned `fmt::Error` on its own.
+    Formatter,
+}
+
+fn format_within(
+    budget: Option<&Budget>,
+    arguments: fmt::Arguments<'_>,
+) -> Result<String, FormatFailure> {
+    struct ReservingWriter<'a> {
+        budget: Option<&'a Budget>,
+        output: String,
+        refused: bool,
+    }
+    impl fmt::Write for ReservingWriter<'_> {
         fn write_str(&mut self, value: &str) -> fmt::Result {
-            self.0 = self.0.saturating_add(value.len());
+            if self.refused || !reserve(self.budget, value.len()) {
+                self.refused = true;
+                return Err(fmt::Error);
+            }
+            self.output.push_str(value);
             Ok(())
         }
     }
-    let mut counter = Counter(0);
-    let _ = counter.write_fmt(arguments);
-    let budget = active();
-    if !reserve(budget.as_deref(), counter.0) {
-        return String::new();
+    let mut writer = ReservingWriter {
+        budget,
+        output: String::new(),
+        refused: false,
+    };
+    match writer.write_fmt(arguments) {
+        Ok(()) if !writer.refused => Ok(writer.output),
+        _ if writer.refused => Err(FormatFailure::Refused),
+        _ => Err(FormatFailure::Formatter),
     }
-    let mut output = String::with_capacity(counter.0);
-    let _ = output.write_fmt(arguments);
-    output
 }
 
 pub(crate) fn budgeted_join(values: impl IntoIterator<Item = String>, separator: &str) -> String {
@@ -322,6 +372,52 @@ mod tests {
         clear_active_floor, reserve_active, reserve_active_preserving, set_active_floor,
         with_limit, with_limit_usage, BudgetedJoin as _, CappedString, CappedVec,
     };
+
+    /// Emits `first` on its first invocation and `later` on every other one,
+    /// counting invocations.
+    struct Changing {
+        calls: std::cell::Cell<usize>,
+        first: &'static str,
+        later: &'static str,
+    }
+
+    impl Changing {
+        fn new(first: &'static str, later: &'static str) -> Self {
+            Self {
+                calls: std::cell::Cell::new(0),
+                first,
+                later,
+            }
+        }
+    }
+
+    impl std::fmt::Display for Changing {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            let invocation = self.calls.get();
+            self.calls.set(invocation + 1);
+            f.write_str(if invocation == 0 {
+                self.first
+            } else {
+                self.later
+            })
+        }
+    }
+
+    /// Hides a literal from `format_args!`, which would otherwise inline it
+    /// into the template and merge adjacent pieces into one append.
+    fn piece(value: &str) -> &str {
+        std::hint::black_box(value)
+    }
+
+    /// Writes a prefix and then fails, as a broken formatter may.
+    struct PartialThenError(&'static str);
+
+    impl std::fmt::Display for PartialThenError {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            f.write_str(self.0)?;
+            Err(std::fmt::Error)
+        }
+    }
 
     #[test]
     fn exact_limit_succeeds_and_over_limit_fails_closed() {
@@ -755,5 +851,141 @@ mod tests {
         let (joined, overflowed) = with_limit(3, || ["a", "b"].budgeted_join("--"));
         assert_eq!(joined, "");
         assert!(overflowed);
+    }
+
+    #[test]
+    fn a_stateful_formatter_runs_once_and_cannot_return_uncharged_bytes() {
+        let value = Changing::new("x", "0123456789");
+        let (text, overflowed, used) =
+            with_limit_usage(1, || budgeted_format(format_args!("{value}")));
+        assert_eq!(text, "x");
+        assert!(!overflowed);
+        assert_eq!(used, 1);
+        assert_eq!(value.calls.get(), 1);
+
+        // Ten bytes on the first and only invocation are refused under the
+        // same one-byte limit.
+        let value = Changing::new("0123456789", "x");
+        let (text, overflowed, used) =
+            with_limit_usage(1, || budgeted_format(format_args!("{value}")));
+        assert_eq!(text, "");
+        assert!(overflowed);
+        assert_eq!(used, 0);
+        assert_eq!(value.calls.get(), 1);
+    }
+
+    #[test]
+    fn formatting_at_the_cap_succeeds_and_one_byte_over_fails_closed() {
+        let (text, overflowed, used) = with_limit_usage(3, || {
+            budgeted_format(format_args!("{}{}", piece("ab"), piece("c")))
+        });
+        assert_eq!(text, "abc");
+        assert!(!overflowed);
+        assert_eq!(used, 3);
+
+        // Cap plus one: the first append fits and stays charged, the second
+        // is refused, formatting stops and no partial text is returned.
+        let later = Changing::new("never", "never");
+        let (text, overflowed, used) = with_limit_usage(2, || {
+            budgeted_format(format_args!("{}{}{}", piece("ab"), piece("c"), later))
+        });
+        assert_eq!(text, "");
+        assert!(overflowed);
+        assert_eq!(used, 2);
+        assert_eq!(
+            later.calls.get(),
+            0,
+            "a refused append must stop formatting"
+        );
+    }
+
+    #[test]
+    fn empty_formatting_spends_nothing_even_under_a_zero_budget() {
+        let (text, overflowed, used) = with_limit_usage(0, || budgeted_format(format_args!("")));
+        assert_eq!(text, "");
+        assert!(!overflowed);
+        assert_eq!(used, 0);
+
+        let (text, overflowed, used) = with_limit_usage(0, || {
+            budgeted_format(format_args!("{}{}", piece(""), piece("")))
+        });
+        assert_eq!(text, "");
+        assert!(!overflowed);
+        assert_eq!(used, 0);
+    }
+
+    #[test]
+    fn multibyte_formatting_charges_bytes_and_never_splits_a_code_point() {
+        let (text, overflowed, used) =
+            with_limit_usage(5, || budgeted_format(format_args!("{}{}", 'é', '€')));
+        assert_eq!(text, "é€");
+        assert!(!overflowed);
+        assert_eq!(used, 5);
+
+        // `é` (two bytes) fits a four-byte budget, `€` (three bytes) does not
+        // fit the two that remain: it is refused whole and nothing returned.
+        let (text, overflowed, used) =
+            with_limit_usage(4, || budgeted_format(format_args!("{}{}", 'é', '€')));
+        assert_eq!(text, "");
+        assert!(overflowed);
+        assert_eq!(used, 2);
+    }
+
+    #[test]
+    fn a_formatter_error_after_a_partial_write_is_never_a_success() {
+        let (text, overflowed, used) = with_limit_usage(10, || {
+            budgeted_format(format_args!("{}{}", piece("<"), PartialThenError("ab")))
+        });
+        assert_eq!(text, "");
+        assert!(overflowed, "a formatter error must fail the budget closed");
+        assert_eq!(used, 3, "bytes already appended stay charged");
+
+        // Outside any budget there is no flag to fail closed, so the error
+        // panics as `std::format!` does instead of returning partial text.
+        let result = catch_unwind(|| budgeted_format(format_args!("{}", PartialThenError("ab"))));
+        assert!(result.is_err());
+        assert_eq!(active_remaining(), None);
+    }
+
+    #[test]
+    fn nested_formatting_failures_stay_in_the_child_and_debit_the_parent() {
+        let ((text, child_overflowed, child_used), parent_overflowed, parent_used) =
+            with_limit_usage(10, || {
+                with_limit_usage(3, || {
+                    budgeted_format(format_args!("{}{}", piece("ab"), piece("cd")))
+                })
+            });
+        assert_eq!(text, "");
+        assert!(child_overflowed);
+        assert_eq!(child_used, 2);
+        assert!(!parent_overflowed);
+        assert_eq!(parent_used, 2);
+
+        let ((text, child_overflowed), parent_overflowed, parent_used) =
+            with_limit_usage(10, || {
+                with_limit(10, || {
+                    budgeted_format(format_args!("{}", PartialThenError("a")))
+                })
+            });
+        assert_eq!(text, "");
+        assert!(child_overflowed);
+        assert!(!parent_overflowed);
+        assert_eq!(parent_used, 1);
+    }
+
+    #[test]
+    fn formatting_into_a_reserved_floor_is_a_lane_refusal_not_an_overflow() {
+        let (_, overflowed, used) = with_limit_usage(10, || {
+            assert!(set_active_floor(6));
+            // `abc` fits above the six-byte trailer lane; `de` would eat into
+            // it. The append is refused without an overflow, the charged
+            // prefix is kept, and the lane itself is untouched.
+            let text = budgeted_format(format_args!("{}{}", piece("abc"), piece("de")));
+            assert_eq!(text, "");
+            assert_eq!(active_remaining(), Some(7));
+            clear_active_floor();
+        });
+        assert!(!overflowed);
+        assert_eq!(used, 3);
     }
 }

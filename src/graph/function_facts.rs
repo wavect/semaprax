@@ -9,26 +9,29 @@
 
 use super::*;
 
+/// One standalone legacy function fact. Queries render facts through
+/// `agent_function_json_for_schema` with their already selected schema and
+/// query-local call set instead.
+#[cfg(test)]
 pub(super) fn agent_function_json(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
     filters: &BTreeSet<AgentContextFilter>,
 ) -> Result<String, Diagnostic> {
-    agent_function_json_for_schema(
-        program,
-        function,
-        filters,
-        nested_owned::legacy_graph_schema(program)?,
-    )
+    let schema = nested_owned::legacy_graph_schema(program)?;
+    let calls = super::agent_query::AgentCallables::new(program).function_calls(function);
+    agent_function_json_for_schema(program, function, filters, schema, &calls)
 }
 
+/// Render one function fact for the schema and legacy `calls` set the
+/// caller already selected for this query (REF-09).
 pub(super) fn agent_function_json_for_schema(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
     filters: &BTreeSet<AgentContextFilter>,
     schema: &str,
+    calls: &BTreeSet<DeclarationId>,
 ) -> Result<String, Diagnostic> {
-    let calls = agent_function_calls(program, function);
     let mut propagations = Vec::new();
     collect_result_propagations(&function.body, &mut propagations);
     let mut output = format!(

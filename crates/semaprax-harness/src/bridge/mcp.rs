@@ -4,6 +4,7 @@
 //! (<https://code.claude.com/docs/en/mcp>). Separate from the authority-free
 //! compiler MCP facade, which is untouched.
 
+use super::frame::{read_frame, FrameError};
 use super::hostskills::{self, check_host_support};
 use super::negotiate::DEPTH_VAR;
 use super::skills_bridge::SkillsBridge;
@@ -14,6 +15,7 @@ use serde_json::{json, Value};
 use std::io::{BufRead, Write};
 use std::path::{Path, PathBuf};
 
+const FRAME_LIMIT: usize = 1 << 20;
 pub const SERVER_NAME: &str = "semaprax-skills";
 /// MCP protocol revisions this server answers, newest first.
 pub const PROTOCOLS: [&str; 3] = ["2025-06-18", "2025-03-26", "2024-11-05"];
@@ -99,14 +101,29 @@ pub fn serve<R: BufRead, W: Write>(
     project: &Path,
     opts: McpOptions,
 ) -> std::io::Result<()> {
-    let limits = JsonLimits::frame(1 << 20);
+    let limits = JsonLimits::frame(FRAME_LIMIT);
     let mut sb: Option<SkillsBridge> = None;
     let nested = env.vars.get(DEPTH_VAR).is_some_and(|d| d != "0")
         || env
             .vars
             .contains_key(crate::command_view::lineage::LINEAGE_VAR);
-    for line in reader.lines() {
-        let line = line?;
+    let mut reader = reader;
+    loop {
+        let line = match read_frame(&mut reader, FRAME_LIMIT) {
+            Ok(Some(l)) => l,
+            Ok(None) => break,
+            Err(e) => {
+                if let FrameError::TooLarge { .. } = e {
+                    let d = HarnessDiagnostic::new(
+                        "SPX-HPA002",
+                        format!("frame exceeds the {FRAME_LIMIT}-byte limit; session closed"),
+                    );
+                    let _ = writeln!(out, "{}", canonical(&err(&Value::Null, -32700, &d)));
+                    let _ = out.flush();
+                }
+                return Err(e.into_io());
+            }
+        };
         if line.trim().is_empty() {
             continue;
         }

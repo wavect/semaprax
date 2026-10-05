@@ -20,6 +20,9 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Align Windows standalone-lockfile dependency prefetch with the same harness
+  exclusion used by its test shard, so the offline lockfile gate sees every
+  required package.
 - Keep CI workflow contract checks aligned with the Windows harness exclusion,
   and give the local TLS provider enough time to accept and handshake on busy
   runners while retaining its bounded shutdown and duplicate-delivery checks.

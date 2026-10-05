@@ -1929,7 +1929,7 @@ jobs:
           set -euo pipefail
           plan_args=(--plan-only)
           if [[ "$RUNNER_OS" == Windows ]]; then
-            plan_args+=(--exclude-package semaprax-native-rust-interop)
+            plan_args+=(--exclude-package semaprax-native-rust-interop --exclude-package semaprax-harness)
           fi
           plan_json="$(python3 scripts/ci-msrv.py "${plan_args[@]}")"
           if python3 -c 'import json,sys; p=json.load(sys.stdin); s=next((x for x in p["shards"] if x["name"]==sys.argv[1]), {"targets":[]}); sys.exit(0 if any(t["name"]=="standalone_lockfiles" for t in s["targets"]) else 1)' '${{ matrix.shard }}' <<<"$plan_json"; then

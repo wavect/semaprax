@@ -1,0 +1,69 @@
+{
+  "adapter": {
+    "entry": [
+      "adapter.py"
+    ],
+    "runtime": "python",
+    "version": "0.1.0"
+  },
+  "cancellation": "cooperative",
+  "capabilities": [
+    {
+      "kind": "decision.evaluate",
+      "operations": [
+        "evaluate"
+      ],
+      "required": true,
+      "version": 2
+    }
+  ],
+  "config": {
+    "fields": {}
+  },
+  "extensions": [],
+  "permissions": {
+    "network": [
+      "loopback:user-selected-worker"
+    ],
+    "process": [],
+    "read": [],
+    "secrets": [],
+    "write": []
+  },
+  "platforms": [
+    "macos-aarch64",
+    "linux-x86_64",
+    "linux-aarch64"
+  ],
+  "protocol": {
+    "max": 1,
+    "min": 1,
+    "name": "semaprax.harness-rpc.v1"
+  },
+  "provider": {
+    "id": "org.r-ms/minijev-local",
+    "version": "0.1.0"
+  },
+  "resources": {
+    "handshake_timeout_ms": 5000,
+    "idle_shutdown_ms": 60000,
+    "invoke_timeout_ms": 30000,
+    "max_concurrency": 1,
+    "max_frame_bytes": 1048576
+  },
+  "schema": "semaprax.harness-provider.v1",
+  "support": {
+    "isolation": "subprocess",
+    "license": "MIT",
+    "tested": []
+  },
+  "upstream": {
+    "identity_probe": [],
+    "name": "mini-jev",
+    "package": "git+https://github.com/r-ms/mini-jev@ca612198bfb69f538f029a4615f6d0a18b4f814c",
+    "repository": "https://github.com/r-ms/mini-jev",
+    "versions": [
+      "ca612198bfb69f538f029a4615f6d0a18b4f814c"
+    ]
+  }
+}

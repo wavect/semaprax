@@ -1,7 +1,7 @@
 //! MCP stdio server (`bridge <project> --mcp`) exposing the default skills as
 //! MCP tools and prompts. It is a thin transport over `SkillsBridge`; it carries
 //! no skill text of its own. Claude Code connects to it from a project `.mcp.json`
-//! (https://code.claude.com/docs/en/mcp). Separate from the authority-free
+//! (<https://code.claude.com/docs/en/mcp>). Separate from the authority-free
 //! compiler MCP facade, which is untouched.
 
 use super::hostskills::{self, check_host_support};

@@ -1,6 +1,6 @@
 //! Claude Code adapter over its documented PreToolUse hook API.
 //!
-//! Pinned: Claude Code 2.1.289. Source: https://code.claude.com/docs/en/hooks
+//! Pinned: Claude Code 2.1.289. Source: <https://code.claude.com/docs/en/hooks>
 //! (PreToolUse stdin carries `hook_event_name`, `tool_name`, `tool_input`,
 //! `cwd`; stdout `hookSpecificOutput.updatedInput` replaces the tool input) and
 //! `claude --help` (`--settings`, `--setting-sources`, `--allowedTools`).

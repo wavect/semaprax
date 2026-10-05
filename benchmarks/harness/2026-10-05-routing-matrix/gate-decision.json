@@ -50,7 +50,7 @@
       "key_digest": null,
       "metrics": null,
       "reasons": [
-        "arm unavailable: missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER"
+        "arm unavailable: missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV"
       ],
       "record_digest": null,
       "spec_digest": "sha256:7a730ccded3389789dd013a633f30f756cbc1af0cba467d6941a45302706157c",
@@ -128,7 +128,7 @@
       "key_digest": null,
       "metrics": null,
       "reasons": [
-        "arm unavailable: missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER"
+        "arm unavailable: missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV"
       ],
       "record_digest": null,
       "spec_digest": "sha256:e675f4e86b39be3dd3b68142e7904ec9fabb146e4b3c90a732b6c9b6c3295576",
@@ -507,7 +507,7 @@
             "unavailable": 9
           }
         },
-        "reason": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+        "reason": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
         "status": "unavailable"
       },
       "rules": {
@@ -950,7 +950,7 @@
             "unavailable": 7
           }
         },
-        "reason": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+        "reason": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
         "status": "unavailable"
       },
       "rules": {

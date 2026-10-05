@@ -10,7 +10,8 @@ starts, installs, downloads or restarts anything: a missing worker is
 `unavailable`. See docs/HARNESS-MINIJEV-V1.md.
 
 Environment (host-provided only):
-  SEMAPRAX_HARNESS_MINIJEV_ADDR            127.0.0.1:<port>   (loopback only)
+  SEMAPRAX_HARNESS_CFG_ADDR                127.0.0.1:<port>   (loopback only; descriptor config `addr`,
+                                           legacy SEMAPRAX_HARNESS_MINIJEV_ADDR also read)
   SEMAPRAX_HARNESS_SECRET_MINIJEV          worker token
   SEMAPRAX_HARNESS_MODEL_PROFILE           optional profile; its checkpoint pins the full identity
   SEMAPRAX_HARNESS_NATIVE_MIN_CONFIDENCE   optional [0,1] abstention threshold on choice_confidence
@@ -200,7 +201,7 @@ def handle(req, cancelled, env=None):
     token = env.get(SECRET_ENV, "")
     if len(token) < 16:
         raise _err("refused", "SPX-HPK003", SECRET_ENV + " is not provided by the host")
-    link = Link(env.get("SEMAPRAX_HARNESS_MINIJEV_ADDR"), token, cancelled, deadline)
+    link = Link((env.get("SEMAPRAX_HARNESS_CFG_ADDR") or env.get("SEMAPRAX_HARNESS_MINIJEV_ADDR")), token, cancelled, deadline)
     try:
         link.send_line(w.dumps({"v": w.WIRE_VERSION, "op": "ping"}))
         ident = link.recv_line().get("identity")

@@ -116,12 +116,11 @@ routing quality.
 
 ### Known gaps (2026-10-05)
 
-- `harness run` does not forward a provider's declared
-  `SEMAPRAX_HARNESS_SECRET_*` variables to the adapter process (the bench and
-  the endpoint catalog do), so hosted Jev and Clef can show a secret as set in
-  `status --routing` and still not receive it during a run.
-- The `minijev-local` descriptor declares no secret although its adapter
-  reads `SEMAPRAX_HARNESS_SECRET_MINIJEV`.
+- Resolved 2026-10-05: `harness run` forwards host values for exactly the
+  `SEMAPRAX_HARNESS_SECRET_*` names in the provider's trust grant (any other
+  `SEMAPRAX_HARNESS_*` key stays reserved, SPX-HPC001); `minijev-local`
+  declares its worker-token secret and takes its worker address from the
+  descriptor config field `addr`.
 - MR-11 runtime choice has no live decision adapter evidence; its examples run
   on the deterministic fixture only.
 

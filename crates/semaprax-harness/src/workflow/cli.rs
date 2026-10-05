@@ -850,10 +850,17 @@ pub(super) fn start(
             cache_dir: cache_dir.canonicalize().unwrap_or(cache_dir),
             retention_dir: retention.canonicalize().unwrap_or(retention),
             isolation,
-            forward_env: super::adapter_config::config_env(
-                &l.descriptor,
-                &config.capability(l.kind),
-            )?,
+            forward_env: {
+                let mut fwd =
+                    super::adapter_config::config_env(&l.descriptor, &config.capability(l.kind))?;
+                // Host-provided values for exactly the secrets the trust grant names.
+                for name in &l.grant.permissions().secrets {
+                    if let Some(v) = env.vars.get(name) {
+                        fwd.insert(name.clone(), v.clone());
+                    }
+                }
+                fwd
+            },
         },
     )
 }

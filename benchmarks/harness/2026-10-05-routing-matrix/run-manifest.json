@@ -113,7 +113,7 @@
       ],
       "id": "learned:org.r-ms/minijev-local/minijev-local",
       "kind": "learned",
-      "reason": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "reason": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "status": "unavailable"
     },
     {
@@ -3439,7 +3439,7 @@
       "source": "",
       "split": "calibration",
       "stratum": "mechanical",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -3471,7 +3471,7 @@
       "source": "",
       "split": "calibration",
       "stratum": "tests",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -3503,7 +3503,7 @@
       "source": "",
       "split": "calibration",
       "stratum": "localized_debug",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -3535,7 +3535,7 @@
       "source": "",
       "split": "calibration",
       "stratum": "localized_debug",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -3567,7 +3567,7 @@
       "source": "",
       "split": "calibration",
       "stratum": "hard_semantic",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -3599,7 +3599,7 @@
       "source": "",
       "split": "calibration",
       "stratum": "localized_debug",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -3631,7 +3631,7 @@
       "source": "",
       "split": "calibration",
       "stratum": "localized_debug",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -3663,7 +3663,7 @@
       "source": "",
       "split": "calibration",
       "stratum": "multi_turn_recovery",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -3695,7 +3695,7 @@
       "source": "",
       "split": "calibration",
       "stratum": "tests",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -3727,7 +3727,7 @@
       "source": "",
       "split": "calibration",
       "stratum": "runtime_classification",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -3759,7 +3759,7 @@
       "source": "",
       "split": "calibration",
       "stratum": "runtime_classification",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -3791,7 +3791,7 @@
       "source": "",
       "split": "calibration",
       "stratum": "agent_tool_selection",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -3823,7 +3823,7 @@
       "source": "",
       "split": "calibration",
       "stratum": "agent_tool_selection",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -3855,7 +3855,7 @@
       "source": "",
       "split": "calibration",
       "stratum": "agent_tool_selection",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -3887,7 +3887,7 @@
       "source": "",
       "split": "calibration",
       "stratum": "multi_turn_recovery",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -3919,7 +3919,7 @@
       "source": "",
       "split": "calibration",
       "stratum": "runtime_classification",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -18503,7 +18503,7 @@
       "source": "",
       "split": "eval",
       "stratum": "mechanical",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -18535,7 +18535,7 @@
       "source": "",
       "split": "eval",
       "stratum": "mechanical",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -18567,7 +18567,7 @@
       "source": "",
       "split": "eval",
       "stratum": "mechanical",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -18599,7 +18599,7 @@
       "source": "",
       "split": "eval",
       "stratum": "mechanical",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -18631,7 +18631,7 @@
       "source": "",
       "split": "eval",
       "stratum": "tests",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -18663,7 +18663,7 @@
       "source": "",
       "split": "eval",
       "stratum": "tests",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -18695,7 +18695,7 @@
       "source": "",
       "split": "eval",
       "stratum": "tests",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -18727,7 +18727,7 @@
       "source": "",
       "split": "eval",
       "stratum": "tests",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -18759,7 +18759,7 @@
       "source": "",
       "split": "eval",
       "stratum": "localized_debug",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -18791,7 +18791,7 @@
       "source": "",
       "split": "eval",
       "stratum": "localized_debug",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -18823,7 +18823,7 @@
       "source": "",
       "split": "eval",
       "stratum": "localized_debug",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -18855,7 +18855,7 @@
       "source": "",
       "split": "eval",
       "stratum": "localized_debug",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -18887,7 +18887,7 @@
       "source": "",
       "split": "eval",
       "stratum": "localized_debug",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -18919,7 +18919,7 @@
       "source": "",
       "split": "eval",
       "stratum": "localized_debug",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -18951,7 +18951,7 @@
       "source": "",
       "split": "eval",
       "stratum": "hard_semantic",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -18983,7 +18983,7 @@
       "source": "",
       "split": "eval",
       "stratum": "hard_semantic",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -19015,7 +19015,7 @@
       "source": "",
       "split": "eval",
       "stratum": "hard_semantic",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -19047,7 +19047,7 @@
       "source": "",
       "split": "eval",
       "stratum": "hard_semantic",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -19079,7 +19079,7 @@
       "source": "",
       "split": "eval",
       "stratum": "localized_debug",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -19111,7 +19111,7 @@
       "source": "",
       "split": "eval",
       "stratum": "localized_debug",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -19143,7 +19143,7 @@
       "source": "",
       "split": "eval",
       "stratum": "localized_debug",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -19175,7 +19175,7 @@
       "source": "",
       "split": "eval",
       "stratum": "localized_debug",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -19207,7 +19207,7 @@
       "source": "",
       "split": "eval",
       "stratum": "localized_debug",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -19239,7 +19239,7 @@
       "source": "",
       "split": "eval",
       "stratum": "localized_debug",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -19271,7 +19271,7 @@
       "source": "",
       "split": "eval",
       "stratum": "multi_turn_recovery",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -19303,7 +19303,7 @@
       "source": "",
       "split": "eval",
       "stratum": "multi_turn_recovery",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -19335,7 +19335,7 @@
       "source": "",
       "split": "eval",
       "stratum": "multi_turn_recovery",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -19367,7 +19367,7 @@
       "source": "",
       "split": "eval",
       "stratum": "multi_turn_recovery",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -19399,7 +19399,7 @@
       "source": "",
       "split": "eval",
       "stratum": "tests",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -19431,7 +19431,7 @@
       "source": "",
       "split": "eval",
       "stratum": "tests",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -19463,7 +19463,7 @@
       "source": "",
       "split": "eval",
       "stratum": "tests",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -19495,7 +19495,7 @@
       "source": "",
       "split": "eval",
       "stratum": "runtime_classification",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -19527,7 +19527,7 @@
       "source": "",
       "split": "eval",
       "stratum": "runtime_classification",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -19559,7 +19559,7 @@
       "source": "",
       "split": "eval",
       "stratum": "runtime_classification",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -19591,7 +19591,7 @@
       "source": "",
       "split": "eval",
       "stratum": "runtime_classification",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -19623,7 +19623,7 @@
       "source": "",
       "split": "eval",
       "stratum": "runtime_classification",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -19655,7 +19655,7 @@
       "source": "",
       "split": "eval",
       "stratum": "runtime_classification",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -19687,7 +19687,7 @@
       "source": "",
       "split": "eval",
       "stratum": "agent_tool_selection",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -19719,7 +19719,7 @@
       "source": "",
       "split": "eval",
       "stratum": "agent_tool_selection",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -19751,7 +19751,7 @@
       "source": "",
       "split": "eval",
       "stratum": "agent_tool_selection",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -19783,7 +19783,7 @@
       "source": "",
       "split": "eval",
       "stratum": "agent_tool_selection",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -19815,7 +19815,7 @@
       "source": "",
       "split": "eval",
       "stratum": "agent_tool_selection",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -19847,7 +19847,7 @@
       "source": "",
       "split": "eval",
       "stratum": "agent_tool_selection",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -19879,7 +19879,7 @@
       "source": "",
       "split": "eval",
       "stratum": "agent_tool_selection",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -19911,7 +19911,7 @@
       "source": "",
       "split": "eval",
       "stratum": "agent_tool_selection",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -19943,7 +19943,7 @@
       "source": "",
       "split": "eval",
       "stratum": "agent_tool_selection",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -19975,7 +19975,7 @@
       "source": "",
       "split": "eval",
       "stratum": "agent_tool_selection",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -20007,7 +20007,7 @@
       "source": "",
       "split": "eval",
       "stratum": "multi_turn_recovery",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -20039,7 +20039,7 @@
       "source": "",
       "split": "eval",
       "stratum": "multi_turn_recovery",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -20071,7 +20071,7 @@
       "source": "",
       "split": "eval",
       "stratum": "multi_turn_recovery",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -20103,7 +20103,7 @@
       "source": "",
       "split": "eval",
       "stratum": "multi_turn_recovery",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -20135,7 +20135,7 @@
       "source": "",
       "split": "eval",
       "stratum": "multi_turn_recovery",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -20167,7 +20167,7 @@
       "source": "",
       "split": "eval",
       "stratum": "runtime_classification",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -20199,7 +20199,7 @@
       "source": "",
       "split": "eval",
       "stratum": "runtime_classification",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -20231,7 +20231,7 @@
       "source": "",
       "split": "eval",
       "stratum": "runtime_classification",
-      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+      "unavailable": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
       "verified_by": ""
     },
     {
@@ -25557,7 +25557,7 @@
       "key_digest": null,
       "metrics": null,
       "reasons": [
-        "arm unavailable: missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER"
+        "arm unavailable: missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV"
       ],
       "record_digest": null,
       "spec_digest": "sha256:7a730ccded3389789dd013a633f30f756cbc1af0cba467d6941a45302706157c",
@@ -25635,7 +25635,7 @@
       "key_digest": null,
       "metrics": null,
       "reasons": [
-        "arm unavailable: missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER"
+        "arm unavailable: missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV"
       ],
       "record_digest": null,
       "spec_digest": "sha256:e675f4e86b39be3dd3b68142e7904ec9fabb146e4b3c90a732b6c9b6c3295576",
@@ -25991,7 +25991,7 @@
             "unavailable": 9
           }
         },
-        "reason": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+        "reason": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
         "status": "unavailable"
       },
       "rules": {
@@ -26434,7 +26434,7 @@
             "unavailable": 7
           }
         },
-        "reason": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER",
+        "reason": "missing credential/endpoint variable(s): SEMAPRAX_MATRIX_MINIJEV_WORKER, SEMAPRAX_HARNESS_SECRET_MINIJEV",
         "status": "unavailable"
       },
       "rules": {
@@ -28177,7 +28177,7 @@
           2,
           3
         ],
-        "descriptor_digest": "sha256:212e059fb479d9ee2353612abe1e0769aabf557af0eeea1a89d8e368b84ce658",
+        "descriptor_digest": "sha256:09e4301ef464b603160396193dc7e0d74a9140aa904f8f58b79f1c6799895964",
         "instance": "minijev-worker",
         "model_profile_digest": "sha256:df94200e27ea3a6af22b3fa535ed6351145fe2db7c9b4b37b311a66de2f12121"
       },

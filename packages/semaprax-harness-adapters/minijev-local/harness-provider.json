@@ -27,6 +27,7 @@
   ],
   "config": {
     "fields": {
+      "addr": {"default": "", "type": "string"},
       "instance_id": {"default": "", "type": "string"},
       "model_profile": {"default": "", "type": "string"}
     }
@@ -38,7 +39,9 @@
     ],
     "process": [],
     "read": [],
-    "secrets": [],
+    "secrets": [
+      "SEMAPRAX_HARNESS_SECRET_MINIJEV"
+    ],
     "write": []
   },
   "platforms": [

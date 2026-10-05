@@ -307,8 +307,14 @@ impl LaunchSpec {
         }
         for (k, v) in &self.forward_env {
             // `SEMAPRAX_HARNESS_CFG_*` is the host's own channel for validated adapter config.
+            // A `SEMAPRAX_HARNESS_SECRET_*` value is forwarded only when that exact
+            // name is in the trust grant; every other harness key stays reserved.
+            let granted_secret = k.starts_with("SEMAPRAX_HARNESS_SECRET_")
+                && self.grant.permissions().secrets.iter().any(|g| g == k);
             let reserved = env.contains_key(k)
-                || (k.starts_with("SEMAPRAX_HARNESS_") && !k.starts_with("SEMAPRAX_HARNESS_CFG_"));
+                || (k.starts_with("SEMAPRAX_HARNESS_")
+                    && !k.starts_with("SEMAPRAX_HARNESS_CFG_")
+                    && !granted_secret);
             if reserved || k.is_empty() || k.contains(['=', '\0']) || v.contains('\0') {
                 return Err(refuse(
                     "SPX-HPC001",
@@ -403,5 +409,38 @@ mod tests {
         std::fs::write(dir.join("extra.js"), "x\n").unwrap();
         assert!(spec(&root, Some(v2)).prepare(&backend).is_err());
         let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn only_granted_secret_names_are_forwarded_to_the_adapter() {
+        let root = std::env::temp_dir().join(format!("hp-mr14-secret-{}", std::process::id()));
+        let mut s = spec(&root, None);
+        let d = s.descriptor.clone();
+        s.grant = Grant::issue(
+            d.provider_id.clone(),
+            d.digest().to_string(),
+            None,
+            None,
+            GrantedPermissions {
+                secrets: vec!["SEMAPRAX_HARNESS_SECRET_JEV".into()],
+                ..GrantedPermissions::default()
+            },
+        );
+        s.forward_env
+            .insert("SEMAPRAX_HARNESS_SECRET_JEV".into(), "tok-1".into());
+        let env = s
+            .environment(&None, Runtime::Native)
+            .expect("granted secret");
+        assert_eq!(env["SEMAPRAX_HARNESS_SECRET_JEV"], "tok-1");
+        for key in [
+            "SEMAPRAX_HARNESS_SECRET_LAYA",
+            "SEMAPRAX_HARNESS_PROJECT_ROOT",
+            "SEMAPRAX_HARNESS_ENDPOINT",
+        ] {
+            let mut t = s.clone();
+            t.forward_env.insert(key.into(), "x".into());
+            let e = t.environment(&None, Runtime::Native).err().expect(key);
+            assert_eq!(e.code, "SPX-HPC001", "{key}");
+        }
     }
 }

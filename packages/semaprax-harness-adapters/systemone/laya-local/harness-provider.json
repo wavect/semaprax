@@ -4,7 +4,7 @@
       "adapter.py"
     ],
     "runtime": "python",
-    "version": "0.1.0"
+    "version": "0.2.0"
   },
   "cancellation": "cooperative",
   "capabilities": [
@@ -15,6 +15,14 @@
       ],
       "required": true,
       "version": 1
+    },
+    {
+      "kind": "decision.evaluate",
+      "operations": [
+        "evaluate"
+      ],
+      "required": false,
+      "version": 2
     }
   ],
   "config": {
@@ -30,7 +38,11 @@
     "secrets": [],
     "write": []
   },
-  "platforms": ["macos-aarch64", "linux-x86_64", "linux-aarch64"],
+  "platforms": [
+    "macos-aarch64",
+    "linux-x86_64",
+    "linux-aarch64"
+  ],
   "protocol": {
     "max": 1,
     "min": 1,
@@ -38,7 +50,7 @@
   },
   "provider": {
     "id": "ai.convai/laya-decision",
-    "version": "0.1.0"
+    "version": "0.2.0"
   },
   "resources": {
     "handshake_timeout_ms": 5000,

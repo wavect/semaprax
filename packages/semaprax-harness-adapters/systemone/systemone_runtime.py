@@ -13,40 +13,53 @@ import ssl
 import sys
 import threading
 import time
-import urllib.parse
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "sdk", "python"))
 from semaprax_harness_adapter import PROTOCOL, result  # noqa: E402
 
+import model_profile  # noqa: E402
 import systemone_codec as codec  # noqa: E402
 
-ADAPTER_VERSION = "0.1.0"
-LOOPBACK = ("127.0.0.1", "localhost", "::1")
+ADAPTER_VERSION = "0.2.0"
 DEFAULT_MAX_RESPONSE = 65536
 MODELS_MAX = 65536
+WARN_BOTH_THRESHOLDS = "SPX-HPK101"
 
 
-def is_loopback(host):
-    return host in LOOPBACK
+def _float_env(env, name):
+    raw = env.get(name)
+    if not raw:
+        return None
+    try:
+        return float(raw)
+    except ValueError:
+        return float("nan")
 
 
 class Config:
-    """Adapter configuration resolved from an environment mapping."""
+    """Adapter configuration: environment + one backend + the model profile (data).
 
-    def __init__(self, env, kind):
-        self.kind = kind
+    Credentials and endpoints come from the environment only; the profile
+    carries model facts only. `SEMAPRAX_HARNESS_MIN_SCORE` is a deprecated alias
+    for the host-side minimum chosen-option mass and is never forwarded
+    upstream; `SEMAPRAX_HARNESS_NATIVE_MIN_CONFIDENCE` is the backend-native
+    abstention threshold (MR-02).
+    """
+
+    def __init__(self, env, backend):
         self.env = env
-        self.secret = env.get("SEMAPRAX_HARNESS_SECRET_JEV" if kind == "jev" else "SEMAPRAX_HARNESS_SECRET_LAYA") or None
-        self.model = env.get("SEMAPRAX_HARNESS_MODEL") or ("multilingual" if kind == "laya" else None)
-        self.endpoint = env.get("SEMAPRAX_HARNESS_ENDPOINT") or ("https://api.typesafe.ai" if kind == "jev" else None)
+        self.backend = backend
+        self.secret = backend.secret
+        self.endpoint = env.get("SEMAPRAX_HARNESS_ENDPOINT") or backend.default_endpoint
         self.approved = env.get("SEMAPRAX_HARNESS_REMOTE_APPROVED") == "1"
-        raw = env.get("SEMAPRAX_HARNESS_MIN_SCORE")
-        self.min_score = None
-        if raw:
-            try:
-                self.min_score = float(raw)
-            except ValueError:
-                self.min_score = float("nan")
+        self.min_score = _float_env(env, "SEMAPRAX_HARNESS_MIN_SCORE")
+        self.native_min = _float_env(env, "SEMAPRAX_HARNESS_NATIVE_MIN_CONFIDENCE")
+        self.profile = None
+        self.profile_error = None
+        try:
+            self.profile = model_profile.load(env, lambda: backend.default_profile(env))
+        except codec.CodecError as err:
+            self.profile_error = err  # raised at invocation time, before any network use
 
     def scrub(self, text):
         text = str(text)
@@ -55,27 +68,28 @@ class Config:
         return text[:300]
 
     def target(self):
-        """(scheme, host, port, remote) after the endpoint policy; raises CodecError."""
-        if not self.endpoint:
-            raise codec.CodecError("refused", "SPX-HPK002", "SEMAPRAX_HARNESS_ENDPOINT is required (a user-selected existing server)")
-        try:
-            u = urllib.parse.urlsplit(self.endpoint)
-            port = u.port
-        except ValueError:
-            raise codec.CodecError("refused", "SPX-HPK002", "endpoint is not a valid URL")
-        if u.scheme not in ("http", "https") or not u.hostname or u.username or u.password or u.query or u.fragment or u.path not in ("", "/"):
-            raise codec.CodecError("refused", "SPX-HPK002", "endpoint must be scheme://host[:port] without credentials or path")
-        loop = is_loopback(u.hostname)
-        if self.kind == "laya":
-            if not loop or u.scheme != "http":
-                raise codec.CodecError("refused", "SPX-HPK002", "laya-local only talks to an http loopback server")
-            return "http", u.hostname, port or 80, False
-        if not loop:
-            if not self.approved:
-                raise codec.CodecError("refused", "SPX-HPK001", "remote use needs host approval (SEMAPRAX_HARNESS_REMOTE_APPROVED=1)")
-            if u.scheme != "https":
-                raise codec.CodecError("refused", "SPX-HPK002", "a remote endpoint must use https")
-        return u.scheme, u.hostname, port or (443 if u.scheme == "https" else 80), not loop
+        """(scheme, host, port, remote) after the backend's endpoint policy; raises CodecError."""
+        return self.backend.endpoint_policy(self)
+
+    def validate(self):
+        """Config rules shared by every backend, then the backend's own."""
+        self.target()
+        if self.profile_error:
+            raise self.profile_error
+        self.backend.validate_config(self)
+        for name, v in (("SEMAPRAX_HARNESS_MIN_SCORE", self.min_score), ("SEMAPRAX_HARNESS_NATIVE_MIN_CONFIDENCE", self.native_min)):
+            if v is not None and not 0.0 <= v <= 1.0:
+                raise codec.CodecError("refused", "SPX-HPK006", f"{name} must be in [0,1]")
+        if self.native_min is not None and self.backend.native_threshold_field is None:
+            raise codec.CodecError("refused", "SPX-HPK006", "this backend has no native confidence threshold")
+        if self.profile["scoreless"] and self.min_score is not None:
+            raise codec.CodecError("refused", "SPX-HPK006", "a scoreless profile cannot apply a minimum option mass")
+
+    def warnings(self):
+        if self.min_score is not None and self.native_min is not None:
+            return [{"code": WARN_BOTH_THRESHOLDS, "message": "warning: SEMAPRAX_HARNESS_MIN_SCORE (deprecated alias, host-side min option mass) "
+                     "and SEMAPRAX_HARNESS_NATIVE_MIN_CONFIDENCE (forwarded upstream) are both set; they are independent thresholds"}]
+        return []
 
 
 class Invocation:
@@ -103,8 +117,16 @@ class Invocation:
             conn.close()
 
 
-def http_call(cfg, inv, method, path, body=None, limit=None):
-    """One bounded HTTP exchange -> (status_code, bytes). Never follows redirects."""
+def encode_body(body):
+    """The one serialization of an upstream body; its length is the wire size."""
+    return json.dumps(body, separators=(",", ":"), sort_keys=True).encode()
+
+
+def http_call(cfg, inv, method, path, data=None, limit=None):
+    """One bounded HTTP exchange -> (status_code, bytes). Never follows redirects.
+
+    `data` is the already-serialized request body (bytes) or None.
+    """
     scheme, host, port, _ = cfg.target()
     limit = limit or inv.max_bytes
     if inv.cancelled.is_set():
@@ -118,9 +140,7 @@ def http_call(cfg, inv, method, path, body=None, limit=None):
     headers = {"Accept": "application/json", "User-Agent": "semaprax-harness-systemone/" + ADAPTER_VERSION}
     if cfg.secret:
         headers["Authorization"] = "Bearer " + cfg.secret
-    data = None
-    if body is not None:
-        data = json.dumps(body, separators=(",", ":"), sort_keys=True).encode()
+    if data is not None:
         headers["Content-Type"] = "application/json"
     with inv.lock:
         inv.conn = conn
@@ -169,55 +189,75 @@ def status_error(code):
     return codec.CodecError("failed", "SPX-HPK012", f"server error (HTTP {code})")
 
 
-def entitled(cfg, inv):
-    """Jev: confirm the configured model name is listed by GET /v1/models."""
-    code, raw = http_call(cfg, inv, "GET", "/v1/models", limit=MODELS_MAX)
-    if code != 200:
-        raise status_error(code)
-    doc = codec.parse_json(raw, MODELS_MAX)
-    names = [m.get("name") for m in (doc.get("models") if isinstance(doc, dict) else None) or [] if isinstance(m, dict)]
-    if cfg.model not in names:
-        raise codec.CodecError("refused", "SPX-HPK014", "configured model is not listed for this account")
+class Context:
+    """What a backend may use: bounded exchanges bound to one config + invocation."""
+
+    def __init__(self, cfg, inv):
+        self.cfg, self.inv = cfg, inv
+
+    def get(self, path, limit=None):
+        return http_call(self.cfg, self.inv, "GET", path, None, limit)
+
+    def post(self, path, data, limit=None):
+        return http_call(self.cfg, self.inv, "POST", path, data, limit)
+
+    @staticmethod
+    def status_error(code):
+        return status_error(code)
 
 
-def evaluate(cfg, req, inv):
-    """decision.evaluate/v1 -> (status, payload, diagnostics)."""
+def _adapter_ref(provenance):
+    return f"{provenance['provider_id']}@{provenance['adapter_version']}"
+
+
+def evaluate(cfg, req, inv, provenance=None):
+    """decision.evaluate v1/v2 -> (status, payload, diagnostics). Task selects the wire."""
     started = time.monotonic()
-    cfg.target()
-    if cfg.kind == "jev":
-        if not cfg.secret:
-            raise codec.CodecError("refused", "SPX-HPK003", "SEMAPRAX_HARNESS_SECRET_JEV is not provided by the host")
-        if not cfg.model:
-            raise codec.CodecError("refused", "SPX-HPK014", "SEMAPRAX_HARNESS_MODEL must name an entitled model")
-    if cfg.min_score is not None and not 0.0 <= cfg.min_score <= 1.0:
-        raise codec.CodecError("refused", "SPX-HPK006", "SEMAPRAX_HARNESS_MIN_SCORE must be in [0,1]")
-    features, options = codec.validate_request_payload(req.get("payload"))
-    extra = {}
-    if cfg.kind == "laya":
-        extra["lang"] = codec.SUPPORTED_LANGUAGE
-        if cfg.min_score is not None:
-            extra["min_confidence"] = cfg.min_score
-    qid, body = codec.build_body(req["invocation_id"], features, options, cfg.model, extra)
-    if cfg.kind == "jev":
-        entitled(cfg, inv)
-    code, raw = http_call(cfg, inv, "POST", "/v1/systemone", body)
+    cfg.validate()
+    backend = cfg.backend
+    payload = req.get("payload")
+    v2 = isinstance(payload, dict) and payload.get("task") == codec.TASK_V2
+    digest, extra_diag = None, []
+    if v2:
+        v2req = codec.validate_request_v2(payload)
+        options = v2req["options"]
+        prof = cfg.profile
+        if len(options) > prof["max_options"] or len(v2req["rendered"]["state"].encode()) > prof["max_state_bytes"]:
+            raise codec.CodecError("refused", "SPX-HPK005", "request exceeds the model profile limits")
+        if not set(v2req["features"]["input_modalities"]) <= set(prof["modalities"]):
+            raise codec.CodecError("unsupported", "SPX-HPK004", "input modality is outside the model profile")
+        if v2req["rendered"]["renderer"] != prof["renderer"]:
+            raise codec.CodecError("unsupported", "SPX-HPK004", "renderer is outside the model profile")
+        qid, body = codec.build_body_v2(req["invocation_id"], v2req)
+        digest = v2req["rendered"]["digest"]
+    else:
+        features, options = codec.validate_request_payload(payload)
+        qid, body = codec.build_body(req["invocation_id"], features, options, cfg.profile["model"])
+    body = backend.envelope(body, cfg, cfg.native_min)
+    wire = encode_body(body)
+    if v2 and len(wire) > v2req["max_wire_bytes"]:
+        raise codec.CodecError("refused", "SPX-HPK005", "upstream request exceeds max_wire_bytes")
+    ctx = Context(cfg, inv)
+    backend.discover(ctx)
+    code, raw = backend.send(ctx, wire)
     if code != 200:
         raise status_error(code)
     doc = codec.parse_json(raw, inv.max_bytes)
-    payload, info = codec.parse_response(doc, qid, options, cfg.min_score)
-    if cfg.kind == "laya" and info.get("checkpoint") not in (None, cfg.model):
-        raise codec.CodecError("refused", "SPX-HPK008", "server answered with a different checkpoint than requested")
+    out, info = codec.parse_response(doc, qid, options, cfg.min_score)
+    backend.check_response(info, cfg)
+    if v2:
+        out = codec.build_result_v2(out, info, cfg, _adapter_ref(provenance or {"provider_id": backend.name, "adapter_version": ADAPTER_VERSION}), digest, len(wire))
     elapsed = int((time.monotonic() - started) * 1000)
-    parts = [f"latency_ms={elapsed}", f"requested_model={cfg.model}"]
+    parts = [f"latency_ms={elapsed}", f"profile={cfg.profile['profile_id']}", f"requested_model={cfg.profile['model']}"]
     if info.get("model"):
         parts.append(f"answering_model={info['model']}")
     if info.get("checkpoint"):
         parts.append(f"checkpoint={info['checkpoint']}")
     if "input_tokens" in info:
         parts.append(f"input_tokens={info['input_tokens']}")
-    if cfg.kind == "jev" and cfg.model.endswith("latest"):
+    if backend.call_identity(info, cfg)[2] == "mutable_service":
         parts.append("model_is_mutable_alias=true")
-    return "complete", payload, [{"code": "SPX-HPK100", "message": cfg.scrub("; ".join(parts))}]
+    return "complete", out, [{"code": "SPX-HPK100", "message": cfg.scrub("; ".join(parts))}] + cfg.warnings()
 
 
 def run(cfg, accepted, provenance, stdin=None, stdout=None):
@@ -245,7 +285,7 @@ def run(cfg, accepted, provenance, stdin=None, stdout=None):
                 env = result(req, "unsupported", None, provenance, [{"code": "unsupported", "message": "operation not implemented"}])
             else:
                 try:
-                    status, payload, diags = evaluate(cfg, req, inv)
+                    status, payload, diags = evaluate(cfg, req, inv, provenance)
                     env = result(req, status, payload, provenance, diags)
                 except codec.CodecError as err:
                     env = result(req, err.status, None, provenance, [{"code": err.code, "message": cfg.scrub(err.message)}])

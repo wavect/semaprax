@@ -6,6 +6,7 @@ The same `mode` switches drive both so both adapters face identical fixtures.
 """
 
 import json
+import socket
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -33,7 +34,7 @@ class Handler(BaseHTTPRequestHandler):
         if s.flavor == "jev" and self.path == "/v1/models":
             if self.headers.get("Authorization") != "Bearer " + KEY:
                 return self._send(401, json.dumps({"detail": "bad key " + KEY}).encode())
-            return self._send(200, json.dumps({"models": [{"name": "jev-test-1", "description": "x", "release_date": "2026-09-15"}]}).encode())
+            return self._send(200, json.dumps({"models": [{"name": n, "description": "x", "release_date": "2026-09-15"} for n in ("jev-test-1", "jev-test-2", "jev-latest")]}).encode())
         if s.flavor == "laya" and self.path == "/health":
             return self._send(200, b'{"status":"ok"}')
         self._send(404, b"{}")
@@ -47,6 +48,13 @@ class Handler(BaseHTTPRequestHandler):
         if s.flavor == "jev" and self.headers.get("Authorization") != "Bearer " + KEY:
             return self._send(401, json.dumps({"detail": "bad key " + KEY}).encode())
         mode = s.mode
+        if mode == "crash":
+            self.close_connection = True
+            try:
+                self.connection.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+            return
         if mode == "slow":
             time.sleep(3)
         if mode == "http500":

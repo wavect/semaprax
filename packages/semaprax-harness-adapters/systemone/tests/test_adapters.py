@@ -18,6 +18,8 @@ sys.path.insert(0, HERE)
 sys.path.insert(0, ROOT)
 import fake_servers as fs  # noqa: E402
 import systemone_codec as codec  # noqa: E402
+sys.path.insert(0, os.path.join(ROOT, "..", "sdk", "python"))
+import decision_fixtures as fx  # noqa: E402
 
 PROJECT = {"id": "p" * 64, "worktree": "w" * 64, "revision": "r" * 64}
 OPTIONS = ["m-cheap", "m-mid", "m-strong"]
@@ -49,7 +51,7 @@ class Adapter:
             [sys.executable, os.path.join(ROOT, FLAVORS[flavor], "adapter.py")],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=full)
         self.send({"jsonrpc": "2.0", "id": 1, "method": "harness/initialize", "params": {
-            "protocol": "semaprax.harness-rpc.v1", "offered": [{"kind": "decision.evaluate", "version": 1}]}})
+            "protocol": "semaprax.harness-rpc.v1", "offered": [{"kind": "decision.evaluate", "version": 1}, {"kind": "decision.evaluate", "version": 2}]}})
         self.read()
 
     def send(self, obj):
@@ -303,11 +305,202 @@ class JevOnly(unittest.TestCase):
             self.assertNotIn(fs.KEY, json.dumps(body))
 
 
+def post_wire(srv):
+    return [x for x in srv.log if x[0] == "POST"][0][2]
+
+
+class V2(unittest.TestCase):
+    """model-route/v2, MR-02 threshold semantics and MR-15 profiles; same fakes as v1."""
+
+    def go(self, flavor, req=None, mode="ok", **env):
+        srv = fs.start(flavor, mode)
+        self.addCleanup(srv.stop)
+        a = Adapter(flavor, env_for(flavor, srv, **env))
+        res = a.invoke(req or fx.v2_request())
+        out, err = a.close()
+        self.assertNotIn(fs.KEY.encode(), out + err)
+        return res, srv
+
+    def test_v2_uses_rendered_content_verbatim_and_types_the_call(self):
+        req = fx.v2_request()
+        r = req["payload"]["rendered"]
+        for flavor in ("jev", "laya"):
+            res, srv = self.go(flavor, req)
+            self.assertEqual(res["status"], "complete")
+            fx.validate_v2_result(res["payload"], req["payload"])
+            post = post_wire(srv)
+            qid = next(iter(post["questions"]))
+            q = post["questions"][qid]
+            self.assertEqual((post["state"], q["instructions"], q["criteria"]), (r["state"], r["instructions"], r["option_labels"]))
+            self.assertEqual(qid, codec.question_id_v2("inv-000001", req["payload"]["options"], r["digest"]))
+            sent = json.dumps(post, separators=(",", ":"), sort_keys=True).encode()
+            call = res["payload"]["call"]
+            self.assertEqual(call["wire_bytes"], len(sent))
+            self.assertEqual(call["rendered_digest"], r["digest"])
+            self.assertEqual(call["usage"], {"input_tokens": 61, "output_tokens": 0, "basis": "provider_reported"})
+            self.assertEqual(res["payload"]["score_kind"], "option_distribution")
+        jev, _ = self.go("jev", req)
+        self.assertEqual((jev["payload"]["call"]["identity_kind"], jev["payload"]["call"]["billing"], jev["payload"]["call"]["checkpoint"]),
+                         ("mutable_service", "api", None))
+        self.assertEqual(jev["payload"]["call"]["adapter"], "ai.typesafe/jev-decision@0.2.0")
+        self.assertEqual((jev["payload"]["call"]["requested_model"], jev["payload"]["call"]["answering_model"]), ("jev-test-1", "jev-test-1"))
+        laya, _ = self.go("laya", req)
+        c = laya["payload"]["call"]
+        self.assertEqual((c["identity_kind"], c["checkpoint"], c["billing"], c["answering_model"]), ("local_declared", "multilingual", "local", "laya-rl-agent"))
+        self.assertEqual((laya["payload"]["native_confidence"], laya["payload"]["native_confidence_kind"]), (0.1, "laya.confidence"))
+        self.assertEqual(jev["payload"]["native_confidence_kind"], "jev.confidence")
+
+    def test_latest_alias_is_mutable_and_wrong_checkpoint_refused(self):
+        res, _ = self.go("jev", SEMAPRAX_HARNESS_MODEL="jev-latest")
+        self.assertEqual(res["payload"]["call"]["identity_kind"], "mutable_service")
+        res, _ = self.go("laya", mode="wrong_checkpoint")
+        self.assertIsNone(res["payload"])
+
+    def test_v2_refusals_send_nothing(self):
+        def tamper_digest(p):
+            p["rendered"]["state"] += "x"
+
+        def foreign_option(p):
+            p["options"][0] = "opaque-model-id"
+        for mutate in (tamper_digest, foreign_option, lambda p: p.__setitem__("excerpt", "x"),
+                       lambda p: p["features"].__setitem__("phase", "dream"), lambda p: p.__setitem__("max_wire_bytes", 100),
+                       lambda p: p["features"].__setitem__("input_modalities", ["text", "image"])):
+            req = fx.v2_request()
+            mutate(req["payload"])
+            for flavor in ("jev", "laya"):
+                res, srv = self.go(flavor, req)
+                self.assertIsNone(res["payload"], mutate)
+                self.assertIn(res["status"], ("refused", "unsupported"))
+                self.assertFalse([x for x in srv.log if x[0] == "POST"])
+
+    def test_min_score_is_host_side_alias_never_forwarded_as_laya_min_confidence(self):
+        res, srv = self.go("laya", SEMAPRAX_HARNESS_MIN_SCORE="0.2")
+        self.assertNotIn("min_confidence", post_wire(srv))
+        self.assertFalse(res["payload"]["abstain"])
+        self.assertEqual(res["payload"]["abstention_reason"], "none")
+        res, srv = self.go("laya", SEMAPRAX_HARNESS_MIN_SCORE="0.99")
+        self.assertEqual((res["payload"]["abstain"], res["payload"]["abstention_reason"], res["payload"]["choice"]), (True, "host_threshold", None))
+        self.assertNotIn("min_confidence", post_wire(srv))
+        res, _ = self.go("laya", req=request(), SEMAPRAX_HARNESS_MIN_SCORE="0.99")  # v1 keeps its documented behavior
+        self.assertTrue(res["payload"]["abstain"])
+
+    def test_native_threshold_is_forwarded_independently_and_both_warn(self):
+        res, srv = self.go("laya", SEMAPRAX_HARNESS_NATIVE_MIN_CONFIDENCE="0.4")
+        self.assertEqual(post_wire(srv)["min_confidence"], 0.4)
+        self.assertEqual([d["code"] for d in res["diagnostics"]], ["SPX-HPK100"])
+        self.assertFalse(res["payload"]["abstain"])  # mass is high; only the native threshold changed
+        res, srv = self.go("laya", SEMAPRAX_HARNESS_NATIVE_MIN_CONFIDENCE="0.4", SEMAPRAX_HARNESS_MIN_SCORE="0.2")
+        self.assertEqual(post_wire(srv)["min_confidence"], 0.4)
+        self.assertEqual([d["code"] for d in res["diagnostics"]], ["SPX-HPK100", "SPX-HPK101"])
+        self.assertEqual(res["status"], "complete")
+        for bad in ("2", "nan", "x"):
+            res, srv = self.go("laya", SEMAPRAX_HARNESS_NATIVE_MIN_CONFIDENCE=bad)
+            self.assertEqual((res["status"], res["diagnostics"][0]["code"]), ("refused", "SPX-HPK006"))
+            self.assertFalse(srv.log)
+        res, srv = self.go("jev", SEMAPRAX_HARNESS_NATIVE_MIN_CONFIDENCE="0.4")  # Jev has no native threshold: no silent drop
+        self.assertEqual(res["diagnostics"][0]["code"], "SPX-HPK006")
+
+    def test_native_abstention_stays_authoritative(self):
+        res, _ = self.go("laya", mode="abstain", SEMAPRAX_HARNESS_MIN_SCORE="0.99")
+        self.assertEqual((res["payload"]["abstain"], res["payload"]["abstention_reason"]), (True, "native"))
+
+    def test_native_confidence_metadata_is_validated_not_derived(self):
+        self.assertEqual(codec.parse_response({"answers": {"q": {"type": "choice", "choice": "a", "probabilities": {"a": 0.9, "b": 0.1}}}}, "q", ["a", "b"])[1].get("native_confidence"), None)
+        doc = {"answers": {"q": {"type": "choice", "choice": "a", "confidence": 7, "probabilities": {"a": 0.9, "b": 0.1}}}}
+        payload, info = codec.parse_response(doc, "q", ["a", "b"])
+        self.assertEqual(info["native_confidence"], "invalid")
+
+
+class Profiles(unittest.TestCase):
+    """The model profile is data: validated, credential-free, and selects the model."""
+
+    def go(self, flavor, profile, req=None, **env):
+        srv = fs.start(flavor)
+        self.addCleanup(srv.stop)
+        env = env_for(flavor, srv, **env)
+        env["SEMAPRAX_HARNESS_MODEL_PROFILE"] = profile if isinstance(profile, str) else json.dumps(profile)
+        a = Adapter(flavor, env)
+        res = a.invoke(req or fx.v2_request())
+        a.close()
+        return res, srv
+
+    def profile(self, **kw):
+        p = {"profile_id": "p1", "model": "jev-test-1", "checkpoint": None, "identity_kind": "mutable_service",
+             "score_kind": "option_distribution", "scoreless": False, "max_options": 16, "max_state_bytes": 4096,
+             "modalities": ["text"]}
+        p.update(kw)
+        return p
+
+    def test_two_profiles_one_adapter_select_different_models(self):
+        seen = []
+        for model in ("jev-test-1", "jev-test-2"):
+            res, srv = self.go("jev", self.profile(model=model, profile_id="id-" + model))
+            self.assertEqual(res["status"], "complete")
+            self.assertEqual(res["payload"]["call"]["requested_model"], model)
+            seen.append(post_wire(srv)["model"])
+            self.assertIn("profile=id-" + model, res["diagnostics"][0]["message"])
+        self.assertEqual(seen, ["jev-test-1", "jev-test-2"])
+        seen = []
+        for model in ("multilingual", "english"):
+            res, srv = self.go("laya", self.profile(model=model, checkpoint=model, identity_kind="local_declared"))
+            self.assertEqual(res["payload"]["call"]["checkpoint"], model)
+            seen.append(post_wire(srv)["model"])
+        self.assertEqual(seen, ["multilingual", "english"])
+
+    def test_malformed_profiles_are_refused_before_any_request(self):
+        bad = ["{not json", "[]", self.profile(endpoint="http://x"), self.profile(api_key="k"), self.profile(scoreless=True),
+               self.profile(score_kind="none"), self.profile(identity_kind="immutable_checkpoint"), self.profile(modalities=[]),
+               self.profile(modalities=["video"]), self.profile(max_options=0), self.profile(max_options=17),
+               self.profile(max_state_bytes=5000), self.profile(model=""), self.profile(identity_kind="trust-me")]
+        missing = self.profile()
+        del missing["model"]
+        bad.append(missing)
+        for p in bad:
+            res, srv = self.go("jev", p)
+            self.assertEqual((res["status"], res["diagnostics"][0]["code"], res["payload"]), ("refused", "SPX-HPK006", None), p)
+            self.assertFalse(srv.log, p)
+
+    def test_profile_limits_apply_before_inference(self):
+        res, srv = self.go("jev", self.profile(max_options=2))
+        self.assertEqual(res["diagnostics"][0]["code"], "SPX-HPK005")
+        res, srv = self.go("jev", self.profile(max_state_bytes=10))
+        self.assertEqual(res["diagnostics"][0]["code"], "SPX-HPK005")
+        res, srv = self.go("jev", self.profile(renderer="other.render.v9"))
+        self.assertEqual(res["status"], "unsupported")
+        self.assertFalse([x for x in srv.log if x[0] == "POST"])
+
+    def test_scoreless_profile_never_fabricates_scores(self):
+        res, _ = self.go("jev", self.profile(score_kind="none", scoreless=True))
+        p = res["payload"]
+        self.assertEqual((p["scores"], p["score_kind"]), (None, "none"))
+        fx.validate_v2_result(p, fx.v2_payload(), scoreless=True)
+        res, _ = self.go("jev", self.profile(score_kind="none", scoreless=True), SEMAPRAX_HARNESS_MIN_SCORE="0.5")
+        self.assertEqual(res["diagnostics"][0]["code"], "SPX-HPK006")
+
+    def test_pinned_jev_profile_is_immutable_only_when_echoed(self):
+        res, _ = self.go("jev", self.profile(identity_kind="immutable_checkpoint", checkpoint="jev-test-1"))
+        self.assertEqual((res["payload"]["call"]["identity_kind"], res["payload"]["call"]["checkpoint"]), ("immutable_checkpoint", "jev-test-1"))
+        res, _ = self.go("jev", self.profile(identity_kind="immutable_checkpoint", checkpoint="jev-2026-01"))
+        self.assertEqual(res["payload"]["call"]["identity_kind"], "mutable_service")
+
+    def test_credentials_stay_out_of_the_profile(self):
+        res, srv = self.go("jev", self.profile(), SEMAPRAX_HARNESS_SECRET_JEV=fs.KEY)
+        self.assertEqual(res["status"], "complete")
+        self.assertNotIn(fs.KEY, json.dumps(self.profile()))
+
+
 class Codec(unittest.TestCase):
     def test_render_is_deterministic_and_bounded(self):
         a = codec.render_features(FEATURES)
         self.assertEqual(a, codec.render_features(dict(reversed(list(FEATURES.items())))))
         self.assertLessEqual(len(a), codec.MAX_STATE_BYTES)
+
+    def test_v2_digest_canonicalization_is_compact_sorted_utf8(self):
+        r = {"renderer": "r", "instructions": "i", "state": "caf\u00e9", "option_labels": {"m0": "m0: a"}}
+        text = '{"instructions":"i","option_labels":{"m0":"m0: a"},"renderer":"r","state":"caf\u00e9"}'
+        self.assertEqual(codec.canonical_json(r), text.encode("utf-8"))
+        self.assertEqual(codec.rendered_digest(r), fx.rendered_digest(r))
+        self.assertTrue(codec.rendered_digest(r).startswith("sha256:"))
 
     def test_question_id_binds_invocation_and_options(self):
         self.assertNotEqual(codec.question_id("a", OPTIONS), codec.question_id("b", OPTIONS))

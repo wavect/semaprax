@@ -21,6 +21,8 @@ const GRAPH_SCHEMA: &str = "semaprax.agent-graph.v1";
 const PROFILE_SCHEMA: &str = "semaprax.agent-runtime-profile.v1";
 const DEFINITION_DOMAIN: &[u8] = b"semaprax.agent-definition.digest.v1\0";
 const GRAPH_DOMAIN: &[u8] = b"semaprax.agent-graph.digest.v1\0";
+#[cfg(test)]
+pub(crate) const GRAPH_DOMAIN_FOR_TESTS: &[u8] = GRAPH_DOMAIN;
 const PROFILE_DOMAIN: &[u8] = b"semaprax.agent-runtime.profile-digest.v1\0";
 const MAX_DEFINITION_BYTES: usize = 1_310_720;
 const MAX_GRAPH_BYTES: usize = 1_572_864;
@@ -245,13 +247,43 @@ pub fn verify_agent_graph_bundle(
     if compiled.runtime_v1_profile().as_bytes() != runtime_v1_profile_source.as_bytes() {
         return Err(vec![profile_mismatch()]);
     }
+    verify_compiled_agent_graph(&compiled, graph_source)
+}
+
+/// Exact-compares a submitted AgentGraph with the graph of a compilation the
+/// caller has just produced from authoritative definition source.
+///
+/// This is the reuse seam for a composite verifier that already compiled the
+/// definition within the same verification call. It never accepts a
+/// caller-supplied cache or a submitted artifact as authority, and it keeps
+/// the AgentGraph input bound before comparing bytes.
+pub(crate) fn verify_compiled_agent_graph(
+    compiled: &CompiledAgentDefinition,
+    graph_source: &str,
+) -> Result<(), Vec<Diagnostic>> {
+    if graph_source.len() > MAX_GRAPH_BYTES {
+        return Err(vec![graph_mismatch()]);
+    }
     if compiled.graph().canonical_json().as_bytes() != graph_source.as_bytes() {
         return Err(vec![graph_mismatch()]);
     }
     Ok(())
 }
 
+#[cfg(test)]
+thread_local! {
+    static COMPILATIONS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+/// Number of AgentDefinition compilations performed on this test thread.
+#[cfg(test)]
+pub(crate) fn compilations_on_this_thread() -> usize {
+    COMPILATIONS.with(std::cell::Cell::get)
+}
+
 fn compile(source: &str) -> Result<CompiledAgentDefinition, Diagnostic> {
+    #[cfg(test)]
+    COMPILATIONS.with(|count| count.set(count.get() + 1));
     let body = canonical_body(source)?;
     let value: Value = serde_json::from_str(body).map_err(|_| malformed())?;
     if json_depth(&value) > MAX_JSON_DEPTH {
@@ -910,3 +942,6 @@ impl AgentHost for ValidationHost {
         unreachable!("profile validation never invokes a tool")
     }
 }
+
+#[cfg(test)]
+pub(crate) mod tests;

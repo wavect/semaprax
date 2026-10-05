@@ -106,12 +106,20 @@ the session. Reaping latency is `idle_shutdown_ms` plus at most one tick.
 
 **Side-effecting steps and the journal.** A `SideEffecting` invoke appends `begin` to the append-only journal
 `<harness home>/cache/bridge/<project id>.journal.jsonl` (`workflow::journal`) and then `done`, `refused`, `cancelled`
-(request never written) or `uncertain`. A later invoke with the same `step` is refused as `SPX-HPN015` unless its last
+(request never written) or `uncertain`. A host outcome `Unavailable { request_sent: false }` (the typed dispatch
+certainty, never a message or `fallback_allowed`) settles as `cancelled` with `cause: "unsent"`, so the step stays
+retryable; `request_sent: true`, `Uncertain`, `Quarantined` and any cancelled-flag outcome stay `uncertain`. If that
+terminal fails to persist, the response carries `durable: false` and the surviving `begin` blocks retry. A later invoke with the same `step` is refused as `SPX-HPN015` unless its last
 record is `refused` or `cancelled`; a begun, completed or uncertain step is never replayed, across restarts.
 
 *Single writer.* `Journal::open` holds an exclusive advisory `flock` on `<project id>.journal.flock` for the journal's
 lifetime and reads the records only after it holds the lock. The bridge opens the journal per claim and per settlement
-(the lock is held only for the claim-and-`begin` critical section, never across the provider call), so concurrent
+through `Journal::open_wait_indexed`, which retains validated state per `Invoker` (latest record per step, validated end
+offset, file identity, last validated line): the first open streams the file once in bounded lines, later opens catch up
+only on records another writer appended, and own appends are applied without re-decoding (`Invoker::journal_decoded`
+counts decodes). A replaced, truncated, removed or prefix-rewritten file, an unterminated tail or an over-long line fails
+closed with `SPX-HPD070` and keeps the retained state; it never forgets a begun, completed or uncertain step. The lock
+is held only for the claim-and-`begin` critical section, never across the provider call), so concurrent
 sessions and processes on one project serialise: exactly one claims a given `step`, the others get `SPX-HPN015` (or
 `SPX-HPD070` busy if the lock stays held for 10 s). The lock is released by drop or process exit; the lock file is never
 deleted, and durable `begin`/`uncertain` records are untouched. Projects and lineages lock independently.

@@ -325,7 +325,7 @@ fn a_resumed_session_makes_no_duplicate_route_model_or_effect_call() {
         };
         let effects = Cell::new(0);
         let mut journal = MemStore::default();
-        let mut turn_stores = vec![MemStore::default(), MemStore::default()];
+        let mut turn_stores = [MemStore::default(), MemStore::default()];
         {
             let mut session = open(w, &set, &mut journal, 10);
             let target = w.target(b"t");

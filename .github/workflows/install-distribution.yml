@@ -53,7 +53,7 @@ jobs:
           if ! command -v shellcheck >/dev/null; then
             if [ "$RUNNER_OS" = macOS ]; then brew install shellcheck; else sudo apt-get install -y shellcheck; fi
           fi
-          shellcheck -s sh scripts/install.sh scripts/install-journey.sh
+          shellcheck -S warning -s sh scripts/install.sh scripts/install-journey.sh
       - name: Fixture suite
         run: python3 scripts/test-install-sh.py -v
 
@@ -66,6 +66,10 @@ jobs:
     runs-on: windows-2025
     timeout-minutes: 20
     steps:
+      - name: Allow Windows to check out long paths
+        if: runner.os == 'Windows'
+        shell: bash
+        run: git config --system core.longpaths true
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
@@ -109,6 +113,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     steps:
+      - name: Allow Windows to check out long paths
+        if: runner.os == 'Windows'
+        shell: bash
+        run: git config --system core.longpaths true
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1

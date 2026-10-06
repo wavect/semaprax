@@ -10,6 +10,15 @@
       ]
     },
     {
+      "code": "SPX-M105",
+      "rows": [
+        {
+          "fix": "Or-pattern alternatives are payload-free cases; give a payload case its own arm",
+          "wrote": "an or-pattern alternative with a payload, such as `Shape::Box { width: w }`"
+        }
+      ]
+    },
+    {
       "code": "SPX-O101",
       "rows": [
         {
@@ -158,6 +167,15 @@
         {
           "fix": "`let s = \"abc\"; f(string_as_str(s))`",
           "wrote": "`f(\"abc\")` or `f(owned)` for `borrow str`"
+        }
+      ]
+    },
+    {
+      "code": "SPX-T207",
+      "rows": [
+        {
+          "fix": "Only payload-free, non-generic variants compare with `==`; test others with `match shape { Shape::Dot {} => true, _ => false, }`",
+          "wrote": "`shape == Shape::Box { width: 1 }` or `option == Option<i64>::None {}`"
         }
       ]
     },

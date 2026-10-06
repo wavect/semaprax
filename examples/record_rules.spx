@@ -1,0 +1,49 @@
+// Record invariants, payload-free variant equality, and or-patterns over
+// payload-free cases.
+module app.rules;
+
+// A task moves through three payload-free states.
+@id("rules.status")
+variant Status {
+    @id("rules.status.todo")
+    Todo,
+    @id("rules.status.doing")
+    Doing,
+    @id("rules.status.done")
+    Done,
+}
+
+// Every literal, `with` update, and field assignment re-checks both rules.
+@id("rules.seats")
+record Seats {
+    @id("rules.seats.limit")
+    limit: i64,
+    @id("rules.seats.used")
+    used: i64,
+}
+    requires limit >= 1
+    requires used <= limit
+
+// Free seats after `used` are taken; a `used` above `limit` is a contract failure.
+@id("rules.free")
+fn free(limit: i64, used: i64) -> i64
+{
+    let mut seats = Seats { limit: limit, used: 0 };
+    seats.used = used;
+    seats.limit - seats.used
+}
+
+// One point while a task is open, ten more while it is in progress.
+@id("rules.weight")
+fn weight(code: i64) -> i64
+{
+    let status = if code == 0 { Status::Todo {} } else { if code == 1 { Status::Doing {} } else { Status::Done {} } };
+    let open = match status { Status::Todo {} | Status::Doing {} => 1, Status::Done {} => 0, };
+    if (status == Status::Doing {}) { open + 10 } else { open }
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    free(5, 3) * 100 + weight(0) + weight(1) + weight(2)
+}

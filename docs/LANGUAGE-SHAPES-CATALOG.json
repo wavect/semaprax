@@ -43,6 +43,12 @@
       "signature": "@id(\"order.line\")\nrecord Line {\n    @id(\"order.line.sku\")\n    sku: i64,\n    @id(\"order.line.quantity\")\n    quantity: i64,\n    @id(\"order.line.unit_price\")\n    unit_price: i64,\n}\n"
     },
     {
+      "id": "rules.seats",
+      "kind": "record",
+      "path": "examples/record_rules.spx",
+      "signature": "@id(\"rules.seats\")\nrecord Seats {\n    @id(\"rules.seats.limit\")\n    limit: i64,\n    @id(\"rules.seats.used\")\n    used: i64,\n}\n    requires limit >= 1\n    requires used <= limit\n"
+    },
+    {
       "id": "geometry.point",
       "kind": "record",
       "path": "examples/records.spx",
@@ -83,6 +89,12 @@
       "kind": "variant",
       "path": "examples/order_lifecycle.spx",
       "signature": "@id(\"order.decision\")\nvariant Decision {\n    @id(\"order.decision.approve\")\n    Approve,\n    @id(\"order.decision.reject\")\n    Reject,\n    @id(\"order.decision.hold\")\n    Hold,\n}\n"
+    },
+    {
+      "id": "rules.status",
+      "kind": "variant",
+      "path": "examples/record_rules.spx",
+      "signature": "@id(\"rules.status\")\nvariant Status {\n    @id(\"rules.status.todo\")\n    Todo,\n    @id(\"rules.status.doing\")\n    Doing,\n    @id(\"rules.status.done\")\n    Done,\n}\n"
     },
     {
       "id": "ledger.portfolio",
@@ -952,6 +964,24 @@
       "id": "app.main",
       "kind": "function",
       "path": "examples/ownership.spx",
+      "signature": "@id(\"app.main\")\nfn main() -> i64\n"
+    },
+    {
+      "id": "rules.free",
+      "kind": "function",
+      "path": "examples/record_rules.spx",
+      "signature": "@id(\"rules.free\")\nfn free(limit: i64, used: i64) -> i64\n"
+    },
+    {
+      "id": "rules.weight",
+      "kind": "function",
+      "path": "examples/record_rules.spx",
+      "signature": "@id(\"rules.weight\")\nfn weight(code: i64) -> i64\n"
+    },
+    {
+      "id": "app.main",
+      "kind": "function",
+      "path": "examples/record_rules.spx",
       "signature": "@id(\"app.main\")\nfn main() -> i64\n"
     },
     {

@@ -69,7 +69,8 @@ its description, its signature, its facts, and its members.
   own and so are never members.
 - Facts are labelled lists: `Type parameters`, `Parameters` (canonical
   `name: mode Type` text, so ownership modes are visible), `Returns`,
-  `Effects`, `Requires`, `Ensures`, `Extends`, `Methods`, `Owner`, `Permits`,
+  `Effects`, `Requires`, `Ensures`, `Invariants` (a record's `requires`
+  clauses), `Extends`, `Methods`, `Owner`, `Permits`,
   `Protocol`, `Receiver`, and, for a `session_protocol` entry only, `States`,
   `Initial`, `Terminals`, and `Authority` (always `none`; see
   [Session/protocol types v1](SESSION-PROTOCOL-TYPES-V1.md)). A fact with no

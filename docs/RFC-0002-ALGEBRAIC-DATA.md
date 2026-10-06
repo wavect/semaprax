@@ -33,6 +33,10 @@ contract. Public package and component support remains separately scoped.
 The [Owned String Variants v1](OWNED-STRING-VARIANTS-V1.md) profile defines
 direct monomorphic string payloads and canonical string lifecycle integration.
 
+[Record Invariants v1](RECORD-INVARIANTS-V1.md) adds `requires` clauses on
+records, checked at every literal, `with` update, and field assignment, plus
+`==`/`!=` on payload-free variants and or-patterns over payload-free cases.
+
 ## Historical profile and evidence records
 
 The following records retain the original narrower profile boundaries and

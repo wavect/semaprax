@@ -209,8 +209,8 @@ oversight — every claim below was checked against the compiler, not
 assumed:
 
 1. Whole-value equality is already refused for every nominal type.
-   `left == right` on two `Secret<T>` values (or any other `record`/
-   `variant`) fails to compile with `SPX-T207` ("aggregate equality is
+   `left == right` on two `Secret<T>` values (or any other `record`, or any
+   `variant` with a payload or type arguments) fails to compile with `SPX-T207` ("aggregate equality is
    outside the executable comparison profile"), raised by
    `reject_aggregate_equality` in `src/source_verify/diagnostics.rs` for
    every `Type::Named`. This is an existing, general compiler invariant

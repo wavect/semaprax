@@ -41,6 +41,9 @@ New pattern forms, all parsed only in match-arm position:
 - Or-patterns `a | b | c` over literal alternatives of one type. The lexer's
   single `|` becomes a token consumed only here; nesting or non-literal
   alternatives are rejected with `SPX-M105`.
+  Over a variant scrutinee, `|` instead joins payload-free case patterns of
+  the scrutinee's variant; see
+  [Record Invariants v1](RECORD-INVARIANTS-V1.md#or-patterns-over-payload-free-cases).
 - Irrefutable whole-scrutinee bindings (`n => ...`), immutable and `Value`
   owned.
 - Guards: `pattern if guard => value`. The guard is an ordinary bool

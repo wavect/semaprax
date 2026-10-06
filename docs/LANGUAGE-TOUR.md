@@ -186,6 +186,29 @@ semaprax run examples/records.spx
 That prints `42`. [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md) owns records,
 variants, matching, and the ownership of aggregate places.
 
+A record may state invariants: `requires` lines after its closing brace that
+name its fields by bare name. Every record literal, `with` update, and field
+assignment re-checks them, and a false one is the same contract failure that
+a failing function `requires` reports.
+
+From [examples/record_rules.spx](../examples/record_rules.spx):
+
+```semaprax
+@id("rules.seats")
+record Seats {
+    @id("rules.seats.limit")
+    limit: i64,
+    @id("rules.seats.used")
+    used: i64,
+}
+    requires limit >= 1
+    requires used <= limit
+```
+
+The clauses must be `bool` and effect-free, like any contract. `semaprax doc`
+lists them as the record's invariants, and the semantic graph carries them as
+the preconditions of the record's `#invariant` function.
+
 ## Variants and matching
 
 Variants hold one of several named cases. `Option<T>` and `Result<T, E>` are
@@ -230,6 +253,29 @@ semaprax run examples/refutable_match.spx
 That prints `-5`. Arm order matters: `-1` matches the first alternative
 before the later negative-number guard. See
 [Refutable match v1](REFUTABLE-MATCH-V1.md).
+
+A variant whose cases carry no payload also compares with `==` and `!=`, and
+`|` joins several of its cases in one arm.
+
+From [examples/record_rules.spx](../examples/record_rules.spx):
+
+```semaprax
+@id("rules.weight")
+fn weight(code: i64) -> i64
+{
+    let status = if code == 0 { Status::Todo {} } else { if code == 1 { Status::Doing {} } else { Status::Done {} } };
+    let open = match status { Status::Todo {} | Status::Doing {} => 1, Status::Done {} => 0, };
+    if (status == Status::Doing {}) { open + 10 } else { open }
+}
+```
+
+```sh
+semaprax run examples/record_rules.spx
+```
+
+That prints `212`: two free seats, then one point for the task still to do
+and eleven for the one in progress. A condition ending in `Status::Doing {}`
+is written in parentheses so the case's `{}` is not read as the branch.
 
 ## Mutation is explicit and is a statement
 

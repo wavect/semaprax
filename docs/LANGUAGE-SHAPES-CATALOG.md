@@ -101,6 +101,22 @@ record Line {
 }
 ```
 
+### `rules.seats` (`examples/record_rules.spx`)
+
+Every literal, `with` update, and field assignment re-checks both rules.
+
+```semaprax
+@id("rules.seats")
+record Seats {
+    @id("rules.seats.limit")
+    limit: i64,
+    @id("rules.seats.used")
+    used: i64,
+}
+    requires limit >= 1
+    requires used <= limit
+```
+
 ### `geometry.point` (`examples/records.spx`)
 
 ```semaprax
@@ -200,6 +216,22 @@ variant Decision {
     Reject,
     @id("order.decision.hold")
     Hold,
+}
+```
+
+### `rules.status` (`examples/record_rules.spx`)
+
+A task moves through three payload-free states.
+
+```semaprax
+@id("rules.status")
+variant Status {
+    @id("rules.status.todo")
+    Todo,
+    @id("rules.status.doing")
+    Doing,
+    @id("rules.status.done")
+    Done,
 }
 ```
 
@@ -1437,6 +1469,31 @@ fn pipeline(buffer: own Buffer) -> i64
 ```
 
 ### `app.main` (`examples/ownership.spx`)
+
+```semaprax
+@id("app.main")
+fn main() -> i64
+```
+
+### `rules.free` (`examples/record_rules.spx`)
+
+Free seats after `used` are taken; a `used` above `limit` is a contract failure.
+
+```semaprax
+@id("rules.free")
+fn free(limit: i64, used: i64) -> i64
+```
+
+### `rules.weight` (`examples/record_rules.spx`)
+
+One point while a task is open, ten more while it is in progress.
+
+```semaprax
+@id("rules.weight")
+fn weight(code: i64) -> i64
+```
+
+### `app.main` (`examples/record_rules.spx`)
 
 ```semaprax
 @id("app.main")

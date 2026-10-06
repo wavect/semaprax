@@ -78,6 +78,7 @@ does emit.
 
 | Example | Teaches | Command (observed) | Reference |
 | --- | --- | --- | --- |
+| `examples/record_rules.spx` | Record invariants checked at every literal, `with`, and field assignment; `==` on payload-free variants; `A {} \| B {}` case or-patterns | `semaprax run examples/record_rules.spx` → `212` | [Record Invariants v1](../docs/RECORD-INVARIANTS-V1.md) |
 | `examples/records.spx` | Nested records, out-of-order field initialization, and nested `with` update expressions | `semaprax run examples/records.spx` → `42` | [RFC 0002](../docs/RFC-0002-ALGEBRAIC-DATA.md) |
 | `examples/refutable_match.spx` | Refutable `match` over `i64`, `u8` and `char` with or-patterns, guards, binding arms and `_` | `semaprax run examples/refutable_match.spx` → `-5` | [Refutable Match v1](../docs/REFUTABLE-MATCH-V1.md) |
 

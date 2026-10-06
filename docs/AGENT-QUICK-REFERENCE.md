@@ -236,6 +236,58 @@ fn main() -> i64
   `value.method(args)`. `class Dog : Animal` inherits; `super.method()`
   dispatches to the parent. Records have no methods.
 
+```semaprax
+module app.rules;
+
+@id("rules.status")
+variant Status {
+    @id("rules.status.todo")
+    Todo,
+    @id("rules.status.doing")
+    Doing,
+    @id("rules.status.done")
+    Done,
+}
+
+@id("rules.seats")
+record Seats {
+    @id("rules.seats.limit")
+    limit: i64,
+    @id("rules.seats.used")
+    used: i64,
+}
+    requires limit >= 1
+    requires used <= limit
+
+@id("rules.open")
+fn open(status: Status) -> bool
+{
+    match status { Status::Todo {} | Status::Doing {} => true, Status::Done {} => false, }
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    let mut seats = Seats { limit: 3, used: 1 };
+    seats.used = 2;
+    let status = Status::Doing {};
+    if (open(status) && status != Status::Done {}) { seats.used } else { 0 }
+}
+```
+
+- `==` and `!=` compare two values of one non-generic variant whose cases all
+  carry no payload: `status == Status::Done {}`. A variant with a payload or
+  type arguments stays `SPX-T207`; test its case with `match`. A condition or
+  contract ending in `Type::Case {}` is written in parentheses, as above.
+- `A {} | B {} => …` joins payload-free cases of the scrutinee's variant in
+  one arm of a plain `match`; each alternative counts for exhaustiveness. No
+  guard and no payload case in such an arm (`SPX-T254`, `SPX-M105`).
+- `requires` lines after a record's `}` are invariants over its fields by bare
+  name. Every literal, `with` update, and field assignment re-checks them; a
+  false one is the same contract failure as a function `requires`. Each must
+  be `bool` and effect-free (`SPX-C101`, `SPX-C102`); generic records take
+  none (`SPX-C103`).
+
 ## Ownership and resources
 
 ```semaprax
@@ -747,6 +799,8 @@ Other first-attempt diagnostics and their fixes:
 | `s.len()` on a `string` | `SPX-T203` | `string_len(s)`; no type but a `class` has methods |
 | `str_as_bytes(text)` or `str_as_bytes(string_as_str(text))` | `SPX-T263`, `SPX-T266` | Bind the view first: `let view = string_as_str(text); str_as_bytes(view)` |
 | `string_as_str("literal")` | `SPX-T266` | Bind the literal, then pass that binding to `string_as_str` |
+| `shape == Shape::Box { width: 1 }` or `option == Option<i64>::None {}` | `SPX-T207` | Only payload-free, non-generic variants compare with `==`; test others with `match shape { Shape::Dot {} => true, _ => false, }` |
+| an or-pattern alternative with a payload, such as `Shape::Box { width: w }` | `SPX-M105` | Or-pattern alternatives are payload-free cases; give a payload case its own arm |
 | `String`, `int`, or unsupported `Vec` inference/element types | `SPX-T001`/`SPX-T281` | `string`, `i64`/`i32`/`u8`/`usize`; in a Project prefer the authenticated `std.collections` aliases, and always spell an admitted Copy scalar plus every wrapper or `vec_*<T>` type argument explicitly |
 
 ## Web applications
@@ -802,8 +856,8 @@ fn order_status(paid: bool) -> string
   Any other `fn <entity>_<name>(…)` is a computed field `<name>`.
   `<entity>` is snake_case (`time_entry`) or lowercase (`timeentry`).
   Parameters are that entity's fields, same name and type.
-- Bodies: `let`, `if`/`else`, `match` (one case per arm; `A {} | B {}` is
-  `SPX-T254`), arithmetic, comparisons, `&&` `||` `!`, `string_len` (bytes),
+- Bodies: `let`, `if`/`else`, `match` (`A {} | B {}` joins payload-free
+  cases), `==` on enums, arithmetic, comparisons, `&&` `||` `!`, `string_len` (bytes),
   `string_len_chars`, `string_is_empty`, `string_contains`,
   `string_starts_with`, `string_concat`, `string_from_i64`, and helper
   functions. No `i64` to `f64` cast: use a recursive helper. Errors:

@@ -1,112 +1,135 @@
 # Build an agent as a program
 
-An agent needs more than a prompt. It needs a task, state, allowed operations,
-and a rule for deciding what happens after each result. Semaprax gives those
-parts explicit types and checked stages.
+You will learn how a Semaprax `agent` declaration splits one model-driven task
+into checked stages, how a proposal differs from permission, and how to pick a
+model route. This chapter is for people building an agent. To let a coding
+assistant edit `.spx` files, read [Agent workflow](../practices/agents.md).
 
-Start here after [Types](../language/types.md) and
-[Contracts and effects](../language/contracts-effects.md). A coding assistant
-editing `.spx` files is a separate workflow, covered in
-[Driving Semaprax from an AI agent](../practices/agents.md).
+> **Status.** Source agents, the runtime, and model routing are partial and
+> beta. The CLI replays recorded transcripts. A live model needs a Rust host
+> that you write and that owns the provider credentials. Routing evidence is
+> local and fixture-based: no live provider, hosted, or billing claim.
 
-## Design the task before the model call
+## What is a turn?
 
-Consider an agent that answers a question using one approved document. Write
-down the inputs and decisions before choosing a provider:
-
-| Role | Example responsibility |
-| --- | --- |
-| Task | The question and the permitted document identity. |
-| State | What has already been read and how many turns remain. |
-| Observation | The information presented for the next decision. |
-| Proposal | A typed request, such as reading the permitted document or finishing. |
-| Authorization | A deterministic decision about whether that proposal is allowed now. |
-| Outcome | The result of the authorized operation. |
-| Result | The final answer or the program's terminal result. |
-
-These are design examples, not a ready-made wire schema. The compiler derives
-the actual shapes from the selected checked declarations.
-
-## Understand one turn
+Each turn runs these stages. Your code owns every stage except the model call.
 
 ```text
 initialize once
-      ↓
-observe → obtain proposal → decode → authorize → execute → reduce
-   ↑                                                        │
-   └────────────────────── Continue ─────────────────────────┘
-                              or Complete / Suspend / Fail
+     |
+observe -> propose (model) -> decode -> authorize -> execute (effect) -> reduce
+   ^                                                                       |
+   +------------------------------- Continue -----------------------------+
+                          or Complete / Suspend / Fail
 ```
 
-The **reducer** turns the current state and operation outcome into the next
-step. It is ordinary checked program logic, rather than another instruction
-that the model is trusted to follow.
-
-The iterative Step variant has `Continue`, `Complete`, `Suspend`, and `Fail`
-cases. Their fields match the selected State and Result roles. Use the exact
-role and case shapes from the lifecycle specification when assembling a source
-Agent definition.
-
-## Separate a proposal from permission
-
-A decoded proposal tells you what was requested. Authorization decides whether
-it is allowed for this state and this turn. The runtime checks authorization
-again on every turn, then consumes the resulting grant at the operation boundary.
-
-For the document example, checking that a proposal is well-formed does not
-establish that it names the approved document. That second check belongs in the
-authorization stage and host policy.
-
-The host supplies the actual operation handler. A test can inject a fixed
-response. A configured application host can read the permitted resource.
-The same source roles make both cases easier to reason about.
-
-## Choose the runtime route
-
-There are two useful entry points to distinguish:
-
-| Route | What you provide |
+| Stage | Job |
 | --- | --- |
-| CLI `agent inspect`, `agent run`, and `agent replay` | The definition and the versioned task, transcript, or evidence inputs required by the command. |
-| Direct Runtime v2 and source-model integration | A retained Project, selected Agent/deployment, explicit invocation, host handlers, and the chosen model integration. |
+| `observe` | Build what the model sees from the current state. |
+| `propose` | The model returns a typed proposal. This is data, not permission. |
+| `authorize` | Deterministic code decides whether the proposal is allowed now. |
+| `execute` | The host runs the one allowed effect. |
+| `reduce` | Turn state and outcome into `Continue`, `Complete`, `Suspend`, or `Fail`. |
 
-The CLI's transcript route consumes recorded/scripted inputs. A live provider
-is configured through the runtime/host integration. Do not put an API key into
-a transcript and expect the transcript command to become a provider client.
+Authorization runs again on every turn. A grant for one turn never carries over.
 
-Read the installed entry points without starting a provider:
+## Declare an agent
+
+An `agent` declaration names six types and the stage functions, each with an
+`@id`:
+
+```text
+@id("example.agent")
+agent Example {
+    types { type task; type state; type observation;
+            type proposal; type outcome; type result; }   // each with an @id
+    operations {
+        fn initialize;  fn observe;  model fn propose;
+        fn authorize;   effect fn execute;  fn reduce;    // each with an @id
+    }
+    runtime_v1 { canonical_json "..."; }
+}
+```
+
+Only `propose` is `model fn`. Only `execute` is `effect fn`. Missing or
+duplicate IDs report `SPX-P124`. The full rules are in
+[Language-native Agent syntax](https://github.com/wavect/semaprax/blob/main/docs/LANGUAGE-NATIVE-AGENT-SYNTAX-V1.md).
+
+Check and inspect the committed examples:
 
 ```sh
-semaprax help agent
-semaprax agent skill
+semaprax check examples/everyday-agent-v2-project
+semaprax check examples/routed-agent-project
+semaprax agent skill        # the agent contract this compiler carries
 ```
 
-The skill bundle describes the Agent contract carried by that compiler. The
-[source runtime API](https://github.com/wavect/semaprax/blob/main/src/agent_runtime_v2.rs)
-exposes bindings for direct, live, linked, checkpoint, and migration workflows.
+## Run a recorded transcript
 
-## Build a deterministic first test
+The CLI never calls a model. It replays recorded input:
 
-Use the lifecycle's fixture-based tests as the starting pattern. Supply a fixed
-task, a known sequence of proposals, and a handler with a predictable response.
-Check the terminal case and returned data, then test one denied proposal.
+| Command | Does |
+| --- | --- |
+| `semaprax agent inspect <definition.json> [--profile]` | Prints the AgentGraph. |
+| `semaprax agent run <definition.json> <task.json> <transcript.json> [--evidence\|--trace]` | Runs the scripted turns. |
+| `semaprax agent replay <definition.json> <task.json> <transcript.json> <evidence.json>` | Re-checks recorded evidence. |
 
-Also test that authorization runs again after state changes. A grant for one
-turn must not become permission for every later turn. Keep cancellation and
-iteration limits in the test so a broken reducer cannot loop indefinitely.
+Do not put an API key in a transcript. A live provider connects through the
+host integration, not these commands.
 
-The owning [iterative lifecycle specification](https://github.com/wavect/semaprax/blob/main/docs/AGENT-ITERATIVE-LIFECYCLE-V2.md)
-links its focused Rust test selectors and exact carrier rules. Begin with the
-default interpreter route. Native and Core Wasm stage selectors are explicit
-host/runtime choices with their own capability and retained-source requirements.
+## Give the model only what it needs
 
-## Add persistence after the basic loop works
+The runtime enforces your declared limits on every run:
 
-A `Suspend` value describes a stopped lifecycle. Durable continuation needs the
-checkpoint workflow and trusted store as well. Add those pieces after you can
-explain each stage and reproduce the deterministic test.
+- It calls only tools the profile allows. Each tool has a closed argument
+  schema and a read effect.
+- One run is single-threaded and bounded: at most 16 turns, 32 provider
+  attempts, 32 tool calls, and five minutes. A profile may lower these, never
+  raise them.
+- The runtime never retries a tool or an uncertain provider call.
+- Cancellation is cooperative, not forced.
 
-**Next:** [Add budgets, recovery, and state migration](recovery.md).
-References: [Typed effects v3](https://github.com/wavect/semaprax/blob/main/docs/AGENT-TYPED-EFFECTS-V3.md),
-[Direct Runtime v2](https://github.com/wavect/semaprax/blob/main/docs/AGENT-RUNTIME-V2.md),
-and [Source Model Operation](https://github.com/wavect/semaprax/blob/main/docs/SOURCE-MODEL-OPERATION-V1.md).
+See [Budgets, checkpoints, and recovery](recovery.md) for limits and what
+happens when one is reached.
+
+## Route to a model
+
+Routing picks one approved model profile per task, and can change it between
+turns. A router names a profile ID only. It cannot add a tool, capability, or
+limit beyond what the deployment grants.
+
+| You want | Use |
+| --- | --- |
+| One model per task | `route_new_invocation` over an approved profile set. |
+| A different model each turn | `RoutedSession`, which re-routes only at a durable turn boundary. |
+| Pick one granted tool or specialist agent | `choice-select/v1`, then an authorize-stage recheck (`SPX-HPJ024`, `SPX-HPJ026`). |
+| See why a route was chosen | `route.explain` in harness reports; `semaprax-full harness status --routing`. |
+
+Rules mode makes zero router calls. An operator pin that fails screening is
+refused, not replaced. A revoked deployment is refused on resume.
+
+Runnable examples, offline with fixture models:
+
+- `examples/routed-agent-project`: two approved profiles, a pin, and a re-route.
+- `examples/support-routing-project`: route a support request to one of two agents.
+- `examples/tool-choice-project`: select one of two granted read-only tools.
+
+Run them with `cargo test --locked -p semaprax --test agent_runtime_v1 routed_agent_example`
+(or `choice_examples`). The `harness` command is part of the private
+`semaprax-full` toolchain, not the public CLI.
+
+## Test it before a model is involved
+
+1. Supply a fixed task and a scripted sequence of proposals.
+2. Check the terminal case and its data.
+3. Add one denied proposal and confirm `authorize` refuses it.
+4. Set a low turn limit and confirm a broken reducer cannot loop.
+
+The interpreter is the default route. Native C11 and Core Wasm stage routes
+are explicit host choices with their own requirements.
+
+**Next:** [Budgets, checkpoints, and recovery](recovery.md).
+
+References: [Agent Runtime v1](https://github.com/wavect/semaprax/blob/main/docs/AGENT-RUNTIME-V1.md),
+[Runtime model routing v1](https://github.com/wavect/semaprax/blob/main/docs/RUNTIME-MODEL-ROUTING-V1.md),
+[Iterative lifecycle v2](https://github.com/wavect/semaprax/blob/main/docs/AGENT-ITERATIVE-LIFECYCLE-V2.md),
+[Typed effects v3](https://github.com/wavect/semaprax/blob/main/docs/AGENT-TYPED-EFFECTS-V3.md).

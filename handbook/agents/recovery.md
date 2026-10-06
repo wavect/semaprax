@@ -1,106 +1,128 @@
 # Budgets, checkpoints, and recovery
 
-A long-running agent can stop between requesting an operation and receiving its
-result. Plan for that interruption before giving it important external work.
-The useful question is: what was authorized, what may have happened, and what
-can safely happen next?
+You will set limits for an agent, and learn what happens when it stops between
+asking for an operation and seeing the result. Decide this before an agent does
+important external work. The question is always: what was authorized, what may
+have happened, and what can safely happen next?
 
-## Set limits before starting
+> **Status.** Local and fixture-based evidence. The recovery routes
+> (`semaprax-full source-live`) are private tooling, not the public CLI.
 
-Choose limits for the task rather than accepting an unbounded loop. Depending
-on the selected runtime/model profile, these include turns, deterministic work,
-operation calls, input/output bytes, model tokens, deadlines, and quoted cost.
+## What limits does a run have?
 
-A **reservation** sets aside capacity before work begins. An **observation**
-records what is known afterwards. Keep unknown usage distinct from a measured
-zero; a lost provider response does not establish that the provider did no work.
-
-For an initial document-reading agent, choose a small turn limit and a small
-operation budget. Test what the program returns when each limit is reached.
-
-## Follow the journal boundary
-
-A **journal** records the progress needed for recovery. The durable profiles
-record intent before dispatch and retain settled observations afterwards.
-This ordering helps a restart determine whether it may continue.
-
-| Recorded state | Recovery question |
+| Limit | Behavior |
 | --- | --- |
-| Operation not started | Is a fresh authorization and reservation available? |
-| Intent recorded, outcome unresolved | Could the external operation already have happened? |
-| Outcome recorded | Can the retained result be replayed without repeating the operation? |
-| Terminal result recorded | Can the terminal result be returned without new dispatch? |
+| Turns, provider attempts, tool calls | Runtime v1 caps: 16, 32, 32. A profile may lower them. |
+| Deadline | Five minutes at most. Elapsed time equal to the limit counts as expired. |
+| Cost, tokens, calls, context | Checked before each model call by the budget policy. |
+| Cancellation | Cooperative. It does not interrupt a call already in flight. |
 
-An unresolved attempt needs the selected uncertainty/reconciliation behavior.
-Blindly repeating it is especially risky for writes, messages, or payments.
+Since v0.9.0 the runtime checks the live clock and the remaining allowance
+before each model call, including routing calls. Each call also gets its
+remaining deadline as a positive budget. A new turn that has no time or
+allowance left stops before any provider call.
 
-## Keep checkpoints tied to their source
+When no model is both eligible and affordable, the run ends `policy_rejected`
+with `SPX-G206`. It still returns its Trace, Evidence, and accounting receipt
+for work already done. That terminal is replayable: replaying returns the same
+result and calls no provider.
 
-A checkpoint belongs to a specific execution and source/deployment context.
-Recovery checks its bindings, limits, retained observations, and current
-requirements before further work. A JSON file containing plausible state is not
-a replacement for the selected checkpoint producer and trusted store.
+## How is cost recorded?
 
-Protect the store at the host boundary. A hash can identify bytes, but it does
-not by itself stop someone who controls the storage from replacing or rolling
-back the entire history.
+A **reservation** sets money aside before a call. An **observation** records
+what the provider reported afterward.
 
-## Understand the source-live command
+| Case | Recorded as |
+| --- | --- |
+| Success with an explicit usage report | `observed` |
+| Explicit all-zero report | `observed` zero |
+| Missing report, failed attempt, or response rejected after dispatch | `unknown` |
 
-The full toolchain exposes explicit source-live run, resume, migration, and
-repair routes. Inspect their accepted arguments first:
+A lost response does not prove the provider did no work, so unknown stays
+unknown. The accounting receipt reports reserved, observed, and unknown totals.
+It cannot bill or settle.
+
+## What does the journal record?
+
+The journal writes intent before dispatch and keeps the result after.
+
+| State on restart | What recovery does |
+| --- | --- |
+| Not started | Needs fresh authorization and a fresh reservation. |
+| `effect_intent` recorded, no result | Marks the effect `uncertain`. It makes no model call and no callback call. |
+| Result recorded | Replays the result without repeating the operation. |
+| Terminal recorded | Returns it without new work. |
+
+Since v0.9.0 a routed session journals `effect_intent` before the host callback
+that may run tool effects. Only model bytes recovered before any durable intent
+allow exactly one callback. An uncertain dispatch or effect halts the session
+for reconciliation. It is never retried with another model.
+
+Do not repeat an uncertain write, message, or payment. Reconcile it first.
+
+## What is a checkpoint?
+
+A checkpoint belongs to one execution and one source or deployment. Recovery
+checks its bindings, limits, and retained results before doing more work. A JSON
+file with plausible state does not replace the checkpoint producer and the
+trusted store. A hash identifies bytes but does not stop someone who controls
+the storage from rolling the whole history back. Protect the store at the host.
+
+## Resume after an interruption
+
+`RoutedSession::resume` restores the journal. Completed turns replay with no
+route, model, or effect calls. An in-flight turn reuses its recorded route with
+zero router calls. A revoked deployment is refused and never rebound.
+
+For source agents, the private `semaprax-full` tool has `source-live run`,
+`resume`, `migrate`, and `repair`:
 
 ```sh
 semaprax-full help source-live
 ```
 
-The configured route identifies the source project, checkpoint directory,
-provider executable, and scratch directory. The host adapter owns process and
-provider integration; source code owns the checked agent stages.
+It takes a project config, a checkpoint directory, a provider executable, and
+an empty scratch directory. Start with an injected handler or recorded input,
+not live credentials. See [Source live CLI](https://github.com/wavect/semaprax/blob/main/docs/SOURCE-LIVE-CLI-V1.md),
+[Source journal](https://github.com/wavect/semaprax/blob/main/docs/SOURCE-LIVE-JOURNAL-V2.md),
+and [Source migration](https://github.com/wavect/semaprax/blob/main/docs/SOURCE-LIVE-MIGRATION-V3.md).
 
-Use the configuration described by the
-[source journal](https://github.com/wavect/semaprax/blob/main/docs/SOURCE-LIVE-JOURNAL-V2.md)
-and [source migration](https://github.com/wavect/semaprax/blob/main/docs/SOURCE-LIVE-MIGRATION-V3.md)
-contracts. Start with an injected handler or recorded input before involving
-real provider credentials.
+## Change the agent's state type
 
-## Migrate state deliberately
+When the State type changes, an old checkpoint may not fit. A migration binds
+the old and new revisions and checks the transformation. Spending carries
+across it: a new revision does not reset the budget already used. A mismatched
+predecessor is refused.
 
-When an Agent's State type changes, an old checkpoint may no longer fit the
-new source. A migration explicitly binds the old and new revisions and checks
-the transformation between their admitted state shapes.
+## Delegate to a child agent
 
-Keep cumulative accounting across the migration. A new source revision should
-not accidentally reset the budget already consumed by the task. Check that
-recovery after migration retains the operation history and refuses a mismatched
-predecessor.
+A child session runs under a grant: an allowance reserved from the parent,
+a depth limit, one profile, and the parent's deadline. A child never widens the
+deadline or overspends. Settling a child never refunds. Delegation is bounded
+and runs on the same host.
 
-The runtime API exposes migration and resumed-migration wrappers. Follow the
-linked Project or source-live profile for your workflow instead of copying state
-fields into a new checkpoint by hand.
+## Money-moving operations
 
-## Treat money-moving operations as host operations
+A model's payment proposal is input to a workflow of intent, policy, approval,
+signing, broadcast, and reconciliation. The host supplies the wallet and the
+authority. Keep simulations apart from real payments. See
+[Economic agent](https://github.com/wavect/semaprax/blob/main/docs/ECONOMIC-AGENT-V1.md).
 
-The economic-agent code separates payment intent, policy, approval, signing,
-broadcast, and reconciliation. A model-generated payment proposal is input to
-that workflow. The host supplies wallet/signing/transport implementations and
-the authority to use them.
+## Test recovery
 
-Keep a simulation or injected-handler exercise separate from an actual external
-payment. Use reconciliation to resolve an uncertain external outcome before
-attempting the operation again.
+Interrupt a run at each point and check that settled work is never repeated:
 
-## Exercise recovery before deploying the host
+1. Before dispatch.
+2. After intent is recorded.
+3. After the handler returns.
+4. After the terminal result.
 
-Test interruption before dispatch, after intent is recorded, after a handler
-returns, and after a terminal result is retained. Verify that recovery does not
-repeat settled work. Also try a changed source revision, reduced budget,
-cancelled task, and mismatched checkpoint.
+Then try a changed source revision, a lowered budget, a cancelled task, and a
+mismatched checkpoint.
 
-The [runtime source map](../reference/source-map.md) points to the implementing
-modules. The owning specifications provide the precise journal and test rules.
+**Next:** [Source map](../reference/source-map.md).
 
-**Next:** [Review the runtime and host implementation entry points](../reference/source-map.md).
-References: [Per-operation checkpoints](https://github.com/wavect/semaprax/blob/main/docs/AGENT-OPERATION-CHECKPOINT-V2.md),
-[Model budget policy](https://github.com/wavect/semaprax/blob/main/docs/MODEL-BUDGET-POLICY-V1.md),
-and [economic-agent implementation](https://github.com/wavect/semaprax/blob/main/src/economic_agent.rs).
+References: [Agent Runtime v1](https://github.com/wavect/semaprax/blob/main/docs/AGENT-RUNTIME-V1.md),
+[Runtime model routing v1](https://github.com/wavect/semaprax/blob/main/docs/RUNTIME-MODEL-ROUTING-V1.md),
+[Per-operation checkpoints](https://github.com/wavect/semaprax/blob/main/docs/AGENT-OPERATION-CHECKPOINT-V2.md),
+[Model budget policy](https://github.com/wavect/semaprax/blob/main/docs/MODEL-BUDGET-POLICY-V1.md).

@@ -1,32 +1,41 @@
 # Set up VS Code
 
-Use the editor to see diagnostics where you are working, follow stable IDs,
-and review candidate changes. Start with checking on save; add a saved-source
-session once you understand the basic project workflow.
+You will connect VS Code to your compiler, see diagnostics when you save a
+`.spx` file, and find the commands for navigation and review. The extension is
+**`wavect.semaprax`**. Its [README](https://github.com/wavect/semaprax/blob/main/editors/vscode/README.md)
+has the full command list.
 
-The repository's extension is **`wavect.semaprax`**. Its
-[setup guide](https://github.com/wavect/semaprax/blob/main/editors/vscode/README.md)
-contains installation details and the full command list.
+## 1. Install a compiler
 
-## Connect the compiler you installed
+[Install Semaprax](install.md) first. The extension never downloads or runs a
+compiler by itself.
 
-Install a compiler first (see the [installation guide](install.md)). Then click
-the **SEMAPRAX** item in the status bar, or run **SEMAPRAX: Configure Compiler**
-from the command palette, and choose **Select installed compiler...** to pick
-the `semaprax` executable with a file picker. The list also offers executables
-it found in the usual per-user install locations and on your `PATH`; those are
-only listed, and nothing runs until you select one.
+## 2. Select the compiler
 
-After you choose, the extension runs `version --json` and `help all` once on
-that file to confirm it is a Semaprax compiler, then saves its absolute path
-in your VS Code **user settings**. If the check fails, or you cancel, nothing
-changes. The status bar then shows the compiler version, or one of: select
-compiler, compiler unavailable (the file moved or was removed; select it
-again), incompatible compiler, or untrusted workspace. No dialog appears on
-every save.
+1. Open the command palette and run **SEMAPRAX: Configure Compiler**. Clicking
+   the **SEMAPRAX** status bar item does the same.
+2. Choose **Select installed compiler...** and pick the `semaprax` executable.
 
-You can still set the path yourself in user settings, replacing the example
-value below:
+The list also shows compilers it found in per-user install folders, Homebrew's
+folders, and on your `PATH`. Listing one does not run it. Other choices:
+**Re-check current compiler** and **Open installation guide**.
+
+After you pick a file, the extension runs `version --json` and `help all`
+once to confirm it is Semaprax, then saves the absolute path in your **user**
+settings. A failed check or a cancel changes nothing.
+
+The status bar item shows the state:
+
+| Status | What to do |
+| --- | --- |
+| select compiler | Run **Configure Compiler**. Diagnostics stay off until you do. |
+| compiler *x.y.z* | Ready. Hover for missing prerequisites. |
+| compiler unavailable | The file moved or was removed. Select it again. |
+| incompatible compiler | The file is not a compatible Semaprax. Select another. |
+| untrusted workspace | Trust the workspace. Nothing runs until you do. |
+
+To set the path by hand, use user settings (not workspace settings, which
+cannot choose the compiler):
 
 ```json
 {
@@ -34,38 +43,33 @@ value below:
 }
 ```
 
-An absolute path starts at the file system root, rather than being relative to
-the current project. The extension deliberately uses machine/user settings
-for tool selection; a repository's workspace settings cannot select a different
-compiler for you.
+## 3. Check a file
 
-## Check your first file
+Save an `.spx` file and read the Problems panel. Or run **SEMAPRAX: Check
+Project**. This needs only the compiler: no manifest, policy, or session.
 
-Open an `.spx` file, save it, and inspect the Problems panel. You can also open
-the command palette and run **SEMAPRAX: Check Project**.
+If a feature is missing, hover the status item. Features follow your compiler's
+`help all` list, so an older compiler offers fewer commands.
 
-Check-on-save is enabled by default and needs only the compiler: no manifest,
-host policy, or session. The extension does not download a compiler for you.
-A missing selection, a moved executable, or an older compiler that does not
-advertise a command can explain missing features even when syntax highlighting
-works; the status bar tooltip says which.
+## 4. Navigate by meaning
 
-## Navigate by meaning
+| Command | Use it to |
+| --- | --- |
+| **Go to Declaration by Stable ID** | Jump to a declaration even after a rename. |
+| **Show Callers of a Declaration** | See who calls it. |
+| **Show Ownership, Contracts, and Effects** | Inspect what the compiler knows. |
+| **Safe Rename by Stable ID** | Rename across the project. |
+| **Open Semantic Explorer** | Browse the project visually. See [Explorer](../practices/explorer.md). |
+| **Show Token Report** | Open a report snapshot you pick. See [Token reports](../practices/context-performance.md). |
+| **Inspect Agent Definition** | Read an agent's AgentGraph. |
 
-Use the command palette to find the extension's declaration, caller, and
-ownership/contract/effect commands. A stable ID selects a declaration even when
-its display name has changed. Code lenses can show that identity and related
-metadata above source declarations.
+Save files before you use results that depend on a revision. If the source
+changed, refresh the session instead of trusting an old location.
 
-Save relevant files before using revision-sensitive results. When source is
-dirty or has changed, refresh the session rather than trusting an old location
-or candidate diff.
+## 5. Review changes in a saved-source session
 
-## Add a saved-source session
-
-A saved-source session binds the editor to a particular manifest and host policy.
-The policy is the configuration that states what the local host permits.
-Configure existing, compatible files in user settings:
+A session ties the editor to a manifest and a host policy (the file that says
+what your machine permits). Set both in user settings:
 
 ```json
 {
@@ -75,43 +79,38 @@ Configure existing, compatible files in user settings:
 }
 ```
 
-Use the policy format in the extension's
+An empty `{}` is not a valid policy. The format is in the
 [technical guide](https://github.com/wavect/semaprax/blob/main/editors/vscode/TECHNICAL.md).
-An empty `{}` file is not a substitute for that policy.
+Sessions need a compiler that advertises `serve-workspace-mcp`.
 
-A typical session follows these steps:
+Then:
 
-1. Start a saved-source session and open a candidate.
-2. Select the stable target ID and inspect its change catalog.
-3. Apply the selected typed intent and preview the candidate source diff.
-4. Run the available candidate test task, then review its result.
+1. **Start Saved-Source Session**, then **Open Candidate**. A candidate is a
+   proposed revision, held in memory.
+2. **Select Stable Target ID**, then **Show Target Change Catalog**.
+3. **Apply Active Typed Intent**. A typed intent is a structured edit, not
+   free text.
+4. **Preview Candidate Source Diff**, then **Run Candidate Interpreter Tests**.
 
-A **candidate** is a proposed revision. A **typed intent** is a structured edit
-with the fields expected for that operation. Neither is a text instruction to
-rewrite arbitrary files.
+For unfinished code, use the typed-hole commands (**Open Typed Hole**, **New
+Hole Fill Scratch**, **Fill Selected Hole from Active Scratch**). They show the
+hole's context and checked fills for its type.
 
-## Use typed holes for unfinished work
+For a rejected change, **Show Compiler-Admitted Repair Catalog** lists exact
+fixes.
 
-A typed hole marks an incomplete part of a candidate. The editor can show its
-context, request checked suggestions, submit an exact fill, and complete the
-draft through the supported workflow. Keep the candidate and target revision
-together throughout that process.
+## Hot reload (opt-in)
 
-This helps when you know the type and purpose of the missing part but still
-need to choose its implementation.
+**Start Hot Reload** runs `semaprax dev` for the interpreter in a trusted
+local workspace. It checks each change, activates valid code between
+invocations, and keeps the last good version when a change is invalid. Native
+and Wasm swapping are not supported.
 
-## Inspect token reports
+## What the extension does not do
 
-**SEMAPRAX: Show Token Report** opens a local report snapshot you select.
-Create one using [Token reports and caches](../practices/context-performance.md).
-Opening it does not start a session or make a model call.
-
-## Keep review and publication separate
-
-The extension displays source diffs through read-only views and keeps candidate
-operations tied to revisions. Build, commit, approval, and publication are
-separate operations with their own authority. Complete that step through your
-chosen host workflow after reviewing the candidate.
+Build, commit, approval, publication, package installation, and native
+execution stay outside the extension. Finish those with your normal workflow
+after you review the diff.
 
 **Next:** [Inspect a project visually](../practices/explorer.md), or
 [guide a coding agent](../practices/agents.md).

@@ -1,33 +1,27 @@
 # See Semaprax in action
 
-Six commands move from a readable source file to a tested project and its
-WebAssembly package. Ernesto is along for the ride. The recorded results came
-from the source-built Semaprax v0.6.0 CLI and Node.js on committed examples.
+You will see a file checked and run, queried by meaning, and a project tested
+and built for the web. Run the commands from a repository checkout, or copy
+the examples from the [examples folder](https://github.com/wavect/semaprax/tree/main/examples).
+[Install](install.md) first.
 
 ![Animated terminal walkthrough: check, run, query, test, build, and verify](../assets/demo/first-steps.gif)
 
-The animation renders [recorded command output](../assets/demo/transcript.txt).
-It loops; the commands below let you move at your own pace.
+The animation and still image replay [recorded output](../assets/demo/transcript.txt)
+from an earlier release (v0.6.0). The commands below are unchanged.
 
-## 1. Check a program, then run it
-
-The committed [`examples/meaning.spx`](https://github.com/wavect/semaprax/blob/main/examples/meaning.spx)
-defines `math.add`, calls it with `19` and `23`, and returns the result from
-`app.main`.
+## Check and run a file
 
 ```sh
 semaprax check examples/meaning.spx
 semaprax run examples/meaning.spx
 ```
 
-The check reports a source revision; the run prints `42`.
+`check` prints a source revision. `run` prints `42`.
 
 ![Terminal still showing Semaprax check and run output](../assets/demo/check-and-run.png)
 
-The `@id("math.add")` in the source is a persistent declaration identity.
-The displayed function name is `add`; the next command shows both.
-
-## 2. Ask what the compiler knows
+## Ask what the compiler knows
 
 ```sh
 semaprax query examples/meaning.spx
@@ -38,31 +32,29 @@ function    math.add    fn add(left: i64, right: i64) -> i64
 function    app.main    fn main() -> i64
 ```
 
-`query` lists the declarations in a small, readable result. For a summary of
-their contracts, try `semaprax doc examples/meaning.spx`. For one declaration's
-neighborhood, use `semaprax context examples/meaning.spx math.add --depth 1`.
-The [agent workflow guide](../practices/agents.md) explains when to choose each
-view.
+`query` lists declarations by stable ID. Other views:
 
-## 3. Test a project and build for the web
+| Command | Answers |
+| --- | --- |
+| `semaprax doc examples/meaning.spx` | What are the contracts? |
+| `semaprax context examples/meaning.spx math.add --depth 1` | What surrounds one declaration? |
 
-The [calculator project](https://github.com/wavect/semaprax/tree/main/examples/calculator-project)
-uses multiple `.spx` files and a `semaprax.toml` manifest.
+[Agent workflow](../practices/agents.md) explains when to use each.
+
+## Test a project and build for the web
 
 ```sh
 semaprax test examples/calculator-project/semaprax.toml
 semaprax build examples/calculator-project/semaprax.toml \
   --target web -o target/handbook-demo-web
-node scripts/verify-wasm-scalar-exports.mjs target/handbook-demo-web
 ```
 
-The recorded results are `project tests passed`, `built project web package
-target/handbook-demo-web`, and `scalar-exports-v1-ok`. The package contains
-`app.wasm`, JavaScript bindings, TypeScript declarations, and an export
-descriptor. The build needs a fresh output path; if you repeat it, choose a
-new directory.
+Results: `project tests passed`, then `built project web package
+target/handbook-demo-web`. The package holds `app.wasm`, JavaScript bindings,
+TypeScript declarations, and an export descriptor. The output directory must
+not exist yet; pick a new one when you rebuild.
 
-With Node.js 22+, you can call an exported function by its stable identity:
+With Node.js 22 or newer, call an export by stable ID:
 
 ```sh
 node --input-type=module <<'JS'
@@ -80,12 +72,10 @@ JS
 { ok: true, value: 42n }
 ```
 
-The `n` marks JavaScript `BigInt` values at this `i64` boundary. The result
-is structured, so callers can also handle a reported failure.
+The `n` marks a JavaScript `BigInt`, used for `i64`. The result reports
+failure as data instead of throwing.
 
-## Make your own first step
+## Next
 
-Run the commands above from the repository root after following
-[Install](install.md). Then create a file with [First program](first-program.md)
-or scaffold a multi-file app with [First project](first-project.md). When you
-want to choose a target, continue to [Targets](../projects/targets.md).
+[Write your first program](first-program.md), or
+[scaffold a project](first-project.md).

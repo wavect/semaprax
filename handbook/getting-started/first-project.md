@@ -1,54 +1,40 @@
 # First project
 
-A project connects source files, tests, dependencies, and exports. Its
-`semaprax.toml` file is a **manifest**: a list of those inputs and choices.
-You will create a calculator project and run its checks before changing it.
+You will create a three-module calculator project, run its checks and tests,
+build it for the web, and break one test on purpose. The project's
+`semaprax.toml` is its **manifest**: it lists the modules, tests, and exports.
 
-## 1. Preview the files
-
-From a directory where you keep projects, run:
-
-```sh
-semaprax project-scaffold --name first-semaprax
-```
-
-A scaffold is a starter project. This command previews one without writing it.
-Read the proposed manifest and source paths in the output.
-
-## 2. Create the project
-
-The destination must not already exist:
+## 1. Create it
 
 ```sh
 semaprax new first-semaprax
 cd first-semaprax
 ```
 
-The default template is `calculator`. To create a different project, use a new
-destination with `--template library` or `--template service`.
-
-The key files are:
+The destination must not exist. Add `--name <project-name>` to override the
+name, or `--template library` or `--template service` for another starter.
 
 ```text
 first-semaprax/
 ├── semaprax.toml
+├── README.md
+├── AGENTS.md
 └── src/
     ├── app.spx
     ├── core.spx
     └── tests.spx
 ```
 
-`app.spx` contains the entry point. `core.spx` contains the reusable logic.
-`tests.spx` checks that logic. The generated project also supplies guidance
-for coding agents; keep it with the project.
+| File | Holds |
+| --- | --- |
+| `src/app.spx` | The entry point, `main`. |
+| `src/core.spx` | The logic: `add`. |
+| `src/tests.spx` | The tests. |
+| `AGENTS.md` | Commands and language rules for coding agents. Keep it. |
 
-The standalone `new` command creates the standard table-layout manifest.
-Use `semaprax help project-scaffold` for preview layout options. Do not add
-`--layout` to `new` unless your installed executable's help accepts it.
+## 2. Run it
 
-## 3. Run the existing project
-
-These commands now run **inside `first-semaprax/`**:
+Run these inside `first-semaprax/`:
 
 ```sh
 semaprax fmt . --check
@@ -57,64 +43,124 @@ semaprax test .
 semaprax run .
 ```
 
-The calculator entry returns `42`, and its tests should pass. Establish this
-working starting point before editing. You can also pass `semaprax.toml`
-instead of `.`.
+```text
+verified project first-semaprax (sha256:...)
+project tests passed
+42
+```
 
-## 4. Follow one call
+`fmt . --check` prints nothing when every file is canonical. Every command also
+accepts `semaprax.toml` instead of `.`.
 
-Open `src/app.spx`. Find its import and the call that uses it. Then open
-`src/core.spx` and find the matching `@id`.
+## 3. Read the files
 
-Three names have separate meanings:
+<!-- handbook-project-file: {"group":"first","path":"semaprax.toml","stdout":"42\n","test":true} -->
+```toml
+schema = "semaprax.manifest.v1"
 
-| Name | Example | Purpose |
+[package]
+name = "first-semaprax"
+version = "0.1.0"
+
+[modules]
+entry = "first_semaprax.app"
+sources = ["src/app.spx", "src/core.spx", "src/tests.spx"]
+tests = ["first_semaprax.tests"]
+
+[exports]
+web = ["first-semaprax.add"]
+```
+
+<!-- handbook-project-file: {"group":"first","path":"src/core.spx"} -->
+```semaprax
+module first_semaprax.core;
+
+@id("first-semaprax.add")
+fn add(left: i64, right: i64) -> i64
+{
+    left + right
+}
+```
+
+`src/app.spx` imports `add` by stable ID and calls it:
+
+<!-- handbook-project-file: {"group":"first","path":"src/app.spx"} -->
+```semaprax
+module first_semaprax.app;
+use function @id("first-semaprax.add") from first_semaprax.core as add;
+
+@id("first-semaprax.app.main")
+fn main() -> i64
+{
+    add(19, 23)
+}
+```
+
+<!-- handbook-project-file: {"group":"first","path":"src/tests.spx"} -->
+```semaprax
+module first_semaprax.tests;
+
+@id("first-semaprax.tests.main")
+fn main() -> i64
+{
+    if 19 + 23 == 42 { 0 } else { 1 }
+}
+```
+
+Three names do three jobs:
+
+| Name | Example | Job |
 | --- | --- | --- |
-| File path | `src/core.spx` | Where the source is stored. |
-| Module name | `calculator.core` | Which module declares a function. |
-| Stable ID | `calculator.add` | Which declaration another module imports. |
+| File path | `src/core.spx` | Where the source lives. |
+| Module | `first_semaprax.core` | Which module declares the function. |
+| Stable ID | `first-semaprax.add` | What other modules import. |
 
-The generated manifest and source are the authority for your template's exact
-names. The [modules tutorial](../projects/modules.md) builds a complete small
-example and explains each part of an import.
+`use function @id("...") from <module> as <name>;` imports by stable ID. See
+[Modules and imports](../projects/modules.md).
 
-## 5. Inspect and build
-
-List functions without dumping the entire semantic graph:
+## 4. Inspect and build
 
 ```sh
 semaprax query . --kind function
 ```
 
-Then build the calculator's selected web exports:
+```text
+src/app.spx	function	first-semaprax.app.main	fn main() -> i64
+src/core.spx	function	first-semaprax.add	fn add(left: i64, right: i64) -> i64
+src/tests.spx	function	first-semaprax.tests.main	fn main() -> i64
+```
 
 ```sh
 semaprax build . --target web -o dist/web
 ```
 
-The manifest chooses which functions become callable from the generated
-package. Building a package does not start a web server. See
-[Targets](../projects/targets.md) for the consumer step and native builds.
+The `[exports]` table in the manifest picks which functions the web package
+exposes (`first-semaprax.add`). Building does not start a server. The output
+directory must not exist yet. See [Targets](../projects/targets.md).
 
-## Make your first change
+## 5. Break a test
 
-Open one `test_*` function in `src/tests.spx`. Change its expected result to a
-wrong value and run `semaprax test .`. Notice the failing test's stable ID.
-Restore the correct value and run the suite again.
+Open `src/tests.spx` and change `19 + 23 == 42` to `19 + 23 == 41`. Run
+`semaprax test .` and read the failure. Restore the line and run it again.
 
-This small exercise teaches the feedback loop you will use for larger work:
-change one behavior, run the test that describes it, and inspect the result.
+To add named cases, write `fn test_<name>() -> i64` functions with an `@id`
+that return `0` on success. See [Testing](../practices/testing.md).
+
+## Add a module
+
+1. Create `src/<name>.spx` with `module first_semaprax.<name>;`.
+2. Add its path to `sources` in `semaprax.toml`. List a test module under `tests`.
+3. Run `semaprax check .`. Check the whole project, not a single file: a lone
+   file that imports another module reports `SPX-G172` or `SPX-T105`.
 
 ## When the manifest is rejected
 
-Semaprax expects a **canonical** manifest, meaning one accepted spelling and
-layout. Preserve generated table order, one-line arrays, and blank lines.
-Follow the first `SPX-J100` formatting hint instead of trying arbitrary TOML
-layouts. The [manifest guide](../projects/manifests.md) explains the fields.
+Semaprax accepts one canonical manifest layout. Keep the generated table order,
+one-line arrays, and blank lines, and follow the first `SPX-J100` hint. The
+[manifest guide](../projects/manifests.md) lists every field.
 
-For richer function boundaries, choose the matching
-[project profile](../projects/profiles.md). You do not need those profiles to
-finish the calculator learning path.
+`semaprax project-scaffold --name <name>` prints a starter as one JSON capsule
+without writing files. It is for tools; use `new` to create a project.
 
-**Next:** [Learn the language essentials](../language/essentials.md), or
-[write your own multi-file project](../projects/modules.md).
+**Next:** [Language essentials](../language/essentials.md), or
+[write your own modules](../projects/modules.md).

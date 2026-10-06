@@ -331,6 +331,8 @@ pub(super) fn prepare_ordinary(
 /// Converts a verified mirror candidate into a durable generation-v3 anchor.
 /// The opaque bridge value is accepted only when its ordinary checkpoint and
 /// timestamp role are exactly the candidate independently replayed below.
+/// Only the held store commits a mirror update, so this shares its host gate.
+#[cfg(any(target_os = "linux", target_os = "android", target_vendor = "apple"))]
 pub(super) fn prepare_mirror(
     old: &Generation,
     update: &Update<'_, '_>,

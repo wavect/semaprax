@@ -94,7 +94,9 @@ impl MirrorCheckpoint {
 
     /// The anchor is opaque outside the trust/host boundary. Its values are
     /// only serialized after the held generation independently binds them to
-    /// the candidate's authenticated timestamp role.
+    /// the candidate's authenticated timestamp role. Like `from_held`, its
+    /// only reader is the held store, which exists only on these hosts.
+    #[cfg(any(target_os = "linux", target_os = "android", target_vendor = "apple"))]
     pub(crate) fn anchor(&self) -> Option<(u64, &str, u64)> {
         self.last_new_timestamp
             .as_ref()

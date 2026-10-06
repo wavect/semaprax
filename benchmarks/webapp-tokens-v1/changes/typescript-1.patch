@@ -1,0 +1,9 @@
+diff --git a/shared/schema.ts b/shared/schema.ts
+index faffbe8..a16bf7f 100644
+--- a/shared/schema.ts
++++ b/shared/schema.ts
+@@ -45,2 +45,2 @@ export const entities = {
+-    ['company:string', 'contact:string', 'email:string', 'phone:string', 'tier:Tier', 'seats:int'],
+-    [sized('company', 2, 120), hasAt('email'), atLeast('seats', 1)],
++    ['company:string', 'contact:string', 'email:string', 'phone:string', 'tier:Tier', 'seats:int', 'website:string'],
++    [sized('company', 2, 120), hasAt('email'), atLeast('seats', 1), ['website must start with https://', (c) => c.website.startsWith('https://')]],

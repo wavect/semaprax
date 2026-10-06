@@ -597,3 +597,44 @@ fn status_meaning(domain: &str, code: u64) -> &'static str {
         _ => "",
     }
 }
+
+/// `webapp <file> [-o|--output dir]`: project a verified module into a
+/// generated full-stack web application (Web Application Projection v1).
+pub(super) fn webapp_command(args: &[String]) -> Result<(), u8> {
+    let mut source = None;
+    let mut output = None;
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "-o" | "--output" if output.is_none() && index + 1 < args.len() => {
+                output = Some(PathBuf::from(&args[index + 1]));
+                index += 1;
+            }
+            option if option.starts_with('-') || source.is_some() => {
+                eprintln!("unknown or repeated webapp option `{option}`");
+                return Err(2);
+            }
+            path => source = Some(PathBuf::from(path)),
+        }
+        index += 1;
+    }
+    let Some(source) = source else {
+        eprintln!("usage: semaprax webapp <file> [-o|--output dir]");
+        return Err(2);
+    };
+    let output = output.unwrap_or_else(|| PathBuf::from("webapp"));
+    let projection =
+        semaprax::webapp::generate(&source).map_err(|errors| report(&errors, false))?;
+    semaprax::webapp::write(&output, &projection).map_err(|error| report(&[error], false))?;
+    println!(
+        "webapp {} -> {}: {} entities, {} enums, {} rules, {} computed\nrun: node {}",
+        source.display(),
+        output.display(),
+        projection.entities,
+        projection.enums,
+        projection.rules,
+        projection.computed,
+        output.join("server.mjs").display()
+    );
+    Ok(())
+}

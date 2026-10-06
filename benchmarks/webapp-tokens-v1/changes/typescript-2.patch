@@ -1,0 +1,10 @@
+diff --git a/shared/schema.ts b/shared/schema.ts
+index a16bf7f..85c6258 100644
+--- a/shared/schema.ts
++++ b/shared/schema.ts
+@@ -10 +10 @@ export const enums: Record<string, string[]> = {
+-  Priority: ['Low', 'Medium', 'High', 'Urgent'],
++  Priority: ['Low', 'Medium', 'High', 'Urgent', 'Critical'],
+@@ -81 +81 @@ export const entities = {
+-      weight: (t) => t.estimate * { Low: 1, Medium: 2, High: 3, Urgent: 5 }[t.priority as string]!,
++      weight: (t) => t.estimate * { Low: 1, Medium: 2, High: 3, Urgent: 5, Critical: 8 }[t.priority as string]!,

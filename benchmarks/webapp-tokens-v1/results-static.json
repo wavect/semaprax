@@ -1,0 +1,84 @@
+{
+  "tokenizer": "@anthropic-ai/tokenizer (offline Claude BPE)",
+  "spec": 1499,
+  "arms": {
+    "typescript": {
+      "reference": 0,
+      "authored": 7045,
+      "files": 10,
+      "green": 93,
+      "session": {
+        "input": 55330,
+        "output": 7045,
+        "total": 62375
+      },
+      "vs_typescript": 1
+    },
+    "semaprax-today (lower bound)": {
+      "reference": 10737,
+      "authored": 13211,
+      "files": 9,
+      "green": 148,
+      "session": {
+        "input": 188563,
+        "output": 13211,
+        "total": 201774
+      },
+      "vs_typescript": 3.23
+    },
+    "semaprax-today (estimate)": {
+      "reference": 10737,
+      "authored": 48075,
+      "files": 9,
+      "green": 148,
+      "session": {
+        "input": 362883,
+        "output": 48075,
+        "total": 410958
+      },
+      "vs_typescript": 6.59
+    },
+    "semaprax webapp": {
+      "reference": 914,
+      "authored": 1667,
+      "files": 1,
+      "green": 64,
+      "session": {
+        "input": 6557,
+        "output": 1667,
+        "total": 8224
+      },
+      "vs_typescript": 0.13
+    }
+  },
+  "changes": {
+    "typescript": [
+      {
+        "read": 3421,
+        "edit": 134
+      },
+      {
+        "read": 2157,
+        "edit": 117
+      },
+      {
+        "read": 3115,
+        "edit": 93
+      }
+    ],
+    "semaprax": [
+      {
+        "read": 1667,
+        "edit": 65
+      },
+      {
+        "read": 1667,
+        "edit": 84
+      },
+      {
+        "read": 1667,
+        "edit": 56
+      }
+    ]
+  }
+}

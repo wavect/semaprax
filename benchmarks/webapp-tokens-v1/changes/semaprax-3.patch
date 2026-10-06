@@ -1,0 +1,18 @@
+diff --git a/teamdesk.spx b/teamdesk.spx
+index 6d64cc4..5b89c04 100644
+--- a/teamdesk.spx
++++ b/teamdesk.spx
+@@ -90,0 +91,4 @@ record Milestone {
++record Tag {
++    name: string,
++}
++
+@@ -92,0 +97 @@ record Task {
++    tag_id: i64,
+@@ -188,0 +194,6 @@ fn milestone_valid(title: string, due_day: i64) -> bool
++fn tag_valid(name: string) -> bool
++    requires string_len(name) >= 1 && string_len(name) <= 30
++{
++    true
++}
++

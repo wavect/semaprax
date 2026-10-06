@@ -1,0 +1,9 @@
+diff --git a/teamdesk.spx b/teamdesk.spx
+index 0117503..6d64cc4 100644
+--- a/teamdesk.spx
++++ b/teamdesk.spx
+@@ -27,0 +28 @@ variant Priority {
++    Critical,
+@@ -209 +210 @@ fn task_weight(priority: Priority, estimate: i64) -> i64
+-    estimate * match priority { Priority::Low {} => 1, Priority::Medium {} => 2, Priority::High {} => 3, Priority::Urgent {} => 5, }
++    estimate * match priority { Priority::Low {} => 1, Priority::Medium {} => 2, Priority::High {} => 3, Priority::Urgent {} => 5, Priority::Critical {} => 8, }

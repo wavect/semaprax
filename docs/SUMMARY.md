@@ -520,6 +520,7 @@ Audience: all documentation readers.
 - [Region structure report](REGION-REPORT-V1.md)
 - [Portable SIMD eligibility report](SIMD-REPORT-V1.md)
 - [UI dialect schema projection](UI-SCHEMA-V1.md)
+- [Web application projection](WEBAPP-PROJECTION-V1.md)
 - [Conformance trace](CONFORMANCE-TRACE-V1.md)
 
 # Internal development documentation

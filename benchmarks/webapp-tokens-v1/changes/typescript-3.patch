@@ -1,0 +1,9 @@
+diff --git a/shared/schema.ts b/shared/schema.ts
+index 85c6258..7bacc00 100644
+--- a/shared/schema.ts
++++ b/shared/schema.ts
+@@ -66,0 +67 @@ export const entities = {
++  Tag: entity(['name:string'], [sized('name', 1, 30)]),
+@@ -69 +70 @@ export const entities = {
+-      'project_id:Project', 'milestone_id:Milestone', 'member_id:Member', 'title:string', 'details:string',
++      'project_id:Project', 'milestone_id:Milestone', 'member_id:Member', 'tag_id:Tag', 'title:string', 'details:string',

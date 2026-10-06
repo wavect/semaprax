@@ -1,0 +1,22 @@
+{
+  "schema": "semaprax.webapp-tokens.live.v1",
+  "date": "2026-10-06",
+  "model": "claude sonnet (Claude Code subagent, default effort)",
+  "method": "Per-turn context sizes summed from each agent transcript (input + cache creation + cache read of every assistant turn). first_context is the fixed harness context (system prompt and tool definitions) before the task, equal across arms. task_growth is last minus first context. summed_input_net_of_fixed subtracts first_context from every turn. Authored tokens use @anthropic-ai/tokenizer over the files each agent wrote.",
+  "runs": [
+    {
+      "round": 1,
+      "prompt": "build SPEC.md, then a prescribed curl smoke test",
+      "semaprax_compiler": "webapp v1 before the prefix fix and before --self-test",
+      "semaprax": { "turns": 4, "seconds": 36, "first_context": 38787, "task_growth": 10324, "summed_input": 180645, "summed_input_net_of_fixed": 25497, "authored_tokens": 1652, "failed_compiles": 0, "spec_complete": false, "gap": "spelled time_entry functions as timeentry_*; the projection silently ignored them (now accepted, and SPX-WA105 fails closed on orphans)" },
+      "typescript": { "turns": 5, "seconds": 105, "first_context": 38981, "task_growth": 18993, "summed_input": 244645, "summed_input_net_of_fixed": 49740, "authored_bytes": 18760, "failed_compiles": 0, "spec_complete": false, "gap": "rules not reported together with reference errors" }
+    },
+    {
+      "round": 2,
+      "prompt": "build SPEC.md, then verify end to end (agent chooses how)",
+      "semaprax_compiler": "webapp v1 with run-together prefixes, SPX-WA105 and --self-test",
+      "semaprax": { "turns": 4, "seconds": 41, "first_context": 38657, "task_growth": 10248, "summed_input": 180627, "summed_input_net_of_fixed": 25999, "authored_tokens": 1664, "failed_compiles": 0, "spec_complete": true },
+      "typescript": { "turns": 5, "seconds": 115, "first_context": 38867, "task_growth": 19861, "summed_input": 256130, "summed_input_net_of_fixed": 61795, "authored_tokens": 6287, "failed_compiles": 0, "spec_complete": false, "gap": "no README naming the API paths; final client-side validation fix not re-type-checked" }
+    }
+  ]
+}

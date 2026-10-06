@@ -1,0 +1,516 @@
+module app.customer_api;
+
+permit { network.listen, network.accept, network.read, network.write, network.connect, fs.read, fs.write }
+
+@id("customer.byte_at")
+fn byte_at(view: borrow Slice<u8>, index: usize) -> u8
+{
+    match byte_get(view, index) { Option::Some { value: byte } => byte, Option::None {} => 0u8, }
+}
+
+@id("customer.at")
+fn at(view: borrow Slice<u8>, pos: usize, needle: borrow Slice<u8>) -> bool
+{
+    let count = byte_len(needle);
+    let mut index = 0usize;
+    let mut same = pos + count <= byte_len(view);
+    while index < count && same {
+        same = byte_at(view, pos + index) == byte_at(needle, index);
+        index = index + 1usize;
+        index < count && same
+    }
+    same
+}
+
+@id("customer.find")
+fn find(view: borrow Slice<u8>, from: usize, needle: borrow Slice<u8>) -> usize
+{
+    let limit = byte_len(view);
+    let mut index = from;
+    let mut found = false;
+    while index < limit && !found {
+        found = at(view, index, needle);
+        index = if found { index } else { index + 1usize };
+        index < limit && !found
+    }
+    index
+}
+
+@id("customer.find_byte")
+fn find_byte(view: borrow Slice<u8>, from: usize, to: usize, target: u8) -> usize
+{
+    let mut index = from;
+    while index < to && byte_at(view, index) != target {
+        index = index + 1usize;
+        index < to && byte_at(view, index) != target
+    }
+    index
+}
+
+@id("customer.rfind_byte")
+fn rfind_byte(view: borrow Slice<u8>, target: u8) -> usize
+{
+    let mut index = byte_len(view);
+    while index > 0usize && byte_at(view, index - 1usize) != target {
+        index = index - 1usize;
+        index > 0usize && byte_at(view, index - 1usize) != target
+    }
+    if index > 0usize { index - 1usize } else { byte_len(view) }
+}
+
+@id("customer.skip_blanks")
+fn skip_blanks(view: borrow Slice<u8>, from: usize) -> usize
+{
+    let mut index = from;
+    while byte_at(view, index) == 32u8 || byte_at(view, index) == 10u8 {
+        index = index + 1usize;
+        byte_at(view, index) == 32u8 || byte_at(view, index) == 10u8
+    }
+    index
+}
+
+@id("customer.body_start")
+fn body_start(view: borrow Slice<u8>) -> usize
+{
+    let crlf = [13u8, 10u8, 13u8, 10u8];
+    let needle = array_as_slice(crlf);
+    let at_blank = find(view, 0usize, needle);
+    if at_blank < byte_len(view) { at_blank + 4usize } else { at_blank }
+}
+
+@id("customer.key_pos")
+fn key_pos(body: borrow Slice<u8>, key: borrow str) -> usize
+{
+    let needle = str_as_bytes(key);
+    let found = find(body, 0usize, needle);
+    if found < byte_len(body) { skip_blanks(body, found + byte_len(needle)) } else { found }
+}
+
+// field codes: 0 id, 1 company, 2 contact, 3 email, 4 phone, 5 tier, 6 seats
+@id("customer.field_pos")
+fn field_pos(body: borrow Slice<u8>, field: i64) -> usize
+{
+    if field == 0 { let k = "\"id\":"; key_pos(body, string_as_str(k)) } else { if field == 1 { let k = "\"company\":"; key_pos(body, string_as_str(k)) } else { if field == 2 { let k = "\"contact\":"; key_pos(body, string_as_str(k)) } else { if field == 3 { let k = "\"email\":"; key_pos(body, string_as_str(k)) } else { if field == 4 { let k = "\"phone\":"; key_pos(body, string_as_str(k)) } else { if field == 5 { let k = "\"tier\":"; key_pos(body, string_as_str(k)) } else { let k = "\"seats\":"; key_pos(body, string_as_str(k)) } } } } } }
+}
+
+@id("customer.is_str")
+fn is_str(body: borrow Slice<u8>, start: usize) -> bool
+{
+    byte_at(body, start) == 34u8 && find_byte(body, start + 1usize, byte_len(body), 34u8) < byte_len(body)
+}
+
+// byte length of the string value starting at the opening quote
+@id("customer.str_len")
+fn str_len(body: borrow Slice<u8>, start: usize) -> usize
+{
+    find_byte(body, start + 1usize, byte_len(body), 34u8) - start - 1usize
+}
+
+@id("customer.str_has_at")
+fn str_has_at(body: borrow Slice<u8>, start: usize) -> bool
+{
+    let close = find_byte(body, start + 1usize, byte_len(body), 34u8);
+    find_byte(body, start + 1usize, close, 64u8) < close
+}
+
+@id("customer.digit_value")
+fn digit_value(byte: u8) -> i64
+{
+    match byte { 48u8 => 0, 49u8 => 1, 50u8 => 2, 51u8 => 3, 52u8 => 4, 53u8 => 5, 54u8 => 6, 55u8 => 7, 56u8 => 8, 57u8 => 9, _ => -1, }
+}
+
+@id("customer.int_at")
+fn int_at(body: borrow Slice<u8>, start: usize) -> i64
+{
+    let negative = byte_at(body, start) == 45u8;
+    let mut cursor = if negative { start + 1usize } else { start };
+    let mut value = 0;
+    let mut reading = true;
+    while reading {
+        let byte = byte_at(body, cursor);
+        reading = byte >= 48u8 && byte <= 57u8;
+        value = if reading { value * 10 + digit_value(byte) } else { value };
+        cursor = if reading { cursor + 1usize } else { cursor };
+        reading
+    }
+    if negative { 0 - value } else { value }
+}
+
+@id("customer.tier_code")
+fn tier_code(body: borrow Slice<u8>) -> i64
+{
+    let p = field_pos(body, 5);
+    let free = "\"Free\"";
+    let free_view = string_as_str(free);
+    let pro = "\"Pro\"";
+    let pro_view = string_as_str(pro);
+    let enterprise = "\"Enterprise\"";
+    let enterprise_view = string_as_str(enterprise);
+    if at(body, p, str_as_bytes(free_view)) { 0 } else { if at(body, p, str_as_bytes(pro_view)) { 1 } else { if at(body, p, str_as_bytes(enterprise_view)) { 2 } else { -1 } } }
+}
+
+// bit 1 company length, 2 email, 4 seats, 8 tier, 16 contact, 32 phone
+@id("customer.violations")
+fn violations(body: borrow Slice<u8>) -> i64
+    ensures result >= 0 && result <= 63
+{
+    let company = field_pos(body, 1);
+    let contact = field_pos(body, 2);
+    let email = field_pos(body, 3);
+    let phone = field_pos(body, 4);
+    let company_bad = !is_str(body, company) || str_len(body, company) < 2usize || str_len(body, company) > 120usize;
+    let email_bad = !is_str(body, email) || !str_has_at(body, email);
+    let seats_bad = int_at(body, field_pos(body, 6)) < 1;
+    let tier_bad = tier_code(body) < 0;
+    let contact_bad = !is_str(body, contact);
+    let phone_bad = !is_str(body, phone);
+    if company_bad { 1 } else { 0 } + if email_bad { 2 } else { 0 } + if seats_bad { 4 } else { 0 } + if tier_bad { 8 } else { 0 } + if contact_bad { 16 } else { 0 } + if phone_bad { 32 } else { 0 }
+}
+
+@id("customer.large")
+fn large(body: borrow Slice<u8>) -> bool
+{
+    tier_code(body) == 2 || int_at(body, field_pos(body, 6)) >= 100
+}
+
+@id("customer.method_of")
+fn method_of(req: borrow Slice<u8>) -> i64
+{
+    let get = "GET ";
+    let get_view = string_as_str(get);
+    let post = "POST ";
+    let post_view = string_as_str(post);
+    let put = "PUT ";
+    let put_view = string_as_str(put);
+    let delete = "DELETE ";
+    let delete_view = string_as_str(delete);
+    if at(req, 0usize, str_as_bytes(get_view)) { 1 } else { if at(req, 0usize, str_as_bytes(post_view)) { 2 } else { if at(req, 0usize, str_as_bytes(put_view)) { 3 } else { if at(req, 0usize, str_as_bytes(delete_view)) { 4 } else { 0 } } } }
+}
+
+@id("customer.path_start")
+fn path_start(req: borrow Slice<u8>) -> usize
+{
+    let method = method_of(req);
+    if method == 1 { 4usize } else { if method == 2 { 5usize } else { if method == 3 { 4usize } else { 7usize } } }
+}
+
+// position just after "/api/customer", or the request length when the path differs
+@id("customer.after_prefix")
+fn after_prefix(req: borrow Slice<u8>) -> usize
+{
+    let prefix = "/api/customer";
+    let prefix_view = string_as_str(prefix);
+    let start = path_start(req);
+    if method_of(req) > 0 && at(req, start, str_as_bytes(prefix_view)) { start + 13usize } else { byte_len(req) }
+}
+
+// the numeric id of "/api/customer/<id> ", or 0 for the collection path or no id
+@id("customer.route_id")
+fn route_id(req: borrow Slice<u8>) -> i64
+{
+    let q = after_prefix(req);
+    if byte_at(req, q) == 47u8 { int_at(req, q + 1usize) } else { 0 }
+}
+
+// 0 not found, 1 list, 2 get, 3 create, 4 update, 5 delete, 6 method not allowed
+@id("customer.route")
+fn route(req: borrow Slice<u8>) -> i64
+    ensures result >= 0 && result <= 6
+{
+    let q = after_prefix(req);
+    let method = method_of(req);
+    let collection = byte_at(req, q) == 32u8;
+    let item = byte_at(req, q) == 47u8 && route_id(req) >= 1;
+    if q >= byte_len(req) { 0 } else { if collection { if method == 1 { 1 } else { if method == 2 { 3 } else { 6 } } } else { if item { if method == 1 { 2 } else { if method == 3 { 4 } else { if method == 4 { 5 } else { 6 } } } } else { 0 } } }
+}
+
+@id("customer.piece_len")
+fn piece_len(text: borrow str) -> usize
+{
+    byte_len(str_as_bytes(text))
+}
+
+@id("customer.copy_into")
+fn copy_into(dest: own Bytes, at_pos: usize, src: borrow Slice<u8>, from: usize, to: usize) -> Bytes
+{
+    let mut buffer = dest;
+    let mut index = from;
+    while index < to {
+        buffer = bytes_set(buffer, at_pos + (index - from), byte_at(src, index));
+        index = index + 1usize;
+        index < to
+    }
+    buffer
+}
+
+// new file = file[0..a) + p1 + body[bf..bt) + p2 + file[b..)
+@id("customer.assemble")
+fn assemble(file: borrow Slice<u8>, a: usize, b: usize, p1: borrow str, body: borrow Slice<u8>, bf: usize, bt: usize, p2: borrow str) -> Bytes
+{
+    let l1 = piece_len(p1);
+    let l2 = piece_len(p2);
+    let s1 = a;
+    let s2 = s1 + l1;
+    let s3 = s2 + (bt - bf);
+    let s4 = s3 + l2;
+    let b0 = bytes_zeroed(65536usize);
+    let b1 = copy_into(b0, 0usize, file, 0usize, a);
+    let b2 = copy_into(b1, s1, str_as_bytes(p1), 0usize, l1);
+    let b3 = copy_into(b2, s2, body, bf, bt);
+    let b4 = copy_into(b3, s3, str_as_bytes(p2), 0usize, l2);
+    copy_into(b4, s4, file, b, byte_len(file))
+}
+
+@id("customer.assembled_len")
+fn assembled_len(file: borrow Slice<u8>, a: usize, b: usize, p1: borrow str, bf: usize, bt: usize, p2: borrow str) -> usize
+{
+    a + piece_len(p1) + (bt - bf) + piece_len(p2) + (byte_len(file) - b)
+}
+
+@id("customer.load")
+fn load() -> Bytes
+    uses { fs.read }
+{
+    let path = "data/customers.json";
+    let view = string_as_str(path);
+    file_read(str_as_bytes(view), piece_len(view), 65536usize)
+}
+
+@id("customer.commit")
+fn commit(file: borrow Slice<u8>, a: usize, b: usize, p1: borrow str, body: borrow Slice<u8>, bf: usize, bt: usize, p2: borrow str) -> usize
+    uses { fs.write }
+{
+    let path = "data/customers.json";
+    let view = string_as_str(path);
+    let buffer = assemble(file, a, b, p1, body, bf, bt, p2);
+    file_write_atomic(str_as_bytes(view), piece_len(view), bytes_as_slice(buffer), assembled_len(file, a, b, p1, bf, bt, p2))
+}
+
+@id("customer.rows_end")
+fn rows_end(file: borrow Slice<u8>) -> usize
+{
+    let tail = "],\"next\":";
+    let view = string_as_str(tail);
+    find(file, 0usize, str_as_bytes(view))
+}
+
+@id("customer.next_id")
+fn next_id(file: borrow Slice<u8>) -> i64
+{
+    let key = "\"next\":";
+    int_at(file, key_pos(file, string_as_str(key)))
+}
+
+@id("customer.row_pos")
+fn row_pos(file: borrow Slice<u8>, id: i64) -> usize
+{
+    let head = string_concat(string_concat("{\"id\":", string_from_i64(id)), ",");
+    let view = string_as_str(head);
+    find(file, 0usize, str_as_bytes(view))
+}
+
+@id("customer.row_end")
+fn row_end(file: borrow Slice<u8>, rs: usize) -> usize
+{
+    find_byte(file, rs, byte_len(file), 125u8) + 1usize
+}
+
+@id("customer.send_text")
+fn send_text(peer: usize, text: borrow str) -> usize
+    uses { network.write }
+{
+    net_send(peer, str_as_bytes(text))
+}
+
+@id("customer.send_head")
+fn send_head(peer: usize, code: i64) -> usize
+    uses { network.write }
+{
+    let line = string_concat(string_concat("HTTP/1.1 ", string_from_i64(code)), " X\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n");
+    send_text(peer, string_as_str(line))
+}
+
+@id("customer.send_large")
+fn send_large(peer: usize, flag: bool) -> usize
+    uses { network.write }
+{
+    let yes = ",\"large\":true}";
+    let no = ",\"large\":false}";
+    if flag { send_text(peer, string_as_str(yes)) } else { send_text(peer, string_as_str(no)) }
+}
+
+@id("customer.send_row")
+fn send_row(peer: usize, file: borrow Slice<u8>, rs: usize, re: usize) -> usize
+    uses { network.write }
+{
+    let sent = net_send(peer, byte_range(file, rs, re - 1usize));
+    sent + send_large(peer, large(byte_range(file, rs, re)))
+}
+
+@id("customer.send_new_row")
+fn send_new_row(peer: usize, id: i64, body: borrow Slice<u8>) -> usize
+    uses { network.write }
+{
+    let head = string_concat(string_concat("{\"id\":", string_from_i64(id)), ",");
+    let first = send_text(peer, string_as_str(head));
+    let inner = net_send(peer, byte_range(body, find_byte(body, 0usize, byte_len(body), 123u8) + 1usize, rfind_byte(body, 125u8)));
+    first + inner + send_large(peer, large(body))
+}
+
+@id("customer.has_rule")
+fn has_rule(mask: i64, bit: i64) -> bool
+{
+    mask / bit % 2 == 1
+}
+
+@id("customer.send_rule")
+fn send_rule(peer: usize, mask: i64, bit: i64, text: borrow str) -> usize
+    uses { network.write }
+{
+    if has_rule(mask, bit) { let comma = ","; let lead = if mask % bit != 0 { send_text(peer, string_as_str(comma)) } else { 0usize }; lead + send_text(peer, text) } else { 0usize }
+}
+
+@id("customer.send_errors")
+fn send_errors(peer: usize, mask: i64) -> usize
+    uses { network.write }
+{
+    let open = "{\"errors\":[";
+    let company = "\"company must have 2..120 bytes\"";
+    let email = "\"email must contain @\"";
+    let seats = "\"seats must be >= 1\"";
+    let tier = "\"tier must be Free, Pro or Enterprise\"";
+    let contact = "\"contact must be a string\"";
+    let phone = "\"phone must be a string\"";
+    let close = "]}";
+    send_text(peer, string_as_str(open)) + send_rule(peer, mask, 1, string_as_str(company)) + send_rule(peer, mask, 2, string_as_str(email)) + send_rule(peer, mask, 4, string_as_str(seats)) + send_rule(peer, mask, 8, string_as_str(tier)) + send_rule(peer, mask, 16, string_as_str(contact)) + send_rule(peer, mask, 32, string_as_str(phone)) + send_text(peer, string_as_str(close))
+}
+
+@id("customer.send_not_found")
+fn send_not_found(peer: usize) -> usize
+    uses { network.write }
+{
+    let text = "{\"error\":\"not found\"}";
+    send_head(peer, 404) + send_text(peer, string_as_str(text))
+}
+
+@id("customer.send_rows_from")
+fn send_rows_from(peer: usize, file: borrow Slice<u8>, pos: usize, end: usize) -> usize
+    uses { network.write }
+{
+    let key = "{\"id\":";
+    let view = string_as_str(key);
+    let comma = ",";
+    let re = row_end(file, pos);
+    let following = find(file, re, str_as_bytes(view));
+    if pos >= end { 0usize } else { let sent = send_row(peer, file, pos, re); let separator = if following < end { send_text(peer, string_as_str(comma)) } else { 0usize }; sent + separator + send_rows_from(peer, file, following, end) }
+}
+
+@id("customer.handle_list")
+fn handle_list(peer: usize, file: borrow Slice<u8>) -> usize
+    uses { network.write }
+{
+    let open = "[";
+    let close = "]";
+    let rows_key = "{\"id\":";
+    let rows_view = string_as_str(rows_key);
+    let first = find(file, 0usize, str_as_bytes(rows_view));
+    send_head(peer, 200) + send_text(peer, string_as_str(open)) + send_rows_from(peer, file, first, rows_end(file)) + send_text(peer, string_as_str(close))
+}
+
+@id("customer.handle_get")
+fn handle_get(peer: usize, file: borrow Slice<u8>, id: i64) -> usize
+    uses { network.write }
+{
+    let rs = row_pos(file, id);
+    if rs < byte_len(file) { send_head(peer, 200) + send_row(peer, file, rs, row_end(file, rs)) } else { send_not_found(peer) }
+}
+
+@id("customer.create_valid")
+fn create_valid(peer: usize, body: borrow Slice<u8>, file: borrow Slice<u8>) -> usize
+    uses { network.write, fs.write }
+{
+    let id = next_id(file);
+    let end = rows_end(file);
+    let lead = if end > 9usize { "," } else { "" };
+    let p1 = string_concat(string_concat(lead, "{\"id\":"), string_concat(string_from_i64(id), ","));
+    let p2 = string_concat(string_concat("}],\"next\":", string_from_i64(id + 1)), "}");
+    let open = find_byte(body, 0usize, byte_len(body), 123u8) + 1usize;
+    let written = commit(file, end, byte_len(file), string_as_str(p1), body, open, rfind_byte(body, 125u8), string_as_str(p2));
+    written + send_head(peer, 201) + send_new_row(peer, id, body)
+}
+
+@id("customer.handle_create")
+fn handle_create(peer: usize, req: borrow Slice<u8>, file: borrow Slice<u8>) -> usize
+    uses { network.write, fs.write }
+{
+    let body = byte_range(req, body_start(req), byte_len(req));
+    let mask = violations(body);
+    if mask != 0 { send_head(peer, 400) + send_errors(peer, mask) } else { create_valid(peer, body, file) }
+}
+
+@id("customer.handle_update")
+fn handle_update(peer: usize, req: borrow Slice<u8>, file: borrow Slice<u8>, id: i64) -> usize
+    uses { network.write, fs.write }
+{
+    let body = byte_range(req, body_start(req), byte_len(req));
+    let mask = violations(body);
+    let rs = row_pos(file, id);
+    let re = row_end(file, rs);
+    let p1 = string_concat(string_concat("{\"id\":", string_from_i64(id)), ",");
+    let p2 = "}";
+    let open = find_byte(body, 0usize, byte_len(body), 123u8) + 1usize;
+    if rs >= byte_len(file) { send_not_found(peer) } else { if mask != 0 { send_head(peer, 400) + send_errors(peer, mask) } else { commit(file, rs, re, string_as_str(p1), body, open, rfind_byte(body, 125u8), string_as_str(p2)) + send_head(peer, 200) + send_new_row(peer, id, body) } }
+}
+
+@id("customer.handle_delete")
+fn handle_delete(peer: usize, file: borrow Slice<u8>, id: i64) -> usize
+    uses { network.write, fs.write }
+{
+    let rs = row_pos(file, id);
+    let re = row_end(file, rs);
+    let trailing = byte_at(file, re) == 44u8;
+    let from = if trailing || rs <= 9usize { rs } else { rs - 1usize };
+    let to = if trailing { re + 1usize } else { re };
+    let none = "";
+    let empty = byte_range(file, 0usize, 0usize);
+    if rs >= byte_len(file) { send_not_found(peer) } else { commit(file, from, to, string_as_str(none), empty, 0usize, 0usize, string_as_str(none)) + send_head(peer, 204) }
+}
+
+@id("customer.dispatch")
+fn dispatch(peer: usize, req: borrow Slice<u8>) -> usize
+    uses { network.write, fs.read, fs.write }
+{
+    let file_bytes = load();
+    let file = bytes_as_slice(file_bytes);
+    let action = route(req);
+    let id = route_id(req);
+    if action == 1 { handle_list(peer, file) } else { if action == 2 { handle_get(peer, file, id) } else { if action == 3 { handle_create(peer, req, file) } else { if action == 4 { handle_update(peer, req, file, id) } else { if action == 5 { handle_delete(peer, file, id) } else { if action == 6 { send_head(peer, 405) } else { send_not_found(peer) } } } } } }
+}
+
+@id("customer.serve_one")
+fn serve_one() -> bool
+    uses { network.listen, network.accept, network.read, network.write, network.connect, fs.read, fs.write }
+{
+    let host = "127.0.0.1";
+    let view = string_as_str(host);
+    let listener = net_listen(str_as_bytes(view), 8080usize);
+    let peer = net_accept(listener);
+    let request = net_recv(peer, 8192usize);
+    let sent = dispatch(peer, bytes_as_slice(request));
+    let peer_closed = net_close(peer);
+    let listener_closed = net_close_listener(listener);
+    sent > 0usize && peer_closed == 0usize && listener_closed == 0usize
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    let good = "{\"company\": \"Acme\", \"contact\": \"Bo\", \"email\": \"bo@acme.io\", \"phone\": \"1\", \"tier\": \"Pro\", \"seats\": 120}";
+    let good_view = string_as_str(good);
+    let bad = "{\"company\": \"A\", \"contact\": \"Bo\", \"email\": \"nope\", \"phone\": \"1\", \"tier\": \"Gold\", \"seats\": 0}";
+    let bad_view = string_as_str(bad);
+    let req = "PUT /api/customer/42 HTTP/1.1\r\nHost: x\r\n\r\n{}";
+    let req_view = string_as_str(req);
+    let ok = violations(str_as_bytes(good_view)) == 0 && large(str_as_bytes(good_view)) && violations(str_as_bytes(bad_view)) == 15 && route(str_as_bytes(req_view)) == 4 && route_id(str_as_bytes(req_view)) == 42;
+    if ok { 0 } else { 1 }
+}

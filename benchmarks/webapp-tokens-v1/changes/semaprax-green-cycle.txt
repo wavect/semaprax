@@ -1,0 +1,3 @@
+webapp teamdesk.spx -> out: 10 entities, 7 enums, 25 rules, 10 computed
+run: node out/server.mjs
+self-test ok: 10 entities, 25 rules, 10 computed (create, read, list, update, validate, 404, 409, persist, delete)

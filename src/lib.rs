@@ -436,6 +436,7 @@ pub mod verify;
     reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
 )]
 pub mod wasm;
+pub mod webapp;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 #[doc(hidden)]
 pub mod wit_component;

@@ -1,0 +1,11 @@
+diff --git a/teamdesk.spx b/teamdesk.spx
+index d9026f0..0117503 100644
+--- a/teamdesk.spx
++++ b/teamdesk.spx
+@@ -67,0 +68 @@ record Customer {
++    website: string,
+@@ -146 +147 @@ fn member_valid(name: string, email: string) -> bool
+-fn customer_valid(company: string, email: string, seats: i64) -> bool
++fn customer_valid(company: string, email: string, seats: i64, website: string) -> bool
+@@ -149,0 +151 @@ fn customer_valid(company: string, email: string, seats: i64) -> bool
++    requires string_starts_with(website, "https://")

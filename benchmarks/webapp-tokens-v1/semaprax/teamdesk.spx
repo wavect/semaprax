@@ -1,0 +1,262 @@
+module teamdesk;
+
+variant Role {
+    Admin,
+    Manager,
+    Agent,
+    Viewer,
+}
+
+variant Tier {
+    Free,
+    Pro,
+    Enterprise,
+}
+
+variant ProjectStatus {
+    Planned,
+    Active,
+    OnHold,
+    Done,
+}
+
+variant Priority {
+    Low,
+    Medium,
+    High,
+    Urgent,
+}
+
+variant TaskStatus {
+    Todo,
+    Doing,
+    Review,
+    Done,
+}
+
+variant Severity {
+    Minor,
+    Major,
+    Critical,
+}
+
+variant TicketState {
+    Open,
+    Pending,
+    Resolved,
+    Closed,
+}
+
+record Team {
+    name: string,
+    description: string,
+}
+
+record Member {
+    team_id: i64,
+    name: string,
+    email: string,
+    role: Role,
+    active: bool,
+}
+
+record Customer {
+    company: string,
+    contact: string,
+    email: string,
+    phone: string,
+    tier: Tier,
+    seats: i64,
+}
+
+record Project {
+    team_id: i64,
+    name: string,
+    code: string,
+    status: ProjectStatus,
+    budget: f64,
+    start_day: i64,
+    due_day: i64,
+}
+
+record Milestone {
+    project_id: i64,
+    title: string,
+    due_day: i64,
+    done: bool,
+}
+
+record Task {
+    project_id: i64,
+    milestone_id: i64,
+    member_id: i64,
+    title: string,
+    details: string,
+    priority: Priority,
+    status: TaskStatus,
+    estimate: i64,
+    spent: i64,
+}
+
+record Ticket {
+    customer_id: i64,
+    member_id: i64,
+    subject: string,
+    body: string,
+    severity: Severity,
+    state: TicketState,
+    sla_hours: i64,
+    age_hours: i64,
+}
+
+record Comment {
+    task_id: i64,
+    member_id: i64,
+    body: string,
+}
+
+record TimeEntry {
+    task_id: i64,
+    member_id: i64,
+    hours: i64,
+    billable: bool,
+    rate: f64,
+}
+
+record Invoice {
+    customer_id: i64,
+    number: string,
+    amount: f64,
+    paid: bool,
+}
+
+fn team_valid(name: string) -> bool
+    requires string_len(name) >= 2 && string_len(name) <= 60
+{
+    true
+}
+
+fn member_valid(name: string, email: string) -> bool
+    requires string_len(name) >= 2 && string_len(name) <= 80
+    requires string_contains(email, "@")
+{
+    true
+}
+
+fn customer_valid(company: string, email: string, seats: i64) -> bool
+    requires string_len(company) >= 2 && string_len(company) <= 120
+    requires string_contains(email, "@")
+    requires seats >= 1
+{
+    true
+}
+
+fn customer_large(seats: i64, tier: Tier) -> bool
+{
+    seats >= 100 || match tier { Tier::Enterprise {} => true, _ => false, }
+}
+
+fn project_valid(name: string, code: string, budget: f64, start_day: i64, due_day: i64) -> bool
+    requires string_len(name) >= 2 && string_len(name) <= 80
+    requires string_len(code) >= 2 && string_len(code) <= 12
+    requires budget >= 0.0
+    requires start_day >= 0
+    requires due_day >= start_day
+{
+    true
+}
+
+fn project_duration(start_day: i64, due_day: i64) -> i64
+{
+    due_day - start_day
+}
+
+fn project_late(status: ProjectStatus, due_day: i64) -> bool
+{
+    match status { ProjectStatus::Done {} => false, _ => due_day < 100, }
+}
+
+fn milestone_valid(title: string, due_day: i64) -> bool
+    requires string_len(title) >= 2 && string_len(title) <= 120
+    requires due_day >= 0
+{
+    true
+}
+
+fn task_valid(title: string, estimate: i64, spent: i64) -> bool
+    requires string_len(title) >= 3 && string_len(title) <= 120
+    requires estimate >= 0 && estimate <= 1000
+    requires spent >= 0
+    requires spent <= estimate * 3
+{
+    true
+}
+
+fn task_remaining(status: TaskStatus, estimate: i64, spent: i64) -> i64
+{
+    match status { TaskStatus::Done {} => 0, _ => estimate - spent, }
+}
+
+fn task_overrun(estimate: i64, spent: i64) -> bool
+{
+    spent > estimate
+}
+
+fn task_weight(priority: Priority, estimate: i64) -> i64
+{
+    estimate * match priority { Priority::Low {} => 1, Priority::Medium {} => 2, Priority::High {} => 3, Priority::Urgent {} => 5, }
+}
+
+fn ticket_valid(subject: string, sla_hours: i64, age_hours: i64) -> bool
+    requires string_len(subject) >= 3 && string_len(subject) <= 160
+    requires sla_hours >= 1
+    requires age_hours >= 0
+{
+    true
+}
+
+fn ticket_breached(state: TicketState, sla_hours: i64, age_hours: i64) -> bool
+{
+    age_hours > sla_hours && match state { TicketState::Open {} => true, TicketState::Pending {} => true, _ => false, }
+}
+
+fn ticket_escalation(severity: Severity, state: TicketState, sla_hours: i64, age_hours: i64) -> string
+{
+    let critical = match severity { Severity::Critical {} => true, _ => false, };
+    if ticket_breached(state, sla_hours, age_hours) { if critical { "page" } else { "watch" } } else { "ok" }
+}
+
+fn comment_valid(body: string) -> bool
+    requires !string_is_empty(body) && string_len(body) <= 4000
+{
+    true
+}
+
+fn time_entry_valid(hours: i64, rate: f64) -> bool
+    requires hours >= 1 && hours <= 24
+    requires rate >= 0.0
+{
+    true
+}
+
+fn time_entry_amount(hours: i64, billable: bool, rate: f64) -> f64
+{
+    if billable { times(rate, hours) } else { 0.0 }
+}
+
+fn times(value: f64, count: i64) -> f64
+{
+    if count <= 0 { 0.0 } else { value + times(value, count - 1) }
+}
+
+fn invoice_valid(number: string, amount: f64) -> bool
+    requires string_starts_with(number, "INV-")
+    requires amount >= 0.0
+{
+    true
+}
+
+fn invoice_status(paid: bool) -> string
+{
+    if paid { "paid" } else { "due" }
+}

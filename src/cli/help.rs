@@ -120,6 +120,7 @@ pub(crate) enum CommandId {
     Interpret,
     InterpretStrings,
     UiSchema,
+    Webapp,
     PluginManifest,
     CxxShim,
     CxxPackage,
@@ -278,6 +279,7 @@ static COMMANDS: &[CommandSpec] = &[
     CommandSpec { id: CommandId::Interpret, canonical: "interpret", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax interpret <file> --function <name|stable-id> [--arg <scalar literal>]... [--max-bytes N]"] },
     CommandSpec { id: CommandId::InterpretStrings, canonical: "interpret-strings", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax interpret-strings <file> --function <name|stable-id> [--arg <scalar literal>]... [--max-bytes N]"] },
     CommandSpec { id: CommandId::UiSchema, canonical: "ui-schema", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax ui-schema <file> [--max-bytes N]"] },
+    CommandSpec { id: CommandId::Webapp, canonical: "webapp", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax webapp <file> [-o|--output dir]"] },
     CommandSpec { id: CommandId::PluginManifest, canonical: "plugin-manifest", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax plugin-manifest <file> [--max-bytes N]"] },
     CommandSpec { id: CommandId::CxxShim, canonical: "cxx-shim", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax cxx-shim <file> --function name|stable-id[,...] [--function ...] [--max-bytes N] [--emit-fragment]"] },
     CommandSpec { id: CommandId::CxxPackage, canonical: "cxx-package", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax cxx-package <file> --function name|stable-id[,...] [--function ...] [--max-bytes N]"] },
@@ -387,6 +389,7 @@ const LANGUAGE_TOPICS: &[(&str, &str)] = &[
         "mistakes-index",
         "Habits from other languages: diagnostic index",
     ),
+    ("web", "Web applications"),
     ("projects", "Projects"),
     ("specifications", "Where the rules live"),
 ];
@@ -1138,6 +1141,7 @@ mod tests {
         "lock",
         "resolve",
         "ui-schema",
+        "webapp",
         "plugin-manifest",
         "cxx-shim",
         "cxx-package",
@@ -1341,7 +1345,7 @@ mod tests {
         assert!(LANGUAGE_REFERENCE.contains("```semaprax\n"));
         assert!(LANGUAGE_REFERENCE.ends_with('\n'));
         let reference_units = semaprax::agent_economics::lexical_tokens(LANGUAGE_REFERENCE);
-        assert_eq!(LANGUAGE_TOPICS.len(), 13);
+        assert_eq!(LANGUAGE_TOPICS.len(), 14);
         for (selector, heading) in LANGUAGE_TOPICS {
             let topic = language_topic(selector).unwrap();
             assert!(topic.starts_with(&format!("## {heading}\n")), "{selector}");

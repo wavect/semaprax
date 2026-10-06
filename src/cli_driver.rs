@@ -3,10 +3,6 @@
     reason = "the CLI preserves structured Diagnostic values across command boundaries"
 )]
 
-use std::io::{Read as _, Write as _};
-use std::path::{Path, PathBuf};
-use std::process::{Command, ExitCode};
-
 use semaprax::diagnostic::{Diagnostic, Severity};
 use semaprax::{
     abi_report, agent_economics, agent_transport, c_header, capability_manifest, codegen, cxx_shim,
@@ -17,6 +13,9 @@ use semaprax::{
     simd_report, target_evidence, ui_schema, verify, wasm, workspace, workspace_analysis,
     workspace_graph, workspace_patch_evidence,
 };
+use std::io::{Read as _, Write as _};
+use std::path::{Path, PathBuf};
+use std::process::{Command, ExitCode};
 
 #[path = "cli/mod.rs"]
 mod cli;
@@ -1290,6 +1289,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("{envelope}");
             Ok(())
         }
+        CommandId::Webapp => webapp_command(&args[1..]),
         CommandId::UiSchema => {
             let path = required_path(&args, 1)?;
             let options = ui_schema_options(&args)?;

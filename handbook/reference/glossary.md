@@ -1,59 +1,85 @@
 # Glossary
 
-Use this page when a new word interrupts a tutorial. Each definition describes
-how the term is used in this handbook.
+Use this page when a word stops you. Each entry says how the handbook uses the
+term and, where useful, where to learn more.
 
 | Term | Meaning |
 | --- | --- |
-| ABI | The agreement about values, ownership, failure, and calling conventions across a compiled interface. |
-| Agent | A program with explicit task, state, proposal, authorization, operation, and result roles. |
-| Artifact | A produced file or package, such as a binary, report, or SDK. |
-| Backend | The implementation that executes or lowers checked code, such as the interpreter, C11 route, or Core Wasm route. |
-| Binding | A name attached to a value, as in `let count = 3;`. Some APIs also use “binding” for an exact checked association between inputs. |
-| Borrow | Temporary access to a value without taking ownership of it. |
-| Caller / callee | The function making a call / the function being called. |
-| Candidate | A proposed program revision that can be inspected and checked before publication. |
-| Canonical | Written in the one representation selected by a format's rules. |
-| Capability | Explicit authority supplied for a particular operation. |
-| Capsule | A package of revision-bound data for inspection, replay, or an evidence workflow. |
-| Checkpoint | Retained execution state used by a selected recovery protocol. |
-| Cleanup | Releasing owned values or resources in the checked order when their lifetimes end. |
-| Contract | A function's requirements and promises, written with `requires` and `ensures`. |
-| Copy scalar | A basic value, such as an integer or boolean, that can be copied without consuming its owner. |
-| Declaration | A definition that introduces something named, such as a function, type, field, or law. |
-| Diagnostic | A compiler message explaining a problem or warning, usually with a stable `SPX-...` code. |
-| Digest | A hash identifying exact bytes. A digest is not, by itself, permission to perform an operation. |
-| Effect | An operation category declared by a function, such as writing standard output. |
-| Entry point | The function where application execution starts. |
-| Evidence | Data produced or checked for a particular claim, subject, revision, and method. |
-| Export | A selected declaration made available through a package interface. |
-| Fixture | Fixed test input or a controlled implementation used to make a test reproducible. |
-| HIR | The compiler's high-level intermediate representation after names and types have been resolved. |
-| Host | The environment supplying runtime services, tools, storage, or external operation handlers. |
-| Immutable | Not reassigned or changed through the binding in question. |
-| Import | A declaration selected from another module or an explicitly provided host interface. |
-| Journal | An ordered record of execution progress used by a recovery protocol. |
-| Law | A named rule tracked independently of an implementation body. |
-| LawSet | The selected collection of laws and evidence requirements to account for. |
-| Manifest | The file describing project inputs, entry modules, tests, exports, and configuration. |
-| Module | A named group of source declarations. A `.spx` file begins with its module declaration. |
-| Move / consume | Transfer ownership so the old binding cannot be used as its former owner. |
-| Owned value | A value with a tracked owner responsible for its transfer and cleanup. |
-| Precondition | A requirement on a function's inputs, written with `requires`. |
-| Postcondition | A promise about a function's result, written with `ensures`. |
-| Profile | The particular type, ownership, execution, or packaging rules selected for a workflow. |
+| ABI | The agreement about values, ownership, failure and calling conventions across a compiled interface. |
+| Adapter | A separate program that gives the [harness](../tools/harness.md) one capability, such as repository context or command-output views. |
+| Agent | A program with explicit task, state, proposal, authorization, operation and result roles. See [Agent programs](../agents/programs.md). |
+| Artifact | A produced file or package, such as a binary, web package or OCI layout. |
+| Audit capsule | One JSON manifest of digests tying together the evidence for a decision. See [Shipping](../projects/shipping.md#check-an-audit-capsule-or-a-workflow). |
+| Authority | Permission to do something. A document with `"authority": false` or `none` grants none. |
+| Backend | What executes or lowers checked code: the interpreter, the C11 native route or the Core Wasm route. |
+| Binding | A name attached to a value, as in `let count = 3;`. |
+| Borrow | Temporary read access to a value without taking ownership of it. |
+| Bridge | The harness surface that lets an outside coding agent, such as Claude Code, use the harness. |
+| Candidate | A proposed project revision, kept as data, that can be inspected, tested and stored before anyone publishes it. |
+| Canonical | The one representation a format's rules select. `fmt` writes canonical source. |
+| Capability | Explicit authority supplied for one operation. In the harness, a kind of service such as `context.repository`. |
+| Capsule | A package of revision-bound data for inspection or replay. |
+| Checkpoint | Saved execution state used for recovery. |
+| Class | A type with fields and methods that can inherit from another class. Records have no methods. |
+| Cleanup | Releasing owned values in the checked order when their lifetimes end. |
+| Contract | A function's `requires` and `ensures` clauses. |
+| Copy scalar | A basic value such as an integer or boolean, copied without consuming its owner. |
+| Declaration | A definition that introduces a named thing: function, type, field, law. |
+| Diagnostic | A compiler message with a stable `SPX-...` code. See [Diagnostics](diagnostics.md). |
+| Digest | A hash identifying exact bytes. A digest is never permission by itself. |
+| Doctor | `semaprax doctor`, the offline toolchain report. It never searches `PATH`. |
+| Draft | A candidate that is not finished, stored so you can resume it. |
+| Effect | An operation category a function declares with `uses`, such as `process.stdout.write`. A module allows effects with `permit`. |
+| Entry point | The function where execution starts: `fn main() -> i64`. |
+| Evidence | Data produced or checked for one claim about one subject and revision. It carries no authority. |
+| Export | A declaration made available through a package interface. |
+| Fail closed | Stop with a code and change nothing, instead of guessing. |
+| Fixture | Fixed test input, or a controlled stand-in, used to make a run repeatable. |
+| Generation | One complete immutable published state of a managed workspace. |
+| Harness | Optional tooling that runs an agent-proposed repair through compiler checks. See [Harness](../tools/harness.md). |
+| Hot reload | Swapping a checked revision into a running interpreter session between calls (`semaprax dev`). |
+| HIR | The compiler's high-level representation after names and types are resolved. |
+| Host | The environment that supplies runtime services, tools, storage or operation handlers. |
+| Image | A disposable semantic summary derived from a project. It is never source. |
+| Immutable | Not reassigned through the binding in question. |
+| Import | A declaration selected from another module with `use function @id("...") from ... as ...;`. |
+| Interface | A declaration of host operations (`import fn`) with their effects and failure mode. |
+| Journal | An ordered record of progress used for recovery. |
+| JSON-RPC | The request and response framing the servers use, one JSON object per line. |
+| Law | A named rule tracked independently of any implementation. See [Laws and proofs](../language/laws.md). |
+| LawSet | The selected laws and evidence requirements a project must account for. |
+| Lock | `semaprax.lock`: the pinned identity, digests and interface of a project. |
+| Manifest | `semaprax.toml`: a project's modules, tests, exports and dependencies. |
+| MCP | Model Context Protocol, a standard way for an assistant to call tools. `service --mcp` offers one. |
+| Module | A named group of declarations. A `.spx` file begins with its `module` line. |
+| Move | Transfer ownership so the old binding cannot be used. |
+| Nonclaims | A list in a report of what it does not establish. |
+| Owned value | A value with one tracked owner responsible for its transfer and cleanup. |
+| Patch | A `.spatch` file naming a graph revision and edits by stable id. |
+| Postcondition | A promise about a result, written with `ensures`. |
+| Precondition | A requirement on inputs, written with `requires`. |
+| Profile | The rules a project selects for types, ownership, execution or packaging, such as `scalar` or `useful-data.v1`. See [Profiles](../projects/profiles.md). |
 | Proposal | Typed input describing a requested action, before authorization. |
+| Provider | In the harness, an adapter that supplies a capability. In `network-run`, the host side that answers network calls. |
 | Reducer | Checked logic that combines state and an outcome to choose the next agent step. |
+| Registry | A file listing packages and versions. Semaprax reads it offline. |
 | Replay | Rechecking retained data against the subject and rules that give it meaning. |
-| Revision | The identity of a particular source or project snapshot. |
-| Scalar | One basic value, such as a number or boolean. |
-| Semantic graph | Structured information about declarations, types, effects, contracts, and relationships. |
+| Resource | A value with a declared end of life, such as a handle. |
+| Revision | The identity of one source or project snapshot, as a `sha256:` digest. |
+| Scalar | One basic value: a number, boolean or character. |
+| Semantic graph | Structured facts about declarations, types, effects, contracts and relationships. |
+| Session protocol | A declared state machine for an interaction, checked and then erased. |
+| Skill | Passive instruction text for an agent. It is data, not code. |
 | Stable ID | The persistent identity written with `@id`, separate from the display name. |
-| Tail expression | The final expression that supplies a block's value. A loop body may require one even when its value is discarded. |
-| Target | The selected execution or output form, such as native code or WebAssembly. |
-| Typed hole | A marked incomplete part of a candidate with a known type/context for checked filling. |
-| UTF-8 | The byte encoding used for text. A Unicode character can occupy more than one byte. |
-| Variant | A type whose value is one of several named cases, each with its own fields. |
+| Stale | Based on an older revision than the current source. Stale input is refused. |
+| Subject | The exact thing an evidence document is about, such as a package or a patch. |
+| Tail expression | The last expression of a block, which gives the block its value. |
+| Target | The selected output form: `native`, `web`, `wasm`, `npm` or `oci`. |
+| Transaction | A canonical, revision-bound set of semantic edits that is validated before it is applied. |
+| Typed hole | A marked incomplete part of a candidate with a known type, filled later under checks. |
+| UTF-8 | The byte encoding of text. One character can take more than one byte. |
+| Variant | A type whose value is one of several named cases. |
+| Workspace | Several `.spx` files read or changed together as one managed set. |
 
 **Return to:** [Essentials](../language/essentials.md),
-[project profiles](../projects/profiles.md), or [Agent programs](../agents/programs.md).
+[project profiles](../projects/profiles.md) or [Agent programs](../agents/programs.md).

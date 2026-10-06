@@ -49,9 +49,16 @@
 - [Explore a project's meaning](practices/explorer.md)
 - [Measure context size and reuse checked work](practices/context-performance.md)
 
+# Tools
+
+- [Agent harness](tools/harness.md)
+- [Specialist commands](tools/specialist-commands.md)
+- [What Semaprax verifies](tools/trust.md)
+
 # Reference
 
 - [Cheatsheet](reference/cheatsheet.md)
+- [Command catalog](reference/commands.md)
 - [Glossary](reference/glossary.md)
 - [Standard library](reference/stdlib.md)
 - [Built-in functions](reference/builtins.md)

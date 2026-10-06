@@ -358,13 +358,15 @@ pub(super) fn build(program: &Program, source: &str) -> Result<Model, Vec<Diagno
                     "rename the function",
                 )])
             }
-            Kind::Computed => translator.computed(function, suffix, &bound).map(|computed| {
-                let ty = scalar(&function.return_type, &enums)
-                    .map(|ty| ty.js_name().to_owned())
-                    .unwrap_or_default();
-                entity.summary.push(format!("{suffix}:{ty}"));
-                entity.computed.push(computed);
-            }),
+            Kind::Computed => translator
+                .computed(function, suffix, &bound)
+                .map(|computed| {
+                    let ty = scalar(&function.return_type, &enums)
+                        .map(|ty| ty.js_name().to_owned())
+                        .unwrap_or_default();
+                    entity.summary.push(format!("{suffix}:{ty}"));
+                    entity.computed.push(computed);
+                }),
             Kind::Key => translator.body(function, &bound).map(|(body, fields)| {
                 entity.summary.push(format!("unique({})", fields.join(",")));
                 let fields: Vec<String> = fields.iter().map(|f| translate::js_string(f)).collect();
@@ -422,10 +424,17 @@ pub(super) fn build(program: &Program, source: &str) -> Result<Model, Vec<Diagno
         }
     }
 
-    // Unprefixed `can_read` / `can_write` are the defaults for every entity
-    // without its own; they see only the signed-in account.
+    // Unprefixed `can_read[_<name>]` / `can_write[_<name>]` are defaults for
+    // entities without a policy of their own. They see the signed-in account
+    // (`me`, `my_<field>`) and may name row fields: such a default applies to
+    // every entity that has all of those fields, and the default naming the
+    // most row fields wins.
+    let mut defaults: Vec<(Kind, Vec<(String, Ty)>, String)> = Vec::new();
     for function in &program.functions {
-        if function.name != "can_read" && function.name != "can_write" {
+        let Some(kind) = default_policy_kind(&function.name) else {
+            continue;
+        };
+        if owning_entity(&entities, &function.name).is_some() {
             continue;
         }
         let Some(account_index) = account_entity else {
@@ -436,12 +445,7 @@ pub(super) fn build(program: &Program, source: &str) -> Result<Model, Vec<Diagno
             ));
             continue;
         };
-        let kind = if function.name == "can_read" {
-            Kind::CanRead
-        } else {
-            Kind::CanWrite
-        };
-        let bound = match bind_account(function, &entities[account_index], &enums) {
+        let bound = match bind_account(function, &entities, account_index, &enums) {
             Ok(bound) => bound,
             Err(mut more) => {
                 errors.append(&mut more);
@@ -456,26 +460,53 @@ pub(super) fn build(program: &Program, source: &str) -> Result<Model, Vec<Diagno
             ));
             continue;
         }
+        let row: Vec<(String, Ty)> = bound
+            .iter()
+            .filter(|b| b.field)
+            .map(|b| (b.name.clone(), b.ty.clone()))
+            .collect();
         match translator.body(function, &bound) {
-            Ok((body, _)) => {
-                let test = format!("{{ row: false, test: (r, u) => {body} }}");
-                for entity in &mut entities {
-                    let slot = if kind == Kind::CanRead {
-                        &mut entity.can_read
-                    } else {
-                        &mut entity.can_write
-                    };
-                    slot.get_or_insert_with(|| test.clone());
-                }
-            }
+            Ok((body, _)) => defaults.push((
+                kind,
+                row.clone(),
+                format!("{{ row: {}, test: (r, u) => {body} }}", !row.is_empty()),
+            )),
             Err(mut more) => errors.append(&mut more),
+        }
+    }
+    for entity in &mut entities {
+        for kind in [Kind::CanRead, Kind::CanWrite] {
+            let applicable = defaults
+                .iter()
+                .filter(|(k, row, _)| {
+                    *k == kind
+                        && row.iter().all(|(name, ty)| {
+                            entity.fields.iter().any(|f| f.name == *name && f.ty == *ty)
+                        })
+                })
+                .fold(
+                    None::<&(Kind, Vec<(String, Ty)>, String)>,
+                    |best, candidate| match best {
+                        Some(best) if best.1.len() >= candidate.1.len() => Some(best),
+                        _ => Some(candidate),
+                    },
+                );
+            let slot = if kind == Kind::CanRead {
+                &mut entity.can_read
+            } else {
+                &mut entity.can_write
+            };
+            if let (None, Some((_, _, test))) = (slot.as_ref(), applicable) {
+                *slot = Some(test.clone());
+            }
         }
     }
 
     // A function that is neither an entity function nor reached from one
     // would be silently ignored, which usually means a misspelled prefix.
     for function in &program.functions {
-        if !matches!(function.name.as_str(), "main" | "can_read" | "can_write")
+        if function.name != "main"
+            && default_policy_kind(&function.name).is_none()
             && owning_entity(&entities, &function.name).is_none()
             && !translator.reached(&function.name)
         {
@@ -511,37 +542,57 @@ pub(super) fn build(program: &Program, source: &str) -> Result<Model, Vec<Diagno
     })
 }
 
-/// Bind `me` and `my_<field>` of the account entity, and nothing else.
+/// `can_read`, `can_write`, `can_read_<name>`, or `can_write_<name>`.
+fn default_policy_kind(name: &str) -> Option<Kind> {
+    match name {
+        "can_read" => Some(Kind::CanRead),
+        "can_write" => Some(Kind::CanWrite),
+        _ if name.starts_with("can_read_") => Some(Kind::CanRead),
+        _ if name.starts_with("can_write_") => Some(Kind::CanWrite),
+        _ => None,
+    }
+}
+
+/// Bind a default policy's parameters: `me`, `my_<account field>`, or a row
+/// field that at least one entity declares with the same type.
 fn bind_account(
     function: &Function,
-    account: &Entity,
+    entities: &[Entity],
+    account: usize,
     enums: &BTreeMap<String, Vec<String>>,
 ) -> Result<Vec<Bound>, Vec<Diagnostic>> {
     let mut bound = Vec::new();
     let mut errors = Vec::new();
     for param in &function.params {
         let ty = scalar(&param.ty, enums).filter(|_| param.mode == ParamMode::Value);
-        let js = ty.as_ref().and_then(|ty| {
+        let binding = ty.as_ref().and_then(|ty| {
             if param.name == "me" && *ty == Ty::Int {
-                return Some("u.id".to_owned());
+                return Some(("u.id".to_owned(), false));
             }
-            let field = param.name.strip_prefix("my_")?;
-            account
-                .fields
+            if let Some(field) = param.name.strip_prefix("my_") {
+                if entities[account]
+                    .fields
+                    .iter()
+                    .any(|f| f.name == field && f.ty == *ty)
+                {
+                    return Some((format!("u.{field}"), false));
+                }
+            }
+            entities
                 .iter()
-                .any(|f| f.name == field && f.ty == *ty)
-                .then(|| format!("u.{field}"))
+                .any(|e| e.fields.iter().any(|f| f.name == param.name && f.ty == *ty))
+                .then(|| (format!("r.{}", param.name), true))
         });
-        match (js, ty) {
-            (Some(js), Some(ty)) => bound.push(Bound {
+        match (binding, ty) {
+            (Some((js, field)), Some(ty)) => bound.push(Bound {
                 name: param.name.clone(),
                 js,
                 ty,
-                field: false,
+                field,
             }),
             _ => errors.push(shape_error(
                 format!(
-                    "parameter `{}` of `{}` is not `me` or `my_<account field>`",
+                    "parameter `{}` of `{}` is not `me`, `my_<account field>`, or a field some entity declares",
                     param.name, function.name
                 ),
                 param.span,
@@ -701,26 +752,41 @@ fn param_help(
             .collect()
     };
     if let Kind::Step(field) = kind {
-        let ty = entity.fields.iter().find(|f| f.name == *field).map(|f| f.ty.clone());
+        let ty = entity
+            .fields
+            .iter()
+            .find(|f| f.name == *field)
+            .map(|f| f.ty.clone());
         let name = match ty {
             Some(Ty::Enum(name)) => name,
             _ => "the field's variant".to_owned(),
         };
-        return format!("a `_step` function takes exactly two values: `(from: {name}, to: {name})`");
+        return format!(
+            "a `_step` function takes exactly two values: `(from: {name}, to: {name})`"
+        );
     }
     let mut options = typed(&entity.fields);
     if matches!(kind, Kind::CanRead | Kind::CanWrite) {
         match account {
             Some(account) => {
                 options.push("me: i64".to_owned());
-                options.extend(typed(&entities[account].fields).into_iter().map(|f| format!("my_{f}")));
+                options.extend(
+                    typed(&entities[account].fields)
+                        .into_iter()
+                        .map(|f| format!("my_{f}")),
+                );
             }
-            None => options.push("(`me`/`my_<field>` need an `<entity>_account` function)".to_owned()),
+            None => {
+                options.push("(`me`/`my_<field>` need an `<entity>_account` function)".to_owned())
+            }
         }
     }
     if *kind == Kind::Computed {
         for (child_index, child) in entities.iter().enumerate() {
-            let mut via = child.fields.iter().filter(|f| f.reference.as_deref() == Some(entity.path.as_str()));
+            let mut via = child
+                .fields
+                .iter()
+                .filter(|f| f.reference.as_deref() == Some(entity.path.as_str()));
             if via.next().is_none() || via.next().is_some() {
                 continue;
             }
@@ -729,7 +795,11 @@ fn param_help(
                 .iter()
                 .filter(|s| s.entity == child_index && !s.uses_rollups)
                 .filter_map(|s| s.ty.clone().map(|ty| (s.name.clone(), ty)));
-            let stored = child.fields.iter().filter(|f| f.reference.is_none()).map(|f| (f.name.clone(), f.ty.clone()));
+            let stored = child
+                .fields
+                .iter()
+                .filter(|f| f.reference.is_none())
+                .map(|f| (f.name.clone(), f.ty.clone()));
             for (name, ty) in stored.chain(computed) {
                 match ty {
                     Ty::Bool => options.push(format!("count_{}_{name}: i64", child.path)),

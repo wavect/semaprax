@@ -823,6 +823,8 @@ record Customer {
     tier: Tier,
     seats: i64,
 }
+    requires string_len(name) >= 2 && string_len(name) <= 80
+    requires seats >= 1
 
 record Order {
     customer_id: i64,
@@ -830,16 +832,9 @@ record Order {
     paid: bool,
 }
 
-fn customer_valid(name: string, seats: i64) -> bool
-    requires string_len(name) >= 2 && string_len(name) <= 80
-    requires seats >= 1
-{
-    true
-}
-
 fn customer_large(tier: Tier, seats: i64) -> bool
 {
-    seats >= 100 || match tier { Tier::Pro {} => true, _ => false, }
+    seats >= 100 || tier == Tier::Pro {}
 }
 
 fn order_status(paid: bool) -> string
@@ -852,8 +847,8 @@ fn order_status(paid: bool) -> string
   `i64`, `f64`, `bool`, `char`, payload-free variant. The server assigns `id`.
 - `customer_id: i64` references `Customer`: select input, missing target
   rejected, deleting a referenced row is 409.
-- `fn <entity>_valid(…) -> bool`: each `requires` line is a rule; body `true`.
-  Any other `fn <entity>_<name>(…)` is a computed field `<name>`.
+- Each `requires` line after a record is a validation rule (a record
+  invariant). Any `fn <entity>_<name>(…)` is a computed field `<name>`.
   `<entity>` is snake_case (`time_entry`) or lowercase (`timeentry`).
   Parameters are that entity's fields, same name and type.
 - Bodies: `let`, `if`/`else`, `match` (`A {} | B {}` joins payload-free
@@ -873,8 +868,10 @@ fn order_status(paid: bool) -> string
   active }` makes `Member` the sign-in entity (login field first; the server
   keeps a write-only `password`). First run: `node out/server.mjs --setup`.
 - Permissions: `fn <entity>_can_read` / `_can_write(…) -> bool` take row
-  fields plus `me: i64` and `my_<account field>`; unprefixed `can_read` /
-  `can_write` are the defaults. Audit history and CSV export are automatic.
+  fields plus `me: i64` and `my_<account field>`. Unprefixed `can_read` /
+  `can_write` (or `can_write_<name>`) are defaults; one taking row fields such
+  as `member_id: i64` covers every entity with those fields, the most
+  specific default winning. Audit history and CSV export are automatic.
 - Run `semaprax fmt app.spx && semaprax webapp app.spx -o out && node
   out/server.mjs --self-test` as one command. The self-test exercises every
   feature for every entity and role, prints the observed evidence, and ends

@@ -427,7 +427,9 @@ fn crew_staffed(role: Role, seats: i64) -> bool
         schema.contains("(m1 === \"Lead\" || m1 === \"Member\")"),
         "{schema}"
     );
+}
 
+#[test]
 fn api_listing_and_parameter_help_name_exact_options() {
     let projection = generate(&write_temp("api", V2)).unwrap();
     assert!(projection.api.starts_with(
@@ -436,9 +438,11 @@ fn api_listing_and_parameter_help_name_exact_options() {
     assert!(projection.api.contains(
         "\njob team_id->team member_id->member code:string stage:Stage hours:int cost:float | unique(team_id,code) workflow(stage) open:bool | read any, write row rule\n"
     ));
-    assert!(projection.api.contains("\nteam name:string | jobs:int cost:float | read any, write role rule\n"));
+    assert!(projection
+        .api
+        .contains("\nteam name:string | jobs:int cost:float | read any, write role rule\n"));
 
-    let wrong = V2.replace("fn team_cost(sum_job_cost: f64)", "fn team_cost(sum_job_price: f64)");
+    let wrong = V2.replace("sum_job_cost", "sum_job_price");
     let errors = generate(&write_temp("api-wrong", &wrong)).unwrap_err();
     assert_eq!(errors[0].code, "SPX-WA102");
     let help = errors[0].help.as_deref().unwrap_or("");
@@ -447,4 +451,28 @@ fn api_listing_and_parameter_help_name_exact_options() {
     assert!(help.contains("count_job_open: i64"), "{help}");
     assert!(help.contains("sum_job_cost: f64"), "{help}");
     assert!(help.contains("sum_job_hours: i64"), "{help}");
+}
+
+#[test]
+fn row_aware_default_policies_cover_matching_entities_most_specific_first() {
+    let source = V2
+        .replace(
+            "fn job_can_write(my_role: Role, member_id: i64, me: i64) -> bool\n{\n    can_write(my_role) || member_id == me\n}\n",
+            "fn can_write_own(my_role: Role, member_id: i64, me: i64) -> bool\n{\n    can_write(my_role) || member_id == me\n}\n",
+        );
+    let projection = generate(&write_temp("defaults", &source)).unwrap();
+    let schema = schema(&projection);
+    // `job` has `member_id`, so the row-aware default wins over `can_write`.
+    assert!(schema.contains(
+        "canWrite: { row: true, test: (r, u) => (f_can_write(u.role) || (r.member_id === u.id)) }"
+    ));
+    assert_eq!(schema.matches("canWrite: { row: false, test:").count(), 2);
+    let typo = source.replace(
+        "fn can_write_own(my_role: Role, member_id: i64, me: i64) -> bool\n{\n    can_write(my_role) || member_id == me",
+        "fn can_write_own(my_role: Role, owner_id: i64, me: i64) -> bool\n{\n    can_write(my_role) || owner_id == me",
+    );
+    assert_eq!(
+        generate(&write_temp("defaults-typo", &typo)).unwrap_err()[0].code,
+        "SPX-WA102"
+    );
 }

@@ -29,8 +29,12 @@ rules). The suffix selects its meaning:
 | `can_read`, `can_write` | Permission for the signed-in account | fields, `me: i64`, `my_<account field>` | `bool` |
 | anything else | v1 computed field, which may also take rollups | fields, rollups | admitted scalar |
 
-Unprefixed `can_read` / `can_write` take only `me` and `my_<field>`. They are
-the default for every entity without its own. A module may have at most one
+Unprefixed `can_read` / `can_write`, and `can_read_<name>` /
+`can_write_<name>`, are defaults for entities without a policy of their own.
+They take `me`, `my_<field>`, and row fields that some entity declares. A
+default naming row fields applies to every entity that has all of them with
+the same types. Among applicable defaults, the one naming the most row fields
+wins, and declaration order breaks ties. A module may have at most one
 `_account` function. Permissions and the defaults require one.
 
 A rollup parameter of a computed field aggregates the rows of a child entity

@@ -2899,16 +2899,28 @@ jobs:
           test -s dist/release-attestation-aarch64-apple-darwin.json
           test -s dist/release-attestation-x86_64-apple-darwin.json
           test -s dist/release-attestation-x86_64-pc-windows-msvc.json
-          gh release create "$GITHUB_REF_NAME" \
-            dist/semaprax-* dist/SHA256SUMS \
-            dist/release-manifest.json dist/release-provenance.json \
-            dist/release-provenance.bundle dist/release-signature-claim.json \
-            dist/trusted_root.jsonl \
-            dist/release-attestation-x86_64-unknown-linux-gnu.json \
-            dist/release-attestation-aarch64-unknown-linux-gnu.json \
-            dist/release-attestation-aarch64-apple-darwin.json \
-            dist/release-attestation-x86_64-apple-darwin.json \
-            dist/release-attestation-x86_64-pc-windows-msvc.json \
-            --verify-tag \
-            --title "SEMAPRAX $GITHUB_REF_NAME" \
-            --notes-file "$RUNNER_TEMP/release-notes.md"
+          # A superseded tag run must never replace the current release assets.
+          test "$(git ls-remote origin "refs/tags/$GITHUB_REF_NAME^{}" | cut -f1)" = "$GITHUB_SHA"
+          assets=(
+            dist/semaprax-* dist/SHA256SUMS
+            dist/release-manifest.json dist/release-provenance.json
+            dist/release-provenance.bundle dist/release-signature-claim.json
+            dist/trusted_root.jsonl
+            dist/release-attestation-x86_64-unknown-linux-gnu.json
+            dist/release-attestation-aarch64-unknown-linux-gnu.json
+            dist/release-attestation-aarch64-apple-darwin.json
+            dist/release-attestation-x86_64-apple-darwin.json
+            dist/release-attestation-x86_64-pc-windows-msvc.json
+          )
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "${assets[@]}" --clobber
+            gh release edit "$GITHUB_REF_NAME" \
+              --target "$GITHUB_SHA" --prerelease=false \
+              --title "SEMAPRAX $GITHUB_REF_NAME" \
+              --notes-file "$RUNNER_TEMP/release-notes.md"
+          else
+            gh release create "$GITHUB_REF_NAME" "${assets[@]}" \
+              --verify-tag \
+              --title "SEMAPRAX $GITHUB_REF_NAME" \
+              --notes-file "$RUNNER_TEMP/release-notes.md"
+          fi

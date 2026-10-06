@@ -129,7 +129,11 @@ fn publication_waits_for_all_artifacts_and_owns_the_only_write_authority() {
     ] {
         assert!(publish.contains(exact), "publication job lost: {exact}");
     }
-    assert!(!publish.contains("--prerelease"));
+    assert!(publish.contains("gh release upload \"$GITHUB_REF_NAME\" \"${assets[@]}\" --clobber"));
+    assert!(publish.contains("gh release edit \"$GITHUB_REF_NAME\""));
+    assert!(publish.contains("--prerelease=false"));
+    assert!(!publish.contains("--prerelease=true"));
+    assert!(publish.contains("git ls-remote origin \"refs/tags/$GITHUB_REF_NAME^{}\""));
     assert_eq!(workflow.matches("contents: write").count(), 1);
     for archive in [
         "semaprax-v$version-x86_64-unknown-linux-gnu.tar.gz",

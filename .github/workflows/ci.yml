@@ -1942,8 +1942,14 @@ jobs:
             cargo fetch --locked --manifest-path platform-tests/component-runtime/Cargo.toml
             cargo fetch --locked --manifest-path platform-tests/public-scalar-wit-interface/Cargo.toml
           fi
+          # The shard planner moves test targets between shards as the suite
+          # grows, so the static reference service is built for whichever
+          # shard actually runs semaprax-native-host's runtime_host target.
+          if python3 -c 'import json,sys; p=json.load(sys.stdin); s=next((x for x in p["shards"] if x["name"]==sys.argv[1]), {"targets":[]}); sys.exit(0 if any(t["name"]=="runtime_host" for t in s["targets"]) else 1)' '${{ matrix.shard }}' <<<"$plan_json"; then
+            echo "SEMAPRAX_SHARD_RUNS_REFERENCE_SERVICE=1" >> "$GITHUB_ENV"
+          fi
       - name: Build the static Linux reference service for its packaging acceptance
-        if: runner.os == 'Linux' && matrix.shard == 'integration-3'
+        if: runner.os == 'Linux' && env.SEMAPRAX_SHARD_RUNS_REFERENCE_SERVICE == '1'
         shell: bash
         env:
           CC_x86_64_unknown_linux_musl: musl-gcc

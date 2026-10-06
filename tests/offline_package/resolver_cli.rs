@@ -348,6 +348,10 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
         assert_eq!(current.matches(line).count(), 1);
         current = current.replacen(line, "", 1);
     }
+    // `webapp` (e8fd30e56) was added after this snapshot was frozen.
+    const WEBAPP_LINE: &str = "semaprax webapp <file> [-o|--output dir]\n";
+    assert_eq!(current.matches(WEBAPP_LINE).count(), 1);
+    current = current.replacen(WEBAPP_LINE, "", 1);
     const GIT_PUBLISH_LINE: &str = "semaprax project-candidate-git-publish <manifest> <capsule.json> <approved-candidate-digest> <host-policy.json>\n";
     const WORKSPACE_LINE: &str = "semaprax serve-workspace <manifest> <host-policy.json>\n";
     const PROFILE_DOCTOR_LINE: &str =

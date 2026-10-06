@@ -44,7 +44,9 @@ fn changed_launch_identity_is_refused_and_identical_identity_reuses() {
     let mut env = base.clone();
     env.forward_env.insert("EXTRA".into(), "1".into());
     let mut rt = base.clone();
-    rt.runtime_executable = Some(PathBuf::from("/usr/bin/python3"));
+    // Derived from the resolved base so it differs on every host, including
+    // one where `python3` already resolves to `/usr/bin/python3`.
+    rt.runtime_executable = Some(python().with_file_name("python3-changed-identity"));
     let mut roots = base.clone();
     roots.project_root = fx.root.clone();
     for (what, spec) in [

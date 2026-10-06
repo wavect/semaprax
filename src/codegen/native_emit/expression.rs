@@ -2041,8 +2041,10 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                 "record pattern has a variant match scrutinee",
                             ));
                         }
+                        hir::ResolvedMatchPattern::Or(alternatives) => {
+                            self.open_case_or_arm(*mode, &layout, &staged, &matched, alternatives)?
+                        }
                         hir::ResolvedMatchPattern::Literal(_)
-                        | hir::ResolvedMatchPattern::Or(_)
                         | hir::ResolvedMatchPattern::Binding(_) => {
                             return Err(backend_error(
                                 "refutable pattern has an aggregate variant match scrutinee",

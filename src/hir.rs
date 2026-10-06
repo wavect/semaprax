@@ -107,6 +107,7 @@ mod resolve_native_rust_result;
 mod resolve_pattern;
 mod resolve_program;
 mod resolve_statement;
+mod resolve_variant_or;
 mod resolve_vec_call;
 mod resolve_yield;
 mod type_reachability;

@@ -5533,8 +5533,10 @@ impl Emitter<'_> {
             crate::hir::ResolvedMatchPattern::Record { .. } => {
                 return Err(error("record pattern has a variant match scrutinee"));
             }
+            crate::hir::ResolvedMatchPattern::Or(alternatives) => {
+                self.emit_case_or_arm(emission, index, alternatives)?
+            }
             crate::hir::ResolvedMatchPattern::Literal(_)
-            | crate::hir::ResolvedMatchPattern::Or(_)
             | crate::hir::ResolvedMatchPattern::Binding(_) => {
                 return Err(error(
                     "refutable pattern has an aggregate variant match scrutinee",

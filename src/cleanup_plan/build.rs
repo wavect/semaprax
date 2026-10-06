@@ -4059,35 +4059,35 @@ impl<'a> PlanBuilder<'a> {
                             let edge = self.new_edge(decision, arm_entry, condition)?;
                             self.terminate(decision, CleanupTerminator::Goto(edge))?;
                         } else {
-                            let ResolvedMatchPattern::Variant { case, .. } = &arm.pattern else {
-                                return Err(plan_error(
-                                    "wildcard match arm must be the final exhaustive arm",
-                                ));
-                            };
-                            let next_decision = self.new_block(active_region)?;
-                            let selected = self.new_edge(
-                                decision,
-                                arm_entry,
-                                EdgeCondition::VariantCase {
-                                    scrutinee: scrutinee.id.clone(),
-                                    case: case.clone(),
-                                    matches: true,
-                                },
-                            )?;
-                            let rejected = self.new_edge(
-                                decision,
-                                next_decision,
-                                EdgeCondition::VariantCase {
-                                    scrutinee: scrutinee.id.clone(),
-                                    case: case.clone(),
-                                    matches: false,
-                                },
-                            )?;
-                            self.terminate(
-                                decision,
-                                CleanupTerminator::Branch(vec![selected, rejected]),
-                            )?;
-                            decision = next_decision;
+                            let cases = arm.pattern.variant_cases().ok_or_else(|| {
+                                plan_error("wildcard match arm must be the final exhaustive arm")
+                            })?;
+                            for case in cases {
+                                let next_decision = self.new_block(active_region)?;
+                                let selected = self.new_edge(
+                                    decision,
+                                    arm_entry,
+                                    EdgeCondition::VariantCase {
+                                        scrutinee: scrutinee.id.clone(),
+                                        case: case.clone(),
+                                        matches: true,
+                                    },
+                                )?;
+                                let rejected = self.new_edge(
+                                    decision,
+                                    next_decision,
+                                    EdgeCondition::VariantCase {
+                                        scrutinee: scrutinee.id.clone(),
+                                        case: case.clone(),
+                                        matches: false,
+                                    },
+                                )?;
+                                self.terminate(
+                                    decision,
+                                    CleanupTerminator::Branch(vec![selected, rejected]),
+                                )?;
+                                decision = next_decision;
+                            }
                         }
                         let arm_state = if let Some(arm_region) = arm_region {
                             self.prepare_variant_match_arm(
@@ -6179,35 +6179,35 @@ impl<'a> PlanBuilder<'a> {
                 let edge = self.new_edge(decision, arm_entry, condition)?;
                 self.terminate(decision, CleanupTerminator::Goto(edge))?;
             } else {
-                let ResolvedMatchPattern::Variant { case, .. } = &arm.pattern else {
-                    return Err(plan_error(
-                        "wildcard match arm must be the final exhaustive arm",
-                    ));
-                };
-                let next_decision = self.new_block(region)?;
-                let selected = self.new_edge(
-                    decision,
-                    arm_entry,
-                    EdgeCondition::VariantCase {
-                        scrutinee: scrutinee.id.clone(),
-                        case: case.clone(),
-                        matches: true,
-                    },
-                )?;
-                let rejected = self.new_edge(
-                    decision,
-                    next_decision,
-                    EdgeCondition::VariantCase {
-                        scrutinee: scrutinee.id.clone(),
-                        case: case.clone(),
-                        matches: false,
-                    },
-                )?;
-                self.terminate(
-                    decision,
-                    CleanupTerminator::Branch(vec![selected, rejected]),
-                )?;
-                decision = next_decision;
+                let cases = arm.pattern.variant_cases().ok_or_else(|| {
+                    plan_error("wildcard match arm must be the final exhaustive arm")
+                })?;
+                for case in cases {
+                    let next_decision = self.new_block(region)?;
+                    let selected = self.new_edge(
+                        decision,
+                        arm_entry,
+                        EdgeCondition::VariantCase {
+                            scrutinee: scrutinee.id.clone(),
+                            case: case.clone(),
+                            matches: true,
+                        },
+                    )?;
+                    let rejected = self.new_edge(
+                        decision,
+                        next_decision,
+                        EdgeCondition::VariantCase {
+                            scrutinee: scrutinee.id.clone(),
+                            case: case.clone(),
+                            matches: false,
+                        },
+                    )?;
+                    self.terminate(
+                        decision,
+                        CleanupTerminator::Branch(vec![selected, rejected]),
+                    )?;
+                    decision = next_decision;
+                }
             }
 
             let arm_state = if let Some(arm_region) = arm_region {

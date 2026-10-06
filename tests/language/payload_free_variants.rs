@@ -1,12 +1,14 @@
-//! Executable evidence for equality on payload-free variants.
+//! Executable evidence for equality on payload-free variants and for
+//! or-patterns over payload-free variant cases.
 //!
 //! `a == b` and `a != b` over one non-generic variant whose cases all carry no
-//! payload compare the selected case. The same corpus returns the same value in
-//! the reference interpreter, the native C backend (`run --native`), and Node's
-//! WebAssembly engine; the canonical formatter round-trips it; the graph keeps
-//! the comparison as an ordinary `binary` node over the nominal operands; and a
-//! payload-carrying or generic variant stays a stable `SPX-T207` whose help
-//! names `match`.
+//! payload compare the selected case; `A {} | B {} => …` selects one arm for
+//! several payload-free cases. Each corpus returns the same value in the
+//! reference interpreter (where its shapes are admitted), the native C backend
+//! (`run --native`), and Node's WebAssembly engine; the canonical formatter
+//! round-trips it; the graph keeps the comparison as an ordinary `binary` node
+//! and the or-pattern as an `or_pattern` of `variant_pattern` alternatives; and
+//! every rejected shape keeps a stable diagnostic.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -311,4 +313,244 @@ fn variant_equality_across_distinct_variants_is_spx_t207() {
         found[0].message,
         "equality operands must have the same type"
     );
+}
+
+const OR_PATTERNS: &str = r#"module app.orpat;
+
+@id("orpat.status")
+variant Status {
+    @id("orpat.status.todo")
+    Todo,
+    @id("orpat.status.doing")
+    Doing,
+    @id("orpat.status.review")
+    Review,
+    @id("orpat.status.done")
+    Done,
+}
+
+@id("orpat.shape")
+variant Shape {
+    @id("orpat.shape.dot")
+    Dot,
+    @id("orpat.shape.empty")
+    Empty,
+    @id("orpat.shape.square")
+    Square {
+        @id("orpat.shape.square.side")
+        side: i64,
+    },
+}
+
+@id("orpat.weight")
+fn weight(code: i64) -> i64
+{
+    let s = if code == 0 { Status::Todo {} } else { if code == 1 { Status::Doing {} } else { if code == 2 { Status::Review {} } else { Status::Done {} } } };
+    let open = match s { Status::Todo {} | Status::Doing {} | Status::Review {} => 1, Status::Done {} => 0, };
+    let late = match s { Status::Todo {} => 0, Status::Review {} | Status::Done {} => 100, Status::Doing {} => 0, };
+    open + late
+}
+
+@id("orpat.area")
+fn area(code: i64) -> i64
+{
+    let shape = if code == 0 { Shape::Dot {} } else { if code == 1 { Shape::Empty {} } else { Shape::Square { side: code } } };
+    match shape { Shape::Dot {} | Shape::Empty {} => 0, Shape::Square { side: s } => s * s, }
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    weight(0) + weight(1) * 1000 + weight(2) * 1000000 + weight(3) * 1000000000 + area(0) + area(1) * 3 + area(3) * 7
+}
+"#;
+
+const OR_PATTERNS_RESULT: &str = "100101001064";
+
+/// A wildcard after an or-pattern arm: outside the interpreter's admitted
+/// variant-match shapes, so this corpus runs on the two compiled backends.
+const OR_WILDCARD: &str = r#"module app.orwild;
+
+@id("orwild.status")
+variant Status {
+    @id("orwild.status.todo")
+    Todo,
+    @id("orwild.status.doing")
+    Doing,
+    @id("orwild.status.done")
+    Done,
+}
+
+@id("orwild.active")
+fn active(s: Status) -> bool
+{
+    match s { Status::Todo {} | Status::Doing {} => true, _ => false, }
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    let a = if (active(Status::Todo {})) { 1 } else { 0 };
+    let b = if (active(Status::Doing {})) { 10 } else { 0 };
+    let c = if (active(Status::Done {})) { 100 } else { 0 };
+    a + b + c
+}
+"#;
+
+#[test]
+fn or_patterns_verify_and_round_trip_canonically() {
+    for source in [OR_PATTERNS, OR_WILDCARD] {
+        let program = parse(source, Path::new("orpat.spx")).unwrap();
+        assert!(verify::verify(&program).is_empty());
+        let canonical = format::canonical(&program);
+        assert_eq!(canonical, source, "the corpus is already canonical");
+        let reparsed = parse(&canonical, Path::new("canonical.spx")).unwrap();
+        assert_eq!(graph::revision(&program), graph::revision(&reparsed));
+    }
+}
+
+#[test]
+fn or_pattern_graph_keeps_variant_alternatives_in_one_arm() {
+    let program = parse(OR_PATTERNS, Path::new("orpat.spx")).unwrap();
+    let json = graph::to_json(&program).unwrap();
+    assert_eq!(json, graph::to_json(&program).unwrap());
+    let wire: serde_json::Value = serde_json::from_str(&json).unwrap();
+    assert_eq!(wire["schema"], "semaprax.graph.v16");
+    let mut pending = vec![&wire];
+    let mut or_patterns = Vec::new();
+    while let Some(value) = pending.pop() {
+        match value {
+            serde_json::Value::Object(object) => {
+                if object.get("kind").and_then(|kind| kind.as_str()) == Some("or_pattern") {
+                    let cases = object["alternatives"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .map(|alternative| {
+                            assert_eq!(alternative["kind"], "variant_pattern");
+                            assert_eq!(alternative["fields"], serde_json::json!([]));
+                            alternative["case"].as_str().unwrap().to_owned()
+                        })
+                        .collect::<Vec<_>>();
+                    or_patterns.push(cases.join("|"));
+                }
+                pending.extend(object.values());
+            }
+            serde_json::Value::Array(items) => pending.extend(items),
+            _ => {}
+        }
+    }
+    or_patterns.sort();
+    assert_eq!(
+        or_patterns,
+        [
+            "orpat.shape.dot|orpat.shape.empty",
+            "orpat.status.review|orpat.status.done",
+            "orpat.status.todo|orpat.status.doing|orpat.status.review",
+        ],
+        "{json}"
+    );
+}
+
+#[test]
+fn or_patterns_agree_on_interpreter_native_and_wasm() {
+    let parsed = interpret_main(OR_PATTERNS, "or-interpret");
+    let outcome = &parsed["payload"]["outcome"];
+    assert_eq!(outcome["kind"], "returned", "{parsed}");
+    assert_eq!(outcome["value"], OR_PATTERNS_RESULT, "{parsed}");
+    if let Some((success, stdout, stderr)) = run_native(OR_PATTERNS, "or-native") {
+        assert!(success, "{stderr}");
+        assert_eq!(stdout, OR_PATTERNS_RESULT);
+    }
+    if let Some(stdout) = run_wasm(OR_PATTERNS, "or-wasm") {
+        assert_eq!(stdout, OR_PATTERNS_RESULT);
+    }
+    if let Some((success, stdout, stderr)) = run_native(OR_WILDCARD, "or-wild-native") {
+        assert!(success, "{stderr}");
+        assert_eq!(stdout, "11");
+    }
+    if let Some(stdout) = run_wasm(OR_WILDCARD, "or-wild-wasm") {
+        assert_eq!(stdout, "11");
+    }
+}
+
+#[test]
+fn rejected_or_patterns_keep_stable_diagnostics() {
+    let prefix = &OR_PATTERNS[..OR_PATTERNS.find("@id(\"orpat.weight\")").unwrap()];
+    let help = "over a record or variant scrutinee, arms admit case patterns, `_`, and `|` \
+                between payload-free cases of the scrutinee's variant \
+                (`Status::Todo {} | Status::Doing {} => ...`); literal patterns, bindings, \
+                and guards need an i64/i32/u8/char/bool scrutinee";
+    let cases: [(&str, Vec<String>); 7] = [
+        (
+            "Shape::Dot {} | Shape::Square { side: s } => 0, Shape::Empty {} => 1,",
+            vec![
+                "SPX-M105 or-pattern alternative `Shape::Square` must be a payload-free case \
+                  without bindings | match a case that carries a payload in an arm of its own"
+                    .to_owned(),
+            ],
+        ),
+        (
+            "Shape::Dot {} | Shape::Dot {} => 0, _ => 1,",
+            vec!["SPX-M102 unreachable duplicate case `Shape::Dot` | ".to_owned()],
+        ),
+        (
+            "Shape::Dot {} | Shape::Empty {} => 0,",
+            vec![
+                "SPX-M101 non-exhaustive match; missing case `Shape::Square { .. }` | ".to_owned(),
+            ],
+        ),
+        (
+            "Shape::Dot {} | Status::Todo {} => 0, _ => 1,",
+            vec![
+                "SPX-M103 pattern `Status::Todo` is incompatible with the match scrutinee | "
+                    .to_owned(),
+            ],
+        ),
+        (
+            "Shape::Dot {} | Shape::Emty {} => 0, _ => 1,",
+            vec![
+                "SPX-M103 pattern `Shape::Emty` is incompatible with the match scrutinee | \
+                  did you mean `Shape::Empty { ... }`?"
+                    .to_owned(),
+            ],
+        ),
+        (
+            "Shape::Dot {} | 3 => 0, _ => 1,",
+            vec![
+                format!(
+                    "SPX-T254 guards and literal/or/binding patterns require a Copy-scalar \
+                     scrutinee (i64/i32/u8/char/bool) | {help}"
+                ),
+                format!(
+                    "SPX-T254 or-pattern alternatives over a variant scrutinee must all be \
+                     payload-free cases of its type | {help}"
+                ),
+            ],
+        ),
+        (
+            "Shape::Dot {} | Shape::Empty {} if code > 1 => 0, _ => 1,",
+            vec![format!(
+                "SPX-T254 guards and literal/or/binding patterns require a Copy-scalar \
+                 scrutinee (i64/i32/u8/char/bool) | {help}"
+            )],
+        ),
+    ];
+    for (arms, expected) in cases {
+        let source = format!(
+            "{prefix}@id(\"app.main\")\nfn main() -> i64\n{{\n    let code = 2;\n    let shape = Shape::Dot {{}};\n    match shape {{ {arms} }}\n}}\n"
+        );
+        let rendered = diagnostics(&source)
+            .iter()
+            .map(|diagnostic| {
+                format!(
+                    "{} {} | {}",
+                    diagnostic.code,
+                    diagnostic.message,
+                    diagnostic.help.as_deref().unwrap_or("")
+                )
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(rendered, expected, "{arms}");
+    }
 }

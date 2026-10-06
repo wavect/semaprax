@@ -44,6 +44,7 @@ mod owning_closure;
 mod place;
 mod scope;
 mod type_table;
+mod variant_or;
 
 #[cfg(test)]
 mod high_water;

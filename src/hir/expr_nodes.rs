@@ -218,6 +218,25 @@ pub enum ResolvedMatchPattern {
     Binding(ResolvedBinding),
 }
 
+impl ResolvedMatchPattern {
+    /// The cases a variant-match arm tests, in authored order: the one case
+    /// of a case pattern, or every alternative of an or-pattern over
+    /// payload-free cases. `None` for every other pattern.
+    pub fn variant_cases(&self) -> Option<Vec<&DeclarationId>> {
+        match self {
+            Self::Variant { case, .. } => Some(vec![case]),
+            Self::Or(alternatives) => alternatives
+                .iter()
+                .map(|alternative| match alternative {
+                    Self::Variant { case, fields, .. } if fields.is_empty() => Some(case),
+                    _ => None,
+                })
+                .collect(),
+            Self::Record { .. } | Self::Wildcard | Self::Literal(_) | Self::Binding(_) => None,
+        }
+    }
+}
+
 /// The exact scalar value carried by [`ResolvedMatchPattern::Literal`].
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PatternValue {

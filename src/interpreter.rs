@@ -2339,51 +2339,56 @@ fn variant_pattern_is_admitted(
         if arm.guard.is_some() {
             return false;
         }
-        let hir::ResolvedMatchPattern::Variant {
-            variant,
-            case,
-            fields,
-        } = &arm.pattern
-        else {
+        let Some(patterns) = nested_owned::arm_case_patterns(&arm.pattern) else {
             return false;
         };
-        if variant != expected_variant || !seen_cases.insert(case.clone()) {
-            return false;
-        }
-        let Some(declared_fields) = concrete_variant_case_fields(declarations, ty, case) else {
-            return false;
-        };
-        if fields.len() != declared_fields.len() {
-            return false;
-        }
-        let mut seen_fields = BTreeSet::new();
-        for field in fields {
-            let Some((_, declared_ty)) = declared_fields
-                .iter()
-                .find(|(field_id, _)| *field_id == field.field)
+        for pattern in patterns {
+            let hir::ResolvedMatchPattern::Variant {
+                variant,
+                case,
+                fields,
+            } = pattern
             else {
                 return false;
             };
-            if !seen_fields.insert(field.field.clone())
-                || !seen_bindings.insert(field.binding.id.clone())
-                || field.binding.ty != *declared_ty
-            {
+            if variant != expected_variant || !seen_cases.insert(case.clone()) {
                 return false;
             }
-            let expected_ownership = if *declared_ty == ResolvedType::Bytes
-                || *declared_ty == ResolvedType::String
-                || crate::iterator_ops::is_iter(declared_ty)
-            {
-                match mode {
-                    hir::ResolvedMatchMode::Own => hir::OwnershipMode::Own,
-                    hir::ResolvedMatchMode::Borrow => hir::OwnershipMode::Borrow,
-                    hir::ResolvedMatchMode::Value => return false,
-                }
-            } else {
-                hir::OwnershipMode::Value
-            };
-            if field.binding.ownership != expected_ownership {
+            let Some(declared_fields) = concrete_variant_case_fields(declarations, ty, case) else {
                 return false;
+            };
+            if fields.len() != declared_fields.len() {
+                return false;
+            }
+            let mut seen_fields = BTreeSet::new();
+            for field in fields {
+                let Some((_, declared_ty)) = declared_fields
+                    .iter()
+                    .find(|(field_id, _)| *field_id == field.field)
+                else {
+                    return false;
+                };
+                if !seen_fields.insert(field.field.clone())
+                    || !seen_bindings.insert(field.binding.id.clone())
+                    || field.binding.ty != *declared_ty
+                {
+                    return false;
+                }
+                let expected_ownership = if *declared_ty == ResolvedType::Bytes
+                    || *declared_ty == ResolvedType::String
+                    || crate::iterator_ops::is_iter(declared_ty)
+                {
+                    match mode {
+                        hir::ResolvedMatchMode::Own => hir::OwnershipMode::Own,
+                        hir::ResolvedMatchMode::Borrow => hir::OwnershipMode::Borrow,
+                        hir::ResolvedMatchMode::Value => return false,
+                    }
+                } else {
+                    hir::OwnershipMode::Value
+                };
+                if field.binding.ownership != expected_ownership {
+                    return false;
+                }
             }
         }
     }
@@ -4812,14 +4817,13 @@ impl Evaluator<'_> {
                             "owned byte variant runtime carrier disagrees with its scrutinee",
                         ));
                     }
-                    let arm = arms
+                    let (arm, pattern) = arms
                         .iter()
-                        .find(|arm| {
-                            matches!(
-                                &arm.pattern,
-                                hir::ResolvedMatchPattern::Variant { case, .. }
-                                    if case == &variant.case
-                            )
+                        .find_map(|arm| {
+                            nested_owned::arm_case_patterns(&arm.pattern)?
+                                .iter()
+                                .find(|pattern| matches!(pattern, hir::ResolvedMatchPattern::Variant { case, .. } if case == &variant.case))
+                                .map(|pattern| (arm, pattern))
                         })
                         .ok_or(Flow::Guard(
                             "owned byte variant active case selected no exhaustive arm",
@@ -4828,7 +4832,7 @@ impl Evaluator<'_> {
                         variant: pattern_variant,
                         case: pattern_case,
                         fields,
-                    } = &arm.pattern
+                    } = pattern
                     else {
                         unreachable!("admitted owned byte variant arm is a variant pattern")
                     };

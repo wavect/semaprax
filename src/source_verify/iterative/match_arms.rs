@@ -14,6 +14,9 @@ use crate::source_verify::scope::{
     ScalarMatchState, VariantMatchState, VerifierFrame, VerifierScope,
 };
 use crate::source_verify::type_table::TypeTable;
+use crate::source_verify::variant_or::{
+    check_variant_or_pattern, VariantOrContext, AGGREGATE_REFUTABLE_HELP,
+};
 use crate::source_verify::IterativeVerifier;
 use std::collections::{BTreeSet, HashMap, HashSet};
 
@@ -282,16 +285,34 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 "record pattern is incompatible with a variant scrutinee",
                 *span,
             )),
-            MatchPattern::Literal { span, .. }
-            | MatchPattern::Or { span, .. }
-            | MatchPattern::Binding { span, .. } => {
-                self.diagnostics.push(error(
+            MatchPattern::Or { alternatives, span } => {
+                let context = VariantOrContext {
+                    variant_name: state.variant_name.as_deref(),
+                    declared_cases: state.declared_cases,
+                    mode: state.mode,
+                    wildcard_seen: state.wildcard_seen,
+                };
+                let covered = &mut state.covered;
+                check_variant_or_pattern(
                     self.program,
-                    "SPX-T254",
-                    "refutable patterns are incompatible with an aggregate variant \
-                     scrutinee",
+                    alternatives,
                     *span,
-                ));
+                    &context,
+                    &mut |case| covered.insert(case.to_owned()),
+                    self.diagnostics,
+                );
+            }
+            MatchPattern::Literal { span, .. } | MatchPattern::Binding { span, .. } => {
+                self.diagnostics.push(
+                    error(
+                        self.program,
+                        "SPX-T254",
+                        "refutable patterns are incompatible with an aggregate variant \
+                         scrutinee",
+                        *span,
+                    )
+                    .with_help(AGGREGATE_REFUTABLE_HELP),
+                );
             }
         }
         self.frames

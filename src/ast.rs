@@ -1035,6 +1035,16 @@ impl MatchPattern {
             | Self::Binding { span, .. } => *span,
         }
     }
+
+    /// An or-pattern whose every alternative is a variant case pattern: the
+    /// or-pattern shape admitted over a variant scrutinee.
+    pub fn is_variant_or(&self) -> bool {
+        matches!(self, Self::Or { alternatives, .. }
+            if !alternatives.is_empty()
+                && alternatives
+                    .iter()
+                    .all(|alternative| matches!(alternative, Self::Variant { .. })))
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

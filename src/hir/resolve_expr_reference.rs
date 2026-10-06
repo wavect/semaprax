@@ -1353,15 +1353,7 @@ impl Resolver<'_> {
                         span: expr.span,
                     });
                 }
-                let refutable_syntax = arms.iter().any(|arm| {
-                    arm.guard.is_some()
-                        || matches!(
-                            &arm.pattern,
-                            crate::ast::MatchPattern::Literal { .. }
-                                | crate::ast::MatchPattern::Or { .. }
-                                | crate::ast::MatchPattern::Binding { .. }
-                        )
-                });
+                let refutable_syntax = super::resolve_variant_or::has_scalar_only_syntax(arms);
                 if refutable_syntax {
                     return Err(self.error(
                         "SPX-T254",
@@ -1589,6 +1581,15 @@ impl Resolver<'_> {
                                 &format!("{path}.arm.{arm_index}.record"),
                                 *span,
                                 mode,
+                            )?
+                        }
+                        MatchPattern::Or { alternatives, span } if arm.pattern.is_variant_or() => {
+                            self.resolve_variant_or_pattern(
+                                &matched_type,
+                                matched_kind,
+                                mode,
+                                alternatives,
+                                *span,
                             )?
                         }
                         MatchPattern::Literal { span, .. }

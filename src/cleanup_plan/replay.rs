@@ -34,7 +34,8 @@ mod skeleton_bound;
 mod skeleton_work;
 use path_summary::{
     cleanup_inert_large_decisions_can_be_summarized, cleanup_inert_path_product_can_be_summarized,
-    plan_structure_units, status_only_paths_can_be_summarized, validate_replay_size_budget,
+    or_arm_path_counts, plan_structure_units, status_only_paths_can_be_summarized,
+    validate_replay_size_budget,
 };
 #[cfg(test)]
 use path_summary::{cleanup_plan_requires_path_replay, STATUS_ONLY_PATH_SUMMARY_THRESHOLD};
@@ -1214,6 +1215,7 @@ fn expression_path_counts(
         let mut frame = stack[len].take().expect("path-count frame retained");
         if frame.next != 0 {
             let child_index = frame.next - 1;
+            let result = or_arm_path_counts(frame.expression, child_index, result);
             match &frame.expression.kind {
                 ResolvedExprKind::If { .. } => match child_index {
                     0 => frame.first = result,
@@ -5180,59 +5182,61 @@ fn finish_match_arm(
             append_expr_paths(results, selected, work, "match selected result")?;
             continue;
         }
-        let ResolvedMatchPattern::Variant { case, .. } = &arms[index].pattern else {
-            return Err(replay_error(
+        let cases = arms[index].pattern.variant_cases().ok_or_else(|| {
+            replay_error(
                 function,
                 "wildcard match arm must be the final exhaustive arm",
-            ));
-        };
-        let mut selected = work.clone_expr_path(&path, "match selected path clone")?;
-        let selected_scrutinee =
-            work.clone_owned(&scrutinee.id, "match selected scrutinee clone")?;
-        let selected_case = work.clone_owned(case, "match selected case clone")?;
-        work.push_observation(
-            &mut selected,
-            SkeletonObservation::VariantCase {
-                scrutinee: selected_scrutinee,
-                case: selected_case,
-                matches: true,
-            },
-            "match selected observation",
-        )?;
-        prepare_selected_match_path(
-            program,
-            function,
-            expression,
-            &arms[index],
-            &mut selected,
-            work,
-        )?;
-        let selected = sequence_skeleton_paths(
-            work.singleton_path(selected, "match selected prefix")?,
-            arm_paths,
-            work,
-        )?;
-        let selected = finish_owned(
-            program,
-            function,
-            expression,
-            &arms[index].value,
-            selected,
-            work,
-        )?;
-        append_expr_paths(results, selected, work, "match selected result")?;
-        let rejected_scrutinee =
-            work.clone_owned(&scrutinee.id, "match rejected scrutinee clone")?;
-        let rejected_case = work.clone_owned(case, "match rejected case clone")?;
-        work.push_observation(
-            &mut path,
-            SkeletonObservation::VariantCase {
-                scrutinee: rejected_scrutinee,
-                case: rejected_case,
-                matches: false,
-            },
-            "match rejected observation",
-        )?;
+            )
+        })?;
+        for case in cases {
+            let mut selected = work.clone_expr_path(&path, "match selected path clone")?;
+            let selected_scrutinee =
+                work.clone_owned(&scrutinee.id, "match selected scrutinee clone")?;
+            let selected_case = work.clone_owned(case, "match selected case clone")?;
+            work.push_observation(
+                &mut selected,
+                SkeletonObservation::VariantCase {
+                    scrutinee: selected_scrutinee,
+                    case: selected_case,
+                    matches: true,
+                },
+                "match selected observation",
+            )?;
+            prepare_selected_match_path(
+                program,
+                function,
+                expression,
+                &arms[index],
+                &mut selected,
+                work,
+            )?;
+            let selected = sequence_skeleton_paths(
+                work.singleton_path(selected, "match selected prefix")?,
+                arm_paths,
+                work,
+            )?;
+            let selected = finish_owned(
+                program,
+                function,
+                expression,
+                &arms[index].value,
+                selected,
+                work,
+            )?;
+            append_expr_paths(results, selected, work, "match selected result")?;
+            let rejected_scrutinee =
+                work.clone_owned(&scrutinee.id, "match rejected scrutinee clone")?;
+            let rejected_case = work.clone_owned(case, "match rejected case clone")?;
+            work.push_observation(
+                &mut path,
+                SkeletonObservation::VariantCase {
+                    scrutinee: rejected_scrutinee,
+                    case: rejected_case,
+                    matches: false,
+                },
+                "match rejected observation",
+            )?;
+        }
         work.push_expr_path(&mut next_remaining, path, "match remaining scrutinee path")?;
     }
     Ok(next_remaining)
@@ -7544,20 +7548,6 @@ fn expression_has_nested_record_destructure(expression: &ResolvedExpr) -> bool {
                 ResolvedMatchPattern::Record { fields, .. }
                     if record_destructure::contains_nested(fields)
             ))
-        )
-    })
-}
-
-fn expression_has_explicit_variant_match(expression: &ResolvedExpr) -> bool {
-    expression_has_kind(expression, |kind| {
-        matches!(
-            kind,
-            ResolvedExprKind::Match {
-                mode: crate::hir::ResolvedMatchMode::Own | crate::hir::ResolvedMatchMode::Borrow,
-                arms,
-                ..
-            }
-                if arms.iter().any(|arm| matches!(arm.pattern, ResolvedMatchPattern::Variant { .. }))
         )
     })
 }

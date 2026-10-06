@@ -898,37 +898,42 @@ pub(super) fn bc_match(
         if arm.guard.is_some() {
             return false;
         }
-        let hir::ResolvedMatchPattern::Variant {
-            variant,
-            case,
-            fields,
-        } = &arm.pattern
-        else {
+        let Some(patterns) = arm_case_patterns(&arm.pattern) else {
             return false;
         };
-        if variant != expected_variant || !seen_cases.insert(case.clone()) {
-            return false;
-        }
-        let Some(declared_fields) = super::concrete_variant_case_fields(declarations, ty, case)
-        else {
-            return false;
-        };
-        if fields.len() != declared_fields.len() {
-            return false;
-        }
-        let mut seen_fields = BTreeSet::new();
-        for field in fields {
-            let Some((_, declared_ty)) = declared_fields
-                .iter()
-                .find(|(field_id, _)| *field_id == field.field)
+        for pattern in patterns {
+            let hir::ResolvedMatchPattern::Variant {
+                variant,
+                case,
+                fields,
+            } = pattern
             else {
                 return false;
             };
-            if !seen_fields.insert(field.field.clone())
-                || field.binding.ty != *declared_ty
-                || field.binding.ownership != hir::OwnershipMode::Value
-            {
+            if variant != expected_variant || !seen_cases.insert(case.clone()) {
                 return false;
+            }
+            let Some(declared_fields) = super::concrete_variant_case_fields(declarations, ty, case)
+            else {
+                return false;
+            };
+            if fields.len() != declared_fields.len() {
+                return false;
+            }
+            let mut seen_fields = BTreeSet::new();
+            for field in fields {
+                let Some((_, declared_ty)) = declared_fields
+                    .iter()
+                    .find(|(field_id, _)| *field_id == field.field)
+                else {
+                    return false;
+                };
+                if !seen_fields.insert(field.field.clone())
+                    || field.binding.ty != *declared_ty
+                    || field.binding.ownership != hir::OwnershipMode::Value
+                {
+                    return false;
+                }
             }
         }
     }
@@ -980,4 +985,19 @@ pub(super) fn bc_bind_fields(
         bindings.push((field.binding.id.clone(), evaluator.clone_value(value)?));
     }
     Ok(bindings)
+}
+
+/// The case patterns one arm of a variant match selects on: the arm's own
+/// case pattern, or every alternative of an or-pattern over payload-free
+/// cases. `None` for every other arm shape.
+pub(super) fn arm_case_patterns(
+    pattern: &hir::ResolvedMatchPattern,
+) -> Option<&[hir::ResolvedMatchPattern]> {
+    match pattern {
+        hir::ResolvedMatchPattern::Variant { .. } => Some(std::slice::from_ref(pattern)),
+        hir::ResolvedMatchPattern::Or(alternatives) if pattern.variant_cases().is_some() => {
+            Some(alternatives)
+        }
+        _ => None,
+    }
 }

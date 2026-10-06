@@ -104,3 +104,17 @@ fn function_has_owner_admission(
     }
     Ok(false)
 }
+
+fn expression_has_explicit_variant_match(expression: &ResolvedExpr) -> bool {
+    expression_has_kind(expression, |kind| {
+        matches!(
+            kind,
+            ResolvedExprKind::Match {
+                mode: crate::hir::ResolvedMatchMode::Own | crate::hir::ResolvedMatchMode::Borrow,
+                arms,
+                ..
+            }
+                if arms.iter().any(|arm| matches!(arm.pattern, ResolvedMatchPattern::Variant { .. }))
+        )
+    })
+}

@@ -15,6 +15,9 @@ use crate::source_verify::oracle::check_expr;
 use crate::source_verify::place::{join_definitely_partial, join_moved_places, source_place};
 use crate::source_verify::scope::pattern_literal_type;
 use crate::source_verify::type_table::TypeTable;
+use crate::source_verify::variant_or::{
+    check_variant_or_pattern, VariantOrContext, AGGREGATE_REFUTABLE_HELP,
+};
 use std::collections::{BTreeSet, HashMap, HashSet};
 
 #[allow(clippy::too_many_arguments, clippy::borrowed_box)]
@@ -375,13 +378,16 @@ pub(super) fn oracle_match(
             MatchPattern::Literal { .. }
             | MatchPattern::Or { .. }
             | MatchPattern::Binding { .. } => {
-                diagnostics.push(error(
-                    program,
-                    "SPX-T254",
-                    "refutable patterns are incompatible with an aggregate record \
-                     scrutinee",
-                    first.pattern.span(),
-                ));
+                diagnostics.push(
+                    error(
+                        program,
+                        "SPX-T254",
+                        "refutable patterns are incompatible with an aggregate record \
+                         scrutinee",
+                        first.pattern.span(),
+                    )
+                    .with_help(AGGREGATE_REFUTABLE_HELP),
+                );
             }
         }
         let result = check_expr(
@@ -696,16 +702,33 @@ pub(super) fn oracle_match(
                 "record pattern is incompatible with a variant scrutinee",
                 *span,
             )),
-            MatchPattern::Literal { span, .. }
-            | MatchPattern::Or { span, .. }
-            | MatchPattern::Binding { span, .. } => {
-                diagnostics.push(error(
+            MatchPattern::Or { alternatives, span } => {
+                let context = VariantOrContext {
+                    variant_name: variant_name.as_deref(),
+                    declared_cases,
+                    mode: *mode,
+                    wildcard_seen,
+                };
+                check_variant_or_pattern(
                     program,
-                    "SPX-T254",
-                    "refutable patterns are incompatible with an aggregate variant \
-                     scrutinee",
+                    alternatives,
                     *span,
-                ));
+                    &context,
+                    &mut |case| covered.insert(case),
+                    diagnostics,
+                );
+            }
+            MatchPattern::Literal { span, .. } | MatchPattern::Binding { span, .. } => {
+                diagnostics.push(
+                    error(
+                        program,
+                        "SPX-T254",
+                        "refutable patterns are incompatible with an aggregate variant \
+                         scrutinee",
+                        *span,
+                    )
+                    .with_help(AGGREGATE_REFUTABLE_HELP),
+                );
             }
         }
         let arm_value = check_expr(

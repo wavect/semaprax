@@ -311,6 +311,36 @@ fn scalar_frame_machine_matches_recursive_oracle() {
     compare_scalar_body(
             "module t; @id(\"t.pair\") record Pair { @id(\"t.pair.x\") x: i64, } fn main(pair: Pair) -> i64 { pair.x }",
         );
+    compare_scalar_body(
+            "module t; @id(\"t.shape\") variant Shape { @id(\"t.shape.dot\") Dot, @id(\"t.shape.empty\") Empty, @id(\"t.shape.square\") Square { @id(\"t.shape.square.side\") side: i64, }, } fn main(shape: Shape) -> i64 { match shape { Shape::Dot {} | Shape::Empty {} => 0, Shape::Square { side: s } => s, } }",
+        );
+    compare_scalar_body(
+            "module t; @id(\"t.shape\") variant Shape { @id(\"t.shape.dot\") Dot, @id(\"t.shape.empty\") Empty, @id(\"t.shape.square\") Square { @id(\"t.shape.square.side\") side: i64, }, } fn main(shape: Shape) -> i64 { match shape { Shape::Square { side: s } => s, Shape::Empty {} | Shape::Dot {} => 0, } }",
+        );
+    compare_scalar_body(
+            "module t; @id(\"t.shape\") variant Shape { @id(\"t.shape.dot\") Dot, @id(\"t.shape.empty\") Empty, @id(\"t.shape.square\") Square { @id(\"t.shape.square.side\") side: i64, }, } fn main(shape: Shape) -> i64 { match shape { Shape::Dot {} | Shape::Square { side: s } => s, Shape::Empty {} => 1, } }",
+        );
+    compare_scalar_body(
+            "module t; @id(\"t.shape\") variant Shape { @id(\"t.shape.dot\") Dot, @id(\"t.shape.empty\") Empty, @id(\"t.shape.square\") Square { @id(\"t.shape.square.side\") side: i64, }, } fn main(shape: Shape) -> i64 { match shape { Shape::Dot {} | Shape::Dot {} => 0, _ => 1, } }",
+        );
+    compare_scalar_body(
+            "module t; @id(\"t.shape\") variant Shape { @id(\"t.shape.dot\") Dot, @id(\"t.shape.empty\") Empty, @id(\"t.shape.square\") Square { @id(\"t.shape.square.side\") side: i64, }, } fn main(shape: Shape) -> i64 { match shape { Shape::Dot {} | Shape::Empty {} => 0, } }",
+        );
+    compare_scalar_body(
+            "module t; @id(\"t.shape\") variant Shape { @id(\"t.shape.dot\") Dot, @id(\"t.shape.empty\") Empty, @id(\"t.shape.square\") Square { @id(\"t.shape.square.side\") side: i64, }, } fn main(shape: Shape) -> i64 { match shape { _ => 1, Shape::Dot {} | Shape::Emty {} => 0, } }",
+        );
+    compare_scalar_body(
+            "module t; @id(\"t.shape\") variant Shape { @id(\"t.shape.dot\") Dot, @id(\"t.shape.empty\") Empty, @id(\"t.shape.square\") Square { @id(\"t.shape.square.side\") side: i64, }, } fn main(left: Shape, right: Shape) -> bool { left == right }",
+        );
+    compare_scalar_body(
+            "module t; @id(\"t.shape\") variant Shape { @id(\"t.shape.dot\") Dot, @id(\"t.shape.empty\") Empty, @id(\"t.shape.square\") Square { @id(\"t.shape.square.side\") side: i64, }, } fn main(left: Shape) -> bool { left != Shape::Dot {} }",
+        );
+    compare_scalar_body(
+            "module t; @id(\"t.status\") variant Status { @id(\"t.status.todo\") Todo, @id(\"t.status.done\") Done, } fn main(left: Status, right: Status) -> bool { left == right && left != Status::Done {} }",
+        );
+    compare_scalar_body(
+            "module t; @id(\"t.status\") variant Status { @id(\"t.status.todo\") Todo, @id(\"t.status.done\") Done, } fn main(left: Status) -> bool { left == 1 }",
+        );
     compare_scalar_body("module t; fn main() -> i64 { missing.field }");
     compare_scalar_body("module t; fn main() -> i64 { missing? }");
 }

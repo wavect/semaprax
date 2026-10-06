@@ -10,6 +10,7 @@ use crate::source_verify::place::source_place;
 use crate::source_verify::scope::{
     pattern_literal_type, ScalarMatchState, VariantMatchState, VerifierFrame, VerifierScope,
 };
+use crate::source_verify::variant_or::AGGREGATE_REFUTABLE_HELP;
 use crate::source_verify::IterativeVerifier;
 use std::collections::HashSet;
 
@@ -171,21 +172,24 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         }
         let refutable_syntax = arms.iter().any(|arm| {
             arm.guard.is_some()
-                || matches!(
+                || (matches!(
                     &arm.pattern,
                     MatchPattern::Literal { .. }
                         | MatchPattern::Or { .. }
                         | MatchPattern::Binding { .. }
-                )
+                ) && !arm.pattern.is_variant_or())
         });
         if refutable_syntax {
-            self.diagnostics.push(error(
-                self.program,
-                "SPX-T254",
-                "guards and literal/or/binding patterns require a Copy-scalar \
-                 scrutinee (i64/i32/u8/char/bool)",
-                scrutinee.span,
-            ));
+            self.diagnostics.push(
+                error(
+                    self.program,
+                    "SPX-T254",
+                    "guards and literal/or/binding patterns require a Copy-scalar \
+                     scrutinee (i64/i32/u8/char/bool)",
+                    scrutinee.span,
+                )
+                .with_help(AGGREGATE_REFUTABLE_HELP),
+            );
         }
         if scrutinee_value
             .as_ref()
@@ -344,13 +348,16 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 MatchPattern::Literal { .. }
                 | MatchPattern::Or { .. }
                 | MatchPattern::Binding { .. } => {
-                    self.diagnostics.push(error(
-                        self.program,
-                        "SPX-T254",
-                        "refutable patterns are incompatible with an aggregate \
-                         record scrutinee",
-                        first.pattern.span(),
-                    ));
+                    self.diagnostics.push(
+                        error(
+                            self.program,
+                            "SPX-T254",
+                            "refutable patterns are incompatible with an aggregate \
+                             record scrutinee",
+                            first.pattern.span(),
+                        )
+                        .with_help(AGGREGATE_REFUTABLE_HELP),
+                    );
                 }
             }
             self.frames.push(VerifierFrame::ResumeRecordMatchArm {

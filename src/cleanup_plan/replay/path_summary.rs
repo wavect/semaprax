@@ -143,3 +143,25 @@ pub(super) fn validate_replay_size_budget(function: &ResolvedFunction) -> Result
 pub(super) fn has_active_paths(paths: &[ExprSkeletonPath]) -> bool {
     paths.iter().any(|path| !path.failed && !path.residual)
 }
+
+/// An or-pattern arm of a variant match is selected through one decision per
+/// alternative, so every path through its value repeats once per alternative.
+pub(super) fn or_arm_path_counts(
+    expression: &ResolvedExpr,
+    child_index: usize,
+    result: HirPathCounts,
+) -> HirPathCounts {
+    let ResolvedExprKind::Match { arms, .. } = &expression.kind else {
+        return result;
+    };
+    let alternatives = child_index
+        .checked_sub(1)
+        .and_then(|arm| arms.get(arm))
+        .and_then(|arm| arm.pattern.variant_cases())
+        .map_or(1, |cases| cases.len());
+    HirPathCounts {
+        normal: result.normal.saturating_mul(alternatives),
+        failed: result.failed.saturating_mul(alternatives),
+        residual: result.residual.saturating_mul(alternatives),
+    }
+}

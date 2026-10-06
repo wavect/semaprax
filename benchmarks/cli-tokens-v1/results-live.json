@@ -1,0 +1,27 @@
+{
+  "schema": "semaprax.cli-tokens.live.v1",
+  "date": "2026-10-07",
+  "model": "claude-sonnet-5-5 (Claude Code subagent)",
+  "method": "Same as ../webapp-tokens-v2: per-turn context sizes from the transcript, cost from ../webapp-tokens-v2/cost.mjs (input exact, output a lower bound).",
+  "runs": [
+    {
+      "round": 1,
+      "semaprax_compiler": "main at f106fcebe (no text-processing work yet)",
+      "semaprax": {
+        "turns": 76, "task_growth": 99661, "summed_input": 7315212, "summed_input_net_of_fixed": 4363904,
+        "usd_lower_bound": 1.9385, "completed": false,
+        "blockers": [
+          "SPX-U105: a `let mut` binding holds only Copy scalars, so text cannot be accumulated",
+          "SPX-T252: string literals and string-producing calls are not admitted in while bodies",
+          "recursion is bounded at about 256 frames, too shallow for 250 input lines",
+          "the command profile reads input only from stdin and emits text only as byte arrays or input slices (SPX-T269 single write site per path)",
+          "no string slicing, searching by offset, integer parsing, string collections, or maps"
+        ]
+      },
+      "typescript": {
+        "turns": 6, "task_growth": 22254, "summed_input": 336338, "summed_input_net_of_fixed": 104540,
+        "usd_lower_bound": 0.1988, "authored_tokens": 1540, "completed": true
+      }
+    }
+  ]
+}

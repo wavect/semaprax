@@ -129,7 +129,11 @@ fn missing_use_line_names_the_import_form() {
         combined.contains("error[SPX-T203]: unknown function `add`"),
         "{combined}"
     );
-    assert!(combined.contains("from other.module as add;"), "{combined}");
+    // The hint names the exact import, not a placeholder module.
+    assert!(
+        combined.contains("use function @id(\"calculator.add\") from calculator.core as add;"),
+        "{combined}"
+    );
     std::fs::remove_dir_all(&root).unwrap();
 }
 

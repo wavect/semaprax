@@ -694,6 +694,8 @@ jobs:
           python3 scripts/test-agent-task-comparison-runner.py
           python3 scripts/test-opencode-provider-smoke.py
           python3 scripts/test-generated-package-release.py
+          python3 scripts/test-release-reconcile-install-claims.py
+          python3 scripts/test-channel-manifests.py
 
   installed-journey:
     name: Installed toolchain journey

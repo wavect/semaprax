@@ -33,6 +33,32 @@ Each archive unpacks to a directory named after itself. It contains `semaprax`
 `README.md`, a per-archive `release-manifest.json`, and a `smoke/` program. On
 Windows the two programs are `semaprax.exe` and `semapraxd.exe`.
 
+## Homebrew (Apple Silicon macOS)
+
+Apple Silicon only for now; Homebrew installs the same prebuilt archive, it does
+not compile Semaprax.
+
+```sh
+brew install wavect/tap/semaprax
+semaprax --version
+```
+
+Upgrade and remove with Homebrew:
+
+```sh
+brew update
+brew upgrade wavect/tap/semaprax
+brew uninstall semaprax
+```
+
+Homebrew owns `semaprax` and `semapraxd` in its `bin` directory
+(`/opt/homebrew/bin`). If you also installed by hand or with the installer, the
+first `semaprax` on your `PATH` wins; check which with `command -v semaprax` and
+`type -a semaprax`. Homebrew never overwrites another manager's files, so remove
+or reorder the other entry rather than expecting it to be replaced.
+
+To install without Homebrew, use the archive steps below.
+
 ## macOS and Linux
 
 The steps below use the Apple Silicon archive. For Linux, replace the target

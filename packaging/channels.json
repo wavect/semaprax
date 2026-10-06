@@ -24,12 +24,12 @@
     "first_release": null
   },
   "homebrew": {
-    "status": "pending",
+    "status": "published",
     "tap": "wavect/tap",
     "formula": "semaprax",
     "command": "brew install wavect/tap/semaprax",
-    "version": null,
-    "verified_at": null
+    "version": "v0.8.0",
+    "verified_at": "2026-10-06"
   },
   "winget": {
     "status": "pending",

@@ -1078,7 +1078,7 @@ pub(super) fn check_function_bodies<'p>(
                         function.name
                     ),
                     function.span,
-                ));
+                ).with_help("return an owned `string` instead: a literal, `string_concat`, or `string_from_i64` result is owned"));
             }
             if function.return_type == Type::SliceU8 {
                 diagnostics.push(error(

@@ -338,7 +338,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                     .any(|parameter| parameter.name == *name)
                                 {
                                     diagnostic = diagnostic.with_help(format!(
-                                        "parameters are immutable; copy `{name}` into a mutable local first: `let mut value = {name};`"
+                                        "parameters are immutable; copy `{name}` into a new mutable local and use that: `let mut current_{name} = {name};`"
                                     ));
                                 }
                                 self.diagnostics.push(diagnostic);

@@ -165,7 +165,7 @@ fn immutable_parameter_names_the_mutable_copy_repair() {
         "{diagnostic}"
     );
     assert!(
-        help(&diagnostic).contains("let mut value = value;"),
+        help(&diagnostic).contains("let mut current_value = value;"),
         "{diagnostic}"
     );
 }
@@ -578,4 +578,26 @@ fn reusing_a_moved_string_names_the_borrow_route() {
         help(&diagnostic).contains("pass `string_as_str(name)` to a `borrow str` parameter"),
         "{diagnostic}"
     );
+}
+
+#[test]
+fn borrowed_returns_and_scalar_methods_name_the_admitted_form() {
+    let returned = only(
+        "module habit.r;\n@id(\"habit.f\")\nfn f() -> str\n{\n    \"a\"\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    0\n}\n",
+        "SPX-O116",
+    );
+    assert!(
+        help(&returned).contains("return an owned `string`"),
+        "{returned}"
+    );
+
+    let method = only(
+        "module habit.m;\n@id(\"app.main\")\nfn main() -> i64\n{\n    let x = 3;\n    x.abs()\n}\n",
+        "SPX-T203",
+    );
+    assert!(
+        help(&method).contains("scalars have no methods"),
+        "{method}"
+    );
+    assert!(help(&method).contains("`abs(x)`"), "{method}");
 }

@@ -103,7 +103,7 @@ bytes and 100 repository
 lexical units. Every exact response is capped at 1,024 bytes and 300 units. The
 guarded `SPX-T208` response is 111 bytes and 32 units, more than twenty times
 smaller in both measures than the 2,513-byte, 916-unit complete diagnostic
-index. Even the six-row `SPX-P106` response is only 549 bytes and 182 units.
+index. Even the nine-row `SPX-P106` response is only 773 bytes.
 
 ## Language card
 
@@ -119,7 +119,7 @@ binary rejects.
 `semaprax help language <topic|topics>` is the fifth shape. `topics` returns
 the closed stable selector list and its card headings. The exact,
 case-sensitive topic selectors are `workflow`, `module`, `scalars`,
-`control-flow`, `records`, `ownership`, `strings`, `builtins`,
+`control-flow`, `records`, `ownership`, `strings`, `builtins`, `lists`,
 `mistakes-code`, `mistakes-index`, `projects`, and `specifications`. A selector
 returns exactly its complete `##` section, including the heading, from the same
 compiled card; it cannot drift from or reinterpret the compiler-checked

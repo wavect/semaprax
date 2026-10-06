@@ -372,6 +372,27 @@ pub(super) fn variant_shorthand_help(name: &str) -> Option<&'static str> {
 
 /// A method call on a value whose type has no methods.
 pub(super) fn method_receiver_help(receiver: &Type, method: &str) -> Option<String> {
+    if matches!(
+        receiver,
+        Type::I64
+            | Type::I32
+            | Type::U8
+            | Type::Usize
+            | Type::F64
+            | Type::F32
+            | Type::Bool
+            | Type::Char
+    ) {
+        let call = match method {
+            "to_string" | "toString" if *receiver == Type::Usize => "string_from_usize(x)",
+            "to_string" | "toString" => "string_from_i64(x)",
+            _ => return Some(format!(
+                "scalars have no methods; call a function with the value as its argument: `{method}(x)`, \
+                 importing it if it comes from the standard library"
+            )),
+        };
+        return Some(format!("scalars have no methods; write `{call}`"));
+    }
     let (family, replacement) = match receiver {
         Type::String => (
             "strings",

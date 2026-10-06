@@ -22,6 +22,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- The `SPX-U101` parameter hint no longer suggests `let mut value = value;`,
+  which shadowed the parameter and failed with `SPX-T209`; it names a new
+  local. New help for `mut` parameters (`SPX-U103`), a `-> str` result
+  (`SPX-O116`), and methods called on scalars.
 - Type-mismatch help: `string_concat("n=", 5)` names `string_from_i64`,
   `SPX-T207` names both operand types (and the literal suffix when one side
   is a literal), an `i64` passed to a narrower parameter names the suffix,

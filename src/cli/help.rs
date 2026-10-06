@@ -867,7 +867,7 @@ static GUIDE: &[GuideGroup] = &[
             GuideEntry {
                 id: CommandId::Help,
                 shape: "help language [topic]",
-                summary: "One topic or the language card",
+                summary: "One topic (`topics` lists them)",
             },
             GuideEntry {
                 id: CommandId::Help,

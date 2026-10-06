@@ -1297,7 +1297,10 @@ impl Parser {
                 "`mut` is only allowed on local `let` bindings; parameters are immutable",
                 span,
             )
-            .at_path(&self.path));
+            .at_path(&self.path)
+            .with_help(
+                "drop `mut` and copy the parameter into a new mutable local: `let mut current = <parameter>;`",
+            ));
         }
         Ok(())
     }

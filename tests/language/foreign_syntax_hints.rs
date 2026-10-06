@@ -505,3 +505,15 @@ fn tuple_variant_cases_show_the_named_field_form() {
         "{diagnostic}"
     );
 }
+
+#[test]
+fn mutable_parameters_show_the_local_copy() {
+    let diagnostic = rejection(
+        "module habit.p;\n@id(\"habit.f\")\nfn f(mut x: i64) -> i64\n{\n    x\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    f(1)\n}\n",
+    );
+    assert_eq!(diagnostic.code, "SPX-U103");
+    assert!(
+        help(&diagnostic).contains("`let mut current = <parameter>;`"),
+        "{diagnostic}"
+    );
+}

@@ -429,7 +429,7 @@ pub(super) fn build(program: &Program, source: &str) -> Result<Model, Vec<Diagno
     // (`me`, `my_<field>`) and may name row fields: such a default applies to
     // every entity that has all of those fields, and the default naming the
     // most row fields wins.
-    let mut defaults: Vec<(Kind, Vec<(String, Ty)>, String)> = Vec::new();
+    let mut defaults: Vec<DefaultPolicy> = Vec::new();
     for function in &program.functions {
         let Some(kind) = default_policy_kind(&function.name) else {
             continue;
@@ -541,6 +541,9 @@ pub(super) fn build(program: &Program, source: &str) -> Result<Model, Vec<Diagno
         login: login_field,
     })
 }
+
+/// A default policy: its kind, the row fields it names, and its test object.
+type DefaultPolicy = (Kind, Vec<(String, Ty)>, String);
 
 /// `can_read`, `can_write`, `can_read_<name>`, or `can_write_<name>`.
 fn default_policy_kind(name: &str) -> Option<Kind> {

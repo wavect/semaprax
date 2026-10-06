@@ -80,7 +80,7 @@ fn read(path: &Path, maximum: usize) -> Result<Vec<u8>, String> {
     Ok(bytes)
 }
 
-fn attempt(
+pub(super) fn attempt(
     command: &mut Command,
     input: &[u8],
     captures: &Path,

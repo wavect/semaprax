@@ -61,6 +61,7 @@ fn provisioned_archive_cli_and_daemon_work_outside_checkout() {
     let release = Release::admit();
     let fixture = Fixture::outside_release("onboarding", &release);
     release.verify_versions(&fixture.root);
+    release.assert_damaged_executable_rejected(&fixture.root);
     let calculator = calculator::run(&release, &fixture.root);
     daemon::run(&release, &calculator, &fixture.root);
     release.assert_unchanged();

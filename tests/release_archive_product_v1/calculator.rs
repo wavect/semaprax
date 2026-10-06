@@ -6,10 +6,32 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 use std::time::Duration;
 
-const README: &str = "# archive-calculator\n\nA small calculator project created by SEMAPRAX.\n\n```sh\nsemaprax check semaprax.toml\nsemaprax test semaprax.toml\nsemaprax run semaprax.toml\nsemaprax build semaprax.toml --target web -o web\n```\n";
-const MANIFEST: &str = "schema = \"semaprax.project.v1\"\nname = \"archive-calculator\"\nentry = \"archive_calculator.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\nweb_exports = [\"archive-calculator.add\"]\ntests = [\"archive_calculator.tests\"]\n";
-const APP: &str = "module archive_calculator.app;\n\n@id(\"archive-calculator.add\")\nfn add(left: i64, right: i64) -> i64\n{\n    left + right\n}\n\n@id(\"archive-calculator.app.main\")\nfn main() -> i64\n{\n    add(19, 23)\n}\n";
+const README: &str = "# archive-calculator\n\nA small calculator project created by SEMAPRAX.\n\n```sh\nsemaprax check .\nsemaprax test .\nsemaprax run .\nsemaprax build . --target web -o web\n```\n\nRead `AGENTS.md` before editing the source, whether you are a person or a\ncoding agent: it lists the commands and the rules that differ from other\nlanguages.\n";
+const MANIFEST: &str = "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"archive-calculator\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"archive_calculator.app\"\nsources = [\"src/app.spx\", \"src/core.spx\", \"src/tests.spx\"]\ntests = [\"archive_calculator.tests\"]\n\n[exports]\nweb = [\"archive-calculator.add\"]\n";
+const APP: &str = "module archive_calculator.app;\nuse function @id(\"archive-calculator.add\") from archive_calculator.core as add;\n\n@id(\"archive-calculator.app.main\")\nfn main() -> i64\n{\n    add(19, 23)\n}\n";
+const CORE: &str = "module archive_calculator.core;\n\n@id(\"archive-calculator.add\")\nfn add(left: i64, right: i64) -> i64\n{\n    left + right\n}\n";
 const TESTS: &str = "module archive_calculator.tests;\n\n@id(\"archive-calculator.tests.main\")\nfn main() -> i64\n{\n    if 19 + 23 == 42 { 0 } else { 1 }\n}\n";
+
+/// `AGENTS.md` embeds a generated skill-workflow section that tracks the
+/// installed command catalog, so its exact bytes are not pinned here. Its
+/// stable structure is, and the bytes read once are then pinned for the
+/// "nothing else changed" inventory comparisons.
+fn agents_guide(bytes: &[u8]) {
+    let text = std::str::from_utf8(bytes).unwrap();
+    assert!(text.starts_with(
+        "# Agent guide for archive-calculator\n\nThis is a SEMAPRAX project. `semaprax.toml` lists its modules;"
+    ));
+    for section in [
+        "\n## Commands\n",
+        "\n## Rules that differ from other languages\n",
+        "\n## Project v1 function boundaries\n",
+        "\n## Installed Agent Skill workflow\n",
+    ] {
+        assert!(text.contains(section), "AGENTS.md lacks {section:?}");
+    }
+    assert!(text.contains("`semaprax check .`") && text.ends_with('\n'));
+    assert!(text.len() < 64 * 1024);
+}
 
 pub(super) fn inventory(root: &Path) -> BTreeMap<String, Vec<u8>> {
     fn metadata(path: &Path) -> fs::Metadata {
@@ -80,15 +102,19 @@ pub(super) fn run(release: &Release, root: &Path) -> PathBuf {
         &["new", "archive-calculator"],
     ));
     let project = root.join("archive-calculator");
+    let mut found = inventory(&project);
+    agents_guide(&found["AGENTS.md"]);
     let expected = [
         ("README.md", README),
         ("semaprax.toml", MANIFEST),
         ("src/app.spx", APP),
+        ("src/core.spx", CORE),
         ("src/tests.spx", TESTS),
         ("src/", ""),
     ]
     .into_iter()
     .map(|(name, text)| (name.to_owned(), text.as_bytes().to_vec()))
+    .chain([("AGENTS.md".to_owned(), found.remove("AGENTS.md").unwrap())])
     .collect::<BTreeMap<_, _>>();
     assert_eq!(inventory(&project), expected);
     success(cli(
@@ -115,34 +141,44 @@ pub(super) fn run(release: &Release, root: &Path) -> PathBuf {
         )),
         b"42\n"
     );
+    // A source module that imports another needs Workspace Semantic Graph
+    // resolution, so the single-file route must stay refused.
+    let single = cli(
+        release,
+        &project,
+        &root.join("graph-single-file"),
+        &["graph", "src/app.spx"],
+    );
+    assert!(!single.status.success(), "{single:?}");
+    assert!(single.stdout.is_empty(), "{single:?}");
+    assert!(
+        String::from_utf8_lossy(&single.stderr).contains("SPX-G172"),
+        "{single:?}"
+    );
     let graph = success(cli(
         release,
         &project,
         &root.join("graph"),
-        &["graph", "src/app.spx"],
+        &["graph", "semaprax.toml"],
     ));
-    let parsed: serde_json::Value = serde_json::from_slice(&graph).unwrap();
-    assert_eq!(parsed["schema"], "semaprax.graph.v10");
-    assert_eq!(parsed["module"], "archive_calculator.app");
-    assert_eq!(parsed["entrypoint"], "archive-calculator.app.main");
-    let mut functions = parsed["nodes"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .filter(|node| node["kind"] == "function")
-        .map(|node| node["id"].as_str().unwrap())
-        .collect::<Vec<_>>();
-    functions.sort();
-    assert_eq!(
-        functions,
-        ["archive-calculator.add", "archive-calculator.app.main"]
-    );
+    let text = std::str::from_utf8(&graph).unwrap();
+    assert!(text.starts_with("{\"schema\":\"semaprax.project-semantic-graph.v"));
+    serde_json::from_slice::<serde_json::Value>(&graph).unwrap();
+    for needle in [
+        "\"module\":\"archive_calculator.app\"",
+        "\"module\":\"archive_calculator.core\"",
+        "\"module\":\"archive_calculator.tests\"",
+        "archive-calculator.add",
+        "archive-calculator.app.main",
+    ] {
+        assert!(text.contains(needle), "graph lacks {needle}");
+    }
     assert_eq!(
         success(cli(
             release,
             &project,
             &root.join("graph-again"),
-            &["graph", "src/app.spx"]
+            &["graph", "semaprax.toml"]
         )),
         graph
     );

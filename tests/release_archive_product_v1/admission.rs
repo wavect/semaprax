@@ -23,7 +23,9 @@ pub(super) struct Release {
 fn native_target() -> &'static str {
     match (std::env::consts::OS, std::env::consts::ARCH) {
         ("linux", "x86_64") => "x86_64-unknown-linux-gnu",
+        ("linux", "aarch64") => "aarch64-unknown-linux-gnu",
         ("macos", "aarch64") => "aarch64-apple-darwin",
+        ("macos", "x86_64") => "x86_64-apple-darwin",
         ("windows", "x86_64") => "x86_64-pc-windows-msvc",
         _ => panic!("selected archive gate requires an admitted native release host"),
     }
@@ -72,8 +74,121 @@ fn names(root: &Path, maximum: usize) -> Result<Vec<String>, String> {
     Ok(names)
 }
 
+/// The archive README is rendered from the packaged template, not copied from
+/// the repository README.
+pub(super) fn readme(target: &str) -> Vec<u8> {
+    #[cfg(windows)]
+    let template = include_str!("../../packaging/archive/README.windows.md");
+    #[cfg(not(windows))]
+    let template = include_str!("../../packaging/archive/README.unix.md");
+    template
+        .replace("\r\n", "\n")
+        .replace("{{TAG}}", &format!("v{VERSION}"))
+        .replace("{{VERSION}}", VERSION)
+        .replace("{{TARGET}}", target)
+        .into_bytes()
+}
+
+/// The fixed manifest fields as the packager writes them before it appends the
+/// per-build `runtime` object (see [`manifest_with_runtime`]).
 fn manifest(commit: &str, target: &str) -> String {
     format!("{{\n  \"schema\": \"semaprax.release-artifact.v1\",\n  \"version\": \"{VERSION}\",\n  \"commit\": \"{commit}\",\n  \"target\": \"{target}\",\n  \"maturity\": \"beta\",\n  \"binaries\": [\"semaprax\", \"semapraxd\"],\n  \"nonclaims\": [\n    \"production-ready\",\n    \"stable language ABI\",\n    \"stable public protocol\",\n    \"safety-critical suitability\"\n  ]\n}}\n")
+}
+
+/// The fixed manifest with a `runtime` record spliced in as the packager does.
+#[cfg(test)]
+pub(super) fn manifest_with_runtime(commit: &str, target: &str, runtime: &str) -> String {
+    let fixed = manifest(commit, target);
+    let head = fixed.strip_suffix("\n}\n").unwrap();
+    format!("{head},\n  \"runtime\": {runtime}\n}}\n")
+}
+
+/// Check the manifest bytes: the fixed fields are byte-exact, and the trailing
+/// `runtime` record is a closed object consistent with the target.
+fn manifest_check(bytes: &[u8], commit: &str, target: &str) -> Result<(), String> {
+    let text = std::str::from_utf8(bytes).map_err(|e| e.to_string())?;
+    let fixed = manifest(commit, target);
+    let head = fixed
+        .strip_suffix("\n}\n")
+        .ok_or("manifest template shape")?;
+    let tail = text
+        .strip_prefix(head)
+        .and_then(|rest| rest.strip_prefix(",\n  \"runtime\": "))
+        .and_then(|rest| rest.strip_suffix("\n}\n"))
+        .ok_or("manifest fixed fields or trailing runtime object mismatch")?;
+    // serde_json keeps the last of duplicated keys, so a repeated key would
+    // otherwise pass the key-set comparison below; count them in the text.
+    for key in [
+        "cpu",
+        "dynamic_libraries",
+        "libc_family",
+        "min_libc_version",
+        "min_os_version",
+        "os",
+    ] {
+        if tail.matches(&format!("\"{key}\":")).count() != 1 {
+            return Err(format!("runtime key {key:?} missing or duplicated"));
+        }
+    }
+    let runtime: serde_json::Value = serde_json::from_str(tail).map_err(|e| e.to_string())?;
+    let object = runtime.as_object().ok_or("runtime is not an object")?;
+    let mut keys = object.keys().map(String::as_str).collect::<Vec<_>>();
+    keys.sort_unstable();
+    if keys
+        != [
+            "cpu",
+            "dynamic_libraries",
+            "libc_family",
+            "min_libc_version",
+            "min_os_version",
+            "os",
+        ]
+    {
+        return Err("runtime keys mismatch (or duplicated)".into());
+    }
+    let (os, cpu, family) = match target {
+        "x86_64-unknown-linux-gnu" => ("linux", "x86_64", "glibc"),
+        "aarch64-unknown-linux-gnu" => ("linux", "aarch64", "glibc"),
+        "aarch64-apple-darwin" => ("macos", "aarch64", "libsystem"),
+        "x86_64-apple-darwin" => ("macos", "x86_64", "libsystem"),
+        "x86_64-pc-windows-msvc" => ("windows", "x86_64", "ucrt"),
+        _ => return Err("unknown target".into()),
+    };
+    if object["os"] != os || object["cpu"] != cpu || object["libc_family"] != family {
+        return Err("runtime os/cpu/libc_family inconsistent with target".into());
+    }
+    let version = |key: &str| object[key].as_str().filter(|v| !v.is_empty()).is_some();
+    let valid_version = |key: &str| {
+        version(key)
+            && object[key]
+                .as_str()
+                .unwrap()
+                .bytes()
+                .all(|b| b.is_ascii_digit() || b == b'.')
+    };
+    let version_rules = if os == "linux" {
+        valid_version("min_libc_version") && object["min_os_version"].is_null()
+    } else {
+        valid_version("min_os_version") && object["min_libc_version"].is_null()
+    };
+    if !version_rules {
+        return Err("runtime min version fields inconsistent with target".into());
+    }
+    match &object["dynamic_libraries"] {
+        serde_json::Value::Array(libraries) => {
+            if libraries.len() > 64
+                || !libraries
+                    .iter()
+                    .all(|name| name.as_str().is_some_and(|n| !n.is_empty()))
+            {
+                return Err("dynamic_libraries entries rejected".into());
+            }
+        }
+        // Windows records null when dumpbin was unavailable (not inspected).
+        serde_json::Value::Null if os == "windows" => {}
+        _ => return Err("dynamic_libraries must be an array".into()),
+    }
+    Ok(())
 }
 
 fn inspect(root: &Path, commit: &str, target: &str) -> Result<Pins, String> {
@@ -165,13 +280,9 @@ fn inspect(root: &Path, commit: &str, target: &str) -> Result<Pins, String> {
         pins.insert(name.to_owned(), (count, digest));
     }
     for (name, expected) in [
-        (
-            "release-manifest.json",
-            manifest(commit, target).into_bytes(),
-        ),
         ("smoke/meaning.spx", SMOKE.to_vec()),
         ("LICENSE", include_bytes!("../../LICENSE").to_vec()),
-        ("README.md", include_bytes!("../../README.md").to_vec()),
+        ("README.md", readme(target)),
     ] {
         let mut bytes = Vec::new();
         File::open(root.join(name))
@@ -183,7 +294,21 @@ fn inspect(root: &Path, commit: &str, target: &str) -> Result<Pins, String> {
             return Err(format!("archive literal mismatch: {name}"));
         }
     }
+    let mut manifest_bytes = Vec::new();
+    File::open(root.join("release-manifest.json"))
+        .map_err(|e| e.to_string())?
+        .take(1024 * 1024 + 1)
+        .read_to_end(&mut manifest_bytes)
+        .map_err(|e| e.to_string())?;
+    manifest_check(&manifest_bytes, commit, target)?;
     Ok(pins)
+}
+
+fn sha256_file(path: &Path) -> String {
+    Sha256::digest(fs::read(path).unwrap())
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
 }
 
 impl Release {
@@ -215,6 +340,45 @@ impl Release {
         assert_eq!(
             inspect(&self.root, &self.commit, self.target).unwrap(),
             self.pins
+        );
+    }
+
+    /// Decisive negative control: a damaged copy of the real executable must
+    /// not pass the version contract that the genuine one just passed.
+    pub(super) fn assert_damaged_executable_rejected(&self, root: &Path) {
+        let damaged = root.join("damaged");
+        fs::create_dir(&damaged).unwrap();
+        let wrong = damaged.join(format!("semaprax{}", std::env::consts::EXE_SUFFIX));
+        let mut bytes = fs::read(&self.cli).unwrap();
+        assert!(bytes.len() > 4096);
+        // Wipe the image header and truncate the tail: no loader can map this.
+        bytes[..64].fill(0xff);
+        bytes.truncate(bytes.len() / 2);
+        fs::write(&wrong, &bytes).unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt as _;
+            fs::set_permissions(&wrong, fs::Permissions::from_mode(0o700)).unwrap();
+        }
+        let expected = format!("semaprax {VERSION} ({})\n", self.commit);
+        let outcome = command::attempt(
+            Command::new(&wrong).arg("--version").current_dir(&damaged),
+            b"",
+            &damaged.join("capture"),
+            Duration::from_secs(30),
+            4096,
+            4096,
+        );
+        if let Ok(output) = outcome {
+            assert!(
+                !output.status.success() || output.stdout != expected.as_bytes(),
+                "damaged executable was accepted: {output:?}"
+            );
+        }
+        assert_ne!(
+            sha256_file(&wrong),
+            self.pins[&format!("semaprax{}", std::env::consts::EXE_SUFFIX)].1,
+            "damaged copy must differ from the pinned executable"
         );
     }
 

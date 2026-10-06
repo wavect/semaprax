@@ -67,7 +67,8 @@
   ],
   "scripts": {
     "test": "node --test test/*.test.js",
-    "sync-explorer-assets": "node scripts/sync-explorer-assets.js"
+    "sync-explorer-assets": "node scripts/sync-explorer-assets.js",
+    "test:host-compiler": "node scripts/run-compiler-host-journey.js"
   },
   "contributes": {
     "languages": [

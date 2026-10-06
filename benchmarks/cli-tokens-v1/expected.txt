@@ -1,0 +1,27 @@
+lines: 249
+requests: 240
+malformed: 9
+unique_ips: 8
+status: 2xx=168 3xx=22 4xx=23 5xx=23
+error_rate: 19.2%
+bytes: 1039790
+avg_bytes: 4332
+top_paths:
+  1. /index.html 45
+  2. /api/items 40
+  3. / 31
+  4. /health 25
+  5. /login 24
+hours:
+  00 23
+  08 23
+  09 27
+  10 45
+  11 15
+  13 19
+  14 22
+  15 12
+  17 21
+  22 20
+  23 13
+busiest_hour: 10

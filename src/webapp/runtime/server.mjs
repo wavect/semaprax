@@ -346,6 +346,7 @@ async function selfTest() {
   entities.forEach((e) => visit(e, []));
   const isAcc = (ent) => ACCOUNT && ent.path === ACCOUNT.entity;
   let roles = 0, persisted = 0, authNote = [], permEnts = 0;
+  const perRole = new Map(); // role -> { hidden: [], writes: [] } observed on the synthesized rows
   const ev = new Map(), note = (k, v) => { if (!ev.has(k)) ev.set(k, v); }, cr = {}, trunc = (t, m) => (t.length > m ? t.slice(0, m - 3) + "..." : t);
   try {
     base = await start();
@@ -506,6 +507,8 @@ async function selfTest() {
             r = await call("PUT", `${m.ent.path}/${m.id}`, rt.toJSON(m.ent, m.row), ck);
             const want = !read ? 404 : write ? 200 : 403;
             check(m.ent.name, "permissions", `${what}: PUT ${want}`, `${r.status} ${r.text}`, r.status === want);
+            const tally = perRole.get(role) ?? perRole.set(role, { hidden: [], writes: [] }).get(role);
+            if (r.status === want) { if (!read) tally.hidden.push(m.ent.name); else if (write) tally.writes.push(m.ent.name); }
             if (!read) note("permRead", `${role} list ${m.ent.name} hides #${m.id}`);
             else if (!write && r.status === 403) note("permWrite", `${role} PUT ${m.ent.name} #${m.id} 403`);
           }
@@ -539,6 +542,8 @@ async function selfTest() {
   if (ACCOUNT) {
     put("auth", authNote.join(", "));
     put("permissions", `${roles} roles x ${permEnts} entities agree with schema` + [ev.get("permWrite"), ev.get("permRead")].filter(Boolean).map((x, i) => (i ? ", " : "; e.g. ") + x).join(""));
+    const names = (xs) => xs.length === 0 ? "none" : xs.length === permEnts ? "all" : xs.join(" ");
+    for (const [role, t] of perRole) put(`  ${role} on rows another account owns`, `hidden: ${names(t.hidden)}; writes: ${names(t.writes)}`);
   }
   put("cleanup", `${stopped ? "test server stopped, no process left running" : "test server STILL RUNNING"}, ${given ? "data kept in --data dir" : cleaned ? "temporary data removed" : "temporary data NOT removed"}`);
   if (lines.length) console.log(lines.join("\n"));

@@ -237,13 +237,23 @@ fn inner_block_help_wins_over_the_enclosing_body() {
 }
 
 #[test]
-fn else_if_shows_the_nested_spelling() {
-    let diagnostic = rejection(
-        "module habit.elif;\n@id(\"app.main\")\nfn main() -> i64\n{\n    let x = 2;\n    if x == 0 { 0 } else if x == 1 { 1 } else { 2 }\n}\n",
+fn else_if_is_sugar_for_the_nested_spelling() {
+    let chained = "module habit.elif;\n@id(\"app.main\")\nfn main() -> i64\n{\n    let x = 2;\n    if x == 0 { 0 } else if x == 1 { 1 } else { 2 }\n}\n";
+    let nested = chained.replace(
+        "else if x == 1 { 1 } else { 2 }",
+        "else { if x == 1 { 1 } else { 2 } }",
     );
-    assert_eq!(diagnostic.code, "SPX-P106");
-    assert!(diagnostic.message.contains("`else if`"), "{diagnostic}");
-    assert!(help(&diagnostic).contains("else { if"), "{diagnostic}");
+    let chained = parse(chained, Path::new("elif.spx")).unwrap();
+    let nested = parse(&nested, Path::new("elif.spx")).unwrap();
+    assert!(semaprax::verify::verify(&chained).is_empty());
+    assert_eq!(
+        semaprax::format::canonical(&chained),
+        semaprax::format::canonical(&nested)
+    );
+    assert_eq!(
+        semaprax::graph::revision(&chained),
+        semaprax::graph::revision(&nested)
+    );
 }
 
 #[test]

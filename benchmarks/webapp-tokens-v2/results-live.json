@@ -7,24 +7,182 @@
     {
       "round": 3,
       "semaprax_compiler": "projection v2 before the round-4 fixes",
-      "semaprax": { "turns": 16, "seconds": 271, "first_context": 38705, "task_growth": 32220, "summed_input": 958960, "summed_input_net_of_fixed": 339680, "authored_tokens": 4764, "failed_commands": 5, "causes": "two SPX-P106 compiles for a missing last comma in `variant X { A, B }` and `record`; `--setup` run in the foreground until a 120 s timeout; two turns grepping server.mjs for the undocumented API routes; six turns of hand-written curl scripts although the self-test passed" },
-      "typescript": { "turns": 8, "seconds": 213, "first_context": 38930, "task_growth": 39759, "summed_input": 501268, "summed_input_net_of_fixed": 189828, "authored_tokens": 11796, "failed_commands": 0 }
+      "semaprax": {
+        "turns": 16,
+        "seconds": 271,
+        "first_context": 38705,
+        "task_growth": 32220,
+        "summed_input": 958960,
+        "summed_input_net_of_fixed": 339680,
+        "authored_tokens": 4764,
+        "failed_commands": 5,
+        "causes": "two SPX-P106 compiles for a missing last comma in `variant X { A, B }` and `record`; `--setup` run in the foreground until a 120 s timeout; two turns grepping server.mjs for the undocumented API routes; six turns of hand-written curl scripts although the self-test passed"
+      },
+      "typescript": {
+        "turns": 8,
+        "seconds": 213,
+        "first_context": 38930,
+        "task_growth": 39759,
+        "summed_input": 501268,
+        "summed_input_net_of_fixed": 189828,
+        "authored_tokens": 11796,
+        "failed_commands": 0
+      }
     },
     {
       "round": 4,
       "semaprax_compiler": "optional last declaration comma, API routes and background serving in the card, self-test evidence block",
       "semaprax": [
-        { "turns": 5, "seconds": 69, "first_context": 38706, "task_growth": 18671, "summed_input": 254965, "summed_input_net_of_fixed": 61435, "authored_tokens": 4645, "failed_commands": 0, "first_compile_clean": true },
-        { "turns": 6, "seconds": 67, "first_context": 38706, "task_growth": 18006, "summed_input": 308472, "summed_input_net_of_fixed": 76236, "authored_tokens": 4661, "failed_commands": 0, "first_compile_clean": true }
+        {
+          "turns": 5,
+          "seconds": 69,
+          "first_context": 38706,
+          "task_growth": 18671,
+          "summed_input": 254965,
+          "summed_input_net_of_fixed": 61435,
+          "authored_tokens": 4645,
+          "failed_commands": 0,
+          "first_compile_clean": true
+        },
+        {
+          "turns": 6,
+          "seconds": 67,
+          "first_context": 38706,
+          "task_growth": 18006,
+          "summed_input": 308472,
+          "summed_input_net_of_fixed": 76236,
+          "authored_tokens": 4661,
+          "failed_commands": 0,
+          "first_compile_clean": true
+        }
       ],
-      "typescript": { "turns": 11, "seconds": 377, "first_context": 38930, "task_growth": 52571, "summed_input": 848232, "summed_input_net_of_fixed": 420002, "authored_tokens": 12588, "failed_commands": 2, "notes": "its own test found a real defect (deleting any row with id 1 removed the Admin password hash); the final fix was not re-type-checked" }
+      "typescript": {
+        "turns": 11,
+        "seconds": 377,
+        "first_context": 38930,
+        "task_growth": 52571,
+        "summed_input": 848232,
+        "summed_input_net_of_fixed": 420002,
+        "authored_tokens": 12588,
+        "failed_commands": 2,
+        "notes": "its own test found a real defect (deleting any row with id 1 removed the Admin password hash); the final fix was not re-type-checked"
+      }
+    },
+    {
+      "round": 5,
+      "semaprax_compiler": "record invariants, variant equality and or-patterns, row-aware default policies, --api, exact parameter help, self-test cleanup line",
+      "semaprax": [
+        {
+          "turns": 14,
+          "task_growth": 30330,
+          "summed_input": 825505,
+          "summed_input_net_of_fixed": 283677,
+          "authored_tokens": 3290,
+          "usd_lower_bound": 0.4003,
+          "failed_commands": 5,
+          "causes": "bare `Role::Admin` without `{}` (SPX-P106); --setup run in the foreground and the generated server read to learn first-run setup; BSD sed, missing timeout, zsh word splitting"
+        },
+        {
+          "turns": 7,
+          "task_growth": 18708,
+          "summed_input": 366851,
+          "summed_input_net_of_fixed": 95937,
+          "authored_tokens": 3642,
+          "usd_lower_bound": 0.261,
+          "failed_commands": 3
+        }
+      ],
+      "typescript": {
+        "turns": 8,
+        "task_growth": 46448,
+        "summed_input": 552495,
+        "summed_input_net_of_fixed": 241079,
+        "authored_bytes": 36807,
+        "usd_lower_bound": 0.5066,
+        "failed_commands": 0
+      }
+    },
+    {
+      "round": 6,
+      "semaprax_compiler": "round 5 plus bare payload-free cases and the documented first-run account flow",
+      "semaprax": [
+        {
+          "turns": 12,
+          "task_growth": 27929,
+          "summed_input": 673458,
+          "summed_input_net_of_fixed": 209034,
+          "authored_tokens": 3631,
+          "usd_lower_bound": 0.3776,
+          "failed_commands": 2,
+          "causes": "`else if` (SPX-P106); a manual curl run on top of the self-test"
+        },
+        {
+          "turns": 6,
+          "task_growth": 19743,
+          "summed_input": 311665,
+          "summed_input_net_of_fixed": 79453,
+          "authored_tokens": 3964,
+          "usd_lower_bound": 0.2616,
+          "failed_commands": 0
+        },
+        {
+          "turns": 4,
+          "task_growth": 15899,
+          "summed_input": 194113,
+          "summed_input_net_of_fixed": 39305,
+          "authored_tokens": 3673,
+          "usd_lower_bound": 0.2113,
+          "failed_commands": 0
+        }
+      ]
     }
   ],
   "summary_round4_semaprax_vs_typescript_rounds_3_and_4": {
-    "summed_input_mean": { "semaprax": 281718, "typescript": 674750, "typescript_over_semaprax": 2.4 },
-    "summed_input_net_of_fixed_mean": { "semaprax": 68836, "typescript": 304915, "typescript_over_semaprax": 4.43 },
-    "task_growth_mean": { "semaprax": 18339, "typescript": 46165, "typescript_over_semaprax": 2.52 },
-    "seconds_mean": { "semaprax": 68, "typescript": 295, "typescript_over_semaprax": 4.34 },
-    "authored_tokens_mean": { "semaprax": 4653, "typescript": 12192, "typescript_over_semaprax": 2.62 }
+    "summed_input_mean": {
+      "semaprax": 281718,
+      "typescript": 674750,
+      "typescript_over_semaprax": 2.4
+    },
+    "summed_input_net_of_fixed_mean": {
+      "semaprax": 68836,
+      "typescript": 304915,
+      "typescript_over_semaprax": 4.43
+    },
+    "task_growth_mean": {
+      "semaprax": 18339,
+      "typescript": 46165,
+      "typescript_over_semaprax": 2.52
+    },
+    "seconds_mean": {
+      "semaprax": 68,
+      "typescript": 295,
+      "typescript_over_semaprax": 4.34
+    },
+    "authored_tokens_mean": {
+      "semaprax": 4653,
+      "typescript": 12192,
+      "typescript_over_semaprax": 2.62
+    }
+  },
+  "cost_method": "usd_lower_bound: cost.mjs over the transcript; input side exact from usage (claude-sonnet-5-5: $2 input, $2.50 5-minute cache write, $0.20 cache read per MTok), output = visible output tokens x $10/MTok (thinking is redacted, so this is a lower bound). TS rounds 3 and 4 cost $0.4497 and $0.5823.",
+  "summary_round6_semaprax_vs_typescript_rounds_3_to_5": {
+    "summed_input_net_of_fixed": {
+      "semaprax_mean": 109264,
+      "semaprax_median": 79453,
+      "typescript_mean": 283636,
+      "typescript_median": 241079,
+      "ratio_mean": 2.6,
+      "ratio_median": 3.03
+    },
+    "usd_lower_bound": {
+      "semaprax_mean": 0.2835,
+      "typescript_mean": 0.5129,
+      "ratio_mean": 1.81,
+      "ratio_net_of_fixed_cache_write": 2.2
+    },
+    "authored_tokens": {
+      "semaprax_mean": 3756,
+      "typescript_mean": 12192
+    }
   }
 }

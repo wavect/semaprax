@@ -62,8 +62,8 @@ fn main() -> i64
 - The entry point is exactly `fn main() -> i64`. There is no other signature.
 - A function body has zero or more statements (`let`, assignment, `while`,
   `unsafe`) and one final expression. That expression supplies the block's
-  value. User code has no `return`, expression statement, `for`, `else if`,
-  tuple, or unit value.
+  value. User code has no `return`, expression statement, tuple, or unit
+  value.
 - Source blocks, delimiters, unary chains, and expression trees may nest at
   most 128 levels; `SPX-P207` asks you to extract a named helper.
 - Canonical layout puts the function body's `{` on its own line and each
@@ -133,8 +133,8 @@ fn main() -> i64
 }
 ```
 
-- `if` always has `else` and is an expression. Nest `if` inside `else { … }`
-  instead of `else if`.
+- `if` always has `else` and is an expression; `else if` chains are fine
+  (`fmt` writes them as `else { if … }`).
 - A `while` condition must be `bool` and is checked before every iteration.
   Its body still needs a final expression, but that value is discarded; the
   condition controls repetition. While bodies admit only
@@ -668,20 +668,6 @@ fn main() -> i64
 A `while` body must end with the continuation condition: add `i < 3` as the
 body's last line.
 
-<!-- expect: SPX-P106 -->
-```semaprax
-module app.habit;
-
-@id("app.main")
-fn main() -> i64
-{
-    let x = 2;
-    if x == 0 { 0 } else if x == 1 { 1 } else { 2 }
-}
-```
-
-No `else if`. Write `else { if x == 1 { 1 } else { 2 } }`.
-
 <!-- expect: SPX-P203 -->
 ```semaprax
 module app.habit;
@@ -869,7 +855,7 @@ fn order_status(paid: bool) -> string
   active }` makes `Member` the sign-in entity (login field first; the server
   keeps a write-only `password`). First run: start `node out/server.mjs
   --setup` in the background; until some account has a password every request
-  is allowed, so POST the first account with a `"password"` field, then sign
+  is allowed, so POST the first account with a `"password"` of at least 8 bytes, then sign
   in. The self-test needs no setup.
 - Permissions: `fn <entity>_can_read` / `_can_write(…) -> bool` take row
   fields plus `me: i64` and `my_<account field>`. Unprefixed `can_read` /

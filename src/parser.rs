@@ -1189,11 +1189,6 @@ impl Parser {
     }
 
     fn block(&mut self, description: &str) -> Result<Expr, Diagnostic> {
-        if description == "`else`" {
-            if let Some(diagnostic) = self.else_if() {
-                return Err(diagnostic);
-            }
-        }
         let start = self
             .expect(&TokenKind::LBrace, &format!("`{{` before {description}"))?
             .span;
@@ -1457,7 +1452,21 @@ impl Parser {
         let condition = self.expression_with_record_literals(0, false)?;
         let then_branch = self.block("`if` condition")?;
         self.keyword("else").map_err(Self::missing_else)?;
-        let else_branch = self.block("`else`")?;
+        // `else if` is sugar for `else { if … }`: the same block AST, so fmt
+        // writes the nested spelling and graphs are unchanged.
+        let else_branch = if self.at_keyword("if") {
+            let nested_start = self.bump().span;
+            let nested = self.if_expression(nested_start)?;
+            Expr {
+                span: nested.span,
+                kind: ExprKind::Block {
+                    statements: Vec::new(),
+                    tail: Box::new(nested),
+                },
+            }
+        } else {
+            self.block("`else`")?
+        };
         let span = start.merge(else_branch.span);
         Ok(Expr {
             kind: ExprKind::If {

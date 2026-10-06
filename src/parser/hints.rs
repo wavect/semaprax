@@ -2,7 +2,7 @@
 //!
 //! The grammar is closed and small, so the first thing a newcomer or a coding
 //! agent writes is often a construct that does not exist here: `return`, `for`,
-//! `else if`, an expression statement, a tuple, or a `Some(x)` pattern. Left
+//! an expression statement, a tuple, or a `Some(x)` pattern. Left
 //! alone, each surfaces as a bare ``expected `}` after block`` and costs another
 //! edit-check cycle to diagnose. These helpers recognise the habit at the point
 //! where the grammar already rejects it and attach the fix.
@@ -40,9 +40,6 @@ const BRANCH_HELP: &str = "`if` cannot stand as a statement: add an `else` branc
                            with values, and bind or discard the result with `let _ = if … { …; value } \
                            else { value };`";
 const FUNCTION_BODY_HELP: &str = "a function's value is its final expression; there is no `return`";
-const ELSE_IF_MESSAGE: &str = "`else if` is not admitted";
-const ELSE_IF_HELP: &str =
-    "nest the second `if` inside the else block: `else { if <condition> { … } else { … } }`";
 const MISSING_ELSE_HELP: &str = "`if` is an expression and always has an `else` branch";
 const CALL_PATTERN_HELP: &str =
     "variant patterns name the case and its fields: `Option::Some { value: v }`, not `Some(v)`";
@@ -189,14 +186,6 @@ impl Parser {
             _ => return diagnostic,
         };
         diagnostic.with_help(help)
-    }
-
-    /// `else` followed by `if` instead of a block.
-    pub(super) fn else_if(&self) -> Option<Diagnostic> {
-        self.at_keyword("if").then(|| {
-            self.error_here("SPX-P106", ELSE_IF_MESSAGE)
-                .with_help(ELSE_IF_HELP)
-        })
     }
 
     /// The `else` branch is missing from an `if`.

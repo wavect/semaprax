@@ -61,6 +61,37 @@ and 501k. Its transcript showed where the turns went:
 Each removed turn saves the whole context it would have re-sent, which is
 why the fixes cut summed input by about 3.4×.
 
+### Rounds 5 and 6: after the language features
+
+Round 5 added record invariants, variant equality, case or-patterns, row-aware
+default policies, `webapp --api`, exact parameter help, and the self-test
+cleanup line. Round 6 added bare payload-free cases (`Role::Admin`) and the
+documented first-run account flow. Round 6 has three SEMAPRAX runs; it is
+compared with the three TypeScript runs of rounds 3 to 5.
+
+| Round 6 vs TS | TypeScript/React | SEMAPRAX | TS ÷ SEMAPRAX |
+| --- | ---: | ---: | ---: |
+| Turns | 8, 11, 8 | 12, 6, 4 | |
+| Summed input net of fixed context, median | 241,079 | 79,453 | **3.0×** |
+| Summed input net of fixed context, mean | 283,636 | 109,264 | 2.6× |
+| Estimated cost, mean (lower bound) | $0.513 | $0.284 | 1.8× |
+| Estimated cost, mean, net of the fixed context write | $0.416 | $0.187 | 2.2× |
+| Authored tokens, mean | 12,192 | 3,756 | 3.2× |
+
+The best SEMAPRAX run took four turns: read, write and compile and
+self-test, check, report. It needed 39,305 net input tokens, 6.1 times fewer
+than the TS median. The worst took 12, because it hand-wrote a curl
+verification on top of the passing self-test. The self-test now prints one
+evidence line per role, so the role rules are visible without that.
+
+**Dollars.** The cost estimate (`cost.mjs`) is exact for input from the
+transcripts' usage records and a lower bound for output, because thinking is
+redacted. Prompt caching makes re-sent context cheap, so the dollar ratio
+(1.8–2.2×) is lower than the net-token ratio. Each run also pays the same
+fixed 38.7k-token cache write for the harness context. What SEMAPRAX saves in
+dollars comes mainly from writing about 3× fewer output tokens and from
+needing fewer cache writes.
+
 ## Result 2: static models (deterministic)
 
 `node measure.mjs --tokenizer <dir>` produces
@@ -69,8 +100,8 @@ why the fixes cut summed input by about 3.4×.
 | Arm | Reference | Authored | Green | Batched | Attributable | Per-file |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | TypeScript/React | 0 | 12,142 | 93 | 29,695 | 12,235 | 108,265 |
-| SEMAPRAX | 1,081 | 4,486 | 321 | 16,773 | 5,888 | 16,773 |
-| TS ÷ SEMAPRAX | | 2.7× | | 1.8× | 2.1× | 6.5× |
+| SEMAPRAX (now: invariants, `==`, or-cases, row-aware defaults) | 1,116 | 3,591 | 336 | 15,068 | 5,043 | 15,068 |
+| TS ÷ SEMAPRAX | | 3.4× (was 2.7×) | | 2.0× (was 1.8×) | 2.4× (was 2.1×) | 7.2× (was 6.5×) |
 
 ## Why not 15×
 

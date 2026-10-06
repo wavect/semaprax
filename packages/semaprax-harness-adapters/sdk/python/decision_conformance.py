@@ -24,12 +24,23 @@ Target contract (duck-typed):
            requests seen so far (empty for a backend with no upstream),
            wait_in_flight(timeout) -> None, mutate(payload) -> payload (optional
            request corruption for faults that corrupt the request itself).
+           Optional terminal-ownership probes (DV-04): handler_dispatches() -> int
+           (handler invocations begun so far; falls back to len(posts())) and
+           handler_running() -> bool (a handler is executing right now). A target
+           without an upstream and without these probes cannot have the dispatch
+           count or the reply-while-running rule observed; the reply-shape rules
+           (one terminal reply, cancel/deadline status never replaced) still run.
+
+Terminal ownership (DV-04, #564): an early cancel dispatches zero handler work,
+each invocation gets exactly one terminal reply, no terminal reply is sent while
+the handler still runs, and a late success never replaces a cancel/deadline failure.
 """
 
 import json
 import os
 import subprocess
 import sys
+import threading
 import time
 import unittest
 
@@ -49,6 +60,9 @@ class Session:
         self.send({"jsonrpc": "2.0", "id": 1, "method": "harness/initialize", "params": {
             "protocol": "semaprax.harness-rpc.v1", "offered": [{"kind": "decision.evaluate", "version": v} for v in versions]}})
         self.accepted = self.read()["result"]["accepted"]
+        self._dog = threading.Timer(60.0, self.p.kill)  # a hung adapter fails the test, not the run
+        self._dog.daemon = True
+        self._dog.start()
 
     def send(self, obj):
         self.p.stdin.write(json.dumps(obj).encode() + b"\n")
@@ -67,7 +81,20 @@ class Session:
     def cancel(self, inv):
         self.send({"jsonrpc": "2.0", "method": "harness/cancel", "params": {"invocation_id": inv}})
 
+    def drain(self):
+        """Shut down and return every frame still pending, shutdown reply included."""
+        self.send({"jsonrpc": "2.0", "id": 9, "method": "harness/shutdown"})
+        frames = []
+        while True:
+            frame = self.read()
+            if frame is None:
+                return frames
+            frames.append(frame)
+            if frame.get("id") == 9:
+                return frames
+
     def close(self):
+        self._dog.cancel()
         out = err = b""
         try:
             self.send({"jsonrpc": "2.0", "id": 9, "method": "harness/shutdown"})
@@ -241,6 +268,59 @@ def conformance_case(target):
             res = s.read()["result"]
             self.assertLess(time.monotonic() - t, 1.5)
             self.refused(res, "SPX-HPK013")
+            s.close()
+
+        # -- terminal ownership (DV-04) -------------------------------------------
+        def dispatches(self, running):
+            probe = getattr(running, "handler_dispatches", None)
+            return probe() if probe else len(self.posts(running))
+
+        def assert_handler_stopped(self, running):
+            probe = getattr(running, "handler_running", None)
+            if probe:
+                self.assertFalse(probe(), "terminal reply sent while the handler still runs")
+
+        def test_early_cancel_dispatches_no_handler_work(self):
+            running = target.start("slow")
+            s = Session(running)
+            s.cancel("inv-000001")  # cancel first: the invoke arrives already cancelled
+            s.send({"jsonrpc": "2.0", "id": 2, "method": "harness/invoke", "params": fx.v2_request(deadline_ms=20000)})
+            t = time.monotonic()
+            res = s.read()["result"]
+            self.assertLess(time.monotonic() - t, 1.5)
+            self.refused(res, "SPX-HPK013")
+            self.assertEqual(self.dispatches(running), 0, "an early cancel must dispatch no handler work")
+            self.assert_handler_stopped(running)
+            frames = s.drain()
+            self.assertEqual([f for f in frames if f.get("id") == 2], [], "a second terminal reply for one invocation")
+            s.close()
+
+        def test_cancel_sends_exactly_one_terminal_reply_after_handler_stops(self):
+            running = target.start("slow")
+            s = Session(running)
+            s.send({"jsonrpc": "2.0", "id": 2, "method": "harness/invoke", "params": fx.v2_request(deadline_ms=20000)})
+            running.wait_in_flight(3.0)
+            s.cancel("inv-000001")
+            s.cancel("inv-000001")  # a repeated cancel must not mint a second reply
+            res = s.read()["result"]
+            self.refused(res, "SPX-HPK013")  # a late success must not replace the cancel failure
+            self.assert_handler_stopped(running)
+            time.sleep(0.5)  # a late success would arrive as a second frame
+            frames = s.drain()
+            self.assertEqual([f for f in frames if f.get("id") == 2], [], "a second terminal reply for one invocation")
+            s.close()
+
+        def test_deadline_sends_exactly_one_terminal_reply_after_handler_stops(self):
+            running = target.start("slow")
+            s = Session(running)
+            s.send({"jsonrpc": "2.0", "id": 2, "method": "harness/invoke", "params": fx.v2_request(deadline_ms=500)})
+            res = s.read()["result"]
+            self.refused(res, "SPX-HPK011", ("failed",))  # a late success must not replace the deadline failure
+            self.assert_handler_stopped(running)
+            s.cancel("inv-000001")  # a cancel after the terminal decision changes nothing
+            time.sleep(0.5)
+            frames = s.drain()
+            self.assertEqual([f for f in frames if f.get("id") == 2], [], "a second terminal reply for one invocation")
             s.close()
 
         def test_crash(self):

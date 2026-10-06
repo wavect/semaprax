@@ -12,6 +12,12 @@ Python helpers (standard library only) in `python/`:
   `unittest.TestCase` covering wrong question/candidate/identity, abstention,
   timeout, cancellation, crash, excessive output, secret redaction, over-limit
   requests, unsupported modality, scoreless honesty and v1 compatibility.
+  It also checks terminal ownership: an early cancel dispatches no handler
+  work, one terminal reply per invocation, none while the handler still runs,
+  and a late success never replaces a cancel/deadline failure. A target may
+  expose `handler_dispatches()` and `handler_running()` so the dispatch count
+  and reply-while-running rules are observable without an upstream.
+  `test_conformance_negative.py` proves the suite rejects a loop breaking each rule.
 
 Copyable starter: `../examples/decision-adapter-starter/` (a deterministic
 keyword scorer, deliberately not SystemOne, with a scoreless variant).

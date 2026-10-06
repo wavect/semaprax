@@ -289,7 +289,7 @@ fn option() -> Option<i64>
 "#;
     let diagnostic = only(source, "SPX-T207");
     assert_eq!(diagnostic.span.map(|span| span.line), Some(4));
-    assert!(help(&diagnostic).contains("scalar fields"), "{diagnostic}");
+    assert!(help(&diagnostic).contains("with `match`"), "{diagnostic}");
 }
 
 #[test]

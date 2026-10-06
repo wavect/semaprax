@@ -158,6 +158,9 @@ impl Drop for Program {
             if let Some(parent) = declaration.extends {
                 types.push(parent);
             }
+            if let Some(invariants) = declaration.invariants {
+                expressions.extend(*invariants);
+            }
             match declaration.kind {
                 TypeDeclarationKind::Resource { .. } => {}
                 TypeDeclarationKind::Record { fields } => {
@@ -615,7 +618,19 @@ pub struct TypeDeclaration {
     /// Class Inheritance v1: the single named parent of a `class C : P` block.
     /// `None` for every other declaration and for parentless classes.
     pub extends: Option<Type>,
+    /// Record Invariants v1: the `requires` clauses after a record's closing
+    /// brace, each a bool expression over the record's fields by bare name.
+    /// `None` for every declaration without invariants; boxed because almost
+    /// no declaration carries any.
+    pub invariants: Option<Box<Vec<Expr>>>,
     pub span: Span,
+}
+
+impl TypeDeclaration {
+    /// The record invariant clauses, empty when none are declared.
+    pub fn invariants(&self) -> &[Expr] {
+        self.invariants.as_deref().map_or(&[], Vec::as_slice)
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

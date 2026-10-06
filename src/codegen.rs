@@ -1278,6 +1278,20 @@ fn contract_labels(program: &Program, resolved: &ResolvedProgram) -> HashMap<Exp
             labels.insert(expression.id.clone(), crate::format::expr(source, 0));
         }
     }
+    // Record Invariants v1: the synthesized `Name#invariant` preconditions
+    // are the record's own clauses, in declaration order.
+    for declaration in &program.types {
+        let identity = format!("{}#invariant", declaration.stable_id);
+        if let Some(function) = resolved
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == identity)
+        {
+            for (expression, source) in function.requires.iter().zip(declaration.invariants()) {
+                labels.insert(expression.id.clone(), crate::format::expr(source, 0));
+            }
+        }
+    }
     for instance in &resolved.function_instances {
         let Some(source) = program
             .functions

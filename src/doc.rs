@@ -453,6 +453,14 @@ fn type_entry(declaration: &TypeDeclaration, placement: &Placement) -> Entry {
             signature.push_str(" {\n");
             field_members(fields, "field", &mut signature, "    ", &mut members);
             signature.push_str("}\n");
+            for invariant in declaration.invariants() {
+                writeln!(signature, "    requires {}", contract_text(invariant)).unwrap();
+            }
+            push_fact(
+                &mut facts,
+                "Invariants",
+                declaration.invariants().iter().map(contract_text).collect(),
+            );
             "record"
         }
         TypeDeclarationKind::Variant { cases } => {

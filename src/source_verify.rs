@@ -42,6 +42,7 @@ mod mutable_closure;
 mod owned_buffer;
 mod owning_closure;
 mod place;
+mod record_invariants;
 mod scope;
 mod type_table;
 mod variant_or;

@@ -2765,6 +2765,7 @@ fn admitted_resolved_functions_with_profile(
                 .declaration(&function.id)
                 .is_some_and(|declaration| {
                     declaration.identity_origin == hir::IdentityOrigin::Explicit
+                        || hir::record_invariants::is_synthesized(&declaration.name)
                 })
         })
         .filter(|function| match profile {

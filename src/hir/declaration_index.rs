@@ -858,7 +858,9 @@ impl DeclarationIndex {
                 function.name.clone(),
                 owner.clone(),
                 DeclarationKind::Function,
-                if function.explicit_id {
+                if super::record_invariants::is_synthesized(&function.name) {
+                    IdentityOrigin::CompilerOwned
+                } else if function.explicit_id {
                     IdentityOrigin::Explicit
                 } else {
                     IdentityOrigin::Automatic

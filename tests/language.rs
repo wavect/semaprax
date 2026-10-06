@@ -79,6 +79,8 @@ mod payload_free_variants;
 mod property_widen;
 #[path = "language/record_patterns.rs"]
 mod record_patterns;
+#[path = "language/record_invariants.rs"]
+mod record_invariants;
 #[path = "language/records_semantics.rs"]
 mod records_semantics;
 #[path = "language/records_syntax.rs"]

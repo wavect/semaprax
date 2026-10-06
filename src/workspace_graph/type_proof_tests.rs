@@ -825,10 +825,15 @@ module graph.v14;
         // shrinking `size_of::<Function>()` back down and moving every
         // structural charge computed from it. Only `budget.used_builder_bytes`
         // and the digest over it move; every other field of the rendered
-        // document remains byte for byte identical.
+        // document remains byte for byte identical. Re-pinned a sixth time:
+        // Record Invariants v1 added the boxed
+        // `TypeDeclaration::invariants: Option<Box<Vec<Expr>>>`, growing
+        // `size_of::<TypeDeclaration>()` by one pointer and every structural
+        // charge computed from it; only `budget.used_builder_bytes` and the
+        // digest over it move.
         assert_eq!(
             document_sha,
-            "sha256:adc68354ddf3a5022a1b15835bfb962d9924ef3ec5dae449a886af5344263de5"
+            "sha256:417cfdf2e461b5e703c837b00533695b4452760dd175bb04f3edfe3d95103911"
         );
         assert!(json.starts_with(
                 "{\"schema\":\"semaprax.workspace-semantic-graph.v1\",\"workspace_manifest_schema\":\"semaprax.workspace-semantic-manifest.v1\",\"workspace_revision\":\"sha256:workspace\",\"graph_digest\":\"sha256:"

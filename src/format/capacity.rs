@@ -153,6 +153,16 @@ pub(super) fn legacy_canonical_temporary_bytes(program: &Program) -> usize {
             }
         }
     }
+    for contract in program
+        .types
+        .iter()
+        .flat_map(|declaration| declaration.invariants())
+    {
+        total = total.saturating_add(legacy_expr_temporary_bytes(contract, 0));
+        if contains_record_construction(contract) {
+            total = total.saturating_add(rendered_expr_len(contract, 0).saturating_add(2));
+        }
+    }
     for interface in &program.interfaces {
         if interface.explicit_id {
             total = total.saturating_add(escaped_len(&interface.stable_id));

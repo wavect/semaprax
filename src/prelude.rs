@@ -708,6 +708,7 @@ fn option() -> TypeDeclaration {
             ],
         },
         extends: None,
+        invariants: None,
         span: Span::default(),
     }
 }
@@ -734,6 +735,7 @@ fn result() -> TypeDeclaration {
             ],
         },
         extends: None,
+        invariants: None,
         span: Span::default(),
     }
 }
@@ -747,6 +749,7 @@ fn owned_vec() -> TypeDeclaration {
         type_parameters: vec![parameter("T")],
         kind: TypeDeclarationKind::Record { fields: Vec::new() },
         extends: None,
+        invariants: None,
         span: Span::default(),
     }
 }
@@ -760,6 +763,7 @@ fn owned_box() -> TypeDeclaration {
         type_parameters: vec![parameter("T")],
         kind: TypeDeclarationKind::Record { fields: Vec::new() },
         extends: None,
+        invariants: None,
         span: Span::default(),
     }
 }
@@ -798,6 +802,7 @@ fn iter_step() -> TypeDeclaration {
             ],
         },
         extends: None,
+        invariants: None,
         span: Span::default(),
     }
 }
@@ -837,6 +842,7 @@ fn list_step() -> TypeDeclaration {
             ],
         },
         extends: None,
+        invariants: None,
         span: Span::default(),
     }
 }

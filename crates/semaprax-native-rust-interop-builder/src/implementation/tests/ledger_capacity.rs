@@ -157,6 +157,9 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
         include_str!("../../../../../src/hir/resolve_pattern.rs"),
         include_str!("../../../../../src/hir/resolve_program.rs"),
         include_str!("../../../../../src/hir/resolve_statement.rs"),
+        include_str!("../../../../../src/hir/resolve_variant_or.rs"),
+        include_str!("../../../../../src/hir/variant_equality.rs"),
+        include_str!("../../../../../src/hir/record_invariants.rs"),
         include_str!("../../../../../src/hir/byte_capacity.rs"),
         include_str!("../../../../../src/hir/byte_slice_provenance.rs"),
         include_str!("../../../../../src/hir/capacity_probe.rs"),
@@ -199,6 +202,8 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
         include_str!("../../../../../src/hir/validation/generic_record_composition.rs"),
         include_str!("../../../../../src/hir/validation/native_borrow.rs"),
         include_str!("../../../../../src/hir/validation/proof_return.rs"),
+        include_str!("../../../../../src/hir/validation/variant_or.rs"),
+        include_str!("../../../../../src/hir/validation/iterative_while_admission_tests.rs"),
     );
     let verifier = concat!(
         include_str!("../../../../../src/source_verify.rs"),
@@ -209,6 +214,8 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
         include_str!("../../../../../src/source_verify/function_value_inventory.rs"),
         include_str!("../../../../../src/source_verify/hints.rs"),
         include_str!("../../../../../src/source_verify/owned_buffer.rs"),
+        include_str!("../../../../../src/source_verify/variant_or.rs"),
+        include_str!("../../../../../src/source_verify/record_invariants.rs"),
     );
     let cleanup = concat!(
         include_str!("../../../../../src/cleanup.rs"),

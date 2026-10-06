@@ -330,10 +330,12 @@ pub(super) fn resolved_data_parameter_is_admitted(
             true
         }
         (ty @ ResolvedType::Nominal { declaration, .. }, hir::OwnershipMode::Value)
-            if declarations
-                .declaration(declaration)
-                .is_some_and(|item| item.kind == hir::DeclarationKind::Class)
-                && record_construction_is_admitted(declarations, ty) =>
+            if declarations.declaration(declaration).is_some_and(|item| {
+                matches!(
+                    item.kind,
+                    hir::DeclarationKind::Class | hir::DeclarationKind::Record
+                )
+            }) && record_construction_is_admitted(declarations, ty) =>
         {
             true
         }
@@ -378,4 +380,8 @@ pub(super) fn resolved_data_result_is_admitted(
         || owned_vec::is_collection_type(ty)
         || is_admitted_owned_byte_record(declarations, ty)
         || is_admitted_owned_variant(declarations, ty)
+        || matches!(ty, ResolvedType::Nominal { declaration, .. }
+            if declarations.declaration(declaration).is_some_and(|item| {
+                matches!(item.kind, hir::DeclarationKind::Class | hir::DeclarationKind::Record)
+            }) && record_construction_is_admitted(declarations, ty))
 }

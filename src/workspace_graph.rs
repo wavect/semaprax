@@ -5391,6 +5391,17 @@ fn validate_imported_type(
     programs: &[Program],
 ) -> Result<(), Vec<Diagnostic>> {
     let ty = target.ty.expect("type target carries a type");
+    if !ty.invariants().is_empty() {
+        // Record Invariants v1 checks a record's productions inside the module
+        // that declares it; an importer would construct it unchecked.
+        return Err(vec![use_error(
+            caller,
+            module_use,
+            "a record that declares invariants cannot be imported by another module in \
+             Record Invariants v1",
+        )
+        .with_help("construct and update the record through functions of its own module")]);
+    }
     let generic_owned_record = generic_type_import::template_is_admitted(ty);
     if !generic_owned_record
         && (!ty.type_parameters.is_empty()

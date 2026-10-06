@@ -288,7 +288,16 @@ pub(super) fn build(program: &Program, source: &str) -> Result<Model, Vec<Diagno
         .iter()
         .map(|function| (function.name.as_str(), function))
         .collect();
+    let invariants = invariant_rules(program, &entities);
     let mut translator = Translator::new(source, &enums, &functions);
+    // Record Invariants v1: a record's `requires` clauses are entity rules
+    // over all of its fields, exactly like a `<entity>_valid` function's.
+    for (index, context, bound) in &invariants {
+        match translator.rules(context, bound) {
+            Ok(rules) => entities[*index].rules.extend(rules),
+            Err(mut more) => errors.append(&mut more),
+        }
+    }
     let mut account = None;
     for (function, index, suffix, kind) in &classified {
         let bound = match bind(
@@ -710,4 +719,52 @@ fn rollup(
         field: field.map(str::to_owned),
         ty: ty.clone(),
     })
+}
+
+/// Each entity whose record declares invariants, with a rule context whose
+/// preconditions are those clauses and every entity field bound by name.
+fn invariant_rules(program: &Program, entities: &[Entity]) -> Vec<(usize, Function, Vec<Bound>)> {
+    let mut contexts = Vec::new();
+    for declaration in &program.types {
+        if declaration.invariants().is_empty() {
+            continue;
+        }
+        let Some(index) = entities
+            .iter()
+            .position(|entity| entity.name == declaration.name)
+        else {
+            continue;
+        };
+        let bound = entities[index]
+            .fields
+            .iter()
+            .map(|field| Bound {
+                name: field.name.clone(),
+                js: format!("r.{}", field.name),
+                ty: field.ty.clone(),
+                field: true,
+            })
+            .collect();
+        let context = Function {
+            stable_id: declaration.stable_id.clone(),
+            explicit_id: declaration.explicit_id,
+            name: declaration.name.clone(),
+            name_span: declaration.name_span,
+            type_parameters: Vec::new(),
+            params: Vec::new(),
+            return_type: Type::Bool,
+            effects: Vec::new(),
+            yields: None,
+            follows: None,
+            requires: declaration.invariants().to_vec(),
+            ensures: Vec::new(),
+            body: crate::ast::Expr {
+                kind: crate::ast::ExprKind::Bool(true),
+                span: declaration.span,
+            },
+            span: declaration.span,
+        };
+        contexts.push((index, context, bound));
+    }
+    contexts
 }

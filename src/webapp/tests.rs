@@ -384,3 +384,47 @@ fn v2_conventions_fail_closed() {
         );
     }
 }
+
+#[test]
+fn record_invariants_become_entity_rules_beside_valid_functions() {
+    let source = "module team.crew;
+
+variant Role { Lead, Member, Guest, }
+
+record Crew {
+    name: string,
+    role: Role,
+    seats: i64,
+}
+    requires string_len(name) >= 2
+    requires role != Role::Guest {} || seats <= 1
+
+fn crew_valid(seats: i64) -> bool
+    requires seats >= 1
+{
+    true
+}
+
+fn crew_staffed(role: Role, seats: i64) -> bool
+{
+    match role { Role::Lead {} | Role::Member {} => seats > 0, Role::Guest {} => false, }
+}
+";
+    let path = write_temp("crew", source);
+    let projection = generate(&path).unwrap();
+    let schema = schema(&projection);
+    assert!(
+        schema.contains("text: \"string_len(name) >= 2\""),
+        "{schema}"
+    );
+    assert!(
+        schema.contains("text: \"role != Role::Guest {} || seats <= 1\""),
+        "{schema}"
+    );
+    assert!(schema.contains("text: \"seats >= 1\""), "{schema}");
+    assert!(schema.contains("(r.role !== \"Guest\")"), "{schema}");
+    assert!(
+        schema.contains("(m1 === \"Lead\" || m1 === \"Member\")"),
+        "{schema}"
+    );
+}

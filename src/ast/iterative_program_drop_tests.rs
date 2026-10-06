@@ -169,6 +169,7 @@ fn program_drop_is_iterative_for_every_recursive_ast_root_at_exact_depth() {
             methods: vec![method],
         },
         extends: Some(nested_type()),
+        invariants: None,
         span,
     });
 

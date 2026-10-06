@@ -339,6 +339,7 @@ impl Parser {
             type_parameters,
             kind: TypeDeclarationKind::Resource { lifecycles },
             extends: None,
+            invariants: None,
             span: start.merge(end),
         })
     }
@@ -522,6 +523,14 @@ impl Parser {
         let end = self
             .expect(&TokenKind::RBrace, "`}` after record fields")?
             .span;
+        // Record Invariants v1: `requires` clauses directly after the body.
+        // The declaration span stays the braced body; each clause keeps its
+        // own expression span.
+        let mut invariants = Vec::new();
+        while self.at_keyword("requires") {
+            self.bump();
+            invariants.push(self.expression_with_record_literals(0, false)?);
+        }
         Ok(TypeDeclaration {
             stable_id,
             explicit_id,
@@ -530,6 +539,7 @@ impl Parser {
             type_parameters,
             kind: TypeDeclarationKind::Record { fields },
             extends: None,
+            invariants: (!invariants.is_empty()).then(|| Box::new(invariants)),
             span: start.merge(end),
         })
     }
@@ -599,6 +609,7 @@ impl Parser {
             type_parameters,
             kind: TypeDeclarationKind::Variant { cases },
             extends: None,
+            invariants: None,
             span: start.merge(end),
         })
     }
@@ -675,6 +686,7 @@ impl Parser {
             type_parameters,
             kind: TypeDeclarationKind::Class { fields, methods },
             extends,
+            invariants: None,
             span: start.merge(end),
         })
     }

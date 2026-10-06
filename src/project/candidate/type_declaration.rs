@@ -237,6 +237,7 @@ pub(super) fn apply(
         type_parameters: Vec::new(),
         kind: declaration_kind,
         extends: None,
+        invariants: None,
         span: Span::default(),
     });
     Ok((

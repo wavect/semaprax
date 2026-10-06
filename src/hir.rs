@@ -95,6 +95,7 @@ mod private_capacity_contract_tests;
 #[cfg(test)]
 mod projected_byte_field_provenance_tests;
 mod record_evolution;
+pub(crate) mod record_invariants;
 mod resolve_box_call;
 mod resolve_class;
 mod resolve_expr;
@@ -462,7 +463,6 @@ pub(crate) fn resolve_with_function_reuse(
     {
         return Err(diagnostics);
     }
-    let declarations = DeclarationIndex::from_verified(program).map_err(|error| vec![error])?;
     let reuse = previous_program
         .zip(previous_resolved)
         .zip(previous_costs)
@@ -472,14 +472,34 @@ pub(crate) fn resolve_with_function_reuse(
             resolved,
             costs,
         });
-    (Resolver {
+    resolve_verified(program, reuse).map_err(|error| vec![error])
+}
+
+/// Resolve a verified program. Record Invariants v1: when a record declares
+/// invariants, the resolution of the original supplies the record type of
+/// every production site, and the program is resolved once more after
+/// [`record_invariants::desugar`] routes those sites through their checks.
+fn resolve_verified(
+    program: &Program,
+    reuse: Option<FunctionReuse<'_>>,
+) -> Result<(ResolvedProgram, FunctionResolutionWork), Diagnostic> {
+    let resolved = (Resolver {
         program,
-        declarations,
+        declarations: DeclarationIndex::from_verified(program)?,
         reuse,
         function_work: FunctionResolutionWork::default(),
     })
+    .resolve()?;
+    let Some(desugared) = record_invariants::desugar(program, &resolved.0) else {
+        return Ok(resolved);
+    };
+    (Resolver {
+        program: &desugared,
+        declarations: DeclarationIndex::from_verified(&desugared)?,
+        reuse: None,
+        function_work: FunctionResolutionWork::default(),
+    })
     .resolve()
-    .map_err(|error| vec![error])
 }
 
 #[derive(Default)]
@@ -521,23 +541,7 @@ pub fn analyze(program: &Program) -> Analysis {
         };
     }
 
-    let declarations = match DeclarationIndex::from_verified(program) {
-        Ok(declarations) => declarations,
-        Err(diagnostic) => {
-            return Analysis {
-                diagnostics: vec![diagnostic],
-                resolved: None,
-            };
-        }
-    };
-    match (Resolver {
-        program,
-        declarations,
-        reuse: None,
-        function_work: FunctionResolutionWork::default(),
-    })
-    .resolve()
-    {
+    match resolve_verified(program, None) {
         Ok((resolved, _)) => Analysis {
             diagnostics,
             resolved: Some(resolved),

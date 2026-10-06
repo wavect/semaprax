@@ -332,6 +332,11 @@ pub(crate) fn write_canonical_commented(
                 }
                 placement.closing(output, declaration.span.end.saturating_sub(1), 1);
                 writeln!(output, "}}").unwrap();
+                for invariant in declaration.invariants() {
+                    write!(output, "    requires ").unwrap();
+                    write_record_literal_delimited_expr(output, invariant);
+                    writeln!(output).unwrap();
+                }
             }
             TypeDeclarationKind::Variant { cases } => {
                 write!(output, "variant {}", declaration.name).unwrap();

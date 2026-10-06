@@ -112,6 +112,7 @@ mod ast {
         type_parameters,
         kind,
         extends,
+        invariants,
         span
     });
     codec_struct!(TypeParameterDeclaration { name, span });

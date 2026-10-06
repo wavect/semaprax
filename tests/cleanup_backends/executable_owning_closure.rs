@@ -457,3 +457,75 @@ fn called_owning_closure_agrees_across_interpreter_native_and_core_wasm() {
 fn uncalled_owning_closure_agrees_across_interpreter_native_and_core_wasm() {
     assert_shape_agrees(UNCALLED_SOURCE, "uncalled", UNCALLED_EXPECTED, 1, 7101);
 }
+
+/// Issue #578 (DV-18): an owning callback's substitution is lexical. The
+/// first block's `own fn` callback must not rewrite the second, disjoint
+/// block's ordinary zero-capture `callback()`; the independently expected
+/// result is 11 + 33 = 44 (all three backends previously agreed on 22).
+const DISJOINT_SCOPES_SOURCE: &str = r#"
+module audit.own_closure_scope;
+
+@id("audit.inspect")
+fn inspect(payload: own Bytes) -> i64
+{
+    11
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    let first = { let payload = bytes_zeroed(1usize); let callback = own fn() -> i64 { inspect(payload) }; callback() };
+    let second = { let payload = bytes_zeroed(2usize); let callback = fn() -> i64 { 33 }; callback() };
+    first + second
+}
+"#;
+
+/// The secondary manifestation: without the unrelated second `payload`, the
+/// leaked substitution previously named an out-of-scope capture (SPX-T202).
+const DISJOINT_SCOPES_NO_SECOND_PAYLOAD_SOURCE: &str = r#"
+module audit.own_closure_scope_single;
+
+@id("audit.inspect")
+fn inspect(payload: own Bytes) -> i64
+{
+    11
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    let first = { let payload = bytes_zeroed(1usize); let callback = own fn() -> i64 { inspect(payload) }; callback() };
+    let second = { let callback = fn() -> i64 { 33 }; callback() };
+    first + second
+}
+"#;
+
+#[test]
+fn owning_callback_substitution_does_not_leak_into_a_disjoint_block() {
+    assert_eq!(
+        run_interpreter(DISJOINT_SCOPES_SOURCE, "disjoint-scopes"),
+        44
+    );
+    assert_shape_agrees(DISJOINT_SCOPES_SOURCE, "disjoint-scopes", 44, 2, 7201);
+    // Renaming only the second callback must not change behavior.
+    let renamed = DISJOINT_SCOPES_SOURCE
+        .replace("let callback = fn()", "let other = fn()")
+        .replace("33 }; callback()", "33 }; other()");
+    assert_ne!(renamed, DISJOINT_SCOPES_SOURCE);
+    assert_shape_agrees(&renamed, "disjoint-scopes-renamed", 44, 2, 7301);
+}
+
+#[test]
+fn owning_callback_substitution_never_introduces_an_out_of_scope_capture() {
+    assert_eq!(
+        run_interpreter(DISJOINT_SCOPES_NO_SECOND_PAYLOAD_SOURCE, "disjoint-single"),
+        44
+    );
+    assert_shape_agrees(
+        DISJOINT_SCOPES_NO_SECOND_PAYLOAD_SOURCE,
+        "disjoint-single",
+        44,
+        1,
+        7401,
+    );
+}

@@ -356,20 +356,54 @@ pub fn verify_change_capsule_against_source(
         }
     }
 
-    for (object_id, expected, description) in [
+    // Bind replay to the capsule's required source-derived object *types*,
+    // never to the emitter's conventional ids (issue #583): an object id is
+    // an arbitrary caller-chosen label, so looking up only
+    // `SOURCE_PROJECTION_OBJECT_ID`/`PROGRAM_ROOT_OBJECT_ID` let a renamed,
+    // substituted object escape this comparison entirely. `verify_capsule`
+    // already proved each required type occurs exactly once and that every
+    // retained object has integrity-checked bytes; a redacted one stays
+    // explicitly unavailable in the report rather than replayed.
+    for (object_type, expected_schema, expected, description) in [
         (
-            SOURCE_PROJECTION_OBJECT_ID,
+            "source-projection",
+            SOURCE_PROJECTION_SCHEMA,
             identities.canonical_source.as_bytes(),
             "canonical source projection",
         ),
         (
-            PROGRAM_ROOT_OBJECT_ID,
+            "program-root",
+            identities.graph_schema.as_str(),
             identities.graph_json.as_bytes(),
             "semantic graph document",
         ),
     ] {
-        let Some(retained) = object_bytes.get(object_id) else {
+        let Some(object) = capsule
+            .objects
+            .iter()
+            .find(|candidate| candidate.object_type == object_type)
+        else {
+            return Err(drift_error(format!(
+                "a `change` capsule must carry a `{object_type}` object for replay to compare \
+                 against the current source, but none is present"
+            )));
+        };
+        if object.redacted {
             continue;
+        }
+        let object_id = object.id.as_str();
+        if object.schema != expected_schema {
+            return Err(drift_error(format!(
+                "object `{object_id}` of type `{object_type}` declares schema `{}`, but the \
+                 {description} the current source renders uses schema `{expected_schema}`",
+                object.schema
+            )));
+        }
+        let Some(retained) = object_bytes.get(object_id) else {
+            return Err(drift_error(format!(
+                "object `{object_id}` of type `{object_type}` is retained, but no bytes were \
+                 supplied for replay to compare against the {description}"
+            )));
         };
         if retained.as_slice() != expected {
             return Err(drift_error(format!(

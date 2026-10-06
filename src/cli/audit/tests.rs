@@ -594,30 +594,43 @@ fn hex_encode(bytes: &[u8]) -> String {
     out
 }
 
-/// A genuinely Ed25519-signed `change` capsule naming `identity` under
-/// `role`, plus the exact 32-byte verifying key that signature verifies
-/// against. `render_trust_capsule(revision, &[])`'s bytes are what
-/// `signature_verification::signable_bytes` would independently recompute
-/// from the final, signed manifest (it zeroes the `signatures` field before
-/// re-serializing, and every other field here is identical either way; this
-/// crate cannot call that `pub(super)` function directly, but
-/// `an_end_to_end_genuine_signature_actually_verifies` below is the
-/// empirical proof this equivalence holds).
-fn genuinely_signed_capsule(role: &str, identity: &str, revision: &str) -> (Vec<u8>, [u8; 32]) {
+/// One genuinely signed `ed25519-entry-v2` entry over the trust fixture
+/// capsule for `revision`. The per-entry preimage
+/// (`signature_verification::entry_signable_bytes`) excludes every entry's
+/// signature bytes, so it is identical whether the capsule is rendered with
+/// or without its signatures (issue #577).
+fn signed_entry(role: &str, identity: &str, revision: &str, expiry: u64) -> SignatureEntry {
     let signing_key = SigningKey::from_bytes(&[9u8; 32]);
-    let verifying_key = signing_key.verifying_key();
-    let bytes_to_sign = render_trust_capsule(revision, &[]);
-    let real_signature = signing_key.sign(&bytes_to_sign);
-    let entries = [SignatureEntry {
+    let mut entry = SignatureEntry {
         role: role.to_owned(),
         identity: identity.to_owned(),
-        algorithm: "ed25519-raw-v1".to_owned(),
-        signature: hex_encode(&real_signature.to_bytes()),
-        not_valid_after_unix_seconds: 9_999_999_999,
-    }];
+        algorithm: "ed25519-entry-v2".to_owned(),
+        signature: String::new(),
+        not_valid_after_unix_seconds: expiry,
+    };
+    let preimage = audit_capsule::signature_verification::entry_signable_bytes(
+        &render_trust_capsule(revision, &[]),
+        &entry,
+    )
+    .expect("the trust fixture is well-formed");
+    entry.signature = hex_encode(&signing_key.sign(&preimage).to_bytes());
+    entry
+}
+
+fn trust_fixture_key() -> [u8; 32] {
+    SigningKey::from_bytes(&[9u8; 32])
+        .verifying_key()
+        .to_bytes()
+}
+
+/// A genuinely Ed25519-signed `change` capsule naming `identity` under
+/// `role`, plus the exact 32-byte verifying key that signature verifies
+/// against.
+fn genuinely_signed_capsule(role: &str, identity: &str, revision: &str) -> (Vec<u8>, [u8; 32]) {
+    let entries = [signed_entry(role, identity, revision, 9_999_999_999)];
     (
         render_trust_capsule(revision, &entries),
-        verifying_key.to_bytes(),
+        trust_fixture_key(),
     )
 }
 
@@ -805,9 +818,9 @@ fn verify_rejects_a_forged_signature_naming_an_approved_identity_when_trust_rost
     let error = run_verify(&options)
         .expect_err("a forged signature naming an approved identity must be rejected");
     assert!(
-        error
-            .message
-            .contains("does not verify against this capsule's exact manifest bytes"),
+        error.message.contains(
+            "does not verify against this capsule's exact manifest bytes and this entry's own role"
+        ),
         "{}",
         error.message
     );
@@ -1026,6 +1039,134 @@ fn load_trust_roster_rejects_an_oversized_document() {
     let error = load_trust_roster(&path).expect_err("an oversized document must fail closed");
     assert!(
         error.message.contains("byte bound for this front"),
+        "{}",
+        error.message
+    );
+}
+
+// ---------------------------------------------------------------------
+// Issue #577 (DV-17): the real `audit verify --trust-roster` front must not
+// accept a signer's role, identity, or expiry that the signature never
+// covered. Each case keeps the one genuine signature and the same roster.
+// ---------------------------------------------------------------------
+
+const DECISION_ROLES: [&str; 5] = ["proposer", "reviewer", "validator", "approver", "publisher"];
+
+fn verify_signed_entries(
+    label: &str,
+    entries: &[SignatureEntry],
+    roles: &[&str],
+    now: u64,
+) -> Result<String, Diagnostic> {
+    let root = scratch_dir(label);
+    let manifest_path = root.join("capsule.json");
+    fs::write(&manifest_path, render_trust_capsule("r1", entries)).unwrap();
+    let objects_dir = root.join("objects");
+    write_trust_objects(&objects_dir);
+    let roster_path = write_roster(
+        &root,
+        "roster.json",
+        &trust_roster_json(&[("local-test-key", trust_fixture_key())]),
+    );
+    let mut options = verify_options_with_roster(manifest_path, objects_dir, Some(roster_path));
+    options.required_roles = roles.iter().map(|role| (*role).to_owned()).collect();
+    options.verification_time_unix_seconds = Some(now);
+    run_verify(&options)
+}
+
+#[test]
+fn verify_accepts_the_original_signed_role_and_rejects_a_missing_one() {
+    let original = signed_entry("proposer", "local-test-key", "r1", 100);
+    verify_signed_entries(
+        "dv17-original",
+        std::slice::from_ref(&original),
+        &["proposer"],
+        50,
+    )
+    .expect("the genuinely signed role verifies");
+    let error = verify_signed_entries("dv17-missing", &[original], &["publisher"], 50)
+        .expect_err("a role nobody signed is missing");
+    assert!(
+        error.message.contains("no signature carries"),
+        "{}",
+        error.message
+    );
+}
+
+#[test]
+fn verify_rejects_a_signature_whose_role_was_relabelled() {
+    let mut relabelled = signed_entry("proposer", "local-test-key", "r1", 100);
+    relabelled.role = "publisher".to_owned();
+    let error = verify_signed_entries("dv17-role", &[relabelled], &["publisher"], 50)
+        .expect_err("an unsigned role must not satisfy the publisher policy");
+    assert!(
+        error.message.contains("does not verify against"),
+        "{}",
+        error.message
+    );
+}
+
+#[test]
+fn verify_rejects_a_signature_whose_expiry_was_extended_and_honours_the_signed_one() {
+    let original = signed_entry("publisher", "local-test-key", "r1", 100);
+    verify_signed_entries(
+        "dv17-boundary",
+        std::slice::from_ref(&original),
+        &["publisher"],
+        100,
+    )
+    .expect("valid through its signed expiry instant");
+    let error = verify_signed_entries(
+        "dv17-expired",
+        std::slice::from_ref(&original),
+        &["publisher"],
+        101,
+    )
+    .expect_err("the signed expiry is effective");
+    assert!(error.message.contains("expired"), "{}", error.message);
+
+    let mut extended = original;
+    extended.not_valid_after_unix_seconds = u64::MAX;
+    let error = verify_signed_entries("dv17-extended", &[extended], &["publisher"], 101)
+        .expect_err("an unsigned expiry extension must not verify");
+    assert!(
+        error.message.contains("does not verify against"),
+        "{}",
+        error.message
+    );
+}
+
+#[test]
+fn verify_rejects_one_signature_copied_into_all_five_decision_roles() {
+    let original = signed_entry("proposer", "local-test-key", "r1", 100);
+    let copies: Vec<SignatureEntry> = DECISION_ROLES
+        .iter()
+        .map(|role| SignatureEntry {
+            role: (*role).to_owned(),
+            ..original.clone()
+        })
+        .collect();
+    let error = verify_signed_entries("dv17-copied", &copies, &DECISION_ROLES, 50)
+        .expect_err("one signature is not five role decisions");
+    assert!(
+        error.message.contains("does not verify against"),
+        "{}",
+        error.message
+    );
+}
+
+#[test]
+fn verify_refuses_a_legacy_raw_signature_under_a_trust_roster() {
+    let legacy = SignatureEntry {
+        algorithm: "ed25519-raw-v1".to_owned(),
+        ..signed_entry("proposer", "local-test-key", "r1", 100)
+    };
+    let error = verify_signed_entries("dv17-legacy", &[legacy], &["proposer"], 50)
+        .expect_err("legacy signatures leave role and expiry unsigned");
+    assert!(
+        error
+            .message
+            .contains("re-sign this entry as `ed25519-entry-v2`"),
         "{}",
         error.message
     );

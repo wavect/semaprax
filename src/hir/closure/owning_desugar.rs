@@ -28,9 +28,21 @@
 //! This module performs exactly that substitution on an already-verified
 //! [`Program`] (never on unchecked source: callers must run
 //! `source_verify::verify` first and only desugar on success), producing an
-//! ordinary program containing no `own fn` construct at all. Only
-//! `interpreter::interpret` calls it.
-use crate::ast::{Expr, ExprKind, Function, Program, Statement};
+//! ordinary program containing no `own fn` construct at all. The
+//! interpreter, native C11 (`codegen::emit_c`), and Core Wasm
+//! (`wasm::emit_module`) all execute the profile through this one rewrite.
+//!
+//! The substitution is lexical (issue #578): each owning binding's mapping
+//! lives only in the block that declares it (and the nested scopes inside
+//! it). Block, branch, match-arm, loop-body, and closure-body scopes restore
+//! the enclosing mapping on exit, and every ordinary binding -- `let`, loop
+//! item, match binding, closure parameter -- removes a same-spelled mapping
+//! for its own scope, so a later or sibling `name()` that source resolution
+//! binds to a different local is never rewritten.
+use crate::ast::{
+    Expr, ExprKind, Function, MatchPattern, Program, RecordMatchFieldPattern,
+    RecordMatchPatternField, Statement,
+};
 use std::collections::HashMap;
 
 /// Substitute every bounded owning-capture closure construction and its
@@ -136,6 +148,49 @@ fn lower_function(function: &mut Function) {
     lower_expr(&mut function.body, &mut substitutions);
 }
 
+/// Lowers `body` in a nested lexical scope: substitutions recorded inside it
+/// (an owning `let` in a block, branch, arm, or loop body) and bindings it
+/// declares never leak into sibling or enclosing scopes (#578). Names in
+/// `bound` are fresh bindings of the nested scope, so an outer substitution
+/// of the same spelling must not rewrite calls that resolve to them.
+fn lower_scoped<'a>(
+    body: &mut Expr,
+    substitutions: &HashMap<String, Expr>,
+    bound: impl IntoIterator<Item = &'a str>,
+) {
+    let mut scope = substitutions.clone();
+    for name in bound {
+        scope.remove(name);
+    }
+    lower_expr(body, &mut scope);
+}
+
+fn match_pattern_bindings(pattern: &MatchPattern, names: &mut Vec<String>) {
+    match pattern {
+        MatchPattern::Variant { fields, .. } => {
+            names.extend(fields.iter().map(|field| field.binding.clone()));
+        }
+        MatchPattern::Record { fields, .. } => record_field_bindings(fields, names),
+        MatchPattern::Binding { name, .. } => names.push(name.clone()),
+        MatchPattern::Or { alternatives, .. } => {
+            for alternative in alternatives {
+                match_pattern_bindings(alternative, names);
+            }
+        }
+        MatchPattern::Wildcard { .. } | MatchPattern::Literal { .. } => {}
+    }
+}
+
+fn record_field_bindings(fields: &[RecordMatchPatternField], names: &mut Vec<String>) {
+    for field in fields {
+        match &field.pattern {
+            RecordMatchFieldPattern::Binding { name, .. } => names.push(name.clone()),
+            RecordMatchFieldPattern::Record { fields, .. } => record_field_bindings(fields, names),
+            RecordMatchFieldPattern::Wildcard { .. } => {}
+        }
+    }
+}
+
 /// The closure body the parser always produces is a block; this bounded
 /// profile admits only a bare tail call and no statements (checked by
 /// `source_verify::owning_closure::check_construction`), so unwrapping that
@@ -162,7 +217,11 @@ fn lower_expr(expr: &mut Expr, substitutions: &mut HashMap<String, Expr>) {
         }
     }
     match &mut expr.kind {
-        ExprKind::Closure { body, .. } => lower_expr(body, substitutions),
+        ExprKind::Closure { params, body, .. } => lower_scoped(
+            body,
+            substitutions,
+            params.iter().map(|param| param.name.as_str()),
+        ),
         ExprKind::Call { args, .. } | ExprKind::SuperMethod { args, .. } => {
             for arg in args {
                 lower_expr(arg, substitutions);
@@ -181,8 +240,11 @@ fn lower_expr(expr: &mut Expr, substitutions: &mut HashMap<String, Expr>) {
             lower_expr(right, substitutions);
         }
         ExprKind::Block { statements, tail } => {
-            lower_statements(statements, substitutions);
-            lower_expr(tail, substitutions);
+            // A block is a lexical scope: owning substitutions it records and
+            // ordinary bindings it declares end with it.
+            let mut scope = substitutions.clone();
+            lower_statements(statements, &mut scope);
+            lower_expr(tail, &mut scope);
         }
         ExprKind::If {
             condition,
@@ -190,8 +252,8 @@ fn lower_expr(expr: &mut Expr, substitutions: &mut HashMap<String, Expr>) {
             else_branch,
         } => {
             lower_expr(condition, substitutions);
-            lower_expr(then_branch, substitutions);
-            lower_expr(else_branch, substitutions);
+            lower_scoped(then_branch, substitutions, []);
+            lower_scoped(else_branch, substitutions, []);
         }
         ExprKind::ConstructRecord { fields, .. } | ExprKind::ConstructVariant { fields, .. } => {
             for field in fields {
@@ -210,10 +272,16 @@ fn lower_expr(expr: &mut Expr, substitutions: &mut HashMap<String, Expr>) {
         } => {
             lower_expr(scrutinee, substitutions);
             for arm in arms {
-                if let Some(guard) = &mut arm.guard {
-                    lower_expr(guard, substitutions);
+                let mut bound = Vec::new();
+                match_pattern_bindings(&arm.pattern, &mut bound);
+                let mut scope = substitutions.clone();
+                for name in &bound {
+                    scope.remove(name.as_str());
                 }
-                lower_expr(&mut arm.value, substitutions);
+                if let Some(guard) = &mut arm.guard {
+                    lower_expr(guard, &mut scope);
+                }
+                lower_expr(&mut arm.value, &mut scope);
             }
         }
         _ => {}
@@ -235,6 +303,9 @@ fn lower_statements(statements: &mut Vec<Statement>, substitutions: &mut HashMap
                 return false;
             }
             lower_expr(value, substitutions);
+            // An ordinary declaration is its own binding: a later call of
+            // this spelling resolves to it, never to an earlier owning one.
+            substitutions.remove(name.as_str());
             true
         }
         Statement::Assign { value, .. } => {
@@ -242,19 +313,24 @@ fn lower_statements(statements: &mut Vec<Statement>, substitutions: &mut HashMap
             true
         }
         Statement::Unsafe { body, .. } => {
-            lower_expr(body, substitutions);
+            lower_scoped(body, substitutions, []);
             true
         }
         Statement::While {
             condition, body, ..
         } => {
             lower_expr(condition, substitutions);
-            lower_expr(body, substitutions);
+            lower_scoped(body, substitutions, []);
             true
         }
-        Statement::For { values, body, .. } | Statement::ForOwn { values, body, .. } => {
+        Statement::For {
+            item, values, body, ..
+        }
+        | Statement::ForOwn {
+            item, values, body, ..
+        } => {
             lower_expr(values, substitutions);
-            lower_expr(body, substitutions);
+            lower_scoped(body, substitutions, [item.as_str()]);
             true
         }
     });

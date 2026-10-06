@@ -14,7 +14,7 @@ use std::collections::BTreeMap;
 
 use ed25519_dalek::{Signer as _, SigningKey};
 
-use super::{signable_bytes, verify_against_roster};
+use super::{entry_signable_bytes, signable_bytes, verify_against_roster};
 use crate::audit_capsule::{
     nonclaims, render_capsule, sha256_digest, AssociationEdge, ObjectRef, Profile, SignatureEntry,
     SignaturePolicyContext, TransparencyEntry,
@@ -156,18 +156,18 @@ fn a_genuine_signature_over_the_exact_capsule_bytes_verifies_against_the_roster(
     let placeholder = [signature(
         "publisher",
         "agent://alice",
-        "ed25519-raw-v1",
+        "ed25519-entry-v2",
         &"0".repeat(128),
     )];
     let placeholder_manifest = minimal_signed_capsule(&placeholder);
-    let bytes_to_sign =
-        signable_bytes(&placeholder_manifest).expect("placeholder manifest is well-formed");
+    let bytes_to_sign = entry_signable_bytes(&placeholder_manifest, &placeholder[0])
+        .expect("placeholder manifest is well-formed");
     let real_signature = signing_key.sign(&bytes_to_sign);
 
     let entries = [signature(
         "publisher",
         "agent://alice",
-        "ed25519-raw-v1",
+        "ed25519-entry-v2",
         &hex_encode(&real_signature.to_bytes()),
     )];
     let manifest = minimal_signed_capsule(&entries);
@@ -194,7 +194,7 @@ fn a_forged_signature_naming_an_approved_identity_is_rejected_once_a_roster_is_a
     let entries = [signature(
         "publisher",
         "agent://alice",
-        "ed25519-raw-v1",
+        "ed25519-entry-v2",
         &forged,
     )];
     let manifest = minimal_signed_capsule(&entries);
@@ -227,7 +227,7 @@ fn a_signature_genuinely_valid_over_a_different_capsules_bytes_is_rejected() {
     let placeholder = [signature(
         "publisher",
         "agent://alice",
-        "ed25519-raw-v1",
+        "ed25519-entry-v2",
         &"0".repeat(128),
     )];
     let other_manifest = minimal_signed_capsule(&placeholder);
@@ -237,14 +237,14 @@ fn a_signature_genuinely_valid_over_a_different_capsules_bytes_is_rejected() {
         .unwrap()
         .replacen("\"r1\"", "\"r2\"", 1);
     let signed_elsewhere = signing_key.sign(
-        &signable_bytes(other_manifest_text.as_bytes())
+        &entry_signable_bytes(other_manifest_text.as_bytes(), &placeholder[0])
             .expect("tampered manifest stays well-formed JSON"),
     );
 
     let entries = [signature(
         "publisher",
         "agent://alice",
-        "ed25519-raw-v1",
+        "ed25519-entry-v2",
         &hex_encode(&signed_elsewhere.to_bytes()),
     )];
     let manifest = minimal_signed_capsule(&entries);
@@ -270,7 +270,7 @@ fn an_identity_absent_from_the_roster_is_rejected_as_unknown_not_forged() {
     let entries = [signature(
         "publisher",
         "agent://mallory",
-        "ed25519-raw-v1",
+        "ed25519-entry-v2",
         &"c".repeat(128),
     )];
     let manifest = minimal_signed_capsule(&entries);
@@ -324,7 +324,7 @@ fn a_malformed_signature_encoding_is_rejected_as_unverifiable_under_strict_mode(
     let entries = [signature(
         "publisher",
         "agent://alice",
-        "ed25519-raw-v1",
+        "ed25519-entry-v2",
         "not-hex-at-all",
     )];
     let manifest = minimal_signed_capsule(&entries);
@@ -351,7 +351,7 @@ fn check_signature_policy_still_enforces_a_missing_required_role_before_any_cryp
     let entries = [signature(
         "publisher",
         "agent://alice",
-        "ed25519-raw-v1",
+        "ed25519-entry-v2",
         &"0".repeat(128),
     )];
     let manifest = minimal_signed_capsule(&entries);
@@ -369,6 +369,263 @@ fn check_signature_policy_still_enforces_a_missing_required_role_before_any_cryp
     assert_eq!(error.code, "SPX-Z905");
     assert!(
         error.message.contains("no signature carries"),
+        "{}",
+        error.message
+    );
+}
+
+// ---------------------------------------------------------------------
+// Issue #577 (DV-17): role, identity, algorithm, and expiry are policy
+// inputs, so a strict roster must never accept them unsigned. The legacy
+// `ed25519-raw-v1` preimage omitted the whole `signatures` array; these
+// reproduce the published attack with exactly one genuine signature.
+// ---------------------------------------------------------------------
+
+const ALL_ROLES: [&str; 5] = ["proposer", "reviewer", "validator", "approver", "publisher"];
+
+fn strict_ctx(identity: &str, key: [u8; 32], roles: &[&str], now: u64) -> SignaturePolicyContext {
+    let mut roster = BTreeMap::new();
+    roster.insert(identity.to_owned(), key);
+    SignaturePolicyContext {
+        identity_public_keys: roster,
+        required_roles: roles.iter().map(|role| (*role).to_owned()).collect(),
+        verification_time_unix_seconds: now,
+        ..SignaturePolicyContext::default()
+    }
+}
+
+fn policy(
+    manifest: &[u8],
+    ctx: &SignaturePolicyContext,
+) -> Result<(), crate::diagnostic::Diagnostic> {
+    let capsule = crate::audit_capsule::parse_capsule(manifest).expect("fixture parses");
+    crate::audit_capsule::check_signature_policy(&capsule, manifest, ctx)
+}
+
+/// One legacy raw signature over the metadata-free preimage, as the issue's
+/// probe produced it: role `proposer`, expiry 100.
+fn legacy_raw_signature(key: &SigningKey) -> String {
+    let unsigned = minimal_signed_capsule(&[]);
+    hex_encode(
+        &key.sign(&signable_bytes(&unsigned).expect("well-formed"))
+            .to_bytes(),
+    )
+}
+
+fn entry(role: &str, identity: &str, algorithm: &str, sig: &str, expiry: u64) -> SignatureEntry {
+    SignatureEntry {
+        role: role.to_owned(),
+        identity: identity.to_owned(),
+        algorithm: algorithm.to_owned(),
+        signature: sig.to_owned(),
+        not_valid_after_unix_seconds: expiry,
+    }
+}
+
+#[test]
+fn a_legacy_raw_signature_relabelled_to_another_role_is_refused_under_a_strict_roster() {
+    let key = SigningKey::from_bytes(&[11u8; 32]);
+    let sig = legacy_raw_signature(&key);
+    let public = key.verifying_key().to_bytes();
+    let relabelled = minimal_signed_capsule(&[entry(
+        "publisher",
+        "local-test-key",
+        "ed25519-raw-v1",
+        &sig,
+        100,
+    )]);
+    let error = policy(
+        &relabelled,
+        &strict_ctx("local-test-key", public, &["publisher"], 50),
+    )
+    .expect_err("a role the signer never signed must not satisfy a strict policy");
+    assert_eq!(error.code, "SPX-Z905");
+}
+
+#[test]
+fn a_legacy_raw_signature_with_an_extended_expiry_is_refused_under_a_strict_roster() {
+    let key = SigningKey::from_bytes(&[11u8; 32]);
+    let sig = legacy_raw_signature(&key);
+    let public = key.verifying_key().to_bytes();
+    let extended = minimal_signed_capsule(&[entry(
+        "proposer",
+        "local-test-key",
+        "ed25519-raw-v1",
+        &sig,
+        u64::MAX,
+    )]);
+    let error = policy(
+        &extended,
+        &strict_ctx("local-test-key", public, &["proposer"], 101),
+    )
+    .expect_err("an expiry the signer never signed must not satisfy a strict policy");
+    assert_eq!(error.code, "SPX-Z905");
+}
+
+#[test]
+fn one_legacy_raw_signature_copied_into_all_five_roles_is_refused_under_a_strict_roster() {
+    let key = SigningKey::from_bytes(&[11u8; 32]);
+    let sig = legacy_raw_signature(&key);
+    let public = key.verifying_key().to_bytes();
+    let entries: Vec<SignatureEntry> = ALL_ROLES
+        .iter()
+        .map(|role| entry(role, "local-test-key", "ed25519-raw-v1", &sig, 100))
+        .collect();
+    let copied = minimal_signed_capsule(&entries);
+    let error = policy(
+        &copied,
+        &strict_ctx("local-test-key", public, &ALL_ROLES, 50),
+    )
+    .expect_err("one signature must not count as five role decisions");
+    assert_eq!(error.code, "SPX-Z905");
+}
+
+// ---------------------------------------------------------------------
+// Issue #577: `ed25519-entry-v2` binds each entry's role, identity,
+// algorithm, and expiry. Every mutation below keeps one genuine signature
+// and the same roster; only metadata or covered payload changes.
+// ---------------------------------------------------------------------
+
+const V2: &str = "ed25519-entry-v2";
+
+/// Independently signs one v2 entry over the fixture capsule. The preimage
+/// excludes every entry's signature bytes, so it is the same whether the
+/// capsule is rendered with or without the other entries.
+fn signed_v2(key: &SigningKey, role: &str, identity: &str, expiry: u64) -> SignatureEntry {
+    let mut unsigned = entry(role, identity, V2, "", expiry);
+    let preimage =
+        entry_signable_bytes(&minimal_signed_capsule(&[]), &unsigned).expect("well-formed");
+    unsigned.signature = hex_encode(&key.sign(&preimage).to_bytes());
+    unsigned
+}
+
+fn assert_unverified(manifest: &[u8], ctx: &SignaturePolicyContext) {
+    let error = policy(manifest, ctx).expect_err("tampered metadata must not verify");
+    assert_eq!(error.code, "SPX-Z905");
+    assert!(
+        error.message.contains("does not verify against"),
+        "{}",
+        error.message
+    );
+}
+
+#[test]
+fn independently_signed_distinct_roles_verify_under_a_strict_roster() {
+    let alice = SigningKey::from_bytes(&[21u8; 32]);
+    let bob = SigningKey::from_bytes(&[22u8; 32]);
+    let manifest = minimal_signed_capsule(&[
+        signed_v2(&alice, "proposer", "agent://alice", 100),
+        signed_v2(&alice, "reviewer", "agent://alice", 100),
+        signed_v2(&bob, "approver", "agent://bob", 100),
+    ]);
+    let mut ctx = strict_ctx(
+        "agent://alice",
+        alice.verifying_key().to_bytes(),
+        &["proposer", "reviewer", "approver"],
+        50,
+    );
+    ctx.identity_public_keys
+        .insert("agent://bob".to_owned(), bob.verifying_key().to_bytes());
+    policy(&manifest, &ctx).expect("genuine per-role signatures verify");
+}
+
+#[test]
+fn a_signed_expiry_is_effective_exactly_at_its_boundary() {
+    let key = SigningKey::from_bytes(&[23u8; 32]);
+    let public = key.verifying_key().to_bytes();
+    let manifest = minimal_signed_capsule(&[signed_v2(&key, "publisher", "k", 100)]);
+    policy(&manifest, &strict_ctx("k", public, &["publisher"], 100))
+        .expect("valid through its signed expiry instant");
+    let error = policy(&manifest, &strict_ctx("k", public, &["publisher"], 101))
+        .expect_err("expired one second later");
+    assert!(error.message.contains("expired"), "{}", error.message);
+}
+
+#[test]
+fn a_v2_signature_relabelled_to_another_role_does_not_verify() {
+    let key = SigningKey::from_bytes(&[24u8; 32]);
+    let public = key.verifying_key().to_bytes();
+    let mut relabelled = signed_v2(&key, "proposer", "k", 100);
+    relabelled.role = "publisher".to_owned();
+    let manifest = minimal_signed_capsule(&[relabelled]);
+    assert_unverified(&manifest, &strict_ctx("k", public, &["publisher"], 50));
+}
+
+#[test]
+fn a_v2_signature_with_an_extended_expiry_does_not_verify() {
+    let key = SigningKey::from_bytes(&[25u8; 32]);
+    let public = key.verifying_key().to_bytes();
+    let mut extended = signed_v2(&key, "proposer", "k", 100);
+    extended.not_valid_after_unix_seconds = u64::MAX;
+    let manifest = minimal_signed_capsule(&[extended]);
+    assert_unverified(&manifest, &strict_ctx("k", public, &["proposer"], 101));
+}
+
+#[test]
+fn one_v2_signature_copied_into_every_role_does_not_verify() {
+    let key = SigningKey::from_bytes(&[26u8; 32]);
+    let public = key.verifying_key().to_bytes();
+    let original = signed_v2(&key, "proposer", "k", 100);
+    let entries: Vec<SignatureEntry> = ALL_ROLES
+        .iter()
+        .map(|role| entry(role, "k", V2, &original.signature, 100))
+        .collect();
+    let manifest = minimal_signed_capsule(&entries);
+    assert_unverified(&manifest, &strict_ctx("k", public, &ALL_ROLES, 50));
+}
+
+#[test]
+fn a_v2_signature_moved_to_another_identity_with_the_same_key_does_not_verify() {
+    // Both identities map to the same key, so key lookup alone would succeed;
+    // only the signed identity field can tell them apart.
+    let key = SigningKey::from_bytes(&[27u8; 32]);
+    let public = key.verifying_key().to_bytes();
+    let mut moved = signed_v2(&key, "publisher", "agent://alice", 100);
+    moved.identity = "agent://bob".to_owned();
+    let manifest = minimal_signed_capsule(&[moved]);
+    let mut ctx = strict_ctx("agent://alice", public, &["publisher"], 50);
+    ctx.identity_public_keys
+        .insert("agent://bob".to_owned(), public);
+    assert_unverified(&manifest, &ctx);
+}
+
+#[test]
+fn a_v2_signature_over_an_altered_payload_does_not_verify() {
+    let key = SigningKey::from_bytes(&[28u8; 32]);
+    let public = key.verifying_key().to_bytes();
+    let manifest = minimal_signed_capsule(&[signed_v2(&key, "publisher", "k", 100)]);
+    let altered = String::from_utf8(manifest)
+        .unwrap()
+        .replacen("\"r1\"", "\"r2\"", 1);
+    assert_unverified(
+        altered.as_bytes(),
+        &strict_ctx("k", public, &["publisher"], 50),
+    );
+}
+
+#[test]
+fn a_legacy_raw_signature_relabelled_as_v2_does_not_verify() {
+    // Domain separation: a genuine signature over the bare legacy payload is
+    // never a valid per-entry v2 signature.
+    let key = SigningKey::from_bytes(&[11u8; 32]);
+    let public = key.verifying_key().to_bytes();
+    let sig = legacy_raw_signature(&key);
+    let manifest = minimal_signed_capsule(&[entry("proposer", "k", V2, &sig, 100)]);
+    assert_unverified(&manifest, &strict_ctx("k", public, &["proposer"], 50));
+}
+
+#[test]
+fn a_legacy_raw_signature_is_refused_with_a_re_sign_instruction_under_a_strict_roster() {
+    let key = SigningKey::from_bytes(&[11u8; 32]);
+    let public = key.verifying_key().to_bytes();
+    let sig = legacy_raw_signature(&key);
+    let manifest = minimal_signed_capsule(&[entry("proposer", "k", "ed25519-raw-v1", &sig, 100)]);
+    let error = policy(&manifest, &strict_ctx("k", public, &["proposer"], 50))
+        .expect_err("even an unmodified legacy signature leaves its metadata unsigned");
+    assert!(
+        error
+            .message
+            .contains("re-sign this entry as `ed25519-entry-v2`"),
         "{}",
         error.message
     );

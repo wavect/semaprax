@@ -219,3 +219,95 @@ fn uncalled_owning_closure_desugars_to_no_call_at_all() {
     assert!(matches!(&tail.kind, ExprKind::Int(1)));
     crate::hir::resolve(&rewritten).expect("desugared program is ordinary source");
 }
+
+/// Collects every zero-argument call's name, in source order, through the
+/// block/branch/let shapes the #578 regressions below use.
+fn zero_argument_calls(expr: &Expr, names: &mut Vec<String>) {
+    match &expr.kind {
+        ExprKind::Call { name, args, .. } => {
+            if args.is_empty() {
+                names.push(name.clone());
+            }
+            for arg in args {
+                zero_argument_calls(arg, names);
+            }
+        }
+        ExprKind::Binary { left, right, .. } => {
+            zero_argument_calls(left, names);
+            zero_argument_calls(right, names);
+        }
+        ExprKind::Block { statements, tail } => {
+            for statement in statements {
+                if let Statement::Let { value, .. } = statement {
+                    zero_argument_calls(value, names);
+                }
+            }
+            zero_argument_calls(tail, names);
+        }
+        ExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            zero_argument_calls(condition, names);
+            zero_argument_calls(then_branch, names);
+            zero_argument_calls(else_branch, names);
+        }
+        _ => {}
+    }
+}
+
+fn calls_after_desugaring(body: &str) -> Vec<String> {
+    let program = checked(body);
+    let rewritten = desugar_owning_closures(&program).expect("owning closure present");
+    crate::hir::resolve(&rewritten).expect("desugared program is ordinary source");
+    let mut names = Vec::new();
+    zero_argument_calls(main_body(&rewritten), &mut names);
+    names
+}
+
+/// Issue #578: a substitution recorded in one block must not rewrite a
+/// same-spelled ordinary callback declared in a later disjoint block, and
+/// must not transplant the earlier capture out of its scope.
+#[test]
+fn owning_substitution_does_not_leak_into_a_disjoint_sibling_block() {
+    let body = r#"
+    let first = { let payload = bytes_zeroed(1usize); let callback = own fn() -> i64 { checksum(payload) }; callback() };
+    let second = { let callback = fn() -> i64 { 33 }; callback() };
+    first + second
+"#;
+    assert_eq!(calls_after_desugaring(body), ["callback"]);
+}
+
+/// Issue #578: sibling conditional branches are separate lexical scopes.
+#[test]
+fn owning_substitution_does_not_leak_into_a_sibling_branch() {
+    let body = r#"
+    if true {
+        let payload = bytes_zeroed(1usize);
+        let callback = own fn() -> i64 { checksum(payload) };
+        callback()
+    } else {
+        let callback = fn() -> i64 { 33 };
+        callback()
+    }
+"#;
+    assert_eq!(calls_after_desugaring(body), ["callback"]);
+}
+
+/// Issue #578: an outer owning callback stays callable from a nested block
+/// inside its own scope; its mapping ends with that scope.
+#[test]
+fn outer_owning_callback_is_still_substituted_inside_a_nested_block() {
+    let body = r#"
+    let kept = {
+        let payload = bytes_zeroed(4usize);
+        let callback = own fn() -> i64 { checksum(payload) };
+        let nested = { callback() };
+        nested
+    };
+    let later = { let callback = fn() -> i64 { 1 }; callback() };
+    kept + later
+"#;
+    assert_eq!(calls_after_desugaring(body), ["callback"]);
+}

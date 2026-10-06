@@ -38,7 +38,7 @@
 //! validates role, expiry, and revocation, then -- only when the caller
 //! opts in by populating [`SignaturePolicyContext::identity_public_keys`]
 //! with a roster of already-trusted Ed25519 verifying keys -- cryptographically
-//! checks every `ed25519-raw-v1` signature against it (see
+//! checks every `ed25519-entry-v2` signature against it (see
 //! `signature_verification`). Leaving that roster empty, as every caller did
 //! before this capability existed, preserves the original opaque, policy-only
 //! behavior exactly. `sigstore-cosign-bundle-v0.3` still has no local
@@ -156,7 +156,11 @@ pub const KNOWN_SIGNATURE_ROLES: &[&str] =
 
 /// Recognizing an algorithm identifier here is a structural admission only,
 /// never a cryptographic endorsement -- see the module doc.
-pub const KNOWN_SIGNATURE_ALGORITHMS: &[&str] = &["sigstore-cosign-bundle-v0.3", "ed25519-raw-v1"];
+pub const KNOWN_SIGNATURE_ALGORITHMS: &[&str] = &[
+    "sigstore-cosign-bundle-v0.3",
+    "ed25519-raw-v1",
+    "ed25519-entry-v2",
+];
 
 pub const REQUIRED_OBJECT_TYPES_CHANGE: &[&str] = &[
     "source-projection",

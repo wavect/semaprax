@@ -22,7 +22,7 @@ transaction, assurance, execution, model/tool, artifact, package, decision,
 and publication evidence. This document and `src/audit_capsule.rs` provide
 the **envelope**: a `semaprax.audit-capsule.v1` manifest, a content-addressed
 object set referenced by plain SHA-256 digest, an association graph, a
-redaction mechanism, a signature policy that verifies `ed25519-raw-v1`
+redaction mechanism, a signature policy that verifies `ed25519-entry-v2`
 cryptographically once a caller supplies a trust roster (opaque otherwise,
 and always opaque for `sigstore-cosign-bundle-v0.3`), and a
 non-cryptographic transparency-inclusion check -- plus the hostile-input
@@ -177,7 +177,7 @@ required set.
    no expired signature; then, only when the caller opts in by populating
    [`SignaturePolicyContext::identity_public_keys`] with a roster of
    already-trusted Ed25519 verifying keys, cryptographically checks every
-   `ed25519-raw-v1` signature against it (`signature_verification`; see
+   `ed25519-entry-v2` signature against it (`signature_verification`; see
    "Signatures" below). Leaving that roster empty -- the default -- keeps
    `signature` bytes opaque exactly as before.
 7. [`check_transparency`]: if a `transparency` entry is present, its
@@ -256,7 +256,7 @@ expired or revoked per caller-supplied policy, and that at most one identity
 claims each role (so a proposer's signature can never be mistaken for an
 approver's).
 
-**Does prove, when the caller opts in:** for an `ed25519-raw-v1` signature
+**Does prove, when the caller opts in:** for an `ed25519-entry-v2` signature
 whose identity appears in a caller-supplied
 [`SignaturePolicyContext::identity_public_keys`] roster,
 `signature_verification` cryptographically checks the `signature` bytes
@@ -270,6 +270,30 @@ capability existed -- keeps `signature` bytes fully opaque.
 the command line; omitting the flag, or pointing it at a roster naming zero
 identities, preserves the empty-roster default exactly, and the CLI's own
 report says explicitly which of the two happened (see "CLI surface" above).
+
+**Signed entry metadata (issue #577).** Role, identity, algorithm, and
+expiry are policy inputs, so a strict roster accepts them only when the
+signature covers them. An `ed25519-entry-v2` signature is an Ed25519
+signature over a per-entry, domain-separated preimage
+(`signature_verification::entry_signable_bytes`):
+
+```text
+semaprax.audit-capsule.v1/signature-entry/ed25519-entry-v2 LF
+{"algorithm":…,"identity":…,"not_valid_after_unix_seconds":…,"role":…} LF
+<capsule payload: canonical manifest with `signatures` set to [] , LF-terminated>
+```
+
+The metadata line is sorted, compact JSON for this one entry; only the
+entry's own `signature` bytes are left out. Each entry is signed
+independently, so an early signer never needs to know later signatures,
+and a genuine multi-role decision needs one signature per role. Relabelling
+a role, extending an expiry, moving a signature to another identity (even
+one mapped to the same key), copying it into another role, or changing any
+covered payload field all fail verification. The legacy `ed25519-raw-v1`
+preimage was the payload alone and authenticated none of that metadata, so
+under a non-empty roster it is refused with an instruction to re-sign as
+`ed25519-entry-v2` rather than reinterpreted; with no roster it remains a
+recognized, opaque, policy-only entry exactly as before.
 
 **Does not prove, ever:** that a `sigstore-cosign-bundle-v0.3` signature is
 genuine -- checking a Sigstore bundle needs Rekor, which needs network
@@ -302,7 +326,7 @@ claims, never collapsed into one green summary:
   object's bytes are independently recomputed and compared, never trusted
   from an embedded field.
 - **Authenticity** (were these bytes produced by the claimed signing
-  identity?) is established only for an `ed25519-raw-v1` signature whose
+  identity?) is established only for an `ed25519-entry-v2` signature whose
   identity a caller-supplied trust roster covers -- see "Signatures" above.
   With no roster (the default) or for `sigstore-cosign-bundle-v0.3`, it is
   explicitly **not** established. No capsule is produced by this repository
@@ -397,6 +421,16 @@ profile:
   disagreement with `SPX-Z909`. Toolchain drift is checked before the
   identities, since a different compiler can legitimately derive a different
   revision, and reporting that as source drift would mislead.
+- Replay selects the retained bytes to compare by **object type**, not by
+  the emitter's conventional ids (issue #583). The unique `source-projection`
+  and `program-root` objects the structural check already requires are
+  resolved from the parsed capsule's type inventory, their declared schema
+  must match the one the current source renders, and their retained bytes
+  must equal the fresh canonical projection and graph document under
+  whatever id each actually carries. Renaming an object therefore never
+  moves it outside replay, an unrelated object occupying a conventional id
+  is never compared as a source-derived one, and a redacted source-derived
+  object stays reported as unavailable rather than replayed.
 
 This mirrors `verify_certificate_against_source` in
 `src/assurance_manifest/proof_certificate/verify.rs`, for the same reason: a

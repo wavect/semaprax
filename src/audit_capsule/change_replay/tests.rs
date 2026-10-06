@@ -589,3 +589,164 @@ fn neither_emission_nor_replay_reaches_the_filesystem_process_table_or_network()
         );
     }
 }
+
+// ---------------------------------------------------------------------
+// Issue #583 (DV-23): replay binds the source-derived objects by their
+// required *type*, never by the emitter's conventional ids. Each fixture is
+// re-rendered through the public `render_capsule`, so it stays structurally
+// valid and only the replay comparison can catch it.
+// ---------------------------------------------------------------------
+
+/// Re-renders `capsule` after renaming object ids (`renames`, applied to
+/// objects, association edges, and the byte map) and then substituting the
+/// retained bytes of the named objects (`substitutions`, by post-rename id),
+/// recomputing each substituted object's digest so integrity still holds.
+fn relabelled(
+    capsule: &ChangeCapsule,
+    renames: &[(&str, &str)],
+    substitutions: &[(&str, &[u8])],
+) -> (Vec<u8>, BTreeMap<String, Vec<u8>>) {
+    let parsed = parse_capsule(&capsule.manifest_bytes).expect("emitted bytes parse");
+    let rename = |id: &str| -> String {
+        renames
+            .iter()
+            .find(|(from, _)| *from == id)
+            .map_or_else(|| id.to_owned(), |(_, to)| (*to).to_owned())
+    };
+    let mut bytes: BTreeMap<String, Vec<u8>> = capsule
+        .object_bytes
+        .iter()
+        .map(|(id, retained)| (rename(id), retained.clone()))
+        .collect();
+    let mut objects = parsed.objects.clone();
+    for object in &mut objects {
+        object.id = rename(&object.id);
+        if let Some((_, substitute)) = substitutions.iter().find(|(id, _)| *id == object.id) {
+            object.digest = sha256_digest(substitute);
+            bytes.insert(object.id.clone(), substitute.to_vec());
+        }
+    }
+    let associations: Vec<AssociationEdge> = parsed
+        .associations
+        .iter()
+        .map(|edge| AssociationEdge {
+            from_id: rename(&edge.from_id),
+            relation: edge.relation.clone(),
+            to_id: rename(&edge.to_id),
+        })
+        .collect();
+    let manifest = render_capsule(
+        Profile::Change,
+        &parsed.subject,
+        &objects,
+        &associations,
+        &parsed.signatures,
+        parsed.transparency.as_ref(),
+        &parsed.nonclaims,
+    )
+    .expect("relabelled capsule renders");
+    (manifest, bytes)
+}
+
+fn replay(manifest: &[u8], bytes: &BTreeMap<String, Vec<u8>>) -> Result<(), Diagnostic> {
+    verify_change_capsule_against_source(
+        manifest,
+        bytes,
+        FIXTURE_SOURCE,
+        FIXTURE_LABEL,
+        &empty_signature_ctx(),
+        &empty_transparency_ctx(),
+    )
+    .map(|_| ())
+}
+
+fn drifted_projection() -> String {
+    crate::format::canonical(
+        &crate::parse(DRIFTED_SOURCE, FIXTURE_LABEL).expect("the drifted fixture parses"),
+    )
+}
+
+fn drifted_graph() -> String {
+    derive_change_identities(DRIFTED_SOURCE, FIXTURE_LABEL)
+        .expect("the drifted fixture derives identities")
+        .graph_json
+}
+
+#[test]
+fn honestly_renamed_source_derived_objects_still_replay() {
+    let capsule = emit_fixture(FIXTURE_SOURCE);
+    let (manifest, bytes) = relabelled(
+        &capsule,
+        &[
+            (SOURCE_PROJECTION_OBJECT_ID, "alternate-source-projection"),
+            (PROGRAM_ROOT_OBJECT_ID, "alternate-program-root"),
+        ],
+        &[],
+    );
+    replay(&manifest, &bytes).expect("an honest capsule replays regardless of object labels");
+}
+
+#[test]
+fn a_substituted_source_projection_fails_replay_under_any_object_id() {
+    let capsule = emit_fixture(FIXTURE_SOURCE);
+    let substitute = drifted_projection();
+    for label in [SOURCE_PROJECTION_OBJECT_ID, "alternate-source-projection"] {
+        let (manifest, bytes) = relabelled(
+            &capsule,
+            &[(SOURCE_PROJECTION_OBJECT_ID, label)],
+            &[(label, substitute.as_bytes())],
+        );
+        let error = replay(&manifest, &bytes).expect_err("substituted source must fail replay");
+        assert_eq!(error.code, "SPX-Z909", "{label}: {}", error.message);
+        assert!(
+            error.message.contains("canonical source projection") && error.message.contains(label),
+            "{label}: {}",
+            error.message
+        );
+    }
+}
+
+#[test]
+fn a_substituted_program_root_fails_replay_under_any_object_id() {
+    let capsule = emit_fixture(FIXTURE_SOURCE);
+    let substitute = drifted_graph();
+    for label in [PROGRAM_ROOT_OBJECT_ID, "alternate-program-root"] {
+        let (manifest, bytes) = relabelled(
+            &capsule,
+            &[(PROGRAM_ROOT_OBJECT_ID, label)],
+            &[(label, substitute.as_bytes())],
+        );
+        let error = replay(&manifest, &bytes).expect_err("substituted graph must fail replay");
+        assert_eq!(error.code, "SPX-Z909", "{label}: {}", error.message);
+        assert!(error.message.contains(label), "{label}: {}", error.message);
+    }
+}
+
+#[test]
+fn a_reserved_id_occupied_by_another_object_type_is_not_mistaken_for_the_source_projection() {
+    // The honest source projection moves to an arbitrary id and an ordinary
+    // semantic-transaction object takes the conventional reserved id. Replay
+    // must still find and check the real projection by type (here: honest,
+    // so it passes) and must not compare the transaction's bytes against
+    // the canonical source.
+    let capsule = emit_fixture(FIXTURE_SOURCE);
+    let swapped = [
+        (SOURCE_PROJECTION_OBJECT_ID, "alternate-source-projection"),
+        (
+            "supplied-a-semantic-transaction",
+            SOURCE_PROJECTION_OBJECT_ID,
+        ),
+    ];
+    let (manifest, bytes) = relabelled(&capsule, &swapped, &[]);
+    replay(&manifest, &bytes).expect("type, not id, selects the replayed object");
+
+    // And the same layout with a substituted projection still fails.
+    let substitute = drifted_projection();
+    let (manifest, bytes) = relabelled(
+        &capsule,
+        &swapped,
+        &[("alternate-source-projection", substitute.as_bytes())],
+    );
+    let error = replay(&manifest, &bytes).expect_err("substituted source must fail replay");
+    assert_eq!(error.code, "SPX-Z909");
+}

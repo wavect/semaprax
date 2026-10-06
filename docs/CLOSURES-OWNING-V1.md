@@ -219,6 +219,18 @@ one call have already become an ordinary direct call by the time
   exactly one `FinalizeAction`, freeing it once, with no closure-specific
   mechanism involved.
 
+The substitution is **lexical** (issue #578). A mapping from `clo` to its
+target call exists only inside the block that declares `let clo = own fn
+...` and the scopes nested in it. Block, conditional-branch, match-arm,
+loop-body, and closure-body scopes restore the enclosing mappings on exit,
+and every ordinary binding of the same spelling (`let`, loop item, match
+binding, closure parameter) hides the mapping for its own scope. A later
+or sibling `clo()` that source resolution binds to a different local is
+never rewritten, and the rewrite never moves a capture name out of its
+declaring scope. The regressions in `owning_desugar`'s tests and the
+`disjoint`-block cases in `executable_owning_closure.rs` pin an independently
+expected result (44, not the previous 22 on all three backends).
+
 Both shapes are proven directly against the built `cleanup_plan::CleanupPlan`
 in [`hir::closure::owning_desugar`'s tests](../src/hir/closure/owning_desugar/tests.rs),
 so "cleaned up exactly once" is checked against the same canonical,

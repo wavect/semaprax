@@ -34,6 +34,20 @@
 //! under strict mode fails closed as unverifiable, exactly like a
 //! structurally malformed signature -- never silently accepted just because
 //! its role, identity, expiry, and revocation status all looked fine.
+//!
+//! ## Signed entry metadata (issue #577)
+//!
+//! `ed25519-raw-v1` signed only the capsule payload ([`signable_bytes`]
+//! removes the whole `signatures` array), so an entry's `role`, `identity`,
+//! `algorithm`, and `not_valid_after_unix_seconds` -- the very fields
+//! `check_signature_policy` decides on -- were outside cryptographic
+//! coverage: one genuine signature could be relabelled to another role, given
+//! a later expiry, or copied into every role. Strict mode now verifies only
+//! `ed25519-entry-v2`, whose domain-separated per-entry preimage
+//! ([`entry_signable_bytes`]) binds all four fields plus the payload, and it
+//! refuses `ed25519-raw-v1` as an explicit compatibility boundary rather
+//! than reinterpreting old signatures as authenticating metadata they never
+//! signed. The empty-roster, policy-only mode is unchanged for both.
 
 use std::collections::BTreeMap;
 
@@ -47,6 +61,16 @@ use super::{
 };
 
 const ED25519_RAW_V1: &str = "ed25519-raw-v1";
+
+/// The per-entry signature algorithm whose preimage binds this entry's own
+/// policy metadata (issue #577). See [`entry_signable_bytes`].
+pub const ED25519_ENTRY_V2: &str = "ed25519-entry-v2";
+
+/// Domain separator prefixed to every `ed25519-entry-v2` preimage, so a
+/// signature over it can never be replayed as a signature over any other
+/// SEMAPRAX message (including a legacy `ed25519-raw-v1` capsule payload,
+/// which always starts with `{`).
+const ENTRY_V2_DOMAIN: &[u8] = b"semaprax.audit-capsule.v1/signature-entry/ed25519-entry-v2\n";
 
 /// The exact bytes an `ed25519-raw-v1` [`SignatureEntry::signature`] must be
 /// an Ed25519 signature over: `manifest_bytes` with its `signatures` field
@@ -69,6 +93,45 @@ pub(super) fn signable_bytes(manifest_bytes: &[u8]) -> Result<Vec<u8>, Diagnosti
     })?;
     text.push('\n');
     Ok(text.into_bytes())
+}
+
+/// The exact bytes an `ed25519-entry-v2` [`SignatureEntry::signature`] must
+/// be an Ed25519 signature over (issue #577): [`ENTRY_V2_DOMAIN`], then one
+/// LF-terminated canonical JSON line carrying **this entry's** `role`,
+/// `identity`, `algorithm`, and `not_valid_after_unix_seconds`, then the
+/// capsule payload [`signable_bytes`] defines. Only the entry's own
+/// `signature` bytes are omitted, so relabelling a role, extending an
+/// expiry, renaming the identity, or copying one signature into another
+/// role all change what a valid signature must have covered. Each entry is
+/// signed independently, so an early signer never needs to know later
+/// signatures. Producers sign exactly these bytes; the verifier recomputes
+/// them from the manifest under test and never trusts a supplied preimage.
+pub fn entry_signable_bytes(
+    manifest_bytes: &[u8],
+    entry: &SignatureEntry,
+) -> Result<Vec<u8>, Diagnostic> {
+    let payload = signable_bytes(manifest_bytes)?;
+    Ok(entry_preimage(&payload, entry))
+}
+
+fn entry_preimage(payload: &[u8], entry: &SignatureEntry) -> Vec<u8> {
+    let metadata = serde_json::json!({
+        "algorithm": entry.algorithm,
+        "identity": entry.identity,
+        "not_valid_after_unix_seconds": entry.not_valid_after_unix_seconds,
+        "role": entry.role,
+    });
+    // `sorted_json` canonicalizes key order, and compact JSON escapes every
+    // LF inside a string, so the metadata line holds no raw newline and the
+    // domain line, metadata line, and payload stay unambiguous.
+    let line = serde_json::to_string(&sorted_json(&metadata))
+        .expect("a flat map of strings and an integer always serializes");
+    let mut bytes = Vec::with_capacity(ENTRY_V2_DOMAIN.len() + line.len() + 1 + payload.len());
+    bytes.extend_from_slice(ENTRY_V2_DOMAIN);
+    bytes.extend_from_slice(line.as_bytes());
+    bytes.push(b'\n');
+    bytes.extend_from_slice(payload);
+    bytes
 }
 
 fn hex_nibble(byte: u8) -> Option<u8> {
@@ -110,9 +173,9 @@ pub(super) fn verify_against_roster(
     if ctx.identity_public_keys.is_empty() {
         return Ok(());
     }
-    let signable = signable_bytes(manifest_bytes)?;
+    let payload = signable_bytes(manifest_bytes)?;
     for entry in &capsule.signatures {
-        verify_one(entry, &ctx.identity_public_keys, &signable)?;
+        verify_one(entry, &ctx.identity_public_keys, &payload)?;
     }
     Ok(())
 }
@@ -120,7 +183,7 @@ pub(super) fn verify_against_roster(
 fn verify_one(
     entry: &SignatureEntry,
     roster: &BTreeMap<String, [u8; 32]>,
-    signable: &[u8],
+    payload: &[u8],
 ) -> Result<(), Diagnostic> {
     let Some(public_key_bytes) = roster.get(&entry.identity) else {
         return Err(signature_error(format!(
@@ -130,18 +193,32 @@ fn verify_one(
             entry.role, entry.identity
         )));
     };
-    if entry.algorithm != ED25519_RAW_V1 {
+    if entry.algorithm == ED25519_RAW_V1 {
+        // Explicit compatibility boundary (issue #577): a legacy raw
+        // signature covers only the capsule payload, never this entry's
+        // role, identity, algorithm, or expiry -- exactly the fields strict
+        // policy relies on. Treating it as authenticating them would let
+        // anyone relabel, extend, or copy it, so strict mode refuses it.
+        return Err(signature_error(format!(
+            "signature role `{}` identity `{}` uses legacy algorithm `{ED25519_RAW_V1}`, whose \
+             preimage does not cover the entry's role, identity, algorithm, or expiry; a strict \
+             trust roster cannot accept those fields unsigned, so re-sign this entry as \
+             `{ED25519_ENTRY_V2}`",
+            entry.role, entry.identity
+        )));
+    }
+    if entry.algorithm != ED25519_ENTRY_V2 {
         return Err(signature_error(format!(
             "signature role `{}` identity `{}` uses algorithm `{}`, which this module cannot \
-             verify locally; only `{ED25519_RAW_V1}` has a local verifier, so this signature is \
-             unverifiable rather than trusted",
+             verify locally; only `{ED25519_ENTRY_V2}` has a local verifier, so this signature \
+             is unverifiable rather than trusted",
             entry.role, entry.identity, entry.algorithm
         )));
     }
     let Some(signature_bytes) = decode_lower_hex::<64>(&entry.signature) else {
         return Err(signature_error(format!(
             "signature role `{}` identity `{}` is not 128 lowercase-hex characters encoding a \
-             64-byte `{ED25519_RAW_V1}` signature; it is unverifiable",
+             64-byte `{ED25519_ENTRY_V2}` signature; it is unverifiable",
             entry.role, entry.identity
         )));
     };
@@ -153,12 +230,16 @@ fn verify_one(
         ))
     })?;
     verifying_key
-        .verify_strict(signable, &Signature::from_bytes(&signature_bytes))
+        .verify_strict(
+            &entry_preimage(payload, entry),
+            &Signature::from_bytes(&signature_bytes),
+        )
         .map_err(|_| {
             signature_error(format!(
                 "signature role `{}` identity `{}` does not verify against this capsule's exact \
-                 manifest bytes -- it was not produced over this capsule, whether forged from \
-                 nothing or copied from a different one",
+                 manifest bytes and this entry's own role, identity, algorithm, and expiry -- it \
+                 was not produced over this entry of this capsule, whether forged from nothing, \
+                 relabelled, or copied from a different entry or capsule",
                 entry.role, entry.identity
             ))
         })

@@ -69,8 +69,16 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
-      - name: Fixture and end-to-end suite
-        shell: ${{ matrix.shell }}
+      - name: Fixture and end-to-end suite (powershell)
+        if: matrix.shell == 'powershell'
+        shell: powershell
+        run: |
+          $PSVersionTable.PSVersion.ToString()
+          & ./scripts/test-install-ps1.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Fixture and end-to-end suite (pwsh)
+        if: matrix.shell == 'pwsh'
+        shell: pwsh
         run: |
           $PSVersionTable.PSVersion.ToString()
           & ./scripts/test-install-ps1.ps1
@@ -124,9 +132,17 @@ jobs:
         env:
           SEMAPRAX_JOURNEY_REQUIRE_PUBLISHER: "1"
         run: sh scripts/install-journey.sh "$PWD/journey-assets" "$JOURNEY_TAG"
-      - name: Windows journey (publisher verification required)
-        if: runner.os == 'Windows'
-        shell: ${{ matrix.shell }}
+      - name: Windows journey, powershell (publisher verification required)
+        if: runner.os == 'Windows' && matrix.shell == 'powershell'
+        shell: powershell
+        env:
+          SEMAPRAX_JOURNEY_PUBLISHER_VERIFY: "1"
+        run: |
+          & ./scripts/install-journey.ps1 -AssetsDir "$PWD\journey-assets" -Tag $env:JOURNEY_TAG
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Windows journey, pwsh (publisher verification required)
+        if: runner.os == 'Windows' && matrix.shell == 'pwsh'
+        shell: pwsh
         env:
           SEMAPRAX_JOURNEY_PUBLISHER_VERIFY: "1"
         run: |

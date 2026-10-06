@@ -378,6 +378,7 @@ const LANGUAGE_TOPICS: &[(&str, &str)] = &[
     ("ownership", "Ownership and resources"),
     ("strings", "Strings and bytes"),
     ("builtins", "Compiler-owned functions"),
+    ("lists", "Lists and iterators"),
     (
         "mistakes-code",
         "Habits from other languages: diagnostic examples",
@@ -657,6 +658,10 @@ pub(crate) fn dispatch(args: &[String], private: bool) -> Option<Result<(), u8>>
         let output = match args[1].as_str() {
             "all" => catalog(private),
             "language" => LANGUAGE_REFERENCE.to_owned(),
+            // The code list, not a usage error followed by the whole guide.
+            "diagnostic" => {
+                diagnostic_entry("codes").expect("the indexed diagnostic help lists its codes")
+            }
             "library" => LIBRARY_CATALOG.to_owned(),
             "shapes" => SHAPES_CATALOG.to_owned(),
             command => match scoped(command, private) {
@@ -862,7 +867,7 @@ static GUIDE: &[GuideGroup] = &[
             GuideEntry {
                 id: CommandId::Help,
                 shape: "help language [topic]",
-                summary: "One topic or the language card",
+                summary: "One topic (`topics` lists them)",
             },
             GuideEntry {
                 id: CommandId::Help,
@@ -1336,7 +1341,7 @@ mod tests {
         assert!(LANGUAGE_REFERENCE.contains("```semaprax\n"));
         assert!(LANGUAGE_REFERENCE.ends_with('\n'));
         let reference_units = semaprax::agent_economics::lexical_tokens(LANGUAGE_REFERENCE);
-        assert_eq!(LANGUAGE_TOPICS.len(), 12);
+        assert_eq!(LANGUAGE_TOPICS.len(), 13);
         for (selector, heading) in LANGUAGE_TOPICS {
             let topic = language_topic(selector).unwrap();
             assert!(topic.starts_with(&format!("## {heading}\n")), "{selector}");
@@ -1377,7 +1382,7 @@ mod tests {
         assert!(entries.len() >= 20);
 
         let codes = diagnostic_entry("codes").unwrap();
-        assert!(codes.starts_with("Diagnostic codes:\n  SPX-O101 "));
+        assert!(codes.starts_with("Diagnostic codes:\n  SPX-G170 "));
         assert!(codes.ends_with(" SPX-U101\n"));
         assert_eq!(codes.lines().count(), 2);
         assert!(codes.len() <= 256, "{} bytes", codes.len());
@@ -1411,7 +1416,7 @@ mod tests {
         );
 
         let p106 = diagnostic_entry("SPX-P106").unwrap();
-        assert_eq!(p106.matches("\nwrote: ").count(), 6);
+        assert_eq!(p106.matches("\nwrote: ").count(), 9);
         assert!(p106.contains("No tuples; declare a `record`"));
         assert_eq!(
             diagnostic_entry("spx-t208").unwrap_err(),

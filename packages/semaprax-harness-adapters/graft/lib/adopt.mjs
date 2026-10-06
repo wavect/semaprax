@@ -2,8 +2,8 @@
 // compatibility (wiring schema, extractor identity, code-only content) and source binding (file set and
 // content digests against the working tree) are verified on every invocation before it answers a query.
 // The user's index is never written: reuse is read-only, or an immutable copied snapshot.
-import { createHash } from 'node:crypto';
-import { chmodSync, cpSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, statSync } from 'node:fs';
+import { createHash, randomBytes } from 'node:crypto';
+import { chmodSync, closeSync, constants, existsSync, fstatSync, lstatSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { join, sep } from 'node:path';
 import { extOf, sha256, walkCandidates } from './project.mjs';
 
@@ -11,6 +11,9 @@ export const MODES = ['read-only', 'copied-snapshot'];
 const MAX_WIRING_BYTES = 64 * 1024 * 1024;
 const MAX_FILE_BYTES = 1_000_000; // graft indexes nothing larger
 const MAX_REASONS = 8;
+export const MAX_SNAPSHOT_ATTEMPTS = 3; // staging retries while the user index is still being written
+const MAX_SNAPSHOT_ENTRIES = 100000;
+const MAX_SNAPSHOT_BYTES = 2 * 1024 * 1024 * 1024;
 
 // Env contract (names are not SEMAPRAX_HARNESS_*, which the host reserves).
 // Primary source: the host-validated descriptor config (`[capability."context.repository".config]`,
@@ -39,17 +42,20 @@ export function treeDigest(dir) {
 }
 
 // Verifies the user index; returns {ok, reasons[], descriptor, files, work}. Pure reads.
-export function verifyUserIndex(cfg, profile, version, ac) {
+// `staged` verifies an already-copied snapshot directory instead of the user's index (same checks, same binding).
+export function verifyUserIndex(cfg, profile, version, ac, staged = null) {
   const t0 = Date.now();
   const reasons = [];
   const fail = (r) => { if (reasons.length < MAX_REASONS) reasons.push(r); };
   const out = () => ({ ok: false, reasons, descriptor: null, files: null, dir: null, work: { verification_ms: Date.now() - t0, files_verified: 0, bytes_hashed: 0 } });
-  const dir = join(cfg.root, ac.rel);
+  const dir = staged ?? join(cfg.root, ac.rel);
   let st;
   try { st = lstatSync(dir); } catch { fail('no user index directory'); return out(); }
   if (!st.isDirectory() || st.isSymbolicLink()) { fail('user index is not a plain directory (symlinks are refused)'); return out(); }
-  const real = realpathSync(dir);
-  if (!real.startsWith(cfg.root + sep)) { fail('user index resolves outside the project root'); return out(); }
+  if (!staged) {
+    const real = realpathSync(dir);
+    if (!real.startsWith(cfg.root + sep)) { fail('user index resolves outside the project root'); return out(); }
+  }
   const wf = join(dir, '.graph', 'wiring.json');
   if (!existsSync(wf) || statSync(wf).size > MAX_WIRING_BYTES) { fail('no readable wiring.json'); return out(); }
   let wiring;
@@ -89,18 +95,117 @@ export function verifyUserIndex(cfg, profile, version, ac) {
   return { ok: reasons.length === 0, reasons, descriptor, files: new Map([...indexed].filter(([, h]) => /^[0-9a-f]{64}$/.test(h ?? ''))), dir, work: { verification_ms: Date.now() - t0, files_verified: files, bytes_hashed: bytes } };
 }
 
-// Copies the verified index into an immutable snapshot keyed by its content digest; returns {dir, copied_bytes, reused}.
-export function snapshotIndex(work, userDir) {
-  const { digest } = treeDigest(userDir);
-  const dest = join(work, 'adopted', digest.slice(0, 32));
-  if (existsSync(join(dest, '.graph', 'wiring.json')) && treeDigest(dest).digest === digest) return { dir: dest, copied_bytes: 0, reused: true, digest };
-  const tmp = `${dest}.partial-${process.pid}`;
-  rmSync(tmp, { recursive: true, force: true });
-  mkdirSync(join(work, 'adopted'), { recursive: true });
-  cpSync(userDir, tmp, { recursive: true });
-  rmSync(dest, { recursive: true, force: true });
-  renameSync(tmp, dest);
-  const sealed = (d) => { for (const e of readdirSync(d, { withFileTypes: true })) { const p = join(d, e.name); if (e.isDirectory()) sealed(p); else chmodSync(p, 0o444); } };
-  sealed(dest);
-  return { dir: dest, copied_bytes: treeDigest(dest).bytes, reused: false, digest };
+
+export class SnapshotRefusal extends Error {}
+
+// Explicit recursive inventory with lstat at every depth: only directories and regular files are admitted.
+// Symlinks (file, directory, dangling) and special files are refused with a bounded message; nothing is followed.
+// Returns {dirs[], files[{rel,size}], digest, bytes}; the digest has the treeDigest format (path + content hash).
+export function inventoryTree(dir) {
+  const dirs = []; const files = [];
+  const walk = (rel) => {
+    for (const e of readdirSync(join(dir, rel)).sort((a, b) => (a < b ? -1 : 1))) {
+      const p = rel ? `${rel}/${e}` : e;
+      if (dirs.length + files.length >= MAX_SNAPSHOT_ENTRIES) throw new SnapshotRefusal(`index has more than ${MAX_SNAPSHOT_ENTRIES} entries`);
+      const st = lstatSync(join(dir, p));
+      if (st.isSymbolicLink()) throw new SnapshotRefusal(`index contains a symlink at ${p.slice(0, 200)} (symlinks are refused)`);
+      if (st.isDirectory()) { dirs.push(p); walk(p); } else if (st.isFile()) files.push({ rel: p, size: st.size });
+      else throw new SnapshotRefusal(`index contains a special file at ${p.slice(0, 200)} (only regular files and directories are admitted)`);
+    }
+  };
+  walk('');
+  files.sort((a, b) => (a.rel < b.rel ? -1 : 1));
+  const h = createHash('sha256'); let bytes = 0;
+  for (const f of files) { const b = readFileSync(join(dir, f.rel)); bytes += b.length; h.update(`${f.rel}\0${sha256(b)}\n`); }
+  return { dirs, files, digest: h.digest('hex'), bytes };
+}
+
+// Copies exactly the inventoried files into a fresh private directory. Each source is opened without following
+// links and must be a regular file on the open descriptor; the user's tree is never written or chmod-ed.
+function stageCopy(userDir, inv, tmp, hooks) {
+  mkdirSync(tmp, { recursive: true });
+  for (const d of inv.dirs) mkdirSync(join(tmp, d));
+  let total = 0;
+  for (const f of inv.files) {
+    const src = join(userDir, f.rel);
+    hooks?.beforeFile?.(f.rel, src);
+    let fd;
+    try { fd = openSync(src, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0)); } catch (e) { throw new SnapshotRefusal(`index file ${f.rel.slice(0, 200)} is no longer a regular file (${e.code ?? 'unreadable'})`); }
+    let buf;
+    try {
+      const st = fstatSync(fd);
+      if (!st.isFile()) throw new SnapshotRefusal(`index file ${f.rel.slice(0, 200)} is no longer a regular file`);
+      total += st.size;
+      if (total > MAX_SNAPSHOT_BYTES) throw new SnapshotRefusal('index exceeds the snapshot size bound');
+      buf = readFileSync(fd);
+    } finally { closeSync(fd); }
+    writeFileSync(join(tmp, f.rel), buf, { flag: 'wx', mode: 0o644 });
+    hooks?.afterFile?.(f.rel);
+  }
+}
+
+// Seals only independent regular files inside the staged (owned) directory, after its final inventory check.
+function sealStaged(tmp, inv) { for (const f of inv.files) chmodSync(join(tmp, f.rel), 0o444); }
+
+// An existing destination is trusted only after its full inventory and digest equal the admitted identity.
+function destIsIntact(dest, digest) {
+  try {
+    if (!lstatSync(dest).isDirectory()) return false;
+    const inv = inventoryTree(dest);
+    return inv.digest === digest && inv.files.some((f) => f.rel === '.graph/wiring.json');
+  } catch { return false; }
+}
+
+// Publishes the staged directory as adopted/<digest>. Never deletes a last-good destination before the new
+// one is validated; a corrupt destination is moved aside, replaced, then removed.
+function publishStaged(adoptedRoot, tmp, dest, digest) {
+  if (destIsIntact(dest, digest)) { rmSync(tmp, { recursive: true, force: true }); return { reused: true }; }
+  const aside = `${dest}.old-${process.pid}-${randomBytes(4).toString('hex')}`;
+  let moved = false;
+  try { renameSync(dest, aside); moved = true; } catch (e) { if (e.code !== 'ENOENT') throw e; }
+  try { renameSync(tmp, dest); } catch (e) {
+    if (moved) { try { renameSync(aside, dest); } catch { /* keep the aside copy */ } }
+    // Another publisher won the race: accept only if its destination verifies against the same identity.
+    if (destIsIntact(dest, digest)) { rmSync(tmp, { recursive: true, force: true }); return { reused: true }; }
+    throw e;
+  }
+  if (moved) rmSync(aside, { recursive: true, force: true });
+  return { reused: false };
+}
+
+// Adopts the user index as an immutable, owned, validated snapshot. One staged copy is validated as staged
+// (inventory, bytes, schema, extractor, source binding); its identity is computed from those bytes; only then it
+// is published. A moving source is retried a bounded number of times. Returns the verifyUserIndex shape with
+// {dir: published snapshot, snapshotDigest, copied_bytes, reused}, or {ok:false, reasons}.
+export function adoptCopiedSnapshot(cfg, profile, version, ac) {
+  const hooks = cfg.adoptHooks ?? null;
+  const t0 = Date.now();
+  const adoptedRoot = join(cfg.work, 'adopted');
+  for (let attempt = 1; attempt <= MAX_SNAPSHOT_ATTEMPTS; attempt++) {
+    const v0 = verifyUserIndex(cfg, profile, version, ac);
+    if (!v0.ok) return v0;
+    const refuse = (e) => ({ ...v0, ok: false, reasons: [e.message.slice(0, 400)], descriptor: null, files: null, dir: null });
+    let pre;
+    try { pre = inventoryTree(v0.dir); } catch (e) { if (e instanceof SnapshotRefusal) return refuse(e); throw e; }
+    hooks?.afterDigest?.(pre.digest);
+    mkdirSync(adoptedRoot, { recursive: true });
+    const tmp = join(adoptedRoot, `${pre.digest.slice(0, 32)}.partial-${process.pid}-${randomBytes(4).toString('hex')}`);
+    try {
+      let staged; let post;
+      try {
+        stageCopy(v0.dir, pre, tmp, hooks);
+        hooks?.afterCopy?.(tmp);
+        staged = inventoryTree(tmp); // final validation of the owned copy: every entry is a regular file or directory
+        post = inventoryTree(v0.dir); // and of the source: a file that became a link while staging fails here
+      } catch (e) { if (e instanceof SnapshotRefusal) return refuse(e); throw e; }
+      if (staged.digest !== pre.digest || post.digest !== staged.digest) continue; // the source moved while copying
+      const v = verifyUserIndex(cfg, profile, version, ac, tmp);
+      if (!v.ok) return { ...v, dir: null };
+      sealStaged(tmp, staged);
+      const dest = join(adoptedRoot, staged.digest.slice(0, 32));
+      const pub = publishStaged(adoptedRoot, tmp, dest, staged.digest);
+      return { ...v, dir: dest, snapshotDigest: staged.digest, copied_bytes: pub.reused ? 0 : staged.bytes, reused: pub.reused, work: { ...v.work, verification_ms: Date.now() - t0 } };
+    } finally { rmSync(tmp, { recursive: true, force: true }); }
+  }
+  return { ok: false, reasons: [`the user index kept changing while it was copied (${MAX_SNAPSHOT_ATTEMPTS} attempts); falling back to an owned build`], descriptor: null, files: null, dir: null, work: { verification_ms: Date.now() - t0, files_verified: 0, bytes_hashed: 0 } };
 }

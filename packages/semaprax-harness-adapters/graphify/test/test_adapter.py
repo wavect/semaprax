@@ -521,5 +521,626 @@ def make_shim(tmp, version, envdump, real=UPSTREAM):
     return path
 
 
+
+# ---- MC-02 / MC-05 / MC-06: adoption snapshots, forced rebuild, complete-result byte bound -----------------
+
+sys.path.insert(0, os.path.join(HERE, ".."))
+sys.path.insert(0, os.path.join(HERE, "..", "..", "sdk", "python"))
+import io  # noqa: E402
+from unittest import mock  # noqa: E402
+
+import adapter as gadapter  # noqa: E402
+import semaprax_harness_adapter as sdk  # noqa: E402
+
+
+def raw_graph(files, tag="a"):
+    nodes = [{"id": f"{tag}{i}", "label": f"{tag}_fn{i}()", "file_type": "code", "source_file": rel, "source_location": "L1"}
+             for i, rel in enumerate(files)]
+    return {"directed": False, "nodes": nodes, "links": []}
+
+
+def make_user_index(root, version="0.9.25", files=("py/util.py", "py/main.py"), tag="a", rel="graphify-out"):
+    """A hand-built, adoptable user index bound to the project's files (the real 0.9.25 CLI binds by absolute key)."""
+    gdir = os.path.join(root, rel)
+    os.makedirs(os.path.join(gdir, "cache", "ast", f"v{version}-t"), exist_ok=True)
+    write_graph(gdir, files, tag)
+    with open(os.path.join(gdir, ".graphify_root"), "w") as fh:
+        fh.write(os.path.realpath(root))
+    stat = {}
+    for rel_file in files:
+        with open(os.path.join(root, rel_file), "rb") as fh:
+            stat[rel_file] = {"hashes": {rel_file: gadapter.graphify_file_hash(fh.read(), rel_file)}}
+    with open(os.path.join(gdir, "cache", "stat-index.json"), "w") as fh:
+        json.dump(stat, fh)
+    return gdir
+
+
+def write_graph(gdir, files, tag):
+    path = os.path.join(gdir, "graph.json")
+    if os.path.exists(path):
+        os.chmod(path, 0o644)
+    with open(path, "w") as fh:
+        json.dump(raw_graph(files, tag), fh)
+
+
+def index_snapshot(gdir):
+    out = {}
+    for base, _, names in os.walk(gdir):
+        for n in names:
+            p = os.path.join(base, n)
+            with open(p, "rb") as fh:
+                out[os.path.relpath(p, gdir)] = (fh.read(), os.stat(p).st_mode)
+    return out
+
+
+class SnapshotAdoption(unittest.TestCase):
+    """MC-02: copied-snapshot adoption binds the validated bytes, the identity and the loaded graph together."""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="mc02-")
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+        self.root, self.cache = os.path.realpath(os.path.join(self.tmp, "proj")), os.path.join(self.tmp, "cache")
+        os.makedirs(self.root)
+        os.makedirs(self.cache)
+        make_project(self.root)
+        self.gdir = make_user_index(self.root)
+        self.ix = gadapter.Index(self.root, self.cache)
+        self.ix.identity = "0.9.25"
+        self.ac = {"mode": "copied-snapshot", "rel": "graphify-out"}
+        self.files = gadapter.walk_files(self.root)
+        self.digest = gadapter.source_digest(self.root, self.files)
+
+    def adopt(self):
+        return self.ix.adopt(self.ac, self.digest, self.files)
+
+    def adopted_dirs(self):
+        base = os.path.join(self.cache, "adopted")
+        return sorted(d for d in os.listdir(base) if not d.startswith(".")) if os.path.isdir(base) else []
+
+    def labels(self, st):
+        return sorted(n["label"] for n in st["graph"].nodes)
+
+    def test_unchanged_index_is_adopted_and_identity_names_the_staged_bytes(self):
+        before = index_snapshot(self.gdir)
+        st, note = self.adopt()
+        self.assertIsNone(note)
+        self.assertEqual(st["served_by"], "adopted-snapshot")
+        (name,) = self.adopted_dirs()
+        dest = os.path.join(self.cache, "adopted", name, "graphify-out")
+        self.assertEqual(gadapter.Index.user_digest(dest), name)
+        self.assertEqual(st["snapshot_digest"], name)
+        self.assertEqual(self.labels(st), ["a_fn0()", "a_fn1()"])
+        self.assertEqual(index_snapshot(self.gdir), before)
+
+    def test_edit_after_verification_is_never_served_as_the_verified_graph(self):
+        orig, fired = self.ix.verify_user_index, []
+
+        def verify_then_swap(ac, files):
+            out = orig(ac, files)
+            if not fired:
+                fired.append(1)
+                write_graph(self.gdir, ["web/app.ts"], "b")  # schema-valid, but its file has no recorded signature
+            return out
+
+        self.ix.verify_user_index = verify_then_swap
+        st, note = self.adopt()
+        self.assertIsNone(st)
+        self.assertIn("incompatible", note)
+        self.assertEqual(self.adopted_dirs(), [])
+        self.assertEqual(self.ix.state, None)
+
+    def test_edit_after_verification_that_stays_valid_is_served_as_itself(self):
+        orig, fired = self.ix.verify_user_index, []
+
+        def verify_then_swap(ac, files):
+            out = orig(ac, files)
+            if not fired:
+                fired.append(1)
+                write_graph(self.gdir, ["py/util.py", "py/main.py"], "b")
+            return out
+
+        self.ix.verify_user_index = verify_then_swap
+        st, note = self.adopt()
+        self.assertIsNone(note)
+        self.assertEqual(self.labels(st), ["b_fn0()", "b_fn1()"])
+        self.assertEqual(st["snapshot_digest"], gadapter.Index.user_digest(self.gdir))
+        (name,) = self.adopted_dirs()
+        self.assertEqual(name, st["snapshot_digest"])
+
+    def test_binding_metadata_drift_during_the_copy_is_retried(self):
+        orig, calls = self.ix.stage_copy, []
+
+        def drifting_copy(src, dst):
+            orig(src, dst)
+            calls.append(src)
+            if len(calls) == 1:  # between the files of the first attempt, the binding metadata changes
+                path = os.path.join(self.gdir, "cache", "stat-index.json")
+                with open(path) as fh:
+                    stat = json.load(fh)
+                stat["py/util.py"]["hashes"]["py/util.py"] = "0" * 64
+                with open(path, "w") as fh:
+                    json.dump(stat, fh)
+
+        self.ix.stage_copy = drifting_copy
+        st, note = self.adopt()
+        # The retry sees the drifted (now content-mismatching) binding and refuses it rather than serving stale bytes.
+        self.assertIsNone(st)
+        self.assertIn("differs from its indexed content", note)
+        self.assertEqual(self.adopted_dirs(), [])
+
+    def test_a_perpetually_moving_source_falls_back_within_a_fixed_bound(self):
+        orig, copies = self.ix.stage_copy, []
+
+        def moving_copy(src, dst):
+            orig(src, dst)
+            copies.append(src)
+            write_graph(self.gdir, ["py/util.py", "py/main.py"], f"m{len(copies)}")
+
+        self.ix.stage_copy = moving_copy
+        st, note = self.adopt()
+        self.assertIsNone(st)
+        self.assertIn("kept changing", note)
+        self.assertLessEqual(len(copies), gadapter.ADOPT_ATTEMPTS * 5)
+        self.assertEqual(self.adopted_dirs(), [])
+
+    def test_reused_destination_is_verified_not_trusted_by_name(self):
+        st, _ = self.adopt()
+        (name,) = self.adopted_dirs()
+        dest = os.path.join(self.cache, "adopted", name, "graphify-out")
+        os.chmod(os.path.join(dest, "graph.json"), 0o644)
+        with open(os.path.join(dest, "graph.json"), "w") as fh:
+            json.dump(raw_graph(["py/util.py"], "evil"), fh)
+        st, note = self.adopt()
+        self.assertIsNone(note)
+        self.assertEqual(self.labels(st), ["a_fn0()", "a_fn1()"])
+        self.assertEqual(gadapter.Index.user_digest(dest), name)
+
+    def test_existing_destination_from_another_publisher_is_accepted_only_by_identity(self):
+        real_rename = os.rename
+        for same in (True, False):
+            shutil.rmtree(os.path.join(self.cache, "adopted"), ignore_errors=True)
+            self.ix.state = None
+
+            def racing_rename(src, dst, same=same):
+                if os.path.basename(src).startswith(".stage-"):
+                    if same:
+                        shutil.copytree(src, dst)
+                    else:
+                        os.makedirs(dst)
+                        with open(os.path.join(dst, "graph.json"), "w") as fh:
+                            fh.write("{}")
+                    raise OSError("destination exists")
+                return real_rename(src, dst)
+
+            with mock.patch.object(gadapter.os, "rename", racing_rename):
+                st, note = self.adopt()
+            if same:
+                self.assertIsNone(note)
+                self.assertEqual(self.labels(st), ["a_fn0()", "a_fn1()"])
+            else:
+                self.assertIsNone(st)
+                self.assertIn("different bytes", note)
+            self.assertEqual([d for d in os.listdir(os.path.join(self.cache, "adopted")) if d.startswith(".stage")], [])
+
+    def test_failure_leaves_the_user_index_and_last_good_cache_intact(self):
+        self.adopt()
+        (name,) = self.adopted_dirs()
+        dest = os.path.join(self.cache, "adopted", name, "graphify-out")
+        good = index_snapshot(dest)
+        before = index_snapshot(self.gdir)
+        with mock.patch.object(self.ix, "stage_copy", side_effect=OSError("disk full")):
+            st, note = self.adopt()
+        self.assertIsNone(st)
+        self.assertIn("incompatible", note)
+        self.assertEqual(index_snapshot(dest), good)
+        self.assertEqual(index_snapshot(self.gdir), before)
+
+    def test_read_only_mode_still_refuses_an_index_that_moves_while_read(self):
+        orig = self.ix.load_from
+
+        def load_then_edit(*a, **k):
+            out = orig(*a, **k)
+            write_graph(self.gdir, ["py/util.py", "py/main.py"], "z")
+            return out
+
+        self.ix.load_from = load_then_edit
+        with self.assertRaises(gadapter.AdapterError) as cm:
+            self.ix.adopt({"mode": "read-only", "rel": "graphify-out"}, self.digest, self.files)
+        self.assertEqual(cm.exception.code, "SPX-HPG013")
+
+
+def counting_shim(tmp, version, counter, fail=False):
+    """A qualified-looking graphify that counts every extraction it is asked to run."""
+    shim_dir = tempfile.mkdtemp(dir=tmp)
+    path = make_shim(shim_dir, version, None)
+    with open(path) as fh:
+        body = fh.read().split("\n", 1)[1]
+    with open(path, "w") as fh:
+        fh.write(f"#!/bin/sh\necho x >> '{counter}'\n" + ("echo boom >&2\nexit 3\n" if fail else body))
+    return path
+
+
+class ForcedRebuild(unittest.TestCase):
+    """MC-05: refresh=rebuild outranks first-use adoption and never touches the user index."""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="mc05-")
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+        self.root, self.cache = os.path.realpath(os.path.join(self.tmp, "proj")), os.path.join(self.tmp, "cache")
+        os.makedirs(self.root)
+        os.makedirs(self.cache)
+        make_project(self.root)
+        self.gdir = make_user_index(self.root)
+        self.counter = os.path.join(self.tmp, "count")
+        self.before = index_snapshot(self.gdir)
+
+    def builds(self):
+        if not os.path.exists(self.counter):
+            return 0
+        with open(self.counter) as fh:
+            return len(fh.read().split())
+
+    def client(self, mode, fail=False):
+        shim = counting_shim(self.tmp, "0.9.25", self.counter, fail)
+        c = Client(self.root, self.cache, upstream=shim, extra_env={"SEMAPRAX_HARNESS_CFG_ADOPT_INDEX": mode})
+        self.addCleanup(c.close)
+        c.init()
+        return c
+
+    def test_first_use_rebuild_runs_exactly_one_owned_extraction_in_both_modes(self):
+        for mode in ("read-only", "copied-snapshot"):
+            for op, payload in (("orient", {}), ("search", {"query": "fn"})):
+                shutil.rmtree(self.cache, ignore_errors=True)
+                os.makedirs(self.cache)
+                if os.path.exists(self.counter):
+                    os.remove(self.counter)
+                res = self.client(mode).call(op, dict(payload, refresh="rebuild"))
+                self.assertEqual(self.builds(), 1, (mode, op))
+                self.assertIn(res["status"], ("complete", "partial"))
+                meta = res["payload"]["metadata"]
+                self.assertEqual(meta["refresh"], "build")
+                self.assertNotIn("index_adoption", meta)
+                self.assertEqual(index_snapshot(self.gdir), self.before)
+
+    def test_first_use_auto_and_never_still_adopt_without_extraction(self):
+        for mode, label in (("read-only", "reused-user-index"), ("copied-snapshot", "copied-validated-index")):
+            for refresh in ("auto", "never"):
+                shutil.rmtree(self.cache, ignore_errors=True)
+                os.makedirs(self.cache)
+                res = self.client(mode).call("orient", {"refresh": refresh})
+                self.assertEqual(self.builds(), 0, (mode, refresh))
+                self.assertEqual(res["payload"]["metadata"]["index_adoption"], label)
+        self.assertEqual(index_snapshot(self.gdir), self.before)
+
+    def test_later_rebuilds_behave_like_the_first(self):
+        for mode in ("read-only", "copied-snapshot"):
+            shutil.rmtree(self.cache, ignore_errors=True)
+            os.makedirs(self.cache)
+            if os.path.exists(self.counter):
+                os.remove(self.counter)
+            c = self.client(mode)
+            c.call("orient", {})
+            self.assertEqual(self.builds(), 0)
+            c.call("orient", {"refresh": "rebuild"})
+            self.assertEqual(self.builds(), 1, mode)
+            c.call("orient", {"refresh": "rebuild"})
+            self.assertEqual(self.builds(), 2, mode)
+        self.assertEqual(index_snapshot(self.gdir), self.before)
+
+    def test_forced_build_failure_is_reported_not_relabelled_as_adoption(self):
+        for mode in ("read-only", "copied-snapshot"):
+            shutil.rmtree(self.cache, ignore_errors=True)
+            os.makedirs(self.cache)
+            if os.path.exists(self.counter):
+                os.remove(self.counter)
+            res = self.client(mode, fail=True).call("orient", {"refresh": "rebuild"})
+            self.assertEqual(res["status"], "failed")
+            self.assertEqual(res["diagnostics"][0]["code"], "SPX-HPG004")
+            self.assertIsNone(res["payload"])
+            self.assertEqual(self.builds(), 1)
+            self.assertEqual(index_snapshot(self.gdir), self.before)
+
+
+# ---- MC-06: the complete serialized result fits max_result_bytes ---------------------------------------------
+
+def wire_size(request, index, out):
+    """Exact bytes of the result envelope the SDK sends for a handler return value."""
+    status, payload, diags = out
+    prov = {"provider_id": gadapter.PROVIDER_ID, "adapter_version": gadapter.ADAPTER_VERSION, "upstream_version": index.identity}
+    env = sdk.result(request, status, payload, prov, diags)
+    return len(json.dumps(env, separators=(",", ":"), sort_keys=True).encode())
+
+
+class ResultBudget(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="mc06-")
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+        self.ix = gadapter.Index(self.tmp, os.path.join(self.tmp, "cache"))
+        self.ix.identity = "0.9.25"
+        self.handlers = gadapter.make_handlers(self.ix)
+
+    def state(self, skipped=(), errors=(), files=("py/a.py",), nodes=0, indexed=None):
+        graph = gadapter.Graph(raw_graph([files[0]] * nodes, "n") if nodes else {"nodes": [], "links": []}, "0.9.25")
+        st = {"digest": "d" * 64, "graph": graph, "indexed": list(indexed if indexed is not None else files),
+              "skipped": [{"path": p, "reason": "document or media: skipped by --code-only (no model-backed ingestion)"} for p in skipped],
+              "errors": [{"path": p, "reason": "e" * 240} for p in errors]}
+        self.ix.ensure = lambda refresh, st=st: (st, False)
+        return st
+
+    def request(self, op, payload=None, budget=65536):
+        return {"schema": "semaprax.harness-request.v1", "invocation_id": "inv-1", "project": {"id": "p", "worktree": "w", "revision": "r"},
+                "capability": {"kind": "context.repository", "version": 1}, "operation": op, "deadline_ms": 1000,
+                "budget": {"max_result_bytes": budget, "remaining_calls": 1}, "payload": payload or {}}
+
+    def call(self, op, payload=None, budget=65536):
+        req = self.request(op, payload, budget)
+        out = self.handlers[("context.repository", op)](req)
+        return req, out
+
+    def served(self, op, payload=None, budget=65536):
+        """Run through the SDK's real serve loop and measure the bytes it writes for the result."""
+        req = self.request(op, payload, budget)
+        frame = json.dumps({"jsonrpc": "2.0", "id": 1, "method": "harness/invoke", "params": req}).encode() + b"\n"
+        out = io.BytesIO()
+        sdk.serve([], self.handlers, {"provider_id": gadapter.PROVIDER_ID, "adapter_version": gadapter.ADAPTER_VERSION,
+                                      "upstream_version": "0.9.25"}, stdin=io.BytesIO(frame), stdout=out)
+        line = out.getvalue().rstrip(b"\n")
+        result = json.loads(line)["result"]
+        return result, len(json.dumps(result, separators=(",", ":"), sort_keys=True).encode())
+
+    def assert_honest(self, status, payload):
+        if payload is None:
+            return
+        cov = payload["coverage"]
+        self.assertEqual(status == "complete", cov["complete"])
+        if cov["skipped"] or cov["extraction_errors"]:
+            self.assertFalse(cov["complete"])
+
+    def docs(self, n=200):
+        return [f"docs/{chr(97 + i % 26) * 200}/{chr(65 + i % 26) * 200}/file-{i:03d}.md" for i in range(n)]
+
+    def test_zero_item_200_skipped_docs_fit_default_and_small_budgets(self):
+        self.state(skipped=self.docs())
+        for budget in (65536, 4096):
+            result, size = self.served("orient", budget=budget)
+            self.assertLessEqual(size, budget, budget)
+            self.assertNotEqual(result["status"], "complete")
+            self.assertEqual(result["payload"]["items"], [])
+            cov = result["payload"]["coverage"]
+            self.assertFalse(cov["complete"] or cov["exhaustive"])
+            self.assertLess(len(cov["skipped"]), 200)
+            om = result["payload"]["metadata"]["omitted"]
+            self.assertEqual(om["skipped"], 200 - len(cov["skipped"]))
+            self.assertIn("SPX-HPG008", [d["code"] for d in result["diagnostics"]])
+
+    def test_long_error_lists_and_large_metadata_cannot_bypass_the_cap(self):
+        st = self.state(skipped=self.docs(50), errors=[f"src/{'x' * 150}/f{i}.py" for i in range(200)])
+        st.update(adoption="y" * 900, served_by="owned-cache")
+        for budget in (65536, 8192, 2048):
+            req, out = self.call("orient", budget=budget)
+            self.assertLessEqual(wire_size(req, self.ix, out), budget, budget)
+            self.assertIsNotNone(out[1], budget)
+            self.assertFalse(out[1]["coverage"]["complete"])
+            if len(out[1]["coverage"]["extraction_errors"]) < 200:
+                self.assertIn("SPX-HPG014", [d["code"] for d in out[2]])
+
+    def test_non_ascii_and_json_escaping_are_measured_as_wire_bytes(self):
+        nasty = [f'docs/é漢字\U0001F600/"q"\\\n/f{i}.md' for i in range(120)]
+        self.state(skipped=nasty)
+        for budget in (4096, 9001):
+            result, size = self.served("orient", budget=budget)
+            self.assertLessEqual(size, budget)
+            self.assertEqual(result["payload"]["items"], [])
+
+    def test_exact_boundary_and_boundary_plus_one(self):
+        self.state(files=("py/a.py",), nodes=40, skipped=self.docs(3))
+        req, full = self.call("search", {"query": "fn", "limit": 40}, budget=1 << 30)
+        self.assertEqual(len(full[1]["items"]), 40)
+        size = wire_size(req, self.ix, full)
+        req, same = self.call("search", {"query": "fn", "limit": 40}, budget=size)
+        self.assertEqual(same, full)  # exactly at the boundary nothing is omitted
+        req, less = self.call("search", {"query": "fn", "limit": 40}, budget=size - 1)
+        self.assertLessEqual(wire_size(req, self.ix, less), size - 1)
+        self.assertNotEqual(less, full)
+        self.assertLess(len(less[1]["items"]) + len(less[1]["coverage"]["skipped"]), 43)
+        self.assertIn("omitted", less[1]["metadata"])
+        self.assert_honest(less[0], less[1])
+
+    def test_truncation_never_reports_complete_or_exhaustive(self):
+        self.state(files=("py/a.py",), nodes=60, indexed=["py/a.py"])
+        req, full = self.call("search", {"query": "fn", "limit": 60}, budget=1 << 30)
+        self.assertEqual(full[0], "complete")
+        size = wire_size(req, self.ix, full)
+        for budget in range(size, size - 1500, -97):
+            req, out = self.call("search", {"query": "fn", "limit": 60}, budget=budget)
+            if budget < size:
+                self.assertEqual(out[0], "partial", budget)
+                self.assertFalse(out[1]["coverage"]["complete"] or out[1]["coverage"]["exhaustive"])
+            self.assertLessEqual(wire_size(req, self.ix, out), budget)
+
+    def test_required_minimum_that_cannot_fit_is_a_bounded_refusal(self):
+        self.state(skipped=self.docs(5), nodes=0)
+        for budget in (1, 64, 300):
+            req, out = self.call("orient", budget=budget)
+            self.assertEqual(out[0], "refused")
+            self.assertIsNone(out[1])
+            self.assertEqual([d["code"] for d in out[2]], ["SPX-HPK007"])
+        result, size = self.served("orient", budget=1)
+        self.assertEqual(result["status"], "refused")
+
+    def test_stale_early_return_obeys_the_bound(self):
+        st = self.state(skipped=self.docs(), errors=[f"e{i}.py" for i in range(200)])
+        self.ix.ensure = lambda refresh: (st, True)
+        for budget in (65536, 4096):
+            result, size = self.served("search", {"query": "x", "refresh": "never"}, budget=budget)
+            self.assertLessEqual(size, budget)
+            self.assertEqual(result["status"], "stale")
+            self.assertFalse(result["payload"]["coverage"]["complete"])
+            self.assertEqual(result["diagnostics"][0]["code"], "SPX-HPG002")
+            self.assertEqual(result["payload"]["items"], [])
+
+    def test_unsupported_file_early_return_obeys_the_bound(self):
+        paths = self.docs(150)
+        self.state(skipped=paths)
+        long_path = "docs/" + "z" * 900 + ".md"
+        for target, budget in ((paths[0], 65536), (paths[0], 4096), (long_path, 4096)):
+            result, size = self.served("skeleton", {"path": target}, budget=budget)
+            self.assertLessEqual(size, budget, (target[:20], budget))
+            self.assertIn(result["status"], ("unsupported", "refused"))
+            if result["payload"] is not None:
+                self.assertFalse(result["payload"]["coverage"]["complete"])
+        result, _ = self.served("skeleton", {"path": paths[0]}, budget=4096)
+        self.assertEqual(result["status"], "unsupported")
+        self.assertEqual(result["diagnostics"][0]["code"], "SPX-HPG009")
+
+    def test_skeleton_exhaustive_only_when_no_item_was_dropped(self):
+        self.state(files=("py/a.py",), nodes=50)
+        req, full = self.call("skeleton", {"path": "py/a.py"}, budget=1 << 30)
+        self.assertTrue(full[1]["coverage"]["exhaustive"])
+        size = wire_size(req, self.ix, full)
+        req, same = self.call("skeleton", {"path": "py/a.py"}, budget=size)
+        self.assertEqual(same, full)
+        req, less = self.call("skeleton", {"path": "py/a.py"}, budget=size - 1)
+        self.assertLessEqual(wire_size(req, self.ix, less), size - 1)
+        self.assertFalse(less[1]["coverage"]["exhaustive"])
+        self.assertLess(len(less[1]["items"]), 50)
+
+
+class MediaInvalidation(unittest.TestCase):
+    """MN-06: unconsumed media stay in coverage but never enter the code graph's invalidation identity."""
+
+    MEDIA = 2 * 1024 * 1024
+    REAL = os.path.exists(UPSTREAM)
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="mn06-")
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+        self.root, self.cache = os.path.realpath(os.path.join(self.tmp, "proj")), os.path.join(self.tmp, "cache")
+        os.makedirs(self.root)
+        os.makedirs(self.cache)
+        make_project(self.root)
+        self.media = os.path.join(self.root, "assets", "big.png")
+        os.makedirs(os.path.dirname(self.media))
+        self.put(self.media, b"\x01" * self.MEDIA)
+        self.ix = gadapter.Index(self.root, self.cache)
+        self.hashed, self.builds = 0, 0
+        self.orig_sha = gadapter.file_sha
+        self.addCleanup(setattr, gadapter, "file_sha", self.orig_sha)
+        gadapter.file_sha = self.counting_sha
+        if self.REAL:
+            self.ix.upstream, self.ix.identity = UPSTREAM, gadapter.verify_identity(UPSTREAM)
+            self.real_build = self.ix.build
+        else:
+            self.ix.identity = "0.9.25"
+        self.ix.bind(os.path.join(self.cache, "graphify-index", self.ix.identity))
+        self.ix.build = self.counting_build
+
+    @staticmethod
+    def put(path, data):
+        with open(path, "wb") as fh:
+            fh.write(data)
+
+    def counting_sha(self, path):
+        if path.startswith(self.root):
+            self.hashed += os.path.getsize(path)
+        return self.orig_sha(path)
+
+    def counting_build(self, digest, files):
+        self.builds += 1
+        if self.REAL:
+            return self.real_build(digest, files)
+        indexed = [f for f in files if f.endswith((".py", ".ts"))]
+        self.ix.state = {"digest": digest, "graph": None, "indexed": indexed, "errors": [],
+                         "skipped": [{"path": f, "reason": gadapter.skip_reason(f)} for f in files if f not in indexed]}
+        return self.ix.state
+
+    def ensure(self, refresh="auto"):
+        st, stale = self.ix.ensure(refresh)
+        self.assertFalse(stale)
+        return st
+
+    def skipped(self, st):
+        return {s["path"] for s in st["skipped"]}
+
+    def test_warm_lookups_never_read_media_and_media_edits_do_not_rebuild(self):
+        self.ensure()
+        self.assertEqual(self.builds, 1)
+        self.hashed = 0
+        for _ in range(2):
+            self.assertEqual(self.ensure()["action"], "reuse")
+        self.assertEqual((self.builds, self.hashed > self.MEDIA), (1, False))
+        code_bytes = sum(len(t) for t in FILES.values())
+        self.assertLessEqual(self.hashed, 2 * code_bytes)
+        self.put(self.media, b"\x02" * self.MEDIA)  # same-size media-only edit
+        self.put(self.media, b"\x03" * (self.MEDIA + 7))  # and a resize
+        st = self.ensure()
+        self.assertEqual((st["action"], self.builds), ("reuse", 1))
+        self.assertIn("assets/big.png", self.skipped(st))
+        print(f"MN06 warm: builds={self.builds} bytes_hashed_for_2_warm_calls+edits={self.hashed} (media {self.MEDIA})")
+
+    def test_source_edits_still_invalidate_including_same_size(self):
+        self.ensure()
+        util = os.path.join(self.root, "py", "util.py")
+        with open(util) as fh:
+            text = fh.read()
+        with open(util, "w") as fh:
+            fh.write(text.replace("x + 1", "x + 2"))  # same size
+        self.assertEqual(self.ensure()["action"], "refresh")
+        self.assertEqual(self.builds, 2)
+        with open(util, "a") as fh:
+            fh.write("# more\n")
+        self.ensure()
+        self.assertEqual(self.builds, 3)
+
+    def test_other_inputs_still_count_as_source(self):
+        self.ensure()
+        manifest = os.path.join(self.root, "Cargo.toml")
+        with open(manifest, "a") as fh:
+            fh.write("# edit\n")
+        self.ensure()
+        self.assertEqual(self.builds, 2)  # manifests and docs are not exempted
+
+    def test_media_additions_and_deletions_update_coverage_without_rebuild(self):
+        st = self.ensure()
+        self.put(os.path.join(self.root, "assets", "new.MP4"), b"v")
+        st = self.ensure()
+        self.assertEqual(self.builds, 1)
+        self.assertIn("assets/new.MP4", self.skipped(st))
+        os.remove(self.media)
+        st = self.ensure()
+        self.assertEqual(self.builds, 1)
+        self.assertNotIn("assets/big.png", self.skipped(st))
+        self.assertTrue(self.skipped(st), "coverage is still incomplete: skipped sources remain listed")
+
+    def test_added_or_deleted_source_rebuilds_and_digest_ignores_media_only(self):
+        self.ensure()
+        self.put(os.path.join(self.root, "py", "extra.py"), b"def f():\n    pass\n")
+        self.ensure()
+        self.assertEqual(self.builds, 2)
+        os.remove(os.path.join(self.root, "py", "extra.py"))
+        self.ensure()
+        self.assertEqual(self.builds, 3)
+        files = gadapter.walk_files(self.root)
+        base = gadapter.source_digest(self.root, files)
+        self.put(self.media, b"changed")
+        self.assertEqual(gadapter.source_digest(self.root, gadapter.walk_files(self.root)), base)
+
+    def test_rebuild_forces_and_never_does_not_build(self):
+        self.ensure()
+        self.ensure("rebuild")
+        self.assertEqual(self.builds, 2)
+        with open(os.path.join(self.root, "py", "util.py"), "a") as fh:
+            fh.write("# edit\n")
+        st, stale = self.ix.ensure("never")
+        self.assertEqual((self.builds, stale), (2, True))
+        self.assertIn("assets/big.png", self.skipped(st))
+        fresh = gadapter.Index(self.root, os.path.join(self.tmp, "cache2"))
+        fresh.identity = self.ix.identity
+        fresh.bind(os.path.join(self.tmp, "cache2", "graphify-index", fresh.identity))
+        with self.assertRaises(gadapter.AdapterError):
+            fresh.ensure("never")
+        self.assertEqual(self.builds, 2)
+
+
 if __name__ == "__main__":
     unittest.main()

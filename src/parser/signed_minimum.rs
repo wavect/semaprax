@@ -53,9 +53,34 @@ impl Parser {
             TokenKind::IntMinMagnitude | TokenKind::Int32MinMagnitude => {
                 out_of_range(token, &self.path)
             }
+            TokenKind::Pipe | TokenKind::OrOr => {
+                Diagnostic::error("SPX-P201", "expected an expression", token.span)
+                    .at_path(&self.path)
+                    .with_help(super::hints::CLOSURE_HELP)
+            }
+            _ if self.follows_increment(token) => {
+                Diagnostic::error("SPX-P201", "expected an expression", token.span)
+                    .at_path(&self.path)
+                    .with_help(super::hints::INCREMENT_HELP)
+            }
             _ => Diagnostic::error("SPX-P201", "expected an expression", token.span)
                 .at_path(&self.path),
         }
+    }
+}
+
+impl Parser {
+    /// The rejected token completes `x++` (a second `+`) or `x--` (the token
+    /// after two `-`). The parser has already consumed the rejected token.
+    fn follows_increment(&self, token: &Token) -> bool {
+        let before = |distance: usize| {
+            self.cursor
+                .checked_sub(distance)
+                .and_then(|index| self.tokens.get(index))
+                .map(|token| &token.kind)
+        };
+        (token.kind == TokenKind::Plus && before(2) == Some(&TokenKind::Plus))
+            || (before(2) == Some(&TokenKind::Minus) && before(3) == Some(&TokenKind::Minus))
     }
 }
 

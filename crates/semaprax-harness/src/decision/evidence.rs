@@ -11,6 +11,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 /// Feature normalization identity: the closed `model-route/v1` feature set.
 pub const NORMALIZATION_ID: &str = "model-route/v1/closed-features.v1";
+/// `model-route/v2` normalization: v2 features through the host renderer.
+pub const NORMALIZATION_ID_V2: &str = "model-route/v2/semaprax.route-render.v2";
 
 fn bad(msg: impl Into<String>) -> HarnessDiagnostic {
     HarnessDiagnostic::new("SPX-HPJ017", msg)
@@ -34,21 +36,75 @@ pub struct EvidenceKey {
 impl EvidenceKey {
     /// The key of the profile as it would run now.
     pub fn live(profile: &ProviderProfile, catalog_digest: &str) -> Self {
+        Self::live_versioned(profile, catalog_digest, 1)
+    }
+
+    /// The key at a negotiated wire version. v1 and v2 keys never coincide
+    /// (task and normalization differ), so qualification never transfers; the
+    /// MR-15 adapter/profile/instance scope is bound into the distribution
+    /// when the profile declares one (legacy v1 keys keep their bytes).
+    pub fn live_versioned(profile: &ProviderProfile, catalog_digest: &str, version: u32) -> Self {
         let fam: Vec<&str> = profile
             .supported_families
             .as_ref()
             .map(|s| s.iter().map(|f| f.as_str()).collect())
             .unwrap_or_default();
-        let distribution = json::digest(
-            "semaprax.decision.distribution.v1",
-            &json!({"families": fam, "max_context_tokens": profile.max_context_tokens}),
-        );
+        let mut dist = json!({"families": fam, "max_context_tokens": profile.max_context_tokens});
+        let scope = profile.scope_json();
+        if !scope.is_null() {
+            dist["scope"] = scope;
+        }
+        let distribution = json::digest("semaprax.decision.distribution.v1", &dist);
+        let (task, normalization) = if version == 2 {
+            (DecisionTask::ModelRouteV2.id(), NORMALIZATION_ID_V2)
+        } else {
+            (DecisionTask::ModelRoute.id(), NORMALIZATION_ID)
+        };
         Self {
-            task: DecisionTask::ModelRoute.id().into(),
+            task: task.into(),
             provider_id: profile.provider_id.clone(),
             weights_digest: profile.checkpoint.clone(),
             catalog_digest: catalog_digest.into(),
-            normalization: NORMALIZATION_ID.into(),
+            normalization: normalization.into(),
+            distribution,
+        }
+    }
+
+    /// MR-13: the same key bound to one execution domain and the exact
+    /// candidate-set and renderer revisions the evidence was collected under.
+    /// Development and application evidence never share a key, and a changed
+    /// candidate or renderer revision is a different key.
+    pub fn bound(
+        &self,
+        domain: super::route_v2::ExecutionDomain,
+        candidate_revision: &str,
+        renderer_revision: &str,
+    ) -> Self {
+        let mut k = self.clone();
+        k.distribution = json::digest(
+            "semaprax.decision.distribution.mr13.v1",
+            &json!({"base": self.distribution, "execution_domain": domain.as_str(),
+                    "candidate_revision": candidate_revision,
+                    "renderer_revision": renderer_revision}),
+        );
+        k
+    }
+
+    /// The key of a `choice-select/v1` profile over one admitted option set
+    /// (MR-11). Task and normalization are the choice task's own, so no
+    /// model-route evidence, gate or calibration ever matches it.
+    pub fn choice(profile: &ProviderProfile, option_set_digest: &str) -> Self {
+        let scope = profile.scope_json();
+        let distribution = json::digest(
+            "semaprax.decision.distribution.v1",
+            &json!({"task": DecisionTask::ChoiceSelect.id(), "scope": scope}),
+        );
+        Self {
+            task: DecisionTask::ChoiceSelect.id().into(),
+            provider_id: profile.provider_id.clone(),
+            weights_digest: profile.checkpoint.clone(),
+            catalog_digest: option_set_digest.into(),
+            normalization: semaprax_decision_core::CHOICE_NORMALIZATION.into(),
             distribution,
         }
     }
@@ -165,6 +221,27 @@ pub struct MatchedBudget {
     pub max_attempts: u32,
 }
 
+/// An outcome-calibration of a provider's scores (MR-02), bound to exactly one
+/// evidence key (provider, checkpoint, task profile distribution, renderer and
+/// candidate-set regime). Raw scores without one are uncalibrated.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Calibration {
+    pub calibration_id: String,
+    /// The score kind that was calibrated; never `none`.
+    pub score_kind: super::call::ScoreKind,
+    /// Digest of the evidence key the calibration was fit on.
+    pub key_digest: String,
+    /// Calibrated estimate of task success at the operating threshold.
+    pub success_estimate: f64,
+}
+
+impl Calibration {
+    fn to_json(&self) -> Value {
+        json!({"calibration_id": self.calibration_id, "score_kind": self.score_kind.as_str(),
+               "key_digest": self.key_digest, "success_estimate": self.success_estimate})
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct EvidenceRecord {
     pub key: EvidenceKey,
@@ -174,18 +251,21 @@ pub struct EvidenceRecord {
     /// Items the provider was trained or calibrated on.
     pub trained_on: BTreeSet<String>,
     pub outcomes: Vec<Outcome>,
+    /// Outcome calibration of the provider's scores; `None` is uncalibrated.
+    pub calibration: Option<Calibration>,
 }
 
 impl EvidenceRecord {
     pub fn digest(&self) -> String {
         let mut o: Vec<Value> = self.outcomes.iter().map(Outcome::to_json).collect();
         o.sort_by_key(json::canonical);
-        json::digest(
-            "semaprax.decision.evidence-record.v1",
-            &json!({"key": self.key.to_json(),
+        let mut v = json!({"key": self.key.to_json(),
                     "budget": {"max_cost_micros": self.budget.max_cost_micros, "max_attempts": self.budget.max_attempts},
-                    "eval_items": self.eval_items, "trained_on": self.trained_on, "outcomes": o}),
-        )
+                    "eval_items": self.eval_items, "trained_on": self.trained_on, "outcomes": o});
+        if let Some(c) = &self.calibration {
+            v["calibration"] = c.to_json();
+        }
+        json::digest("semaprax.decision.evidence-record.v1", &v)
     }
 
     pub fn validate(&self) -> HarnessResult<()> {
@@ -209,6 +289,11 @@ impl EvidenceRegistry {
 
     pub fn get(&self, key: &EvidenceKey) -> Option<&EvidenceRecord> {
         self.records.get(&key.digest())
+    }
+
+    /// The keys of every record (read-only; MR-14 staleness review).
+    pub fn keys(&self) -> impl Iterator<Item = &EvidenceKey> {
+        self.records.values().map(|r| &r.key)
     }
 
     pub fn len(&self) -> usize {

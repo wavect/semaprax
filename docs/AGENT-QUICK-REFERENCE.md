@@ -18,11 +18,12 @@ so it is available without the source checkout.
 
 ## Spend tokens on source, not on dumps
 
-1. Write the file, run `semaprax fmt <file>`, then
-   `semaprax check <file> --json`. Run it with `semaprax run <file>` when the
-   check succeeds. Fix the first diagnostic at its reported line and column.
-   Diagnostics contain `code`, `message`, `location`, and `help`; tests should
-   match the stable `SPX-…` code, not message wording.
+1. Write the file, then run `semaprax fmt <file> && semaprax run <file>` as
+   one command: `run` verifies first and reports the same diagnostics as
+   `check`. Fix the first diagnostic at its reported line and column; its
+   `help:` line is usually the fix. Plain output is about a third smaller than
+   `--json`, which is for tools. Tests should match the stable `SPX-…` code,
+   not message wording.
 2. Read a small `.spx` file directly. Use `semaprax graph <file>` only when a
    tool needs the whole expression tree or cleanup plan. On the calculator
    example, the graph is about 40 times larger than source.
@@ -428,7 +429,8 @@ fn main() -> i64
 
 - `stdout_write(slice)` needs both `permit { process.stdout.write }` and
   `uses { process.stdout.write }` and returns the `usize` byte count.
-- Single-file `run` evaluates `app.main` in the bounded reference interpreter.
+- Single-file `run` evaluates `app.main`, or `fn main` under any other `@id`,
+  in the bounded reference interpreter.
   `--json`, `--max-steps`, and `--max-bytes` are available; `--native`
   explicitly selects the generated C11 route. The exact
   `process.stdout.write` authority automatically selects the bounded stdout
@@ -518,6 +520,61 @@ fn main() -> i64
 ```
 
 `semaprax run count.spx` prints `42`. Use `string_from_i64` for signed values.
+
+## Lists and iterators
+
+A list of Copy scalars is a `Vec<T>`. Every `vec_*` call spells its element
+type. Build with `let mut`, then move the finished vector into an immutable
+binding before traversing it:
+
+```semaprax
+module app.vec;
+
+@id("app.main")
+fn main() -> i64
+{
+    let mut building = vec_with_capacity<i64>(4usize);
+    building = vec_push<i64>(building, 10);
+    building = vec_push<i64>(building, 32);
+    let values = building;
+    let mut total = 0;
+    for item in values {
+        total = total + item;
+        0
+    }
+    if vec_len<i64>(values) == 2usize { total + vec_get<i64>(values, 0usize) - 10 } else { -1 }
+}
+```
+
+`vec_set<T>(v, index, value)` and `vec_clear<T>(v)` return the next vector, as
+`vec_push` does. A push beyond capacity fails at run time, so reserve enough
+capacity up front or use `vec_reserve_exact<T>(v, additional)`.
+
+`for item in values { body }` borrow-traverses a simple immutable
+`Vec<T>` binding, where `T` is one of the eight Copy scalars. It snapshots the
+length once, visits elements in ascending index order, and freezes `values`.
+The body result is discarded. Keep the item immutable; do not move, mutate, or
+reassign the vector inside the body. Computed iterable expressions, owned elements,
+consuming traversal, and `break`/`continue` remain outside this `for` form. See
+[Owned Bounded Vec For Traversal v1](OWNED-BOUNDED-VEC-FOR-TRAVERSAL-V1.md).
+
+### Consuming scalar iterators
+
+`vec_into_iter<T>(values)` moves a scalar vector into a non-Copy `Iter<T>`.
+`iter_next<T>(iterator)` consumes it and returns `IterStep<T>`: use
+`match own` with `IterStep::Done {}` and `IterStep::Yield { item, rest }`.
+The item is Copy; `rest` owns the remaining iterator. Pass `rest` to the next
+step or let scope cleanup settle it. Reusing a consumed iterator is an
+ownership error. Private helpers may consume and return the same iterator
+or step type. Explicit `IterStep<T>::Done {}` also works without a vector.
+All eight Copy scalars are admitted; owned items, lazy adapters, and public
+iterator signatures remain separate work. Consuming `for own` is specified by
+the separately implemented [Owning Iterator Loops v1](OWNING-ITERATOR-LOOPS-V1.md),
+which keeps this iterator protocol's boundaries intact. See
+[Owning Iterators v1](OWNING-ITERATORS-V1.md) and the separate
+[closure profile](CLOSURES-V2.md). Private helpers may use one scoped generic
+`T` for iterator parameters and results, reconstruct steps, and invoke scalar
+callbacks under [Generic Iterator Helpers v1](GENERIC-ITERATORS-V1.md).
 
 ## Habits from other languages: diagnostic examples
 
@@ -662,7 +719,6 @@ Other first-attempt diagnostics and their fixes:
 | a `while` body ending after assignment | `SPX-P203` | Add the continuation condition as the body's final expression |
 | `f(x);` as a statement | `SPX-P106` | Discard it with `let _ = f(x);` or make it the tail |
 | `let t = (1, 2);` | `SPX-P106` | No tuples; declare a `record` |
-| `id(4)` for `fn id<T>` | `SPX-T225` | `id<i64>(4)` |
 | `Option::Some { value: 1 }` | `SPX-T221` | `Option<i64>::Some { value: 1 }` |
 | `index + 1` when `index: usize` | `SPX-T208` | Integer literals default to `i64`; write `index + 1usize` |
 | `let a: i32 = 5` | `SPX-T232` | Suffix the literal: `let a: i32 = 5i32` |
@@ -677,41 +733,20 @@ Other first-attempt diagnostics and their fixes:
 | `struct`, `enum`, `pub`, `const` | `SPX-P104` | `record`, `variant`, no visibility keyword, a function returning the value |
 | `x: i64` as the last field without `,` | `SPX-P106` | Every field and every match arm ends with `,`, including the last |
 | `x += 1;` | `SPX-P201` | `x = x + 1;` |
+| `c ? a : b` | `SPX-P106` | `if c { a } else { b }` |
+| `break`, `continue` | `SPX-P106` | Put the exit test in the `while` condition |
+| `x as i64` | `SPX-P106` | No casts or numeric conversions; keep one integer type and suffix literals |
+| a Rust or JavaScript closure | `SPX-P201` | `fn(x: i64) -> i64 { x + 1 }` |
+| `use std::io;` | `SPX-G170` | Compiler-owned functions need no import; projects import one declaration with `use function @id("…") from module as name;` |
+| `f()?` in `main` | `SPX-T218` | Only a function returning `Result` propagates; `match` the result in `main` |
+| `[1, 2, 3]` | `SPX-T262` | Array literals hold bytes (`[1u8, 2u8]`); use a `Vec<i64>` |
 | `fn f()` or `-> ()` | `SPX-P106`, `SPX-P105` | Every function returns `i64` or `bool`; there is no unit |
 | `a[0]` | `SPX-P106` | `byte_get(array_as_slice(a), 0usize)` returns `Option<u8>` |
 | `Some(1)`, `None` | `SPX-T203`, `SPX-T202` | `Option<i64>::Some { value: 1 }`, `Option<i64>::None {}` |
 | `s.len()` on a `string` | `SPX-T203` | `string_len(s)`; no type but a `class` has methods |
-| `str_as_bytes(text)` when `text: string` | `SPX-T263` | Borrow first with `str_as_bytes(string_as_str(text))` |
+| `str_as_bytes(text)` or `str_as_bytes(string_as_str(text))` | `SPX-T263`, `SPX-T266` | Bind the view first: `let view = string_as_str(text); str_as_bytes(view)` |
 | `string_as_str("literal")` | `SPX-T266` | Bind the literal, then pass that binding to `string_as_str` |
 | `String`, `int`, or unsupported `Vec` inference/element types | `SPX-T001`/`SPX-T281` | `string`, `i64`/`i32`/`u8`/`usize`; in a Project prefer the authenticated `std.collections` aliases, and always spell an admitted Copy scalar plus every wrapper or `vec_*<T>` type argument explicitly |
-
-### Bounded Vec traversal
-
-Use `for item in values { body }` to borrow-traverse a simple immutable
-`Vec<T>` binding, where `T` is one of the eight Copy scalars. It snapshots the
-length once, visits elements in ascending index order, and freezes `values`.
-The body result is discarded. Keep the item immutable; do not move, mutate, or
-reassign the vector inside the body. Computed iterable expressions, owned elements,
-consuming traversal, and `break`/`continue` remain outside this `for` form. See
-[Owned Bounded Vec For Traversal v1](OWNED-BOUNDED-VEC-FOR-TRAVERSAL-V1.md).
-
-### Consuming scalar iterators
-
-`vec_into_iter<T>(values)` moves a scalar vector into a non-Copy `Iter<T>`.
-`iter_next<T>(iterator)` consumes it and returns `IterStep<T>`: use
-`match own` with `IterStep::Done {}` and `IterStep::Yield { item, rest }`.
-The item is Copy; `rest` owns the remaining iterator. Pass `rest` to the next
-step or let scope cleanup settle it. Reusing a consumed iterator is an
-ownership error. Private helpers may consume and return the same iterator
-or step type. Explicit `IterStep<T>::Done {}` also works without a vector.
-All eight Copy scalars are admitted; owned items, lazy adapters, and public
-iterator signatures remain separate work. Consuming `for own` is specified by
-the separately implemented [Owning Iterator Loops v1](OWNING-ITERATOR-LOOPS-V1.md),
-which keeps this iterator protocol's boundaries intact. See
-[Owning Iterators v1](OWNING-ITERATORS-V1.md) and the separate
-[closure profile](CLOSURES-V2.md). Private helpers may use one scoped generic
-`T` for iterator parameters and results, reconstruct steps, and invoke scalar
-callbacks under [Generic Iterator Helpers v1](GENERIC-ITERATORS-V1.md).
 
 ## Projects
 

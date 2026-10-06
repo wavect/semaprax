@@ -55,7 +55,7 @@ impl Fixture {
 
     fn authenticated_sources(&self) -> Vec<workspace::WorkspaceSemanticSource> {
         let mut authority = workspace::acquire_semantic_change_read(&self.root).unwrap();
-        let sources = authority.take_sources();
+        let sources = authority.take_sources().unwrap();
         let _graph = authority.take_graph().unwrap();
         authority.finish(Ok(sources)).unwrap()
     }

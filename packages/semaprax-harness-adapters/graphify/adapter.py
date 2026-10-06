@@ -18,7 +18,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "sdk", "python"))
-from semaprax_harness_adapter import AdapterError, serve  # noqa: E402
+from semaprax_harness_adapter import AdapterError, result as wire_result, serve  # noqa: E402
 
 PROVIDER_ID = "com.graphify-labs/graphify-context"
 ADAPTER_VERSION = "0.1.0"
@@ -59,6 +59,8 @@ MAX_SKIPPED = 200
 ADOPT_MODES = ("read-only", "copied-snapshot")
 MAX_GRAPH_BYTES = 512 * 1024 * 1024
 MAX_REASONS = 8
+ADOPT_ATTEMPTS = 3  # bounded retries while a user index is being rewritten, then an owned build
+MAX_DIAG_MESSAGE = 512
 
 
 def env_var(name):
@@ -136,9 +138,20 @@ def file_sha(path):
     return h.hexdigest()
 
 
+def is_unconsumed_media(rel):
+    """Binary media the code-only extractor provably never opens (see `skip_reason`). Their bytes cannot change
+    the code graph, so they stay in the coverage inventory but out of the invalidation identity."""
+    return os.path.splitext(rel)[1].lower() in MEDIA_EXT
+
+
 def source_digest(root, files):
-    h = hashlib.sha256(b"semaprax.graphify-source-set.v1\0")
+    """Invalidation identity of the code graph: path and content of every file the extractor may consume.
+    Unconsumed media are excluded entirely (not read, not named), so editing, adding or deleting one neither
+    re-reads it nor re-extracts; `Index.refresh_coverage` keeps the skipped inventory exact instead."""
+    h = hashlib.sha256(b"semaprax.graphify-source-set.v2\0")
     for rel in files:
+        if is_unconsumed_media(rel):
+            continue
         try:
             h.update(f"{rel}\0{file_sha(os.path.join(root, rel))}\n".encode())
         except OSError:
@@ -355,18 +368,22 @@ class Index:
     # -- opt-in adoption of a user-owned graphify-out (HN-10) ------------------
     def verify_user_index(self, ac, files):
         """Never trust a found graph. Returns (reasons, graph_dir). Pure reads of the user directory."""
+        gdir = os.path.join(self.root, ac["rel"])
+        try:
+            os.lstat(gdir)
+        except OSError:
+            return ["no user index directory"], None
+        if not os.path.isdir(gdir) or os.path.islink(gdir) or not os.path.realpath(gdir).startswith(self.root + os.sep):
+            return ["user index is not a plain directory inside the project (symlinks are refused)"], None
+        return self.verify_index_dir(gdir, files)
+
+    def verify_index_dir(self, gdir, files):
+        """Validate the index laid out in `gdir` (the user's, or a staged copy of it). Returns (reasons, gdir)."""
         reasons = []
 
         def fail(r):
             if len(reasons) < MAX_REASONS:
                 reasons.append(r)
-        gdir = os.path.join(self.root, ac["rel"])
-        try:
-            st = os.lstat(gdir)
-        except OSError:
-            return ["no user index directory"], None
-        if not os.path.isdir(gdir) or os.path.islink(gdir) or not os.path.realpath(gdir).startswith(self.root + os.sep):
-            return ["user index is not a plain directory inside the project (symlinks are refused)"], None
         gpath = os.path.join(gdir, "graph.json")
         if not os.path.isfile(gpath) or os.path.getsize(gpath) > MAX_GRAPH_BYTES:
             return ["no readable graph.json"], None
@@ -441,28 +458,12 @@ class Index:
         """Try the user's index; (state or None, info string). Never writes the user's directory."""
         if ac.get("invalid"):
             return None, f"incompatible: invalid adoption config (mode {ac['mode']!r}, index {ac['rel']!r})"
+        if ac["mode"] == "copied-snapshot":
+            return self.adopt_snapshot(ac, digest, files)
         before = self.user_digest(os.path.join(self.root, ac["rel"]))
         reasons, gdir = self.verify_user_index(ac, files)
         if reasons or gdir is None:
             return None, "incompatible: " + "; ".join(reasons)
-        if ac["mode"] == "copied-snapshot":
-            dest = os.path.join(self.cache_dir, "adopted", before, "graphify-out")
-            if not os.path.isfile(os.path.join(dest, "graph.json")):
-                stage = dest + f".stage-{os.getpid()}"
-                shutil.rmtree(stage, ignore_errors=True)
-                os.makedirs(stage)
-                for name in ("graph.json", "manifest.json"):
-                    if os.path.isfile(os.path.join(gdir, name)):
-                        shutil.copyfile(os.path.join(gdir, name), os.path.join(stage, name))
-                        os.chmod(os.path.join(stage, name), 0o444)
-                os.makedirs(os.path.dirname(dest), exist_ok=True)
-                try:
-                    os.rename(stage, dest)
-                except OSError:
-                    shutil.rmtree(stage, ignore_errors=True)
-            st = self.load_from(dest, digest, files, [])
-            st["action"], st["adoption"], st["served_by"] = "copied-validated-index", "copied-validated-index", "adopted-snapshot"
-            return st, None
         st = self.load_from(gdir, digest, files, [])
         if self.user_digest(os.path.join(self.root, ac["rel"])) != before:
             raise AdapterError("failed", "SPX-HPG013", "the user-owned index changed while it was being read; refusing it")
@@ -470,16 +471,109 @@ class Index:
         st["user_digest"], st["user_rel"] = before, ac["rel"]
         return st, None
 
+    def stage_copy(self, src, dst):
+        """Copy one regular file by value (one read, size-bounded). Tests schedule user edits around this."""
+        if os.path.islink(src) or not os.path.isfile(src):
+            raise OSError(f"{os.path.basename(src)} is not a regular file")
+        with open(src, "rb") as fh:
+            data = fh.read(MAX_GRAPH_BYTES + 1)
+        if len(data) > MAX_GRAPH_BYTES:
+            raise OSError(f"{os.path.basename(src)} is too large")
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        with open(dst, "wb") as fh:
+            fh.write(data)
+        os.chmod(dst, 0o444)
+
+    def stage_index(self, gdir, stage):
+        """Independent copy of every user-owned input this adapter reads, including the binding metadata."""
+        for name in ("graph.json", "manifest.json", ".graphify_root", os.path.join("cache", "stat-index.json")):
+            src = os.path.join(gdir, name)
+            if os.path.lexists(src):
+                self.stage_copy(src, os.path.join(stage, name))
+        astdir = os.path.join(gdir, "cache", "ast")
+        if os.path.isdir(astdir) and not os.path.islink(astdir):
+            for tag in sorted(os.listdir(astdir)):
+                os.makedirs(os.path.join(stage, "cache", "ast", tag), exist_ok=True)
+
+    def adopt_snapshot(self, ac, digest, files):
+        """Stage one owned copy, validate those exact bytes, name the snapshot by the staged bytes, then publish."""
+        gdir = os.path.join(self.root, ac["rel"])
+        adopted = os.path.join(self.cache_dir, "adopted")
+        for attempt in range(ADOPT_ATTEMPTS):
+            before = self.user_digest(gdir)
+            reasons, gdir = self.verify_user_index(ac, files)
+            if reasons or gdir is None:
+                return None, "incompatible: " + "; ".join(reasons)
+            stage = os.path.join(adopted, f".stage-{os.getpid()}")
+            shutil.rmtree(stage, ignore_errors=True)
+            try:
+                os.makedirs(stage)
+                try:
+                    self.stage_index(gdir, stage)
+                except OSError as e:
+                    return None, f"incompatible: user index cannot be copied as plain files ({e})"
+                staged_reasons, _ = self.verify_index_dir(stage, files)
+                staged = self.user_digest(stage)
+                after = self.user_digest(gdir)
+                if not (before == staged == after):
+                    continue  # the user index moved while it was copied: copy and validate again
+                if staged_reasons:
+                    return None, "incompatible: " + "; ".join(staged_reasons)
+                dest = self.publish_snapshot(stage, staged, adopted)
+                if dest is None:
+                    return None, "incompatible: adopted snapshot destination holds different bytes"
+                st = self.load_from(dest, digest, files, [])
+                st["action"], st["adoption"], st["served_by"] = "copied-validated-index", "copied-validated-index", "adopted-snapshot"
+                st["snapshot_digest"] = staged
+                return st, None
+            finally:
+                shutil.rmtree(stage, ignore_errors=True)
+        return None, "incompatible: the user index kept changing while it was copied; using an owned build"
+
+    def publish_snapshot(self, stage, staged, adopted):
+        """Move the validated stage to adopted/<digest>/graphify-out. An existing destination is verified by
+        content identity, never trusted by name; a wrong one is replaced, restoring it if the move fails."""
+        dest = os.path.join(adopted, staged, "graphify-out")
+        lock = self.locked()
+        try:
+            if os.path.isdir(dest) and self.user_digest(dest) == staged:
+                return dest
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            old = None
+            if os.path.lexists(dest):
+                old = dest + f".old-{os.getpid()}"
+                shutil.rmtree(old, ignore_errors=True)
+                os.rename(dest, old)
+            try:
+                os.rename(stage, dest)
+            except OSError:
+                if old is not None and not os.path.lexists(dest):
+                    os.rename(old, dest)
+                    old = None
+                # Another publisher won the race: accept only a destination that has the staged identity.
+                return dest if os.path.isdir(dest) and self.user_digest(dest) == staged else None
+            if old is not None:
+                shutil.rmtree(old, ignore_errors=True)
+            return dest
+        finally:
+            lock.close()
+
     @staticmethod
     def user_digest(gdir):
-        """Digest of the user-owned files this adapter reads (graph.json, manifest.json, stat-index.json)."""
-        h = hashlib.sha256(b"semaprax.graphify-user-index.v1\0")
-        for name in ("graph.json", "manifest.json", os.path.join("cache", "stat-index.json")):
+        """Digest of the user-owned inputs this adapter reads: graph.json, manifest.json, stat-index.json,
+        the root binding and the extractor-version cache tags."""
+        h = hashlib.sha256(b"semaprax.graphify-user-index.v2\0")
+        for name in ("graph.json", "manifest.json", ".graphify_root", os.path.join("cache", "stat-index.json")):
             p = os.path.join(gdir, name)
             try:
                 h.update(f"{name}\0{file_sha(p)}\n".encode())
             except OSError:
                 h.update(f"{name}\0absent\n".encode())
+        try:
+            tags = sorted(os.listdir(os.path.join(gdir, "cache", "ast")))
+        except OSError:
+            tags = []
+        h.update(("ast\0" + "\0".join(tags) + "\n").encode())
         return h.hexdigest()
 
     def disk_meta(self):
@@ -495,12 +589,24 @@ class Index:
             return None
 
     def ensure(self, refresh):
-        """Return (state, stale_flag)."""
+        """Return (state, stale_flag). The skipped/indexed inventory always describes the current tree."""
         self.check_identity()
         files = walk_files(self.root)
-        digest = source_digest(self.root, files)
+        st, stale = self.ensure_for(refresh, files, source_digest(self.root, files))
+        self.refresh_coverage(st, files)
+        return st, stale
+
+    @staticmethod
+    def refresh_coverage(st, files):
+        """Recompute skipped coverage from the current file list. Indexed files are fixed by the digest (any change
+        to one re-extracts); skipped files (media included) may come and go without touching the code graph."""
+        indexed = set(st["indexed"])
+        st["skipped"] = [{"path": f, "reason": skip_reason(f)} for f in files if f not in indexed]
+
+    def ensure_for(self, refresh, files, digest):
         ac = adoption_config()
-        if self.state is None and ac and self.adoption_note is None:
+        # A forced rebuild outranks first-use adoption: it runs one owned extraction and never touches the user index.
+        if self.state is None and ac and self.adoption_note is None and refresh != "rebuild":
             st, note = self.adopt(ac, digest, files)
             if st is not None:
                 return st, False
@@ -620,30 +726,105 @@ def clean(label):
     return label.strip().lstrip(".").removesuffix("()").lower()
 
 
-def finish(request, index, state, items, exhaustive, diags=(), extra=None):
-    cov = coverage(state, exhaustive)
-    budget = request.get("budget", {}).get("max_result_bytes", 65536)
-    limit = int(budget * 0.8)
-    diags = list(diags)
-    while items and len(json.dumps({"items": items, "coverage": cov})) > limit:
-        items = items[: max(0, len(items) // 2)]
-        cov = dict(cov, complete=False, exhaustive=False)
-        diags.append({"code": "SPX-HPG007", "message": "result truncated to fit the byte budget"})
-    if len(state["skipped"]) > MAX_SKIPPED:
-        diags.append({"code": "SPX-HPG008", "message": f"skipped list truncated to {MAX_SKIPPED} of {len(state['skipped'])}"})
-    status = "complete" if cov["complete"] else "partial"
-    kinds = {}
-    for it in items:
-        k = it["text"][1:it["text"].index("]")]
-        kinds[k] = kinds.get(k, 0) + 1
-    meta = {"upstream_version": index.identity, "schema_profile": PROFILES[index.identity]["id"],
-            "span_kinds": dict(sorted(kinds.items())), "span_resolver": f"python-ast-{sys.version_info[0]}.{sys.version_info[1]}", "index_files": len(state["indexed"]),
-            "source_digest": "sha256:" + state["digest"], "refresh": state.get("action", "reuse")}
-    if state.get("adoption"):
-        meta["index_adoption"] = state["adoption"][:400]
-        meta["served_by"] = state.get("served_by", "owned-cache")
-    meta.update(extra or {})
-    return status, {"items": items, "coverage": cov, "metadata": meta}, diags
+def envelope_bytes(request, index, status, payload, diags):
+    """Exact size of the result envelope as the SDK serializes it: compact, key-sorted, UTF-8."""
+    prov = {"provider_id": PROVIDER_ID, "adapter_version": ADAPTER_VERSION, "upstream_version": index.identity}
+    env = wire_result(request, status, payload, prov, diags)
+    return len(json.dumps(env, separators=(",", ":"), sort_keys=True).encode())
+
+
+def budget_of(request):
+    value = (request.get("budget") or {}).get("max_result_bytes", 65536)
+    return value if isinstance(value, int) and value > 0 else 65536
+
+
+def fit(request, index, status, items, cov, diags, meta_fn=None, total_skipped=0, total_errors=0, items_only=False):
+    """Return a (status, payload, diagnostics) whose complete serialized result fits `max_result_bytes`.
+
+    Context items are kept first; skipped and error detail uses what remains. Everything omitted is reported
+    (diagnostics plus `metadata.omitted`) and coverage can only move toward incomplete. When even the empty
+    result cannot fit, a bounded refusal is returned instead of an oversized partial result.
+    `status` None derives complete/partial from coverage; `items_only` (skeleton) marks coverage exhaustive
+    exactly when no item was dropped."""
+    limit = budget_of(request)
+    base = [dict(d, message=str(d.get("message", ""))[:MAX_DIAG_MESSAGE]) for d in diags]
+    skipped, errors = cov["skipped"], cov["extraction_errors"]
+    total_skipped, total_errors = max(total_skipped, len(skipped)), max(total_errors, len(errors))
+
+    def build(ni, ns, ne, slim):
+        c = dict(cov, skipped=skipped[:ns], extraction_errors=errors[:ne])
+        omitted = {}
+        d = list(base)
+        if ni < len(items):
+            c.update(complete=False, exhaustive=False)
+            omitted["items"] = len(items) - ni
+            d.append({"code": "SPX-HPG007", "message": "result truncated to fit the byte budget"})
+        elif items_only:
+            c["exhaustive"] = True
+        if ns < total_skipped:
+            omitted["skipped"] = total_skipped - ns
+            d.append({"code": "SPX-HPG008", "message": f"skipped list truncated to {ns} of {total_skipped}"})
+        if ne < total_errors:
+            omitted["extraction_errors"] = total_errors - ne
+            d.append({"code": "SPX-HPG014", "message": f"extraction errors truncated to {ne} of {total_errors}"})
+        if omitted:
+            c["complete"] = False
+        payload = {"items": items[:ni], "coverage": c}
+        if meta_fn is not None:
+            meta = meta_fn(items[:ni], slim)
+            if omitted:
+                meta["omitted"] = omitted
+            payload["metadata"] = meta
+        st = status or ("complete" if c["complete"] else "partial")
+        return st, payload, d
+
+    def size(*args):
+        return envelope_bytes(request, index, *build(*args))
+
+    def largest(lo, hi, ok):
+        """Largest n in [lo, hi] with ok(n), assuming ok(lo); size is monotone up to a few digits."""
+        while lo < hi:
+            mid = (lo + hi + 1) // 2
+            lo, hi = (mid, hi) if ok(mid) else (lo, mid - 1)
+        return lo
+
+    for slim in (False, True):
+        if size(0, 0, 0, slim) > limit:
+            continue
+        if size(len(items), 0, 0, slim) <= limit:
+            ni = len(items)
+        else:
+            ni = largest(0, len(items) - 1, lambda n: size(n, 0, 0, slim) <= limit)
+        ns = largest(0, len(skipped), lambda n: size(ni, n, 0, slim) <= limit)
+        ne = largest(0, len(errors), lambda n: size(ni, ns, n, slim) <= limit)
+        out = build(ni, ns, ne, slim)
+        if envelope_bytes(request, index, *out) <= limit:
+            return out
+    return "refused", None, [{"code": "SPX-HPK007", "message": f"result cannot fit {limit} bytes"}]
+
+
+def finish(request, index, state, items, exhaustive, diags=(), extra=None, items_only=False):
+    cov = coverage(state, True if items_only else exhaustive)
+
+    def meta_fn(kept, slim):
+        kinds = {}
+        for it in kept:
+            k = it["text"][1:it["text"].index("]")]
+            kinds[k] = kinds.get(k, 0) + 1
+        meta = {"upstream_version": index.identity, "schema_profile": PROFILES[index.identity]["id"],
+                "span_kinds": dict(sorted(kinds.items())), "span_resolver": f"python-ast-{sys.version_info[0]}.{sys.version_info[1]}",
+                "index_files": len(state["indexed"]), "source_digest": "sha256:" + state["digest"],
+                "refresh": state.get("action", "reuse")}
+        if state.get("adoption"):
+            if slim:
+                meta["index_adoption_omitted"] = True
+            else:
+                meta["index_adoption"] = state["adoption"][:400]
+            meta["served_by"] = state.get("served_by", "owned-cache")
+        meta.update(extra or {})
+        return meta
+
+    return fit(request, index, None, items, cov, diags, meta_fn, len(state["skipped"]), len(state["errors"]), items_only)
 
 
 def make_handlers(index):
@@ -654,8 +835,9 @@ def make_handlers(index):
         if stale:
             cov = coverage(state, False)
             cov.update(complete=False, exhaustive=False)
-            return None, payload, ("stale", {"items": [], "coverage": cov}, [
-                {"code": "SPX-HPG002", "message": "source files changed since the graph was built and refresh=never"}])
+            return None, payload, fit(request, index, "stale", [], cov, [
+                {"code": "SPX-HPG002", "message": "source files changed since the graph was built and refresh=never"}],
+                None, len(state["skipped"]), len(state["errors"]))
         return state, payload, None
 
     def limit_of(payload):
@@ -704,13 +886,12 @@ def make_handlers(index):
         if rel not in state["indexed"]:
             cov = coverage(state, False)
             reason = next((s["reason"] for s in state["skipped"] if s["path"] == rel), "file not found in project")
-            return "unsupported", {"items": [], "coverage": cov}, [{"code": "SPX-HPG009", "message": f"{rel}: {reason}"}]
+            return fit(request, index, "unsupported", [], cov, [{"code": "SPX-HPG009", "message": f"{rel}: {reason}"}],
+                       None, len(state["skipped"]), len(state["errors"]))
         nodes = sorted((n for n in state["graph"].nodes if n["source_file"] == rel), key=lambda n: (n["_line"], n["id"]))
         items = [node_item(index, n, "structural", i + 1, node_text(n)) for i, n in enumerate(nodes)]
-        st, out, diags = finish(request, index, state, items, True)
-        # skeleton exhaustiveness is per file: the file itself is indexed
-        out["coverage"]["exhaustive"] = len(out["items"]) == len(nodes)
-        return st, out, diags
+        # skeleton exhaustiveness is per file (the file itself is indexed): exhaustive unless an item was dropped
+        return finish(request, index, state, items, True, items_only=True)
 
     def references(request):
         state, payload, early = prelude(request, "references")

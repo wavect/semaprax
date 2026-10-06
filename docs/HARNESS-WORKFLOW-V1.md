@@ -6,6 +6,18 @@ Status: HP-04 (#420) implementation contract for `crates/semaprax-harness/src/wo
 Local executable evidence only; see `crates/semaprax-harness/tests/`. Diagnostics are
 `SPX-HPD001..`. This document extends `docs/HARNESS-PROVIDER-V1.md`.
 
+## Current status (2026-10-05)
+
+Routing in `harness run` is policy-first with explicit modes (`rules` by default, `pin`, `experimental`,
+qualified `auto`; HN-16 below), optional phase role policies (MR-08) and session decision reuse (MR-12). The single
+current support matrix (decision provider vs generation model, development vs runtime, hosted vs local,
+conformance-tested vs live-tested vs qualified), the setup/check/probe commands and the side-by-side examples are in
+[Harness decision v1, *Current status*](HARNESS-DECISION-V1.md#current-status-2026-10-05). In short: no learned
+decision adapter is live-tested on this host, the MR-13 gate is not evaluated (no-go), and rules decide unless a
+provider is explicitly selected. Every route in a report carries `route.explain` (MR-14). Sections below are dated
+history in implementation order; where an older section states a limitation that a later one lifts, the later
+section and this status win.
+
 ## Command
 
 ```text
@@ -33,8 +45,9 @@ journal. Every step re-verifies the snapshot; a changed tree is `SPX-HPD005`.
    and native context is missing/incomplete (`never` forbids it).
 4. Final budget (`[budget] context_max_bytes`): native items are protected (overflow is `SPX-HPD020`);
    external items fill the remainder, the rest are dropped and counted.
-5. Route with `decision::decide` (rules, zero router calls) and generate: `--proposal` file, else a selected
-   `model.generate` provider (side-effecting class, never retried), else `SPX-HPD090`.
+5. Route through the one governed routing engine (rules by default with zero router calls; see *Current status*)
+   and generate: `--proposal` file, else a selected `model.generate` provider (side-effecting class, never retried),
+   else `SPX-HPD090`.
 6. Validate: `semaprax project-candidate-preview` on a change the host builds (schema, base revision and the
    full nine requirements are host-owned). Protected facts are then checked on the compiler's output.
 7. Checks: the compiler-produced candidate sources are overlaid on a private scratch copy; `check` and `test`
@@ -86,11 +99,12 @@ composition, 020 context budget, 021 context unavailable, 030-033 proposal, 040 
 060 policy location, 061 publication refused, 062 publication uncertain, 070 journal/cache io, 071-072 resume
 uncertain, 080 usage, 081 task, 082 apply policy, 090 no proposal, 091 runtime path missing.
 
-## Known limits
+## Known limits (HP-04 history, updated 2026-10-05)
 
-Decision providers (`decision.evaluate`) are reported but rules decide; the model bridge is a `model.generate`
-adapter call, not the root `ProviderAdapter`; candidate checks use a scratch overlay because the compiler has no
-CLI that tests a candidate in place.
+When HP-04 shipped, decision providers were reported but rules always decided; that limit was lifted by HN-16 modes
+and MR-08 phase routing (see *Current status*). Still true: the model bridge is a `model.generate` adapter call, not
+the root `ProviderAdapter`, and candidate checks use a scratch overlay because the compiler has no CLI that tests a
+candidate in place.
 
 ## Integration (hpwire)
 
@@ -400,3 +414,77 @@ Each route records a `cost_policy` object: action, reason, escalation count and 
 
 The TC-12 `spend-ledger` and `cost-aware-routing` arms report `not-applicable` for app tasks. Those trials run one
 fixed model through `ProductionClient`, not the workflow route/spend path.
+
+## MR-08: optional phase role policies (plan / implement / advisory review)
+
+Without any `[routing.phase.<role>]` table the single-proposer loop is unchanged: no planner, reviewer or extra
+router call, and the report has no `phases` member. A table per role (`plan`, `implement`, `review`) takes:
+
+| Key | Meaning |
+| --- | --- |
+| `enabled` | `plan`/`review` only: run for every task (default `false`) |
+| `risk_families` | `plan`/`review` only: deterministic risk rule, run when the task family is listed |
+| `models` | approved candidate subset of the task catalog (1..=8 ids); it can only remove models |
+| `pin` | role pin inside `models`; a project `[routing] pin` keeps precedence over every role policy |
+| `decision` | `rules` (default) or `router` (consult the configured `decision.evaluate` provider) |
+
+`implement` refuses `enabled`/`risk_families` (`SPX-HPB004`); a subset or pin naming no approved model refuses
+before any call (`SPX-HPD118`). Every role goes through the one route/fit/reserve path, so all calls share the task's
+one spend ledger, the endpoint policy, the privacy screen and the cost ladder (TC-10 stays the only escalation owner
+and governs implementation attempts only). With phases configured a router is consulted only when the role says
+`router`, no pin applies and more than one candidate remains.
+
+- **Plan** (once, before the first attempt): a `semaprax.harness-phase-prompt.v1` request; the answer must be
+  `semaprax.harness-plan.v1` `{schema, steps: [1..=16 strings <= 256 bytes], claims?}`. The bounded plan reference
+  (steps and digest) is quoted into the implementation request as `plan`.
+- **Implement**: the existing checked proposal type. With phases configured, failure feedback is replaced by a compact
+  host `handoff` (`semaprax.harness-handoff.v1`: goal and acceptance digests, current revision, plan digest and the
+  host-verified diagnostics without earlier model output). Each attempt records `phase` (`implement`/`repair`), the
+  actual model, the previous failure class, `retry` (`reasoning` for parse/schema, semantic/law and acceptance
+  failures, `transport` for tool/transport) and why the model changed (ladder reason or changed route signals). A
+  transport-uncertain attempt stops (`SPX-HPD072`), is recorded `stopped`, and is never replayed or escalated.
+- **Review** (advisory, after a compiler-verified candidate): bounded `semaprax.harness-review.v1`
+  `{schema, findings: [<= 16 {severity: info|warning|concern, message <= 512, path?}], claims?}` against the frozen
+  candidate revision. Findings never approve, reject, apply or publish.
+
+No role can rewrite acceptance, claim tests passed or authorize anything: a plan/review member such as `acceptance`,
+`tests_passed`, `confidence`, `done`, `approve` or `publish` rejects the artifact (the task continues without it), and
+`claims` are ignored and listed. A budget, availability or policy refusal of an optional role skips it; an uncertain
+dispatch or cancellation stops the task. Plan and review artifacts are written to
+`<cache>/<lineage>.<step>.artifact.json` and journaled (`phase-plan-artifact`, `phase-review-<n>-artifact`, bound to
+the frozen revision); a resume reuses them with zero calls, and a tampered artifact is refused (`SPX-HPD072`), never
+regenerated billably. The report's `phases` member holds counts and digests only, never plan or finding text.
+
+Bridge hosts: `workflow::phases::parent_model_routing(owner)` states what Semaprax may do with model choice under the
+negotiated `model_routing` owner. A non-delegating host (the documented Claude bridge) is `host-controlled`,
+`advisory_only`, `changes_parent_model: false`; phase routing applies to Semaprax-owned worker requests only.
+
+## MR-12: session decision reuse and router readiness
+
+`RoutingWiring.decisions` (`workflow::decision_reuse::SessionDecisions`) is the explicitly owned, bounded decision
+cache of one host/session (64 entries per scope, 16 scopes, FIFO). Every route of the workflow goes through it. A scope
+binds the tenant/project binding, the lock digest, the effective governance (mode, pins, remote prohibition, bypass
+and shadow knobs, provider mode) and the evidence lock/gate in force; inside it the engine key binds provider, model,
+checkpoint, feature/catalog/policy-and-budget digests, routing task, the v2 feature/candidate/renderer/disclosure
+digests and the adapter/profile/instance identity (including secret references). A changed failure, phase, policy,
+candidate descriptor, credential scope, model identity or tenant is a miss. Only validated answers are cached; a
+timeout, unavailable, invalid or abstaining call never is. Every hit is revalidated by `decide` against the live
+admissible set and the final request is rechecked before dispatch, so a revoked destination cannot return.
+
+Readiness is reused, never installed: a provider is `cold` until it answers in the session (`warm`); after an
+unavailable/timed-out call it is `unavailable` and later routes take the fallback without a call; a router whose last
+observed latency exceeds the remaining router deadline is bypassed the same way. Under `fallback = refuse` a bypass
+refuses (`SPX-HPJ013`). Each route records `route.reuse` (`cache`: hit/miss/bypass/none, reason, readiness before and
+after, `router_calls`, `new_api_usage`, `queue_ms` separate from `inference_ms`); a run with any reuse event records
+`context.decision_reuse` totals. A hit dispatches nothing, so its router reservation is released (`router_not_consulted`)
+and only dispatched work is charged. Rules-only, one-candidate, pinned and local/scripted-proposal paths keep zero router
+calls.
+
+Adapter side (`systemone`): Jev entitlement discovery (`GET /v1/models`) is cached in-process per (endpoint, SHA-256
+prefix of the credential, model, profile digest) for 300 s, bounded, and dropped on any 401/403 or entitlement
+refusal; an inference 401/403 is returned as-is, never retried or followed by a hidden rediscovery. The SystemOne
+descriptors declare an `endpoint` config field (forwarded as `SEMAPRAX_HARNESS_CFG_ENDPOINT`, read before
+`SEMAPRAX_HARNESS_ENDPOINT`). Their `upstream` blocks name a network service or worker, not an executable; since
+MR-14 (2026-10-05) such a service upstream needs no adopted executable, so these adapters adopt and trust directly
+from the checkout (the earlier `SPX-HPB033` refusal and its copy-without-upstream workaround are gone; see
+[Harness decision v1, MR-14](HARNESS-DECISION-V1.md#routing-setup-check-and-explain-mr-14)).

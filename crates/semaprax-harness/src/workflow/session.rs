@@ -30,7 +30,10 @@ fn d(code: &'static str, msg: impl Into<String>) -> HarnessDiagnostic {
     HarnessDiagnostic::new(code, msg)
 }
 
-/// Whole-task bounds across every attempt of the session.
+/// Whole-task bounds across every attempt of the session. The four `u32`
+/// counts accept exactly `0..=u32::MAX`; a larger value is refused, never
+/// wrapped (MN-07). Zero is admitted and means the bound is already
+/// exhausted: the session refuses before its first model attempt.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SessionBounds {
     pub max_attempts: u32,
@@ -63,16 +66,26 @@ impl SessionBounds {
             .ok_or_else(|| bad("`session` must be an object".into()))?;
         let mut b = Self::default();
         for (k, x) in o {
-            let n = x
-                .as_u64()
-                .ok_or_else(|| bad(format!("`session.{k}` must be a number")))?;
+            let n = x.as_u64().ok_or_else(|| {
+                bad(format!(
+                    "`session.{k}` must be a nonnegative integer number"
+                ))
+            })?;
+            let small = || {
+                u32::try_from(n).map_err(|_| {
+                    bad(format!(
+                        "`session.{k}` is {n}, above the largest admitted value {}",
+                        u32::MAX
+                    ))
+                })
+            };
             match k.as_str() {
-                "max_attempts" => b.max_attempts = n as u32,
-                "max_candidates" => b.max_candidates = n as u32,
-                "max_tool_calls" => b.max_tool_calls = n as u32,
+                "max_attempts" => b.max_attempts = small()?,
+                "max_candidates" => b.max_candidates = small()?,
+                "max_tool_calls" => b.max_tool_calls = small()?,
                 "max_elapsed_ms" => b.max_elapsed_ms = n,
                 "max_tokens" => b.max_tokens = Some(n),
-                "max_steps" => b.max_steps = n as u32,
+                "max_steps" => b.max_steps = small()?,
                 _ => return Err(bad(format!("unknown session member `{k}`"))),
             }
         }
@@ -105,6 +118,9 @@ pub(super) struct State {
     /// Check output delivered to the model in feedback (HN-12), separate from report compaction.
     pub delivered: Vec<Value>,
     pub candidates: u32,
+    /// Output-cap retries admitted inside proposal turns (MN-04); each is a
+    /// model attempt counted against `max_attempts`.
+    pub retries: u32,
     pub seen_proposals: BTreeSet<String>,
     pub last_failures: Vec<String>,
     pub commands_start: usize,
@@ -113,7 +129,15 @@ pub(super) struct State {
 
 impl State {
     fn to_json(&self, cx: &Ctx) -> Value {
+        let routers = cx
+            .ledger
+            .entries
+            .iter()
+            .filter(|e| e.kind == "router")
+            .count();
         json!({"bounds": self.bounds.to_json(), "attempts_spent": self.attempts.len(),
+               "proposal_turns": self.attempts.len(), "output_cap_retries": self.retries,
+               "generation_attempts": cx.receipts.to_json()["attempts"], "router_calls": routers,
                "candidates_admitted": self.candidates, "attempts": self.attempts, "steps": self.steps,
                "tool_calls": cx.compiler.commands().len().saturating_sub(self.commands_start),
                "reserved_tokens": cx.ledger.reserved_tokens(), "delivered_to_model": self.delivered_json(), "feedback_projection": self.feedback_reports,
@@ -135,6 +159,17 @@ impl State {
 
     pub(super) fn check_bounds_pub(&self, cx: &Ctx) -> HarnessResult<()> {
         self.check_bounds(cx)
+    }
+
+    /// Session-owned admission of an output-cap retry (MN-04): the same
+    /// attempt, candidate, tool, elapsed and token bounds as a new turn, and the
+    /// caller's cancellation, before any routing or reservation. An admitted
+    /// retry counts once against `max_attempts`.
+    pub(super) fn admit_retry(&mut self, cx: &Ctx, j: &mut Journal) -> HarnessResult<()> {
+        cancelled(cx, j)?;
+        self.check_bounds(cx)?;
+        self.retries += 1;
+        Ok(())
     }
     pub(super) fn cancelled_pub(&self, cx: &Ctx, j: &mut Journal) -> HarnessResult<()> {
         cancelled(cx, j)
@@ -174,12 +209,15 @@ impl State {
             d(
                 "SPX-HPD111",
                 format!(
-                    "session bound exhausted: {what}; {} attempt(s) were spent and remain counted",
-                    self.attempts.len()
+                    "session bound exhausted: {what}; {} attempt(s) were spent and remain counted ({} output-cap retr{})",
+                    self.attempts.len(),
+                    self.retries,
+                    if self.retries == 1 { "y" } else { "ies" }
                 ),
             )
         };
-        if self.attempts.len() as u32 >= b.max_attempts {
+        let model_attempts = (self.attempts.len() as u64).saturating_add(u64::from(self.retries));
+        if model_attempts >= u64::from(b.max_attempts) {
             return Err(over(&format!("max_attempts {}", b.max_attempts)));
         }
         if self.candidates >= b.max_candidates {
@@ -305,6 +343,7 @@ fn start(cx: &mut Ctx, journal: &mut Journal, r: &mut Report) -> HarnessResult<S
         ctx_proposed: Value::Null,
         delivered: vec![],
         candidates: 0,
+        retries: 0,
         seen_proposals: BTreeSet::new(),
         last_failures: vec![],
         commands_start: cx.compiler.commands().len(),
@@ -392,6 +431,9 @@ pub(super) fn loop_steps(
     let diag_view = String::new();
     let mut need_context = true;
     let mut kept: Vec<ContextItem> = Vec::new();
+    // MR-08: the optional plan runs once, before the first implementation attempt.
+    let mut plan: Option<Value> = None;
+    let mut planned = false;
     loop {
         s.check_bounds(cx)?;
         cancelled(cx, journal)?;
@@ -403,6 +445,10 @@ pub(super) fn loop_steps(
             kept = gather_context(cx, st, r, &work, &seed, query)?.0;
             need_context = false;
         }
+        if !planned {
+            planned = true;
+            plan = super::phases::run_plan(cx, st, journal, r, &revision, &kept, &ops)?;
+        }
         let n = s.attempts.len() as u32 + 1;
         let stepname = format!("gen-{n}");
         super::cost_ladder::observe(cx, &s.feedback, s.last_failures.len());
@@ -410,6 +456,7 @@ pub(super) fn loop_steps(
         s.ctx_revision = revision.clone();
         s.ctx_candidate = None;
         s.ctx_proposed = Value::Null;
+        let view = super::phases::implement_view(cx, plan.as_ref(), &revision, &projected, n);
         let pc = PromptCtx {
             revision: &revision,
             seed: seed.as_deref(),
@@ -419,9 +466,24 @@ pub(super) fn loop_steps(
             feedback: &projected,
             attempt: n,
             scratch_repair: false,
+            phase: view.as_ref(),
         };
         s.attempts.push(json!({"attempt": n, "outcome": "started"}));
-        let proposal = attempt::propose_step(cx, st, journal, r, &pc, &stepname)?;
+        let failure = super::route_signals::last_failure(&s.feedback);
+        let gated =
+            attempt::propose_step_gated(cx, st, journal, r, &pc, &stepname, &mut |cx, j| {
+                s.admit_retry(cx, j)
+            });
+        let proposal = match gated {
+            Ok(p) => p,
+            Err(e) => {
+                if e.code == "SPX-HPD072" {
+                    super::phases::note_stop(cx, r, n, "transport or dispatch outcome uncertain: not retried as a reasoning attempt");
+                }
+                return Err(e);
+            }
+        };
+        super::phases::note_attempt(cx, r, n, failure);
         cancelled(cx, journal)?;
         let pdigest = sha256_plain(
             crate::json::canonical(&json!([proposal.kind, proposal.intent, proposal.done]))
@@ -514,7 +576,19 @@ pub(super) fn loop_steps(
             continue;
         }
         match attempt::candidate_checks(cx, st.command, &work, &n.to_string(), &preview, r, false) {
-            Ok(c) => r.checks = c,
+            Ok(c) => {
+                r.checks = c;
+                super::phases::run_review(
+                    cx,
+                    st,
+                    journal,
+                    r,
+                    &revision,
+                    &preview,
+                    &ops,
+                    &n.to_string(),
+                )?;
+            }
             Err(e) if e.code == "SPX-HPD050" => {
                 let (msg, fb) = super::checks::check_feedback(&r.checks, &e.message);
                 s.record_failure(n, "checks", e.code, &msg, journal)?;

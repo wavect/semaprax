@@ -159,7 +159,10 @@ impl Installation {
             descriptor_digest: descriptor.digest().to_string(),
             entry_digest,
             upstream_digest,
-            requires_upstream: descriptor.upstream.as_ref().is_some_and(|u| !is_bundled(u)),
+            requires_upstream: descriptor
+                .upstream
+                .as_ref()
+                .is_some_and(|u| !is_bundled(u) && !is_service(u, &descriptor.permissions)),
             requested: descriptor.permissions.clone(),
         };
         Ok(Inspected {
@@ -441,4 +444,22 @@ impl LocalState {
 /// executable is adopted or required.
 pub fn is_bundled(upstream: &crate::contract::UpstreamIdentity) -> bool {
     upstream.package.starts_with("local:") && upstream.identity_probe.is_empty()
+}
+
+/// An upstream with no identity probe, reached by an adapter that may not
+/// spawn any process but requests network access, is a network service or
+/// worker (a hosted API or a user-provisioned loopback endpoint), not an
+/// executable. There is nothing on disk to adopt or hash: the descriptor and
+/// adapter closure digests bind what the adapter may reach, and the service's
+/// identity is reported per decision call (`call.answering_model`). An
+/// upstream with an identity probe, or an adapter that requests `process`,
+/// stays an executable upstream and still requires `adopt --upstream`.
+pub fn is_service(
+    upstream: &crate::contract::UpstreamIdentity,
+    permissions: &crate::contract::PermissionRequest,
+) -> bool {
+    upstream.identity_probe.is_empty()
+        && !is_bundled(upstream)
+        && permissions.process.is_empty()
+        && !permissions.network.is_empty()
 }

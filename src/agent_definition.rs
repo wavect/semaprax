@@ -10,10 +10,7 @@ use std::collections::BTreeSet;
 use serde_json::{Map, Value};
 use sha2::{Digest, Sha256};
 
-use crate::agent_runtime::{
-    Agent, AgentBoundaryProbe, AgentCancellation, AgentHost, AgentProviderAttempt,
-    AgentProviderSink, AgentToolResultSink,
-};
+use crate::agent_runtime::{admit_runtime_v1_profile, Agent, AgentCancellation, AgentHost};
 use crate::diagnostic::{quote_json, Diagnostic};
 
 const DEFINITION_SCHEMA: &str = "semaprax.agent-definition.v1";
@@ -21,28 +18,89 @@ const GRAPH_SCHEMA: &str = "semaprax.agent-graph.v1";
 const PROFILE_SCHEMA: &str = "semaprax.agent-runtime-profile.v1";
 const DEFINITION_DOMAIN: &[u8] = b"semaprax.agent-definition.digest.v1\0";
 const GRAPH_DOMAIN: &[u8] = b"semaprax.agent-graph.digest.v1\0";
+#[cfg(test)]
+pub(crate) const GRAPH_DOMAIN_FOR_TESTS: &[u8] = GRAPH_DOMAIN;
 const PROFILE_DOMAIN: &[u8] = b"semaprax.agent-runtime.profile-digest.v1\0";
 const MAX_DEFINITION_BYTES: usize = 1_310_720;
 const MAX_GRAPH_BYTES: usize = 1_572_864;
 const MAX_IDENTIFIER_BYTES: usize = 240;
 const MAX_JSON_DEPTH: usize = 16;
 
-const TYPE_ROLES: [&str; 6] = [
-    "task",
-    "state",
-    "observation",
-    "proposal",
-    "outcome",
-    "result",
-];
-const OPERATION_ROLES: [(&str, &str); 6] = [
-    ("initialize", "deterministic"),
-    ("observe", "deterministic"),
-    ("propose", "model"),
-    ("authorize", "deterministic"),
-    ("execute", "effect"),
-    ("reduce", "deterministic"),
-];
+/// The six type roles. [`TypeRole::ALL`] is the single owner of their wire
+/// names and normative order.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum TypeRole {
+    Task,
+    State,
+    Observation,
+    Proposal,
+    Outcome,
+    Result,
+}
+
+impl TypeRole {
+    const ALL: [Self; 6] = [
+        Self::Task,
+        Self::State,
+        Self::Observation,
+        Self::Proposal,
+        Self::Outcome,
+        Self::Result,
+    ];
+
+    fn name(self) -> &'static str {
+        match self {
+            Self::Task => "task",
+            Self::State => "state",
+            Self::Observation => "observation",
+            Self::Proposal => "proposal",
+            Self::Outcome => "outcome",
+            Self::Result => "result",
+        }
+    }
+}
+
+/// The six operation roles. [`OperationRole::ALL`] is the single owner of
+/// their wire names, declared kinds and normative order.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum OperationRole {
+    Initialize,
+    Observe,
+    Propose,
+    Authorize,
+    Execute,
+    Reduce,
+}
+
+impl OperationRole {
+    const ALL: [Self; 6] = [
+        Self::Initialize,
+        Self::Observe,
+        Self::Propose,
+        Self::Authorize,
+        Self::Execute,
+        Self::Reduce,
+    ];
+
+    fn name(self) -> &'static str {
+        match self {
+            Self::Initialize => "initialize",
+            Self::Observe => "observe",
+            Self::Propose => "propose",
+            Self::Authorize => "authorize",
+            Self::Execute => "execute",
+            Self::Reduce => "reduce",
+        }
+    }
+
+    fn kind(self) -> &'static str {
+        match self {
+            Self::Propose => "model",
+            Self::Execute => "effect",
+            Self::Initialize | Self::Observe | Self::Authorize | Self::Reduce => "deterministic",
+        }
+    }
+}
 const RUNTIME_V1_NONCLAIMS: [&str; 24] = [
     "no_compiler_determinism_from_model_output",
     "no_model_output_authority",
@@ -82,15 +140,14 @@ const NONCLAIMS: [&str; 8] = [
 
 #[derive(Clone, Eq, PartialEq)]
 struct SemanticType {
-    role: &'static str,
+    role: TypeRole,
     stable_id: String,
 }
 
 #[derive(Clone, Eq, PartialEq)]
 struct Operation {
-    role: &'static str,
+    role: OperationRole,
     stable_id: String,
-    kind: &'static str,
 }
 
 /// One admitted canonical AgentDefinition v1.
@@ -137,7 +194,7 @@ impl AgentDefinition {
     /// Additive read-only accessor for the derived proposal grammar. It
     /// changes no admitted byte and grants no authority.
     pub fn proposal_type_id(&self) -> &str {
-        &self.types[3].stable_id
+        self.role_type(TypeRole::Proposal)
     }
 
     /// Returns the stable type identity admitted for the Observation role.
@@ -145,7 +202,7 @@ impl AgentDefinition {
     /// This additive read-only accessor changes no admitted byte and grants
     /// no authority.
     pub fn observation_type_id(&self) -> &str {
-        &self.types[2].stable_id
+        self.role_type(TypeRole::Observation)
     }
 
     /// Returns the stable type identity admitted for one of the six type
@@ -155,10 +212,10 @@ impl AgentDefinition {
     /// This additive read-only accessor changes no admitted byte and grants
     /// no authority.
     pub fn type_id(&self, role: &str) -> Option<&str> {
-        self.types
-            .iter()
-            .find(|ty| ty.role == role)
-            .map(|ty| ty.stable_id.as_str())
+        TypeRole::ALL
+            .into_iter()
+            .find(|candidate| candidate.name() == role)
+            .map(|role| self.role_type(role))
     }
 
     /// Returns the stable operation identity and declared kind admitted for
@@ -167,10 +224,44 @@ impl AgentDefinition {
     /// This additive read-only accessor changes no admitted byte and grants
     /// no authority.
     pub fn operation(&self, role: &str) -> Option<(&str, &str)> {
+        OperationRole::ALL
+            .into_iter()
+            .find(|candidate| candidate.name() == role)
+            .map(|role| (self.role_operation(role), role.kind()))
+    }
+
+    /// Returns the stable identity admitted for `role`. Admission binds
+    /// exactly one identity to every role, so the lookup cannot miss.
+    fn role_type(&self, role: TypeRole) -> &str {
+        self.types
+            .iter()
+            .find(|ty| ty.role == role)
+            .map(|ty| ty.stable_id.as_str())
+            .expect("admission binds every type role exactly once")
+    }
+
+    /// Returns the stable identity admitted for operation `role`.
+    fn role_operation(&self, role: OperationRole) -> &str {
         self.operations
             .iter()
             .find(|operation| operation.role == role)
-            .map(|operation| (operation.stable_id.as_str(), operation.kind))
+            .map(|operation| operation.stable_id.as_str())
+            .expect("admission binds every operation role exactly once")
+    }
+
+    /// Writes the admitted `"types"` and `"operations"` sections.
+    fn write_role_sections(&self, output: &mut String) {
+        write_type_roles(
+            output,
+            self.types.iter().map(|ty| (ty.role, ty.stable_id.as_str())),
+        );
+        output.push(',');
+        write_operation_roles(
+            output,
+            self.operations
+                .iter()
+                .map(|operation| (operation.role, operation.stable_id.as_str())),
+        );
     }
 
     /// Returns the byte-preserved canonical Agent Runtime Profile v1 projection.
@@ -226,8 +317,9 @@ impl CompiledAgentDefinition {
 /// Compiles one canonical AgentDefinition v1 into a deterministic AgentGraph v1.
 ///
 /// Compilation is pure and grants no provider, tool, filesystem, process, or
-/// publication authority. The Runtime v1 profile is validated through the
-/// frozen public constructor and returned byte-for-byte unchanged.
+/// publication authority. The Runtime v1 profile is validated by the same pure
+/// admission as the frozen public constructor and returned byte-for-byte
+/// unchanged.
 pub fn compile_agent_definition(source: &str) -> Result<CompiledAgentDefinition, Vec<Diagnostic>> {
     compile(source).map_err(|diagnostic| vec![diagnostic])
 }
@@ -245,13 +337,43 @@ pub fn verify_agent_graph_bundle(
     if compiled.runtime_v1_profile().as_bytes() != runtime_v1_profile_source.as_bytes() {
         return Err(vec![profile_mismatch()]);
     }
+    verify_compiled_agent_graph(&compiled, graph_source)
+}
+
+/// Exact-compares a submitted AgentGraph with the graph of a compilation the
+/// caller has just produced from authoritative definition source.
+///
+/// This is the reuse seam for a composite verifier that already compiled the
+/// definition within the same verification call. It never accepts a
+/// caller-supplied cache or a submitted artifact as authority, and it keeps
+/// the AgentGraph input bound before comparing bytes.
+pub(crate) fn verify_compiled_agent_graph(
+    compiled: &CompiledAgentDefinition,
+    graph_source: &str,
+) -> Result<(), Vec<Diagnostic>> {
+    if graph_source.len() > MAX_GRAPH_BYTES {
+        return Err(vec![graph_mismatch()]);
+    }
     if compiled.graph().canonical_json().as_bytes() != graph_source.as_bytes() {
         return Err(vec![graph_mismatch()]);
     }
     Ok(())
 }
 
+#[cfg(test)]
+thread_local! {
+    static COMPILATIONS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+/// Number of AgentDefinition compilations performed on this test thread.
+#[cfg(test)]
+pub(crate) fn compilations_on_this_thread() -> usize {
+    COMPILATIONS.with(std::cell::Cell::get)
+}
+
 fn compile(source: &str) -> Result<CompiledAgentDefinition, Diagnostic> {
+    #[cfg(test)]
+    COMPILATIONS.with(|count| count.set(count.get() + 1));
     let body = canonical_body(source)?;
     let value: Value = serde_json::from_str(body).map_err(|_| malformed())?;
     if json_depth(&value) > MAX_JSON_DEPTH {
@@ -327,14 +449,14 @@ fn parse_types(top: &Map<String, Value>) -> Result<Vec<SemanticType>, Diagnostic
         .get("types")
         .and_then(Value::as_array)
         .ok_or_else(malformed)?;
-    if values.len() != TYPE_ROLES.len() {
+    if values.len() != TypeRole::ALL.len() {
         return Err(invariant("types"));
     }
     let mut ids = BTreeSet::new();
     let mut types = Vec::with_capacity(values.len());
-    for (value, role) in values.iter().zip(TYPE_ROLES) {
+    for (value, role) in values.iter().zip(TypeRole::ALL) {
         let row = value.as_object().ok_or_else(malformed)?;
-        if !exact_keys(row, &["role", "stable_id"]) || string(row, "role")? != role {
+        if !exact_keys(row, &["role", "stable_id"]) || string(row, "role")? != role.name() {
             return Err(invariant("types.roles"));
         }
         let stable_id = string(row, "stable_id")?.to_owned();
@@ -351,16 +473,16 @@ fn parse_operations(top: &Map<String, Value>) -> Result<Vec<Operation>, Diagnost
         .get("operations")
         .and_then(Value::as_array)
         .ok_or_else(malformed)?;
-    if values.len() != OPERATION_ROLES.len() {
+    if values.len() != OperationRole::ALL.len() {
         return Err(invariant("operations"));
     }
     let mut ids = BTreeSet::new();
     let mut operations = Vec::with_capacity(values.len());
-    for (value, (role, kind)) in values.iter().zip(OPERATION_ROLES) {
+    for (value, role) in values.iter().zip(OperationRole::ALL) {
         let row = value.as_object().ok_or_else(malformed)?;
         if !exact_keys(row, &["role", "stable_id", "kind"])
-            || string(row, "role")? != role
-            || string(row, "kind")? != kind
+            || string(row, "role")? != role.name()
+            || string(row, "kind")? != role.kind()
         {
             return Err(invariant("operations.roles"));
         }
@@ -368,11 +490,7 @@ fn parse_operations(top: &Map<String, Value>) -> Result<Vec<Operation>, Diagnost
         if !canonical_identifier(&stable_id) || !ids.insert(stable_id.clone()) {
             return Err(invariant("operations.stable_ids"));
         }
-        operations.push(Operation {
-            role,
-            stable_id,
-            kind,
-        });
+        operations.push(Operation { role, stable_id });
     }
     Ok(operations)
 }
@@ -511,10 +629,10 @@ fn render_json(value: &Value) -> Result<String, Diagnostic> {
     serde_json::to_string(value).map_err(|_| malformed())
 }
 
+/// Validates the projected profile through the runtime's pure admission, the
+/// same checks `Agent::new` runs, without an Agent, host or cancellation.
 fn validate_profile(profile: &str) -> Result<(), Diagnostic> {
-    Agent::new(profile, ValidationHost, AgentCancellation::new())
-        .map(|_| ())
-        .map_err(|_| profile_failure())
+    admit_runtime_v1_profile(profile).map_err(|_| profile_failure())
 }
 
 /// The exact canonical Runtime v1 policy key order.
@@ -565,71 +683,78 @@ pub(crate) fn render_v1_definition_source(
     operations: &[String],
     runtime_v1: &Value,
 ) -> Result<String, Diagnostic> {
-    if types.len() != TYPE_ROLES.len() || operations.len() != OPERATION_ROLES.len() {
+    if types.len() != TypeRole::ALL.len() || operations.len() != OperationRole::ALL.len() {
         return Err(malformed());
     }
     let mut output = format!(
-        "{{\"schema\":{},\"agent_id\":{},\"types\":[",
+        "{{\"schema\":{},\"agent_id\":{},",
         quote_json(DEFINITION_SCHEMA),
         quote_json(agent_id)
     );
-    for (index, (stable_id, role)) in types.iter().zip(TYPE_ROLES).enumerate() {
-        if index > 0 {
-            output.push(',');
-        }
-        output.push_str(&format!(
-            "{{\"role\":{},\"stable_id\":{}}}",
-            quote_json(role),
-            quote_json(stable_id)
-        ));
-    }
-    output.push_str("],\"operations\":[");
-    for (index, (stable_id, (role, kind))) in operations.iter().zip(OPERATION_ROLES).enumerate() {
-        if index > 0 {
-            output.push(',');
-        }
-        output.push_str(&format!(
-            "{{\"role\":{},\"stable_id\":{},\"kind\":{}}}",
-            quote_json(role),
-            quote_json(stable_id),
-            quote_json(kind)
-        ));
-    }
-    output.push_str("],\"runtime_v1\":");
+    write_type_roles(
+        &mut output,
+        TypeRole::ALL
+            .into_iter()
+            .zip(types.iter().map(String::as_str)),
+    );
+    output.push(',');
+    write_operation_roles(
+        &mut output,
+        OperationRole::ALL
+            .into_iter()
+            .zip(operations.iter().map(String::as_str)),
+    );
+    output.push_str(",\"runtime_v1\":");
     output.push_str(&render_runtime_v1(runtime_v1)?);
     output.push_str("}\n");
     Ok(output)
 }
 
-fn render_definition(definition: &AgentDefinition) -> String {
-    let mut output = format!(
-        "{{\"schema\":{},\"agent_id\":{},\"types\":[",
-        quote_json(DEFINITION_SCHEMA),
-        quote_json(&definition.agent_id)
-    );
-    for (index, ty) in definition.types.iter().enumerate() {
+/// Writes one ordered `"types"` section from `(role, stable_id)` rows.
+fn write_type_roles<'a>(output: &mut String, rows: impl Iterator<Item = (TypeRole, &'a str)>) {
+    output.push_str("\"types\":[");
+    for (index, (role, stable_id)) in rows.enumerate() {
         if index > 0 {
             output.push(',');
         }
         output.push_str(&format!(
             "{{\"role\":{},\"stable_id\":{}}}",
-            quote_json(ty.role),
-            quote_json(&ty.stable_id)
+            quote_json(role.name()),
+            quote_json(stable_id)
         ));
     }
-    output.push_str("],\"operations\":[");
-    for (index, operation) in definition.operations.iter().enumerate() {
+    output.push(']');
+}
+
+/// Writes one ordered `"operations"` section from `(role, stable_id)` rows,
+/// with each role's declared kind.
+fn write_operation_roles<'a>(
+    output: &mut String,
+    rows: impl Iterator<Item = (OperationRole, &'a str)>,
+) {
+    output.push_str("\"operations\":[");
+    for (index, (role, stable_id)) in rows.enumerate() {
         if index > 0 {
             output.push(',');
         }
         output.push_str(&format!(
             "{{\"role\":{},\"stable_id\":{},\"kind\":{}}}",
-            quote_json(operation.role),
-            quote_json(&operation.stable_id),
-            quote_json(operation.kind)
+            quote_json(role.name()),
+            quote_json(stable_id),
+            quote_json(role.kind())
         ));
     }
-    output.push_str("],\"runtime_v1\":");
+    output.push(']');
+}
+
+fn render_definition(definition: &AgentDefinition) -> String {
+    let mut output = format!(
+        "{{\"schema\":{},\"agent_id\":{},",
+        quote_json(DEFINITION_SCHEMA),
+        quote_json(&definition.agent_id)
+    );
+    definition.write_role_sections(&mut output);
+    output.push_str(",\"runtime_v1\":");
     output.push_str(
         &render_runtime_v1(&definition.runtime_v1)
             .expect("admitted Runtime v1 projection material remains valid"),
@@ -641,92 +766,71 @@ fn render_definition(definition: &AgentDefinition) -> String {
 fn render_graph(definition: &AgentDefinition) -> String {
     let profile_digest = digest(PROFILE_DOMAIN, definition.runtime_v1_profile.as_bytes());
     let mut output = format!(
-        "{{\"schema\":{},\"definition_digest\":{},\"agent_id\":{},\"types\":[",
+        "{{\"schema\":{},\"definition_digest\":{},\"agent_id\":{},",
         quote_json(GRAPH_SCHEMA),
         quote_json(&definition.digest),
         quote_json(&definition.agent_id)
     );
-    for (index, ty) in definition.types.iter().enumerate() {
-        if index > 0 {
-            output.push(',');
-        }
-        output.push_str(&format!(
-            "{{\"role\":{},\"stable_id\":{}}}",
-            quote_json(ty.role),
-            quote_json(&ty.stable_id)
-        ));
-    }
-    output.push_str("],\"operations\":[");
-    for (index, operation) in definition.operations.iter().enumerate() {
-        if index > 0 {
-            output.push(',');
-        }
-        output.push_str(&format!(
-            "{{\"role\":{},\"stable_id\":{},\"kind\":{}}}",
-            quote_json(operation.role),
-            quote_json(&operation.stable_id),
-            quote_json(operation.kind)
-        ));
-    }
+    definition.write_role_sections(&mut output);
     output.push_str(
-        "],\"derived_types\":[{\"node_id\":\"@authorized_proposal\",\"kind\":\"opaque_authorized\",\"value_type\":"
+        ",\"derived_types\":[{\"node_id\":\"@authorized_proposal\",\"kind\":\"opaque_authorized\",\"value_type\":"
     );
-    output.push_str(&quote_json(&definition.types[3].stable_id));
+    output.push_str(&quote_json(definition.role_type(TypeRole::Proposal)));
     output.push_str(",\"runtime_minted\":true,\"single_use\":true},{\"node_id\":\"@rejection\",\"kind\":\"runtime_rejection\"},{\"node_id\":\"@authorization_result\",\"kind\":\"result\",\"ok\":\"@authorized_proposal\",\"error\":\"@rejection\"},{\"node_id\":\"@suspension\",\"kind\":\"runtime_suspension\"},{\"node_id\":\"@agent_failure\",\"kind\":\"runtime_failure\"},{\"node_id\":\"@agent_step\",\"kind\":\"closed_runtime_variant\",\"variants\":[{\"kind\":\"continue\",\"fields\":[");
-    output.push_str(&quote_json(&definition.types[1].stable_id));
+    output.push_str(&quote_json(definition.role_type(TypeRole::State)));
     output.push_str("]},{\"kind\":\"complete\",\"fields\":[");
-    output.push_str(&quote_json(&definition.types[5].stable_id));
+    output.push_str(&quote_json(definition.role_type(TypeRole::Result)));
     output.push_str("]},{\"kind\":\"suspend\",\"fields\":[");
-    output.push_str(&quote_json(&definition.types[1].stable_id));
+    output.push_str(&quote_json(definition.role_type(TypeRole::State)));
     output.push_str(",\"@suspension\"]},{\"kind\":\"fail\",\"fields\":[\"@agent_failure\"]}]}],\"relationships\":[");
     let typed_relationships = [
-        (0, "consumes", 0),
-        (0, "returns", 1),
-        (1, "borrows", 1),
-        (1, "returns", 2),
-        (2, "borrows", 2),
-        (2, "returns", 3),
-        (3, "borrows", 1),
-        (3, "borrows", 3),
+        (OperationRole::Initialize, "consumes", TypeRole::Task),
+        (OperationRole::Initialize, "returns", TypeRole::State),
+        (OperationRole::Observe, "borrows", TypeRole::State),
+        (OperationRole::Observe, "returns", TypeRole::Observation),
+        (OperationRole::Propose, "borrows", TypeRole::Observation),
+        (OperationRole::Propose, "returns", TypeRole::Proposal),
+        (OperationRole::Authorize, "borrows", TypeRole::State),
+        (OperationRole::Authorize, "borrows", TypeRole::Proposal),
     ];
-    for (index, (operation, relationship, ty)) in typed_relationships.iter().enumerate() {
+    for (index, (operation, relationship, ty)) in typed_relationships.into_iter().enumerate() {
         if index > 0 {
             output.push(',');
         }
         output.push_str(&format!(
             "{{\"from\":{},\"relationship\":{},\"to\":{}}}",
-            quote_json(&definition.operations[*operation].stable_id),
+            quote_json(definition.role_operation(operation)),
             quote_json(relationship),
-            quote_json(&definition.types[*ty].stable_id)
+            quote_json(definition.role_type(ty))
         ));
     }
     for (operation, relationship, target) in [
-        (3, "returns", "@authorization_result"),
-        (4, "consumes", "@authorized_proposal"),
+        (OperationRole::Authorize, "returns", "@authorization_result"),
+        (OperationRole::Execute, "consumes", "@authorized_proposal"),
     ] {
         output.push_str(&format!(
             ",{{\"from\":{},\"relationship\":{},\"to\":{}}}",
-            quote_json(&definition.operations[operation].stable_id),
+            quote_json(definition.role_operation(operation)),
             quote_json(relationship),
             quote_json(target)
         ));
     }
     for (operation, relationship, ty) in [
-        (4, "returns", 4),
-        (5, "consumes", 1),
-        (5, "uses", 3),
-        (5, "uses", 4),
+        (OperationRole::Execute, "returns", TypeRole::Outcome),
+        (OperationRole::Reduce, "consumes", TypeRole::State),
+        (OperationRole::Reduce, "uses", TypeRole::Proposal),
+        (OperationRole::Reduce, "uses", TypeRole::Outcome),
     ] {
         output.push_str(&format!(
             ",{{\"from\":{},\"relationship\":{},\"to\":{}}}",
-            quote_json(&definition.operations[operation].stable_id),
+            quote_json(definition.role_operation(operation)),
             quote_json(relationship),
-            quote_json(&definition.types[ty].stable_id)
+            quote_json(definition.role_type(ty))
         ));
     }
     output.push_str(&format!(
         ",{{\"from\":{},\"relationship\":\"returns\",\"to\":\"@agent_step\"}}",
-        quote_json(&definition.operations[5].stable_id)
+        quote_json(definition.role_operation(OperationRole::Reduce))
     ));
     let runtime = definition
         .runtime_v1
@@ -737,7 +841,9 @@ fn render_graph(definition: &AgentDefinition) -> String {
         .and_then(Value::as_object)
         .expect("admitted Runtime v1 policy remains an object");
     output.push_str("],\"model_contract\":{\"operation_id\":");
-    output.push_str(&quote_json(&definition.operations[2].stable_id));
+    output.push_str(&quote_json(
+        definition.role_operation(OperationRole::Propose),
+    ));
     output.push_str(",\"requirements\":{\"required_locality\":");
     output.push_str(&render_admitted(policy, "required_locality"));
     output.push_str(",\"minimum_quality_tier\":");
@@ -749,7 +855,7 @@ fn render_graph(definition: &AgentDefinition) -> String {
     output.push_str(",\"allowed_model_ids\":");
     output.push_str(&render_admitted(policy, "allowed_model_ids"));
     output.push_str("}},\"context_plan\":{\"task_schema\":\"semaprax.agent-runtime-task.v1\",\"objective\":\"ordered_utf8\",\"context\":\"ordered_provenance_labelled_utf8\",\"deterministic_order\":true},\"proposal_contract\":{\"type_id\":");
-    output.push_str(&quote_json(&definition.types[3].stable_id));
+    output.push_str(&quote_json(definition.role_type(TypeRole::Proposal)));
     output.push_str(",\"wire_schema\":\"semaprax.agent-runtime-action.v1\",\"variants\":[{\"kind\":\"final\"},{\"kind\":\"tool\",\"allowed_tool_ids\":");
     output.push_str(&render_admitted(policy, "allowed_tool_ids"));
     output.push_str("}],\"untrusted_output\":true},\"capability_manifest\":{\"granted\":");
@@ -864,49 +970,5 @@ fn profile_mismatch() -> Diagnostic {
     )
 }
 
-struct ValidationProbe;
-
-impl AgentBoundaryProbe for ValidationProbe {
-    fn policy_epoch(&self) -> u64 {
-        0
-    }
-
-    fn elapsed_ms(&self) -> u64 {
-        0
-    }
-}
-
-struct ValidationHost;
-
-impl AgentHost for ValidationHost {
-    fn policy_epoch(&self) -> u64 {
-        0
-    }
-
-    fn elapsed_ms(&self) -> u64 {
-        0
-    }
-
-    fn boundary_probe(&self) -> Box<dyn AgentBoundaryProbe> {
-        Box::new(ValidationProbe)
-    }
-
-    fn tokenize(&mut self, _: &str, _: &str) -> Option<u64> {
-        None
-    }
-
-    fn attempt_provider(
-        &mut self,
-        _: &str,
-        _: &str,
-        _: &str,
-        _: u64,
-        _: &mut AgentProviderSink,
-    ) -> AgentProviderAttempt {
-        unreachable!("profile validation never invokes a provider")
-    }
-
-    fn invoke_tool(&mut self, _: &str, _: &str, _: &str, _: &mut AgentToolResultSink) -> bool {
-        unreachable!("profile validation never invokes a tool")
-    }
-}
+#[cfg(test)]
+pub(crate) mod tests;

@@ -386,6 +386,7 @@ fn plan(id: &str, max: u64, cost: u64) -> ModelPlan {
         est_cost_micros: cost,
         est_latency_ms: 10,
         strength_rank: 1,
+        descriptor: Default::default(),
     }
 }
 
@@ -639,6 +640,7 @@ impl semaprax_harness::decision::DecisionInvoker for Pick {
         semaprax_harness::decision::DecisionCall::Answered {
             result: json!({"choice": self.1, "scores": {self.1: 0.9}, "abstain": false}),
             elapsed_ms: 1,
+            call: None,
         }
     }
 }
@@ -675,6 +677,7 @@ fn hp_hn11_repeated_turns_and_router_overhead_reconcile_with_observations_withou
         min_confidence: None,
         max_context_tokens: None,
         supported_families: None,
+        ..Default::default()
     };
     let gate = EnablementGate::not_evaluated("model-route/v1", &profile.provider_id);
     let mut native = NativeContext::new(&fake);

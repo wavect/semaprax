@@ -49,6 +49,8 @@ pub struct Report {
     /// Compiler candidate operations advertised for this run.
     pub operations: Value,
     pub session: Value,
+    /// MR-08 role/phase routing log (only when `[routing.phase.*]` is configured).
+    pub phases: Value,
 }
 
 impl Report {
@@ -77,6 +79,7 @@ impl Report {
             task: Value::Null,
             operations: Value::Null,
             session: Value::Null,
+            phases: Value::Null,
         }
     }
 
@@ -99,6 +102,9 @@ impl Report {
             v["task"] = self.task.clone();
             v["operations"] = self.operations.clone();
             v["session"] = self.session.clone();
+        }
+        if !self.phases.is_null() {
+            v["phases"] = self.phases.clone();
         }
         v
     }

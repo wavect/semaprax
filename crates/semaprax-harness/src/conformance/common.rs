@@ -237,6 +237,7 @@ fn recursion(t: &Target) -> Result<Value, Fail> {
         est_cost_micros: cost,
         est_latency_ms: 500,
         strength_rank: rank,
+        descriptor: Default::default(),
     };
     let features = TaskFeatures {
         task_family: TaskFamily::LocalizedDebug,
@@ -282,6 +283,7 @@ fn recursion(t: &Target) -> Result<Value, Fail> {
             min_confidence: None,
             max_context_tokens: None,
             supported_families: None,
+            ..Default::default()
         },
         invoker: &mut inv,
         mode: ProviderMode::Explicit,

@@ -338,6 +338,14 @@ charges in memory without claiming generic-journal crash recovery.
 and the reservation trail. It consumes an explicit provider factory and host
 backoff/classification seams; it adds no durable journal or deployment authority.
 `model_budget_policy/durable` derives retained execution and deployment limits.
+`model_routing/engine` is the one deterministic model-routing decision core
+(screen, rules, policy, frozen plans, advisory validation, v2 rendering,
+cache/replay), also mounted as the `publish = false` workspace crate
+`semaprax-decision-core` that `semaprax-harness` re-exports; it has no I/O and
+mints no deployment, grant or transport. `model_routing` is its runtime-facing
+boundary: an untrusted recommendation over host-admitted ids that existing
+deployment and durable-policy authority rechecks
+([decision core](DECISION-CORE-V1.md)).
 `live_invocation/policy_kernel` and `policy_kernel_v3` compose that scheduler
 with caller-owned checkpoints; the V3 journal binds exact SDK envelope-byte
 reservations beside frozen V2 policy bytes. Journal recovery validates all
@@ -3168,7 +3176,21 @@ These areas are deliberately outside the public compiler contract:
   graph binding and the injected-host Runtime v1 to Economic Agent v1 handoff;
   it owns no provider, journal, approval, custody, chain, or broadcast host;
 - `src/agent_runtime.rs` and `src/economic_agent.rs`: injected-host Rust APIs
-  with no built-in provider transport, keys, wallet, or ambient authority;
+  with no built-in provider transport, keys, wallet, or ambient authority.
+  `src/agent_runtime.rs` owns the public types, the shared provider/tool sink
+  boundary, and canonical document framing (one JSON parse per document).
+  Runtime v1 internals live under `src/agent_runtime/private/`, each owner
+  private to the runtime: `private.rs` holds run state and the `Agent`
+  constructor/run entry; `admission.rs` owns profile/task/action admission and
+  the host-free profile admission that AgentDefinition compilation reuses;
+  `request.rs` owns routing, tool authorization and provider request
+  construction; `execution.rs` owns the run state machine, provider turns, tool
+  execution and event transitions; `evidence.rs` owns external-boundary
+  capacity preflight and trace/evidence rendering; `replay.rs` owns independent
+  trace/evidence replay; `accounting.rs` and `deadline.rs` keep provider
+  accounting and deadline selection. `tests/agent_runtime_v1.rs` audits every
+  non-test file there for ambient authority through a maintained inventory that
+  fails on any unclassified new file;
 - `platform-tests/`: installed application and runtime fixtures whose claims
   count only when the owning hosted jobs are green.
 

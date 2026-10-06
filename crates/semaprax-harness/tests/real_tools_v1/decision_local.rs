@@ -71,6 +71,7 @@ impl DecisionInvoker for AdapterInvoker {
             ("complete", Some(p)) => DecisionCall::Answered {
                 result: p.clone(),
                 elapsed_ms,
+                call: None,
             },
             _ if env.diagnostics.iter().any(|(c, _)| c == "SPX-HPK011") => DecisionCall::Timeout,
             _ => DecisionCall::Unavailable,
@@ -101,6 +102,7 @@ fn plan(id: &str, cost: u64, rank: u32) -> ModelPlan {
         est_cost_micros: cost,
         est_latency_ms: 1000,
         strength_rank: rank,
+        descriptor: Default::default(),
     }
 }
 
@@ -159,6 +161,7 @@ fn provider(inv: &mut AdapterInvoker) -> ConfiguredProvider<'_> {
             min_confidence: None,
             max_context_tokens: Some(100_000),
             supported_families: None,
+            ..Default::default()
         },
         invoker: inv,
         mode: ProviderMode::Explicit,
@@ -235,6 +238,7 @@ mod routing_eval {
             DecisionCall::Answered {
                 result: json!({"choice": pick, "scores": {pick: 0.7}, "abstain": false}),
                 elapsed_ms: 1,
+                call: None,
             }
         }
     }
@@ -368,6 +372,7 @@ mod routing_eval {
             min_confidence: None,
             max_context_tokens: None,
             supported_families: None,
+            ..Default::default()
         };
         let cfg = RoutingConfig {
             mode: RoutingMode::Experimental,
@@ -464,6 +469,7 @@ mod routing_eval {
                 .collect(),
             trained_on: seen,
             outcomes,
+            calibration: None,
         };
         let dec = evaluate(&spec, &record);
         assert!(

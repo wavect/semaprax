@@ -41,15 +41,17 @@ const PRINT_FAMILY: [&str; 8] = [
     "log",
     "write",
 ];
-const PRINT_HELP: &str = "there is no print routine; write bytes with `stdout_write(str_as_bytes(view))` \
-                          under `permit { process.stdout.write }` and `uses { process.stdout.write }`, \
-                          where `view` is `string_as_str(binding)` or a `borrow str` parameter";
+const PRINT_HELP: &str =
+    "there is no print routine; write bytes with `let view = string_as_str(text); \
+                          let written = stdout_write(str_as_bytes(view));` under `permit { \
+                          process.stdout.write }` and `uses { process.stdout.write }`";
 
 /// Compiler-bundled standard-library functions are discoverable without a
 /// checkout through `semaprax help library <name>`. Keep this lookup bound to the
 /// same generated catalog rather than duplicating its growing function list.
-fn standard_library_package(name: &str) -> Option<&'static str> {
-    static FUNCTIONS: OnceLock<HashMap<String, Option<String>>> = OnceLock::new();
+/// An unambiguous name yields its package, stable identity, and signature line.
+fn standard_library_function(name: &str) -> Option<&'static StandardFunction> {
+    static FUNCTIONS: OnceLock<HashMap<String, Option<StandardFunction>>> = OnceLock::new();
     let functions = FUNCTIONS.get_or_init(|| {
         let catalog: serde_json::Value =
             serde_json::from_str(include_str!("../../std/catalog.json"))
@@ -73,15 +75,45 @@ fn standard_library_package(name: &str) -> Option<&'static str> {
                     .as_str()
                     .expect("a standard-library function has a name")
                     .to_owned();
+                let entry = StandardFunction {
+                    package: package.to_owned(),
+                    id: declaration["id"].as_str().unwrap_or_default().to_owned(),
+                    signature: declaration["head"][0]
+                        .as_str()
+                        .unwrap_or_default()
+                        .to_owned(),
+                };
                 functions
                     .entry(function)
                     .and_modify(|selected| *selected = None)
-                    .or_insert_with(|| Some(package.to_owned()));
+                    .or_insert_with(|| Some(entry));
             }
         }
         functions
     });
-    functions.get(name).and_then(|package| package.as_deref())
+    functions.get(name).and_then(Option::as_ref)
+}
+
+struct StandardFunction {
+    package: String,
+    id: String,
+    signature: String,
+}
+
+/// Foreign spellings of an operation the language provides under another name.
+fn foreign_function_help(name: &str) -> Option<&'static str> {
+    match name {
+        "to_string" | "toString" | "str" | "itoa" | "string" | "String" => Some(
+            "render an integer with the compiler-owned `string_from_i64(value)` or \
+             `string_from_usize(value)`",
+        ),
+        "assert" | "assert_eq" | "assertEqual" | "expect" | "panic" => Some(
+            "there is no assert or panic; a test returns `0` on success, as in \
+             `if <condition> { 0 } else { 1 }`, and a checked condition is a `requires` or \
+             `ensures` line",
+        ),
+        _ => None,
+    }
 }
 
 /// `unknown function` with the nearest declared or compiler-owned name when one
@@ -101,22 +133,29 @@ pub(super) fn unknown_function(
     if PRINT_FAMILY.contains(&name) {
         return diagnostic.with_help(PRINT_HELP);
     }
-    if let Some(help) = variant_shorthand_help(name) {
+    if let Some(help) = variant_shorthand_help(name).or_else(|| foreign_function_help(name)) {
         return diagnostic.with_help(help);
+    }
+    // An exact standard-library name outranks a near local spelling: `min`
+    // is `std.core`'s, not a typo of `main`.
+    if let Some(function) = standard_library_function(name) {
+        let StandardFunction {
+            package,
+            id,
+            signature,
+        } = function;
+        return diagnostic.with_help(format!(
+            "`{signature}` is in `{package}`: add `[dependencies] {package} = \"^0.1.0\"` to \
+             `semaprax.toml` and import it directly after the `module` line: `use function \
+             @id(\"{id}\") from {package} as {name};`"
+        ));
     }
     match nearest_function_name(name, functions) {
         Some(candidate) => diagnostic.with_help(format!("did you mean `{candidate}`?")),
-        None => match standard_library_package(name) {
-            Some(package) => diagnostic.with_help(format!(
-                "`{name}` is available from `{package}`: add `[dependencies] {package} = \
-                 \"^0.1.0\"` to `semaprax.toml`, then import its stable identity directly \
-                 after the `module` line; run `semaprax help library {name}` for the exact declaration"
-            )),
-            None => diagnostic.with_help(format!(
-                "declare `{name}` in this module, or in a project import it directly after the \
-                 `module` line: `use function @id(\"stable.id\") from other.module as {name};`"
-            )),
-        },
+        None => diagnostic.with_help(format!(
+            "declare `{name}` in this module, or in a project import it directly after the \
+             `module` line: `use function @id(\"stable.id\") from other.module as {name};`"
+        )),
     }
 }
 
@@ -266,15 +305,15 @@ pub(super) fn literal_suffix_help(expected: &Type, left: &Expr, right: &Expr) ->
 pub(super) fn view_argument_help(operation: &str, actual: &Type) -> Option<String> {
     let help = match (operation, actual) {
         ("str_as_bytes", Type::String) => {
-            "`str_as_bytes` takes a `str` view; borrow the owned string first: \
-             `str_as_bytes(string_as_str(binding))`"
+            "`str_as_bytes` takes a `str` view; bind one first: \
+             `let view = string_as_str(binding); str_as_bytes(view)`"
         }
         ("string_as_str", Type::Str) => {
             "`string_as_str` takes an owned `string` binding; this value is already a `str` view"
         }
         ("stdout_write" | "stderr_write", Type::String | Type::Str) => {
-            "output takes `borrow Slice<u8>`; write `stdout_write(str_as_bytes(view))` where `view` \
-             is `string_as_str(binding)` or a `borrow str` parameter"
+            "output takes `borrow Slice<u8>`; write `let view = string_as_str(text); \
+             stdout_write(str_as_bytes(view))`, or pass a `borrow str` parameter as `view`"
         }
         (_, Type::String | Type::Str | Type::Bytes | Type::ArrayU8(_)) => {
             "byte operations take `borrow Slice<u8>`; produce one with `str_as_bytes(view)`, \
@@ -296,6 +335,16 @@ pub(super) fn argument_view_help(name: &str, expected: &Type, actual: &Type) -> 
         (Type::SliceU8, Type::String | Type::Str | Type::Bytes | Type::ArrayU8(_)) => format!(
             "`{name}` takes `borrow Slice<u8>`; produce one with `str_as_bytes(view)`, \
              `array_as_slice(array)`, or `bytes_as_slice(bytes)`"
+        ),
+        (Type::String, Type::I64) => format!(
+            "`{name}` takes a `string`; render the integer first with `string_from_i64(value)`"
+        ),
+        (Type::String, Type::Usize) => format!(
+            "`{name}` takes a `string`; render the integer first with `string_from_usize(value)`"
+        ),
+        (Type::I32 | Type::U8 | Type::Usize, Type::I64) => format!(
+            "integer literals are `i64` unless suffixed; pass a `{expected}` value such as \
+             `1{expected}`, since there are no numeric conversions"
         ),
         _ => return None,
     };
@@ -323,6 +372,27 @@ pub(super) fn variant_shorthand_help(name: &str) -> Option<&'static str> {
 
 /// A method call on a value whose type has no methods.
 pub(super) fn method_receiver_help(receiver: &Type, method: &str) -> Option<String> {
+    if matches!(
+        receiver,
+        Type::I64
+            | Type::I32
+            | Type::U8
+            | Type::Usize
+            | Type::F64
+            | Type::F32
+            | Type::Bool
+            | Type::Char
+    ) {
+        let call = match method {
+            "to_string" | "toString" if *receiver == Type::Usize => "string_from_usize(x)",
+            "to_string" | "toString" => "string_from_i64(x)",
+            _ => return Some(format!(
+                "scalars have no methods; call a function with the value as its argument: `{method}(x)`, \
+                 importing it if it comes from the standard library"
+            )),
+        };
+        return Some(format!("scalars have no methods; write `{call}`"));
+    }
     let (family, replacement) = match receiver {
         Type::String => (
             "strings",
@@ -334,7 +404,9 @@ pub(super) fn method_receiver_help(receiver: &Type, method: &str) -> Option<Stri
                 "starts_with" | "has_prefix" => Some("string_starts_with(s, prefix)"),
                 "concat" | "push_str" | "append" | "add" | "join" => Some("string_concat(a, b)"),
                 "as_str" | "borrow" | "view" => Some("string_as_str(binding)"),
-                "as_bytes" | "bytes" | "to_bytes" => Some("str_as_bytes(string_as_str(binding))"),
+                "as_bytes" | "bytes" | "to_bytes" => {
+                    Some("let view = string_as_str(s); str_as_bytes(view)")
+                }
                 _ => None,
             },
         ),
@@ -407,7 +479,7 @@ pub(super) fn unknown_type_help(name: &str) -> Option<&'static str> {
         }
         "boolean" | "Boolean" | "Bool" => Some("the boolean type is spelled `bool`"),
         "Vec" | "vec" | "Array" | "array" | "List" | "list" | "Slice" | "slice" => Some(
-            "sequences are fixed `[u8; N]` arrays, owned `Bytes`, and borrowed `Slice<u8>` views; there is no general collection type",
+            "a list is `Vec<T>` with an explicit Copy scalar `T`: `vec_with_capacity<i64>(4usize)`, `vec_push<i64>(v, x)`, `vec_get<i64>(v, i)`, `vec_len<i64>(v)`; bytes are `[u8; N]`, `Bytes`, and `Slice<u8>`",
         ),
         "unit" | "void" | "Unit" | "Void" | "never" => {
             Some("there is no unit type; functions return `i64` or `bool`")
@@ -423,11 +495,15 @@ pub(super) fn view_place_help(operation: &str, argument: &Expr) -> String {
     let (source, binding) = match (operation, &argument.kind) {
         ("str_as_bytes", ExprKind::String(_)) | ("string_as_str", ExprKind::String(_)) => (
             "a string literal",
-            "`let text = \"…\"; str_as_bytes(string_as_str(text))`",
+            "`let text = \"…\"; let view = string_as_str(text); str_as_bytes(view)`",
         ),
         ("array_as_slice", ExprKind::ArrayU8(_) | ExprKind::RepeatArrayU8 { .. }) => (
             "an array literal",
             "`let bytes = [1u8, 2u8]; array_as_slice(bytes)`",
+        ),
+        ("str_as_bytes", ExprKind::Call { name, .. }) if name == "string_as_str" => (
+            "a nested view",
+            "`let view = string_as_str(text); str_as_bytes(view)`",
         ),
         (_, ExprKind::Call { .. } | ExprKind::MethodCall { .. }) => {
             ("a call result", "`let owner = …; <view>(owner)`")
@@ -444,5 +520,137 @@ pub(super) fn with_optional_help(diagnostic: Diagnostic, help: Option<String>) -
     match help {
         Some(help) => diagnostic.with_help(help),
         None => diagnostic,
+    }
+}
+
+/// `"a" + "b"`: string concatenation spelled as an operator.
+pub(super) const STRING_OPERATOR_HELP: &str =
+    "join strings with `string_concat(a, b)`, which consumes both; strings compare with `==` and `!=`";
+/// `let x = …; let x = …;`: shadowing from Rust.
+pub(super) const SHADOW_HELP: &str =
+    "there is no shadowing; pick a new name, or declare the first \
+                                      binding with `let mut` and assign to it";
+/// `f()?` in a function that does not itself return `Result`.
+pub(super) const TRY_RESULT_RETURN_HELP: &str = "`?` returns the error from the enclosing function, so \
+                                                 that function must return `Result<…>`; otherwise match \
+                                                 it: `match f() { Result::Ok { value: v } => v, \
+                                                 Result::Err { error: e } => 1, }`";
+
+/// The entry point has one admitted signature; name the part that differs.
+pub(super) fn entry_signature_help(main: &Function) -> &'static str {
+    if !main.params.is_empty() {
+        "`main` takes no parameters; read command-line arguments with `args_len()` and `arg_utf8(index)`"
+    } else if !main.type_parameters.is_empty() {
+        "`main` cannot be generic; move the generic code into a helper and call it with explicit type arguments"
+    } else {
+        "`main` returns `i64`, the process exit status: `0` conventionally means success"
+    }
+}
+
+/// `let a: i32 = 5;`: an unsuffixed literal bound to a narrower declared type,
+/// or a declared type spelled the way another language spells it.
+pub(super) fn declared_binding_help(declared: &Type, value: &Expr) -> Option<String> {
+    let suffix = match declared {
+        Type::I32 => Some("i32"),
+        Type::U8 => Some("u8"),
+        Type::Usize => Some("usize"),
+        _ => None,
+    };
+    if let (Some(suffix), ExprKind::Int(literal)) = (suffix, &value.kind) {
+        return Some(format!(
+            "integer literals are `i64` unless suffixed; write `{literal}{suffix}`"
+        ));
+    }
+    unknown_type_help(&declared.to_string()).map(str::to_owned)
+}
+
+/// `for item in values` over the `let mut` binding that built the vector.
+pub(super) const IMMUTABLE_TRAVERSAL_HELP: &str = "move the finished vector into an immutable binding \
+                                                   first: `let values = building;`, then `for item in \
+                                                   values { … }`";
+
+/// A function declares an effect its module does not permit.
+pub(super) fn unpermitted_effect(
+    program: &Program,
+    function: &Function,
+    effect: &str,
+) -> Diagnostic {
+    error(
+        program,
+        "SPX-E101",
+        format!(
+            "function `{}` uses `{effect}` but module `{}` does not permit it",
+            function.name, program.module
+        ),
+        function.span,
+    )
+    .with_help(format!(
+        "add `permit {{ {effect} }}` at module level, below the `module` line"
+    ))
+}
+
+/// A call needs an effect its caller does not declare. Name both edits, so
+/// fixing `uses` does not surface the module `permit` as a second round trip.
+pub(super) fn missing_effect(
+    program: &Program,
+    callee: &str,
+    effect: &str,
+    caller: &Function,
+    span: Span,
+) -> Diagnostic {
+    let uses = format!("add `uses {{ {effect} }}` on its own line between the signature and `{{`");
+    let help = if program.permits.iter().any(|permit| permit == effect) {
+        uses
+    } else {
+        format!("{uses}, and `permit {{ {effect} }}` at module level, below the `module` line")
+    };
+    error(
+        program,
+        "SPX-E102",
+        format!(
+            "call to `{callee}` requires effect `{effect}`; add it to `{}`",
+            caller.name
+        ),
+        span,
+    )
+    .with_help(help)
+}
+
+/// `a == b` across two types: name both, and the literal suffix when one side
+/// is an unsuffixed literal.
+pub(super) fn equality_types_help(
+    left_type: Option<&Type>,
+    right_type: Option<&Type>,
+    left: &Expr,
+    right: &Expr,
+) -> Option<String> {
+    let (left_type, right_type) = (left_type?, right_type?);
+    let typed_side = if matches!(left.kind, ExprKind::Int(_)) {
+        right_type
+    } else {
+        left_type
+    };
+    Some(match literal_suffix_help(typed_side, left, right) {
+        Some(suffix) => format!("comparing `{left_type}` with `{right_type}`: {suffix}"),
+        None => format!(
+            "comparing `{left_type}` with `{right_type}`; there are no numeric conversions, so \
+             compare two values of one type"
+        ),
+    })
+}
+
+/// A moved resource read again. Strings and byte buffers have no implicit
+/// copy, so the generic "borrow it" advice needs the concrete route.
+pub(super) fn moved_resource_help(ty: &Type) -> &'static str {
+    match ty {
+        Type::String => {
+            "`string_concat` and `own` parameters consume a `string`; pass `string_as_str(name)` \
+             to a `borrow str` parameter instead, or build a second string before the first use"
+        }
+        Type::Bytes => {
+            "`own` parameters consume `Bytes`; pass `bytes_as_slice(name)` to a `borrow \
+             Slice<u8>` parameter instead, or copy first with `bytes_copy(bytes_as_slice(name))`"
+        }
+        _ => "borrow the resource if the callee does not need ownership",
     }
 }

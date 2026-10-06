@@ -228,11 +228,16 @@ impl Task {
         set: &super::tokenizers::TokenizerSet,
     ) -> HarnessResult<()> {
         let bad = |m: String| d("SPX-HPD081", m);
-        self.mode = match m.get("mode").and_then(Value::as_str) {
-            None | Some("repair") => TaskMode::Repair,
-            Some("change") => TaskMode::Change,
-            Some("plan") | Some("inspect") => TaskMode::Plan,
-            _ => return Err(bad("`mode` must be repair, change or plan".into())),
+        // Only an absent `mode` takes the default; a present value of any other
+        // type is refused, never read as repair (MN-07).
+        self.mode = match m.get("mode").map(Value::as_str) {
+            None | Some(Some("repair")) => TaskMode::Repair,
+            Some(Some("change")) => TaskMode::Change,
+            Some(Some("plan")) | Some(Some("inspect")) => TaskMode::Plan,
+            Some(Some(_)) => return Err(bad("`mode` must be repair, change or plan".into())),
+            Some(None) => {
+                return Err(bad("`mode` must be a string: repair, change or plan".into()))
+            }
         };
         if self.mode != TaskMode::Repair && self.goal.trim().is_empty() {
             return Err(bad("a change or plan task needs a nonempty `goal`".into()));

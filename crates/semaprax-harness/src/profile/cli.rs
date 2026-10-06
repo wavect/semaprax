@@ -83,8 +83,24 @@ fn emit(as_json: bool, human: String, doc: Value) -> Outcome {
 
 pub fn status_verb(args: &[String], env: &Environment) -> Outcome {
     finish((|| {
-        let a = parse_args(args, &["--project"], &["--json"])?;
+        let a = parse_args(
+            args,
+            &["--project", "--check", "--probe", "--task", "--python"],
+            &["--json", "--routing", "--yes"],
+        )?;
         let project = a.project(env);
+        if a.has("--routing") {
+            return routing_status_verb(&a, env, &project);
+        }
+        if ["--check", "--probe", "--task"]
+            .iter()
+            .any(|k| a.val.contains_key(*k))
+            || a.has("--yes")
+        {
+            return Err(usage(
+                "--check, --probe, --task and --yes apply only with --routing",
+            ));
+        }
         let config = HarnessConfig::load(&project)?;
         let state = LocalState::load(env)?;
         let (text, ok) = status::status(&project, &config, &state, a.has("--json"));
@@ -94,6 +110,52 @@ pub fn status_verb(args: &[String], env: &Environment) -> Outcome {
             stderr: String::new(),
         })
     })())
+}
+
+/// MR-14 `status --routing [--check <profile> [--task <t>] | --probe <profile> --yes]`.
+fn routing_status_verb(
+    a: &Args,
+    env: &Environment,
+    project: &std::path::Path,
+) -> HarnessResult<Outcome> {
+    use super::routing_status as rs;
+    let as_json = a.has("--json");
+    let (text, ok) = match (a.val.get("--check"), a.val.get("--probe")) {
+        (Some(_), Some(_)) => {
+            return Err(usage(
+                "use either --check (non-billable) or --probe (may bill), not both",
+            ))
+        }
+        (Some(id), None) => rs::check(
+            env,
+            project,
+            id,
+            a.val.get("--task").map(String::as_str),
+            as_json,
+        )?,
+        (None, Some(id)) => {
+            let python = a
+                .val
+                .get("--python")
+                .map(PathBuf::from)
+                .or_else(|| env.vars.get("HARNESS_PYTHON").map(PathBuf::from));
+            (
+                rs::probe(env, project, id, a.has("--yes"), python.as_deref())?,
+                true,
+            )
+        }
+        (None, None) => {
+            if a.has("--yes") || a.val.contains_key("--task") {
+                return Err(usage("--task applies to --check and --yes to --probe"));
+            }
+            rs::profiles(env, project, as_json)?
+        }
+    };
+    Ok(Outcome {
+        code: if ok { 0 } else { 1 },
+        stdout: text,
+        stderr: String::new(),
+    })
 }
 
 pub fn explain_verb(args: &[String], env: &Environment) -> Outcome {

@@ -179,8 +179,10 @@ pub(super) fn load_snapshot_building<T>(
     }
 
     let declared_sources = manifest.sources().to_vec();
-    let (revision, result) = build(manifest, workspace_sources)
-        .map_err(|errors| source_hint::hint_unlisted_module(errors, &root, &declared_sources))?;
+    let (revision, result) = build(manifest, workspace_sources).map_err(|errors| {
+        let errors = source_hint::hint_unlisted_module(errors, &root, &declared_sources);
+        source_hint::hint_importable_function(errors, &root, &declared_sources)
+    })?;
     let mut snapshot = ProjectSnapshot {
         root,
         revision,

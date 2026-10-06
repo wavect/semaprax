@@ -94,9 +94,9 @@ test('the ledger replaces exactly the files a subject owned and clears the stale
   assert.equal(update.set.size, 0);
   assert.deepEqual(update.clear, [at('app', 'b.spx')]);
   assert.deepEqual(ledger.subjects(), [other]);
-  assert.deepEqual(ledger.release(other), [other]);
+  assert.deepEqual(ledger.release(other).clear, [other]);
   assert.deepEqual(ledger.subjects(), []);
-  assert.deepEqual(ledger.release(other), []);
+  assert.deepEqual(ledger.release(other).clear, []);
 });
 
 class Child extends EventEmitter {
@@ -338,4 +338,160 @@ test('diagnostic records use the saved source when it is supplied and fall back 
   // A prepared index is accepted directly, and an unreadable file is null.
   assert.deepEqual(toDiagnosticRecords(rows, subject, path.dirname(subject), file => (file === main ? new SourceIndex(text) : null))[0].range,
     { startLine: 0, startColumn: 3, endLine: 0, endColumn: 7 });
+});
+
+// Machine stdout is admitted only as strict UTF-8 (REF-16). A lossy decoder
+// would turn a raw malformed byte into U+FFFD inside an otherwise valid record.
+const { TextDecoder: StrictDecoder } = require('node:util');
+const rawRecord = (middle, suffix = '.spx') => Buffer.concat([
+  Buffer.from('{"status":"verified","path":"/fixture/'), middle, Buffer.from(`${suffix}","revision":"sha256:${'a'.repeat(64)}"}\n`)
+]);
+async function capture(chunks, close = 0, options = {}) {
+  const child = new Child();
+  const pending = runCheck(spawnInto([], child), at('bin', 'semaprax'), at('app', MANIFEST), options);
+  for (const chunk of chunks) child.stdout.emit('data', chunk);
+  if (close !== 'pending') child.emit('close', close);
+  return pending;
+}
+
+test('raw invalid UTF-8 in a verified record or a diagnostic is a transport failure, not replacement text', async () => {
+  const bytes = rawRecord(Buffer.from([0xff]));
+  assert.throws(() => new StrictDecoder('utf-8', { fatal: true }).decode(bytes), 'the control decoder rejects the original bytes');
+  const result = await capture([bytes]);
+  assert.equal(result.invalidUtf8, true);
+  assert.ok(!String(result.stdout).includes('�'), 'no replacement-decoded text is returned');
+  const outcome = checkOutcome(result, at('bin', 'semaprax'));
+  assert.equal(outcome.status, 'failed');
+  assert.equal(outcome.failure, 'check output is not valid UTF-8');
+  assert.deepEqual(outcome.diagnostics, []);
+  assert.equal(outcome.verified, null);
+
+  const diagnostic = Buffer.concat([Buffer.from('{"code":"SPX-P104","severity":"error","message":"bad '), Buffer.from([0xc3, 0x28]), Buffer.from('","path":null,"location":null,"help":null}\n')]);
+  assert.equal(checkOutcome(await capture([diagnostic], 1)).failure, 'check output is not valid UTF-8');
+});
+
+test('a literal U+FFFD and a multibyte scalar split across chunks stay admissible', async () => {
+  const literal = await capture([rawRecord(Buffer.from('�', 'utf8'))]);
+  assert.equal(literal.invalidUtf8, undefined);
+  assert.equal(checkOutcome(literal).status, 'verified');
+  assert.equal(checkOutcome(literal).verified.path, '/fixture/�.spx');
+
+  const emoji = rawRecord(Buffer.from('\u{1F600}', 'utf8'));
+  const split = emoji.indexOf(0xf0) + 2;
+  const joined = await capture([emoji.subarray(0, split), emoji.subarray(split)]);
+  assert.equal(checkOutcome(joined).verified.path, '/fixture/\u{1F600}.spx');
+  // A truncated final sequence on ordinary completion is rejected.
+  const truncated = await capture([Buffer.concat([Buffer.from(line(verified)), Buffer.from([0xf0, 0x9f])])]);
+  assert.equal(checkOutcome(truncated).failure, 'check output is not valid UTF-8');
+  // Ordinary error and warning-plus-verified streams are unchanged.
+  assert.equal(checkOutcome(await capture([Buffer.from(warningLine + line(verified))])).status, 'verified');
+  assert.equal(checkOutcome(await capture([Buffer.from(errorLine)], 1)).status, 'diagnostics');
+});
+
+test('timeout, byte-cap and spawn failures keep their classification with incomplete trailing UTF-8', async () => {
+  const partial = Buffer.from([0x7b, 0xe2, 0x82]);
+  const capped = await capture([partial, Buffer.alloc(20, 0x20)], 'pending', { maxBytes: 16 });
+  assert.equal(checkOutcome(capped).failure, `check output exceeded ${MAX_OUTPUT_BYTES} bytes`);
+  const slow = await capture([partial], 'pending', { timeoutMs: 5 });
+  assert.equal(checkOutcome(slow).failure, `check timed out after ${TIMEOUT_MS / 1000}s`);
+  const child = new Child();
+  const pending = runCheck(spawnInto([], child), at('bin', 'missing'), at('app', MANIFEST));
+  child.stdout.emit('data', partial);
+  child.emit('error', new Error('spawn ENOENT'));
+  assert.equal(checkOutcome(await pending, 'x').failure, 'could not start x: spawn ENOENT');
+});
+
+test('a check whose output fails to decode retains the published diagnostics', async () => {
+  const subject = at('app', MANIFEST);
+  const ledger = new DiagnosticLedger();
+  await publish(ledger, new Child(), errorLine, 1, subject);
+  const outcome = checkOutcome(await capture([rawRecord(Buffer.from([0xff]))]));
+  assert.ok(outcome.failure);
+  assert.deepEqual(ledger.subjects(), [subject], 'a decode failure is not a clean result');
+});
+
+// Overlapping check subjects (REF-15). A file may be reported by more than one
+// subject; each subject's contribution is retained, and a file leaves the
+// collection only when no retained contribution remains.
+const { obsoleteSubjects } = require('../diagnostics');
+const row = (file, code, extra = {}) => ({ path: file, severity: 'error', code, range: { startLine: 0, startColumn: 0, endLine: 0, endColumn: 1 }, message: code, ...extra });
+// The extension's publication loop over an in-memory collection.
+function publishInto(collection, update) {
+  for (const file of update.clear) collection.delete(file);
+  for (const [file, rows] of update.set) collection.set(file, rows.map(item => item.code));
+  return collection;
+}
+
+test('a clean result for one subject keeps another subject\'s diagnostic on a shared file', () => {
+  const ledger = new DiagnosticLedger(), collection = new Map();
+  const shared = '/fixture/shared.spx', A = '/fixture/a/semaprax.toml', B = '/fixture/b/semaprax.toml';
+  publishInto(collection, ledger.apply(A, [row(shared, 'A-error')]));
+  publishInto(collection, ledger.apply(B, [row(shared, 'B-error')]));
+  assert.deepEqual(collection.get(shared), ['A-error', 'B-error'], 'distinct contributions coexist');
+  publishInto(collection, ledger.apply(A, []));
+  assert.deepEqual(collection.get(shared), ['B-error'], 'B still owns the file');
+  assert.deepEqual(ledger.paths(B), [shared]);
+  assert.deepEqual(ledger.paths(A), []);
+  publishInto(collection, ledger.apply(B, []));
+  assert.equal(collection.has(shared), false, 'the last owner clears the file');
+});
+
+test('merged contributions do not depend on completion order and exact duplicates appear once', () => {
+  const shared = '/fixture/shared.spx', A = '/fixture/a.spx', B = '/fixture/b.spx';
+  const merged = order => {
+    const ledger = new DiagnosticLedger(), collection = new Map();
+    for (const [subject, rows] of order) publishInto(collection, ledger.apply(subject, rows));
+    return collection.get(shared);
+  };
+  const a = [row(shared, 'X'), row(shared, 'A-only')], b = [row(shared, 'B-only'), row(shared, 'X')];
+  assert.deepEqual(merged([[A, a], [B, b]]), merged([[B, b], [A, a]]));
+  assert.deepEqual(merged([[A, a], [B, b]]), ['X', 'A-only', 'B-only']);
+  // Same code, different severity/message/range: not collapsed.
+  const near = [row(shared, 'X', { severity: 'warning' }), row(shared, 'X', { message: 'other' }), row(shared, 'X', { range: { startLine: 1, startColumn: 0, endLine: 1, endColumn: 1 } })];
+  assert.equal(merged([[A, [row(shared, 'X')]], [B, near]]).length, 4);
+  // An identical record keeps both ownership associations.
+  const ledger = new DiagnosticLedger(), collection = new Map();
+  publishInto(collection, ledger.apply(A, [row(shared, 'X')]));
+  publishInto(collection, ledger.apply(B, [row(shared, 'X')]));
+  assert.deepEqual(collection.get(shared), ['X']);
+  publishInto(collection, ledger.apply(A, []));
+  assert.deepEqual(collection.get(shared), ['X'], 'B\'s identical record survives A becoming clean');
+});
+
+test('releasing one subject does not clear another; releasing the last owner clears the file', () => {
+  const ledger = new DiagnosticLedger(), collection = new Map();
+  const shared = '/fixture/shared.spx', own = '/fixture/a-only.spx', A = '/fixture/a.spx', B = '/fixture/b.spx';
+  publishInto(collection, ledger.apply(A, [row(shared, 'A'), row(own, 'A2')]));
+  publishInto(collection, ledger.apply(B, [row(shared, 'B')]));
+  const released = ledger.release(A);
+  assert.deepEqual(released.clear, [own]);
+  publishInto(collection, released);
+  assert.deepEqual(collection.get(shared), ['B']);
+  assert.equal(collection.has(own), false);
+  publishInto(collection, ledger.release(B));
+  assert.equal(collection.size, 0);
+  assert.deepEqual(ledger.subjects(), []);
+});
+
+test('a standalone-to-project transition retires the obsolete contribution without hiding current ones', () => {
+  const ledger = new DiagnosticLedger(), collection = new Map();
+  const file = '/fixture/app/src/main.spx', manifest = '/fixture/app/semaprax.toml', other = '/fixture/lone/x.spx';
+  publishInto(collection, ledger.apply(file, [row(file, 'STANDALONE')]));
+  publishInto(collection, ledger.apply(other, [row(file, 'OTHER')]));
+  // A manifest now owns the file: its standalone subject is obsolete, the
+  // independent standalone `other` is not.
+  const existing = new Set([manifest, file, other]);
+  const retire = obsoleteSubjects(ledger.subjects(), manifest, existing);
+  assert.deepEqual(retire, [file]);
+  publishInto(collection, ledger.apply(manifest, [row(file, 'PROJECT')], { retire }));
+  // Contributions merge in subject order, not completion order.
+  assert.deepEqual(collection.get(file), ['PROJECT', 'OTHER']);
+  assert.deepEqual(ledger.subjects(), [manifest, other].sort());
+  // The manifest is removed: the project subject is retired on the next check
+  // of the now-standalone file, whatever that check reports.
+  const after = obsoleteSubjects(ledger.subjects(), file, new Set([file, other]));
+  assert.deepEqual(after, [manifest]);
+  publishInto(collection, ledger.apply(file, [], { retire: after }));
+  assert.deepEqual(collection.get(file), ['OTHER']);
+  assert.deepEqual(ledger.subjects(), [other]);
 });

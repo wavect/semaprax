@@ -20,8 +20,22 @@ mod context;
 mod contract;
 #[path = "harness_v1/decision.rs"]
 mod decision;
+#[path = "harness_v1/decision_adapter.rs"]
+mod decision_adapter;
+#[path = "harness_v1/decision_choice.rs"]
+mod decision_choice;
+#[path = "harness_v1/decision_core.rs"]
+mod decision_core;
+#[path = "harness_v1/decision_reuse.rs"]
+mod decision_reuse;
+#[path = "harness_v1/decision_v2.rs"]
+mod decision_v2;
+#[path = "harness_v1/decision_v2_scores.rs"]
+mod decision_v2_scores;
 #[path = "harness_v1/endpoint.rs"]
 mod endpoint;
+#[path = "harness_v1/graphify_budget.rs"]
+mod graphify_budget;
 #[path = "harness_v1/host.rs"]
 mod host;
 #[path = "harness_v1/j_ma.rs"]
@@ -34,6 +48,10 @@ mod observe;
 mod profile;
 #[path = "harness_v1/receipt.rs"]
 mod receipt;
+#[path = "harness_v1/routing_matrix.rs"]
+mod routing_matrix;
+#[path = "harness_v1/routing_setup_mr14.rs"]
+mod routing_setup_mr14;
 #[path = "harness_v1/skills.rs"]
 mod skills;
 #[path = "harness_v1/t_ma.rs"]

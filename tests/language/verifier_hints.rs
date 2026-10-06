@@ -121,7 +121,37 @@ fn bundled_standard_library_function_names_the_dependency_route() {
         help(&diagnostic).contains("[dependencies] std.num = \"^0.1.0\""),
         "{diagnostic}"
     );
-    assert!(help(&diagnostic).contains("help library"), "{diagnostic}");
+    assert!(
+        help(&diagnostic).contains("`use function @id(\"std.num.abs\") from std.num as abs;`"),
+        "{diagnostic}"
+    );
+    assert!(
+        help(&diagnostic).contains("`fn abs(value: i64) -> i64`"),
+        "{diagnostic}"
+    );
+
+    // An exact standard-library name outranks a near local name (`main`).
+    let min = only(
+        "module habit.std;\n@id(\"app.main\")\nfn main() -> i64\n{\n    min(1, 2)\n}\n",
+        "SPX-T203",
+    );
+    assert!(help(&min).contains("from std.core as min;"), "{min}");
+}
+
+#[test]
+fn foreign_conversion_and_assert_names_point_at_the_admitted_route() {
+    for (name, expected) in [
+        ("to_string", "string_from_i64(value)"),
+        ("assert", "a test returns `0` on success"),
+    ] {
+        let diagnostic = only(
+            &format!(
+                "module habit.f;\n@id(\"app.main\")\nfn main() -> i64\n{{\n    {name}(1)\n}}\n"
+            ),
+            "SPX-T203",
+        );
+        assert!(help(&diagnostic).contains(expected), "{name}: {diagnostic}");
+    }
 }
 
 #[test]
@@ -135,7 +165,7 @@ fn immutable_parameter_names_the_mutable_copy_repair() {
         "{diagnostic}"
     );
     assert!(
-        help(&diagnostic).contains("let mut value = value;"),
+        help(&diagnostic).contains("let mut current_value = value;"),
         "{diagnostic}"
     );
 }
@@ -368,7 +398,7 @@ fn foreign_type_names_point_at_the_admitted_types() {
         ("int", "`i64` (the literal default)"),
         ("double", "`f64` and `f32`"),
         ("boolean", "spelled `bool`"),
-        ("Array", "no general collection type"),
+        ("Array", "a list is `Vec<T>`"),
     ];
     for (name, expected_help) in cases {
         let diagnostic = only(
@@ -427,7 +457,7 @@ fn borrowed_view_of_a_literal_names_the_binding_step() {
         "borrowed view `str_as_bytes` requires an exact admitted storage place"
     );
     assert!(
-        help(&diagnostic).contains("str_as_bytes(string_as_str(text))"),
+        help(&diagnostic).contains("let view = string_as_str(text); str_as_bytes(view)"),
         "{diagnostic}"
     );
 }
@@ -442,4 +472,132 @@ fn borrowed_view_of_an_array_literal_names_the_binding_step() {
         help(&diagnostic).contains("array_as_slice(bytes)"),
         "{diagnostic}"
     );
+}
+
+#[test]
+fn rust_and_python_habits_in_bodies_name_the_admitted_form() {
+    let main = |body: &str| {
+        format!("module habit.v;\n@id(\"app.main\")\nfn main() -> i64\n{{\n{body}\n}}\n")
+    };
+    let cases = [
+        (main("    let s = \"a\" + \"b\";\n    0"), "SPX-T250", "string_concat(a, b)"),
+        (main("    let x = 1;\n    let x = x + 1;\n    x"), "SPX-T209", "no shadowing"),
+        (main("    let a: i32 = 5;\n    0"), "SPX-T232", "`5i32`"),
+        (main("    let s: String = \"abc\";\n    0"), "SPX-T232", "owned text is `string`"),
+        (
+            "module habit.v;\n@id(\"app.main\")\nfn main() -> bool\n{\n    true\n}\n".to_owned(),
+            "SPX-T104",
+            "`main` returns `i64`",
+        ),
+        (
+            "module habit.v;\n@id(\"habit.f\")\nfn f() -> Result<i64, i64>\n{\n    Result<i64, i64>::Ok { value: 1 }\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    let x = f()?;\n    x\n}\n".to_owned(),
+            "SPX-T218",
+            "Result::Ok { value: v } => v",
+        ),
+        (
+            main("    let mut v = vec_with_capacity<i64>(1usize);\n    v = vec_push<i64>(v, 1);\n    for x in v { 0 }\n    0"),
+            "SPX-T284",
+            "`let values = building;`",
+        ),
+    ];
+    for (source, code, expected_help) in cases {
+        let diagnostic = only(&source, code);
+        assert!(
+            help(&diagnostic).contains(expected_help),
+            "{source}: {diagnostic}"
+        );
+    }
+}
+
+#[test]
+fn nested_views_and_missing_effects_name_the_complete_fix() {
+    let nested = only(
+        "module habit.view;\n@id(\"app.main\")\nfn main() -> i64\n{\n    let text = \"hi\";\n    let b = str_as_bytes(string_as_str(text));\n    0\n}\n",
+        "SPX-T266",
+    );
+    assert!(
+        help(&nested).contains("let view = string_as_str(text); str_as_bytes(view)"),
+        "{nested}"
+    );
+
+    let unpermitted = only(
+        "module habit.fx;\n@id(\"app.main\")\nfn main() -> i64\n{\n    let text = \"hi\";\n    let view = string_as_str(text);\n    let n = stdout_write(str_as_bytes(view));\n    0\n}\n",
+        "SPX-E102",
+    );
+    assert!(
+        help(&unpermitted).contains("`uses { process.stdout.write }`")
+            && help(&unpermitted).contains("`permit { process.stdout.write }`"),
+        "{unpermitted}"
+    );
+
+    let permitted = only(
+        "module habit.fx;\npermit { process.stdout.write }\n@id(\"app.main\")\nfn main() -> i64\n{\n    let text = \"hi\";\n    let view = string_as_str(text);\n    let n = stdout_write(str_as_bytes(view));\n    0\n}\n",
+        "SPX-E102",
+    );
+    assert!(
+        help(&permitted).contains("`uses { process.stdout.write }`")
+            && !help(&permitted).contains("permit"),
+        "{permitted}"
+    );
+}
+
+#[test]
+fn integer_and_mixed_type_mistakes_name_the_types_and_the_conversion() {
+    let main = |body: &str| {
+        format!("module habit.n;\n@id(\"app.main\")\nfn main() -> i64\n{{\n{body}\n}}\n")
+    };
+    let concat = only(
+        &main("    let s = string_concat(\"n=\", 5);\n    0"),
+        "SPX-T205",
+    );
+    assert!(help(&concat).contains("string_from_i64(value)"), "{concat}");
+
+    let mixed = only(
+        &main("    let s = \"abc\";\n    if string_len(s) == 3usize { 0 } else { 1 }"),
+        "SPX-T207",
+    );
+    assert!(
+        help(&mixed).contains("comparing `i64` with `usize`"),
+        "{mixed}"
+    );
+
+    let literal = only(
+        &main("    let n = 3usize;\n    if n == 3 { 0 } else { 1 }"),
+        "SPX-T207",
+    );
+    assert!(help(&literal).contains("`3usize`"), "{literal}");
+}
+
+#[test]
+fn reusing_a_moved_string_names_the_borrow_route() {
+    let diagnostic = only(
+        "module habit.mv;\n@id(\"app.main\")\nfn main() -> i64\n{\n    let a = \"x\";\n    let b = string_concat(a, \"y\");\n    let c = string_concat(a, \"z\");\n    0\n}\n",
+        "SPX-O101",
+    );
+    assert!(
+        help(&diagnostic).contains("pass `string_as_str(name)` to a `borrow str` parameter"),
+        "{diagnostic}"
+    );
+}
+
+#[test]
+fn borrowed_returns_and_scalar_methods_name_the_admitted_form() {
+    let returned = only(
+        "module habit.r;\n@id(\"habit.f\")\nfn f() -> str\n{\n    \"a\"\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    0\n}\n",
+        "SPX-O116",
+    );
+    assert!(
+        help(&returned).contains("return an owned `string`"),
+        "{returned}"
+    );
+
+    let method = only(
+        "module habit.m;\n@id(\"app.main\")\nfn main() -> i64\n{\n    let x = 3;\n    x.abs()\n}\n",
+        "SPX-T203",
+    );
+    assert!(
+        help(&method).contains("scalars have no methods"),
+        "{method}"
+    );
+    assert!(help(&method).contains("`abs(x)`"), "{method}");
 }

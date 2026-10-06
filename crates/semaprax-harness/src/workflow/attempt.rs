@@ -9,13 +9,14 @@ use super::journal::Journal;
 use super::pipeline::{change_bytes, Ctx, Stages};
 use super::policy::check_protected_facts;
 use super::report::Report;
+use super::route_signals::route_signals;
 use super::spend_dispatch::Attempt;
 use super::stages::*;
 use crate::decision::{
-    gate_attests_key, governed_decide, recheck_dispatch, Budget, Confidentiality,
-    ConfiguredProvider, Destination, EvidenceKey, Governor, LatencyClass, ModelPlan, ProviderMode,
-    RouteContext, RouteInputs, RoutePolicy, RouteRequest, RoutingConfig, RoutingMode, TaskFamily,
-    TaskFeatures,
+    gate_attests_key, recheck_dispatch, router_output_reserve, wire_version, Budget,
+    Confidentiality, ConfiguredProvider, Destination, EvidenceKey, Governor, LatencyClass,
+    ModelPlan, PreparedRouteV2, ProviderMode, RouteContext, RouteInputs, RoutePolicy, RouteRequest,
+    RouteSignals, RoutingConfig, RoutingMode, TaskFamily, TaskFeatures,
 };
 use crate::diag::{HarnessDiagnostic, HarnessResult};
 use crate::json::sha256_plain;
@@ -26,7 +27,11 @@ use std::collections::BTreeSet;
 use std::path::Path;
 use std::time::Instant;
 
-pub(super) const ROUTER_OUTPUT_RESERVE: u64 = 256;
+/// Closed-choice router output reserve for a pool (MR-03): protocol-derived
+/// from the option count, not a generation-sized constant.
+pub(super) fn router_reserve(pool: &[ModelPlan]) -> u64 {
+    router_output_reserve(pool.len().min(crate::decision::render::MAX_CANDIDATES_V2))
+}
 
 fn d(code: &'static str, msg: impl Into<String>) -> HarnessDiagnostic {
     HarnessDiagnostic::new(code, msg)
@@ -52,6 +57,8 @@ pub(super) struct PromptCtx<'a> {
     pub attempt: u32,
     /// Extra framing for an unverified-baseline scratch repair.
     pub scratch_repair: bool,
+    /// MR-08 role request material; `None` is the single-proposer request.
+    pub phase: Option<&'a super::phases::PhaseView>,
 }
 
 fn item_label(i: usize, it: &ContextItem) -> String {
@@ -76,6 +83,11 @@ fn optional_labels(p: &PromptCtx, has_skills: bool) -> Vec<String> {
 }
 
 fn build_prompt(cx: &Ctx, p: &PromptCtx, dropped: &BTreeSet<String>) -> Value {
+    use super::phases::Role;
+    if let Some(v) = p.phase.filter(|v| v.role != Role::Implement) {
+        // A plan/review request is its own bounded host-built document.
+        return v.body.clone();
+    }
     let task = &cx.cfg.task;
     let context: Vec<Value> = p
         .kept
@@ -99,6 +111,17 @@ fn build_prompt(cx: &Ctx, p: &PromptCtx, dropped: &BTreeSet<String>) -> Value {
     }
     if p.scratch_repair {
         prompt["scratch_repair"] = json!(true);
+    }
+    if let Some(v) = p.phase {
+        // The compact host handoff replaces raw feedback (MR-08).
+        if v.body.get("handoff").is_some() {
+            if let Some(o) = prompt.as_object_mut() {
+                o.remove("feedback");
+            }
+        }
+        for (k, x) in v.body.as_object().into_iter().flatten() {
+            prompt[k] = x.clone();
+        }
     }
     if let Some(sp) = &cx.cfg.skill_prompt {
         if !dropped.contains("skills") {
@@ -136,6 +159,7 @@ fn catalog(cx: &Ctx, task: &Task) -> HarnessResult<Vec<ModelPlan>> {
             est_cost_micros: 0,
             est_latency_ms: 1000,
             strength_rank: 1,
+            descriptor: Default::default(),
         }],
     };
     for m in &catalog {
@@ -157,19 +181,25 @@ struct Routed {
     router_calls_total: u32,
     request_text: String,
     provider: String,
+    /// MR-03 typed identity/usage of the answering router call, if any.
+    call: Option<crate::decision::CallMetadata>,
 }
 
 /// Routing allowance when no task cost limit is set (the earlier fixed figure).
 const DEFAULT_ROUTE_ALLOWANCE_MICROS: u64 = 1_000_000;
 
-/// Route features, budget and the exact serialized router request. The cost
-/// allowance is the task's remaining cost budget when one is set (TC-03).
+/// Route features, budget and the router request text the host reserves
+/// against. The cost allowance is the task's remaining cost budget when one is
+/// set (TC-03). For a v2 router the text is the host-rendered prepared request
+/// over the whole pool (MR-03: a conservative superset of what is sent).
 pub(super) fn route_parts(
     task: &Task,
     catalog: &[ModelPlan],
     estimated_tokens: u64,
     allowance_micros: u64,
     router: bool,
+    signals: &RouteSignals,
+    wire_v2: bool,
 ) -> HarnessResult<(TaskFeatures, Budget, String)> {
     let family = TaskFamily::parse(&task.family).ok_or_else(|| {
         d(
@@ -190,8 +220,19 @@ pub(super) fn route_parts(
         max_latency_ms: 60_000,
         max_router_calls: u32::from(router),
     };
-    let text = crate::json::canonical(&json!({"features": features.to_json(),
-        "catalog": catalog.iter().map(ModelPlan::to_json).collect::<Vec<_>>(), "budget": budget.to_json()}));
+    let v1_text = || {
+        crate::json::canonical(&json!({"features": features.to_json(),
+        "catalog": catalog.iter().map(ModelPlan::to_json).collect::<Vec<_>>(), "budget": budget.to_json()}))
+    };
+    let text = if wire_v2 {
+        RouteRequest::new(features.clone(), catalog.to_vec(), budget.clone())
+            .map(|r| r.with_signals(signals.clone()))
+            .and_then(|r| PreparedRouteV2::prepare(&r, &RoutePolicy::default(), &r.catalog))
+            .map(|p| p.accounting_text())
+            .unwrap_or_else(|_| v1_text())
+    } else {
+        v1_text()
+    };
     Ok((features, budget, text))
 }
 
@@ -205,15 +246,22 @@ fn route_models(
     rb: &super::budget::RequestBudget,
     router_headroom_tokens: Option<u64>,
     allowance_micros: u64,
+    signals: &RouteSignals,
 ) -> HarnessResult<Routed> {
+    let wire_v2 = decision
+        .as_ref()
+        .is_some_and(|d| wire_version(&d.profile, &*d.invoker) == 2);
     let (features, budget, text) = route_parts(
         task,
         &catalog,
         estimated_tokens,
         allowance_micros,
         decision.is_some(),
+        signals,
+        wire_v2,
     )?;
-    let request = RouteRequest::new(features, catalog, budget)?;
+    let reserve = router_reserve(&catalog);
+    let request = RouteRequest::new(features, catalog, budget)?.with_signals(signals.clone());
     let mut policy = RoutePolicy::default();
     if cx.cfg.routing.approve_remote {
         // The project explicitly allows remote routing: the origins of the
@@ -239,16 +287,20 @@ fn route_models(
         router_ms_used: 0,
     };
     let router_request_tokens = decision.as_ref().map_or(0, |d| {
-        rb.count(&d.profile.provider_id, &text).admission_tokens() + ROUTER_OUTPUT_RESERVE
+        rb.count(&d.profile.provider_id, &text).admission_tokens() + reserve
     });
     let live = inputs.clone();
     // The workflow carries only the stage's gate: a learned provider is
     // consulted in `Auto` mode only when that gate attests the live key
     // (provider, weights, approved catalog); otherwise rules decide (HN-16).
     let wiring = &cx.cfg.routing;
-    let live_key = decision
-        .as_ref()
-        .map(|d| EvidenceKey::live(&d.profile, &inputs.request.catalog_digest()));
+    let live_key = decision.as_ref().map(|d| {
+        EvidenceKey::live_versioned(
+            &d.profile,
+            &inputs.request.catalog_digest(),
+            wire_version(&d.profile, &*d.invoker),
+        )
+    });
     let mode = if wiring.explicit_mode || wiring.cfg.project_pin.is_some() {
         // `[routing]` decides: the project's mode and pin, never the provider's own.
         wiring.cfg.mode.clone()
@@ -288,26 +340,37 @@ fn route_models(
         router_headroom_tokens,
         router_request_tokens,
     };
-    let gr = governed_decide(
+    // The session-owned cache and readiness (MR-12); hits are revalidated.
+    let (gr, reuse) = cx.cfg.routing.decisions.borrow_mut().decide(
         &g,
         &inputs,
         &rctx,
         configured.as_mut(),
         &move || live.clone(),
-        None,
     )?;
+    let reuse_json = reuse.to_json();
+    let explain = super::route_explain::explain(
+        &inputs,
+        &cfg,
+        &gr,
+        &reuse_json,
+        live_key.as_ref().map(|k| k.digest()),
+        router_request_tokens,
+    );
     let dec = gr.decision;
     Ok(Routed {
         inputs,
-        json: json!({"choice": dec.choice, "provider": dec.provider_id, "router_calls": dec.router_calls,
+        json: json!({"explain": explain, "choice": dec.choice, "provider": dec.provider_id, "router_calls": dec.router_calls,
                "status": dec.provider_status, "source": format!("{:?}", dec.source),
                "mode": gr.mode, "rules_reason": gr.rules_reason, "explanation": gr.explanation,
+               "wire": dec.wire.to_json(), "reuse": reuse_json,
                "policy": {"allow_remote": cfg.user_allow_remote, "project_pin": cfg.project_pin}}),
         model: dec.choice,
         router_calls: dec.router_calls,
         router_calls_total: gr.router_calls_total,
         request_text: text,
         provider: dec.provider_id,
+        call: dec.wire.call,
     })
 }
 
@@ -328,7 +391,9 @@ pub(super) fn route_and_fit(
     cfg.budget
         .generation
         .gate(shape, &st.proposer.generation_support())?;
-    let all = catalog(cx, task)?;
+    let role = p.phase.map_or(super::phases::Role::Implement, |v| v.role);
+    let implement = role == super::phases::Role::Implement;
+    let all = super::phases::narrow(cx, role, catalog(cx, task)?)?;
     let mut budget = cfg.budget.for_task(task);
     // Accepted output reservation: a bounded retry's cap, else the configured tier, else the budget default.
     budget.policy.output_reserve_tokens = cx.reserve_override.take().unwrap_or_else(|| {
@@ -375,20 +440,25 @@ pub(super) fn route_and_fit(
             .unwrap_or(DEFAULT_ROUTE_ALLOWANCE_MICROS);
         // Opt-in cost-aware ladder (TC-10): narrows the pool before rules decide
         // and bypasses a paid router whose benefit is unknown.
-        let cost = super::cost_ladder::apply(
-            cx,
-            &pool,
-            est,
-            budget.policy.output_reserve_tokens,
-            st.decision.as_ref().map(|d| &d.profile),
-        );
+        let cost = if implement {
+            super::cost_ladder::apply(
+                cx,
+                &pool,
+                est,
+                budget.policy.output_reserve_tokens,
+                st.decision.as_ref().map(|d| &d.profile),
+            )
+        } else {
+            None
+        };
         // A router call is admitted and journaled before it can happen; when it
         // is unaffordable (or unpriced under strict money) rules decide alone.
-        let router = if cost.is_some() {
+        let signals = route_signals(task, p, cx.ledger.spend.available_cost());
+        let router = if cost.is_some() || !super::phases::router_allowed(cx, role, &pool) {
             None
         } else {
             super::spend_dispatch::reserve_router(
-                cx, st, journal, r, &budget, &pool, est, allowance, label,
+                cx, st, journal, r, &budget, &pool, est, allowance, label, &signals,
             )?
         };
         let decision = if router.is_some() {
@@ -406,9 +476,22 @@ pub(super) fn route_and_fit(
             &budget,
             headroom,
             allowance,
+            &signals,
         )?;
         if let Some(id) = &router {
-            super::spend_dispatch::settle_router(cx, journal, id, routed.router_calls_total)?;
+            let model = st
+                .decision
+                .as_ref()
+                .map_or_else(String::new, |d| d.profile.model_id.clone());
+            super::spend_dispatch::settle_router(
+                cx,
+                journal,
+                id,
+                routed.router_calls_total,
+                routed.call.as_ref(),
+                &model,
+                router_reserve(&pool),
+            )?;
         }
         if routed.router_calls > 0 {
             let count = budget.count(&routed.provider, &routed.request_text);
@@ -417,7 +500,7 @@ pub(super) fn route_and_fit(
                 label: format!("{label}-router"),
                 kind: "router".into(),
                 count: count.clone(),
-                output_reserve: ROUTER_OUTPUT_RESERVE,
+                output_reserve: router_reserve(&pool),
                 cost_micros: router
                     .as_deref()
                     .and_then(|id| cx.ledger.spend.record(id))
@@ -451,7 +534,9 @@ pub(super) fn route_and_fit(
             .find(|m| m.id == routed.model)
             .expect("router chose a catalog model")
             .clone();
-        super::cost_ladder::note_model(cx, &plan.id);
+        if implement {
+            super::cost_ladder::note_model(cx, &plan.id);
+        }
         if let Some(c) = &cost {
             routed.json["cost_policy"] = c.json.clone();
         }
@@ -471,6 +556,8 @@ pub(super) fn route_and_fit(
                 pool.retain(|m| m.id != plan.id);
                 continue;
             }
+            super::route_explain::set_phase(&mut routed.json, role.as_str(), &excluded);
+            super::route_explain::set_deployment(&mut routed.json, &st.proposer.id(), &plan.id);
             let mut bj = fit.to_json(&budget.policy);
             bj["rerouted_from"] = json!(excluded);
             r.context["request_budget"] = bj;
@@ -511,20 +598,23 @@ pub(super) fn generate(
     attempt: &Attempt,
 ) -> HarnessResult<Vec<u8>> {
     let side = st.proposer.side_effecting();
-    let cache = cx.cfg.cache_dir.join(if step == "generate" {
-        format!("{}.proposal.json", cx.lineage.id)
-    } else {
-        format!("{}.{step}.proposal.json", cx.lineage.id)
-    });
+    let cache = super::acquire::cache_path(cx, step);
     if side {
-        if matches!(journal.state(step).map(|x| x.state.as_str()), Some("done")) {
-            if let Ok(b) = std::fs::read(&cache) {
-                super::spend_dispatch::release(cx, journal, attempt, "reused_not_dispatched")?;
-                r.notes.push(
-                    "proposal reused from the journal; the model was not invoked again".into(),
-                );
-                return Ok(b);
-            }
+        // A completed step is reused only through the shared artifact validator
+        // (MN-01): no unchecked cache read, and a failed check is never replaced
+        // by a fresh billable request.
+        if let Some(rec) = journal.state(step).filter(|x| x.state == "done").cloned() {
+            let checked = super::acquire::validate_done(cx, step, &rec);
+            let why = if checked.is_ok() {
+                "reused_not_dispatched"
+            } else {
+                "refused_not_dispatched"
+            };
+            super::spend_dispatch::release(cx, journal, attempt, why)?;
+            let b = checked?;
+            r.notes
+                .push("proposal reused from the journal; the model was not invoked again".into());
+            return Ok(b);
         }
         if journal.unfinished(step)
             || matches!(
@@ -549,6 +639,12 @@ pub(super) fn generate(
         controls: controls.clone(),
     };
     let (got, receipt) = st.proposer.propose_receipted(&req);
+    super::route_explain::set_generation(
+        &mut r.route,
+        &st.proposer.id(),
+        &req.model,
+        receipt.model.as_deref(),
+    );
     let estimate = cx.cfg.budget.prices.estimate(&req.model, &receipt.usage);
     cx.observe_incurred_at(
         &st.proposer.id(),
@@ -609,9 +705,14 @@ pub(super) fn generate(
     }
 }
 
+/// Admission of an output-cap retry by the enclosing owner (MN-04): a session
+/// applies its attempt, cancellation and elapsed limits and charges the retry
+/// once; the single-shot pipeline admits it unconditionally.
+pub(super) type RetryGate<'g> = &'g mut dyn FnMut(&Ctx, &mut Journal) -> HarnessResult<()>;
+
 /// Route, fit, reserve and generate on the model branch. A length-limited reply
-/// is a known terminal outcome: when configured, one new attempt at the larger
-/// cap, reserved before dispatch like any other.
+/// is a known terminal outcome: when configured and admitted by `gate`, one new
+/// attempt at the larger cap, reserved before dispatch like any other.
 fn generate_with_retry(
     cx: &mut Ctx,
     st: &mut Stages,
@@ -619,6 +720,7 @@ fn generate_with_retry(
     r: &mut Report,
     p: &PromptCtx,
     step: &str,
+    gate: RetryGate,
 ) -> HarnessResult<Vec<u8>> {
     let (mut fit, route_json, mut attempt) = route_and_fit(cx, st, journal, r, p, step)?;
     r.route = route_json;
@@ -651,8 +753,10 @@ fn generate_with_retry(
                         .length_retry_cap
                         .is_some_and(|c| c > fit.output_reserve) =>
             {
+                // The enclosing limits are checked before routing or reservation.
+                gate(cx, journal)?;
                 cx.reserve_override = cx.cfg.budget.generation.length_retry_cap;
-                gstep = format!("{step}-lcap");
+                gstep = super::acquire::retry_step(step);
                 r.notes.push(format!(
                     "reply length-limited at {} output tokens; one new attempt at the larger cap",
                     fit.output_reserve
@@ -677,9 +781,22 @@ pub(super) fn propose_step(
     p: &PromptCtx,
     step: &str,
 ) -> HarnessResult<Proposal> {
+    propose_step_gated(cx, st, journal, r, p, step, &mut |_, _| Ok(()))
+}
+
+/// `propose_step` whose output-cap retry is admitted by `gate` (MN-04).
+pub(super) fn propose_step_gated(
+    cx: &mut Ctx,
+    st: &mut Stages,
+    journal: &mut Journal,
+    r: &mut Report,
+    p: &PromptCtx,
+    step: &str,
+    gate: RetryGate,
+) -> HarnessResult<Proposal> {
     let bytes = match super::acquire::local_proposal(cx, st, journal, r, step)? {
         Some(b) => b,
-        None => generate_with_retry(cx, st, journal, r, p, step)?,
+        None => generate_with_retry(cx, st, journal, r, p, step, gate)?,
     };
     let v2 = cx.cfg.task.schema_version == 2;
     let proposal = parse_proposal(&bytes).map_err(|e| {

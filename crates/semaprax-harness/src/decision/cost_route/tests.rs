@@ -16,6 +16,7 @@ fn plan(id: &str, ctx: u64) -> ModelPlan {
         est_cost_micros: 1,
         est_latency_ms: 100,
         strength_rank: 1,
+        descriptor: Default::default(),
     }
 }
 
@@ -78,6 +79,7 @@ fn record(outcomes: Vec<Outcome>) -> EvidenceRecord {
         eval_items: BTreeSet::new(),
         trained_on: BTreeSet::new(),
         outcomes,
+        calibration: None,
     }
 }
 
@@ -233,8 +235,10 @@ fn cache_state_changes_the_estimate_without_discounting_context() {
     let miss = est(CacheState::Miss {
         write_tokens: 8_000,
     });
-    // Conservative prices every input token at the dearest category (write 1250).
-    assert_eq!(cons.billed_micros, Some(10_000 * 125 / 100 + 1_000));
+    // Conservative prices every input token at the dearest category (write 1250),
+    // plus one micro-unit per further priced input partition (read, write)
+    // because that rate is fractional (MN-02 per-category rounding).
+    assert_eq!(cons.billed_micros, Some(10_000 * 125 / 100 + 2 + 1_000));
     assert_eq!(read.billed_micros, Some(2_000 + 800 + 1_000));
     assert_eq!(miss.billed_micros, Some(2_000 + 10_000 + 1_000));
     assert!(read.billed_micros < miss.billed_micros && miss.billed_micros <= cons.billed_micros);

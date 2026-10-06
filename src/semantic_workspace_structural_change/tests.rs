@@ -115,6 +115,7 @@ impl ManagedFixture {
         let staging = authority.staging_attempts();
         let mut paths = authority
             .take_sources()
+            .unwrap()
             .into_iter()
             .map(|source| source.path)
             .collect::<Vec<_>>();

@@ -18,6 +18,11 @@ const { revealCurrentSource } = require('./explorer-reveal');
 const tokenReport = require('./token-report');
 const harness = require('./harness');
 const { HotReload } = require('./hot-reload');
+const { ContentStore, REVIEW_LIMITS, TOKEN_REPORT_LIMITS } = require('./virtual-documents');
+// Grace before a closed view's content is released; a reopen of the same URI
+// (a language change) within it cancels the release.
+const VIEW_RELEASE_GRACE_MS = 50;
+const pendingViewRelease = new Map();
 let stopActive = () => {};
 // Check-on-save: run the user-selected compiler's read-only `check --json` on
 // the saved file's project and publish the result as editor diagnostics. It
@@ -81,7 +86,12 @@ function activateChecks(context, testMode) {
     // even when the new result is empty.
     const stalenessCandidates = new Set(records.map(record => record.path));
     stalenessCandidates.add(subject);
-    for (const file of ledger.owned.get(subject) || []) stalenessCandidates.add(file);
+    for (const file of ledger.paths(subject)) stalenessCandidates.add(file);
+    // A subject the routing no longer supports (a standalone file a project
+    // now owns, or a project whose manifest is gone) is retired with this
+    // publication; its files are republished from their remaining owners.
+    const retire = checks.obsoleteSubjects(ledger.subjects(), subject, exists);
+    for (const owner of retire) for (const file of ledger.paths(owner)) stalenessCandidates.add(file);
     // For a project subject, any open project member edited during the check
     // must also prevent a stale clear; otherwise a member absent from the new
     // empty list would lose its previous diagnostics.
@@ -98,7 +108,7 @@ function activateChecks(context, testMode) {
       output.appendLine(`${subject}: ${reason}`);
       return { ...result, failure: reason, retained: ledger.subjects().includes(subject) };
     }
-    const update = ledger.apply(subject, records);
+    const update = ledger.apply(subject, records, { retire });
     for (const file of update.clear) collection.delete(vscode.Uri.file(file));
     for (const [file, rows] of update.set) {
       collection.set(vscode.Uri.file(file), rows.map(row => {
@@ -151,7 +161,11 @@ function activateChecks(context, testMode) {
     if (reason) {
       output.appendLine(`${file}: ${reason}`);
       if (result.stderr) output.appendLine(result.stderr.trimEnd());
-      throw new Error(result.stderr.trim() ? `${reason}\n${result.stderr.trim().slice(0, 2048)}` : reason);
+      const error = new Error(result.stderr.trim() ? `${reason}\n${result.stderr.trim().slice(0, 2048)}` : reason);
+      // The child ran but its output could not be admitted: whatever it did
+      // may have completed, so a mutation-bearing caller must not repeat it.
+      error.unreadableOutput = Boolean(result.invalidUtf8 || result.truncated || result.timedOut);
+      throw error;
     }
     return result.stdout;
   }
@@ -284,7 +298,9 @@ function activateChecks(context, testMode) {
       .map(d => [d.uri.fsPath, d.version]));
     const stdout = await runNavigation(binary, navigation.queryArguments(subject.subject, filters), subject.subject);
     const parsed = subject.project ? navigation.parseProjectQueryResult(stdout, subject.root) : navigation.parseQueryResult(stdout);
-    if (!parsed) throw new Error(`The compiler returned an unexpected ${subject.project ? 'project ' : ''}query result`);
+    // A result with any malformed or out-of-root row is rejected whole; it is
+    // an invalid answer, never an empty one.
+    if (!parsed) throw new Error(`The compiler returned an invalid ${subject.project ? 'project ' : ''}query result; nothing is reported from it`);
     if (doc.isDirty || doc.version !== version) throw new Error('The document changed while the compiler ran; save it and repeat the command');
     // Validate that any destination that was open at query start is still at
     // the same saved snapshot; a dirty or version-changed destination would
@@ -446,7 +462,14 @@ function activateChecks(context, testMode) {
       ], { placeHolder: 'Impact of the rename' });
       if (!apply || !apply.apply) return impact;
       revalidateBeforePatch();
-      const applied = await runNavigation(binary, navigation.patchArguments(doc.uri.fsPath, patchPath), doc.uri.fsPath);
+      let applied;
+      try { applied = await runNavigation(binary, navigation.patchArguments(doc.uri.fsPath, patchPath), doc.uri.fsPath); }
+      catch (error) {
+        // Never replayed: a dispatched patch whose reply is unreadable may
+        // already have rewritten the saved file.
+        if (error.unreadableOutput) throw new Error(`${error.message}\nThe patch was dispatched but its result could not be read; the source may already be rewritten. Inspect ${path.basename(doc.uri.fsPath)} before repeating the rename.`);
+        throw error;
+      }
       void vscode.window.showInformationMessage(`SEMAPRAX: ${applied.trim()}`);
       return { ...impact, applied: applied.trim() };
     } finally {
@@ -495,18 +518,31 @@ function activateChecks(context, testMode) {
     return openBeside(text, 'json');
   }
   const lensesEnabled = () => machineSetting('codeLens') !== false;
+  // Concurrent lens requests for members of one project share one in-flight
+  // query. Any relevant source, manifest, compiler, configuration or trust
+  // change advances the generation, which both separates new requests from
+  // old ones and discards results that were in flight across the change.
+  const lensQueries = new navigation.SharedLensQueries();
+  let lensGeneration = 0;
+  const invalidateLenses = () => { lensGeneration++; lensQueries.invalidate(); };
+  const relevantSource = uri => uri.scheme === 'file' && (uri.fsPath.endsWith('.spx') || path.basename(uri.fsPath) === checks.MANIFEST);
+  const runLensQuery = async (binary, args, subject, signal) => {
+    const result = await navigation.runCommand(spawn, binary, args, subject.root, { signal });
+    if (navigation.failureReason(result, binary)) return null;
+    return subject.project ? navigation.parseProjectQueryResult(result.stdout, subject.root) : navigation.parseQueryResult(result.stdout);
+  };
   const lensProvider = {
-    async provideCodeLenses(doc) {
+    async provideCodeLenses(doc, token) {
       const binary = compiler();
       if (!binary || !lensesEnabled() || !vscode.workspace.isTrusted || doc.uri.scheme !== 'file' || doc.isDirty || !doc.uri.fsPath.endsWith('.spx')) return [];
-      const version = doc.version;
+      const version = doc.version, generation = lensGeneration;
       // An importing module would fail every standalone query, so the lenses
       // come from its project when it has one, filtered to this file.
       const subject = navigationSubject(doc);
-      const result = await navigation.runCommand(spawn, binary, navigation.queryArguments(subject.subject, {}), subject.root);
-      if (navigation.failureReason(result, binary)) return [];
-      const parsed = subject.project ? navigation.parseProjectQueryResult(result.stdout, subject.root) : navigation.parseQueryResult(result.stdout);
-      if (!parsed) return [];
+      const args = navigation.queryArguments(subject.subject, {});
+      const key = navigation.lensQueryKey({ binary, subject: subject.subject, project: subject.project, cwd: subject.root, args, generation });
+      const parsed = await lensQueries.request(key, signal => runLensQuery(binary, args, subject, signal), token);
+      if (!parsed || token?.isCancellationRequested || generation !== lensGeneration) return [];
       const here = { ...parsed, matches: parsed.matches.filter(match => !match.file || match.file === subject.file) };
       // The lens ranges are byte offsets into the saved source the query
       // answered for; a document edited since is left to the next request.
@@ -517,14 +553,20 @@ function activateChecks(context, testMode) {
       ));
     }
   };
-  const dispose = () => { for (const child of running.values()) child.kill(); running.clear(); };
-  context.subscriptions.push(collection, output, vscode.workspace.onDidSaveTextDocument(onSave), { dispose },
+  const dispose = () => { for (const child of running.values()) child.kill(); running.clear(); lensQueries.dispose(); };
+  const sourceWatcher = vscode.workspace.createFileSystemWatcher('**/{*.spx,semaprax.toml}');
+  for (const event of [sourceWatcher.onDidCreate, sourceWatcher.onDidChange, sourceWatcher.onDidDelete]) context.subscriptions.push(event(uri => { if (relevantSource(uri)) invalidateLenses(); }));
+  context.subscriptions.push(collection, output, vscode.workspace.onDidSaveTextDocument(onSave), { dispose }, sourceWatcher,
+    vscode.workspace.onDidChangeTextDocument(event => { if (relevantSource(event.document.uri)) invalidateLenses(); }),
+    vscode.workspace.onDidSaveTextDocument(doc => { if (relevantSource(doc.uri)) invalidateLenses(); }),
+    vscode.workspace.onDidChangeConfiguration(event => { if (event.affectsConfiguration('semaprax')) invalidateLenses(); }),
+    vscode.workspace.onDidGrantWorkspaceTrust(invalidateLenses),
     vscode.languages.registerCodeLensProvider({ language: 'semaprax', scheme: 'file' }, lensProvider),
     vscode.languages.registerHoverProvider({ language: 'semaprax', scheme: 'file' }, { provideHover: rustImportHover }),
     vscode.languages.registerCompletionItemProvider({ language: 'semaprax', scheme: 'file' }, rustCompletionProvider, ':'),
     vscode.languages.registerDefinitionProvider({ language: 'semaprax', scheme: 'file' }, rustDefinitionProvider),
     vscode.languages.registerCodeActionsProvider({ language: 'semaprax', scheme: 'file' }, rustImportFixProvider));
-  return { checkProject, goToDeclaration, showReferences, showDocumentation, showOwnership, inspectAgent, safeRename, showCleanupPlan, runAgentTranscript, test: testMode ? { check, ledger, collection, lensProvider } : undefined };
+  return { checkProject, goToDeclaration, showReferences, showDocumentation, showOwnership, inspectAgent, safeRename, showCleanupPlan, runAgentTranscript, test: testMode ? { check, ledger, collection, lensProvider, lensQueries, invalidateLenses } : undefined };
 }
 function activate(context) {
   let hotReload;
@@ -547,11 +589,16 @@ function activate(context) {
     if (!selected) throw new Error(`Extension-host test selection is unavailable: ${label}`);
     return Promise.resolve(selected);
   };
-  const documents = new Map(), scratch = new Set(), changed = new vscode.EventEmitter();
-  const tokenDocuments = new Map(), tokenChanged = new vscode.EventEmitter();
-  const holeScratch = new Map();
+  // Review views are source-bound session state: invalidated by `clear`,
+  // released by `stop`. Token reports are independent snapshots with their own
+  // bounds, released when their document is retired or the extension is
+  // disposed. Either store reclaims a view's quota once VS Code retires it.
   const holeReports = new Set();
   const attemptReports = new Set();
+  const documents = new ContentStore({ ...REVIEW_LIMITS, onRelease: uri => { holeReports.delete(uri); attemptReports.delete(uri); } });
+  const scratch = new Set(), changed = new vscode.EventEmitter();
+  const tokenDocuments = new ContentStore(TOKEN_REPORT_LIMITS), tokenChanged = new vscode.EventEmitter();
+  const holeScratch = new Map();
   const status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
   status.text = 'SEMAPRAX: stopped'; status.show();
   const clear = label => {
@@ -721,14 +768,15 @@ function activate(context) {
   }
   async function virtual(text, suffix, language = 'plaintext', current = epoch) {
     ensureEpoch(current);
-    const retained = [...documents.values()].reduce((sum, value) => sum + Buffer.byteLength(value), 0);
-    if (Buffer.byteLength(text) > 16 * 1024 * 1024 || retained + Buffer.byteLength(text) > 32 * 1024 * 1024 || documents.size >= 64) throw new Error('Virtual document budget reached; restart session');
     const uri = vscode.Uri.from({ scheme: 'semaprax-review', path: '/' + crypto.randomUUID() + '/' + suffix });
-    documents.set(uri.toString(), text);
+    // Pinned until the open settles: the language change below emits a close
+    // and an open for this URI, and that close must not retire it.
+    documents.admit(uri.toString(), text);
     try {
       const doc = await vscode.workspace.openTextDocument(uri); ensureEpoch(current);
-      await vscode.languages.setTextDocumentLanguage(doc, language); ensureEpoch(current); return uri;
-    } catch (error) { documents.delete(uri.toString()); changed.fire(uri); throw error; }
+      await vscode.languages.setTextDocumentLanguage(doc, language); ensureEpoch(current);
+      documents.unpin(uri.toString()); return uri;
+    } catch (error) { documents.rollback(uri.toString()); changed.fire(uri); throw error; }
   }
   function readSelectedTokenReport(uri) {
     if (!uri || uri.scheme !== 'file') throw new Error('Select one local token report file');
@@ -793,9 +841,12 @@ function activate(context) {
     const report = tokenReport.validate(readSelectedTokenReport(uri));
     const text = tokenReport.render(report, { activeProjectRevision: activeTokenReportProjectRevision() });
     const view = vscode.Uri.from({ scheme: 'semaprax-token-report', path: '/' + crypto.randomUUID() + '/report.txt' });
-    tokenDocuments.set(view.toString(), text);
-    const doc = await vscode.workspace.openTextDocument(view);
-    await vscode.window.showTextDocument(doc, { preview: true });
+    tokenDocuments.admit(view.toString(), text);
+    try {
+      const doc = await vscode.workspace.openTextDocument(view);
+      await vscode.window.showTextDocument(doc, { preview: true });
+      tokenDocuments.unpin(view.toString());
+    } catch (error) { tokenDocuments.rollback(view.toString()); tokenChanged.fire(view); throw error; }
     return report;
   }
   async function catalog(selectedTarget = target) {
@@ -1178,8 +1229,28 @@ function activate(context) {
   }), vscode.workspace.onDidSaveTextDocument(document => {
     if (document.uri.path.endsWith('.spx') || path.basename(document.uri.path) === 'semaprax.toml') hotReload?.markSaved();
   }), vscode.workspace.onDidCloseTextDocument(doc => {
-    holeScratch.delete(doc.uri.toString()); scratch.delete(doc.uri.toString());
-  }), vscode.workspace.onDidChangeConfiguration(event => { if (event.affectsConfiguration('semaprax')) stop(); }), { dispose: stop });
+    const key = doc.uri.toString();
+    holeScratch.delete(key); scratch.delete(key);
+    // Presentation state only: a retired view's content and quota are
+    // released, never a candidate, session, approval or unrelated work.
+    // A language change closes and then reopens the same URI; in a real
+    // Extension Host the reopen can arrive after the next macrotask. The
+    // decision therefore waits a short grace period, a reopen of the URI
+    // cancels it, and the content is released only when no open document (in
+    // any editor) still shows the URI.
+    const store = doc.uri.scheme === 'semaprax-review' ? documents : doc.uri.scheme === 'semaprax-token-report' ? tokenDocuments : null;
+    if (store) {
+      clearTimeout(pendingViewRelease.get(key));
+      pendingViewRelease.set(key, setTimeout(() => {
+        pendingViewRelease.delete(key);
+        store.closed(key, vscode.workspace.textDocuments.some(open => open !== doc && !open.isClosed && open.uri.toString() === key));
+      }, VIEW_RELEASE_GRACE_MS));
+    }
+  }), vscode.workspace.onDidOpenTextDocument(doc => {
+    const key = doc.uri.toString();
+    const pending = pendingViewRelease.get(key);
+    if (pending !== undefined) { clearTimeout(pending); pendingViewRelease.delete(key); }
+  }), { dispose: () => { for (const timer of pendingViewRelease.values()) clearTimeout(timer); pendingViewRelease.clear(); tokenDocuments.clear(); } }, vscode.workspace.onDidChangeConfiguration(event => { if (event.affectsConfiguration('semaprax')) stop(); }), { dispose: stop });
   for (const [name, command] of Object.entries(commands)) context.subscriptions.push(vscode.commands.registerCommand('semaprax.' + name, async () => {
     if (name === 'stop') { stop(); return; }
     if (name === 'cancelCandidateTests') {
@@ -1209,7 +1280,8 @@ function activate(context) {
         explorerRenders: explorerRenders.map(value => ({ ...value, loaded: [...value.loaded] })),
         explorerActions: [...explorerActions],
         explorerReplies: [...explorerReplies],
-        documents: [...documents].map(([uri, text]) => ({ uri, text }))
+        documents: documents.list().map(([uri, text]) => ({ uri, text })),
+        virtualStores: { review: { count: documents.size, bytes: documents.bytes }, tokenReports: { count: tokenDocuments.size, bytes: tokenDocuments.bytes, uris: tokenDocuments.keys() } }
       };
     },
     // The check-on-save half, so the host test can exercise the diagnostic

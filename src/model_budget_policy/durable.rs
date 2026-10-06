@@ -188,7 +188,7 @@ impl DurablePolicyBinding {
         if !primary.authorized {
             return Err(DurablePolicyBindingRefusal::UnauthorizedPrimary);
         }
-        let selected = deployment.model_selections();
+        let selected = deployment.model_selection_refs().collect::<Vec<_>>();
         if policy.len() != seed.approved_providers.len()
             || policy.len() != selected.len()
             || seed
@@ -277,12 +277,55 @@ impl DurablePolicyBinding {
             interaction_schema_digest: seed.interaction_schema_digest.clone(),
             task_budget: seed.budget,
             policy,
-            model_selections: Some(selected),
+            // The one retained ownership copy: the binding outlives the
+            // borrowed deployment rows it was checked against.
+            model_selections: Some(deployment.model_selections()),
             limits,
             retained_byte_budget: Some(retained_byte_budget),
             deadline_millis,
             digest: digest(BINDING_DOMAIN, canonical.as_bytes()),
         })
+    }
+
+    /// Pre-admits one deployment profile's ordered provider policy and limits
+    /// with the same order, primary, limit and context checks [`Self::bind`]
+    /// applies, before any execution root or seed exists. Runtime routing
+    /// (MR-09) uses it so an incompatible profile is never offered to a
+    /// router; `bind` still rechecks every fact at dispatch.
+    pub fn admit_profile(
+        deployment: &BoundAgentDeployment,
+        policy: &ProviderPolicy,
+        limits: EffectiveModelBudget,
+    ) -> Result<(), DurablePolicyBindingRefusal> {
+        let Some(primary) = policy.primary() else {
+            return Err(DurablePolicyBindingRefusal::EmptyProviderPolicy);
+        };
+        if !primary.authorized {
+            return Err(DurablePolicyBindingRefusal::UnauthorizedPrimary);
+        }
+        let selected = deployment.model_selection_refs().collect::<Vec<_>>();
+        if policy.len() != selected.len()
+            || selected.iter().enumerate().any(|(index, selected)| {
+                policy
+                    .slot(index)
+                    .is_none_or(|slot| slot.id != selected.provider_id())
+            })
+        {
+            return Err(DurablePolicyBindingRefusal::ProviderOrderMismatch);
+        }
+        check_retained_limits(deployment, limits)?;
+        let context = selected
+            .iter()
+            .map(|item| item.max_context_tokens())
+            .min()
+            .ok_or(DurablePolicyBindingRefusal::EmptyProviderPolicy)?;
+        if limits.limits().max_context_tokens > context {
+            return Err(DurablePolicyBindingRefusal::ContextLimitExceedsDeployment {
+                requested: limits.limits().max_context_tokens,
+                max: context,
+            });
+        }
+        Ok(())
     }
 
     #[must_use]

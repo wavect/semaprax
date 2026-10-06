@@ -15,6 +15,13 @@ unsupported host version.
 The root MCP facade `src/semantic_service_mcp.rs` is untouched: it stays authority-free. The bridge
 is a separate, host-side surface; it adds no process, filesystem or network authority to semantic methods.
 
+## Current status (2026-10-05)
+
+A bridge host owns its own (parent) model. Claude Code does not delegate model choice, so Semaprax never claims to
+have routed it: every handshake response states the owner in `parent_model` (*Parent model ownership (MR-14)*
+below), and phase routing applies only to Semaprax-owned worker requests. The single current routing support matrix
+is in [Harness decision v1, *Current status*](HARNESS-DECISION-V1.md#current-status-2026-10-05).
+
 ## Protocol `semaprax.harness-bridge.v1`
 
 LF-delimited JSON-RPC 2.0 on stdio, frames parsed with the strict `crate::json` parser (1 MiB limit, enforced while reading: see *Transport bounds and session end*).
@@ -106,12 +113,20 @@ the session. Reaping latency is `idle_shutdown_ms` plus at most one tick.
 
 **Side-effecting steps and the journal.** A `SideEffecting` invoke appends `begin` to the append-only journal
 `<harness home>/cache/bridge/<project id>.journal.jsonl` (`workflow::journal`) and then `done`, `refused`, `cancelled`
-(request never written) or `uncertain`. A later invoke with the same `step` is refused as `SPX-HPN015` unless its last
+(request never written) or `uncertain`. A host outcome `Unavailable { request_sent: false }` (the typed dispatch
+certainty, never a message or `fallback_allowed`) settles as `cancelled` with `cause: "unsent"`, so the step stays
+retryable; `request_sent: true`, `Uncertain`, `Quarantined` and any cancelled-flag outcome stay `uncertain`. If that
+terminal fails to persist, the response carries `durable: false` and the surviving `begin` blocks retry. A later invoke with the same `step` is refused as `SPX-HPN015` unless its last
 record is `refused` or `cancelled`; a begun, completed or uncertain step is never replayed, across restarts.
 
 *Single writer.* `Journal::open` holds an exclusive advisory `flock` on `<project id>.journal.flock` for the journal's
 lifetime and reads the records only after it holds the lock. The bridge opens the journal per claim and per settlement
-(the lock is held only for the claim-and-`begin` critical section, never across the provider call), so concurrent
+through `Journal::open_wait_indexed`, which retains validated state per `Invoker` (latest record per step, validated end
+offset, file identity, last validated line): the first open streams the file once in bounded lines, later opens catch up
+only on records another writer appended, and own appends are applied without re-decoding (`Invoker::journal_decoded`
+counts decodes). A replaced, truncated, removed or prefix-rewritten file, an unterminated tail or an over-long line fails
+closed with `SPX-HPD070` and keeps the retained state; it never forgets a begun, completed or uncertain step. The lock
+is held only for the claim-and-`begin` critical section, never across the provider call), so concurrent
 sessions and processes on one project serialise: exactly one claims a given `step`, the others get `SPX-HPN015` (or
 `SPX-HPD070` busy if the lock stays held for 10 s). The lock is released by drop or process exit; the lock file is never
 deleted, and durable `begin`/`uncertain` records are untouched. Projects and lineages lock independently.
@@ -210,3 +225,16 @@ reasons; a failed query is shown as a stated reason. No second dashboard and no 
   `external_host::hn14_opencode_...` reaches the same catalog and records the same Ponytail revision. opencode is a fixture
   config in the test, not a supported `--setup` target.
 - A generic stdio MCP client (`bridge::hn14_real_process_generic_mcp_client_over_stdio`) runs against the real binary.
+
+## Parent model ownership (MR-14)
+
+Every `bridge/handshake` response carries `parent_model`
+(`workflow::phases::parent_model_routing`). A host that does not delegate
+`model_routing` (Claude Code and every host that omits the declaration) gets
+`{"mode": "host-controlled", "advisory_only": true, "changes_parent_model":
+false, "semaprax_controlled_parent_model": false, "statement": "Semaprax did
+not control the parent model: ..."}`; a delegating host gets `"mode":
+"delegated"` and still `changes_parent_model: false`, because Semaprax routes
+only its own worker requests. The static Claude Code host profile (`bridge
+<project> --host claude-code`) states the same. Test:
+`mr14_bridge_handshake_reports_who_controlled_the_parent_model`.

@@ -1,0 +1,4670 @@
+{
+  "description": "Contract-fixture cell outcomes (origin fixture). Deterministic table, not model output.",
+  "rows": [
+    {
+      "attempts": [
+        {
+          "latency_ms": 724,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-mechanical-eva-00",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1487,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-mechanical-eva-00",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2250,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-mechanical-eva-00",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 687,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-mechanical-eva-01",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1487,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-mechanical-eva-01",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2324,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-mechanical-eva-01",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 650,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 400,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-mechanical-eva-02",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1524,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-mechanical-eva-02",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2324,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-mechanical-eva-02",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 687,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-mechanical-eva-03",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1450,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-mechanical-eva-03",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2287,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-mechanical-eva-03",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 687,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-mechanical-cal-00",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1450,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-mechanical-cal-00",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2324,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-mechanical-cal-00",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 724,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 474,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-tests-eva-00",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1450,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-tests-eva-00",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2287,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-tests-eva-00",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 724,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 474,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-tests-eva-01",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1524,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-tests-eva-01",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2324,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-tests-eva-01",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 650,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 400,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-tests-eva-02",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1487,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-tests-eva-02",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2250,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-tests-eva-02",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 650,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 400,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-tests-eva-03",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1487,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-tests-eva-03",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2324,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-tests-eva-03",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 650,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 400,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-tests-cal-00",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1487,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-tests-cal-00",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2250,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-tests-cal-00",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 724,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 474,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-localized_debug-eva-00",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1487,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-localized_debug-eva-00",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2250,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-localized_debug-eva-00",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 724,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 474,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-localized_debug-eva-01",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1487,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-localized_debug-eva-01",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2324,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-localized_debug-eva-01",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 724,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 474,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-localized_debug-eva-02",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1524,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-localized_debug-eva-02",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2324,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-localized_debug-eva-02",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 650,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 400,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-localized_debug-eva-03",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1524,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-localized_debug-eva-03",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2287,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-localized_debug-eva-03",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 724,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 474,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-localized_debug-eva-04",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1450,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        },
+        {
+          "latency_ms": 1200,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-localized_debug-eva-04",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2250,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-localized_debug-eva-04",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 650,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 400,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-localized_debug-eva-05",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1524,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-localized_debug-eva-05",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2250,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-localized_debug-eva-05",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 650,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 400,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-localized_debug-cal-00",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1450,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        },
+        {
+          "latency_ms": 1200,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-localized_debug-cal-00",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2250,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-localized_debug-cal-00",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 650,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 400,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-localized_debug-cal-01",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1524,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-localized_debug-cal-01",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2287,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-localized_debug-cal-01",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 650,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 400,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-hard_semantic-eva-00",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1524,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        },
+        {
+          "latency_ms": 1274,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-hard_semantic-eva-00",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2250,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        },
+        {
+          "latency_ms": 2000,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-hard_semantic-eva-00",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 650,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 400,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-hard_semantic-eva-01",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1524,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        },
+        {
+          "latency_ms": 1274,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-hard_semantic-eva-01",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2324,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-hard_semantic-eva-01",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 650,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 400,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-hard_semantic-eva-02",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1524,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        },
+        {
+          "latency_ms": 1274,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-hard_semantic-eva-02",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2324,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-hard_semantic-eva-02",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 650,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 400,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-hard_semantic-eva-03",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1524,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        },
+        {
+          "latency_ms": 1274,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-hard_semantic-eva-03",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2324,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-hard_semantic-eva-03",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 687,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 437,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-hard_semantic-cal-00",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1524,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        },
+        {
+          "latency_ms": 1274,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-hard_semantic-cal-00",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2287,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-hard_semantic-cal-00",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 724,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 474,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-harness-localized_debug-eva-00",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1524,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-localized_debug-eva-00",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2250,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-localized_debug-eva-00",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 650,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 400,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-harness-localized_debug-eva-01",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1450,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        },
+        {
+          "latency_ms": 1200,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-localized_debug-eva-01",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2287,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-localized_debug-eva-01",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 687,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 437,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-harness-localized_debug-eva-02",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1524,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-localized_debug-eva-02",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2287,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-localized_debug-eva-02",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 650,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 400,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-harness-localized_debug-eva-03",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1450,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        },
+        {
+          "latency_ms": 1200,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-localized_debug-eva-03",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2324,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-localized_debug-eva-03",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 687,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 437,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-harness-localized_debug-eva-04",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1450,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        },
+        {
+          "latency_ms": 1200,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-localized_debug-eva-04",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2287,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-localized_debug-eva-04",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 650,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 400,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-harness-localized_debug-eva-05",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1487,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-localized_debug-eva-05",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2250,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-localized_debug-eva-05",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 724,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 474,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-harness-localized_debug-cal-00",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1450,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        },
+        {
+          "latency_ms": 1200,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-localized_debug-cal-00",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2324,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-localized_debug-cal-00",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 650,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 400,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-harness-localized_debug-cal-01",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1450,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        },
+        {
+          "latency_ms": 1200,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-localized_debug-cal-01",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2250,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-localized_debug-cal-01",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 724,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 474,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-harness-multi_turn_recovery-eva-00",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1450,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        },
+        {
+          "latency_ms": 1200,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-harness-multi_turn_recovery-eva-00",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2324,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-multi_turn_recovery-eva-00",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 724,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 474,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-harness-multi_turn_recovery-eva-01",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1487,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        },
+        {
+          "latency_ms": 1237,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-multi_turn_recovery-eva-01",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2287,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-multi_turn_recovery-eva-01",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 687,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 437,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-harness-multi_turn_recovery-eva-02",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1487,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        },
+        {
+          "latency_ms": 1237,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-multi_turn_recovery-eva-02",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2250,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-multi_turn_recovery-eva-02",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 687,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 437,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-harness-multi_turn_recovery-eva-03",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1487,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        },
+        {
+          "latency_ms": 1237,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-multi_turn_recovery-eva-03",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2324,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-multi_turn_recovery-eva-03",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 650,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 400,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-harness-multi_turn_recovery-cal-00",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1450,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        },
+        {
+          "latency_ms": 1200,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": false,
+      "item": "d-semaprax-harness-multi_turn_recovery-cal-00",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2250,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-multi_turn_recovery-cal-00",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 724,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 474,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-tests-eva-00",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1487,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-tests-eva-00",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2250,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-tests-eva-00",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 724,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 474,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-tests-eva-01",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1487,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-tests-eva-01",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2287,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-tests-eva-01",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 724,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 474,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-tests-eva-02",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1487,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-tests-eva-02",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2287,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-tests-eva-02",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 687,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 437,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-tests-cal-00",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1487,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-tests-cal-00",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2287,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "d-semaprax-harness-tests-cal-00",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 724,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-runtime_classification-eva-00",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1524,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-runtime_classification-eva-00",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2287,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-runtime_classification-eva-00",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 687,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-runtime_classification-eva-01",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1524,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-runtime_classification-eva-01",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2287,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-runtime_classification-eva-01",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 650,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 400,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-runtime_classification-eva-02",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1487,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-runtime_classification-eva-02",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2250,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-runtime_classification-eva-02",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 724,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-runtime_classification-eva-03",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1450,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-runtime_classification-eva-03",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2287,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-runtime_classification-eva-03",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 687,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-runtime_classification-eva-04",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1450,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-runtime_classification-eva-04",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2250,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-runtime_classification-eva-04",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 687,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-runtime_classification-eva-05",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1487,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-runtime_classification-eva-05",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2250,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-runtime_classification-eva-05",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 724,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-runtime_classification-cal-00",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1487,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-runtime_classification-cal-00",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2324,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-runtime_classification-cal-00",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 650,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 400,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-runtime_classification-cal-01",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1450,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-runtime_classification-cal-01",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2324,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-runtime_classification-cal-01",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 650,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 400,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "a-support-triage-agent_tool_selection-eva-00",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1524,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-agent_tool_selection-eva-00",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2250,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-agent_tool_selection-eva-00",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 650,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 400,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "a-support-triage-agent_tool_selection-eva-01",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1450,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        },
+        {
+          "latency_ms": 1200,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-agent_tool_selection-eva-01",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2250,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-agent_tool_selection-eva-01",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 724,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 474,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "a-support-triage-agent_tool_selection-eva-02",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1524,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-agent_tool_selection-eva-02",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2287,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-agent_tool_selection-eva-02",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 687,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 437,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "a-support-triage-agent_tool_selection-eva-03",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1487,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-agent_tool_selection-eva-03",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2287,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-agent_tool_selection-eva-03",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 687,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 437,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "a-support-triage-agent_tool_selection-eva-04",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1450,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        },
+        {
+          "latency_ms": 1200,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-agent_tool_selection-eva-04",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2324,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-agent_tool_selection-eva-04",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 650,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 400,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "a-support-triage-agent_tool_selection-cal-00",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1487,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-agent_tool_selection-cal-00",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2250,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-agent_tool_selection-cal-00",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 724,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 474,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "a-support-triage-agent_tool_selection-cal-01",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1487,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-agent_tool_selection-cal-01",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2250,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-support-triage-agent_tool_selection-cal-01",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 687,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 437,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "a-order-agent-agent_tool_selection-eva-00",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1524,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-order-agent-agent_tool_selection-eva-00",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2250,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-order-agent-agent_tool_selection-eva-00",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 687,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 437,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "a-order-agent-agent_tool_selection-eva-01",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1524,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-order-agent-agent_tool_selection-eva-01",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2324,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-order-agent-agent_tool_selection-eva-01",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 650,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 400,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "a-order-agent-agent_tool_selection-eva-02",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1524,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-order-agent-agent_tool_selection-eva-02",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2324,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-order-agent-agent_tool_selection-eva-02",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 687,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 437,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "a-order-agent-agent_tool_selection-eva-03",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1487,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-order-agent-agent_tool_selection-eva-03",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2287,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-order-agent-agent_tool_selection-eva-03",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 724,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 474,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "a-order-agent-agent_tool_selection-eva-04",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1487,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-order-agent-agent_tool_selection-eva-04",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2250,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-order-agent-agent_tool_selection-eva-04",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 650,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 400,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "a-order-agent-agent_tool_selection-cal-00",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1524,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-order-agent-agent_tool_selection-cal-00",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2287,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-order-agent-agent_tool_selection-cal-00",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 687,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 437,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "a-order-agent-multi_turn_recovery-eva-00",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1487,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        },
+        {
+          "latency_ms": 1237,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-order-agent-multi_turn_recovery-eva-00",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2250,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-order-agent-multi_turn_recovery-eva-00",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 724,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 474,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "a-order-agent-multi_turn_recovery-eva-01",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1450,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        },
+        {
+          "latency_ms": 1200,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": false,
+      "item": "a-order-agent-multi_turn_recovery-eva-01",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2287,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-order-agent-multi_turn_recovery-eva-01",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 650,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 400,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "a-order-agent-multi_turn_recovery-eva-02",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1524,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        },
+        {
+          "latency_ms": 1274,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-order-agent-multi_turn_recovery-eva-02",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2324,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-order-agent-multi_turn_recovery-eva-02",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 687,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 437,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "a-order-agent-multi_turn_recovery-eva-03",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1450,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        },
+        {
+          "latency_ms": 1200,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": false,
+      "item": "a-order-agent-multi_turn_recovery-eva-03",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2287,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-order-agent-multi_turn_recovery-eva-03",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 650,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 400,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "a-order-agent-multi_turn_recovery-eva-04",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1487,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        },
+        {
+          "latency_ms": 1237,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-order-agent-multi_turn_recovery-eva-04",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2324,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-order-agent-multi_turn_recovery-eva-04",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 650,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        },
+        {
+          "latency_ms": 400,
+          "result": "failed",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": false,
+      "item": "a-order-agent-multi_turn_recovery-cal-00",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1524,
+          "result": "failed",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        },
+        {
+          "latency_ms": 1274,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 4000,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-order-agent-multi_turn_recovery-cal-00",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2324,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-order-agent-multi_turn_recovery-cal-00",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 724,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-order-agent-runtime_classification-eva-00",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1487,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-order-agent-runtime_classification-eva-00",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2287,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-order-agent-runtime_classification-eva-00",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 724,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-order-agent-runtime_classification-eva-01",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1487,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-order-agent-runtime_classification-eva-01",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2287,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-order-agent-runtime_classification-eva-01",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 724,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-order-agent-runtime_classification-eva-02",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1450,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-order-agent-runtime_classification-eva-02",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2250,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-order-agent-runtime_classification-eva-02",
+      "model": "m-strong",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 687,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 600
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-order-agent-runtime_classification-cal-00",
+      "model": "m-cheap",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 1524,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 700
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-order-agent-runtime_classification-cal-00",
+      "model": "m-mid",
+      "regressions": 0
+    },
+    {
+      "attempts": [
+        {
+          "latency_ms": 2250,
+          "result": "accepted",
+          "usage": {
+            "cache_read": 0,
+            "cache_write": 0,
+            "input_total": 6000,
+            "output": 800
+          }
+        }
+      ],
+      "completed": true,
+      "item": "a-order-agent-runtime_classification-cal-00",
+      "model": "m-strong",
+      "regressions": 0
+    }
+  ],
+  "schema": "semaprax.harness-routing-fixture-outcomes.v1"
+}

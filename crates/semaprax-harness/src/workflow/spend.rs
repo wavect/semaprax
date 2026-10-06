@@ -14,6 +14,7 @@
 
 use super::journal::Journal;
 use crate::diag::{HarnessDiagnostic, HarnessResult};
+use crate::receipt::price::price_line;
 use crate::receipt::{CostEstimate, PriceBook, Pricing, ProposalReceipt};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
@@ -173,6 +174,15 @@ pub struct CostBound {
 /// Every input token is priced at the dearest input category (uncached,
 /// cache read or cache write) because a cache hit is never confirmed before
 /// dispatch. Missing input or output prices leave the call unpriced.
+///
+/// Rounding follows `PriceBook::estimate` (MN-02, `price_line`): input and
+/// output are rounded up apart, and when the dearest input rate is not a
+/// whole number of micro-units per token, one more micro-unit is reserved for
+/// each further priced input category the provider may split the input
+/// across (cache read, cache write, one-hour cache write), so in-bound usage
+/// never estimates above its reservation. A bound that overflows `u64`
+/// saturates at `u64::MAX` (still reported unpriced, so strict mode refuses
+/// it) rather than falling back to a cheap catalog figure.
 pub fn call_bound(
     prices: &PriceBook,
     model: &str,
@@ -205,14 +215,19 @@ pub fn call_bound(
     let (Some(input), Some(output)) = (input, output) else {
         return unpriced("missing_price");
     };
-    let in_rate = [Some(input), read, write, write_1h]
-        .into_iter()
-        .flatten()
-        .max()
-        .unwrap_or(input);
-    let one = (input_tokens as u128 * in_rate as u128)
-        .checked_add(output_cap as u128 * output as u128)
-        .map(|n| n.div_ceil(1_000_000));
+    let in_rates = [Some(input), read, write, write_1h];
+    let in_rate = in_rates.into_iter().flatten().max().unwrap_or(input);
+    // Per-category rounding can exceed one combined ceiling by at most one
+    // micro-unit per extra input partition, and only for a fractional rate.
+    let partitions = in_rates.iter().flatten().count() as u128;
+    let slack = if in_rate % 1_000_000 == 0 {
+        0
+    } else {
+        partitions - 1
+    };
+    let one = price_line(input_tokens, in_rate)
+        .checked_add(slack)
+        .and_then(|n| n.checked_add(price_line(output_cap, output)));
     match one
         .and_then(|n| n.checked_mul(dispatches.max(1) as u128))
         .and_then(|n| u64::try_from(n).ok())
@@ -221,7 +236,10 @@ pub fn call_bound(
             micros: Some(n),
             billing: Billing::Priced(rec.version.clone()),
         },
-        None => unpriced("overflow"),
+        None => CostBound {
+            micros: Some(u64::MAX),
+            billing: Billing::Unpriced("overflow".into()),
+        },
     }
 }
 
@@ -268,10 +286,6 @@ impl SpendRecord {
                "reserved_tokens": self.reserved_tokens, "reserved_cost_micros": self.reserved_cost,
                "billing": self.billing.to_json()})
     }
-    fn settle_detail(&self) -> Value {
-        json!({"id": self.id, "actual_cost_micros": self.actual_cost, "settled_tokens": self.settled_tokens,
-               "breach": self.breach, "basis": self.basis})
-    }
     fn to_json(&self) -> Value {
         json!({"id": self.id, "kind": self.kind, "label": self.label, "model": self.model,
                "state": self.state.as_str(), "billing": self.billing.to_json(),
@@ -293,6 +307,10 @@ pub struct Settlement {
 }
 
 impl Settlement {
+    fn detail(&self, id: &str) -> Value {
+        json!({"id": id, "actual_cost_micros": self.actual_cost, "settled_tokens": self.settled_tokens,
+               "breach": self.breach, "basis": self.basis})
+    }
     pub fn released(why: &str) -> Self {
         Self {
             state: SpendState::Released,
@@ -367,6 +385,11 @@ pub struct SpendBook {
     pub records: Vec<SpendRecord>,
     pub limits: Limits,
     pub breach: Option<String>,
+    /// Set when a journal append failed (MN-03): what reached storage is
+    /// unknown, so the live book keeps its last acknowledged state and
+    /// refuses every further admission or settlement until the lineage is
+    /// reopened and restored from the journal.
+    pub unreconciled: Option<String>,
 }
 
 impl SpendBook {
@@ -401,6 +424,7 @@ impl SpendBook {
 
     /// Would `rec` be admitted now? No side effect.
     pub fn check(&self, rec: &SpendRecord) -> HarnessResult<()> {
+        self.reconciled()?;
         let l = &self.limits;
         if rec.billing.billable() {
             if let Some(b) = &self.breach {
@@ -466,6 +490,32 @@ impl SpendBook {
         Ok(())
     }
 
+    /// Refuse while an earlier append's durability is unknown.
+    fn reconciled(&self) -> HarnessResult<()> {
+        match &self.unreconciled {
+            Some(why) => Err(d(
+                "SPX-HPD070",
+                format!("spend accounting is pending reconciliation ({why}); reopen the lineage journal before further admission or settlement"),
+            )),
+            None => Ok(()),
+        }
+    }
+
+    /// Append one spend record; on failure mark the book unreconciled.
+    fn persist(
+        &mut self,
+        journal: &mut Journal,
+        id: &str,
+        state: &str,
+        detail: Value,
+    ) -> HarnessResult<()> {
+        journal
+            .append(&format!("{STEP_PREFIX}{id}"), state, detail)
+            .inspect_err(|e| {
+                self.unreconciled = Some(format!("`{id}` {state} append failed: {}", e.code));
+            })
+    }
+
     /// Admit and record `rec`, persisting it before the caller dispatches.
     pub fn reserve(&mut self, journal: &mut Journal, rec: SpendRecord) -> HarnessResult<()> {
         self.check(&rec)?;
@@ -473,64 +523,68 @@ impl SpendBook {
             return Err(corrupt(format!("attempt id `{}` reused", rec.id)));
         }
         if rec.persist {
-            journal.append(
-                &format!("{STEP_PREFIX}{}", rec.id),
-                "reserve",
-                rec.reserve_detail(),
-            )?;
+            self.persist(journal, &rec.id, "reserve", rec.reserve_detail())?;
         }
         self.records.push(rec);
         Ok(())
     }
 
-    fn apply(&mut self, id: &str, s: &Settlement) -> HarnessResult<bool> {
-        let rec = self
+    /// Validate the transition of `id` to `s` without publishing it: the
+    /// index to update, or `None` for an identical repeat of a terminal state.
+    fn transition(&self, id: &str, s: &Settlement) -> HarnessResult<Option<usize>> {
+        let (i, rec) = self
             .records
-            .iter_mut()
-            .find(|r| r.id == id)
+            .iter()
+            .enumerate()
+            .find(|(_, r)| r.id == id)
             .ok_or_else(|| corrupt(format!("settlement of unknown attempt `{id}`")))?;
         let same = rec.state == s.state
             && rec.actual_cost == s.actual_cost
             && rec.settled_tokens == s.settled_tokens
             && rec.breach == s.breach;
         match (rec.state, s.state) {
-            _ if same && rec.state != SpendState::Reserved => return Ok(false),
+            _ if same && rec.state != SpendState::Reserved => Ok(None),
             (
                 SpendState::Reserved,
                 SpendState::Settled | SpendState::Uncertain | SpendState::Released,
             )
-            | (SpendState::Uncertain, SpendState::Settled) => {}
-            (from, to) => {
-                return Err(corrupt(format!(
-                    "attempt `{id}` cannot go from {} to {}",
-                    from.as_str(),
-                    to.as_str()
-                )))
-            }
+            | (SpendState::Uncertain, SpendState::Settled) => Ok(Some(i)),
+            (from, to) => Err(corrupt(format!(
+                "attempt `{id}` cannot go from {} to {}",
+                from.as_str(),
+                to.as_str()
+            ))),
+        }
+    }
+
+    /// Publish a validated transition to live accounting.
+    fn commit(&mut self, i: usize, s: Settlement) {
+        let rec = &mut self.records[i];
+        if let Some(b) = &s.breach {
+            self.breach
+                .get_or_insert_with(|| format!("{}: {b}", rec.id));
         }
         rec.state = s.state;
         rec.actual_cost = s.actual_cost;
         rec.settled_tokens = s.settled_tokens;
-        rec.breach = s.breach.clone();
-        rec.basis = s.basis.clone();
-        if let Some(b) = &s.breach {
-            self.breach.get_or_insert_with(|| format!("{id}: {b}"));
-        }
-        Ok(true)
+        rec.breach = s.breach;
+        rec.basis = s.basis;
     }
 
-    /// Settle (idempotently) and persist before the caller records completion.
+    /// Settle (idempotently) and persist before the caller records
+    /// completion. The live book changes only after the append is
+    /// acknowledged (MN-03); a failed append leaves the attempt at its
+    /// conservative prior state and marks the book unreconciled, so an
+    /// identical retry refuses instead of reporting false durable success.
     pub fn settle(&mut self, journal: &mut Journal, id: &str, s: Settlement) -> HarnessResult<()> {
-        if self.apply(id, &s)? {
-            let rec = self.record(id).expect("applied");
-            if rec.persist {
-                journal.append(
-                    &format!("{STEP_PREFIX}{id}"),
-                    s.state.journal_state(),
-                    rec.settle_detail(),
-                )?;
-            }
+        self.reconciled()?;
+        let Some(i) = self.transition(id, &s)? else {
+            return Ok(());
+        };
+        if self.records[i].persist {
+            self.persist(journal, id, s.state.journal_state(), s.detail(id))?;
         }
+        self.commit(i, s);
         Ok(())
     }
 
@@ -604,7 +658,9 @@ impl SpendBook {
                 if state == SpendState::Settled && s.actual_cost.is_none() {
                     return Err(corrupt(format!("record {} settles without a cost", r.seq)));
                 }
-                self.apply(id, &s)?;
+                if let Some(i) = self.transition(id, &s)? {
+                    self.commit(i, s);
+                }
             }
         }
         Ok(())

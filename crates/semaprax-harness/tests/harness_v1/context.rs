@@ -1127,6 +1127,9 @@ fn hp_hp05_real_graphify_through_the_broker() {
 #[path = "context_plan.rs"]
 mod hn13;
 
+#[path = "context_binding.rs"]
+mod mn05;
+
 // ---- HN-10 index adoption and worktree-safe refresh (fixture prefix `hp-hnf`) ----------
 
 mod index_adoption_tests {

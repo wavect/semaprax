@@ -37,6 +37,8 @@ pub(super) fn parse_wrapper(wire: &str) -> Result<(), Diagnostic> {
         return Err(limit_error("resolution evidence exceeds output bound"));
     }
     validate_json(wire)?;
+    #[cfg(test)]
+    super::counters::record_evidence_decode();
     let value: Value =
         serde_json::from_str(wire).map_err(|_| wire_error("resolution evidence is not JSON"))?;
     require_keys(&value, &["schema", "digest", "bytes", "payload"], "wrapper")?;
@@ -406,13 +408,6 @@ impl DuplicateParser<'_> {
     fn peek(&self) -> Option<u8> {
         self.bytes.get(self.offset).copied()
     }
-}
-
-pub(super) fn required_str<'a>(value: &'a Value, key: &str) -> Result<&'a str, Diagnostic> {
-    value
-        .get(key)
-        .and_then(Value::as_str)
-        .ok_or_else(|| wire_error(format!("{key} must be string")))
 }
 
 pub(super) fn digest(domain: &[u8], bytes: &[u8]) -> String {

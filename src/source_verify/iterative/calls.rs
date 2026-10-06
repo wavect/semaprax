@@ -495,7 +495,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         self.current.name
                     ),
                     expression.span,
-                ));
+                ).with_help(crate::source_verify::hints::TRY_RESULT_RETURN_HELP));
                 self.values.push(Some(CheckedValue::value(ok.clone())));
                 return Ok(());
             };

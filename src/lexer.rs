@@ -114,12 +114,32 @@ pub struct Comments {
     pub first_token_offset: usize,
 }
 
+/// Lex the source into tokens. Comments are scanned to keep spans exact, but
+/// no comment text or retained row is materialized on this path.
 pub fn lex(source: &str, path: &str) -> Result<Vec<Token>, Diagnostic> {
-    lex_with_comments(source, path).map(|(tokens, _)| tokens)
+    lex_source(source, path, false).map(|(tokens, _)| tokens)
 }
 
 /// Lex the source and also return every comment, in source order.
 pub fn lex_with_comments(source: &str, path: &str) -> Result<(Vec<Token>, Comments), Diagnostic> {
+    lex_source(source, path, true)
+}
+
+// Test-only count of retained comment rows and comment-text bytes copied by
+// the lexer on the current thread, proving token-only lexing allocates none.
+#[cfg(test)]
+thread_local! {
+    pub(crate) static TEST_COMMENT_MATERIALIZATION: std::cell::Cell<(usize, usize)> =
+        const { std::cell::Cell::new((0, 0)) };
+}
+
+/// The one scanner behind both entry points. `collect_comments` only decides
+/// whether scanned comments are retained; scanning itself is identical.
+fn lex_source(
+    source: &str,
+    path: &str,
+    collect_comments: bool,
+) -> Result<(Vec<Token>, Comments), Diagnostic> {
     if source.starts_with('\u{feff}') {
         return Err(Diagnostic::error(
             "SPX-P001",
@@ -142,7 +162,7 @@ pub fn lex_with_comments(source: &str, path: &str) -> Result<(Vec<Token>, Commen
         column: 1,
         token_on_line: false,
         previous_token_line: 0,
-        comments: Vec::new(),
+        comments: collect_comments.then(Vec::new),
     }
     .lex_all()
 }
@@ -157,7 +177,8 @@ struct Lexer<'a> {
     /// decides whether a comment is on its own line or trails a token.
     token_on_line: bool,
     previous_token_line: usize,
-    comments: Vec<Comment>,
+    /// Retained comments, or `None` on the token-only path.
+    comments: Option<Vec<Comment>>,
 }
 
 impl Lexer<'_> {
@@ -180,7 +201,7 @@ impl Lexer<'_> {
         Ok((
             tokens,
             Comments {
-                items: self.comments,
+                items: self.comments.unwrap_or_default(),
                 first_token_offset,
             },
         ))
@@ -198,13 +219,19 @@ impl Lexer<'_> {
                 while !matches!(self.peek(), None | Some('\n')) {
                     self.bump();
                 }
-                self.comments.push(Comment {
-                    text: self.source[offset + 2..self.offset].trim_end().to_owned(),
-                    offset,
-                    line,
-                    own_line,
-                    previous_token_line: self.previous_token_line,
-                });
+                if let Some(comments) = &mut self.comments {
+                    let text = self.source[offset + 2..self.offset].trim_end().to_owned();
+                    #[cfg(test)]
+                    TEST_COMMENT_MATERIALIZATION
+                        .with(|count| count.set((count.get().0 + 1, count.get().1 + text.len())));
+                    comments.push(Comment {
+                        text,
+                        offset,
+                        line,
+                        own_line,
+                        previous_token_line: self.previous_token_line,
+                    });
+                }
                 continue;
             }
             break;

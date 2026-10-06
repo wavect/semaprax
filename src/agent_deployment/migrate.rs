@@ -13,8 +13,8 @@ use crate::agent_definition::compile_agent_definition;
 use crate::diagnostic::Diagnostic;
 
 use super::documents::{
-    canonical_identifier, render_definition_v2, render_deployment, tool_capabilities, tool_ids,
-    DefinitionV2, Deployment,
+    admit_models, canonical_identifier, render_definition_v2, render_deployment, tool_capabilities,
+    tool_ids, DefinitionV2, Deployment,
 };
 use super::{
     definition_invariant, definition_malformed, deployment_invariant, digest, DEFINITION_V2_DOMAIN,
@@ -99,7 +99,7 @@ fn split(v1_source: &str, deployment_id: &str) -> Result<(String, String), Diagn
     let deployment = Deployment {
         deployment_id: deployment_id.to_owned(),
         definition_digest: digest(DEFINITION_V2_DOMAIN, definition_source.as_bytes()),
-        models,
+        models: admit_models(&models).map_err(|_| definition_malformed())?,
         allowed_provider_ids: list(policy.get("allowed_provider_ids"))?,
         allowed_model_ids: list(policy.get("allowed_model_ids"))?,
         granted_capabilities,

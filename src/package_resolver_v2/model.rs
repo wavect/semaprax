@@ -206,6 +206,9 @@ pub(super) fn recheck_lock_policy(lock: &str, input: &ResolutionInput) -> Result
     Ok(())
 }
 
+/// Test-only structural extractor kept as the equivalence oracle for the
+/// receipt lock that `verify` now takes from the independent rebuild.
+#[cfg(test)]
 pub(super) fn exact_lock_bytes(evidence: &str) -> Result<&str, Diagnostic> {
     const START: &str = "\"lock\":";
     let start = evidence
@@ -224,6 +227,7 @@ pub(super) fn exact_lock_bytes(evidence: &str) -> Result<&str, Diagnostic> {
     Ok(&evidence[start..end])
 }
 
+#[cfg(test)]
 fn structural_json_value_end(bytes: &[u8], start: usize) -> Result<usize, Diagnostic> {
     if bytes.get(start) != Some(&b'{') {
         return Err(wire::wire_error("embedded Lock-v3 must be a JSON object"));

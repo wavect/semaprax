@@ -76,7 +76,7 @@ for (const [label, bin] of INSTALLS) describe(`mixed Semaprax app (real graft, $
     assert.deepEqual(readdirSync(join(work, 'bin')).sort(), ['git', 'node'], 'PATH holds only node and git (no npm)');
     const f = join(work, 'home', '.graft', 'update-check.json');
     if (existsSync(f)) assert.equal(JSON.parse(readFileSync(f, 'utf8')).latest, null, 'an update check that ran learned nothing: it had no npm and no network');
-    for (const d of readdirSync(work)) assert.ok(['bin', 'home', 'tmp', 'cwd', 'gen', 'CURRENT', 'owner.json'].includes(d), `unexpected cache entry ${d}`);
+    for (const d of readdirSync(work)) assert.ok(['bin', 'home', 'tmp', 'cwd', 'gen', 'leases', 'CURRENT', 'owner.json'].includes(d) || /^refresh\.lock(\.\d+)?$/.test(d), `unexpected cache entry ${d}`);
   });
 
   test('two processes during a real refresh: the reader gets a complete old or complete new generation, never an error', async () => {

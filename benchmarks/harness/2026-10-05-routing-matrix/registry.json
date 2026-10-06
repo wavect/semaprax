@@ -1,0 +1,202 @@
+{
+  "decision_profiles": [
+    {
+      "descriptor": "packages/semaprax-harness-adapters/systemone/laya-local/harness-provider.json",
+      "domains": [
+        "development",
+        "application"
+      ],
+      "instance": {
+        "endpoint": "http://127.0.0.1:8000",
+        "instance_id": "laya-loopback"
+      },
+      "model_profile": {
+        "checkpoint": "laya-7b928d828b7b-multilingual",
+        "identity_kind": "local_declared",
+        "model": "multilingual",
+        "profile_id": "laya-multilingual",
+        "score_kind": "option_distribution",
+        "scoreless": false
+      },
+      "requires": {
+        "env": [
+          "SEMAPRAX_MATRIX_LAYA_READY"
+        ]
+      },
+      "router_price": "non_billed"
+    },
+    {
+      "descriptor": "packages/semaprax-harness-adapters/systemone/jev-hosted/harness-provider.json",
+      "domains": [
+        "development",
+        "application"
+      ],
+      "instance": {
+        "instance_id": "jev-hosted"
+      },
+      "model_profile": {
+        "checkpoint": null,
+        "identity_kind": "mutable_service",
+        "model": "jev-latest",
+        "profile_id": "jev-latest",
+        "score_kind": "option_distribution",
+        "scoreless": false
+      },
+      "router_price": {
+        "input": 1000000,
+        "max_call_micros": 2000,
+        "output": 4000000
+      }
+    },
+    {
+      "descriptor": "packages/semaprax-harness-adapters/minijev-local/harness-provider.json",
+      "domains": [
+        "development",
+        "application"
+      ],
+      "instance": {
+        "instance_id": "minijev-worker"
+      },
+      "model_profile": {
+        "checkpoint": "minijev-operator-pinned",
+        "identity_kind": "local_declared",
+        "model": "minijev",
+        "profile_id": "minijev-local",
+        "score_kind": "candidate_relative",
+        "scoreless": false
+      },
+      "requires": {
+        "env": [
+          "SEMAPRAX_MATRIX_MINIJEV_WORKER"
+        ]
+      },
+      "router_price": "non_billed"
+    },
+    {
+      "descriptor": "packages/semaprax-harness-adapters/systemone/cloudflare-clef-hosted/harness-provider.json",
+      "domains": [
+        "development",
+        "application"
+      ],
+      "instance": {
+        "instance_id": "clef-hosted"
+      },
+      "model_profile": {
+        "checkpoint": null,
+        "identity_kind": "mutable_service",
+        "model": "clef",
+        "profile_id": "cf-clef",
+        "score_kind": "option_distribution",
+        "scoreless": false
+      },
+      "router_price": {
+        "input": 1000000,
+        "max_call_micros": 2000,
+        "output": 4000000
+      }
+    },
+    {
+      "descriptor": "packages/semaprax-harness-adapters/systemone/cloudflare-clef-hosted/harness-provider.json",
+      "domains": [
+        "development",
+        "application"
+      ],
+      "instance": {
+        "instance_id": "clef-flash-hosted"
+      },
+      "model_profile": {
+        "checkpoint": null,
+        "identity_kind": "mutable_service",
+        "model": "clef-flash",
+        "profile_id": "cf-clef-flash",
+        "score_kind": "option_distribution",
+        "scoreless": false
+      },
+      "router_price": {
+        "input": 500000,
+        "max_call_micros": 1000,
+        "output": 2000000
+      }
+    },
+    {
+      "descriptor": "packages/semaprax-harness-adapters/clef-local/harness-provider.json",
+      "domains": [
+        "development",
+        "application"
+      ],
+      "instance": {
+        "instance_id": "clef-local-worker"
+      },
+      "model_profile": {
+        "checkpoint": "clef-lock-v1",
+        "identity_kind": "local_declared",
+        "model": "clef",
+        "profile_id": "clef-local",
+        "score_kind": "option_distribution",
+        "scoreless": false
+      },
+      "requires": {
+        "env": [
+          "SEMAPRAX_MATRIX_CLEF_WORKER"
+        ],
+        "hardware": [
+          "cuda"
+        ]
+      },
+      "router_price": "non_billed"
+    }
+  ],
+  "description": "MR-13 approved profiles. Generation profiles are the logical catalog models; their requirements name the variables a real executor needs. Decision profiles are the bundled decision adapters with MR-15 model profiles; requirements are variable names and hardware tags only.",
+  "executor": {
+    "argv": [
+      "/bin/sh",
+      "-c",
+      "exec \"$SEMAPRAX_MATRIX_EXECUTOR\""
+    ],
+    "identity": "operator-executor",
+    "requires": {
+      "env": [
+        "SEMAPRAX_MATRIX_EXECUTOR"
+      ]
+    }
+  },
+  "generation_profiles": [
+    {
+      "domains": [
+        "development",
+        "application"
+      ],
+      "model": "m-cheap",
+      "requires": {
+        "env": [
+          "HARNESS_OLLAMA_ENDPOINT"
+        ]
+      }
+    },
+    {
+      "domains": [
+        "development",
+        "application"
+      ],
+      "model": "m-mid",
+      "requires": {
+        "env": [
+          "SEMAPRAX_MATRIX_MID_ENDPOINT"
+        ]
+      }
+    },
+    {
+      "domains": [
+        "development",
+        "application"
+      ],
+      "model": "m-strong",
+      "requires": {
+        "env": [
+          "SEMAPRAX_MATRIX_STRONG_API_KEY"
+        ]
+      }
+    }
+  ],
+  "schema": "semaprax.harness-routing-registry.v1"
+}

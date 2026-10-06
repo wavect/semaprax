@@ -24,7 +24,8 @@ const CONTRIBUTED = [
   'semaprax.checkProject', 'semaprax.goToDeclaration', 'semaprax.showReferences',
   'semaprax.showDocumentation', 'semaprax.showOwnership', 'semaprax.inspectAgent',
   'semaprax.safeRename', 'semaprax.showCleanupPlan', 'semaprax.runAgentTranscript'
-  ,'semaprax.openExplorer', 'semaprax.exploreSelection', 'semaprax.reviewCandidateGraph', 'semaprax.showTokenReport'
+  ,'semaprax.openExplorer', 'semaprax.exploreSelection', 'semaprax.reviewCandidateGraph', 'semaprax.showTokenReport',
+  'semaprax.showHarnessStatus', 'semaprax.inspectHarnessProvider'
 ];
 // Authority this extension must never contribute or register, whatever a host
 // selects. Build, commit and publication stay outside the editor entirely.
@@ -294,6 +295,30 @@ process.on('SIGTERM',()=>{if(lastPlan)output({schema:'semaprax.hot-reload-contro
     assert.match(vscode.window.activeTextEditor.document.getText(), /2 tokens saved versus reference/);
     const hostile = path.join(reportDirectory, 'hostile.json'); fs.writeFileSync(hostile, '{"schema":"x","schema":"y"}');
     api.enqueueReport(vscode.Uri.file(hostile)); await assert.rejects(api.execute('showTokenReport'), /Duplicate JSON key/);
+    // View lifecycle: a failed load admits nothing, a language change keeps
+    // the content, and the view is released only when VS Code retires its
+    // document; a tab-only close of a still-live document keeps it.
+    const tick = () => new Promise(resolve => setTimeout(resolve, 100));
+    const views = () => api.state().virtualStores.tokenReports;
+    const live = views().count;
+    assert.ok(live >= 1 && live <= 4, `report views are bounded by the views opened: ${live}`);
+    const shown = vscode.window.activeTextEditor.document;
+    const key = shown.uri.toString();
+    assert.ok(views().uris.includes(key), 'the shown report view is retained');
+    const switched = await vscode.languages.setTextDocumentLanguage(shown, 'markdown');
+    await tick();
+    assert.ok(views().uris.includes(key), 'a language change does not retire the view');
+    assert.match(switched.getText(), /Measured pairs/);
+    const retired = new Promise(resolve => {
+      const subscription = vscode.workspace.onDidCloseTextDocument(doc => { if (doc.uri.toString() === key) { subscription.dispose(); resolve(true); } });
+      setTimeout(() => { subscription.dispose(); resolve(false); }, 3000);
+    });
+    await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+    const disposed = await retired;
+    await tick();
+    if (disposed) assert.ok(!views().uris.includes(key), 'a retired document releases its view');
+    else assert.ok(views().uris.includes(key), 'a tab-only close keeps the still-live document');
+    assert.ok(views().bytes >= 0);
     assert.equal(api.state().running, false, 'report snapshots must not start a compiler or MCP session');
     assert.deepEqual(fs.readFileSync(source), reportSourceBefore, 'report snapshots must not write source');
   } finally { fs.rmSync(reportDirectory, { recursive: true, force: true }); }
@@ -330,6 +355,15 @@ process.on('SIGTERM',()=>{if(lastPlan)output({schema:'semaprax.hot-reload-contro
     assert.equal(empty.failure, 'check exited 0 without printing a verified record');
     assert.equal(api.checks.collection.get(vscode.Uri.file(probe)).length, 1);
 
+    // A verified record carrying a raw malformed byte is a transport failure:
+    // it is neither replacement-decoded nor allowed to clear the diagnostics.
+    const corrupt = path.join(probeDirectory, 'corrupt-compiler');
+    fs.writeFileSync(corrupt, `#!/bin/sh\nprintf '{"status":"verified","path":"/fixture/\\377.spx","revision":"sha256:${'a'.repeat(64)}"}\\n'\nexit 0\n`, { mode: 0o700 });
+    const undecodable = await api.checks.check(probe, corrupt);
+    assert.equal(undecodable.failure, 'check output is not valid UTF-8');
+    assert.equal(undecodable.retained, true);
+    assert.equal(api.checks.collection.get(vscode.Uri.file(probe)).length, 1, 'an undecodable check keeps the previous diagnostics');
+
     // Only a believable verified run clears them.
     fs.writeFileSync(probe, 'module probe;\n\n@id("probe.main")\nfn main() -> i64\n{\n    0\n}\n');
     const verified = await api.checks.check(probe, compiler);
@@ -340,6 +374,46 @@ process.on('SIGTERM',()=>{if(lastPlan)output({schema:'semaprax.hot-reload-contro
     // is therefore only observable through `has`, which is the entry predicate.
     assert.equal(api.checks.collection.has(vscode.Uri.file(probe)), false, 'the entry is removed, not emptied');
     assert.deepEqual(api.checks.collection.get(vscode.Uri.file(probe)), []);
+
+    // Overlapping subjects: a second standalone subject also reports the probe
+    // file. Each contribution is retained, a clean result for one subject
+    // keeps the other's diagnostic, a failed run changes nothing, and only the
+    // last owner's clean result removes the entry.
+    const other = path.join(probeDirectory, 'other.spx');
+    fs.writeFileSync(other, 'module other;\n');
+    const overlapError = path.join(probeDirectory, 'overlap-error-compiler');
+    fs.writeFileSync(overlapError, `#!/bin/sh\nprintf '%s\\n' '${JSON.stringify({ code: 'SPX-T999', severity: 'error', message: 'overlap', path: probe, location: null, help: null })}'\nexit 1\n`, { mode: 0o700 });
+    const overlapClean = path.join(probeDirectory, 'overlap-clean-compiler');
+    fs.writeFileSync(overlapClean, `#!/bin/sh\nprintf '%s\\n' '${JSON.stringify({ status: 'verified', path: other, revision: 'sha256:' + 'c'.repeat(64) })}'\nexit 0\n`, { mode: 0o700 });
+    fs.writeFileSync(probe, 'module probe;\n\n@id("probe.main")\nfn main() -> i64\n{\n    let greeting: string = "\u{1F600}"; undefined_call()\n}\n');
+    assert.equal((await api.checks.check(probe, compiler)).failure, undefined);
+    assert.equal((await api.checks.check(other, overlapError)).failure, undefined);
+    const codes = () => api.checks.collection.get(vscode.Uri.file(probe)).map(diagnostic => String(diagnostic.code)).sort();
+    assert.deepEqual(codes(), ['SPX-T203', 'SPX-T999'], 'both subjects contribute to the shared file');
+    fs.writeFileSync(probe, 'module probe;\n\n@id("probe.main")\nfn main() -> i64\n{\n    0\n}\n');
+    assert.equal((await api.checks.check(probe, compiler)).failure, undefined);
+    assert.deepEqual(codes(), ['SPX-T999'], 'a clean probe check keeps the other subject\'s diagnostic');
+    assert.match((await api.checks.check(other, broken)).failure, /neither a diagnostic nor a verified record/);
+    assert.deepEqual(codes(), ['SPX-T999'], 'a failed check leaves every contribution unchanged');
+    assert.equal((await api.checks.check(other, overlapClean)).failure, undefined);
+    assert.equal(api.checks.collection.has(vscode.Uri.file(probe)), false, 'the last owner\'s clean result removes the entry');
+
+    // A query with a malformed row is an invalid result: the commands report
+    // that, never "declares nothing" or "nothing calls", and lenses decline.
+    const malformedQuery = path.join(probeDirectory, 'malformed-query-compiler');
+    const malformedRow = { kind: 'function', id: 'probe.main', name: 'main', persistent: true, signature: 'fn main() -> i64', location: { line: 4, column: 4, start: 34, end: 38 }, effects: 'clock.read', calls: [], called_by: [] };
+    fs.writeFileSync(malformedQuery, `#!/bin/sh\nprintf '%s\\n' '${JSON.stringify({ schema: 'semaprax.query.v1', module: 'probe', revision: 'sha256:' + 'b'.repeat(64), filters: {}, matches: [malformedRow] })}'\nexit 0\n`, { mode: 0o700 });
+    await settings.update('compilerPath', malformedQuery, vscode.ConfigurationTarget.Global);
+    try {
+      const probeDocument = await vscode.workspace.openTextDocument(vscode.Uri.file(probe));
+      await vscode.window.showTextDocument(probeDocument, { preview: false });
+      await assert.rejects(api.execute('goToDeclaration'), /invalid query result/);
+      await assert.rejects(api.execute('showReferences'), /invalid query result/);
+      assert.deepEqual(await api.checks.lensProvider.provideCodeLenses(probeDocument), []);
+    } finally {
+      await settings.update('compilerPath', compiler, vscode.ConfigurationTarget.Global);
+      await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+    }
 
     // The project route: an importing module has no standalone meaning, so
     // `app.spx` resolves its declarations, callers and lenses through the
@@ -370,6 +444,23 @@ process.on('SIGTERM',()=>{if(lastPlan)output({schema:'semaprax.hot-reload-contro
     const lenses = await api.checks.lensProvider.provideCodeLenses(appDocument);
     assert.equal(lenses.length, 1);
     assert.equal(lenses[0].command.title, '@id calculator.app.main');
+
+    // Two members of one unchanged project requested together share one real
+    // project query, and each receives its own file's lenses. A cancelled
+    // subscriber gets nothing without disturbing the other.
+    const coreDocument = await vscode.workspace.openTextDocument(vscode.Uri.file(path.join(path.dirname(manifest), 'src', 'core.spx')));
+    const leaving = new vscode.CancellationTokenSource(), staying = new vscode.CancellationTokenSource();
+    const appLenses = api.checks.lensProvider.provideCodeLenses(appDocument, leaving.token);
+    const coreLenses = api.checks.lensProvider.provideCodeLenses(coreDocument, staying.token);
+    assert.equal(api.checks.lensQueries.size, 1, 'one in-flight query serves both members');
+    leaving.cancel();
+    assert.deepEqual(await appLenses, []);
+    assert.ok((await coreLenses).some(lens => lens.command.title === '@id calculator.add'), 'the remaining subscriber receives its file\'s lenses');
+    assert.equal(api.checks.lensQueries.size, 0, 'nothing is retained after completion');
+    const together = await Promise.all([api.checks.lensProvider.provideCodeLenses(appDocument), api.checks.lensProvider.provideCodeLenses(coreDocument)]);
+    assert.deepEqual(together[0].map(lens => lens.command.title), ['@id calculator.app.main']);
+    assert.ok(together[1].some(lens => lens.command.title === '@id calculator.add'));
+    leaving.dispose(); staying.dispose();
 
     // Navigation reads saved source: a dirty buffer is refused, not guessed.
     const dirtyEditor = await vscode.window.showTextDocument(appDocument, { preview: false });

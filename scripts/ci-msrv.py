@@ -2,9 +2,11 @@
 """Partition every workspace test target without changing feature unification."""
 
 import argparse
+import codecs
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -21,6 +23,7 @@ SHARDS = (
 )
 HEAVY_UNIT_SHARD = "unit-heavy"
 HEAVY_UNIT_FILTERS = ("kernel_zero::differential::", "workspace_graph::tests::")
+HEAVY_UNIT_TEST = ["cargo", "test", "--locked", "-p", "semaprax", "--all-features", "--lib"]
 TEST = ["cargo", "test", "--locked", "--workspace", "--all-features"]
 REPAIR_FILTER = "source_live_cli::repair::tests::"
 REPAIR_TEST = [
@@ -31,19 +34,292 @@ REPAIR_TEST = [
 ]
 
 
-def repair_shard_names(listing, index, count):
+# Checked test selectors.
+#
+# A Cargo test command that selects nothing still exits 0, so a renamed or
+# moved test behind an exact selector silently stops running. The checked
+# route below lists the target with the same Cargo package, target, features
+# and toolchain it executes, refuses a missing, malformed, out-of-scope or
+# ignored-only selection before execution, then streams libtest's ordinary
+# (stable, non-JSON) output and requires one completion record per selected
+# case plus one summary whose counts are bound to the listed target.
+#
+# Migrated so far: the GEN-05B generic-instance exact-selector step in
+# .github/workflows/ci.yml, both unit-heavy families, and the source-repair
+# shards. Every other direct `cargo test ... -- --exact` selector in the
+# workflows is still unchecked; this is a bounded slice, not whole-CI coverage.
+LISTING_LIMIT = 32 * 1024 * 1024
+LINE_LIMIT = 64 * 1024
+IGNORE_POLICIES = {
+    "default": (),
+    "ignored": ("--ignored",),
+    "include-ignored": ("--include-ignored",),
+}
+EXACT_SELECTOR = re.compile(r"[A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z0-9_]+)*")
+PREFIX_SELECTOR = re.compile(r"(?:[A-Za-z_][A-Za-z0-9_]*::)+")
+LIST_SUMMARY = re.compile(r"(\d+) tests?, (\d+) benchmarks?")
+RUNNING = re.compile(r"running (\d+) tests?")
+RESULT = r"(?P<result>ok|FAILED|ignored(?:, .*)?)"
+TEST_RECORD = re.compile(r"test (?P<name>\S+)(?: - should panic)? \.\.\. " + RESULT + r"$")
+TEST_START = re.compile(r"test (?P<name>\S+)(?: - should panic)? \.\.\. ")
+LATE_RESULT = re.compile(r"(?:^|\s)(?P<result>ok|FAILED)$")
+SUMMARY = re.compile(
+    r"test result: (?P<status>ok|FAILED)\. (?P<passed>\d+) passed; (?P<failed>\d+) failed; "
+    r"(?P<ignored>\d+) ignored; (?P<measured>\d+) measured; (?P<filtered>\d+) filtered out;.*"
+)
+HARNESS_ARGUMENT = re.compile(r"--nocapture|--test-threads=[1-9][0-9]*")
+
+
+def capture_listing(command, environment, limit=LISTING_LIMIT):
+    """Run one `--list` command, keeping at most `limit` bytes of stdout."""
+    with subprocess.Popen(command, cwd=ROOT, env=environment, stdout=subprocess.PIPE) as process:
+        data = process.stdout.read(limit + 1)
+        if len(data) > limit:
+            process.kill()
+            process.wait()
+            raise ValueError(f"test inventory exceeded {limit} bytes")
+        code = process.wait()
+    if code:
+        raise subprocess.CalledProcessError(code, command)
+    try:
+        return data.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise ValueError(f"malformed test inventory: {error}") from None
+
+
+def parse_listing(text):
+    """Parse libtest's pretty `--list` output for exactly one test target."""
+    names, summaries = [], []
+    for line in text.splitlines():
+        line = line.rstrip("\r")
+        if not line.strip():
+            continue
+        summary = LIST_SUMMARY.fullmatch(line)
+        if summary:
+            summaries.append((int(summary[1]), int(summary[2])))
+            continue
+        name, separator, kind = line.rpartition(": ")
+        if not separator or kind != "test" or not name or any(c.isspace() for c in name):
+            raise ValueError(f"malformed test inventory line: {line[:200]!r}")
+        names.append(name)
+    if len(summaries) != 1:
+        raise ValueError(
+            f"test inventory must come from exactly one libtest target, found {len(summaries)}"
+        )
+    if summaries[0] != (len(names), 0):
+        raise ValueError("test inventory summary does not match its listed tests")
+    if len(set(names)) != len(names):
+        raise ValueError("test inventory lists a duplicate test")
+    return names
+
+
+def discover(base, environment):
+    """List every case and every ignored case of the one target `base` selects."""
+    names = parse_listing(capture_listing([*base, "--", "--list"], environment))
+    ignored = parse_listing(capture_listing([*base, "--", "--list", "--ignored"], environment))
+    if not set(ignored) <= set(names):
+        raise ValueError("ignored test inventory escaped the full inventory")
+    return names, frozenset(ignored)
+
+
+def _runnable(name, ignored, policy):
+    if policy == "default":
+        return name not in ignored
+    if policy == "ignored":
+        return name in ignored
+    return True
+
+
+def select_cases(names, ignored, exact=(), prefix=None, policy="default"):
+    """Return libtest filters and the exact outcome expected for each selected case."""
+    if policy not in IGNORE_POLICIES:
+        raise ValueError(f"unknown ignore policy {policy!r}")
+    if bool(exact) == (prefix is not None):
+        raise ValueError("select exact tests or one prefix family, not both or neither")
+    inventory = set(names)
+    if exact:
+        if len(set(exact)) != len(exact):
+            raise ValueError("an exact test is selected twice")
+        for name in exact:
+            if not EXACT_SELECTOR.fullmatch(name):
+                raise ValueError(f"malformed exact test selector {name!r}")
+            if name not in inventory:
+                raise ValueError(f"exact test {name} is not in the listed target")
+            if not _runnable(name, ignored, policy):
+                if policy == "default":
+                    raise ValueError(
+                        f"required test {name} is ignored; select an ignore policy deliberately"
+                    )
+                raise ValueError(f"required test {name} is not ignored, so --ignored skips it")
+        return ["--exact", *exact], {name: "ok" for name in exact}
+    if not PREFIX_SELECTOR.fullmatch(prefix):
+        raise ValueError(f"malformed test family selector {prefix!r}; use a `module::` path")
+    # libtest's non-exact filter is a substring match; inventory it the same way.
+    family = sorted(name for name in names if prefix in name)
+    escaped = [name for name in family if not name.startswith(prefix)]
+    if escaped:
+        raise ValueError(f"test family {prefix} escapes its declared scope: {escaped[0]}")
+    expected = {}
+    for name in family:
+        if _runnable(name, ignored, policy):
+            expected[name] = "ok"
+        elif policy == "default":
+            expected[name] = "ignored"
+    if "ok" not in expected.values():
+        raise ValueError(f"test family {prefix} selects no runnable case")
+    return [prefix], expected
+
+
+class ResultVerifier:
+    """Bind streamed libtest records and summary counts to the selected cases."""
+
+    def __init__(self, expected):
+        self.expected = expected
+        self.records = {}
+        self.errors = []
+        self.running = []
+        self.summaries = []
+        self.pending = None
+        self.partial = b""
+        self.overlong = False
+
+    def feed(self, raw):
+        if not raw.endswith(b"\n"):
+            if len(self.partial) + len(raw) >= LINE_LIMIT:
+                self.overlong, self.partial = True, b""
+            else:
+                self.partial += raw
+            return
+        raw, self.partial = self.partial + raw, b""
+        if self.overlong:
+            # The tail of an over-long line is test output, never a record.
+            self.overlong = False
+            return
+        self.line(raw.decode("utf-8", "replace").rstrip("\r\n"))
+
+    def record(self, name, result):
+        if name in self.records:
+            self.errors.append(f"duplicate completion record for {name}")
+        elif name not in self.expected:
+            self.errors.append(f"unselected test {name} reported a result")
+        self.records[name] = "ignored" if result.startswith("ignored") else result
+
+    def line(self, line):
+        running = RUNNING.fullmatch(line)
+        if running:
+            self.running.append(int(running[1]))
+            return
+        summary = SUMMARY.fullmatch(line)
+        if summary:
+            self.summaries.append(summary)
+            return
+        record = TEST_RECORD.match(line)
+        if record:
+            self.pending = None
+            self.record(record["name"], record["result"])
+            return
+        start = TEST_START.match(line)
+        if start:
+            # Single-threaded runs print the name before uncaptured output.
+            self.pending = start["name"]
+            return
+        late = LATE_RESULT.search(line) if self.pending else None
+        if late:
+            self.record(self.pending, late["result"])
+            self.pending = None
+
+    def finish(self, discovered):
+        if self.partial and not self.overlong:
+            self.line(self.partial.decode("utf-8", "replace").rstrip("\r\n"))
+        errors = list(self.errors)
+        selected = len(self.expected)
+        if self.running != [selected]:
+            errors.append(f"expected one libtest run of {selected} tests, saw {self.running}")
+        for name, outcome in self.expected.items():
+            actual = self.records.get(name)
+            if actual is None:
+                errors.append(f"missing completion record for {name}")
+            elif actual != outcome:
+                errors.append(f"{name} reported {actual}, expected {outcome}")
+        passed = sum(1 for outcome in self.expected.values() if outcome == "ok")
+        ignored = selected - passed
+        if len(self.summaries) != 1:
+            errors.append(f"expected one libtest summary, saw {len(self.summaries)}")
+        else:
+            summary = self.summaries[0]
+            observed = tuple(int(summary[key]) for key in ("passed", "failed", "ignored", "measured", "filtered"))
+            wanted = (passed, 0, ignored, 0, discovered - selected)
+            if summary["status"] != "ok" or observed != wanted:
+                errors.append(
+                    "libtest summary (passed, failed, ignored, measured, filtered out) "
+                    f"was {observed}, expected {wanted} for the listed target"
+                )
+        if errors:
+            raise ValueError("checked test selection failed: " + "; ".join(errors[:20]))
+        return {
+            "discovered": discovered,
+            "selected": selected,
+            "executed": passed,
+            "passed": passed,
+            "ignored": ignored,
+        }
+
+
+def run_checked(base, filters, expected, discovered, environment, *,
+                policy="default", harness=(), label="checked", out=None):
+    """Execute one selection and verify every expected case ran with its outcome.
+
+    Returns libtest's exit status when it is nonzero; raises ValueError when a
+    zero exit is not backed by a complete, target-bound result record.
+    """
+    out = sys.stdout if out is None else out
+    for argument in harness:
+        if not HARNESS_ARGUMENT.fullmatch(argument):
+            raise ValueError(f"unsupported libtest argument {argument!r}")
+    command = [*base, "--", *filters, *IGNORE_POLICIES[policy], *harness]
+    verifier = ResultVerifier(expected)
+    decoder = codecs.getincrementaldecoder("utf-8")("replace")
+    with subprocess.Popen(command, cwd=ROOT, env=environment, stdout=subprocess.PIPE) as process:
+        for raw in iter(lambda: process.stdout.readline(LINE_LIMIT), b""):
+            out.write(decoder.decode(raw))
+            out.flush()
+            verifier.feed(raw)
+        code = process.wait()
+    out.write(decoder.decode(b"", final=True))
+    if code:
+        print(f"{label}: libtest exited with status {code}", file=out, flush=True)
+        return code
+    counts = verifier.finish(discovered)
+    print(
+        f"{label}: discovered {counts['discovered']}, selected {counts['selected']}, "
+        f"executed {counts['executed']}, passed {counts['passed']}, ignored {counts['ignored']}",
+        file=out, flush=True,
+    )
+    return 0
+
+
+def run_checked_selection(base, environment, *, exact=(), prefix=None, policy="default",
+                          harness=(), label="checked", out=None):
+    names, ignored = discover(base, environment)
+    filters, expected = select_cases(names, ignored, exact, prefix, policy)
+    return run_checked(
+        base, filters, expected, len(names), environment,
+        policy=policy, harness=harness, label=label, out=out,
+    )
+
+
+def repair_shard_names(names, index, count):
     """Select every source-repair case in exactly one of `count` shards.
 
-    `listing` is libtest's `--list --format terse` output for REPAIR_FILTER.
-    Sorted names are dealt round-robin, so the shards partition the complete
-    listed inventory; a shard that would run nothing is refused rather than
-    broadened to libtest's unfiltered default.
+    `names` is the complete listed inventory of the repair target. Cases are
+    those libtest's REPAIR_FILTER substring would select; sorted names are
+    dealt round-robin, so the shards partition that inventory. A shard that
+    would run nothing is refused rather than broadened to libtest's
+    unfiltered default.
     """
     if count < 1 or not 0 <= index < count:
         raise ValueError(f"source-repair shard {index}/{count} is out of range")
-    names = sorted({
-        line[:-len(": test")] for line in listing.splitlines() if line.endswith(": test")
-    })
+    names = sorted({name for name in names if REPAIR_FILTER in name})
     if any(not name.startswith(REPAIR_FILTER) for name in names):
         raise ValueError("source-repair listing escaped its module filter")
     selected = names[index::count]
@@ -52,21 +328,62 @@ def repair_shard_names(listing, index, count):
     return selected
 
 
-def run_repair_shard(label, selector, cargo_env):
+def run_repair_shard(label, selector, cargo_env, base=REPAIR_TEST, out=None):
     index, separator, count = selector.partition("/")
     if not separator or not index.isdigit() or not count.isdigit():
         raise ValueError(f"source-repair shard {selector!r} is not <index>/<count>")
-    listing = subprocess.run(
-        REPAIR_TEST + [REPAIR_FILTER, "--", "--list", "--format", "terse"],
-        cwd=ROOT, env=cargo_env, capture_output=True, text=True, check=True,
-    )
-    names = repair_shard_names(listing.stdout, int(index), int(count))
-    print(f"{label} {selector}: {len(names)} source-repair cases", flush=True)
+    inventory, ignored = discover(base, cargo_env)
+    names = repair_shard_names(inventory, int(index), int(count))
+    expected = {name: "ignored" if name in ignored else "ok" for name in names}
+    if "ok" not in expected.values():
+        raise ValueError(f"source-repair shard {selector} would run only ignored cases")
+    print(f"{label} {selector}: {len(names)} source-repair cases", flush=True, file=out or sys.stdout)
     # One case at a time, as the unsharded job ran them.
-    return subprocess.run(
-        REPAIR_TEST + ["--", "--exact", "--test-threads=1", *names],
-        cwd=ROOT, env=cargo_env, check=False,
-    ).returncode
+    return run_checked(
+        base, ["--exact", *names], expected, len(inventory), cargo_env,
+        harness=["--test-threads=1"], label=f"{label} {selector}", out=out,
+    )
+
+
+def checked_main(argv):
+    """`ci-msrv.py checked`: run exact tests or one module family, checked."""
+    parser = argparse.ArgumentParser(prog="ci-msrv.py checked", description=checked_main.__doc__)
+    parser.add_argument("--label", default="checked")
+    parser.add_argument("-p", "--package", required=True)
+    target = parser.add_mutually_exclusive_group(required=True)
+    target.add_argument("--lib", action="store_true")
+    target.add_argument("--test", metavar="TARGET")
+    parser.add_argument("--manifest-path")
+    parser.add_argument("--offline", action="store_true")
+    parser.add_argument("--all-features", action="store_true")
+    parser.add_argument("--features")
+    selection = parser.add_mutually_exclusive_group(required=True)
+    selection.add_argument("--exact", action="append", metavar="TEST")
+    selection.add_argument("--prefix", metavar="MODULE::")
+    parser.add_argument("--ignore-policy", choices=tuple(IGNORE_POLICIES), default="default")
+    parser.add_argument("--nocapture", action="store_true")
+    parser.add_argument("--test-threads", type=int)
+    args = parser.parse_args(argv)
+    base = ["cargo", "test", "--locked"]
+    if args.offline:
+        base.append("--offline")
+    if args.manifest_path:
+        base += ["--manifest-path", args.manifest_path]
+    base += ["-p", args.package]
+    if args.all_features:
+        base.append("--all-features")
+    if args.features:
+        base += ["--features", args.features]
+    base += ["--lib"] if args.lib else ["--test", args.test]
+    harness = []
+    if args.nocapture:
+        harness.append("--nocapture")
+    if args.test_threads is not None:
+        harness.append(f"--test-threads={args.test_threads}")
+    return run_checked_selection(
+        base, dict(os.environ), exact=tuple(args.exact or ()), prefix=args.prefix,
+        policy=args.ignore_policy, harness=harness, label=args.label,
+    )
 
 
 def cargo_environment(environment=None, executable=None):
@@ -196,6 +513,9 @@ def plan(metadata, excluded_packages=()):
 
 
 def main(argv=None):
+    argv = sys.argv[1:] if argv is None else list(argv)
+    if argv[:1] == ["checked"]:
+        return checked_main(argv[1:])
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--shard", choices=(*SHARDS, HEAVY_UNIT_SHARD))
     parser.add_argument("--repair-shard", metavar="INDEX/COUNT")
@@ -225,13 +545,16 @@ def main(argv=None):
         if args.split_windows_agent_runtime:
             raise ValueError("agent runtime split does not apply to heavy unit tests")
         for test_filter in HEAVY_UNIT_FILTERS:
-            command = ["cargo", "test", "--locked", "-p", "semaprax", "--all-features", "--lib", test_filter]
-            if args.nocapture:
-                command += ["--", "--nocapture"]
             print(f"{args.label} {args.shard}: {test_filter}", flush=True)
-            result = subprocess.run(command, cwd=ROOT, env=cargo_env, check=False)
-            if result.returncode:
-                return result.returncode
+            # Each family is inventoried, must stay inside its module prefix,
+            # and must report every listed case.
+            code = run_checked_selection(
+                HEAVY_UNIT_TEST, cargo_env, prefix=test_filter,
+                harness=["--nocapture"] if args.nocapture else [],
+                label=f"{args.label} {args.shard} {test_filter}",
+            )
+            if code:
+                return code
         return 0
     assert shard is not None
     if args.split_windows_agent_runtime and not (

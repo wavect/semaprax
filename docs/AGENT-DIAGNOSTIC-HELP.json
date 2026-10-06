@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "code": "SPX-G170",
+      "rows": [
+        {
+          "fix": "Compiler-owned functions need no import; projects import one declaration with `use function @id(\"…\") from module as name;`",
+          "wrote": "`use std::io;`"
+        }
+      ]
+    },
+    {
       "code": "SPX-O101",
       "rows": [
         {
@@ -56,6 +65,18 @@
           "wrote": "`x: i64` as the last field without `,`"
         },
         {
+          "fix": "`if c { a } else { b }`",
+          "wrote": "`c ? a : b`"
+        },
+        {
+          "fix": "Put the exit test in the `while` condition",
+          "wrote": "`break`, `continue`"
+        },
+        {
+          "fix": "No casts or numeric conversions; keep one integer type and suffix literals",
+          "wrote": "`x as i64`"
+        },
+        {
           "fix": "Every function returns `i64` or `bool`; there is no unit",
           "wrote": "`fn f()` or `-> ()`"
         },
@@ -71,6 +92,10 @@
         {
           "fix": "`x = x + 1;`",
           "wrote": "`x += 1;`"
+        },
+        {
+          "fix": "`fn(x: i64) -> i64 { x + 1 }`",
+          "wrote": "a Rust or JavaScript closure"
         }
       ]
     },
@@ -155,20 +180,20 @@
       ]
     },
     {
+      "code": "SPX-T218",
+      "rows": [
+        {
+          "fix": "Only a function returning `Result` propagates; `match` the result in `main`",
+          "wrote": "`f()?` in `main`"
+        }
+      ]
+    },
+    {
       "code": "SPX-T221",
       "rows": [
         {
           "fix": "`Option<i64>::Some { value: 1 }`",
           "wrote": "`Option::Some { value: 1 }`"
-        }
-      ]
-    },
-    {
-      "code": "SPX-T225",
-      "rows": [
-        {
-          "fix": "`id<i64>(4)`",
-          "wrote": "`id(4)` for `fn id<T>`"
         }
       ]
     },
@@ -191,17 +216,30 @@
       ]
     },
     {
+      "code": "SPX-T262",
+      "rows": [
+        {
+          "fix": "Array literals hold bytes (`[1u8, 2u8]`); use a `Vec<i64>`",
+          "wrote": "`[1, 2, 3]`"
+        }
+      ]
+    },
+    {
       "code": "SPX-T263",
       "rows": [
         {
-          "fix": "Borrow first with `str_as_bytes(string_as_str(text))`",
-          "wrote": "`str_as_bytes(text)` when `text: string`"
+          "fix": "Bind the view first: `let view = string_as_str(text); str_as_bytes(view)`",
+          "wrote": "`str_as_bytes(text)` or `str_as_bytes(string_as_str(text))`"
         }
       ]
     },
     {
       "code": "SPX-T266",
       "rows": [
+        {
+          "fix": "Bind the view first: `let view = string_as_str(text); str_as_bytes(view)`",
+          "wrote": "`str_as_bytes(text)` or `str_as_bytes(string_as_str(text))`"
+        },
         {
           "fix": "Bind the literal, then pass that binding to `string_as_str`",
           "wrote": "`string_as_str(\"literal\")`"

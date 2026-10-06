@@ -128,3 +128,33 @@ fn reject_token_nesting(tokens: &[Token], path: &str) -> Result<(), Diagnostic> 
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use super::Parser;
+
+    /// `Parser::new` lexes token-only; `parse_with_comments` retains comments.
+    /// Both public entry points must select the same program or diagnostic.
+    #[test]
+    fn token_only_and_comment_preserving_entry_points_agree() {
+        let path = Path::new("entry.spx");
+        let fixtures = [
+            "// header\nmodule demo @id(\"m\") {\n    // inner\n}\n// tail",
+            "module demo @id(\"m\") { // trailing\n}\r\n",
+            "// lead\nmodule demo @id(\"m\") {",
+            "// lead\nmodule \"unterminated",
+            "\u{feff}// bom\nmodule demo @id(\"m\") {}",
+            "// only a comment",
+        ];
+        for source in fixtures {
+            let ordinary = format!("{:?}", Parser::new(source, path).and_then(Parser::parse));
+            let preserving = format!(
+                "{:?}",
+                Parser::parse_with_comments(source, path).map(|(program, _)| program)
+            );
+            assert_eq!(ordinary, preserving, "entry points diverge for {source:?}");
+        }
+    }
+}

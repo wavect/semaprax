@@ -213,6 +213,7 @@ mod tests {
             est_cost_micros: 0,
             est_latency_ms: 1,
             strength_rank: 1,
+            descriptor: Default::default(),
         }
     }
     fn cfg(fp: &'static str, fail: bool) -> (BudgetConfig, Rc<Cell<u32>>) {

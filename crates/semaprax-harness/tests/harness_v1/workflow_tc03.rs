@@ -113,6 +113,7 @@ fn plan(id: &str, rank: u32) -> ModelPlan {
         est_cost_micros: 0,
         est_latency_ms: 10,
         strength_rank: rank,
+        descriptor: Default::default(),
     }
 }
 
@@ -174,6 +175,7 @@ fn exec(cfg: &RunConfig, paid: &Paid, router: Option<&mut Router>) -> Report {
             min_confidence: None,
             max_context_tokens: None,
             supported_families: None,
+            ..Default::default()
         };
         let gate = EnablementGate::not_evaluated("model-route/v1", &profile.provider_id);
         DecisionStage {

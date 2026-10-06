@@ -9,7 +9,7 @@ use crate::decision::{
     EvidenceKey, EvidenceRegistry, GateSpec, RoutingConfig, RoutingMode, SessionLock,
 };
 use crate::diag::{HarnessDiagnostic, HarnessResult};
-use crate::profile::config::{LadderConfig, RoutingSection};
+use crate::profile::config::{LadderConfig, PhaseConfig, RoutingSection};
 use serde_json::Value;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
@@ -38,6 +38,10 @@ pub struct RoutingWiring {
     /// Locked at the first route of the run; later routes of the same run
     /// compare against it, so a changed profile cannot slip in mid-session.
     pub session_lock: RefCell<Option<SessionLock>>,
+    /// `[routing.phase.<role>]` (MR-08); empty keeps the single-proposer loop.
+    pub phases: BTreeMap<String, PhaseConfig>,
+    /// The session-owned decision cache and router readiness (MR-12).
+    pub decisions: RefCell<super::decision_reuse::SessionDecisions>,
 }
 
 impl Default for RoutingWiring {
@@ -51,6 +55,8 @@ impl Default for RoutingWiring {
             cost_aware: false,
             ladders: BTreeMap::new(),
             session_lock: RefCell::new(None),
+            phases: BTreeMap::new(),
+            decisions: RefCell::new(Default::default()),
         }
     }
 }
@@ -85,6 +91,7 @@ impl RoutingWiring {
             registry,
             cost_aware: sec.cost_aware,
             ladders: sec.ladders.clone(),
+            phases: sec.phases.clone(),
             ..Self::default()
         })
     }
@@ -148,6 +155,26 @@ fn outcome(v: &Value) -> HarnessResult<Outcome> {
     })
 }
 
+/// Optional MR-02 outcome calibration of a record; absent is uncalibrated.
+fn calibration(v: &Value) -> HarnessResult<Option<crate::decision::Calibration>> {
+    if v.is_null() {
+        return Ok(None);
+    }
+    let kind = v["score_kind"]
+        .as_str()
+        .and_then(crate::decision::ScoreKind::parse)
+        .filter(|k| *k != crate::decision::ScoreKind::None)
+        .ok_or_else(|| bad("calibration `score_kind` must be a scored kind"))?;
+    Ok(Some(crate::decision::Calibration {
+        calibration_id: s(v, "calibration_id")?,
+        score_kind: kind,
+        key_digest: s(v, "key_digest")?,
+        success_estimate: v["success_estimate"]
+            .as_f64()
+            .ok_or_else(|| bad("calibration `success_estimate` must be a number"))?,
+    }))
+}
+
 /// Parse an evidence document (`semaprax.harness-routing-evidence.v1`).
 pub fn parse_registry(bytes: &[u8]) -> HarnessResult<EvidenceRegistry> {
     let doc: Value =
@@ -181,6 +208,7 @@ pub fn parse_registry(bytes: &[u8]) -> HarnessResult<EvidenceRegistry> {
             eval_items: set(&r["eval_items"]),
             trained_on: set(&r["trained_on"]),
             outcomes,
+            calibration: calibration(&r["calibration"])?,
         })?;
     }
     Ok(reg)

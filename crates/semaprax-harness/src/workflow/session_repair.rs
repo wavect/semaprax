@@ -256,10 +256,19 @@ pub(super) fn repair_loop(
             feedback: &projected,
             attempt: n,
             scratch_repair: true,
+            phase: None,
         };
         s.attempts
             .push(json!({"attempt": n, "outcome": "started", "mode": "scratch-repair"}));
-        let proposal = attempt::propose_step(cx, st, journal, r, &pc, &format!("repair-{n}"))?;
+        let proposal = attempt::propose_step_gated(
+            cx,
+            st,
+            journal,
+            r,
+            &pc,
+            &format!("repair-{n}"),
+            &mut |cx, j| s.admit_retry(cx, j),
+        )?;
         s.cancelled_pub(cx, journal)?;
         let pdigest = sha256_plain(
             crate::json::canonical(&json!([

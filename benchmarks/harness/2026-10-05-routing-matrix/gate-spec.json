@@ -1,0 +1,26 @@
+{
+  "description": "Predeclared per-domain gates, recorded before any MR-13 cell ran. Thresholds equal the documented HN-16 floor; a later version may only be stricter.",
+  "schema": "semaprax.harness-routing-gate-spec.v1",
+  "specs": [
+    {
+      "completion_margin": 0.0,
+      "domain": "development",
+      "max_extra_regressions": 0,
+      "max_latency_ratio": 1.5,
+      "min_cost_saving": 0.1,
+      "min_items": 30,
+      "reviewed": "docs/HARNESS-DECISION-V1.md#matched-routing-evidence-mr-13",
+      "version": "mr13-development-v1"
+    },
+    {
+      "completion_margin": 0.0,
+      "domain": "application",
+      "max_extra_regressions": 0,
+      "max_latency_ratio": 1.5,
+      "min_cost_saving": 0.1,
+      "min_items": 30,
+      "reviewed": "docs/HARNESS-DECISION-V1.md#matched-routing-evidence-mr-13",
+      "version": "mr13-application-v1"
+    }
+  ]
+}

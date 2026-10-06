@@ -15,6 +15,7 @@ use crate::diagnostic::{quote_json, Diagnostic};
 use crate::{graph, hir, parse, patch, verify};
 
 mod json_depth;
+mod semantic_read;
 use json_depth::validate_depth;
 
 const CONTROL: &str = ".semaprax-workspace";
@@ -103,6 +104,7 @@ pub(crate) struct WorkspaceSemanticSource {
 
 pub(crate) struct WorkspaceSemanticReadAuthority {
     guard: WorkspaceGuard,
+    sources_taken: bool,
 }
 
 pub(crate) struct WorkspaceSemanticChangeLockAuthority {
@@ -121,7 +123,13 @@ impl WorkspaceSemanticChangeLockAuthority {
             }
         };
         let guard = finish_snapshot_guard_mode(self.guard, WorkspaceMode::SemanticChange)?;
-        Ok((WorkspaceSemanticReadAuthority { guard }, value))
+        Ok((
+            WorkspaceSemanticReadAuthority {
+                guard,
+                sources_taken: false,
+            },
+            value,
+        ))
     }
 
     pub(crate) fn authenticate_operations<T>(
@@ -137,72 +145,13 @@ impl WorkspaceSemanticChangeLockAuthority {
         #[cfg(test)]
         crate::semantic_workspace_operations::mark_base_operations_preflight_entry();
         let guard = finish_snapshot_guard_mode(self.guard, WorkspaceMode::SemanticOperations)?;
-        Ok((WorkspaceSemanticReadAuthority { guard }, value))
-    }
-}
-
-impl WorkspaceSemanticReadAuthority {
-    pub(crate) fn workspace_revision(&self) -> &str {
-        self.guard.snapshot.workspace_revision()
-    }
-
-    pub(crate) fn take_sources(&mut self) -> Vec<WorkspaceSemanticSource> {
-        self.guard
-            .snapshot
-            .files
-            .iter_mut()
-            .map(|file| WorkspaceSemanticSource {
-                path: file.path.clone(),
-                source_graph_schema: file.source_graph_schema.clone(),
-                source_revision: file.source_revision.clone(),
-                source_digest: file.source_digest.clone(),
-                source: std::mem::take(&mut file.source),
-            })
-            .collect()
-    }
-
-    pub(crate) fn take_graph(
-        &mut self,
-    ) -> Result<crate::workspace_graph::WorkspaceGraphBuild, Vec<Diagnostic>> {
-        self.guard
-            .semantic_graph
-            .take()
-            .ok_or_else(|| invariant("semantic workspace graph was already consumed"))
-    }
-
-    pub(crate) fn manifest_bytes(&self) -> usize {
-        self.guard.snapshot.manifest_bytes
-    }
-
-    pub(crate) fn retained_generations(&self) -> usize {
-        self.guard.snapshot.retained_generations
-    }
-
-    pub(crate) fn staging_attempts(&self) -> usize {
-        self.guard.snapshot.staging_attempts
-    }
-
-    pub(crate) fn finish<T>(
-        mut self,
-        result: Result<T, Vec<Diagnostic>>,
-    ) -> Result<T, Vec<Diagnostic>> {
-        let value = match result {
-            Ok(value) => value,
-            Err(diagnostics) => {
-                return Err(unlock_with_diagnostics(&self.guard.lock, diagnostics));
-            }
-        };
-        if self.guard.semantic_graph.is_some() {
-            return Err(unlock_with_diagnostics(
-                &self.guard.lock,
-                invariant("semantic workspace graph authority was not consumed exactly once"),
-            ));
-        }
-        if let Err(diagnostics) = self.guard.recheck() {
-            return Err(unlock_with_diagnostics(&self.guard.lock, diagnostics));
-        }
-        unlock_file(&self.guard.lock)?;
-        Ok(value)
+        Ok((
+            WorkspaceSemanticReadAuthority {
+                guard,
+                sources_taken: false,
+            },
+            value,
+        ))
     }
 }
 
@@ -1668,6 +1617,7 @@ pub(crate) fn acquire_semantic_read(
 ) -> Result<WorkspaceSemanticReadAuthority, Vec<Diagnostic>> {
     Ok(WorkspaceSemanticReadAuthority {
         guard: acquire_snapshot_mode(root, false, WorkspaceMode::Semantic)?,
+        sources_taken: false,
     })
 }
 
@@ -1677,6 +1627,7 @@ pub(crate) fn acquire_semantic_change_read(
 ) -> Result<WorkspaceSemanticReadAuthority, Vec<Diagnostic>> {
     Ok(WorkspaceSemanticReadAuthority {
         guard: acquire_snapshot_mode(root, false, WorkspaceMode::SemanticChange)?,
+        sources_taken: false,
     })
 }
 

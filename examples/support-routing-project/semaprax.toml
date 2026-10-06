@@ -1,0 +1,8 @@
+schema = "semaprax.project.v11"
+name = "fixture"
+version = "1.0.0"
+profile = "nested-owned-record-api.v1"
+entry = "fixture.agent.lifecycle"
+sources = ["src/app.spx", "src/tests.spx"]
+web_exports = ["fixture.export.build"]
+tests = ["fixture.tests"]

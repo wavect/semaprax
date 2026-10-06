@@ -411,3 +411,109 @@ fn range_for_hint_preserves_vector_traversal_and_other_projection_errors() {
     assert_eq!(diagnostic.code, "SPX-P105");
     assert!(!diagnostic.message.contains("range"));
 }
+
+fn main_body(body: &str) -> String {
+    format!("module habit.op;\n@id(\"app.main\")\nfn main() -> i64\n{{\n{body}\n}}\n")
+}
+
+#[test]
+fn operators_and_statements_from_other_languages_name_the_admitted_form() {
+    let cases = [
+        (
+            "    let x = 1;\n    x > 0 ? 1 : 2",
+            "SPX-P106",
+            "`if <condition> { a } else { b }`",
+        ),
+        (
+            "    let x = 1i32;\n    x as i64",
+            "SPX-P106",
+            "no casts or numeric conversions",
+        ),
+        (
+            "    let a = true and false;\n    0",
+            "SPX-P106",
+            "logical and is `&&`",
+        ),
+        (
+            "    let a = true or false;\n    0",
+            "SPX-P106",
+            "logical or is `||`",
+        ),
+        (
+            "    let mut i = 0;\n    while true { i = i + 1; break; }\n    i",
+            "SPX-P106",
+            "no `break` or `continue`",
+        ),
+        (
+            "    let f = |x: i64| x + 1;\n    0",
+            "SPX-P201",
+            "`fn(x: i64) -> i64 { x + 1 }`",
+        ),
+        ("    let a = [1, 2, 3];\n    0", "SPX-T262", "`Vec`"),
+        (
+            "    let o = Option<i64>::Some { value: 1 };\n    if let Option::Some { value: v } = o { v } else { 0 }",
+            "SPX-P106",
+            "there is no `if let`",
+        ),
+        ("    let x = 2;\n    match x { 0..=5 => 1, _ => 0, }", "SPX-P106", "guard the arm"),
+        ("    let s = format!(\"{}\", 1);\n    0", "SPX-P106", "there are no macros"),
+        ("    println!(\"hi\");\n    0", "SPX-P106", "there are no macros"),
+        ("    let mut i = 0;\n    i++;\n    i", "SPX-P201", "`i = i + 1;`"),
+        ("    let mut i = 0;\n    i--;\n    i", "SPX-P201", "`i = i + 1;`"),
+        ("    let x = 2;\n    match x { 1 => 10 _ => 0, }", "SPX-P106", "every match arm ends with `,`"),
+        (
+            "    println(\"hi\");\n    0",
+            "SPX-P106",
+            "stdout_write(str_as_bytes(view))",
+        ),
+        (
+            "    let v = vec_with_capacity<i64>(1usize);\n    for x in v { let y = x; }\n    0",
+            "SPX-P203",
+            "end the `for` body",
+        ),
+    ];
+    for (body, code, expected_help) in cases {
+        let diagnostic = rejection(&main_body(body));
+        assert_eq!(diagnostic.code, code, "{body}: {diagnostic}");
+        assert!(
+            help(&diagnostic).contains(expected_help),
+            "{body}: {diagnostic}"
+        );
+    }
+}
+
+#[test]
+fn path_imports_show_the_declaration_import_form() {
+    let diagnostic = rejection(
+        "module habit.use;\nuse std::io;\n@id(\"app.main\")\nfn main() -> i64\n{\n    0\n}\n",
+    );
+    assert_eq!(diagnostic.code, "SPX-G170");
+    assert!(
+        help(&diagnostic).contains("use function @id("),
+        "{diagnostic}"
+    );
+}
+
+#[test]
+fn tuple_variant_cases_show_the_named_field_form() {
+    let diagnostic = rejection(
+        "module habit.variant;\n@id(\"habit.shape\")\nvariant Shape {\n    @id(\"habit.shape.circle\")\n    Circle(i64),\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    0\n}\n",
+    );
+    assert_eq!(diagnostic.code, "SPX-P106");
+    assert!(
+        help(&diagnostic).contains("radius: i64, },"),
+        "{diagnostic}"
+    );
+}
+
+#[test]
+fn mutable_parameters_show_the_local_copy() {
+    let diagnostic = rejection(
+        "module habit.p;\n@id(\"habit.f\")\nfn f(mut x: i64) -> i64\n{\n    x\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    f(1)\n}\n",
+    );
+    assert_eq!(diagnostic.code, "SPX-U103");
+    assert!(
+        help(&diagnostic).contains("`let mut current = <parameter>;`"),
+        "{diagnostic}"
+    );
+}

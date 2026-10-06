@@ -1,118 +1,65 @@
-//! External decision-provider abstraction: the invoker trait, per-adapter
-//! calibration profile and the experimental-mode enablement gate.
+//! Harness side of the decision-provider boundary (MR-07). The calibration
+//! profile, enablement gate and configured-provider shape are the decision
+//! core's; the harness keeps its envelope-form invoker trait (adapters and
+//! fixtures receive the full `RequestEnvelope`) and adapts it to the core's
+//! MR-15 [`CoreInvoker`] at this one explicit boundary.
 
-use super::route::{TaskFamily, TaskFeatures};
-use crate::contract::RequestEnvelope;
-use serde_json::Value;
-use std::collections::BTreeSet;
+use crate::contract::{CapabilityKind, CapabilityRef, RequestEnvelope};
+use semaprax_decision_core::provider::DecisionInvoker as CoreInvoker;
+pub use semaprax_decision_core::provider::{
+    DecisionCall, EnablementGate, GateStatus, ProviderMode, ProviderProfile,
+};
+use semaprax_decision_core::request::DecisionRequest;
 
-/// What one `decision.evaluate/v1` invocation produced. A returned payload is
-/// untrusted data; the router validates it before any use.
-#[derive(Clone, Debug, PartialEq)]
-pub enum DecisionCall {
-    /// Result payload `{choice, scores, abstain}` and injected elapsed time.
-    Answered {
-        result: Value,
-        elapsed_ms: u64,
-    },
-    Unavailable,
-    Timeout,
-}
-
-/// Implemented by the host over adapters (and by fixtures in tests).
+/// Implemented by the host over adapters (and by fixtures in tests). Same
+/// contract as the core's `DecisionInvoker`, carried in the harness envelope.
 pub trait DecisionInvoker {
     fn evaluate(&mut self, request: &RequestEnvelope) -> DecisionCall;
-}
 
-/// Adapter/task calibration. The confidence threshold belongs here, never in
-/// a universal constant; a score is evidence for fallback decisions only and
-/// never grants a destination.
-#[derive(Clone, Debug, PartialEq)]
-pub struct ProviderProfile {
-    pub provider_id: String,
-    pub model_id: String,
-    pub checkpoint: String,
-    /// Minimum score of the chosen option; `None` means scores are ignored.
-    pub min_confidence: Option<f64>,
-    /// Declared feature ranges; outside them the provider is not consulted.
-    pub max_context_tokens: Option<u64>,
-    pub supported_families: Option<BTreeSet<TaskFamily>>,
-}
-
-impl ProviderProfile {
-    pub fn covers(&self, f: &TaskFeatures) -> bool {
-        self.max_context_tokens
-            .is_none_or(|m| f.estimated_context_tokens <= m)
-            && self
-                .supported_families
-                .as_ref()
-                .is_none_or(|s| s.contains(&f.task_family))
+    /// `decision.evaluate` contract versions this adapter negotiated. The
+    /// router sends `model-route/v2` only when 2 is listed.
+    fn decision_versions(&self) -> Vec<u32> {
+        vec![1]
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum GateStatus {
-    NotEvaluated,
-    Passed { evidence: String },
-    Failed,
-}
-
-/// Evaluation gate for automatic selection of a learned provider for one
-/// registered task and profile. Default is `NotEvaluated` (rules decide).
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct EnablementGate {
-    pub task: String,
-    pub profile: String,
-    pub status: GateStatus,
-}
-
-impl EnablementGate {
-    pub fn not_evaluated(task: &str, profile: &str) -> Self {
-        Self {
-            task: task.into(),
-            profile: profile.into(),
-            status: GateStatus::NotEvaluated,
-        }
-    }
-
-    fn passed_for(&self, task: &str, profile: &str) -> bool {
-        self.task == task
-            && self.profile == profile
-            && matches!(&self.status, GateStatus::Passed { evidence } if !evidence.is_empty())
+/// The harness envelope for one core decision request (already validated by
+/// the core against the same `decision.evaluate` bounds).
+pub fn envelope(request: &DecisionRequest) -> RequestEnvelope {
+    RequestEnvelope {
+        invocation_id: request.invocation_id.clone(),
+        project: request.project.clone(),
+        lock_digest: request.lock_digest.clone(),
+        capability: CapabilityRef {
+            kind: CapabilityKind::DecisionEvaluate,
+            version: request.version,
+        },
+        operation: "evaluate".into(),
+        deadline_ms: request.deadline_ms,
+        max_result_bytes: request.max_result_bytes,
+        remaining_calls: request.remaining_calls,
+        lineage: request.lineage.clone(),
+        payload: request.payload.clone(),
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ProviderMode {
-    /// User configuration explicitly selected the provider (experimental).
-    Explicit,
-    /// Automatic selection; requires a passed evaluation gate.
-    Auto,
-}
-
-pub struct ConfiguredProvider<'a> {
-    pub profile: ProviderProfile,
-    pub invoker: &'a mut dyn DecisionInvoker,
-    pub mode: ProviderMode,
-    pub gate: EnablementGate,
-}
-
-impl ConfiguredProvider<'_> {
-    pub fn enabled(&self, task: &str) -> bool {
-        match self.mode {
-            ProviderMode::Explicit => true,
-            ProviderMode::Auto => self.gate.passed_for(task, &self.profile.provider_id),
-        }
+impl<'a> CoreInvoker for dyn DecisionInvoker + 'a {
+    fn evaluate(&mut self, request: &DecisionRequest) -> DecisionCall {
+        DecisionInvoker::evaluate(self, &envelope(request))
     }
 
-    /// Visible status label.
-    pub fn status(&self, task: &str) -> &'static str {
-        if self.gate.passed_for(task, &self.profile.provider_id) {
-            "evaluated"
-        } else if self.mode == ProviderMode::Explicit {
-            "experimental"
-        } else {
-            "rules (learned provider not evaluated)"
-        }
+    fn decision_versions(&self) -> Vec<u32> {
+        DecisionInvoker::decision_versions(self)
     }
+}
+
+/// A provider attached to one harness decision (the core shape over the
+/// harness invoker trait object).
+pub type ConfiguredProvider<'a> =
+    semaprax_decision_core::provider::ConfiguredProvider<'a, dyn DecisionInvoker + 'a>;
+
+/// The wire version a provider is consulted with: v2 only when the adapter
+/// negotiated it and the model profile (if any) names the v2 renderer.
+pub fn wire_version(profile: &ProviderProfile, invoker: &dyn DecisionInvoker) -> u32 {
+    semaprax_decision_core::provider::wire_version(profile, invoker)
 }

@@ -456,3 +456,502 @@ fn tc03_one_local_writer_per_lineage_and_a_dead_holder_is_taken_over() {
     assert!(WriterLock::acquire(&d, "l").is_ok());
     let _ = std::fs::remove_dir_all(&d);
 }
+
+// ---- MN-02: one rounding contract for reservations and estimates ----
+
+fn full_rates(
+    input: u64,
+    read: Option<u64>,
+    write: Option<u64>,
+    write_1h: Option<u64>,
+    output: u64,
+) -> PriceBook {
+    PriceBook::default().with(
+        "syn-",
+        PriceRecord {
+            version: "syn-v1".into(),
+            pricing: Pricing::Rates {
+                input: Some(input),
+                cache_read: read,
+                cache_write: write,
+                cache_write_1h: write_1h,
+                output: Some(output),
+            },
+        },
+    )
+}
+
+fn usage(
+    uncached: u64,
+    read: u64,
+    write: u64,
+    write_1h: u64,
+    output: u64,
+) -> crate::receipt::Usage {
+    crate::receipt::Usage {
+        input_total: Some(uncached + read + write),
+        uncached_input: Some(uncached),
+        cache_read: Some(read),
+        cache_write: Some(write),
+        cache_write_1h: Some(write_1h),
+        output: Some(output),
+        reasoning: None,
+    }
+}
+
+fn anthropic(uncached: u64, read: u64, write: u64, output: u64) -> ProposalReceipt {
+    receipt(
+        json!({"protocol": "anthropic_messages", "finish_reason": "end_turn",
+        "usage": {"input_tokens": uncached, "cache_read_input_tokens": read,
+                  "cache_creation_input_tokens": write, "output_tokens": output}}),
+    )
+}
+
+#[test]
+fn mn02_witness_in_bound_usage_settles_without_breach_and_paid_work_continues() {
+    // The issue's witness: 0.3 micro-units per token for input and output,
+    // 107 input tokens, a 4096 output cap fully used, no cache, one dispatch.
+    let prices = full_rates(300_000, None, None, None, 300_000);
+    let bound = call_bound(&prices, "syn-a", 107, 4096, 1);
+    assert_eq!(bound.billing, Billing::Priced("syn-v1".into()));
+    let est = prices.estimate("syn-a", &usage(107, 0, 0, 0, 4096));
+    // ceil(32.1) + ceil(1228.8): the per-category estimate.
+    assert_eq!(est.micros, Some(1262));
+    assert_eq!(est.basis, "estimated_from_price_record");
+    assert!(bound.micros.unwrap() >= 1262, "{bound:?}");
+    let d = dir("mn02-witness");
+    let mut j = Journal::open(&d, "l").unwrap();
+    let mut b = SpendBook {
+        limits: Limits {
+            task_cost: Some(100_000),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let r = rec(
+        "g.1",
+        107 + 4096,
+        bound.micros.unwrap(),
+        bound.billing.clone(),
+    );
+    b.reserve(&mut j, r.clone()).unwrap();
+    let rc = receipt(
+        json!({"protocol": "anthropic_messages", "finish_reason": "max_tokens",
+        "usage": {"input_tokens": 107, "cache_read_input_tokens": 0,
+                  "cache_creation_input_tokens": 0, "output_tokens": 4096}}),
+    );
+    let s = settle_generation(
+        &r,
+        &rc,
+        &prices.estimate("syn-a", &rc.usage),
+        true,
+        107,
+        4096,
+    );
+    assert_eq!(s.breach, None, "{s:?}");
+    assert_eq!(s.actual_cost, Some(1262));
+    // The local figure keeps its estimate basis; it is not a vendor invoice.
+    assert_eq!(s.basis.as_deref(), Some("estimated_from_price_record"));
+    b.settle(&mut j, "g.1", s).unwrap();
+    assert_eq!(b.breach, None);
+    // A subsequent legitimate paid admission remains possible.
+    b.reserve(&mut j, rec("g.2", 10, 10, bound.billing))
+        .unwrap();
+    drop(j);
+    let _ = std::fs::remove_dir_all(&d);
+}
+
+#[test]
+fn mn02_cache_partition_and_one_hour_write_witnesses_stay_within_the_bound() {
+    // Every input category priced at 0.3/token: three one-token partitions
+    // round to 1 each (3), while the combined input rounds to ceil(0.9) = 1.
+    let prices = full_rates(
+        300_000,
+        Some(300_000),
+        Some(300_000),
+        Some(300_000),
+        300_000,
+    );
+    let est = prices.estimate("syn-a", &usage(1, 1, 2, 1, 0));
+    assert_eq!(est.micros, Some(4));
+    let bound = call_bound(&prices, "syn-a", 4, 0, 1).micros.unwrap();
+    assert!(est.micros.unwrap() <= bound, "{est:?} > {bound}");
+    // Mixed cache read/write rates below the dearest input rate.
+    let prices = full_rates(
+        300_000,
+        Some(30_000),
+        Some(375_000),
+        Some(600_000),
+        1_500_000,
+    );
+    // 7 cache writes, 4 of them at the one-hour tier: 1 + 1 + 2 + 3 + 17.
+    let est = prices.estimate("syn-a", &usage(3, 5, 7, 4, 11));
+    assert_eq!(est.micros, Some(24));
+    let bound = call_bound(&prices, "syn-a", 15, 11, 1).micros.unwrap();
+    assert!(est.micros.unwrap() <= bound, "{est:?} > {bound}");
+    // A receipt's own unsplit cache write (no one-hour tier priced): the
+    // three partitions round to 1 + 1 + 1 against a combined ceil(0.9).
+    let prices = full_rates(300_000, Some(300_000), Some(300_000), None, 300_000);
+    let rc = anthropic(1, 1, 1, 0);
+    let est = prices.estimate("syn-a", &rc.usage);
+    assert_eq!(est.micros, Some(3));
+    let bound = call_bound(&prices, "syn-a", 3, 0, 1).micros.unwrap();
+    assert!(est.micros.unwrap() <= bound, "{est:?} > {bound}");
+    // Integral per-token prices keep their exact (unchanged) bound.
+    assert_eq!(
+        call_bound(&book(), "paid-a", 1000, 100, 1).micros,
+        Some(2400)
+    );
+}
+
+/// Deterministic xorshift for the property sweep (no extra dependency).
+struct Rng(u64);
+impl Rng {
+    fn next(&mut self) -> u64 {
+        self.0 ^= self.0 << 13;
+        self.0 ^= self.0 >> 7;
+        self.0 ^= self.0 << 17;
+        self.0
+    }
+    fn below(&mut self, n: u64) -> u64 {
+        if n == 0 {
+            0
+        } else {
+            self.next() % n
+        }
+    }
+    fn rate(&mut self) -> u64 {
+        match self.below(5) {
+            0 => 0,
+            1 => self.below(1_000_000), // fractional below one micro-unit
+            2 => (1 + self.below(20)) * 1_000_000, // integral
+            3 => self.below(30_000_000), // arbitrary
+            _ => 1 + self.below(999) * 1_001, // fractional, odd steps
+        }
+    }
+    /// Half large counts, half small ones where per-category rounding dominates.
+    fn tokens(&mut self) -> u64 {
+        if self.below(2) == 0 {
+            self.below(5_000)
+        } else {
+            self.below(20)
+        }
+    }
+    fn opt_rate(&mut self) -> Option<u64> {
+        (self.below(4) != 0).then(|| self.rate())
+    }
+}
+
+#[test]
+fn mn02_property_estimate_of_in_bound_usage_never_exceeds_the_reservation() {
+    let mut rng = Rng(0x9E37_79B9_7F4A_7C15);
+    let (mut known, mut unknown) = (0u32, 0u32);
+    for _ in 0..20_000 {
+        let (input_rate, output_rate) = (rng.rate(), rng.rate());
+        let (read, write, write_1h) = (rng.opt_rate(), rng.opt_rate(), rng.opt_rate());
+        let prices = full_rates(input_rate, read, write, write_1h, output_rate);
+        let input = rng.tokens();
+        let cap = rng.tokens();
+        let dispatches = 1 + rng.below(3);
+        // Observed usage within the bound: total input and output at most
+        // `dispatches` times the per-dispatch reservation, partitioned freely.
+        // Half the cases use the whole bound: rounding gaps live at the edge.
+        let tight = rng.below(2) == 0;
+        let total_in = if tight {
+            input * dispatches
+        } else {
+            rng.below(input * dispatches + 1)
+        };
+        let read_n = rng.below(total_in + 1);
+        let write_n = rng.below(total_in - read_n + 1);
+        let uncached = total_in - read_n - write_n;
+        let write_1h_n = rng.below(write_n + 1);
+        let out = if tight {
+            cap * dispatches
+        } else {
+            rng.below(cap * dispatches + 1)
+        };
+        let u = usage(uncached, read_n, write_n, write_1h_n, out);
+        let bound = call_bound(&prices, "syn-a", input, cap, dispatches);
+        assert_eq!(bound.billing, Billing::Priced("syn-v1".into()));
+        let est = prices.estimate("syn-a", &u);
+        match est.micros {
+            Some(e) => {
+                known += 1;
+                let b = bound.micros.unwrap();
+                assert!(
+                    e <= b,
+                    "estimate {e} > bound {b}: rates in={input_rate} r={read:?} w={write:?} w1h={write_1h:?} out={output_rate}; \
+                     input={input} cap={cap} d={dispatches} usage={u:?}"
+                );
+                assert_eq!(est.basis, "estimated_from_price_record");
+            }
+            None => {
+                unknown += 1;
+                // An unpriced non-zero category leaves the cost unknown, never zero.
+                assert_ne!(est.basis, "estimated_from_price_record");
+            }
+        }
+    }
+    assert!(
+        known > 5_000 && unknown > 500,
+        "sweep coverage: {known} known, {unknown} unknown"
+    );
+}
+
+#[test]
+fn mn02_genuine_overcharge_and_output_overrun_still_breach_and_unknown_stays_conservative() {
+    let prices = full_rates(300_000, None, None, None, 300_000);
+    let bound = call_bound(&prices, "syn-a", 107, 4096, 1).micros.unwrap();
+    let r = rec("g.1", 107 + 4096, bound, Billing::Priced("syn-v1".into()));
+    // A provider-reported charge above the bound is a breach that blocks
+    // further billable work.
+    let rc = receipt(
+        json!({"protocol": "responses", "finish_reason": "completed",
+        "provider_cost_micros": bound + 1, "usage": {"input_tokens": 107, "output_tokens": 10}}),
+    );
+    let s = settle_generation(
+        &r,
+        &rc,
+        &prices.estimate("syn-a", &rc.usage),
+        true,
+        107,
+        4096,
+    );
+    assert!(
+        s.breach
+            .as_deref()
+            .unwrap()
+            .contains("above the declared bound"),
+        "{s:?}"
+    );
+    assert_eq!(s.basis.as_deref(), Some("provider_reported"));
+    let d = dir("mn02-breach");
+    let mut j = Journal::open(&d, "l").unwrap();
+    let mut b = SpendBook::default();
+    b.reserve(&mut j, r.clone()).unwrap();
+    b.settle(&mut j, "g.1", s).unwrap();
+    assert_eq!(
+        b.check(&rec("g.2", 1, 1, priced())).unwrap_err().code,
+        "SPX-HPD101"
+    );
+    drop(j);
+    let _ = std::fs::remove_dir_all(&d);
+    // Output above the enforced cap breaches independently of the cost.
+    let rc = receipt(
+        json!({"protocol": "responses", "finish_reason": "completed",
+        "provider_cost_micros": 100, "usage": {"input_tokens": 107, "output_tokens": 4097}}),
+    );
+    let s = settle_generation(
+        &r,
+        &rc,
+        &prices.estimate("syn-a", &rc.usage),
+        true,
+        107,
+        4096,
+    );
+    assert!(
+        s.breach
+            .as_deref()
+            .unwrap()
+            .contains("above the enforced cap"),
+        "{s:?}"
+    );
+    // Unknown usage or price stays at the reservation.
+    let rc = receipt(json!({"protocol": "responses"}));
+    let s = settle_generation(
+        &r,
+        &rc,
+        &prices.estimate("syn-a", &rc.usage),
+        true,
+        107,
+        4096,
+    );
+    assert_eq!((s.state, s.actual_cost), (SpendState::Uncertain, None));
+    // Overflow never wraps into a cheap admission: the reservation saturates
+    // and strict mode still refuses it as unpriced.
+    let huge = full_rates(
+        u64::MAX,
+        Some(u64::MAX),
+        Some(u64::MAX),
+        Some(u64::MAX),
+        u64::MAX,
+    );
+    for (i, c, n) in [
+        (u64::MAX, u64::MAX, u64::MAX),
+        (u64::MAX, 0, 1),
+        (1 << 40, 1 << 40, 3),
+    ] {
+        let o = call_bound(&huge, "syn-a", i, c, n);
+        assert_eq!(o.micros, Some(u64::MAX), "{i} {c} {n}");
+        assert!(matches!(o.billing, Billing::Unpriced(_)));
+    }
+    let capped = SpendBook {
+        limits: Limits {
+            task_cost: Some(1_000_000),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let o = call_bound(&huge, "syn-a", 1 << 40, 1 << 40, 3);
+    let over = rec("g.9", 1, o.micros.unwrap(), o.billing);
+    assert_eq!(capped.check(&over).unwrap_err().code, "SPX-HPD101");
+}
+
+// ---- MN-03: settlement is committed in memory only after the durable append ----
+
+fn fault_on_settle(j: &mut Journal, f: super::super::journal::Fault) {
+    j.set_fault(Some(std::sync::Arc::new(move |st: &str| {
+        (st == "settle").then_some(f)
+    })));
+}
+
+fn ten() -> Settlement {
+    Settlement {
+        state: SpendState::Settled,
+        actual_cost: Some(10),
+        settled_tokens: Some(10),
+        breach: None,
+        basis: Some("provider_reported".into()),
+    }
+}
+
+/// Reserve 100/100, then attempt a 10/10 settlement under `fault`.
+fn faulted(tag: &str, fault: super::super::journal::Fault) -> (PathBuf, Journal, SpendBook) {
+    let d = dir(tag);
+    let mut j = Journal::open(&d, "l").unwrap();
+    let mut b = SpendBook {
+        limits: Limits {
+            task_cost: Some(150),
+            task_tokens: Some(150),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    b.reserve(&mut j, rec("g.1", 100, 100, priced())).unwrap();
+    fault_on_settle(&mut j, fault);
+    assert!(b.settle(&mut j, "g.1", ten()).is_err());
+    // Nothing was acknowledged: the live book still counts the reservation
+    // and releases no headroom.
+    assert_eq!(b.record("g.1").unwrap().state, SpendState::Reserved);
+    assert_eq!((b.committed_tokens(), b.committed_cost()), (100, 100));
+    assert_eq!(b.available_cost(), Some(50));
+    // The uncertain outcome refuses further admission until reconciled.
+    assert_eq!(
+        b.check(&rec("g.2", 40, 40, priced())).unwrap_err().code,
+        "SPX-HPD070"
+    );
+    j.set_fault(None);
+    // The identical retry refuses pending reconciliation; it never reports
+    // false durable success.
+    assert_eq!(
+        b.settle(&mut j, "g.1", ten()).unwrap_err().code,
+        "SPX-HPD070"
+    );
+    assert_eq!(b.record("g.1").unwrap().state, SpendState::Reserved);
+    (d, j, b)
+}
+
+#[test]
+fn mn03_write_fault_releases_no_headroom_and_reopen_agrees_with_the_live_book() {
+    let (d, j, live) = faulted("mn03-write", super::super::journal::Fault::Write);
+    assert_eq!(j.records().len(), 1, "only the reservation reached storage");
+    drop(j);
+    let mut j = Journal::open(&d, "l").unwrap();
+    let mut fresh = SpendBook {
+        limits: live.limits.clone(),
+        ..Default::default()
+    };
+    fresh.restore(&j).unwrap();
+    assert_eq!(
+        (fresh.committed_tokens(), fresh.committed_cost()),
+        (live.committed_tokens(), live.committed_cost())
+    );
+    assert_eq!(fresh.committed_cost(), 100);
+    // After the reopen the same settlement persists and is then acknowledged.
+    fresh.settle(&mut j, "g.1", ten()).unwrap();
+    assert_eq!(fresh.committed_cost(), 10);
+    // A duplicate durable settlement stays idempotent: nothing written twice.
+    fresh.settle(&mut j, "g.1", ten()).unwrap();
+    assert_eq!(j.records().len(), 2);
+    drop(j);
+    let mut again = SpendBook::default();
+    again.restore(&Journal::open(&d, "l").unwrap()).unwrap();
+    assert_eq!((again.committed_tokens(), again.committed_cost()), (10, 10));
+    let _ = std::fs::remove_dir_all(&d);
+}
+
+#[test]
+fn mn03_sync_and_torn_faults_stay_conservative_without_blind_rollback() {
+    use super::super::journal::Fault;
+    // Sync: the bytes may be visible. The live owner stays at the
+    // reservation; a reopen reconciles from what actually reached storage
+    // and the identical settlement is then an idempotent no-op.
+    let (d, j, live) = faulted("mn03-sync", Fault::Sync);
+    assert_eq!(live.committed_cost(), 100);
+    drop(j);
+    let mut j = Journal::open(&d, "l").unwrap();
+    let mut fresh = SpendBook::default();
+    fresh.restore(&j).unwrap();
+    assert_eq!(fresh.committed_cost(), 10);
+    let n = j.records().len();
+    fresh.settle(&mut j, "g.1", ten()).unwrap();
+    assert_eq!(j.records().len(), n, "no double charge");
+    drop(j);
+    let _ = std::fs::remove_dir_all(&d);
+    // Torn: the half-written settlement fails the reopen closed rather than
+    // resetting or releasing anything.
+    let (d, j, live) = faulted("mn03-torn", Fault::Torn);
+    assert_eq!(live.committed_cost(), 100);
+    drop(j);
+    assert_eq!(Journal::open(&d, "l").err().unwrap().code, "SPX-HPD070");
+    let _ = std::fs::remove_dir_all(&d);
+}
+
+#[test]
+fn mn03_a_failed_breach_or_release_append_does_not_publish_the_transition() {
+    use super::super::journal::Fault;
+    let d = dir("mn03-breach");
+    let mut j = Journal::open(&d, "l").unwrap();
+    let mut b = SpendBook::default();
+    b.reserve(&mut j, rec("g.1", 100, 100, priced())).unwrap();
+    j.set_fault(Some(std::sync::Arc::new(|_: &str| Some(Fault::Write))));
+    let breach = Settlement {
+        breach: Some("charged 200 micros above the declared bound of 100".into()),
+        actual_cost: Some(200),
+        ..ten()
+    };
+    assert!(b.settle(&mut j, "g.1", breach).is_err());
+    // Neither the terminal state nor its cost was published, and the book
+    // still refuses further work (pending reconciliation) rather than admitting.
+    assert_eq!(b.record("g.1").unwrap().actual_cost, None);
+    assert_eq!(b.committed_cost(), 100);
+    assert!(b.check(&rec("g.2", 1, 1, priced())).is_err());
+    assert!(b
+        .settle(
+            &mut j,
+            "g.1",
+            Settlement::released("refused_not_dispatched")
+        )
+        .is_err());
+    assert_eq!(b.committed_cost(), 100);
+    // Invalid transitions keep failing closed on a healthy book.
+    drop(j);
+    let mut j = Journal::open(&d, "l").unwrap();
+    let mut fresh = SpendBook::default();
+    fresh.restore(&j).unwrap();
+    fresh.settle(&mut j, "g.1", ten()).unwrap();
+    assert_eq!(
+        fresh
+            .settle(&mut j, "g.1", Settlement::released("late"))
+            .unwrap_err()
+            .code,
+        "SPX-HPD070"
+    );
+    assert_eq!(
+        fresh.settle(&mut j, "nope", ten()).unwrap_err().code,
+        "SPX-HPD070"
+    );
+    drop(j);
+    let _ = std::fs::remove_dir_all(&d);
+}

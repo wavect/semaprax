@@ -53,7 +53,35 @@ fn refuse(step: &str, why: String) -> HarnessDiagnostic {
     )
 }
 
-fn validate_done(cx: &Ctx, step: &str, rec: &Record) -> HarnessResult<Vec<u8>> {
+/// The explicit output-cap retry of `step` (TC-02). The original attempt and
+/// its retry are one acquisition chain, resolved before routing (MN-01).
+pub(super) fn retry_step(step: &str) -> String {
+    format!("{step}-lcap")
+}
+
+/// The recorded member of `step`'s acquisition chain that settles it: a
+/// completed member to reuse, or a refusal when a dispatched member has no
+/// recorded result. `None` when a fresh request is needed.
+fn resolve_chain(journal: &Journal, step: &str) -> HarnessResult<Option<(String, Record)>> {
+    for member in [step.to_string(), retry_step(step)] {
+        match journal.state(&member) {
+            Some(rec) if rec.state == "done" => return Ok(Some((member, rec.clone()))),
+            Some(rec) if matches!(rec.state.as_str(), "begin" | "uncertain") => {
+                // Non-replayable: refuse before any routing or reservation.
+                return Err(d(
+                    "SPX-HPD072",
+                    format!("uncertain: a model generation in this lineage (`{member}`) began without a recorded result; it is not replayed, supply --proposal or change the task"),
+                ));
+            }
+            _ => {}
+        }
+    }
+    Ok(None)
+}
+
+/// Every cache hit goes through this one validator: size bound, recorded
+/// digest and size, and the lineage, task, lock and revision identities.
+pub(super) fn validate_done(cx: &Ctx, step: &str, rec: &Record) -> HarnessResult<Vec<u8>> {
     let path = cache_path(cx, step);
     let meta = std::fs::metadata(&path).map_err(|_| refuse(step, "artifact missing".into()))?;
     if meta.len() > MAX_ARTIFACT_BYTES {
@@ -96,6 +124,7 @@ pub(super) fn local_proposal(
     step: &str,
 ) -> HarnessResult<Option<Vec<u8>>> {
     let started = Instant::now();
+    let mut used = step.to_string();
     let (source, bytes, historical) = if st.proposer.local_source() {
         let req = ProposalRequest {
             lineage: cx.lineage,
@@ -112,24 +141,20 @@ pub(super) fn local_proposal(
         })?;
         ("scripted", b, Value::Null)
     } else if st.proposer.side_effecting() {
-        match journal.state(step) {
-            Some(rec) if rec.state == "done" => {
-                let rec = rec.clone();
-                let b = validate_done(cx, step, &rec)?;
+        match resolve_chain(journal, step)? {
+            Some((member, rec)) => {
+                let b = validate_done(cx, &member, &rec)?;
+                used = member;
                 ("journal", b, rec.detail["incurred"].clone())
             }
-            Some(rec) if matches!(rec.state.as_str(), "begin" | "uncertain") => {
-                // Non-replayable: refuse before any routing or reservation.
-                return Err(d("SPX-HPD072", "uncertain: a model generation in this lineage began without a recorded result; it is not replayed, supply --proposal or change the task"));
-            }
-            _ => return Ok(None),
+            None => return Ok(None),
         }
     } else {
         return Ok(None);
     };
     if source == "journal" {
         journal.append(
-            &format!("{step}.local-reuse"),
+            &format!("{used}.local-reuse"),
             "done",
             json!({"digest": sha256_plain(&bytes)}),
         )?;
@@ -150,6 +175,7 @@ pub(super) fn local_proposal(
         "model_calls": 0,
         "new_reservations": 0,
         "historical_incurred": historical,
+        "step": used,
     });
     r.notes.push(if source == "journal" {
         "proposal reused from the journal before routing; the model was not invoked again"

@@ -1,7 +1,5 @@
 //! Authority-free Offline Deterministic Package Resolver v2.
 
-use serde_json::Value;
-
 use crate::bounded_output;
 use crate::diagnostic::Diagnostic;
 use crate::package_lock_v3;
@@ -103,7 +101,15 @@ pub fn verify(
                 "resolution evidence does not exactly replay inputs",
             ));
         }
-        receipt(evidence)
+        // The receipt comes from the independent rebuild, only after the full
+        // byte comparison above. The rebuilt lock is moved rather than copied;
+        // the cumulative budget still carries the receipt's logical charge
+        // that the former extracted copy incurred, so admission is unchanged.
+        bounded_output::reserve_active(rebuilt.lock.len());
+        Ok(VerifiedResolution {
+            packages: rebuilt.packages,
+            lock: rebuilt.lock,
+        })
     });
     if overflowed {
         return Err(wire::limit_error(
@@ -127,8 +133,13 @@ fn bounded_build(
     result
 }
 
+/// One successful build: the exact evidence plus the receipt facts it embeds.
+/// `packages` follows the selected-row order of the evidence and `lock` is the
+/// exact generated, replayed and policy-checked Lock-v3 the evidence embeds.
 struct BuiltResolution {
     evidence: String,
+    packages: Vec<package_lock_v3::Coordinate>,
+    lock: String,
 }
 
 fn build(
@@ -136,6 +147,8 @@ fn build(
     options: &ResolutionOptions,
 ) -> Result<BuiltResolution, Diagnostic> {
     validate_options(options)?;
+    #[cfg(test)]
+    counters::record_build();
     let mut work = 0usize;
     let requirements = model::validate_input(input, &mut work)?;
     let catalog = catalog::authenticate(input, &mut work)?;
@@ -168,30 +181,43 @@ fn build(
             "resolution evidence exceeds output bound",
         ));
     }
-    Ok(BuiltResolution { evidence: envelope })
-}
-
-fn receipt(evidence: &str) -> Result<VerifiedResolution, Diagnostic> {
-    let value: Value = serde_json::from_str(evidence)
-        .map_err(|_| wire::wire_error("replayed evidence not JSON"))?;
-    let payload = &value["payload"];
-    let packages = payload["selected"]
-        .as_array()
-        .ok_or_else(|| wire::wire_error("selected rows missing"))?
-        .iter()
-        .map(|row| {
-            Ok(package_lock_v3::Coordinate {
-                package: wire::required_str(row, "package")?.to_owned(),
-                version: wire::required_str(row, "version")?.to_owned(),
-            })
-        })
-        .collect::<Result<Vec<_>, Diagnostic>>()?;
-    let lock = bounded_output::budgeted_clone(model::exact_lock_bytes(evidence)?);
-    Ok(VerifiedResolution { packages, lock })
+    let packages = solved
+        .selected
+        .values()
+        .map(|entry| entry.subject.coordinate.clone())
+        .collect();
+    Ok(BuiltResolution {
+        evidence: envelope,
+        packages,
+        lock,
+    })
 }
 
 fn validate_options(options: &ResolutionOptions) -> Result<(), Diagnostic> {
     ResolutionOptions::new(options.max_bytes).map(|_| ())
+}
+
+#[cfg(test)]
+mod counters {
+    use std::cell::Cell;
+
+    thread_local! {
+        static BUILDS: Cell<usize> = const { Cell::new(0) };
+        static EVIDENCE_DECODES: Cell<usize> = const { Cell::new(0) };
+    }
+
+    pub(super) fn record_build() {
+        BUILDS.with(|count| count.set(count.get() + 1));
+    }
+
+    pub(super) fn record_evidence_decode() {
+        EVIDENCE_DECODES.with(|count| count.set(count.get() + 1));
+    }
+
+    /// Returns (independent rebuilds, full-evidence DOM decodes) on this thread.
+    pub(super) fn snapshot() -> (usize, usize) {
+        (BUILDS.with(Cell::get), EVIDENCE_DECODES.with(Cell::get))
+    }
 }
 
 #[cfg(test)]

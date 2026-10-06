@@ -32,9 +32,9 @@ use semaprax::provider_adapter_sdk::{
 use std::cell::Cell;
 use std::rc::Rc;
 
-struct Fixture(std::path::PathBuf);
+pub(super) struct Fixture(pub(super) std::path::PathBuf);
 impl Fixture {
-    fn new() -> Self {
+    pub(super) fn new() -> Self {
         static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
         let path = std::env::temp_dir().join(format!(
             "spx-execution-roots-{}-{}",
@@ -113,7 +113,7 @@ impl semaprax::agent_lifecycle::CheckpointStore for PolicyStore {
     }
 }
 
-fn probe_capabilities(provider: &str, max_context_tokens: u64) -> AdapterCapabilities {
+pub(super) fn probe_capabilities(provider: &str, max_context_tokens: u64) -> AdapterCapabilities {
     AdapterCapabilities {
         adapter_identity: "identity-probe".to_owned(),
         adapter_version: "1".to_owned(),

@@ -1,0 +1,88 @@
+{
+  "adapter": {
+    "entry": [
+      "adapter.py"
+    ],
+    "runtime": "python",
+    "version": "0.2.0"
+  },
+  "cancellation": "cooperative",
+  "capabilities": [
+    {
+      "kind": "decision.evaluate",
+      "operations": [
+        "evaluate"
+      ],
+      "required": true,
+      "version": 1
+    },
+    {
+      "kind": "decision.evaluate",
+      "operations": [
+        "evaluate"
+      ],
+      "required": false,
+      "version": 2
+    },
+    {
+      "kind": "decision.evaluate",
+      "operations": [
+        "evaluate"
+      ],
+      "required": false,
+      "version": 3
+    }
+  ],
+  "config": {
+    "fields": {
+      "instance_id": {"default": "", "type": "string"},
+      "model_profile": {"default": "", "type": "string"}
+    }
+  },
+  "extensions": [],
+  "permissions": {
+    "network": [
+      "loopback:user-selected-endpoint"
+    ],
+    "process": [],
+    "read": [],
+    "secrets": [],
+    "write": []
+  },
+  "platforms": [
+    "macos-aarch64",
+    "linux-x86_64",
+    "linux-aarch64"
+  ],
+  "protocol": {
+    "max": 1,
+    "min": 1,
+    "name": "semaprax.harness-rpc.v1"
+  },
+  "provider": {
+    "id": "ai.cloudflare/clef-local-decision",
+    "version": "0.2.0"
+  },
+  "resources": {
+    "handshake_timeout_ms": 5000,
+    "idle_shutdown_ms": 60000,
+    "invoke_timeout_ms": 30000,
+    "max_concurrency": 1,
+    "max_frame_bytes": 1048576
+  },
+  "schema": "semaprax.harness-provider.v1",
+  "support": {
+    "isolation": "subprocess",
+    "license": "Apache-2.0",
+    "tested": []
+  },
+  "upstream": {
+    "identity_probe": [],
+    "name": "clef-flash",
+    "package": "hf:Cloudflare/clef-flash",
+    "repository": "https://huggingface.co/Cloudflare/clef-flash",
+    "versions": [
+      "clef-flash-17f0b0ad"
+    ]
+  }
+}

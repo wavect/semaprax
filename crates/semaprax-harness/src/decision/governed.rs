@@ -173,7 +173,8 @@ fn without_remote(
         .cloned()
         .collect();
     Ok(RouteInputs {
-        request: RouteRequest::new(i.request.features.clone(), cat, i.request.budget.clone())?,
+        request: RouteRequest::new(i.request.features.clone(), cat, i.request.budget.clone())?
+            .with_signals(i.request.signals.clone()),
         policy: i.policy.clone(),
     })
 }
@@ -199,7 +200,7 @@ pub fn recheck_dispatch(
     match s.excluded.first() {
         Some((_, why)) => Err(HarnessDiagnostic::new(
             "SPX-HPJ018",
-            format!("`{choice}` failed the pre-dispatch recheck: {why}"),
+            format!("`{choice}` failed the pre-dispatch recheck: {why} (final context {final_required_tokens} tokens differs from what was routed); an unpinned route excludes it and routes again, a pinned one refuses: shorten the protected context or pin a model whose limits admit the final request"),
         )),
         None => Ok(()),
     }
@@ -232,7 +233,8 @@ pub fn governed_decide(
         let explanation = json!({"mode": mode, "choice": decision.choice, "source": format!("{:?}", decision.source),
             "provider": decision.provider_id, "checkpoint": decision.checkpoint, "status": decision.provider_status,
             "rules_reason": why, "evidence": ev, "shadow": shadow,
-            "router_calls": decision.router_calls + extra, "digests": decision.digests.to_json()});
+            "router_calls": decision.router_calls + extra, "digests": decision.digests.to_json(),
+            "wire": decision.wire.to_json()});
         let total = decision.router_calls + extra;
         GovernedRoute {
             decision,
@@ -275,7 +277,11 @@ pub fn governed_decide(
     let scr = screen(&inputs.request, &inputs.policy);
     if use_provider {
         if let Some(t) = g.cfg.cheap_bypass_micros {
-            if scr.admissible.iter().all(|m| m.est_cost_micros <= t) {
+            if scr
+                .admissible
+                .iter()
+                .all(|m| m.known_cost().is_some_and(|c| c <= t))
+            {
                 use_provider = false;
                 off = Some("cheap-task bypass".into());
             }
@@ -293,7 +299,12 @@ pub fn governed_decide(
     let mut provider = provider;
     if use_provider && g.cfg.mode == RoutingMode::QualifiedAuto {
         let p = provider.as_deref_mut().expect("provider present");
-        let key = EvidenceKey::live(&p.profile, &inputs.request.catalog_digest());
+        // v1 and v2 qualify separately: the key carries the negotiated version.
+        let key = EvidenceKey::live_versioned(
+            &p.profile,
+            &inputs.request.catalog_digest(),
+            p.wire_version(),
+        );
         let kd = key.digest();
         let verdict = match (g.registry, g.lock) {
             (None, _) => Err("no evidence registry".to_string()),

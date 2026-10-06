@@ -1,7 +1,7 @@
 //! Where the workflow meets the task spend book (TC-03): the router and the
 //! generator are admitted and journaled before dispatch and settled after.
 
-use super::attempt::ROUTER_OUTPUT_RESERVE;
+use super::attempt::router_reserve;
 use super::budget::{Fit, RequestBudget};
 use super::journal::Journal;
 use super::pipeline::{Ctx, Stages};
@@ -63,22 +63,26 @@ pub(super) fn reserve_router(
     est: u64,
     allowance: u64,
     label: &str,
+    signals: &crate::decision::RouteSignals,
 ) -> HarnessResult<Option<String>> {
     let Some(dec) = st.decision.as_ref() else {
         return Ok(None);
     };
-    let (_, _, text) = super::attempt::route_parts(&cx.cfg.task, pool, est, allowance, true)?;
+    // MR-03: reserve against the host-rendered prepared request (v2) or the
+    // v1 projection, with a protocol-derived closed-choice output reserve.
+    let wire_v2 = crate::decision::wire_version(&dec.profile, &*dec.invoker) == 2;
+    let (_, _, text) =
+        super::attempt::route_parts(&cx.cfg.task, pool, est, allowance, true, signals, wire_v2)?;
+    let reserve = router_reserve(pool);
     let count = budget.count(&dec.profile.provider_id, &text);
     let calls = u64::from(cx.cfg.routing.cfg.shadow_max_calls.max(1));
     let input = count.admission_tokens();
-    let tokens = input
-        .saturating_add(ROUTER_OUTPUT_RESERVE)
-        .saturating_mul(calls);
+    let tokens = input.saturating_add(reserve).saturating_mul(calls);
     let bound = call_bound(
         &cx.cfg.budget.prices,
         &dec.profile.model_id,
         input,
-        ROUTER_OUTPUT_RESERVE,
+        reserve,
         calls,
     );
     let id = cx.ledger.spend.next_id(label, "router");
@@ -104,13 +108,58 @@ pub(super) fn reserve_router(
 }
 
 /// Settle the router from the calls it actually made. None: known not
-/// dispatched, released. A non-billed router settles at zero; a billable
-/// router has no receipt, so its cost stays at the reservation.
+/// dispatched, released. A non-billed router settles at zero. A single priced
+/// call with provider-reported input usage (MR-03 `call.usage`) settles from
+/// that receipt; anything else (no usage, timeout after dispatch, several
+/// calls, unpriced) stays uncertain at the reservation, never zero.
+pub(crate) fn router_settlement(
+    rec: &SpendRecord,
+    calls: u32,
+    call: Option<&crate::decision::CallMetadata>,
+    prices: &crate::receipt::PriceBook,
+    model: &str,
+    output_reserve: u64,
+) -> Settlement {
+    if calls == 0 {
+        return Settlement::released("router_not_consulted");
+    }
+    if matches!(rec.billing, Billing::NonBilled(_)) {
+        return Settlement {
+            state: SpendState::Settled,
+            actual_cost: Some(0),
+            settled_tokens: Some(rec.reserved_tokens),
+            breach: None,
+            basis: Some("non_billed_source".into()),
+        };
+    }
+    let reported = call.and_then(|c| c.usage.authoritative_input().map(|i| (i, c)));
+    match reported {
+        Some((input, c)) if calls == 1 => {
+            let output = c.usage.output_tokens.unwrap_or(output_reserve);
+            match call_bound(prices, model, input, output, 1).micros {
+                Some(cost) => Settlement {
+                    state: SpendState::Settled,
+                    actual_cost: Some(cost),
+                    settled_tokens: Some(input.saturating_add(output)),
+                    breach: None,
+                    basis: Some("router_provider_usage".into()),
+                },
+                None => Settlement::uncertain("router_usage_unpriced"),
+            }
+        }
+        Some(_) => Settlement::uncertain("router_usage_covers_one_of_several_calls"),
+        None => Settlement::uncertain("no_router_receipt"),
+    }
+}
+
 pub(super) fn settle_router(
     cx: &mut Ctx,
     journal: &mut Journal,
     id: &str,
     calls: u32,
+    call: Option<&crate::decision::CallMetadata>,
+    model: &str,
+    output_reserve: u64,
 ) -> HarnessResult<()> {
     let rec = cx
         .ledger
@@ -118,19 +167,14 @@ pub(super) fn settle_router(
         .record(id)
         .cloned()
         .expect("reserved router");
-    let s = if calls == 0 {
-        Settlement::released("router_not_consulted")
-    } else if matches!(rec.billing, Billing::NonBilled(_)) {
-        Settlement {
-            state: SpendState::Settled,
-            actual_cost: Some(0),
-            settled_tokens: Some(rec.reserved_tokens),
-            breach: None,
-            basis: Some("non_billed_source".into()),
-        }
-    } else {
-        Settlement::uncertain("no_router_receipt")
-    };
+    let s = router_settlement(
+        &rec,
+        calls,
+        call,
+        &cx.cfg.budget.prices,
+        model,
+        output_reserve,
+    );
     cx.ledger.spend.settle(journal, id, s)
 }
 
@@ -223,4 +267,91 @@ pub(super) fn settle_generation(
         a.output_cap,
     );
     cx.ledger.spend.settle(journal, &a.id, s)
+}
+
+#[cfg(test)]
+mod router_settlement_tests {
+    use super::*;
+    use crate::decision::{Billing as CallBilling, CallMetadata, IdentityKind, Usage, UsageBasis};
+    use crate::receipt::PriceBook;
+    use serde_json::json;
+
+    fn book() -> PriceBook {
+        PriceBook::from_json(&json!({"schema": "semaprax.harness-price-book.v1", "records": [
+            {"model_prefix": "router-m", "version": "2026-10",
+             "pricing": {"input": 1_000_000, "cache_read": 1_000_000, "cache_write": 1_000_000, "output": 2_000_000}}]}))
+        .unwrap()
+    }
+
+    fn rec(billing: Billing) -> SpendRecord {
+        let bound = super::super::spend::CostBound {
+            micros: Some(10_000),
+            billing,
+        };
+        record(
+            "r1".into(),
+            "router",
+            "x-router".into(),
+            "router-m",
+            10_000,
+            bound,
+            0,
+            true,
+        )
+    }
+
+    fn call(basis: UsageBasis, input: Option<u64>) -> CallMetadata {
+        CallMetadata {
+            adapter: "a@1".into(),
+            requested_model: None,
+            answering_model: None,
+            checkpoint: None,
+            identity_kind: IdentityKind::Unknown,
+            rendered_digest: format!("sha256:{}", "0".repeat(64)),
+            wire_bytes: 10,
+            usage: Usage {
+                input_tokens: input,
+                output_tokens: None,
+                basis,
+            },
+            billing: CallBilling::Api,
+        }
+    }
+
+    #[test]
+    fn hp_mr03_router_spend_settles_from_reported_usage_and_stays_conservative_otherwise() {
+        let priced = rec(Billing::Priced("router-m@2026-10".into()));
+        let p = book();
+        let s = |calls, c: Option<&CallMetadata>| {
+            router_settlement(&priced, calls, c, &p, "router-m", 32)
+        };
+        // Provider-reported usage settles the single call from that receipt.
+        let got = s(1, Some(&call(UsageBasis::ProviderReported, Some(500))));
+        assert_eq!(got.state, SpendState::Settled);
+        assert_eq!(got.settled_tokens, Some(532));
+        assert_eq!(got.actual_cost, Some(500 + 64));
+        // Absent, unknown or locally estimated usage, and a timeout after
+        // dispatch (no call metadata), never refund to zero.
+        for c in [
+            None,
+            Some(call(UsageBasis::Unknown, Some(1))),
+            Some(call(UsageBasis::LocalMeasured, Some(1))),
+            Some(call(UsageBasis::ProviderReported, None)),
+        ] {
+            let got = s(1, c.as_ref());
+            assert_eq!(got.state, SpendState::Uncertain);
+            assert_eq!(got.actual_cost, None);
+        }
+        // One receipt cannot settle a decision plus shadow call.
+        assert_eq!(
+            s(2, Some(&call(UsageBasis::ProviderReported, Some(5)))).state,
+            SpendState::Uncertain
+        );
+        assert_eq!(s(0, None).state, SpendState::Released);
+        // An adapter's `billing: local` claim does not zero a priced router;
+        // only host-declared non-billed sources settle at zero.
+        let nb = rec(Billing::NonBilled("local".into()));
+        let got = router_settlement(&nb, 1, None, &p, "router-m", 32);
+        assert_eq!((got.state, got.actual_cost), (SpendState::Settled, Some(0)));
+    }
 }

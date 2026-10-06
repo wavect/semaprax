@@ -60,11 +60,13 @@ pub fn run(args: &[String], env: &Environment) -> HarnessResult<Option<String>> 
     if let Some(path) = catalog {
         let c = read(env, &path)?;
         let c = c.get("catalog").cloned().unwrap_or(c);
+        let signals = request.signals.clone();
         request = RouteRequest::new(
             request.features,
             RouteRequest::catalog_from_json(&c)?,
             request.budget,
-        )?;
+        )?
+        .with_signals(signals);
     }
     let policy = match doc.get("policy") {
         Some(p) => RoutePolicy::from_json(p)?,

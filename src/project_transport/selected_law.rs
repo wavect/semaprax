@@ -33,6 +33,18 @@ pub(super) fn serve<R: BufRead, W: Write>(
     // Startup proves the exact host policy exists and has no unreviewed law
     // drift. It does not acquire or execute the installed process tool.
     authenticate(&manifest)?;
+    serve_authenticated(input, output, &config, &manifest, &tool)
+}
+
+/// The frame loop after startup authentication. Split out so the shared
+/// reader's terminal paths are testable without an installed law policy.
+pub(super) fn serve_authenticated<R: BufRead, W: Write>(
+    input: R,
+    output: W,
+    config: &ServerConfig,
+    manifest: &std::path::Path,
+    tool: &super::config::LawToolConfig,
+) -> io::Result<()> {
     let limits = config.limits();
     let mut input = FrameReader::new(input, limits);
     let mut output = FrameWriter::new(output, limits);
@@ -71,7 +83,7 @@ pub(super) fn serve<R: BufRead, W: Write>(
             continue;
         };
         let shutting_down = call.method == "shutdown";
-        let response = dispatch(&id, &call.method, call.params, &config, &manifest, &tool);
+        let response = dispatch(&id, &call.method, call.params, config, manifest, tool);
         let terminal_overflow = codec::is_overflow_response(&response);
         output.write_response(&response)?;
         if shutting_down || terminal_overflow {

@@ -1078,7 +1078,7 @@ pub(super) fn check_function_bodies<'p>(
                         function.name
                     ),
                     function.span,
-                ));
+                ).with_help("return an owned `string` instead: a literal, `string_concat`, or `string_from_i64` result is owned"));
             }
             if function.return_type == Type::SliceU8 {
                 diagnostics.push(error(
@@ -1287,14 +1287,8 @@ pub(super) fn check_function_bodies<'p>(
             }
             for effect in &function.effects {
                 if !program.permits.iter().any(|permit| permit == effect) {
-                    diagnostics.push(error(
-                        program,
-                        "SPX-E101",
-                        format!(
-                            "function `{}` uses `{effect}` but module `{}` does not permit it",
-                            function.name, program.module
-                        ),
-                        function.span,
+                    diagnostics.push(crate::source_verify::hints::unpermitted_effect(
+                        program, function, effect,
                     ));
                 }
             }
@@ -1306,14 +1300,11 @@ pub(super) fn check_function_bodies<'p>(
                 let span = function.body.span;
                 if let Some(op) = crate::host_io_ops::by_name(&callee) {
                     if !declared.contains(op.effect()) {
-                        diagnostics.push(error(
+                        diagnostics.push(crate::source_verify::hints::missing_effect(
                             program,
-                            "SPX-E102",
-                            format!(
-                                "call to `{callee}` requires effect `{}`; add it to `{}`",
-                                op.effect(),
-                                function.name
-                            ),
+                            &callee,
+                            op.effect(),
+                            function,
                             span,
                         ));
                     }
@@ -1322,14 +1313,8 @@ pub(super) fn check_function_bodies<'p>(
                 if let Some(op) = crate::command_io_ops::by_name(&callee) {
                     for effect in crate::command_io_ops::required_effects(op) {
                         if !declared.contains(effect) {
-                            diagnostics.push(error(
-                                program,
-                                "SPX-E102",
-                                format!(
-                                    "call to `{callee}` requires effect `{effect}`; add it to `{}`",
-                                    function.name
-                                ),
-                                span,
+                            diagnostics.push(crate::source_verify::hints::missing_effect(
+                                program, &callee, effect, function, span,
                             ));
                         }
                     }
@@ -1338,14 +1323,8 @@ pub(super) fn check_function_bodies<'p>(
                 if let Some(target) = functions.get(callee.as_str()) {
                     for effect in &target.effects {
                         if !declared.contains(effect.as_str()) {
-                            diagnostics.push(error(
-                                program,
-                                "SPX-E102",
-                                format!(
-                                    "call to `{callee}` requires effect `{effect}`; add it to `{}`",
-                                    function.name
-                                ),
-                                span,
+                            diagnostics.push(crate::source_verify::hints::missing_effect(
+                                program, &callee, effect, function, span,
                             ));
                         }
                     }

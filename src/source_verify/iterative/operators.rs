@@ -185,12 +185,15 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 .as_ref()
                 .is_some_and(|value| value.ty == Type::String);
         if !native_unit && !matches!(op, BinaryOp::Eq | BinaryOp::Ne) && string_operands {
-            self.diagnostics.push(error(
-                self.program,
-                "SPX-T250",
-                format!("operator `{}` does not support string operands", op.text()),
-                expression.span,
-            ));
+            self.diagnostics.push(
+                error(
+                    self.program,
+                    "SPX-T250",
+                    format!("operator `{}` does not support string operands", op.text()),
+                    expression.span,
+                )
+                .with_help(crate::source_verify::hints::STRING_OPERATOR_HELP),
+            );
         }
         let (expected, output) = match op {
             BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem => {
@@ -217,11 +220,19 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     && left_value.as_ref().map(|value| &value.ty)
                         != right_value.as_ref().map(|value| &value.ty)
                 {
-                    self.diagnostics.push(error(
-                        self.program,
-                        "SPX-T207",
-                        "equality operands must have the same type",
-                        expression.span,
+                    self.diagnostics.push(hints::with_optional_help(
+                        error(
+                            self.program,
+                            "SPX-T207",
+                            "equality operands must have the same type",
+                            expression.span,
+                        ),
+                        hints::equality_types_help(
+                            left_value.as_ref().map(|value| &value.ty),
+                            right_value.as_ref().map(|value| &value.ty),
+                            left,
+                            right,
+                        ),
                     ));
                 }
                 self.values.push(Some(CheckedValue::value(Type::Bool)));

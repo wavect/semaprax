@@ -7,7 +7,6 @@ crates/semaprax-native-host/src/lib.rs	1809
 crates/semaprax-native-loader/src/settlement.rs	1633
 src/agent_lifecycle/authorization/target_protocol.rs	1549
 src/agent_lifecycle/iterative/effects.rs	1853
-src/agent_runtime/private.rs	4071
 src/agent_runtime/tests.rs	1741
 src/cleanup_plan/build.rs	6818
 src/cleanup_plan/execute.rs	1770
@@ -26,7 +25,7 @@ src/native_settlement.rs	2055
 src/native_settlement/tests.rs	1667
 src/outbound_host_adapter/mod.rs	1519
 src/parser.rs	1870
-src/patch.rs	3280
+src/patch.rs	3064
 src/patch_evidence.rs	1914
 src/properties.rs	1549
 src/project/npm.rs	1519

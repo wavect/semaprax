@@ -35,7 +35,7 @@ test('query and doc argument vectors are exact and end with the JSON flag', () =
   assert.deepEqual(docArguments(at('m.spx')), ['doc', at('m.spx')]);
 });
 
-test('a query result is accepted only with its schema, and malformed matches are dropped', () => {
+test('a query result is accepted only with its schema, and only when every match is well formed', () => {
   const parsed = parseQueryResult(text);
   assert.equal(parsed.module, 'examples.effects');
   assert.equal(parsed.revision, 'sha256:00');
@@ -54,7 +54,7 @@ test('a query result is accepted only with its schema, and malformed matches are
     { ...tick, location: null },
     'nope'
   ] });
-  assert.equal(parseQueryResult(mixed).matches.length, 1);
+  assert.equal(parseQueryResult(mixed), null);
   const bare = parseQueryResult(JSON.stringify({ ...result, matches: [{ ...tick, location: { line: 2, column: 3, start: -1, end: 'x' } }] }));
   assert.deepEqual(bare.matches[0].location, { line: 2, column: 3, start: null, end: null });
   assert.deepEqual(toRange(bare.matches[0].location), { startLine: 1, startColumn: 2, endLine: 1, endColumn: 3 });
@@ -283,7 +283,7 @@ test('a project query result binds every match to its authenticated file and rev
   assert.equal(parseQueryResult(projectText), null);
 });
 
-test('a project match outside the project root, or without its revision binding, is dropped', () => {
+test('a project match outside the project root, or without its revision binding, rejects the result', () => {
   const hostile = value => JSON.stringify({
     schema: 'semaprax.project-query.v1', project: 'calculator',
     project_revision: projectRevision, graph_revision: graphRevision, filters: {}, matches: [value]
@@ -300,7 +300,7 @@ test('a project match outside the project root, or without its revision binding,
     { ...good, location: [0, 4, 50, 53] },
     { ...good, called_by: [1] }
   ]) {
-    assert.deepEqual(parseProjectQueryResult(hostile(broken), projectRoot).matches, [], JSON.stringify(broken.path ?? broken.location));
+    assert.equal(parseProjectQueryResult(hostile(broken), projectRoot), null, JSON.stringify(broken.path ?? broken.location));
   }
   assert.equal(resolveInRoot(projectRoot, 'src/core.spx'), at('calculator', 'src', 'core.spx'));
   assert.equal(resolveInRoot(projectRoot, '../escape.spx'), null);
@@ -333,4 +333,201 @@ test('the project context route drops the facet filter the compiler refuses', ()
     ['context', manifest, 'calculator.add', '--depth', '1', '--max-bytes', String(CONTEXT_MAX_BYTES)]);
   assert.deepEqual(contextArguments(at('m.spx'), 'm.f'),
     ['context', at('m.spx'), 'm.f', '--depth', '1', '--filters', 'contracts,ownership,effects', '--max-bytes', String(CONTEXT_MAX_BYTES)]);
+});
+
+// Navigation stdout is admitted only as strict UTF-8 (REF-16).
+async function navigate(chunks, close = 0, options = {}) {
+  const child = new Child();
+  const pending = runCommand(spawnInto([], child), at('bin', 'semaprax'), queryArguments(at('m.spx')), root, options);
+  for (const chunk of chunks) child.stdout.emit('data', chunk);
+  if (close !== 'pending') child.emit('close', close);
+  return pending;
+}
+
+test('raw invalid UTF-8 in a navigation field is a transport failure, not a successful query', async () => {
+  const bad = Buffer.from(JSON.stringify({ ...result, module: 'examples.XX' }) + '\n');
+  bad[bad.indexOf('XX')] = 0xff;
+  const run = await navigate([bad]);
+  assert.equal(run.invalidUtf8, true);
+  assert.equal(failureReason(run, 'x'), 'command output is not valid UTF-8');
+  assert.equal(parseQueryResult(run.stdout), null);
+  // A literal U+FFFD is valid UTF-8 and an emoji split across chunks survives.
+  const literal = await navigate([Buffer.from(JSON.stringify({ ...result, module: 'examples.�' }) + '\n')]);
+  assert.equal(failureReason(literal, 'x'), null);
+  assert.equal(parseQueryResult(literal.stdout).module, 'examples.�');
+  const emoji = Buffer.from(JSON.stringify({ ...result, module: 'examples.\u{1F600}' }) + '\n');
+  const split = emoji.indexOf(0xf0) + 1;
+  const joined = await navigate([emoji.subarray(0, split), emoji.subarray(split)]);
+  assert.equal(parseQueryResult(joined.stdout).module, 'examples.\u{1F600}');
+  assert.equal(failureReason(await navigate([Buffer.from(text), Buffer.from([0xe2])]), 'x'), 'command output is not valid UTF-8');
+});
+
+test('navigation timeout and byte-cap keep their reason with incomplete trailing UTF-8', async () => {
+  const capped = await navigate([Buffer.from([0xf0, 0x9f]), Buffer.alloc(20, 0x20)], 'pending', { maxBytes: 16 });
+  assert.equal(failureReason(capped, 'x'), `command output exceeded ${MAX_OUTPUT_BYTES} bytes`);
+  const slow = await navigate([Buffer.from([0xf0, 0x9f])], 'pending', { timeoutMs: 5 });
+  assert.equal(failureReason(slow, 'x'), `command timed out after ${TIMEOUT_MS / 1000}s`);
+});
+
+// A query result is admitted whole or not at all (REF-18). Dropping one bad
+// row would present the survivors, or an empty list, as a complete answer.
+test('one malformed module match makes the whole query result unusable, not a shorter one', () => {
+  const malformed = { ...tick, effects: 'clock.read' };
+  assert.equal(parseQueryResult(JSON.stringify({ ...result, matches: [malformed] })), null, 'malformed-only is not a successful empty result');
+  assert.equal(parseQueryResult(JSON.stringify({ ...result, matches: [main, malformed] })), null, 'mixed rows are not silently shortened');
+  for (const broken of [{ ...tick, location: { line: 0, column: 1 } }, { ...tick, id: '' }, { ...tick, location: null }, 'nope', null]) {
+    assert.equal(parseQueryResult(JSON.stringify({ ...result, matches: [tick, broken] })), null, JSON.stringify(broken));
+  }
+  // A genuinely empty valid result stays an ordinary empty answer.
+  const empty = parseQueryResult(JSON.stringify({ ...result, matches: [] }));
+  assert.deepEqual(empty.matches, []);
+  assert.equal(empty.revision, 'sha256:00');
+  assert.equal(parseQueryResult(text).matches.length, 2);
+});
+
+test('one malformed or out-of-root project match makes the whole project result unusable', () => {
+  const document = matches => JSON.stringify({
+    schema: 'semaprax.project-query.v1', project: 'calculator',
+    project_revision: projectRevision, graph_revision: graphRevision, filters: {}, matches
+  });
+  const good = projectMatch('src/core.spx', 'calculator.core', 'calculator.add', 'add', [4, 4, 50, 53]);
+  const caller = projectMatch('src/app.spx', 'calculator.app', 'calculator.app.main', 'main', [8, 4, 336, 340], ['calculator.add']);
+  assert.equal(parseProjectQueryResult(document([{ ...good, effects: 'x' }]), projectRoot), null);
+  assert.equal(parseProjectQueryResult(document([caller, { ...good, effects: 'x' }]), projectRoot), null);
+  // An out-of-root row is never opened, and its omission cannot support a
+  // claim that nothing else calls the target.
+  assert.equal(parseProjectQueryResult(document([caller, { ...caller, path: '../outside/app.spx' }]), projectRoot), null);
+  assert.deepEqual(parseProjectQueryResult(document([]), projectRoot).matches, []);
+  assert.equal(parseProjectQueryResult(document([caller, good]), projectRoot).matches.length, 2);
+});
+
+// In-flight sharing of the one whitelisted read-only lens query (REF-19).
+const navigationModule = require('../navigation');
+const { SharedLensQueries, lensQueryKey } = navigationModule;
+class Token {
+  constructor() { this.isCancellationRequested = false; this.listeners = []; }
+  onCancellationRequested(listener) { this.listeners.push(listener); return { dispose: () => { this.listeners = this.listeners.filter(item => item !== listener); } }; }
+  cancel() { this.isCancellationRequested = true; for (const listener of this.listeners.slice()) listener(); }
+}
+const settle = () => new Promise(resolve => setImmediate(resolve));
+const lensKey = (overrides = {}) => lensQueryKey({ binary: at('bin', 'semaprax'), subject: at('calculator', 'semaprax.toml'), project: true, cwd: projectRoot, args: queryArguments(at('calculator', 'semaprax.toml')), generation: 0, ...overrides });
+// The shared start: one bounded runCommand, admitted once (REF-16/REF-18).
+const lensStart = (calls, child) => signal => runCommand(spawnInto(calls, child), at('bin', 'semaprax'), queryArguments(at('calculator', 'semaprax.toml')), projectRoot, { signal })
+  .then(run => (failureReason(run, 'x') ? null : parseProjectQueryResult(run.stdout, projectRoot)));
+
+test('two simultaneous lens requests for one unchanged project share exactly one query', async () => {
+  const registry = new SharedLensQueries(), calls = [], child = new Child();
+  const first = registry.request(lensKey(), lensStart(calls, child), new Token());
+  const second = registry.request(lensKey(), lensStart(calls, child), new Token());
+  await settle();
+  assert.equal(calls.length, 1, 'one compiler dispatch for both members');
+  child.stdout.emit('data', Buffer.from(projectText)); child.emit('close', 0);
+  const [one, two] = await Promise.all([first, second]);
+  assert.equal(one, two, 'both subscribers receive the one validated result');
+  const app = lensRecords({ ...one, matches: one.matches.filter(match => match.file === at('calculator', 'src', 'app.spx')) });
+  const core = lensRecords({ ...two, matches: two.matches.filter(match => match.file === at('calculator', 'src', 'core.spx')) });
+  assert.deepEqual(app.map(lens => lens.title), ['@id calculator.app.main']);
+  assert.deepEqual(core.map(lens => lens.title), ['@id calculator.add']);
+  assert.equal(registry.size, 0, 'nothing is retained after completion');
+  // A later request is a new query: there is no warm cache.
+  const later = registry.request(lensKey(), lensStart(calls, new Child()), new Token());
+  await settle();
+  assert.equal(calls.length, 2);
+  registry.dispose(); assert.equal(await later, undefined);
+});
+
+test('different compilers, subjects, worktrees, arguments or source generations never share', async () => {
+  const base = lensKey();
+  for (const changed of [{ binary: at('bin', 'other') }, { subject: at('other', 'semaprax.toml'), args: queryArguments(at('other', 'semaprax.toml')) }, { cwd: at('worktree') }, { subject: at('calculator', 'nested', 'semaprax.toml'), args: queryArguments(at('calculator', 'nested', 'semaprax.toml')) }, { generation: 1 }, { project: false }]) {
+    assert.notEqual(lensQueryKey({ binary: at('bin', 'semaprax'), subject: at('calculator', 'semaprax.toml'), project: true, cwd: projectRoot, args: queryArguments(at('calculator', 'semaprax.toml')), generation: 0, ...changed }), base, JSON.stringify(changed));
+  }
+  const registry = new SharedLensQueries();
+  let starts = 0;
+  const start = () => { starts++; return new Promise(() => {}); };
+  registry.request(lensKey(), start); registry.request(lensKey({ generation: 1 }), start);
+  await settle();
+  assert.equal(starts, 2);
+  registry.dispose();
+});
+
+test('a cancelled subscriber does not disturb another; when all cancel the child is terminated and released', async () => {
+  const registry = new SharedLensQueries(), calls = [], child = new Child();
+  const leaving = new Token(), staying = new Token();
+  const gone = registry.request(lensKey(), lensStart(calls, child), leaving);
+  const kept = registry.request(lensKey(), lensStart(calls, child), staying);
+  await settle();
+  leaving.cancel();
+  assert.equal(await gone, undefined, 'a cancelled subscriber gets no result');
+  assert.equal(child.killed, false, 'the child is still needed by the other subscriber');
+  child.stdout.emit('data', Buffer.from(projectText)); child.emit('close', 0);
+  assert.equal((await kept).matches.length, 3);
+
+  const lone = new Child(), token = new Token();
+  const abandoned = registry.request(lensKey(), lensStart(calls, lone), token);
+  await settle();
+  token.cancel();
+  assert.equal(await abandoned, undefined);
+  assert.equal(registry.size, 0, 'the entry is released once no subscriber remains');
+  await settle();
+  assert.equal(lone.killed, true, 'the owned child is terminated through the existing path');
+  // An already-cancelled token never starts work.
+  const before = calls.length, cancelled = new Token(); cancelled.cancel();
+  assert.equal(await registry.request(lensKey(), lensStart(calls, new Child()), cancelled), undefined);
+  await settle();
+  assert.equal(calls.length, before);
+});
+
+test('invalidation during a request discards its result and failures are never cached', async () => {
+  const registry = new SharedLensQueries(), calls = [], child = new Child();
+  const pending = registry.request(lensKey(), lensStart(calls, child), new Token());
+  await settle();
+  registry.invalidate();
+  assert.equal(await pending, undefined, 'a result started before a relevant change is not published');
+  await settle();
+  assert.equal(child.killed, true);
+  assert.equal(registry.size, 0);
+
+  const failing = new Child();
+  const failed = registry.request(lensKey(), lensStart(calls, failing), new Token());
+  await settle();
+  failing.stdout.emit('data', Buffer.from(JSON.stringify({ ...JSON.parse(projectText), matches: [{ effects: 'x' }] })));
+  failing.emit('close', 0);
+  assert.equal(await failed, null, 'an invalid reply is a failure, not a successful empty result');
+  assert.equal(registry.size, 0);
+  const retry = new Child();
+  const again = registry.request(lensKey(), lensStart(calls, retry), new Token());
+  await settle();
+  retry.stdout.emit('data', Buffer.from(projectText)); retry.emit('close', 0);
+  assert.equal((await again).matches.length, 3, 'a later independent request executes normally');
+});
+
+test('the registry is bounded and the runner honours cancellation without losing settlement', async () => {
+  const registry = new SharedLensQueries(2);
+  let starts = 0;
+  const start = () => { starts++; return new Promise(() => {}); };
+  registry.request(lensKey({ generation: 1 }), start); registry.request(lensKey({ generation: 2 }), start);
+  assert.equal(await registry.request(lensKey({ generation: 3 }), start), undefined, 'a full registry declines instead of queueing');
+  await settle();
+  assert.equal(starts, 2);
+  registry.dispose();
+  assert.equal(registry.size, 0);
+
+  const child = new Child(), controller = new AbortController();
+  child.kill = function () { this.killed = true; };
+  let settled = false;
+  const pending = runCommand(spawnInto([], child), at('bin', 'semaprax'), ['query', at('m.spx'), '--json'], root, { signal: controller.signal }).then(value => { settled = true; return value; });
+  controller.abort();
+  await settle();
+  assert.equal(child.killed, true);
+  assert.equal(settled, false, 'ownership is kept until the child is observed to exit');
+  child.emit('close', null);
+  const run = await pending;
+  assert.equal(run.cancelled, true);
+  assert.equal(failureReason(run, 'x'), 'command was cancelled');
+});
+
+test('no mutation-bearing route is shared: only the lens query is whitelisted', () => {
+  assert.equal(typeof navigationModule.runCommand, 'function');
+  assert.throws(() => lensQueryKey({ binary: at('bin', 'semaprax'), subject: at('m.spx'), project: false, cwd: root, args: patchArguments(at('m.spx'), at('p.spatch')), generation: 0 }), /only the lens query/);
+  assert.throws(() => lensQueryKey({ binary: at('bin', 'semaprax'), subject: at('m.spx'), project: false, cwd: root, args: queryArguments(at('m.spx'), { calls: 'x' }), generation: 0 }), /only the lens query/);
 });

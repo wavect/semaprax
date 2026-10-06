@@ -128,6 +128,88 @@ fn unlisted_declaring_file(
     None
 }
 
+/// `unknown function `name`` inside a project, where another listed module
+/// declares `name` under an explicit `@id`: replace the generic
+/// "declare or import" help with the exact `use` line, so the agent does not
+/// have to search the project for the declaring module and its identity.
+pub(super) fn hint_importable_function(
+    errors: Vec<Diagnostic>,
+    root: &Path,
+    declared_sources: &[String],
+) -> Vec<Diagnostic> {
+    let mut declarations: Option<Vec<(String, String, String)>> = None;
+    errors
+        .into_iter()
+        .map(|diagnostic| {
+            let Some(name) = unknown_function_name(&diagnostic) else {
+                return diagnostic;
+            };
+            let declarations =
+                declarations.get_or_insert_with(|| declared_functions(root, declared_sources));
+            let importer = diagnostic
+                .path
+                .as_deref()
+                .and_then(|path| read_bounded(&root.join(path)))
+                .and_then(|source| declared_module(&source).map(str::to_owned));
+            let mut matches = declarations.iter().filter(|(module, function, _)| {
+                function == name && Some(module) != importer.as_ref()
+            });
+            match (matches.next(), matches.next()) {
+                (Some((module, _, id)), None) => {
+                    let help = format!(
+                        "`{name}` is declared in module `{module}`; import it directly after the \
+                         `module` line: `use function @id(\"{id}\") from {module} as {name};`"
+                    );
+                    diagnostic.with_help(help)
+                }
+                _ => diagnostic,
+            }
+        })
+        .collect()
+}
+
+fn unknown_function_name(diagnostic: &Diagnostic) -> Option<&str> {
+    if diagnostic.code != "SPX-T203" {
+        return None;
+    }
+    let name = diagnostic
+        .message
+        .strip_prefix("unknown function `")?
+        .strip_suffix('`')?;
+    diagnostic
+        .help
+        .as_deref()
+        .is_some_and(|help| help.starts_with(&format!("declare `{name}` in this module")))
+        .then_some(name)
+}
+
+/// `(module, function name, stable id)` for every explicitly identified
+/// function in the listed sources, bounded like the unlisted-module scan.
+fn declared_functions(root: &Path, declared_sources: &[String]) -> Vec<(String, String, String)> {
+    declared_sources
+        .iter()
+        .take(MAX_SCANNED_FILES)
+        .filter_map(|source| {
+            let text = read_bounded(&root.join(source))?;
+            crate::parse(&text, Path::new(source)).ok()
+        })
+        .flat_map(|program| {
+            program
+                .functions
+                .iter()
+                .filter(|function| function.explicit_id)
+                .map(|function| {
+                    (
+                        program.module.clone(),
+                        function.name.clone(),
+                        function.stable_id.clone(),
+                    )
+                })
+                .collect::<Vec<_>>()
+        })
+        .collect()
+}
+
 /// The module a source file declares: its first line that is neither blank nor a
 /// `//` comment must be `module <name>;`.
 pub(super) fn declared_module(source: &str) -> Option<&str> {

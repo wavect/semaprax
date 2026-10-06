@@ -1,0 +1,12 @@
+{
+  "schema": "semaprax.example.runtime-routing-config.v1",
+  "agent_id": "fixture.agent",
+  "profiles": [
+    {"id": "fast", "deployment": "deployments/fast.json", "alias": "local-basic",
+     "est_cost_micros": 10, "est_latency_ms": 100, "strength_rank": 1, "max_context": 4096},
+    {"id": "strong", "deployment": "deployments/strong.json", "alias": "local-standard",
+     "est_cost_micros": 50, "est_latency_ms": 400, "strength_rank": 9, "max_context": 4096}
+  ],
+  "operator_pin": "strong",
+  "decision_provider": {"mode": "experimental", "provider_id": "example-fixture-router"}
+}

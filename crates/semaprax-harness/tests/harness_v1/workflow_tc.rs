@@ -207,6 +207,7 @@ fn plan(id: &str, destination: Destination) -> ModelPlan {
         est_cost_micros: 0,
         est_latency_ms: 10,
         strength_rank: 1,
+        descriptor: Default::default(),
     }
 }
 
@@ -916,3 +917,6 @@ fn tc10_ladder_config_parses_and_rejects_unknown_families_and_empty_models() {
     let d = semaprax_harness::profile::config::parse(HDR.as_bytes()).unwrap();
     assert!(d.to_json().get("routing").is_none());
 }
+
+#[path = "workflow_tc_mn.rs"]
+mod mn;

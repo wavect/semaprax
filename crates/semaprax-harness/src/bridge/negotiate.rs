@@ -328,6 +328,9 @@ pub fn response(decl: &HostDeclaration, avail: &Availability) -> Value {
             "model_routing": dec["model_routing"].owner.as_str(),
         },
         "not_claimed_optimized": not_optimized,
+        // MR-14: who controlled the parent agent's own model, stated on every
+        // handshake so a non-delegating host never reads as Semaprax-routed.
+        "parent_model": crate::workflow::phases::parent_model_routing(dec["model_routing"].owner),
         "observed_scope": {
             "observed": "semaprax-routed-calls-only",
             "not_observed": ["host tool calls not routed through the bridge", "conversation history", "model choice unless delegated"],

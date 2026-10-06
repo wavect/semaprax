@@ -4,7 +4,7 @@
       "adapter.py"
     ],
     "runtime": "python",
-    "version": "0.1.0"
+    "version": "0.2.0"
   },
   "cancellation": "cooperative",
   "capabilities": [
@@ -15,10 +15,30 @@
       ],
       "required": true,
       "version": 1
+    },
+    {
+      "kind": "decision.evaluate",
+      "operations": [
+        "evaluate"
+      ],
+      "required": false,
+      "version": 2
+    },
+    {
+      "kind": "decision.evaluate",
+      "operations": [
+        "evaluate"
+      ],
+      "required": false,
+      "version": 3
     }
   ],
   "config": {
-    "fields": {}
+    "fields": {
+      "endpoint": {"default": "", "type": "string"},
+      "instance_id": {"default": "", "type": "string"},
+      "model_profile": {"default": "", "type": "string"}
+    }
   },
   "extensions": [],
   "permissions": {
@@ -32,7 +52,11 @@
     ],
     "write": []
   },
-  "platforms": ["macos-aarch64", "linux-x86_64", "linux-aarch64"],
+  "platforms": [
+    "macos-aarch64",
+    "linux-x86_64",
+    "linux-aarch64"
+  ],
   "protocol": {
     "max": 1,
     "min": 1,
@@ -40,7 +64,7 @@
   },
   "provider": {
     "id": "ai.typesafe/jev-decision",
-    "version": "0.1.0"
+    "version": "0.2.0"
   },
   "resources": {
     "handshake_timeout_ms": 5000,

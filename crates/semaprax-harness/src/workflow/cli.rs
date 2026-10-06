@@ -366,26 +366,27 @@ pub fn run_with(
     if let Some(l) = launch_for(CapabilityKind::DecisionEvaluate) {
         match start(&manager, l, &snapshot, &cache, o, env, &config) {
             Ok(h) => {
-                decision_inv = Some(HostDecisionInvoker::new(h));
-                let explicit = config
-                    .capability(CapabilityKind::DecisionEvaluate)
-                    .provider
-                    .is_some();
-                decision_meta = Some((
-                    ProviderProfile {
-                        provider_id: l.provider_id.clone(),
-                        model_id: l.provider_id.clone(),
-                        checkpoint: l.descriptor.adapter_version.clone(),
-                        min_confidence: None,
-                        max_context_tokens: None,
-                        supported_families: None,
-                    },
-                    if explicit {
-                        ProviderMode::Explicit
-                    } else {
-                        ProviderMode::Auto
-                    },
-                ));
+                let cap = config.capability(CapabilityKind::DecisionEvaluate);
+                let explicit = cap.provider.is_some();
+                // MR-15: profile from descriptor + configuration; a malformed
+                // profile is refused before inference and rules decide.
+                match super::decision_open::decision_profile(&l.descriptor, &cap, env) {
+                    Ok(profile) => {
+                        decision_inv = Some(HostDecisionInvoker::new(h));
+                        decision_meta = Some((
+                            profile,
+                            if explicit {
+                                ProviderMode::Explicit
+                            } else {
+                                ProviderMode::Auto
+                            },
+                        ));
+                    }
+                    Err(e) => notes.push(format!(
+                        "decision provider `{}` not used, rules decide: {} {}",
+                        l.provider_id, e.code, e.message
+                    )),
+                }
             }
             Err(e) => notes.push(format!(
                 "decision provider `{}` not started, rules decide: {}",
@@ -849,10 +850,17 @@ pub(super) fn start(
             cache_dir: cache_dir.canonicalize().unwrap_or(cache_dir),
             retention_dir: retention.canonicalize().unwrap_or(retention),
             isolation,
-            forward_env: super::adapter_config::config_env(
-                &l.descriptor,
-                &config.capability(l.kind),
-            )?,
+            forward_env: {
+                let mut fwd =
+                    super::adapter_config::config_env(&l.descriptor, &config.capability(l.kind))?;
+                // Host-provided values for exactly the secrets the trust grant names.
+                for name in &l.grant.permissions().secrets {
+                    if let Some(v) = env.vars.get(name) {
+                        fwd.insert(name.clone(), v.clone());
+                    }
+                }
+                fwd
+            },
         },
     )
 }

@@ -630,42 +630,182 @@ struct NeverHost;
     assert!(!cli_text.contains("agent-runtime"));
     assert!(!cli_text.contains("agent-profile"));
 
-    let public_source = include_str!("../src/agent_runtime.rs");
-    let private_source = include_str!("../src/agent_runtime/private.rs");
-    let private_deadline_source = include_str!("../src/agent_runtime/private/deadline.rs");
-    let private_accounting_source = include_str!("../src/agent_runtime/private/accounting.rs");
-    let compatibility_source = include_str!("../src/agent_runtime/compatibility.rs");
-    for forbidden in [
-        "std::net::",
-        "TcpStream",
-        "UdpSocket",
-        "reqwest::",
-        "Command::new",
-        "fs::write",
-        "File::create",
-    ] {
+    assert_runtime_sources_are_authority_free();
+    fs::remove_dir_all(root).unwrap();
+}
+
+/// Every non-test Runtime v1 source file, read by the authority audit below.
+///
+/// Splitting a runtime module moves code into new files; each one must be
+/// listed here or in `RUNTIME_TEST_ONLY_SOURCES`, and
+/// `runtime_authority_audit_inventory_covers_every_runtime_source` fails
+/// closed on any file under `src/agent_runtime/` that is in neither list.
+const RUNTIME_AUDITED_SOURCES: &[(&str, &str)] = &[
+    (
+        "src/agent_runtime.rs",
+        include_str!("../src/agent_runtime.rs"),
+    ),
+    (
+        "src/agent_runtime/compatibility.rs",
+        include_str!("../src/agent_runtime/compatibility.rs"),
+    ),
+    (
+        "src/agent_runtime/private.rs",
+        include_str!("../src/agent_runtime/private.rs"),
+    ),
+    (
+        "src/agent_runtime/private/accounting.rs",
+        include_str!("../src/agent_runtime/private/accounting.rs"),
+    ),
+    (
+        "src/agent_runtime/private/admission.rs",
+        include_str!("../src/agent_runtime/private/admission.rs"),
+    ),
+    (
+        "src/agent_runtime/private/deadline.rs",
+        include_str!("../src/agent_runtime/private/deadline.rs"),
+    ),
+    (
+        "src/agent_runtime/private/evidence.rs",
+        include_str!("../src/agent_runtime/private/evidence.rs"),
+    ),
+    (
+        "src/agent_runtime/private/execution.rs",
+        include_str!("../src/agent_runtime/private/execution.rs"),
+    ),
+    (
+        "src/agent_runtime/private/replay.rs",
+        include_str!("../src/agent_runtime/private/replay.rs"),
+    ),
+    (
+        "src/agent_runtime/private/request.rs",
+        include_str!("../src/agent_runtime/private/request.rs"),
+    ),
+];
+
+/// Test-only runtime modules (`#[cfg(test)]`), which may build fixtures with
+/// filesystem writes and are therefore exempt from the authority audit.
+const RUNTIME_TEST_ONLY_SOURCES: &[&str] = &[
+    "src/agent_runtime/private/economic_tests.rs",
+    "src/agent_runtime/tests.rs",
+    "src/agent_runtime/tests/accounting.rs",
+    "src/agent_runtime/tests/admission.rs",
+    "src/agent_runtime/tests/deadline.rs",
+    "src/agent_runtime/tests/sinks.rs",
+];
+
+const FORBIDDEN_RUNTIME_AUTHORITY: &[&str] = &[
+    "std::net::",
+    "TcpStream",
+    "UdpSocket",
+    "reqwest::",
+    "Command::new",
+    "fs::write",
+    "File::create",
+];
+
+fn runtime_authority_violations<'a>(sources: &[(&'a str, &str)]) -> Vec<(&'a str, &'static str)> {
+    let mut violations = Vec::new();
+    for (path, source) in sources {
+        for forbidden in FORBIDDEN_RUNTIME_AUTHORITY {
+            if source.contains(forbidden) {
+                violations.push((*path, *forbidden));
+            }
+        }
+    }
+    violations
+}
+
+fn assert_runtime_sources_are_authority_free() {
+    let violations = runtime_authority_violations(RUNTIME_AUDITED_SOURCES);
+    assert!(
+        violations.is_empty(),
+        "runtime sources contain forbidden authority: {violations:?}"
+    );
+}
+
+/// Runtime source paths that are neither audited nor declared test-only.
+fn unclassified_runtime_sources(discovered: &BTreeSet<String>) -> Vec<String> {
+    discovered
+        .iter()
+        .filter(|path| {
+            !RUNTIME_AUDITED_SOURCES
+                .iter()
+                .any(|(audited, _)| audited == path)
+                && !RUNTIME_TEST_ONLY_SOURCES.contains(&path.as_str())
+        })
+        .cloned()
+        .collect()
+}
+
+fn discovered_runtime_sources() -> BTreeSet<String> {
+    fn walk(root: &Path, directory: &Path, output: &mut BTreeSet<String>) {
+        for entry in fs::read_dir(directory).unwrap() {
+            let path = entry.unwrap().path();
+            if path.is_dir() {
+                walk(root, &path, output);
+            } else if path.extension().is_some_and(|extension| extension == "rs") {
+                let relative = path.strip_prefix(root).unwrap();
+                output.insert(relative.to_string_lossy().replace('\\', "/"));
+            }
+        }
+    }
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let mut output = BTreeSet::from(["src/agent_runtime.rs".to_owned()]);
+    walk(root, &root.join("src/agent_runtime"), &mut output);
+    output
+}
+
+#[test]
+fn runtime_authority_audit_inventory_covers_every_runtime_source() {
+    assert_runtime_sources_are_authority_free();
+    let discovered = discovered_runtime_sources();
+    assert_eq!(
+        unclassified_runtime_sources(&discovered),
+        Vec::<String>::new()
+    );
+    for (path, source) in RUNTIME_AUDITED_SOURCES {
         assert!(
-            !public_source.contains(forbidden),
-            "public source contains {forbidden}"
+            discovered.contains(*path),
+            "audited {path} no longer exists"
         );
-        assert!(
-            !private_source.contains(forbidden),
-            "private source contains {forbidden}"
-        );
-        assert!(
-            !private_deadline_source.contains(forbidden),
-            "private deadline source contains {forbidden}"
-        );
-        assert!(
-            !private_accounting_source.contains(forbidden),
-            "private accounting source contains {forbidden}"
-        );
-        assert!(
-            !compatibility_source.contains(forbidden),
-            "compatibility source contains {forbidden}"
+        assert_eq!(
+            fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap(),
+            *source,
+            "{path} is audited from stale bytes"
         );
     }
-    fs::remove_dir_all(root).unwrap();
+    for path in RUNTIME_TEST_ONLY_SOURCES {
+        assert!(
+            discovered.contains(*path),
+            "test-only {path} no longer exists"
+        );
+    }
+}
+
+#[test]
+fn runtime_authority_audit_detects_forbidden_operation_in_a_new_child() {
+    // Seed a network operation into a would-be new child module. The token is
+    // assembled so this test file itself never spells it.
+    let seeded = concat!(
+        "fn leak() { let _ = std::",
+        "net::TcpStream::connect(\"x\"); }\n"
+    );
+    let child = "src/agent_runtime/private/seeded_child.rs";
+    let mut sources = RUNTIME_AUDITED_SOURCES.to_vec();
+    sources.push((child, seeded));
+    let violations = runtime_authority_violations(&sources);
+    assert!(violations.contains(&(child, "std::net::")));
+    assert!(violations.contains(&(child, "TcpStream")));
+    assert!(violations.iter().all(|(path, _)| *path == child));
+
+    // A child file that was never added to the inventory is detected too.
+    let mut discovered = discovered_runtime_sources();
+    discovered.insert(child.to_owned());
+    assert_eq!(
+        unclassified_runtime_sources(&discovered),
+        vec![child.to_owned()]
+    );
 }
 
 #[path = "agent_runtime_v1/live_repair_smoke_v1.rs"]
@@ -676,3 +816,18 @@ mod execution_revision;
 
 #[path = "agent_runtime_v1/source_agent_embedded.rs"]
 mod source_agent_embedded;
+
+#[path = "agent_runtime_v1/runtime_routing.rs"]
+mod runtime_routing;
+
+#[path = "agent_runtime_v1/runtime_reroute.rs"]
+mod runtime_reroute;
+
+#[path = "agent_runtime_v1/routed_agent_example.rs"]
+mod routed_agent_example;
+
+#[path = "agent_runtime_v1/choice_examples.rs"]
+mod choice_examples;
+
+#[path = "agent_runtime_v1/routing_e2e_lane.rs"]
+mod routing_e2e_lane;

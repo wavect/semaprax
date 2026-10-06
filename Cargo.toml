@@ -28,6 +28,7 @@ members = [
     "crates/semaprax-project-revision-store-windows-sys",
     "crates/semaprax-toolchain",
     "crates/semaprax-harness",
+    "crates/semaprax-decision-core",
 ]
 default-members = ["."]
 resolver = "2"
@@ -117,3 +118,11 @@ overflow-checks = true
 
 [lints.rust]
 unsafe_code = "deny"
+
+# REF-24 (#543): the compiler root no longer allows `clippy::all`, `unused` or
+# `dead_code`. The single crate-wide exception is named here: `Diagnostic` is
+# the compiler's error type by design and is larger than clippy's
+# `result_large_err` threshold at roughly 4,000 sites in 769 files. Every
+# other pre-existing finding is a named, per-module `allow` in `src/lib.rs`.
+[lints.clippy]
+result_large_err = "allow"

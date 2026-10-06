@@ -43,7 +43,16 @@ impl CapabilityKind {
 
     /// Contract versions the host implements for this kind.
     pub fn supported_versions(&self) -> &'static [u32] {
-        &[SUPPORTED_VERSION]
+        match self {
+            // MR-01: `decision.evaluate` v2 (`model-route/v2`) alongside v1;
+            // MR-11: v3 carries the finite-choice task `choice-select/v1`.
+            Self::DecisionEvaluate => &[
+                SUPPORTED_VERSION,
+                DECISION_EVALUATE_V2,
+                DECISION_EVALUATE_V3,
+            ],
+            _ => &[SUPPORTED_VERSION],
+        }
     }
 
     /// Closed operation vocabulary of this kind at v1.
@@ -58,8 +67,15 @@ impl CapabilityKind {
     }
 }
 
-/// Current (only) contract version of every first-wave kind.
+/// Base contract version of every first-wave kind.
 pub const SUPPORTED_VERSION: u32 = 1;
+
+/// Second negotiated version of `decision.evaluate` (`model-route/v2`).
+pub const DECISION_EVALUATE_V2: u32 = 2;
+
+/// Third negotiated version of `decision.evaluate` (`choice-select/v1`). An
+/// adapter supports runtime tool/agent choice exactly when it negotiated it.
+pub const DECISION_EVALUATE_V3: u32 = semaprax_decision_core::CHOICE_WIRE_VERSION;
 
 /// `skill.evolve/v1` (HN-15): experimental, host-invoked evolution capability.
 ///

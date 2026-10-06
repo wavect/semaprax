@@ -19,15 +19,20 @@ impl AgentContextV2Index<'_> {
             .get(id)
             .ok_or_else(|| graph_reference_error("function", id))?
             .clone();
-        let base_json = if let Some(function) = self.functions.get(id) {
+        let base_json = if let Some(function) = self.callables.functions.get(id) {
+            let schema = self
+                .fact_schema
+                .get_or_init(|| nested_owned::generic_payload_schema(self.program))
+                .clone()?;
             super::function_facts::agent_function_json_for_schema(
                 self.program,
                 function,
                 filters,
-                nested_owned::generic_payload_schema(self.program)?,
+                schema,
+                &self.callables.function_calls(function),
             )?
-        } else if let Some(template) = self.templates.get(id) {
-            agent_template_json(self.program, template, filters)?
+        } else if let Some(template) = self.callables.templates.get(id) {
+            agent_template_json(self.program, template, filters, &template_calls(template))?
         } else {
             return Err(graph_reference_error("function", id));
         };

@@ -54,13 +54,217 @@ pub(crate) struct DefinitionV2 {
 pub(crate) struct Deployment {
     pub(crate) deployment_id: String,
     pub(crate) definition_digest: String,
-    pub(crate) models: Value,
+    pub(crate) models: Vec<DeploymentModel>,
     pub(crate) allowed_provider_ids: Vec<String>,
     pub(crate) allowed_model_ids: Vec<String>,
     pub(crate) granted_capabilities: Vec<String>,
     pub(crate) allowed_tool_ids: Vec<String>,
     pub(crate) target_features: Vec<String>,
     pub(crate) limits: Value,
+}
+
+/// One deployment model field as admitted by the closed-key, canonical-byte
+/// boundary. The document schema closes the key set but not every field type:
+/// a wrongly typed value stays verbatim so binding still reports the exact
+/// diagnostic, and at the exact point, that it did before typing.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) enum ModelField<T> {
+    Typed(T),
+    Untyped(Value),
+}
+
+impl<T> ModelField<T> {
+    pub(crate) fn typed(&self) -> Option<&T> {
+        match self {
+            Self::Typed(value) => Some(value),
+            Self::Untyped(_) => None,
+        }
+    }
+}
+
+impl ModelField<String> {
+    fn text(value: &Value) -> Self {
+        value.as_str().map_or_else(
+            || Self::Untyped(value.clone()),
+            |text| Self::Typed(text.to_owned()),
+        )
+    }
+
+    fn to_value(&self) -> Value {
+        match self {
+            Self::Typed(text) => Value::String(text.clone()),
+            Self::Untyped(value) => value.clone(),
+        }
+    }
+}
+
+impl ModelField<u64> {
+    fn count(value: &Value) -> Self {
+        value
+            .as_u64()
+            .map_or_else(|| Self::Untyped(value.clone()), Self::Typed)
+    }
+
+    fn to_value(&self) -> Value {
+        match self {
+            Self::Typed(count) => Value::from(*count),
+            Self::Untyped(value) => value.clone(),
+        }
+    }
+}
+
+impl ModelField<Vec<ModelField<String>>> {
+    fn texts(value: &Value) -> Self {
+        value.as_array().map_or_else(
+            || Self::Untyped(value.clone()),
+            |rows| Self::Typed(rows.iter().map(ModelField::<String>::text).collect()),
+        )
+    }
+
+    fn to_value(&self) -> Value {
+        match self {
+            Self::Typed(rows) => {
+                Value::Array(rows.iter().map(ModelField::<String>::to_value).collect())
+            }
+            Self::Untyped(value) => value.clone(),
+        }
+    }
+}
+
+/// The single private owner of one admitted deployment model row: every
+/// supported field, in canonical key order, decoded once at admission.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct DeploymentModel {
+    pub(crate) provider_id: ModelField<String>,
+    pub(crate) model_id: ModelField<String>,
+    pub(crate) locality: ModelField<String>,
+    pub(crate) quality_tier: ModelField<String>,
+    pub(crate) tokenizer_id: ModelField<String>,
+    pub(crate) max_context_tokens: ModelField<u64>,
+    pub(crate) input_usd_microunits_per_million_tokens: ModelField<u64>,
+    pub(crate) output_usd_microunits_per_million_tokens: ModelField<u64>,
+    pub(crate) capabilities: ModelField<Vec<ModelField<String>>>,
+}
+
+/// A borrowed, read-only view of one fully typed admitted model row. It
+/// copies no string and is never constructed from caller-supplied text.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct ModelSelectionRef<'a> {
+    provider_id: &'a str,
+    model_id: &'a str,
+    capabilities: &'a [ModelField<String>],
+    max_context_tokens: u64,
+}
+
+impl<'a> ModelSelectionRef<'a> {
+    pub(crate) fn provider_id(&self) -> &'a str {
+        self.provider_id
+    }
+
+    pub(crate) fn model_id(&self) -> &'a str {
+        self.model_id
+    }
+
+    pub(crate) fn capabilities(&self) -> impl Iterator<Item = &'a str> + 'a {
+        self.capabilities
+            .iter()
+            .filter_map(|capability| capability.typed().map(String::as_str))
+    }
+
+    pub(crate) fn max_context_tokens(&self) -> u64 {
+        self.max_context_tokens
+    }
+}
+
+impl DeploymentModel {
+    /// Decodes one row whose closed key set and order `render_models` has
+    /// already admitted.
+    fn decode(row: &Value) -> Result<Self, Diagnostic> {
+        #[cfg(test)]
+        model_decode_counter::record();
+        let field = |key: &str| row.get(key).ok_or_else(deployment_malformed);
+        Ok(Self {
+            provider_id: ModelField::text(field("provider_id")?),
+            model_id: ModelField::text(field("model_id")?),
+            locality: ModelField::text(field("locality")?),
+            quality_tier: ModelField::text(field("quality_tier")?),
+            tokenizer_id: ModelField::text(field("tokenizer_id")?),
+            max_context_tokens: ModelField::count(field("max_context_tokens")?),
+            input_usd_microunits_per_million_tokens: ModelField::count(field(
+                "input_usd_microunits_per_million_tokens",
+            )?),
+            output_usd_microunits_per_million_tokens: ModelField::count(field(
+                "output_usd_microunits_per_million_tokens",
+            )?),
+            capabilities: ModelField::texts(field("capabilities")?),
+        })
+    }
+
+    /// The row's position in `QUALITY_TIERS`, or `None` when its tier is not
+    /// an admitted tier name.
+    pub(crate) fn quality_rank(&self) -> Option<usize> {
+        let tier = self.quality_tier.typed()?;
+        QUALITY_TIERS
+            .iter()
+            .position(|candidate| *candidate == tier.as_str())
+    }
+
+    /// The borrowed selection view, present when every selection field is
+    /// typed. A bound deployment's rows always are: Runtime v1 admitted them.
+    pub(crate) fn selection(&self) -> Option<ModelSelectionRef<'_>> {
+        let capabilities = self.capabilities.typed()?;
+        if capabilities.iter().any(|value| value.typed().is_none()) {
+            return None;
+        }
+        Some(ModelSelectionRef {
+            provider_id: self.provider_id.typed()?,
+            model_id: self.model_id.typed()?,
+            capabilities,
+            max_context_tokens: *self.max_context_tokens.typed()?,
+        })
+    }
+
+    fn to_value(&self) -> Value {
+        let mut row = Map::new();
+        for (key, value) in [
+            ("provider_id", self.provider_id.to_value()),
+            ("model_id", self.model_id.to_value()),
+            ("locality", self.locality.to_value()),
+            ("quality_tier", self.quality_tier.to_value()),
+            ("tokenizer_id", self.tokenizer_id.to_value()),
+            ("max_context_tokens", self.max_context_tokens.to_value()),
+            (
+                "input_usd_microunits_per_million_tokens",
+                self.input_usd_microunits_per_million_tokens.to_value(),
+            ),
+            (
+                "output_usd_microunits_per_million_tokens",
+                self.output_usd_microunits_per_million_tokens.to_value(),
+            ),
+            ("capabilities", self.capabilities.to_value()),
+        ] {
+            row.insert(key.to_owned(), value);
+        }
+        Value::Object(row)
+    }
+}
+
+/// Admits a model array through the owning closed-key renderer, then decodes
+/// each row exactly once into its typed owner. Order is preserved.
+pub(crate) fn admit_models(value: &Value) -> Result<Vec<DeploymentModel>, Diagnostic> {
+    render_models(value)?;
+    value
+        .as_array()
+        .ok_or_else(deployment_malformed)?
+        .iter()
+        .map(DeploymentModel::decode)
+        .collect()
+}
+
+/// The wire projection of admitted model rows, consumed by the owning
+/// renderer and by the Runtime v1 compatibility projection.
+pub(crate) fn models_value(models: &[DeploymentModel]) -> Value {
+    Value::Array(models.iter().map(DeploymentModel::to_value).collect())
 }
 
 pub(crate) fn parse_definition_v2(source: &str) -> Result<DefinitionV2, Diagnostic> {
@@ -255,12 +459,9 @@ pub(crate) fn parse_deployment(source: &str) -> Result<Deployment, Diagnostic> {
         return Err(deployment_invariant("definition_digest"));
     }
 
-    let models = top
-        .get("models")
-        .cloned()
-        .ok_or_else(deployment_malformed)?;
-    render_models(&models).map_err(|_| deployment_malformed())?;
-    if models.as_array().is_none_or(|rows| rows.is_empty()) {
+    let models = admit_models(top.get("models").ok_or_else(deployment_malformed)?)
+        .map_err(|_| deployment_malformed())?;
+    if models.is_empty() {
         return Err(deployment_invariant("models"));
     }
 
@@ -323,7 +524,8 @@ pub(crate) fn render_deployment(deployment: &Deployment) -> String {
         quote_json(&deployment.definition_digest)
     );
     output.push_str(
-        &render_models(&deployment.models).expect("admitted deployment models remain canonical"),
+        &render_models(&models_value(&deployment.models))
+            .expect("admitted deployment models remain canonical"),
     );
     output.push_str(",\"selection\":{\"allowed_provider_ids\":");
     output.push_str(&render_list(&deployment.allowed_provider_ids));
@@ -533,5 +735,23 @@ fn json_depth(value: &Value) -> usize {
         Value::Array(values) => 1 + values.iter().map(json_depth).max().unwrap_or(0),
         Value::Object(entries) => 1 + entries.values().map(json_depth).max().unwrap_or(0),
         _ => 1,
+    }
+}
+
+#[cfg(test)]
+pub(crate) mod model_decode_counter {
+    use std::cell::Cell;
+
+    thread_local! {
+        static DECODES: Cell<usize> = const { Cell::new(0) };
+    }
+
+    pub(crate) fn record() {
+        DECODES.with(|count| count.set(count.get() + 1));
+    }
+
+    /// Model rows decoded from dynamic JSON on this thread.
+    pub(crate) fn snapshot() -> usize {
+        DECODES.with(Cell::get)
     }
 }

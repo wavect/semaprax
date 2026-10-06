@@ -1,21 +1,12 @@
 # Contracts and effects
 
-Contracts say what code **means**; effects say what code **touches**. Both
-live in the signature, both are checked, and both show up in the semantic
-graph — so agents and reviewers see them without reading the body.
+After this page you can state what a function promises (`requires`,
+`ensures`) and what it touches (`permit`, `uses`). Both sit in the signature,
+the compiler checks both, and tools read them without reading the body.
 
-## Read a contract in plain language
+## Add a contract
 
-Think of a function call as an agreement. The caller supplies inputs that meet
-`requires`. The function supplies a result that meets `ensures`. `result` is a
-special name for that returned value.
-
-For example, `requires value >= 0` means “call me with a nonnegative value.”
-`ensures result >= 0` means “my returned value will be nonnegative.” Start with
-one useful rule and add the edge cases that matter to your application.
-
-## Contracts: requires / ensures
-
+<!-- handbook-smoke: {"stdout":"42\n"} -->
 ```semaprax
 module examples.meaning;
 
@@ -27,105 +18,161 @@ fn add(left: i64, right: i64) -> i64
 {
     left + right
 }
+
+@id("app.main")
+fn main() -> i64
+    ensures result == 42
+{
+    add(19, 23)
+}
 ```
 
-- `requires` is a precondition on the arguments. `ensures` is a postcondition;
-  `result` names the returned value.
-- Clauses sit between the signature and the body and belong to the interface —
-  changing them changes the declared meaning.
-- A safe profile turns obligations it can't prove statically into runtime
-  guards, and test failures report the clause, the function, and the argument
-  values (`contract: requires right != 0 in calculator.divide`).
+- `requires` is what the caller must satisfy. `ensures` is what the function
+  guarantees. `result` names the return value.
+- Clauses go between the signature and the body. They are part of the
+  function's meaning, so changing one is a change to the interface.
+- Contracts are checked at run time, on every backend. A violation stops the
+  program and names the clause, the function, and the arguments:
 
-**Best practice:** write contracts for every non-trivial function. They are
-executable documentation: a precondition captures what you assumed, a
-postcondition captures what you promised, and both get re-checked on every
-`test` run. Start with bounds (`value >= 0`), exact results for pure helpers
-(`result == left + right`), and non-emptiness for builders.
+```text
+SEMAPRAX contract failure
+  contract: requires left >= 0 in math.add
+  arguments: left = -1, right = 2
+```
 
-## Decide between a contract and Result
+Start with bounds (`value >= 0`), exact results for small pure helpers
+(`result == left + right`), and non-empty results for builders.
 
-Use a precondition for something the caller must establish before calling.
-Use `Result<T, E>` when an expected outcome, such as invalid user input, should
-be handled by ordinary application code. A deliberate contract violation in
-a normal test makes that test fail; see [Testing](../practices/testing.md) for
-how to keep rejection checks separate from the passing suite.
+## Contract or Result?
 
-For named project-wide rules and selected solver-backed checks, continue with
-[Laws and proofs](laws.md). It explains how a law identifies the rule you want
-to keep while the implementation changes.
+Use `requires` for something the caller must already have checked. Use a
+[`Result`](types.md#handle-missing-values-and-errors) for an outcome callers
+should expect, such as bad user input. A failed contract is a bug report, not
+control flow. To keep deliberate rejection checks out of the passing suite, see
+[Testing](../practices/testing.md). For a rule with its own identity and
+solver evidence, see [Laws and proofs](laws.md).
 
-## Effects: permit / uses
+## Declare effects
 
-No function touches the outside world silently. The module **permits** effects
-for the file; every function that performs an effect — or calls one that
-does — **declares** it:
+A function that performs an effect, or calls one that does, must say so. The
+module permits effects first, then each function lists the ones it uses:
 
+<!-- handbook-smoke: {"stdout":"hi0\n"} -->
+```semaprax
+module app.hello;
+
+permit { process.stdout.write }
+
+@id("app.main")
+fn main() -> i64
+    uses { process.stdout.write }
+{
+    let text = "hi";
+    let view = string_as_str(text);
+    let written = stdout_write(str_as_bytes(view));
+    if written == 2usize { 0 } else { 1 }
+}
+```
+
+`run` prints `hi` from `stdout_write`, then `0` from `main`.
+
+A missing `permit` is `SPX-E101`. A missing `uses` is `SPX-E102`. Each message
+names both edits.
+
+Effects pass up through callers. A function that calls an effectful function
+lists that effect too:
+
+<!-- native-checked: {"stdout":"42\n"} -->
 ```semaprax
 module app.ticking;
 
-permit { clock.read }
+permit { audit.log }
 
 @id("flow.tick")
 fn tick(value: i64) -> i64
-    uses { clock.read }
+    uses { audit.log }
 {
     value + 1
 }
 
 @id("app.main")
 fn main() -> i64
-    uses { clock.read }
+    uses { audit.log }
 {
     tick(41)
 }
 ```
 
-In this example, `tick` only adds one. The declared `clock.read` effect shows
-how effect requirements propagate through a call; it does not itself read a
-clock. The [first program](../getting-started/first-program.md) uses a real
-`stdout_write` operation to demonstrate an observable effect.
+`audit.log` is a name you chose. Declaring an effect adds a visible
+requirement and nothing more. The compiler-owned operations need these exact
+names:
 
-Missing `permit` is `SPX-E101`; missing `uses` is `SPX-E102`. The effect list
-is closed and explicit:
+| Effect | Operations |
+| --- | --- |
+| `process.stdout.write` | `stdout_write` |
+| `process.stderr.write` | `stderr_write` |
+| `process.stdin.read` | `stdin_read` |
+| `process.args.read` | `args_len`, `arg_utf8` |
+| `fs.read`, `fs.write` | `file_read`, `file_write_new`, `file_stat`, `file_list`, … |
+| `network.connect`, `network.read`, `network.write` | `net_connect`, `net_send`, `net_recv`, … |
 
-| Effect | Operations | Notes |
-| --- | --- | --- |
-| `process.stdout.write` | `stdout_write` | Returns bytes written; single-file `run` uses a bounded transcript |
-| `clock.read` | time reads | Declare transitively through callers |
-| `network.connect`, `network.read`, `network.write` | `net_connect`, `net_send`, `net_recv`, … | TCP client ops via an injected provider; `net_recv` not admitted in `while` bodies |
-| `fs.read`, `fs.write` | `file_read`, `file_write_new`, stat/list/… | Bounded relative paths; writes create new files, never overwrite |
+The operations are in [Input and output](io.md). Installing the compiler grants
+no filesystem, process, network, or signing authority. A declared effect still
+needs a host that provides it. A test host can return fixed answers, and a
+configured runtime host does the real work. Check the
+[profile](../projects/profiles.md) before you move an effectful helper to a
+new target.
 
-Compiler and generated code gain **no** ambient authority from being
-installed: no filesystem, process, network, or signing access unless a
-declared effect and an explicit provider grant it.
+Single-file `semaprax run` evaluates declared effects only for
+`process.stdout.write`. Other declared effects stop with `SPX-F102`; add
+`--native`.
 
-## Keep declaration and execution separate
+## Mark an unsafe boundary
 
-Three things work together: the module permits an effect, the function declares
-it, and the selected host provides the operation. A **host** is the environment
-that runs the program and supplies external services. Declaring `network.read`
-does not create a socket or choose credentials.
+`unsafe` marks code that a reviewer must read. It adds no raw memory access. It
+needs a module `permit { unsafe }` and a one-line audit note on each block
+(`SPX-N102`, `SPX-N103`). The body is ordinary checked code:
 
-This separation is especially useful in tests. A test host can supply fixed
-responses, while an explicitly configured runtime host performs the real I/O.
-See [Profiles](../projects/profiles.md) before moving an effectful helper to a
-new execution target.
+<!-- native-checked: {"stdout":"4\n"} -->
+```semaprax
+module app.audited;
 
-## Querying meaning
+permit { unsafe }
 
-Because contracts and effects are structured data, you can ask for them
-without reading source:
+@id("app.main")
+fn main() -> i64
+{
+    let mut x = 1;
+    @audit("bump the counter")
+    unsafe {
+        x = x + 3;
+        x
+    }
+    x
+}
+```
+
+Each boundary appears as a node in the semantic graph. Status: partial, see
+[Unsafe Boundaries v1](https://github.com/wavect/semaprax/blob/main/docs/UNSAFE-BOUNDARIES-V1.md).
+
+## Resumable effects (preview)
+
+A function can declare `yields Request -> Response` and `yield` one request at
+a time so a driver can answer it later. Only the interpreter engine and a Rust
+driver run this. Ordinary native and Wasm builds refuse it (`SPX-B116`,
+`SPX-W126`). Read
+[Resumable Effects v1](https://github.com/wavect/semaprax/blob/main/docs/RESUMABLE-EFFECTS-V1.md)
+before you use it.
+
+## Ask for contracts and effects
 
 ```sh
 semaprax context examples/meaning.spx math.add --depth 1 --filters contracts
 semaprax doc examples/meaning.spx
 ```
 
-`context` returns one declaration's neighborhood as bounded JSON; `doc`
-renders declarations, signatures, contracts, and effects as documentation.
-See [Agents](../practices/agents.md) for the full query workflow.
+`context` returns one declaration's neighborhood as bounded JSON. `doc` renders
+signatures, contracts, and effects as documentation. See
+[Driving Semaprax from an AI agent](../practices/agents.md).
 
-Exact rules: [RFC 0001](https://github.com/wavect/semaprax/blob/main/docs/RFC-0001.md)
-(contracts and verification) and the effect specifications under
-[`docs/`](https://github.com/wavect/semaprax/tree/main/docs).
+Exact rules: [RFC 0001](https://github.com/wavect/semaprax/blob/main/docs/RFC-0001.md).

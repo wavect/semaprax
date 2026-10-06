@@ -1,10 +1,13 @@
 # Cookbook
 
-Copy-paste recipes for the jobs every program needs. Each is a complete,
-runnable module — save it as a `.spx` file and `run` it.
+Copy-paste recipes. After this page you can do the common jobs: print text,
+loop, match, handle errors, and run the everyday project commands. Language
+recipes are complete modules: save one as `app.spx` and `semaprax run app.spx`.
+A program that exits `0` prints `0` after its own output.
 
 ## Print a greeting
 
+<!-- handbook-smoke: {"stdout":"hello, world0\n"} -->
 ```semaprax
 module app.greet;
 
@@ -21,11 +24,13 @@ fn main() -> i64
 }
 ```
 
-`stdout_write` returns the byte count — assert it so a truncated write fails
-loudly instead of printing half a line.
+`stdout_write` returns the byte count. Assert it so a truncated write fails
+loudly. The module needs `permit { process.stdout.write }` and `uses` on `main`
+exactly as above (`SPX-E101`, `SPX-E102` otherwise).
 
 ## Sum digits with a loop
 
+<!-- handbook-smoke: {"stdout":"0\n"} -->
 ```semaprax
 module app.sum;
 
@@ -56,6 +61,7 @@ condition as the body's last line, pure scalar result.
 
 ## Classify with match
 
+<!-- handbook-smoke: {"stdout":"0\n"} -->
 ```semaprax
 module app.sign;
 
@@ -95,7 +101,9 @@ fn main() -> i64
 ```
 
 Construct **with** type arguments (`Result<i64, i64>::Ok`), match **without**
-(`Result::Ok`). Callers handle both arms — the compiler enforces it.
+(`Result::Ok`). Callers handle both arms; the compiler enforces it. The
+interpreter does not admit this program (`SPX-F102`), so run it with
+`semaprax run app.spx --native`.
 
 ## Update a record immutably
 
@@ -120,10 +128,11 @@ fn main() -> i64
 ```
 
 `with` builds a new value; the original is untouched. Construction must name
-every field.
+every field. Run it with `--native` (`SPX-F102` in the interpreter).
 
 ## Count bytes in a string
 
+<!-- handbook-smoke: {"stdout":"0\n"} -->
 ```semaprax
 module app.count;
 
@@ -152,3 +161,71 @@ fn main() -> i64
 
 The byte pattern: borrow the string, view it as bytes, walk with `usize`
 indices, destructure `byte_get`'s `Option<u8>`. Byte `97u8` is `'a'`.
+
+## Start a project and run its checks
+
+```sh
+semaprax new my-app && cd my-app
+semaprax fmt . && semaprax check . && semaprax test . && semaprax run .
+```
+
+`fmt` first, `check` second. Stop at the first failure.
+
+## Add a test
+
+Add a function to your test module and list that module under `tests`:
+
+```text
+@id("my_app.tests.test_add")
+fn test_add() -> i64
+{
+    if add(2, 2) == 4 { 0 } else { 1 }
+}
+```
+
+`semaprax test .` runs every zero-argument `test_*` function and names failures.
+
+## Add a dependency
+
+```sh
+semaprax add . std.num "^0.1.0"
+semaprax help library std.num      # exact signatures and stable IDs
+```
+
+## Find who calls a function
+
+```sh
+semaprax query . --calls my-app.add          # callers
+semaprax context . my-app.add --direction both --depth 1 --max-bytes 4096
+```
+
+## Rename safely
+
+```sh
+semaprax change preview . rename-display-name my-app.add sum
+```
+
+Read the preview. It writes nothing. See [Shipping](../projects/shipping.md#change-with-review).
+
+## Ship a web package
+
+```sh
+semaprax build . --target web -o dist/web
+semaprax lock . --write
+```
+
+## Gate CI on interface breaks
+
+```sh
+semaprax fmt . --check && semaprax check . && semaprax test .
+semaprax lock . --compare base.lock      # exits 1 when breaking
+```
+
+## Run a network command offline
+
+```sh
+semaprax network-run . --fixture http.fixture.json --arg https://example.test/
+```
+
+This uses a recorded fixture; no real connection opens. See
+[Profiles](../projects/profiles.md#command-io).

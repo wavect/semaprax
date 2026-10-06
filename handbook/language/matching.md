@@ -1,10 +1,11 @@
 # Matching
 
-`match` destructures scalars and variants with checked exhaustiveness. Arms
-are ordered, first match wins, and every form ends with a catch-all.
+After this page you can pick a result with `match` on numbers, bytes, chars,
+and variants. Arms are tried in order and the first match wins.
 
-## Scalar matching
+## Match numbers, bytes, and chars
 
+<!-- handbook-smoke: {"stdout":"-9\n"} -->
 ```semaprax
 module app.sign;
 
@@ -21,18 +22,51 @@ fn main() -> i64
 }
 ```
 
-- **Literals**: `0 => …`. **Alternatives**: `-1 | -2 => …`.
-- **Guards**: `n if n < 0 => …` — the binding is usable in the guard and arm.
-- **Catch-all**: a final `_` or bare binding (`n`) **without** a guard.
-  Missing it is `SPX-T257`.
-- **Order matters**: `-1` hits the alternative arm before the later guard arm
-  could claim it. Put specific arms first, general ones last.
+| Pattern | Example | Meaning |
+| --- | --- | --- |
+| Literal | `0 => …` | Equal to the literal. |
+| Alternatives | `-1 \| -2 => …` | Any of them. |
+| Binding | `n => …` | Anything, named `n`. |
+| Guard | `n if n < 0 => …` | The binding, plus a condition. |
+| Wildcard | `_ => …` | Anything, unnamed. |
 
-## Variant matching
+- The last arm must be `_` or a binding **without** a guard. Otherwise you get
+  `SPX-T257`.
+- Order matters. Put specific arms first. In the example, `-2` is caught by the
+  alternatives before the guard sees it.
+- Chars and bytes work the same way, with their own literals:
 
-Bind payloads by field name. Construction spells type arguments; matching
-doesn't:
+<!-- handbook-smoke: {"stdout":"13\n"} -->
+```semaprax
+module app.route;
 
+@id("refutable.digit_name")
+fn digit_name(digit: u8) -> i64
+{
+    match digit { 0u8 => 10, 9u8 => 90, k if k > 4u8 => 2, _ => 1, }
+}
+
+@id("refutable.route")
+fn route(code: char) -> i64
+{
+    match code { 'a' => 1, 'b' | 'c' => 2, _ => 3, }
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    digit_name(4u8) + route('c') + digit_name(0u8)
+}
+```
+
+A range such as `0..=5` is not a pattern. Use a guard.
+
+## Match a variant
+
+Name the case and bind each payload field as `field: name`. Building a generic
+variant spells its type arguments. Matching one does not:
+
+<!-- native-checked: {"stdout":"4\n"} -->
 ```semaprax
 module app.pick;
 
@@ -49,33 +83,34 @@ fn main() -> i64
 }
 ```
 
-- Payload-less cases match as `Shape::Dot {}` — never bare `Dot`.
-- The compiler checks that all cases are covered; for open scalar matches
-  the catch-all provides that proof.
-- Arms yield scalars and calls, not nominal aggregates: an arm that builds a
-  record/variant is `SPX-T258`. Bind scalars out of the match, then construct
-  after — or use `if` for the construction.
+- A case without data is matched as `Shape::Dot {}`, never bare `Dot`.
+- A `match` over a variant must cover every case. Add a case and the compiler
+  lists each `match` to update.
+- `Some(v)` is not a pattern. Write `Option::Some { value: v }`.
+- Arms produce numbers, bools, and calls, not new records or variants
+  (`SPX-T258`). Match out the scalars first, then build the value with `if`.
+- A missing comma between arms is a syntax error. The last arm needs a comma.
+- `if let` does not exist. Use `match`.
 
-## match own: stepping owned values
+Matching a call result in `main` needs `semaprax run file.spx --native`. The
+default interpreter reports `SPX-F102`.
 
-`match own` moves the scrutinee into the arms. Its main use is driving
-`IterStep` from `iter_next` (see [Loops](loops.md)):
+## Match an owned value
 
-```semaprax
+`match own` moves the value into the arms. Use it for `IterStep` from
+`iter_next`:
+
+```text
 match own step { IterStep::Done {} => false, IterStep::Yield { item, rest } => keep(item), }
 ```
 
-`Yield` binds a Copy `item` plus the owning `rest` — pass `rest` onward or
-let scope cleanup settle it.
+`Yield` gives a Copy `item` and the owning `rest`. The full example is in
+[Loops](loops.md#step-by-hand).
 
-## Best practices
+## Keep arms short
 
-1. **Match at the boundary.** Destructure `Option`/`Result` where the value
-   arrives; work with plain scalars inside.
-2. **Let exhaustiveness review your logic.** Adding a variant case turns every
-   match over it into a compile error listing exactly what to update.
-3. **Keep arms flat.** A nested match inside an arm usually wants to be a
-   helper function with its own `@id` and contract.
+Match where a value arrives, then work with plain scalars. If an arm needs its
+own `match`, move it into a named function with its own `@id`.
 
 Exact rules: [Refutable Match v1](https://github.com/wavect/semaprax/blob/main/docs/REFUTABLE-MATCH-V1.md),
 [RFC 0002](https://github.com/wavect/semaprax/blob/main/docs/RFC-0002-ALGEBRAIC-DATA.md).

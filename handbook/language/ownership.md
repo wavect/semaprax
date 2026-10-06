@@ -1,67 +1,33 @@
 # Ownership, strings, bytes
 
-Ownership is the one genuinely new idea. The rule fits in a sentence:
-**an `own` parameter consumes its argument; a `borrow` parameter only reads
-it.** Using a consumed value again is a compile error (`SPX-O101`), never a
-runtime crash.
+After this page you can pass text and bytes between functions without
+ownership errors. The whole idea fits in one rule: **passing an owned value
+moves it, and a `borrow` only reads it.** Using a moved value is a compile-time
+error (`SPX-O101`), never a crash.
 
-## Own vs borrow
+## Why did SPX-O101 fail?
 
-```semaprax
-module app.resources;
-
-@id("resources.token")
-resource Token {
-    @id("resources.token.drop")
-    drop trivial;
-}
-
-@id("resources.inspect")
-fn inspect(token: borrow Token) -> i64
-{
-    1
-}
-
-@id("resources.consume")
-fn consume(token: own Token) -> i64
-    ensures result == 1
-{
-    inspect(token)
-}
-
-@id("app.main")
-fn main() -> i64
-{
-    0
-}
-```
-
-- `borrow T` is the default shape for helpers: take a borrow, return a scalar.
-- `own T` is for sinks: builders, destructors, transfers into another owner.
-- Copy scalars (`i64`, `bool`, …) copy freely — ownership only constrains
-  owned values like `string`, `Bytes`, boxes, and resources.
-- A callee that needs the value twice should take `borrow`, or the caller
-  passes a fresh value per `own` call.
-
-Resources declare how they drop: `drop trivial;` or
-`drop import "host.symbol";`. Modules declaring resources can't run under
-single-file `run` (`SPX-B104`) — verify them with `check` and exercise them
-through a project build.
-
-## The string → str → bytes ladder
-
-Text flows down a one-way ladder. Each step is a deliberate, named conversion:
+A `string` or `Bytes` value has one owner. Passing it to a function, or to
+`string_concat`, moves it. The second use below fails:
 
 ```text
-string            owned text: "hello", string_concat(a, b)
-   | string_as_str(binding)   -- argument must be a let binding, not a literal
-   v
-str (borrowed)    read-only view: pass to borrow str params
-   | str_as_bytes(view)
-   v
-Slice<u8>         borrowed bytes: byte_len, byte_get, byte_range, stdout_write
+let s = string_concat("ab", "cd");
+size(s) + size(s)        // error[SPX-O101]: use of resource `s` after ownership was moved
 ```
 
+Fix it in one of three ways:
+
+| Fix | When to use it |
+| --- | --- |
+| Take a view: `let v = string_as_str(s);` and pass `v` to a `borrow str` parameter. | The callee only reads. This is the usual fix. |
+| Build a second value for the second call. | Each call really needs its own copy. |
+| Copy bytes with `bytes_copy(bytes_as_slice(data))`. | You need a second owned `Bytes`. |
+
+Copy scalars (`i64`, `bool`, `char`, and the rest) never move. They copy freely.
+
+## Borrow in helpers, own in sinks
+
+<!-- handbook-smoke: {"stdout":"banana!0\n"} -->
 ```semaprax
 module app.bytes;
 
@@ -94,22 +60,50 @@ fn main() -> i64
 }
 ```
 
-The three mistakes everyone makes once:
+`run` prints `banana!` from `stdout_write`, then `0` from `main`.
 
-| Mistake | Code | Fix |
+- `borrow T` reads a value without taking it. Make it the default for helpers.
+- `own T` takes the value. Use it for functions that finish with the value:
+  builders, transfers, destructors.
+- `own` is valid for `Bytes`, `Vec`, `Box`, iterators, and
+  [resources](resources.md). A plain `string` parameter moves too. Writing
+  `own string` is `SPX-O002`.
+
+## Convert text to bytes in steps
+
+Text goes down a one-way ladder. Each step is a named call:
+
+```text
+string            owned text: "hello", string_concat(a, b), string_from_i64(n)
+   | string_as_str(binding)
+   v
+str (borrowed)    read-only view: pass it to `borrow str` parameters
+   | str_as_bytes(view)
+   v
+Slice<u8>         borrowed bytes: byte_len, byte_get, byte_range, stdout_write
+```
+
+Every conversion takes a **named binding**, not a literal or a call result.
+
+| You write | Error | Write this |
 | --- | --- | --- |
-| `+` on strings | `SPX-T250` | `string_concat(a, b)` (consumes both) |
-| Passing a `string` where `borrow str` is expected | `SPX-T205` | Bind it, then `string_as_str(binding)` |
-| `string_as_str("literal")` | `SPX-T266` | `let s = "literal";` first, then borrow the binding |
+| `string_as_str("hi")` | `SPX-T266` | `let s = "hi"; string_as_str(s)` |
+| `str_as_bytes(string_as_str(s))` | `SPX-T266` | `let v = string_as_str(s); str_as_bytes(v)` |
+| `str_as_bytes(text)` with a `string` | `SPX-T263` | Take the `str` view first. |
+| `f("abc")` for a `borrow str` parameter | `SPX-T205` | `let s = "abc"; f(string_as_str(s))` |
+| `"a" + "b"` | `SPX-T250` | `string_concat("a", "b")` |
+| `string_concat("n=", 5)` | `SPX-T205` | `string_concat("n=", string_from_i64(5))` |
 
-Other rungs: `array_as_slice(binding)` turns `[u8; N]` into a view;
-`bytes_as_slice(binding)` does the same for owned `Bytes`;
-`bytes_copy(view)` goes back up to an owned `Bytes`.
+Going up: `bytes_copy(view)` makes an owned `Bytes`. `array_as_slice(array)` and
+`bytes_as_slice(bytes)` give a `Slice<u8>`. The type table is in
+[Collections](collections.md#bytes-slices-and-strings).
 
-## Owned byte buffers
+## Build a byte buffer
 
-Build a bounded buffer as one write-once chain, then freeze it by binding:
+Allocate with a literal capacity and chain `bytes_set`. Binding the result
+freezes it:
 
+<!-- handbook-smoke: {"stdout":"0\n"} -->
 ```semaprax
 module app.buffer;
 
@@ -122,10 +116,10 @@ fn main() -> i64
 }
 ```
 
-`bytes_zeroed` needs a `usize` **literal** capacity. To fill a buffer in a
-loop, allocate outside and re-assign the same `let mut` binding inside —
-that same-owner replacement is the only re-opening the language admits:
+To fill a buffer in a loop, allocate it outside, then assign the result back to
+the same `let mut` binding. This is the only way to re-open a buffer:
 
+<!-- handbook-smoke: {"stdout":"0\n"} -->
 ```semaprax
 module app.buffer_loop;
 
@@ -146,18 +140,12 @@ fn main() -> i64
 }
 ```
 
-Don't hold a borrowed view across the replacement, and don't call
-`bytes_zeroed` inside the loop body. A literal index past capacity is
-`SPX-T272`; a computed out-of-range index fails at runtime before writing
-anything.
+Limits: `bytes_zeroed` takes a `usize` literal capacity and cannot sit inside a loop
+(`SPX-T267`). A literal index past the capacity is `SPX-T272`. A computed index
+past the capacity fails at run time before anything is written. Do not hold a
+view across the reassignment (`SPX-T265`). You cannot re-open a named buffer any
+other way (`SPX-T271`).
 
-## Best practices
-
-1. **Borrow down, own up.** Helpers take `borrow`; only sinks and builders
-   take `own`.
-2. **Convert at the boundary.** Turn owned values into views at function
-   entries, work with views inside, build owned values at exits.
-3. **Bind before borrowing.** `string_as_str`, `array_as_slice`, and
-   `bytes_as_slice` all take plain `let` bindings — never literals or calls.
-
-Exact rules: [RFC 0003](https://github.com/wavect/semaprax/blob/main/docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md).
+Exact rules: [RFC 0003](https://github.com/wavect/semaprax/blob/main/docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md),
+[Owned String Borrowed View v1](https://github.com/wavect/semaprax/blob/main/docs/OWNED-STRING-BORROWED-VIEW-V1.md),
+[Owned Bounded Byte Buffer v1](https://github.com/wavect/semaprax/blob/main/docs/OWNED-BOUNDED-BYTE-BUFFER-V1.md).

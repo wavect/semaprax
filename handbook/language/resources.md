@@ -1,10 +1,12 @@
 # Resources and cleanup
 
-A `resource` is a value with a declared end of life. The compiler proves every
-owned resource is settled exactly once on every exit path — no leaks, no
-double-frees, no finalizer that can fail halfway.
+After this page you can declare a value with a defined end of life, a
+`resource`, and describe a state machine with a `session protocol`. The
+compiler proves that every owned resource is settled exactly once on every
+exit path. There is no leak, no double free, and no finalizer that fails
+halfway.
 
-## Declaring a resource
+## Declare a resource
 
 ```semaprax
 module buffer.app;
@@ -41,19 +43,24 @@ fn main() -> i64
 }
 ```
 
-`pipeline` shows the core discipline: borrow first (`inspect`), then transfer
-(`consume`). Borrowing never affects ownership; the single `own` transfer at
-the end settles the value.
+`pipeline` borrows first (`inspect`), then transfers (`consume`). A borrow never
+changes ownership. The final `own` transfer settles the value. Using `buffer`
+after `consume(buffer)` is `SPX-O101`, the same error as for a moved `string`,
+see [Ownership](ownership.md).
 
-## Drops and finalizers
+A single-file `semaprax run` rejects modules that declare resources
+(`SPX-B104`). Verify them with `check`, and run them through a Project's native
+or Wasm build or with `run file.spx --native`.
 
-Two drop strategies exist:
+## Choose how a resource ends
 
-- `drop trivial;` — no finalization needed; the value just ends.
-- `drop import "host.symbol";` — an imported host finalizer runs at scope exit.
+| Drop | Meaning |
+| --- | --- |
+| `drop trivial;` | Nothing to finalize. The value ends at scope exit. |
+| `drop import "host.symbol";` | A host function finalizes the value when it goes out of scope. |
 
-An imported finalizer is declared through an `interface` stating its
-capability, effects, failure mode, and consumed value:
+An imported finalizer is declared in an `interface` that states its effect,
+its failure mode, and the value it consumes:
 
 ```semaprax
 module platform.app;
@@ -82,34 +89,78 @@ fn main() -> i64
 }
 ```
 
-Automatic finalization **must be infallible** and consume the token. A
-fallible operation must be an explicit consuming `close` the caller handles —
-destructors never report errors. Every initialized owned resource that isn't
-transferred is finalized exactly once on each language-level exit, in
-canonical cleanup-plan order that downstream tools must never reorder.
+A finalizer that runs automatically must be `infallible` and must consume the
+token. A teardown that can fail is an explicit `close` function that returns a
+status for the caller to handle. A destructor never reports an error.
 
-## Running resources
-
-Modules declaring resources are rejected by single-file `run` (`SPX-B104`):
-they verify with `check`, and execute through a **project** native or Wasm
-build (or the explicit `run <file> --native` lane). Keep interpreter-run
-examples free of `resource` declarations.
+Cleanup runs in a fixed order set by the cleanup plan, once for each owned
+resource that was not transferred, on every exit. Failure selection is sticky:
+cleanup cannot replace the status that was already selected.
 
 ```sh
-semaprax check examples/ownership.spx
 semaprax context examples/ownership.spx buffer.pipeline --depth 1 --filters ownership
 ```
 
-`context --filters ownership` reports which parameters are `own`/`borrow` and
-where each loan begins and ends — the fastest way to see the plan.
+`context --filters ownership` lists each parameter as `own` or `borrow` and
+where each loan starts and ends.
 
-## Best practices
+## Describe a state machine
 
-1. **Borrow for inspection, own for settlement.** Helpers take `borrow`;
-   only sinks, builders, and `close` take `own`.
-2. **Make failure impossible in finalizers.** Push fallible teardown into an
-   explicit `close` returning a status the caller must handle.
-3. **Transfer once, at the end.** Structure consuming functions as
-   borrow-phase then transfer-phase, like `pipeline` above.
+A `session protocol` names states and the moves between them. It is checked and
+then erased: native and Wasm output do not change, and it grants no authority.
 
-Exact rules: [RFC 0003](https://github.com/wavect/semaprax/blob/main/docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md).
+```semaprax
+module app.checkout;
+
+@id("checkout.session")
+session protocol "checkout-v1" {
+    states { Idle, Open, Committed, Failed }
+    initial Idle;
+    terminal Committed cleanup {}
+    terminal Failed cleanup {}
+    on Idle begin: send BeginRequest via "checkout.begin" -> Open;
+    on Idle abort: fail Unit -> Failed;
+    on Open commit: send CommitRequest via "checkout.commit" -> choice { committed: Committed, refused: Failed };
+    on Open lost: fail Unit -> Failed;
+}
+
+@id("checkout.begin")
+fn begin() -> i64
+{
+    1
+}
+
+@id("checkout.commit")
+fn commit() -> i64
+{
+    2
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    0
+}
+```
+
+- `states` lists the states and `initial` picks the start.
+- Each `terminal` state names its cleanup, and a terminal has no moves out.
+- `on <state> <label>: <kind> <Payload> … -> <state>` is one move. The kind is
+  `send`, `receive`, `call`, `return`, `cancel`, `timeout`, or `fail`. Use
+  `choice { label: state, … }` for several outcomes.
+- `via "<function-id>"` ties a move to a function in the same module by `@id`
+  (`SPX-K104`).
+- Every non-terminal state needs a `cancel`, `timeout`, or `fail` exit.
+  Violations are `SPX-K101` to `SPX-K106`.
+
+A function can opt in with `follows session protocol` to have its call order
+checked (`SPX-K107` to `SPX-K109`). Status: local evidence, see
+[Session Protocol Types v1](https://github.com/wavect/semaprax/blob/main/docs/SESSION-PROTOCOL-TYPES-V1.md).
+
+## Borrow, then own
+
+Helpers borrow. Only sinks, builders, and `close` own. Structure a consuming
+function as a borrow phase followed by one transfer.
+
+Exact rules: [RFC 0003](https://github.com/wavect/semaprax/blob/main/docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md),
+[Shared Loan Plan v1](https://github.com/wavect/semaprax/blob/main/docs/SHARED-LOAN-PLAN-V1.md).

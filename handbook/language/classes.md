@@ -1,10 +1,18 @@
 # Classes and inheritance
 
-Classes are records with methods — the only values that answer dot-calls.
-Inheritance is single, explicit, and checked.
+After this page you can attach methods to data with a `class`, extend a class
+with a subclass, and bind a protocol to a record. Classes are the only values
+that answer `value.method()` calls.
 
-## Methods
+Use a [record](types.md) and free functions by default. Use a class when the
+methods belong to the value, such as a counter or a builder.
 
+The examples on this page build records and classes, so run them with
+`semaprax run file.spx --native`. `check` needs no flag.
+
+## Add methods
+
+<!-- native-checked: {"stdout":"42\n"} -->
 ```semaprax
 module example.counter;
 
@@ -35,14 +43,16 @@ fn main() -> i64
 }
 ```
 
-- `self` is an explicitly typed first parameter (`self: Counter`).
-- Methods typically return a changed **copy**; the original is untouched.
-- Construction names every field: `Counter { value: 40 }`.
-- Records have no methods: `point.get()` fails (`SPX-T203`) — call a free
-  function `get(point)` or use a class.
+- The first parameter is `self: Counter`, written out.
+- A method usually returns a changed copy. `base` stays at 40.
+- A class literal names every field. A field changes with `counter.value = …`
+  on a `let mut` binding.
+- Records have no methods: `point.get()` is `SPX-T203`. Calling a method on a
+  number or string is the same error: use `string_len(s)`.
 
-## Inheritance
+## Extend a class
 
+<!-- native-checked: {"stdout":"6\n"} -->
 ```semaprax
 module example.inheritance;
 
@@ -79,23 +89,60 @@ fn main() -> i64
 }
 ```
 
-- `class Dog : Animal` inherits fields and methods. Construction names
-  **all** fields, inherited ones included.
-- `super.speak()` dispatches to the parent implementation.
-- A subclass value **is** its parent type: `let a: Animal = d;` upcasts, and
-  calls through `a` use the parent's view.
-- Overriding replaces the method for the subclass; the parent's other
-  methods are inherited unchanged.
+- `class Dog : Animal` inherits the fields and methods of `Animal`. A `Dog`
+  literal names all fields, inherited ones too.
+- `super.speak()` calls the parent's method.
+- A `Dog` is an `Animal`: `let a: Animal = d;` converts it, and calls through
+  `a` use the parent's methods.
+- A method with the same name overrides the parent's for the subclass.
 
-## Best practices
+Keep the tree shallow. Every extra level adds fields to every literal. To reuse
+behavior without substituting types, hold the other value in a field.
 
-1. **Records + free functions by default; classes for behavior.** If the
-   methods genuinely belong to the value (counters, builders, handles),
-   make it a class.
-2. **Keep hierarchies shallow.** One level of inheritance covers most designs;
-   deeper trees get hard to construct (every field, every level) and hard
-   to query.
-3. **Prefer composition for reuse, inheritance for substitution.** Inherit
-   when callers should accept the parent type; otherwise hold a field.
+## Bind a protocol to a record
 
-Exact rules: [Class Inheritance v1](https://github.com/wavect/semaprax/blob/main/docs/CLASS-INHERITANCE-V1.md).
+A `protocol` lists the functions a type must have. An `impl` binds each one to
+a function you already wrote, by `@id`. The compiler checks that every required
+function is bound exactly once. The binding is checked and then erased: it
+adds no dispatch, no protocol value, and no runtime cost.
+
+<!-- native-checked: {"stdout":"7\n"} -->
+```semaprax
+module geometry.app;
+
+@id("geometry.read-x")
+protocol ReadX {
+    @id("geometry.read-x.get")
+    fn get(self: Self) -> i64;
+}
+
+@id("geometry.point")
+record Point {
+    @id("geometry.point.x")
+    x: i64,
+}
+
+@id("geometry.point.read-x")
+impl "geometry.read-x" for "geometry.point" {
+    "geometry.read-x.get" = "geometry.point.get";
+}
+
+@id("geometry.point.get")
+fn get(point: Point) -> i64
+{
+    point.x
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    get(Point { x: 7 })
+}
+```
+
+The receiver must be a local record with an `@id`. Bound functions are
+top-level, non-generic, and not `main`. Projects import protocols with
+`use protocol @id("…") from module as name;`.
+
+Exact rules: [Class Inheritance v1](https://github.com/wavect/semaprax/blob/main/docs/CLASS-INHERITANCE-V1.md),
+[Static Protocol Conformance v1](https://github.com/wavect/semaprax/blob/main/docs/STATIC-PROTOCOL-CONFORMANCE-V1.md).

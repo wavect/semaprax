@@ -1,11 +1,13 @@
 # Modules and imports
 
-Split a program when one file starts doing several jobs. Put reusable logic
-in one module, the entry point in another, and tests in a third. You will
-build that layout here without relying on a generated template's names.
+Split a program into modules: reusable logic in one, `main` in another, tests
+in a third. After this page you can build, test and run a three-module project
+by hand.
 
-Create a fresh `tutorial/` directory with a `src/` subdirectory. Save each
-block below at its stated path. The names in these four files belong together.
+Want a ready-made layout instead? Run `semaprax new <dir>`
+(see [Manifests](manifests.md#start-from-a-template)). To follow along, create a
+`tutorial/` directory with a `src/` subdirectory and save each block at its
+stated path.
 
 ## 1. Describe the project
 
@@ -28,8 +30,8 @@ tests = ["tutorial.tests"]
 web = ["tutorial.add"]
 ```
 
-`entry` names the application's module. `sources` names files. The export
-selects the addition function by stable ID.
+`entry` is the module with `main`. `sources` lists the files. `[exports] web`
+lists the functions a web build exposes, by stable ID.
 
 ## 2. Write the reusable function
 
@@ -49,8 +51,8 @@ fn add(left: i64, right: i64) -> i64
 }
 ```
 
-This module has no `main`. It provides a function for other modules to use.
-Its two preconditions describe the accepted arguments.
+This module has no `main`: it only provides `add`. Check it through the
+project, not alone (a single file without `main` fails with `SPX-T105`).
 
 ## 3. Import it into the entry module
 
@@ -68,12 +70,10 @@ fn main() -> i64
 }
 ```
 
-Read the import as a sentence: “Use the function identified by `tutorial.add`
-from module `tutorial.core`, and call it `add` in this file.”
-
-Imports go immediately after the module declaration, before an optional
-`permit` block and the ordinary declarations. An import names a semantic
-identity, not a relative file path.
+Read the import as a sentence: use the function with ID `tutorial.add` from
+module `tutorial.core`, and call it `add` here. An import names a stable ID, not
+a file path. Imports come right after the `module` line, before any `permit`
+block.
 
 ## 4. Add tests
 
@@ -103,8 +103,8 @@ fn main() -> i64
 }
 ```
 
-The `test_*` functions return `0` when their assertion passes. The manifest's
-`tests` list tells the runner where to find them.
+Each `test_*` function returns `0` to pass. The manifest's `tests` entry tells
+the runner which module to read. See [Testing](../practices/testing.md).
 
 ## 5. Run the project
 
@@ -118,9 +118,9 @@ semaprax run .
 semaprax query . --id tutorial.add
 ```
 
-The tests should pass, the application should print `42`, and the query should
-locate the addition function. You have now connected a manifest, two importing
-modules, and one shared declaration.
+`test` prints `project tests passed`, `run` prints `42`, and `query` prints
+the `tutorial.add` declaration. A directory operand (`.`) selects its
+`semaprax.toml`.
 
 ## Keep names and paths separate
 
@@ -131,9 +131,9 @@ src/core.spx          file containing source
             add       local name used at a call site
 ```
 
-A display rename can preserve `tutorial.add`. Moving a file still requires an
-updated manifest path. Changing a module name affects imports. These are
-separate edits, which is why a stable ID is useful.
+A display rename keeps `tutorial.add`. Moving a file means updating the
+manifest path. Renaming a module means updating its imports. Three separate
+edits, which is why the ID is the stable handle.
 
 ## Fix common mistakes
 
@@ -144,6 +144,19 @@ separate edits, which is why a stable ID is useful.
 | Tests are not running | The module is in `tests`, and test functions use the `test_` prefix. |
 | A helper works alone but fails when linked | The project's [profile](profiles.md) admits its signature. |
 | A previous semantic preview is stale | Re-query the project after changing source or the manifest. |
+| `SPX-G172` or `SPX-T105` on one file | Check the project (`semaprax check .`), not the single file. |
+
+## Use a standard-library module
+
+Declare the package, then import from it:
+
+```sh
+semaprax add . std.num "^0.1.0"     # adds one [dependencies] row
+semaprax help library std.num       # signatures and stable IDs
+```
+
+`add` edits only the manifest. Bundled `std.*` packages are version `0.1.0`
+and need no download. See the [standard library](../reference/stdlib.md).
 
 **Next:** [Choose a profile for richer data](profiles.md), or
 [learn how the test runner reports failures](../practices/testing.md).

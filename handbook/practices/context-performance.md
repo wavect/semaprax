@@ -1,34 +1,43 @@
 # Measure context size and reuse checked work
 
-Two different improvements help a tool-driven workflow. Smaller context reduces
-what an agent must read. A semantic cache reuses checked compiler work between
-processes. Measure them separately so you know which change helped.
+Two things make a tool-driven workflow cheaper: a smaller context to read, and
+a cache that reuses checked compiler work. After this page you can produce a
+compact view, measure it, and warm a semantic cache. Measure the two
+separately so you know which change helped.
 
-## Choose the smallest useful view
+## Pick the smallest view
 
-Start with source when the file is already small. Use `query` to locate a
-declaration and `context` to inspect its neighborhood. Use the full `graph`
-when a tool needs the complete representation.
+1. Source, when the file is small.
+2. `query` to find a declaration, then `context` for its neighborhood.
+3. `compact` for a model-facing encoding.
+4. `graph` only when a tool needs the whole thing.
 
-Compact projections offer `text`, `binary`, and `model-text` encodings for
-supported subjects. `model-text` is the model-facing text form; binary output
-belongs with a binary-aware consumer.
+`compact` has five forms. Each takes `--encoding text|binary|model-text` and
+`--replay <encoded>`, which rebuilds from current source and compares with an
+encoding you already hold:
 
-From the repository root:
+| Form | Selects |
+| --- | --- |
+| `compact context <file> <stable-id> [--max-bytes N]` | One declaration's context. |
+| `compact task-context <file> <stable-id> [--goal text] [--seed id]... [--max-tokens N] [--tokenizer byte-v1\|lexical-v1]` | Context ranked for a stated goal and budget. |
+| `compact graph <file>` | The whole graph. |
+| `compact api-surface <project>` | Public API of an `owned-data-api.v1` project only (`SPX-J105` otherwise). |
+| `compact candidate-diff <project> <capsule>` | What a candidate changes. |
+| `compact agent-definition <file>` | An agent definition (canonical JSON input). |
+
+`model-text` is the text form meant for models. `binary` belongs with a
+binary-aware consumer. From the repository root:
 
 ```sh
 semaprax compact context examples/meaning.spx math.add --max-bytes 4096 --encoding model-text
-semaprax compact api-surface examples/calculator-project/semaprax.toml --encoding model-text
+semaprax compact api-surface examples/frame-payload-project/semaprax.toml --encoding model-text
 ```
-
-The first selects one declaration's context. The second selects the project's
-API surface. Other command forms cover graphs, agent definitions, task context,
-and candidate diffs. Run `semaprax help compact` for their exact inputs.
 
 ## Measure a real input
 
-The repository's `scripts/token_report.py` compares exact payloads using a
-locally available tokenizer. In a macOS or Linux shell:
+`scripts/token_report.py` compares exact payloads with a local tokenizer. It
+needs locally installed `tiktoken` and cached `cl100k_base` or `o200k_base`
+assets, and never downloads anything.
 
 ```sh
 python3 scripts/token_report.py projection \
@@ -44,56 +53,41 @@ python3 scripts/token_report.py projection \
 python3 scripts/token_report.py show target/meaning-token-report.json --format text
 ```
 
-On Windows, replace the executable expression with your absolute Semaprax path.
-Choose a new output filename when repeating the exercise, or explicitly use
-`--overwrite` for a report you intend to replace.
+`--output` must be a new file unless you pass `--overwrite`. With
+`--allow-bytes-only`, missing token counts stay empty while byte counts are
+reported. Drop the flag when the check must fail without token counts. On
+Windows, give the absolute path to `semaprax`.
 
-The helper uses locally installed `tiktoken` and cached assets for
-`cl100k_base` or `o200k_base`. It does not download tokenizer assets during
-measurement. With `--allow-bytes-only`, unavailable token counts remain empty
-while byte measurements are still reported. Remove that flag when your check
-must fail unless token measurement is available.
+Other subcommands: `compare` (two reports) and `session` (aggregate a recorded
+event stream; `show` renders it). The
+[MCP session recorder](https://github.com/wavect/semaprax/blob/main/scripts/token-report-mcp-session.mjs)
+is a recording example. VS Code shows a snapshot with **SEMAPRAX: Show Token
+Report**.
 
-## Read the comparison correctly
+## Read a report
 
-A projection report compares the compact payload with the **same selected JSON
-content**. That answers a different question from comparing a narrow context
-with a whole repository dump.
+A projection report compares the compact payload with the same selected JSON
+content. That is not the same as comparing a narrow context with a whole
+repository dump.
 
-| Field or result | How to read it |
+| Field | Meaning |
 | --- | --- |
-| Baseline | The explicit reference payload being compared. |
-| Actual payload | The selected output produced for this measurement. |
-| Positive token delta | Fewer tokens than that baseline. |
-| Negative token delta | More tokens than that baseline. |
-| Tokenizer fingerprint | The exact tokenizer vocabulary used for the comparison. |
-| Source revision | The source snapshot associated with the report. |
+| Baseline | The explicit reference payload. |
+| Actual payload | The output produced for this measurement. |
+| Positive token delta | Fewer tokens than the baseline. |
+| Negative token delta | More tokens than the baseline. |
+| Tokenizer fingerprint | The exact vocabulary used. |
+| Source revision | The source snapshot measured. |
 
-Byte counts, local token counts, and provider-reported usage are different
-measurements. Planner choices such as `byte-v1` or `lexical-v1` are also distinct
-from an exact model-tokenizer measurement. Keep the measurement kind with any
-number you share.
-
-## Summarize a recorded session
-
-When your integration has produced an event stream, the `session` subcommand
-aggregates it and `show` renders the resulting report. The implementation groups
-compatible tokenizer and measurement-boundary data instead of mixing unrelated
-counts. Only paired successful measurements contribute to paired reductions.
-
-See the [MCP session recorder](https://github.com/wavect/semaprax/blob/main/scripts/token-report-mcp-session.mjs)
-for the repository's recording example. Open the resulting local snapshot in
-VS Code with **SEMAPRAX: Show Token Report**. It remains a snapshot until a new
-report is recorded.
+Bytes, local token counts and provider-reported usage are different
+measurements. Planner choices (`byte-v1`, `lexical-v1`) are not model-tokenizer
+counts. Keep the measurement kind with any number you share.
 
 ## Reuse compiler work with a semantic cache
 
-A semantic cache keeps compiler-created checked HIR. **HIR** is the compiler's
-resolved representation of the program. Reusing it can avoid repeating some
-frontend work when a fresh process opens the same project.
-
-On a supported Unix host, create a new dedicated, owner-only directory. For
-example, from the repository root:
+A semantic cache stores checked HIR (the compiler's resolved program) so a new
+process can skip some frontend work on the same project. It carries no source
+authority. On a supported Unix host, from the repository root:
 
 ```sh
 mkdir -p target
@@ -103,29 +97,42 @@ semaprax semantic-cache-init "$CACHE"
 semaprax semantic-cache-persist examples/calculator-project/semaprax.toml "$CACHE"
 ```
 
-The second directory must be new and empty. Initialization creates a private
-store key; keep the store protected and out of source control. The persistence
-receipt contains the `entry_digest` you need for a later operation.
-
-Use the following as templates, replacing the digest with that receipt value:
+The store directory must be new, empty and owner-only. Init creates a private
+key: keep it protected and out of Git. The persist receipt holds the
+`entry_digest` you need next.
 
 ```text
 semaprax semantic-cache-warm-open <manifest> <absolute-store-root> <entry-digest>
 semaprax semantic-cache-refresh <manifest> <absolute-store-root> <entry-digest>
+semaprax semantic-cache-cold-open <manifest>
+semaprax semantic-cache-load <store-root> <entry-digest>
+semaprax semantic-cache-evict <store-root> <entry-digest>
+semaprax semantic-cache-lifecycle <manifest> <empty-store-root>
 ```
 
-`warm-open` authenticates the selected cache and admits the current project.
-`refresh` creates a successor entry after the supported current-source check.
-A historical `load` and a current-source `warm-open` are different operations.
-If a warm open is rejected, an explicit `semantic-cache-cold-open` is the recovery
-route; a failed command does not silently pretend a different cache worked.
+| Command | Does |
+| --- | --- |
+| `warm-open` | Authenticates the entry and admits the current project. |
+| `refresh` | Writes a successor entry after a current-source check. |
+| `cold-open` | Opens without a cache: the recovery route after a rejected warm open. It reports which sources it invalidated. |
+| `load` | Reads a historical entry. Not the same as `warm-open`. |
+| `evict` | Removes an entry. |
+| `lifecycle` | One receipt over the cold, restored, refreshed, evicted and cold-rebuilt stages, with retained byte counts. Needs an empty private store. |
 
-A compiler upgrade can invalidate an entry even when the package version string
-has not changed. Store compatibility includes the executable identity. Keep the
-compiler build, source revision, cache state, and measured task fixed when
-comparing cold and warm runs.
+A compiler upgrade can invalidate an entry even when the version string is
+unchanged: compatibility includes the executable identity. For a fair cold and
+warm comparison, fix the compiler build, source revision, cache state and task.
+`retention-metadata-*` commands manage retention checkpoints for stores; see
+[Semantic Retention Metadata CLI v1](https://github.com/wavect/semaprax/blob/main/docs/SEMANTIC-RETENTION-METADATA-CLI-V1.md).
+
+## Benchmark context size
+
+`semaprax context-benchmark <benchmark-manifest>` measures agent-context sizes
+from a tab-separated manifest that must start with
+`schema<TAB>semaprax.agent-context-benchmark.v1` (`SPX-G005` otherwise). See
+[Agent Context v1](https://github.com/wavect/semaprax/blob/main/benchmarks/agent-context-v1) for fixtures.
 
 **Next:** [Configure the editor report view](../getting-started/editor.md).
-References: [token reporting implementation](https://github.com/wavect/semaprax/blob/main/scripts/token_report.py),
-[compact projection v2](https://github.com/wavect/semaprax/blob/main/docs/COMPACT-SEMANTIC-PROJECTION-V2.md),
-and [Persistent Semantic Cache v1](https://github.com/wavect/semaprax/blob/main/docs/PERSISTENT-SEMANTIC-CACHE-V1.md).
+References: [token reporting](https://github.com/wavect/semaprax/blob/main/scripts/token_report.py),
+[Compact Projection v2](https://github.com/wavect/semaprax/blob/main/docs/COMPACT-SEMANTIC-PROJECTION-V2.md),
+[Persistent Semantic Cache v1](https://github.com/wavect/semaprax/blob/main/docs/PERSISTENT-SEMANTIC-CACHE-V1.md).

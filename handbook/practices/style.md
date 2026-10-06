@@ -1,13 +1,13 @@
 # Style guide
 
-Semaprax style is mostly enforced by `fmt` and `check`. This page covers the
-decisions tools can't make for you: identities, naming, and layout.
+`fmt` and `check` enforce most style. This page covers what tools cannot decide:
+identities, naming and layout. After this page you can name things so that
+agents, queries and patches keep working across renames.
 
-## Identities first
+## Give every declaration an ID
 
-Every public declaration needs an explicit `@id`. Think of it as the
-declaration's permanent address — renames don't change it, and every agent
-query, patch, and graph edge keys off it.
+An `@id` is a declaration's permanent address. Renames do not change it, and
+every query, patch and graph edge uses it.
 
 ```semaprax
 module calculator.core;
@@ -19,61 +19,71 @@ fn add(left: i64, right: i64) -> i64
 }
 ```
 
-Rules of thumb:
+Without an `@id`, `check` warns `SPX-S103`: the automatic identity changes when
+the function is renamed. Assign one by hand, or use
+`semaprax fix --plan` (see [Debugging](debugging.md#apply-a-one-step-repair)).
 
-- **Namespace by module**: `calculator.add`, `calculator.tests.test_add`.
-  Flat global names collide; deep trees (`a.b.c.d.e.f`) are noise.
-- **Name what it means, not what it's called today**: `@id("math.add")`
-  survives a rename from `add` to `plus`. The display name can evolve; the id
-  shouldn't need to.
-- **Id every field, case, and method too** — not just functions. Queries and
-  patches address fields by id.
-- **Never reuse an id** for a different declaration. A stale id pointing at
-  new meaning is worse than a missing one (`SPX-S103` warns on the missing
-  case; nothing can warn on the misleading one).
+- **Namespace by module:** `calculator.add`, `calculator.tests.test_add`.
+  Avoid flat global names and trees like `a.b.c.d.e.f`.
+- **Name the meaning, not today's name:** `math.add` survives a rename to `plus`.
+- **ID fields, cases and methods too.** Queries and patches address them by ID.
+- **Never reuse an ID** for a different declaration. A stale ID with new meaning
+  is worse than none, and nothing can warn about it.
 
-## Naming
+## Names
 
-- Modules: `dotted.lowercase`, matching the file's role (`calculator.core`,
-  `app.bytes`).
-- Functions and bindings: `snake_case`. Types: `PascalCase`.
-- Test functions: `test_<what>` with zero parameters, returning `i64`
-  (`0` = pass). The test runner reports failures by stable id.
-- `main` returns `i64`; return `0` for success, nonzero for failure.
+| Thing | Style |
+| --- | --- |
+| Modules | `dotted.lowercase`, matching the file's role |
+| Functions, bindings | `snake_case` |
+| Types | `PascalCase` |
+| Tests | `test_<what>() -> i64`, no parameters, `0` is pass |
+| `main` | Returns `i64`; `0` is success |
+| Project names | `[a-z][a-z0-9-]*` |
 
-## Layout (let `fmt` do it)
+## Layout: let `fmt` do it
 
-Canonical form, enforced by `semaprax fmt`:
+```sh
+semaprax fmt .            # rewrite every file in canonical form
+semaprax fmt . --check    # report drift, write nothing
+```
 
-- The function body's `{` goes on its own line; each statement on its own
-  line; `if`, `match`, and record literals stay compact.
-- Every field, parameter-adjacent declaration, and match arm ends with `,`
-  — including the last one.
-- `//` comments are preserved by `fmt`; workspace transactions don't promise
-  that, so put durable intent in `@id` names, contracts, and tests instead
-  of prose comments.
+Canonical form: the body's `{` on its own line; one statement per line; compact
+`if`, `match` and record literals; a trailing `,` after every field, case and
+arm including the last. `fmt` parses all files before rewriting any, and keeps
+`//` comments ([placement rules](https://github.com/wavect/semaprax/blob/main/docs/CANONICAL-COMMENTS-V1.md)).
+Workspace transactions do not promise to keep comments, so put durable intent in
+`@id` names, contracts and tests. Run `fmt` before `check`. A formatting diff is
+never the interesting part of a review.
 
-Run `fmt` before `check`, always. A formatting diff is never the interesting
-part of a review.
+## Organize files
 
-## File and project organization
-
-- **One module per file**, one concern per module. Split when a file holds
-  more than a handful of declarations.
-- **Entry module holds `main` and wiring only**; logic lives in sibling
-  modules imported by stable id:
+- One module per file, one concern per module.
+- The entry module holds `main` and wiring. Logic lives in sibling modules
+  imported by ID, right after the `module` line:
   `use function @id("calculator.add") from calculator.core as add;`
-  directly after the `module` line.
-- **Tests live in their own module** listed in the manifest's `tests` array,
-  not interleaved with implementation.
-- **Keep function bodies shallow.** Nesting past a few levels (hard limit:
-  128, `SPX-P207`) means extract a named helper with its own `@id` and
-  contracts — which also makes the helper queryable and testable.
+- Tests live in their own module, listed under `tests` in the manifest.
+- Keep bodies shallow. Nesting deeper than 128 levels fails with `SPX-P207`, but
+  a few levels is already a sign to extract a named helper with its own `@id`
+  and contracts. Then it is queryable and testable.
 
-## Manifest hygiene
+## Put intent in contracts
 
-- Keep `semaprax.toml` byte-canonical: table order, blank lines, one-line
-  arrays, no comments. `SPX-J100` names the first differing line.
-- Pin what you ship: `semaprax lock semaprax.toml --write` records a
-  deterministic `semaprax.lock`; `--verify` re-checks it, and
-  `--compare <base.lock>` reports breaking interface changes for CI.
+`requires` and `ensures` state what callers may pass and what they get back, and
+run on every call, including under `test`. Prefer them to comments. Write the
+effect list (`permit` and `uses`) as narrowly as the code allows. See
+[Contracts and effects](../language/contracts-effects.md).
+
+## Keep the manifest canonical
+
+Keep `semaprax.toml` byte-canonical: table order, one blank line between tables,
+one-line arrays, no comments. `SPX-J100` names the first differing line. See
+[Manifests](../projects/manifests.md). Pin what you ship:
+`semaprax lock . --write`, then `--verify`, and `--compare <base.lock>` in CI
+([Shipping](../projects/shipping.md#lock-the-interface)).
+
+## Generate docs from the source
+
+`semaprax doc <file>` renders declarations, signatures, contracts, effects and
+comments from the checked graph, so your docs cannot drift from the code
+(`--json` for tools). A file given to `doc` needs a `fn main() -> i64`.

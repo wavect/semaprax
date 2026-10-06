@@ -22,6 +22,8 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+## 0.9.0 — 2026-10-06
+
 - Installation: one-command per-user installers. `install.sh` (macOS and
   GNU/Linux) and `install.ps1` (Windows PowerShell 5.1 and 7) resolve a
   release once, download only the selected archive and its verification

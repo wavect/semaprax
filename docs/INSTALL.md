@@ -195,17 +195,17 @@ semaprax run examples/meaning.spx
 semaprax graph examples/meaning.spx
 ```
 
-Expected shapes, from a local `0.8.0` standalone build:
+Expected shapes, from a local `0.9.0` standalone build:
 
 ```text
-semaprax 0.8.0 (commit unknown)
+semaprax 0.9.0 (commit unknown)
 ```
 
 A CLI built from a tag archive reports its injected commit instead of
 `unknown`. The JSON form is the machine-readable version of the same identity:
 
 ```text
-{"schema":"semaprax.version.v1","version":"0.8.0","commit":null,"maturity":"beta","rust_min":"1.88"}
+{"schema":"semaprax.version.v1","version":"0.9.0","commit":null,"maturity":"beta","rust_min":"1.88"}
 ```
 
 `check` prints the verified path and its source digest, and `run` prints `42`:

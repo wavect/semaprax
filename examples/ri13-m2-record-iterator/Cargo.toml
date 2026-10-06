@@ -7,7 +7,7 @@ publish = false
 [workspace]
 
 [dependencies]
-semaprax = { path = "../..", version = "=0.8.0" }
+semaprax = { path = "../..", version = "=0.9.0" }
 semaprax-native-rust-interop = { path = "../../crates/semaprax-native-rust-interop-builder", version = "=0.1.0" }
 serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = "=1.0.151"

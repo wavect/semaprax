@@ -1805,7 +1805,7 @@ dependencies = [
 
 [[package]]
 name = "semaprax"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "argon2",
  "criterion",
@@ -1971,7 +1971,7 @@ dependencies = [
 
 [[package]]
 name = "semaprax-toolchain"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "ed25519-dalek",
  "fs2",

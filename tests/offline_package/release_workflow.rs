@@ -204,9 +204,9 @@ fn release_automation_checks_version_surfaces_and_renders_only_one_changelog_buc
     for exact in [
         title.as_str(),
         "## Changes",
-        "LAW-16: retain pinned Bend U32 universal insertion-sort verdict/kernel",
-        "Settle actual first-turn source Refused through its original State",
-        "Retain the immutable cumulative v8 fresh-turn capacity forecast",
+        "Installation: one-command per-user installers.",
+        "Fixed: native code keeps an earlier operand's read of a `let mut` Copy",
+        "Preserve LAW16 unified replay command receipts and partial stdout/stderr on",
         "These archives are not notarized",
         "SHA-256 checksums alone are integrity facts, not signatures",
     ] {
@@ -215,7 +215,7 @@ fn release_automation_checks_version_surfaces_and_renders_only_one_changelog_buc
     // Every other bucket stays out, including the one immediately before this
     // release: a renderer that walked past its section would pick that up
     // first.
-    for other in ["## 0.7.0", "## 0.5.0", "## Unreleased"] {
+    for other in ["## 0.8.0", "## 0.7.0", "## Unreleased"] {
         assert!(
             !notes.contains(other),
             "release notes leaked another bucket: {other}"

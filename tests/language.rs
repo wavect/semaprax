@@ -73,6 +73,8 @@ mod owned_result_variants;
 mod ownership;
 #[path = "language/ownership_control_flow.rs"]
 mod ownership_control_flow;
+#[path = "language/payload_free_variants.rs"]
+mod payload_free_variants;
 #[path = "language/property_widen.rs"]
 mod property_widen;
 #[path = "language/record_patterns.rs"]

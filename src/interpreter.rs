@@ -5213,6 +5213,16 @@ fn combine(op: BinaryOp, lhs: Value, rhs: Value) -> Option<Result<Value, Normali
             BinaryOp::Ne => Some(Ok(Value::Bool(a != b))),
             _ => None,
         },
+        // Payload-free variants compare by their authenticated case.
+        (Value::Variant(a), Value::Variant(b))
+            if a.variant == b.variant && a.fields.is_empty() && b.fields.is_empty() =>
+        {
+            match op {
+                BinaryOp::Eq => Some(Ok(Value::Bool(a.case == b.case))),
+                BinaryOp::Ne => Some(Ok(Value::Bool(a.case != b.case))),
+                _ => None,
+            }
+        }
         // Owned strings compare by exact UTF-8 contents; any other operator
         // over strings is ill-typed on verified programs.
         (Value::String(a), Value::String(b)) => match op {

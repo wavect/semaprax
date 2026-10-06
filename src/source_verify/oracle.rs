@@ -386,6 +386,7 @@ pub(super) fn check_expr(
                     if let Some(value) = &left_ty {
                         super::diagnostics::reject_aggregate_equality(
                             program,
+                            types,
                             expr,
                             value,
                             diagnostics,

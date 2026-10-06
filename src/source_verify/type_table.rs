@@ -210,6 +210,24 @@ impl<'a> TypeTable<'a> {
         }
     }
 
+    /// A non-generic variant whose every case is payload-free: the only
+    /// variant shape admitted by `==` and `!=`.
+    pub(super) fn payload_free_variant(&self, ty: &Type) -> bool {
+        let Type::Named { name, arguments } = ty else {
+            return false;
+        };
+        let Some(declaration) = self.declaration(name) else {
+            return false;
+        };
+        let TypeDeclarationKind::Variant { cases } = &declaration.kind else {
+            return false;
+        };
+        arguments.is_empty()
+            && declaration.type_parameters.is_empty()
+            && !cases.is_empty()
+            && cases.iter().all(|case| case.fields.is_empty())
+    }
+
     pub(super) fn substitute_variant_type(
         declaration: &TypeDeclaration,
         arguments: &[Type],

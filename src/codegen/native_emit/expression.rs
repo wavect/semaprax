@@ -25,6 +25,7 @@ mod owned_buffer;
 mod owned_try;
 mod owned_values;
 mod unary;
+mod variant_equality;
 mod variant_if;
 mod vec_ops;
 #[derive(Clone)]
@@ -2425,6 +2426,11 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             return self.emit_lazy_binary(op, left, right, result_type);
         }
         let left = self.emit_expr(left)?;
+        if matches!(op, BinaryOp::Eq | BinaryOp::Ne)
+            && self.program.is_payload_free_variant(&left.ty)
+        {
+            return self.emit_case_equality(op, left, right, result_type);
+        }
         if matches!(op, BinaryOp::Eq | BinaryOp::Ne) && is_aggregate_type(self.program, &left.ty)? {
             return Err(backend_error(
                 "aggregate equality is outside executable copy variants v1",

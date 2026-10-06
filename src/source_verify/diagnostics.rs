@@ -58,10 +58,40 @@ pub(super) fn reject_aggregate_match_result(
 
 pub(super) fn reject_aggregate_equality(
     program: &Program,
+    types: &TypeTable<'_>,
     expression: &Expr,
     value: &CheckedValue,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
+    if types.payload_free_variant(&value.ty) {
+        return;
+    }
+    if let (Type::Named { name, .. }, Some(cases)) = (&value.ty, types.variant_cases(&value.ty)) {
+        let example = cases
+            .iter()
+            .find(|case| case.fields.is_empty())
+            .map(|case| {
+                format!(
+                    ", e.g. `match value {{ {name}::{} {{}} => true, _ => false, }}`",
+                    case.name
+                )
+            })
+            .unwrap_or_default();
+        diagnostics.push(
+            error(
+                program,
+                "SPX-T207",
+                format!(
+                    "equality on variant `{}` requires a non-generic variant whose cases all \
+                     carry no payload",
+                    value.ty
+                ),
+                expression.span,
+            )
+            .with_help(format!("test the case with `match` instead{example}")),
+        );
+        return;
+    }
     if matches!(
         value.ty,
         Type::OnceFunction

@@ -212,7 +212,13 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             BinaryOp::And | BinaryOp::Or => (Type::Bool, Type::Bool),
             BinaryOp::Eq | BinaryOp::Ne => {
                 if let Some(value) = &left_value {
-                    reject_aggregate_equality(self.program, expression, value, self.diagnostics);
+                    reject_aggregate_equality(
+                        self.program,
+                        self.types,
+                        expression,
+                        value,
+                        self.diagnostics,
+                    );
                 }
                 if !native_unit
                     && left_value.is_some()

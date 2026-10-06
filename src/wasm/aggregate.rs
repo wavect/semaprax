@@ -65,6 +65,7 @@ mod box_ops;
 mod scalar_shape;
 mod string_runtime;
 mod vec_owned_payload;
+mod variant_equality;
 mod vec_record_payload;
 use crate::wasm::vec_ops::is_wasm_owned_vec_type as owned_vec;
 use scalar_shape::{scalar_local, scalar_size_align, scalar_wasm_type, vec_element_tag};
@@ -7469,6 +7470,8 @@ impl Emitter<'_> {
             BinaryOp::Eq | BinaryOp::Ne => {
                 if value_type(&left) == &ResolvedType::String {
                     self.emit_aggregate_string_equality(op, &left, &right, destination)?;
+                } else if self.program.is_payload_free_variant(value_type(&left)) {
+                    self.emit_case_equality(op, &left, &right, destination)?;
                 } else if is_aggregate(self.program, value_type(&left))? {
                     return Err(error("record equality is outside executable records v1"));
                 } else {

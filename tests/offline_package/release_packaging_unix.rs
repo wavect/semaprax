@@ -54,6 +54,16 @@ impl Fixture {
             include_str!("../../scripts/package-release.sh"),
         )
         .unwrap();
+        fs::create_dir_all(root.join("packaging/archive")).unwrap();
+        fs::write(
+            root.join("packaging/archive/README.unix.md"),
+            include_str!("../../packaging/archive/README.unix.md"),
+        )
+        .unwrap();
+        executable(
+            &root.join("tools/readelf"),
+            include_str!("../release_packaging_unix_v1/readelf.sh"),
+        );
         executable(
             &root.join("tools/rustc"),
             "#!/bin/sh\n[ \"$1\" = -vV ] || exit 9\nprintf '%s\\n' 'host: x86_64-unknown-linux-gnu'\nexit \"$FAKE_RUSTC_STATUS\"\n",
@@ -101,6 +111,7 @@ impl Fixture {
             .env("CARGO_TARGET_DIR", self.root.join("ambient target ignored"))
             .env("FAKE_CARGO_FAIL", "0")
             .env("FAKE_RUSTC_STATUS", "0")
+            .env("FAKE_GLIBC", "2.34")
             .env("FAKE_SMOKE_FAIL", "none");
         command
     }
@@ -121,7 +132,13 @@ fn packages_only_explicit_build_outputs_and_smokes_unpacked_paths() {
     );
     let build = fixture.output.join(format!("build-{TARGET}"));
     let arguments = fs::read_to_string(fixture.root.join("cargo-arguments")).unwrap();
-    assert_eq!(arguments, format!("build\n--locked\n--release\n--target\n{TARGET}\n--target-dir\n{}\n-p\nsemaprax\n-p\nsemaprax-toolchain\n--bin\nsemaprax-full\n--bin\nsemapraxd\n", build.display()));
+    assert_eq!(
+        arguments,
+        format!(
+            "build\n--locked\n--release\n--target\n{TARGET}\n--target-dir\n{}\n-p\nsemaprax\n-p\nsemaprax-toolchain\n--bin\nsemaprax-full\n--bin\nsemapraxd\n",
+            build.display()
+        )
+    );
     assert_eq!(
         fs::read_to_string(fixture.root.join("cargo-commit")).unwrap(),
         COMMIT
@@ -161,6 +178,19 @@ fn packages_only_explicit_build_outputs_and_smokes_unpacked_paths() {
         ]
         .map(std::ffi::OsString::from)
     );
+    // README.md is rendered from the maintained template, not copied from the
+    // repository README.
+    let readme = fs::read_to_string(unpacked.join("README.md")).unwrap();
+    assert!(readme.starts_with(&format!("# SEMAPRAX v{VERSION}\n")));
+    assert!(readme.contains(&format!("`{TARGET}`")));
+    assert!(!readme.contains("{{") && !readme.contains("fixture readme"));
+    let manifest = fs::read_to_string(unpacked.join("release-manifest.json")).unwrap();
+    assert!(manifest.ends_with(concat!(
+        "  ],\n  \"runtime\": {\n    \"os\": \"linux\",\n    \"min_os_version\": null,\n",
+        "    \"cpu\": \"x86_64\",\n    \"libc_family\": \"glibc\",\n",
+        "    \"min_libc_version\": \"2.34\",\n",
+        "    \"dynamic_libraries\": [\"libc.so.6\", \"libm.so.6\"]\n  }\n}\n"
+    )));
     assert_eq!(fs::read_dir(unpacked.join("smoke")).unwrap().count(), 1);
     assert_eq!(
         fs::read_to_string(unpacked.join("smoke/meaning.spx")).unwrap(),
@@ -303,4 +333,35 @@ fn correct_stdout_cannot_mask_failed_host_query_or_smoke_commands() {
             .join(format!("{}.tar.gz", fixture.package_name()))
             .is_file());
     }
+}
+
+#[test]
+fn binary_requiring_newer_glibc_than_the_baseline_is_rejected_before_archiving() {
+    let fixture = Fixture::new();
+    let result = fixture
+        .command()
+        .env("FAKE_GLIBC", "2.38")
+        .arg(&fixture.output)
+        .output()
+        .unwrap();
+    assert!(!result.status.success());
+    assert!(result.stdout.is_empty());
+    assert!(String::from_utf8_lossy(&result.stderr)
+        .contains("requires GLIBC_2.38, above the glibc 2.35 baseline"));
+    assert!(!fixture
+        .output
+        .join(format!("{}.tar.gz", fixture.package_name()))
+        .exists());
+    assert!(!fixture.root.join("smoke-calls").exists());
+}
+
+#[test]
+fn missing_archive_readme_template_is_rejected_before_build() {
+    let fixture = Fixture::new();
+    fs::remove_file(fixture.root.join("packaging/archive/README.unix.md")).unwrap();
+    let result = fixture.run();
+    assert!(!result.status.success());
+    assert!(String::from_utf8_lossy(&result.stderr).contains("archive README template is missing"));
+    assert!(!fixture.root.join("cargo-arguments").exists());
+    assert_eq!(fs::read_dir(&fixture.output).unwrap().count(), 0);
 }

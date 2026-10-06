@@ -35,18 +35,53 @@ CLI's agreement with it; they do not independently authenticate the checkout
 against Git HEAD or the tag. Exact-checkout provenance remains the release
 workflow's responsibility, not a consequence of this self-consistency check.
 
-The v0.4.0 release used these hosts and archives. Replace the version in the
-filename for a later release; do not treat the table as evidence for that later
-tag.
+The v0.4.0 release used the first three hosts and archives below; releases
+after v0.8.0 admit five targets. Replace the version in the filename for a
+later release; do not treat the table as evidence for that later tag.
 
 | Hosted runner | Exercised target | Archive |
 | --- | --- | --- |
 | Ubuntu 24.04 | `x86_64-unknown-linux-gnu` | `semaprax-v0.4.0-x86_64-unknown-linux-gnu.tar.gz` |
+| Ubuntu 24.04 arm64 | `aarch64-unknown-linux-gnu` | `semaprax-<tag>-aarch64-unknown-linux-gnu.tar.gz` |
 | macOS 15 | `aarch64-apple-darwin` | `semaprax-v0.4.0-aarch64-apple-darwin.tar.gz` |
+| macOS 15 Intel | `x86_64-apple-darwin` | `semaprax-<tag>-x86_64-apple-darwin.tar.gz` |
 | Windows 2025 | `x86_64-pc-windows-msvc` | `semaprax-v0.4.0-x86_64-pc-windows-msvc.zip` |
+
+The closed host-class vocabulary a provenance statement may claim is
+`github-hosted-ubuntu-24.04`, `github-hosted-ubuntu-24.04-arm`,
+`github-hosted-macos-15`, `github-hosted-macos-15-intel` and
+`github-hosted-windows-2025`; the aggregate provenance is generated on the
+Ubuntu 24.04 publisher. The v0.8.0 manifest and provenance, which carry the
+original three platforms, remain verifiable; a manifest or provenance for a
+later version must inventory all five.
+
+### Runtime baseline
+
+Each archive records the lowest runtime it supports, and the packager rejects
+a build that exceeds it.
+
+| Target | Baseline | How it is enforced |
+| --- | --- | --- |
+| Linux (x86_64, aarch64) | GNU/Linux, glibc 2.35 | Built by `scripts/package-release-linux-container.sh` inside `ubuntu:22.04` with the pinned 1.97.1 toolchain; `package-release.sh` reads every `GLIBC_x.y` requirement with `readelf --version-info` (or `objdump -T`) and fails above 2.35. The smoke runs on the container's glibc 2.35. musl is not supported. |
+| macOS Apple Silicon | macOS 11.0 | `MACOSX_DEPLOYMENT_TARGET=11.0`; the binaries' `LC_BUILD_VERSION` minos is read with `vtool -show-build` (or `otool -l`) and must not exceed 11.0. |
+| macOS Intel | macOS 10.12 | `MACOSX_DEPLOYMENT_TARGET=10.12`, checked the same way. |
+| Windows x64 | Windows 10 1809 (10.0.17763) / Server 2019 | Recorded; imported DLLs are listed from `dumpbin /dependents` only when `dumpbin` is available, otherwise recorded as `null` (not inspected). |
+
+The per-archive `release-manifest.json` (`semaprax.release-artifact.v1`) gains
+a `runtime` object: `os`, `min_os_version` (null on Linux), `cpu`,
+`libc_family` (`glibc`, `libsystem` or `ucrt`), `min_libc_version` (the
+highest glibc requirement actually found on Linux, otherwise null) and
+`dynamic_libraries` (sorted `NEEDED`/`otool -L`/`dumpbin` names, or null when
+not inspected). It is recorded evidence of the built binaries, not an
+authority; the runtime-baseline row of the matrix is unchanged.
 
 Each archive contains `semaprax`, `semapraxd`, `LICENSE`, `README.md`, a fixed
 smoke program, and the deterministic `semaprax.release-artifact.v1` manifest.
+The archive `README.md` is rendered from `packaging/archive/README.unix.md` or
+`README.windows.md` by replacing exactly `{{TAG}}`, `{{VERSION}}` and
+`{{TARGET}}`: it states the contents, runtime requirements, local invocation and
+`PATH` steps and the first-project journey, and every link is an absolute
+URL pinned to the release tag. The repository README is not packaged.
 The archive's `semaprax` is the unpublished `semaprax-toolchain` package's
 `semaprax-full` binary, renamed during staging. The standalone crates.io
 package excludes private Native Rust package publication, Windows revision-store
@@ -405,14 +440,23 @@ SLSA provenance for its own already smoke-tested archive. The final
 `publish-release` job alone receives `contents: write` and, after both
 `release-gate` and every artifact-matrix child succeed, the separate OIDC
 capability needed to sign the final aggregate provenance. It authenticates the
-exact three-archive inventory, writes one `SHA256SUMS`, creates the final
+exact five-archive inventory, writes one `SHA256SUMS`, creates the final
 manifest and provenance, and keylessly signs that provenance before publishing
 a regular GitHub release. No repository signing key exists. The publisher
-derives the body with `scripts/release-notes.py`: it
-selects only the tagged version's dated `CHANGELOG.md` section, stopping at the
-next release heading, and surrounds it with the release nonclaims. A missing,
-duplicate, or empty section fails the publication instead of silently creating
-incomplete notes.
+derives the body with `scripts/release-notes.py --assets-dir dist`: the body
+opens with an Install section (version, a host/CPU to exact-tag archive table
+derived from the asset directory and checked against the admitted targets,
+installer one-liners only when `install.sh`/`install.ps1` are among the assets,
+a link to the exact-tag install guide, one line separating runnable archives
+from GitHub's source snapshots and verification metadata, and a verification
+pointer). It then selects only the tagged version's dated `CHANGELOG.md`
+section, stopping at the next release heading, inside a collapsed
+`<details>` block, and closes with the release nonclaims. The changelog bound
+subtracts the size of that frame from the GitHub body limit. A missing admitted
+archive, or a missing, duplicate, or empty changelog section, fails the
+publication instead of silently creating incomplete notes. Without
+`--assets-dir` only the asset-independent guidance is rendered (no table, no
+one-liners).
 
 ## Canonical release manifest
 
@@ -429,7 +473,18 @@ distinct from the narrower per-archive `semaprax.release-artifact.v1` manifest
 `scripts/package-release.sh`/`.ps1` embed inside each single archive: that
 document is written before any sibling archive or its digest exists, so it can
 only assert what one packaging run knows about itself. This one is built once,
-after every target archive exists, from the sibling archives' actual bytes:
+after every target archive exists, from the sibling archives' actual bytes.
+
+The manifest also carries one optional key, `installers`: an array of
+`{name, size, digest}` for the bootstrap scripts `install.sh` and `install.ps1`
+when they sit in `--archives-dir` (they are published byte-identical to the
+tagged `scripts/install.sh` and `scripts/install.ps1`). Entries are sorted by
+name, the name set is closed to those two, and, when a sibling `SHA256SUMS` is
+present, each installer must be listed there with the same digest. The key is
+omitted when neither script is present, which is the shape of every release
+through v0.8.0; consumers must accept both shapes.
+`semaprax::release_provenance::parse_manifest` does, and
+`verify_manifest_artifacts_on_disk` re-hashes installers as well as archives.
 
 ```sh
 python3 scripts/release-manifest.py \

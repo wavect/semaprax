@@ -63,7 +63,9 @@ TRUSTED_WORKFLOW_PATH = ".github/workflows/ci.yml"
 
 HOST_CLASSES = (
     "github-hosted-ubuntu-24.04",
+    "github-hosted-ubuntu-24.04-arm",
     "github-hosted-macos-15",
+    "github-hosted-macos-15-intel",
     "github-hosted-windows-2025",
 )
 

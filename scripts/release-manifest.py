@@ -26,6 +26,11 @@ patterns are imported from `release-reconcile.py`, and the exact changelog
 section extraction is imported from `release-notes.py`, rather than
 re-implementing either.
 
+When `install.sh` and/or `install.ps1` sit in --archives-dir they are inventoried
+under the optional `installers` key (name, size, digest; sorted by name) and, if a
+`SHA256SUMS` is present, must be listed there with the same digest. Without them
+the key is omitted, which is the shape of every release through v0.8.0.
+
 Two modes:
 
   --archives-dir DIR --commit C [--version V] [--tag T] [--output PATH]
@@ -191,6 +196,29 @@ def collect_artifacts(archives_dir, tag):
     return artifacts
 
 
+INSTALLER_NAMES = ("install.ps1", "install.sh")
+
+
+def collect_installers(archives_dir):
+    """Installer bootstrap assets present in the archives directory.
+
+    `install.sh` and `install.ps1` are published verbatim next to the
+    archives. They are inventoried (name, size, digest; sorted by name) only
+    when present, so releases built without them keep the original manifest
+    shape and the key is simply absent.
+    """
+    archives_dir = Path(archives_dir)
+    installers = []
+    for name in INSTALLER_NAMES:
+        path = archives_dir / name
+        if path.is_file():
+            data = path.read_bytes()
+            installers.append(
+                {"name": name, "size": len(data), "digest": sha256_digest(data)}
+            )
+    return installers
+
+
 def verify_against_sums(archives_dir, artifacts):
     """Cross-check computed digests against a sibling `SHA256SUMS`, if present.
 
@@ -211,6 +239,8 @@ def verify_against_sums(archives_dir, artifacts):
         recorded[name] = f"sha256:{digest}"
     for artifact in artifacts:
         expected = recorded.get(artifact["name"])
+        if artifact["name"] in INSTALLER_NAMES and expected is None:
+            reject(f"SHA256SUMS does not list installer {artifact['name']}")
         if expected is not None and expected != artifact["digest"]:
             reject(
                 f"digest mismatch for {artifact['name']}: SHA256SUMS says "
@@ -229,8 +259,9 @@ def build_manifest(version, tag, commit, prerelease, workflow_text, changelog_te
     required_checks = parse_required_checks(workflow_text)
     digest = changelog_section_digest(changelog_text, version)
     artifacts = collect_artifacts(archives_dir, tag)
-    verify_against_sums(archives_dir, artifacts)
-    return {
+    installers = collect_installers(archives_dir)
+    verify_against_sums(archives_dir, artifacts + installers)
+    manifest = {
         "schema": SCHEMA,
         "version": version,
         "tag": tag,
@@ -240,6 +271,9 @@ def build_manifest(version, tag, commit, prerelease, workflow_text, changelog_te
         "changelog_section_digest": digest,
         "artifacts": artifacts,
     }
+    if installers:
+        manifest["installers"] = installers
+    return manifest
 
 
 def diff_manifest(existing, expected):
@@ -292,6 +326,28 @@ def diff_manifest(existing, expected):
         if name not in expected_artifacts:
             problems.append(
                 f"manifest has an artifact entry with no matching archive on disk: {name}"
+            )
+    existing_installers = {
+        entry["name"]: entry
+        for entry in existing.get("installers", [])
+        if isinstance(entry, dict) and "name" in entry
+    }
+    expected_installers = {entry["name"]: entry for entry in expected.get("installers", [])}
+    for name, expected_entry in expected_installers.items():
+        actual_entry = existing_installers.get(name)
+        if actual_entry is None:
+            problems.append(f"manifest is missing an installer entry for {name}")
+            continue
+        for field in ("size", "digest"):
+            if actual_entry.get(field) != expected_entry.get(field):
+                problems.append(
+                    f"installer {name} {field} mismatch: manifest has "
+                    f"{actual_entry.get(field)!r}, recomputed {expected_entry.get(field)!r}"
+                )
+    for name in existing_installers:
+        if name not in expected_installers:
+            problems.append(
+                f"manifest has an installer entry with no matching file on disk: {name}"
             )
     return problems
 

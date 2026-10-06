@@ -22,6 +22,8 @@ $version = $versions[0]
 if ($Tag -cne "v$version") { Reject 'tag does not equal v plus the Cargo package version' }
 if ($Commit.Length -ne 40 -or $Commit -cnotmatch '^[0-9a-f]{40}$') { Reject 'commit must be exactly 40 lowercase hexadecimal characters' }
 if ($Target -cne 'x86_64-pc-windows-msvc') { Reject 'unsupported Windows release target' }
+$readmeTemplate = Join-Path (Get-Location).ProviderPath 'packaging/archive/README.windows.md'
+if (-not (Test-Path -LiteralPath $readmeTemplate -PathType Leaf)) { Reject "archive README template is missing: $readmeTemplate" }
 $hostLine = @(rustc -vV | Where-Object { $_ -cmatch '^host: ' })
 if ($LASTEXITCODE -ne 0 -or $hostLine.Count -ne 1 -or $hostLine[0] -cne "host: $Target") { Reject 'Rust host does not equal the requested release target' }
 
@@ -58,7 +60,31 @@ $releaseRoot = Join-Path (Join-Path $buildRoot $Target) 'release'
 Copy-Item -LiteralPath (Join-Path $releaseRoot 'semaprax-full.exe') -Destination (Join-Path $packageRoot 'semaprax.exe')
 Copy-Item -LiteralPath (Join-Path $releaseRoot 'semapraxd.exe') -Destination (Join-Path $packageRoot 'semapraxd.exe')
 Copy-Item -LiteralPath 'LICENSE' -Destination $packageRoot
-Copy-Item -LiteralPath 'README.md' -Destination $packageRoot
+# The archive README is rendered from a small maintained template; the
+# repository README is not packaged because its links are checkout-relative.
+$readme = [System.IO.File]::ReadAllText($readmeTemplate).Replace("`r`n", "`n").Replace('{{TAG}}', $Tag).Replace('{{VERSION}}', $version).Replace('{{TARGET}}', $Target)
+if ($readme.Contains('{{')) { Reject 'archive README still has an unreplaced placeholder' }
+
+# Runtime baseline: Windows 10 1809 (10.0.17763) / Server 2019, x64. Binary
+# dependencies are listed only when dumpbin is available; otherwise they are
+# recorded as null (not inspected) rather than as an empty list.
+$dumpbin = $env:SEMAPRAX_RELEASE_DUMPBIN
+if ([string]::IsNullOrEmpty($dumpbin)) {
+    $found = Get-Command dumpbin -ErrorAction SilentlyContinue
+    $dumpbin = if ($null -ne $found) { $found.Source } else { 'none' }
+}
+$dynamicLibraries = 'null'
+if ($dumpbin -cne 'none') {
+    $names = @()
+    foreach ($binaryName in @('semaprax.exe', 'semapraxd.exe')) {
+        $dependents = @(& $dumpbin /nologo /dependents (Join-Path $packageRoot $binaryName))
+        if ($LASTEXITCODE -ne 0) { Reject "dumpbin failed for $binaryName" }
+        foreach ($line in $dependents) {
+            if ($line -cmatch '^\s+(\S+\.dll)\s*$') { $names += $Matches[1].ToLowerInvariant() }
+        }
+    }
+    $dynamicLibraries = '[' + ((@($names | Sort-Object -Unique) | ForEach-Object { '"' + $_ + '"' }) -join ', ') + ']'
+}
 
 $manifest = @(
     '{',
@@ -73,10 +99,19 @@ $manifest = @(
     '    "stable language ABI",',
     '    "stable public protocol",',
     '    "safety-critical suitability"',
-    '  ]',
+    '  ],',
+    '  "runtime": {',
+    '    "os": "windows",',
+    '    "min_os_version": "10.0.17763",',
+    '    "cpu": "x86_64",',
+    '    "libc_family": "ucrt",',
+    '    "min_libc_version": null,',
+    "    `"dynamic_libraries`": $dynamicLibraries",
+    '  }',
     '}'
 ) -join "`n"
 $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+[System.IO.File]::WriteAllText((Join-Path $packageRoot 'README.md'), $readme, $utf8NoBom)
 [System.IO.File]::WriteAllText((Join-Path $packageRoot 'release-manifest.json'), "$manifest`n", $utf8NoBom)
 $smoke = "module app;`n`n@id(`"app.main`")`nfn main() -> i64 { 42 }`n"
 [System.IO.File]::WriteAllText((Join-Path $packageRoot 'smoke/meaning.spx'), $smoke, $utf8NoBom)

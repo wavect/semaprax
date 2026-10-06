@@ -68,10 +68,13 @@ fn tag_artifacts_are_exact_blocking_children_of_the_release_gate() {
         "test \"$(git rev-parse HEAD)\" = \"$GITHUB_SHA\"",
         "fail-fast: false",
         "os: ubuntu-24.04\n            target: x86_64-unknown-linux-gnu\n            extension: tar.gz",
+        "os: ubuntu-24.04-arm\n            target: aarch64-unknown-linux-gnu\n            extension: tar.gz",
         "os: macos-15\n            target: aarch64-apple-darwin\n            extension: tar.gz",
+        "os: macos-15-intel\n            target: x86_64-apple-darwin\n            extension: tar.gz",
         "os: windows-2025\n            target: x86_64-pc-windows-msvc\n            extension: zip",
         "toolchain: 1.97.1",
         "scripts/package-release.sh \"$GITHUB_REF_NAME\" \"$GITHUB_SHA\" \"${{ matrix.target }}\" dist",
+        "scripts/package-release-linux-container.sh \"$GITHUB_REF_NAME\" \"$GITHUB_SHA\" \"${{ matrix.target }}\" dist",
         "scripts/package-release.ps1 -Tag $env:GITHUB_REF_NAME -Commit $env:GITHUB_SHA -Target \"${{ matrix.target }}\" -OutputRoot dist",
         "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
         "if-no-files-found: error",
@@ -130,7 +133,9 @@ fn publication_waits_for_all_artifacts_and_owns_the_only_write_authority() {
     assert_eq!(workflow.matches("contents: write").count(), 1);
     for archive in [
         "semaprax-v$version-x86_64-unknown-linux-gnu.tar.gz",
+        "semaprax-v$version-aarch64-unknown-linux-gnu.tar.gz",
         "semaprax-v$version-aarch64-apple-darwin.tar.gz",
+        "semaprax-v$version-x86_64-apple-darwin.tar.gz",
         "semaprax-v$version-x86_64-pc-windows-msvc.zip",
     ] {
         assert!(publish.contains(archive));
@@ -688,12 +693,16 @@ def write_zip(directory, name, target, version, commit):
 
 LINUX = f'semaprax-v{VERSION}-x86_64-unknown-linux-gnu.tar.gz'
 MACOS = f'semaprax-v{VERSION}-aarch64-apple-darwin.tar.gz'
+LINUX_ARM = f'semaprax-v{VERSION}-aarch64-unknown-linux-gnu.tar.gz'
+MACOS_INTEL = f'semaprax-v{VERSION}-x86_64-apple-darwin.tar.gz'
 WINDOWS = f'semaprax-v{VERSION}-x86_64-pc-windows-msvc.zip'
 
 # --- positive: all three agree -----------------------------------------------
 with tempfile.TemporaryDirectory() as scratch:
     scratch = Path(scratch)
     write_tar_gz(scratch, LINUX, 'x86_64-unknown-linux-gnu', VERSION, COMMIT)
+    write_tar_gz(scratch, LINUX_ARM, 'aarch64-unknown-linux-gnu', VERSION, COMMIT)
+    write_tar_gz(scratch, MACOS_INTEL, 'x86_64-apple-darwin', VERSION, COMMIT)
     write_tar_gz(scratch, MACOS, 'aarch64-apple-darwin', VERSION, COMMIT)
     write_zip(scratch, WINDOWS, 'x86_64-pc-windows-msvc', VERSION, COMMIT)
     assert verify_local_release_directory(scratch, VERSION, COMMIT) == []
@@ -702,6 +711,8 @@ with tempfile.TemporaryDirectory() as scratch:
 with tempfile.TemporaryDirectory() as scratch:
     scratch = Path(scratch)
     write_tar_gz(scratch, LINUX, 'x86_64-unknown-linux-gnu', VERSION, COMMIT)
+    write_tar_gz(scratch, LINUX_ARM, 'aarch64-unknown-linux-gnu', VERSION, COMMIT)
+    write_tar_gz(scratch, MACOS_INTEL, 'x86_64-apple-darwin', VERSION, COMMIT)
     write_tar_gz(scratch, MACOS, 'aarch64-apple-darwin', VERSION, COMMIT)
     problems = verify_local_release_directory(scratch, VERSION, COMMIT)
     assert problems == [f'missing artifact: {WINDOWS}'], problems
@@ -710,6 +721,8 @@ with tempfile.TemporaryDirectory() as scratch:
 with tempfile.TemporaryDirectory() as scratch:
     scratch = Path(scratch)
     write_tar_gz(scratch, LINUX, 'x86_64-unknown-linux-gnu', VERSION, COMMIT)
+    write_tar_gz(scratch, LINUX_ARM, 'aarch64-unknown-linux-gnu', VERSION, COMMIT)
+    write_tar_gz(scratch, MACOS_INTEL, 'x86_64-apple-darwin', VERSION, COMMIT)
     write_tar_gz(scratch, MACOS, 'aarch64-apple-darwin', '1.1.1', COMMIT)
     write_zip(scratch, WINDOWS, 'x86_64-pc-windows-msvc', VERSION, COMMIT)
     problems = verify_local_release_directory(scratch, VERSION, COMMIT)
@@ -720,6 +733,8 @@ with tempfile.TemporaryDirectory() as scratch:
 with tempfile.TemporaryDirectory() as scratch:
     scratch = Path(scratch)
     write_tar_gz(scratch, LINUX, 'x86_64-unknown-linux-gnu', VERSION, COMMIT)
+    write_tar_gz(scratch, LINUX_ARM, 'aarch64-unknown-linux-gnu', VERSION, COMMIT)
+    write_tar_gz(scratch, MACOS_INTEL, 'x86_64-apple-darwin', VERSION, COMMIT)
     write_tar_gz(scratch, MACOS, 'aarch64-apple-darwin', VERSION, COMMIT)
     write_zip(scratch, WINDOWS, 'x86_64-pc-windows-msvc', VERSION, 'd' * 40)
     problems = verify_local_release_directory(scratch, VERSION, COMMIT)
@@ -730,6 +745,8 @@ with tempfile.TemporaryDirectory() as scratch:
 with tempfile.TemporaryDirectory() as scratch:
     scratch = Path(scratch)
     write_tar_gz(scratch, LINUX, 'x86_64-unknown-linux-gnu', VERSION, COMMIT)
+    write_tar_gz(scratch, LINUX_ARM, 'aarch64-unknown-linux-gnu', VERSION, COMMIT)
+    write_tar_gz(scratch, MACOS_INTEL, 'x86_64-apple-darwin', VERSION, COMMIT)
     write_tar_gz(scratch, MACOS, 'aarch64-apple-darwin', VERSION, COMMIT)
     write_zip(scratch, WINDOWS, 'x86_64-pc-windows-msvc', VERSION, COMMIT)
     (scratch / 'SHA256SUMS').write_text(f'{"0" * 64}  {LINUX}\n', encoding='utf-8')

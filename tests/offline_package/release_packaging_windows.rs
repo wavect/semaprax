@@ -114,6 +114,15 @@ impl Fixture {
         .unwrap();
         fs::write(repository.join("LICENSE"), b"fixture license\n").unwrap();
         fs::write(repository.join("README.md"), b"fixture readme\n").unwrap();
+        fs::create_dir_all(repository.join("packaging").join("archive")).unwrap();
+        fs::write(
+            repository
+                .join("packaging")
+                .join("archive")
+                .join("README.windows.md"),
+            include_str!("../../packaging/archive/README.windows.md"),
+        )
+        .unwrap();
         let stale = repository.join("target").join(TARGET).join("release");
         fs::create_dir_all(&stale).unwrap();
         // A stale CLI can pass the same version/smoke checks. The daemon's
@@ -159,6 +168,9 @@ impl Case<'_> {
             .current_dir(&self.process_cwd)
             .env("PATH", std::env::join_paths(paths).unwrap())
             .env("CARGO_TARGET_DIR", &self.ambient)
+            // Fixture binaries are not PE files; never inspect them with a
+            // dumpbin that happens to be on the developer's PATH.
+            .env("SEMAPRAX_RELEASE_DUMPBIN", "none")
             .env("RELEASE_FIXTURE_LOG", self.root.join("calls.log"))
             .env("RELEASE_FIXTURE_REPOSITORY", &self.repository)
             .env("RELEASE_FIXTURE_PROCESS_CWD", &self.process_cwd)
@@ -227,7 +239,10 @@ fn windows_packager_uses_fresh_explicit_builds_and_powershell_paths() {
             fs::read(build.join(TARGET).join("release/current-build-marker")).unwrap(),
             b"fresh fake build\n"
         );
-        let expected_calls = format!("rustc\ncargo\ntarget-dir:{}\nsmoke:--version\nsmoke:version-json\nsmoke:check\nsmoke:run\n", build.display());
+        let expected_calls = format!(
+            "rustc\ncargo\ntarget-dir:{}\nsmoke:--version\nsmoke:version-json\nsmoke:check\nsmoke:run\n",
+            build.display()
+        );
         assert_eq!(
             fs::read_to_string(case.root.join("calls.log")).unwrap(),
             expected_calls
@@ -255,14 +270,21 @@ fn windows_packager_uses_fresh_explicit_builds_and_powershell_paths() {
             fs::read(unpacked.join("LICENSE")).unwrap(),
             b"fixture license\n"
         );
+        // Rendered from the maintained template with exactly the three
+        // placeholders replaced, LF line endings, no BOM.
+        let expected_readme = include_str!("../../packaging/archive/README.windows.md")
+            .replace("\r\n", "\n")
+            .replace("{{TAG}}", "v0.2.0")
+            .replace("{{VERSION}}", "0.2.0")
+            .replace("{{TARGET}}", TARGET);
         assert_eq!(
             fs::read(unpacked.join("README.md")).unwrap(),
-            b"fixture readme\n"
+            expected_readme.as_bytes()
         );
         let manifest = fs::read_to_string(unpacked.join("release-manifest.json")).unwrap();
         assert!(!manifest.contains('\r') && !manifest.starts_with('\u{feff}'));
         let expected_manifest = format!(
-            "{{\n  \"schema\": \"semaprax.release-artifact.v1\",\n  \"version\": \"0.2.0\",\n  \"commit\": \"{COMMIT}\",\n  \"target\": \"{TARGET}\",\n  \"maturity\": \"beta\",\n  \"binaries\": [\"semaprax\", \"semapraxd\"],\n  \"nonclaims\": [\n    \"production-ready\",\n    \"stable language ABI\",\n    \"stable public protocol\",\n    \"safety-critical suitability\"\n  ]\n}}\n"
+            "{{\n  \"schema\": \"semaprax.release-artifact.v1\",\n  \"version\": \"0.2.0\",\n  \"commit\": \"{COMMIT}\",\n  \"target\": \"{TARGET}\",\n  \"maturity\": \"beta\",\n  \"binaries\": [\"semaprax\", \"semapraxd\"],\n  \"nonclaims\": [\n    \"production-ready\",\n    \"stable language ABI\",\n    \"stable public protocol\",\n    \"safety-critical suitability\"\n  ],\n  \"runtime\": {{\n    \"os\": \"windows\",\n    \"min_os_version\": \"10.0.17763\",\n    \"cpu\": \"x86_64\",\n    \"libc_family\": \"ucrt\",\n    \"min_libc_version\": null,\n    \"dynamic_libraries\": null\n  }}\n}}\n"
         );
         assert_eq!(manifest, expected_manifest);
         assert!(case.output().join(format!("{PACKAGE}.zip")).is_file());

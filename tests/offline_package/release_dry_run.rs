@@ -68,7 +68,9 @@ fn build_synthetic_archives(archives_dir: &Path, tag: &str, version: &str, commi
          \twith zipfile.ZipFile(archives_dir / name, 'w') as archive:\n\
          \t\tarchive.writestr(f'semaprax-{{tag}}-{{target}}/release-manifest.json', manifest_bytes(target))\n\
          write_tar(f'semaprax-{{tag}}-x86_64-unknown-linux-gnu.tar.gz', 'x86_64-unknown-linux-gnu')\n\
+         write_tar(f'semaprax-{{tag}}-aarch64-unknown-linux-gnu.tar.gz', 'aarch64-unknown-linux-gnu')\n\
          write_tar(f'semaprax-{{tag}}-aarch64-apple-darwin.tar.gz', 'aarch64-apple-darwin')\n\
+         write_tar(f'semaprax-{{tag}}-x86_64-apple-darwin.tar.gz', 'x86_64-apple-darwin')\n\
          write_zip(f'semaprax-{{tag}}-x86_64-pc-windows-msvc.zip', 'x86_64-pc-windows-msvc')\n"
     );
     let build = Command::new("python3")
@@ -86,7 +88,9 @@ fn build_synthetic_archives(archives_dir: &Path, tag: &str, version: &str, commi
 fn archive_paths(archives_dir: &Path, tag: &str) -> Vec<PathBuf> {
     vec![
         archives_dir.join(format!("semaprax-{tag}-x86_64-unknown-linux-gnu.tar.gz")),
+        archives_dir.join(format!("semaprax-{tag}-aarch64-unknown-linux-gnu.tar.gz")),
         archives_dir.join(format!("semaprax-{tag}-aarch64-apple-darwin.tar.gz")),
+        archives_dir.join(format!("semaprax-{tag}-x86_64-apple-darwin.tar.gz")),
         archives_dir.join(format!("semaprax-{tag}-x86_64-pc-windows-msvc.zip")),
     ]
 }
@@ -217,8 +221,8 @@ fn dry_run_full_flow_builds_manifest_and_publishes_exactly_once() {
         .expect("assets must be an array");
     assert_eq!(
         recorded_assets.len(),
-        3,
-        "exactly three assets, no more, no fewer"
+        archive_paths(&archives_dir, &tag).len(),
+        "exactly one asset per admitted target, no more, no fewer"
     );
 
     // A retried `create` (an operator re-running the publish job after it
@@ -235,7 +239,7 @@ fn dry_run_full_flow_builds_manifest_and_publishes_exactly_once() {
     let record: serde_json::Value = serde_json::from_slice(&still.stdout).unwrap();
     assert_eq!(
         record["assets"].as_array().unwrap().len(),
-        3,
+        assets.len(),
         "a refused retry must not have appended duplicate assets"
     );
 
@@ -303,8 +307,8 @@ fn dry_run_mid_publish_failure_recovers_without_duplicate_assets() {
     let recorded_assets = record["assets"].as_array().unwrap();
     assert_eq!(
         recorded_assets.len(),
-        3,
-        "recovery must publish exactly the three manifest artifacts, no duplicates"
+        archive_paths(&archives_dir, &tag).len(),
+        "recovery must publish exactly the manifest artifacts, no duplicates"
     );
     let mut names: Vec<&str> = recorded_assets
         .iter()
@@ -314,7 +318,7 @@ fn dry_run_mid_publish_failure_recovers_without_duplicate_assets() {
     names.dedup();
     assert_eq!(
         names.len(),
-        3,
+        assets.len(),
         "asset names must be pairwise distinct, not repeated by a partial retry"
     );
 

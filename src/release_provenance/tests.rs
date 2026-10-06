@@ -36,7 +36,9 @@ fn manifest_json(tag: &str, commit: &str) -> String {
   "changelog_section_digest": "{FAKE_DIGEST_A}",
   "artifacts": [
     {{"name": "semaprax-{tag}-x86_64-unknown-linux-gnu.tar.gz", "platform": "x86_64-unknown-linux-gnu", "size": 10, "digest": "{FAKE_DIGEST_A}"}},
+    {{"name": "semaprax-{tag}-aarch64-unknown-linux-gnu.tar.gz", "platform": "aarch64-unknown-linux-gnu", "size": 10, "digest": "{FAKE_DIGEST_A}"}},
     {{"name": "semaprax-{tag}-aarch64-apple-darwin.tar.gz", "platform": "aarch64-apple-darwin", "size": 20, "digest": "{FAKE_DIGEST_B}"}},
+    {{"name": "semaprax-{tag}-x86_64-apple-darwin.tar.gz", "platform": "x86_64-apple-darwin", "size": 20, "digest": "{FAKE_DIGEST_B}"}},
     {{"name": "semaprax-{tag}-x86_64-pc-windows-msvc.zip", "platform": "x86_64-pc-windows-msvc", "size": 30, "digest": "{FAKE_DIGEST_C}"}}
   ]
 }}"#
@@ -57,7 +59,9 @@ fn provenance_json(tag: &str, commit: &str, manifest_bytes: &[u8]) -> String {
   "required_checks": ["alpha", "beta"],
   "artifacts": [
     {{"name": "semaprax-{tag}-x86_64-unknown-linux-gnu.tar.gz", "platform": "x86_64-unknown-linux-gnu", "size": 10, "digest": "{FAKE_DIGEST_A}"}},
+    {{"name": "semaprax-{tag}-aarch64-unknown-linux-gnu.tar.gz", "platform": "aarch64-unknown-linux-gnu", "size": 10, "digest": "{FAKE_DIGEST_A}"}},
     {{"name": "semaprax-{tag}-aarch64-apple-darwin.tar.gz", "platform": "aarch64-apple-darwin", "size": 20, "digest": "{FAKE_DIGEST_B}"}},
+    {{"name": "semaprax-{tag}-x86_64-apple-darwin.tar.gz", "platform": "x86_64-apple-darwin", "size": 20, "digest": "{FAKE_DIGEST_B}"}},
     {{"name": "semaprax-{tag}-x86_64-pc-windows-msvc.zip", "platform": "x86_64-pc-windows-msvc", "size": 30, "digest": "{FAKE_DIGEST_C}"}}
   ],
   "manifest_digest": "{manifest_digest}",
@@ -289,16 +293,20 @@ fn single_byte_mutation_to_an_artifact_is_rejected_on_disk() {
   "changelog_section_digest": "{FAKE_DIGEST_A}",
   "artifacts": [
     {{"name": "semaprax-v9.9.9-x86_64-unknown-linux-gnu.tar.gz", "platform": "x86_64-unknown-linux-gnu", "size": 10, "digest": "{real_digest}"}},
+    {{"name": "semaprax-v9.9.9-aarch64-unknown-linux-gnu.tar.gz", "platform": "aarch64-unknown-linux-gnu", "size": 10, "digest": "{real_digest}"}},
     {{"name": "semaprax-v9.9.9-aarch64-apple-darwin.tar.gz", "platform": "aarch64-apple-darwin", "size": 10, "digest": "{real_digest}"}},
+    {{"name": "semaprax-v9.9.9-x86_64-apple-darwin.tar.gz", "platform": "x86_64-apple-darwin", "size": 10, "digest": "{real_digest}"}},
     {{"name": "semaprax-v9.9.9-x86_64-pc-windows-msvc.zip", "platform": "x86_64-pc-windows-msvc", "size": 10, "digest": "{real_digest}"}}
   ]
 }}"#
     );
-    fs::write(
-        dir.join("semaprax-v9.9.9-aarch64-apple-darwin.tar.gz"),
-        &real_bytes,
-    )
-    .unwrap();
+    for extra in [
+        "semaprax-v9.9.9-aarch64-apple-darwin.tar.gz",
+        "semaprax-v9.9.9-aarch64-unknown-linux-gnu.tar.gz",
+        "semaprax-v9.9.9-x86_64-apple-darwin.tar.gz",
+    ] {
+        fs::write(dir.join(extra), &real_bytes).unwrap();
+    }
     fs::write(
         dir.join("semaprax-v9.9.9-x86_64-pc-windows-msvc.zip"),
         &real_bytes,
@@ -356,6 +364,7 @@ fn missing_artifact_platform_is_rejected() {
   "changelog_section_digest": "{FAKE_DIGEST_A}",
   "artifacts": [
     {{"name": "semaprax-{tag}-x86_64-unknown-linux-gnu.tar.gz", "platform": "x86_64-unknown-linux-gnu", "size": 10, "digest": "{FAKE_DIGEST_A}"}},
+    {{"name": "semaprax-{tag}-aarch64-unknown-linux-gnu.tar.gz", "platform": "aarch64-unknown-linux-gnu", "size": 10, "digest": "{FAKE_DIGEST_A}"}},
     {{"name": "semaprax-{tag}-aarch64-apple-darwin.tar.gz", "platform": "aarch64-apple-darwin", "size": 20, "digest": "{FAKE_DIGEST_B}"}}
   ]
 }}"#
@@ -379,7 +388,9 @@ fn extra_artifact_platform_is_rejected() {
   "changelog_section_digest": "{FAKE_DIGEST_A}",
   "artifacts": [
     {{"name": "semaprax-{tag}-x86_64-unknown-linux-gnu.tar.gz", "platform": "x86_64-unknown-linux-gnu", "size": 10, "digest": "{FAKE_DIGEST_A}"}},
+    {{"name": "semaprax-{tag}-aarch64-unknown-linux-gnu.tar.gz", "platform": "aarch64-unknown-linux-gnu", "size": 10, "digest": "{FAKE_DIGEST_A}"}},
     {{"name": "semaprax-{tag}-aarch64-apple-darwin.tar.gz", "platform": "aarch64-apple-darwin", "size": 20, "digest": "{FAKE_DIGEST_B}"}},
+    {{"name": "semaprax-{tag}-x86_64-apple-darwin.tar.gz", "platform": "x86_64-apple-darwin", "size": 20, "digest": "{FAKE_DIGEST_B}"}},
     {{"name": "semaprax-{tag}-x86_64-pc-windows-msvc.zip", "platform": "x86_64-pc-windows-msvc", "size": 30, "digest": "{FAKE_DIGEST_C}"}},
     {{"name": "semaprax-{tag}-riscv64-unknown-linux-gnu.tar.gz", "platform": "riscv64-unknown-linux-gnu", "size": 40, "digest": "{FAKE_DIGEST_C}"}}
   ]
@@ -934,10 +945,24 @@ fn aggregate_offline_release_binds_the_complete_inventory_before_capabilities_ru
     let linux = "semaprax-v9.9.9-x86_64-unknown-linux-gnu.tar.gz";
     let macos = "semaprax-v9.9.9-aarch64-apple-darwin.tar.gz";
     let windows = "semaprax-v9.9.9-x86_64-pc-windows-msvc.zip";
+    let linux_arm = "semaprax-v9.9.9-aarch64-unknown-linux-gnu.tar.gz";
+    let macos_intel = "semaprax-v9.9.9-x86_64-apple-darwin.tar.gz";
     let linux_bundle = archive_attestation_bundle(linux, archive_bytes);
     let macos_bundle = archive_attestation_bundle(macos, archive_bytes);
     let windows_bundle = archive_attestation_bundle(windows, archive_bytes);
+    let linux_arm_bundle = archive_attestation_bundle(linux_arm, archive_bytes);
+    let macos_intel_bundle = archive_attestation_bundle(macos_intel, archive_bytes);
     let archives = [
+        OfflineReleaseArchive {
+            name: linux_arm,
+            bytes: archive_bytes,
+            attestation_bundle_bytes: linux_arm_bundle.as_bytes(),
+        },
+        OfflineReleaseArchive {
+            name: macos_intel,
+            bytes: archive_bytes,
+            attestation_bundle_bytes: macos_intel_bundle.as_bytes(),
+        },
         OfflineReleaseArchive {
             name: windows,
             bytes: archive_bytes,
@@ -969,15 +994,25 @@ fn aggregate_offline_release_binds_the_complete_inventory_before_capabilities_ru
     )
     .expect("the complete release inventory must reach the verifier in canonical order");
     let subjects = capability.subjects.into_inner();
-    assert_eq!(subjects.len(), 4);
+    assert_eq!(subjects.len(), 1 + ARCHIVE_PLATFORMS.len());
     assert_eq!(subjects[0], provenance.as_bytes());
-    assert_eq!(subjects[1], archive_bytes);
-    assert_eq!(subjects[2], archive_bytes);
-    assert_eq!(subjects[3], archive_bytes);
+    for subject in &subjects[1..] {
+        assert_eq!(*subject, archive_bytes);
+    }
 
     let malformed_linux_bundle =
         archive_attestation_bundle_with_predicate(linux, archive_bytes, "{}");
     let malformed_archives = [
+        OfflineReleaseArchive {
+            name: linux_arm,
+            bytes: archive_bytes,
+            attestation_bundle_bytes: linux_arm_bundle.as_bytes(),
+        },
+        OfflineReleaseArchive {
+            name: macos_intel,
+            bytes: archive_bytes,
+            attestation_bundle_bytes: macos_intel_bundle.as_bytes(),
+        },
         OfflineReleaseArchive {
             name: windows,
             bytes: archive_bytes,
@@ -1027,8 +1062,12 @@ fn aggregate_release_rejects_archive_attestation_identity_or_commit_replays_befo
     let linux = "semaprax-v9.9.9-x86_64-unknown-linux-gnu.tar.gz";
     let macos = "semaprax-v9.9.9-aarch64-apple-darwin.tar.gz";
     let windows = "semaprax-v9.9.9-x86_64-pc-windows-msvc.zip";
+    let linux_arm = "semaprax-v9.9.9-aarch64-unknown-linux-gnu.tar.gz";
+    let macos_intel = "semaprax-v9.9.9-x86_64-apple-darwin.tar.gz";
     let macos_bundle = archive_attestation_bundle(macos, archive_bytes);
     let windows_bundle = archive_attestation_bundle(windows, archive_bytes);
+    let linux_arm_bundle = archive_attestation_bundle(linux_arm, archive_bytes);
+    let macos_intel_bundle = archive_attestation_bundle(macos_intel, archive_bytes);
 
     for (description, predicate, code) in [
         (
@@ -1060,6 +1099,16 @@ fn aggregate_release_rejects_archive_attestation_identity_or_commit_replays_befo
         let linux_bundle =
             archive_attestation_bundle_with_predicate(linux, archive_bytes, &predicate);
         let archives = [
+            OfflineReleaseArchive {
+                name: linux_arm,
+                bytes: archive_bytes,
+                attestation_bundle_bytes: linux_arm_bundle.as_bytes(),
+            },
+            OfflineReleaseArchive {
+                name: macos_intel,
+                bytes: archive_bytes,
+                attestation_bundle_bytes: macos_intel_bundle.as_bytes(),
+            },
             OfflineReleaseArchive {
                 name: windows,
                 bytes: archive_bytes,
@@ -1125,6 +1174,16 @@ fn aggregate_release_rejects_duplicate_or_missing_archives_before_any_capability
             bytes: archive_bytes,
             attestation_bundle_bytes: linux_bundle.as_bytes(),
         },
+        OfflineReleaseArchive {
+            name: "unexpected-extra-2",
+            bytes: archive_bytes,
+            attestation_bundle_bytes: linux_bundle.as_bytes(),
+        },
+        OfflineReleaseArchive {
+            name: "unexpected-extra-3",
+            bytes: archive_bytes,
+            attestation_bundle_bytes: linux_bundle.as_bytes(),
+        },
     ];
     let capability = AggregateOfflineCapability {
         subjects: RefCell::new(Vec::new()),
@@ -1176,10 +1235,24 @@ fn aggregate_release_actually_invokes_the_built_in_sigstore_verifier() {
     let linux = "semaprax-v9.9.9-x86_64-unknown-linux-gnu.tar.gz";
     let macos = "semaprax-v9.9.9-aarch64-apple-darwin.tar.gz";
     let windows = "semaprax-v9.9.9-x86_64-pc-windows-msvc.zip";
+    let linux_arm = "semaprax-v9.9.9-aarch64-unknown-linux-gnu.tar.gz";
+    let macos_intel = "semaprax-v9.9.9-x86_64-apple-darwin.tar.gz";
     let linux_bundle = archive_attestation_bundle(linux, archive_bytes);
     let macos_bundle = archive_attestation_bundle(macos, archive_bytes);
     let windows_bundle = archive_attestation_bundle(windows, archive_bytes);
+    let linux_arm_bundle = archive_attestation_bundle(linux_arm, archive_bytes);
+    let macos_intel_bundle = archive_attestation_bundle(macos_intel, archive_bytes);
     let archives = [
+        OfflineReleaseArchive {
+            name: linux_arm,
+            bytes: archive_bytes,
+            attestation_bundle_bytes: linux_arm_bundle.as_bytes(),
+        },
+        OfflineReleaseArchive {
+            name: macos_intel,
+            bytes: archive_bytes,
+            attestation_bundle_bytes: macos_intel_bundle.as_bytes(),
+        },
         OfflineReleaseArchive {
             name: linux,
             bytes: archive_bytes,
@@ -1212,8 +1285,8 @@ fn aggregate_release_actually_invokes_the_built_in_sigstore_verifier() {
     .expect("the fixture must pass every structural and binding check on its own");
     assert_eq!(
         accepting_capability.subjects.borrow().len(),
-        4,
-        "the accepting capability must have been reached for the provenance subject and all three archives"
+        1 + ARCHIVE_PLATFORMS.len(),
+        "the accepting capability must have been reached for the provenance subject and every archive"
     );
 
     let error = verify_offline_release_with_capability(

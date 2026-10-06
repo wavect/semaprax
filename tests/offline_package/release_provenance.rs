@@ -156,7 +156,9 @@ fn release_provenance_cli_builds_and_rust_module_accepts_it() {
          \twith zipfile.ZipFile(scratch / name, 'w') as archive:\n\
          \t\tarchive.writestr(f'semaprax-{{tag}}-{{target}}/release-manifest.json', manifest_bytes(target))\n\
          write_tar(f'semaprax-{{tag}}-x86_64-unknown-linux-gnu.tar.gz', 'x86_64-unknown-linux-gnu')\n\
+         write_tar(f'semaprax-{{tag}}-aarch64-unknown-linux-gnu.tar.gz', 'aarch64-unknown-linux-gnu')\n\
          write_tar(f'semaprax-{{tag}}-aarch64-apple-darwin.tar.gz', 'aarch64-apple-darwin')\n\
+         write_tar(f'semaprax-{{tag}}-x86_64-apple-darwin.tar.gz', 'x86_64-apple-darwin')\n\
          write_zip(f'semaprax-{{tag}}-x86_64-pc-windows-msvc.zip', 'x86_64-pc-windows-msvc')\n"
     );
     let build = Command::new("python3")
@@ -412,7 +414,9 @@ fn release_signature_claim_cli_derives_exact_bundle_material_and_rejects_replay(
   "required_checks": ["alpha"],
   "artifacts": [
     {{"name":"linux-archive","platform":"x86_64-unknown-linux-gnu","size":1,"digest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}},
+    {{"name":"linux-arm-archive","platform":"aarch64-unknown-linux-gnu","size":1,"digest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}},
     {{"name":"macos-archive","platform":"aarch64-apple-darwin","size":1,"digest":"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}},
+    {{"name":"macos-intel-archive","platform":"x86_64-apple-darwin","size":1,"digest":"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}},
     {{"name":"windows-archive","platform":"x86_64-pc-windows-msvc","size":1,"digest":"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"}}
   ],
   "manifest_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",

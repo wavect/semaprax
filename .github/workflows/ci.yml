@@ -696,6 +696,7 @@ jobs:
           python3 scripts/test-generated-package-release.py
           python3 scripts/test-release-reconcile-install-claims.py
           python3 scripts/test-channel-manifests.py
+          python3 scripts/test-release-surfaces.py
 
   installed-journey:
     name: Installed toolchain journey
@@ -2623,8 +2624,14 @@ jobs:
           - os: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
             extension: tar.gz
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            extension: tar.gz
           - os: macos-15
             target: aarch64-apple-darwin
+            extension: tar.gz
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
             extension: tar.gz
           - os: windows-2025
             target: x86_64-pc-windows-msvc
@@ -2655,9 +2662,13 @@ jobs:
         with:
           toolchain: 1.97.1
       - name: Build, package, and smoke-test the Unix release artifact
-        if: runner.os != 'Windows'
+        if: runner.os == 'macOS'
         shell: bash
         run: scripts/package-release.sh "$GITHUB_REF_NAME" "$GITHUB_SHA" "${{ matrix.target }}" dist
+      - name: Build, package, and smoke-test the Linux release artifact in the glibc 2.35 baseline container
+        if: runner.os == 'Linux'
+        shell: bash
+        run: scripts/package-release-linux-container.sh "$GITHUB_REF_NAME" "$GITHUB_SHA" "${{ matrix.target }}" dist
       - name: Build, package, and smoke-test the Windows release artifact
         if: runner.os == 'Windows'
         shell: pwsh
@@ -2744,12 +2755,16 @@ jobs:
           test "$GITHUB_REF_NAME" = "v$version"
           archives=(
             "semaprax-v$version-x86_64-unknown-linux-gnu.tar.gz"
+            "semaprax-v$version-aarch64-unknown-linux-gnu.tar.gz"
             "semaprax-v$version-aarch64-apple-darwin.tar.gz"
+            "semaprax-v$version-x86_64-apple-darwin.tar.gz"
             "semaprax-v$version-x86_64-pc-windows-msvc.zip"
           )
           attestations=(
             "release-attestation-x86_64-unknown-linux-gnu.json"
+            "release-attestation-aarch64-unknown-linux-gnu.json"
             "release-attestation-aarch64-apple-darwin.json"
+            "release-attestation-x86_64-apple-darwin.json"
             "release-attestation-x86_64-pc-windows-msvc.json"
           )
           test "$(find dist -maxdepth 1 -type f -name 'semaprax-*' | wc -l | tr -d ' ')" = "${#archives[@]}"
@@ -2872,7 +2887,7 @@ jobs:
           version=$(sed -n 's/^version = "\([^"]*\)"$/\1/p' Cargo.toml)
           test -n "$version"
           test "$GITHUB_REF_NAME" = "v$version"
-          python3 scripts/release-notes.py --version "$version" > "$RUNNER_TEMP/release-notes.md"
+          python3 scripts/release-notes.py --version "$version" --assets-dir dist > "$RUNNER_TEMP/release-notes.md"
           test -s "$RUNNER_TEMP/release-notes.md"
           test -s dist/release-manifest.json
           test -s dist/release-provenance.json
@@ -2880,7 +2895,9 @@ jobs:
           test -s dist/release-signature-claim.json
           test -s dist/trusted_root.jsonl
           test -s dist/release-attestation-x86_64-unknown-linux-gnu.json
+          test -s dist/release-attestation-aarch64-unknown-linux-gnu.json
           test -s dist/release-attestation-aarch64-apple-darwin.json
+          test -s dist/release-attestation-x86_64-apple-darwin.json
           test -s dist/release-attestation-x86_64-pc-windows-msvc.json
           gh release create "$GITHUB_REF_NAME" \
             dist/semaprax-* dist/SHA256SUMS \
@@ -2888,7 +2905,9 @@ jobs:
             dist/release-provenance.bundle dist/release-signature-claim.json \
             dist/trusted_root.jsonl \
             dist/release-attestation-x86_64-unknown-linux-gnu.json \
+            dist/release-attestation-aarch64-unknown-linux-gnu.json \
             dist/release-attestation-aarch64-apple-darwin.json \
+            dist/release-attestation-x86_64-apple-darwin.json \
             dist/release-attestation-x86_64-pc-windows-msvc.json \
             --verify-tag \
             --title "SEMAPRAX $GITHUB_REF_NAME" \

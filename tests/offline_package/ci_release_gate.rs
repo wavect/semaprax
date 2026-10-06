@@ -185,7 +185,7 @@ fn release_artifacts_are_attested_signed_and_packaged_for_offline_replay_before_
         "gh attestation trusted-root \\\n            | head -c 4194305 > dist/trusted_root.jsonl",
         "test \"$(wc -c < dist/trusted_root.jsonl | tr -d ' ')\" -le 4194304",
         "dist/release-manifest.json dist/release-provenance.json \\\n            dist/release-provenance.bundle dist/release-signature-claim.json \\\n            dist/trusted_root.jsonl",
-        "dist/release-attestation-x86_64-unknown-linux-gnu.json \\\n            dist/release-attestation-aarch64-apple-darwin.json \\\n            dist/release-attestation-x86_64-pc-windows-msvc.json",
+        "dist/release-attestation-x86_64-unknown-linux-gnu.json \\\n            dist/release-attestation-aarch64-unknown-linux-gnu.json \\\n            dist/release-attestation-aarch64-apple-darwin.json \\\n            dist/release-attestation-x86_64-apple-darwin.json \\\n            dist/release-attestation-x86_64-pc-windows-msvc.json",
         "find dist -maxdepth 1 -type f -name 'release-attestation-*.json'",
     ] {
         assert!(
@@ -269,6 +269,7 @@ fn release_artifacts_are_attested_signed_and_packaged_for_offline_replay_before_
         producers,
         &[
             "Build, package, and smoke-test the Unix release artifact",
+            "Build, package, and smoke-test the Linux release artifact in the glibc 2.35 baseline container",
             "Build, package, and smoke-test the Windows release artifact",
             "Attest the exact smoke-tested target archive",
             "Stage the exact target attestation bundle for release publication",
@@ -360,7 +361,10 @@ fn desktop_product_is_an_exact_dedicated_release_blocker() {
         "platform-tests/desktop-native/package-macos.sh \\\n            \"$RUNNER_TEMP/semaprax-private-desktop-v3\"",
         "platform-tests/desktop-native/package-ui-macos.sh \\\n            \"$RUNNER_TEMP/semaprax-private-desktop-ui-v1\" \\\n            \"$RUNNER_TEMP/semaprax-private-desktop-v3\"",
     ] {
-        assert!(desktop.contains(exact), "desktop job lost exact contract: {exact}");
+        assert!(
+            desktop.contains(exact),
+            "desktop job lost exact contract: {exact}"
+        );
     }
 
     assert!(!desktop.contains("continue-on-error"));

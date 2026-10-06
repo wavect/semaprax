@@ -52,7 +52,9 @@ VERSION_RE = re.compile(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 ARCHIVE_TARGETS = (
     ("x86_64-unknown-linux-gnu", "tar.gz"),
+    ("aarch64-unknown-linux-gnu", "tar.gz"),
     ("aarch64-apple-darwin", "tar.gz"),
+    ("x86_64-apple-darwin", "tar.gz"),
     ("x86_64-pc-windows-msvc", "zip"),
 )
 

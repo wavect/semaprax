@@ -88,17 +88,43 @@ pub const TRUSTED_OIDC_SUBJECT_PREFIX: &str = "repo:wavect@47505194/semaprax@132
 /// parse of the same CI workflow.
 pub const ARCHIVE_PLATFORMS: &[&str] = &[
     "x86_64-unknown-linux-gnu",
+    "aarch64-unknown-linux-gnu",
+    "aarch64-apple-darwin",
+    "x86_64-apple-darwin",
+    "x86_64-pc-windows-msvc",
+];
+
+/// The three platforms published through v0.8.0, before the Linux arm64 and
+/// macOS Intel archives were admitted. Manifests and provenance for versions
+/// at or below 0.8.0 may carry exactly this set instead of the full one.
+pub const LEGACY_ARCHIVE_PLATFORMS: &[&str] = &[
+    "x86_64-unknown-linux-gnu",
     "aarch64-apple-darwin",
     "x86_64-pc-windows-msvc",
 ];
+
+/// Whether `version` is a release that predates the five-target inventory.
+fn is_legacy_platform_version(version: &str) -> bool {
+    let parts: Vec<u64> = version
+        .split('.')
+        .map(|part| part.parse().unwrap_or(u64::MAX))
+        .collect();
+    parts.len() == 3 && parts.as_slice() <= [0, 8, 0].as_slice()
+}
 
 /// Closed vocabulary of build-host classes a provenance statement may claim.
 /// Matches the "Admitted release hosts" table in `docs/RELEASE-PROCESS.md`.
 pub const KNOWN_HOST_CLASSES: &[&str] = &[
     "github-hosted-ubuntu-24.04",
+    "github-hosted-ubuntu-24.04-arm",
     "github-hosted-macos-15",
+    "github-hosted-macos-15-intel",
     "github-hosted-windows-2025",
 ];
+
+/// Closed set of installer bootstrap assets a release manifest may inventory
+/// under its optional `installers` key. Releases up to v0.8.0 have no such key.
+pub const INSTALLER_NAMES: &[&str] = &["install.ps1", "install.sh"];
 
 /// Closed vocabulary of signature-claim algorithm identifiers this module
 /// recognizes as structurally admissible. Recognizing an identifier here is
@@ -216,7 +242,11 @@ pub struct ArtifactEntry {
     pub digest: String,
 }
 
-fn parse_artifacts(value: &Value, context: &str) -> Result<Vec<ArtifactEntry>, Diagnostic> {
+fn parse_artifacts(
+    value: &Value,
+    context: &str,
+    version: &str,
+) -> Result<Vec<ArtifactEntry>, Diagnostic> {
     let entries = require_array(value, context)?;
     let mut artifacts = Vec::with_capacity(entries.len());
     let mut seen_platforms = BTreeSet::new();
@@ -249,8 +279,10 @@ fn parse_artifacts(value: &Value, context: &str) -> Result<Vec<ArtifactEntry>, D
         });
     }
     let known: BTreeSet<&str> = ARCHIVE_PLATFORMS.iter().copied().collect();
+    let legacy: BTreeSet<&str> = LEGACY_ARCHIVE_PLATFORMS.iter().copied().collect();
     let seen_str: BTreeSet<&str> = seen_platforms.iter().map(String::as_str).collect();
-    if seen_str != known {
+    let legacy_ok = is_legacy_platform_version(version) && seen_str == legacy;
+    if seen_str != known && !legacy_ok {
         let missing: Vec<&str> = known.difference(&seen_str).copied().collect();
         let extra: Vec<&str> = seen_str.difference(&known).copied().collect();
         return Err(artifact_error(format!(
@@ -260,6 +292,45 @@ fn parse_artifacts(value: &Value, context: &str) -> Result<Vec<ArtifactEntry>, D
     }
     artifacts.sort_by(|a, b| a.platform.cmp(&b.platform));
     Ok(artifacts)
+}
+
+/// One installer asset entry of the optional manifest `installers` array.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InstallerEntry {
+    pub name: String,
+    pub size: u64,
+    pub digest: String,
+}
+
+fn parse_installers(value: &Value) -> Result<Vec<InstallerEntry>, Diagnostic> {
+    let entries = require_array(value, "installers")?;
+    let mut installers = Vec::with_capacity(entries.len());
+    let mut seen = BTreeSet::new();
+    for entry in entries {
+        let map = object(entry, "installers[]")?;
+        check_exact_keys(map, &["name", "size", "digest"], "installers[]")?;
+        let name = require_string(&entry["name"], "name")?.to_owned();
+        let size = require_u64(&entry["size"], "size")?;
+        let digest = require_string(&entry["digest"], "digest")?.to_owned();
+        if !INSTALLER_NAMES.contains(&name.as_str()) {
+            return Err(shape_error(format!(
+                "installer `{name}` is outside the admitted installer names {INSTALLER_NAMES:?}"
+            )));
+        }
+        if !is_sha256_wire_form(&digest) {
+            return Err(shape_error(format!(
+                "installer `{name}` digest must be `sha256:<64 lowercase hex>`"
+            )));
+        }
+        if !seen.insert(name.clone()) {
+            return Err(shape_error(format!(
+                "installer `{name}` is repeated in installers"
+            )));
+        }
+        installers.push(InstallerEntry { name, size, digest });
+    }
+    installers.sort_by(|a, b| a.name.cmp(&b.name));
+    Ok(installers)
 }
 
 /// A structurally validated `semaprax.release-manifest.v1` document,
@@ -273,6 +344,8 @@ pub struct ParsedManifest {
     pub prerelease: bool,
     pub required_checks: Vec<String>,
     pub artifacts: Vec<ArtifactEntry>,
+    /// Empty for releases whose manifest has no optional `installers` key.
+    pub installers: Vec<InstallerEntry>,
 }
 
 /// Independently parse and structurally validate a `semaprax.release-manifest.v1`
@@ -283,20 +356,20 @@ pub struct ParsedManifest {
 pub fn parse_manifest(bytes: &[u8]) -> Result<ParsedManifest, Diagnostic> {
     let value = parse_json(bytes, "release manifest")?;
     let map = object(&value, "release manifest")?;
-    check_exact_keys(
-        map,
-        &[
-            "schema",
-            "version",
-            "tag",
-            "commit",
-            "prerelease",
-            "required_checks",
-            "changelog_section_digest",
-            "artifacts",
-        ],
-        "release manifest",
-    )?;
+    let mut expected_keys = vec![
+        "schema",
+        "version",
+        "tag",
+        "commit",
+        "prerelease",
+        "required_checks",
+        "changelog_section_digest",
+        "artifacts",
+    ];
+    if map.contains_key("installers") {
+        expected_keys.push("installers");
+    }
+    check_exact_keys(map, &expected_keys, "release manifest")?;
     if require_string(&value["schema"], "schema")? != MANIFEST_SCHEMA {
         return Err(shape_error(format!(
             "manifest schema must be {MANIFEST_SCHEMA}"
@@ -339,7 +412,12 @@ pub fn parse_manifest(bytes: &[u8]) -> Result<ParsedManifest, Diagnostic> {
             "changelog_section_digest must be `sha256:<64 lowercase hex>`".to_owned(),
         ));
     }
-    let artifacts = parse_artifacts(&value["artifacts"], "artifacts")?;
+    let artifacts = parse_artifacts(&value["artifacts"], "artifacts", &version)?;
+    let installers = if map.contains_key("installers") {
+        parse_installers(&value["installers"])?
+    } else {
+        Vec::new()
+    };
     Ok(ParsedManifest {
         version,
         tag,
@@ -347,6 +425,7 @@ pub fn parse_manifest(bytes: &[u8]) -> Result<ParsedManifest, Diagnostic> {
         prerelease,
         required_checks,
         artifacts,
+        installers,
     })
 }
 
@@ -413,7 +492,7 @@ pub fn parse_provenance(bytes: &[u8]) -> Result<ParsedProvenance, Diagnostic> {
     for entry in checks_array {
         required_checks.push(require_string(entry, "required_checks[]")?.to_owned());
     }
-    let artifacts = parse_artifacts(&value["artifacts"], "artifacts")?;
+    let artifacts = parse_artifacts(&value["artifacts"], "artifacts", &version)?;
     let manifest_digest = require_string(&value["manifest_digest"], "manifest_digest")?.to_owned();
     if !is_sha256_wire_form(&manifest_digest) {
         return Err(shape_error(
@@ -794,32 +873,48 @@ pub fn verify_manifest_artifacts_on_disk(
     archives_dir: &Path,
 ) -> Result<(), Diagnostic> {
     let manifest = parse_manifest(manifest_bytes)?;
-    for artifact in &manifest.artifacts {
-        let path = archives_dir.join(&artifact.name);
+    let named = manifest
+        .artifacts
+        .iter()
+        .map(|artifact| {
+            (
+                artifact.name.as_str(),
+                artifact.size,
+                artifact.digest.as_str(),
+            )
+        })
+        .chain(manifest.installers.iter().map(|installer| {
+            (
+                installer.name.as_str(),
+                installer.size,
+                installer.digest.as_str(),
+            )
+        }));
+    for (name, size, recorded) in named {
+        let path = archives_dir.join(name);
         let data = std::fs::read(&path).map_err(|error| {
             artifact_error(format!(
                 "cannot read manifest artifact {}: {error}",
                 path.display()
             ))
         })?;
-        if data.len() as u64 != artifact.size {
+        if data.len() as u64 != size {
             return Err(artifact_error(format!(
-                "artifact {} is {} bytes on disk but the manifest records {}",
-                artifact.name,
+                "artifact {name} is {} bytes on disk but the manifest records {size}",
                 data.len(),
-                artifact.size
             )));
         }
         let digest = sha256_digest(&data);
-        if digest != artifact.digest {
+        if digest != recorded {
             return Err(artifact_error(format!(
-                "artifact {} digest {digest} disagrees with the manifest's recorded {}",
-                artifact.name, artifact.digest
+                "artifact {name} digest {digest} disagrees with the manifest's recorded {recorded}"
             )));
         }
     }
     Ok(())
 }
 
+#[cfg(test)]
+mod installer_tests;
 #[cfg(test)]
 mod tests;

@@ -1,0 +1,60 @@
+{
+  "schema": "semaprax.release-manifest.v1",
+  "version": "0.8.0",
+  "tag": "v0.8.0",
+  "commit": "615e501612895a52b3fdd72a03baf875a8f0df1b",
+  "prerelease": false,
+  "required_checks": [
+    "gen05b-generic-instance-closure",
+    "release-claim-reconcile",
+    "public-generic-ownership-milestone",
+    "std-library-depth",
+    "agent-proposal-clients",
+    "kernel0-lean-proof-gate",
+    "supply-chain",
+    "component-runtime-v3",
+    "wasm-scalar-exports-browser-v1",
+    "project-product-acceptance-v1",
+    "project-v1",
+    "native-rust-sdk-v1",
+    "native-rust-owned-data-sdk-v1",
+    "verify",
+    "verify-build",
+    "verify-tests",
+    "unix-source-repair",
+    "windows-agent-runtime-rest",
+    "windows-source-repair",
+    "desktop-native-product",
+    "doctor-macos-confinement",
+    "ios-static-cross-check",
+    "ios-swift-app-cross-check",
+    "android-emulator-cross-check",
+    "android-jni-app-cross-check",
+    "callable-host-sanitizers",
+    "rust-host-address-sanitizer",
+    "msrv",
+    "python-test-suites",
+    "installed-journey"
+  ],
+  "changelog_section_digest": "sha256:1b4427e3bcb84386109b5df6e4474cf22c2cbd33af04a79e73370c31e094ba77",
+  "artifacts": [
+    {
+      "name": "semaprax-v0.8.0-aarch64-apple-darwin.tar.gz",
+      "platform": "aarch64-apple-darwin",
+      "size": 24967805,
+      "digest": "sha256:c281aa274650e9003487f738a349fb746b27bc5575276cae63f50cc81a155ff6"
+    },
+    {
+      "name": "semaprax-v0.8.0-x86_64-pc-windows-msvc.zip",
+      "platform": "x86_64-pc-windows-msvc",
+      "size": 25545098,
+      "digest": "sha256:f78f626c524510ac45f9a7cb136d1f77be0fba2528efacdc94871888de23ed32"
+    },
+    {
+      "name": "semaprax-v0.8.0-x86_64-unknown-linux-gnu.tar.gz",
+      "platform": "x86_64-unknown-linux-gnu",
+      "size": 28104901,
+      "digest": "sha256:246c8e981a12cedaac10f102ce1e6c76a8835cbc647b8d44a2e34fbd9918affe"
+    }
+  ]
+}

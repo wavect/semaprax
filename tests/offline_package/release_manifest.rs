@@ -209,7 +209,9 @@ fn release_manifest_cli_builds_and_checks_against_real_archives() {
          \twith zipfile.ZipFile(scratch / name, 'w') as archive:\n\
          \t\tarchive.writestr(f'semaprax-{{tag}}-{{target}}/release-manifest.json', manifest_bytes(target))\n\
          write_tar(f'semaprax-{{tag}}-x86_64-unknown-linux-gnu.tar.gz', 'x86_64-unknown-linux-gnu')\n\
+         write_tar(f'semaprax-{{tag}}-aarch64-unknown-linux-gnu.tar.gz', 'aarch64-unknown-linux-gnu')\n\
          write_tar(f'semaprax-{{tag}}-aarch64-apple-darwin.tar.gz', 'aarch64-apple-darwin')\n\
+         write_tar(f'semaprax-{{tag}}-x86_64-apple-darwin.tar.gz', 'x86_64-apple-darwin')\n\
          write_zip(f'semaprax-{{tag}}-x86_64-pc-windows-msvc.zip', 'x86_64-pc-windows-msvc')\n"
     );
     let build = Command::new("python3")
@@ -366,7 +368,9 @@ fn release_manifest_rejects_a_sha256sums_digest_mismatch() {
          \twith zipfile.ZipFile(scratch / name, 'w') as archive:\n\
          \t\tarchive.writestr(f'semaprax-{{tag}}-{{target}}/release-manifest.json', manifest_bytes(target))\n\
          write_tar(f'semaprax-{{tag}}-x86_64-unknown-linux-gnu.tar.gz', 'x86_64-unknown-linux-gnu')\n\
+         write_tar(f'semaprax-{{tag}}-aarch64-unknown-linux-gnu.tar.gz', 'aarch64-unknown-linux-gnu')\n\
          write_tar(f'semaprax-{{tag}}-aarch64-apple-darwin.tar.gz', 'aarch64-apple-darwin')\n\
+         write_tar(f'semaprax-{{tag}}-x86_64-apple-darwin.tar.gz', 'x86_64-apple-darwin')\n\
          write_zip(f'semaprax-{{tag}}-x86_64-pc-windows-msvc.zip', 'x86_64-pc-windows-msvc')\n\
          (scratch / 'SHA256SUMS').write_text('{{}}  semaprax-{{}}-x86_64-unknown-linux-gnu.tar.gz\\n'.format('0' * 64, tag), encoding='utf-8')\n"
     );

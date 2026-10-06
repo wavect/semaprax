@@ -138,7 +138,7 @@ manifest even if the edit reparses to the same JSON value.
 | `builder.run_id` / `builder.run_attempt` | strings | The workflow run that produced this document, for operator traceability. Not independently verified -- see nonclaims. |
 | `toolchain.rustc_version` | string | The Rust compiler version used to build the release binaries. |
 | `toolchain.cargo_locked` | boolean | Always `true`: every packaging command in `docs/RELEASE-PROCESS.md` uses `--locked`. |
-| `build_host_class` | string | The admitted hosted runner that generated this aggregate provenance document, not a claim that every listed archive was built on that host. Each archive's separate GitHub attestation carries its own matrix builder identity. One of `github-hosted-ubuntu-24.04`, `github-hosted-macos-15`, `github-hosted-windows-2025` from `docs/RELEASE-PROCESS.md`. |
+| `build_host_class` | string | The admitted hosted runner that generated this aggregate provenance document, not a claim that every listed archive was built on that host. Each archive's separate GitHub attestation carries its own matrix builder identity. One of `github-hosted-ubuntu-24.04`, `github-hosted-ubuntu-24.04-arm`, `github-hosted-macos-15`, `github-hosted-macos-15-intel`, `github-hosted-windows-2025` from `docs/RELEASE-PROCESS.md`. |
 | `nonclaims` | array of strings | What this document does not assert (see below); never empty. |
 
 This document is generated **before** publication (like the manifest it
@@ -374,8 +374,9 @@ document says about itself is trusted.
 The standalone binary uses the pure `SigstoreOfflineVerifier` when the
 directory presents the complete v0.3 offline inventory:
 `release-provenance.bundle`, `trusted_root.jsonl`, and one
-`release-attestation-<admitted-target>.json` for each of this policy's three
-closed archive targets. An embedding host may explicitly replace that default
+`release-attestation-<admitted-target>.json` for each of this policy's
+closed archive targets (three through v0.8.0, five afterwards: the two Linux
+and two macOS targets plus Windows). An embedding host may explicitly replace that default
 with another `OfflineBundleVerificationCapability`; the CLI adapter still reads
 the complete bounded inventory and passes its exact bytes to
 `verify_offline_release_with_capability`. A partial inventory fails as a
@@ -542,7 +543,7 @@ historical evidence are changed.
    ```
    followed by uploading `release-manifest.json`, `release-provenance.json`,
    `release-provenance.bundle`, `release-signature-claim.json`, and
-   `trusted_root.jsonl` as release assets alongside the three archives and
+   `trusted_root.jsonl` as release assets alongside the archives (and `install.sh`/`install.ps1` when present) and
    their attestations. The source-locked CI contract requires this order and
    exact asset set. The trusted root is fetched while the publisher is online;
    later offline verification receives those exact bytes explicitly and never

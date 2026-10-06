@@ -421,9 +421,21 @@ fn verify_manifest_archives_from_held(
     manifest: &semaprax::release_provenance::ParsedManifest,
     directory: &Path,
 ) -> Result<(), Diagnostic> {
+    // Installer scripts are inventory members too: they are re-hashed from
+    // their held files exactly like the target archives.
+    let held = manifest
+        .artifacts
+        .iter()
+        .map(|artifact| (&artifact.name, artifact.size, &artifact.digest))
+        .chain(
+            manifest
+                .installers
+                .iter()
+                .map(|installer| (&installer.name, installer.size, &installer.digest)),
+        );
     let mut total = 0u64;
-    for artifact in &manifest.artifacts {
-        total = total.checked_add(artifact.size).ok_or_else(|| {
+    for (name, size, expected_digest) in held {
+        total = total.checked_add(size).ok_or_else(|| {
             Diagnostic::io(
                 "SPX-Z704",
                 "manifest artifact sizes overflow the held-read aggregate bound".to_owned(),
@@ -437,18 +449,15 @@ fn verify_manifest_archives_from_held(
                 ),
             ));
         }
-        let bytes = read_archive(directory, &artifact.name, artifact.size)?;
+        let bytes = read_archive(directory, name, size)?;
         let digest = format!(
             "sha256:{:x}",
             semaprax::digest_hex::LowerHex(Sha256::digest(&bytes))
         );
-        if digest != artifact.digest {
+        if &digest != expected_digest {
             return Err(Diagnostic::io(
                 "SPX-Z704",
-                format!(
-                    "manifest artifact {:?} digest disagrees with bytes read from its held file",
-                    artifact.name
-                ),
+                format!("manifest artifact {name:?} digest disagrees with bytes read from its held file"),
             ));
         }
     }
@@ -996,7 +1005,7 @@ mod tests {
         let capability = RecordingCapability(Cell::new(0));
         let report = run_with_offline_capability(&directory, &capability)
             .expect("only the explicit transport probe may accept this fixture");
-        assert_eq!(capability.0.get(), 4, "provenance plus three archives");
+        assert_eq!(capability.0.get(), 6, "provenance plus five archives");
         assert!(report.contains("CALLER-SUPPLIED VERIFICATION CAPABILITY"));
         assert!(report.contains("no independent cryptographic claim"));
         std::fs::remove_dir_all(directory).unwrap();

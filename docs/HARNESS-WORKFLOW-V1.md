@@ -342,6 +342,11 @@ The reservation, in tokens and in cost, is written to the task journal (`spend.<
 provider is called. Settlement is recorded before the step's terminal record. One local writer holds
 `<lineage>.journal.lock` per lineage; a dead holder's lock is taken over.
 
+A single authoritative router receipt priced above its reservation is a sticky breach, exactly like an over-bound
+generation: the full observed cost is kept, the breach is journaled with the settlement, restored on reopen, and
+blocks further paid work (including after an invalid-recommendation fallback). Missing-usage and multi-call router
+receipts stay uncertain at the reservation.
+
 `call_bound` is the per-call cost bound:
 - Every input token is priced at the dearest of the uncached, cache-read and cache-write rates, because a cache hit is
   never confirmed before dispatch.

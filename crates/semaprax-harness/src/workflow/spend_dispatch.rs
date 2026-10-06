@@ -145,7 +145,16 @@ pub(crate) fn router_settlement(
                     state: SpendState::Settled,
                     actual_cost: Some(cost),
                     settled_tokens: Some(input.saturating_add(output)),
-                    breach: None,
+                    // Same rule as generation: a single authoritative receipt
+                    // above the priced reservation disproves the admitted
+                    // bound. The full observed cost is kept (no clamping).
+                    breach: (matches!(rec.billing, Billing::Priced(_)) && cost > rec.reserved_cost)
+                        .then(|| {
+                            format!(
+                                "charged {cost} micros above the declared bound of {}",
+                                rec.reserved_cost
+                            )
+                        }),
                     basis: Some("router_provider_usage".into()),
                     unresolved_attempts: 0,
                 },
@@ -360,5 +369,48 @@ mod router_settlement_tests {
         let nb = rec(Billing::NonBilled("local".into()));
         let got = router_settlement(&nb, 1, None, &p, "router-m", 32);
         assert_eq!((got.state, got.actual_cost), (SpendState::Settled, Some(0)));
+    }
+
+    #[test]
+    fn dv21_router_receipt_over_its_reservation_is_a_sticky_breach_that_survives_reopen() {
+        use super::super::spend::SpendBook;
+        let priced = rec(Billing::Priced("router-m@2026-10".into()));
+        let p = book();
+        // Over the 10_000 reservation: full observed cost kept, breach set.
+        let over = call(UsageBasis::ProviderReported, Some(20_000));
+        let s = router_settlement(&priced, 1, Some(&over), &p, "router-m", 32);
+        assert_eq!(s.state, SpendState::Settled);
+        assert_eq!(s.actual_cost, Some(20_000 + 64));
+        assert!(
+            s.breach
+                .as_deref()
+                .unwrap()
+                .contains("above the declared bound"),
+            "{s:?}"
+        );
+        // In-bound, multi-call and non-billed receipts do not breach.
+        let ok = call(UsageBasis::ProviderReported, Some(500));
+        let none = |r: &SpendRecord, n, c: &CallMetadata| {
+            router_settlement(r, n, Some(c), &p, "router-m", 32)
+                .breach
+                .is_none()
+        };
+        assert!(none(&priced, 1, &ok));
+        assert!(none(&priced, 2, &over));
+        assert!(none(&rec(Billing::NonBilled("local".into())), 1, &over));
+        // Persisted before commit; blocks paid work, also after reopen.
+        let d = std::env::temp_dir().join(format!("hp-dv21-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        let mut j = Journal::open(&d, "l").unwrap();
+        let mut b = SpendBook::default();
+        b.reserve(&mut j, priced.clone()).unwrap();
+        b.settle(&mut j, "r1", s).unwrap();
+        let next = rec(Billing::Priced("router-m@2026-10".into()));
+        assert_eq!(b.check(&next).unwrap_err().code, "SPX-HPD101");
+        drop(j);
+        let mut again = SpendBook::default();
+        again.restore(&Journal::open(&d, "l").unwrap()).unwrap();
+        assert_eq!(again.check(&next).unwrap_err().code, "SPX-HPD101");
+        let _ = std::fs::remove_dir_all(&d);
     }
 }

@@ -414,6 +414,7 @@ impl HotReloadWatcher {
         self.rescan_required = false;
         if candidate.project_revision() == self.session.active_project_revision() {
             self.pending_candidate_revision = None;
+            self.session.discard_pending();
             self.last_diagnostics.clear();
             return HotReloadWatcherUpdate::Unchanged;
         }
@@ -614,6 +615,49 @@ mod tests {
         watcher.record(HotReloadWatchEvent::Modify(app));
         assert_eq!(watcher.poll(), HotReloadWatcherUpdate::CandidateAdmitted);
         assert!(watcher.activate(b).is_err());
+    }
+
+    #[test]
+    fn source_returning_to_the_active_revision_discards_the_obsolete_pending_candidate() {
+        let _guard = test_guard();
+        let fixture = Fixture::new();
+        let mut watcher = HotReloadWatcher::start(
+            &fixture.manifest(),
+            PreparedProjectInterpreterOptions::default(),
+        )
+        .unwrap();
+        let app = fixture.0.join("src/app.spx");
+        let original = fs::read(&app).unwrap();
+        let active = watcher.session().active_project_revision().to_owned();
+        fixture.rewrite("multiply(6, 7)", "multiply(6, 8)");
+        watcher.record(HotReloadWatchEvent::Modify(app.clone()));
+        assert_eq!(watcher.poll(), HotReloadWatcherUpdate::CandidateAdmitted);
+        let old_b = watcher.session().plan().unwrap();
+        assert!(watcher
+            .session()
+            .observation()
+            .pending_project_revision()
+            .is_some());
+
+        fs::write(&app, &original).unwrap();
+        watcher.record(HotReloadWatchEvent::Modify(app.clone()));
+        assert_eq!(watcher.poll(), HotReloadWatcherUpdate::Unchanged);
+        assert!(watcher.session().plan().is_err(), "no pending replacement");
+        assert_eq!(
+            watcher.session().observation().pending_project_revision(),
+            None
+        );
+        assert_eq!(watcher.session().active_project_revision(), active);
+        assert_eq!(watcher.session().generation(), 0);
+
+        // A fresh B is a new submission: the captured old plan cannot activate.
+        fixture.rewrite("multiply(6, 7)", "multiply(6, 8)");
+        watcher.record(HotReloadWatchEvent::Modify(app));
+        assert_eq!(watcher.poll(), HotReloadWatcherUpdate::CandidateAdmitted);
+        assert!(watcher.activate(old_b).is_err());
+        let fresh = watcher.session().plan().unwrap();
+        watcher.activate(fresh).unwrap();
+        assert_eq!(watcher.session().generation(), 1);
     }
 
     #[test]

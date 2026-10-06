@@ -823,6 +823,9 @@ mod runtime_routing;
 #[path = "agent_runtime_v1/runtime_reroute.rs"]
 mod runtime_reroute;
 
+#[path = "agent_runtime_v1/runtime_reroute_guards.rs"]
+mod runtime_reroute_guards;
+
 #[path = "agent_runtime_v1/routed_agent_example.rs"]
 mod routed_agent_example;
 

@@ -284,15 +284,27 @@ fn run_jsonl(
                                 Some(phase_timings),
                             )?;
                         }
-                        Err(_) => write_status_with_timings(
-                            output,
-                            request.id,
-                            value,
-                            event,
-                            None,
-                            mode,
-                            Some(phase_timings),
-                        )?,
+                        Err(_) => {
+                            // No current candidate: an earlier retained plan is
+                            // obsolete and must not be offered for activation.
+                            if value
+                                .session()
+                                .observation()
+                                .pending_project_revision()
+                                .is_none()
+                            {
+                                session.retained_plan = None;
+                            }
+                            write_status_with_timings(
+                                output,
+                                request.id,
+                                value,
+                                event,
+                                None,
+                                mode,
+                                Some(phase_timings),
+                            )?
+                        }
                     }
                 }
                 None => write_error(output, mode, request.id, "session is not started")?,

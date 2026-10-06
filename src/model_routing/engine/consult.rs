@@ -59,9 +59,12 @@ pub(super) fn consult<I: ?Sized + DecisionInvoker>(
         .max_router_calls
         .min(inputs.policy.router_max_calls);
     let remaining = cap.saturating_sub(ctx.router_calls_used);
+    // The router may never outlive the enclosing caller's remaining time
+    // (`budget.max_latency_ms`) nor its own policy allowance.
     let latency_left = inputs
         .policy
         .router_max_latency_ms
+        .min(inputs.request.budget.max_latency_ms)
         .saturating_sub(ctx.router_ms_used);
     let scope = match &d.v2 {
         Some(v2) => json::digest(

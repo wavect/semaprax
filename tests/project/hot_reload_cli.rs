@@ -205,3 +205,56 @@ fn dev_jsonl_child_keeps_b_active_when_invalid_c_is_rejected() {
     let status = child.wait().unwrap();
     assert!(status.success());
 }
+
+#[test]
+fn dev_jsonl_child_discards_a_pending_candidate_when_source_returns_to_the_active_revision() {
+    let fixture = Fixture::new();
+    let app = fixture.0.join("src/app.spx");
+    let original = fs::read(&app).unwrap();
+    let mut child = fixture.child();
+    let mut input = child.stdin.take().unwrap();
+    let mut output = BufReader::new(child.stdout.take().unwrap());
+
+    send(&mut input, 1, "start");
+    let a = receive(&mut output);
+    assert_eq!(a["event"], "started");
+
+    rewrite(&app, "multiply(6, 7)", "multiply(6, 8)");
+    send(&mut input, 2, "plan");
+    let b = receive(&mut output);
+    assert_eq!(b["event"], "candidate_admitted");
+    assert_ne!(
+        b["plan"]["candidate_project_revision"],
+        a["active_project_revision"]
+    );
+
+    // Exact A bytes again: unchanged, and no stale plan for B is offered.
+    fs::write(&app, &original).unwrap();
+    send(&mut input, 3, "plan");
+    let reverted = receive(&mut output);
+    assert_eq!(reverted["event"], "unchanged");
+    assert!(reverted.get("plan").is_none(), "{reverted}");
+    assert_eq!(
+        reverted["active_project_revision"],
+        a["active_project_revision"]
+    );
+
+    send(&mut input, 4, "activate");
+    let refused = receive(&mut output);
+    assert_eq!(refused["event"], "rejected");
+    assert_eq!(refused["message"], "no retained activation plan");
+
+    // A subsequent valid change still plans and activates normally.
+    rewrite(&app, "multiply(6, 7)", "multiply(6, 9)");
+    send(&mut input, 5, "plan");
+    assert_eq!(receive(&mut output)["event"], "candidate_admitted");
+    send(&mut input, 6, "activate");
+    let activated = receive(&mut output);
+    assert_eq!(activated["event"], "activated");
+    assert_eq!(activated["generation"], 1);
+
+    send(&mut input, 7, "stop");
+    assert_eq!(receive(&mut output)["event"], "stopped");
+    drop(input);
+    assert!(child.wait().unwrap().success());
+}

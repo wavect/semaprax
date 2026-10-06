@@ -17,7 +17,7 @@ use semaprax::model_routing::runtime::{
     RuntimeRoutingError, SessionPolicy, SpecialistGrant, TurnRequest, TurnStatus, TurnVerdict,
 };
 
-fn policy() -> SessionPolicy {
+pub(super) fn policy() -> SessionPolicy {
     SessionPolicy {
         role_profiles: BTreeMap::from([
             ("simple".to_owned(), BTreeSet::from(["fast".to_owned()])),
@@ -38,7 +38,7 @@ fn policy() -> SessionPolicy {
     }
 }
 
-fn turn(role: &str, family: TaskFamily, reservation: i64) -> TurnRequest {
+pub(super) fn turn(role: &str, family: TaskFamily, reservation: i64) -> TurnRequest {
     TurnRequest {
         role: role.into(),
         specialist: None,
@@ -48,7 +48,7 @@ fn turn(role: &str, family: TaskFamily, reservation: i64) -> TurnRequest {
     }
 }
 
-fn accepted(state: &[u8], complete: bool) -> TurnVerdict {
+pub(super) fn accepted(state: &[u8], complete: bool) -> TurnVerdict {
     TurnVerdict::Accepted {
         committed_state: state.to_vec(),
         progressed: true,
@@ -576,8 +576,8 @@ fn single_turn_and_static_model_apps_show_no_added_lifecycle_or_routing_calls() 
             "exactly one adapter, no fallback or extra turn"
         );
         drop(session);
-        // opened, routed, settled: nothing else is journaled.
-        assert_eq!(journal.commits.len(), 3);
+        // opened, routed, effect_intent, settled: nothing else is journaled.
+        assert_eq!(journal.commits.len(), 4);
         // The invocation journal is the unchanged kernel's (route + intent + settle).
         assert_eq!(turn_store.commits.len(), 3);
     });

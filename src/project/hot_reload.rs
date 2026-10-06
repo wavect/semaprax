@@ -408,6 +408,22 @@ impl HotReloadSession {
         Ok(())
     }
 
+    /// Drops an obsolete pending candidate (for example when source returned
+    /// to the active revision) without touching the worker or active revision.
+    /// The submission identity advances, so a plan captured for the dropped
+    /// candidate can never match a later, freshly admitted one.
+    pub fn discard_pending(&mut self) {
+        if self.pending.take().is_none() {
+            return;
+        }
+        self.submission = self.submission.saturating_add(1);
+        self.observe(if self.generation == 0 {
+            HotReloadLifecycle::Started
+        } else {
+            HotReloadLifecycle::Activated
+        });
+    }
+
     /// Reconstruct compatibility from retained checked HIR, never a cache
     /// label, caller-provided digest or previously rendered plan JSON.
     pub fn plan(&self) -> Result<HotReloadPlan, HotReloadFailure> {

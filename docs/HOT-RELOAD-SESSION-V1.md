@@ -91,6 +91,7 @@ guarantee.
 | State and request | Result | Active runtime |
 | --- | --- | --- |
 | Live; admit a valid candidate | Replace the one pending candidate and advance submission identity | Unchanged |
+| Live; source returns to the active revision while a candidate is pending | Watcher reports `unchanged`; `discard_pending` drops the candidate and advances submission identity, so a captured plan never revalidates; the CLI retains no plan | Unchanged |
 | Live; invalid candidate or exhausted submission identity | Reject with `invalid_candidate` or `generation_exhausted` | Unchanged |
 | Live; plan pending candidate | Read-only eligible, unchanged, unsupported, or rejected decision | Unchanged |
 | Live; activate matching eligible plan | Delegate one worker pivot; advance generation on acknowledgement | New complete revision |

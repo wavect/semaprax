@@ -73,6 +73,25 @@ journaled as `semaprax.runtime-route-session.v1` through the host's
   effect (`TurnVerdict::EffectUncertain`) halts the session for the existing
   reconciliation path and is never replayed with another model; a refused or
   cancelled turn halts without a fallback completion.
+- Live stop guards: before any decision-provider dispatch a new turn checks
+  cancellation, the session deadline against the live clock, and the parent
+  allowance through the same ledger. The router envelope's deadline is the
+  smaller of the router policy allowance and the remaining enclosing time
+  (`RuntimeFeatures::remaining_latency_ms`, itself clamped to the session
+  deadline). After routing the live clock and allowance are checked again on
+  every route path, rules fallback included; a refusal there journals a
+  `failed` entry that names the router work performed, so a repeated turn
+  cannot incur more unrecorded routing.
+- Effect boundary: before the host's acceptance callback (which may perform
+  tool effects) runs, the session journals `effect_intent` for the turn. An
+  intent with no terminal entry is reconciled on the next `run_turn` (live or
+  resumed) as an `uncertain` effect with zero model and callback calls; only
+  model bytes recovered before any durable intent allow exactly one callback.
+  The journal schema id is unchanged; `effect_intent` is an additive entry
+  kind that earlier readers do not parse.
+- Child deadline: `ChildGrant::deadline` carries the enclosing session's
+  absolute deadline into `open_child` (and so into the child's retained
+  `opened` entry), nested grants inherit it, and a child never broadens it.
 - Resume: `RoutedSession::resume` restores the journal; `replay_turn` returns
   completed boundaries without route, model or effect calls; an in-flight
   turn reuses its recorded route and handoff bytes with zero router calls.

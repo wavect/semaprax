@@ -202,6 +202,9 @@ pub struct ChildGrant {
     pub depth: u32,
     pub max_depth: u32,
     pub allowance: i64,
+    /// The enclosing session's absolute deadline (clock units of the
+    /// session). A child inherits it and can never broaden it.
+    pub deadline: Option<i64>,
     pub router_lineage: Vec<String>,
 }
 
@@ -273,7 +276,7 @@ impl<'a> RoutedSession<'a> {
             Some(grant.max_depth),
             [instructions_digest, acceptance_digest],
             grant.allowance,
-            None,
+            grant.deadline,
             grant.router_lineage.clone(),
             Some(vec![grant.profile.clone()]),
             store,
@@ -423,6 +426,39 @@ impl<'a> RoutedSession<'a> {
             .map_err(|refusal| {
                 RuntimeRoutingError::session(format!("parent allowance: {}", refusal.0))
             })
+    }
+
+    /// Admits a turn at the live instant: cancellation, deadline and parent
+    /// allowance, through the existing cumulative ledger.
+    fn admit(
+        &self,
+        amount: i64,
+        handlers: &RoutedRunHandlers<'_>,
+    ) -> Result<(), RuntimeRoutingError> {
+        if handlers.cancellation.is_cancelled() {
+            return refuse("turn was cancelled before dispatch");
+        }
+        self.reserve(amount, handlers.clock.now_millis())
+    }
+
+    /// Whether `turn` has an effect intent but no terminal entry yet.
+    fn effect_intent_open(&self, turn: u32) -> bool {
+        let mut open = false;
+        for e in &self.entries {
+            match e {
+                Entry::EffectIntent { turn: t } if *t == turn => open = true,
+                Entry::Settled { turn: t, .. }
+                | Entry::Unaccepted { turn: t, .. }
+                | Entry::Uncertain { turn: t, .. }
+                | Entry::Failed { turn: t, .. }
+                    if *t == turn =>
+                {
+                    open = false
+                }
+                _ => {}
+            }
+        }
+        open
     }
 
     fn halted(&self) -> Option<String> {
@@ -691,7 +727,6 @@ impl<'a> RoutedSession<'a> {
             return refuse(why);
         }
         let turn = self.settled().len() as u32;
-        let now = handlers.clock.now_millis();
         let (bound, reason, router_calls) = if let Some(Entry::Routed {
             reason,
             to,
@@ -701,6 +736,23 @@ impl<'a> RoutedSession<'a> {
             ..
         }) = self.routed(turn).cloned()
         {
+            // An acceptance callback that may already have run is never
+            // re-entered: record the effect as uncertain, make no model call.
+            if self.effect_intent_open(turn) {
+                self.append(Entry::Uncertain {
+                    turn,
+                    kind: "effect".into(),
+                })?;
+                return Ok(TurnOutcome {
+                    turn,
+                    profile: to,
+                    reason,
+                    router_calls: 0,
+                    replayed: false,
+                    status: TurnStatus::Uncertain,
+                    run: None,
+                });
+            }
             // In flight: reuse the recorded route and the retained task bytes.
             let mut target = target.clone();
             let bytes = self.retained_handoff(turn, &to, &handoff)?;
@@ -752,7 +804,18 @@ impl<'a> RoutedSession<'a> {
                 }
             }
             let (allowed, reason) = self.allowlist(request)?;
+            // Live stop conditions are checked before any provider dispatch.
+            self.admit(request.reservation, &handlers)?;
             let mut features = request.features.clone();
+            if let Entry::Opened {
+                deadline: Some(deadline),
+                ..
+            } = self.opened()
+            {
+                let left = u64::try_from(deadline.saturating_sub(handlers.clock.now_millis()))
+                    .unwrap_or(0);
+                features.remaining_latency_ms = features.remaining_latency_ms.min(left);
+            }
             features.operator_pin = request
                 .specialist
                 .as_ref()
@@ -763,6 +826,20 @@ impl<'a> RoutedSession<'a> {
             let routed = route_among(self.set, Some(&allowed), &features, &ctx, provider)?;
             let to = routed.profile().id().to_owned();
             let record = routed.into_record();
+            // Routing may have consumed the remaining time: re-read the live
+            // clock before admitting generation, on every route path. Router
+            // work that happened is retained in the journal.
+            if let Err(refusal) = self.admit(request.reservation, &handlers) {
+                self.append(Entry::Failed {
+                    turn,
+                    why: format!(
+                        "refused after routing ({} router call(s) via `{}`): {refusal}",
+                        record.router_calls(),
+                        record.decision_provider()
+                    ),
+                })?;
+                return Err(refusal);
+            }
             let turn_features = self.turn_features(request);
             let handoff =
                 self.handoff(turn, boundary.previous_profile.clone(), &to, &turn_features);
@@ -774,7 +851,6 @@ impl<'a> RoutedSession<'a> {
             };
             target.effective_budget = request.reservation;
             target.turn = turn;
-            self.reserve(request.reservation, now)?;
             let bound = bind_routed_invocation(self.set, record.clone(), &target)?;
             let calls = record.router_calls();
             self.append(Entry::Routed {
@@ -792,6 +868,9 @@ impl<'a> RoutedSession<'a> {
         let profile = bound.record.profile().to_owned();
         let status = match &bound.run {
             DurablePolicyRun::Settled(bytes) | DurablePolicyRun::Replayed(bytes) => {
+                // Persist the effect boundary first: from here on a lost
+                // terminal write can never authorize a second callback.
+                self.append(Entry::EffectIntent { turn })?;
                 match accept(bytes) {
                     TurnVerdict::Accepted {
                         committed_state,
@@ -935,7 +1014,10 @@ impl<'a> RoutedSession<'a> {
             return refuse(why);
         }
         let Entry::Opened {
-            depth, max_depth, ..
+            depth,
+            max_depth,
+            deadline,
+            ..
         } = self.opened().clone()
         else {
             unreachable!()
@@ -1001,6 +1083,7 @@ impl<'a> RoutedSession<'a> {
             depth: depth + 1,
             max_depth,
             allowance: request.amount,
+            deadline,
             router_lineage: self.lineage(),
         })
     }

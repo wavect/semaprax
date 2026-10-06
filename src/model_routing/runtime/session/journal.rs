@@ -77,6 +77,12 @@ pub(crate) enum Entry {
         complete: bool,
         tool_results: Vec<String>,
     },
+    /// Written before the host's acceptance callback (which may perform tool
+    /// effects) runs. An intent with no terminal means the effect may have
+    /// begun: recovery reconciles it and never calls the callback again.
+    EffectIntent {
+        turn: u32,
+    },
     /// The host refused the settled output: no re-route boundary exists.
     Unaccepted {
         turn: u32,
@@ -152,6 +158,7 @@ impl Entry {
             } => json!({"kind": "settled", "turn": turn, "response": response,
                 "state": hex(state), "progressed": progressed, "complete": complete,
                 "tool_results": tool_results}),
+            Self::EffectIntent { turn } => json!({"kind": "effect_intent", "turn": turn}),
             Self::Unaccepted { turn, why } => {
                 json!({"kind": "unaccepted", "turn": turn, "why": why})
             }
@@ -222,6 +229,7 @@ impl Entry {
                 complete: b("complete")?,
                 tool_results: strs(m.get("tool_results")?)?,
             },
+            "effect_intent" => Self::EffectIntent { turn: u("turn")? },
             "unaccepted" => Self::Unaccepted {
                 turn: u("turn")?,
                 why: s("why")?,

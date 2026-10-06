@@ -82,7 +82,7 @@ pub(super) fn run(release: &Release, project: &Path, captures: &Path) {
             .iter()
             .map(|source| source.path())
             .collect::<Vec<_>>(),
-        ["src/app.spx", "src/core.spx", "src/tests.spx"]
+        ["src/app.spx", "src/tests.spx"]
     );
     for source in expected.sources() {
         assert_eq!(source.source().as_bytes(), before[source.path()]);

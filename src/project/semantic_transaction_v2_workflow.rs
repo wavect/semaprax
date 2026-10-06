@@ -26,7 +26,7 @@ use sha2::{Digest, Sha256};
 use crate::diagnostic::Diagnostic;
 
 use super::{
-    ProgramRoot, ProjectCandidate, ProjectRevision, SemanticTransactionArtifactsV2,
+    ProgramRoot, ProjectCandidate, ProjectRevision, SemanticChange, SemanticTransactionArtifactsV2,
     SemanticTransactionV2, SemanticWorkspaceStructuralDiff,
 };
 
@@ -51,6 +51,7 @@ type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
 pub struct SemanticTransactionV2Workflow {
     base_program_root: ProgramRoot,
     final_step: SemanticTransactionArtifactsV2,
+    whole_history: ProjectCandidate,
     structural_diff: SemanticWorkspaceStructuralDiff,
     json: String,
     digest: String,
@@ -111,7 +112,35 @@ impl SemanticTransactionV2Workflow {
             final_step = Some(artifacts);
         }
         let final_step = final_step.expect("transactions is nonempty");
-        let candidate = final_step.candidate();
+        // Aggregate evidence is scoped from the workflow's true original base
+        // to the final revision. The final step's own candidate is based on
+        // step N-1, so replay every already-validated step onto one running
+        // candidate rooted at `base` and require it to land on exactly the
+        // revision the step-by-step core produced.
+        let mut whole_history = ProjectCandidate::open(Arc::clone(&base), base.project_revision())?;
+        let mut running = Arc::clone(&base);
+        for transaction in transactions {
+            let operation = transaction.operation();
+            let change = SemanticChange::new(
+                running.project_revision(),
+                &json!({
+                    "expression_id": operation.expression_id(),
+                    "kind": "replace_expression",
+                    "replacement": operation.replacement().clone(),
+                    "target": operation.target(),
+                }),
+            )?;
+            whole_history = whole_history.apply(whole_history.candidate_digest(), &change)?;
+            running = Arc::clone(whole_history.revision());
+        }
+        if whole_history.revision().project_revision()
+            != final_step.candidate().revision().project_revision()
+        {
+            return Err(invalid(
+                "semantic transaction v2 workflow whole-history reconstruction diverged from its steps",
+            ));
+        }
+        let candidate = &whole_history;
         let structural_diff =
             SemanticWorkspaceStructuralDiff::derive(candidate, candidate.candidate_digest())?;
 
@@ -157,6 +186,7 @@ impl SemanticTransactionV2Workflow {
         Ok(Self {
             base_program_root,
             final_step,
+            whole_history,
             structural_diff,
             json,
             digest,
@@ -195,6 +225,11 @@ impl SemanticTransactionV2Workflow {
 
     pub fn candidate(&self) -> &ProjectCandidate {
         self.final_step.candidate()
+    }
+    /// The whole-history candidate rooted at the workflow's original base,
+    /// from which the aggregate review and structural diff are derived.
+    pub fn whole_history_candidate(&self) -> &ProjectCandidate {
+        &self.whole_history
     }
     pub fn base_program_root(&self) -> &ProgramRoot {
         &self.base_program_root

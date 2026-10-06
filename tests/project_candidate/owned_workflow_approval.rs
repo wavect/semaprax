@@ -522,3 +522,110 @@ fn approval_replay_requires_exact_canonical_bytes_and_digest() {
         "SPX-G603",
     );
 }
+
+const APP_MAIN_OLD: &str = "add(multiply(6, 7), subtract(divide(4, 2), 2))";
+const TESTS_MAIN_OLD: &str = "if add(19, 23) == 42 && subtract(23, 19) == 4 && multiply(6, 7) == 42 && divide(84, 2) == 42 && is_negative(-1) && not(false) { 0 } else { 1 }";
+
+/// Authors `steps` strictly sequentially, each against the revision its
+/// predecessor produced, as the original `derive` contract requires.
+fn sequential_steps(
+    base: &Arc<ProjectRevision>,
+    plan: &[(&str, &str, Value)],
+) -> Vec<SemanticTransactionV2> {
+    let mut current = Arc::clone(base);
+    let mut steps = Vec::new();
+    for (target, snippet, replacement) in plan {
+        let step = transaction(&current, target, snippet, replacement.clone());
+        current = Arc::clone(
+            step.validate(Arc::clone(&current))
+                .unwrap()
+                .candidate()
+                .revision(),
+        );
+        steps.push(step);
+    }
+    steps
+}
+
+fn source_of(revision: &ProjectRevision, path: &str) -> String {
+    revision
+        .sources()
+        .iter()
+        .find(|source| source.path() == path)
+        .unwrap()
+        .source()
+        .to_owned()
+}
+
+/// DV-25: every reselected step is minted against the revision its own
+/// predecessor produced, so multi-step workflows reselect over an unchanged
+/// base and over a genuinely disjoint concurrent edit.
+#[test]
+fn multi_step_reselection_refreshes_each_step_against_its_predecessor() {
+    let fixture = Fixture::new();
+    let base = fixture.revision();
+    let plan = [
+        ("calculator.multiply", "left * right", swap("left", "right")),
+        ("calculator.app.main", APP_MAIN_OLD, literal(100)),
+        ("calculator.tests.main", TESTS_MAIN_OLD, literal(0)),
+    ];
+    let steps = sequential_steps(&base, &plan);
+    let original = OwnedWorkflowCandidate::derive(Arc::clone(&base), &steps).unwrap();
+    let original_approval = OwnedWorkflowApproval::approve(&original).unwrap();
+
+    for count in [2, 3] {
+        let steps = &steps[..count];
+        // Unchanged base: reselection reproduces the original sources.
+        let same = reselect_owned_workflow(&base, Arc::clone(&base), steps).unwrap();
+        let expected = OwnedWorkflowCandidate::derive(Arc::clone(&base), steps).unwrap();
+        for path in ["src/core.spx", "src/app.spx", "src/tests.spx"] {
+            assert_eq!(
+                source_of(same.candidate().revision(), path),
+                source_of(expected.candidate().revision(), path),
+                "{count} steps, unchanged base, {path}"
+            );
+        }
+
+        // Genuinely disjoint concurrent edit.
+        let current_base = sibling_edit(&base);
+        assert_ne!(base.project_revision(), current_base.project_revision());
+        require_owned_targets_unchanged(&base, &current_base, steps).unwrap();
+        let reselected = reselect_owned_workflow(&base, Arc::clone(&current_base), steps).unwrap();
+        let revision = reselected.candidate().revision();
+        assert!(source_of(revision, "src/core.spx").contains("right * left"));
+        assert!(source_of(revision, "src/core.spx").contains("value < 1"));
+        assert!(source_of(revision, "src/app.spx").contains("100"));
+        if count == 3 {
+            assert!(source_of(revision, "src/tests.spx").contains("fn main() -> i64\n{\n    0\n}"));
+        }
+
+        // Explicit sequential validation over the current base agrees.
+        let sequential = sequential_steps(&current_base, &plan[..count]);
+        let sequential_owned =
+            OwnedWorkflowCandidate::derive(Arc::clone(&current_base), &sequential).unwrap();
+        for path in ["src/core.spx", "src/app.spx", "src/tests.spx"] {
+            assert_eq!(
+                source_of(revision, path),
+                source_of(sequential_owned.candidate().revision(), path),
+                "{count} steps, disjoint base, {path}"
+            );
+        }
+        // New current-base binding and a distinct approval digest.
+        assert_eq!(
+            reselected
+                .workflow()
+                .base_program_root()
+                .workspace_revision(),
+            current_base
+                .canonical_workspace_revision()
+                .unwrap()
+                .workspace_revision()
+        );
+        assert_ne!(
+            reselected.candidate().candidate_digest(),
+            original_approval.candidate_digest()
+        );
+        let fresh = OwnedWorkflowApproval::approve(&reselected).unwrap();
+        assert_ne!(fresh.digest(), original_approval.digest());
+    }
+}

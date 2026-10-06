@@ -1062,3 +1062,159 @@ fn examples_core_source() -> String {
     )
     .unwrap()
 }
+
+/// DV-26 fixture: `calculator.add` with repeated literals and repeated place
+/// expressions, under an unrelated canonical top-of-file comment.
+fn repeated_expression_core_source() -> String {
+    let example = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/calculator-project");
+    let source = std::fs::read_to_string(example.join("src/core.spx")).unwrap();
+    let source = source.replacen(
+        "{\n    left + right\n}",
+        "{\n    let a = 1;\n    let b = 2;\n    left + right + a + a + b\n}",
+        1,
+    );
+    let (program, _) = semaprax::parse_with_comments(&source, "src/core.spx").unwrap();
+    let canonical = semaprax::format::canonical(&program);
+    format!("// unrelated top-of-file note.\n{canonical}")
+}
+
+/// Every replaceable body row of `target` in `revision` whose source slice is
+/// `snippet`, in source order, as `(expression_id, start)`.
+fn selections_in_order(
+    revision: &Arc<ProjectRevision>,
+    target: &str,
+    snippet: &str,
+) -> Vec<(String, usize)> {
+    let root = ProjectCandidate::open(Arc::clone(revision), revision.project_revision()).unwrap();
+    let catalog: Value = serde_json::from_str(&root.expression_catalog(target).unwrap()).unwrap();
+    let source = revision
+        .sources()
+        .iter()
+        .find(|source| source.path() == catalog["source"]["path"].as_str().unwrap())
+        .unwrap()
+        .source();
+    let mut rows = catalog["expressions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|row| row["phase"] == "body" && row["replaceable"] == true)
+        .filter_map(|row| {
+            let start = row["source_span"]["start"].as_u64()? as usize;
+            let end = row["source_span"]["end"].as_u64()? as usize;
+            (source.get(start..end) == Some(snippet))
+                .then(|| (row["expression_id"].as_str().unwrap().to_owned(), start))
+        })
+        .collect::<Vec<_>>();
+    rows.sort_by_key(|(_, start)| *start);
+    rows
+}
+
+fn replaced_expression_position(
+    artifacts: &semaprax::project::SemanticTransactionArtifactsV2,
+) -> (String, usize, String) {
+    let result: Value = serde_json::from_str(artifacts.result()).unwrap();
+    let new_id = result["operation_results"][0]["new_expression_id"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let candidate = artifacts.candidate();
+    let catalog: Value =
+        serde_json::from_str(&candidate.expression_catalog("calculator.add").unwrap()).unwrap();
+    let row = catalog["expressions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["expression_id"] == json!(new_id))
+        .expect("new expression id resolves in the candidate catalog");
+    let start = row["source_span"]["start"].as_u64().unwrap() as usize;
+    let end = row["source_span"]["end"].as_u64().unwrap() as usize;
+    let source = candidate
+        .revision()
+        .sources()
+        .iter()
+        .find(|source| source.path() == "src/core.spx")
+        .unwrap()
+        .source();
+    (
+        new_id,
+        start,
+        source[..start].to_owned() + "|" + &source[start..end],
+    )
+}
+
+#[test]
+fn commented_replacement_of_duplicate_literal_reselects_by_position() {
+    let core_source = repeated_expression_core_source();
+    let fixture = Fixture::with_core_source(&core_source);
+    let disk_before = inventory(&fixture.0);
+    let revision = fixture.revision();
+    let workspace = revision.canonical_workspace_revision().unwrap();
+
+    // `let a = 1; let b = 2;`: replace the `2` with a `1` that duplicates the
+    // unrelated existing literal.
+    let twos = selections_in_order(&revision, "calculator.add", "2");
+    assert_eq!(twos.len(), 1);
+    let transaction = SemanticTransactionV2::replace_expression(
+        workspace.workspace_revision(),
+        SemanticTransactionReplaceExpression::new(
+            "calculator.add",
+            &twos[0].0,
+            "2",
+            json!({"kind":"i64","value":1}),
+        ),
+    )
+    .unwrap();
+    let artifacts = transaction.validate(Arc::clone(&revision)).unwrap();
+
+    let expected = core_source.replacen("let b = 2;", "let b = 1;", 1);
+    assert_eq!(artifacts.preserved_target_source(), Some(expected.as_str()));
+    let (_, _, marked) = replaced_expression_position(&artifacts);
+    assert!(marked.ends_with("let b = |1"), "{marked}");
+    assert_eq!(inventory(&fixture.0), disk_before);
+}
+
+#[test]
+fn commented_replacement_of_duplicate_place_reselects_the_edited_position() {
+    let core_source = repeated_expression_core_source();
+    let fixture = Fixture::with_core_source(&core_source);
+    let revision = fixture.revision();
+    let workspace = revision.canonical_workspace_revision().unwrap();
+
+    // `left + right + a + a + b`: replace the second `a` only.
+    let places = selections_in_order(&revision, "calculator.add", "a");
+    assert_eq!(places.len(), 2);
+    let transaction = SemanticTransactionV2::replace_expression(
+        workspace.workspace_revision(),
+        SemanticTransactionReplaceExpression::new(
+            "calculator.add",
+            &places[1].0,
+            "a",
+            json!({"kind":"place","name":"b"}),
+        ),
+    )
+    .unwrap();
+    let artifacts = transaction.validate(Arc::clone(&revision)).unwrap();
+    let expected = core_source.replacen("a + a + b", "a + b + b", 1);
+    assert_eq!(artifacts.preserved_target_source(), Some(expected.as_str()));
+    let (_, _, marked) = replaced_expression_position(&artifacts);
+    assert!(marked.ends_with("left + right + a + |b"), "{marked}");
+
+    // A no-op at one repeated position behaves like any other replacement.
+    let noop = SemanticTransactionV2::replace_expression(
+        workspace.workspace_revision(),
+        SemanticTransactionReplaceExpression::new(
+            "calculator.add",
+            &places[0].0,
+            "a",
+            json!({"kind":"place","name":"a"}),
+        ),
+    )
+    .unwrap();
+    let noop_artifacts = noop.validate(Arc::clone(&revision)).unwrap();
+    assert_eq!(
+        noop_artifacts.preserved_target_source(),
+        Some(core_source.as_str())
+    );
+    let (_, _, marked) = replaced_expression_position(&noop_artifacts);
+    assert!(marked.ends_with("left + right + |a"), "{marked}");
+}

@@ -1,8 +1,7 @@
 # Universal Semantic Transaction v2 Workflow
 
-Status: implemented bounded profile; local evidence only (see below). Not yet
-wired into the CLI or the persistent Workspace service transport; those routes
-are separately gated follow-up work, not claimed here.
+Status: implemented bounded profile; local evidence only (see below). The CLI
+(`change workflow`), service transport, and MCP surface call this core.
 
 Audience: compiler contributors, agent-tool authors, and reviewers of
 multi-file semantic change composition.
@@ -65,9 +64,16 @@ different expression.
 ## What one successful workflow proves
 
 A successful `derive` returns one `SemanticTransactionV2Workflow` wrapping the
-*final* step's `ProjectCandidate` and one
+*final* step's own `ProjectCandidate` (based on step N-1, for that step's local
+impact/result), one whole-history `ProjectCandidate` rooted at the true original
+base (every validated step replayed onto one running candidate and required to
+land on the step-by-step core's exact final revision), and one
 [`SemanticWorkspaceStructuralDiff`](UNIVERSAL-SEMANTIC-TRANSACTION-COMPOSITION-V1.md)
-comparing the shared original base to that final candidate — the same
+comparing the shared original base to that whole-history candidate. The
+workflow's `source_review`, the structural diff's root catalogue, and
+`result.candidate_digest` are all derived from that same candidate, so a
+two-file workflow reviews both files, a reverted edit nets out, and the
+aggregate base always equals the workflow's outer `base`. This is the same
 structural-diff core Composition v1 uses for rebase and merge, not a second
 diff representation. `to_json()` additionally lists every step's own
 transaction digest, target, edited source path, and full `impact`/`result`

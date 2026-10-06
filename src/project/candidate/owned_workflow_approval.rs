@@ -29,11 +29,11 @@
 //!    existing commit boundary requires a [`super::ProjectCandidate`] whose
 //!    own `base` is the exact on-disk Project revision. A v2 workflow's own
 //!    `candidate()` is instead based on its *penultimate* step's revision, so
-//!    [`OwnedWorkflowCandidate::derive`] independently replays every step's
-//!    already-validated `replace_expression` intention from the workflow's
-//!    true original base into one accumulated candidate, and cross-checks the
-//!    result against the frozen workflow core's own final revision before
-//!    trusting it.
+//!    [`OwnedWorkflowCandidate`] publishes the workflow's whole-history
+//!    candidate, which the workflow derives by independently replaying every
+//!    step's already-validated `replace_expression` intention from the true
+//!    original base and cross-checking the result against the step-by-step
+//!    core's own final revision before trusting it.
 //! 3. **Publication requires a separately approved exact digest.**
 //!    [`OwnedWorkflowApproval::approve`] is a distinct act from creating a
 //!    workflow: it captures one workflow's and its whole-history candidate's
@@ -60,7 +60,7 @@ use crate::project::{
 };
 
 use super::publication::{self, ProjectCandidatePublication};
-use super::{ProjectCandidate, SemanticChange};
+use super::ProjectCandidate;
 
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
 
@@ -78,15 +78,13 @@ const APPROVAL_DOMAIN: &[u8] = b"semaprax.owned-workflow-approval.digest.v1\0";
 /// step N-1 produced -- correct for that step's own review artifacts, but not
 /// directly publishable through `super::publication`'s existing commit
 /// boundary, which requires a candidate whose `base` equals the exact
-/// currently-held Project revision. This type replays each already-validated
-/// step's `replace_expression` intention (reconstructed from its public
-/// `target`/`expression_id`/`replacement`, the exact same shape
-/// `SemanticTransactionV2::validate` itself constructs) onto one running
-/// [`ProjectCandidate`] rooted at `base`, and cross-checks that the result's
-/// final revision matches the frozen workflow core's own -- so a divergent
-/// reconstruction is rejected rather than silently published.
+/// currently-held Project revision. This type exposes the workflow's own
+/// whole-history candidate: each already-validated step's `replace_expression`
+/// intention (reconstructed from its public `target`/`expression_id`/
+/// `replacement`) replayed onto one running [`ProjectCandidate`] rooted at
+/// `base`, cross-checked against the step-by-step core's final revision -- so
+/// a divergent reconstruction is rejected rather than silently published.
 pub struct OwnedWorkflowCandidate {
-    candidate: ProjectCandidate,
     workflow: SemanticTransactionV2Workflow,
 }
 
@@ -95,41 +93,15 @@ impl OwnedWorkflowCandidate {
         base: Arc<ProjectRevision>,
         transactions: &[SemanticTransactionV2],
     ) -> Result<Self> {
-        let workflow = SemanticTransactionV2Workflow::derive(Arc::clone(&base), transactions)?;
-        let mut accumulated = ProjectCandidate::open(Arc::clone(&base), base.project_revision())?;
-        let mut current = base;
-        for transaction in transactions {
-            let operation = transaction.operation();
-            let change = SemanticChange::new(
-                current.project_revision(),
-                &json!({
-                    "expression_id": operation.expression_id(),
-                    "kind": "replace_expression",
-                    "replacement": operation.replacement().clone(),
-                    "target": operation.target(),
-                }),
-            )?;
-            accumulated = accumulated.apply(accumulated.candidate_digest(), &change)?;
-            current = Arc::clone(accumulated.revision());
-        }
-        if accumulated.revision().project_revision()
-            != workflow.candidate().revision().project_revision()
-        {
-            return Err(invalid(
-                "owned workflow candidate reconstruction diverged from the workflow core",
-            ));
-        }
-        Ok(Self {
-            candidate: accumulated,
-            workflow,
-        })
+        let workflow = SemanticTransactionV2Workflow::derive(base, transactions)?;
+        Ok(Self { workflow })
     }
 
     /// The whole-history candidate, rooted at the true original base, ready
     /// for `super::publication::prepare_candidate_publication`/
     /// `apply_candidate_publication`.
     pub fn candidate(&self) -> &ProjectCandidate {
-        &self.candidate
+        self.workflow.whole_history_candidate()
     }
     /// The frozen v2 workflow core's own step-by-step review artifact
     /// (impact, structural diff, per-step source paths).
@@ -162,7 +134,7 @@ impl OwnedWorkflowApproval {
     /// different workflow digest and is never authorized by this value.
     pub fn approve(owned: &OwnedWorkflowCandidate) -> Result<Self> {
         let workflow_digest = owned.workflow.digest().to_owned();
-        let candidate_digest = owned.candidate.candidate_digest().to_owned();
+        let candidate_digest = owned.candidate().candidate_digest().to_owned();
         let base_workspace_revision = owned
             .workflow
             .base_program_root()
@@ -257,7 +229,7 @@ impl OwnedWorkflowApproval {
 
     fn matches(&self, owned: &OwnedWorkflowCandidate) -> bool {
         self.workflow_digest == owned.workflow.digest()
-            && self.candidate_digest == owned.candidate.candidate_digest()
+            && self.candidate_digest == owned.candidate().candidate_digest()
     }
 }
 
@@ -331,25 +303,27 @@ pub fn reselect_owned_workflow(
     transactions: &[SemanticTransactionV2],
 ) -> Result<OwnedWorkflowCandidate> {
     require_owned_targets_unchanged(original_base, &current_base, transactions)?;
-    let current_workspace_revision = current_base
-        .canonical_workspace_revision()?
-        .workspace_revision()
-        .to_owned();
-    let refreshed = transactions
-        .iter()
-        .map(|transaction| {
-            let operation = transaction.operation();
-            SemanticTransactionV2::replace_expression(
-                &current_workspace_revision,
-                SemanticTransactionReplaceExpression::new(
-                    operation.target(),
-                    operation.expression_id(),
-                    operation.expected_old_expression(),
-                    operation.replacement().clone(),
-                ),
-            )
-        })
-        .collect::<Result<Vec<_>>>()?;
+    // Each refreshed wrapper names the revision its own predecessor produced,
+    // exactly as the workflow core requires: mint step N against the carried
+    // revision, validate it, then advance to that step's result before
+    // minting step N+1. The per-step stale guard stays in force.
+    let mut current = Arc::clone(&current_base);
+    let mut refreshed = Vec::with_capacity(transactions.len());
+    for transaction in transactions {
+        let operation = transaction.operation();
+        let step = SemanticTransactionV2::replace_expression(
+            current.canonical_workspace_revision()?.workspace_revision(),
+            SemanticTransactionReplaceExpression::new(
+                operation.target(),
+                operation.expression_id(),
+                operation.expected_old_expression(),
+                operation.replacement().clone(),
+            ),
+        )?;
+        let artifacts = step.validate(Arc::clone(&current))?;
+        current = Arc::clone(artifacts.candidate().revision());
+        refreshed.push(step);
+    }
     OwnedWorkflowCandidate::derive(current_base, &refreshed)
 }
 

@@ -39,8 +39,10 @@ precondition to one exact global workspace revision, so the original
 transaction bytes are stale the instant *anything* in the workspace moves,
 even a fully disjoint sibling edit. Reselection therefore rebuilds one fresh
 transaction per step, carrying over its exact target, expression identity, and
-expected old-source text unchanged, and binding only the wrapper to the
-current workspace revision, before handing the refreshed steps to the frozen
+expected old-source text unchanged, and binding each wrapper to the
+revision its own predecessor step produced (step 0 to the current workspace
+revision; step N to the result of validating step N-1, so a multi-step
+workflow never reselects stale against its own earlier edits), before handing the refreshed steps to the frozen
 `SemanticTransactionV2Workflow::derive` core -- which still independently
 re-checks that each carried-over expression identity resolves and its exact
 old-source text still matches, and still fully recompiles the resulting

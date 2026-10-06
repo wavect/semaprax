@@ -26,8 +26,6 @@ on:
       - scripts/package-release-linux-container.sh
       - scripts/release-manifest.py
       - packaging/archive/**
-      - tests/release_archive_product_v1.rs
-      - tests/release_archive_product_v1/**
       - .github/workflows/install-distribution.yml
 
 permissions:

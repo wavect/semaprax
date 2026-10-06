@@ -434,3 +434,111 @@ fn replay_rejects_tampering() {
         "SPX-G602",
     );
 }
+
+fn review_paths(source_review: &Value) -> Vec<String> {
+    source_review["files"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|file| file["path"].as_str().unwrap().to_owned())
+        .collect()
+}
+
+fn two_file_steps(base: &Arc<ProjectRevision>) -> [SemanticTransactionV2; 2] {
+    let step0 = transaction(base, "calculator.multiply", "left * right", swap_multiply());
+    let revision1 = Arc::clone(
+        step0
+            .validate(Arc::clone(base))
+            .unwrap()
+            .candidate()
+            .revision(),
+    );
+    let step1 = transaction(
+        &revision1,
+        "calculator.app.main",
+        "add(multiply(6, 7), subtract(divide(4, 2), 2))",
+        literal(100),
+    );
+    [step0, step1]
+}
+
+/// DV-24: workflow-wide review, root catalogue, and structural diff are
+/// scoped from the original base to the final candidate, not from the
+/// penultimate step's revision to the final one.
+#[test]
+fn aggregate_review_is_derived_from_the_original_base() {
+    let fixture = Fixture::new();
+    let base = fixture.revision();
+    let transactions = two_file_steps(&base);
+    let workflow = SemanticTransactionV2Workflow::derive(Arc::clone(&base), &transactions).unwrap();
+    let value: Value = serde_json::from_str(workflow.to_json()).unwrap();
+
+    let original = base.project_revision();
+    let diff = &value["structural_diff"]["value"];
+    assert_eq!(diff["base"]["project_revision"], json!(original));
+    assert_eq!(
+        value["source_review"]["value"]["base_project_revision"],
+        json!(original)
+    );
+    assert_eq!(
+        review_paths(&value["source_review"]["value"]),
+        vec!["src/app.spx".to_owned(), "src/core.spx".to_owned()]
+    );
+    assert_eq!(
+        value["source_review"]["value"],
+        diff["source_review"]["value"]
+    );
+    let catalog = serde_json::to_string(&diff["root_catalog"]["value"]).unwrap();
+    assert!(catalog.contains("calculator.multiply"), "{catalog}");
+    assert!(catalog.contains("calculator.app.main"), "{catalog}");
+    assert_eq!(
+        workflow.structural_diff().source_review_digest(),
+        value["source_review"]["digest"].as_str().unwrap()
+    );
+
+    let bytes = transactions
+        .iter()
+        .map(|transaction| transaction.to_json().as_bytes().to_vec())
+        .collect::<Vec<_>>();
+    SemanticTransactionV2Workflow::replay(
+        Arc::clone(&base),
+        &bytes,
+        workflow.digest(),
+        workflow.to_json().as_bytes(),
+    )
+    .unwrap();
+}
+
+/// DV-24: a first-step edit that a later step reverts nets out of the review.
+#[test]
+fn aggregate_review_nets_reverted_edits() {
+    let fixture = Fixture::new();
+    let base = fixture.revision();
+    let [step0, step1] = two_file_steps(&base);
+    let revision2 = {
+        let after0 = step0.validate(Arc::clone(&base)).unwrap();
+        let revision1 = Arc::clone(after0.candidate().revision());
+        Arc::clone(step1.validate(revision1).unwrap().candidate().revision())
+    };
+    let step2 = transaction(
+        &revision2,
+        "calculator.multiply",
+        "right * left",
+        json!({
+            "kind": "binary", "op": "*",
+            "left": {"kind": "place", "name": "left"},
+            "right": {"kind": "place", "name": "right"},
+        }),
+    );
+    let workflow =
+        SemanticTransactionV2Workflow::derive(Arc::clone(&base), &[step0, step1, step2]).unwrap();
+    let value: Value = serde_json::from_str(workflow.to_json()).unwrap();
+    assert_eq!(
+        review_paths(&value["source_review"]["value"]),
+        vec!["src/app.spx".to_owned()]
+    );
+    assert_eq!(
+        value["structural_diff"]["value"]["base"]["project_revision"],
+        json!(base.project_revision())
+    );
+}

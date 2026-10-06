@@ -882,7 +882,16 @@ fn require_comment_preserving_expression_replacement(
     let path = std::path::Path::new(&old.path);
     let (spliced_program, spliced_comments) =
         crate::parse_with_comments(&preserved, path).map_err(|error| vec![error])?;
-    if crate::format::canonical(&spliced_program) != candidate_source.source() {
+    // A replacement identical to the old text leaves the candidate's source
+    // bytes untouched (comments included), so the exact splice must then be
+    // byte-identical to it; otherwise the candidate is the comment-free
+    // canonical rebuild the splice must reproduce.
+    let structurally_verified = if candidate_source.source() == raw {
+        preserved == raw
+    } else {
+        crate::format::canonical(&spliced_program) == candidate_source.source()
+    };
+    if !structurally_verified {
         return Err(stale(
             "ReplaceExpression comment-preserving source failed independent structural verification",
         ));
@@ -903,21 +912,30 @@ fn require_comment_preserving_expression_replacement(
     let rows = catalog["expressions"]
         .as_array()
         .ok_or_else(|| invalid("candidate expression inventory is unavailable"))?;
-    let mut matches = rows.iter().filter(|row| {
-        row["phase"] == "body"
-            && row["replaceable"] == true
-            && usize_field(&row["source_span"], "start")
-                .ok()
-                .zip(usize_field(&row["source_span"], "end").ok())
-                .and_then(|(start, end)| candidate_source.source().get(start..end))
-                == Some(preview)
-    });
-    let row = matches
-        .next()
+    // Reselect by the authenticated AST position of the replaced expression,
+    // never by source text: repeated text elsewhere in the function (the same
+    // literal or place) is not an ambiguous origin.
+    let selected_id = super::candidate::remap_expression_selection(
+        before,
+        after,
+        &operation.target,
+        &operation.expression_id,
+    )?;
+    let row = rows
+        .iter()
+        .find(|row| {
+            row["expression_id"] == selected_id.as_str()
+                && row["phase"] == "body"
+                && row["replaceable"] == true
+        })
         .ok_or_else(|| stale("ReplaceExpression candidate expression was not reselected"))?;
-    if matches.next().is_some() {
+    let reselected_text = usize_field(&row["source_span"], "start")
+        .ok()
+        .zip(usize_field(&row["source_span"], "end").ok())
+        .and_then(|(start, end)| candidate_source.source().get(start..end));
+    if reselected_text != Some(preview) {
         return Err(stale(
-            "ReplaceExpression candidate expression selection is ambiguous",
+            "ReplaceExpression reselected expression does not match the replacement preview",
         ));
     }
     let new_expression_id = row["expression_id"]

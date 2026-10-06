@@ -41,6 +41,18 @@ mod environment_review;
 mod explorer;
 pub use explorer::CandidateExplorerView;
 mod expression;
+
+/// Re-authenticate a body-expression selection across a replacement by its
+/// compiler-derived AST path, for the Universal Semantic Transaction v2
+/// comment-preserving route. Never selects by source text.
+pub(crate) fn remap_expression_selection(
+    before: &ProjectRevision,
+    after: &ProjectRevision,
+    target: &str,
+    expression_id: &str,
+) -> Result<String, Vec<crate::diagnostic::Diagnostic>> {
+    expression::remap_selection(before, after, target, expression_id)
+}
 mod external_api_contract_delta;
 mod external_api_contract_evidence;
 mod extraction;

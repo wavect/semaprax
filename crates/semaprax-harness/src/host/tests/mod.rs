@@ -4,6 +4,7 @@
 //! live inside the crate.
 
 mod hostile;
+mod idle_violation_tests;
 mod isolation_tests;
 mod lifecycle_tests;
 mod ma_lane_m_tests;

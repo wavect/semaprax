@@ -319,26 +319,64 @@ fn status_of(head: &[u8]) -> Option<u16> {
     it.next()?.parse().ok()
 }
 
+/// Bound on the trailer section that may follow the last chunk.
+const TRAILER_CAP: usize = 8 * 1024;
+
 fn dechunk(mut raw: &[u8], max: usize) -> HarnessResult<Vec<u8>> {
     let bad = |m: &str| err("SPX-HPC036", format!("malformed chunked body: {m}"));
+    let over = || {
+        err(
+            "SPX-HPC033",
+            format!("response exceeds the {max}-byte bound"),
+        )
+    };
     let mut out = Vec::new();
     loop {
         let eol = find(raw, b"\r\n").ok_or_else(|| bad("missing chunk size line"))?;
-        let size = std::str::from_utf8(&raw[..eol])
+        let digits = std::str::from_utf8(&raw[..eol])
             .ok()
-            .and_then(|s| usize::from_str_radix(s.split(';').next()?.trim(), 16).ok())
+            .and_then(|s| s.split(';').next())
+            .map(str::trim)
+            .filter(|s| !s.is_empty() && s.bytes().all(|b| b.is_ascii_hexdigit()))
             .ok_or_else(|| bad("bad chunk size"))?;
+        // A size that cannot fit a usize can never fit the response bound.
+        let size = usize::from_str_radix(digits, 16).map_err(|_| over())?;
         raw = &raw[eol + 2..];
         if size == 0 {
-            return Ok(out);
+            return trailers(raw).map(|()| out).map_err(bad);
         }
-        if out.len() + size > max {
-            return Err(err(
-                "SPX-HPC033",
-                format!("response exceeds the {max}-byte bound"),
-            ));
+        if size > max.saturating_sub(out.len()) {
+            return Err(over());
         }
-        out.extend_from_slice(raw.get(..size).ok_or_else(|| bad("truncated chunk"))?);
-        raw = raw.get(size + 2..).ok_or_else(|| bad("truncated chunk"))?;
+        let data = raw.get(..size).ok_or_else(|| bad("truncated chunk"))?;
+        out.extend_from_slice(data);
+        let rest = &raw[size..];
+        match rest.get(..2) {
+            Some(b"\r\n") => raw = &rest[2..],
+            Some(_) => return Err(bad("chunk data not followed by CRLF")),
+            None => return Err(bad("truncated chunk")),
+        }
+    }
+}
+
+/// Validate the section after the last chunk: bounded `name: value` lines and
+/// the terminating empty line.
+fn trailers(mut raw: &[u8]) -> Result<(), &'static str> {
+    let mut used = 0usize;
+    loop {
+        let eol = find(raw, b"\r\n").ok_or("unterminated trailer section")?;
+        if eol == 0 {
+            return Ok(());
+        }
+        used += eol + 2;
+        if used > TRAILER_CAP {
+            return Err("trailer section too large");
+        }
+        let line = std::str::from_utf8(&raw[..eol]).map_err(|_| "non-UTF-8 trailer")?;
+        match line.split_once(':') {
+            Some((name, _)) if !name.is_empty() && !name.contains(char::is_whitespace) => {}
+            _ => return Err("malformed trailer"),
+        }
+        raw = &raw[eol + 2..];
     }
 }

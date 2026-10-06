@@ -146,6 +146,9 @@ fn wait_or_halt(
 
 impl AdapterHandle {
     pub fn state(&self) -> AdapterState {
+        // A violation the reader recorded while no request was pending must
+        // be visible here, not only on the next invocation.
+        self.reconcile_violation();
         lock(&self.core).state.clone()
     }
     pub fn provider_id(&self) -> &str {
@@ -242,6 +245,30 @@ impl AdapterHandle {
             c.last_stderr = proc.stderr_tail();
             c.proc = None;
         }
+    }
+
+    /// Reconcile a protocol violation the stdout reader recorded while no
+    /// request was pending (so no waiter ever observed it). The installed
+    /// generation is checked, retired and the handle quarantined under one
+    /// `core` lock, so an obsolete generation can never overwrite a newer
+    /// state and the violation is charged exactly once.
+    fn reconcile_violation(&self) -> Option<HarnessDiagnostic> {
+        let (proc, d) = {
+            let mut c = lock(&self.core);
+            if matches!(c.state, AdapterState::Draining | AdapterState::Closed) {
+                return None;
+            }
+            let p = c.proc.clone()?;
+            let Some(Closed::Violation(d)) = p.closed() else {
+                return None;
+            };
+            c.last_stderr = p.stderr_tail();
+            c.proc = None;
+            c.state = AdapterState::Quarantined(d.clone());
+            (p, d)
+        };
+        proc.terminate(Closed::Violation(d.clone()));
+        Some(d)
     }
 
     fn quarantine(&self, proc: &Arc<Proc>, d: HarnessDiagnostic) {
@@ -381,6 +408,24 @@ impl AdapterHandle {
         }
         let stale = lock(&self.core).proc.clone();
         if let Some(p) = stale {
+            // The cached generation closed between invocations. Classify its
+            // recorded reason before any replacement: a violation stays
+            // quarantined and a crash is charged to the breaker (once per
+            // generation); only host-initiated closes restart freely.
+            match p.closed() {
+                Some(Closed::Violation(_)) => {
+                    if let Some(d) = self.reconcile_violation() {
+                        return Err(Outcome::Quarantined(d));
+                    }
+                }
+                Some(Closed::Exited) => self
+                    .record_failure(&p, diag("SPX-HPC007", "adapter exited between invocations")),
+                Some(Closed::Transport(d)) => self.record_failure(&p, d),
+                _ => {}
+            }
+            if let AdapterState::Quarantined(d) = &lock(&self.core).state {
+                return Err(Outcome::Quarantined(d.clone()));
+            }
             self.drop_proc(&p, Closed::Host("restart"));
         }
         let prepared = self

@@ -10,6 +10,10 @@ use super::*;
 /// `STB_INVOKE_MODE`  – `hang` never answers an invocation.
 /// `STB_CLOSE_STDIN`  – after the initialize reply close fd 0 (stdout stays
 ///                      open), write own pid here, then wait for `STB_EXIT`.
+/// `STB_START_LOG`   – append one line per `harness/initialize` (adapter starts).
+/// `STB_IDLE_RELEASE` – after the first invoke reply, wait for this file and
+///                      then emit an unsolicited frame (`STB_IDLE_FRAME`:
+///                      `unknown-id` or `malformed`) with no request pending.
 /// `STB_ENVELOPE`     – malformed outer envelope around a valid inner reply:
 ///                      `init-version`, `invoke-no-version` or `invoke-bad-error`.
 pub(crate) const STB_ADAPTER: &str = r#"#!/usr/bin/env python3
@@ -69,6 +73,9 @@ def main():
         msg = json.loads(raw)
         method, mid = msg.get("method"), msg.get("id")
         if method == "harness/initialize":
+            if ENV("STB_START_LOG"):
+                with open(ENV("STB_START_LOG"), "a") as fh:
+                    fh.write(str(os.getpid()) + "\n")
             if ENV("STB_INIT_BARRIER"):
                 touch(ENV("STB_INIT_BARRIER"), str(os.getpid()))
             if ENV("STB_INIT_RELEASE"):
@@ -87,6 +94,13 @@ def main():
                 while True:
                     time.sleep(1)
             send(invoke_reply(mid, msg["params"]))
+            if ENV("STB_IDLE_RELEASE"):
+                wait_file(ENV("STB_IDLE_RELEASE"))
+                if ENV("STB_IDLE_FRAME") == "malformed":
+                    OUT.write(b"{not json\n")
+                    OUT.flush()
+                else:
+                    send({"jsonrpc": "2.0", "id": 999999, "result": {}})
         elif method == "harness/shutdown":
             send({"jsonrpc": "2.0", "id": mid, "result": {}})
             return

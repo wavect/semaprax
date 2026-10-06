@@ -23,6 +23,12 @@ A provider for an existing capability slot consists of exactly:
    stdio. Helpers: `packages/semaprax-harness-adapters/sdk/python` and
    `sdk/node` (framing, handshake, envelope echo, cancel bookkeeping). The Rust
    example implements the same frames by hand with `serde_json`.
+   Python `serve_cancellable` gives each invocation one terminal decision: a
+   cancel that arrives before the handler starts dispatches no handler; a cancel
+   or deadline (captured at admission) is replied only after the handler thread
+   has really stopped, and a late success never replaces it; a handler that
+   outlives `cancel_grace` gets no receipt and the adapter process exits so the
+   host's process-level enforcement settles it.
 3. **Configuration schema**: the descriptor's `config.fields`. Project values
    come from `semaprax.harness.toml`; unknown keys are errors.
 4. **Support and license manifest**: `support.license`, `support.isolation`,

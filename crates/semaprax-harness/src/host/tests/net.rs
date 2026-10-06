@@ -151,3 +151,61 @@ fn non_loopback_and_tls_endpoints_are_honestly_refused() {
         "SPX-HPC037"
     );
 }
+
+fn chunked(body: &str) -> Vec<u8> {
+    format!("HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n{body}").into_bytes()
+}
+
+fn chunked_outcome(body: &str, max: usize) -> Result<Vec<u8>, &'static str> {
+    let (url, _t) = serve(chunked(body));
+    client(&url, None, max)
+        .request("GET", "/c", None)
+        .map(|r| r.body)
+        .map_err(|e| e.code)
+}
+
+#[test]
+fn chunk_sizes_that_overflow_are_refused_not_panics() {
+    let huge = format!("{:x}", usize::MAX);
+    let near = format!("{:x}", usize::MAX - 1);
+    for size in [huge.as_str(), near.as_str(), "ffffffffffffffffffff"] {
+        let first = chunked_outcome(&format!("1\r\nx\r\n{size}\r\nzz\r\n0\r\n\r\n"), 64);
+        assert!(
+            matches!(first, Err("SPX-HPC033") | Err("SPX-HPC036")),
+            "{size}: {first:?}"
+        );
+        let alone = chunked_outcome(&format!("{size}\r\nzz\r\n"), 64);
+        assert!(alone.is_err(), "{size}: {alone:?}");
+    }
+}
+
+#[test]
+fn malformed_chunk_framing_is_refused() {
+    for body in [
+        "1\r\nxZZ0\r\n",
+        "1\r\nx\r\n0\r\n",
+        "1\r\nx\r\n0",
+        "1\r\nx",
+        "5\r\nab",
+        "1\r\nx\r\n0\r\nbad trailer\r\n\r\n",
+        "1\r\nx\r\n0\r\nX-A: 1\r\n",
+    ] {
+        let r = chunked_outcome(body, 64);
+        assert_eq!(r, Err("SPX-HPC036"), "{body:?}");
+    }
+    let oversized_trailer = format!("1\r\nx\r\n0\r\nX-A: {}\r\n\r\n", "a".repeat(20_000));
+    assert!(chunked_outcome(&oversized_trailer, 64).is_err());
+}
+
+#[test]
+fn valid_chunked_bodies_extensions_trailers_and_exact_cap_still_decode() {
+    assert_eq!(
+        chunked_outcome("3;ext=1\r\nabc\r\n2\r\nde\r\n0\r\nX-Sum: 1\r\n\r\n", 5),
+        Ok(b"abcde".to_vec())
+    );
+    assert_eq!(chunked_outcome("0\r\n\r\n", 5), Ok(Vec::new()));
+    assert_eq!(
+        chunked_outcome("6\r\nabcdef\r\n0\r\n\r\n", 5),
+        Err("SPX-HPC033")
+    );
+}

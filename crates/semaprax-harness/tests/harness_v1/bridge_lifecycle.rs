@@ -425,3 +425,302 @@ fn hn18_required_isolation_without_a_sandbox_refuses_instead_of_downgrading() {
     );
     assert!(r.get("result").is_none());
 }
+
+// ---------------------------------------------------------------------------
+// DV-05 (#565): response delivery stays inside the bounded worker lifecycle.
+// ---------------------------------------------------------------------------
+
+mod backpressure {
+    use super::*;
+    use semaprax_harness::bridge::inflight::MAX_IN_FLIGHT;
+    use semaprax_harness::bridge::rpc::serve_detached;
+    use std::io::Read;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::{Arc, Condvar, Mutex};
+
+    const WATCHDOG: Duration = Duration::from_secs(30);
+    const INVOKES: u64 = 12;
+
+    /// Reader yielding one frame per `read` and counting the frames it handed
+    /// out, then clean EOF. A session that stops reading stops this counter.
+    struct Frames {
+        lines: Vec<Vec<u8>>,
+        next: usize,
+        handed: Arc<AtomicUsize>,
+    }
+
+    impl Read for Frames {
+        fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+            let Some(line) = self.lines.get(self.next) else {
+                return Ok(0);
+            };
+            self.next += 1;
+            self.handed.fetch_add(1, Ordering::SeqCst);
+            buf[..line.len()].copy_from_slice(line);
+            Ok(line.len())
+        }
+    }
+
+    fn invoke_frames() -> Vec<Vec<u8>> {
+        // Invalid params: each invoke settles at once, with no adapter involved.
+        (1..=INVOKES)
+            .map(|id| format!("{{\"jsonrpc\":\"2.0\",\"id\":{id},\"method\":\"bridge/invoke\",\"params\":{{}}}}\n").into_bytes())
+            .collect()
+    }
+
+    #[derive(Default)]
+    struct Gate {
+        released: Mutex<bool>,
+        cv: Condvar,
+        entered: Mutex<bool>,
+        entered_cv: Condvar,
+    }
+
+    impl Gate {
+        fn release(&self) {
+            *self.released.lock().unwrap() = true;
+            self.cv.notify_all();
+        }
+        fn wait_entered(&self) {
+            let g = self.entered.lock().unwrap();
+            let (g, t) = self
+                .entered_cv
+                .wait_timeout_while(g, WATCHDOG, |e| !*e)
+                .unwrap();
+            assert!(*g && !t.timed_out(), "writer never entered");
+        }
+    }
+
+    /// A consumer that stops draining: its first write blocks until released.
+    struct Stalled {
+        gate: Arc<Gate>,
+        sink: Arc<Mutex<Vec<u8>>>,
+        first: bool,
+    }
+
+    impl Write for Stalled {
+        fn write(&mut self, b: &[u8]) -> std::io::Result<usize> {
+            if self.first {
+                self.first = false;
+                *self.gate.entered.lock().unwrap() = true;
+                self.gate.entered_cv.notify_all();
+                let g = self.gate.released.lock().unwrap();
+                let (_g, t) = self
+                    .gate
+                    .cv
+                    .wait_timeout_while(g, WATCHDOG, |r| !*r)
+                    .unwrap();
+                assert!(!t.timed_out(), "test never released the writer");
+            }
+            self.sink.lock().unwrap().extend_from_slice(b);
+            Ok(b.len())
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+
+    struct Rig {
+        env: Environment,
+        gate: Arc<Gate>,
+        sink: Arc<Mutex<Vec<u8>>>,
+        handed: Arc<AtomicUsize>,
+    }
+
+    fn rig() -> Rig {
+        let root = fixture_dir("hp-dv05").canonicalize().unwrap();
+        write(&root, "project/src/lib.rs", "pub fn a() {}\n");
+        Rig {
+            env: Environment {
+                harness_home: Some(root.join("home")),
+                compiler: None,
+                cwd: root,
+                vars: BTreeMap::from([("PATH".to_string(), "/usr/bin:/bin".to_string())]),
+            },
+            gate: Arc::default(),
+            sink: Arc::default(),
+            handed: Arc::default(),
+        }
+    }
+
+    fn handshaken<'a>(r: &'a Rig) -> Server<'a> {
+        let mut s = Server::new(&r.env, Path::new("project"));
+        s.handle(
+            "bridge/handshake",
+            &json!({"protocol": PROTOCOL, "version": 1, "host": {"name":"t","version":"1"}, "capabilities": {}, "command_rewriter": null}),
+        )
+        .expect("handshake");
+        s
+    }
+
+    fn reader(r: &Rig) -> std::io::BufReader<Frames> {
+        std::io::BufReader::new(Frames {
+            lines: invoke_frames(),
+            next: 0,
+            handed: r.handed.clone(),
+        })
+    }
+
+    fn writer(r: &Rig) -> Stalled {
+        Stalled {
+            gate: r.gate.clone(),
+            sink: r.sink.clone(),
+            first: true,
+        }
+    }
+
+    /// Wait until the session consumed `n` frames, then allow any overshoot
+    /// to show itself before the caller samples.
+    fn settle_at(r: &Rig, n: usize) -> usize {
+        let end = Instant::now() + WATCHDOG;
+        while r.handed.load(Ordering::SeqCst) < n && Instant::now() < end {
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        std::thread::sleep(Duration::from_millis(400));
+        r.handed.load(Ordering::SeqCst)
+    }
+
+    fn replies(r: &Rig) -> Vec<Value> {
+        String::from_utf8(r.sink.lock().unwrap().clone())
+            .unwrap()
+            .lines()
+            .map(|l| serde_json::from_str(l).unwrap())
+            .collect()
+    }
+
+    #[test]
+    fn blocked_output_cannot_exceed_the_documented_worker_bound_and_a_healthy_reader_resumes() {
+        let r = rig();
+        let (ok, consumed) = std::thread::scope(|s| {
+            let t = s.spawn(|| serve_with(reader(&r), writer(&r), handshaken(&r)));
+            r.gate.wait_entered();
+            let consumed = settle_at(&r, MAX_IN_FLIGHT + 1);
+            r.gate.release(); // the slow reader resumes inside the allowance
+            (t.join().unwrap(), consumed)
+        });
+        assert!(
+            consumed <= MAX_IN_FLIGHT + 1,
+            "session read {consumed} frames while output was blocked"
+        );
+        ok.expect("a healthy slow reader must not end the session");
+        let got = replies(&r);
+        let mut ids: Vec<u64> = got.iter().map(|v| v["id"].as_u64().unwrap()).collect();
+        ids.sort_unstable();
+        assert_eq!(ids, (1..=INVOKES).collect::<Vec<_>>(), "one reply per id");
+        assert!(
+            got.iter()
+                .any(|v| v["error"]["data"]["code"] == "SPX-HPN012"),
+            "admission refused while replies were undelivered: {got:?}"
+        );
+        assert!(
+            got.iter()
+                .all(|v| v["error"]["data"]["code"] == "SPX-HPN012"
+                    || v["error"]["data"]["code"] == "SPX-HPN005"),
+            "{got:?}"
+        );
+    }
+
+    #[test]
+    fn stalled_direct_output_ends_the_session_after_the_allowance() {
+        let r = rig();
+        let res = std::thread::scope(|s| {
+            let server = handshaken(&r).with_output_stall(Duration::from_millis(200));
+            let t = s.spawn(|| serve_with(reader(&r), writer(&r), server));
+            r.gate.wait_entered();
+            settle_at(&r, MAX_IN_FLIGHT + 1);
+            std::thread::sleep(Duration::from_millis(800)); // several maintenance ticks
+            r.gate.release();
+            t.join().unwrap()
+        });
+        let e = res.expect_err("a stalled consumer ends the session");
+        assert_eq!(e.kind(), std::io::ErrorKind::TimedOut, "{e}");
+    }
+
+    #[test]
+    fn detached_output_ends_the_session_while_the_consumer_stays_blocked() {
+        let r = rig();
+        let server = handshaken(&r).with_output_stall(Duration::from_millis(300));
+        let (tx, rx) = std::sync::mpsc::channel();
+        let (rd, wr) = (reader(&r), writer(&r));
+        // The server borrows the environment, so run it on a scoped thread
+        // and bound it from outside.
+        let res = std::thread::scope(|s| {
+            s.spawn(|| {
+                let _ = tx.send(serve_detached(rd, wr, server));
+            });
+            let res = rx
+                .recv_timeout(WATCHDOG)
+                .expect("session must end although the writer is blocked");
+            r.gate.release(); // test-controlled cleanup of the detached writer
+            res
+        });
+        let e = res.expect_err("stalled output is a session error");
+        assert_eq!(e.kind(), std::io::ErrorKind::TimedOut, "{e}");
+        assert!(
+            r.handed.load(Ordering::SeqCst) <= INVOKES as usize,
+            "never reads beyond what was sent"
+        );
+    }
+
+    #[test]
+    fn installed_stdio_path_survives_a_client_that_stops_reading_stdout() {
+        let root = fixture_dir("hp-dv05-pipe").canonicalize().unwrap();
+        write(&root, "project/src/lib.rs", "pub fn a() {}\n");
+        let mut child = Command::new(harness_bin())
+            .args(["bridge", root.join("project").to_str().unwrap(), "--stdio"])
+            .env_clear()
+            .env("PATH", "/usr/bin:/bin")
+            .env("SEMAPRAX_HARNESS_HOME", root.join("home"))
+            .env("SEMAPRAX_BRIDGE_OUTPUT_STALL_MS", "500")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        let mut stdin = child.stdin.take().unwrap();
+        // Never read stdout. Flood invokes from a thread: once the bridge stops
+        // reading, this writer blocks or errors and is simply abandoned.
+        let feeder = std::thread::spawn(move || {
+            let _ = writeln!(
+                stdin,
+                "{}",
+                json!({"jsonrpc":"2.0","id":0,"method":"bridge/handshake","params":
+                {"protocol": PROTOCOL, "version": 1, "host": {"name":"t","version":"1"}, "capabilities": {}, "command_rewriter": null}})
+            );
+            for id in 1..20_000u64 {
+                let f = json!({"jsonrpc":"2.0","id":id,"method":"bridge/invoke","params":{}});
+                if writeln!(stdin, "{f}").and_then(|()| stdin.flush()).is_err() {
+                    return;
+                }
+            }
+            std::thread::sleep(Duration::from_secs(60));
+        });
+        let end = Instant::now() + Duration::from_secs(60);
+        let status = loop {
+            if let Some(s) = child.try_wait().unwrap() {
+                break Some(s);
+            }
+            if Instant::now() >= end {
+                break None;
+            }
+            std::thread::sleep(Duration::from_millis(50));
+        };
+        let exited = status.is_some();
+        if !exited {
+            let _ = child.kill(); // finite outer watchdog: never leave the child behind
+        }
+        let mut err = String::new();
+        let _ = child.stderr.take().unwrap().read_to_string(&mut err);
+        let _ = child.wait();
+        drop(feeder);
+        assert!(exited, "bridge wedged on a stalled stdout consumer");
+        assert!(
+            !status.unwrap().success(),
+            "stalled output is a session error"
+        );
+        assert!(
+            err.contains("SPX-HPN007") && err.contains("stalled"),
+            "{err}"
+        );
+    }
+}

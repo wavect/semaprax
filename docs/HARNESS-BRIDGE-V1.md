@@ -83,7 +83,8 @@ gone but the external effect is unknown. A result that arrives after cancellatio
 (`result_discarded: true`) and never returned as current; for a side-effecting step it is also `uncertain-external-effect`.
 Responses carry `retried: false`: cancellation never causes a second attempt.
 
-Bounds: at most 4 invocations in flight (`SPX-HPN012`), unique ids (`SPX-HPN013`), 1 MiB frames, the adapter's own
+Bounds: at most 4 invocations in flight or awaiting response delivery (`SPX-HPN012`; a slot is held until the
+response frame is written, not only until the adapter settles), unique ids (`SPX-HPN013`), 1 MiB frames, the adapter's own
 queue and concurrency limits. A client that closes stdin (crash or hang-up) cancels every live invocation and the session
 returns only after they are reaped. A bridge killed by `SIGKILL` cannot run that cleanup: its adapter's process group
 survives until the adapter exits or its idle/deadline limits fire (Unix offers no parent-death signal in safe std).
@@ -104,6 +105,18 @@ a panic) cancels every live token **before** scoped workers are joined, so owned
 ordinary cancellation allowance rather than the invocation deadline. A worker whose response write fails marks the
 output channel broken, cancels all live work and ends the session at the next frame boundary (a blocking read cannot be
 interrupted portably). Post-dispatch `SideEffecting` work keeps its `uncertain-external-effect` handling and is not retried.
+
+*Output backpressure (DV-05).* A response worker owns its slot through delivery, so a client that keeps sending but
+stops reading stdout cannot accumulate unbounded workers or buffered results: the fifth call is refused and the loop
+stops reading once its own reply blocks. The installed `--stdio` server uses `rpc::serve_detached`: frames go through
+one bounded queue to a detached writer on a duplicate of fd 1; a producer waits at most the stall allowance
+(default 30 s, `SEMAPRAX_BRIDGE_OUTPUT_STALL_MS`, 1..=600000) for room, after which the session ends with `TimedOut`
+(`SPX-HPN007`, nonzero exit), live work is cancelled and reaped, and a dispatched side-effecting call stays
+`uncertain-external-effect`. A slow reader that resumes inside the allowance loses nothing and no call runs twice.
+`rpc::serve_with` (embedding) writes on session threads: it applies the same slot bound and, after
+`Server::with_output_stall` without write progress, cancels live work and ends the session at the next frame
+boundary, but it cannot return while the supplied `Write` is blocked; embedders whose writer may block forever must
+use `serve_detached`.
 
 While waiting for input the session runs a lifecycle-owned maintenance tick (every 250 ms, a few cheap scans per
 second) that calls the host's `AdapterManager::reap_idle(now)`. An adapter idle past its descriptor `idle_shutdown_ms` is

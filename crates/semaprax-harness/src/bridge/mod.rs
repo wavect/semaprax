@@ -12,6 +12,7 @@ pub mod hostskills;
 pub mod inflight;
 pub mod mcp;
 pub mod negotiate;
+pub(crate) mod outbox;
 pub mod rpc;
 pub mod setup;
 pub mod shell;
@@ -25,6 +26,36 @@ use std::path::PathBuf;
 
 fn usage(m: &str) -> Outcome {
     Outcome::usage(format!("bridge: {m}\nbridge <project> --stdio | --mcp | --setup claude-code [--write] | --host claude-code [--hook pre-tool-use | --print-config] [--settings-file F]... [--log F] [--harness-bin P] [--session ID] [--host-skills-dir D] [--harness-home D]"))
+}
+
+/// Environment override for the stdio output-stall allowance (milliseconds).
+const OUTPUT_STALL_VAR: &str = "SEMAPRAX_BRIDGE_OUTPUT_STALL_MS";
+
+fn output_stall(env: &Environment) -> std::time::Duration {
+    // `Environment::from_process` forwards only a fixed allowlist, so the
+    // process environment is read here directly for this one tuning knob.
+    env.vars
+        .get(OUTPUT_STALL_VAR)
+        .cloned()
+        .or_else(|| std::env::var(OUTPUT_STALL_VAR).ok())
+        .and_then(|v| v.parse::<u64>().ok())
+        .filter(|ms| (1..=600_000).contains(ms))
+        .map_or(rpc::OUTPUT_STALL, std::time::Duration::from_millis)
+}
+
+/// Response writer for the stdio server. On Unix this is a duplicate of fd 1
+/// rather than the process-global `Stdout`: a writer thread left blocked on a
+/// stalled consumer would otherwise keep the global stdout lock and wedge the
+/// CLI's own final `print!` after the session ended.
+fn stdout_writer() -> Box<dyn std::io::Write + Send> {
+    #[cfg(unix)]
+    {
+        use std::os::fd::AsFd;
+        if let Ok(fd) = std::io::stdout().as_fd().try_clone_to_owned() {
+            return Box::new(std::fs::File::from(fd));
+        }
+    }
+    Box::new(std::io::stdout())
 }
 
 pub fn cli_bridge(args: &[String], env: &Environment) -> Outcome {
@@ -108,8 +139,9 @@ pub fn cli_bridge(args: &[String], env: &Environment) -> Outcome {
         let server = rpc::Server::new(env, &project)
             .with_session(session)
             .with_host_skills_dir(skills_dir)
-            .with_log(log);
-        return match rpc::serve_with(stdin.lock(), std::io::stdout(), server) {
+            .with_log(log)
+            .with_output_stall(output_stall(env));
+        return match rpc::serve_detached(stdin.lock(), stdout_writer(), server) {
             Ok(()) => Outcome::ok(""),
             Err(e) => {
                 Outcome::refused(&HarnessDiagnostic::new("SPX-HPN007", format!("stdio: {e}")))

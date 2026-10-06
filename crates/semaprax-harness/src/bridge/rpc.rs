@@ -5,6 +5,7 @@ use super::frame::{read_frame, FrameError};
 use super::hostskills;
 use super::inflight::{self, Invoker};
 use super::negotiate::{self, Availability, HostDeclaration, Owner, DEPTH_VAR};
+use super::outbox::{Direct, Pumped, Sink};
 use super::skills_bridge::SkillsBridge;
 use crate::cli::Environment;
 use crate::command_view::{self, ExecOptions};
@@ -22,6 +23,10 @@ use std::time::{Duration, Instant};
 
 const FRAME_LIMIT: usize = 1 << 20;
 
+/// How long response delivery may make no progress before the session treats
+/// the client as gone (cancels live work, refuses to continue).
+pub const OUTPUT_STALL: Duration = Duration::from_secs(30);
+
 fn diag(code: &'static str, msg: impl Into<String>) -> HarnessDiagnostic {
     HarnessDiagnostic::new(code, msg)
 }
@@ -38,9 +43,15 @@ pub struct Server<'a> {
     host_skills_dir: Option<PathBuf>,
     log: Option<PathBuf>,
     invoker: Arc<Invoker>,
+    output_stall: Duration,
 }
 
 impl<'a> Server<'a> {
+    /// Output-stall allowance (default [`OUTPUT_STALL`]).
+    pub fn with_output_stall(mut self, d: Duration) -> Self {
+        self.output_stall = d;
+        self
+    }
     /// Session identity from the launcher (`--session`); a v2 handshake `session` wins.
     pub fn with_session(mut self, s: Option<String>) -> Self {
         self.session = s;
@@ -101,6 +112,7 @@ impl<'a> Server<'a> {
             host_skills_dir: None,
             log: None,
             invoker,
+            output_stall: OUTPUT_STALL,
         }
     }
 
@@ -300,19 +312,56 @@ impl Drop for EndOfSession<'_> {
     }
 }
 
+/// Release of a worker's slot once its response was delivered or failed.
+struct Owned(Arc<Invoker>);
+
+impl Drop for Owned {
+    fn drop(&mut self) {
+        self.0.registry.release();
+    }
+}
+
 /// Serve with a preconfigured server (session, host skills directory, log).
+///
+/// Output contract (DV-05): each response worker owns one of the
+/// `MAX_IN_FLIGHT` slots until its frame is written, so a client that stops
+/// reading cannot make workers pile up; further invokes are refused
+/// (`SPX-HPN012`) and the loop stops reading once its own reply blocks. `out`
+/// is written on session threads and a blocked `Write` cannot be cancelled
+/// portably: after `Server::with_output_stall` without progress the session
+/// cancels every live invocation, but it can only *return* once `out` returns.
+/// Embedders whose writer may block forever should use [`serve_detached`].
 pub fn serve_with<R: BufRead, W: Write + Send>(
-    mut reader: R,
+    reader: R,
     out: W,
+    server: Server,
+) -> std::io::Result<()> {
+    let sink = Direct::new(out, server.output_stall);
+    serve_sink(reader, &sink, server)
+}
+
+/// Like [`serve_with`] for an owned writer: frames pass through one bounded
+/// queue to a detached writer thread, so a consumer that stops reading ends
+/// the session with `TimedOut` after the stall allowance (live adapter work
+/// cancelled and reaped) instead of wedging it. The writer thread may stay
+/// blocked until the process exits.
+pub fn serve_detached<R: BufRead, W: Write + Send + 'static>(
+    reader: R,
+    out: W,
+    server: Server,
+) -> std::io::Result<()> {
+    let sink = Pumped::spawn(out, server.output_stall);
+    serve_sink(reader, &sink, server)?;
+    sink.finish()
+}
+
+fn serve_sink<R: BufRead, S: Sink>(
+    mut reader: R,
+    sink: &S,
     mut server: Server,
 ) -> std::io::Result<()> {
     let limits = JsonLimits::frame(FRAME_LIMIT);
-    let out = Mutex::new(out);
-    let send = |r: &Value| -> std::io::Result<()> {
-        let mut o = out.lock().unwrap_or_else(|p| p.into_inner());
-        writeln!(o, "{}", canonical(r))?;
-        o.flush()
-    };
+    let send = |r: &Value| -> std::io::Result<()> { sink.put(&canonical(r)) };
     let invoker = server.invoker.clone();
     let stop = Stop::default();
     // First worker write failure: the client can no longer hear us.
@@ -326,6 +375,20 @@ pub fn serve_with<R: BufRead, W: Write + Send>(
         scope.spawn(|| {
             while !stop.wait_tick() {
                 invoker.reap_idle(Instant::now());
+                if sink.stalled() {
+                    // No reader on the other side: end the session policy.
+                    broken
+                        .lock()
+                        .unwrap_or_else(|p| p.into_inner())
+                        .get_or_insert_with(|| {
+                            std::io::Error::new(
+                                std::io::ErrorKind::TimedOut,
+                                "bridge output stalled: the client stopped reading responses",
+                            )
+                        });
+                    broken_flag.store(true, Ordering::SeqCst);
+                    invoker.registry.cancel_all();
+                }
             }
         });
         loop {
@@ -361,6 +424,7 @@ pub fn serve_with<R: BufRead, W: Write + Send>(
                         Ok((key, id, params, token, inv)) => {
                             let (send, broken, broken_flag) = (&send, &broken, &broken_flag);
                             scope.spawn(move || {
+                                let _slot = Owned(inv.clone());
                                 let r = inv.run(&params, &token);
                                 let state = r.as_ref().map_or("refused", inflight::settled_state);
                                 inv.registry.settle(&key, state);

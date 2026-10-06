@@ -67,6 +67,10 @@ struct Inner {
     /// Final state per settled id: a cancel state or `completed`.
     settled: BTreeMap<String, &'static str>,
     order: VecDeque<String>,
+    /// Workers that own a slot until their response is *delivered*. A slot
+    /// leaves `live` at settlement but stays owned here through the output
+    /// write, so a stalled consumer cannot stack up unbounded reply workers.
+    owned: usize,
 }
 
 /// In-flight table: bounded, keyed by the canonical JSON-RPC id.
@@ -82,17 +86,30 @@ impl Registry {
                 format!("request id {key} is already in flight"),
             ));
         }
-        if g.live.len() >= MAX_IN_FLIGHT {
+        if g.live.len() >= MAX_IN_FLIGHT || g.owned >= MAX_IN_FLIGHT {
             return Err(diag(
                 "SPX-HPN012",
                 format!(
-                    "{MAX_IN_FLIGHT} invocations are already in flight; retry after one settles"
+                    "{MAX_IN_FLIGHT} invocations are already in flight or awaiting response delivery; retry after one settles"
                 ),
             ));
         }
+        g.owned += 1;
         g.settled.remove(key);
         g.live.insert(key.to_string(), token.clone());
         Ok(())
+    }
+
+    /// Give back the slot taken by `begin` once the response was delivered
+    /// (or its delivery failed). Pairs with exactly one successful `begin`.
+    pub fn release(&self) {
+        let mut g = lock(&self.0);
+        g.owned = g.owned.saturating_sub(1);
+    }
+
+    /// Slots still owned by a worker, including those only delivering.
+    pub fn owned(&self) -> usize {
+        lock(&self.0).owned
     }
 
     pub fn settle(&self, key: &str, state: &'static str) {

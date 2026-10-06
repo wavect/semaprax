@@ -62,6 +62,15 @@ host caller invokes `AdapterHandle::invoke`, after a trust `Grant`.
   spoofed result binding/authority member `HPC015`) kill the group and
   quarantine. Payload-level refusals (`HPA040..046`, e.g. path escape, choice
   outside options) discard the result and keep the adapter.
+- A violation the reader records while no request is pending (an unsolicited
+  frame between invocations) has the same effect. Before any replacement the
+  handle reconciles the cached generation's exact close reason under the `core`
+  lock: `Violation` quarantines (`state()` reports it at once, and the next
+  invocation returns the original diagnostic with no new start and no
+  `harness/invoke` frame); an idle `Exited`/`Transport` close is charged to the
+  crash breaker once per generation; host-initiated closes (idle reap,
+  shutdown) stay freely restartable. A stale generation never overwrites a
+  newer one.
 
 ## Diagnostics
 
@@ -92,6 +101,13 @@ refused with "remote transport requires TLS, unsupported in v1". Redirects
 are refused, responses are size-bounded, calls are timeout-bounded, and the
 credential header is injected by the host and redacted in `Debug`. The only way
 to name a destination is `ApprovedEndpoint::from_host_config`.
+
+Chunked responses are decoded strictly: the chunk size is hex digits only, a size
+that does not fit the remaining response budget (including one beyond `usize`) is
+`SPX-HPC033`, never a panic; each data chunk must be followed by exactly CRLF; the
+last chunk must be followed by a bounded (8 KiB) trailer section of `name: value`
+lines and the terminating empty line. Truncated or malformed framing is
+`SPX-HPC036`, so a body that is not complete valid chunked framing is never a success.
 
 ## Cancellation across the bridge (HN-18)
 

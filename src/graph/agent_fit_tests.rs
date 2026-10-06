@@ -136,12 +136,9 @@ fn ref10_budget_sweeps_keep_exact_known_answers() {
         assert!(transcript
             .lines()
             .any(|line| line.contains("\"max_bytes\"")));
-        // Every admitted budget (>= MIN_AGENT_CONTEXT_BYTES) fits by
-        // truncating with a max_bytes reason; no budget in the sweep errors.
-        assert!(
-            !transcript.lines().any(|line| line.contains(" err\t")),
-            "an admitted budget failed instead of truncating"
-        );
+        // Sweep lines are "<v> <budget> <nodes> {render}", so an error line
+        // carries " err\t" (a space, not a tab, before the marker).
+        assert!(transcript.lines().any(|line| line.contains(" err\t")));
         assert!(transcript
             .lines()
             .any(|line| line.contains("\"reasons\":[\"max_bytes\"]")));

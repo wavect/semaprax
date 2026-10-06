@@ -1,0 +1,409 @@
+name: Install distribution
+
+# Exercises the per-user installers (docs/INSTALLER-V1.md) on real hosted
+# hosts: their fixture suites under every supported shell, and the literal
+# install -> beginner journey -> reinstall -> damaged-artifact control ->
+# uninstall sequence against the latest published release's exact assets,
+# and a candidate dry run that packages this commit for every release target
+# (Linux inside the glibc 2.35 baseline container) and installs those bytes.
+# The tag-time gate that runs the same journey against unpublished candidate
+# bytes lives in ci.yml (`release-install-journey`); this workflow keeps the
+# installers honest between releases. It runs only when an installer, its
+# tests, or this file changes, or on manual dispatch.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - scripts/install.sh
+      - scripts/install.ps1
+      - scripts/install-journey.sh
+      - scripts/install-journey.ps1
+      - scripts/test-install-sh.py
+      - scripts/test-install-ps1.ps1
+      - scripts/package-release.sh
+      - scripts/package-release.ps1
+      - scripts/package-release-linux-container.sh
+      - scripts/release-manifest.py
+      - packaging/archive/**
+      - .github/workflows/install-distribution.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: install-distribution-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The newest published release whose assets the journey installs. It must
+  # carry SHA256SUMS, release-manifest.json and per-target attestations.
+  JOURNEY_TAG: v0.8.0
+
+jobs:
+  unix-installer-suite:
+    name: Unix installer suite (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 1
+      - name: ShellCheck the installer and journey runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v shellcheck >/dev/null; then
+            if [ "$RUNNER_OS" = macOS ]; then brew install shellcheck; else sudo apt-get install -y shellcheck; fi
+          fi
+          shellcheck -S warning -s sh scripts/install.sh scripts/install-journey.sh
+      - name: Fixture suite
+        run: python3 scripts/test-install-sh.py -v
+
+  windows-installer-suite:
+    name: Windows installer suite (${{ matrix.shell }})
+    strategy:
+      fail-fast: false
+      matrix:
+        shell: [powershell, pwsh]
+    runs-on: windows-2025
+    timeout-minutes: 20
+    steps:
+      - name: Allow Windows to check out long paths
+        if: runner.os == 'Windows'
+        shell: bash
+        run: git config --system core.longpaths true
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 1
+      - name: Fixture and end-to-end suite (powershell)
+        if: matrix.shell == 'powershell'
+        shell: powershell
+        run: |
+          $PSVersionTable.PSVersion.ToString()
+          & ./scripts/test-install-ps1.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Fixture and end-to-end suite (pwsh)
+        if: matrix.shell == 'pwsh'
+        shell: pwsh
+        run: |
+          $PSVersionTable.PSVersion.ToString()
+          & ./scripts/test-install-ps1.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  published-journey:
+    name: Published-release journey (${{ matrix.target }}, ${{ matrix.shell }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            extension: tar.gz
+            shell: bash
+          - os: macos-15
+            target: aarch64-apple-darwin
+            extension: tar.gz
+            shell: bash
+          - os: windows-2025
+            target: x86_64-pc-windows-msvc
+            extension: zip
+            shell: powershell
+          - os: windows-2025
+            target: x86_64-pc-windows-msvc
+            extension: zip
+            shell: pwsh
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - name: Allow Windows to check out long paths
+        if: runner.os == 'Windows'
+        shell: bash
+        run: git config --system core.longpaths true
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 1
+      - name: Fetch exactly the selected target's published assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir journey-assets
+          gh release download "$JOURNEY_TAG" -R wavect/semaprax -D journey-assets \
+            -p "semaprax-$JOURNEY_TAG-${{ matrix.target }}.${{ matrix.extension }}" \
+            -p SHA256SUMS -p release-manifest.json \
+            -p "release-attestation-${{ matrix.target }}.json"
+          # The installer under test is this commit's, not a published one.
+          cp scripts/install.sh scripts/install.ps1 journey-assets/
+          ls -la journey-assets
+      - name: Unix journey (publisher verification required)
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          SEMAPRAX_JOURNEY_REQUIRE_PUBLISHER: "1"
+        run: sh scripts/install-journey.sh "$PWD/journey-assets" "$JOURNEY_TAG"
+      - name: Windows journey, powershell (publisher verification required)
+        if: runner.os == 'Windows' && matrix.shell == 'powershell'
+        shell: powershell
+        env:
+          SEMAPRAX_JOURNEY_PUBLISHER_VERIFY: "1"
+        run: |
+          & ./scripts/install-journey.ps1 -AssetsDir "$PWD\journey-assets" -Tag $env:JOURNEY_TAG
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Windows journey, pwsh (publisher verification required)
+        if: runner.os == 'Windows' && matrix.shell == 'pwsh'
+        shell: pwsh
+        env:
+          SEMAPRAX_JOURNEY_PUBLISHER_VERIFY: "1"
+        run: |
+          & ./scripts/install-journey.ps1 -AssetsDir "$PWD\journey-assets" -Tag $env:JOURNEY_TAG
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  incompatible-runtime-control:
+    # A release built against a newer glibc than the host provides must be
+    # refused before activation, leaving no installation behind.
+    name: Incompatible glibc is refused before activation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 1
+      - name: Install the published release in an ubuntu:22.04 container
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm -v "$PWD/scripts:/scripts:ro" -e JOURNEY_TAG ubuntu:22.04 sh -c '
+            set -u
+            apt-get update -qq >/dev/null && apt-get install -y -qq curl ca-certificates >/dev/null
+            getconf GNU_LIBC_VERSION
+            if sh /scripts/install.sh --version "$JOURNEY_TAG" --prefix /root/sp --no-modify-path; then
+              echo "installer accepted a release this glibc cannot run" >&2; exit 1
+            fi
+            test ! -e /root/sp/current || { echo "activation happened" >&2; exit 1; }
+            test ! -e /root/sp/bin/semaprax || { echo "bin link left behind" >&2; exit 1; }
+            echo "refused before activation as required"
+          '
+
+  candidate-package:
+    # Packages this commit for every release target exactly as the tag
+    # pipeline does, so packaging, runtime-baseline and new-target breaks
+    # surface before a tag. The archives carry the Cargo version's tag name
+    # but are never published; their provenance attestations name this
+    # branch, not a release tag.
+    name: Candidate package (${{ matrix.target }})
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 240
+    permissions:
+      attestations: write
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            extension: tar.gz
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            extension: tar.gz
+          - os: macos-15
+            target: aarch64-apple-darwin
+            extension: tar.gz
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
+            extension: tar.gz
+          - os: windows-2025
+            target: x86_64-pc-windows-msvc
+            extension: zip
+    steps:
+      - name: Allow Windows to check out long paths
+        if: runner.os == 'Windows'
+        shell: bash
+        run: git config --system core.longpaths true
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 1
+      - uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # master
+        with:
+          toolchain: 1.97.1
+      - name: Package (Linux, glibc 2.35 baseline container)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          version=$(sed -n 's/^version = "\([^"]*\)"$/\1/p' Cargo.toml)
+          scripts/package-release-linux-container.sh "v$version" "$GITHUB_SHA" "${{ matrix.target }}" dist
+      - name: Package (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          version=$(sed -n 's/^version = "\([^"]*\)"$/\1/p' Cargo.toml)
+          scripts/package-release.sh "v$version" "$GITHUB_SHA" "${{ matrix.target }}" dist
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $version = (Select-String -Path Cargo.toml -Pattern '^version = "([^"]*)"$' | Select-Object -First 1).Matches[0].Groups[1].Value
+          scripts/package-release.ps1 -Tag "v$version" -Commit $env:GITHUB_SHA -Target "${{ matrix.target }}" -OutputRoot dist
+      - name: Record the archive's runtime requirements
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^version = "\([^"]*\)"$/\1/p' Cargo.toml)
+          package="semaprax-v$version-${{ matrix.target }}"
+          cat "dist/$package/release-manifest.json"
+      - name: Run the archive product harness against the exact packaged archive
+        shell: bash
+        env:
+          CARGO_PROFILE_TEST_DEBUG: "0"
+          CARGO_INCREMENTAL: "0"
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^version = "\([^"]*\)"$/\1/p' Cargo.toml)
+          package="semaprax-v$version-${{ matrix.target }}"
+          unpacked="$RUNNER_TEMP/archive-product"
+          mkdir "$unpacked"
+          # Unpacked outside the checkout, from the archive bytes themselves.
+          if [ "${{ matrix.extension }}" = zip ]; then
+            python3 -m zipfile -e "dist/$package.zip" "$unpacked"
+          else
+            python3 -m tarfile -e "dist/$package.tar.gz" "$unpacked"
+          fi
+          SEMAPRAX_RELEASE_ROOT="$unpacked/$package" SEMAPRAX_RELEASE_COMMIT="$GITHUB_SHA" \
+            cargo test --locked -p semaprax --test release_archive_product_v1 -- \
+            --ignored provisioned_archive_cli_and_daemon_work_outside_checkout --exact --nocapture
+      - name: Attest the candidate archive (branch provenance, not a release)
+        id: attest
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/semaprax-v*-${{ matrix.target }}.${{ matrix.extension }}
+      - name: Stage the attestation bundle
+        shell: bash
+        env:
+          ATTESTATION_BUNDLE: ${{ steps.attest.outputs.bundle-path }}
+        run: cp -- "$ATTESTATION_BUNDLE" "dist/release-attestation-${{ matrix.target }}.json"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: candidate-${{ matrix.target }}
+          path: |
+            dist/semaprax-v*-${{ matrix.target }}.${{ matrix.extension }}
+            dist/release-attestation-${{ matrix.target }}.json
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 0
+
+  candidate-metadata:
+    name: Candidate metadata
+    needs: candidate-package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 1
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: candidate-*
+          path: dist
+          merge-multiple: true
+      - name: Assemble SHA256SUMS and the aggregate manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^version = "\([^"]*\)"$/\1/p' Cargo.toml)
+          cp scripts/install.sh scripts/install.ps1 dist/
+          (cd dist && sha256sum semaprax-v"$version"-* install.sh install.ps1) > dist/SHA256SUMS
+          python3 scripts/release-manifest.py --version "$version" --tag "v$version" \
+            --commit "$GITHUB_SHA" --archives-dir dist --output dist/release-manifest.json
+          python3 scripts/release-notes.py --version "$version" --assets-dir dist > release-notes-preview.md
+          head -c 4000 release-notes-preview.md
+          mkdir meta && cp dist/SHA256SUMS dist/release-manifest.json meta/
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: candidate-meta
+          path: meta
+          if-no-files-found: error
+          retention-days: 3
+
+  candidate-journey:
+    name: Candidate journey (${{ matrix.target }}, ${{ matrix.shell }})
+    needs: candidate-metadata
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-24.04, target: x86_64-unknown-linux-gnu, extension: tar.gz, shell: sh }
+          - { os: ubuntu-24.04-arm, target: aarch64-unknown-linux-gnu, extension: tar.gz, shell: sh }
+          - { os: macos-15, target: aarch64-apple-darwin, extension: tar.gz, shell: sh }
+          - { os: macos-15-intel, target: x86_64-apple-darwin, extension: tar.gz, shell: sh }
+          - { os: windows-2025, target: x86_64-pc-windows-msvc, extension: zip, shell: powershell }
+          - { os: windows-2025, target: x86_64-pc-windows-msvc, extension: zip, shell: pwsh }
+    steps:
+      - name: Allow Windows to check out long paths
+        if: runner.os == 'Windows'
+        shell: bash
+        run: git config --system core.longpaths true
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 1
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: candidate-${{ matrix.target }}
+          path: candidate
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: candidate-meta
+          path: candidate
+      - name: Stage installers and verify the branch provenance
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cp scripts/install.sh scripts/install.ps1 candidate/
+          version=$(sed -n 's/^version = "\([^"]*\)"$/\1/p' Cargo.toml)
+          echo "TAG=v$version" >> "$GITHUB_ENV"
+          gh attestation verify "candidate/semaprax-v$version-${{ matrix.target }}.${{ matrix.extension }}" \
+            --bundle "candidate/release-attestation-${{ matrix.target }}.json" \
+            --repo wavect/semaprax --source-ref "$GITHUB_REF" --deny-self-hosted-runners
+      - name: Linux journey in the glibc 2.35 baseline container
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm -e TAG -v "$PWD/scripts/install-journey.sh:/journey.sh:ro" \
+            -v "$PWD/candidate:/candidate:ro" ubuntu:22.04 sh -c '
+              set -eu
+              apt-get update -qq >/dev/null
+              apt-get install -y -qq curl ca-certificates >/dev/null
+              getconf GNU_LIBC_VERSION
+              cp -R /candidate /tmp/candidate
+              sh /journey.sh /tmp/candidate "$TAG"
+            '
+      - name: macOS journey (checksum only; candidate has no tag attestation)
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          SEMAPRAX_JOURNEY_HIDE_GH: "1"
+        run: sh scripts/install-journey.sh "$PWD/candidate" "$TAG"
+      - name: Windows PowerShell 5.1 journey
+        if: runner.os == 'Windows' && matrix.shell == 'powershell'
+        shell: powershell
+        run: |
+          & ./scripts/install-journey.ps1 -AssetsDir "$PWD\candidate" -Tag $env:TAG
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: PowerShell 7 journey
+        if: runner.os == 'Windows' && matrix.shell == 'pwsh'
+        shell: pwsh
+        run: |
+          & ./scripts/install-journey.ps1 -AssetsDir "$PWD\candidate" -Tag $env:TAG
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

@@ -458,6 +458,31 @@ publication instead of silently creating incomplete notes. Without
 `--assets-dir` only the asset-independent guidance is rendered (no table, no
 one-liners).
 
+### Installed-distribution gate
+
+Each producer also runs the provisioned archive harness
+(`tests/release_archive_product_v1.rs`, ignored test
+`provisioned_archive_cli_and_daemon_work_outside_checkout`) against its exact
+packaged archive, unpacked outside the checkout. `release-candidate` then
+assembles the `SHA256SUMS` and aggregate manifest publication will carry,
+including the tagged `install.sh` and `install.ps1` copied verbatim, and
+`release-install-journey` installs every target's exact attested archive
+through the tagged installer's normal download path (staged with `file://`,
+never a rebuilt binary): Linux inside a bare `ubuntu:22.04` container (the
+glibc 2.35 baseline, no Rust, Clang, Node or checkout on the execution path),
+macOS natively with publisher verification required, and Windows under both
+PowerShell 5.1 and 7 with publisher verification required. Each cell walks
+`scripts/install-journey.sh` or `scripts/install-journey.ps1`: a fresh prefix
+whose path contains a space, executables byte-identical to the archive
+members, the beginner journey printing 42, the `semapraxd` protocol
+handshake, same-version reinstall, a damaged-archive control that must fail
+and leave the previous install working, and uninstall. `publish-release`
+needs every cell, regenerates both metadata files and refuses to publish
+unless they are byte-identical to the tested candidate, then checks read-only
+that the published URLs resolve. `.github/workflows/install-distribution.yml`
+runs the same journey between releases against the latest published release
+and a candidate dry run of the current commit.
+
 ## Canonical release manifest
 
 `scripts/release-manifest.py` builds the aggregate, cross-archive release

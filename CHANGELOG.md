@@ -22,6 +22,49 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Installation: one-command per-user installers. `install.sh` (macOS and
+  GNU/Linux) and `install.ps1` (Windows PowerShell 5.1 and 7) resolve a
+  release once, download only the selected archive and its verification
+  material, check it against `SHA256SUMS` and the release manifest, verify
+  the publisher attestation with `gh attestation verify` when available
+  (reported separately from checksum-only), smoke the staged binary, then
+  activate atomically with a receipt, version pinning, upgrade, downgrade
+  and receipt-scoped uninstall (`docs/INSTALLER-V1.md`; #552, #553).
+- Releases: five native targets (`aarch64-unknown-linux-gnu` and
+  `x86_64-apple-darwin` join the existing three). Linux archives are built in
+  an `ubuntu:22.04` container and rejected above `GLIBC_2.35`, macOS
+  deployment targets are pinned and checked, and every archive records its
+  runtime requirements (#555, #560). Installers are explicit release assets
+  in `SHA256SUMS` and the manifest's new optional `installers` inventory, and
+  `doctor verify-release` re-hashes them.
+- Releases are published only after every target's exact attested archive
+  passes the installer journey (fresh prefix with a space, beginner
+  project printing 42, daemon handshake, reinstall, damaged-archive control,
+  uninstall) on its native host, Linux inside the glibc 2.35 baseline; the
+  published `SHA256SUMS` and manifest must equal the tested candidate. The
+  provisioned archive harness matches the current starter contract (#556).
+- Release pages lead with an install table and the next command; the
+  changelog is collapsed. Archive `README.md` files are rendered per
+  platform with tag-pinned links and the first-project journey (#554).
+- The handbook install page is the prebuilt-first beginner guide, with
+  selected-archive checksums, PATH setup and a checkout-free first project;
+  `release-reconcile.py` checks install claims against
+  `packaging/channels.json` (#551). Homebrew: `brew install
+  wavect/tap/semaprax` (Apple Silicon; #557). WinGet manifests are generated
+  from release metadata (#558).
+- VS Code: **SEMAPRAX: Configure Compiler** and a compiler status item
+  select, probe and repair the compiler without editing settings JSON
+  (#559); hot-reload stdin failures end the session cleanly (#571) and
+  stdout is framed as LF-delimited bytes with strict UTF-8 (#572).
+- Fixed: native code keeps an earlier operand's read of a `let mut` Copy
+  value when a later operand assigns it (#561).
+- Harness fixes: update-state writers are serialized so a stale check cannot
+  erase a revocation (#563); strict update ranges with zero-major caret
+  rules (#575); terminal Python adapter cancellation and a conformance suite
+  that enforces it (#564); bounded bridge backpressure (#565); idle protocol
+  violations stay quarantined (#566); strict chunked HTTP framing (#570);
+  qualified evidence before the cost ladder narrows the model pool (#569);
+  budget-fitted Graft envelopes (#573); request-scoped Graphify results (#574).
 - The `SPX-U101` parameter hint no longer suggests `let mut value = value;`,
   which shadowed the parameter and failed with `SPX-T209`; it names a new
   local. New help for `mut` parameters (`SPX-U103`), a `-> str` result

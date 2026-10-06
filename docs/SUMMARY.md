@@ -10,6 +10,7 @@ Audience: all documentation readers.
 
 - [Documentation overview](index.md)
 - [Install](INSTALL.md)
+- [Installer v1](INSTALLER-V1.md)
 - [Quickstart](QUICKSTART.md)
 - [Using the SEMAPRAX CLI](CLI-GUIDE.md)
 - [Hot reload benchmark v1](HOT-RELOAD-BENCHMARK-V1.md)

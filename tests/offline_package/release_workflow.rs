@@ -818,3 +818,57 @@ fn release_process_documents_state_and_reconciliation() {
         assert!(docs.contains(exact), "release process lost: {exact}");
     }
 }
+
+#[test]
+fn publication_requires_the_installed_distribution_journey_on_candidate_bytes() {
+    let workflow = read(".github/workflows/ci.yml");
+    let artifacts = job(&workflow, "release-artifacts");
+    assert!(artifacts
+        .contains("--ignored provisioned_archive_cli_and_daemon_work_outside_checkout --exact"));
+    let candidate = job(&workflow, "release-candidate");
+    for exact in [
+        "if: ${{ success() && startsWith(github.ref, 'refs/tags/v') }}",
+        "needs: release-artifacts",
+        "cp scripts/install.sh scripts/install.ps1 dist/",
+        "python3 scripts/release-manifest.py",
+        "name: candidate-metadata",
+    ] {
+        assert!(candidate.contains(exact), "candidate job lost: {exact}");
+    }
+    let journey = job(&workflow, "release-install-journey");
+    for exact in [
+        "if: ${{ success() && startsWith(github.ref, 'refs/tags/v') }}",
+        "needs: release-candidate",
+        "fail-fast: false",
+        "target: x86_64-unknown-linux-gnu",
+        "target: aarch64-unknown-linux-gnu",
+        "target: aarch64-apple-darwin",
+        "target: x86_64-apple-darwin",
+        "target: x86_64-pc-windows-msvc",
+        "shell: powershell",
+        "shell: pwsh",
+        "name: release-${{ matrix.target }}",
+        "ubuntu:22.04",
+        "gh attestation verify",
+        "SEMAPRAX_JOURNEY_REQUIRE_PUBLISHER: \"1\"",
+        "SEMAPRAX_JOURNEY_PUBLISHER_VERIFY: \"1\"",
+        "scripts/install-journey.ps1",
+    ] {
+        assert!(journey.contains(exact), "install journey lost: {exact}");
+    }
+    let publish = job(&workflow, "publish-release");
+    for exact in [
+        "      - release-install-journey",
+        "cmp candidate/SHA256SUMS dist/SHA256SUMS",
+        "cmp candidate/release-manifest.json dist/release-manifest.json",
+        "cmp scripts/install.sh dist/install.sh",
+        "            dist/install.sh dist/install.ps1\n          )",
+    ] {
+        assert!(publish.contains(exact), "publication lost: {exact}");
+    }
+    for job_text in [candidate, journey] {
+        for forbidden in ["continue-on-error", "contents: write", "always()"] {
+            assert!(!job_text.contains(forbidden), "{forbidden}");
+        }
+    }
+}

@@ -42,7 +42,13 @@ pub(crate) const RELEASE_BLOCKERS: &[&str] = &[
 ];
 
 /// Jobs that run only on `refs/tags/v*` and so are never release blockers.
-const TAG_ONLY: [&str; 3] = ["release-gate", "release-artifacts", "publish-release"];
+const TAG_ONLY: [&str; 5] = [
+    "release-gate",
+    "release-artifacts",
+    "release-candidate",
+    "release-install-journey",
+    "publish-release",
+];
 
 /// Jobs deliberately outside `release-gate`'s `needs:` because the hosted
 /// runner cannot yet execute the thing they gate, so requiring them would
@@ -184,8 +190,10 @@ fn release_artifacts_are_attested_signed_and_packaged_for_offline_replay_before_
         "test ! -e dist/trusted_root.jsonl",
         "gh attestation trusted-root \\\n            | head -c 4194305 > dist/trusted_root.jsonl",
         "test \"$(wc -c < dist/trusted_root.jsonl | tr -d ' ')\" -le 4194304",
-        "dist/release-manifest.json dist/release-provenance.json \\\n            dist/release-provenance.bundle dist/release-signature-claim.json \\\n            dist/trusted_root.jsonl",
-        "dist/release-attestation-x86_64-unknown-linux-gnu.json \\\n            dist/release-attestation-aarch64-unknown-linux-gnu.json \\\n            dist/release-attestation-aarch64-apple-darwin.json \\\n            dist/release-attestation-x86_64-apple-darwin.json \\\n            dist/release-attestation-x86_64-pc-windows-msvc.json",
+        // The create-or-refresh publisher passes one `assets` array to both
+        // `gh release create` and `gh release upload`.
+        "            dist/release-manifest.json dist/release-provenance.json\n            dist/release-provenance.bundle dist/release-signature-claim.json\n            dist/trusted_root.jsonl\n",
+        "            dist/release-attestation-x86_64-unknown-linux-gnu.json\n            dist/release-attestation-aarch64-unknown-linux-gnu.json\n            dist/release-attestation-aarch64-apple-darwin.json\n            dist/release-attestation-x86_64-apple-darwin.json\n            dist/release-attestation-x86_64-pc-windows-msvc.json\n            dist/install.sh dist/install.ps1\n          )",
         "find dist -maxdepth 1 -type f -name 'release-attestation-*.json'",
     ] {
         assert!(

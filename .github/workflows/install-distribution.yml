@@ -1,0 +1,160 @@
+name: Install distribution
+
+# Exercises the per-user installers (docs/INSTALLER-V1.md) on real hosted
+# hosts: their fixture suites under every supported shell, and the literal
+# install -> beginner journey -> reinstall -> damaged-artifact control ->
+# uninstall sequence against the latest published release's exact assets.
+# The tag-time gate that runs the same journey against unpublished candidate
+# bytes lives in ci.yml (`release-install-journey`); this workflow keeps the
+# installers honest between releases. It runs only when an installer, its
+# tests, or this file changes, or on manual dispatch.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, install-ci-probe]
+    paths:
+      - scripts/install.sh
+      - scripts/install.ps1
+      - scripts/install-journey.sh
+      - scripts/install-journey.ps1
+      - scripts/test-install-sh.py
+      - scripts/test-install-ps1.ps1
+      - .github/workflows/install-distribution.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: install-distribution-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The newest published release whose assets the journey installs. It must
+  # carry SHA256SUMS, release-manifest.json and per-target attestations.
+  JOURNEY_TAG: v0.8.0
+
+jobs:
+  unix-installer-suite:
+    name: Unix installer suite (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 1
+      - name: ShellCheck the installer and journey runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v shellcheck >/dev/null; then
+            if [ "$RUNNER_OS" = macOS ]; then brew install shellcheck; else sudo apt-get install -y shellcheck; fi
+          fi
+          shellcheck -s sh scripts/install.sh scripts/install-journey.sh
+      - name: Fixture suite
+        run: python3 scripts/test-install-sh.py -v
+
+  windows-installer-suite:
+    name: Windows installer suite (${{ matrix.shell }})
+    strategy:
+      fail-fast: false
+      matrix:
+        shell: [powershell, pwsh]
+    runs-on: windows-2025
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 1
+      - name: Fixture and end-to-end suite
+        shell: ${{ matrix.shell }}
+        run: |
+          $PSVersionTable.PSVersion.ToString()
+          & ./scripts/test-install-ps1.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  published-journey:
+    name: Published-release journey (${{ matrix.target }}, ${{ matrix.shell }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            extension: tar.gz
+            shell: bash
+          - os: macos-15
+            target: aarch64-apple-darwin
+            extension: tar.gz
+            shell: bash
+          - os: windows-2025
+            target: x86_64-pc-windows-msvc
+            extension: zip
+            shell: powershell
+          - os: windows-2025
+            target: x86_64-pc-windows-msvc
+            extension: zip
+            shell: pwsh
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 1
+      - name: Fetch exactly the selected target's published assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir journey-assets
+          gh release download "$JOURNEY_TAG" -R wavect/semaprax -D journey-assets \
+            -p "semaprax-$JOURNEY_TAG-${{ matrix.target }}.${{ matrix.extension }}" \
+            -p SHA256SUMS -p release-manifest.json \
+            -p "release-attestation-${{ matrix.target }}.json"
+          # The installer under test is this commit's, not a published one.
+          cp scripts/install.sh scripts/install.ps1 journey-assets/
+          ls -la journey-assets
+      - name: Unix journey (publisher verification required)
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          SEMAPRAX_JOURNEY_REQUIRE_PUBLISHER: "1"
+        run: sh scripts/install-journey.sh "$PWD/journey-assets" "$JOURNEY_TAG"
+      - name: Windows journey (publisher verification required)
+        if: runner.os == 'Windows'
+        shell: ${{ matrix.shell }}
+        env:
+          SEMAPRAX_JOURNEY_PUBLISHER_VERIFY: "1"
+        run: |
+          & ./scripts/install-journey.ps1 -AssetsDir "$PWD\journey-assets" -Tag $env:JOURNEY_TAG
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  incompatible-runtime-control:
+    # A release built against a newer glibc than the host provides must be
+    # refused before activation, leaving no installation behind.
+    name: Incompatible glibc is refused before activation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 1
+      - name: Install the published release in an ubuntu:22.04 container
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm -v "$PWD/scripts:/scripts:ro" -e JOURNEY_TAG ubuntu:22.04 sh -c '
+            set -u
+            apt-get update -qq >/dev/null && apt-get install -y -qq curl ca-certificates >/dev/null
+            getconf GNU_LIBC_VERSION
+            if sh /scripts/install.sh --version "$JOURNEY_TAG" --prefix /root/sp --no-modify-path; then
+              echo "installer accepted a release this glibc cannot run" >&2; exit 1
+            fi
+            test ! -e /root/sp/current || { echo "activation happened" >&2; exit 1; }
+            test ! -e /root/sp/bin/semaprax || { echo "bin link left behind" >&2; exit 1; }
+            echo "refused before activation as required"
+          '

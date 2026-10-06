@@ -220,11 +220,19 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     && left_value.as_ref().map(|value| &value.ty)
                         != right_value.as_ref().map(|value| &value.ty)
                 {
-                    self.diagnostics.push(error(
-                        self.program,
-                        "SPX-T207",
-                        "equality operands must have the same type",
-                        expression.span,
+                    self.diagnostics.push(hints::with_optional_help(
+                        error(
+                            self.program,
+                            "SPX-T207",
+                            "equality operands must have the same type",
+                            expression.span,
+                        ),
+                        hints::equality_types_help(
+                            left_value.as_ref().map(|value| &value.ty),
+                            right_value.as_ref().map(|value| &value.ty),
+                            left,
+                            right,
+                        ),
                     ));
                 }
                 self.values.push(Some(CheckedValue::value(Type::Bool)));

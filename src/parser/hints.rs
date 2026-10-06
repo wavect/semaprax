@@ -80,6 +80,9 @@ const RANGE_PATTERN_HELP: &str = "range patterns are not admitted; bind the valu
 /// `i++` or `i--`: increment operators from C-family languages.
 pub(super) const INCREMENT_HELP: &str =
     "there is no `++` or `--`; write `i = i + 1;` with `i` declared `let mut`";
+const MACRO_HELP: &str = "there are no macros; build text with `string_concat(a, b)` and \
+                          `string_from_i64(n)`, and print with `stdout_write` (`semaprax help \
+                          language strings`)";
 const INDEX_HELP: &str = "there is no indexing syntax; read a byte with `byte_get(view, index)`, which \
                           returns `Option<u8>`, after `array_as_slice(array)` or `bytes_as_slice(bytes)`";
 
@@ -292,6 +295,9 @@ impl Parser {
         }
         if let Some(help) = self.foreign_operator_help() {
             return diagnostic.with_help(help);
+        }
+        if self.at(&TokenKind::Bang) {
+            return diagnostic.with_help(MACRO_HELP);
         }
         if let Some(noun) = description.strip_prefix("`,` after ") {
             if noun == "variant case" && self.at(&TokenKind::LParen) {

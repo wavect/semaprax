@@ -120,7 +120,7 @@ pub(super) fn check_expr(
                             format!("use of resource `{name}` after ownership was moved"),
                             expr.span,
                         )
-                        .with_help("borrow the resource if the callee does not need ownership"),
+                        .with_help(hints::moved_resource_help(&binding.ty)),
                     ),
                     Availability::MaybeMoved => diagnostics.push(
                         error(
@@ -397,12 +397,12 @@ pub(super) fn check_expr(
                         && left_ty.as_ref().map(|value| &value.ty)
                             != right_ty.as_ref().map(|value| &value.ty)
                     {
-                        diagnostics.push(error(
+                        diagnostics.push(hints::with_optional_help(error(
                             program,
                             "SPX-T207",
                             "equality operands must have the same type",
                             expr.span,
-                        ));
+                        ), hints::equality_types_help(left_ty.as_ref().map(|value| &value.ty), right_ty.as_ref().map(|value| &value.ty), left, right)));
                     }
                     return Some(CheckedValue::value(Type::Bool));
                 }

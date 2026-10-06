@@ -22,6 +22,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Type-mismatch help: `string_concat("n=", 5)` names `string_from_i64`,
+  `SPX-T207` names both operand types (and the literal suffix when one side
+  is a literal), an `i64` passed to a narrower parameter names the suffix,
+  `format!`/`println!` explain there are no macros, and reusing a moved
+  `string` or `Bytes` (`SPX-O101`) names the borrow or copy route.
 - More one-step fixes for agents. An unknown function that a listed project
   module declares gets the exact `use function @id("…") from … as …;` line,
   and a standard-library name gets its signature plus the exact dependency

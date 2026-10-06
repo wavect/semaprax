@@ -540,3 +540,42 @@ fn nested_views_and_missing_effects_name_the_complete_fix() {
         "{permitted}"
     );
 }
+
+#[test]
+fn integer_and_mixed_type_mistakes_name_the_types_and_the_conversion() {
+    let main = |body: &str| {
+        format!("module habit.n;\n@id(\"app.main\")\nfn main() -> i64\n{{\n{body}\n}}\n")
+    };
+    let concat = only(
+        &main("    let s = string_concat(\"n=\", 5);\n    0"),
+        "SPX-T205",
+    );
+    assert!(help(&concat).contains("string_from_i64(value)"), "{concat}");
+
+    let mixed = only(
+        &main("    let s = \"abc\";\n    if string_len(s) == 3usize { 0 } else { 1 }"),
+        "SPX-T207",
+    );
+    assert!(
+        help(&mixed).contains("comparing `i64` with `usize`"),
+        "{mixed}"
+    );
+
+    let literal = only(
+        &main("    let n = 3usize;\n    if n == 3 { 0 } else { 1 }"),
+        "SPX-T207",
+    );
+    assert!(help(&literal).contains("`3usize`"), "{literal}");
+}
+
+#[test]
+fn reusing_a_moved_string_names_the_borrow_route() {
+    let diagnostic = only(
+        "module habit.mv;\n@id(\"app.main\")\nfn main() -> i64\n{\n    let a = \"x\";\n    let b = string_concat(a, \"y\");\n    let c = string_concat(a, \"z\");\n    0\n}\n",
+        "SPX-O101",
+    );
+    assert!(
+        help(&diagnostic).contains("pass `string_as_str(name)` to a `borrow str` parameter"),
+        "{diagnostic}"
+    );
+}

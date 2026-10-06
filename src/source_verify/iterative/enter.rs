@@ -77,9 +77,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 format!("use of resource `{name}` after ownership was moved"),
                                 expression.span,
                             )
-                            .with_help(
-                                "borrow the resource if the callee does not need ownership",
-                            ),
+                            .with_help(crate::source_verify::hints::moved_resource_help(
+                                &binding.ty,
+                            )),
                         ),
                         Availability::MaybeMoved => self.diagnostics.push(
                             error(

@@ -456,6 +456,8 @@ fn operators_and_statements_from_other_languages_name_the_admitted_form() {
             "there is no `if let`",
         ),
         ("    let x = 2;\n    match x { 0..=5 => 1, _ => 0, }", "SPX-P106", "guard the arm"),
+        ("    let s = format!(\"{}\", 1);\n    0", "SPX-P106", "there are no macros"),
+        ("    println!(\"hi\");\n    0", "SPX-P106", "there are no macros"),
         ("    let mut i = 0;\n    i++;\n    i", "SPX-P201", "`i = i + 1;`"),
         ("    let mut i = 0;\n    i--;\n    i", "SPX-P201", "`i = i + 1;`"),
         ("    let x = 2;\n    match x { 1 => 10 _ => 0, }", "SPX-P106", "every match arm ends with `,`"),

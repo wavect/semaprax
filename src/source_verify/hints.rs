@@ -336,6 +336,16 @@ pub(super) fn argument_view_help(name: &str, expected: &Type, actual: &Type) -> 
             "`{name}` takes `borrow Slice<u8>`; produce one with `str_as_bytes(view)`, \
              `array_as_slice(array)`, or `bytes_as_slice(bytes)`"
         ),
+        (Type::String, Type::I64) => format!(
+            "`{name}` takes a `string`; render the integer first with `string_from_i64(value)`"
+        ),
+        (Type::String, Type::Usize) => format!(
+            "`{name}` takes a `string`; render the integer first with `string_from_usize(value)`"
+        ),
+        (Type::I32 | Type::U8 | Type::Usize, Type::I64) => format!(
+            "integer literals are `i64` unless suffixed; pass a `{expected}` value such as \
+             `1{expected}`, since there are no numeric conversions"
+        ),
         _ => return None,
     };
     Some(help)
@@ -583,4 +593,43 @@ pub(super) fn missing_effect(
         span,
     )
     .with_help(help)
+}
+
+/// `a == b` across two types: name both, and the literal suffix when one side
+/// is an unsuffixed literal.
+pub(super) fn equality_types_help(
+    left_type: Option<&Type>,
+    right_type: Option<&Type>,
+    left: &Expr,
+    right: &Expr,
+) -> Option<String> {
+    let (left_type, right_type) = (left_type?, right_type?);
+    let typed_side = if matches!(left.kind, ExprKind::Int(_)) {
+        right_type
+    } else {
+        left_type
+    };
+    Some(match literal_suffix_help(typed_side, left, right) {
+        Some(suffix) => format!("comparing `{left_type}` with `{right_type}`: {suffix}"),
+        None => format!(
+            "comparing `{left_type}` with `{right_type}`; there are no numeric conversions, so \
+             compare two values of one type"
+        ),
+    })
+}
+
+/// A moved resource read again. Strings and byte buffers have no implicit
+/// copy, so the generic "borrow it" advice needs the concrete route.
+pub(super) fn moved_resource_help(ty: &Type) -> &'static str {
+    match ty {
+        Type::String => {
+            "`string_concat` and `own` parameters consume a `string`; pass `string_as_str(name)` \
+             to a `borrow str` parameter instead, or build a second string before the first use"
+        }
+        Type::Bytes => {
+            "`own` parameters consume `Bytes`; pass `bytes_as_slice(name)` to a `borrow \
+             Slice<u8>` parameter instead, or copy first with `bytes_copy(bytes_as_slice(name))`"
+        }
+        _ => "borrow the resource if the callee does not need ownership",
+    }
 }

@@ -53,7 +53,11 @@ pub(super) fn route<H: AgentHost>(
             .min(model.max_context_tokens);
         let mut request = String::new();
         let mut tokens = 0;
+        let mut fitted = false;
         for _ in 0..8 {
+            if output_reservation == 0 {
+                break;
+            }
             if cancellation.is_cancelled() {
                 return Err(operational("SPX-I220", "Agent Runtime run was cancelled"));
             }
@@ -90,12 +94,17 @@ pub(super) fn route<H: AgentHost>(
                 .max_reported_model_output_tokens
                 .min(remaining_output_tokens)
                 .min(model.max_context_tokens.saturating_sub(tokens));
-            if next == output_reservation {
+            // The cap only ever shrinks, so a two-cycle cannot occur, and the
+            // request/token pair is accepted only when it was rendered and
+            // counted with the exact cap that is reserved and priced.
+            if next >= output_reservation {
+                fitted = true;
                 break;
             }
             output_reservation = next;
         }
-        if request.len() as u64 > profile.limits.max_provider_request_bytes
+        if !fitted
+            || request.len() as u64 > profile.limits.max_provider_request_bytes
             || output_reservation == 0
             || tokens
                 .checked_add(output_reservation)

@@ -68,6 +68,8 @@ only bounded identities, decisions, lengths, usage, statuses, and digests.
 
 Each accounting receipt is independently canonical and links the run id plus exact Trace and Evidence digests. Its ordered provider attempts retain the existing reserved USD-microunit ceiling, then mark a charge as `observed` only when a successful provider response carries an explicit closed usage report. A default or missing report, a failed attempt, and any response rejected after dispatch remain `unknown`; an explicit all-zero report is observed zero. Receipt totals distinguish reserved, observed, and unknown exposure without creating billing, settlement, retry, or transport authority.
 
+Routing renders each provider request with one output cap and counts exactly that request. The cap only shrinks during sizing, and a request is dispatched only when its rendered cap, context admission, usage validation, and reservation are the same value; otherwise the model is skipped before dispatch. When no model is eligible or affordable, the run ends `policy_rejected` with `SPX-G206`, before or after a succeeded tool, and still returns its replayed Trace, Evidence, and receipt for work already performed.
+
 The run loop is single-threaded (`max_concurrency` is exactly 1), bounded to 16
 turns, 32 provider attempts, 32 tool calls, five minutes, and one decreasing
 64 MiB builder budget. Effective profile limits may only reduce the production

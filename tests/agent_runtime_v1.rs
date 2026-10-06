@@ -834,3 +834,6 @@ mod choice_examples;
 
 #[path = "agent_runtime_v1/routing_e2e_lane.rs"]
 mod routing_e2e_lane;
+
+#[path = "agent_runtime_v1/agent_routing_terminal_v1.rs"]
+mod agent_routing_terminal_v1;

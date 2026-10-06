@@ -258,7 +258,9 @@ fn validate_event_sequence(
                 accepted_tool = None;
                 if left["status"] == "succeeded" {
                     if next != "route_selected"
-                        && !(next == "run_finished" && final_status == "budget_exhausted")
+                        && !(next == "run_finished"
+                            && (final_status == "budget_exhausted"
+                                || final_status == "policy_rejected"))
                     {
                         return Err(g209());
                     }
@@ -452,8 +454,11 @@ fn validate_termination(value: &Map<String, Value>) -> Result<(), Diagnostic> {
         }
         "budget_exhausted" => code == "SPX-G208" && canonical_g208_message(message),
         "policy_rejected" => {
-            code == "SPX-G207"
-                && message.starts_with("Agent Runtime action or tool authorization was rejected: ")
+            (code == "SPX-G207"
+                && message.starts_with("Agent Runtime action or tool authorization was rejected: "))
+                || (code == "SPX-G206"
+                    && message
+                        == "Agent Runtime has no eligible model under the frozen routing policy")
         }
         _ => false,
     };

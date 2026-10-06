@@ -111,3 +111,47 @@ pub(super) fn schema(model: &Model, module: &str, title: &str) -> (String, Count
     out.push_str("\n];\n");
     (out, counts)
 }
+
+/// A compact plain-text listing of the generated API: one line per entity
+/// with its route, fields, computed fields, keys, workflows, and policies.
+pub(super) fn api(model: &Model) -> String {
+    let mut out = String::new();
+    if let Some((entity, login)) = &model.login {
+        out.push_str(&format!(
+            "auth: POST /api/session {{\"login\": <{entity}.{login}>, \"password\"}} sets the session cookie; GET /api/session; DELETE /api/session; first run: --setup\n"
+        ));
+    }
+    out.push_str("routes: GET|POST /api/<entity>[?q=&<enum field>=&format=csv]; GET|PUT|DELETE /api/<entity>/<id>; GET /api/<entity>/<id>/history; GET /api/audit\n");
+    for entity in &model.entities {
+        let fields: Vec<String> = entity
+            .fields
+            .iter()
+            .map(|field| match (&field.reference, &field.ty) {
+                (Some(target), _) => format!("{}->{target}", field.name),
+                (None, Ty::Enum(name)) => format!("{}:{name}", field.name),
+                (None, ty) => format!("{}:{}", field.name, ty.js_name()),
+            })
+            .collect();
+        let policy = |rule: &Option<String>| match rule {
+            None => "any",
+            Some(text) if text.starts_with("{ row: true") => "row rule",
+            Some(_) => "role rule",
+        };
+        out.push_str(&format!("{} {}", entity.path, fields.join(" ")));
+        if !entity.summary.is_empty() {
+            out.push_str(&format!(" | {}", entity.summary.join(" ")));
+        }
+        if !entity.rules.is_empty() {
+            out.push_str(&format!(" | {} rules", entity.rules.len()));
+        }
+        if model.login.is_some() {
+            out.push_str(&format!(
+                " | read {}, write {}",
+                policy(&entity.can_read),
+                policy(&entity.can_write)
+            ));
+        }
+        out.push('\n');
+    }
+    out
+}

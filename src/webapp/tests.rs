@@ -427,4 +427,24 @@ fn crew_staffed(role: Role, seats: i64) -> bool
         schema.contains("(m1 === \"Lead\" || m1 === \"Member\")"),
         "{schema}"
     );
+
+fn api_listing_and_parameter_help_name_exact_options() {
+    let projection = generate(&write_temp("api", V2)).unwrap();
+    assert!(projection.api.starts_with(
+        "auth: POST /api/session {\"login\": <member.email>, \"password\"} sets the session cookie;"
+    ));
+    assert!(projection.api.contains(
+        "\njob team_id->team member_id->member code:string stage:Stage hours:int cost:float | unique(team_id,code) workflow(stage) open:bool | read any, write row rule\n"
+    ));
+    assert!(projection.api.contains("\nteam name:string | jobs:int cost:float | read any, write role rule\n"));
+
+    let wrong = V2.replace("fn team_cost(sum_job_cost: f64)", "fn team_cost(sum_job_price: f64)");
+    let errors = generate(&write_temp("api-wrong", &wrong)).unwrap_err();
+    assert_eq!(errors[0].code, "SPX-WA102");
+    let help = errors[0].help.as_deref().unwrap_or("");
+    assert!(help.contains("name: string"), "{help}");
+    assert!(help.contains("count_job: i64"), "{help}");
+    assert!(help.contains("count_job_open: i64"), "{help}");
+    assert!(help.contains("sum_job_cost: f64"), "{help}");
+    assert!(help.contains("sum_job_hours: i64"), "{help}");
 }

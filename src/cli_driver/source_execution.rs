@@ -603,6 +603,7 @@ fn status_meaning(domain: &str, code: u64) -> &'static str {
 pub(super) fn webapp_command(args: &[String]) -> Result<(), u8> {
     let mut source = None;
     let mut output = None;
+    let mut api = false;
     let mut index = 0;
     while index < args.len() {
         match args[index].as_str() {
@@ -610,6 +611,7 @@ pub(super) fn webapp_command(args: &[String]) -> Result<(), u8> {
                 output = Some(PathBuf::from(&args[index + 1]));
                 index += 1;
             }
+            "--api" if !api => api = true,
             option if option.starts_with('-') || source.is_some() => {
                 eprintln!("unknown or repeated webapp option `{option}`");
                 return Err(2);
@@ -619,12 +621,16 @@ pub(super) fn webapp_command(args: &[String]) -> Result<(), u8> {
         index += 1;
     }
     let Some(source) = source else {
-        eprintln!("usage: semaprax webapp <file> [-o|--output dir]");
+        eprintln!("usage: semaprax webapp <file> [-o|--output dir] [--api]");
         return Err(2);
     };
-    let output = output.unwrap_or_else(|| PathBuf::from("webapp"));
     let projection =
         semaprax::webapp::generate(&source).map_err(|errors| report(&errors, false))?;
+    if api {
+        print!("{}", projection.api);
+        return Ok(());
+    }
+    let output = output.unwrap_or_else(|| PathBuf::from("webapp"));
     semaprax::webapp::write(&output, &projection).map_err(|error| report(&[error], false))?;
     println!(
         "webapp {} -> {}: {}\nrun: node {}",

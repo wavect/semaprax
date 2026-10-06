@@ -38,12 +38,17 @@ pub(super) struct Entity {
     pub(super) rollups: Vec<Rollup>,
     pub(super) can_read: Option<String>,
     pub(super) can_write: Option<String>,
+    /// Plain-text facts for `webapp --api`: computed names with types,
+    /// key fields, and workflow fields.
+    pub(super) summary: Vec<String>,
 }
 
 pub(super) struct Model {
     pub(super) enums: BTreeMap<String, Vec<String>>,
     pub(super) entities: Vec<Entity>,
     pub(super) account: Option<String>,
+    /// The account entity's path and sign-in field, for the API listing.
+    pub(super) login: Option<(String, String)>,
     pub(super) helpers: String,
 }
 
@@ -299,6 +304,7 @@ pub(super) fn build(program: &Program, source: &str) -> Result<Model, Vec<Diagno
         }
     }
     let mut account = None;
+    let mut login_field = None;
     for (function, index, suffix, kind) in &classified {
         let bound = match bind(
             function,
@@ -352,10 +358,15 @@ pub(super) fn build(program: &Program, source: &str) -> Result<Model, Vec<Diagno
                     "rename the function",
                 )])
             }
-            Kind::Computed => translator
-                .computed(function, suffix, &bound)
-                .map(|computed| entity.computed.push(computed)),
+            Kind::Computed => translator.computed(function, suffix, &bound).map(|computed| {
+                let ty = scalar(&function.return_type, &enums)
+                    .map(|ty| ty.js_name().to_owned())
+                    .unwrap_or_default();
+                entity.summary.push(format!("{suffix}:{ty}"));
+                entity.computed.push(computed);
+            }),
             Kind::Key => translator.body(function, &bound).map(|(body, fields)| {
+                entity.summary.push(format!("unique({})", fields.join(",")));
                 let fields: Vec<String> = fields.iter().map(|f| translate::js_string(f)).collect();
                 entity.keys.push(format!(
                     "{{ name: {}, fields: [{}], value: (r) => {body} }}",
@@ -365,6 +376,7 @@ pub(super) fn build(program: &Program, source: &str) -> Result<Model, Vec<Diagno
             }),
             Kind::Step(field) => returns_bool().and_then(|()| {
                 translator.body(function, &bound).map(|(body, _)| {
+                    entity.summary.push(format!("workflow({field})"));
                     entity.steps.push(format!(
                         "{{ field: {}, test: (from, to) => {body} }}",
                         translate::js_string(field)
@@ -395,6 +407,7 @@ pub(super) fn build(program: &Program, source: &str) -> Result<Model, Vec<Diagno
                         "start with the account's string login field, such as `email: string`",
                     )]);
                 };
+                login_field = Some((entity.path.clone(), login.name.clone()));
                 translator.body(function, &bound).map(|(body, _)| {
                     account = Some(format!(
                         "{{ entity: {}, login: {}, allowed: (r) => {body} }}",
@@ -494,6 +507,7 @@ pub(super) fn build(program: &Program, source: &str) -> Result<Model, Vec<Diagno
         enums,
         entities,
         account,
+        login: login_field,
     })
 }
 
@@ -644,14 +658,17 @@ fn bind(
                 bound.push(binding);
                 rollups.extend(rollup);
             }
-            None => errors.push(shape_error(
-                format!(
-                    "parameter `{}` of `{}` does not bind to `{}`",
-                    param.name, function.name, entity.name
-                ),
-                param.span,
-                PARAM_HELP,
-            )),
+            None => errors.push(
+                Diagnostic::error(
+                    "SPX-WA102",
+                    format!(
+                        "parameter `{}` of `{}` does not bind to `{}`",
+                        param.name, function.name, entity.name
+                    ),
+                    param.span,
+                )
+                .with_help(param_help(index, kind, entities, account, signatures)),
+            ),
         }
     }
     if errors.is_empty() {
@@ -659,6 +676,71 @@ fn bind(
     } else {
         Err(errors)
     }
+}
+
+/// The exact parameters a convention function of this kind may take here.
+fn param_help(
+    index: usize,
+    kind: &Kind,
+    entities: &[Entity],
+    account: Option<usize>,
+    signatures: &[ComputedSignature],
+) -> String {
+    let entity = &entities[index];
+    let typed = |fields: &[Field]| -> Vec<String> {
+        fields
+            .iter()
+            .map(|f| match &f.ty {
+                Ty::Enum(name) => format!("{}: {name}", f.name),
+                Ty::Int => format!("{}: i64", f.name),
+                Ty::Float => format!("{}: f64", f.name),
+                Ty::Bool => format!("{}: bool", f.name),
+                Ty::Str => format!("{}: string", f.name),
+                Ty::Char => format!("{}: char", f.name),
+            })
+            .collect()
+    };
+    if let Kind::Step(field) = kind {
+        let ty = entity.fields.iter().find(|f| f.name == *field).map(|f| f.ty.clone());
+        let name = match ty {
+            Some(Ty::Enum(name)) => name,
+            _ => "the field's variant".to_owned(),
+        };
+        return format!("a `_step` function takes exactly two values: `(from: {name}, to: {name})`");
+    }
+    let mut options = typed(&entity.fields);
+    if matches!(kind, Kind::CanRead | Kind::CanWrite) {
+        match account {
+            Some(account) => {
+                options.push("me: i64".to_owned());
+                options.extend(typed(&entities[account].fields).into_iter().map(|f| format!("my_{f}")));
+            }
+            None => options.push("(`me`/`my_<field>` need an `<entity>_account` function)".to_owned()),
+        }
+    }
+    if *kind == Kind::Computed {
+        for (child_index, child) in entities.iter().enumerate() {
+            let mut via = child.fields.iter().filter(|f| f.reference.as_deref() == Some(entity.path.as_str()));
+            if via.next().is_none() || via.next().is_some() {
+                continue;
+            }
+            options.push(format!("count_{}: i64", child.path));
+            let computed = signatures
+                .iter()
+                .filter(|s| s.entity == child_index && !s.uses_rollups)
+                .filter_map(|s| s.ty.clone().map(|ty| (s.name.clone(), ty)));
+            let stored = child.fields.iter().filter(|f| f.reference.is_none()).map(|f| (f.name.clone(), f.ty.clone()));
+            for (name, ty) in stored.chain(computed) {
+                match ty {
+                    Ty::Bool => options.push(format!("count_{}_{name}: i64", child.path)),
+                    Ty::Int => options.push(format!("sum_{}_{name}: i64", child.path)),
+                    Ty::Float => options.push(format!("sum_{}_{name}: f64", child.path)),
+                    _ => {}
+                }
+            }
+        }
+    }
+    format!("parameters here are exactly one of: {}", options.join(", "))
 }
 
 /// `count_<child>`, `count_<child>_<bool>`, or `sum_<child>_<number>` over

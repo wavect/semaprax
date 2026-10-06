@@ -91,6 +91,23 @@ sign-out, and a 401 without a session. For every case of every enumeration
 field of the account entity, it compares each entity's list visibility and
 PUT result against the schema's own permission predicates.
 
+`semaprax webapp <file> --api` verifies and projects the module like a
+normal run but writes nothing. Instead it prints a compact plain-text
+listing: the sign-in route when accounts exist, the route shapes, and one
+line per entity with its fields (`x_id->entity` for references), computed
+fields with their types, keys, workflows, rule count, and whether reads and
+writes are open, role rules, or row rules. An agent can confirm the API
+without reading generated code.
+
+A passing self-test ends with a `cleanup:` line. It records that the test
+server process exited and that the temporary data directory was removed, as
+observed after the run rather than assumed.
+
+When a convention function's parameter does not bind, `SPX-WA102` lists
+every name and type that is valid in that position: the entity's fields,
+`me` and `my_<field>` in policies, and every rollup over the actual child
+entities.
+
 ## Authority
 
 As in v1, the projection only reads its source and writes the output

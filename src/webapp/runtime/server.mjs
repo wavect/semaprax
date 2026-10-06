@@ -525,6 +525,9 @@ async function selfTest() {
     }
   } catch (e) { fails.push("FAIL self-test: " + short(e.message)); }
   finally { await stop(); if (!given) fs.rmSync(dir, { recursive: true, force: true }); }
+  // Observed, not assumed: the test server exited and its data is gone.
+  const stopped = !child || child.exitCode !== null || child.signalCode !== null;
+  const cleaned = given || !fs.existsSync(dir);
   const sum = (k) => entities.reduce((a, e) => a + (k === "keys" ? rt.keysOf(e, ACCOUNT) : e[k] || []).length, 0);
   if (fails.length) { console.log(fails.join("\n") + `\nself-test failed: ${fails.length} check(s)`); return 1; }
   console.log(`self-test ok: ${entities.length} entities, ${sum("rules")} rules, ${sum("computed")} computed, ${sum("keys")} keys, ${sum("steps")} workflows, ${sum("rollups")} rollups` +
@@ -537,6 +540,7 @@ async function selfTest() {
     put("auth", authNote.join(", "));
     put("permissions", `${roles} roles x ${permEnts} entities agree with schema` + [ev.get("permWrite"), ev.get("permRead")].filter(Boolean).map((x, i) => (i ? ", " : "; e.g. ") + x).join(""));
   }
+  put("cleanup", `${stopped ? "test server stopped, no process left running" : "test server STILL RUNNING"}, ${given ? "data kept in --data dir" : cleaned ? "temporary data removed" : "temporary data NOT removed"}`);
   if (lines.length) console.log(lines.join("\n"));
   if (warns.length) console.log(warns.join("\n"));
   return 0;

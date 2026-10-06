@@ -110,6 +110,8 @@ impl Counts {
 pub struct Projection {
     pub files: Vec<(String, String)>,
     pub counts: Counts,
+    /// The plain-text API listing printed by `semaprax webapp --api`.
+    pub api: String,
 }
 
 /// Snake-case a record name: `TimeEntry` becomes `time_entry`.
@@ -150,6 +152,7 @@ pub fn generate(source_path: &Path) -> Result<Projection, Vec<Diagnostic>> {
     }
     let model = model::build(&program, source)?;
     let (body, counts) = emit::schema(&model, &program.module, &title(&program.module));
+    let api = emit::api(&model);
     let digest = Sha256::digest(source.as_bytes());
     let file_name = source_path
         .file_name()
@@ -172,7 +175,7 @@ pub fn generate(source_path: &Path) -> Result<Projection, Vec<Diagnostic>> {
     );
     let revision = graph::revision(&program);
     patch::validate_source_unchanged(&canonical_source_path, source_path, &snapshot, &revision)?;
-    Ok(Projection { files, counts })
+    Ok(Projection { files, counts, api })
 }
 
 /// Write a projection into `output`, which must be absent, empty, or a

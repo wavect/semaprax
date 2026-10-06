@@ -876,9 +876,11 @@ fn order_status(paid: bool) -> string
   fields plus `me: i64` and `my_<account field>`; unprefixed `can_read` /
   `can_write` are the defaults. Audit history and CSV export are automatic.
 - Run `semaprax fmt app.spx && semaprax webapp app.spx -o out && node
-  out/server.mjs --self-test`. The self-test exercises every feature for every
-  entity and role and prints the observed evidence; that is the end-to-end
-  verification, so no hand-written requests are needed.
+  out/server.mjs --self-test` as one command. The self-test exercises every
+  feature for every entity and role, prints the observed evidence, and ends
+  with its own cleanup line, so no hand-written requests or process checks are
+  needed. Fix a diagnostic with a targeted edit at its line, not by rewriting
+  the file; `semaprax webapp app.spx --api` lists the generated API.
 - API: `GET`/`POST /api/<entity>`, `GET`/`PUT`/`DELETE /api/<entity>/<id>`,
   `GET /api/<entity>/<id>/history`, `?format=csv`, `GET /api/audit`; with
   accounts `POST /api/session {"login", "password"}` and `DELETE

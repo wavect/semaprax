@@ -112,7 +112,7 @@ fi
 tar -xzf "$ASSETS/$ARCHIVE_NAME" -C "$WORK/ref"
 REF_CLI="$WORK/ref/$TOP/semaprax"
 REF_DAEMON="$WORK/ref/$TOP/semapraxd"
-[ -x "$REF_CLI" ] && [ -x "$REF_DAEMON" ] || fail "archive members semaprax/semapraxd missing"
+if [ ! -x "$REF_CLI" ] || [ ! -x "$REF_DAEMON" ]; then fail "archive members semaprax/semapraxd missing"; fi
 
 # ----------------------------------------------------------- installer runs
 

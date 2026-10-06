@@ -684,6 +684,11 @@ public static class Stub {
     $key = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($subKey)
     $key.SetValue('Path', $unrelated, [Microsoft.Win32.RegistryValueKind]::ExpandString)
     $key.Close()
+    # The parent's own PATH reads (Get-PathCount, Get-SemapraxUserPath) must see
+    # the same throwaway subkey the child installer writes, never the real
+    # HKCU\Environment Path.
+    $savedSubKey = $env:SEMAPRAX_INSTALL_ENV_SUBKEY
+    $env:SEMAPRAX_INSTALL_ENV_SUBKEY = $subKey
 
     try {
         New-Fixture -Tag 'v1.0.0'
@@ -888,6 +893,7 @@ public static class Stub {
             Assert-Ok $r 'uninstall of an empty dir is a no-op'
         }
     } finally {
+        $env:SEMAPRAX_INSTALL_ENV_SUBKEY = $savedSubKey
         try { [Microsoft.Win32.Registry]::CurrentUser.DeleteSubKeyTree($subKey, $false) } catch { }
         Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
     }

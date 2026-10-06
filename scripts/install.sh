@@ -178,7 +178,7 @@ json_escape() {
 
 is_link_or_exists() { [ -e "$1" ] || [ -L "$1" ]; }
 
-# shellcheck disable=SC2329  # called from the EXIT trap
+# shellcheck disable=SC2317,SC2329  # called from the EXIT trap
 rmdir_chain() {
   # rmdir $1 and its parents while empty, stopping after $2.
   rc_dir="$1"
@@ -235,7 +235,7 @@ profile_candidates() {
 
 # ------------------------------------------------------------------- trap
 
-# shellcheck disable=SC2329  # installed as the EXIT trap
+# shellcheck disable=SC2317,SC2329  # installed as the EXIT trap
 cleanup() {
   rc=$?
   trap - EXIT INT TERM HUP
@@ -266,11 +266,11 @@ cleanup() {
     fi
     if [ -n "$CREATED_LINKS" ]; then
       printf '%s\n' "$CREATED_LINKS" | while IFS= read -r lk; do
-        [ -n "$lk" ] && rm -f "$lk" 2>/dev/null || :
+        if [ -n "$lk" ]; then rm -f "$lk" 2>/dev/null || :; fi
       done
     fi
-    [ "$CREATED_BIN" = 1 ] && rmdir "$PREFIX/bin" 2>/dev/null || :
-    [ "$CREATED_VERSIONS" = 1 ] && rmdir "$PREFIX/versions" 2>/dev/null || :
+    if [ "$CREATED_BIN" = 1 ]; then rmdir "$PREFIX/bin" 2>/dev/null || :; fi
+    if [ "$CREATED_VERSIONS" = 1 ]; then rmdir "$PREFIX/versions" 2>/dev/null || :; fi
   fi
   if [ -n "$STAGE" ]; then
     rm -rf "$STAGE" 2>/dev/null || :
@@ -378,7 +378,7 @@ do_uninstall() {
 
   # Our own PATH block, wherever the standard profiles carry it.
   profile_candidates | while IFS= read -r pf; do
-    [ -n "$pf" ] && [ -f "$pf" ] || continue
+    if [ -z "$pf" ] || [ ! -f "$pf" ]; then continue; fi
     grep -qF "$BLOCK_BEGIN" "$pf" || continue
     tmpf="$pf.semaprax-tmp.$$"
     strip_block 0 "$PREFIX/bin" <"$pf" >"$tmpf"
@@ -643,8 +643,9 @@ fi
 for n in semaprax semapraxd; do
   p="$PREFIX/bin/$n"
   if is_link_or_exists "$p"; then
-    [ -L "$p" ] && [ "$(readlink "$p")" = "../current/$n" ] ||
+    if [ ! -L "$p" ] || [ "$(readlink "$p")" != "../current/$n" ]; then
       die "refusing to replace $p: it is not owned by this installer"
+    fi
   fi
 done
 
@@ -695,8 +696,9 @@ M_SIZE="$(printf '%s' "$M_ENTRY" | grep -o '"size":[0-9]*' | sed -n '$p' | sed '
 M_DIGEST="$(printf '%s' "$M_ENTRY" | grep -o '"digest":"[^"]*"' | sed -n '$p' | sed 's/^"digest":"//; s/"$//')"
 [ "$M_PLATFORM" = "$TARGET" ] ||
   die "release-manifest.json says $NAME is for '$M_PLATFORM', expected $TARGET"
-[ -n "$M_SIZE" ] && [ "$M_SIZE" = "$ACTUAL_SIZE" ] ||
+if [ -z "$M_SIZE" ] || [ "$M_SIZE" != "$ACTUAL_SIZE" ]; then
   die "release-manifest.json size '$M_SIZE' does not match the downloaded $ACTUAL_SIZE bytes"
+fi
 [ "$M_DIGEST" = "sha256:$ACTUAL_SHA" ] ||
   die "release-manifest.json digest '$M_DIGEST' does not match the downloaded sha256:$ACTUAL_SHA"
 say "checksum verified: SHA256SUMS and release-manifest.json agree on sha256:$ACTUAL_SHA"
@@ -764,7 +766,7 @@ PKG="$STAGE/extract/$TOP"
 [ "$(find "$STAGE/extract" -mindepth 1 -maxdepth 1 | wc -l | tr -d ' ')" = 1 ] ||
   die "archive has more than the expected top-level directory"
 for exe in semaprax semapraxd; do
-  [ -f "$PKG/$exe" ] && [ -x "$PKG/$exe" ] || die "archive is missing the executable $exe"
+  if [ ! -f "$PKG/$exe" ] || [ ! -x "$PKG/$exe" ]; then die "archive is missing the executable $exe"; fi
 done
 
 # ------------------------------------------------------------ staged smoke

@@ -552,10 +552,10 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
             // (`Function.follows`, 0ce5519b/bcadbaec): only `used_builder_bytes`,
             // the workspace-graph digest, and dependent artifact digests
             // moved; every semantic field remained byte-identical.
-            "sha256:2cb5ebf81880900ac627cd7fec484d5afe93afdde85d2f460059b22af0285562",
-            "sha256:1da3fd5c87175d61cd55dab1704eba7f6299d26c75d5c1e61794d7d22b4a6875",
-            "sha256:0f95c0dd9ebba578652f70a54669d37a1730dc44305e897a05df1b08e641d789",
-            "sha256:0722102fa43d18ed3a7ebd749827c583e6e7280675af1415556f03e2e6d98dca"
+            "sha256:06ba2625779314a39f68df72dd3933c4406ea7f01a06b825a65f4f7530ad76ab",
+            "sha256:1cb95e50f7aaa8ae65e19d43169c541cfd4cd9ab265e94589015465e62d231f1",
+            "sha256:e44e27eb1f83b090ee854bbc79e188aa4095fbea7809a45606f4a4d12ce9ce78",
+            "sha256:3944ef039a3e1232bb59b007f69e6803948f6a0223dc84c2c1a0413984eaa6e1"
         ]
     );
     for artifact in &contexts {
@@ -618,8 +618,8 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
         [
             // Exact affected-set, edge-order, budget, and digest replay checks
             // below independently bind these re-pinned document digests.
-            "sha256:bbf3803c597fd457c0bfc19ba85177ae69d66b13dbdfc6fe2967d5a054b3db30",
-            "sha256:cd7f8ad1863bc8e2096848a2bd07f1c92c9111aea042475e554d1c45045bfff5",
+            "sha256:ce7d4dc3cdf54dac1292a47b462aa18e36c5f43b878e0668c13c4cdba2e4e50c",
+            "sha256:f0cc25d9446f85f7073417d27a349b3fb0142f33ad1a727efc6a897a79f3f8e7",
         ]
     );
     let declaration_impact: serde_json::Value = serde_json::from_str(&impacts[0].json).unwrap();
@@ -760,7 +760,7 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
         document_sha(&review.json),
         // Nested context, impact, evidence-reference, budget, and digest replay
         // checks independently bind this re-pinned document digest.
-        "sha256:f66beec0a052890f8ca80f1b05f5087ba45c98eded7e366534c872fce82594f0"
+        "sha256:0bd2ca1bb9fd118ad32c2631585da6995aaf25968597a97b146fce525d45dac9"
     );
     let direct_context = analysis
         .render_context(

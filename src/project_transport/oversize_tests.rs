@@ -156,6 +156,11 @@ fn project_session_rejects_oversize_without_lf_or_eof_and_finishes_authority() {
 
 #[test]
 fn selected_law_profiles_reject_oversize_without_lf_or_eof() {
+    // The workflow requires absolute paths; `/nonexistent/...` is not absolute
+    // on Windows, so build never-created paths under the platform temp root.
+    let missing = std::env::temp_dir().join("semaprax-oversize-test-nonexistent");
+    let law_executable = missing.join("z3");
+    let manifest_path = missing.join("semaprax.toml");
     let arguments = [
         "semapraxd",
         "--stdio",
@@ -163,11 +168,11 @@ fn selected_law_profiles_reject_oversize_without_lf_or_eof() {
         "--law-tool",
         "z3",
         "--law-executable",
-        "/nonexistent/semaprax-oversize-test/z3",
+        law_executable.to_str().unwrap(),
         "--law-version-line",
         "Z3 version 0.0.0",
         "--manifest-path",
-        "/nonexistent/semaprax-oversize-test/semaprax.toml",
+        manifest_path.to_str().unwrap(),
         "--max-request-bytes",
         "64",
     ];

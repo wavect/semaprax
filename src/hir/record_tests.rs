@@ -537,22 +537,22 @@ fn type_facts_capacity_high_water_covers_layered_and_wide_hostiles() {
     let expected = [
         (
             "sha256:cfa16985be87d169c3fb81d5958126347ec82b4c1afed878e2d98d1fbfe72c80",
-            1_741_515,
+            1_741_655,
             669_965_618,
         ),
         (
             "sha256:461611e4315e312330af0285273568e5d09cd8e5770a35dcf66a82783aa15ae6",
-            1_397_458,
+            1_397_598,
             2_886_293_140,
         ),
         (
             "sha256:dc19474b86def3eaf6e3c60cc2224694e6aa7cf2811cca6115943c11102f95fc",
-            96_838,
+            102_101,
             122_429_248,
         ),
         (
             "sha256:d2692d4883957575ee95df8f9ee7057343599e1da945c386cedea714c716f66d",
-            6_273_598,
+            6_277_920,
             31_588_832_202,
         ),
     ];

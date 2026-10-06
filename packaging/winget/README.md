@@ -15,9 +15,9 @@ the archive's real paths to two command aliases:
 | `semaprax-<tag>-x86_64-pc-windows-msvc\semaprax.exe` | `semaprax` |
 | `semaprax-<tag>-x86_64-pc-windows-msvc\semapraxd.exe` | `semapraxd` |
 
-It declares `Architecture: x64`, `Scope: user`, `MinimumOSVersion: 10.0.17763.0`
+It declares `Architecture: x64`, `MinimumOSVersion: 10.0.17763.0`
 (Windows 10 1809 / Server 2019) and the schema `1.10.0`. It does not claim
-native ARM64 support. The URL is the exact-tag release asset and
+native ARM64 support. It omits `Scope` because `winget validate` warns that scope is unsupported for portable installers (portable installs are per-user). The URL is the exact-tag release asset and
 `InstallerSha256` is the uppercase digest from that release's `SHA256SUMS`.
 
 ## Generate manifests for a release

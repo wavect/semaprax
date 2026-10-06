@@ -183,7 +183,6 @@ class Winget(unittest.TestCase):
             "  PortableCommandAlias: semaprax",
             f"- RelativeFilePath: {folder}\\semapraxd.exe",
             "  PortableCommandAlias: semapraxd",
-            "Scope: user",
             "- Architecture: x64",
             f"  InstallerUrl: https://github.com/wavect/semaprax/releases/download/{TAG}/{folder}.zip",
             f"  InstallerSha256: {DIGESTS[WIN].upper()}",
@@ -192,12 +191,21 @@ class Winget(unittest.TestCase):
         ):
             self.assertIn(line + "\n", installer)
         self.assertNotIn("arm64", installer)
+        self.assertNotIn("Scope:", installer)  # winget validate warns: Scope unsupported for portable
 
     def test_other_manifests_are_consistent(self):
         files = self.manifests()
         self.assertIn("DefaultLocale: en-US\nManifestType: version\n", files["Wavect.Semaprax.yaml"])
         locale = files["Wavect.Semaprax.locale.en-US.yaml"]
         self.assertIn("License: Apache-2.0\n", locale)
+        # A plain scalar containing ": " is a YAML scanner error (winget validate rejects it).
+        self.assertIn('ShortDescription: "Systems language: meaning in, verified machine code out."\n', locale)
+        for text in files.values():
+            for line in text.splitlines():
+                key, _, value = line.partition(": ")
+                if line.startswith("#") or not value or value[0] in "\"'":
+                    continue
+                self.assertNotIn(": ", value, line)
         self.assertIn(f"LicenseUrl: https://github.com/wavect/semaprax/blob/{TAG}/LICENSE\n", locale)
         self.assertIn("ManifestType: defaultLocale\n", locale)
         for text in files.values():

@@ -728,3 +728,20 @@ fn function_count_bound_rejects_before_per_function_capacity_projection() {
     assert_eq!(diagnostics[0].span, Some(program.functions[4096].name_span));
     assert!(diagnostics[0].help.is_some());
 }
+
+#[test]
+fn owned_string_loop_admission_matches_recursive_oracle() {
+    // Owned String Loops v1: a literal is admitted in a loop body, and any
+    // String value in the condition is the same T252 diagnostic in both
+    // verifiers, ahead of the admission scan. (The recursive oracle predates
+    // the compiler-owned String calls, so the parity corpus avoids them.)
+    let prefix = "module t; @id(\"t.label\") fn label(value: i64) -> string { \"x\" } ";
+    for body in [
+        "fn main()->i64{let i=0; while i<1 { let t=\"y\"; 0 } 0}",
+        "fn main()->i64{while \"a\"==\"b\" { 0 } 0}",
+        "fn main()->i64{let i=0; while label(i)==\"x\" { 0 } 0}",
+        "fn main()->i64{let i=0; while i<1 { let t=label(i); 0 } 0}",
+    ] {
+        compare_scalar_body(&format!("{prefix}{body}"));
+    }
+}

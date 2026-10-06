@@ -98,6 +98,21 @@ fn contract() -> i64
     string_len(out)
 }
 
+@id("loops.staged")
+fn staged() -> i64
+{
+    let mut out = "s";
+    let mut keep = "k";
+    let mut i = 0;
+    while i < 10 {
+        out = string_concat(out, string_from_char(if limit(i) > 5 { 'b' } else { 'c' }));
+        keep = string_concat(keep, "z");
+        i = i + 1;
+        0
+    }
+    string_len(out) + string_len(keep)
+}
+
 @id("loops.traverse")
 fn traverse() -> i64
 {
@@ -128,12 +143,18 @@ const CASES: &[(&str, &str)] = &[
     ("loops.literal", "ok|401069"),
     ("loops.overflow", "semaprax.arithmetic.v1|3"),
     ("loops.contract", "semaprax.contract.v1|1"),
+    ("loops.staged", "semaprax.contract.v1|1"),
     ("loops.traverse", "ok|11"),
 ];
 
 /// The literal-only cases the String-settling Wasm profile admits; numeric
 /// text and Vec values stay outside that closed profile.
-const WASM_CASES: &[&str] = &["loops.literal", "loops.overflow", "loops.contract"];
+const WASM_CASES: &[&str] = &[
+    "loops.literal",
+    "loops.overflow",
+    "loops.contract",
+    "loops.staged",
+];
 
 fn command_available(command: &str) -> bool {
     Command::new(command).arg("--version").output().is_ok()

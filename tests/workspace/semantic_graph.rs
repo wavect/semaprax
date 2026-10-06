@@ -550,7 +550,7 @@ fn public_api_cli_bytes_getters_and_read_only_locking_are_exact() {
         // `budget.used_builder_bytes` and this digest move; this fixture
         // declares no session protocol, so nothing else in the document
         // moves.
-        "sha256:64b518d842f71b593e6e99bda6066b7e117a495aa8877c6936e070ed01de1045"
+        "sha256:25d1f13ec2349b98b5c50a42c481885706bfebb07d47fcf7cd9496c40717895b"
     );
 
     let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
@@ -974,14 +974,14 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
             document_digest(capability_review.as_bytes()),
         ],
         [
-            "sha256:5b49e4c6880ee7b1274ba99d9fdf4b0185df1039009929662336aa4d38850c5d",
-            "sha256:a0fa8ec8363354f8b45108bf5ca8844cf0b7bc52949007ffbca43b160a23e263",
-            "sha256:c8755b7ff75dd95c98a9ae8c2605d56d4acb12c28d21201294ce07dbac454bb7",
-            "sha256:f5e70735b4332cd8a3cf2cce131f1e3b1068c1a44208a640c97f663bf50f44a3",
-            "sha256:9eb13231083209875ab5b186750c584db1f581348b1e048dbe436b882d28899e",
-            "sha256:a04d80b41be697d2ef94c7dd431bf1bfa9619ab32ece8f8e8397e2c242a06d31",
-            "sha256:4612e4029c7a179b258d5ef765133eef399aa85279b825e780a2e22a8ffcc10c",
-            "sha256:0cc9ccb672b6c0724c3733d77ce54e041e7098f82a6e7c3b02dadc2f7d4f4114",
+            "sha256:0f27ae49e0e088bbdb020308298ac316ff08a8856e361f67245c84e22c7b790c",
+            "sha256:53feb60f3aed0f6dec585264dc79408d75aed50a0cd9bdb64f2ffe2159c4c296",
+            "sha256:07a321e5e5be6dac1924974534bf039e0581edab33799eb00346fca40e204cc6",
+            "sha256:e6b4235a3d0dc972f124c7d9a7e1afedac2a74c42cb771b750b385a1481fe954",
+            "sha256:c432a468eb8c88114b8dd224f8e8580c5005647608fef7473c8654fcb85bdac1",
+            "sha256:4bd43f59e3609355c8f67fdcc91edde0caaeaca2e9c425c4566c68cda5861c65",
+            "sha256:2eb333fbb47e7c78d4d9eeccf14e9440cf3bf00322f0eaed3dd739df52207470",
+            "sha256:0001548a1e54e326bc11883161d26d7fba02529e3b41b5d772b303b4bd204562",
         ]
     );
 

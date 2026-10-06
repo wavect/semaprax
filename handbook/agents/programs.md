@@ -102,7 +102,7 @@ limit beyond what the deployment grants.
 | One model per task | `route_new_invocation` over an approved profile set. |
 | A different model each turn | `RoutedSession`, which re-routes only at a durable turn boundary. |
 | Pick one granted tool or specialist agent | `choice-select/v1`, then an authorize-stage recheck (`SPX-HPJ024`, `SPX-HPJ026`). |
-| See why a route was chosen | `route.explain` in harness reports; `semaprax-full harness status --routing`. |
+| See why a route was chosen | `route.explain` in harness reports; `semaprax harness status --routing` ([Harness](../tools/harness.md)). |
 
 Rules mode makes zero router calls. An operator pin that fails screening is
 refused, not replaced. A revoked deployment is refused on resume.
@@ -114,8 +114,9 @@ Runnable examples, offline with fixture models:
 - `examples/tool-choice-project`: select one of two granted read-only tools.
 
 Run them with `cargo test --locked -p semaprax --test agent_runtime_v1 routed_agent_example`
-(or `choice_examples`). The `harness` command is part of the private
-`semaprax-full` toolchain, not the public CLI.
+(or `choice_examples`). The `harness` command is in the release archive's
+`semaprax` and in a source-built `semaprax-full`. A standalone `semaprax`
+refuses it. See [Harness](../tools/harness.md).
 
 ## Test it before a model is involved
 

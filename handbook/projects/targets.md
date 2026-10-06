@@ -49,6 +49,21 @@ Rules that save time:
   `wasm` and `npm` need `wasm32`; the rest need `native64`.
 - Run `semaprax help build` for the exact list on your binary.
 
+### Strings in a standalone web module
+
+A source file that passes `string` values between its own functions needs the
+internal String profile. Name each exported function:
+
+```sh
+semaprax build app.spx --target web --profile internal-strings-v1 \
+  --export app.length -o app-web
+```
+
+It needs a source file, `--target web` or `wasm`, and 1 to 32 `--export` ids.
+A project, another target or a missing export is a usage error (exit 2).
+Strings never cross the exported boundary. Spec:
+[Standalone internal String Web package v1](https://github.com/wavect/semaprax/blob/main/docs/WASM-INTERNAL-STRINGS-WEB-V1.md).
+
 ## Check a web package
 
 ```sh
@@ -73,6 +88,32 @@ a `start` frame on stdin, then reads one JSON control frame per line
 `activate`, `invoke` and `stop`. Saving a file never runs code; `invoke` does.
 A broken revision is rejected and the previous one stays usable.
 
+### What must stay compatible before a swap
+
+`activate` replaces the code only if everything reachable from the entry and
+test roots still agrees with the running revision:
+
+- entry points and the permit set;
+- type and interface records;
+- the set of reachable functions, with the same parameter and return types and
+  ownership;
+- declared effects;
+- pre- and postconditions, and the cleanup and loan plans.
+
+Otherwise the swap is refused (`incompatible_closure`, `policy_changed`,
+`identical_revision` or `unsupported_target`) and the old revision keeps
+running. Functions no entry or test reaches are not compared.
+
+`plan` only reports what `activate` would do. Its output says
+`authority: none`, and `activate` rebuilds the plan itself, so a plan you saved
+cannot be replayed. If a worker panics or an acknowledgement is lost, the
+session enters `terminal_uncertainty`: the status shows the flag (a JSONL
+boolean, or a line in `--human`), every later operation is refused, and nothing
+is retried or rolled back. Start a new session.
+
+Frame limits: 64 frames per session, 4 KiB per input frame, 8 KiB per
+response.
+
 ```sh
 printf '%s\n' \
   '{"schema":"semaprax.hot-reload-control.v1","id":1,"op":"start"}' \
@@ -84,7 +125,8 @@ printf '%s\n' \
 Use `--jsonl` for tools. The VS Code extension drives this for you
 ([editor setup](../getting-started/editor.md)). Native and Wasm swapping are
 not supported; `--source-agent` is refused by the public binary.
-Spec: [Hot Reload Watcher v1](https://github.com/wavect/semaprax/blob/main/docs/HOT-RELOAD-WATCHER-V1.md).
+Specs: [Hot Reload Watcher v1](https://github.com/wavect/semaprax/blob/main/docs/HOT-RELOAD-WATCHER-V1.md),
+[Hot Reload Session v1](https://github.com/wavect/semaprax/blob/main/docs/HOT-RELOAD-SESSION-V1.md).
 
 ## Check the environment
 

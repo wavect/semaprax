@@ -23,8 +23,19 @@ can use records and variants even when the boundary is a single `i64`.
 | Command with HTTP or HTTPS | `network-command-io.v1`, `https-command-io.v1` | `examples/network-http-project`, `examples/https-project` |
 | Local futures | `source-local-future.v1` (and `-indexed-rust.v1`) | `examples/ri13-m3-local-http` |
 
-`filesystem-io.v3` is a private profile (`examples/everyday-agent-project`).
-Do not rely on it.
+These profiles are private. They exist for the bundled `std` packages, have no
+public ABI and no `web` exports, and may change. Do not rely on them:
+
+| Profile | Gives a command | Package | Spec |
+| --- | --- | --- | --- |
+| `filesystem-io.v3` | `fs.read` and `fs.write` | `std.fs` (`examples/everyday-agent-project`) | [Filesystem I/O v2](https://github.com/wavect/semaprax/blob/main/docs/FILESYSTEM-IO-V2.md) |
+| `environment-io.v1` | a read-only snapshot of the environment the host passes in (`process.environment.read`); never the real process environment | `std.env` | [Environment I/O v1](https://github.com/wavect/semaprax/blob/main/docs/BOUNDED-ENVIRONMENT-IO-V1.md) |
+| `process-io.v1` | `process.execute`: run one registry tool by number, with argv and stdin, and get its output back; no shell, no `PATH` lookup | `std.process` | [Process I/O v1](https://github.com/wavect/semaprax/blob/main/docs/BOUNDED-PROCESS-IO-V1.md), [Project v18](https://github.com/wavect/semaprax/blob/main/docs/PROJECT-MANIFEST-V18.md) |
+| `useful-data.v2` | owned Reader and Writer values inside the project; exports stay on the `useful-data.v1` boundary | `std.data.json.write`, `std.email`, `std.format`, `std.export.policy` | [Project v16](https://github.com/wavect/semaprax/blob/main/docs/PROJECT-MANIFEST-V16.md) |
+
+`https-command-io.v1` is not in that list. It adds `network.http` for
+`https_get` and `https_post`, and `examples/https-project` builds on it
+([Input and output](../language/io.md#https-in-one-call)).
 
 Every row is one bounded contract. A profile name is not a switch you flip on
 an existing project: change one type, then run `check`, `test` and your

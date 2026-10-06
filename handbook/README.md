@@ -79,6 +79,8 @@ semaprax run meaning.spx     # prints 42
 | Build an agent as a Semaprax program | [Agent programs](agents/programs.md) → [Budgets and recovery](agents/recovery.md) |
 | Measure context size | [Token reports and caches](practices/context-performance.md) |
 | Test, debug, release | [Testing](practices/testing.md) · [Debugging](practices/debugging.md) · [Shipping](projects/shipping.md) |
+| Run the agent harness, check trust limits, find a specialist command | [Harness](tools/harness.md) · [What Semaprax verifies](tools/trust.md) · [Specialist commands](tools/specialist-commands.md) |
+| Find a command | [Command reference](reference/commands.md) |
 | Look something up | [Cheatsheet](reference/cheatsheet.md) · [Standard library](reference/stdlib.md) · [Built-ins](reference/builtins.md) · [Cookbook](practices/cookbook.md) · [Glossary](reference/glossary.md) |
 
 For implementation details, use the [source map](reference/source-map.md) and

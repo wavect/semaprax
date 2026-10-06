@@ -59,9 +59,12 @@ dependency closure; capabilities are granted only with `--allow-capability`.
 
 ## Use a package registry file
 
-A registry is one JSON document
-(`semaprax.package-registry-document.v1`). The commands read it and never
-write, sign or publish.
+A registry is one JSON document. The `registry` commands read
+`semaprax.package-registry-document.v1` and never write, sign or publish.
+Schemas `v2` and `v3` also exist (snapshots that carry artifact manifests and
+build facts). They are library and host contracts, not read by these commands.
+What the commands do and do not verify:
+[What Semaprax verifies](../tools/trust.md).
 
 ```sh
 semaprax registry search registry.json num
@@ -151,7 +154,11 @@ declaration-level change (`semantic-workspace-operations-derive`,
 `workspace-snapshot`, `workspace-graph`, `workspace-context`,
 `workspace-impact` and `workspace-review`. The older `.wspatch` route
 (`workspace-init`, `workspace-preview`, `workspace-apply`,
-`workspace-patch-evidence`) also remains. Specs:
+`workspace-patch-evidence`) also remains.
+
+The two workspace kinds are not interchangeable. The `workspace-*` commands expect a root made by `workspace-init`. Run
+`workspace-snapshot` on a `semantic-workspace-init` root and it fails with
+`SPX-G150` (`wrong ACTIVE schema`). Pick one route per root. Specs:
 [Semantic Workspace v1](https://github.com/wavect/semaprax/blob/main/docs/SEMANTIC-WORKSPACE-V1.md),
 [Workspace Change v1](https://github.com/wavect/semaprax/blob/main/docs/SEMANTIC-WORKSPACE-CHANGE-V1.md),
 [Operations v1](https://github.com/wavect/semaprax/blob/main/docs/SEMANTIC-WORKSPACE-OPERATIONS-V1.md).

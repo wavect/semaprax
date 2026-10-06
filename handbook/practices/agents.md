@@ -116,8 +116,11 @@ See [Context and performance](context-performance.md). For a visual map use the
 Agent programs written in Semaprax have task, state, proposal and authorization
 roles. Inspect and replay them with `semaprax agent inspect|run|replay`
 ([Agent programs](../agents/programs.md)). The development harness
-(`semaprax-full harness ...`) is a private command of the full toolchain. The
-standalone `semaprax` binary does not have it. Do not depend on it.
+(`semaprax harness ...`) lets a coding agent propose changes under compiler
+checks ([Harness](../tools/harness.md)). The release archive ships the full
+build as `semaprax`, so the command works there. A standalone or crates.io
+`semaprax` refuses it (exit 2); build `semaprax-full` from source instead. It is
+development tooling, so do not build a product on it.
 
 The complete agent contract is the
 [Agent quick reference](https://github.com/wavect/semaprax/blob/main/docs/AGENT-QUICK-REFERENCE.md),

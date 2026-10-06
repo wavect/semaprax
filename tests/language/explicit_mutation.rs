@@ -5,6 +5,9 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use semaprax::cleanup_plan::CleanupPlan;
 use semaprax::{codegen, format, graph, hir, parse, verify, wasm};
 
+#[path = "explicit_mutation/read_order.rs"]
+mod read_order;
+
 static NEXT_ID: AtomicU64 = AtomicU64::new(0);
 
 const MUTATION: &str = r#"

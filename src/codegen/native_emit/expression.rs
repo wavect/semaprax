@@ -610,7 +610,8 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 if is_aggregate_type(self.program, &value.ty)? {
                     self.apply_owned_plan_at_value(&expr.id, &value)?;
                 }
-                value
+                // Read a `let mut` Copy value before later operands run (#561).
+                self.snapshot_mutable_copy_read(&place.root, value)?
             }
             ResolvedExprKind::BorrowPlace { operation, place } => {
                 let op = crate::byte_ops::by_id(operation.as_str()).ok_or_else(|| {
@@ -1159,7 +1160,15 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 let saved = self.variables.clone();
                 for statement in statements {
                     match statement {
-                        ResolvedStatement::Let { binding, value, .. } => {
+                        ResolvedStatement::Let {
+                            binding,
+                            mutable,
+                            value,
+                            ..
+                        } => {
+                            if *mutable {
+                                self.mutable_bindings.insert(binding.id.clone());
+                            }
                             let value_id = value.id.clone();
                             let value = self.emit_expr(value)?;
                             self.require_type(&value.ty, &binding.ty, "local binding")?;

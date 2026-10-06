@@ -26,6 +26,7 @@ mod compiler;
 mod contract_status;
 mod mutable;
 mod once;
+mod read_snapshot;
 use contract_status::{contract_label, emit_contract_status};
 mod expression;
 mod filesystem_io;
@@ -2358,6 +2359,8 @@ struct CEmitter<'a, O: COutput> {
     program: &'a ResolvedProgram,
     resource_abi: &'a native_resource::NativeResourceAbi,
     variables: HashMap<ValueId, CBinding>,
+    /// `let mut` bindings; a Copy read of one is snapshotted (issue #561).
+    mutable_bindings: BTreeSet<ValueId>,
     function: &'a ResolvedFunction,
     functions: &'a HashMap<FunctionExecutionId, CFunction>,
     record_layouts: &'a AggregateLayoutCache,
@@ -2388,6 +2391,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             program: emission.program,
             resource_abi: emission.resource_abi,
             variables,
+            mutable_bindings: BTreeSet::new(),
             function,
             functions: emission.functions,
             record_layouts: emission.record_layouts,

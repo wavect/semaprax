@@ -101,7 +101,12 @@ Unknown assignment names reuse the established unknown-value diagnostic
   (asserted modulo function-name prefixes in tests).
 - **Native C11**: plain local variables and plain C11 store statements; O0
   and O2 produce identical observable results including checked-arithmetic
-  failure statuses.
+  failure statuses. A read of a `let mut` binding whose type is a Copy scalar,
+  or a record or class made only of such values, is copied into a fresh
+  temporary at its own evaluation point. An earlier binary or comparison
+  operand, or an earlier call argument, therefore keeps the value it read
+  when a later operand's nested block assigns to the same binding. Reads of
+  immutable bindings stay plain aliases, and their emitted C is unchanged.
 - **Wasm**: the core scalar lane stores with `local.set` after full RHS
   evaluation; i32 overflow detection traps identically for initializer and
   assignment positions. Aggregate lanes reuse existing slots and reject
@@ -113,7 +118,14 @@ Unknown assignment names reuse the established unknown-value diagnostic
 diagnostics plus statement-only grammar regressions, deterministic Graph JSON
 with a byte-exact non-mutation digest pin, CleanupPlan structural equality,
 native C11 O0/O2 probes (success values and assigned-overflow failure
-statuses), and Node/Wasm equivalence including overflow trapping.
+statuses), and Node/Wasm equivalence including overflow trapping. Its
+`read_order` submodule (`tests/language/explicit_mutation/read_order.rs`)
+compares the interpreter, native C11 at O0 and O2, and Core Wasm when a later
+operand or argument assigns to a binding that an earlier one read. It covers
+every admitted Copy scalar type, a mutated record field, a whole Copy record
+argument, lazy `&&` and `||`, and addition overflow selected by the values
+that were read, both when the overflow is real and when only a later store
+would have caused it.
 `examples/explicit_mutation.spx` exercises the feature under the example
 check/fmt gates.
 

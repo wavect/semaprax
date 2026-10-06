@@ -86,35 +86,75 @@ fn ver(tag: &str) -> Option<Ver> {
 
 type Cmp = (&'static str, Ver);
 
+/// One strict numeric component: ASCII digits only, no leading zero, fits `u64`.
+fn component(x: &str) -> Option<u64> {
+    let ok =
+        !x.is_empty() && x.bytes().all(|b| b.is_ascii_digit()) && (x == "0" || !x.starts_with('0'));
+    if ok {
+        x.parse().ok()
+    } else {
+        None
+    }
+}
+
+/// `[v]X[.Y[.Z]]`, fully consumed. Absent trailing components are `None`;
+/// malformed, empty or extra components are errors, never zero.
+fn partial(s: &str) -> Option<[Option<u64>; 3]> {
+    let s = s.strip_prefix('v').unwrap_or(s);
+    let mut out = [None; 3];
+    let mut parts = s.split('.');
+    for slot in out.iter_mut() {
+        match parts.next() {
+            Some(x) => *slot = Some(component(x)?),
+            None => break,
+        }
+    }
+    if out[0].is_none() || parts.next().is_some() {
+        return None;
+    }
+    Some(out)
+}
+
 fn comparators(req: &str) -> HarnessResult<Vec<Cmp>> {
-    let bad = |c: &str| d("SPX-HPU001", format!("bad range comparator `{c}`"));
+    let bad = |c: &str| {
+        d(
+            "SPX-HPU001",
+            format!(
+                "bad range comparator `{}` (expected [^|~|>=|<=|>|<|=]X[.Y[.Z]] with numeric components)",
+                super::bounded(c)
+            ),
+        )
+    };
     let mut out = Vec::new();
     for c in req.split(',').map(str::trim) {
         let (op, rest) = ["^", "~", ">=", "<=", ">", "<", "="]
             .iter()
             .find_map(|op| c.strip_prefix(op).map(|r| (*op, r.trim())))
             .unwrap_or(("=", c));
-        let rest_s = rest.strip_prefix('v').unwrap_or(rest);
-        let mut parts = rest_s.split('.');
-        let mut num = |_: ()| parts.next().and_then(|x| x.parse::<u64>().ok());
-        let (a, b, cc) = (num(()), num(()), num(()));
-        let v = Ver(a.ok_or_else(|| bad(c))?, b.unwrap_or(0), cc.unwrap_or(0));
+        let [a, b, cc] = partial(rest).ok_or_else(|| bad(c))?;
+        let (maj, min, pat) = (a.unwrap_or(0), b.unwrap_or(0), cc.unwrap_or(0));
+        let v = Ver(maj, min, pat);
+        // Exclusive upper bound; `None` when it would overflow `u64`.
+        let upper = match op {
+            "^" => match (a, b, cc) {
+                _ if maj > 0 => maj.checked_add(1).map(|m| Ver(m, 0, 0)),
+                (_, None, _) => Some(Ver(1, 0, 0)),
+                _ if min > 0 => min.checked_add(1).map(|m| Ver(0, m, 0)),
+                (_, _, None) => Some(Ver(0, 1, 0)),
+                _ => pat.checked_add(1).map(|p| Ver(0, 0, p)),
+            },
+            "~" => match b {
+                Some(_) => min.checked_add(1).map(|m| Ver(maj, m, 0)),
+                None => maj.checked_add(1).map(|m| Ver(m, 0, 0)),
+            },
+            _ => None,
+        };
+        if matches!(op, "^" | "~") {
+            out.push((">=", v));
+            out.push(("<", upper.ok_or_else(|| bad(c))?));
+            continue;
+        }
         match op {
-            "^" => {
-                out.push((">=", v));
-                out.push((
-                    "<",
-                    if v.0 > 0 {
-                        Ver(v.0 + 1, 0, 0)
-                    } else {
-                        Ver(0, v.1 + 1, 0)
-                    },
-                ));
-            }
-            "~" => {
-                out.push((">=", v));
-                out.push(("<", Ver(v.0, v.1 + 1, 0)));
-            }
             ">=" => out.push((">=", v)),
             "<=" => out.push(("<=", v)),
             ">" => out.push((">", v)),
@@ -237,5 +277,58 @@ mod tests {
         let c = comparators("^1.2").unwrap();
         assert!(satisfies(Ver(1, 9, 0), &c) && !satisfies(Ver(2, 0, 0), &c));
         assert!(Channel::parse("range:bogus").is_err());
+    }
+
+    fn ok(req: &str, v: (u64, u64, u64)) -> bool {
+        satisfies(Ver(v.0, v.1, v.2), &comparators(req).unwrap())
+    }
+
+    #[test]
+    fn caret_and_tilde_bounds_follow_the_leftmost_nonzero_component() {
+        assert!(ok("^0.0.1", (0, 0, 1)));
+        assert!(!ok("^0.0.1", (0, 0, 2)) && !ok("^0.0.1", (0, 0, 9)) && !ok("^0.0.1", (0, 0, 0)));
+        assert!(ok("^0.2.3", (0, 2, 9)) && !ok("^0.2.3", (0, 3, 0)) && !ok("^0.2.3", (0, 2, 2)));
+        assert!(ok("^1.2.3", (1, 9, 9)) && !ok("^1.2.3", (2, 0, 0)));
+        assert!(ok("^0.0", (0, 0, 7)) && !ok("^0.0", (0, 1, 0)));
+        assert!(ok("^0", (0, 9, 9)) && !ok("^0", (1, 0, 0)));
+        assert!(ok("^0.0.0", (0, 0, 0)) && !ok("^0.0.0", (0, 0, 1)));
+        assert!(ok("~1.2.3", (1, 2, 9)) && !ok("~1.2.3", (1, 3, 0)));
+        assert!(ok("~1.2", (1, 2, 0)) && !ok("~1.2", (1, 3, 0)));
+        assert!(ok("~1", (1, 9, 0)) && !ok("~1", (2, 0, 0)));
+        assert!(ok(">=v1.2, <v2", (1, 5, 0)) && !ok(">=v1.2, <v2", (2, 0, 0)));
+    }
+
+    #[test]
+    fn malformed_ranges_are_refused_not_reinterpreted() {
+        for bad in [
+            ">=1.2.3.4",
+            ">=1.bad.3",
+            ">=1.2.bad",
+            ">=",
+            "",
+            ">=1.",
+            ">=1..3",
+            ">=.1",
+            ">=+1",
+            ">=1.2.3-rc1",
+            ">=1.2.3+b",
+            ">=01.2.3",
+            ">=1,",
+            ">=1,,<2",
+            "^",
+            "~x",
+            "^18446744073709551616",
+            "^18446744073709551615",
+            "~1.18446744073709551615",
+            "^0.0.18446744073709551615",
+            "^0.18446744073709551615.1",
+        ] {
+            let e = Channel::parse(&format!("range:{bad}")).unwrap_err();
+            assert_eq!(e.code, "SPX-HPU001", "{bad}");
+            assert!(e.message.chars().count() < 300);
+        }
+        // The largest values whose bound does not overflow still parse.
+        assert!(comparators(">=18446744073709551615.0.0").is_ok());
+        assert!(comparators("^0.0.18446744073709551614").is_ok());
     }
 }

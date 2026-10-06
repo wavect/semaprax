@@ -21,13 +21,23 @@ brand-specific branch. An empty `files` list means the whole subtree under `subp
 | Channel | Resolves to |
 |---|---|
 | `latest-stable` | highest `X.Y.Z` release that is neither draft nor pre-release |
-| `range:<req>` | highest stable release satisfying comparators (`>=,>,<=,<,=,^,~`, comma separated) |
+| `range:<req>` | highest stable release satisfying comparators (`>=,>,<=,<,=,^,~`, comma separated; strict grammar below) |
 | `commit:<40 hex>` | that commit |
 | `head[:branch]` | the branch tip at check time, **resolved once to a commit and recorded** (`resolved_head`) |
 
 Annotated tags are peeled to the underlying commit. Every content read (tree, blob) is addressed by commit
 or blob sha; the only request that names a mutable branch is the one resolution call. A recorded tag
 (active or pending) that now points at a different commit is `SPX-HPU003` (moved tag) and is never staged.
+
+### Range grammar
+
+Each comma-separated comparator is `[op]` followed by `[v]X[.Y[.Z]]`. Components are plain decimal digits
+(no sign, suffix, empty field or leading zero) that fit `u64`; a fourth component, a pre-release or build
+suffix, an empty comparator or an upper bound that would overflow `u64` is `SPX-HPU001`, rejected when the
+channel is parsed, before any upstream request or state change. Omitted trailing components are zero for
+`>=,>,<=,<,=`. `^` raises the leftmost nonzero component: `^1.2.3` is `<2.0.0`, `^0.2.3` is `<0.3.0`,
+`^0.0.1` is `<0.0.2`; partial forms `^0.0` (`<0.1.0`) and `^0` (`<1.0.0`) follow the same rule. `~X.Y[.Z]`
+is `<X.(Y+1).0` and `~X` is `<(X+1).0.0`.
 
 ## Transport
 
@@ -76,6 +86,17 @@ rollback or revoke.
 Revocation (`updates revoke`, or the fetcher's `revoked`) falls back to a safe previous revision, or leaves the
 source `unavailable` (the catalog skill is withdrawn from the effective set). A revoked revision is refused by
 `apply` (`SPX-HPU011`) and never reactivated.
+
+## State transactions
+
+Every writer of `state.json` (`check`, `apply`, `rollback`, `revoke`, `approve-policy`, `add`) owns an
+exclusive advisory `flock` on `<home>/updates/state.lock` for its whole read-modify-write, waiting at most
+5 seconds (`SPX-HPU017`, state unchanged). The kernel drops the lock when the holder exits or crashes; the
+lock file is never deleted. `check` stages over the network without the lock, then takes it, reloads the
+current state and publishes per source: if a source is unchanged since the check began it is replaced by the
+checked result, otherwise the newer source is kept, only the revocations the check learned are merged in, and
+the report says `SPX-HPU018` (re-run `updates check`). Policy, other sources and revocations are never
+overwritten by a stale snapshot, and revocations are monotonic.
 
 ## Policy, frozen, offline
 

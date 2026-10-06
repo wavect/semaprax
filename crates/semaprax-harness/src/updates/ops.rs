@@ -174,6 +174,20 @@ fn load(ctx: &Ctx) -> HarnessResult<State> {
     Ok(st)
 }
 
+/// One locked read-modify-write of the update state. The lock covers the load,
+/// the mutation and the save, so no stale snapshot is ever published; nothing is
+/// written when `f` fails.
+fn mutate<T>(
+    ctx: &Ctx,
+    f: impl FnOnce(&mut State) -> HarnessResult<T>,
+) -> HarnessResult<(T, State)> {
+    let _lock = super::state::lock(ctx.home)?;
+    let mut st = load(ctx)?;
+    let out = f(&mut st)?;
+    st.save(ctx.home)?;
+    Ok((out, st))
+}
+
 fn rep(src: &Source, state: &'static str) -> SourceReport {
     SourceReport {
         id: src.id.clone(),
@@ -391,7 +405,8 @@ fn select_ids(st: &State, ids: &[String]) -> HarnessResult<()> {
 /// activate. Offline/frozen makes zero requests and reports cached state. A
 /// network failure becomes a bounded notice, never an error.
 pub fn check(ctx: &Ctx, ids: &[String]) -> HarnessResult<Report> {
-    let mut st = load(ctx)?;
+    let base = load(ctx)?;
+    let mut st = base.clone();
     select_ids(&st, ids)?;
     let Some(f) = ctx.fetcher.filter(|_| !ctx.offline) else {
         return Ok(Report {
@@ -427,12 +442,40 @@ pub fn check(ctx: &Ctx, ids: &[String]) -> HarnessResult<Report> {
             }
         }
     }
-    st.last_check = ctx.now;
-    st.notice = notice.as_deref().map(bounded);
-    st.save(ctx.home)?;
+    // Publication: the fetches above ran on a snapshot without any lock. Take
+    // ownership, reload what is current now and merge, never overwrite.
+    let _lock = super::state::lock(ctx.home)?;
+    let mut cur = load(ctx)?;
+    for r in out.iter_mut() {
+        let (Some(new), Some(old)) = (st.sources.get(&r.id), base.sources.get(&r.id)) else {
+            continue;
+        };
+        let Some(live) = cur.sources.get_mut(&r.id) else {
+            continue;
+        };
+        if live.to_json() == old.to_json() {
+            *live = new.clone();
+        } else {
+            // Another writer changed this source while we were staging: keep its
+            // result, carry over only the monotonic revocations we learned.
+            for x in &new.revoked {
+                if !live.revoked.contains(x) {
+                    live.revoked.push(x.clone());
+                }
+            }
+            let msg = "SPX-HPU018: source changed during the check; re-run `updates check`";
+            *r = rep(live, "error");
+            r.message = Some(msg.into());
+            notice = Some(format!("update check conflicted, kept newer state ({msg})"));
+        }
+        apply_revocations(live, ctx.now);
+    }
+    cur.last_check = ctx.now;
+    cur.notice = notice.as_deref().map(bounded);
+    cur.save(ctx.home)?;
     Ok(Report {
         sources: out,
-        notice: st.notice.clone(),
+        notice: cur.notice.clone(),
         offline: false,
     })
 }
@@ -471,37 +514,37 @@ pub fn apply(ctx: &Ctx, id: &str, approve: bool) -> HarnessResult<Report> {
             "--frozen forbids changing the active revisions",
         ));
     }
-    let mut st = load(ctx)?;
-    select_ids(&st, &[id.to_string()])?;
-    let src = st.sources.get_mut(id).unwrap();
-    let p = src.pending.clone().ok_or_else(|| {
-        d(
-            "SPX-HPU001",
-            format!("`{id}` has no staged update; run `updates check` first"),
-        )
+    let (r, st) = mutate(ctx, |st| {
+        select_ids(st, &[id.to_string()])?;
+        let src = st.sources.get_mut(id).unwrap();
+        let p = src.pending.clone().ok_or_else(|| {
+            d(
+                "SPX-HPU001",
+                format!("`{id}` has no staged update; run `updates check` first"),
+            )
+        })?;
+        if src.revoked.contains(&p.rev.commit) || src.revoked.contains(&p.rev.digest) {
+            return Err(d("SPX-HPU011", "the staged revision is revoked"));
+        }
+        let blocking: Vec<&String> = p
+            .reasons
+            .iter()
+            .filter(|r| *r != "auto-update-not-approved")
+            .collect();
+        if !blocking.is_empty() && !approve {
+            return Err(d(
+                "SPX-HPU008",
+                format!(
+                    "`{id}` {} needs explicit review ({}); re-run with --approve",
+                    p.rev.version,
+                    p.reasons.join(", ")
+                ),
+            ));
+        }
+        snapshot::open(&store_dir(ctx.home), &p.rev.digest)?;
+        activate(src, p.rev, ctx.now);
+        Ok(rep(src, "activated"))
     })?;
-    if src.revoked.contains(&p.rev.commit) || src.revoked.contains(&p.rev.digest) {
-        return Err(d("SPX-HPU011", "the staged revision is revoked"));
-    }
-    let blocking: Vec<&String> = p
-        .reasons
-        .iter()
-        .filter(|r| *r != "auto-update-not-approved")
-        .collect();
-    if !blocking.is_empty() && !approve {
-        return Err(d(
-            "SPX-HPU008",
-            format!(
-                "`{id}` {} needs explicit review ({}); re-run with --approve",
-                p.rev.version,
-                p.reasons.join(", ")
-            ),
-        ));
-    }
-    snapshot::open(&store_dir(ctx.home), &p.rev.digest)?;
-    activate(src, p.rev, ctx.now);
-    let r = rep(src, "activated");
-    st.save(ctx.home)?;
     Ok(Report {
         sources: vec![r],
         notice: st.notice.clone(),
@@ -518,28 +561,28 @@ pub fn rollback(ctx: &Ctx, id: &str) -> HarnessResult<Report> {
             "--frozen forbids changing the active revisions",
         ));
     }
-    let mut st = load(ctx)?;
-    select_ids(&st, &[id.to_string()])?;
-    let src = st.sources.get_mut(id).unwrap();
-    let store = store_dir(ctx.home);
-    let pos = src
-        .previous
-        .iter()
-        .position(|p| !is_revoked(src, p) && snapshot::open(&store, &p.digest).is_ok())
-        .ok_or_else(|| {
-            d(
-                "SPX-HPU014",
-                format!("`{id}` has no retained safe revision to roll back to"),
-            )
-        })?;
-    let mut target = src.previous.remove(pos);
-    target.activated_at = ctx.now;
-    let displaced = src.active.replace(target).map(|a| a.commit);
-    src.held = displaced;
-    src.pending = None;
-    src.unavailable = false;
-    let r = rep(src, "up-to-date");
-    st.save(ctx.home)?;
+    let (r, st) = mutate(ctx, |st| {
+        select_ids(st, &[id.to_string()])?;
+        let src = st.sources.get_mut(id).unwrap();
+        let store = store_dir(ctx.home);
+        let pos = src
+            .previous
+            .iter()
+            .position(|p| !is_revoked(src, p) && snapshot::open(&store, &p.digest).is_ok())
+            .ok_or_else(|| {
+                d(
+                    "SPX-HPU014",
+                    format!("`{id}` has no retained safe revision to roll back to"),
+                )
+            })?;
+        let mut target = src.previous.remove(pos);
+        target.activated_at = ctx.now;
+        let displaced = src.active.replace(target).map(|a| a.commit);
+        src.held = displaced;
+        src.pending = None;
+        src.unavailable = false;
+        Ok(rep(src, "up-to-date"))
+    })?;
     Ok(Report {
         sources: vec![r],
         notice: st.notice.clone(),
@@ -550,22 +593,22 @@ pub fn rollback(ctx: &Ctx, id: &str) -> HarnessResult<Report> {
 /// Record a revocation (commit or digest). Active revoked revisions fall back
 /// to the newest safe previous one, or the source becomes unavailable.
 pub fn revoke(ctx: &Ctx, id: &str, target: &str) -> HarnessResult<Report> {
-    let mut st = load(ctx)?;
-    select_ids(&st, &[id.to_string()])?;
-    let src = st.sources.get_mut(id).unwrap();
-    if !src.revoked.iter().any(|r| r == target) {
-        src.revoked.push(target.to_string());
-    }
-    apply_revocations(src, ctx.now);
-    let r = rep(
-        src,
-        if src.unavailable {
-            "unavailable"
-        } else {
-            "up-to-date"
-        },
-    );
-    st.save(ctx.home)?;
+    let (r, st) = mutate(ctx, |st| {
+        select_ids(st, &[id.to_string()])?;
+        let src = st.sources.get_mut(id).unwrap();
+        if !src.revoked.iter().any(|r| r == target) {
+            src.revoked.push(target.to_string());
+        }
+        apply_revocations(src, ctx.now);
+        Ok(rep(
+            src,
+            if src.unavailable {
+                "unavailable"
+            } else {
+                "up-to-date"
+            },
+        ))
+    })?;
     Ok(Report {
         sources: vec![r],
         notice: st.notice.clone(),
@@ -591,6 +634,7 @@ pub fn approve_policy(
     timeout_ms: Option<u64>,
     gh: Option<String>,
 ) -> HarnessResult<()> {
+    let _lock = super::state::lock(home)?;
     let mut st = State::load(home)?;
     st.policy.approved = true;
     st.policy.auto_content = auto_content;
@@ -611,6 +655,7 @@ pub fn approve_policy(
 pub fn add_source(home: &Path, src: Source) -> HarnessResult<()> {
     super::fetch::parse_repo(&src.repo)?;
     Channel::parse(&src.channel)?;
+    let _lock = super::state::lock(home)?;
     let mut st = State::load(home)?;
     if st.sources.contains_key(&src.id) {
         return Err(d(

@@ -18,6 +18,68 @@ pub fn state_path(home: &Path) -> PathBuf {
     home.join("updates").join("state.json")
 }
 
+pub fn lock_path(home: &Path) -> PathBuf {
+    home.join("updates").join("state.lock")
+}
+
+/// Longest an update-state transaction waits for another writer.
+pub const LOCK_WAIT: std::time::Duration = std::time::Duration::from_secs(5);
+
+/// Exclusive ownership of the update state for one read-modify-write. It is an
+/// advisory `flock` on `updates/state.lock`: the kernel releases it when this
+/// guard drops or the process exits (including a crash), so a stale lock file
+/// never blocks anyone. The file itself is never deleted.
+#[derive(Debug)]
+pub struct StateLock {
+    _file: Option<std::fs::File>,
+}
+
+/// Take the state lock, waiting at most [`LOCK_WAIT`] (`SPX-HPU017` when busy).
+pub fn lock(home: &Path) -> HarnessResult<StateLock> {
+    lock_within(home, LOCK_WAIT)
+}
+
+#[cfg(unix)]
+pub fn lock_within(home: &Path, wait: std::time::Duration) -> HarnessResult<StateLock> {
+    use rustix::fs::{flock, FlockOperation};
+    let path = lock_path(home);
+    let io =
+        |e: &dyn std::fmt::Display| d("SPX-HPU017", format!("cannot lock {}: {e}", path.display()));
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| io(&e))?;
+    }
+    let f = std::fs::OpenOptions::new()
+        .create(true)
+        .truncate(false)
+        .write(true)
+        .open(&path)
+        .map_err(|e| io(&e))?;
+    let start = std::time::Instant::now();
+    loop {
+        match flock(&f, FlockOperation::NonBlockingLockExclusive) {
+            Ok(()) => return Ok(StateLock { _file: Some(f) }),
+            Err(e) if e == rustix::io::Errno::WOULDBLOCK => {
+                if start.elapsed() >= wait {
+                    return Err(d(
+                        "SPX-HPU017",
+                        format!(
+                            "update state is busy: another update operation holds {}",
+                            path.display()
+                        ),
+                    ));
+                }
+                std::thread::sleep(std::time::Duration::from_millis(10));
+            }
+            Err(e) => return Err(io(&e)),
+        }
+    }
+}
+
+#[cfg(not(unix))]
+pub fn lock_within(_: &Path, _: std::time::Duration) -> HarnessResult<StateLock> {
+    Ok(StateLock { _file: None })
+}
+
 pub fn store_dir(home: &Path) -> PathBuf {
     home.join("artifacts")
 }
@@ -198,7 +260,7 @@ impl Revision {
 }
 
 impl Source {
-    fn to_json(&self) -> Value {
+    pub fn to_json(&self) -> Value {
         json!({
             "id": self.id, "kind": self.kind.as_str(), "repo": self.repo, "subpath": self.subpath,
             "channel": self.channel, "head_branch": self.head_branch,

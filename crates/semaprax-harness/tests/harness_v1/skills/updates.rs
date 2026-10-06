@@ -948,3 +948,6 @@ fn hp_hn05_real_gh_resolves_ponytail_and_caveman_latest_stable() {
         );
     }
 }
+
+#[path = "updates/tx.rs"]
+mod tx;

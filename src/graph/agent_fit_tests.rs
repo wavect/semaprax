@@ -136,7 +136,12 @@ fn ref10_budget_sweeps_keep_exact_known_answers() {
         assert!(transcript
             .lines()
             .any(|line| line.contains("\"max_bytes\"")));
-        assert!(transcript.lines().any(|line| line.contains("\terr\t")));
+        // Every admitted budget (>= MIN_AGENT_CONTEXT_BYTES) fits by
+        // truncating with a max_bytes reason; no budget in the sweep errors.
+        assert!(
+            !transcript.lines().any(|line| line.contains(" err\t")),
+            "an admitted budget failed instead of truncating"
+        );
         assert!(transcript
             .lines()
             .any(|line| line.contains("\"reasons\":[\"max_bytes\"]")));
@@ -144,7 +149,11 @@ fn ref10_budget_sweeps_keep_exact_known_answers() {
     assert_eq!(digests, REF10_SWEEP_DIGESTS);
 }
 
-const REF10_SWEEP_DIGESTS: [&str; 3] = ["", "", ""];
+const REF10_SWEEP_DIGESTS: [&str; 3] = [
+    "3b7a48f61aeae9e4310efa16ed879051a390588123653cb560e8775c43156c12",
+    "fae97a0ed62ad57e5ac5a11a297bd72d4cb74cb886fc65b0687ceb4d0de0148a",
+    "0181871b743758808e4be01cc6dd3aded73fe803e687d394b04d22264a756539",
+];
 
 /// Deterministic instrumentation: complete-response materializations no
 /// longer grow once per discarded fact.

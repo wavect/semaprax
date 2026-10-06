@@ -61,7 +61,11 @@ fn wide_source() -> String {
         .unwrap();
     }
     for index in 0..20 {
-        writeln!(source, "@id(\"w.unrelated{index}\") fn unrelated{index}() -> i64 {{ {index} }}").unwrap();
+        writeln!(
+            source,
+            "@id(\"w.unrelated{index}\") fn unrelated{index}() -> i64 {{ {index} }}"
+        )
+        .unwrap();
     }
     source
 }
@@ -98,8 +102,7 @@ fn sweep(source: &str, root: &str, step: usize) -> String {
     budgets.extend([full_v1 - 1, full_v1, full_v1 + 1]);
     for &budget in &budgets {
         for max_nodes in [1, 3, 256] {
-            let options =
-                AgentContextOptions::new(8, budget, max_nodes, CORE_FILTERS).unwrap();
+            let options = AgentContextOptions::new(8, budget, max_nodes, CORE_FILTERS).unwrap();
             writeln!(
                 transcript,
                 "v1 {budget} {max_nodes} {}",
@@ -107,14 +110,9 @@ fn sweep(source: &str, root: &str, step: usize) -> String {
             )
             .unwrap();
             for direction in AgentContextDirection::ALL {
-                let options = AgentContextV2Options::new(
-                    8,
-                    budget,
-                    max_nodes,
-                    CORE_FILTERS,
-                    direction,
-                )
-                .unwrap();
+                let options =
+                    AgentContextV2Options::new(8, budget, max_nodes, CORE_FILTERS, direction)
+                        .unwrap();
                 writeln!(
                     transcript,
                     "v2 {budget} {max_nodes} {direction:?} {}",
@@ -135,7 +133,9 @@ fn ref10_budget_sweeps_keep_exact_known_answers() {
     let digests = [digest(&wide), digest(&cyclic), digest(&strings)];
     eprintln!("REF-10 sweep digests {digests:?}");
     for transcript in [&wide, &cyclic, &strings] {
-        assert!(transcript.lines().any(|line| line.contains("\"max_bytes\"")));
+        assert!(transcript
+            .lines()
+            .any(|line| line.contains("\"max_bytes\"")));
         assert!(transcript.lines().any(|line| line.contains("\terr\t")));
         assert!(transcript
             .lines()
@@ -156,14 +156,9 @@ fn ref10_materializations_do_not_grow_per_discarded_fact() {
         let options = AgentContextOptions::new(8, budget, 256, CORE_FILTERS).unwrap();
         let (output, v1_counts) = measure(|| agent_context_json(&program, "w.root", &options));
         let output = output.unwrap().unwrap();
-        let options = AgentContextV2Options::new(
-            8,
-            budget,
-            256,
-            CORE_FILTERS,
-            AgentContextDirection::Both,
-        )
-        .unwrap();
+        let options =
+            AgentContextV2Options::new(8, budget, 256, CORE_FILTERS, AgentContextDirection::Both)
+                .unwrap();
         let (v2_output, v2_counts) =
             measure(|| agent_context_v2_json(&program, "w.root", &options));
         let v2_output = v2_output.unwrap().unwrap();

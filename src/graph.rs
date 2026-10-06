@@ -23,7 +23,6 @@ macro_rules! format {
 }
 
 mod affine;
-mod work_counter;
 mod agent_execution;
 mod agent_instances;
 mod agent_query;
@@ -38,6 +37,7 @@ mod process;
 mod session_protocol_decl;
 mod session_protocol_facet;
 mod session_protocol_follows;
+mod work_counter;
 pub(crate) use agent_execution::facts as agent_execution_facts;
 use expression::expr_json;
 mod generic_instances;
@@ -5579,8 +5579,8 @@ mod nested_owned_records_tests;
 mod iterator_loop_tests;
 
 #[cfg(test)]
-mod iterator_operations_tests;
+mod agent_fit_tests;
 #[cfg(test)]
 mod agent_query_tests;
 #[cfg(test)]
-mod agent_fit_tests;
+mod iterator_operations_tests;

@@ -12,10 +12,10 @@ mod request;
 
 #[cfg(test)]
 pub(super) use accounting::replay_accounting_receipt;
-use admission::reserve_parse_bound;
-pub(super) use admission::{admit_profile, parse_profile, parse_task};
 #[cfg(test)]
 pub(super) use admission::render_task;
+use admission::reserve_parse_bound;
+pub(super) use admission::{admit_profile, parse_profile, parse_task};
 use evidence::render_bundle;
 #[cfg(test)]
 pub(super) use evidence::{preflight_terminal_for_test, terminal_diagnostics_for_test};

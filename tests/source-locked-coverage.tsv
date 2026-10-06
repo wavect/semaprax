@@ -6,5 +6,5 @@ tests/agent_runtime_v1/agent_proposal_schema_v1.rs	src/agent_proposal.rs	1
 tests/desktop_native_ui_ci_contract.rs	src/codegen.rs	31
 tests/native_rust_interop_ci_contract.rs	crates/semaprax-native-rust-interop-builder/src/implementation.rs	4
 tests/projections/public_api_descriptor.rs	src/wasm.rs	19
-tests/quality_routing.rs	src/graph.rs	6
+tests/quality_routing.rs	src/graph.rs	4
 tests/workspace/semantic_graph.rs	src/workspace_graph.rs	2

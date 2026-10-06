@@ -57,6 +57,13 @@ fn profiles_are_deterministic_and_broad_dispatch_files_force_full() {
         "src/graph/owned_iterator.rs",
         "pub fn owned_iterator() {}\n",
     );
+    repository.write(
+        "src/graph/agent_instances.rs",
+        "pub fn agent_instances() {}\n",
+    );
+    repository.write("src/graph/agent_query.rs", "pub fn agent_query() {}\n");
+    repository.write("src/graph/nested_owned.rs", "pub fn nested_owned() {}\n");
+    repository.write("src/graph/work_counter.rs", "pub fn work_counter() {}\n");
     let plan = repository.changed_plan(&[]).unwrap();
     assert!(plan.contains("effective\tfull\n"));
     assert!(plan.contains(

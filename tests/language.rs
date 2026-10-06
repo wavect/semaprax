@@ -69,6 +69,8 @@ mod owned_bounded_vec_v1;
 mod owned_byte_buffer_v1;
 #[path = "language/owned_result_variants.rs"]
 mod owned_result_variants;
+#[path = "language/owned_string_loops_v1.rs"]
+mod owned_string_loops_v1;
 #[path = "language/ownership.rs"]
 mod ownership;
 #[path = "language/ownership_control_flow.rs"]
@@ -77,10 +79,10 @@ mod ownership_control_flow;
 mod payload_free_variants;
 #[path = "language/property_widen.rs"]
 mod property_widen;
-#[path = "language/record_patterns.rs"]
-mod record_patterns;
 #[path = "language/record_invariants.rs"]
 mod record_invariants;
+#[path = "language/record_patterns.rs"]
+mod record_patterns;
 #[path = "language/records_semantics.rs"]
 mod records_semantics;
 #[path = "language/records_syntax.rs"]
@@ -101,8 +103,6 @@ mod stable_id_nul;
 mod std_collections_vec_wrappers;
 #[path = "language/string_numeric_text.rs"]
 mod string_numeric_text;
-#[path = "language/owned_string_loops_v1.rs"]
-mod owned_string_loops_v1;
 #[path = "language/string_ops_v1.rs"]
 mod string_ops_v1;
 #[path = "language/string_ops_v2.rs"]

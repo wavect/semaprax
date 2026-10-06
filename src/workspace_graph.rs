@@ -5400,7 +5400,9 @@ fn validate_imported_type(
             "a record that declares invariants cannot be imported by another module in \
              Record Invariants v1",
         )
-        .with_help("construct and update the record through functions of its own module")]);
+        .with_help(
+            "construct and update the record through functions of its own module",
+        )]);
     }
     let generic_owned_record = generic_type_import::template_is_admitted(ty);
     if !generic_owned_record

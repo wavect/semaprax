@@ -71,7 +71,11 @@ fn order_status(paid: bool) -> string
   fields plus `me: i64` and `my_<account field>`; unprefixed `can_read` /
   `can_write` are the defaults. Audit history and CSV export are automatic.
 - Run `semaprax fmt app.spx && semaprax webapp app.spx -o out && node
-  out/server.mjs --self-test`. The self-test checks create, read, list,
-  update, validation, 404, 409, persistence, and delete for every entity; when
-  it passes, no manual requests are needed. Serve with `node out/server.mjs
-  --port 8080 [--data DIR]`.
+  out/server.mjs --self-test`. The self-test exercises every feature for every
+  entity and role and prints the observed evidence; that is the end-to-end
+  verification, so no hand-written requests are needed.
+- API: `GET`/`POST /api/<entity>`, `GET`/`PUT`/`DELETE /api/<entity>/<id>`,
+  `GET /api/<entity>/<id>/history`, `?format=csv`, `GET /api/audit`; with
+  accounts `POST /api/session {"login", "password"}` and `DELETE
+  /api/session`. `node out/server.mjs [--port N] [--data DIR] [--setup]`
+  serves until killed, so start it in the background.

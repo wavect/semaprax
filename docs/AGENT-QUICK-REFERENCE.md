@@ -223,6 +223,7 @@ fn main() -> i64
 }
 ```
 
+- A declaration's last field or case may omit its `,`; `fmt` writes it.
 - Give every field and case its own `@id`. Cases without payload are
   written `Name,` in the declaration and `Type::Name {}` everywhere else.
 - Constructing a generic variant spells the type arguments:
@@ -731,7 +732,7 @@ Other first-attempt diagnostics and their fixes:
 | `fn main() -> bool` | `SPX-T104` | `main` returns `i64`; `0` conventionally means success |
 | a second `consume(b)` after `own` | `SPX-O101` | Take `borrow` in the callee or pass a fresh value |
 | `struct`, `enum`, `pub`, `const` | `SPX-P104` | `record`, `variant`, no visibility keyword, a function returning the value |
-| `x: i64` as the last field without `,` | `SPX-P106` | Every field and every match arm ends with `,`, including the last |
+| `match x { 0 => 0, _ => 1 }` | `SPX-P106` | Every match arm ends with `,`, including the last; a declaration's last field or case may omit it |
 | `x += 1;` | `SPX-P201` | `x = x + 1;` |
 | `c ? a : b` | `SPX-P106` | `if c { a } else { b }` |
 | `break`, `continue` | `SPX-P106` | Put the exit test in the `while` condition |
@@ -750,13 +751,10 @@ Other first-attempt diagnostics and their fixes:
 
 ## Web applications
 
-`semaprax webapp app.spx -o out` turns one module into a complete web
-application: a JSON REST API, file persistence, the same validation in the
-browser and the server, computed fields, and a browser UI with a dashboard,
-searchable, sortable, filterable, paginated lists, detail pages with
-back-references, and forms. Start it with `node out/server.mjs --port 8080`.
-The module needs no `main` and no `@id`; the projection names everything
-after the source names. The block below is checked by the `webapp` tests.
+`semaprax webapp app.spx -o out` turns one module into a full-stack web app:
+REST API, persistence, browser and server validation, computed fields, and a
+UI (dashboard, searchable/sortable/filterable paginated lists, detail pages,
+forms). No `main` or `@id` is needed. This example is checked by the tests:
 
 ```spx webapp
 module shop;
@@ -796,37 +794,42 @@ fn order_status(paid: bool) -> string
 }
 ```
 
-- Each `record` is an entity, served at `/api/<snake_name>` and shown at
-  `#/<snake_name>`. Fields are `string`, `i64`, `f64`, `bool`, `char`, or a
-  variant whose cases have no payload (shown as a select). The server assigns
-  `id`; do not declare it.
-- A field `<entity>_id: i64`, such as `customer_id`, references that entity.
-  Its form input is a select, a reference to a missing row is rejected, and
-  deleting a referenced row returns 409.
-- In `fn <entity>_valid(…) -> bool`, each `requires` line is one validation
-  rule, reported on its first field. The body is `true`.
-- Any other `fn <entity>_<name>(…) -> T` is a read-only computed field
-  `<name>`.
-- `<entity>` is the snake_case record name (`time_entry` for `TimeEntry`)
-  or its lowercase (`timeentry`). Entity function parameters are fields of
-  that entity, with the exact name and type, in any order. Functions without
-  an entity prefix are helpers; one that no entity function calls is
-  `SPX-WA105`.
-- Bodies may use `let`, `if`/`else`, `match` with one variant case or scalar
-  literal per arm, checked `i64` and IEEE `f64` arithmetic, comparisons,
-  `&&`, `||`, `!`, `string_len` (bytes), `string_len_chars`,
-  `string_is_empty`, `string_contains`, `string_starts_with`,
-  `string_concat`, and `string_from_i64`. Anything else is `SPX-WA103`, and
-  an unsupported field type or parameter is `SPX-WA102`.
-- `Tier::Free {} | Tier::Pro {}` is `SPX-T254`: write one arm per case.
-  There is no `i64` to `f64` conversion: multiply by a count with a
-  recursive helper.
-- Loop: `semaprax fmt app.spx && semaprax webapp app.spx -o out && node
-  out/server.mjs --self-test`. The self-test synthesizes a valid row for every
-  entity from its rules and checks create, read, list, update, validation,
-  404, 409, persistence across a restart, and delete, printing one line. It
-  replaces hand-written request scripts. Regenerating into the same `out` is
-  allowed. Rows live in `./data/db.json` unless the server gets `--data DIR`.
+- Each `record` is an entity at `/api/<snake_name>`. Field types: `string`,
+  `i64`, `f64`, `bool`, `char`, payload-free variant. The server assigns `id`.
+- `customer_id: i64` references `Customer`: select input, missing target
+  rejected, deleting a referenced row is 409.
+- `fn <entity>_valid(…) -> bool`: each `requires` line is a rule; body `true`.
+  Any other `fn <entity>_<name>(…)` is a computed field `<name>`.
+  `<entity>` is snake_case (`time_entry`) or lowercase (`timeentry`).
+  Parameters are that entity's fields, same name and type.
+- Bodies: `let`, `if`/`else`, `match` (one case per arm; `A {} | B {}` is
+  `SPX-T254`), arithmetic, comparisons, `&&` `||` `!`, `string_len` (bytes),
+  `string_len_chars`, `string_is_empty`, `string_contains`,
+  `string_starts_with`, `string_concat`, `string_from_i64`, and helper
+  functions. No `i64` to `f64` cast: use a recursive helper. Errors:
+  `SPX-WA102` type, `SPX-WA103` expression, `SPX-WA105` uncalled function.
+- Unique key: `fn customer_key(email: string) -> string { email }` (any
+  scalar; join fields with `string_concat`).
+- Workflow on variant field `state`: `fn order_state_step(from: State, to:
+  State) -> bool`. Rows start in the first case; updates must pass the step.
+- Rollups: a computed field may take `count_<child>`, `count_<child>_<bool
+  field>` (both `i64`), or `sum_<child>_<number field>` over the child rows
+  that reference this row: `fn customer_spent(sum_order_total: f64) -> f64`.
+- Accounts: `fn member_account(email: string, active: bool) -> bool {
+  active }` makes `Member` the sign-in entity (login field first; the server
+  keeps a write-only `password`). First run: `node out/server.mjs --setup`.
+- Permissions: `fn <entity>_can_read` / `_can_write(…) -> bool` take row
+  fields plus `me: i64` and `my_<account field>`; unprefixed `can_read` /
+  `can_write` are the defaults. Audit history and CSV export are automatic.
+- Run `semaprax fmt app.spx && semaprax webapp app.spx -o out && node
+  out/server.mjs --self-test`. The self-test exercises every feature for every
+  entity and role and prints the observed evidence; that is the end-to-end
+  verification, so no hand-written requests are needed.
+- API: `GET`/`POST /api/<entity>`, `GET`/`PUT`/`DELETE /api/<entity>/<id>`,
+  `GET /api/<entity>/<id>/history`, `?format=csv`, `GET /api/audit`; with
+  accounts `POST /api/session {"login", "password"}` and `DELETE
+  /api/session`. `node out/server.mjs [--port N] [--data DIR] [--setup]`
+  serves until killed, so start it in the background.
 
 ## Projects
 

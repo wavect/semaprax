@@ -521,6 +521,7 @@ Audience: all documentation readers.
 - [Portable SIMD eligibility report](SIMD-REPORT-V1.md)
 - [UI dialect schema projection](UI-SCHEMA-V1.md)
 - [Web application projection](WEBAPP-PROJECTION-V1.md)
+- [Web application projection v2](WEBAPP-PROJECTION-V2.md)
 - [Conformance trace](CONFORMANCE-TRACE-V1.md)
 
 # Internal development documentation

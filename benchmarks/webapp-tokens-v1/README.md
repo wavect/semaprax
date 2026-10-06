@@ -23,26 +23,38 @@ own `node server.mjs --self-test` (create, read, list, update, validation,
 with the natively compiled SEMAPRAX functions on the same inputs (both give
 `34953730` for the combined probe in the evidence below).
 
-## Result 1: static session model (deterministic)
+## Result 1: static models (deterministic)
 
 `node measure.mjs --tokenizer <dir>` counts tokens with the offline Claude BPE
 (`@anthropic-ai/tokenizer`). Without that dependency it falls back to
 bytes/4 and says so. The output is in [results-static.json](results-static.json).
-The model: the agent reads the spec and the language reference it needs
-once, writes one file per turn while every turn re-sends what came before,
-then reads one green verification cycle.
+Every model starts from the spec and the language reference the arm needs,
+and ends by reading one green verification cycle.
 
-| Arm | Reference read | Authored | Files | Green-cycle output | Session total | vs TS |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| TypeScript/React | 0 | 7,045 | 10 | 93 | 62,375 | 1.00 |
-| SEMAPRAX before (measured slice only, lower bound) | 10,737 | 13,211 | 9 | 148 | 201,774 | 3.23 |
-| SEMAPRAX before (slice extrapolated to 10 entities) | 10,737 | 48,075 | 9 | 148 | 410,958 | 6.59 |
-| **SEMAPRAX webapp** | **914** | **1,667** | **1** | **64** | **8,224** | **0.13** |
+- **Batched (headline):** every file is written in one turn. This matches how
+  the recorded live agents worked.
+- **Language-attributable:** reference + authored + verification output,
+  each once, leaving out the spec both arms read identically.
+- **Per-file (upper bound):** one file per turn, every turn re-sending what
+  came before. It charges multi-file stacks for each extra turn; real agents
+  batch, so treat it as a ceiling, not the expected saving.
 
-Before this change, SEMAPRAX cost 3.2–6.6 times the TypeScript tokens. With
-the projection it costs 0.13 times, **7.6 times fewer**. It authors 4.2 times
-fewer tokens and reads a 914-token `help language web` topic instead of the
-10,737-token language card.
+| Arm | Reference | Authored | Files | Green | Batched | Attributable | Per-file |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| TypeScript/React | 0 | 7,045 | 10 | 93 | 17,181 | 7,138 | 62,375 |
+| SEMAPRAX before (measured slice only, lower bound) | 10,737 | 13,211 | 9 | 148 | 51,042 | 24,096 | 201,774 |
+| SEMAPRAX before (slice extrapolated to 10 entities) | 10,737 | 48,075 | 9 | 148 | 120,770 | 58,960 | 410,958 |
+| **SEMAPRAX webapp** | **984** | **1,667** | **1** | **64** | **8,364** | **2,715** | **8,364** |
+
+Before this change, SEMAPRAX cost 3–8 times the TypeScript tokens in every
+model. With the projection, TypeScript costs **2.1 times** SEMAPRAX batched,
+**2.6 times** language-attributable, and 7.5 times per-file (upper bound).
+SEMAPRAX authors 4.2 times fewer tokens. Its reference is the 984-token
+`help language web` topic instead of the 10,737-token language card.
+
+An earlier version of this page led with the per-file 7.6 times. That
+figure is an upper bound, not the expected saving: the live runs below wrote
+all their files in one or two turns.
 
 Maintenance ([CHANGES.md](CHANGES.md): a new validated field, a new
 enumeration value, a new referenced entity). Both arms are schema-driven, so

@@ -315,13 +315,30 @@ fn foreign_declaration_keywords_name_the_local_form() {
 
 #[test]
 fn missing_trailing_comma_names_the_rule_for_fields_and_arms() {
+    // The last comma before `}` is optional in declarations; `fmt` writes it.
+    for (declaration, canonical) in [
+        ("record P {\n    x: i64\n}\n", "    x: i64,\n"),
+        ("record P { x: i64, y: bool }\n", "    y: bool,\n"),
+        ("variant V { A, B }\n", "    B,\n"),
+        ("variant V { A { n: i64 }, B }\n", "        n: i64,\n"),
+    ] {
+        let source = format!(
+            "module habit.comma;\n{declaration}@id(\"app.main\")\nfn main() -> i64\n{{\n    0\n}}\n"
+        );
+        let program = parse(&source, Path::new("comma.spx"))
+            .unwrap_or_else(|diagnostic| panic!("{declaration}: {diagnostic}"));
+        let formatted = semaprax::format::canonical(&program);
+        assert!(formatted.contains(canonical), "{formatted}");
+    }
+
+    // Between two fields the comma is still required.
     let record = rejection(
-        "module habit.comma;\n@id(\"m.p\")\nrecord P {\n    @id(\"m.p.x\")\n    x: i64\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    0\n}\n",
+        "module habit.comma;\n@id(\"m.p\")\nrecord P {\n    @id(\"m.p.x\")\n    x: i64\n    y: i64,\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    0\n}\n",
     );
     assert_eq!(record.code, "SPX-P106");
     assert_eq!(record.message, "expected `,` after record field");
     assert!(
-        help(&record).contains("every record field ends with `,`, including the last"),
+        help(&record).contains("every record field ends with `,`"),
         "{record}"
     );
 

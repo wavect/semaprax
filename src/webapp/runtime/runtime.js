@@ -52,7 +52,7 @@ function toFloat(v) {
   return Number.isFinite(n) ? n : null;
 }
 // -> [value] on success, [undefined, message] on failure.
-function decodeValue(f, enums, v) {
+export function decodeValue(f, enums, v) {
   const bad = (m) => [undefined, m];
   switch (f.type) {
     case "int": case "ref": { const n = toInt(v); return n === null ? bad(INT_ERR) : [n]; }
@@ -75,7 +75,7 @@ export function decodeRow(ent, enums, input, withId = false) {
   if (withId && Object.hasOwn(input, "id")) { const id = toInt(input.id); if (id !== null) row.id = id; }
   return { row, errors, bad };
 }
-const encValue = (f, v, strInts) => {
+export const encValue = (f, v, strInts) => {
   switch (f.type) {
     case "int": case "ref": return strInts ? JSON.stringify(v.toString()) : v.toString();
     case "float": return String(v);
@@ -122,27 +122,33 @@ export function evalRules(ent, row, bad = new Set()) {
 }
 // Synthesize one row satisfying every rule of `ent` (refs: {targetPath: id}). -> {row} | {fail: rule text}.
 // Depth-first over per-field candidates, rules checked as soon as their fields are chosen; `budget` caps rule evaluations.
-export function synthesizeRow(ent, enums, refs, budget = 20000) {
+// opt: {fixed: {field: value}, extra: [{text, test}] (checked once the row is complete), vary: more string candidates}.
+// Workflow fields only take the first case of their enum.
+export function synthesizeRow(ent, enums, refs, budget = 20000, opt = {}) {
   const fs = ent.fields, idx = new Map(fs.map((f, i) => [f.name, i]));
+  const steps = new Set((ent.steps || []).map((s) => s.field)), fixed = opt.fixed || {};
   const lits = [];
   for (const r of ent.rules || []) for (const m of r.text.matchAll(/"((?:[^"\\]|\\.)*)"/g)) {
     let s; try { s = JSON.parse(m[0]); } catch { s = m[1]; }
     if (s !== "" && !lits.includes(s)) lits.push(s);
   }
+  const more = opt.vary ? [1, 2, 3, 4, 5, 6, 7, 8, 9].flatMap((i) => [...lits.flatMap((l) => [l + "abcd" + i, "abcd" + i + l + "x.io"]), "abcd" + i]) : [];
   const cand = (f) => {
+    if (Object.hasOwn(fixed, f.name)) return [fixed[f.name]];
     switch (f.type) {
-      case "string": return [...new Set(["", ...lits.flatMap((l) => [l + "abcd", "abcd" + l + "x.io"]), "ab", "abc", "abcd", "abcdefgh"])];
+      case "string": return [...new Set(["", ...lits.flatMap((l) => [l + "abcd", "abcd" + l + "x.io"]), "ab", "abc", "abcd", "abcdefgh", ...more])];
       case "int": return [0, 1, 2, 3, 5, 10, 24, 50, 100, 1000].map(BigInt);
       case "float": return [0, 1.5, 100.5];
       case "bool": return [false, true];
       case "char": return ["a"];
-      case "enum": return enums[f.enum] || [];
+      case "enum": return (enums[f.enum] || []).slice(0, steps.has(f.name) ? 1 : undefined);
       case "ref": return refs[f.ref] === undefined ? [] : [refs[f.ref]];
     }
     return [];
   };
   const last = fs.length - 1, at = fs.map(() => []);
   for (const r of ent.rules || []) at[Math.max(0, ...(r.fields || []).map((n) => (idx.has(n) ? idx.get(n) : last)))]?.push(r);
+  at[Math.max(0, last)].push(...(opt.extra || []));
   const row = {}; let evals = 0, worst = -1, why = "";
   const go = (d) => {
     if (d > last) return true;
@@ -163,4 +169,68 @@ export function synthesizeRow(ent, enums, refs, budget = 20000) {
   };
   if (go(0)) return { row };
   return { fail: why || (evals > budget ? "search budget exhausted" : `no candidate for a field of ${ent.name}`) };
+}
+
+// Computed values as the API sent them (the server is the truth for rollups): {name: value | {error}}.
+export function decodeComputed(ent, enums, o) {
+  const out = {};
+  for (const c of ent.computed || []) {
+    const v = o[c.name];
+    out[c.name] = v !== null && typeof v === "object" && !(v instanceof Raw) ? { error: String(v.error) } : decodeValue(c, enums, v)[0] ?? { error: "decode" };
+  }
+  return out;
+}
+
+// ---- v2: unique keys, workflow steps, rollups ----
+// The entity's keys; the account entity's login field is implicitly unique.
+export function keysOf(ent, account) {
+  const ks = ent.keys || [];
+  if (!account || account.entity !== ent.path || ks.some((k) => k.fields.length === 1 && k.fields[0] === account.login)) return ks;
+  return [...ks, { name: "login", fields: [account.login], value: (r) => r[account.login] }];
+}
+const keyVal = (k, r) => { try { return [k.value(r)]; } catch { return null; } };
+// Key violations of `row` against `others` (an array of rows with ids; the row's own id is skipped).
+export function keyErrors(keys, row, others, bad = new Set()) {
+  const out = [];
+  for (const k of keys) {
+    const v = k.fields.some((f) => bad.has(f)) ? null : keyVal(k, row);
+    if (v && others.some((o) => { if (o.id === row.id) return false; const w = keyVal(k, o); return w !== null && w[0] === v[0]; }))
+      out.push({ field: k.fields[0] ?? "", message: k.fields.join(", ") + " must be unique" });
+  }
+  return out;
+}
+export const stepCases = (ent, enums, s) => enums[(ent.fields.find((f) => f.name === s.field) || {}).enum] || [];
+export const stepOk = (s, a, b) => { try { return s.test(a, b) === true; } catch { return false; } };
+// Workflow violations: a new row starts in the first case; a changed value must be an allowed transition from `old`.
+export function stepErrors(ent, enums, row, old, bad = new Set()) {
+  const out = [];
+  for (const s of ent.steps || []) {
+    if (bad.has(s.field)) continue;
+    const to = row[s.field];
+    if (!old) { const first = stepCases(ent, enums, s)[0]; if (to !== first) out.push({ field: s.field, message: `${s.field} must start as ${first}` }); }
+    else if (old[s.field] !== to && !stepOk(s, old[s.field], to)) out.push({ field: s.field, message: `${s.field} cannot change from ${old[s.field]} to ${to}` });
+  }
+  return out;
+}
+// Copy of `row` with every rollup of `ent` set. kids(path) -> {ent, rows: iterable}. A failed aggregate
+// (overflow, child computed error) is a property that throws its Trap, so only computed fields reading it fail.
+export function withRollups(ent, row, kids) {
+  const r = { ...row };
+  for (const u of ent.rollups || []) {
+    try { r[u.name] = rollup(u, row.id, kids(u.child)); }
+    catch (e) { const code = e instanceof Trap ? e.code : "error"; Object.defineProperty(r, u.name, { enumerable: true, get() { throw new Trap(code); } }); }
+  }
+  return r;
+}
+function rollup(u, id, k) {
+  const stored = !u.field || k.ent.fields.some((f) => f.name === u.field);
+  let acc = u.kind === "sum" && u.type === "float" ? 0 : 0n;
+  for (const c of k.rows) {
+    if (c[u.via] !== id) continue;
+    let v = true;
+    if (u.field) { v = stored ? c[u.field] : evalComputed(k.ent, c)[u.field]; if (v !== null && typeof v === "object") throw new Trap(v.error); }
+    if (u.kind === "count") { if (v === true) acc += 1n; }
+    else acc = u.type === "float" ? acc + v : add(acc, v);
+  }
+  return acc;
 }

@@ -12,7 +12,7 @@ use crate::ast::{
 };
 use crate::diagnostic::Diagnostic;
 
-const SUBSET_HELP: &str = "webapp functions may use literals, their parameters, `let`, arithmetic, comparisons, `&&`/`||`/`!`, `if`/`else`, `match` on variants and scalars, payload-free variant cases, string_len, string_len_chars, string_is_empty, string_contains, string_starts_with, string_concat, string_from_i64, string_from_char, and calls to other such functions";
+const SUBSET_HELP: &str = "webapp functions may use literals, their parameters, `let`, arithmetic, comparisons, `&&`/`||`/`!`, `if`/`else`, `match` on variants and scalars, payload-free variant cases, string_len, string_len_chars, string_is_empty, string_contains, string_starts_with, string_concat, string_from_i64, string_from_char, `string_as_str` with the `str_*` view functions, and calls to other such functions";
 
 /// A JSON string literal, which is also a JavaScript string literal.
 pub(super) fn js_string(text: &str) -> String {
@@ -33,6 +33,16 @@ struct Binding {
     js: String,
     ty: Ty,
     param: bool,
+}
+
+/// One name a convention function's parameter or account binding resolves
+/// to: `r.title` for a row field, `u.id` for `me`, and so on.
+pub(super) struct Bound {
+    pub(super) name: String,
+    pub(super) js: String,
+    pub(super) ty: Ty,
+    /// A row field, reported as a rule's field when read.
+    pub(super) field: bool,
 }
 
 pub(super) struct Translator<'a> {
@@ -71,15 +81,17 @@ impl<'a> Translator<'a> {
 
     /// Whether a helper with this name was translated.
     pub(super) fn reached(&self, name: &str) -> bool {
-        self.helpers.contains_key(name)
+        self.helpers.contains_key(name) || self.pending.contains(name)
     }
 
-    fn scalar(&self, ty: &Type) -> Option<Ty> {
+    pub(super) fn scalar(&self, ty: &Type) -> Option<Ty> {
         match ty {
             Type::I64 => Some(Ty::Int),
             Type::F64 => Some(Ty::Float),
             Type::Bool => Some(Ty::Bool),
-            Type::String => Some(Ty::Str),
+            // A borrowed `str` view and an owned `string` share one runtime
+            // representation, so helpers over views translate unchanged.
+            Type::String | Type::Str => Some(Ty::Str),
             Type::Char => Some(Ty::Char),
             Type::Named { name, arguments }
                 if arguments.is_empty() && self.enums.contains_key(name) =>
@@ -90,28 +102,46 @@ impl<'a> Translator<'a> {
         }
     }
 
-    fn enter_entity(&mut self, params: &[(String, Ty)]) {
-        self.scope = params
+    fn enter(&mut self, bound: &[Bound]) {
+        self.scope = bound
             .iter()
-            .map(|(name, ty)| Binding {
-                name: name.clone(),
-                js: format!("r.{name}"),
-                ty: ty.clone(),
-                param: true,
+            .map(|bound| Binding {
+                name: bound.name.clone(),
+                js: bound.js.clone(),
+                ty: bound.ty.clone(),
+                param: bound.field,
             })
             .collect();
+    }
+
+    /// The translated body of a convention function (`requires` clauses
+    /// become preconditions), and the row fields it reads.
+    pub(super) fn body(
+        &mut self,
+        function: &'a Function,
+        bound: &[Bound],
+    ) -> Result<(String, Vec<String>), Vec<Diagnostic>> {
+        self.enter(bound);
+        self.used.clear();
+        let body = self.function_body(function).map_err(|error| vec![error])?;
+        let fields = bound
+            .iter()
+            .filter(|bound| bound.field && self.used.contains(&bound.name))
+            .map(|bound| bound.name.clone())
+            .collect();
+        Ok((body, fields))
     }
 
     /// The `requires` clauses of `<entity>_valid` as rule objects.
     pub(super) fn rules(
         &mut self,
         function: &'a Function,
-        params: &[(String, Ty)],
+        params: &[Bound],
     ) -> Result<Vec<String>, Vec<Diagnostic>> {
         let mut rules = Vec::new();
         let mut errors = Vec::new();
         for clause in &function.requires {
-            self.enter_entity(params);
+            self.enter(params);
             self.used.clear();
             match self.expr(clause) {
                 Ok((js, Ty::Bool)) => {
@@ -122,8 +152,8 @@ impl<'a> Translator<'a> {
                     let text = text.split_whitespace().collect::<Vec<_>>().join(" ");
                     let fields: Vec<String> = params
                         .iter()
-                        .filter(|(name, _)| self.used.contains(name))
-                        .map(|(name, _)| js_string(name))
+                        .filter(|bound| bound.field && self.used.contains(&bound.name))
+                        .map(|bound| js_string(&bound.name))
                         .collect();
                     rules.push(format!(
                         "{{ text: {}, fields: [{}], test: (r) => {js} }}",
@@ -147,7 +177,7 @@ impl<'a> Translator<'a> {
         &mut self,
         function: &'a Function,
         name: &str,
-        params: &[(String, Ty)],
+        params: &[Bound],
     ) -> Result<String, Vec<Diagnostic>> {
         let Some(result) = self.scalar(&function.return_type) else {
             return Err(vec![Diagnostic::error(
@@ -157,7 +187,7 @@ impl<'a> Translator<'a> {
             )
             .with_help(super::FIELD_TYPE_HELP)]);
         };
-        self.enter_entity(params);
+        self.enter(params);
         let body = self.function_body(function).map_err(|error| vec![error])?;
         let mut out = format!(
             "{{ name: {}, type: \"{}\"",
@@ -205,7 +235,10 @@ impl<'a> Translator<'a> {
         for param in &function.params {
             let ty = self
                 .scalar(&param.ty)
-                .filter(|_| param.mode == ParamMode::Value)
+                .filter(|_| {
+                    param.mode == ParamMode::Value
+                        || (param.mode == ParamMode::Borrow && param.ty == Type::Str)
+                })
                 .ok_or_else(|| outside("a call to a function with a non-scalar parameter", call))?;
             scope.push(Binding {
                 name: param.name.clone(),
@@ -447,7 +480,11 @@ impl<'a> Translator<'a> {
             "string_starts_with" => Some(("rt.startsWith", Ty::Bool)),
             "string_concat" => Some(("rt.concat", Ty::Str)),
             "string_from_i64" => Some(("rt.fromI64", Ty::Str)),
-            "string_from_char" => Some(("", Ty::Str)),
+            "string_from_char" | "string_as_str" => Some(("", Ty::Str)),
+            "str_len_bytes" => Some(("rt.len", Ty::Int)),
+            "str_is_empty" => Some(("rt.isEmpty", Ty::Bool)),
+            "str_contains" => Some(("rt.contains", Ty::Bool)),
+            "str_starts_with" => Some(("rt.startsWith", Ty::Bool)),
             _ => None,
         };
         let mut translated = Vec::new();

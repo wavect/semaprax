@@ -28,10 +28,11 @@ const reads = (arm) =>
     return [n, files.map((f) => `${arm === "typescript" ? "typescript" : "semaprax"}/${f}`)];
   }));
 
-const ts = {
+const tsFiles = {
   client: ["src/views.tsx", "src/api.ts", "src/main.tsx", "index.html", "vite.config.ts", "package.json", "tsconfig.json", "shared/schema.ts"],
   server: ["server/index.ts"],
 }.client.map((f) => `typescript/${f}`);
+const tsClient = tsFiles;
 const tsServer = ["typescript/server/index.ts", "typescript/.gitignore"];
 
 const spec = count(text("SPEC.md"));
@@ -44,20 +45,20 @@ const todayServerEstimate = Math.round(slice * sharedShare + 10 * slice * (1 - s
 const arms = {
   typescript: {
     reference: 0,
-    authored: tokens([...ts, ...tsServer]),
-    files: ts.length + tsServer.length,
+    authored: tokens([...tsClient, ...tsServer]),
+    files: tsClient.length + tsServer.length,
     green: count(text("changes/typescript-green-cycle.txt")),
   },
   "semaprax-today (lower bound)": {
     reference: count(text("reference/semaprax-today.md")),
-    authored: tokens(ts) + slice,
-    files: ts.length + 1,
+    authored: tokens(tsClient) + slice,
+    files: tsClient.length + 1,
     green: count(text("changes/typescript-green-cycle.txt")) + count(text("changes/semaprax-today-green-cycle.txt")),
   },
   "semaprax-today (estimate)": {
     reference: count(text("reference/semaprax-today.md")),
-    authored: tokens(ts) + todayServerEstimate,
-    files: ts.length + 1,
+    authored: tokens(tsClient) + todayServerEstimate,
+    files: tsClient.length + 1,
     green: count(text("changes/typescript-green-cycle.txt")) + count(text("changes/semaprax-today-green-cycle.txt")),
   },
   "semaprax webapp": {
@@ -68,16 +69,24 @@ const arms = {
   },
 };
 
-// Session model: the agent receives the spec and its reference once, writes
-// one file per turn, and every turn re-sends everything before it; a final
-// turn reads the green verification output.
+// Two session models. Both start from the spec plus the arm's reference and
+// end with a turn that reads the green verification output.
+// - per_file: one file per turn, every turn re-sending what came before.
+//   It charges multi-file stacks for every extra turn, an upper bound.
+// - batched: every file is written in one turn, which is how the recorded
+//   live agents worked. This is the realistic model and the headline.
+// language_attributable leaves out the spec both arms read identically:
+// reference + authored + verification output, each counted once.
 for (const arm of Object.values(arms)) {
   const base = spec + arm.reference;
   const per = arm.authored / arm.files;
   let input = 0;
   for (let turn = 0; turn < arm.files; turn++) input += base + per * turn;
   input += base + arm.authored + arm.green;
-  arm.session = { input: Math.round(input), output: arm.authored, total: Math.round(input) + arm.authored };
+  arm.per_file = { input: Math.round(input), output: arm.authored, total: Math.round(input) + arm.authored };
+  const batchedInput = base + (base + arm.authored + arm.green);
+  arm.batched = { input: batchedInput, output: arm.authored, total: batchedInput + arm.authored };
+  arm.language_attributable = arm.reference + arm.authored + arm.green;
 }
 
 const changes = {};
@@ -86,11 +95,19 @@ for (const arm of ["typescript", "semaprax"]) {
   changes[arm] = [1, 2, 3].map((n) => ({ read: tokens(r[n]), edit: editTokens(`changes/${arm}-${n}.patch`) }));
 }
 
-const ts0 = arms.typescript.session.total;
+const ts = arms.typescript;
+const ratio = (a, b) => +(a / b).toFixed(2);
 const out = {
   tokenizer,
   spec,
-  arms: Object.fromEntries(Object.entries(arms).map(([name, a]) => [name, { ...a, vs_typescript: +(a.session.total / ts0).toFixed(2) }])),
+  arms: Object.fromEntries(Object.entries(arms).map(([name, a]) => [name, {
+    ...a,
+    vs_typescript: {
+      batched: ratio(a.batched.total, ts.batched.total),
+      per_file: ratio(a.per_file.total, ts.per_file.total),
+      language_attributable: ratio(a.language_attributable, ts.language_attributable),
+    },
+  }])),
   changes,
 };
 console.log(JSON.stringify(out, null, 2));

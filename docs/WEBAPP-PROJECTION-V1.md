@@ -7,6 +7,11 @@ the "First-class application/state/UI dialect" row in the
 
 Audience: language users, agents, and compiler contributors.
 
+[Web Application Projection v2](WEBAPP-PROJECTION-V2.md) adds unique keys,
+workflows, rollups, accounts, permissions, an audit history, and CSV export
+on top of this contract; the v1 non-claims below that v2 covers no longer
+apply to a module that uses those conventions.
+
 `semaprax webapp <file> [-o|--output dir]` projects one verified module into
 a complete, dependency-free full-stack web application. The agent-facing
 summary is the `web` topic of the [agent quick reference](AGENT-QUICK-REFERENCE.md#web-applications)

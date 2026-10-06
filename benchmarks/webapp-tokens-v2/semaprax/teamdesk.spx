@@ -1,0 +1,654 @@
+module teamdesk;
+
+variant Role {
+    Admin,
+    Manager,
+    Agent,
+    Viewer,
+}
+
+variant Tier {
+    Free,
+    Pro,
+    Enterprise,
+}
+
+variant ProjectStatus {
+    Planned,
+    Active,
+    OnHold,
+    Done,
+}
+
+variant Priority {
+    Low,
+    Medium,
+    High,
+    Urgent,
+}
+
+variant TaskStatus {
+    Todo,
+    Doing,
+    Review,
+    Done,
+}
+
+variant Severity {
+    Minor,
+    Major,
+    Critical,
+}
+
+variant TicketState {
+    Open,
+    Pending,
+    Resolved,
+    Closed,
+}
+
+variant ExpenseState {
+    Draft,
+    Submitted,
+    Approved,
+    Rejected,
+    Paid,
+}
+
+variant AssetKind {
+    Laptop,
+    Phone,
+    Monitor,
+    Other,
+}
+
+variant LeaveKind {
+    Vacation,
+    Sick,
+    Other,
+}
+
+variant LeaveState {
+    Requested,
+    Approved,
+    Rejected,
+}
+
+variant ReleaseState {
+    Planned,
+    Released,
+}
+
+record Team {
+    name: string,
+    description: string,
+}
+
+record Member {
+    team_id: i64,
+    name: string,
+    email: string,
+    role: Role,
+    active: bool,
+}
+
+record Customer {
+    company: string,
+    contact: string,
+    email: string,
+    phone: string,
+    tier: Tier,
+    seats: i64,
+}
+
+record Contact {
+    customer_id: i64,
+    name: string,
+    email: string,
+    phone: string,
+}
+
+record Project {
+    team_id: i64,
+    customer_id: i64,
+    name: string,
+    code: string,
+    status: ProjectStatus,
+    budget: f64,
+    start_day: i64,
+    due_day: i64,
+}
+
+record Milestone {
+    project_id: i64,
+    title: string,
+    due_day: i64,
+    done: bool,
+}
+
+record Sprint {
+    project_id: i64,
+    name: string,
+    start_day: i64,
+    end_day: i64,
+}
+
+record Task {
+    project_id: i64,
+    milestone_id: i64,
+    sprint_id: i64,
+    member_id: i64,
+    title: string,
+    details: string,
+    priority: Priority,
+    status: TaskStatus,
+    estimate: i64,
+    spent: i64,
+}
+
+record Comment {
+    task_id: i64,
+    member_id: i64,
+    body: string,
+}
+
+record TimeEntry {
+    task_id: i64,
+    member_id: i64,
+    hours: i64,
+    billable: bool,
+    rate: f64,
+}
+
+record Ticket {
+    customer_id: i64,
+    member_id: i64,
+    subject: string,
+    body: string,
+    severity: Severity,
+    state: TicketState,
+    sla_hours: i64,
+    age_hours: i64,
+}
+
+record TicketReply {
+    ticket_id: i64,
+    member_id: i64,
+    body: string,
+    internal: bool,
+}
+
+record Invoice {
+    customer_id: i64,
+    number: string,
+    amount: f64,
+    paid: bool,
+}
+
+record Payment {
+    invoice_id: i64,
+    amount: f64,
+    day: i64,
+}
+
+record Vendor {
+    name: string,
+    email: string,
+}
+
+record Expense {
+    project_id: i64,
+    vendor_id: i64,
+    member_id: i64,
+    description: string,
+    amount: f64,
+    day: i64,
+    state: ExpenseState,
+}
+
+record Asset {
+    team_id: i64,
+    name: string,
+    serial: string,
+    kind: AssetKind,
+    cost: f64,
+}
+
+record Leave {
+    member_id: i64,
+    kind: LeaveKind,
+    state: LeaveState,
+    start_day: i64,
+    end_day: i64,
+}
+
+record Document {
+    project_id: i64,
+    title: string,
+    url: string,
+}
+
+record Release {
+    project_id: i64,
+    version: string,
+    day: i64,
+    state: ReleaseState,
+}
+
+fn admin(role: Role) -> bool
+{
+    match role { Role::Admin {} => true, _ => false, }
+}
+
+fn manager(role: Role) -> bool
+{
+    match role { Role::Admin {} => true, Role::Manager {} => true, _ => false, }
+}
+
+fn owner(role: Role, member_id: i64, me: i64) -> bool
+{
+    manager(role) || match role { Role::Agent {} => member_id == me, _ => false, }
+}
+
+fn can_write(my_role: Role) -> bool
+{
+    manager(my_role)
+}
+
+fn team_can_write(my_role: Role) -> bool
+{
+    admin(my_role)
+}
+
+fn member_can_write(my_role: Role) -> bool
+{
+    admin(my_role)
+}
+
+fn member_account(email: string, active: bool) -> bool
+{
+    active
+}
+
+fn member_key(email: string) -> string
+{
+    email
+}
+
+fn member_valid(name: string, email: string) -> bool
+    requires string_len(name) >= 2 && string_len(name) <= 80
+    requires string_contains(email, "@")
+{
+    true
+}
+
+fn member_hours(sum_time_entry_hours: i64) -> i64
+{
+    sum_time_entry_hours
+}
+
+fn team_valid(name: string) -> bool
+    requires string_len(name) >= 2 && string_len(name) <= 60
+{
+    true
+}
+
+fn team_members(count_member: i64) -> i64
+{
+    count_member
+}
+
+fn customer_valid(company: string, email: string, seats: i64) -> bool
+    requires string_len(company) >= 2 && string_len(company) <= 120
+    requires string_contains(email, "@")
+    requires seats >= 1
+{
+    true
+}
+
+fn customer_key(email: string) -> string
+{
+    email
+}
+
+fn customer_large(seats: i64, tier: Tier) -> bool
+{
+    seats >= 100 || match tier { Tier::Enterprise {} => true, _ => false, }
+}
+
+fn customer_open_tickets(count_ticket_open: i64) -> i64
+{
+    count_ticket_open
+}
+
+fn customer_billed(sum_invoice_amount: f64) -> f64
+{
+    sum_invoice_amount
+}
+
+fn contact_valid(name: string, email: string) -> bool
+    requires string_len(name) >= 2 && string_len(name) <= 80
+    requires string_contains(email, "@")
+{
+    true
+}
+
+fn project_valid(name: string, code: string, budget: f64, start_day: i64, due_day: i64) -> bool
+    requires string_len(name) >= 2 && string_len(name) <= 80
+    requires string_len(code) >= 2 && string_len(code) <= 12
+    requires budget >= 0.0
+    requires start_day >= 0
+    requires due_day >= start_day
+{
+    true
+}
+
+fn project_key(code: string) -> string
+{
+    code
+}
+
+fn project_duration(start_day: i64, due_day: i64) -> i64
+{
+    due_day - start_day
+}
+
+fn project_late(status: ProjectStatus, due_day: i64) -> bool
+{
+    match status { ProjectStatus::Done {} => false, _ => due_day < 100, }
+}
+
+fn project_tasks(count_task: i64) -> i64
+{
+    count_task
+}
+
+fn project_open_tasks(count_task_open: i64) -> i64
+{
+    count_task_open
+}
+
+fn project_spent(sum_task_spent: i64) -> i64
+{
+    sum_task_spent
+}
+
+fn project_expenses(sum_expense_amount: f64) -> f64
+{
+    sum_expense_amount
+}
+
+fn project_over_budget(sum_expense_amount: f64, budget: f64) -> bool
+{
+    sum_expense_amount > budget
+}
+
+fn milestone_valid(title: string, due_day: i64) -> bool
+    requires string_len(title) >= 2 && string_len(title) <= 120
+    requires due_day >= 0
+{
+    true
+}
+
+fn sprint_valid(name: string, start_day: i64, end_day: i64) -> bool
+    requires string_len(name) >= 2 && string_len(name) <= 60
+    requires end_day >= start_day
+    requires end_day - start_day <= 30
+{
+    true
+}
+
+fn sprint_length(start_day: i64, end_day: i64) -> i64
+{
+    end_day - start_day
+}
+
+fn task_can_write(my_role: Role, member_id: i64, me: i64) -> bool
+{
+    owner(my_role, member_id, me)
+}
+
+fn task_valid(title: string, estimate: i64, spent: i64) -> bool
+    requires string_len(title) >= 3 && string_len(title) <= 120
+    requires estimate >= 0 && estimate <= 1000
+    requires spent >= 0
+    requires spent <= estimate * 3
+{
+    true
+}
+
+fn task_status_step(from: TaskStatus, to: TaskStatus) -> bool
+{
+    match from { TaskStatus::Todo {} => match to { TaskStatus::Doing {} => true, _ => false, }, TaskStatus::Doing {} => match to { TaskStatus::Todo {} => true, TaskStatus::Review {} => true, _ => false, }, TaskStatus::Review {} => match to { TaskStatus::Doing {} => true, TaskStatus::Done {} => true, _ => false, }, _ => false, }
+}
+
+fn task_remaining(status: TaskStatus, estimate: i64, spent: i64) -> i64
+{
+    match status { TaskStatus::Done {} => 0, _ => estimate - spent, }
+}
+
+fn task_overrun(estimate: i64, spent: i64) -> bool
+{
+    spent > estimate
+}
+
+fn task_weight(priority: Priority, estimate: i64) -> i64
+{
+    estimate * match priority { Priority::Low {} => 1, Priority::Medium {} => 2, Priority::High {} => 3, Priority::Urgent {} => 5, }
+}
+
+fn task_open(status: TaskStatus) -> bool
+{
+    match status { TaskStatus::Done {} => false, _ => true, }
+}
+
+fn comment_can_write(my_role: Role, member_id: i64, me: i64) -> bool
+{
+    owner(my_role, member_id, me)
+}
+
+fn comment_valid(body: string) -> bool
+    requires !string_is_empty(body) && string_len(body) <= 4000
+{
+    true
+}
+
+fn time_entry_can_write(my_role: Role, member_id: i64, me: i64) -> bool
+{
+    owner(my_role, member_id, me)
+}
+
+fn time_entry_valid(hours: i64, rate: f64) -> bool
+    requires hours >= 1 && hours <= 24
+    requires rate >= 0.0
+{
+    true
+}
+
+fn time_entry_amount(hours: i64, billable: bool, rate: f64) -> f64
+{
+    if billable { times(rate, hours) } else { 0.0 }
+}
+
+fn times(value: f64, count: i64) -> f64
+{
+    if count <= 0 { 0.0 } else { value + times(value, count - 1) }
+}
+
+fn ticket_can_write(my_role: Role, member_id: i64, me: i64) -> bool
+{
+    owner(my_role, member_id, me)
+}
+
+fn ticket_valid(subject: string, sla_hours: i64, age_hours: i64) -> bool
+    requires string_len(subject) >= 3 && string_len(subject) <= 160
+    requires sla_hours >= 1
+    requires age_hours >= 0
+{
+    true
+}
+
+fn ticket_state_step(from: TicketState, to: TicketState) -> bool
+{
+    match from { TicketState::Open {} => match to { TicketState::Pending {} => true, TicketState::Resolved {} => true, _ => false, }, TicketState::Pending {} => match to { TicketState::Open {} => true, TicketState::Resolved {} => true, _ => false, }, TicketState::Resolved {} => match to { TicketState::Open {} => true, TicketState::Closed {} => true, _ => false, }, _ => false, }
+}
+
+fn ticket_open(state: TicketState) -> bool
+{
+    match state { TicketState::Open {} => true, TicketState::Pending {} => true, _ => false, }
+}
+
+fn ticket_breached(state: TicketState, sla_hours: i64, age_hours: i64) -> bool
+{
+    age_hours > sla_hours && ticket_open(state)
+}
+
+fn ticket_escalation(severity: Severity, state: TicketState, sla_hours: i64, age_hours: i64) -> string
+{
+    let critical = match severity { Severity::Critical {} => true, _ => false, };
+    if ticket_breached(state, sla_hours, age_hours) { if critical { "page" } else { "watch" } } else { "ok" }
+}
+
+fn ticket_reply_can_write(my_role: Role, member_id: i64, me: i64) -> bool
+{
+    owner(my_role, member_id, me)
+}
+
+fn ticket_reply_valid(body: string) -> bool
+    requires !string_is_empty(body) && string_len(body) <= 4000
+{
+    true
+}
+
+fn invoice_can_read(my_role: Role) -> bool
+{
+    manager(my_role)
+}
+
+fn invoice_valid(number: string, amount: f64) -> bool
+    requires string_starts_with(number, "INV-")
+    requires amount >= 0.0
+{
+    true
+}
+
+fn invoice_key(number: string) -> string
+{
+    number
+}
+
+fn invoice_received(sum_payment_amount: f64) -> f64
+{
+    sum_payment_amount
+}
+
+fn invoice_balance(amount: f64, sum_payment_amount: f64) -> f64
+{
+    amount - sum_payment_amount
+}
+
+fn payment_can_read(my_role: Role) -> bool
+{
+    manager(my_role)
+}
+
+fn payment_valid(amount: f64, day: i64) -> bool
+    requires amount > 0.0
+    requires day >= 0
+{
+    true
+}
+
+fn vendor_valid(name: string, email: string) -> bool
+    requires string_len(name) >= 2 && string_len(name) <= 80
+    requires string_contains(email, "@")
+{
+    true
+}
+
+fn vendor_key(email: string) -> string
+{
+    email
+}
+
+fn expense_can_read(my_role: Role, member_id: i64, me: i64) -> bool
+{
+    owner(my_role, member_id, me)
+}
+
+fn expense_can_write(my_role: Role, member_id: i64, me: i64, state: ExpenseState) -> bool
+{
+    manager(my_role) || owner(my_role, member_id, me) && match state { ExpenseState::Draft {} => true, ExpenseState::Submitted {} => true, _ => false, }
+}
+
+fn expense_valid(description: string, amount: f64, day: i64) -> bool
+    requires string_len(description) >= 3 && string_len(description) <= 200
+    requires amount > 0.0
+    requires day >= 0
+{
+    true
+}
+
+fn expense_state_step(from: ExpenseState, to: ExpenseState) -> bool
+{
+    match from { ExpenseState::Draft {} => match to { ExpenseState::Submitted {} => true, _ => false, }, ExpenseState::Submitted {} => match to { ExpenseState::Approved {} => true, ExpenseState::Rejected {} => true, _ => false, }, ExpenseState::Rejected {} => match to { ExpenseState::Draft {} => true, _ => false, }, ExpenseState::Approved {} => match to { ExpenseState::Paid {} => true, _ => false, }, _ => false, }
+}
+
+fn asset_valid(name: string, serial: string, cost: f64) -> bool
+    requires string_len(name) >= 2 && string_len(name) <= 80
+    requires string_len(serial) >= 4 && string_len(serial) <= 40
+    requires cost >= 0.0
+{
+    true
+}
+
+fn asset_key(serial: string) -> string
+{
+    serial
+}
+
+fn leave_can_write(my_role: Role, member_id: i64, me: i64, state: LeaveState) -> bool
+{
+    manager(my_role) || owner(my_role, member_id, me) && match state { LeaveState::Requested {} => true, _ => false, }
+}
+
+fn leave_valid(start_day: i64, end_day: i64) -> bool
+    requires end_day >= start_day
+    requires end_day - start_day <= 30
+{
+    true
+}
+
+fn leave_state_step(from: LeaveState, to: LeaveState) -> bool
+{
+    match from { LeaveState::Requested {} => match to { LeaveState::Requested {} => false, _ => true, }, _ => false, }
+}
+
+fn leave_days(start_day: i64, end_day: i64) -> i64
+{
+    end_day - start_day + 1
+}
+
+fn document_valid(title: string, url: string) -> bool
+    requires string_len(title) >= 2 && string_len(title) <= 120
+    requires string_starts_with(url, "https://")
+{
+    true
+}
+
+fn release_valid(version: string, day: i64) -> bool
+    requires string_len(version) >= 1 && string_len(version) <= 20
+    requires day >= 0
+{
+    true
+}
+
+fn release_key(project_id: i64, version: string) -> string
+{
+    string_concat(string_from_i64(project_id), string_concat("/", version))
+}
+
+fn release_state_step(from: ReleaseState, to: ReleaseState) -> bool
+{
+    match from { ReleaseState::Planned {} => match to { ReleaseState::Released {} => true, _ => false, }, _ => false, }
+}

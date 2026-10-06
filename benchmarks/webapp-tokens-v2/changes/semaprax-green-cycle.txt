@@ -1,0 +1,15 @@
+webapp teamdesk.spx -> out: 20 entities, 12 enums, 47 rules, 24 computed, 7 keys, 5 workflows, 9 rollups, 23 permissions, accounts
+run: node out/server.mjs
+self-test ok: 20 entities, 47 rules, 24 computed, 7 keys, 5 workflows, 9 rollups, accounts (4 roles) (create, read, list, update, validate, 404, key, workflow, audit, csv, rollup, 409, persist, auth, permissions, delete)
+crud: POST Team 201 #1, GET 200, list 200, PUT 200, DELETE 204, GET #1001 404
+validate: POST {} Team 400 [name: is required, description: is required]
+rule: Team 400 "string_len(name) >= 2 && string_len(name) <= 60"
+key: duplicate Member.email 400
+workflow: Task.status Todo->Review 400, Todo->Doing 200
+rollup: Team #1 count_member=1
+reference: DELETE Team #1 409 (Member.team_id), missing Member.team_id 400
+audit: Team #1 history 2 entries (create, update)
+csv: Team 2 lines, header id,name,description,members
+persist: 20 rows identical after restart
+auth: no session 401, wrong password 401, sign-in 200, sign-out then 401
+permissions: 4 roles x 20 entities agree with schema; e.g. Manager PUT Team #1 403, Agent list Invoice hides #1

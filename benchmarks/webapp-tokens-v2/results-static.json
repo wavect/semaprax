@@ -1,0 +1,46 @@
+{
+  "tokenizer": "@anthropic-ai/tokenizer (offline Claude BPE)",
+  "spec": 2659,
+  "arms": {
+    "typescript": {
+      "reference": 0,
+      "authored": 12142,
+      "files": 10,
+      "green": 93,
+      "per_file": {
+        "input": 96123,
+        "output": 12142,
+        "total": 108265
+      },
+      "batched": {
+        "input": 17553,
+        "output": 12142,
+        "total": 29695
+      },
+      "language_attributable": 12235
+    },
+    "semaprax webapp": {
+      "reference": 1081,
+      "authored": 4486,
+      "files": 1,
+      "green": 321,
+      "per_file": {
+        "input": 12287,
+        "output": 4486,
+        "total": 16773
+      },
+      "batched": {
+        "input": 12287,
+        "output": 4486,
+        "total": 16773
+      },
+      "language_attributable": 5888
+    }
+  },
+  "typescript_over_semaprax": {
+    "authored": 2.71,
+    "language_attributable": 2.08,
+    "batched": 1.77,
+    "per_file": 6.45
+  }
+}

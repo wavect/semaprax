@@ -1,0 +1,30 @@
+{
+  "schema": "semaprax.webapp-tokens.live.v1",
+  "date": "2026-10-06",
+  "model": "claude sonnet (Claude Code subagent, default effort)",
+  "method": "Same as ../webapp-tokens-v1/results-live.json: per-turn context sizes summed from each transcript. first_context is the fixed harness context; task_growth is last minus first; summed_input_net_of_fixed subtracts first_context from every turn. Authored tokens use @anthropic-ai/tokenizer over the files each agent wrote. Prompt: build SPEC.md and verify it end to end (CRUD, validation, keys, workflows, rollups, sign-in, permissions, audit, CSV, 409, persistence).",
+  "runs": [
+    {
+      "round": 3,
+      "semaprax_compiler": "projection v2 before the round-4 fixes",
+      "semaprax": { "turns": 16, "seconds": 271, "first_context": 38705, "task_growth": 32220, "summed_input": 958960, "summed_input_net_of_fixed": 339680, "authored_tokens": 4764, "failed_commands": 5, "causes": "two SPX-P106 compiles for a missing last comma in `variant X { A, B }` and `record`; `--setup` run in the foreground until a 120 s timeout; two turns grepping server.mjs for the undocumented API routes; six turns of hand-written curl scripts although the self-test passed" },
+      "typescript": { "turns": 8, "seconds": 213, "first_context": 38930, "task_growth": 39759, "summed_input": 501268, "summed_input_net_of_fixed": 189828, "authored_tokens": 11796, "failed_commands": 0 }
+    },
+    {
+      "round": 4,
+      "semaprax_compiler": "optional last declaration comma, API routes and background serving in the card, self-test evidence block",
+      "semaprax": [
+        { "turns": 5, "seconds": 69, "first_context": 38706, "task_growth": 18671, "summed_input": 254965, "summed_input_net_of_fixed": 61435, "authored_tokens": 4645, "failed_commands": 0, "first_compile_clean": true },
+        { "turns": 6, "seconds": 67, "first_context": 38706, "task_growth": 18006, "summed_input": 308472, "summed_input_net_of_fixed": 76236, "authored_tokens": 4661, "failed_commands": 0, "first_compile_clean": true }
+      ],
+      "typescript": { "turns": 11, "seconds": 377, "first_context": 38930, "task_growth": 52571, "summed_input": 848232, "summed_input_net_of_fixed": 420002, "authored_tokens": 12588, "failed_commands": 2, "notes": "its own test found a real defect (deleting any row with id 1 removed the Admin password hash); the final fix was not re-type-checked" }
+    }
+  ],
+  "summary_round4_semaprax_vs_typescript_rounds_3_and_4": {
+    "summed_input_mean": { "semaprax": 281718, "typescript": 674750, "typescript_over_semaprax": 2.4 },
+    "summed_input_net_of_fixed_mean": { "semaprax": 68836, "typescript": 304915, "typescript_over_semaprax": 4.43 },
+    "task_growth_mean": { "semaprax": 18339, "typescript": 46165, "typescript_over_semaprax": 2.52 },
+    "seconds_mean": { "semaprax": 68, "typescript": 295, "typescript_over_semaprax": 4.34 },
+    "authored_tokens_mean": { "semaprax": 4653, "typescript": 12192, "typescript_over_semaprax": 2.62 }
+  }
+}

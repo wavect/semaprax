@@ -506,9 +506,7 @@ impl Parser {
             let (field_name, field_name_span) = self.ident("record field name")?;
             self.expect(&TokenKind::Colon, "`:` after record field name")?;
             let ty = self.ty()?;
-            let end = self
-                .expect(&TokenKind::Comma, "`,` after record field")?
-                .span;
+            let end = self.list_separator("`,` after record field")?;
             let field_explicit_id = field_id.is_some();
             let field_stable_id =
                 field_id.unwrap_or_else(|| format!("auto:field:{stable_id}.{field_name}"));
@@ -564,9 +562,7 @@ impl Parser {
                     let (field_name, field_name_span) = self.ident("variant payload field name")?;
                     self.expect(&TokenKind::Colon, "`:` after variant payload field name")?;
                     let ty = self.ty()?;
-                    let end = self
-                        .expect(&TokenKind::Comma, "`,` after variant payload field")?
-                        .span;
+                    let end = self.list_separator("`,` after variant payload field")?;
                     let field_explicit_id = field_id.is_some();
                     let field_stable_id = field_id.unwrap_or_else(|| {
                         format!("auto:case-field:{case_stable_id}.{field_name}")
@@ -582,9 +578,7 @@ impl Parser {
                 }
                 self.expect(&TokenKind::RBrace, "`}` after variant payload fields")?;
             }
-            let end = self
-                .expect(&TokenKind::Comma, "`,` after variant case")?
-                .span;
+            let end = self.list_separator("`,` after variant case")?;
             cases.push(VariantCaseDeclaration {
                 stable_id: case_stable_id,
                 explicit_id: case_explicit_id,
@@ -1683,6 +1677,16 @@ impl Parser {
             let diagnostic = self.error_here("SPX-P106", format!("expected {description}"));
             Err(self.decorate_expected(diagnostic, description))
         }
+    }
+
+    /// A declaration list separator: `,`, or nothing before the closing
+    /// `}`. The formatter always writes the comma, so canonical source is
+    /// unchanged; a missing last comma no longer costs an edit-check turn.
+    fn list_separator(&mut self, description: &str) -> Result<Span, Diagnostic> {
+        if self.at(&TokenKind::RBrace) {
+            return Ok(self.previous_span());
+        }
+        Ok(self.expect(&TokenKind::Comma, description)?.span)
     }
 
     fn take(&mut self, expected: &TokenKind) -> bool {

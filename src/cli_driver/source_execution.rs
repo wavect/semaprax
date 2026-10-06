@@ -627,13 +627,10 @@ pub(super) fn webapp_command(args: &[String]) -> Result<(), u8> {
         semaprax::webapp::generate(&source).map_err(|errors| report(&errors, false))?;
     semaprax::webapp::write(&output, &projection).map_err(|error| report(&[error], false))?;
     println!(
-        "webapp {} -> {}: {} entities, {} enums, {} rules, {} computed\nrun: node {}",
+        "webapp {} -> {}: {}\nrun: node {}",
         source.display(),
         output.display(),
-        projection.entities,
-        projection.enums,
-        projection.rules,
-        projection.computed,
+        projection.counts.summary(),
         output.join("server.mjs").display()
     );
     Ok(())

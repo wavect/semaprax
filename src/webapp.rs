@@ -14,15 +14,16 @@
 //! [docs/WEBAPP-PROJECTION-V1.md](../docs/WEBAPP-PROJECTION-V1.md) owns the
 //! contract.
 
-use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use sha2::{Digest as _, Sha256};
 
-use crate::ast::{Function, ParamMode, Program, Span, Type, TypeDeclarationKind};
+use crate::ast::Span;
 use crate::diagnostic::Diagnostic;
 use crate::{graph, parse, patch, verify};
 
+mod emit;
+mod model;
 mod translate;
 
 #[cfg(test)]
@@ -53,7 +54,7 @@ pub(crate) enum Ty {
 }
 
 impl Ty {
-    fn js_name(&self) -> &str {
+    pub(crate) fn js_name(&self) -> &str {
         match self {
             Ty::Int => "int",
             Ty::Float => "float",
@@ -65,31 +66,50 @@ impl Ty {
     }
 }
 
-#[derive(Debug)]
-struct Field {
-    name: String,
-    ty: Ty,
-    /// The referenced entity path for an `x_id: i64` reference field.
-    reference: Option<String>,
+/// How much of each feature one projection contains.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct Counts {
+    pub entities: usize,
+    pub enums: usize,
+    pub rules: usize,
+    pub computed: usize,
+    pub keys: usize,
+    pub workflows: usize,
+    pub rollups: usize,
+    pub permissions: usize,
+    pub accounts: bool,
 }
 
-#[derive(Debug)]
-struct Entity {
-    name: String,
-    path: String,
-    fields: Vec<Field>,
-    rules: Vec<String>,
-    computed: Vec<String>,
+impl Counts {
+    /// `10 entities, 7 enums, 25 rules, 10 computed`, plus every v2 feature
+    /// present.
+    pub fn summary(&self) -> String {
+        let mut text = format!(
+            "{} entities, {} enums, {} rules, {} computed",
+            self.entities, self.enums, self.rules, self.computed
+        );
+        for (count, name) in [
+            (self.keys, "keys"),
+            (self.workflows, "workflows"),
+            (self.rollups, "rollups"),
+            (self.permissions, "permissions"),
+        ] {
+            if count > 0 {
+                text.push_str(&format!(", {count} {name}"));
+            }
+        }
+        if self.accounts {
+            text.push_str(", accounts");
+        }
+        text
+    }
 }
 
 /// What one successful projection produced.
 #[derive(Debug)]
 pub struct Projection {
     pub files: Vec<(String, String)>,
-    pub entities: usize,
-    pub enums: usize,
-    pub rules: usize,
-    pub computed: usize,
+    pub counts: Counts,
 }
 
 /// Snake-case a record name: `TimeEntry` becomes `time_entry`.
@@ -128,7 +148,8 @@ pub fn generate(source_path: &Path) -> Result<Projection, Vec<Diagnostic>> {
     if !errors.is_empty() {
         return Err(errors);
     }
-    let projection = project(&program, source)?;
+    let model = model::build(&program, source)?;
+    let (body, counts) = emit::schema(&model, &program.module, &title(&program.module));
     let digest = Sha256::digest(source.as_bytes());
     let file_name = source_path
         .file_name()
@@ -142,7 +163,7 @@ pub fn generate(source_path: &Path) -> Result<Projection, Vec<Diagnostic>> {
         schema.push_str(&format!("{byte:02x}"));
     }
     schema.push('\n');
-    schema.push_str(&projection.0);
+    schema.push_str(&body);
     let mut files = vec![("schema.js".to_owned(), schema)];
     files.extend(
         RUNTIME_FILES
@@ -151,14 +172,7 @@ pub fn generate(source_path: &Path) -> Result<Projection, Vec<Diagnostic>> {
     );
     let revision = graph::revision(&program);
     patch::validate_source_unchanged(&canonical_source_path, source_path, &snapshot, &revision)?;
-    let counts = projection.1;
-    Ok(Projection {
-        files,
-        entities: counts[0],
-        enums: counts[1],
-        rules: counts[2],
-        computed: counts[3],
-    })
+    Ok(Projection { files, counts })
 }
 
 /// Write a projection into `output`, which must be absent, empty, or a
@@ -189,308 +203,6 @@ pub fn write(output: &Path, projection: &Projection) -> Result<(), Diagnostic> {
             .map_err(|error| conflict(format!("cannot write `{}`: {error}", path.display())))?;
     }
     Ok(())
-}
-
-fn field_type(
-    ty: &Type,
-    name: &str,
-    enums: &BTreeMap<String, Vec<String>>,
-    paths: &BTreeMap<String, String>,
-) -> Option<(Ty, Option<String>)> {
-    Some(match ty {
-        Type::I64 => {
-            let reference = name
-                .strip_suffix("_id")
-                .filter(|prefix| paths.contains_key(*prefix))
-                .map(str::to_owned);
-            (Ty::Int, reference)
-        }
-        Type::F64 => (Ty::Float, None),
-        Type::Bool => (Ty::Bool, None),
-        Type::String => (Ty::Str, None),
-        Type::Char => (Ty::Char, None),
-        Type::Named { name, arguments } if arguments.is_empty() && enums.contains_key(name) => {
-            (Ty::Enum(name.clone()), None)
-        }
-        _ => return None,
-    })
-}
-
-/// Build the `schema.js` body and the entity/enum/rule/computed counts.
-fn project(program: &Program, source: &str) -> Result<(String, [usize; 4]), Vec<Diagnostic>> {
-    let mut errors = Vec::new();
-    let mut enums: BTreeMap<String, Vec<String>> = BTreeMap::new();
-    for declaration in &program.types {
-        if let TypeDeclarationKind::Variant { cases } = &declaration.kind {
-            if declaration.type_parameters.is_empty() && cases.iter().all(|c| c.fields.is_empty()) {
-                enums.insert(
-                    declaration.name.clone(),
-                    cases.iter().map(|case| case.name.clone()).collect(),
-                );
-            }
-        }
-    }
-    let mut paths = BTreeMap::new();
-    for declaration in &program.types {
-        if let TypeDeclarationKind::Record { .. } = declaration.kind {
-            paths.insert(snake(&declaration.name), declaration.name.clone());
-        }
-    }
-    let mut entities = Vec::new();
-    for declaration in &program.types {
-        let TypeDeclarationKind::Record { fields } = &declaration.kind else {
-            continue;
-        };
-        if !declaration.type_parameters.is_empty() {
-            errors.push(shape_error(
-                format!(
-                    "generic record `{}` cannot be a webapp entity",
-                    declaration.name
-                ),
-                declaration.name_span,
-                "declare a concrete record",
-            ));
-            continue;
-        }
-        let mut projected = Vec::new();
-        for field in fields {
-            if field.name == "id" {
-                errors.push(shape_error(
-                    format!("field `{}.id` is reserved", declaration.name),
-                    field.name_span,
-                    "the webapp assigns every row an `id`; remove this field",
-                ));
-                continue;
-            }
-            match field_type(&field.ty, &field.name, &enums, &paths) {
-                Some((ty, reference)) => projected.push(Field {
-                    name: field.name.clone(),
-                    ty,
-                    reference,
-                }),
-                None => errors.push(shape_error(
-                    format!(
-                        "field `{}.{}` has a type the webapp projection does not admit",
-                        declaration.name, field.name
-                    ),
-                    field.name_span,
-                    FIELD_TYPE_HELP,
-                )),
-            }
-        }
-        entities.push(Entity {
-            name: declaration.name.clone(),
-            path: snake(&declaration.name),
-            fields: projected,
-            rules: Vec::new(),
-            computed: Vec::new(),
-        });
-    }
-    if entities.is_empty() {
-        errors.push(shape_error(
-            "the module declares no record to serve",
-            Span::default(),
-            "declare at least one `record`; each record becomes a webapp entity",
-        ));
-    }
-    if !errors.is_empty() {
-        return Err(errors);
-    }
-
-    let functions: BTreeMap<&str, &Function> = program
-        .functions
-        .iter()
-        .map(|function| (function.name.as_str(), function))
-        .collect();
-    let mut translator = translate::Translator::new(source, &enums, &functions);
-    for function in &program.functions {
-        let Some((index, prefix)) = owning_entity(&entities, &function.name) else {
-            continue;
-        };
-        let entity = &entities[index];
-        let suffix = &function.name[prefix + 1..];
-        let mut params = Vec::new();
-        for param in &function.params {
-            let field = entity.fields.iter().find(|field| field.name == param.name);
-            let admitted = field.and_then(|field| {
-                let (ty, _) = field_type(&param.ty, &param.name, &enums, &BTreeMap::new())?;
-                (ty == field.ty && param.mode == ParamMode::Value).then_some(ty)
-            });
-            match admitted {
-                Some(ty) => params.push((param.name.clone(), ty)),
-                None => errors.push(shape_error(
-                    format!(
-                        "parameter `{}` of `{}` is not a field of `{}` with the same type",
-                        param.name, function.name, entity.name
-                    ),
-                    param.span,
-                    "an entity function takes some of its record's fields by name and type",
-                )),
-            }
-        }
-        if !function.effects.is_empty() || !function.type_parameters.is_empty() {
-            errors.push(shape_error(
-                format!(
-                    "entity function `{}` must be pure and monomorphic",
-                    function.name
-                ),
-                function.name_span,
-                "remove `uses { … }` and type parameters",
-            ));
-        }
-        if params.len() != function.params.len() || !errors.is_empty() {
-            continue;
-        }
-        let result = if suffix == "valid" {
-            translator.rules(function, &params).map(|rules| {
-                entities[index].rules.extend(rules);
-            })
-        } else if entities[index]
-            .fields
-            .iter()
-            .any(|field| field.name == suffix)
-        {
-            Err(vec![shape_error(
-                format!(
-                    "computed field `{suffix}` repeats a field of `{}`",
-                    entities[index].name
-                ),
-                function.name_span,
-                "rename the function",
-            )])
-        } else {
-            translator
-                .computed(function, suffix, &params)
-                .map(|computed| {
-                    entities[index].computed.push(computed);
-                })
-        };
-        if let Err(mut more) = result {
-            errors.append(&mut more);
-        }
-    }
-    // A function that is neither an entity function nor reached from one
-    // would be silently ignored, which usually means a misspelled prefix.
-    for function in &program.functions {
-        if function.name != "main"
-            && owning_entity(&entities, &function.name).is_none()
-            && !translator.reached(&function.name)
-        {
-            let prefixes: Vec<String> = entities
-                .iter()
-                .map(|entity| format!("{}_", entity.path))
-                .collect();
-            errors.push(
-                Diagnostic::error(
-                    "SPX-WA105",
-                    format!(
-                        "function `{}` is not an entity function and no entity function calls it",
-                        function.name
-                    ),
-                    function.name_span,
-                )
-                .with_help(format!(
-                    "start its name with an entity prefix ({}) or call it from one",
-                    prefixes.join(", ")
-                )),
-            );
-        }
-    }
-    if !errors.is_empty() {
-        return Err(errors);
-    }
-
-    let mut out = String::from("import * as rt from \"./runtime.js\";\n");
-    out.push_str(&translator.helpers());
-    out.push_str("export const app = { module: ");
-    out.push_str(&translate::js_string(&program.module));
-    out.push_str(", title: ");
-    out.push_str(&translate::js_string(&title(&program.module)));
-    out.push_str(" };\nexport const enums = {");
-    for (index, (name, cases)) in enums.iter().enumerate() {
-        out.push_str(if index == 0 { "\n  " } else { ",\n  " });
-        out.push_str(name);
-        out.push_str(": [");
-        let quoted: Vec<String> = cases
-            .iter()
-            .map(|case| translate::js_string(case))
-            .collect();
-        out.push_str(&quoted.join(", "));
-        out.push(']');
-    }
-    out.push_str("\n};\nexport const entities = [");
-    let mut counts = [entities.len(), enums.len(), 0, 0];
-    for entity in &entities {
-        counts[2] += entity.rules.len();
-        counts[3] += entity.computed.len();
-        let label = entity
-            .fields
-            .iter()
-            .find(|field| field.ty == Ty::Str)
-            .map_or("id", |field| field.name.as_str());
-        out.push_str("\n  {\n    name: ");
-        out.push_str(&translate::js_string(&entity.name));
-        out.push_str(", path: ");
-        out.push_str(&translate::js_string(&entity.path));
-        out.push_str(", label: ");
-        out.push_str(&translate::js_string(label));
-        out.push_str(",\n    fields: [");
-        for field in &entity.fields {
-            out.push_str("\n      { name: ");
-            out.push_str(&translate::js_string(&field.name));
-            match (&field.reference, &field.ty) {
-                (Some(target), _) => {
-                    out.push_str(", type: \"ref\", ref: ");
-                    out.push_str(&translate::js_string(target));
-                }
-                (None, Ty::Enum(name)) => {
-                    out.push_str(", type: \"enum\", enum: ");
-                    out.push_str(&translate::js_string(name));
-                }
-                (None, ty) => {
-                    out.push_str(", type: \"");
-                    out.push_str(ty.js_name());
-                    out.push('"');
-                }
-            }
-            out.push_str(" },");
-        }
-        out.push_str("\n    ],\n    rules: [");
-        for rule in &entity.rules {
-            out.push_str("\n      ");
-            out.push_str(rule);
-            out.push(',');
-        }
-        out.push_str("\n    ],\n    computed: [");
-        for computed in &entity.computed {
-            out.push_str("\n      ");
-            out.push_str(computed);
-            out.push(',');
-        }
-        out.push_str("\n    ],\n  },");
-    }
-    out.push_str("\n];\n");
-    Ok((out, counts))
-}
-
-/// The entity whose `<path>_` or run-together `<lowercase name>_` prefix is
-/// the longest prefix of `name`, with that prefix's length.
-fn owning_entity(entities: &[Entity], name: &str) -> Option<(usize, usize)> {
-    entities
-        .iter()
-        .enumerate()
-        .flat_map(|(index, entity)| {
-            [entity.path.clone(), entity.name.to_ascii_lowercase()]
-                .into_iter()
-                .map(move |prefix| (index, prefix))
-        })
-        .filter(|(_, prefix)| {
-            name.len() > prefix.len() + 1
-                && name.starts_with(prefix.as_str())
-                && name.as_bytes()[prefix.len()] == b'_'
-        })
-        .map(|(index, prefix)| (index, prefix.len()))
-        .max_by_key(|(_, length)| *length)
 }
 
 /// `team.desk` becomes `Desk`: the last module segment, capitalised.

@@ -59,10 +59,10 @@ fn projects_entities_rules_computed_and_helpers() {
     let projection = generate(&path).unwrap();
     assert_eq!(
         (
-            projection.entities,
-            projection.enums,
-            projection.rules,
-            projection.computed
+            projection.counts.entities,
+            projection.counts.enums,
+            projection.counts.rules,
+            projection.counts.computed
         ),
         (2, 1, 2, 2)
     );
@@ -174,7 +174,7 @@ fn run_together_prefixes_count_and_orphan_functions_fail_closed() {
         "joined",
         "module m;\n\nrecord TimeEntry {\n    hours: i64,\n}\n\nfn timeentry_double(hours: i64) -> i64\n{\n    hours * 2\n}\n",
     );
-    assert_eq!(generate(&joined).unwrap().computed, 1);
+    assert_eq!(generate(&joined).unwrap().counts.computed, 1);
     let orphan = write_temp(
         "orphan",
         "module m;\n\nrecord TimeEntry {\n    hours: i64,\n}\n\nfn entry_double(hours: i64) -> i64\n{\n    hours * 2\n}\n",
@@ -204,10 +204,10 @@ fn the_language_card_web_example_projects() {
     let projection = generate(&path).unwrap();
     assert_eq!(
         (
-            projection.entities,
-            projection.enums,
-            projection.rules,
-            projection.computed
+            projection.counts.entities,
+            projection.counts.enums,
+            projection.counts.rules,
+            projection.counts.computed
         ),
         (2, 1, 2, 2)
     );
@@ -250,4 +250,137 @@ fn the_generated_benchmark_app_passes_its_own_self_test() {
         stdout.starts_with("self-test ok: 10 entities, 25 rules, 10 computed"),
         "{stdout}"
     );
+}
+
+const V2: &str = "module m;
+
+variant Role { Admin, Agent, }
+
+variant Stage { Open, Done, }
+
+record Team {
+    name: string,
+}
+
+record Member {
+    team_id: i64,
+    email: string,
+    role: Role,
+    active: bool,
+}
+
+record Job {
+    team_id: i64,
+    member_id: i64,
+    code: string,
+    stage: Stage,
+    hours: i64,
+    cost: f64,
+}
+
+fn member_account(email: string, active: bool) -> bool
+{
+    active
+}
+
+fn can_write(my_role: Role) -> bool
+{
+    match my_role { Role::Admin {} => true, _ => false, }
+}
+
+fn job_can_write(my_role: Role, member_id: i64, me: i64) -> bool
+{
+    can_write(my_role) || member_id == me
+}
+
+fn job_key(team_id: i64, code: string) -> string
+{
+    string_concat(string_from_i64(team_id), code)
+}
+
+fn job_stage_step(from: Stage, to: Stage) -> bool
+{
+    match from { Stage::Open {} => true, _ => false, }
+}
+
+fn job_open(stage: Stage) -> bool
+{
+    match stage { Stage::Open {} => true, _ => false, }
+}
+
+fn team_jobs(count_job: i64, count_job_open: i64) -> i64
+{
+    count_job * 100 + count_job_open
+}
+
+fn team_cost(sum_job_cost: f64) -> f64
+{
+    sum_job_cost
+}
+";
+
+#[test]
+fn v2_conventions_project_accounts_permissions_keys_steps_and_rollups() {
+    let path = write_temp("v2", V2);
+    let projection = generate(&path).unwrap();
+    let counts = projection.counts;
+    assert_eq!(
+        (
+            counts.entities,
+            counts.keys,
+            counts.workflows,
+            counts.rollups,
+            counts.permissions
+        ),
+        (3, 1, 1, 3, 3)
+    );
+    assert!(counts.accounts);
+    assert!(counts
+        .summary()
+        .ends_with(", 1 keys, 1 workflows, 3 rollups, 3 permissions, accounts"));
+    let schema = schema(&projection);
+    assert!(schema.contains(
+        "export const account = { entity: \"member\", login: \"email\", allowed: (r) => r.active };"
+    ));
+    // The unprefixed default applies where an entity has no policy of its own.
+    assert_eq!(
+        schema
+            .matches("canWrite: { row: false, test: (r, u) => ((m4) => m4 === \"Admin\" ? true")
+            .count(),
+        2
+    );
+    assert!(schema.contains(
+        "canWrite: { row: true, test: (r, u) => (f_can_write(u.role) || (r.member_id === u.id)) }"
+    ));
+    assert!(schema.contains("{ name: \"key\", fields: [\"team_id\", \"code\"], value: (r) =>"));
+    assert!(schema.contains("{ field: \"stage\", test: (from, to) => ((m"));
+    assert!(schema.contains(
+        "{ name: \"count_job_open\", kind: \"count\", child: \"job\", via: \"team_id\", field: \"open\", type: \"int\" }"
+    ));
+    assert!(schema.contains(
+        "{ name: \"sum_job_cost\", kind: \"sum\", child: \"job\", via: \"team_id\", field: \"cost\", type: \"float\" }"
+    ));
+    assert!(schema.contains("value: (r) => rt.add(rt.mul(r.count_job, 100n), r.count_job_open)"));
+}
+
+#[test]
+fn v2_conventions_fail_closed() {
+    let cases = [
+        // `me` needs an account entity.
+        ("me", "module m;\n\nrecord Job {\n    owner: i64,\n}\n\nfn job_can_write(me: i64, owner: i64) -> bool\n{\n    me == owner\n}\n"),
+        // A rollup over an entity that does not reference this one.
+        ("rollup", "module m;\n\nrecord Team {\n    name: string,\n}\n\nrecord Job {\n    hours: i64,\n}\n\nfn team_jobs(count_job: i64) -> i64\n{\n    count_job\n}\n"),
+        // A step over the wrong type.
+        ("step", "module m;\n\nvariant Stage { Open, Done, }\n\nrecord Job {\n    stage: Stage,\n}\n\nfn job_stage_step(from: i64, to: i64) -> bool\n{\n    from < to\n}\n"),
+        // `password` is kept by the server, not declared.
+        ("password", "module m;\n\nrecord Member {\n    password: string,\n}\n\nfn one() -> i64\n{\n    1\n}\n"),
+    ];
+    for (name, source) in cases {
+        let errors = generate(&write_temp(name, source)).unwrap_err();
+        assert_eq!(
+            errors[0].code, "SPX-WA102",
+            "{name}: {:?}",
+            errors[0].message
+        );
+    }
 }

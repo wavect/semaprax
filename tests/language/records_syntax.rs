@@ -179,7 +179,8 @@ fn main() -> i64 { if true { 1 } else { Box { value: item }.value } }
 
 #[test]
 fn malformed_record_syntax_has_stable_parser_diagnostics() {
-    let missing_field_comma = "module bad; record Point { x: i64 } fn main() -> i64 { 0 }";
+    // The last field may omit its comma; a comma between fields is required.
+    let missing_field_comma = "module bad; record Point { x: i64 y: i64 } fn main() -> i64 { 0 }";
     assert_eq!(
         parse(missing_field_comma, Path::new("missing-field-comma.spx"))
             .unwrap_err()

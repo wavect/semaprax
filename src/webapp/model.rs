@@ -1,0 +1,713 @@
+//! The webapp model: entities, enumerations, and every convention function
+//! classified, bound, and translated.
+
+use std::collections::BTreeMap;
+
+use super::translate::{self, Bound, Translator};
+use super::{shape_error, snake, Ty, FIELD_TYPE_HELP};
+use crate::ast::{Function, ParamMode, Program, Span, Type, TypeDeclarationKind};
+use crate::diagnostic::Diagnostic;
+
+#[derive(Debug)]
+pub(super) struct Field {
+    pub(super) name: String,
+    pub(super) ty: Ty,
+    /// The referenced entity path for an `x_id: i64` reference field.
+    pub(super) reference: Option<String>,
+}
+
+#[derive(Debug)]
+pub(super) struct Rollup {
+    pub(super) name: String,
+    pub(super) kind: &'static str,
+    pub(super) child: String,
+    pub(super) via: String,
+    pub(super) field: Option<String>,
+    pub(super) ty: Ty,
+}
+
+#[derive(Debug, Default)]
+pub(super) struct Entity {
+    pub(super) name: String,
+    pub(super) path: String,
+    pub(super) fields: Vec<Field>,
+    pub(super) rules: Vec<String>,
+    pub(super) computed: Vec<String>,
+    pub(super) keys: Vec<String>,
+    pub(super) steps: Vec<String>,
+    pub(super) rollups: Vec<Rollup>,
+    pub(super) can_read: Option<String>,
+    pub(super) can_write: Option<String>,
+}
+
+pub(super) struct Model {
+    pub(super) enums: BTreeMap<String, Vec<String>>,
+    pub(super) entities: Vec<Entity>,
+    pub(super) account: Option<String>,
+    pub(super) helpers: String,
+}
+
+/// What a convention function means, from its name after the entity prefix.
+#[derive(Clone, Debug, PartialEq)]
+enum Kind {
+    Valid,
+    Key,
+    Step(String),
+    Account,
+    CanRead,
+    CanWrite,
+    Computed,
+}
+
+/// A computed field's signature, known before any body is translated so
+/// rollups may name computed fields of other entities.
+struct ComputedSignature {
+    entity: usize,
+    name: String,
+    ty: Option<Ty>,
+    uses_rollups: bool,
+}
+
+pub(super) fn field_type(
+    ty: &Type,
+    name: &str,
+    enums: &BTreeMap<String, Vec<String>>,
+    paths: &BTreeMap<String, String>,
+) -> Option<(Ty, Option<String>)> {
+    Some(match ty {
+        Type::I64 => {
+            let reference = name
+                .strip_suffix("_id")
+                .filter(|prefix| paths.contains_key(*prefix))
+                .map(str::to_owned);
+            (Ty::Int, reference)
+        }
+        Type::F64 => (Ty::Float, None),
+        Type::Bool => (Ty::Bool, None),
+        Type::String => (Ty::Str, None),
+        Type::Char => (Ty::Char, None),
+        Type::Named { name, arguments } if arguments.is_empty() && enums.contains_key(name) => {
+            (Ty::Enum(name.clone()), None)
+        }
+        _ => return None,
+    })
+}
+
+/// The entity whose `<path>_` or run-together `<lowercase name>_` prefix is
+/// the longest prefix of `name`, with that prefix's length.
+pub(super) fn owning_entity(entities: &[Entity], name: &str) -> Option<(usize, usize)> {
+    entities
+        .iter()
+        .enumerate()
+        .flat_map(|(index, entity)| {
+            [entity.path.clone(), entity.name.to_ascii_lowercase()]
+                .into_iter()
+                .map(move |prefix| (index, prefix))
+        })
+        .filter(|(_, prefix)| {
+            name.len() > prefix.len() + 1
+                && name.starts_with(prefix.as_str())
+                && name.as_bytes()[prefix.len()] == b'_'
+        })
+        .map(|(index, prefix)| (index, prefix.len()))
+        .max_by_key(|(_, length)| *length)
+}
+
+fn kind(entity: &Entity, suffix: &str) -> Kind {
+    match suffix {
+        "valid" => Kind::Valid,
+        "account" => Kind::Account,
+        "can_read" => Kind::CanRead,
+        "can_write" => Kind::CanWrite,
+        "key" => Kind::Key,
+        _ if suffix.starts_with("key_") => Kind::Key,
+        _ => match suffix.strip_suffix("_step") {
+            Some(field)
+                if entity
+                    .fields
+                    .iter()
+                    .any(|f| f.name == field && matches!(f.ty, Ty::Enum(_))) =>
+            {
+                Kind::Step(field.to_owned())
+            }
+            _ => Kind::Computed,
+        },
+    }
+}
+
+fn entities_of(
+    program: &Program,
+    enums: &BTreeMap<String, Vec<String>>,
+    errors: &mut Vec<Diagnostic>,
+) -> Vec<Entity> {
+    let mut paths = BTreeMap::new();
+    for declaration in &program.types {
+        if let TypeDeclarationKind::Record { .. } = declaration.kind {
+            paths.insert(snake(&declaration.name), declaration.name.clone());
+        }
+    }
+    let mut entities = Vec::new();
+    for declaration in &program.types {
+        let TypeDeclarationKind::Record { fields } = &declaration.kind else {
+            continue;
+        };
+        if !declaration.type_parameters.is_empty() {
+            errors.push(shape_error(
+                format!(
+                    "generic record `{}` cannot be a webapp entity",
+                    declaration.name
+                ),
+                declaration.name_span,
+                "declare a concrete record",
+            ));
+            continue;
+        }
+        if matches!(snake(&declaration.name).as_str(), "audit" | "session") {
+            errors.push(shape_error(
+                format!("record `{}` uses a reserved webapp route", declaration.name),
+                declaration.name_span,
+                "`/api/audit` and `/api/session` belong to the server; rename the record",
+            ));
+            continue;
+        }
+        let mut projected = Vec::new();
+        for field in fields {
+            if field.name == "id" || field.name == "password" {
+                errors.push(shape_error(
+                    format!("field `{}.{}` is reserved", declaration.name, field.name),
+                    field.name_span,
+                    "the webapp assigns every row an `id` and keeps account passwords itself; remove this field",
+                ));
+                continue;
+            }
+            match field_type(&field.ty, &field.name, enums, &paths) {
+                Some((ty, reference)) => projected.push(Field {
+                    name: field.name.clone(),
+                    ty,
+                    reference,
+                }),
+                None => errors.push(shape_error(
+                    format!(
+                        "field `{}.{}` has a type the webapp projection does not admit",
+                        declaration.name, field.name
+                    ),
+                    field.name_span,
+                    FIELD_TYPE_HELP,
+                )),
+            }
+        }
+        entities.push(Entity {
+            name: declaration.name.clone(),
+            path: snake(&declaration.name),
+            fields: projected,
+            ..Entity::default()
+        });
+    }
+    if entities.is_empty() {
+        errors.push(shape_error(
+            "the module declares no record to serve",
+            Span::default(),
+            "declare at least one `record`; each record becomes a webapp entity",
+        ));
+    }
+    entities
+}
+
+const PARAM_HELP: &str = "a parameter is a field of the entity (same name and type); in `can_read`/`can_write` also `me: i64` or `my_<account field>`; in a computed field also a rollup `count_<child>`, `count_<child>_<bool field>`, or `sum_<child>_<number field>`; a `_step` function takes two values of the field's variant";
+
+/// Build the whole model, or every diagnostic that prevents it.
+pub(super) fn build(program: &Program, source: &str) -> Result<Model, Vec<Diagnostic>> {
+    let mut errors = Vec::new();
+    let mut enums: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    for declaration in &program.types {
+        if let TypeDeclarationKind::Variant { cases } = &declaration.kind {
+            if declaration.type_parameters.is_empty() && cases.iter().all(|c| c.fields.is_empty()) {
+                enums.insert(
+                    declaration.name.clone(),
+                    cases.iter().map(|case| case.name.clone()).collect(),
+                );
+            }
+        }
+    }
+    let mut entities = entities_of(program, &enums, &mut errors);
+    if !errors.is_empty() {
+        return Err(errors);
+    }
+
+    // Classify every entity function and record computed signatures first.
+    let mut classified = Vec::new();
+    let mut signatures = Vec::new();
+    for function in &program.functions {
+        let Some((index, prefix)) = owning_entity(&entities, &function.name) else {
+            continue;
+        };
+        let suffix = function.name[prefix + 1..].to_owned();
+        let kind = kind(&entities[index], &suffix);
+        if kind == Kind::Computed {
+            let fields = &entities[index].fields;
+            signatures.push(ComputedSignature {
+                entity: index,
+                name: suffix.clone(),
+                ty: scalar(&function.return_type, &enums),
+                uses_rollups: function.params.iter().any(|param| {
+                    !fields.iter().any(|field| field.name == param.name)
+                        && (param.name.starts_with("count_") || param.name.starts_with("sum_"))
+                }),
+            });
+        }
+        if !function.effects.is_empty() || !function.type_parameters.is_empty() {
+            errors.push(shape_error(
+                format!(
+                    "entity function `{}` must be pure and monomorphic",
+                    function.name
+                ),
+                function.name_span,
+                "remove `uses { … }` and type parameters",
+            ));
+        }
+        classified.push((function, index, suffix, kind));
+    }
+    let accounts: Vec<&(&Function, usize, String, Kind)> = classified
+        .iter()
+        .filter(|(_, _, _, kind)| *kind == Kind::Account)
+        .collect();
+    if accounts.len() > 1 {
+        errors.push(shape_error(
+            "more than one `<entity>_account` function",
+            accounts[1].0.name_span,
+            "exactly one entity holds the accounts",
+        ));
+    }
+    let account_entity = accounts.first().map(|(_, index, _, _)| *index);
+    if !errors.is_empty() {
+        return Err(errors);
+    }
+
+    let functions: BTreeMap<&str, &Function> = program
+        .functions
+        .iter()
+        .map(|function| (function.name.as_str(), function))
+        .collect();
+    let mut translator = Translator::new(source, &enums, &functions);
+    let mut account = None;
+    for (function, index, suffix, kind) in &classified {
+        let bound = match bind(
+            function,
+            *index,
+            kind,
+            &entities,
+            account_entity,
+            &signatures,
+            &enums,
+        ) {
+            Ok((bound, rollups)) => {
+                for rollup in rollups {
+                    if !entities[*index]
+                        .rollups
+                        .iter()
+                        .any(|r| r.name == rollup.name)
+                    {
+                        entities[*index].rollups.push(rollup);
+                    }
+                }
+                bound
+            }
+            Err(mut more) => {
+                errors.append(&mut more);
+                continue;
+            }
+        };
+        let returns_bool = || {
+            if function.return_type == Type::Bool {
+                Ok(())
+            } else {
+                Err(vec![shape_error(
+                    format!("`{}` must return bool", function.name),
+                    function.name_span,
+                    "keys may return any webapp scalar; `_step`, `_account`, `can_read`, and `can_write` return bool",
+                )])
+            }
+        };
+        let entity = &mut entities[*index];
+        let result = match kind {
+            Kind::Valid => translator
+                .rules(function, &bound)
+                .map(|rules| entity.rules.extend(rules)),
+            Kind::Computed if entity.fields.iter().any(|field| field.name == *suffix) => {
+                Err(vec![shape_error(
+                    format!(
+                        "computed field `{suffix}` repeats a field of `{}`",
+                        entity.name
+                    ),
+                    function.name_span,
+                    "rename the function",
+                )])
+            }
+            Kind::Computed => translator
+                .computed(function, suffix, &bound)
+                .map(|computed| entity.computed.push(computed)),
+            Kind::Key => translator.body(function, &bound).map(|(body, fields)| {
+                let fields: Vec<String> = fields.iter().map(|f| translate::js_string(f)).collect();
+                entity.keys.push(format!(
+                    "{{ name: {}, fields: [{}], value: (r) => {body} }}",
+                    translate::js_string(suffix),
+                    fields.join(", ")
+                ));
+            }),
+            Kind::Step(field) => returns_bool().and_then(|()| {
+                translator.body(function, &bound).map(|(body, _)| {
+                    entity.steps.push(format!(
+                        "{{ field: {}, test: (from, to) => {body} }}",
+                        translate::js_string(field)
+                    ));
+                })
+            }),
+            Kind::CanRead | Kind::CanWrite => returns_bool().and_then(|()| {
+                translator.body(function, &bound).map(|(body, fields)| {
+                    let test = format!("{{ row: {}, test: (r, u) => {body} }}", !fields.is_empty());
+                    if *kind == Kind::CanRead {
+                        entity.can_read = Some(test);
+                    } else {
+                        entity.can_write = Some(test);
+                    }
+                })
+            }),
+            Kind::Account => returns_bool().and_then(|()| {
+                let login = function.params.first().filter(|param| {
+                    entity
+                        .fields
+                        .iter()
+                        .any(|field| field.name == param.name && field.ty == Ty::Str)
+                });
+                let Some(login) = login else {
+                    return Err(vec![shape_error(
+                        format!("`{}` must take the sign-in field first", function.name),
+                        function.name_span,
+                        "start with the account's string login field, such as `email: string`",
+                    )]);
+                };
+                translator.body(function, &bound).map(|(body, _)| {
+                    account = Some(format!(
+                        "{{ entity: {}, login: {}, allowed: (r) => {body} }}",
+                        translate::js_string(&entity.path),
+                        translate::js_string(&login.name)
+                    ));
+                })
+            }),
+        };
+        if let Err(mut more) = result {
+            errors.append(&mut more);
+        }
+    }
+
+    // Unprefixed `can_read` / `can_write` are the defaults for every entity
+    // without its own; they see only the signed-in account.
+    for function in &program.functions {
+        if function.name != "can_read" && function.name != "can_write" {
+            continue;
+        }
+        let Some(account_index) = account_entity else {
+            errors.push(shape_error(
+                format!("`{}` needs an `<entity>_account` function", function.name),
+                function.name_span,
+                "declare which entity holds the accounts first",
+            ));
+            continue;
+        };
+        let kind = if function.name == "can_read" {
+            Kind::CanRead
+        } else {
+            Kind::CanWrite
+        };
+        let bound = match bind_account(function, &entities[account_index], &enums) {
+            Ok(bound) => bound,
+            Err(mut more) => {
+                errors.append(&mut more);
+                continue;
+            }
+        };
+        if function.return_type != Type::Bool {
+            errors.push(shape_error(
+                format!("`{}` must return bool", function.name),
+                function.name_span,
+                "a permission is a bool",
+            ));
+            continue;
+        }
+        match translator.body(function, &bound) {
+            Ok((body, _)) => {
+                let test = format!("{{ row: false, test: (r, u) => {body} }}");
+                for entity in &mut entities {
+                    let slot = if kind == Kind::CanRead {
+                        &mut entity.can_read
+                    } else {
+                        &mut entity.can_write
+                    };
+                    slot.get_or_insert_with(|| test.clone());
+                }
+            }
+            Err(mut more) => errors.append(&mut more),
+        }
+    }
+
+    // A function that is neither an entity function nor reached from one
+    // would be silently ignored, which usually means a misspelled prefix.
+    for function in &program.functions {
+        if !matches!(function.name.as_str(), "main" | "can_read" | "can_write")
+            && owning_entity(&entities, &function.name).is_none()
+            && !translator.reached(&function.name)
+        {
+            let prefixes: Vec<String> = entities
+                .iter()
+                .map(|entity| format!("{}_", entity.path))
+                .collect();
+            errors.push(
+                Diagnostic::error(
+                    "SPX-WA105",
+                    format!(
+                        "function `{}` is not an entity function and no entity function calls it",
+                        function.name
+                    ),
+                    function.name_span,
+                )
+                .with_help(format!(
+                    "start its name with an entity prefix ({}) or call it from one",
+                    prefixes.join(", ")
+                )),
+            );
+        }
+    }
+    if !errors.is_empty() {
+        return Err(errors);
+    }
+    Ok(Model {
+        helpers: translator.helpers(),
+        enums,
+        entities,
+        account,
+    })
+}
+
+/// Bind `me` and `my_<field>` of the account entity, and nothing else.
+fn bind_account(
+    function: &Function,
+    account: &Entity,
+    enums: &BTreeMap<String, Vec<String>>,
+) -> Result<Vec<Bound>, Vec<Diagnostic>> {
+    let mut bound = Vec::new();
+    let mut errors = Vec::new();
+    for param in &function.params {
+        let ty = scalar(&param.ty, enums).filter(|_| param.mode == ParamMode::Value);
+        let js = ty.as_ref().and_then(|ty| {
+            if param.name == "me" && *ty == Ty::Int {
+                return Some("u.id".to_owned());
+            }
+            let field = param.name.strip_prefix("my_")?;
+            account
+                .fields
+                .iter()
+                .any(|f| f.name == field && f.ty == *ty)
+                .then(|| format!("u.{field}"))
+        });
+        match (js, ty) {
+            (Some(js), Some(ty)) => bound.push(Bound {
+                name: param.name.clone(),
+                js,
+                ty,
+                field: false,
+            }),
+            _ => errors.push(shape_error(
+                format!(
+                    "parameter `{}` of `{}` is not `me` or `my_<account field>`",
+                    param.name, function.name
+                ),
+                param.span,
+                PARAM_HELP,
+            )),
+        }
+    }
+    if errors.is_empty() {
+        Ok(bound)
+    } else {
+        Err(errors)
+    }
+}
+
+fn scalar(ty: &Type, enums: &BTreeMap<String, Vec<String>>) -> Option<Ty> {
+    field_type(ty, "", enums, &BTreeMap::new()).map(|(ty, _)| ty)
+}
+
+/// Resolve every parameter of one convention function to a binding.
+fn bind(
+    function: &Function,
+    index: usize,
+    kind: &Kind,
+    entities: &[Entity],
+    account: Option<usize>,
+    signatures: &[ComputedSignature],
+    enums: &BTreeMap<String, Vec<String>>,
+) -> Result<(Vec<Bound>, Vec<Rollup>), Vec<Diagnostic>> {
+    let entity = &entities[index];
+    let mut bound = Vec::new();
+    let mut rollups = Vec::new();
+    let mut errors = Vec::new();
+    for (position, param) in function.params.iter().enumerate() {
+        let ty = scalar(&param.ty, enums).filter(|_| param.mode == ParamMode::Value);
+        let resolved = ty.and_then(|ty| {
+            if let Kind::Step(field) = kind {
+                let field_ty = entity.fields.iter().find(|f| f.name == *field)?.ty.clone();
+                let js = ["from", "to"].get(position)?;
+                return (ty == field_ty && function.params.len() == 2).then(|| {
+                    (
+                        Bound {
+                            name: param.name.clone(),
+                            js: (*js).to_owned(),
+                            ty,
+                            field: false,
+                        },
+                        None,
+                    )
+                });
+            }
+            if entity
+                .fields
+                .iter()
+                .any(|f| f.name == param.name && f.ty == ty)
+            {
+                let js = format!("r.{}", param.name);
+                return Some((
+                    Bound {
+                        name: param.name.clone(),
+                        js,
+                        ty,
+                        field: true,
+                    },
+                    None,
+                ));
+            }
+            if matches!(kind, Kind::CanRead | Kind::CanWrite) {
+                let account = &entities[account?];
+                if param.name == "me" && ty == Ty::Int {
+                    return Some((
+                        Bound {
+                            name: param.name.clone(),
+                            js: "u.id".to_owned(),
+                            ty,
+                            field: false,
+                        },
+                        None,
+                    ));
+                }
+                let field = param.name.strip_prefix("my_")?;
+                return account
+                    .fields
+                    .iter()
+                    .any(|f| f.name == field && f.ty == ty)
+                    .then(|| {
+                        (
+                            Bound {
+                                name: param.name.clone(),
+                                js: format!("u.{field}"),
+                                ty,
+                                field: false,
+                            },
+                            None,
+                        )
+                    });
+            }
+            if *kind == Kind::Computed {
+                let rollup = rollup(&param.name, &ty, index, entities, signatures)?;
+                let js = format!("r.{}", param.name);
+                return Some((
+                    Bound {
+                        name: param.name.clone(),
+                        js,
+                        ty,
+                        field: false,
+                    },
+                    Some(rollup),
+                ));
+            }
+            None
+        });
+        match resolved {
+            Some((binding, rollup)) => {
+                bound.push(binding);
+                rollups.extend(rollup);
+            }
+            None => errors.push(shape_error(
+                format!(
+                    "parameter `{}` of `{}` does not bind to `{}`",
+                    param.name, function.name, entity.name
+                ),
+                param.span,
+                PARAM_HELP,
+            )),
+        }
+    }
+    if errors.is_empty() {
+        Ok((bound, rollups))
+    } else {
+        Err(errors)
+    }
+}
+
+/// `count_<child>`, `count_<child>_<bool>`, or `sum_<child>_<number>` over
+/// the rows of `child` whose single reference field names the parent.
+fn rollup(
+    name: &str,
+    ty: &Ty,
+    parent: usize,
+    entities: &[Entity],
+    signatures: &[ComputedSignature],
+) -> Option<Rollup> {
+    let (kind, rest) = name
+        .strip_prefix("count_")
+        .map(|rest| ("count", rest))
+        .or_else(|| name.strip_prefix("sum_").map(|rest| ("sum", rest)))?;
+    let (child_index, child) = entities
+        .iter()
+        .enumerate()
+        .filter(|(_, child)| {
+            rest == child.path
+                || rest
+                    .strip_prefix(child.path.as_str())
+                    .is_some_and(|tail| tail.starts_with('_'))
+        })
+        .max_by_key(|(_, child)| child.path.len())?;
+    let field = rest[child.path.len()..].strip_prefix('_');
+    let mut via = child
+        .fields
+        .iter()
+        .filter(|f| f.reference.as_deref() == Some(entities[parent].path.as_str()));
+    let via = via.next().filter(|_| via.next().is_none())?;
+    let field_ty = |field: &str| {
+        child
+            .fields
+            .iter()
+            .find(|f| f.name == field)
+            .map(|f| f.ty.clone())
+            .or_else(|| {
+                signatures
+                    .iter()
+                    .find(|s| s.entity == child_index && s.name == field && !s.uses_rollups)
+                    .and_then(|s| s.ty.clone())
+            })
+    };
+    let admitted = match (kind, field) {
+        ("count", None) => *ty == Ty::Int,
+        ("count", Some(field)) => *ty == Ty::Int && field_ty(field) == Some(Ty::Bool),
+        ("sum", Some(field)) => {
+            matches!(ty, Ty::Int | Ty::Float) && field_ty(field).as_ref() == Some(ty)
+        }
+        _ => false,
+    };
+    admitted.then(|| Rollup {
+        name: name.to_owned(),
+        kind,
+        child: child.path.clone(),
+        via: via.name.clone(),
+        field: field.map(str::to_owned),
+        ty: ty.clone(),
+    })
+}

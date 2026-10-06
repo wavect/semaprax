@@ -7,48 +7,88 @@
       "authored": 7045,
       "files": 10,
       "green": 93,
-      "session": {
+      "per_file": {
         "input": 55330,
         "output": 7045,
         "total": 62375
       },
-      "vs_typescript": 1
+      "batched": {
+        "input": 10136,
+        "output": 7045,
+        "total": 17181
+      },
+      "language_attributable": 7138,
+      "vs_typescript": {
+        "batched": 1,
+        "per_file": 1,
+        "language_attributable": 1
+      }
     },
     "semaprax-today (lower bound)": {
       "reference": 10737,
       "authored": 13211,
       "files": 9,
       "green": 148,
-      "session": {
+      "per_file": {
         "input": 188563,
         "output": 13211,
         "total": 201774
       },
-      "vs_typescript": 3.23
+      "batched": {
+        "input": 37831,
+        "output": 13211,
+        "total": 51042
+      },
+      "language_attributable": 24096,
+      "vs_typescript": {
+        "batched": 2.97,
+        "per_file": 3.23,
+        "language_attributable": 3.38
+      }
     },
     "semaprax-today (estimate)": {
       "reference": 10737,
       "authored": 48075,
       "files": 9,
       "green": 148,
-      "session": {
+      "per_file": {
         "input": 362883,
         "output": 48075,
         "total": 410958
       },
-      "vs_typescript": 6.59
+      "batched": {
+        "input": 72695,
+        "output": 48075,
+        "total": 120770
+      },
+      "language_attributable": 58960,
+      "vs_typescript": {
+        "batched": 7.03,
+        "per_file": 6.59,
+        "language_attributable": 8.26
+      }
     },
     "semaprax webapp": {
-      "reference": 914,
+      "reference": 984,
       "authored": 1667,
       "files": 1,
       "green": 64,
-      "session": {
-        "input": 6557,
+      "per_file": {
+        "input": 6697,
         "output": 1667,
-        "total": 8224
+        "total": 8364
       },
-      "vs_typescript": 0.13
+      "batched": {
+        "input": 6697,
+        "output": 1667,
+        "total": 8364
+      },
+      "language_attributable": 2715,
+      "vs_typescript": {
+        "batched": 0.49,
+        "per_file": 0.13,
+        "language_attributable": 0.38
+      }
     }
   },
   "changes": {

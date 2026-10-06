@@ -61,8 +61,8 @@
           "wrote": "`let t = (1, 2);`"
         },
         {
-          "fix": "Every field and every match arm ends with `,`, including the last",
-          "wrote": "`x: i64` as the last field without `,`"
+          "fix": "Every match arm ends with `,`, including the last; a declaration's last field or case may omit it",
+          "wrote": "`match x { 0 => 0, _ => 1 }`"
         },
         {
           "fix": "`if c { a } else { b }`",

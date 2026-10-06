@@ -372,7 +372,7 @@ the remaining threshold, not as a list of existing features.
 
 | Requirement | Status | Evidence owner | Complete when |
 | --- | --- | --- | --- |
-| First-class application/state/UI dialect | Partial | [UI Schema](UI-SCHEMA-V1.md), [Web Application Projection](WEBAPP-PROJECTION-V1.md) | Typed state/update/view, semantic controls, accessibility, navigation, assets and platform escape hatches execute. |
+| First-class application/state/UI dialect | Partial | [UI Schema](UI-SCHEMA-V1.md), [Web Application Projection](WEBAPP-PROJECTION-V1.md), [v2](WEBAPP-PROJECTION-V2.md) | Typed state/update/view, semantic controls, accessibility, navigation, assets and platform escape hatches execute. |
 | Web | Partial | [Wasm Scalar Exports](WASM-SCALAR-EXPORTS-V1.md) | Accessible DOM/CSS, SSR/hydration, packaging, multi-engine execution and a deployable sample are verified. |
 | iOS | Partial | [Swift Ownership](APPLE-SWIFT-OWNERSHIP-V1.md) | Public framework/app generation, lifecycle, accessibility, signing metadata and device/simulator samples are verified. |
 | Android | Partial | [Android JNI Ownership](ANDROID-JNI-OWNERSHIP-V1.md) | Public AAR/app generation, lifecycle, accessibility, packaging and emulator/device samples are verified. |

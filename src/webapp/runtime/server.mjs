@@ -1,30 +1,39 @@
-// node server.mjs [--port N] [--host 127.0.0.1] [--data DIR]
+// node server.mjs [--port N] [--host 127.0.0.1] [--data DIR] [--setup]
 // node server.mjs --self-test [--data DIR]   (verify the whole app against its schema; exit 0/1)
+// With accounts, --setup admits unauthenticated requests as an unrestricted setup user while no account
+// has a password: create the first account with a password, then sign in. Setup ends with the first password.
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import crypto from "node:crypto";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { entities, enums, app } from "./schema.js";
+import * as S from "./schema.js";
 import * as rt from "./runtime.js";
 
+const { entities, enums, app } = S, ACCOUNT = S.account ?? null;
 const here = path.dirname(fileURLToPath(import.meta.url));
 const opt = { port: "8080", host: "127.0.0.1", data: "./data" };
-const argv = process.argv.slice(2), SELF = argv.includes("--self-test");
-if (SELF) argv.splice(argv.indexOf("--self-test"), 1);
+const argv = process.argv.slice(2), flag = (n) => { const i = argv.indexOf(n); if (i >= 0) argv.splice(i, 1); return i >= 0; };
+const SELF = flag("--self-test"), SETUP = flag("--setup");
 for (let i = 0; i < argv.length; i += 2) {
   const k = argv[i].replace(/^--/, "");
-  if (!(k in opt) || argv[i + 1] === undefined || (SELF && k !== "data")) { console.error("usage: node server.mjs [--port N] [--host H] [--data DIR] | --self-test [--data DIR]"); process.exit(2); }
+  if (!(k in opt) || argv[i + 1] === undefined || (SELF && k !== "data")) { console.error("usage: node server.mjs [--port N] [--host H] [--data DIR] [--setup] | --self-test [--data DIR]"); process.exit(2); }
   opt[k] = argv[i + 1];
 }
+const SCRYPT = { N: 16384, r: 8, p: 1 };
+function hashPw(pw, salt = crypto.randomBytes(16)) { return salt.toString("hex") + ":" + crypto.scryptSync(pw, salt, 32, SCRYPT).toString("hex"); }
 if (SELF) process.exit(await selfTest());
 const LIMIT = 1 << 20;
-const dbFile = path.join(path.resolve(opt.data), "db.json");
-fs.mkdirSync(path.dirname(dbFile), { recursive: true });
+const dir = path.resolve(opt.data), dbFile = path.join(dir, "db.json"), authFile = path.join(dir, "auth.json"), auditFile = path.join(dir, "audit.jsonl");
+fs.mkdirSync(dir, { recursive: true });
+const writeAtomic = (file, text, mode) => { fs.writeFileSync(file + ".tmp", text, { mode }); fs.renameSync(file + ".tmp", file); };
 
 // ---- state: path -> {ent, rows: Map<BigInt id,row>, next: BigInt} ----
 const tables = new Map(entities.map((ent) => [ent.path, { ent, rows: new Map(), next: 1n }]));
+const accT = ACCOUNT && tables.get(ACCOUNT.entity);
+if (ACCOUNT && !accT) throw new Error(`schema: account entity ${ACCOUNT.entity} not found`);
 function load() {
   if (!fs.existsSync(dbFile)) return;
   const db = rt.parseJSON(fs.readFileSync(dbFile, "utf8"));
@@ -45,11 +54,32 @@ function save() {
     rows.push(JSON.stringify(p) + ":[" + [...t.rows.values()].map((r) => rt.toJSON(t.ent, r, { strInts: true })).join(",") + "]");
     next.push(JSON.stringify(p) + ":" + JSON.stringify(t.next.toString()));
   }
-  const tmp = dbFile + ".tmp";
-  fs.writeFileSync(tmp, `{"version":1,"next":{${next.join(",")}},"rows":{${rows.join(",")}}}\n`);
-  fs.renameSync(tmp, dbFile);
+  writeAtomic(dbFile, `{"version":1,"next":{${next.join(",")}},"rows":{${rows.join(",")}}}\n`);
 }
-load();
+// auth.json: passwords (account id -> "salt:scrypt" hex) and sessions (sha256(token) -> account id). Never served.
+const auth = { pw: new Map(), sess: new Map() };
+function loadAuth() {
+  if (!fs.existsSync(authFile)) return;
+  const o = JSON.parse(fs.readFileSync(authFile, "utf8"));
+  for (const [k, v] of Object.entries(o.passwords || {})) auth.pw.set(k, v);
+  for (const [k, v] of Object.entries(o.sessions || {})) auth.sess.set(k, v);
+}
+const sorted = (m) => Object.fromEntries([...m].sort((a, b) => (a[0] < b[0] ? -1 : 1)));
+const saveAuth = () => writeAtomic(authFile, JSON.stringify({ version: 1, passwords: sorted(auth.pw), sessions: sorted(auth.sess) }) + "\n", 0o600);
+// audit.jsonl: one JSON entry per line, appended with a single write.
+const log = []; let seq = 1;
+function loadAudit() {
+  if (!fs.existsSync(auditFile)) return;
+  const text = fs.readFileSync(auditFile, "utf8");
+  if (text && !text.endsWith("\n")) fs.appendFileSync(auditFile, "\n"); // a torn last line stays unparsed
+  for (const line of text.split("\n")) {
+    let o; try { o = rt.parseJSON(line); } catch { continue; }
+    const num = (v) => String(v && v.source !== undefined ? v.source : v);
+    log.push({ p: o.entity, id: BigInt(num(o.id)), line });
+    seq = Math.max(seq, Number(num(o.seq)) + 1);
+  }
+}
+load(); loadAuth(); loadAudit();
 
 // ---- http helpers ----
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".mjs": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8" };
@@ -60,7 +90,8 @@ const send = (res, code, body = "", type = "application/json; charset=utf-8", ex
 };
 const fail = (res, code, msg) => send(res, code, JSON.stringify({ error: msg }));
 const verrs = (res, errors) => send(res, 400, JSON.stringify({ errors }));
-const out = (t, row) => rt.toJSON(t.ent, row, { computed: true });
+const roll = (t, row) => rt.withRollups(t.ent, row, (p) => ({ ent: tables.get(p).ent, rows: tables.get(p).rows.values() }));
+const out = (t, row) => rt.toJSON(t.ent, roll(t, row), { computed: true });
 function readBody(req, res) {
   return new Promise((resolve) => {
     const chunks = []; let size = 0, done = false;
@@ -71,7 +102,59 @@ function readBody(req, res) {
     req.on("error", () => { if (!done) { done = true; resolve(null); } });
   });
 }
-function validate(t, input) {
+
+// ---- accounts, sessions, permissions ----
+const sha = (s) => crypto.createHash("sha256").update(s).digest("hex");
+const allowed = (r) => { try { return ACCOUNT.allowed(r) === true; } catch { return false; } };
+const pass = (p, r, u) => { try { return p.test(r, u) === true; } catch { return false; } };
+const sid = (req) => (/(?:^|;\s*)sid=([0-9a-f]{64})(?:;|$)/.exec(req.headers.cookie || "") || [])[1];
+const COOKIE = "; HttpOnly; SameSite=Strict; Path=/";
+// The caller: {u: account row} when signed in, {free: true} without accounts or in setup mode, null -> 401.
+function who(req) {
+  if (!ACCOUNT) return { u: null, free: true };
+  const tok = sid(req), id = tok && auth.sess.get(sha(tok)), u = id && accT.rows.get(BigInt(id));
+  if (u && allowed(u)) return { u, free: false };
+  if (SETUP && auth.pw.size === 0) return { u: null, free: true, setup: true };
+  return null;
+}
+const canR = (c, t, r) => c.free || !t.ent.canRead || pass(t.ent.canRead, r, c.u);
+const canW = (c, t, r) => c.free || !t.ent.canWrite || pass(t.ent.canWrite, r, c.u);
+// GET /api/audit: allowed without accounts, in setup mode, or when canWrite of the account entity passes for (u, u).
+const canAudit = (c) => c.free || !accT.ent.canWrite || pass(accT.ent.canWrite, c.u, c.u);
+function checkPw(pw, stored) {
+  const [s, h] = (stored || "00".repeat(16) + ":" + "00".repeat(32)).split(":");
+  const got = crypto.scryptSync(typeof pw === "string" ? pw : "", Buffer.from(s, "hex"), 32, SCRYPT);
+  return crypto.timingSafeEqual(got, Buffer.from(h, "hex")) && !!stored;
+}
+async function session(req, res) {
+  const m = req.method;
+  if (m === "GET") {
+    const c = who(req);
+    if (!c) return fail(res, 401, "sign in required");
+    return send(res, 200, c.setup ? '{"setup":true}' : out(accT, c.u));
+  }
+  if (m === "DELETE") {
+    const tok = sid(req);
+    if (tok && auth.sess.delete(sha(tok))) try { saveAuth(); } catch (e) { return fail(res, 500, "could not persist: " + e.message); }
+    return send(res, 204, "", undefined, { "set-cookie": "sid=; Max-Age=0" + COOKIE });
+  }
+  if (m !== "POST") return fail(res, 405, "method not allowed");
+  const text = await readBody(req, res);
+  if (text === null) return;
+  let b; try { b = JSON.parse(text); } catch { b = null; }
+  const login = b && typeof b === "object" ? b.login : undefined;
+  let row = null;
+  if (typeof login === "string") for (const r of accT.rows.values()) if (r[ACCOUNT.login] === login) { row = r; break; }
+  const ok = checkPw(b && b.password, row && auth.pw.get(String(row.id)));
+  if (!ok || !row || !allowed(row)) return fail(res, 401, "invalid sign-in");
+  const tok = crypto.randomBytes(32).toString("hex");
+  auth.sess.set(sha(tok), String(row.id));
+  try { saveAuth(); } catch (e) { auth.sess.delete(sha(tok)); return fail(res, 500, "could not persist: " + e.message); }
+  send(res, 200, out(accT, row), undefined, { "set-cookie": "sid=" + tok + COOKIE });
+}
+
+// ---- validation, audit, csv ----
+function validate(t, input, old, c) {
   if (input === null || typeof input !== "object" || Array.isArray(input)) return { errors: [{ field: "", message: "body must be a JSON object" }] };
   const { row, errors, bad } = rt.decodeRow(t.ent, enums, input);
   for (const f of t.ent.fields) {
@@ -79,7 +162,16 @@ function validate(t, input) {
       errors.push({ field: f.name, message: `${f.name} must reference an existing ${f.ref} row (id ${row[f.name]} not found)` });
   }
   errors.push(...rt.evalRules(t.ent, row, bad));
-  return { row, errors };
+  if (old) row.id = old.id;
+  errors.push(...rt.keyErrors(rt.keysOf(t.ent, ACCOUNT), row, [...t.rows.values()], bad));
+  errors.push(...rt.stepErrors(t.ent, enums, row, old, bad));
+  let pw = null;
+  if (t === accT) {
+    pw = input.password ?? null;
+    if (pw !== null && (typeof pw !== "string" || rt.len(pw) < 8n || /[\uD800-\uDFFF]/.test(pw))) errors.push({ field: "password", message: "must be a string of at least 8 bytes" });
+    else if (pw === null && !old && !c.setup) errors.push({ field: "password", message: "is required" });
+  }
+  return { row, errors, pw };
 }
 function referrer(t, id) {
   for (const o of tables.values())
@@ -88,29 +180,74 @@ function referrer(t, id) {
         for (const r of o.rows.values()) if (r[f.name] === id && !(o === t && r.id === id)) return `cannot delete ${t.ent.name} ${id}: referenced by ${o.ent.name} ${r.id} (field ${f.name})`;
   return null;
 }
-function persist(res, undo) {
-  try { save(); return true; } catch (e) { undo(); fail(res, 500, "could not persist: " + e.message); return false; }
+// Save rows (and auth when it changed); on failure restore memory and the files.
+function commit(res, undo, withAuth) {
+  try { save(); if (withAuth) saveAuth(); return true; } catch (e) {
+    undo();
+    try { save(); if (withAuth) saveAuth(); } catch { /* reported below */ }
+    fail(res, 500, "could not persist: " + e.message); return false;
+  }
+}
+function audit(c, t, id, action, old, now, pwSet) {
+  const ch = [];
+  for (const f of t.ent.fields) {
+    const a = old ? rt.encValue(f, old[f.name]) : "null", b = now ? rt.encValue(f, now[f.name]) : "null";
+    if (a !== b) ch.push(`${JSON.stringify(f.name)}:[${a},${b}]`);
+  }
+  if (pwSet) ch.push('"password":[null,"changed"]');
+  const line = `{"seq":${seq},"at":${JSON.stringify(new Date().toISOString())},"by":${c.u ? c.u.id : "null"},"entity":${JSON.stringify(t.ent.path)},"id":${id},"action":"${action}","changes":{${ch.join(",")}}}`;
+  try { fs.appendFileSync(auditFile, line + "\n"); log.push({ p: t.ent.path, id, line }); seq++; } catch (e) { console.error("audit: " + e.message); }
+}
+// A leading = + - @ tab or CR would run as a spreadsheet formula; prefix it.
+const csvCell = (s) => {
+  if (/^[=+\-@\t\r]/.test(s) && !/^-?\d+(\.\d+)?([eE][-+]?\d+)?$/.test(s)) s = "'" + s;
+  return /[",\r\n]/.test(s) ? '"' + s.replaceAll('"', '""') + '"' : s;
+};
+const csvText = (f, v) => (v !== null && typeof v === "object" ? "error:" + v.error : f.type === "bool" ? (v ? "true" : "false") : String(v));
+function csv(t, rows) {
+  const cs = t.ent.computed || [], lines = [["id", ...[...t.ent.fields, ...cs].map((f) => f.name)].map(csvCell).join(",")];
+  for (const r of rows) {
+    const cv = rt.evalComputed(t.ent, roll(t, r));
+    lines.push([String(r.id), ...t.ent.fields.map((f) => csvText(f, r[f.name])), ...cs.map((f) => csvText(f, cv[f.name]))].map(csvCell).join(","));
+  }
+  return lines.join("\r\n") + "\r\n";
+}
+// GET /api/<path>[?q=..&<enumfield>=<Case>&format=csv]: readable rows matching the search and filters.
+function list(req, res, t, c) {
+  const qs = new URL(req.url, "http://x").searchParams, q = (qs.get("q") || "").toLowerCase();
+  const strs = t.ent.fields.filter((f) => f.type === "string"), fl = t.ent.fields.filter((f) => f.type === "enum" && qs.get(f.name));
+  const rows = [...t.rows.values()].filter((r) => canR(c, t, r) && (!q || strs.some((f) => r[f.name].toLowerCase().includes(q))) && fl.every((f) => r[f.name] === qs.get(f.name)));
+  if (qs.get("format") === "csv") return send(res, 200, csv(t, rows), "text/csv; charset=utf-8", { "content-disposition": `attachment; filename="${t.ent.path}.csv"` });
+  send(res, 200, "[" + rows.map((r) => out(t, r)).join(",") + "]");
 }
 
-async function api(req, res, parts) {
+async function api(req, res, parts, c) {
   const t = tables.get(parts[0]);
   if (!t) return fail(res, 404, "unknown entity");
-  const m = req.method, hasId = parts.length === 2;
-  if (parts.length > 2 || (hasId && !/^[1-9]\d{0,18}$/.test(parts[1]))) return fail(res, 404, "not found");
+  const m = req.method, hasId = parts.length >= 2, hist = parts[2] === "history";
+  if (parts.length > 3 || (parts.length === 3 && !hist) || (hasId && !/^[1-9]\d{0,18}$/.test(parts[1]))) return fail(res, 404, "not found");
   const id = hasId ? BigInt(parts[1]) : null;
-  const cur = hasId ? t.rows.get(id) : null;
+  let cur = hasId ? t.rows.get(id) : null;
+  if (cur && !canR(c, t, cur)) cur = undefined; // unreadable rows are absent
   if (!hasId) {
-    if (m === "GET") return send(res, 200, "[" + [...t.rows.values()].map((r) => out(t, r)).join(",") + "]");
+    if (m === "GET") return list(req, res, t, c);
     if (m !== "POST") return fail(res, 405, "method not allowed");
+    if (t.ent.canWrite && !t.ent.canWrite.row && !canW(c, t, {})) return fail(res, 403, `not allowed to create ${t.ent.name}`);
   } else {
-    if (m !== "GET" && m !== "PUT" && m !== "DELETE") return fail(res, 405, "method not allowed");
+    if (m !== "GET" && (hist || (m !== "PUT" && m !== "DELETE"))) return fail(res, 405, "method not allowed");
     if (!cur) return fail(res, 404, `${t.ent.name} ${id} not found`);
+    if (hist) return send(res, 200, "[" + log.filter((e) => e.p === t.ent.path && e.id === id).map((e) => e.line).join(",") + "]");
     if (m === "GET") return send(res, 200, out(t, cur));
+    if (!canW(c, t, cur)) return fail(res, 403, `not allowed to ${m === "PUT" ? "update" : "delete"} this ${t.ent.name}`);
     if (m === "DELETE") {
       const why = referrer(t, id);
       if (why) return fail(res, 409, why);
+      const key = String(id), pw = auth.pw.get(key), sess = [...auth.sess].filter(([, v]) => v === key);
       t.rows.delete(id);
-      if (!persist(res, () => t.rows.set(id, cur))) return;
+      const isAcc = t === accT && (pw !== undefined || sess.length > 0);
+      if (isAcc) { auth.pw.delete(key); sess.forEach(([k]) => auth.sess.delete(k)); }
+      if (!commit(res, () => { t.rows.set(id, cur); if (pw !== undefined) auth.pw.set(key, pw); sess.forEach(([k, v]) => auth.sess.set(k, v)); }, isAcc)) return;
+      audit(c, t, id, "delete", cur, null);
       return send(res, 204);
     }
   }
@@ -118,40 +255,62 @@ async function api(req, res, parts) {
   if (text === null) return;
   let input;
   try { input = rt.parseJSON(text); } catch { return verrs(res, [{ field: "", message: "body is not valid JSON" }]); }
-  const { row, errors } = validate(t, input);
+  const { row, errors, pw } = validate(t, input, cur, c);
   if (errors.length) return verrs(res, errors);
+  row.id = hasId ? id : t.next;
+  if (!canW(c, t, row)) return fail(res, 403, `not allowed to ${hasId ? "update" : "create"} this ${t.ent.name}`);
+  const key = String(row.id), oldPw = auth.pw.get(key);
+  if (pw !== null) auth.pw.set(key, hashPw(pw));
+  const undoPw = () => { if (pw === null) return; if (oldPw === undefined) auth.pw.delete(key); else auth.pw.set(key, oldPw); };
   if (hasId) {
-    row.id = id; t.rows.set(id, row);
-    if (!persist(res, () => t.rows.set(id, cur))) return;
+    t.rows.set(id, row);
+    if (!commit(res, () => { t.rows.set(id, cur); undoPw(); }, pw !== null)) return;
+    audit(c, t, id, "update", cur, row, pw !== null);
     return send(res, 200, out(t, row));
   }
-  row.id = t.next; t.next += 1n; t.rows.set(row.id, row);
-  if (!persist(res, () => { t.rows.delete(row.id); t.next = row.id; })) return;
+  t.next += 1n; t.rows.set(row.id, row);
+  if (!commit(res, () => { t.rows.delete(row.id); t.next = row.id; undoPw(); }, pw !== null)) return;
+  audit(c, t, row.id, "create", null, row, pw !== null);
   send(res, 201, out(t, row), undefined, { location: `/api/${t.ent.path}/${row.id}` });
+}
+async function route(req, res, p) {
+  if (ACCOUNT && p.length === 1 && p[0] === "session") return session(req, res);
+  const c = who(req);
+  if (!c) return fail(res, 401, "sign in required");
+  if (p.length === 1 && p[0] === "audit" && !tables.has("audit")) {
+    if (req.method !== "GET") return fail(res, 405, "method not allowed");
+    if (!canAudit(c)) return fail(res, 403, "not allowed to read the audit log");
+    return send(res, 200, "[" + log.map((e) => e.line).join(",") + "]");
+  }
+  return api(req, res, p, c);
 }
 
 const server = http.createServer((req, res) => {
   let parts;
   try { parts = new URL(req.url, "http://x").pathname.split("/").filter(Boolean).map(decodeURIComponent); } catch { return fail(res, 404, "not found"); }
-  if (parts[0] === "api") return api(req, res, parts.slice(1)).catch((e) => { console.error(e); if (!res.headersSent) fail(res, 500, "internal error"); });
+  if (parts[0] === "api") return route(req, res, parts.slice(1)).catch((e) => { console.error(e); if (!res.headersSent) fail(res, 500, "internal error"); });
   const name = parts.length === 0 ? "index.html" : parts.length === 1 ? parts[0] : "";
   if ((req.method === "GET" || req.method === "HEAD") && STATIC.has(name)) {
     return fs.readFile(path.join(here, name), (e, buf) => (e ? fail(res, 404, "not found") : send(res, 200, req.method === "HEAD" ? "" : buf, TYPES[path.extname(name)])));
   }
   fail(res, 404, "not found");
 });
-server.listen(Number(opt.port), opt.host, () => console.log(`${app.title} listening on http://${opt.host}:${server.address().port}/ (data: ${dbFile})`));
+server.listen(Number(opt.port), opt.host, () => {
+  console.log(`${app.title} listening on http://${opt.host}:${server.address().port}/ (data: ${dbFile})`);
+  if (ACCOUNT && SETUP && auth.pw.size === 0) console.log("setup mode: requests are unrestricted until an account has a password");
+});
 
 // ---- --self-test: run the real server as a child on port 0, drive it from the schema alone ----
 async function selfTest() {
   const given = argv.includes("--data");
   if (given && fs.existsSync(opt.data) && fs.readdirSync(opt.data).length) { console.error(`self-test: refusing non-empty data dir ${opt.data}`); return 1; }
   const dir = given ? path.resolve(opt.data) : fs.mkdtempSync(path.join(os.tmpdir(), "selftest-"));
+  const authFile = path.join(dir, "auth.json");
   const fails = [], warns = [], short = (v) => { const s = typeof v === "string" ? v : String(v); return s.length > 120 ? s.slice(0, 120) + "..." : s; };
   const check = (ent, what, want, got, ok) => { if (!ok) fails.push(`FAIL ${ent} ${what}: ${want} got ${short(got)}`); return ok; };
   let child = null;
   const start = () => new Promise((resolve, reject) => {
-    child = spawn(process.execPath, [fileURLToPath(import.meta.url), "--port", "0", "--data", dir], { stdio: ["ignore", "pipe", "pipe"] });
+    child = spawn(process.execPath, [fileURLToPath(import.meta.url), "--port", "0", "--data", dir, "--setup"], { stdio: ["ignore", "pipe", "pipe"] });
     let buf = "";
     const timer = setTimeout(() => reject(new Error("server did not start: " + buf)), 10000);
     child.stderr.on("data", (c) => { buf += c; });
@@ -160,16 +319,22 @@ async function selfTest() {
   });
   const stop = () => new Promise((resolve) => { if (!child || child.exitCode !== null) return resolve(); child.removeAllListeners("exit"); child.on("exit", resolve); child.kill("SIGTERM"); });
   let base;
-  const call = async (method, p, body) => {
+  const call = async (method, p, body, cookie) => {
     try {
-      const r = await fetch(base + p, { method, headers: body === undefined ? {} : { "content-type": "application/json" }, body });
-      return { status: r.status, text: await r.text() };
+      const headers = body === undefined ? {} : { "content-type": "application/json" };
+      if (cookie) headers.cookie = cookie;
+      const r = await fetch(base + p, { method, headers, body });
+      return { status: r.status, text: await r.text(), type: r.headers.get("content-type") || "", cookie: r.headers.get("set-cookie") || "" };
     } catch (e) { return { status: 0, text: String(e) }; }
   };
   // body text -> decoded row (with id), or null
   const dec = (ent, text) => { try { const d = rt.decodeRow(ent, enums, rt.parseJSON(text), true); return d.errors.length ? null : d.row; } catch { return null; } };
   const same = (ent, a, b) => !!b && ent.fields.every((f) => a[f.name] === b[f.name]);
+  const arr = (text) => { try { const v = JSON.parse(text); return Array.isArray(v) ? v : []; } catch { return []; } };
   const byPath = new Map(entities.map((e) => [e.path, e]));
+  const PW = "self-test-password", withPw = (body) => body.slice(0, -1) + `,"password":${JSON.stringify(PW)}}`;
+  const pass = (p, r, u) => { try { return p.test(r, u) === true; } catch { return false; } };
+  const allowRule = { text: "account may sign in", test: (r) => pass({ test: ACCOUNT.allowed }, r) };
   // dependency order: refs first
   const order = [], seen = new Set();
   const visit = (e, stack) => {
@@ -179,16 +344,21 @@ async function selfTest() {
     seen.add(e.path); order.push(e);
   };
   entities.forEach((e) => visit(e, []));
+  const isAcc = (ent) => ACCOUNT && ent.path === ACCOUNT.entity;
+  let roles = 0, persisted = 0, authNote = [], permEnts = 0;
+  const ev = new Map(), note = (k, v) => { if (!ev.has(k)) ev.set(k, v); }, cr = {}, trunc = (t, m) => (t.length > m ? t.slice(0, m - 3) + "..." : t);
   try {
     base = await start();
     const refs = {}, made = [];
     for (const ent of order) {
-      const n = ent.name, s = rt.synthesizeRow(ent, enums, refs);
+      const n = ent.name, s0 = isAcc(ent) ? rt.synthesizeRow(ent, enums, refs, 20000, { extra: [allowRule] }) : {};
+      const s = s0.row ? s0 : rt.synthesizeRow(ent, enums, refs);
       if (!s.row) { fails.push(`FAIL ${n} synthesize: cannot synthesize a valid ${n}: ${short(s.fail)}`); break; }
       const row = s.row, body = rt.toJSON(ent, row);
       let r = await call("POST", ent.path, body), got = dec(ent, r.text);
       if (!check(n, "create", "201 + echo", `${r.status} ${r.text}`, r.status === 201 && same(ent, row, got))) continue;
-      const id = got.id; refs[ent.path] = id; made.push({ ent, row, id });
+      const id = got.id, mk = { ent, row, id }; refs[ent.path] = id; made.push(mk);
+      const lead = !cr.path; if (lead) Object.assign(cr, { path: ent.path, id0: id, txt: `POST ${n} 201 #${id}` });
       r = await call("GET", `${ent.path}/${id}`);
       const gb = r.status === 200 ? rt.parseJSON(r.text) : {};
       check(n, "read", "200 + equal", `${r.status} ${r.text}`, r.status === 200 && same(ent, row, dec(ent, r.text)));
@@ -197,18 +367,76 @@ async function selfTest() {
         const v = gb[c.name];
         if (v !== null && typeof v === "object" && v.error) warns.push(`warning: ${n}.${c.name} computed error ${v.error}`);
       }
+      if (lead) cr.txt += `, GET ${r.status}`;
       r = await call("GET", ent.path);
-      let list = []; try { list = JSON.parse(r.text); } catch {}
-      check(n, "list", `200 containing id ${id}`, `${r.status} ${r.text}`, r.status === 200 && Array.isArray(list) && list.some((o) => String(o.id) === String(id)));
+      if (lead) cr.txt += `, list ${r.status}`;
+      check(n, "list", `200 containing id ${id}`, `${r.status} ${r.text}`, r.status === 200 && arr(r.text).some((o) => String(o.id) === String(id)));
       r = await call("PUT", `${ent.path}/${id}`, body);
+      if (lead) cr.txt += `, PUT ${r.status}`;
       check(n, "update", "200 + equal", `${r.status} ${r.text}`, r.status === 200 && same(ent, row, dec(ent, r.text)));
       r = await call("POST", ent.path, "{}");
       let errs = []; try { errs = JSON.parse(r.text).errors || []; } catch {}
+      if (errs.length) note("validate", `POST {} ${n} ${r.status} [${errs.slice(0, 2).map((e) => `${e.field}: ${e.message}`).join(", ")}${errs.length > 2 ? ", ..." : ""}]`);
       check(n, "validate", `400 with an error per field (${ent.fields.length})`, `${r.status} ${r.text}`, r.status === 400 && ent.fields.every((f) => errs.some((e) => e.field === f.name)));
       r = await call("GET", `${ent.path}/${id + 1000n}`);
+      if (lead) cr.txt += `, DELETE @, GET #${id + 1000n} ${r.status}`;
       check(n, "404", "404", `${r.status} ${r.text}`, r.status === 404);
+      // rule: mutate one field of the valid row so that one rule fails, and expect the server to reject it
+      if ((ent.rules || []).length && !ev.has("rule")) {
+        const alt = { string: ["", "a", "ab"], int: [-1n, 0n, 1n, 1000000n], float: [-1, 0, 1e6] };
+        find: for (const rl of ent.rules) for (const fn of rl.fields || []) {
+          const f = ent.fields.find((x) => x.name === fn);
+          if (!f || !alt[f.type] || (ent.steps || []).some((st) => st.field === fn)) continue;
+          for (const v of alt[f.type]) {
+            const bad = { ...row, [fn]: v };
+            if (v === row[fn] || !rt.evalRules(ent, bad).some((e) => e.message === rl.text)) continue;
+            const rr = await call("POST", ent.path, rt.toJSON(ent, bad));
+            let es = []; try { es = JSON.parse(rr.text).errors || []; } catch {}
+            if (check(n, "rule", `400 naming rule ${rl.text}`, `${rr.status} ${rr.text}`, rr.status === 400 && es.some((e) => e.message === rl.text))) note("rule", `${n} ${rr.status} "${trunc(rl.text, 60)}"`);
+            break find;
+          }
+        }
+      }
+      if (rt.keysOf(ent, ACCOUNT).length) {
+        r = await call("POST", ent.path, body);
+        check(n, "key", "400 for a duplicate key", `${r.status} ${r.text}`, r.status === 400 && /must be unique/.test(r.text));
+        if (r.status === 400) note("key", `duplicate ${n}.${rt.keysOf(ent, ACCOUNT)[0].fields.join("+")} 400`);
+      }
+      for (const st of ent.steps || []) {
+        const cases = rt.stepCases(ent, enums, st), from = mk.row[st.field];
+        const other = (ok) => cases.find((to) => to !== from && rt.stepOk(st, from, to) === ok && (!ok || !rt.evalRules(ent, { ...mk.row, [st.field]: to }).length));
+        const no = other(false), yes = other(true), wf = [];
+        if (no !== undefined) {
+          r = await call("PUT", `${ent.path}/${id}`, rt.toJSON(ent, { ...mk.row, [st.field]: no }));
+          check(n, "workflow", `400 for ${st.field} ${from} -> ${no}`, `${r.status} ${r.text}`, r.status === 400);
+          wf.push(`${from}->${no} ${r.status}`);
+        }
+        if (yes !== undefined) {
+          const next = { ...mk.row, [st.field]: yes };
+          r = await call("PUT", `${ent.path}/${id}`, rt.toJSON(ent, next));
+          if (check(n, "workflow", `200 for ${st.field} ${from} -> ${yes}`, `${r.status} ${r.text}`, r.status === 200)) mk.row = next;
+          wf.push(`${from}->${yes} ${r.status}`);
+        }
+        if (wf.length) note("workflow", `${n}.${st.field} ${wf.join(", ")}`);
+      }
+      r = await call("GET", `${ent.path}/${id}/history`);
+      check(n, "audit", "200 with >= 2 history entries", `${r.status} ${r.text}`, r.status === 200 && arr(r.text).length >= 2);
+      if (r.status === 200) note("audit", `${n} #${id} history ${arr(r.text).length} entries (${[...new Set(arr(r.text).map((h) => h.action))].join(", ")})`);
+      r = await call("GET", `${ent.path}?format=csv`);
+      const lines = r.status === 200 ? r.text.split("\r\n").filter(Boolean) : [], head = ["id", ...[...ent.fields, ...(ent.computed || [])].map((f) => f.name)].join(",");
+      check(n, "csv", `200 text/csv, header ${head} + rows`, `${r.status} ${r.type} ${r.text}`, r.status === 200 && r.type.startsWith("text/csv") && lines[0] === head && lines.length >= 2);
+      note("csv", `${n} ${lines.length} lines, header ${trunc(lines[0] || "", 60)}`);
     }
     if (!fails.length) {
+      // rollups: computed values served for each parent equal a local evaluation over the rows created here
+      const kids = (p) => ({ ent: byPath.get(p), rows: made.filter((m) => m.ent.path === p).map((m) => ({ ...m.row, id: m.id })) });
+      for (const { ent, row, id } of made) if ((ent.rollups || []).length) {
+        const loc = rt.withRollups(ent, { ...row, id }, kids), want = rt.toJSON(ent, loc, { computed: true }), r = await call("GET", `${ent.path}/${id}`);
+        check(ent.name, "rollup", want, `${r.status} ${r.text}`, r.status === 200 && r.text === want);
+        if (r.status === 200 && r.text === want) note("rollup", `${ent.name} #${id} ${ent.rollups.map((u) => `${u.name}=${loc[u.name]}`).slice(0, 3).join(", ")}`);
+        for (const u of ent.rollups) if (u.kind === "count" && !u.field && made.some((m) => m.ent.path === u.child))
+          check(ent.name, "rollup", `${u.name} >= 1`, String(loc[u.name]), loc[u.name] >= 1n);
+      }
       const tried = new Set();
       for (const { ent, row } of made) for (const f of ent.fields) if (f.type === "ref") {
         const tg = made.find((m) => m.ent.path === f.ref);
@@ -216,25 +444,100 @@ async function selfTest() {
           tried.add(f.ref);
           const r = await call("DELETE", `${f.ref}/${tg.id}`);
           check(tg.ent.name, "409", "409 while referenced", `${r.status} ${r.text}`, r.status === 409);
+          note("reference", `DELETE ${tg.ent.name} #${tg.id} ${r.status} (${ent.name}.${f.name})`);
         }
         const r = await call("POST", ent.path, rt.toJSON(ent, { ...row, [f.name]: 999999n }));
+        if (r.status === 400) note("refmiss", `missing ${ent.name}.${f.name} ${r.status}`);
         check(ent.name, "ref", `400 for missing ${f.name}`, `${r.status} ${r.text}`, r.status === 400);
       }
       await stop(); base = await start();
       for (const { ent, row, id } of made) {
         const r = await call("GET", `${ent.path}/${id}`);
         check(ent.name, "persist", "200 + equal after restart", `${r.status} ${r.text}`, r.status === 200 && same(ent, row, dec(ent, r.text)));
+        if (r.status === 200 && same(ent, row, dec(ent, r.text))) persisted++;
       }
-      for (const { ent, id } of [...made].reverse()) {
+      const am = ACCOUNT && made.find((m) => isAcc(m.ent)), extra = [];
+      if (am) {
+        // one account per case of every enum field of the account entity (created in setup mode, without password)
+        const ent = am.ent, n = ent.name, keys = rt.keysOf(ent, ACCOUNT), accts = [am];
+        for (const f of ent.fields) if (f.type === "enum") {
+          const first = (ent.steps || []).some((st) => st.field === f.name);
+          for (const cs of (enums[f.enum] || []).slice(0, first ? 1 : undefined)) {
+            if (accts.some((a) => a.row[f.name] === cs)) continue;
+            const others = accts.map((a) => ({ ...a.row, id: a.id })), uniq = { text: "unique keys", test: (r) => !rt.keyErrors(keys, r, others).length };
+            let s = rt.synthesizeRow(ent, enums, refs, 20000, { fixed: { [f.name]: cs }, extra: [uniq, allowRule], vary: true });
+            if (!s.row) s = rt.synthesizeRow(ent, enums, refs, 20000, { fixed: { [f.name]: cs }, extra: [uniq], vary: true });
+            if (!check(n, "auth", `an account with ${f.name}=${cs}`, s.fail, !!s.row)) continue;
+            const r = await call("POST", ent.path, rt.toJSON(ent, s.row)), got = dec(ent, r.text);
+            if (check(n, "auth", `201 for an account with ${f.name}=${cs}`, `${r.status} ${r.text}`, r.status === 201 && !!got)) { accts.push({ ent, row: s.row, id: got.id }); extra.push(accts.at(-1)); }
+          }
+        }
+        const login = (a, pw = PW) => JSON.stringify({ login: a.row[ACCOUNT.login], password: pw });
+        let r = await call("PUT", `${ent.path}/${am.id}`, withPw(rt.toJSON(ent, am.row)));
+        check(n, "auth", "200 setting a password", `${r.status} ${r.text}`, r.status === 200 && !r.text.includes(PW));
+        r = await call("GET", ent.path);
+        check(n, "auth", "401 without a session once a password exists", `${r.status} ${r.text}`, r.status === 401);
+        if (r.status === 401) authNote.push("no session 401");
+        r = await call("POST", "session", login(am, PW + "x"));
+        check(n, "auth", "401 for a wrong password", `${r.status} ${r.text}`, r.status === 401);
+        if (r.status === 401) authNote.push("wrong password 401");
+        // the other accounts' passwords go straight into the data dir: no account need be allowed to write accounts
+        await stop();
+        const a = JSON.parse(fs.readFileSync(authFile, "utf8"));
+        for (const x of extra) a.passwords[String(x.id)] = hashPw(PW);
+        fs.writeFileSync(authFile, JSON.stringify(a));
+        base = await start();
+        for (const acct of accts) {
+          const u = { ...acct.row, id: acct.id }, can = allowRule.test(u), what = `${ACCOUNT.login}=${u[ACCOUNT.login]}`;
+          r = await call("POST", "session", login(acct));
+          if (!check(n, "auth", `sign-in ${can ? 200 : 401} for ${what}`, `${r.status} ${r.text}`, r.status === (can ? 200 : 401)) || !can) continue;
+          if (!authNote.includes("sign-in 200")) authNote.push("sign-in 200");
+          check(n, "auth", "HttpOnly SameSite=Strict sid cookie", r.cookie, /HttpOnly/.test(r.cookie) && /SameSite=Strict/.test(r.cookie));
+          const ck = "sid=" + ((/sid=([0-9a-f]{64})/.exec(r.cookie) || [])[1] || "");
+          roles++; permEnts = made.length;
+          r = await call("GET", "session", undefined, ck);
+          check(n, "auth", `200 current account for ${what}`, `${r.status} ${r.text}`, r.status === 200 && (dec(ent, r.text) || {}).id === acct.id);
+          for (const m of made) {
+            const mr = { ...m.row, id: m.id }, read = !m.ent.canRead || pass(m.ent.canRead, mr, u), write = !m.ent.canWrite || pass(m.ent.canWrite, mr, u);
+            r = await call("GET", m.ent.path, undefined, ck);
+            const vis = arr(r.text).some((o) => String(o.id) === String(m.id));
+            check(m.ent.name, "permissions", `${what}: list ${read ? "shows" : "hides"} row ${m.id}`, `${r.status} ${r.text}`, r.status === 200 && vis === read);
+            const role = ent.fields.filter((x) => x.type === "enum").map((x) => u[x.name]).slice(0, 1)[0] ?? what;
+            r = await call("PUT", `${m.ent.path}/${m.id}`, rt.toJSON(m.ent, m.row), ck);
+            const want = !read ? 404 : write ? 200 : 403;
+            check(m.ent.name, "permissions", `${what}: PUT ${want}`, `${r.status} ${r.text}`, r.status === want);
+            if (!read) note("permRead", `${role} list ${m.ent.name} hides #${m.id}`);
+            else if (!write && r.status === 403) note("permWrite", `${role} PUT ${m.ent.name} #${m.id} 403`);
+          }
+          r = await call("DELETE", "session", undefined, ck);
+          check(n, "auth", "204 sign-out", `${r.status} ${r.text}`, r.status === 204);
+          r = await call("GET", "session", undefined, ck);
+          check(n, "auth", "401 after sign-out", `${r.status} ${r.text}`, r.status === 401);
+          if (r.status === 401 && !authNote.includes("sign-out then 401")) authNote.push("sign-out then 401");
+        }
+        await stop(); fs.rmSync(authFile); base = await start(); // back to setup mode for the deletes
+      }
+      for (const { ent, id } of [...[...extra].reverse(), ...[...made].reverse()]) {
         const r = await call("DELETE", `${ent.path}/${id}`);
         check(ent.name, "delete", "204", `${r.status} ${r.text}`, r.status === 204);
+        if (ent.path === cr.path && id === cr.id0) cr.txt = cr.txt.replace("DELETE @", `DELETE ${r.status}`);
       }
     }
   } catch (e) { fails.push("FAIL self-test: " + short(e.message)); }
   finally { await stop(); if (!given) fs.rmSync(dir, { recursive: true, force: true }); }
-  const rules = entities.reduce((a, e) => a + (e.rules || []).length, 0), comp = entities.reduce((a, e) => a + (e.computed || []).length, 0);
+  const sum = (k) => entities.reduce((a, e) => a + (k === "keys" ? rt.keysOf(e, ACCOUNT) : e[k] || []).length, 0);
   if (fails.length) { console.log(fails.join("\n") + `\nself-test failed: ${fails.length} check(s)`); return 1; }
-  console.log(`self-test ok: ${entities.length} entities, ${rules} rules, ${comp} computed (create, read, list, update, validate, 404, 409, persist, delete)`);
+  console.log(`self-test ok: ${entities.length} entities, ${sum("rules")} rules, ${sum("computed")} computed, ${sum("keys")} keys, ${sum("steps")} workflows, ${sum("rollups")} rollups` +
+    (ACCOUNT ? `, accounts (${roles} roles)` : "") + ` (create, read, list, update, validate, 404, key, workflow, audit, csv, rollup, 409, persist${ACCOUNT ? ", auth, permissions" : ""}, delete)`);
+  const lines = [], put = (k, v) => { if (v) lines.push(`${k}: ${v}`); };
+  put("crud", cr.txt); put("validate", ev.get("validate")); put("rule", ev.get("rule")); put("key", ev.get("key")); put("workflow", ev.get("workflow"));
+  put("rollup", ev.get("rollup")); put("reference", ev.get("reference") && ev.get("reference") + (ev.get("refmiss") ? ", " + ev.get("refmiss") : "")); put("audit", ev.get("audit"));
+  put("csv", ev.get("csv")); put("persist", persisted && `${persisted} rows identical after restart`);
+  if (ACCOUNT) {
+    put("auth", authNote.join(", "));
+    put("permissions", `${roles} roles x ${permEnts} entities agree with schema` + [ev.get("permWrite"), ev.get("permRead")].filter(Boolean).map((x, i) => (i ? ", " : "; e.g. ") + x).join(""));
+  }
+  if (lines.length) console.log(lines.join("\n"));
   if (warns.length) console.log(warns.join("\n"));
   return 0;
 }

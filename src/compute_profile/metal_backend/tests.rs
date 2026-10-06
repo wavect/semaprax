@@ -342,7 +342,7 @@ fn differential_map(declaration: &str, result: ScalarKind, columns: Vec<Vec<Scal
 
     let settlement = session.settle();
     assert_eq!(settlement.releases.len(), columns.len() + 1);
-    assert!(settlement.selected.is_none() || matches!(metal, Err(_)));
+    assert!(settlement.selected.is_none() || metal.is_err());
 }
 
 #[test]

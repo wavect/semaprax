@@ -63,6 +63,12 @@ use crate::hir::ResolvedProgram;
 
 use super::msl;
 
+type LiveMetalBuffer<'a> = (
+    ScalarKind,
+    usize,
+    &'a Retained<ProtocolObject<dyn MTLBuffer>>,
+);
+
 // `MTLCreateSystemDefaultDevice` needs CoreGraphics linked; the `Metal`
 // framework itself is already linked by `objc2-metal`'s own generated code.
 #[link(name = "CoreGraphics", kind = "framework")]
@@ -445,10 +451,7 @@ impl MetalSession {
         Ok(())
     }
 
-    fn live(
-        &self,
-        handle: MetalBufferHandle,
-    ) -> Result<(ScalarKind, usize, &Retained<ProtocolObject<dyn MTLBuffer>>), MetalRefusal> {
+    fn live(&self, handle: MetalBufferHandle) -> Result<LiveMetalBuffer<'_>, MetalRefusal> {
         if handle.session != self.id {
             return Err(ComputeRefusal::StaleHandle {
                 detail: format!("buffer {} belongs to another session", handle.index),

@@ -14,7 +14,8 @@ Build runtime agents whose proposals must pass checked code before they can act.
 [![Status](https://img.shields.io/badge/status-beta-f59e0b.svg)](#project-status)
 [![License](https://img.shields.io/badge/license-Apache--2.0-2563eb.svg)](LICENSE)
 
-[Get started](#get-started) · [Why Semaprax?](#why-semaprax) ·
+[**Install**](handbook/getting-started/install.md) · [Get started](#get-started) ·
+[Why Semaprax?](#why-semaprax) ·
 [Build agents](#agents-as-programs-not-just-prompts) ·
 [Handbook](handbook/README.md) · [Examples](examples/README.md) · [Spec library](docs/index.md)
 
@@ -59,12 +60,37 @@ without an AI model or API key.
 
 ## Get started
 
-### Run your first program
+### Install a published release and run your first project
 
-You need **Git and Rust/Cargo 1.88+** for this source-checkout route. The two
-commands below use the checker and interpreter; they do not require Clang,
-Node.js, or a model provider. Cargo may download Rust dependencies and compile
-the toolchain on the first run.
+Download the archive for your computer from the
+[latest release](https://github.com/wavect/semaprax/releases/latest) (the v0.8.0
+archives cover Apple Silicon macOS, x86-64 Linux, and x86-64 Windows), verify it
+against `SHA256SUMS`, and put it on your `PATH`. The
+**[Install guide](handbook/getting-started/install.md)** has the exact download
+names, verification, and `PATH` steps for macOS, Linux, and Windows. No Git,
+Rust, Clang, Node.js, or model provider is needed. Then, from any directory:
+
+```sh
+semaprax --version
+semaprax new first-semaprax
+semaprax check first-semaprax/semaprax.toml
+semaprax test first-semaprax/semaprax.toml
+semaprax run first-semaprax/semaprax.toml
+```
+
+The generated calculator prints **`42`**. It includes a manifest, source, tests,
+and an `AGENTS.md` with project commands and language-specific guidance.
+`new` requires a fresh destination; it does not initialize Git, install
+packages, or access the network. The
+[full quickstart](handbook/getting-started/first-project.md) takes the project
+further.
+
+### Build from source (latest `main`, contributors)
+
+Source builds need **Git and Rust/Cargo 1.88+**. The two commands below use the
+checker and interpreter; they do not require Clang, Node.js, or a model
+provider. Cargo may download Rust dependencies and compile the toolchain on the
+first run. `main` can contain features that no published release has yet.
 
 ```sh
 git clone https://github.com/wavect/semaprax.git
@@ -77,45 +103,29 @@ cargo run --locked -p semaprax -- run examples/meaning.spx
 The first command reports a verified program and its revision. The second
 prints **`42`**. No global installation or `PATH` change is needed.
 
-### Use shorter commands and create a project
-
-From the same repository directory, install the standalone CLI:
+To get the short `semaprax` command from the checkout:
 
 ```sh
 cargo install --locked --path . --bin semaprax
-```
-
-Ensure Cargo's binary directory is on `PATH`; in Bash or Zsh:
-
-```sh
 export PATH="$HOME/.cargo/bin:$PATH"
 semaprax --version
 ```
 
-Then create, check, test, and run a multi-file project without leaving the
-repository directory:
-
-```sh
-semaprax new first-semaprax
-semaprax check first-semaprax/semaprax.toml
-semaprax test first-semaprax/semaprax.toml
-semaprax run first-semaprax/semaprax.toml
-```
-
-The generated calculator prints **`42`**. It includes a manifest, source, tests,
-and an `AGENTS.md` with project commands and language-specific guidance.
-`new` requires a fresh destination; it does not initialize Git, install
-packages, or access the network.
-
-**All remaining commands assume the repository root.** To stay with the
-no-install route, replace `semaprax` with `cargo run --locked -p semaprax --`.
-Shell examples use POSIX syntax; [Install](handbook/getting-started/install.md) covers Windows,
-prebuilt release archives, prerequisites, and troubleshooting. The
-[full quickstart](handbook/getting-started/first-project.md) takes the generated project further.
+That installs only the standalone `semaprax`; without `--bin`, Cargo also
+installs `semapraxd`. A release archive's `semaprax` is the full build
+(`semaprax-full` in source), so a few commands differ; the
+[install guide](handbook/getting-started/install.md#install-from-source)
+lists exactly which binary each command installs. With a source-installed CLI
+the commands below run from the repository root, and to stay
+with the no-install route you can replace `semaprax` with
+`cargo run --locked -p semaprax --`.
 
 ## A small SEMAPRAX program
 
-This is the complete [program you just ran](examples/meaning.spx):
+This is the complete [example program](examples/meaning.spx) that the source
+route above checks and runs. Most commands from here on use the repository's
+`examples/` directory, so they assume a source checkout.
+The program:
 
 ```semaprax
 module examples.meaning;

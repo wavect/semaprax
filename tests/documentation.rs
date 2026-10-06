@@ -213,10 +213,12 @@ mod editor_grammar {
         assert_eq!(grammar["fileTypes"], serde_json::json!(["spx"]));
         // The declarative contribution itself widens nothing. The language
         // activation arms check-on-save; the remaining routes require their
-        // explicit commands and configured compiler.
+        // explicit commands and configured compiler. Configure Compiler only
+        // opens the picker; it probes nothing until the user selects a file.
         assert_eq!(
             manifest["activationEvents"],
             serde_json::json!([
+                "onCommand:semaprax.configureCompiler",
                 "onCommand:semaprax.start",
                 "onCommand:semaprax.startHotReload",
                 "onLanguage:semaprax",

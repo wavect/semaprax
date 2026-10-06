@@ -3,13 +3,18 @@
 Status: public beta installation guide; not a production-readiness claim.
 Audience: new users and contributors.
 
-> Prefer a shorter path? The user-facing [Semaprax Handbook](../handbook/README.md)
-> covers installation in [Install](../handbook/getting-started/install.md).
-> This page remains the complete, test-pinned installation reference.
+> New here? Start with the beginner [Install guide](../handbook/getting-started/install.md):
+> it walks through downloading a published archive, verifying it and running a
+> first project. This page is the complete, test-pinned technical reference.
 
-Install from source for the newest local build, or use the latest published
-[v0.7.0 archive](https://github.com/wavect/semaprax/releases/tag/v0.7.0).
-Then follow the [quickstart](QUICKSTART.md) to run a calculator project. For
+This reference describes the latest `main`. A published release can lack
+commands that `main` has gained; run `semaprax help all` on the build you
+installed. The newest published release is always at
+[github.com/wavect/semaprax/releases/latest](https://github.com/wavect/semaprax/releases/latest);
+this page names exact tags only where it gives release-bound commands, and
+[v0.8.0](https://github.com/wavect/semaprax/releases/tag/v0.8.0) is the tag its
+examples use. Install from a release archive for a fixed published build, or
+from source for the newest local build. Then follow the [quickstart](QUICKSTART.md) to run a calculator project. For
 command syntax, use the [CLI guide](CLI-GUIDE.md). For feature status and
 evidence, use the [completion matrix](COMPLETION-MATRIX.md).
 
@@ -19,9 +24,9 @@ There are two builds. Release archives rename the full build:
 
 | Name | Where it comes from | What it can do |
 | --- | --- | --- |
-| `semaprax` | Standalone source install or compiler package | Common commands: `new`, `fmt`, `check`, `run`, `test`, `graph`, `build`, and `doctor`. |
+| `semaprax` | Standalone source install (`cargo install --locked --path .` also installs `semapraxd`) | Common commands: `new`, `fmt`, `check`, `run`, `test`, `graph`, `build`, and `doctor`. |
 | `semaprax-full` | Source checkout only | Common commands plus private host and publication operations. Its `new` uses staged publication. |
-| `semaprax` in a release archive | Published [v0.7.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.7.0) | The full build, renamed when packaged. |
+| `semaprax` in a release archive | A published [release](https://github.com/wavect/semaprax/releases), for example [v0.8.0](https://github.com/wavect/semaprax/releases/tag/v0.8.0) | The full build, renamed when packaged. It ships beside `semapraxd`. |
 
 The full toolchain is unpublished (`publish = false`), so build it from a
 checkout. Both binaries accept the common commands, including `doctor`. The
@@ -67,8 +72,13 @@ Install the private full toolchain beside it, from the same checkout root:
 cargo install --locked --path crates/semaprax-toolchain
 ```
 
-The first command installs `semaprax`; the second installs `semaprax-full`.
-`--locked` uses the recorded dependencies. Cargo may fetch them while
+The first command installs the standalone `semaprax` and the `semapraxd` daemon
+(the root package declares both binaries; add `--bin semaprax` to install only
+the CLI). The second installs only `semaprax-full`, the full build under its own
+name. Without a checkout, `cargo install --locked --git
+https://github.com/wavect/semaprax --tag v0.8.0 semaprax` installs the v0.8.0
+standalone `semaprax` and `semapraxd`; the full build installs the same way with
+`semaprax-toolchain --bin semaprax-full`. `--locked` uses the recorded dependencies. Cargo may fetch them while
 installing; a later SEMAPRAX build does not fetch dependencies.
 
 To try the compiler without installing it, run it from the checkout:
@@ -103,30 +113,50 @@ command -v semaprax
 
 ## Route 2: install from a release archive
 
-The v0.8.0 source version is a release candidate. Its archive is unavailable
-until the exact-tag gate publishes it; check the
-[current release status](RELEASE-0.8.0-STATUS.md) before choosing an archive.
-The published [v0.7.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.7.0)
-provides one archive per admitted host, `SHA256SUMS`, and release provenance:
+Pick the tag from the [latest release](https://github.com/wavect/semaprax/releases/latest)
+page, then use that exact tag for every download. The newest release at the time
+of writing is [v0.8.0](https://github.com/wavect/semaprax/releases/tag/v0.8.0). It
+provides one archive per admitted host, `SHA256SUMS`, a per-host
+`release-attestation-<target>.json`, and release provenance:
 
 | Host | Archive |
 | --- | --- |
-| Linux x86-64 | `semaprax-v0.7.0-x86_64-unknown-linux-gnu.tar.gz` |
-| Apple Silicon macOS | `semaprax-v0.7.0-aarch64-apple-darwin.tar.gz` |
-| Windows x86-64 | `semaprax-v0.7.0-x86_64-pc-windows-msvc.zip` |
+| Linux x86-64 (glibc 2.39 or newer for v0.8.0) | `semaprax-v0.8.0-x86_64-unknown-linux-gnu.tar.gz` |
+| Apple Silicon macOS (11.0 or newer) | `semaprax-v0.8.0-aarch64-apple-darwin.tar.gz` |
+| Windows x86-64 | `semaprax-v0.8.0-x86_64-pc-windows-msvc.zip` |
 
-Each archive contains `semaprax`, the `semapraxd` daemon, `LICENSE`,
+GitHub's automatic "Source code" downloads are repository snapshots, not these
+archives. Each archive contains `semaprax`, the `semapraxd` daemon, `LICENSE`,
 `README.md`, a fixed smoke program, and a deterministic
-`semaprax.release-artifact.v1` manifest. Verify the download against
-`SHA256SUMS` before unpacking, then unpack it:
+`semaprax.release-artifact.v1` manifest. Download only your host's archive and
+`SHA256SUMS`, then verify just that archive against its own line, and unpack it:
 
 ```sh
-shasum -a 256 -c SHA256SUMS
-tar -xzf semaprax-v0.7.0-aarch64-apple-darwin.tar.gz
+BASE=https://github.com/wavect/semaprax/releases/download/v0.8.0
+curl -fLO "$BASE/semaprax-v0.8.0-aarch64-apple-darwin.tar.gz"
+curl -fLO "$BASE/SHA256SUMS"
+grep " semaprax-v0.8.0-aarch64-apple-darwin.tar.gz$" SHA256SUMS | shasum -a 256 -c -
+tar -xzf semaprax-v0.8.0-aarch64-apple-darwin.tar.gz
 ```
 
-Use `unzip` for the Windows archive. Put the unpacked directory on your `PATH`
-the same way as Cargo's binary directory above, or invoke the binary by path.
+`SHA256SUMS` lists every host's archive. Handing the unfiltered file to the
+checker exits nonzero when the archives you did not download are missing, even
+though your archive verified, so select the one line as above (`sha256sum -c -`
+on Linux). Use `unzip` for the Windows archive, or
+the PowerShell steps in the [Install guide](../handbook/getting-started/install.md#windows-powershell).
+Put the unpacked directory on your `PATH` the same way as Cargo's binary
+directory above, or invoke the binary by path.
+
+<!-- release-claims: history-begin -->
+*Dated history, not current status.* On 2026-10-06 and earlier, this page named
+the v0.7.0 prerelease as the newest archive and described v0.8.0 as an
+unpublished release candidate pending its exact-tag gate; the
+[v0.8.0 candidate status](RELEASE-0.8.0-STATUS.md) and the
+[v0.7.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.7.0)
+(`semaprax-v0.7.0-x86_64-unknown-linux-gnu.tar.gz` and its two siblings) keep
+that evidence. v0.8.0 was published at 2026-10-06T07:37:34Z; the release page is
+the authority for what is current.
+<!-- release-claims: history-end -->
 
 **The archives are not notarized.** SHA-256 checksums alone are integrity
 facts, not publisher authentication. Verify the supplied signature bundle
@@ -152,7 +182,10 @@ fail-closed report; command availability is not production tool authority.
 
 ## Confirm the install works
 
-Run these from a source checkout, where the example programs live:
+Run these from a source checkout, where the example programs live. From an
+archive install, run the checkout-free sequence in the
+[Install guide](../handbook/getting-started/install.md#run-your-first-project)
+instead:
 
 ```sh
 semaprax --version
@@ -305,8 +338,11 @@ Not verified here:
   contract in the [release process](RELEASE-PROCESS.md#tag-admission), the
   [quickstart](QUICKSTART.md), and the [CLI user guide](CLI-GUIDE.md); no
   `semaprax-full` binary was built or installed while writing this document.
-- `cargo install` itself, `PATH` configuration, archive download and unpacking,
-  and Windows behavior.
+- `cargo install` itself and `PATH` configuration.
+- Archive download, selected-line checksum verification, unpacking and the
+  `new`/`check`/`test`/`run` sequence were replayed for the v0.8.0 Apple
+  Silicon archive on macOS arm64 on 2026-10-06; the Linux and Windows archive
+  steps were not replayed here, and the Windows behavior stays unverified.
 - Anything about the `semapraxd` daemon beyond its presence in the archive
   inventory.
 

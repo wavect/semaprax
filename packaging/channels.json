@@ -1,0 +1,41 @@
+{
+  "schema": "semaprax.channel-status.v1",
+  "releases": {
+    "v0.8.0": {
+      "commit": "615e501612895a52b3fdd72a03baf875a8f0df1b",
+      "published_at": "2026-10-06T07:37:34Z",
+      "assets": [
+        "SHA256SUMS",
+        "release-attestation-aarch64-apple-darwin.json",
+        "release-attestation-x86_64-pc-windows-msvc.json",
+        "release-attestation-x86_64-unknown-linux-gnu.json",
+        "release-manifest.json",
+        "release-provenance.bundle",
+        "release-provenance.json",
+        "release-signature-claim.json",
+        "semaprax-v0.8.0-aarch64-apple-darwin.tar.gz",
+        "semaprax-v0.8.0-x86_64-pc-windows-msvc.zip",
+        "semaprax-v0.8.0-x86_64-unknown-linux-gnu.tar.gz",
+        "trusted_root.jsonl"
+      ]
+    }
+  },
+  "installers": {
+    "first_release": null
+  },
+  "homebrew": {
+    "status": "pending",
+    "tap": "wavect/tap",
+    "formula": "semaprax",
+    "command": "brew install wavect/tap/semaprax",
+    "version": null,
+    "verified_at": null
+  },
+  "winget": {
+    "status": "pending",
+    "id": "Wavect.Semaprax",
+    "command": "winget install --id Wavect.Semaprax --exact",
+    "version": null,
+    "verified_at": null
+  }
+}

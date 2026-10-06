@@ -2,7 +2,7 @@
 """Report release-state mismatches without mutating GitHub or any repo file.
 
 This is read-only reconciliation, not a publication step: it never creates a
-tag, writes a Release, or edits a file. It answers three questions from local
+tag, writes a Release, or edits a file. It answers four questions from local
 (and, opt-in, live) evidence:
 
 1. Does every "published" claim in README.md name a version that
@@ -13,7 +13,10 @@ tag, writes a Release, or edits a file. It answers three questions from local
    the expected version and commit in every archive's own
    `release-manifest.json` -- catching a wrong commit, a wrong version, or a
    missing artifact before anyone treats the directory as a release?
-3. What is the locally observable "candidate state" for a version: has it
+3. Does human install wording (README, handbook, install guides) advertise
+   only tags, assets and channels (`install.sh`, Homebrew, WinGet) that
+   `packaging/channels.json` records as published?
+4. What is the locally observable "candidate state" for a version: has it
    been tagged at all, and if so has that tag's publication actually been
    recorded, or does the tag exist with no recorded evidence -- exactly the
    shape a release that failed between tagging and publication leaves
@@ -373,6 +376,242 @@ def live_release_agrees(version, expected_commit, gh_json):
     return problems
 
 
+# --- Install-claim reconciliation (human install wording vs recorded state) --
+#
+# README.md, the handbook and the install guides carry free-form install
+# wording that the narrow README phrase parser above cannot see. Every
+# release-bound string in them (exact tag, archive name, download link) and
+# every channel command (`install.sh`, `brew install`, `winget install`) is
+# checked against `packaging/channels.json`, the explicit, reviewed record of
+# which releases exist, which assets each one published, and which channels
+# are actually usable. A doc may not advertise anything that record does not
+# list. Text between `<!-- release-claims: history-begin -->` and
+# `<!-- release-claims: history-end -->` is dated history and is not checked.
+
+CHANNELS_SCHEMA = "semaprax.channel-status.v1"
+CHANNEL_NAMES = ("homebrew", "winget")
+INSTALL_CLAIM_DOCS = (
+    "README.md",
+    "docs/INSTALL.md",
+    "docs/QUICKSTART.md",
+    "docs/index.md",
+)
+HISTORY_RE = re.compile(
+    r"<!-- release-claims: history-begin -->.*?<!-- release-claims: history-end -->",
+    re.DOTALL,
+)
+_V = VERSION_RE.pattern
+ARCHIVE_NAME_RE = re.compile(
+    r"semaprax-v(" + _V + r")-([a-z0-9_]+(?:-[a-z0-9_]+){2,3})\.(tar\.gz|zip)"
+)
+RELEASE_LINK_RE = re.compile(
+    r"github\.com/wavect/semaprax/releases/(?:download|tag)/v(" + _V + r")(?![0-9.])"
+)
+TAG_ASSIGNMENT_RE = re.compile(r"\b(?:TAG|Tag)\s*=\s*\"?v(" + _V + r")(?![0-9.])")
+LATEST_CLAIM_RE = re.compile(
+    r"\b(?:latest|current|newest)\b[^.\n]{0,40}?\bv(" + _V + r")(?![0-9.])",
+    re.IGNORECASE,
+)
+WHOLE_SUMS_CHECK_RE = re.compile(
+    r"\b(?:shasum\s+-a\s+256|sha256sum)\s+(?:-c|--check)\s+SHA256SUMS\b"
+)
+INSTALLER_CLAIM_RE = re.compile(r"(?<!scripts/)(?<!scripts\\)\binstall\.(?:sh|ps1)\b")
+BREW_CLAIM_RE = re.compile(r"\bbrew\s+(?:install|upgrade|uninstall|tap)\b|wavect/tap\b")
+WINGET_CLAIM_RE = re.compile(r"\bwinget\s+(?:install|upgrade|uninstall)\b")
+INSTALLER_ASSETS = ("install.sh", "install.ps1")
+
+
+def strip_history(text):
+    """The doc text with every dated-history region removed."""
+    return HISTORY_RE.sub("", text)
+
+
+def _version_key(version):
+    return tuple(int(part) for part in version.split("."))
+
+
+def validate_channels(channels):
+    """Structural problems in a decoded `packaging/channels.json`."""
+    problems = []
+    if not isinstance(channels, dict) or channels.get("schema") != CHANNELS_SCHEMA:
+        return [f"packaging/channels.json schema must be {CHANNELS_SCHEMA!r}"]
+    releases = channels.get("releases")
+    if not isinstance(releases, dict):
+        return ["packaging/channels.json has no releases object"]
+    for tag, record in releases.items():
+        if not re.fullmatch(r"v" + _V, tag):
+            problems.append(f"channels.json release key {tag!r} is not vX.Y.Z")
+            continue
+        if not isinstance(record, dict):
+            problems.append(f"channels.json release {tag} is not an object")
+            continue
+        if not COMMIT_RE.match(str(record.get("commit"))):
+            problems.append(f"channels.json release {tag} has no 40-hex commit")
+        if not record.get("published_at"):
+            problems.append(f"channels.json release {tag} has no published_at")
+        assets = record.get("assets")
+        if not isinstance(assets, list) or assets != sorted(set(assets)):
+            problems.append(f"channels.json release {tag} assets must be a sorted unique list")
+            continue
+        for required in ("SHA256SUMS", "release-manifest.json"):
+            if required not in assets:
+                problems.append(f"channels.json release {tag} does not list {required}")
+    installers = channels.get("installers")
+    first = installers.get("first_release", False) if isinstance(installers, dict) else False
+    if first is False:
+        problems.append("channels.json has no installers.first_release field")
+    elif first is not None:
+        record = releases.get(first)
+        if record is None:
+            problems.append(f"channels.json installers.first_release {first} is not a recorded release")
+        else:
+            missing = [a for a in INSTALLER_ASSETS if a not in record.get("assets", [])]
+            if missing:
+                problems.append(
+                    f"channels.json installers.first_release {first} does not list "
+                    f"asset(s) {', '.join(missing)}"
+                )
+    for name in CHANNEL_NAMES:
+        channel = channels.get(name)
+        if not isinstance(channel, dict) or channel.get("status") not in ("pending", "published"):
+            problems.append(f"channels.json {name}.status must be 'pending' or 'published'")
+            continue
+        if channel["status"] == "published":
+            version = channel.get("version")
+            if version not in releases:
+                problems.append(
+                    f"channels.json {name} is published at {version!r}, which is not a recorded release"
+                )
+            if not channel.get("verified_at") or not channel.get("command"):
+                problems.append(f"channels.json {name} is published without verified_at and command")
+    return problems
+
+
+def known_release_versions(channels, evidence, changelog):
+    """Versions with a recorded published release: channels.json or RELEASE-PROCESS evidence."""
+    versions = {tag[1:] for tag in (channels.get("releases") or {})}
+    versions |= {v for v, e in evidence.items() if e.get("commit")}
+    return {v for v in versions if v in changelog}
+
+
+def reconcile_install_claims(docs, channels, evidence, changelog):
+    """Problems where human install wording runs ahead of recorded release state.
+
+    `docs` maps a repo-relative path to its text. `channels` is the decoded
+    `packaging/channels.json`; `evidence` and `changelog` are the outputs of
+    `evidence_sections` and `changelog_versions`.
+    """
+    problems = validate_channels(channels)
+    if problems:
+        return problems
+    releases = channels["releases"]
+    known = known_release_versions(channels, evidence, changelog)
+    newest = max(known, key=_version_key) if known else None
+    targets = dict(ARCHIVE_TARGETS)
+    installers = channels["installers"]["first_release"]
+    for path, raw in sorted(docs.items()):
+        text = strip_history(raw)
+        versions_here = {}
+        for match in ARCHIVE_NAME_RE.finditer(text):
+            version, target, extension = match.groups()
+            versions_here.setdefault(version, set()).add(match.group(0))
+            if targets.get(target) != extension:
+                problems.append(
+                    f"{path} names archive {match.group(0)}, but {target}.{extension} "
+                    f"is not a published release target"
+                )
+        for pattern in (RELEASE_LINK_RE, TAG_ASSIGNMENT_RE, LATEST_CLAIM_RE):
+            for match in pattern.finditer(text):
+                versions_here.setdefault(match.group(1), set())
+        for version, names in sorted(versions_here.items()):
+            if version not in known:
+                problems.append(
+                    f"{path} advertises v{version}, which has no recorded published "
+                    f"release (packaging/channels.json or a docs/RELEASE-PROCESS.md "
+                    f"evidence section) and CHANGELOG.md heading"
+                )
+                continue
+            recorded = releases.get(f"v{version}", {}).get("assets")
+            for name in sorted(names):
+                if recorded is not None and name not in recorded:
+                    problems.append(
+                        f"{path} names asset {name}, which the recorded v{version} "
+                        f"release does not list"
+                    )
+        for match in RELEASE_LINK_RE.finditer(text):
+            rest = re.match(r"/([^\s)\"'`]+)", text[match.end() :])
+            inline = ARCHIVE_NAME_RE.fullmatch(rest.group(1)) if rest else None
+            if inline and inline.group(1) != match.group(1):
+                problems.append(
+                    f"{path} links release tag v{match.group(1)} to asset {rest.group(1)}"
+                )
+        for match in LATEST_CLAIM_RE.finditer(text):
+            if newest is not None and match.group(1) != newest:
+                problems.append(
+                    f"{path} calls v{match.group(1)} the latest/current release, "
+                    f"but the newest recorded release is v{newest}"
+                )
+        if WHOLE_SUMS_CHECK_RE.search(text):
+            problems.append(
+                f"{path} verifies the whole SHA256SUMS inventory; select the one "
+                f"downloaded archive's line instead (`grep \" <name>$\" SHA256SUMS | "
+                f"shasum -a 256 -c -`)"
+            )
+        if INSTALLER_CLAIM_RE.search(text) and installers is None:
+            problems.append(
+                f"{path} advertises install.sh/install.ps1, but packaging/channels.json "
+                f"records no release that published them"
+            )
+        for name, pattern in (("homebrew", BREW_CLAIM_RE), ("winget", WINGET_CLAIM_RE)):
+            if pattern.search(text) and channels[name]["status"] != "published":
+                problems.append(
+                    f"{path} advertises the {name} channel, but packaging/channels.json "
+                    f"records it as {channels[name]['status']!r}"
+                )
+    return problems
+
+
+def live_assets_agree(version, advertised, gh_json):
+    """Every asset a doc advertises for `version` must be on the live Release."""
+    live = {asset.get("name") for asset in gh_json.get("assets", [])}
+    return [
+        f"--live: v{version} Release has no asset {name}"
+        for name in sorted(advertised)
+        if name not in live
+    ]
+
+
+def advertised_release_assets(docs, channels):
+    """version -> asset names the docs (outside history) and channels.json promise."""
+    wanted = {}
+    for raw in docs.values():
+        text = strip_history(raw)
+        for match in ARCHIVE_NAME_RE.finditer(text):
+            wanted.setdefault(match.group(1), set()).add(match.group(0))
+        for match in RELEASE_LINK_RE.finditer(text):
+            wanted.setdefault(match.group(1), set())
+    first = (channels.get("installers") or {}).get("first_release")
+    if first:
+        wanted.setdefault(first[1:], set()).update(INSTALLER_ASSETS)
+    return wanted
+
+
+def load_install_claim_inputs():
+    """(docs, channels) read from the checkout; channels is None if no record exists."""
+    names = list(INSTALL_CLAIM_DOCS)
+    names += sorted(
+        str(path.relative_to(ROOT)) for path in (ROOT / "handbook").rglob("*.md")
+    )
+    docs = {n: (ROOT / n).read_text(encoding="utf-8") for n in names if (ROOT / n).is_file()}
+    channels_path = ROOT / "packaging" / "channels.json"
+    channels = (
+        json.loads(channels_path.read_text(encoding="utf-8"))
+        if channels_path.is_file()
+        else None
+    )
+    return docs, channels
+
+
 # --- CLI ---------------------------------------------------------------------
 
 
@@ -423,6 +662,19 @@ def main(argv=None):
     problems = list(reconcile_doc_claim(readme_text, changelog_text, release_process_text))
     problems.extend(reconcile_changelog_summary(changelog_summary_text, version))
 
+    install_docs, channels = load_install_claim_inputs()
+    if channels is None:
+        problems.append("packaging/channels.json is missing; install claims cannot be checked")
+    else:
+        problems.extend(
+            reconcile_install_claims(
+                install_docs,
+                channels,
+                evidence_sections(release_process_text),
+                changelog_versions(changelog_text),
+            )
+        )
+
     tag_commit = _local_tag_commit(version)
     evidence = evidence_sections(release_process_text).get(version)
     claimed = readme_claimed_version(readme_text)
@@ -459,6 +711,26 @@ def main(argv=None):
             else:
                 gh_json = json.loads(result.stdout)
                 problems.extend(live_release_agrees(version, tag_commit, gh_json))
+
+        if channels is not None and not validate_channels(channels):
+            for adv_version, names in sorted(
+                advertised_release_assets(install_docs, channels).items()
+            ):
+                result = subprocess.run(
+                    [gh, "api", f"repos/wavect/semaprax/releases/tags/v{adv_version}"],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                if result.returncode != 0:
+                    problems.append(
+                        f"--live: docs advertise v{adv_version} but no published Release "
+                        f"was found ({result.stderr.strip()})"
+                    )
+                else:
+                    problems.extend(
+                        live_assets_agree(adv_version, names, json.loads(result.stdout))
+                    )
 
     print(f"release reconcile: v{version} state={state}")
     for problem in problems:

@@ -37,6 +37,19 @@ pub(super) fn check_while_statement(
             condition.span,
         ));
     }
+    if let Some(span) = crate::string_ops::owned_string_in_condition(condition, &|name| {
+        functions.get(name).is_some_and(|function| {
+            function.return_type == Type::String
+                || function.params.iter().any(|param| param.ty == Type::String)
+        })
+    }) {
+        diagnostics.push(error(
+            program,
+            "SPX-T252",
+            crate::string_ops::OWNED_STRING_CONDITION_MESSAGE,
+            span,
+        ));
+    }
     let _ = reject_while_disallowed_oracle(program, condition, functions, diagnostics);
     let _ = reject_while_disallowed_oracle(program, body, functions, diagnostics);
     let baseline = variables.clone();
@@ -134,15 +147,9 @@ pub(super) fn reject_while_disallowed_oracle(
             ));
             Err(())
         }
-        ExprKind::String(_) => {
-            diagnostics.push(error(
-                program,
-                "SPX-T252",
-                "string literals are not yet admitted in while bodies",
-                expression.span,
-            ));
-            Err(())
-        }
+        // Owned String Loops v1: a literal allocates one owned String in the
+        // per-iteration body region.
+        ExprKind::String(_) => Ok(()),
         ExprKind::Unary { value, .. } => {
             reject_while_disallowed_oracle(program, value, functions, diagnostics)
         }

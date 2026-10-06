@@ -1351,6 +1351,7 @@ impl Resolver<'_> {
                             Statement::While {
                                 condition, body, ..
                             } => {
+                                self.reject_owned_string_condition(condition)?;
                                 self.reject_while_disallowed_scoped(condition, Some(function))?;
                                 self.reject_while_disallowed_scoped(body, Some(function))?;
                                 frames.push(Frame::BlockWhileCondition {

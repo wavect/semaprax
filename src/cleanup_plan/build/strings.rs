@@ -10,6 +10,69 @@ pub(super) fn owns_clone(expression: &ResolvedExpr) -> bool {
         )
 }
 impl PlanBuilder<'_> {
+    /// An owning String read allocates a clone, except the first operand of
+    /// an Owned String Loops v1 same-owner append, which moves the binding.
+    pub(super) fn owns_string_clone(&self, expression: &ResolvedExpr) -> bool {
+        owns_clone(expression) && !self.string_appends.contains_key(&expression.id)
+    }
+
+    /// A moving append operand never initializes its inventory temporary,
+    /// but the slot still belongs to the region a clone would have used.
+    pub(super) fn assign_moved_string_slot(
+        &mut self,
+        expression: &ResolvedExpr,
+        block: BlockId,
+    ) -> Result<(), Diagnostic> {
+        if self.string_appends.contains_key(&expression.id) {
+            let region = self.blocks[block.0 as usize].region;
+            self.expression_slot(expression, region)?;
+        }
+        Ok(())
+    }
+
+    /// Staging a same-owner append operand reserves the binding's position.
+    pub(super) fn reserve_string_append(
+        &self,
+        at: &ExpressionId,
+        source: &CleanupPlace,
+        state: &mut FlowState,
+    ) -> Result<(), Diagnostic> {
+        if self.string_appends.contains_key(at)
+            && matches!(source.storage, StorageId::Value(_))
+            && source.projections.is_empty()
+            && state
+                .renewals
+                .insert(at.clone(), state.live_order.clone())
+                .is_some()
+        {
+            return Err(plan_error("string append reserves its owner twice"));
+        }
+        Ok(())
+    }
+
+    /// Publishing the appended value returns the binding to that position.
+    pub(super) fn publish_string_append(
+        &self,
+        at: &ExpressionId,
+        destination: &CleanupPlace,
+        state: &mut FlowState,
+    ) -> Result<(), Diagnostic> {
+        let Some((operand, _)) = self.string_appends.iter().find(|(_, value)| *value == at) else {
+            return Ok(());
+        };
+        if !matches!(destination.storage, StorageId::Value(_))
+            || !destination.projections.is_empty()
+        {
+            return Ok(());
+        }
+        let history = state
+            .renewals
+            .remove(operand)
+            .ok_or_else(|| plan_error("string append publishes without a reserved owner"))?;
+        state.live_order = crate::string_ops::append_publication_order(&history, &state.live_order);
+        Ok(())
+    }
+
     pub(super) fn initialize_string(
         &mut self,
         expression: &ResolvedExpr,

@@ -298,17 +298,18 @@ fn main() -> i64 {
 }
 
 #[test]
-fn strings_and_unsafe_inside_loops_are_spx_t252() {
+fn string_conditions_and_unsafe_inside_loops_are_spx_t252() {
+    // Owned String Loops v1 admits String storage in a loop body; a String
+    // value in the re-evaluated condition stays outside the loop slice.
     let sources = [
         (
-            "string literal",
+            "string condition",
             r#"
 module test.while_string;
 @id("app.main")
 fn main() -> i64 {
     let mut count = 0;
-    while count < 2 {
-        let label = "x";
+    while count < string_len("xx") {
         count = count + 1;
         count < 2
     }

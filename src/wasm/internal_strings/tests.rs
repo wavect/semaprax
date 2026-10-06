@@ -237,11 +237,14 @@ fn selection_and_options_fail_closed_without_widening_public_strings() {
 }
 
 #[test]
-fn string_mutation_and_direct_string_loop_storage_keep_source_rejections() {
+fn string_replacement_and_string_loop_conditions_keep_source_rejections() {
+    // Owned String Loops v1 admits String storage in loop bodies and the
+    // same-owner append; whole replacement and String values in a loop
+    // condition stay refused before any Wasm lowering.
     for (body, code) in [
         ("let mut value = \"x\"; value = \"y\"; 0", "SPX-U105"),
         (
-            "let mut index = 0; while index < 1 { let value = \"x\"; index = index + 1; 0 } 0",
+            "let mut index = 0; while index < string_len(\"x\") { index = index + 1; 0 } 0",
             "SPX-T252",
         ),
     ] {

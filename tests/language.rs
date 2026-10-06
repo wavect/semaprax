@@ -101,6 +101,8 @@ mod stable_id_nul;
 mod std_collections_vec_wrappers;
 #[path = "language/string_numeric_text.rs"]
 mod string_numeric_text;
+#[path = "language/owned_string_loops_v1.rs"]
+mod owned_string_loops_v1;
 #[path = "language/string_ops_v1.rs"]
 mod string_ops_v1;
 #[path = "language/string_ops_v2.rs"]

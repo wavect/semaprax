@@ -308,7 +308,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 matches!(&value.kind, crate::ast::ExprKind::Yield { .. });
                             // Same-owner replacement: a `Vec<T>` reopen such as
                             // `values = vec_push(values, v)` and the byte-buffer
-                            // `buffer = bytes_set(buffer, index, value)` are the
+                            // `buffer = bytes_set(buffer, index, value)` and the
+                            // Owned String Loops v1 append
+                            // `text = string_concat(text, more)` are the
                             // admitted owned reopen shapes. The right-hand side
                             // evaluates before publication, so exactly one
                             // generation of the owner is ever live.
@@ -318,6 +320,10 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 name,
                                 &binding_ty,
                             ) || crate::byte_ops::is_same_owner_set_source(
+                                value,
+                                name,
+                                &binding_ty,
+                            ) || crate::string_ops::is_same_owner_concat_source(
                                 value,
                                 name,
                                 &binding_ty,

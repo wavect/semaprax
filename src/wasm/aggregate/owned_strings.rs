@@ -53,3 +53,12 @@ pub(super) fn emit_literal_data(
     super::section(module, 11, data);
     Ok(())
 }
+
+impl super::Emitter<'_> {
+    /// Owned String Loops v1: the first operand of a same-owner append moves
+    /// the binding's carrier into the call instead of cloning it, exactly as
+    /// the replayed CleanupPlan transfers it.
+    pub(super) fn moves_string_owner(&self, expression: &crate::hir::ResolvedExpr) -> bool {
+        crate::string_ops::same_owner_concat_operands(self.function).contains(&expression.id)
+    }
+}

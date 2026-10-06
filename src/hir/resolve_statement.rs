@@ -140,6 +140,24 @@ impl Resolver<'_> {
     /// general matches, `?`, projections, method
     /// calls, strings, unsafe boundaries, generic calls, non-scalar calls)
     /// is rejected fail-closed so loop cleanup stays edge-free.
+    /// Owned String Loops v1: a `while` condition creates no owned String.
+    pub(super) fn reject_owned_string_condition(&self, condition: &Expr) -> Result<(), Diagnostic> {
+        match crate::string_ops::owned_string_in_condition(condition, &|name| {
+            self.program.functions.iter().any(|function| {
+                function.name == name
+                    && (function.return_type == Type::String
+                        || function.params.iter().any(|param| param.ty == Type::String))
+            })
+        }) {
+            Some(span) => Err(self.error(
+                "SPX-T252",
+                crate::string_ops::OWNED_STRING_CONDITION_MESSAGE,
+                span,
+            )),
+            None => Ok(()),
+        }
+    }
+
     pub(super) fn reject_while_disallowed(&self, expression: &Expr) -> Result<(), Diagnostic> {
         self.reject_while_disallowed_scoped(expression, None)
     }
@@ -204,13 +222,9 @@ impl Resolver<'_> {
                 | ExprKind::Float64(_)
                 | ExprKind::Bool(_)
                 | ExprKind::Var(_) => {}
-                ExprKind::String(_) => {
-                    return Err(self.error(
-                        "SPX-T252",
-                        "string literals are not yet admitted in while bodies",
-                        expression.span,
-                    ));
-                }
+                // Owned String Loops v1: a literal allocates one owned
+                // String in the per-iteration body region.
+                ExprKind::String(_) => {}
                 ExprKind::ArrayU8(_) | ExprKind::RepeatArrayU8 { .. } => {
                     return Err(self.error(
                         "SPX-T252",

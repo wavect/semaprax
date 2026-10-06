@@ -94,18 +94,24 @@ impl HirValidator<'_> {
                 | ResolvedExprKind::Float32(_)
                 | ResolvedExprKind::Float64(_)
                 | ResolvedExprKind::Bool(_) => {}
-                ResolvedExprKind::Place(_) => {
-                    if !crate::hir::is_scalar_resolved_type(&expression.ty)
-                        || expression.ownership != OwnershipMode::Value
+                ResolvedExprKind::Place(place) => {
+                    // Owned String Loops v1: a whole String binding may be
+                    // read or consumed; ordinary ownership replay and the
+                    // loop-invariant cleanup state authenticate the use.
+                    let whole_string =
+                        expression.ty == ResolvedType::String && place.projections.is_empty();
+                    if !whole_string
+                        && (!crate::hir::is_scalar_resolved_type(&expression.ty)
+                            || expression.ownership != OwnershipMode::Value)
                     {
                         return Err(hir_error(
                             "while loop places must be Copy scalars outside an indexed byte read",
                         ));
                     }
                 }
-                ResolvedExprKind::String(_) => {
-                    return Err(hir_error("while loops cannot contain string literals"));
-                }
+                // Owned String Loops v1: a literal allocates one owned String
+                // in the per-iteration body region.
+                ResolvedExprKind::String(_) => {}
                 ResolvedExprKind::ArrayU8(_) | ResolvedExprKind::RepeatArrayU8 { .. } => {
                     return Err(hir_error("while loops cannot contain fixed-array literals"));
                 }
@@ -215,6 +221,21 @@ impl HirValidator<'_> {
                         // Full expression replay authenticates each binding and
                         // immutable borrowed-str origin; these closed readers
                         // return only a scalar and cannot retain their inputs.
+                        continue;
+                    }
+                    if let Some(operation) = crate::string_ops::by_id(callee.as_str()) {
+                        if args.len() != operation.arity()
+                            || expression.ty != operation.return_type()
+                            || args
+                                .iter()
+                                .zip(operation.param_types())
+                                .any(|(argument, ty)| argument.ty != *ty)
+                        {
+                            return Err(hir_error(
+                                "while loop string operation is outside Owned String Loops v1",
+                            ));
+                        }
+                        pending.extend(args.iter().rev().map(Item::Expression));
                         continue;
                     }
                     if let Some(operation) = crate::byte_ops::by_id(callee.as_str()) {
@@ -482,11 +503,48 @@ impl HirValidator<'_> {
             }
             self.validate_iterator_body(protocol.authored_body, protocol.owned_item)
         } else {
+            // Owned String Loops v1: a condition re-evaluates outside the
+            // per-iteration body region, so it may create no owned String;
+            // even a String place read there would allocate a clone.
+            let mut pending = vec![condition];
+            while let Some(expression) = pending.pop() {
+                if expression.ty == ResolvedType::String {
+                    return Err(hir_error(
+                        "while loop condition creates an owned String outside the body region",
+                    ));
+                }
+                pending.extend(crate::interpreter::trace_child_expressions(expression));
+            }
             self.validate_while_admission(condition)?;
             self.validate_while_admission(body)
         }
     }
 }
+/// Owned String Loops v1: `text = string_concat(text, …)` consumed the
+/// unique current generation of `text` as its first argument; the assignment
+/// publishes the next generation into the same binding.
+pub(super) fn reopen_string(
+    scope: &mut BTreeMap<ValueId, ValidationBinding>,
+    id: &ValueId,
+) -> Result<(), Diagnostic> {
+    let target = scope
+        .get_mut(id)
+        .ok_or_else(|| hir_error("string append target is missing"))?;
+    if target.availability != Availability::Moved
+        || !target.active_loans.is_empty()
+        || target.ownership != OwnershipMode::Own
+        || target.ty != ResolvedType::String
+    {
+        return Err(hir_error(
+            "string append did not consume its unique String owner",
+        ));
+    }
+    target.availability = Availability::Available;
+    target.moved_places.clear();
+    target.definitely_partial.clear();
+    Ok(())
+}
+
 pub(super) fn reopen_step(
     scope: &mut BTreeMap<ValueId, ValidationBinding>,
     id: &ValueId,

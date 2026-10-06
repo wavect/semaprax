@@ -1140,10 +1140,7 @@ fn terminated_prefix_skips_unreachable_invalid_lazy_if_and_match_children() {
         expression: &ResolvedExpr,
     ) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
         let mut budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
-        let mut work = SkeletonWork {
-            function,
-            budget: &mut budget,
-        };
+        let mut work = SkeletonWork::new(function, &mut budget);
         let mut path = empty_expr_path();
         path.failed = true;
         let prefixes = work.singleton_path(path, "unreachable hostile prefix")?;
@@ -1216,10 +1213,7 @@ fn wide_match_path_clones_and_pushes_are_charged_before_materialization() {
     ) -> Result<(Vec<ExprSkeletonPath>, usize), Diagnostic> {
         let mut budget = ReplayBudget::with_skeleton_limit(limit);
         let paths = {
-            let mut work = SkeletonWork {
-                function,
-                budget: &mut budget,
-            };
+            let mut work = SkeletonWork::new(function, &mut budget);
             expression_skeleton(program, function, expression, &mut work)?
         };
         Ok((paths, limit - budget.skeleton_remaining))

@@ -187,6 +187,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 condition.span,
             ));
         }
+        self.reject_owned_string_condition(condition);
         let _ = self.reject_while_disallowed(condition);
         let _ = self.reject_while_disallowed(body);
         let baseline_names = self.scopes[block_scope]

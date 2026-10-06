@@ -617,6 +617,7 @@ struct PlanBuilder<'a> {
     initial_state: FlowState,
     pending_try_residuals: Vec<PendingTryResidual>,
     schema: &'static str,
+    string_appends: BTreeMap<ExpressionId, ExpressionId>,
 }
 
 impl<'a> PlanBuilder<'a> {
@@ -691,6 +692,7 @@ impl<'a> PlanBuilder<'a> {
         let root = CleanupRegionId(0);
         let entry = BlockId(0);
         let mut builder = Self {
+            string_appends: crate::string_ops::same_owner_concat_appends(function),
             program,
             function,
             slots,
@@ -1131,6 +1133,7 @@ impl<'a> PlanBuilder<'a> {
         state: &mut FlowState,
         normalize_complete_aggregate: bool,
     ) -> Result<(), Diagnostic> {
+        self.reserve_string_append(&at, &source, state)?;
         let renewal = state.renewals.get(&at).cloned().filter(|_| {
             matches!(&destination.storage, StorageId::Value(_))
                 && crate::hir::iterator_loop::renewal_binding(self.function, &at).is_some_and(
@@ -1241,6 +1244,7 @@ impl<'a> PlanBuilder<'a> {
             mapped
         };
         state.append_distinct(destination_order);
+        self.publish_string_append(&at, &destination, state)?;
         if let Some(history) = renewal {
             self.finish_renewal(&at, &destination, &history, state)?;
             self.push_transition(
@@ -2443,7 +2447,7 @@ impl<'a> PlanBuilder<'a> {
                     expression,
                     block,
                     state,
-                } if strings::owns_clone(expression) => {
+                } if self.owns_string_clone(expression) => {
                     results.push(self.initialize_string(expression, block, state)?);
                 }
                 Frame::Enter {
@@ -2505,6 +2509,7 @@ impl<'a> PlanBuilder<'a> {
                         });
                     }
                     ResolvedExprKind::Place(place) => {
+                        self.assign_moved_string_slot(expression, block)?;
                         let owned_source = if expression.ownership == OwnershipMode::Own
                             && self.needs_drop(&expression.ty)?
                         {
@@ -4677,7 +4682,7 @@ impl<'a> PlanBuilder<'a> {
             }
             return Ok(evaluated);
         }
-        if strings::owns_clone(expression) {
+        if self.owns_string_clone(expression) {
             return self.initialize_string(expression, block, state);
         }
         match &expression.kind {
@@ -4697,6 +4702,7 @@ impl<'a> PlanBuilder<'a> {
                 owned_source: None,
             }),
             ResolvedExprKind::Place(place) => {
+                self.assign_moved_string_slot(expression, block)?;
                 let owned_source = if expression.ownership == OwnershipMode::Own
                     && self.needs_drop(&expression.ty)?
                 {

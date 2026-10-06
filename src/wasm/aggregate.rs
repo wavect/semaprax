@@ -4637,6 +4637,7 @@ impl Emitter<'_> {
                 if self.owned_utf8_literals.is_some()
                     && expr.ty == ResolvedType::String
                     && expr.ownership == crate::hir::OwnershipMode::Own
+                    && !self.moves_string_owner(expr)
                 {
                     let local = self.plan.expr_scalar(expr)?;
                     owned_strings::emit_empty_guard(self.output, local);

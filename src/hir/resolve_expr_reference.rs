@@ -946,6 +946,7 @@ impl Resolver<'_> {
                             span,
                             ..
                         } => {
+                            self.reject_owned_string_condition(condition)?;
                             self.reject_while_disallowed_scoped(condition, Some(function))?;
                             self.reject_while_disallowed_scoped(body, Some(function))?;
                             let resolved_condition = self.resolve_expr_recursive_reference(

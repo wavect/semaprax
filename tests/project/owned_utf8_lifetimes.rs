@@ -186,10 +186,12 @@ fn closed_descriptor_shape_and_value_string_parameter_modes_are_not_widened() {
 
 #[test]
 fn loop_string_admission_and_v10_scalar_helper_rejection_remain_closed() {
+    // Owned String Loops v1 admits String storage in loop bodies; a String
+    // value in the re-evaluated loop condition stays refused.
     let direct = r#"module rejected.string_loop;
 @id("s.main") fn main() -> i64 {
     let mut i = 0;
-    while i < 2 { let text = "iteration"; i = i + 1; 0 }
+    while i < string_len("iteration") { i = i + 1; 0 }
     i
 }
 "#;

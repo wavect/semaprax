@@ -8,6 +8,18 @@ use super::*;
 pub(super) struct SkeletonWork<'a, 'b> {
     pub(super) function: &'a ResolvedFunction,
     pub(super) budget: &'b mut ReplayBudget,
+    /// Owned String Loops v1 same-owner append operands that move, not clone.
+    pub(super) string_owner_moves: BTreeSet<ExpressionId>,
+}
+
+impl<'a, 'b> SkeletonWork<'a, 'b> {
+    pub(super) fn new(function: &'a ResolvedFunction, budget: &'b mut ReplayBudget) -> Self {
+        Self {
+            function,
+            budget,
+            string_owner_moves: crate::string_ops::same_owner_concat_operands(function),
+        }
+    }
 }
 
 impl SkeletonWork<'_, '_> {

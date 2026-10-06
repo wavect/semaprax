@@ -2893,7 +2893,7 @@ fn hir_skeleton_paths(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
 ) -> Result<Vec<SkeletonPath>, Diagnostic> {
-    let mut work = SkeletonWork { function, budget };
+    let mut work = SkeletonWork::new(function, budget);
     let mut paths = work.singleton_path(empty_expr_path(), "HIR root path")?;
     for contract in &function.requires {
         paths = sequence_expression(program, function, paths, contract, &mut work)?;
@@ -3291,7 +3291,9 @@ fn expression_skeleton(
             }
             Frame::Eval(expression) => {
                 debug_assert!(produced.is_none());
-                if strings::owns_clone(expression) {
+                if strings::owns_clone(expression)
+                    && !work.string_owner_moves.contains(&expression.id)
+                {
                     produced = Some(strings::paths(expression, work)?);
                     continue;
                 }
@@ -6664,7 +6666,9 @@ fn execute_replay_transition(
             destination,
         } => {
             renewal::reject_unmarked_finish(function, at, destination)?;
+            let append = strings::reserve_append(function, at, source, destination, state)?;
             replay_transfer(function, state, source, destination, storage, leaves)?;
+            strings::publish_append(function, append, state)?;
         }
         CleanupTransition::TransferVariant {
             source,

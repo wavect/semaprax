@@ -12,6 +12,59 @@ pub(super) fn owns_clone(expression: &ResolvedExpr) -> bool {
             ResolvedExprKind::String(_) | ResolvedExprKind::Place(_)
         )
 }
+/// Owned String Loops v1: staging the moving operand of a same-owner append
+/// reserves its binding's cleanup position; the transfer that publishes the
+/// appended value returns the binding there. Both facts are re-derived from
+/// typed HIR, never from the attached plan. Returns the reservation that a
+/// publication transfer must consume after the ordinary transfer replays.
+pub(super) fn reserve_append(
+    function: &ResolvedFunction,
+    at: &ExpressionId,
+    source: &CleanupPlace,
+    destination: &CleanupPlace,
+    state: &mut PathState,
+) -> Result<Option<Vec<LivenessFlagId>>, Diagnostic> {
+    let whole_value = |place: &CleanupPlace| {
+        matches!(place.storage, StorageId::Value(_)) && place.projections.is_empty()
+    };
+    if !whole_value(source) && !whole_value(destination) {
+        return Ok(None);
+    }
+    let appends = crate::string_ops::same_owner_concat_appends(function);
+    if whole_value(source) && appends.contains_key(at) {
+        if state
+            .renewals
+            .insert(at.clone(), state.live_order.clone())
+            .is_some()
+        {
+            return Err(replay_error(
+                function,
+                "string append reserves its owner twice",
+            ));
+        }
+        return Ok(None);
+    }
+    match appends.iter().find(|(_, value)| *value == at) {
+        Some((operand, _)) if whole_value(destination) => {
+            state.renewals.remove(operand).map(Some).ok_or_else(|| {
+                replay_error(function, "string append publishes without a reserved owner")
+            })
+        }
+        _ => Ok(None),
+    }
+}
+
+pub(super) fn publish_append(
+    _function: &ResolvedFunction,
+    history: Option<Vec<LivenessFlagId>>,
+    state: &mut PathState,
+) -> Result<(), Diagnostic> {
+    if let Some(history) = history {
+        state.live_order = crate::string_ops::append_publication_order(&history, &state.live_order);
+    }
+    Ok(())
+}
+
 pub(super) fn paths(
     expression: &ResolvedExpr,
     work: &mut SkeletonWork<'_, '_>,

@@ -276,7 +276,9 @@ fn admission_is_additive_and_source_rejections_remain_authoritative() {
     assert_eq!(ordinary_before, semaprax::wasm::emit_module(&ast).unwrap());
     for source in [
         "module negative; @id(\"main\") fn main() -> i64 { let mut text = \"x\"; text = \"y\"; 0 }",
-        "module negative; @id(\"main\") fn main() -> i64 { while false { let text = \"x\"; 0 } 0 }",
+        // Owned String Loops v1 admits String storage in loop bodies; a
+        // String value in the re-evaluated condition stays refused.
+        "module negative; @id(\"main\") fn main() -> i64 { while string_len(\"x\") > 1 { 0 } 0 }",
     ] {
         let errors = semaprax::check(source, "negative.spx").unwrap_err();
         let expected = if source.contains("let mut text") {

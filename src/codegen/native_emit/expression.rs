@@ -579,6 +579,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 // an alias: cloning it would create an unplanned owner.
                 if matches!(value.ty, ResolvedType::String)
                     && expr.ownership == hir::OwnershipMode::Own
+                    && !self.string_owner_moves.contains(&expr.id)
                 {
                     let temporary = self
                         .bytes_plan
@@ -1301,18 +1302,23 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                 }
                                 None => {
                                     self.require_type(&value.ty, &binding.ty, "assignment")?;
-                                    if matches!(binding.ty, ResolvedType::String) {
+                                    let string_append = crate::string_ops::is_same_owner_concat_hir(
+                                        assigned,
+                                        &binding.id,
+                                    );
+                                    if matches!(binding.ty, ResolvedType::String) && !string_append
+                                    {
                                         return Err(backend_error(
                                             "string assignment has no admitted native lowering",
                                         ));
                                     }
-                                    // Same-owner replacement: the canonical
-                                    // cleanup plan already carries the one
-                                    // transfer that publishes the next
-                                    // generation, for `vec_push` and for the
-                                    // loop-carried `bytes_set` fill alike.
+                                    // Same-owner replacement: the canonical cleanup plan
+                                    // already carries the one transfer that publishes the
+                                    // next generation, for `vec_push`, the loop-carried
+                                    // `bytes_set` fill and the String append alike.
                                     if super::is_native_owned_vec_type(self.program, &binding.ty)
                                         || matches!(binding.ty, ResolvedType::Bytes)
+                                        || string_append
                                     {
                                         let plan = self.bytes_plan.ok_or_else(|| {
                                             backend_error(

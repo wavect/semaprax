@@ -285,3 +285,177 @@ pub(crate) fn ast_params(op: StringOp) -> Vec<Param> {
         })
         .collect()
 }
+
+/// Owned String Loops v1 same-owner append: `text = string_concat(text, …)`,
+/// where the assignment target and the first operand are the same whole
+/// `let mut` binding. The call consumes the current generation as its first
+/// staged argument and the assignment publishes the next one, so exactly one
+/// generation of the owner is live and no release happens at the assignment.
+pub(crate) fn is_same_owner_concat_source(value: &crate::ast::Expr, name: &str, ty: &Type) -> bool {
+    *ty == Type::String && is_same_owner_concat_shape(value, name)
+}
+
+/// The syntactic half of [`is_same_owner_concat_source`], without the binding
+/// type.
+pub(crate) fn is_same_owner_concat_shape(value: &crate::ast::Expr, name: &str) -> bool {
+    let crate::ast::ExprKind::Call {
+        name: callee,
+        type_arguments,
+        args,
+    } = &value.kind
+    else {
+        return false;
+    };
+    by_name(callee) == Some(StringOp::Concat)
+        && type_arguments.is_empty()
+        && args.len() == 2
+        && matches!(&args[0].kind, crate::ast::ExprKind::Var(source) if source == name)
+}
+
+/// Resolved-HIR twin of [`is_same_owner_concat_source`]. Hostile HIR that
+/// never passed through source text must re-derive the identical fact.
+pub(crate) fn is_same_owner_concat_hir(value: &crate::hir::ResolvedExpr, owner: &ValueId) -> bool {
+    matches!(
+        &value.kind,
+        crate::hir::ResolvedExprKind::Call { callee, type_arguments, instance: None, args }
+            if by_id(callee.as_str()) == Some(StringOp::Concat)
+                && type_arguments.is_empty()
+                && args.len() == 2
+                && value.ty == ResolvedType::String
+                && matches!(
+                    &args[0].kind,
+                    crate::hir::ResolvedExprKind::Place(place)
+                        if &place.root == owner && place.projections.is_empty()
+                )
+    )
+}
+
+/// Whether a source call touches an owned `string`: every compiler-owned
+/// String operation (producers allocate; readers read a cloned operand), or a
+/// declared function with a `string` parameter or result.
+pub(crate) fn source_call_uses_string(name: &str, uses_string: &dyn Fn(&str) -> bool) -> bool {
+    by_name(name).is_some() || uses_string(name)
+}
+
+/// Owned String Loops v1 keeps every `while` condition free of owned String
+/// values: a condition re-evaluates outside the per-iteration body region, so
+/// an owned temporary there (a literal, a produced String, or the clone an
+/// owning String read allocates) would have no per-iteration release point.
+/// Return the span of the first string literal or String-touching call in
+/// source order. Forms the while admission scan rejects anyway are not entered.
+pub(crate) fn owned_string_in_condition(
+    condition: &crate::ast::Expr,
+    uses_string: &dyn Fn(&str) -> bool,
+) -> Option<Span> {
+    use crate::ast::{ExprKind, Statement};
+    let mut pending = vec![condition];
+    while let Some(expression) = pending.pop() {
+        match &expression.kind {
+            ExprKind::String(_) => return Some(expression.span),
+            ExprKind::Call { name, args, .. } => {
+                if source_call_uses_string(name, uses_string) {
+                    return Some(expression.span);
+                }
+                pending.extend(args.iter().rev());
+            }
+            ExprKind::Unary { value, .. } => pending.push(value),
+            ExprKind::Binary { left, right, .. } => {
+                pending.push(right);
+                pending.push(left);
+            }
+            ExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                pending.push(else_branch);
+                pending.push(then_branch);
+                pending.push(condition);
+            }
+            ExprKind::Block { statements, tail } => {
+                pending.push(tail);
+                for statement in statements.iter().rev() {
+                    if matches!(statement, Statement::Let { .. } | Statement::Assign { .. }) {
+                        pending.extend(
+                            (0..statement.child_count())
+                                .rev()
+                                .filter_map(|index| statement.child(index)),
+                        );
+                    }
+                }
+            }
+            ExprKind::Match {
+                scrutinee, arms, ..
+            } => {
+                pending.extend(arms.iter().rev().map(|arm| &arm.value));
+                pending.push(scrutinee);
+            }
+            ExprKind::Yield { request } => pending.push(request),
+            _ => {}
+        }
+    }
+    None
+}
+
+/// The stable refusal for [`owned_string_in_condition`].
+pub(crate) const OWNED_STRING_CONDITION_MESSAGE: &str = "string values are not admitted in while conditions; compute a scalar such as `string_len(text)` in the loop body and test that";
+
+/// Owned String Loops v1: every same-owner append
+/// `text = string_concat(text, …)` in one function, keyed by its moving
+/// first-operand place and mapped to the appended call value. Every other
+/// owning String place read allocates a clone; these reads instead move the
+/// binding's current generation into the call, so the assignment can publish
+/// the next generation into the then-dead binding slot. The cleanup builder,
+/// its independent replay, and every lowering derive this exact map.
+pub(crate) fn same_owner_concat_appends(
+    function: &crate::hir::ResolvedFunction,
+) -> std::collections::BTreeMap<crate::hir::ExpressionId, crate::hir::ExpressionId> {
+    use crate::hir::{ResolvedExprKind, ResolvedStatement};
+    let mut appends = std::collections::BTreeMap::new();
+    let mut pending = vec![&function.body];
+    while let Some(expression) = pending.pop() {
+        if let ResolvedExprKind::Block { statements, .. } = &expression.kind {
+            for statement in statements {
+                if let ResolvedStatement::Assign {
+                    binding,
+                    field: None,
+                    value,
+                    ..
+                } = statement
+                {
+                    if let (true, ResolvedExprKind::Call { args, .. }) =
+                        (is_same_owner_concat_hir(value, &binding.id), &value.kind)
+                    {
+                        appends.insert(args[0].id.clone(), value.id.clone());
+                    }
+                }
+            }
+        }
+        pending.extend(crate::interpreter::trace_child_expressions(expression));
+    }
+    appends
+}
+
+/// The moving first-operand places of [`same_owner_concat_appends`].
+pub(crate) fn same_owner_concat_operands(
+    function: &crate::hir::ResolvedFunction,
+) -> std::collections::BTreeSet<crate::hir::ExpressionId> {
+    same_owner_concat_appends(function).into_keys().collect()
+}
+
+/// Cleanup order after a same-owner append publishes the next generation:
+/// the binding keeps the position its previous generation held when it was
+/// staged (`history`), so loop iterations and branch joins see one stable
+/// initialization history. Flags initialized meanwhile keep their order after
+/// the reserved history.
+pub(crate) fn append_publication_order(
+    history: &[crate::cleanup::LivenessFlagId],
+    live: &[crate::cleanup::LivenessFlagId],
+) -> Vec<crate::cleanup::LivenessFlagId> {
+    history
+        .iter()
+        .filter(|flag| live.contains(flag))
+        .chain(live.iter().filter(|flag| !history.contains(flag)))
+        .copied()
+        .collect()
+}

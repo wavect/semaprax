@@ -4485,6 +4485,9 @@ impl<'a> HirValidator<'a> {
                     if crate::hir::iterator_loop::is_step_reassignment(assigned, &binding.id) {
                         scope = assigned_scope;
                         iterator_loops::reopen_step(&mut scope, &binding.id)?;
+                    } else if crate::string_ops::is_same_owner_concat_hir(assigned, &binding.id) {
+                        scope = assigned_scope;
+                        iterator_loops::reopen_string(&mut scope, &binding.id)?;
                     }
                     let target = scope.get(&binding.id).cloned();
                     let Some(target) = target else {
@@ -4526,6 +4529,10 @@ impl<'a> HirValidator<'a> {
                                     &binding.id,
                                 )
                                 && !crate::byte_ops::is_same_owner_set_hir(assigned, &binding.id)
+                                && !crate::string_ops::is_same_owner_concat_hir(
+                                    assigned,
+                                    &binding.id,
+                                )
                                 && !crate::hir::iterator_loop::is_step_reassignment(
                                     assigned,
                                     &binding.id,
@@ -6766,6 +6773,9 @@ impl<'a> HirValidator<'a> {
                             ) {
                                 iterator_loops::reopen_step(&mut block_scope, &binding.id)?;
                             }
+                            if crate::string_ops::is_same_owner_concat_hir(assigned, &binding.id) {
+                                iterator_loops::reopen_string(&mut block_scope, &binding.id)?;
+                            }
                             let target = block_scope.get(&binding.id).cloned();
                             let Some(target) = target else {
                                 return Err(hir_error(format!(
@@ -6810,6 +6820,10 @@ impl<'a> HirValidator<'a> {
                                             &binding.id,
                                         )
                                         && !crate::byte_ops::is_same_owner_set_hir(
+                                            assigned,
+                                            &binding.id,
+                                        )
+                                        && !crate::string_ops::is_same_owner_concat_hir(
                                             assigned,
                                             &binding.id,
                                         )

@@ -18,6 +18,7 @@ const { revealCurrentSource } = require('./explorer-reveal');
 const tokenReport = require('./token-report');
 const harness = require('./harness');
 const { HotReload } = require('./hot-reload');
+const { activateCompilerSetup } = require('./compiler-ui');
 const { ContentStore, REVIEW_LIMITS, TOKEN_REPORT_LIMITS } = require('./virtual-documents');
 // Grace before a closed view's content is released; a reopen of the same URI
 // (a language change) within it cancels the release.
@@ -28,7 +29,7 @@ let stopActive = () => {};
 // the saved file's project and publish the result as editor diagnostics. It
 // starts no session, writes no file and never discovers a binary; an empty
 // `semaprax.compilerPath` disables it entirely.
-function activateChecks(context, testMode) {
+function activateChecks(context, testMode, onCompilerUnusable = () => {}) {
   const collection = vscode.languages.createDiagnosticCollection('semaprax');
   const output = vscode.window.createOutputChannel('SEMAPRAX Check');
   const ledger = new checks.DiagnosticLedger();
@@ -67,6 +68,8 @@ function activateChecks(context, testMode) {
     let own;
     const versions = sourceVersions();
     const result = await checks.runCheck(spawn, binary, subject, { onChild: child => { own = child; running.set(subject, child); } });
+    // A binary that cannot start (moved or removed) is surfaced by the status item, never by a prompt per save.
+    if (result.error) onCompilerUnusable();
     if (running.get(subject) !== own) return { ...result, failure: 'superseded by a newer check of the same subject' };
     running.delete(subject);
     // A run the adapter cannot believe leaves the ledger exactly as it was:
@@ -127,7 +130,7 @@ function activateChecks(context, testMode) {
   };
   async function checkProject() {
     const binary = compiler();
-    if (!binary) throw new Error('Set the user setting semaprax.compilerPath to the absolute path of a semaprax binary to check a project');
+    if (!binary) throw new Error('Run SEMAPRAX: Configure Compiler (or set the user setting semaprax.compilerPath to the absolute path of a semaprax binary) to check a project');
     if (!vscode.workspace.isTrusted) throw new Error('A trusted workspace is required');
     const doc = vscode.window.activeTextEditor?.document;
     let subject;
@@ -145,7 +148,7 @@ function activateChecks(context, testMode) {
   // here starts a session, writes a file, or reads workspace settings.
   const requireCompiler = purpose => {
     const binary = compiler();
-    if (!binary) throw new Error(`Set the user setting semaprax.compilerPath to the absolute path of a semaprax binary to ${purpose}`);
+    if (!binary) throw new Error(`Run SEMAPRAX: Configure Compiler (or set the user setting semaprax.compilerPath to the absolute path of a semaprax binary) to ${purpose}`);
     if (!vscode.workspace.isTrusted) throw new Error('A trusted workspace is required');
     return binary;
   };
@@ -579,7 +582,14 @@ function activate(context) {
   const explorerRenders = [], explorerActions = [], explorerReplies = [];
   let watchers = [];
   const testMode = context.extensionMode === vscode.ExtensionMode.Test;
-  const checking = activateChecks(context, testMode);
+  let compilerSetup;
+  const checking = activateChecks(context, testMode, () => { void compilerSetup?.refresh(); });
+  compilerSetup = activateCompilerSetup(vscode, { spawn, fs });
+  context.subscriptions.push(compilerSetup.item,
+    vscode.commands.registerCommand('semaprax.configureCompiler', () => compilerSetup.configure().catch(error => { void vscode.window.showErrorMessage(String(error.message || error).slice(0, 4096)); })),
+    vscode.workspace.onDidChangeConfiguration(event => { if (event.affectsConfiguration('semaprax')) void compilerSetup.refresh(); }),
+    vscode.workspace.onDidGrantWorkspaceTrust(() => { void compilerSetup.refresh(); }));
+  void compilerSetup.refresh();
   const testInputs = [], testPicks = [], testReports = [];
   const input = options => testMode && testInputs.length ? Promise.resolve(testInputs.shift()) : vscode.window.showInputBox(options);
   const pick = (items, options) => {
@@ -1286,7 +1296,8 @@ function activate(context) {
     },
     // The check-on-save half, so the host test can exercise the diagnostic
     // ledger, its classification of a compiler run, and the code lenses.
-    checks: checking.test
+    checks: checking.test,
+    compilerSetup
   });
 }
 function deactivate() { stopActive(); }

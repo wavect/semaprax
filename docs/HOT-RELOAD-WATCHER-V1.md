@@ -56,6 +56,18 @@ session memory. EOF, `stop`, a response-bound refusal, or a disconnected
 consumer release the watcher and discard any retained plan before the CLI
 returns.
 
+The VS Code controller treats standard output as LF-delimited bytes. Each
+response frame, including its LF, is bounded by 8 KiB independently of how the
+operating system splits or batches reads, so many small responses delivered in
+one read are accepted; one over-limit frame, malformed or truncated UTF-8, or a
+stream that ends inside a frame is a terminal transport failure. A CR before the
+LF is JSON whitespace. A failure writing to the child's standard input (a broken
+pipe, a write error, or a late error after Stop or from a superseded session) is
+consumed by the controller and settles the session once as terminal, with
+pending requests released and the child terminated. If an `activate` request
+may have been transmitted, the active state is reported unknown and the request
+is never replayed.
+
 `invoke` explicitly runs the current prepared interpreter entry after a
 successful start or activation; a save itself never runs it. The public
 `semaprax` binary refuses `--source-agent` at `start`: it has no source-live

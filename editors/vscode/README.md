@@ -25,11 +25,35 @@ Semaprax is an experimental AI-agent-native systems programming language built a
 - Agent-definition inspection and trace/evidence transcript viewing
 - Read-only local token-report snapshots
 
-The extension does not silently discover or download a compiler, and it does not grant itself build, commit, approval, publication, or network authority.
+The extension does not silently discover, run, or download a compiler (discovered candidates are only offered for you to select), and it does not grant itself build, commit, approval, publication, or network authority.
 
 ## Requirements
 
-Install a compatible Semaprax compiler and configure its absolute path in VS Code user settings:
+Install a Semaprax compiler first; the [installation guide](../../handbook/getting-started/install.md) ([online](https://github.com/wavect/semaprax/blob/main/handbook/getting-started/install.md)) covers the options. The extension never downloads or runs a compiler on its own.
+
+## Select your compiler
+
+A status bar item shows the compiler state. Click it, or run **SEMAPRAX: Configure Compiler** from the command palette, and choose:
+
+- **Select installed compiler...** opens a file picker for the `semaprax` executable.
+- A listed candidate: known per-user install locations (`$HOME/.semaprax/bin/semaprax`, `%LOCALAPPDATA%\Programs\Semaprax\bin\semaprax.exe`, Homebrew's `/opt/homebrew/bin` and `/usr/local/bin`) and `semaprax` entries on your `PATH` that exist on disk. Candidates are only listed; none is run until you select it.
+- **Re-check current compiler** and **Open installation guide**.
+
+After you select a file, the extension runs `version --json` and `help all` once on that executable (directly, without a shell, with a 10 second and 256 KiB bound) to confirm it is a Semaprax compiler, and only then saves the absolute path to your **user** settings. Cancelling, or selecting something that fails the check, changes nothing and keeps any working selection. Saving an `.spx` file then publishes compiler diagnostics in the Problems panel; no manifest, host policy, or session is needed for that.
+
+Status bar states:
+
+| State | Meaning |
+| --- | --- |
+| select compiler | No compiler is selected. Diagnostics are off; no prompt appears on save. |
+| compiler *x.y.z* | Ready for diagnostics on save. The tooltip lists any missing prerequisite for saved-source sessions and warns when `semaprax` on `PATH` is a different installation. |
+| compiler unavailable | The selected file was moved, removed, or cannot start. Select it again to repair. |
+| incompatible compiler | The executable did not answer the version contract or does not advertise `check`. |
+| untrusted workspace | Nothing is executed until the workspace is trusted. |
+
+Which advanced features are offered depends on the selected executable's own `help all` catalog, not on its file name.
+
+The selection is stored in the machine-scoped setting `semaprax.compilerPath`; workspace and folder values are never used to choose the executable. You may still set it by hand:
 
 ```json
 {
@@ -37,11 +61,10 @@ Install a compatible Semaprax compiler and configure its absolute path in VS Cod
 }
 ```
 
-For saved-source sessions, also configure the project manifest and host policy:
+Saved-source sessions additionally need the project manifest and host policy, and a compiler that advertises `serve-workspace-mcp`:
 
 ```json
 {
-  "semaprax.compilerPath": "/absolute/path/to/semaprax",
   "semaprax.manifestPath": "/absolute/project/semaprax.toml",
   "semaprax.hostPolicyPath": "/absolute/path/to/host-policy.json"
 }
@@ -51,9 +74,9 @@ These are machine-scoped settings. Workspace and folder overrides are intentiona
 
 ## Quick start
 
-1. Install or build Semaprax from the main repository.
+1. Install Semaprax (see the installation guide above).
 2. Open a project containing `.spx` files.
-3. Set `semaprax.compilerPath` to your Semaprax binary.
+3. Run **SEMAPRAX: Configure Compiler** and select your `semaprax` executable.
 4. Save an `.spx` file to get compiler diagnostics, or run **SEMAPRAX: Check Project** from the command palette.
 5. Use semantic commands such as **Go to Declaration by Stable ID**, **Show Callers of a Declaration**, and **Show Ownership, Contracts, and Effects**.
 
@@ -66,7 +89,7 @@ cargo run --locked -p semaprax -- check examples/meaning.spx
 cargo run --locked -p semaprax -- run examples/meaning.spx
 ```
 
-See the repository's [installation guide](../../docs/INSTALL.md) for prerequisites and installation options.
+See the [installation guide](../../handbook/getting-started/install.md) for prerequisites and installation options.
 
 ## Saved-source and typed-intent workflows
 

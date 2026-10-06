@@ -55,6 +55,7 @@
     "virtualWorkspaces": false
   },
   "activationEvents": [
+    "onCommand:semaprax.configureCompiler",
     "onCommand:semaprax.start",
     "onCommand:semaprax.startHotReload",
     "onLanguage:semaprax",
@@ -125,6 +126,7 @@
       { "command": "semaprax.completeDraft", "title": "SEMAPRAX: Complete Ready Draft as Candidate" },
       { "command": "semaprax.discardDraft", "title": "SEMAPRAX: Discard Typed-Hole Draft" },
       { "command": "semaprax.refresh", "title": "SEMAPRAX: Preview and Explicitly Refresh Saved Source" },
+      { "command": "semaprax.configureCompiler", "title": "SEMAPRAX: Configure Compiler" },
       { "command": "semaprax.checkProject", "title": "SEMAPRAX: Check Project" },
       { "command": "semaprax.goToDeclaration", "title": "SEMAPRAX: Go to Declaration by Stable ID" },
       { "command": "semaprax.showReferences", "title": "SEMAPRAX: Show Callers of a Declaration" },
@@ -144,7 +146,7 @@
     "configuration": {
       "title": "SEMAPRAX",
       "properties": {
-        "semaprax.compilerPath": { "type": "string", "default": "", "scope": "machine", "description": "User-selected absolute compiler binary path. Never read from workspace settings." },
+        "semaprax.compilerPath": { "type": "string", "default": "", "scope": "machine", "description": "User-selected absolute compiler binary path. Never read from workspace settings. Prefer the SEMAPRAX: Configure Compiler command, which verifies the executable before saving it." },
         "semaprax.rustIndexPath": { "type": "string", "default": "", "scope": "machine", "description": "Optional user-selected absolute prepared Rust API index file for read-only imported API hover, completion, and fixes. The compiler replays its bytes; no extractor or build runs." },
         "semaprax.checkOnSave": { "type": "boolean", "default": true, "scope": "machine", "description": "Run the selected compiler's read-only `check --json` on the saved file's project and show its diagnostics. Effective only when semaprax.compilerPath is set." },
         "semaprax.codeLens": { "type": "boolean", "default": true, "scope": "machine", "description": "Show stable identity, effect, and contract code lenses above each declaration of a saved .spx file, from the selected compiler's read-only `query --json`. Effective only when semaprax.compilerPath is set." },

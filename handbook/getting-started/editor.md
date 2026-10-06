@@ -10,9 +10,23 @@ contains installation details and the full command list.
 
 ## Connect the compiler you installed
 
-Find your executable with `command -v semaprax` on macOS/Linux or
-`Get-Command semaprax` in PowerShell. Put its absolute path in your VS Code
-**user settings**, replacing the example value below:
+Install a compiler first (see the [installation guide](install.md)). Then click
+the **SEMAPRAX** item in the status bar, or run **SEMAPRAX: Configure Compiler**
+from the command palette, and choose **Select installed compiler...** to pick
+the `semaprax` executable with a file picker. The list also offers executables
+it found in the usual per-user install locations and on your `PATH`; those are
+only listed, and nothing runs until you select one.
+
+After you choose, the extension runs `version --json` and `help all` once on
+that file to confirm it is a Semaprax compiler, then saves its absolute path
+in your VS Code **user settings**. If the check fails, or you cancel, nothing
+changes. The status bar then shows the compiler version, or one of: select
+compiler, compiler unavailable (the file moved or was removed; select it
+again), incompatible compiler, or untrusted workspace. No dialog appears on
+every save.
+
+You can still set the path yourself in user settings, replacing the example
+value below:
 
 ```json
 {
@@ -30,9 +44,11 @@ compiler for you.
 Open an `.spx` file, save it, and inspect the Problems panel. You can also open
 the command palette and run **SEMAPRAX: Check Project**.
 
-Check-on-save is enabled by default. The extension does not download a compiler
-for you. A blank compiler path or an executable from an older source snapshot
-can explain missing features even when syntax highlighting works.
+Check-on-save is enabled by default and needs only the compiler: no manifest,
+host policy, or session. The extension does not download a compiler for you.
+A missing selection, a moved executable, or an older compiler that does not
+advertise a command can explain missing features even when syntax highlighting
+works; the status bar tooltip says which.
 
 ## Navigate by meaning
 

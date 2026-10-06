@@ -2,6 +2,7 @@ use super::*;
 use ed25519_dalek::{Signer, SigningKey};
 use std::sync::OnceLock;
 
+#[cfg(any(target_os = "linux", target_os = "android", target_vendor = "apple"))]
 pub(super) fn host_v3_migration_fixture() -> (
     String,
     String,
@@ -67,6 +68,7 @@ pub(super) fn host_v3_migration_fixture() -> (
 
 // Test-only signed bytes and independently replayed admission for the physical
 // host regressions. No signing constructor is exposed by production modules.
+#[cfg(any(target_os = "linux", target_os = "android", target_vendor = "apple"))]
 pub(super) fn host_fixture(
     yanked: bool,
 ) -> (String, String, String, String, String, ManifestBoundEntry) {
@@ -92,6 +94,7 @@ pub(super) fn host_fixture(
     )
 }
 
+#[cfg(any(target_os = "linux", target_os = "android", target_vendor = "apple"))]
 pub(super) fn host_artifact_fixture() -> (
     String,
     String,
@@ -113,6 +116,7 @@ pub(super) fn host_artifact_fixture() -> (
     )
 }
 
+#[cfg(any(target_os = "linux", target_os = "android", target_vendor = "apple"))]
 pub(super) fn host_rotation_fixture() -> (String, String, String, String, String, ManifestBoundEntry)
 {
     let mut fixture = Fixture::new();

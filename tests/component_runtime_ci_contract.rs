@@ -75,6 +75,7 @@ fn standalone_runner_is_pinned_private_and_outside_the_root_workspace() {
             "crates/semaprax-project-revision-store-windows-sys",
             "crates/semaprax-toolchain",
             "crates/semaprax-harness",
+            "crates/semaprax-decision-core",
         ]
     );
 

@@ -85,11 +85,11 @@ fn require_private_directory(path: &Path) -> Result<HeldDirectory> {
     Ok(directory)
 }
 
-fn require_private_file(path: &Path) -> Result<()> {
+fn require_private_file(_path: &Path) -> Result<()> {
     #[cfg(unix)]
     {
         use std::os::unix::fs::{MetadataExt, PermissionsExt};
-        let metadata = fs::symlink_metadata(path)
+        let metadata = fs::symlink_metadata(_path)
             .map_err(|error| refused(format!("cannot inspect host strict-law marker: {error}")))?;
         if metadata.uid() != rustix::process::geteuid().as_raw()
             || metadata.permissions().mode() & 0o7777 != 0o600

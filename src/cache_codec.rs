@@ -1,5 +1,24 @@
 //! Compiler-private bounded cache encoding. Decoding is not authentication,
 //! source admission, HIR validation, or permission to use a cached value.
+#![cfg_attr(
+    all(
+        not(test),
+        not(all(
+            unix,
+            any(
+                target_os = "linux",
+                target_os = "android",
+                target_vendor = "apple",
+                target_os = "redox"
+            )
+        ))
+    ),
+    allow(
+        dead_code,
+        reason = "unsupported persistence hosts encode compiler work but do not replay private cache payloads"
+    )
+)]
+
 use crate::diagnostic::Diagnostic;
 use std::collections::{BTreeMap, BTreeSet};
 

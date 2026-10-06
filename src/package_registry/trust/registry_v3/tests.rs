@@ -17,6 +17,7 @@ pub(in crate::package_registry::trust) type Admission = (
 );
 
 // Test-only producer replay and signing. No production constructor is exposed.
+#[cfg(any(target_os = "linux", target_os = "android", target_vendor = "apple"))]
 pub(in crate::package_registry::trust) fn host_fixture(
     yanked: bool,
     version: u64,
@@ -35,6 +36,7 @@ pub(in crate::package_registry::trust) fn host_fixture(
 /// Long-lived test-only signing fixture for offline-age controls. The caller
 /// chooses an expiry beyond the seven-day boundary so a refusal pins the
 /// bridge's local policy rather than ordinary metadata expiry.
+#[cfg(any(target_os = "linux", target_os = "android", target_vendor = "apple"))]
 pub(in crate::package_registry::trust) fn host_fixture_until(
     yanked: bool,
     version: u64,
@@ -51,6 +53,7 @@ pub(in crate::package_registry::trust) fn host_fixture_until(
         f.admitted,
     )
 }
+#[cfg(any(target_os = "linux", target_os = "android", target_vendor = "apple"))]
 pub(in crate::package_registry::trust) fn host_rotation_fixture(
 ) -> (String, String, String, [String; 2], &'static Admission) {
     let mut f = Fixture::new(false);

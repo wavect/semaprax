@@ -2,6 +2,14 @@
 //! returned. The caller supplies the independent bootstrap pin and trusted time.
 //! Same-principal hostile mutation, filesystem rollback and lying fsync/storage
 //! are outside this cooperative local-host boundary.
+#![cfg_attr(
+    not(any(target_os = "linux", target_os = "android", target_vendor = "apple")),
+    allow(
+        dead_code,
+        reason = "unsupported hosts expose only fail-closed trust-store APIs; held-generation helpers are not invoked"
+    )
+)]
+
 use super::*;
 use std::path::Path;
 

@@ -207,7 +207,7 @@ pub(crate) fn is_writer_contention(error: &io::Error) -> bool {
     #[cfg(windows)]
     {
         // LockFileEx and CreateFileW report contention with these raw errors.
-        return matches!(error.raw_os_error(), Some(32) | Some(33));
+        matches!(error.raw_os_error(), Some(32) | Some(33))
     }
     #[cfg(not(windows))]
     false

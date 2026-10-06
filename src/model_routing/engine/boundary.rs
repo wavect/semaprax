@@ -1,7 +1,7 @@
 //! Runtime-safe routing boundary (MR-07).
 //!
 //! A runtime host calls [`recommend`] with candidates it has already admitted
-//! (its pre-bound deployment selections, projected as [`ModelPlan`]s), the
+//! (its pre-bound deployment selections, projected as [`ModelPlan`](super::route::ModelPlan)s), the
 //! task features, its policy and, optionally, an attached decision provider.
 //! The answer is a [`Recommendation`]: an untrusted advisory that names one of
 //! the host's own candidate ids and the frozen fallback order over them.

@@ -2,7 +2,9 @@
 //! This trusted-local profile does not promise memory or OS confinement.
 use crate::agent_runtime::AgentCancellation;
 use crate::diagnostic::Diagnostic;
-use crate::process_provider::{ProcessInvocationBudget, ProcessRequest, ProcessTermination};
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+use crate::process_provider::ProcessTermination;
+use crate::process_provider::{ProcessInvocationBudget, ProcessRequest};
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use sha2::{Digest as _, Sha256};
 use std::{cell::RefCell, path::Path};
@@ -36,6 +38,7 @@ pub enum SmtDiagnosticResult {
 }
 
 enum RunFailure {
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     TimedOut,
     Diagnostic(Diagnostic),
 }
@@ -43,6 +46,7 @@ enum RunFailure {
 impl RunFailure {
     fn diagnostic(self) -> Diagnostic {
         match self {
+            #[cfg(any(target_os = "linux", target_os = "macos"))]
             Self::TimedOut => refused("bounded process failed: TimedOut"),
             Self::Diagnostic(error) => error,
         }
@@ -379,6 +383,7 @@ impl InstalledProofTool {
         }
         match self.version_observed() {
             Ok(_) => {}
+            #[cfg(any(target_os = "linux", target_os = "macos"))]
             Err(RunFailure::TimedOut) => return Ok(SmtDiagnosticResult::TimedOut),
             Err(RunFailure::Diagnostic(error)) => return Err(error),
         }
@@ -388,6 +393,7 @@ impl InstalledProofTool {
             self.limits.proof_timeout_ms,
         ) {
             Ok(output) => output,
+            #[cfg(any(target_os = "linux", target_os = "macos"))]
             Err(RunFailure::TimedOut) => return Ok(SmtDiagnosticResult::TimedOut),
             Err(RunFailure::Diagnostic(error)) => return Err(error),
         };

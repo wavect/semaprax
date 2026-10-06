@@ -75,6 +75,7 @@ impl MirrorCheckpoint {
     /// Reconstructs bridge state only from an authenticated held generation.
     /// This is crate-private so a caller cannot mint an old observation or
     /// detach it from the generation checkpoint that authenticated it.
+    #[cfg(any(target_os = "linux", target_os = "android", target_vendor = "apple"))]
     pub(crate) fn from_held(
         checkpoint: RegistryCheckpoint,
         anchor: Option<(u64, String, u64)>,
@@ -94,6 +95,7 @@ impl MirrorCheckpoint {
     /// The anchor is opaque outside the trust/host boundary. Its values are
     /// only serialized after the held generation independently binds them to
     /// the candidate's authenticated timestamp role.
+    #[cfg(any(target_os = "linux", target_os = "android", target_vendor = "apple"))]
     pub(crate) fn anchor(&self) -> Option<(u64, &str, u64)> {
         self.last_new_timestamp
             .as_ref()

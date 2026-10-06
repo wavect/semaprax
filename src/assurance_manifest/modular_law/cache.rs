@@ -21,7 +21,31 @@ use super::{
 const KEY_DOMAIN: &[u8] = b"semaprax.modular-proof-task.v1\0";
 const MAX_ENTRIES: usize = 1024;
 const MAX_WORK_EVENTS: usize = 4096;
+#[cfg(any(
+    test,
+    all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
+    )
+))]
 const MAX_SNAPSHOT_BYTES: usize = 1024 * 1024;
+#[cfg(any(
+    test,
+    all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
+    )
+))]
 const SNAPSHOT_SCHEMA: &str = "semaprax.modular-proof-task-cache.v1";
 const NUMERIC_MODEL: &str = "semaprax.checked-scalar-qf-lia.v1";
 const AXIOMS: &str = "none";
@@ -153,6 +177,18 @@ pub struct ProofTaskCache {
     observed_overflow: bool,
 }
 
+#[cfg(any(
+    test,
+    all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
+    )
+))]
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Snapshot {
@@ -249,6 +285,18 @@ impl ProofTaskCache {
 
     /// Opaque checked-success snapshot for the host-selected authenticated
     /// semantic cache store. No source text, counterexamples or solver output.
+    #[cfg(any(
+        test,
+        all(
+            unix,
+            any(
+                target_os = "linux",
+                target_os = "android",
+                target_vendor = "apple",
+                target_os = "redox"
+            )
+        )
+    ))]
     pub(crate) fn encode_snapshot(&self) -> Result<Vec<u8>, Vec<crate::diagnostic::Diagnostic>> {
         let mut bytes = serde_json::to_vec(&Snapshot {
             schema: SNAPSHOT_SCHEMA.into(),
@@ -265,6 +313,18 @@ impl ProofTaskCache {
 
     /// Called only after the cache store authenticated the full envelope.
     /// Each later lookup still rederives the current checked query and key.
+    #[cfg(any(
+        test,
+        all(
+            unix,
+            any(
+                target_os = "linux",
+                target_os = "android",
+                target_vendor = "apple",
+                target_os = "redox"
+            )
+        )
+    ))]
     pub(crate) fn decode_snapshot(
         bytes: &[u8],
     ) -> Result<Self, Vec<crate::diagnostic::Diagnostic>> {

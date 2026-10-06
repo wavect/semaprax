@@ -20,27 +20,27 @@
       "language_attributable": 12235
     },
     "semaprax webapp": {
-      "reference": 1081,
-      "authored": 4486,
+      "reference": 1116,
+      "authored": 3591,
       "files": 1,
-      "green": 321,
+      "green": 336,
       "per_file": {
-        "input": 12287,
-        "output": 4486,
-        "total": 16773
+        "input": 11477,
+        "output": 3591,
+        "total": 15068
       },
       "batched": {
-        "input": 12287,
-        "output": 4486,
-        "total": 16773
+        "input": 11477,
+        "output": 3591,
+        "total": 15068
       },
-      "language_attributable": 5888
+      "language_attributable": 5043
     }
   },
   "typescript_over_semaprax": {
-    "authored": 2.71,
-    "language_attributable": 2.08,
-    "batched": 1.77,
-    "per_file": 6.45
+    "authored": 3.38,
+    "language_attributable": 2.43,
+    "batched": 1.97,
+    "per_file": 7.19
   }
 }

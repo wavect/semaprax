@@ -109,6 +109,17 @@ impl Parser {
                     }
                 } else if self.take(&TokenKind::ColonColon) {
                     let (case_name, case_span) = self.ident("variant case name in match pattern")?;
+                    // A payload-free case pattern may omit `{}`.
+                    if !self.at(&TokenKind::LBrace) {
+                        return Ok(MatchPattern::Variant {
+                            type_name: name,
+                            type_span: token.span,
+                            case_name,
+                            case_span,
+                            fields: Vec::new(),
+                            span: token.span.merge(case_span),
+                        });
+                    }
                     self.expect(&TokenKind::LBrace, "`{` after variant case pattern")?;
                     let mut fields = Vec::new();
                     while !self.at(&TokenKind::RBrace) {

@@ -1,6 +1,16 @@
 //! Bounded explicit-generic lookahead shared by expression parsing.
 use super::*;
 impl Parser {
+    /// Whether the `{` after `Type::Case` opens a payload: it does when the
+    /// next token closes it or names a field with `:`.
+    pub(super) fn at_variant_payload(&self) -> bool {
+        let kind = |offset: usize| self.tokens.get(self.cursor + offset).map(|t| &t.kind);
+        kind(0) == Some(&TokenKind::LBrace)
+            && (kind(1) == Some(&TokenKind::RBrace)
+                || (matches!(kind(1), Some(TokenKind::Ident(_)))
+                    && kind(2) == Some(&TokenKind::Colon)))
+    }
+
     pub(super) fn looks_like_generic_variant_qualifier(&self) -> bool {
         self.looks_like_generic_qualifier(TokenKind::ColonColon)
     }

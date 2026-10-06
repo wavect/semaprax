@@ -965,11 +965,19 @@ impl Parser {
                 };
                 let type_span = expression.span;
                 let (case_name, case_span) = self.ident("variant case name after `::`")?;
-                self.expect(&TokenKind::LBrace, "`{` after variant case name")?;
-                let fields = self.field_initializers("variant payload field")?;
-                let end = self
-                    .expect(&TokenKind::RBrace, "`}` after variant payload")?
-                    .span;
+                // A payload-free case may omit `{}`; `fmt` writes it back. A
+                // `{` opens a payload only before `}` or `field:`, so
+                // `if x == E::A { 1 } else { 2 }` keeps its block.
+                let (fields, end) = if self.at_variant_payload() {
+                    self.bump();
+                    let fields = self.field_initializers("variant payload field")?;
+                    let end = self
+                        .expect(&TokenKind::RBrace, "`}` after variant payload")?
+                        .span;
+                    (fields, end)
+                } else {
+                    (Vec::new(), case_span)
+                };
                 expression = Expr {
                     kind: ExprKind::ConstructVariant {
                         type_name,

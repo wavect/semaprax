@@ -225,7 +225,8 @@ fn main() -> i64
 
 - A declaration's last field or case may omit its `,`; `fmt` writes it.
 - Give every field and case its own `@id`. Cases without payload are
-  written `Name,` in the declaration and `Type::Name {}` everywhere else.
+  written `Name,` in the declaration and `Type::Name {}` everywhere else;
+  the `{}` may be omitted (`Type::Name`) and `fmt` writes it back.
 - Constructing a generic variant spells the type arguments:
   `Option<i64>::Some { value: v }`. Matching one does not:
   `Option::Some { value: v } => …`. Neither side accepts `Some(v)`. Generic
@@ -866,7 +867,10 @@ fn order_status(paid: bool) -> string
   that reference this row: `fn customer_spent(sum_order_total: f64) -> f64`.
 - Accounts: `fn member_account(email: string, active: bool) -> bool {
   active }` makes `Member` the sign-in entity (login field first; the server
-  keeps a write-only `password`). First run: `node out/server.mjs --setup`.
+  keeps a write-only `password`). First run: start `node out/server.mjs
+  --setup` in the background; until some account has a password every request
+  is allowed, so POST the first account with a `"password"` field, then sign
+  in. The self-test needs no setup.
 - Permissions: `fn <entity>_can_read` / `_can_write(…) -> bool` take row
   fields plus `me: i64` and `my_<account field>`. Unprefixed `can_read` /
   `can_write` (or `can_write_<name>`) are defaults; one taking row fields such

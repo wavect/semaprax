@@ -554,3 +554,58 @@ fn rejected_or_patterns_keep_stable_diagnostics() {
         assert_eq!(rendered, expected, "{arms}");
     }
 }
+
+/// A payload-free case may omit `{}` in expressions and patterns; the
+/// formatter writes it back, so the bare spelling is the same program.
+#[test]
+fn bare_payload_free_cases_parse_to_the_braced_program() {
+    for source in [EQUALITY, CONTRACT] {
+        let bare = source.replace(" {}", "");
+        assert_ne!(bare, source, "the corpus must spell some empty payloads");
+        let program = parse(&bare, Path::new("vareq-bare.spx")).unwrap();
+        assert!(verify::verify(&program).is_empty());
+        assert_eq!(format::canonical(&program), source);
+        let braced = parse(source, Path::new("vareq.spx")).unwrap();
+        assert_eq!(graph::revision(&program), graph::revision(&braced));
+    }
+    // A block after a bare case stays a block, and a pattern needs no braces.
+    let source = r#"module app.bare;
+
+@id("bare.status")
+variant Status {
+    @id("bare.status.todo")
+    Todo,
+    @id("bare.status.done")
+    Done,
+}
+
+@id("bare.score")
+fn score(s: Status) -> i64
+{
+    let a = if s == Status::Done { 1 } else { 2 };
+    a + match s { Status::Todo => 10, Status::Done => 20, }
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    score(Status::Done) * 100 + score(Status::Todo)
+}
+"#;
+    let program = parse(source, Path::new("bare.spx")).unwrap();
+    assert!(
+        verify::verify(&program).is_empty(),
+        "{:?}",
+        diagnostics(source)
+    );
+    let canonical = format::canonical(&program);
+    assert!(
+        canonical.contains("if (s == Status::Done {}) { 1 } else { 2 }"),
+        "{canonical}"
+    );
+    assert!(canonical.contains("Status::Todo {} => 10"), "{canonical}");
+    if let Some((ok, stdout, _)) = run_native(source, "bare") {
+        assert!(ok);
+        assert_eq!(stdout.trim(), "2112");
+    }
+}

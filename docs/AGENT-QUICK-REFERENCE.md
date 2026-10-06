@@ -137,12 +137,16 @@ fn main() -> i64
   (`fmt` writes them as `else { if … }`).
 - A `while` condition must be `bool` and is checked before every iteration.
   Its body still needs a final expression, but that value is discarded; the
-  condition controls repetition. While bodies admit only
-  Copy-scalar operations and scalar-returning calls, plus the exact
-  `byte_get`/`Option<u8>` inspection profile; record/variant construction and
-  aggregate-returning calls are `SPX-T252`.
+  condition controls repetition. While bodies admit
+  Copy-scalar operations and scalar-returning calls, the exact
+  `byte_get`/`Option<u8>` inspection profile, and string literals and
+  `string_*` calls (each iteration releases its own strings); record/variant
+  construction, other aggregate-returning calls, and any string value in the
+  condition are `SPX-T252`.
 - Bindings are immutable unless `let mut`. Assignment is a statement:
-  `x = x + 1;` or `point.x = 5;`. Parameters are immutable.
+  `x = x + 1;` or `point.x = 5;`. Parameters are immutable. A `let mut`
+  string grows only by the append `text = string_concat(text, more);`, which
+  moves the old text into the call; other string reassignment is `SPX-U105`.
 - Contracts are `requires`/`ensures` lines between the signature and the body;
   `result` names the return value. They are checked at run time.
 - Effects: the module lists `permit { … }`, and every function that performs
@@ -575,6 +579,39 @@ fn main() -> i64
 
 `semaprax run count.spx` prints `42`. Use `string_from_i64` for signed values.
 
+Build text in a loop by appending to a `let mut` string. Keep the loop
+condition scalar; a string there is `SPX-T252`
+([Owned String Loops v1](OWNED-STRING-LOOPS-V1.md)):
+
+```semaprax
+module app.join;
+
+permit { process.stdout.write }
+
+@id("app.main")
+fn main() -> i64
+    uses { process.stdout.write }
+{
+    let mut out = string_from_i64(0);
+    let mut i = 1;
+    while i < 5 {
+        out = string_concat(out, ",");
+        out = string_concat(out, string_from_i64(i));
+        i = i + 1;
+        0
+    }
+    let view = string_as_str(out);
+    let written = stdout_write(str_as_bytes(view));
+    if written == 9usize { 0 } else { 1 }
+}
+```
+
+`semaprax run join.spx` prints `0,1,2,3,4`. `while string_len(text) < 4` is
+`SPX-T252`; track the length in a scalar instead: `let mut size =
+string_len(text);` before the loop, `size = string_len(text);` in the body,
+and `while size < 4`. `text = "b";` on a string is `SPX-U105`; append with
+`text = string_concat(text, "b");` or bind a new name.
+
 ## Lists and iterators
 
 A list of Copy scalars is a `Vec<T>`. Every `vec_*` call spells its element
@@ -969,6 +1006,7 @@ dependencies. See [Project Lock v1](PROJECT-LOCK-V1.md) and
   [field mutation](FIELD-MUTATION-V1.md), [while loops](WHILE-LOOPS-V1.md),
   [bounded Vec `for` traversal](OWNED-BOUNDED-VEC-FOR-TRAVERSAL-V1.md),
   [refutable match](REFUTABLE-MATCH-V1.md), [string operations](STRING-OPS-V1.md),
+  [owned string loops](OWNED-STRING-LOOPS-V1.md),
   [owned string views](OWNED-STRING-BORROWED-VIEW-V1.md),
   [indexed byte data](PORTABLE-INDEXED-BYTE-DATA-V1.md),
   [command I/O](BOUNDED-LANGUAGE-COMMAND-IO-V1.md), and

@@ -78,6 +78,12 @@ though their construction adds no cleanup edges today; rejecting is the
 conservative choice until aggregate lowering inside loops is separately
 evidenced.
 
+[Owned String Loops v1](OWNED-STRING-LOOPS-V1.md) additively admits string
+literals and compiler-owned `string_*` calls in loop bodies and the
+same-owner append `text = string_concat(text, more)`; a string value in a loop
+condition stays `SPX-T252`. The rest of this section describes the v1 scalar
+profile.
+
 This restriction means admitted loops contribute **zero** new cleanup slots,
 transitions, or finalizers: the CleanupPlan v2/v3 schema set, the plan
 builder, the independent replay gate, and every serialized plan for programs

@@ -102,3 +102,69 @@ fn hp_mc06_graphify_zero_item_skipped_docs_result_is_admitted_within_budget() {
         );
     }
 }
+
+/// DV-13: the Graft adapter (shim upstream, 84 skipped `.spx` files, zero items) at a 4096-byte cap.
+const GRAFT_DRIVER: &str = r#"
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+const dir = process.argv[1];
+const { Adapter, makeProject, makeShim, tmp } = await import(dir + '/test/helpers.mjs');
+const root = makeProject('dv13');
+for (let i = 0; i < 80; i++) {
+  const p = join(root, `extra/file-${String(i).padStart(3, '0')}-${'x'.repeat(35)}.spx`);
+  mkdirSync(dirname(p), { recursive: true });
+  writeFileSync(p, 'fn main() -> i32 { 0 }\n');
+}
+const a = new Adapter({ root, cache: tmp('c'), upstream: makeShim().bin });
+await a.init();
+for (const budget of process.argv.slice(2).map(Number)) {
+  const req = a.envelope('orient', { max_items: 10 }, { budget: { max_result_bytes: budget, remaining_calls: 8 },
+    invocation_id: 'inv-000001', project: { id: 'p1', worktree: 'w1', revision: 'r1' }, lock_digest: 'sha256:' + '0'.repeat(63) + '1' });
+  const res = (await a.rpc('harness/invoke', req)).result;
+  console.log(budget + ' ' + JSON.stringify(res));
+}
+await a.close();
+"#;
+
+#[test]
+fn dv13_graft_zero_item_many_skipped_result_is_admitted_within_budget() {
+    let dir = crate::support::repo_root().join("packages/semaprax-harness-adapters/graft");
+    let mut cmd = Command::new("node");
+    cmd.arg("--input-type=module")
+        .arg("-e")
+        .arg(GRAFT_DRIVER)
+        .arg(&dir)
+        .args(["4096", "65536"]);
+    let out = cmd
+        .output()
+        .expect("node not found: the Graft result-budget cell cannot run here");
+    assert!(
+        out.status.success(),
+        "driver failed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let text = String::from_utf8(out.stdout).unwrap();
+    assert_eq!(text.lines().count(), 2, "{text}");
+    for l in text.lines() {
+        let (b, json) = l.split_once(' ').unwrap();
+        let (budget, bytes): (usize, &[u8]) = (b.parse().unwrap(), json.as_bytes());
+        assert!(
+            bytes.len() <= budget,
+            "{budget}: adapter emitted {} bytes",
+            bytes.len()
+        );
+        let env = ResultEnvelope::parse_for(&request(budget), bytes)
+            .unwrap_or_else(|e| panic!("{budget}: host refused the adapter result: {e}"));
+        let v = env.to_json();
+        let p = &v["payload"];
+        assert_eq!(p["items"].as_array().unwrap().len(), 0);
+        assert_eq!(p["coverage"]["complete"], false);
+        assert_eq!(p["metadata"]["absence_proven"], false);
+        let kept = p["coverage"]["skipped"].as_array().unwrap().len();
+        let omitted = p["metadata"]["skipped_omitted"].as_u64().unwrap() as usize;
+        assert!(kept + omitted >= 80, "{budget}: {kept}+{omitted}");
+        if budget == 4096 {
+            assert!(omitted > 0 && v["status"] == "partial", "{v}");
+        }
+    }
+}

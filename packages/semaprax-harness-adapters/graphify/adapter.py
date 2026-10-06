@@ -840,6 +840,21 @@ def make_handlers(index):
                 None, len(state["skipped"]), len(state["errors"]))
         return state, payload, None
 
+    def scope_of(payload):
+        """The request's project-relative `in` path as a predicate on a project-relative file path.
+
+        Component-aware: `allowed` admits `allowed` itself and `allowed/...`, never `allowed-sibling/...`."""
+        raw = payload.get("in")
+        if raw is None:
+            return lambda path: True
+        if not isinstance(raw, str) or raw.startswith("/") or ".." in raw.split("/"):
+            raise AdapterError("refused", "SPX-HPG006", "payload.in must be a project-relative path")
+        parts = [p for p in raw.split("/") if p and p != "."]
+        if not parts:
+            return lambda path: True
+        scope = "/".join(parts)
+        return lambda path: path == scope or path.startswith(scope + "/")
+
     def limit_of(payload):
         v = payload.get("max_items", payload.get("limit", 20))
         return v if isinstance(v, int) and 0 < v <= 200 else 20
@@ -864,7 +879,10 @@ def make_handlers(index):
             raise AdapterError("refused", "SPX-HPG006", "search requires payload.query")
         terms = [t for t in re.split(r"\W+", q.lower()) if t]
         g, scored = state["graph"], []
+        in_scope = scope_of(payload)
         for n in g.nodes:
+            if not in_scope(n["source_file"]):
+                continue  # scope applies before ranking and the item limit
             label, path = clean(n["label"]), n["source_file"].lower()
             score = 0
             for t in terms:
@@ -901,8 +919,10 @@ def make_handlers(index):
         if not isinstance(sym, str) or not sym.strip():
             raise AdapterError("refused", "SPX-HPG006", "references requires payload.symbol")
         g = state["graph"]
+        in_scope = scope_of(payload)
         targets = {n["id"] for n in list(g.nodes) + [x for x in g.by_id.values() if x.get("_stub")] if n["id"] == sym or clean(n["label"]) == clean(sym)}
-        edges = [e for e in g.edges if e["target"] in targets and e["relation"] not in STRUCTURAL_RELATIONS]
+        edges = [e for e in g.edges if e["target"] in targets and e["relation"] not in STRUCTURAL_RELATIONS
+                 and in_scope(e["source_file"])]  # call sites are scoped; targets may live anywhere
         edges.sort(key=lambda e: (e["source_file"], e["_line"], e["source"], e["relation"]))
         items, counts = [], {"resolved": 0, "ambiguous": 0, "unsupported": 0}
         for i, e in enumerate(edges[: limit_of(payload)]):

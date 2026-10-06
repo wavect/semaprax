@@ -271,6 +271,17 @@ impl Broker {
             let mut normalized = normalize(&ident, resp, &mut diags);
             let offered = normalized.items.len();
             normalized.items.retain(|i| under(&i.path, &scope));
+            // The request's own `in` narrows further: both constraints must hold, whatever a
+            // provider chose to return.
+            let before_request = normalized.items.len();
+            if let Some(w) = req.within.as_deref() {
+                let w = w.trim_start_matches("./").trim_matches('/');
+                if !w.is_empty() && w != "." {
+                    let w = [w.to_string()];
+                    normalized.items.retain(|i| under(&i.path, &w));
+                }
+            }
+            let request_dropped = before_request - normalized.items.len();
             let dropped = offered - normalized.items.len();
             let before = normalized.items.len();
             normalized
@@ -321,7 +332,8 @@ impl Broker {
                 && cov.complete
                 && cov.exhaustive
                 && verified_all
-                && scope.is_empty();
+                && scope.is_empty()
+                && request_dropped == 0;
             all_exhaustive &= exhaustive;
             all_none &= exhaustive && normalized.no_references && offered == 0;
             all_complete &= normalized.status == "complete" && cov.complete;

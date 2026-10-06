@@ -19,6 +19,7 @@ pub(super) const FILES: &[(&str, &[u8])] = &[
     ("graft/harness-provider.json", include_bytes!("../../../packages/semaprax-harness-adapters/graft/harness-provider.json")),
     ("graft/lib/adopt.mjs", include_bytes!("../../../packages/semaprax-harness-adapters/graft/lib/adopt.mjs")),
     ("graft/lib/compat.mjs", include_bytes!("../../../packages/semaprax-harness-adapters/graft/lib/compat.mjs")),
+    ("graft/lib/fit.mjs", include_bytes!("../../../packages/semaprax-harness-adapters/graft/lib/fit.mjs")),
     ("graft/lib/generation.mjs", include_bytes!("../../../packages/semaprax-harness-adapters/graft/lib/generation.mjs")),
     ("graft/lib/ops.mjs", include_bytes!("../../../packages/semaprax-harness-adapters/graft/lib/ops.mjs")),
     ("graft/lib/project.mjs", include_bytes!("../../../packages/semaprax-harness-adapters/graft/lib/project.mjs")),

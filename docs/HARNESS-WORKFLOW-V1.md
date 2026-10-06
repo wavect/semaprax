@@ -394,6 +394,11 @@ attempts, with exact integer cross-multiplication. A strategy is left out if it 
 zero accepted tasks, or any unknown cost. With insufficient evidence the ladder only narrows the pool for the existing
 `rules_choice`.
 
+**Qualification precedes narrowing.** A registered record narrows the pool only when it passes the predeclared HN-16
+qualification gate (`qualify::gate_for` under the routing `GateSpec`) and matches the session lock. Presence in the
+registry and `min_tasks` alone confer no authority: a record rejected for completion loss, regressions, fixture origin or
+sealed-set overlap keeps the conservative rules choice. The `cost_policy.choice.qualification` field names the verdict.
+
 Evidence is looked up by the live `EvidenceKey`, so provider, model, catalog or profile drift falls back to rules. The
 governor, explicit pins, the privacy screen and the TC-03 allowance stay in force.
 

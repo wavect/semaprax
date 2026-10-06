@@ -83,11 +83,17 @@ for (const [label, bin] of INSTALLS) describe(`graft context adapter (real graft
     assert.ok(r.diagnostics.some((d) => d.code === 'graft.truncated'));
   });
 
-  test('result budget shrinks items and marks the result partial', async () => {
-    const r = await ad.call('search', { query: 'greetUser', mode: 'exact' }, { budget: { max_result_bytes: 2300, remaining_calls: 1 } });
+  test('result budget shrinks items and marks the result partial; the whole envelope fits', async () => {
+    const full = await ad.call('search', { query: 'greetUser', mode: 'exact' });
+    const fullBytes = Buffer.byteLength(JSON.stringify(full));
+    const cap = fullBytes - 200; // forces item truncation of the real envelope
+    const r = await ad.call('search', { query: 'greetUser', mode: 'exact' }, { budget: { max_result_bytes: cap, remaining_calls: 1 } });
     assert.equal(r.status, 'partial');
-    assert.ok(Buffer.byteLength(JSON.stringify(r.payload)) < 2300);
+    assert.ok(Buffer.byteLength(JSON.stringify(r)) <= cap, 'complete envelope within the cap');
+    assert.ok(r.payload.items.length < full.payload.items.length);
+    assert.equal(r.payload.metadata.omitted_items, full.payload.items.length - r.payload.items.length);
     assert.equal(r.payload.coverage.exhaustive, false);
+    assert.equal(r.payload.metadata.absence_proven, false);
   });
 
   test('skeleton lists signatures with spans', async () => {

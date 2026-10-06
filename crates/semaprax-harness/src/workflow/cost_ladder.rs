@@ -12,7 +12,11 @@ use crate::decision::cost_route::{
     choose_start, classify_failure, next_action, next_rung, ActionContext, CacheState,
     ChooseInputs, NextAction,
 };
-use crate::decision::{EvidenceKey, ModelPlan, ProviderProfile, RouteRequest, RoutingMode};
+use crate::decision::qualify::gate_for;
+use crate::decision::{
+    EvidenceKey, EvidenceRecord, EvidenceRegistry, GateStatus, ModelPlan, ProviderProfile,
+    RouteRequest, RoutingMode,
+};
 use serde_json::{json, Value};
 
 /// Escalation state of one task run.
@@ -49,6 +53,25 @@ pub(super) fn note_model(cx: &Ctx, model: &str) {
     }
 }
 
+/// The registered record for `key`, only when the session lock admits it and the
+/// predeclared gate passes it; otherwise the reason it grants no authority.
+fn qualified_evidence<'a>(
+    w: &super::routing::RoutingWiring,
+    reg: &'a EvidenceRegistry,
+    key: &EvidenceKey,
+) -> Result<&'a EvidenceRecord, String> {
+    let rec = reg.get(key).ok_or("no fresh evidence for the live key")?;
+    match w.lock_for(key) {
+        Some(l) if l.key_digest == key.digest() && l.record_digest == rec.digest() => {}
+        _ => return Err("live key or record differs from the session's locked evidence".into()),
+    }
+    match gate_for(reg, key, &w.spec) {
+        (g, _) if matches!(g.status, GateStatus::Passed { .. }) => Ok(rec),
+        (_, Some(d)) => Err(format!("evidence not qualified: {}", d.reasons.join("; "))),
+        (_, None) => Err("evidence not evaluated".into()),
+    }
+}
+
 /// Narrow `pool` for this route. `None` leaves routing exactly as before.
 pub(super) fn apply(
     cx: &Ctx,
@@ -72,16 +95,25 @@ pub(super) fn apply(
         false,
     )
     .ok()?;
-    let evidence = profile.and_then(|p| {
-        let digest = RouteRequest::new(features.clone(), pool.to_vec(), budget)
-            .ok()?
-            .catalog_digest();
-        cx.cfg
-            .routing
-            .registry
-            .as_ref()?
-            .get(&EvidenceKey::live(p, &digest))
-    });
+    // Raw registry presence and `min_tasks` confer no authority: the record must
+    // pass the predeclared qualification gate under the session-locked key.
+    let (evidence, qualification) = match profile {
+        None => (None, "no routing profile for the live key".to_string()),
+        Some(p) => {
+            let catalog = RouteRequest::new(features.clone(), pool.to_vec(), budget)
+                .ok()
+                .map(|r| r.catalog_digest());
+            match (catalog, cx.cfg.routing.registry.as_ref()) {
+                (Some(d), Some(reg)) => {
+                    match qualified_evidence(&cx.cfg.routing, reg, &EvidenceKey::live(p, &d)) {
+                        Ok(rec) => (Some(rec), "qualified".to_string()),
+                        Err(why) => (None, why),
+                    }
+                }
+                _ => (None, "no evidence registry".to_string()),
+            }
+        }
+    };
     let c = ChooseInputs {
         ladder: &lad.models,
         pool,
@@ -140,7 +172,8 @@ pub(super) fn apply(
         ),
         _ => {
             let ch = choose_start(&c);
-            let json = ch.to_json();
+            let mut json = ch.to_json();
+            json["qualification"] = json!(qualification);
             let (p, w) = match &ch.model {
                 Some(m) => (pick(m), ch.reason.clone()),
                 None if !ch.eligible.is_empty() => (

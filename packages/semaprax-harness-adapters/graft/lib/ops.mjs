@@ -86,6 +86,17 @@ function stringArg(payload, name, max = 500) {
 
 // -- operations: each returns {items, truncated, exhaustive, diags, extra} ---------------
 
+// Host metadata allows only scalars or one level of scalar objects: arrays (e.g. languages) are comma-joined.
+function flatTotals(t) {
+  if (!t || typeof t !== 'object' || Array.isArray(t)) return null;
+  const out = {};
+  for (const [k, v] of Object.entries(t)) {
+    if (Array.isArray(v)) out[k] = v.filter((x) => ['string', 'number', 'boolean'].includes(typeof x)).join(',');
+    else if (v === null || ['string', 'number', 'boolean'].includes(typeof v)) out[k] = v;
+  }
+  return out;
+}
+
 async function orient(ctx, payload) {
   const maxDirs = limitOf({ max_items: payload.max_items ?? payload.max_dirs }, 16, 64);
   const r = await ctx.query(['map', ctx.cli.json, ctx.cli.maxDirs, String(maxDirs)]);
@@ -103,7 +114,7 @@ async function orient(ctx, payload) {
   };
   for (const h of m.hotspots ?? []) add(h, 'hotspot');
   for (const d of m.dirs ?? []) for (const h of d.hubs ?? []) add(h, `hub of ${d.path}`);
-  return { items, truncated: (m.dropped ?? 0) > 0, exhaustive: false, extra: { orientation: m.totals ?? null, dirs_dropped: m.dropped ?? 0 } };
+  return { items, truncated: (m.dropped ?? 0) > 0, exhaustive: false, extra: { orientation: flatTotals(m.totals), dirs_dropped: m.dropped ?? 0 } };
 }
 
 async function search(ctx, payload) {
@@ -229,16 +240,6 @@ function flatAdoption(a) {
 const OPS = { orient, search, skeleton, references };
 export const OPERATIONS = Object.keys(OPS);
 
-// Shrinks items until the serialized payload fits the byte budget.
-function fit(payload, budget) {
-  let truncated = false;
-  while (Buffer.byteLength(JSON.stringify(payload)) > budget && payload.items.length) {
-    payload.items.length = Math.max(0, Math.floor(payload.items.length / 2));
-    truncated = true;
-  }
-  return truncated;
-}
-
 export async function invoke(cfg, req, signal, session) {
   if (req.capability?.kind !== KIND || req.capability?.version !== 1 || !OPS[req.operation]) {
     return ['unsupported', null, [{ code: 'graft.unsupported-operation', message: `operation ${req.operation} not implemented` }]];
@@ -312,8 +313,8 @@ export async function invoke(cfg, req, signal, session) {
         skipped_omitted: cov.skipped_omitted,
       },
     };
-    let truncated = result.truncated || cov.walk_truncated;
-    if (fit(payloadOut, ctx.budget - 1024)) truncated = true;
+    // The complete envelope is fitted to the requested cap by `fitResult` (adapter.mjs) after this returns.
+    const truncated = result.truncated || cov.walk_truncated;
     payloadOut.coverage.complete = !truncated && !cov.skipped.length && !cov.skipped_omitted;
     payloadOut.coverage.exhaustive = Boolean(result.exhaustive) && !truncated;
     // Absence may be asserted only for an exhaustive, complete, fresh answer.

@@ -3,6 +3,7 @@
 // (optional SEMAPRAX_HARNESS_GIT). Node standard library only.
 import { createInterface } from 'node:readline';
 import { PROTOCOL, result } from '../sdk/node/semaprax-harness-adapter.mjs';
+import { fitResult } from './lib/fit.mjs';
 import { OPERATIONS, invoke } from './lib/ops.mjs';
 import { Refusal, loadConfig } from './lib/project.mjs';
 import { RunError } from './lib/runner.mjs';
@@ -25,6 +26,13 @@ export function main(env = process.env, input = process.stdin, output = process.
   let closing = false;
   const provenance = () => ({ provider_id: 'org.nanonets/graft-context', adapter_version: ADAPTER_VERSION, upstream_version: session.identity?.version ?? 'unknown' });
 
+  // Every envelope, early returns and failures included, is fitted to the requested result cap.
+  function fitted(req, status, payload, diags) {
+    const prov = provenance();
+    const [st, p, d] = fitResult(req, prov, status, payload, diags);
+    return result(req, st, p, prov, d);
+  }
+
   async function handleInvoke(id, req) {
     let envelope;
     const ac = new AbortController();
@@ -34,12 +42,12 @@ export function main(env = process.env, input = process.stdin, output = process.
       if (ac.signal.aborted) throw new RunError('cancelled', 'cancelled before start');
       const cfg = loadConfig(env);
       const [status, payload, diags] = await invoke(cfg, req, ac.signal, session);
-      envelope = result(req, status, payload, provenance(), diags ?? []);
+      envelope = fitted(req, status, payload, diags ?? []);
     } catch (e) {
       const [status, code] = e instanceof Refusal ? [e.status, e.code]
         : e instanceof RunError ? [e.code === 'cancelled' ? 'refused' : 'failed', `graft.${e.code}`]
           : ['failed', 'graft.internal'];
-      envelope = result(req, status, null, provenance(), [{ code, message: String(e.message).slice(0, 500) }]);
+      envelope = fitted(req, status, null, [{ code, message: String(e.message).slice(0, 500) }]);
     } finally {
       running.delete(req.invocation_id);
     }

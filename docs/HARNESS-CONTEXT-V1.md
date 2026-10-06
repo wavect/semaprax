@@ -89,10 +89,17 @@ only.
 Additive optional contract members (v1 stays closed otherwise; validated, bounded):
 
 - request: `refresh` (`auto` | `rebuild` | `never`), `exhaustive` (references),
-  `in` (project-relative path prefix on search/references). Page size is
+  `in` (project-relative path; component-aware, so `allowed` admits `allowed` and
+  `allowed/...`, never `allowed-sibling/...`; applied by the adapter before ranking
+  and `max_items`, and again by the broker, on top of the configured provider scope,
+  so an item outside it is never admitted and an out-of-scope drop forfeits
+  exhaustiveness). Page size is
   `max_items`, never `limit`. `auto` rebuilds a provider index that is behind the
   working tree; `never` answers `stale`.
-- result: `metadata` (at most 8 KiB, scalars or one level of scalar-valued objects;
+- result: the whole serialized envelope fits the requested `max_result_bytes`: adapters
+  trim items first, then skipped-file detail, metadata and diagnostics, count every
+  omission, never upgrade coverage, and send a bounded refusal when nothing fits.
+  `metadata` (at most 8 KiB, scalars or one level of scalar-valued objects;
   still scanned for authority-like members, `SPX-HPA036`), `coverage.extraction_errors`
   `[{path, reason}]` (surfaced by the broker as skipped entries), item `edges`
   `[{target <= 1024, relation <= 64, provenance structural|inferred, resolution?}]`

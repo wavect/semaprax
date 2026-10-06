@@ -702,3 +702,134 @@ fn tc10_e2e_an_uncertain_request_never_escalates_and_is_never_retried() {
     assert_eq!(paid.calls.get(), 1, "exactly one outbound call");
     assert_eq!(models(&paid), ["m-cheap"]);
 }
+
+// ---- DV-09: a quality no-go cannot authorize cost narrowing -----------------
+
+/// Registry holding a 30-item record for the live key of the paid router
+/// profile: rules (`m-strong`) complete every item at 100 micros; the learned
+/// arm (`m-cheap`) completes `cheap_ok` of 30 at 1 micro, failures included.
+fn cost_registry(
+    pool: &[ModelPlan],
+    cheap_ok: usize,
+    origin: semaprax_harness::decision::Origin,
+) -> semaprax_harness::decision::EvidenceRegistry {
+    use semaprax_harness::decision::{
+        Budget, Confidentiality, EvidenceKey, EvidenceRecord, EvidenceRegistry, LatencyClass,
+        MatchedBudget, Outcome, RouteRequest, TaskFamily, TaskFeatures,
+    };
+    let profile = ProviderProfile {
+        provider_id: "org.example/paid-route".into(),
+        model_id: "router-m".into(),
+        checkpoint: "1".into(),
+        min_confidence: None,
+        max_context_tokens: None,
+        supported_families: None,
+        ..Default::default()
+    };
+    let features = TaskFeatures {
+        task_family: TaskFamily::SemanticLaw,
+        estimated_context_tokens: 0,
+        requires_structured_output: true,
+        requires_tools: false,
+        confidentiality: Confidentiality::Project,
+        latency_class: LatencyClass::Interactive,
+    };
+    let budget = Budget {
+        max_cost_micros: 1,
+        max_latency_ms: 60_000,
+        max_router_calls: 0,
+    };
+    let digest = RouteRequest::new(features, pool.to_vec(), budget)
+        .unwrap()
+        .catalog_digest();
+    let items: std::collections::BTreeSet<String> = (0..30).map(|i| format!("i{i}")).collect();
+    let mut outcomes = vec![];
+    for (n, i) in items.iter().enumerate() {
+        let mk = |arm: &str, model: &str, done: bool, cost: u64| Outcome {
+            item: i.clone(),
+            arm: arm.into(),
+            model: model.into(),
+            origin,
+            verified_by: "law-gate".into(),
+            completed: done,
+            regressions: 0,
+            attempts: 1,
+            cost_micros: Some(cost),
+            latency_ms: Some(10),
+            router_cost_micros: 0,
+            context_cost_micros: 0,
+            retry_owner: semaprax_harness::decision::evidence::RetryOwner::Host,
+        };
+        outcomes.push(mk("rules", "m-strong", true, 100));
+        outcomes.push(mk("org.example/paid-route", "m-cheap", n < cheap_ok, 1));
+    }
+    let mut reg = EvidenceRegistry::default();
+    reg.register(EvidenceRecord {
+        key: EvidenceKey::live(&profile, &digest),
+        budget: MatchedBudget {
+            max_cost_micros: 1_000_000,
+            max_attempts: 3,
+        },
+        eval_items: items,
+        trained_on: Default::default(),
+        outcomes,
+        calibration: None,
+    })
+    .unwrap();
+    reg
+}
+
+fn dv09_models(registry: semaprax_harness::decision::EvidenceRegistry) -> (Vec<String>, Report) {
+    let e = setup(FIXED);
+    let mut c = ladder_session(&e);
+    c.task.family = "semantic_law".into();
+    let lad = c.routing.ladders.remove("mechanical").unwrap();
+    c.routing.ladders.insert("semantic_law".into(), lad);
+    c.routing.registry = Some(registry);
+    let paid = Paid::new(vec![Reply::Ok(None, receipt(Some(10), 5))]);
+    let mut router = Router(0, "m-strong");
+    let r = exec(&c, &paid, Some(&mut router));
+    assert_eq!(r.status, "candidate-ready", "{:?}", r.refusals);
+    (models(&paid), r)
+}
+
+fn dv09_pool() -> Vec<ModelPlan> {
+    vec![plan("m-cheap", 1), plan("m-strong", 2)]
+}
+
+#[test]
+fn dv09_evidence_rejected_by_the_gate_cannot_pick_the_cheaper_unreliable_model() {
+    use semaprax_harness::decision::Origin;
+    let (m, r) = dv09_models(cost_registry(&dv09_pool(), 6, Origin::Real));
+    assert_eq!(m, ["m-strong"], "{}", r.route);
+    let q = r.route["cost_policy"]["choice"]["qualification"].to_string();
+    assert!(q.contains("completion"), "{q}");
+}
+
+#[test]
+fn dv09_fixture_origin_evidence_alone_cannot_unlock_cost_selection() {
+    use semaprax_harness::decision::Origin;
+    let (m, _) = dv09_models(cost_registry(&dv09_pool(), 30, Origin::Fixture));
+    assert_eq!(m, ["m-strong"]);
+}
+
+#[test]
+fn dv09_qualified_equally_reliable_cheaper_rung_is_selected() {
+    use semaprax_harness::decision::Origin;
+    let (m, r) = dv09_models(cost_registry(&dv09_pool(), 30, Origin::Real));
+    assert_eq!(m, ["m-cheap"], "{}", r.route);
+    assert_eq!(
+        r.route["cost_policy"]["choice"]["qualification"],
+        "qualified"
+    );
+}
+
+#[test]
+fn dv09_catalog_drift_invalidates_qualified_evidence() {
+    use semaprax_harness::decision::Origin;
+    // The record was qualified for a different catalog, so it is stale for the live key.
+    let (m, r) = dv09_models(cost_registry(&[plan("m-cheap", 1)], 30, Origin::Real));
+    assert_eq!(m, ["m-strong"], "{}", r.route);
+    let q = r.route["cost_policy"]["choice"]["qualification"].to_string();
+    assert!(q.contains("no fresh evidence"), "{q}");
+}

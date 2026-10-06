@@ -1142,5 +1142,77 @@ class MediaInvalidation(unittest.TestCase):
         self.assertEqual(self.builds, 2)
 
 
+class RequestScope(unittest.TestCase):
+    """DV-14: the request's `in` path scopes search and references before ranking and truncation."""
+
+    FILES = ("allowed/a.py", "allowed-sibling/b.py", "elsewhere/c.py", "lib/def.py")
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="dv14-")
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+        nodes, links = [], []
+        for i, rel in enumerate(self.FILES):
+            os.makedirs(os.path.join(self.tmp, os.path.dirname(rel)), exist_ok=True)
+            with open(os.path.join(self.tmp, rel), "w") as fh:
+                fh.write("def helper():\n    return 1\n\ndef caller():\n    return helper()\n")
+            nodes.append({"id": f"n{i}", "label": "helper()", "file_type": "code", "source_file": rel, "source_location": "L1"})
+        # Every call site targets the one definition in lib/def.py (outside any requested scope).
+        for i, rel in enumerate(self.FILES[:3]):
+            nodes.append({"id": f"c{i}", "label": "caller()", "file_type": "code", "source_file": rel, "source_location": "L4"})
+            links.append({"source": f"c{i}", "target": "n3", "relation": "calls", "confidence": "EXTRACTED",
+                          "source_file": rel, "source_location": "L5"})
+        st = {"digest": "d" * 64, "graph": gadapter.Graph({"directed": False, "nodes": nodes, "links": links}, "0.9.25"),
+              "indexed": list(self.FILES), "skipped": [], "errors": []}
+        self.ix = gadapter.Index(self.tmp, os.path.join(self.tmp, "cache"))
+        self.ix.identity = "0.9.25"
+        self.ix.ensure = lambda refresh, st=st: (st, False)
+        self.handlers = gadapter.make_handlers(self.ix)
+
+    def call(self, op, payload):
+        req = {"schema": "semaprax.harness-request.v1", "invocation_id": "inv-1", "project": {"id": "p", "worktree": "w", "revision": "r"},
+               "capability": {"kind": "context.repository", "version": 1}, "operation": op, "deadline_ms": 1000,
+               "budget": {"max_result_bytes": 65536, "remaining_calls": 1}, "payload": payload}
+        return self.handlers[("context.repository", op)](req)
+
+    def items(self, op, payload):
+        _, body, _ = self.call(op, payload)
+        return body, [i["path"] for i in body["items"]]
+
+    def test_search_scope_is_component_aware_and_applied_before_the_limit(self):
+        _, unscoped = self.items("search", {"query": "helper"})
+        self.assertEqual(sorted(unscoped), sorted(self.FILES))
+        _, scoped = self.items("search", {"query": "helper", "in": "allowed"})
+        self.assertEqual(scoped, ["allowed/a.py"])
+        # A limit of one cannot be consumed by an out-of-scope item that would rank first.
+        _, one = self.items("search", {"query": "helper", "in": "elsewhere", "max_items": 1})
+        self.assertEqual(one, ["elsewhere/c.py"])
+
+    def test_exact_file_scope_directory_scope_no_scope_and_empty_scope(self):
+        self.assertEqual(self.items("search", {"query": "helper", "in": "allowed/a.py"})[1], ["allowed/a.py"])
+        self.assertEqual(self.items("search", {"query": "helper", "in": "allowed/"})[1], ["allowed/a.py"])
+        self.assertEqual(sorted(self.items("search", {"query": "helper", "in": "."})[1]), sorted(self.FILES))
+        body, empty = self.items("search", {"query": "helper", "in": "nowhere"})
+        self.assertEqual(empty, [])
+        # An empty scoped result is never proof of absence.
+        self.assertFalse(body["coverage"]["exhaustive"])
+
+    def test_invalid_scope_is_refused(self):
+        for bad in ("/abs", "a/../b", 3):
+            with self.assertRaises(gadapter.AdapterError):
+                self.call("search", {"query": "helper", "in": bad})
+
+    def test_references_scope_call_sites_but_resolve_targets_elsewhere(self):
+        body, paths = self.items("references", {"symbol": "helper"})
+        self.assertEqual(sorted(paths), sorted(self.FILES[:3]))
+        body, scoped = self.items("references", {"symbol": "helper", "in": "allowed"})
+        self.assertEqual(scoped, ["allowed/a.py"])
+        self.assertEqual(body["items"][0]["edges"][0]["relation"].split(":")[0], "calls")
+        _, one = self.items("references", {"symbol": "helper", "in": "elsewhere", "max_items": 1})
+        self.assertEqual(one, ["elsewhere/c.py"])
+        body, none = self.items("references", {"symbol": "helper", "in": "lib"})
+        self.assertEqual(none, [])
+        self.assertFalse(body["coverage"]["exhaustive"])
+
+
 if __name__ == "__main__":
     unittest.main()

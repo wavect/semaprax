@@ -1124,6 +1124,40 @@ fn hp_hp05_real_graphify_through_the_broker() {
         .all(|i| i.provenance != Tier::CompilerVerified));
 }
 
+// DV-14: the request's own `in` scope holds even when a provider ignores it.
+#[test]
+fn dv14_a_provider_item_outside_the_request_scope_is_never_admitted() {
+    let p = fake_world_project();
+    for d in ["allowed", "allowed-sibling", "elsewhere"] {
+        std::fs::create_dir_all(p.join(d)).unwrap();
+        std::fs::write(p.join(d).join("n.txt"), "dv14needle here\n").unwrap();
+    }
+    let b = fake_broker(
+        FakeSource::new("org.example/fake", grep_answer("org.example/fake")),
+        &p.parent().unwrap().join("c"),
+    );
+    let mut r = req("dv14needle", 12_000);
+    r.native_targets = Some(vec![]);
+    let all = b.context(&p, &r).unwrap();
+    let paths = |o: &semaprax_harness::context::broker::BrokerOutput| -> Vec<String> {
+        let mut v: Vec<_> = o.external.iter().map(|i| i.path.clone()).collect();
+        v.sort();
+        v
+    };
+    assert_eq!(
+        paths(&all),
+        ["allowed-sibling/n.txt", "allowed/n.txt", "elsewhere/n.txt"]
+    );
+    r.within = Some("allowed".into());
+    let scoped = b.context(&p, &r).unwrap();
+    assert_eq!(paths(&scoped), ["allowed/n.txt"]);
+    r.within = Some("allowed/n.txt".into());
+    assert_eq!(paths(&b.context(&p, &r).unwrap()), ["allowed/n.txt"]);
+    r.within = Some("nowhere".into());
+    let none = b.context(&p, &r).unwrap();
+    assert!(paths(&none).is_empty());
+}
+
 #[path = "context_plan.rs"]
 mod hn13;
 

@@ -43,6 +43,7 @@ fn rec(id: &str, tokens: u64, cost: u64, billing: Billing) -> SpendRecord {
         settled_tokens: None,
         breach: None,
         basis: None,
+        unresolved_attempts: 0,
         persist: true,
         restored: false,
     }
@@ -270,6 +271,7 @@ fn tc03_settled_headroom_returns_while_uncertain_and_reserved_stay_counted() {
         settled_tokens: Some(850),
         breach: None,
         basis: Some("estimated_from_price_record".into()),
+        unresolved_attempts: 0,
     };
     b.settle(&mut j, "g.1", small.clone()).unwrap();
     // The smaller completed response returned its headroom.
@@ -289,6 +291,7 @@ fn tc03_settled_headroom_returns_while_uncertain_and_reserved_stay_counted() {
         settled_tokens: Some(1),
         breach: None,
         basis: None,
+        unresolved_attempts: 0,
     };
     assert_eq!(
         b.settle(&mut j, "g.1", other).unwrap_err().code,
@@ -813,6 +816,7 @@ fn ten() -> Settlement {
         settled_tokens: Some(10),
         breach: None,
         basis: Some("provider_reported".into()),
+        unresolved_attempts: 0,
     }
 }
 
@@ -954,4 +958,166 @@ fn mn03_a_failed_breach_or_release_append_does_not_publish_the_transition() {
     );
     drop(j);
     let _ = std::fs::remove_dir_all(&d);
+}
+
+// ---- DV-20: gateway retry reservations survive a final-attempt receipt ----
+
+fn unit_prices() -> PriceBook {
+    full_rates(1_000_000, None, None, None, 1_000_000)
+}
+
+/// A final-attempt receipt of 100 input / 50 output, plus `extra` members.
+fn final_receipt(extra: Value) -> ProposalReceipt {
+    let mut c = json!({"protocol": "anthropic_messages", "finish_reason": "end_turn",
+        "usage": {"input_tokens": 100, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0, "output_tokens": 50}});
+    for (k, v) in extra.as_object().unwrap() {
+        c[k] = v.clone();
+    }
+    receipt(c)
+}
+
+fn settle_n(r: &SpendRecord, rc: &ProposalReceipt, dispatches: u64) -> Settlement {
+    settle_generation_dispatches(
+        r,
+        rc,
+        &unit_prices().estimate("syn-a", &rc.usage),
+        true,
+        100,
+        50,
+        dispatches,
+    )
+}
+
+fn settle2(r: &SpendRecord, rc: &ProposalReceipt) -> Settlement {
+    settle_n(r, rc, 2)
+}
+
+fn record_n(id: &str, dispatches: u64) -> SpendRecord {
+    let bound = call_bound(&unit_prices(), "syn-a", 100, 50, dispatches);
+    rec(id, 150 * dispatches, bound.micros.unwrap(), bound.billing)
+}
+
+fn figures(s: &Settlement) -> (Option<u64>, Option<u64>, u64) {
+    (s.actual_cost, s.settled_tokens, s.unresolved_attempts)
+}
+
+#[test]
+fn dv20_final_receipt_keeps_the_unresolved_dispatch_reserved_and_refuses_the_next_reservation() {
+    let d = dir("dv20-450");
+    let mut j = Journal::open(&d, "l").unwrap();
+    let mut b = SpendBook {
+        limits: Limits {
+            task_tokens: Some(450),
+            task_cost: Some(450),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let r = record_n("g.1", 2);
+    assert_eq!(r.reserved_cost, 300);
+    b.reserve(&mut j, r.clone()).unwrap();
+    let s = settle2(&r, &final_receipt(json!({})));
+    assert_eq!(figures(&s), (Some(300), Some(300), 1));
+    assert_eq!(s.breach, None);
+    b.settle(&mut j, "g.1", s).unwrap();
+    assert_eq!((b.committed_tokens(), b.committed_cost()), (300, 300));
+    assert!(b.check(&record_n("g.2", 2)).is_err());
+    assert_eq!(b.to_json()["unresolved_retry_attempts"], 1);
+    assert_eq!(b.to_json()["unknown_spend_attempts"], 1);
+    // Reopen: the unresolved portion is restored once, not doubled or dropped.
+    drop(j);
+    let mut again = SpendBook {
+        limits: b.limits.clone(),
+        ..Default::default()
+    };
+    again.restore(&Journal::open(&d, "l").unwrap()).unwrap();
+    assert_eq!(
+        (again.committed_tokens(), again.committed_cost()),
+        (300, 300)
+    );
+    assert_eq!(again.records[0].unresolved_attempts, 1);
+    assert!(again.check(&record_n("g.2", 2)).is_err());
+    let _ = std::fs::remove_dir_all(&d);
+}
+
+#[test]
+fn dv20_zero_retry_and_proven_unused_retries_release_only_what_is_proven() {
+    // One dispatch: unchanged behavior.
+    let one = record_n("g.1", 1);
+    let rc = final_receipt(json!({}));
+    let s = settle_generation(
+        &one,
+        &rc,
+        &unit_prices().estimate("syn-a", &rc.usage),
+        true,
+        100,
+        50,
+    );
+    assert_eq!(figures(&s), (Some(150), Some(150), 0));
+    // Two dispatches, the gateway proves the other was never dispatched.
+    let rc = final_receipt(json!({"unused_attempts": 1}));
+    let s = settle2(&record_n("g.1", 2), &rc);
+    assert_eq!(figures(&s), (Some(150), Some(150), 0));
+    // Three dispatches, one proven unused: the other stays retained.
+    let s = settle_n(&record_n("g.1", 3), &rc, 3);
+    assert_eq!(figures(&s), (Some(300), Some(300), 1));
+    // Proof of more unused attempts than exist cannot release the final one.
+    let rc = final_receipt(json!({"unused_attempts": 9}));
+    let s = settle2(&record_n("g.1", 2), &rc);
+    assert_eq!(figures(&s), (Some(150), Some(150), 0));
+}
+
+#[test]
+fn dv20_aggregate_scopes_are_checked_separately_for_tokens_and_cost() {
+    let r = record_n("g.1", 2);
+    let agg = |extra: Value| {
+        let mut c = json!({"protocol": "anthropic_messages", "finish_reason": "end_turn",
+            "usage_scope": "aggregate", "usage": {"input_tokens": 200, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0, "output_tokens": 80}});
+        for (k, v) in extra.as_object().unwrap() {
+            c[k] = v.clone();
+        }
+        receipt(c)
+    };
+    // Aggregate usage covers both attempts: nothing remains unresolved.
+    let s = settle2(&r, &agg(json!({})));
+    assert_eq!(figures(&s), (Some(280), Some(280), 0));
+    // An aggregate charge alone does not erase unknown retry tokens.
+    let rc = final_receipt(json!({"provider_cost_micros": 280, "cost_scope": "aggregate"}));
+    assert_eq!(figures(&settle2(&r, &rc)), (Some(280), Some(300), 1));
+    // A final-attempt charge keeps the other dispatch's cost bound.
+    let rc = final_receipt(json!({"provider_cost_micros": 140}));
+    assert_eq!(settle2(&r, &rc).actual_cost, Some(290));
+    // Aggregate usage with a final-attempt charge keeps the cost bound only.
+    let s = settle2(&r, &agg(json!({"provider_cost_micros": 140})));
+    assert_eq!(figures(&s), (Some(290), Some(280), 1));
+}
+
+#[test]
+fn dv20_known_breach_handling_is_preserved_per_dispatch_and_in_aggregate() {
+    let r = record_n("g.1", 2);
+    let s = settle2(&r, &final_receipt(json!({"provider_cost_micros": 151})));
+    assert!(s
+        .breach
+        .as_deref()
+        .unwrap()
+        .contains("above the declared bound of 150"));
+    let agg = |c: u64| final_receipt(json!({"provider_cost_micros": c, "cost_scope": "aggregate"}));
+    let s = settle2(&r, &agg(301));
+    assert!(s
+        .breach
+        .as_deref()
+        .unwrap()
+        .contains("above the declared bound of 300"));
+    assert_eq!(settle2(&r, &agg(300)).breach, None);
+}
+
+#[test]
+fn dv20_receipt_coverage_parses_and_defaults_to_final_attempt() {
+    let rc = final_receipt(json!({}));
+    assert_eq!(rc.coverage, crate::receipt::ReceiptCoverage::default());
+    assert!(rc.to_json(None).get("coverage").is_none());
+    let rc = final_receipt(json!({"usage_scope": "aggregate", "unused_attempts": 2}));
+    assert!(rc.coverage.usage_aggregate && !rc.coverage.cost_aggregate);
+    assert_eq!(rc.coverage.unused_attempts, 2);
+    assert_eq!(rc.to_json(None)["coverage"]["usage"], "aggregate");
 }

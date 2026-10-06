@@ -18,6 +18,8 @@ pub(super) struct Attempt {
     /// Reserved input per dispatch: request plus framing.
     pub input_tokens: u64,
     pub output_cap: u64,
+    /// Admitted upstream dispatches: one plus disclosed gateway retries.
+    pub dispatches: u64,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -44,6 +46,7 @@ fn record(
         settled_tokens: None,
         breach: None,
         basis: None,
+        unresolved_attempts: 0,
         persist,
         restored: false,
     }
@@ -130,6 +133,7 @@ pub(crate) fn router_settlement(
             settled_tokens: Some(rec.reserved_tokens),
             breach: None,
             basis: Some("non_billed_source".into()),
+            unresolved_attempts: 0,
         };
     }
     let reported = call.and_then(|c| c.usage.authoritative_input().map(|i| (i, c)));
@@ -143,6 +147,7 @@ pub(crate) fn router_settlement(
                     settled_tokens: Some(input.saturating_add(output)),
                     breach: None,
                     basis: Some("router_provider_usage".into()),
+                    unresolved_attempts: 0,
                 },
                 None => Settlement::uncertain("router_usage_unpriced"),
             }
@@ -234,6 +239,7 @@ pub(super) fn reserve_generation(
         id,
         input_tokens: input,
         output_cap: out,
+        dispatches,
     })
 }
 
@@ -258,13 +264,14 @@ pub(super) fn settle_generation(
     outcome_known: bool,
 ) -> HarnessResult<()> {
     let rec = cx.ledger.spend.record(&a.id).cloned().expect("reserved");
-    let s = super::spend::settle_generation(
+    let s = super::spend::settle_generation_dispatches(
         &rec,
         receipt,
         estimate,
         outcome_known,
         a.input_tokens,
         a.output_cap,
+        a.dispatches,
     );
     cx.ledger.spend.settle(journal, &a.id, s)
 }

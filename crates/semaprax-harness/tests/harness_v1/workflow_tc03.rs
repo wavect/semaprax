@@ -208,6 +208,12 @@ fn receipt(cost: Option<u64>, output: u64) -> Value {
     v
 }
 
+/// The gateway proves the other upstream attempt was never dispatched.
+fn proven_unused(mut v: Value) -> Value {
+    v["unused_attempts"] = json!(1);
+    v
+}
+
 fn spend(r: &Report) -> &Value {
     &r.context["spend"]
 }
@@ -573,9 +579,9 @@ fn tc03_reports_reconcile_receipts_and_a_breach_blocks_further_paid_work() {
     let paid = Paid::new(vec![
         Reply::Ok(
             Some("SPX-G225 candidate intention is missing a required field"),
-            receipt(None, 5),
+            proven_unused(receipt(None, 5)),
         ),
-        Reply::Ok(None, receipt(Some(10), 5)),
+        Reply::Ok(None, proven_unused(receipt(Some(10), 5))),
     ]);
     let mut c = cfg(&e, session(None));
     c.budget.spend.gateway_retries = 1;
@@ -599,6 +605,25 @@ fn tc03_reports_reconcile_receipts_and_a_breach_blocks_further_paid_work() {
     // Gateway retry disclosure doubles the reserved bound.
     let gen_bound = s["attempts"][1]["reserved_cost_micros"].as_u64().unwrap();
     assert_eq!(gen_bound % 2, 0, "{s}");
+    // DV-20: a final-attempt receipt that does not prove the retry unused keeps
+    // that dispatch's per-dispatch bound (1982) on top of the 220 estimate.
+    let e = setup(FIXED);
+    let paid = Paid::new(vec![
+        Reply::Ok(
+            Some("SPX-G225 candidate intention is missing a required field"),
+            receipt(None, 5),
+        ),
+        Reply::Ok(None, proven_unused(receipt(Some(10), 5))),
+    ]);
+    let mut c = cfg(&e, session(None));
+    c.budget.spend.gateway_retries = 1;
+    let r = exec(&c, &paid, None);
+    let s = spend(&r);
+    assert_eq!(s["attempts"][0]["actual_cost_micros"], 220 + 1982, "{s}");
+    assert_eq!(s["attempts"][0]["unresolved_attempts"], 1);
+    assert_eq!(s["attempts"][1]["unresolved_attempts"], 0);
+    assert_eq!(s["unresolved_retry_attempts"], 1);
+    assert_eq!(s["known_actual_cost_micros"], 220 + 1982 + 10);
 }
 
 #[test]

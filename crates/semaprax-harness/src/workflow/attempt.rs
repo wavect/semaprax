@@ -857,61 +857,16 @@ pub(super) fn validate_step(
     Ok((change, preview))
 }
 
-fn spx_files(dir: &Path, out: &mut Vec<std::path::PathBuf>, depth: usize) {
-    let Ok(rd) = std::fs::read_dir(dir) else {
-        return;
-    };
-    let mut es: Vec<_> = rd.flatten().collect();
-    es.sort_by_key(|e| e.file_name());
-    for e in es {
-        let p = e.path();
-        let name = e.file_name().to_string_lossy().into_owned();
-        match e.file_type() {
-            Ok(t) if t.is_dir() && depth < 16 && !name.starts_with('.') && name != "target" => {
-                spx_files(&p, out, depth + 1)
-            }
-            Ok(t) if t.is_file() && name.ends_with(".spx") => out.push(p),
-            _ => {}
-        }
-    }
-}
-
-/// Host-owned acceptance: `{stable_id, contains}` items are checked against the
-/// compiler-verified candidate sources (the declaration carrying `@id("..")`);
-/// strings are carried to the model, not verified. A proposal cannot influence it.
-pub(super) fn verify_acceptance(_cx: &Ctx, root: &Path, items: &[Value]) -> Result<usize, String> {
-    let mut files = Vec::new();
-    spx_files(root, &mut files, 0);
-    let texts: Vec<String> = files
-        .iter()
-        .filter_map(|f| std::fs::read_to_string(f).ok())
-        .collect();
-    let mut verified = 0;
-    for it in items.iter().filter_map(Value::as_object) {
-        let (id, needle) = (
-            it["stable_id"].as_str().unwrap_or(""),
-            it["contains"].as_str().unwrap_or(""),
-        );
-        let marker = format!("@id(\"{id}\")");
-        // The declaration site, not an import that names the same stable id.
-        let decl = texts.iter().find_map(|t| {
-            t.match_indices(&marker).find_map(|(i, _)| {
-                let rest = &t[i + marker.len()..];
-                (!rest.trim_start().starts_with("from "))
-                    .then(|| rest.split("@id(").next().unwrap_or(rest).to_string())
-            })
-        });
-        match decl {
-            None => return Err(format!("acceptance unmet: `{id}` is not declared")),
-            Some(d) if d.contains(needle) => verified += 1,
-            Some(_) => {
-                return Err(format!(
-                    "acceptance unmet: `{id}` does not contain `{needle}`"
-                ))
-            }
-        }
-    }
-    Ok(verified)
+/// Host-owned acceptance: `{stable_id, contains}` items are checked inside the
+/// declaration the compiler binds to the stable id in the checked candidate
+/// (see `acceptance`); strings are carried to the model, not verified.
+pub(super) fn verify_acceptance(
+    cx: &Ctx,
+    root: &Path,
+    revision: &str,
+    items: &[Value],
+) -> Result<usize, String> {
+    super::acceptance::verify(cx, root, revision, items)
 }
 
 fn copy_tree(from: &Path, to: &Path, depth: usize) -> HarnessResult<()> {
@@ -1000,7 +955,13 @@ pub(super) fn candidate_checks(
         }
         // A session judges acceptance after each admitted step, not on partial work.
         let acceptance = if acceptance {
-            verify_acceptance(cx, &scratch, &cx.cfg.task.acceptance).map_err(|m| {
+            verify_acceptance(
+                cx,
+                &scratch,
+                &preview.candidate_revision,
+                &cx.cfg.task.acceptance,
+            )
+            .map_err(|m| {
                 r.checks = json!({"check": "verified", "tests": "passed", "acceptance": "unmet"});
                 d("SPX-HPD050", format!("candidate rejected: {m}"))
             })?

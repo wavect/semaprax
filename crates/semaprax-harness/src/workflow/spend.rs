@@ -260,6 +260,10 @@ pub struct SpendRecord {
     pub settled_tokens: Option<u64>,
     pub breach: Option<String>,
     pub basis: Option<String>,
+    /// Upstream attempts of a settled invocation whose usage or charge no
+    /// receipt covers (DV-20): their reservation stays inside the settled
+    /// figures until authoritative evidence covers or clears them.
+    pub unresolved_attempts: u64,
     /// Journaled (and so restored on resume).
     pub persist: bool,
     /// Restored from an earlier invocation of this lineage.
@@ -292,7 +296,8 @@ impl SpendRecord {
                "reserved_tokens": self.reserved_tokens, "reserved_cost_micros": self.reserved_cost,
                "actual_cost_micros": self.actual_cost, "settled_tokens": self.settled_tokens,
                "committed_tokens": self.committed_tokens(), "committed_cost_micros": self.committed_cost(),
-               "basis": self.basis, "breach": self.breach, "restored": self.restored})
+               "basis": self.basis, "breach": self.breach,
+               "unresolved_attempts": self.unresolved_attempts, "restored": self.restored})
     }
 }
 
@@ -304,12 +309,14 @@ pub struct Settlement {
     pub settled_tokens: Option<u64>,
     pub breach: Option<String>,
     pub basis: Option<String>,
+    /// See `SpendRecord::unresolved_attempts`.
+    pub unresolved_attempts: u64,
 }
 
 impl Settlement {
     fn detail(&self, id: &str) -> Value {
         json!({"id": id, "actual_cost_micros": self.actual_cost, "settled_tokens": self.settled_tokens,
-               "breach": self.breach, "basis": self.basis})
+               "breach": self.breach, "basis": self.basis, "unresolved_attempts": self.unresolved_attempts})
     }
     pub fn released(why: &str) -> Self {
         Self {
@@ -318,6 +325,7 @@ impl Settlement {
             settled_tokens: None,
             breach: None,
             basis: Some(why.into()),
+            unresolved_attempts: 0,
         }
     }
     pub fn uncertain(why: &str) -> Self {
@@ -327,15 +335,13 @@ impl Settlement {
             settled_tokens: None,
             breach: None,
             basis: Some(why.into()),
+            unresolved_attempts: 0,
         }
     }
 }
 
-/// Settle one generation from its TC-01 receipt. `outcome_known` is false
-/// for an uncertain outcome (cancellation, lost connection after send): that
-/// attempt stays reserved. A known outcome with an unknown cost also stays
-/// reserved. The provider-reported charge wins over the local estimate; a
-/// charge above the priced bound, or output above the cap, is a breach.
+/// Settle one single-dispatch generation from its TC-01 receipt; see
+/// `settle_generation_dispatches`.
 pub fn settle_generation(
     rec: &SpendRecord,
     receipt: &ProposalReceipt,
@@ -344,38 +350,97 @@ pub fn settle_generation(
     input_tokens: u64,
     output_cap: u64,
 ) -> Settlement {
+    settle_generation_dispatches(
+        rec,
+        receipt,
+        estimate,
+        outcome_known,
+        input_tokens,
+        output_cap,
+        1,
+    )
+}
+
+/// Settle one generation from its TC-01 receipt. `outcome_known` is false
+/// for an uncertain outcome (cancellation, lost connection after send): that
+/// attempt stays reserved. A known outcome with an unknown cost also stays
+/// reserved. The provider-reported charge wins over the local estimate; a
+/// charge above the priced bound, or output above the cap, is a breach.
+///
+/// `dispatches` is the admitted upstream attempt count (one plus disclosed
+/// gateway retries). A receipt covers only the final upstream attempt unless
+/// it declares aggregate coverage, and token and cost coverage are separate.
+/// Attempts that no receipt covers and that are not proven unused keep their
+/// per-dispatch reservation inside the settled figures (`unresolved_attempts`),
+/// so a complete final answer never releases a possibly billed retry.
+pub fn settle_generation_dispatches(
+    rec: &SpendRecord,
+    receipt: &ProposalReceipt,
+    estimate: &CostEstimate,
+    outcome_known: bool,
+    input_tokens: u64,
+    output_cap: u64,
+    dispatches: u64,
+) -> Settlement {
     if !outcome_known {
         return Settlement::uncertain("outcome_unknown");
     }
-    let (actual, basis) = match (receipt.provider_cost_micros, estimate.micros) {
-        (Some(c), _) => (c, "provider_reported"),
-        (None, Some(e)) => (e, estimate.basis),
+    let cov = receipt.coverage;
+    let d = dispatches.max(1);
+    let unused = cov.unused_attempts.min(d - 1);
+    let remaining = d - 1 - unused;
+    let (actual, basis, cost_aggregate) = match (receipt.provider_cost_micros, estimate.micros) {
+        (Some(c), _) => (c, "provider_reported", cov.cost_aggregate),
+        (None, Some(e)) => (e, estimate.basis, cov.usage_aggregate),
         (None, None) => return Settlement::uncertain("cost_unknown"),
     };
+    let priced = matches!(rec.billing, Billing::Priced(_));
+    // A priced bound is the exact multiple of one dispatch; any other
+    // reservation is a per-call figure and is retained whole per attempt.
+    let per_cost = if priced {
+        rec.reserved_cost / d
+    } else {
+        rec.reserved_cost
+    };
+    let cost_unresolved = if cost_aggregate { 0 } else { remaining };
+    let tok_unresolved = if cov.usage_aggregate { 0 } else { remaining };
     let out = receipt.usage.output;
     let mut breach = None;
-    if matches!(rec.billing, Billing::Priced(_)) && actual > rec.reserved_cost {
+    let cost_bound = if cost_aggregate {
+        rec.reserved_cost
+    } else {
+        per_cost
+    };
+    if priced && actual > cost_bound {
         breach = Some(format!(
-            "charged {actual} micros above the declared bound of {}",
-            rec.reserved_cost
+            "charged {actual} micros above the declared bound of {cost_bound}"
         ));
     }
-    if let Some(o) = out.filter(|o| *o > output_cap) {
+    let usage_attempts = if cov.usage_aggregate { d - unused } else { 1 };
+    let cap = output_cap.saturating_mul(usage_attempts);
+    if let Some(o) = out.filter(|o| *o > cap) {
         breach.get_or_insert(format!(
-            "returned {o} output tokens above the enforced cap of {output_cap}"
+            "returned {o} output tokens above the enforced cap of {cap}"
         ));
     }
     // Input is settled in the reserved unit; only the output (same model's
-    // tokens as the cap) releases headroom.
+    // tokens as the cap) of covered attempts releases headroom.
+    let per_tokens = input_tokens.saturating_add(output_cap);
     let settled_tokens = out
-        .map(|o| input_tokens.saturating_add(o))
+        .map(|o| {
+            input_tokens
+                .saturating_mul(usage_attempts)
+                .saturating_add(o)
+                .saturating_add(per_tokens.saturating_mul(tok_unresolved))
+        })
         .filter(|t| *t <= rec.reserved_tokens || breach.is_some());
     Settlement {
         state: SpendState::Settled,
-        actual_cost: Some(actual),
+        actual_cost: Some(actual.saturating_add(per_cost.saturating_mul(cost_unresolved))),
         settled_tokens,
         breach,
         basis: Some(basis.into()),
+        unresolved_attempts: cost_unresolved.max(tok_unresolved),
     }
 }
 
@@ -541,9 +606,16 @@ impl SpendBook {
         let same = rec.state == s.state
             && rec.actual_cost == s.actual_cost
             && rec.settled_tokens == s.settled_tokens
-            && rec.breach == s.breach;
+            && rec.breach == s.breach
+            && rec.unresolved_attempts == s.unresolved_attempts;
         match (rec.state, s.state) {
             _ if same && rec.state != SpendState::Reserved => Ok(None),
+            // Authoritative evidence later covering retained attempts.
+            (SpendState::Settled, SpendState::Settled)
+                if s.unresolved_attempts < rec.unresolved_attempts =>
+            {
+                Ok(Some(i))
+            }
             (
                 SpendState::Reserved,
                 SpendState::Settled | SpendState::Uncertain | SpendState::Released,
@@ -569,6 +641,7 @@ impl SpendBook {
         rec.settled_tokens = s.settled_tokens;
         rec.breach = s.breach;
         rec.basis = s.basis;
+        rec.unresolved_attempts = s.unresolved_attempts;
     }
 
     /// Settle (idempotently) and persist before the caller records
@@ -639,6 +712,7 @@ impl SpendBook {
                     settled_tokens: None,
                     breach: None,
                     basis: None,
+                    unresolved_attempts: 0,
                     persist: true,
                     restored: true,
                 };
@@ -654,6 +728,7 @@ impl SpendBook {
                     settled_tokens: opt_num("settled_tokens")?,
                     breach: opt_text("breach")?,
                     basis: opt_text("basis")?,
+                    unresolved_attempts: opt_num("unresolved_attempts")?.unwrap_or(0),
                 };
                 if state == SpendState::Settled && s.actual_cost.is_none() {
                     return Err(corrupt(format!("record {} settles without a cost", r.seq)));
@@ -684,7 +759,9 @@ impl SpendBook {
                 non_billed += 1;
             }
             // Actual cost not (yet) known: counted at the reservation meanwhile.
-            if matches!(r.state, SpendState::Reserved | SpendState::Uncertain) {
+            if matches!(r.state, SpendState::Reserved | SpendState::Uncertain)
+                || r.unresolved_attempts > 0
+            {
                 unknown += 1;
             }
             if matches!(r.billing, Billing::Unpriced(_)) && r.state != SpendState::Released {
@@ -702,6 +779,7 @@ impl SpendBook {
             "known_actual_cost_micros": actual,
             "outstanding_upper_bound_micros": outstanding,
             "unknown_spend_attempts": unknown,
+            "unresolved_retry_attempts": self.records.iter().fold(0u64, |a, r| a.saturating_add(r.unresolved_attempts)),
             "unpriced_attempts": unpriced,
             "non_billed_attempts": non_billed,
             "committed_tokens": self.committed_tokens(),

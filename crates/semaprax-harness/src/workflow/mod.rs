@@ -5,6 +5,7 @@
 //! reached only through the adapter host; publication is the compiler's own
 //! route under a preexisting host policy.
 
+mod acceptance;
 mod acquire;
 pub mod adapter_config;
 mod attempt;

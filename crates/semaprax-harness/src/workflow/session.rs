@@ -507,7 +507,7 @@ pub(super) fn loop_steps(
         }
         // Terminal and non-intent proposals.
         if proposal.done {
-            let ok = verify_acceptance_all(cx, &work, &task.acceptance, host_items);
+            let ok = verify_acceptance_all(cx, &work, &revision, &task.acceptance, host_items);
             match ok {
                 Ok(()) if !s.steps.is_empty() => {
                     return finish(cx, st, journal, r, s, &revision, after_repair)
@@ -645,7 +645,7 @@ pub(super) fn loop_steps(
         // Complete when the host-verified acceptance holds; without host-verified
         // criteria the first admitted step completes (the proposer may say `done` earlier).
         if host_items > 0 {
-            if verify_acceptance_all(cx, &work, &task.acceptance, host_items).is_ok() {
+            if verify_acceptance_all(cx, &work, &revision, &task.acceptance, host_items).is_ok() {
                 return finish(cx, st, journal, r, s, &revision, after_repair);
             }
         } else {
@@ -711,10 +711,11 @@ fn refine_context(
 fn verify_acceptance_all(
     cx: &Ctx,
     work: &Path,
+    revision: &str,
     items: &[Value],
     host_items: usize,
 ) -> Result<(), String> {
-    match attempt::verify_acceptance(cx, work, items) {
+    match attempt::verify_acceptance(cx, work, revision, items) {
         Ok(n) if n == host_items => Ok(()),
         Ok(_) => Err("acceptance unmet".into()),
         Err(m) => Err(m),

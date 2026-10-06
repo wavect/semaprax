@@ -91,11 +91,19 @@ impl CompilerService for Fake {
     }
     fn context(
         &self,
-        _p: &Path,
+        p: &Path,
         seed: &str,
         _m: usize,
     ) -> semaprax_harness::diag::HarnessResult<String> {
         self.log.borrow_mut().push("context".into());
+        // Like the real compiler: a declared id is bound to its manifest file
+        // and the project revision; anything else is the bare seed echo.
+        let lib = self.lib(p);
+        if lib.contains(&format!("\n@id(\"{seed}\")")) {
+            return Ok(json!({"project_revision": rev_of(&lib),
+                "target": [seed, "function", "src/lib.spx", "t.lib"]})
+            .to_string());
+        }
         Ok(format!("{{\"target\":\"{seed}\"}}"))
     }
     fn candidate_preview(
@@ -1169,3 +1177,6 @@ mod tc12;
 
 #[path = "workflow_mr08.rs"]
 mod mr08;
+
+#[path = "workflow_dv22.rs"]
+mod dv22;

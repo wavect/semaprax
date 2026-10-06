@@ -54,6 +54,21 @@ impl Finish {
     }
 }
 
+/// What upstream attempts a receipt covers (DV-20). A normal provider usage
+/// object or charge describes only the final upstream request; a gateway that
+/// retried may disclose aggregate usage or cost, and may prove retries unused.
+/// Token and cost coverage are separate: an aggregate charge does not prove
+/// aggregate token usage. The default is final-attempt coverage, no proof.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct ReceiptCoverage {
+    /// `usage` covers every upstream attempt of the invocation.
+    pub usage_aggregate: bool,
+    /// `provider_cost_micros` covers every upstream attempt of the invocation.
+    pub cost_aggregate: bool,
+    /// Upstream attempts the gateway proves were never dispatched or billed.
+    pub unused_attempts: u64,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ProposalReceipt {
     /// `Some(reason)` when no receipt was produced (scripted or legacy provider).
@@ -66,6 +81,8 @@ pub struct ProposalReceipt {
     pub usage: Usage,
     /// Provider-reported charge in micro-units, or unknown.
     pub provider_cost_micros: Option<u64>,
+    /// Which upstream attempts `usage` and the charge cover.
+    pub coverage: ReceiptCoverage,
     pub max_output_tokens: ControlReport,
     pub reasoning: ControlReport,
     /// Numeric-only provider-native usage, for auditing the normalization.
@@ -82,6 +99,7 @@ impl ProposalReceipt {
             finish: Finish::Unknown,
             usage: Usage::default(),
             provider_cost_micros: None,
+            coverage: ReceiptCoverage::default(),
             max_output_tokens: ControlReport::NOT_REQUESTED,
             reasoning: ControlReport::NOT_REQUESTED,
             native: Value::Null,
@@ -117,6 +135,15 @@ impl ProposalReceipt {
             .and_then(Value::as_str)
             .map_or(Finish::Unknown, Finish::parse);
         r.provider_cost_micros = c.get("provider_cost_micros").and_then(Value::as_u64);
+        let scope = |k: &str| c.get(k).and_then(Value::as_str) == Some("aggregate");
+        r.coverage = ReceiptCoverage {
+            usage_aggregate: scope("usage_scope"),
+            cost_aggregate: scope("cost_scope"),
+            unused_attempts: c
+                .get("unused_attempts")
+                .and_then(Value::as_u64)
+                .unwrap_or(0),
+        };
         let mut native = c.get("usage").cloned().unwrap_or_else(|| json!({}));
         if let Some(ev) = c.get("usage_events").and_then(Value::as_array) {
             let events = ev.iter().filter_map(|e| event_usage(e).or(Some(e)));
@@ -132,7 +159,7 @@ impl ProposalReceipt {
 
     pub fn to_json(&self, estimate: Option<&CostEstimate>) -> Value {
         let unk = |o: Option<u64>| o.map_or(json!("unknown"), |n| json!(n));
-        json!({
+        let mut v = json!({
             "schema": RECEIPT_SCHEMA,
             "availability": match self.unavailable { Some(r) => json!({"state": "unavailable", "reason": r}), None => json!({"state": "observed"}) },
             "protocol": self.protocol.map(Protocol::as_str),
@@ -146,7 +173,14 @@ impl ProposalReceipt {
                 "estimated": estimate.map_or(json!({"kind": "estimate", "micros": "unknown", "basis": "not_priced"}), CostEstimate::to_json),
             },
             "controls": {"max_output_tokens": self.max_output_tokens.to_json(), "reasoning": self.reasoning.to_json()},
-        })
+        });
+        if self.coverage != ReceiptCoverage::default() {
+            let c = &self.coverage;
+            let scope = |a: bool| if a { "aggregate" } else { "final_attempt" };
+            v["coverage"] = json!({"usage": scope(c.usage_aggregate), "cost": scope(c.cost_aggregate),
+                                   "unused_attempts": c.unused_attempts});
+        }
+        v
     }
 }
 

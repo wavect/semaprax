@@ -158,7 +158,11 @@ Known gap: `harness context` (not the workflow) still reads the runtime from `HA
 
 Task `semaprax.harness-task.v2` (additive; v1 and no task are unchanged) adds `mode` (`repair` default, `change`,
 `plan`/`inspect`), `acceptance` (strings are carried to the model; `{"stable_id","contains"}` items are host-verified
-against the compiler-verified candidate source), `operation` (expected candidate kind), `checks` (names of authorized
+against the compiler-verified candidate source: the compiler's `context` answer must bind the stable id, at the
+candidate's project revision, to a manifest-admitted source file, and `contains` is judged only inside that
+file's unique declaration span with comments excluded. Comments, string literals, imports, neighboring declarations
+and unlisted `.spx` files never supply identity or widen the span; an unbound, stale or duplicated id fails closed.
+The single-shot candidate check and the session completion path use the same verifier), `operation` (expected candidate kind), `checks` (names of authorized
 checks to run), `budget`, `tokenizer_map` and `session`. `change` and `plan` require a stated nonempty `goal`.
 
 Baseline health is a precondition, not completion. Green baseline tests no longer end a `change`/`plan` run: the goal,
@@ -354,7 +358,17 @@ The router is admitted and journaled before it can be called. When it is unaffor
 allowance is the remaining task cost.
 
 Generations settle from the TC-01 receipt; a provider-reported charge wins over the local estimate. Only output
-headroom is released, and only on a known terminal outcome. Unknown cost stays reserved, and a timeout is not free.
+headroom is released, and only on a known terminal outcome.
+
+A generation reserves `1 + gateway_max_retries` upstream dispatches. A receipt covers only the final upstream attempt
+unless it declares coverage: the adapter's `receipt` may carry `usage_scope` and `cost_scope` (`final_attempt`, the
+default, or `aggregate`) and `unused_attempts` (retries the gateway proves were never dispatched or billed). Token and
+cost coverage are separate, so an aggregate charge does not erase unknown retry tokens. Each attempt that no receipt
+covers and that is not proven unused keeps its per-dispatch token and cost reservation inside the settled figures,
+reported as `unresolved_attempts` (per attempt, journaled and restored) and `unresolved_retry_attempts` (total), and
+counted in `unknown_spend_attempts`. Only the proven unused portion is released; a complete final answer is not such
+proof. A final-attempt charge is checked against one dispatch's bound, an aggregate charge against the whole
+reservation. Unknown cost stays reserved, and a timeout is not free.
 A charge above the bound, or output above the cap, is a breach and blocks further paid work. Explicitly non-billed
 local work remains allowed and token-bounded. Strict monetary mode refuses unpriced billable work, and a priced
 provider without a declared enforced output cap.

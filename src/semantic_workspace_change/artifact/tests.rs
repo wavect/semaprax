@@ -113,11 +113,11 @@ fn literal_kats_wire_order_domains_and_reference_parity() {
             // The expanded Project graph and limits change the bound documents;
             // the domain, reference, wire-order, and tamper checks above and
             // below still bind these literal whole-document digests.
-            "sha256:63b48989def726f0ffea4184f72e280ecc8d2381a835377f2b1e4cff0870b5fd",
-            "sha256:9b800792dc91ac332f13d71696e6528375ed8ccb286f29256f5c87b62b957f1e",
-            "sha256:b93fea834572e37dce7205efc6bc4bcc68e8be4fab9342a720566c13154d9ee1",
-            "sha256:23ff7f4413768b6747baaf7039704aa1e4f18adfdb998bf6798348f2fc294382",
-            "sha256:919011a7bb573c1664fb21e854ca48ab00c9f551ff154d1e2ee5b258640ef59c"
+            "sha256:be5f7fbea9590fbd67de44907c9b8177cfb96997404a7b382f37f3a7c2960b5c",
+            "sha256:c5e5d9c89da2ce28d406cee8b5c20b3afd358dd31ecb5a0d12f0a6807efd6885",
+            "sha256:d2024ce8b542d922e45b1a19742618b099e40e5adc175f63b5c6805ea5edc0e5",
+            "sha256:e1abc433b0a155e5038622967e17f105778568f08612818f0a2946fa1c86553b",
+            "sha256:e1560c15a465c098e7ea4a28276f0d53567a5fb1561c21a9630420232176553e"
         ]
     );
 

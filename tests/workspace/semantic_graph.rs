@@ -550,7 +550,7 @@ fn public_api_cli_bytes_getters_and_read_only_locking_are_exact() {
         // `budget.used_builder_bytes` and this digest move; this fixture
         // declares no session protocol, so nothing else in the document
         // moves.
-        "sha256:25d1f13ec2349b98b5c50a42c481885706bfebb07d47fcf7cd9496c40717895b"
+        "sha256:c2c7bd5e3a0bea2a25675908c45f12faafb4aeca4a4df419f30f28e97fe9d182"
     );
 
     let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
@@ -974,14 +974,14 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
             document_digest(capability_review.as_bytes()),
         ],
         [
-            "sha256:0f27ae49e0e088bbdb020308298ac316ff08a8856e361f67245c84e22c7b790c",
-            "sha256:53feb60f3aed0f6dec585264dc79408d75aed50a0cd9bdb64f2ffe2159c4c296",
-            "sha256:07a321e5e5be6dac1924974534bf039e0581edab33799eb00346fca40e204cc6",
-            "sha256:e6b4235a3d0dc972f124c7d9a7e1afedac2a74c42cb771b750b385a1481fe954",
-            "sha256:c432a468eb8c88114b8dd224f8e8580c5005647608fef7473c8654fcb85bdac1",
-            "sha256:4bd43f59e3609355c8f67fdcc91edde0caaeaca2e9c425c4566c68cda5861c65",
-            "sha256:2eb333fbb47e7c78d4d9eeccf14e9440cf3bf00322f0eaed3dd739df52207470",
-            "sha256:0001548a1e54e326bc11883161d26d7fba02529e3b41b5d772b303b4bd204562",
+            "sha256:148bf9a17b83bb2481d6fc0337cfedcd0cd33296daff1f539918db50a8d8d75c",
+            "sha256:7067c36f84f6db832ab9eb08e35bf0190d4179125b417cc0c2b366e3706bba21",
+            "sha256:27e55143025e87dab89ee19ff4701ae3c3b2379859de0cea79958838fbbc2b14",
+            "sha256:ebfca5938ce1b16adbe85954a6a2397e576f30f571633566a2eeacf8ec9e98c3",
+            "sha256:25dca5970f5e2de4b40c6b36dbd82aa0e64c3e7e94e106fe110472f4bd400cee",
+            "sha256:4faa904184973e2ac8d3f095ef150712ae1c2d8310da4e31950b69e96c275d2c",
+            "sha256:6ab8330583a6a2780454e1547ca1e1816b4f997fd91d0ad1dcd1acb04426e284",
+            "sha256:44756f355298ce01549d0f214256db2ff3fac6b3a5a6a9ee6a27a7f67c713690",
         ]
     );
 

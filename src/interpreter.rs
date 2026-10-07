@@ -2218,6 +2218,7 @@ use nested_owned::{
     record_update_is_admitted, take_owned_place, update_owned_record,
 };
 
+mod guarded_variants;
 mod variant_admission;
 use variant_admission::{
     is_admitted_copy_aggregate_variant, is_admitted_fieldless_variant,
@@ -4735,6 +4736,16 @@ impl Evaluator<'_> {
                     return outcome;
                 }
                 if let Value::Variant(variant) = staged {
+                    if arms.iter().any(|arm| arm.guard.is_some()) {
+                        return self.evaluate_guarded_copy_variant(
+                            *mode,
+                            scrutinee,
+                            arms,
+                            &variant,
+                            environment,
+                            depth,
+                        );
+                    }
                     let agg = nested_owned::bc_match(self.declarations, *mode, &scrutinee.ty, arms)
                         || variant_admission::is_admitted_copy_scalar_variant(
                             self.declarations,

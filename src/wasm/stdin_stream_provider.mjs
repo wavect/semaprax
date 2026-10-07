@@ -9,10 +9,14 @@
  * 'semaprax.command-input.v1', code: 3 }` result. Malformed/foreign/stale
  * carriers, reentrancy, and duplicate settlement are guard errors instead.
  *
- * `open()` creates one opaque reader and its reusable buffer. `next(reader)`
- * returns the same reader plus a generation-bound read-only chunk view, EOF,
- * or the closed I/O failure result. A later `next` or `drop` expires prior
- * views. The private buffer is never returned or copied by this module.
+ * `open()` creates one opaque reader and reusable buffer, then synchronously
+ * prefills its first chunk. It returns `{ kind: 'opened', reader, initial }`,
+ * where `initial` is a chunk view or EOF. If that first read fails, it returns
+ * the checked I/O failure without publishing the reader or a chunk; the open
+ * permission remains consumed and the unpublished token is retired. `next`
+ * advances thereafter and returns the same reader plus a generation-bound
+ * read-only chunk view, EOF, or checked I/O failure. A later `next` or `drop`
+ * expires prior views. The private buffer is never returned or copied.
  * This module has no ambient stdin or filesystem access.
  */
 
@@ -101,30 +105,7 @@ export function createStdinStreamProvider(readInto) {
     return { length, eof };
   };
 
-  const open = () => {
-    assertHealthy();
-    if (invocation.opened) poison('only one reader may be opened per invocation');
-    // Consume the invocation's one open before allocating; even allocation
-    // failure cannot make a second reader admissible.
-    invocation.opened = true;
-    const reader = Object.freeze(Object.create(null));
-    const state = {
-      reader,
-      buffer: new Uint8Array(STDIN_STREAM_CHUNK_BYTES),
-      generation: 0,
-      length: 0,
-      eof: false,
-      eofResult: null,
-      ioFailure: null,
-      dropped: false,
-      active: false,
-    };
-    invocation.stateByReader.set(reader, state);
-    return reader;
-  };
-
-  const next = reader => {
-    const state = stateForReader(reader);
+  const readState = (state, reader, includeReader) => {
     if (invocation.active || state.active) poison('reader operation is reentrant');
     if (state.ioFailure !== null) return state.ioFailure;
     if (state.eof) return state.eofResult;
@@ -142,7 +123,7 @@ export function createStdinStreamProvider(readInto) {
       if (invocation.guardError !== null) throw invocation.guardError;
       state.ioFailure = Object.freeze({
         kind: 'io-error',
-        reader,
+        ...(includeReader ? { reader } : {}),
         ...COMMAND_INPUT_IO_ERROR,
       });
       return state.ioFailure;
@@ -162,7 +143,10 @@ export function createStdinStreamProvider(readInto) {
     const { length, eof } = validated;
     if (eof) {
       state.eof = true;
-      state.eofResult = Object.freeze({ kind: 'eof', reader });
+      state.eofResult = Object.freeze({
+        kind: 'eof',
+        ...(includeReader ? { reader } : {}),
+      });
       return state.eofResult;
     }
 
@@ -193,7 +177,46 @@ export function createStdinStreamProvider(readInto) {
     });
     Object.freeze(view);
     invocation.stateByView.set(view, { state, generation });
-    return Object.freeze({ kind: 'chunk', reader, chunk: view });
+    return Object.freeze({
+      kind: 'chunk',
+      ...(includeReader ? { reader } : {}),
+      chunk: view,
+    });
+  };
+
+  const open = () => {
+    assertHealthy();
+    if (invocation.opened) poison('only one reader may be opened per invocation');
+    // Consume the invocation's one open before allocation or the initial read;
+    // neither allocation nor checked I/O failure permits a retry.
+    invocation.opened = true;
+    const reader = Object.freeze(Object.create(null));
+    const state = {
+      reader,
+      buffer: new Uint8Array(STDIN_STREAM_CHUNK_BYTES),
+      generation: 0,
+      length: 0,
+      eof: false,
+      eofResult: null,
+      ioFailure: null,
+      dropped: false,
+      active: false,
+    };
+    const initial = readState(state, reader, false);
+    if (initial.kind === 'io-error') {
+      // Retire the unpublished token exactly once. No reader or view escapes.
+      state.generation += 1;
+      state.length = 0;
+      state.dropped = true;
+      return initial;
+    }
+    invocation.stateByReader.set(reader, state);
+    return Object.freeze({ kind: 'opened', reader, initial });
+  };
+
+  const next = reader => {
+    const state = stateForReader(reader);
+    return readState(state, reader, true);
   };
 
   const drop = reader => {

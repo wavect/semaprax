@@ -195,3 +195,55 @@ int main(void) {{
         compile_and_expect_failure(&generated, &invalid_probe, optimization);
     }
 }
+
+#[test]
+fn constructed_owned_byte_cases_balance_allocation_at_o0_and_o2() {
+    if Command::new("clang").arg("--version").output().is_err() {
+        return;
+    }
+    let source = include_str!("../owned_byte_constructed_case_fixture.spx");
+    let program = parse(source, Path::new("constructed-owned-byte-native.spx")).unwrap();
+    let generated = codegen::emit_c(&program).unwrap();
+    let tracked = format!(
+        "#include <stddef.h>\nstatic void *spx_test_malloc(size_t);\nstatic void spx_test_free(void *);\n{}",
+        generated
+            .replace("malloc((size_t)value.len)", "spx_test_malloc((size_t)value.len)")
+            .replace("free(value->ptr)", "spx_test_free(value->ptr)")
+    );
+    assert!(tracked.contains("spx_test_malloc((size_t)value.len)"));
+    assert!(tracked.contains("spx_test_free(value->ptr)"));
+    let probe = format!(
+        r#"
+static uint32_t spx_allocated = UINT32_C(0);
+static uint32_t spx_freed = UINT32_C(0);
+static void *spx_test_malloc(size_t size) {{
+    void *value = malloc(size);
+    if (value == NULL) abort();
+    ++spx_allocated;
+    return value;
+}}
+static void spx_test_free(void *value) {{
+    ++spx_freed;
+    free(value);
+}}
+int main(void) {{
+    struct spx_status_entry entries[UINT32_C(32)];
+    struct spx_context context = {{0}};
+    if (!spx_context_init(&context, UINT64_C(10000), entries, UINT32_C(32), NULL, NULL, NULL)) return 10;
+    for (uint32_t index = UINT32_C(0); index < UINT32_C(4); ++index) {{
+        int64_t result = INT64_C(0);
+        if ({main}(&context, &result) != SPX_STATUS_SUCCESS || result != INT64_C(11)) return 11;
+        if (spx_allocated != spx_freed) return 12;
+        if ({failure}(&context, &result) == SPX_STATUS_SUCCESS) return 13;
+        if (spx_allocated != spx_freed) return 14;
+    }}
+    return spx_allocated == UINT32_C(16) ? 0 : 15;
+}}
+"#,
+        main = symbol("app.main"),
+        failure = symbol("case.fail")
+    );
+    for optimization in ["-O0", "-O2"] {
+        compile_and_run(&tracked, &probe, optimization);
+    }
+}

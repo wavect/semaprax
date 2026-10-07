@@ -127,22 +127,6 @@ impl PlanBuilder<'_> {
     }
 }
 
-pub(super) fn needs_complete_case_domain(
-    program: &ResolvedProgram,
-    variant: &DeclarationId,
-) -> bool {
-    variant.as_str() == crate::iterator_ops::STEP_ID
-        || program
-            .declarations
-            .variant_cases(variant)
-            .is_some_and(|cases| {
-                cases
-                    .iter()
-                    .flat_map(|case| &case.fields)
-                    .any(|field| field.ty == ResolvedType::String)
-            })
-}
-
 impl PlanBuilder<'_> {
     /// Recursive-reference twin for scalar matches. Arm and guard child
     /// regions keep String temporaries out of the parent decision state.

@@ -248,3 +248,73 @@ fn tail_mut(expression: &mut ResolvedExpr) -> &mut ResolvedExpr {
     };
     tail
 }
+
+#[test]
+fn constructed_owned_byte_cases_preserve_closed_domain_and_reject_forgery() {
+    use semaprax::cleanup_plan::CleanupTransition;
+    let source = include_str!("../owned_byte_constructed_case_fixture.spx");
+    let parsed = parse(source, Path::new("constructed-owned-byte-cases.spx")).unwrap();
+    let canonical = semaprax::format::canonical(&parsed);
+    let reparsed = parse(&canonical, Path::new("constructed-owned-byte-cases.spx")).unwrap();
+    assert_eq!(semaprax::format::canonical(&reparsed), canonical);
+    assert_eq!(
+        semaprax::graph::to_json(&parsed).unwrap(),
+        semaprax::graph::to_json(&reparsed).unwrap()
+    );
+    let program = resolved(source);
+    hir::validate(&program).unwrap();
+    for id in [
+        "case.local-some",
+        "case.direct-some",
+        "case.local-none",
+        "case.two-owned",
+    ] {
+        let function = program
+            .functions
+            .iter()
+            .find(|f| f.id.as_str() == id)
+            .unwrap();
+        assert_eq!(
+            function
+                .cleanup_plan
+                .blocks
+                .iter()
+                .flat_map(|b| &b.transitions)
+                .filter(|t| matches!(t, CleanupTransition::AuthenticateVariantCase { .. }))
+                .count(),
+            2,
+            "{id}"
+        );
+    }
+    for missing in [false, true] {
+        let mut forged = program.clone();
+        let function = forged
+            .functions
+            .iter_mut()
+            .find(|f| f.id.as_str() == "case.local-some")
+            .unwrap();
+        let block = function
+            .cleanup_plan
+            .blocks
+            .iter_mut()
+            .find(|b| {
+                b.transitions
+                    .iter()
+                    .any(|t| matches!(t, CleanupTransition::AuthenticateVariantCase { .. }))
+            })
+            .unwrap();
+        let index = block
+            .transitions
+            .iter()
+            .position(|t| matches!(t, CleanupTransition::AuthenticateVariantCase { .. }))
+            .unwrap();
+        if missing {
+            block.transitions.remove(index);
+        } else if let CleanupTransition::AuthenticateVariantCase { case, .. } =
+            &mut block.transitions[index]
+        {
+            *case = hir::DeclarationId::new("core.option.some");
+        }
+        assert_eq!(hir::validate(&forged).unwrap_err().code, "SPX-H006");
+    }
+}

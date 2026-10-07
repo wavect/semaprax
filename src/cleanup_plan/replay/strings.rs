@@ -3,7 +3,6 @@
 #![allow(clippy::items_after_test_module)]
 
 use super::*;
-use crate::hir::ResolvedTypeDeclarationKind;
 pub(super) fn owns_clone(expression: &ResolvedExpr) -> bool {
     expression.ty == ResolvedType::String
         && expression.ownership == OwnershipMode::Own
@@ -142,23 +141,4 @@ module test.string.cleanup;
         flag.lifecycle = crate::hir::DeclarationId::new(crate::cleanup::BYTES_DROP_LIFECYCLE_ID);
         assert!(crate::hir::validate(&forged).is_err());
     }
-}
-
-pub(super) fn needs_complete_case_domain(
-    program: &ResolvedProgram,
-    variant: &DeclarationId,
-) -> bool {
-    if variant.as_str() == crate::iterator_ops::STEP_ID {
-        return true;
-    }
-    program.types.iter().any(|item| {
-        item.id == *variant
-            && match &item.kind {
-                ResolvedTypeDeclarationKind::Variant { cases } => cases
-                    .iter()
-                    .flat_map(|case| &case.fields)
-                    .any(|field| field.ty == ResolvedType::String),
-                _ => false,
-            }
-    })
 }

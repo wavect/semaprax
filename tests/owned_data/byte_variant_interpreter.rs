@@ -101,3 +101,17 @@ fn aggregate_interpreter_cli_selection_remains_closed() {
     std::fs::remove_file(path).unwrap();
     assert_eq!(diagnostic[0].code, "SPX-F102");
 }
+
+#[test]
+fn constructed_owned_byte_cases_execute_and_settle_on_failure() {
+    let source = include_str!("../owned_byte_constructed_case_fixture.spx");
+    for _ in 0..3 {
+        let result = interpret(source, "app.main");
+        assert!(result.returned);
+        assert_eq!(outcome(&result.envelope)["value"], "11");
+        interpreter::verify_envelope(&result.envelope).unwrap();
+        let failure = interpret(source, "case.fail");
+        assert!(!failure.returned);
+        interpreter::verify_envelope(&failure.envelope).unwrap();
+    }
+}

@@ -1363,22 +1363,19 @@ impl<'a> PlanBuilder<'a> {
         state.conditional_variants.push(ConditionalFlowVariant {
             root: destination.clone(),
             variant: variant.clone(),
-            cases: if strings::needs_complete_case_domain(self.program, variant) {
-                // Keep the closed domain at a consuming match boundary: both
-                // guarded arms are checked even for a statically constructed case.
-                self.program
-                    .declarations
-                    .variant_cases(variant)
-                    .ok_or_else(|| plan_error("constructed owning variant has no case domain"))?
-                    .iter()
-                    .map(|candidate| {
-                        let prefix = destination.projected(candidate.id.clone());
-                        (candidate.id.clone(), self.flags_under(&prefix))
-                    })
-                    .collect()
-            } else {
-                vec![(case.clone(), flags)]
-            },
+            // Every tag edge of a later owning match needs the closed domain,
+            // including payload-free cases. Runtime inactive leaves stay dead.
+            cases: self
+                .program
+                .declarations
+                .variant_cases(variant)
+                .ok_or_else(|| plan_error("constructed owning variant has no case domain"))?
+                .iter()
+                .map(|candidate| {
+                    let prefix = destination.projected(candidate.id.clone());
+                    (candidate.id.clone(), self.flags_under(&prefix))
+                })
+                .collect(),
         });
         Ok(())
     }

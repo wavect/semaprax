@@ -6769,11 +6769,10 @@ fn execute_replay_transition(
             case,
             ..
         } => {
-            if strings::needs_complete_case_domain(program, variant)
-                && !state
-                    .conditional_variants
-                    .iter()
-                    .any(|entry| entry.root == *source)
+            if !state
+                .conditional_variants
+                .iter()
+                .any(|entry| entry.root == *source)
             {
                 materialize_constructed_variant(
                     program, function, state, source, variant, storage, leaves,
@@ -7068,30 +7067,25 @@ fn materialize_constructed_variant(
     state.conditional_variants.push(ReplayConditionalVariant {
         root: source.clone(),
         variant: variant.clone(),
-        cases: if strings::needs_complete_case_domain(program, variant) {
-            // Independently retain every guarded case after authenticating the constructed payload; inactive runtime flags remain dead.
-            program
-                .declarations
-                .variant_cases(variant)
-                .ok_or_else(|| {
-                    replay_error(function, "constructed owning variant has no case domain")
-                })?
-                .iter()
-                .map(|candidate| {
-                    let prefix = source.projected(candidate.id.clone()).projections;
-                    (
-                        candidate.id.clone(),
-                        all_flags
-                            .iter()
-                            .filter(|flag| leaves[flag].place.projections.starts_with(&prefix))
-                            .copied()
-                            .collect(),
-                    )
-                })
-                .collect()
-        } else {
-            vec![(case.clone(), selected)]
-        },
+        // Rebuild the closed tag domain only after checking the constructed
+        // case's complete payload and every inactive runtime flag above.
+        cases: program
+            .declarations
+            .variant_cases(variant)
+            .ok_or_else(|| replay_error(function, "constructed owning variant has no case domain"))?
+            .iter()
+            .map(|candidate| {
+                let prefix = source.projected(candidate.id.clone()).projections;
+                (
+                    candidate.id.clone(),
+                    all_flags
+                        .iter()
+                        .filter(|flag| leaves[flag].place.projections.starts_with(&prefix))
+                        .copied()
+                        .collect(),
+                )
+            })
+            .collect(),
     });
     Ok(())
 }

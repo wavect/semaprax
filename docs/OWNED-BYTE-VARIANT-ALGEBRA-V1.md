@@ -97,6 +97,13 @@ explicit members of the conditional case domain with an empty owned-leaf list;
 their authenticated selection is carried by the tag and is never inferred
 from the presence of a live cleanup flag.
 
+Construction checks the complete selected payload before sealing its conditional
+state. That state retains the full declared case domain, including when a local
+or direct constructor feeds an exhaustive owned match. Each arm's tag edge
+authenticates its case before materializing payload ownership; retaining the
+closed domain does not initialize inactive runtime flags. Independent replay
+rebuilds that domain from HIR and rejects missing or forged case authentication.
+
 Exact owned postfix `?` evaluates its operand once. The `Ok` edge authenticates
 `core.result.ok` and moves only `Ok.value` into the owned expression result.
 The `Err` edge transfers the complete dynamically selected Result into

@@ -473,6 +473,12 @@ pub(super) fn generic_payload_schema(
 }
 
 pub(crate) fn legacy_graph_schema(program: &ResolvedProgram) -> Result<&'static str, Diagnostic> {
+    if super::owned_text_record_loans::requires(program) {
+        return Err(Diagnostic::io(
+            "SPX-G410",
+            "owned text record loans require Graph v69",
+        ));
+    }
     program_schema(program, false)
 }
 

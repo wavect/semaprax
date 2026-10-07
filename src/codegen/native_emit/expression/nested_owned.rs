@@ -36,7 +36,8 @@ pub(super) fn owned_record_pattern_anchors(
         }
         match pattern {
             crate::hir::ResolvedRecordMatchFieldPattern::Binding(binding)
-                if matches!(binding.ty, ResolvedType::Bytes | ResolvedType::String) =>
+                if matches!(binding.ty, ResolvedType::Bytes | ResolvedType::String)
+                    || crate::map_ops::is_collection(&binding.ty) =>
             {
                 anchors.insert(crate::cleanup_plan::StorageId::Value(binding.id.clone()));
             }
@@ -131,6 +132,7 @@ pub(super) fn bind_record_match_pattern<O: COutput>(
             hir::ResolvedRecordMatchFieldPattern::Binding(binding) => {
                 emitter.require_type(&binding.ty, &layout_field.ty, "record pattern binding")?;
                 let name = if matches!(layout_field.ty, ResolvedType::Bytes | ResolvedType::String)
+                    || crate::map_ops::is_collection(&layout_field.ty)
                 {
                     match frame.binding_mode.mode {
                         hir::ResolvedMatchMode::Own
@@ -217,7 +219,8 @@ pub(super) fn bind_record_match_pattern<O: COutput>(
             }
             hir::ResolvedRecordMatchFieldPattern::Wildcard => {
                 let nested = emitter.record_contains_owned_bytes(&layout_field.ty)?;
-                let direct = matches!(layout_field.ty, ResolvedType::Bytes | ResolvedType::String);
+                let direct = matches!(layout_field.ty, ResolvedType::Bytes | ResolvedType::String)
+                    || crate::map_ops::is_collection(&layout_field.ty);
                 // The resolver admits a wildcard over a direct droppable leaf
                 // under a borrow and rejects a nested owning subtree in either
                 // mode. Match it exactly, so a program the front end admits is
@@ -376,7 +379,10 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             }
             let value = self.emit_expr(&replacement.value)?;
             self.require_type(&value.ty, &field.ty, "nested record update field")?;
-            if field.size == 0 || matches!(field.ty, ResolvedType::Bytes | ResolvedType::String) {
+            if field.size == 0
+                || matches!(field.ty, ResolvedType::Bytes | ResolvedType::String)
+                || crate::map_ops::is_collection(&field.ty)
+            {
                 continue;
             }
             let target = format!("{destination}.{}", c_field_symbol(&field.field));
@@ -397,6 +403,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             if seen.contains(&field.field)
                 || field.size == 0
                 || matches!(field.ty, ResolvedType::Bytes | ResolvedType::String)
+                || crate::map_ops::is_collection(&field.ty)
             {
                 continue;
             }
@@ -493,6 +500,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
     }
 
     fn is_exact_record(&self, ty: &ResolvedType) -> Result<bool, Diagnostic> {
+        if crate::map_ops::is_collection(ty) {
+            return Ok(false);
+        }
         let ResolvedType::Nominal {
             declaration,
             arguments,
@@ -523,7 +533,10 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         let mut contains = false;
         while let Some(frame) = pending.pop() {
             match frame {
-                Frame::Enter(ResolvedType::Bytes | ResolvedType::String, _) => {
+                Frame::Enter(ty, _)
+                    if matches!(ty, ResolvedType::Bytes | ResolvedType::String)
+                        || crate::map_ops::is_collection(&ty) =>
+                {
                     contains = true;
                     leaves = leaves
                         .checked_add(1)
@@ -614,7 +627,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             };
             let layout = self.record_layout(&ty)?;
             for field in layout.fields.into_iter().rev() {
-                if field.size == 0 || matches!(field.ty, ResolvedType::Bytes | ResolvedType::String)
+                if field.size == 0
+                    || matches!(field.ty, ResolvedType::Bytes | ResolvedType::String)
+                    || crate::map_ops::is_collection(&field.ty)
                 {
                     continue;
                 }
@@ -658,7 +673,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             for field in layout.fields.into_iter().rev() {
                 let symbol = c_field_symbol(&field.field);
                 let target = format!("({destination}).{symbol}");
-                if field.ty == ResolvedType::String {
+                if field.ty == ResolvedType::String || crate::map_ops::is_collection(&field.ty) {
                     pending.push(Action::String(target));
                 } else if field.ty == ResolvedType::Bytes {
                     pending.push(Action::Bytes(target));

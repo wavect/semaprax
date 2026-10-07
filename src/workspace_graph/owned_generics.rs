@@ -577,6 +577,10 @@ pub(super) fn close_owned_data_closure(
                 && crate::list_ops::by_id(callee.as_str()).is_none()
                 && crate::host_io_ops::by_id(callee.as_str()).is_none()
                 && crate::command_io_ops::by_id(callee.as_str()).is_none()
+                && !(crate::stdin_stream_ops::pure_by_id(callee.as_str())
+                    == Some(crate::stdin_stream_ops::PureOp::Eof)
+                    && instance.is_none()
+                    && type_arguments.is_empty())
             {
                 return Err(vec![graph_error(
                     "SPX-G173",

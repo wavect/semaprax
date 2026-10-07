@@ -463,30 +463,30 @@ fn general_loop_match_scalar_helpers_admit_i32_f32_f64_without_widening_frozen_s
 
 const TOOLKIT_COLLECTIONS: &str = r#"module test.generated_toolkit_collections;
 @id("carrier") record Carrier { @id("carrier.values") values: Map<i64, string>, @id("carrier.label") label: string, }
-@id("carrier.unpack") fn unpack(value: own Carrier) -> Map<i64, string> { match own value { Carrier { values, label: _ } => values, } }
+@id("carrier.unpack") fn unpack(value: own Carrier) -> Map<i64, string> { match own value { Carrier { values, label } => { let ignored=string_len(label); values }, } }
 @id("collection.forward") fn forward(values: own Map<i64, string>) -> Map<i64, string> { values }
 @id("collection.count") fn count(values: borrow Map<i64, string>) -> i64 { i64_from_usize(map_len<i64, string>(values)) }
 @id("app.typed") fn typed() -> i64 {
- let mut values=map_new<i64, string>(2usize);
- values=map_set<i64, string>(values,-3,"a\u{0}é");
- let values=forward(unpack(Carrier { values, label:"discarded" }));
- let read=map_get_or<i64, string>(values,-3,"");
+ let values0=map_new<i64, string>(2usize);
+ let values1=map_set<i64, string>(values0,-3,"a\u{0}é");
+ let values2=forward(unpack(Carrier { values:values1, label:"discarded" }));
+ let read=map_get_or<i64, string>(values2,-3,"");
  let extended=string_concat(read,"!");
- let mut values=map_set<i64, string>(values,-3,"z");
- let output=map_value_at<i64, string>(values,0usize);
- let size=count(values);
- values=map_remove<i64, string>(values,-3);
- if string_len(extended)==5 && output=="z" && size==1 && map_len<i64,string>(values)==0usize { 9 } else { -1 }
+ let values3=map_set<i64, string>(values2,-3,"z");
+ let output=map_value_at<i64, string>(values3,0usize);
+ let size=count(values3);
+ let values4=map_remove<i64, string>(values3,-3);
+ if string_len(extended)==5 && output=="z" && size==1 && map_len<i64,string>(values4)==0usize { 9 } else { -1 }
 }
 @id("app.legacy") fn legacy() -> i64 {
- let mut values=map_new(2usize);values=map_add(values,"é",2);values=map_add(values,"é",5);
- values=map_set(values,"a\u{0}",11);let key=map_key_at(values,0usize);
- values=map_remove(values,"é");if string_len(key)==2 && map_len(values)==1usize { map_get_or(values,key,0) } else { -1 }
+ let values0=map_new(2usize);let values1=map_add(values0,"é",2);let values2=map_add(values1,"é",5);
+ let values3=map_set(values2,"a\u{0}",11);let key=map_key_at(values3,0usize);
+ let values4=map_remove(values3,"é");if string_len(key)==2 && map_len(values4)==1usize { map_get_or(values4,key,0) } else { -1 }
 }
 @id("app.set") fn set() -> i64 {
- let mut values=set_new<string>(2usize);values=set_insert<string>(values,"é");values=set_insert<string>(values,"a\u{0}");
- values=set_insert<string>(values,"é");values=set_remove<string>(values,"missing");let key=set_key_at<string>(values,0usize);
- values=set_remove<string>(values,"é");if string_len(key)==2 && set_has<string>(values,key) && set_len<string>(values)==1usize { 12 } else { -1 }
+ let values0=set_new<string>(2usize);let values1=set_insert<string>(values0,"é");let values2=set_insert<string>(values1,"a\u{0}");
+ let values3=set_insert<string>(values2,"é");let values4=set_remove<string>(values3,"missing");let key=set_key_at<string>(values4,0usize);
+ let values5=set_remove<string>(values4,"é");if string_len(key)==2 && set_has<string>(values5,key) && set_len<string>(values5)==1usize { 12 } else { -1 }
 }
 @id("app.typed_full") fn typed_full() -> i64 { let values=map_new<i64,i64>(0usize);let rejected=map_set<i64,i64>(values,1,2);0 }
 @id("app.legacy_full") fn legacy_full() -> i64 { let values=map_new(0usize);let rejected=map_set(values,"held",1);0 }
@@ -494,11 +494,11 @@ const TOOLKIT_COLLECTIONS: &str = r#"module test.generated_toolkit_collections;
 @id("app.legacy_index") fn legacy_index() -> i64 { let values=map_new(0usize);string_len(map_key_at(values,0usize)) }
 @id("app.typed_capacity") fn typed_capacity() -> i64 { let values=map_new<i64,i64>(65537usize);0 }
 @id("app.legacy_capacity") fn legacy_capacity() -> i64 { let values=map_new(65537usize);0 }
-@id("app.typed_overflow") fn typed_overflow() -> i64 { let values=map_new<i64,i64>(1usize);let values=map_add<i64,i64>(values,1,9223372036854775807);let rejected=map_add<i64,i64>(values,1,1);0 }
-@id("app.legacy_overflow") fn legacy_overflow() -> i64 { let values=map_new(1usize);let values=map_add(values,"x",9223372036854775807);let rejected=map_add(values,"x",1);0 }
-@id("app.text_failure") fn text_failure() -> i64 { let values=set_new<i64>(1usize);let values=set_insert<i64>(values,2);string_len(string_slice("é",1,2)) }
+@id("app.typed_overflow") fn typed_overflow() -> i64 { let values0=map_new<i64,i64>(1usize);let values1=map_add<i64,i64>(values0,1,9223372036854775807);let rejected=map_add<i64,i64>(values1,1,1);0 }
+@id("app.legacy_overflow") fn legacy_overflow() -> i64 { let values0=map_new(1usize);let values1=map_add(values0,"x",9223372036854775807);let rejected=map_add(values1,"x",1);0 }
+@id("app.text_failure") fn text_failure() -> i64 { let values0=set_new<i64>(1usize);let values1=set_insert<i64>(values0,2);string_len(string_slice("é",1,2)) }
 @id("app.owner_quota") fn owner_quota() -> i64 { let first=map_new<i64,i64>(1usize);let second=set_new<i64>(1usize);i64_from_usize(map_len<i64,i64>(first)) }
-@id("app.byte_quota") fn byte_quota() -> i64 { let values=map_new<i64,string>(1usize);let values=map_set<i64,string>(values,1,"oversized");0 }
+@id("app.byte_quota") fn byte_quota() -> i64 { let values0=map_new<i64,string>(1usize);let values1=map_set<i64,string>(values0,1,"oversized");0 }
 @id("app.main") fn main() -> i64 { 0 }
 "#;
 
@@ -598,7 +598,7 @@ for(let repeat=0;repeat<8;repeat++){
 fn standalone_toolkit_collection_string_quota_refusal_settles_prior_owners() {
     use wasm::internal_strings::{emit_text_toolkit_module, InternalStringOptions};
     let source = r#"module test.collection_string_quota;
-@id("app.quota") fn quota() -> i64 { let values=map_new<i64,string>(1usize);let values=map_set<i64,string>(values,1,"text");string_len(map_get_or<i64,string>(values,1,"")) }
+@id("app.quota") fn quota() -> i64 { let values0=map_new<i64,string>(1usize);let values1=map_set<i64,string>(values0,1,"text");string_len(map_get_or<i64,string>(values1,1,"")) }
 @id("app.scalar") fn scalar() -> i64 { 7 }
 @id("app.main") fn main() -> i64 { 0 }
 "#;
@@ -653,7 +653,7 @@ fn standalone_toolkit_collection_atoms_preserve_every_closed_scalar_value() {
     for (index, (ty, value, fallback)) in atoms.into_iter().enumerate() {
         let id = format!("app.atom{index}");
         ids.push(id.clone());
-        source.push_str(&format!("@id(\"{id}\") fn atom{index}() -> i64 {{ let values=map_new<bool,{ty}>(1usize);let values=map_set<bool,{ty}>(values,false,{value});if map_get_or<bool,{ty}>(values,false,{fallback})=={value} && map_value_at<bool,{ty}>(values,0usize)=={value} && !map_key_at<bool,{ty}>(values,0usize) {{ 1 }} else {{ 0 }} }}\n"));
+        source.push_str(&format!("@id(\"{id}\") fn atom{index}() -> i64 {{ let values0=map_new<bool,{ty}>(1usize);let values1=map_set<bool,{ty}>(values0,false,{value});if map_get_or<bool,{ty}>(values1,false,{fallback})=={value} && map_value_at<bool,{ty}>(values1,0usize)=={value} && !map_key_at<bool,{ty}>(values1,0usize) {{ 1 }} else {{ 0 }} }}\n"));
     }
     source.push_str("@id(\"app.main\") fn main() -> i64 {0}\n");
     let selected = ids.iter().map(String::as_str).collect::<Vec<_>>();

@@ -220,6 +220,9 @@ pub(super) fn emit_update_scope_cleanup(
 }
 
 fn is_exact_record(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic> {
+    if crate::map_ops::is_collection(ty) {
+        return Ok(false);
+    }
     let ResolvedType::Nominal {
         declaration,
         arguments,
@@ -263,7 +266,8 @@ pub(super) fn owned_record_pattern_anchors(
         }
         match pattern {
             crate::hir::ResolvedRecordMatchFieldPattern::Binding(binding)
-                if matches!(binding.ty, ResolvedType::Bytes | ResolvedType::String) =>
+                if matches!(binding.ty, ResolvedType::Bytes | ResolvedType::String)
+                    || crate::map_ops::is_collection(&binding.ty) =>
             {
                 anchors.insert(crate::cleanup_plan::StorageId::Value(binding.id.clone()));
             }
@@ -353,7 +357,9 @@ pub(super) fn bind_record_match_pattern(
                         "owning nested record binding reached exact destructuring lowering",
                     ));
                 }
-                if matches!(binding.ty, ResolvedType::Bytes | ResolvedType::String) {
+                if matches!(binding.ty, ResolvedType::Bytes | ResolvedType::String)
+                    || crate::map_ops::is_collection(&binding.ty)
+                {
                     if !byte_binding_mode_is_exact(mode, binding.ownership) {
                         return Err(error(
                             "record Bytes binding ownership disagrees with match mode",
@@ -397,7 +403,8 @@ pub(super) fn bind_record_match_pattern(
                         ty: binding.ty.clone(),
                     }
                 };
-                if matches!(binding.ty, ResolvedType::Bytes | ResolvedType::String)
+                if (matches!(binding.ty, ResolvedType::Bytes | ResolvedType::String)
+                    || crate::map_ops::is_collection(&binding.ty))
                     && binding.ownership == crate::hir::OwnershipMode::Borrow
                 {
                     emitter.copy_borrowed_scalar_alias(&destination, &projected)?;
@@ -415,7 +422,8 @@ pub(super) fn bind_record_match_pattern(
             crate::hir::ResolvedRecordMatchFieldPattern::Wildcard => {
                 let ty = value_type(&projected);
                 let nested = record_contains_owned_bytes(emitter.program, ty)?;
-                let direct = matches!(ty, ResolvedType::Bytes | ResolvedType::String);
+                let direct = matches!(ty, ResolvedType::Bytes | ResolvedType::String)
+                    || crate::map_ops::is_collection(ty);
                 // The resolver admits a wildcard over a direct droppable leaf
                 // under a borrow and rejects a nested owning subtree in either
                 // mode. Match it exactly, so a program the front end admits is

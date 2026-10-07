@@ -275,7 +275,7 @@ const CASES: &[(&str, &str)] = &[
     ("map.index", "semaprax.map.v2|2"),
     ("map.set-index", "semaprax.map.v2|2"),
     ("map.capacity", "semaprax.map.v2|3"),
-    ("map.staging", "semaprax.arithmetic.v1|1"),
+    ("map.staging", "semaprax.arithmetic.v1|4"),
     ("map.legacy", "ok|3"),
     ("map.unpack-map", "ok|3"),
     ("map.unpack-set", "ok|2"),

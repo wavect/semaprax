@@ -105,3 +105,134 @@ fn hostile_non_place_borrowed_bytes_argument_is_h006() {
     let diagnostic = crate::hir::validate(&program).expect_err("non-place must fail");
     assert_eq!(diagnostic.code, "SPX-H006");
 }
+
+#[test]
+fn ownership_mismatch_uses_argument_span_and_keeps_missing_span_locationless() {
+    let mut program = fixture();
+    let argument_span;
+    {
+        let argument = call_argument_mut(caller_mut(&mut program));
+        argument.kind = ResolvedExprKind::Int(0);
+        argument_span = argument.span;
+    }
+    let caller = caller(&program);
+    let ResolvedExprKind::Block { tail, .. } = &caller.body.kind else {
+        panic!("caller body remains a block")
+    };
+    let ResolvedExprKind::Call { args, .. } = &tail.kind else {
+        panic!("caller body tail remains a call")
+    };
+    let inspect = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "packet.inspect")
+        .expect("inspect function");
+    let validator = HirValidator::new(&program).expect("fixture identities remain indexed");
+    let diagnostic = validator
+        .validate_argument_ownership(&args[0], &inspect.params[0])
+        .expect_err("forged argument ownership must fail");
+    assert_eq!(diagnostic.code, "SPX-H006");
+    assert_eq!(
+        diagnostic.message,
+        format!(
+            "argument ownership is incompatible with parameter `{}`",
+            inspect.params[0].id
+        )
+    );
+    assert_eq!(diagnostic.span, Some(argument_span));
+
+    let mut missing_span = args[0].clone();
+    missing_span.span = crate::ast::Span::default();
+    let diagnostic = validator
+        .validate_argument_ownership(&missing_span, &inspect.params[0])
+        .expect_err("forged argument ownership must still fail");
+    assert_eq!(diagnostic.code, "SPX-H006");
+    assert_eq!(diagnostic.span, None);
+}
+
+#[test]
+fn borrowed_bytes_call_shape_uses_call_span_and_keeps_missing_span_locationless() {
+    let program = fixture();
+    let caller = caller(&program);
+    let ResolvedExprKind::Block { tail, .. } = &caller.body.kind else {
+        panic!("caller body remains a block")
+    };
+    let ResolvedExprKind::Call { args, .. } = &tail.kind else {
+        panic!("caller body tail remains a call")
+    };
+    let inspect = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "packet.inspect")
+        .expect("inspect function");
+    let validator = HirValidator::new(&program).expect("fixture identities remain indexed");
+
+    let mut malformed_call = tail.clone();
+    malformed_call.kind = ResolvedExprKind::Int(0);
+    let diagnostic = validator
+        .validate_borrowed_bytes_call_argument(
+            &malformed_call,
+            &args[0],
+            &inspect.params[0],
+            0,
+            &std::collections::BTreeMap::new(),
+        )
+        .expect_err("forged call shape must fail");
+    assert_eq!(diagnostic.code, "SPX-H006");
+    assert_eq!(
+        diagnostic.message,
+        "borrowed Bytes argument is not attached to an exact call"
+    );
+    assert_eq!(diagnostic.span, Some(tail.span));
+
+    malformed_call.span = crate::ast::Span::default();
+    let diagnostic = validator
+        .validate_borrowed_bytes_call_argument(
+            &malformed_call,
+            &args[0],
+            &inspect.params[0],
+            0,
+            &std::collections::BTreeMap::new(),
+        )
+        .expect_err("forged call shape without a source span must fail");
+    assert_eq!(diagnostic.code, "SPX-H006");
+    assert_eq!(diagnostic.span, None);
+}
+
+#[test]
+fn borrowed_view_place_uses_expression_span_and_keeps_missing_span_locationless() {
+    let program = fixture();
+    let caller = caller(&program);
+    let ResolvedExprKind::Block { tail, .. } = &caller.body.kind else {
+        panic!("caller body remains a block")
+    };
+    let validator = HirValidator::new(&program).expect("fixture identities remain indexed");
+    let missing = Place {
+        root: ValueId::new("missing".to_owned()),
+        projections: Vec::new(),
+    };
+    let scope = std::collections::BTreeMap::new();
+
+    let diagnostic = validator
+        .validate_byte_view_place(
+            crate::byte_ops::ByteOp::StringAsStr,
+            &missing,
+            tail.span,
+            &scope,
+        )
+        .expect_err("out-of-scope borrowed view must fail");
+    assert_eq!(diagnostic.code, "SPX-H006");
+    assert_eq!(diagnostic.message, "borrowed view root is out of scope");
+    assert_eq!(diagnostic.span, Some(tail.span));
+
+    let diagnostic = validator
+        .validate_byte_view_place(
+            crate::byte_ops::ByteOp::StringAsStr,
+            &missing,
+            crate::ast::Span::default(),
+            &scope,
+        )
+        .expect_err("out-of-scope borrowed view without span must fail");
+    assert_eq!(diagnostic.code, "SPX-H006");
+    assert_eq!(diagnostic.span, None);
+}

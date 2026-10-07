@@ -6,6 +6,11 @@
   interpreter/native/Wasm settlement and hostile-HIR gate is
   `tests/language/guarded_copy_variants.rs`; broader #589 guard work stays open.
 
+- Native String scope completion: settle scalar branch operand temporaries
+  before loop-cell reuse, using the exact block region normal finalizers after
+  owned result handoff. Focused Find/Len regressions cover nested branches,
+  guard failure, and allocation balance.
+
 - Source checking: avoid environment copies and identity ownership joins for
   empty `if` branches containing integer or boolean literals. Condition and
   both branch values still receive ordinary type checks; statementful and

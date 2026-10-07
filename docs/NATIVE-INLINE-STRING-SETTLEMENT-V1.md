@@ -96,11 +96,22 @@ interpreter results, source/graph round trips, CLI execution, and balanced
 native allocations at O0/O2. Its separate Wasm cases retain their admitted
 scalar boundary and stable variant-profile refusal.
 
-Loop fixtures retain existing Copy-only loop admission. Ordinary native
-condition/body cases use scalar-signature helpers that allocate and settle
-one String inside each call; direct String storage in a loop remains
-`SPX-T252`. These fixture corrections are included in the v0.4.0 hosted-green regression corpus, not a language
-or backend admission extension.
+Native block completion also settles String operands nested in scalar
+statements and tails, including empty `if` branch blocks and nested blocks.
+The selector uses only slots of that block's canonical lexical region and
+emits its normal exit's `finalize_in_order` after any owned tail handoff.
+Nested blocks and match arms settle their own regions; no additional `if`
+finalizer duplicates their exits. This corrects repeated loop branches such
+as `if flag { string_find(text, "a", 0) } else { 0 }`, whose operand owners
+previously remained live on the next iteration.
+
+`tests/language/native_if_string_temporaries.rs` covers both selected outcomes,
+nested `if` and statementful blocks, owned String results, false guards and
+checked guard failure. Native O0/O2 probes repeat calls with zero live
+allocations and poisoned failure result storage. Len-based controls also run
+on the admitted String-settling Wasm profile; Find retains its existing Wasm
+refusal. These are focused authored regressions, pending current-head execution.
+Loop admission is owned by [Owned String Loops v2](OWNED-STRING-LOOPS-V2.md).
 
 `tests/native/string_settlement.rs` generates ordinary production C and
 observes its actual allocations/frees with the existing fixed-table test

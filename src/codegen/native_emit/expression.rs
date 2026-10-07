@@ -1452,15 +1452,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 } else if is_aggregate_type(self.program, &tail.ty)? {
                     self.apply_owned_plan_at_value(&expr.id, &tail)?;
                 }
-                if let Some(plan) = self.bytes_plan {
-                    let loop_body = self.loop_bodies.contains(&expr.id);
-                    let anchors =
-                        super::scope_anchors::block_anchors(self.program, plan, expr, loop_body);
-                    let cleanup = plan.scope_exit(&anchors)?;
-                    for line in cleanup.lines() {
-                        self.line(line);
-                    }
-                }
+                self.emit_block_plan_scope_exit(expr)?;
                 self.variables = saved;
                 tail
             }
@@ -1510,12 +1502,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             } else if is_aggregate_type(self.program, &value.ty)? {
                 self.apply_owned_plan_at_value(&block.id, &value)?;
             }
-            if let Some(plan) = self.bytes_plan {
-                let cleanup = plan.scope_exit(&BTreeSet::new())?;
-                for line in cleanup.lines() {
-                    self.line(line);
-                }
-            }
+            self.emit_block_plan_scope_exit(block)?;
         }
         Ok(value)
     }

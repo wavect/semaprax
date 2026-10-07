@@ -12,6 +12,21 @@ pub(super) fn prepare(
     program: &ResolvedProgram,
     ids: &[String],
 ) -> Result<PreparedSelection, Diagnostic> {
+    prepare_profile(program, ids, false)
+}
+
+pub(super) fn prepare_copy_variants(
+    program: &ResolvedProgram,
+    ids: &[String],
+) -> Result<PreparedSelection, Diagnostic> {
+    prepare_profile(program, ids, true)
+}
+
+fn prepare_profile(
+    program: &ResolvedProgram,
+    ids: &[String],
+    copy_variants: bool,
+) -> Result<PreparedSelection, Diagnostic> {
     if !(1..=32).contains(&ids.len()) {
         return Err(error("standalone String selection requires 1..=32 exports"));
     }
@@ -75,7 +90,7 @@ pub(super) fn prepare(
         .filter(|function| closure.contains(&function.id))
     {
         if !function.effects.is_empty()
-            || !internal_type(&function.return_type)
+            || !signature_type(&function.return_type, copy_variants)
             || function.params.iter().any(|parameter| {
                 // By-value String source parameters are implicitly Own in
                 // validated HIR; only the internal Copy scalars are Value.
@@ -84,7 +99,7 @@ pub(super) fn prepare(
                 } else {
                     OwnershipMode::Value
                 };
-                parameter.ownership != ownership || !internal_type(&parameter.ty)
+                parameter.ownership != ownership || !signature_type(&parameter.ty, copy_variants)
             })
         {
             return Err(error(
@@ -105,7 +120,7 @@ pub(super) fn prepare(
                 .ok_or_else(|| {
                     error("standalone String expression inventory exceeds 65536 nodes")
                 })?;
-            if depth > 256 || !internal_type(&expression.ty) {
+            if depth > 256 || !expression_type(program, &expression.ty, copy_variants) {
                 return Err(error(
                     "standalone String expression depth or type is outside the profile",
                 ));
@@ -117,6 +132,15 @@ pub(super) fn prepare(
                 | ResolvedExprKind::Unary { .. }
                 | ResolvedExprKind::Binary { .. }
                 | ResolvedExprKind::If { .. } => {}
+                ResolvedExprKind::Uint8(_)
+                | ResolvedExprKind::Usize(_)
+                | ResolvedExprKind::ArrayU8(_)
+                | ResolvedExprKind::RepeatArrayU8 { .. }
+                    if copy_variants => {}
+                ResolvedExprKind::ConstructVariant { .. }
+                    if copy_variants && crate::variant_guards::copy_variant(&program.declarations, &expression.ty) => {}
+                ResolvedExprKind::BorrowPlace { operation, place }
+                    if copy_variants && operation.as_str() == crate::byte_ops::ARRAY_AS_SLICE_ID && place.projections.is_empty() => {}
                 ResolvedExprKind::String(value) => {
                     // The selected profile owns the fixed literal segment's
                     // admission. Match the emitter's exact UTF-8 deduplication
@@ -139,7 +163,8 @@ pub(super) fn prepare(
                 } if instance.is_none()
                     && type_arguments.is_empty()
                     && (closure.contains(callee)
-                        || crate::string_ops::by_id(callee.as_str()).is_some()) => {}
+                        || crate::string_ops::by_id(callee.as_str()).is_some()
+                        || copy_variants && matches!(crate::byte_ops::by_id(callee.as_str()), Some(crate::byte_ops::ByteOp::Len | crate::byte_ops::ByteOp::Get))) => {}
                 ResolvedExprKind::Block { statements, .. } => {
                     if statements.iter().any(|statement| {
                         matches!(
@@ -165,6 +190,8 @@ pub(super) fn prepare(
                     && arms
                         .iter()
                         .all(|arm| arm.pattern_is_literal_or_irrefutable()) => {}
+                ResolvedExprKind::Match { scrutinee, mode, .. }
+                    if copy_variants && *mode == hir::ResolvedMatchMode::Value && crate::variant_guards::copy_variant(&program.declarations, &scrutinee.ty) => {}
                 ResolvedExprKind::Match { scrutinee, .. }
                     if !matches!(
                         scrutinee.ty,
@@ -201,4 +228,15 @@ fn internal_type(ty: &ResolvedType) -> bool {
         ty,
         ResolvedType::I64 | ResolvedType::Bool | ResolvedType::Char | ResolvedType::String
     )
+}
+
+fn signature_type(ty: &ResolvedType, copy_variants: bool) -> bool {
+    internal_type(ty) || copy_variants && matches!(ty, ResolvedType::U8 | ResolvedType::Usize)
+}
+
+fn expression_type(program: &ResolvedProgram, ty: &ResolvedType, copy_variants: bool) -> bool {
+    signature_type(ty, copy_variants)
+        || copy_variants
+            && (matches!(ty, ResolvedType::ArrayU8(_) | ResolvedType::SliceU8)
+                || crate::variant_guards::copy_variant(&program.declarations, ty))
 }

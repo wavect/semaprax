@@ -1,5 +1,12 @@
 # Changelog
 
+- Copy variant guard execution: evaluate nominal guards on the reference
+  interpreter before selecting an arm, and provide the explicit additive
+  `emit_copy_variant_module` String-settling Wasm profile. The older Wasm entry
+  keeps its nominal refusal. Canonical block cleanup now includes scalar String
+  operands in empty/nested branches; fixed-array byte reads use private frame
+  memory in the additive profile.
+
 - Copy variant guards: exact cases with scalar payloads admit ownership-neutral
   scalar-operator guards. Guards evaluate after case binding, false guards fall
   through, and exhaustive unguarded coverage remains required. The focused

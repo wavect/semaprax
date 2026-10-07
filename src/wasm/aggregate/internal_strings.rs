@@ -37,10 +37,8 @@ pub(in crate::wasm) fn emit(
     exports: &[Export],
     closure: &BTreeSet<DeclarationId>,
     owner_limit: Option<u32>,
+    copy_variants: bool,
 ) -> Result<(Vec<u8>, u32, u32), Diagnostic> {
-    // Admission proves every selected type scalar/String. Unselected nominal
-    // declarations must not be scanned or affect this closure's artifacts.
-    let layouts = VariantLayoutCache::for_scalar_only(VariantTarget::Wasm32);
     let functions = closure
         .iter()
         .map(|id| {
@@ -51,6 +49,18 @@ pub(in crate::wasm) fn emit(
                 .ok_or_else(|| error("standalone String selected function is absent"))
         })
         .collect::<Result<Vec<_>, _>>()?;
+    // Profile admission has authenticated selected types. Discover only the
+    // selected closure's concrete layouts, preserving v1's empty layout set.
+    let layouts = if copy_variants {
+        VariantLayoutCache::build_for_functions(
+            program,
+            VariantTarget::Wasm32,
+            functions.iter().copied(),
+        )
+        .map_err(|failure| error(failure.message))?
+    } else {
+        VariantLayoutCache::for_scalar_only(VariantTarget::Wasm32)
+    };
     let calls = crate::call_index::PersistentCallIndex::build(program)?;
     let edges = calls
         .calls_by_owner()
@@ -448,6 +458,94 @@ impl Emitter<'_> {
         }
         Ok(Value::Scalar {
             local: destination,
+            ty: expr.ty.clone(),
+        })
+    }
+}
+
+impl Emitter<'_> {
+    /// The additive profile admits only authenticated fixed-array views.
+    /// Their raw memory span is bounded inside private shadow-stack frames;
+    /// host Byte/arena token imports are not interchangeable with Strings.
+    pub(super) fn emit_internal_copy_byte_op(
+        &mut self,
+        expr: &ResolvedExpr,
+        operation: crate::byte_ops::ByteOp,
+        values: &[Value],
+    ) -> Result<Value, Diagnostic> {
+        let slice = values
+            .first()
+            .ok_or_else(|| error("array byte operation has no slice"))?;
+        require_type(value_type(slice), &ResolvedType::SliceU8, "array byte view")?;
+        // len <= stack limit; pointer <= stack limit - len. These checks
+        // reject tagged arena/range carriers before any guest-memory load.
+        self.get_scalar(slice);
+        self.output.extend([0xa7, 0xad, 0x42]);
+        write_i64(self.output, i64::from(SHADOW_STACK_TOP));
+        self.output.extend([0x56, 0x04, 0x40, 0x00, 0x0b]);
+        self.get_scalar(slice);
+        self.output.extend([0x42, 0x20, 0x88, 0x42]);
+        write_i64(self.output, i64::from(SHADOW_STACK_TOP));
+        self.get_scalar(slice);
+        self.output
+            .extend([0xa7, 0xad, 0x7d, 0x56, 0x04, 0x40, 0x00, 0x0b]);
+        if operation == crate::byte_ops::ByteOp::Len {
+            let local = self.plan.expr_scalar(expr)?;
+            self.get_scalar(slice);
+            self.output.extend([0xa7, 0xad, 0x21]);
+            write_u32(self.output, local);
+            return Ok(Value::Scalar {
+                local,
+                ty: ResolvedType::Usize,
+            });
+        }
+        if operation != crate::byte_ops::ByteOp::Get || values.len() != 2 {
+            return Err(error(
+                "internal array byte operation is outside its exact profile",
+            ));
+        }
+        require_type(
+            value_type(&values[1]),
+            &ResolvedType::Usize,
+            "array byte index",
+        )?;
+        let layout = variant_layout(self.variant_layouts, &expr.ty)?;
+        let none = layout
+            .case(&DeclarationId::new(crate::prelude::OPTION_NONE_ID))
+            .ok_or_else(|| error("array byte Option has no None case"))?;
+        let some = layout
+            .case(&DeclarationId::new(crate::prelude::OPTION_SOME_ID))
+            .ok_or_else(|| error("array byte Option has no Some case"))?;
+        let field = some
+            .field(&DeclarationId::new(crate::prelude::OPTION_SOME_VALUE_ID))
+            .ok_or_else(|| error("array byte Option has no payload"))?;
+        let pointer = self.plan.expr_pointer(expr)?;
+        self.emit_pointer(pointer);
+        self.output.extend([0x41, 0x00, 0x41]);
+        write_i64(self.output, i64::from(layout.size));
+        self.output.extend([0xfc, 0x0b, 0x00]);
+        self.emit_pointer(pointer);
+        self.output.push(0x41);
+        write_i64(self.output, i64::from(none.tag));
+        self.output.extend([0x36, 0x02, 0x00]);
+        self.get_scalar(&values[1]);
+        self.get_scalar(slice);
+        self.output.extend([0xa7, 0xad, 0x54, 0x04, 0x40]);
+        self.emit_pointer(Pointer {
+            local: pointer.local,
+            offset: pointer.offset + layout.payload_offset + field.offset,
+        });
+        self.get_scalar(slice);
+        self.output.extend([0x42, 0x20, 0x88, 0xa7]);
+        self.get_scalar(&values[1]);
+        self.output
+            .extend([0xa7, 0x6a, 0x2d, 0x00, 0x00, 0x3a, 0x00, 0x00]);
+        self.emit_pointer(pointer);
+        self.output.push(0x41);
+        write_i64(self.output, i64::from(some.tag));
+        self.output.extend([0x36, 0x02, 0x00, 0x0b]);
+        Ok(Value::Aggregate {
+            pointer,
             ty: expr.ty.clone(),
         })
     }

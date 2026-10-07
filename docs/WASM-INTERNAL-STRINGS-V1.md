@@ -63,6 +63,10 @@ String assignment remains the existing source-level `SPX-U105` rejection:
 [Explicit Mutation v1](EXPLICIT-MUTATION-V1.md) admits only Copy scalar targets.
 This profile does not widen source mutation or weaken verifier admission.
 
+The explicit additive `emit_copy_variant_module` API is specified by
+[Copy Variant String Settlement v1](WASM-INTERNAL-STRING-COPY-VARIANTS-V1.md).
+It does not widen this entry's admission or select itself for the v1 Web route.
+
 Resources, Bytes, nominal aggregates/variants, generics, foreign imports,
 effects and unsafe blocks are outside this profile, not silently approximated.
 Selected cycles and excessive derived stack/owner requirements are rejected

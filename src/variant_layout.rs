@@ -275,13 +275,27 @@ impl VariantLayoutCache {
         program: &ResolvedProgram,
         target: VariantTarget,
     ) -> Result<Self, Diagnostic> {
+        Self::build_for_functions(
+            program,
+            target,
+            program.functions.iter().chain(
+                program
+                    .function_instances
+                    .iter()
+                    .map(|instance| &instance.function),
+            ),
+        )
+    }
+
+    /// Exact selected closure layout discovery; unselected declarations cannot
+    /// introduce layouts, refusals, or artifact drift in a closed profile.
+    pub(crate) fn build_for_functions<'a>(
+        program: &ResolvedProgram,
+        target: VariantTarget,
+        functions: impl IntoIterator<Item = &'a crate::hir::ResolvedFunction>,
+    ) -> Result<Self, Diagnostic> {
         let mut instances = BTreeSet::new();
-        for function in program.functions.iter().chain(
-            program
-                .function_instances
-                .iter()
-                .map(|instance| &instance.function),
-        ) {
+        for function in functions {
             for parameter in &function.params {
                 collect_variant_type(program, &parameter.ty, &mut instances)?;
             }

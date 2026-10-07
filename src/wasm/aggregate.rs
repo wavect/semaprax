@@ -6571,6 +6571,14 @@ impl Emitter<'_> {
             )?;
         }
         self.apply_call_commit(&expr.id)?;
+        if self.standalone_strings
+            && matches!(
+                op,
+                crate::byte_ops::ByteOp::Len | crate::byte_ops::ByteOp::Get
+            )
+        {
+            return self.emit_internal_copy_byte_op(expr, op, &values);
+        }
         if op != crate::byte_ops::ByteOp::Zeroed {
             self.validate_byte_slice(&values[0]);
         }

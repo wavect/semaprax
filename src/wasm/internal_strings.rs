@@ -81,6 +81,25 @@ pub fn emit_module(
     export_ids: &[String],
     options: InternalStringOptions,
 ) -> Result<InternalStringModule, Diagnostic> {
+    emit_selected(program, export_ids, options, false)
+}
+
+/// Explicit additive Copy Variant String Settlement v1. Public signatures
+/// remain i64/bool; the older `emit_module` retains its nominal-free profile.
+pub fn emit_copy_variant_module(
+    program: &Program,
+    export_ids: &[String],
+    options: InternalStringOptions,
+) -> Result<InternalStringModule, Diagnostic> {
+    emit_selected(program, export_ids, options, true)
+}
+
+fn emit_selected(
+    program: &Program,
+    export_ids: &[String],
+    options: InternalStringOptions,
+    copy_variants: bool,
+) -> Result<InternalStringModule, Diagnostic> {
     let resolved = crate::hir::resolve(program).map_err(|diagnostics| {
         diagnostics
             .into_iter()
@@ -97,12 +116,17 @@ pub fn emit_module(
             "standalone String byte policy exceeds its hard bounds",
         ));
     }
-    let (exports, closure) = admission::prepare(&resolved, export_ids)?;
+    let (exports, closure) = if copy_variants {
+        admission::prepare_copy_variants(&resolved, export_ids)?
+    } else {
+        admission::prepare(&resolved, export_ids)?
+    };
     let (wasm, stack_bytes, derived_owner_capacity) = super::aggregate::internal_strings::emit(
         &resolved,
         &exports,
         &closure,
         options.max_live_owners,
+        copy_variants,
     )?;
     let owners = options.max_live_owners.unwrap_or(derived_owner_capacity);
     if owners == 0 || owners > derived_owner_capacity {
@@ -117,6 +141,9 @@ pub fn emit_module(
         stack_bytes, derived_owner_capacity, options.max_string_bytes, options.max_live_bytes,
         options.max_cumulative_bytes, owners
     );
+    if copy_variants {
+        descriptor.insert_str(1, "\"profile\":\"copy-variants-v1\",");
+    }
     for (ordinal, export) in exports.iter().enumerate() {
         if ordinal != 0 {
             descriptor.push(',');

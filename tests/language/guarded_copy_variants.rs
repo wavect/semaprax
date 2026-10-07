@@ -1,7 +1,9 @@
 //! Copy Variant Guards v1: fallthrough, ownership-neutral guards, and settlement.
 use super::owned_string_loops_v1::support::Fixture;
 use semaprax::interpreter::{self, InterpreterOptions};
-use semaprax::wasm::internal_strings::{emit_module, InternalStringOptions};
+use semaprax::wasm::internal_strings::{
+    emit_copy_variant_module, emit_module, InternalStringOptions,
+};
 use semaprax::{format, graph, hir, parse, verify};
 use serde_json::Value;
 use std::path::Path;
@@ -207,7 +209,8 @@ fn guarded_copy_variants_wasm_settlement() {
         .iter()
         .map(|id| (*id).to_owned())
         .collect::<Vec<_>>();
-    let artifact = emit_module(&program, &selected, InternalStringOptions::default()).unwrap();
+    let artifact =
+        emit_copy_variant_module(&program, &selected, InternalStringOptions::default()).unwrap();
     let mut fixture = Fixture::new(SOURCE);
     fixture.write("program.wasm", artifact.wasm_bytes());
     fixture.write("program.mjs", artifact.runtime_source());
@@ -379,4 +382,61 @@ fn guarded_variant_hir_and_cleanup_edges_fail_closed() {
     };
     *value = true;
     assert_eq!(hir::validate(&hostile).unwrap_err().code, "SPX-H006");
+}
+
+#[test]
+fn copy_variant_wasm_profile_is_explicit_and_closed() {
+    let program = parse(SOURCE, Path::new("guarded-copy-profile.spx")).unwrap();
+    let selected = vec!["guards.loop".to_owned(), "guards.indexed".to_owned()];
+    assert_eq!(
+        emit_module(&program, &selected, InternalStringOptions::default())
+            .unwrap_err()
+            .code,
+        "SPX-W111"
+    );
+    let artifact =
+        emit_copy_variant_module(&program, &selected, InternalStringOptions::default()).unwrap();
+    let descriptor: Value = serde_json::from_str(artifact.descriptor()).unwrap();
+    assert_eq!(descriptor["profile"], "copy-variants-v1");
+    let mut reversed = selected.clone();
+    reversed.reverse();
+    let reordered =
+        emit_copy_variant_module(&program, &reversed, InternalStringOptions::default()).unwrap();
+    assert_eq!(artifact.wasm_bytes(), reordered.wasm_bytes());
+    assert_eq!(artifact.descriptor(), reordered.descriptor());
+    assert_eq!(artifact.runtime_source(), reordered.runtime_source());
+    let unselected = r#"
+@id("unselected.owned") fn unselected() -> i64 {
+    let owned = Option<string>::Some { value: "excluded" };
+    match own owned { Option::Some { value: text } => string_len(text), Option::None {} => 0, }
+}
+"#;
+    let extended = parse(
+        &format!("{SOURCE}{unselected}"),
+        Path::new("guarded-copy-unselected.spx"),
+    )
+    .unwrap();
+    let unchanged =
+        emit_copy_variant_module(&extended, &selected, InternalStringOptions::default()).unwrap();
+    assert_eq!(artifact.wasm_bytes(), unchanged.wasm_bytes());
+    assert_eq!(artifact.descriptor(), unchanged.descriptor());
+    assert_eq!(artifact.runtime_source(), unchanged.runtime_source());
+    assert_eq!(
+        emit_copy_variant_module(
+            &extended,
+            &["unselected.owned".to_owned()],
+            InternalStringOptions::default()
+        )
+        .unwrap_err()
+        .code,
+        "SPX-W111"
+    );
+    let forged = SOURCE.replace("n == 7 && i < 2", "n + 1");
+    let forged = parse(&forged, Path::new("guarded-copy-bad-guard.spx")).unwrap();
+    assert_eq!(
+        emit_copy_variant_module(&forged, &selected, InternalStringOptions::default())
+            .unwrap_err()
+            .code,
+        "SPX-T256"
+    );
 }

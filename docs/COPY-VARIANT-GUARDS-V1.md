@@ -66,8 +66,9 @@ bound replay materialization work, not peak heap allocation.
 Native lowering evaluates guards after payload binding and before arm-value
 selection. The Wasm aggregate emitter uses one outer completion block and one
 reject block per arm, emitting each guard and value once; it does not duplicate
-later arms along false-guard branches. The interpreter's ordinary guard evaluator
-uses the same admitted bindings. The change adds no syntax, HIR node, graph
+later arms along false-guard branches. `interpreter/guarded_variants.rs` binds authenticated Copy payloads before
+ordinary guard evaluation and removes each arm's bindings on fallthrough or
+failure. The change adds no syntax, HIR node, graph
 schema, CleanupPlan schema, capability, public ABI or authority route.
 
 ## Focused gates and scope
@@ -76,7 +77,10 @@ schema, CleanupPlan schema, capability, public ABI or authority route.
 checks canonical/graph round trips, repeated Copy-variant matches, true/false
 fallbacks, wrong-case skipping, lazy operands, checked guard failure, and String
 results across the interpreter, C11 at O0/O2 with allocation/free accounting,
-and repeated String-settling Core-Wasm calls. Hostile guards, missing fallback
+and repeated String-settling Core-Wasm calls through the explicit
+[Copy Variant String Settlement v1](WASM-INTERNAL-STRING-COPY-VARIANTS-V1.md)
+`emit_copy_variant_module` entry. The older internal String v1 entry retains
+its nominal refusal. Hostile guards, missing fallback
 coverage and modified cleanup decisions fail closed as `SPX-H006`.
 
 `cargo test --locked -p semaprax --lib copy_variant_guards_match_recursive_oracle`

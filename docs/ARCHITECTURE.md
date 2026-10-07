@@ -1271,7 +1271,12 @@ The separately selected `wasm::internal_strings` API authors a standalone
 String-settling profile. `internal_strings/admission.rs` owns selection and
 static work limits; `aggregate/internal_strings.rs` owns the new ten-import
 module and checked mint lowering, reusing the private String owner cells and
-common status epilogue. The existing aggregate entry points explicitly leave
+common status epilogue. The explicit `emit_copy_variant_module` additive profile reuses this module
+and arena with selected Copy-variant layouts and checked fixed-array byte
+reads; `internal_strings/admission.rs` keeps its admission separate from the
+older nominal-free entry. `interpreter/guarded_variants.rs` owns actual
+Copy-payload binding, guard evaluation and authored fallthrough on the
+reference evaluator. The existing aggregate entry points explicitly leave
 that mode off. Generated modules pass structural validation before return.
 `internal_strings/runtime/` separates exact input/artifact admission, bounded
 UTF-8 arena ownership, and a scalar-only poisoned-on-uncertainty facade.

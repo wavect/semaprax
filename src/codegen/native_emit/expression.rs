@@ -1008,7 +1008,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             format!("spx_vec_move(spx_ctx, &{value})")
                         } else if expected.is_once_function() {
                             super::owned_moves::owned_move(expected, &value)
-                        } else if matches!(expected, ResolvedType::String) {
+                        } else if matches!(expected, ResolvedType::String)
+                            || crate::map_ops::is_collection(expected)
+                        {
                             value.to_owned()
                         } else {
                             format!("spx_bytes_move(&{value})")

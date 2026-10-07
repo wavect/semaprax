@@ -348,6 +348,8 @@ pub(super) fn borrowed_leaf_pointer_type(
     match ty {
         ResolvedType::Bytes => Ok("const spx_bytes_v1 *"),
         ResolvedType::String => Ok("char * const *"),
+        ResolvedType::StringMap => Ok("spx_map_v1 * const *"),
+        ref ty if crate::map_ops::is_typed_collection(ty) => Ok("spx_map_v2 * const *"),
         _ => Err(backend_error(
             "borrowed aggregate path is not an owning leaf",
         )),

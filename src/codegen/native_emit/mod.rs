@@ -39,6 +39,7 @@ mod guarded_variant;
 mod http_io;
 mod indexed_reads;
 mod literals;
+mod map_collections;
 mod narrow_remainder;
 mod native_list;
 mod nested_owned;
@@ -47,7 +48,6 @@ mod output_profile;
 mod owned_strings;
 mod scope_anchors;
 mod string_collections;
-mod map_collections;
 mod string_ops;
 mod string_ordering;
 mod string_views;
@@ -1122,7 +1122,8 @@ pub(super) fn emit_function_prototypes(
             if is_direct_plan_owned(program, &param.ty)
                 && param.ownership == crate::hir::OwnershipMode::Borrow
             {
-                write!(output, ", const {ty} *").expect("writing to a string cannot fail");
+                let ty = owned_carrier::borrowed_parameter_type(&param.ty, &ty);
+                write!(output, ", {ty}").expect("writing to a string cannot fail");
             } else if is_aggregate_type(program, &param.ty)? {
                 let storage = crate::cleanup_plan::StorageId::Value(param.id.clone());
                 let qualifier = if bytes_plan
@@ -1744,8 +1745,8 @@ fn emit_function(
     for (index, param) in function.params.iter().enumerate() {
         let ty = c_value_type(program, resource_abi, &param.ty)?;
         if owned(&param.ty) && param.ownership == crate::hir::OwnershipMode::Borrow {
-            write!(output, ", const {ty} *spx_param_{index}")
-                .expect("writing to a string cannot fail");
+            let ty = owned_carrier::borrowed_parameter_type(&param.ty, &ty);
+            write!(output, ", {ty}spx_param_{index}").expect("writing to a string cannot fail");
         } else if is_aggregate_type(program, &param.ty)? {
             let storage = crate::cleanup_plan::StorageId::Value(param.id.clone());
             let qualifier = if bytes_plan

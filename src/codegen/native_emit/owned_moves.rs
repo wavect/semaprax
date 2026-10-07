@@ -9,7 +9,7 @@ pub(super) fn owned_move(ty: &ResolvedType, value: &str) -> String {
         format!("spx_once_move(&{value})")
     } else if matches!(ty, ResolvedType::Bytes) {
         format!("spx_bytes_move(&{value})")
-    } else if matches!(ty, ResolvedType::String) {
+    } else if matches!(ty, ResolvedType::String) || crate::map_ops::is_collection(ty) {
         value.to_owned()
     } else if crate::iterator_ops::is_iter(ty) {
         format!("spx_iter_move(spx_ctx, &{value})")

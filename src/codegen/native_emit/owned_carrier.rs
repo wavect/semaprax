@@ -155,3 +155,14 @@ pub(super) fn variant_declaration_id<'a>(
     }
     Ok(Some(declaration))
 }
+
+/// A borrowed collection freezes its carrier pointer, not its pointee type.
+/// This permits a pointer to the caller's authenticated owner without unsafe
+/// nested-pointer qualification conversion. Source ownership prevents mutation.
+pub(super) fn borrowed_parameter_type(ty: &ResolvedType, carrier: &str) -> String {
+    if crate::map_ops::is_collection(ty) {
+        format!("{carrier} const *")
+    } else {
+        format!("const {carrier} *")
+    }
+}

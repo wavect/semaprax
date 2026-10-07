@@ -1863,11 +1863,16 @@ impl WorkspaceGraphBuild {
             web_roots.dependency_anchors,
         )?;
         self.attach_project_agents(&mut web_program)?;
-        let test_program = self.linked_project_program(
-            test_module,
-            web_roots.profile,
-            web_roots.dependency_anchors,
-        )?;
+        let test_program =
+            if web_roots.profile == crate::project::ProjectProfile::StdinStreamTextCommandIoV1 {
+                self.linked_stream_text_test_program(test_module)?
+            } else {
+                self.linked_project_program(
+                    test_module,
+                    web_roots.profile,
+                    web_roots.dependency_anchors,
+                )?
+            };
         let projection = self.into_project_projection(
             workspace_revision,
             source_facts,

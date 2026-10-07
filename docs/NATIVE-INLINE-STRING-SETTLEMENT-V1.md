@@ -110,7 +110,8 @@ nested `if` and statementful blocks, owned String results, false guards and
 checked guard failure. Native O0/O2 probes repeat calls with zero live
 allocations and poisoned failure result storage. Len-based controls also run
 on the admitted String-settling Wasm profile; Find retains its existing Wasm
-refusal. These are focused authored regressions, pending current-head execution.
+refusal. These regressions have focused local execution evidence on the
+interpreter, native O0/O2 and the existing Wasm profile.
 Loop admission is owned by [Owned String Loops v2](OWNED-STRING-LOOPS-V2.md).
 
 `tests/native/string_settlement.rs` generates ordinary production C and

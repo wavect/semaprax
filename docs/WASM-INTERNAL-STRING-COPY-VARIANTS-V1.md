@@ -2,8 +2,8 @@
 
 Audience: compiler contributors and runtime implementers.
 
-Status: Partial, authored implementation and focused regression corpus;
-current-head execution is required before recording conformance evidence.
+Status: Partial — the narrow profile is implemented and verified by the
+focused local executable gate below.
 This is the explicit additive Wasm lane for [Copy Variant Guards v1](COPY-VARIANT-GUARDS-V1.md).
 It does not complete general aggregate or ownership-changing guards.
 

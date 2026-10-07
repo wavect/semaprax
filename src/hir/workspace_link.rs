@@ -6,6 +6,7 @@
 use super::*;
 
 mod compiler_prelude;
+mod profile_diagnostics;
 mod stdin_stream;
 pub(crate) use stdin_stream::{
     link_stdin_stream_command_workspace, link_stdin_stream_exit_command_workspace,
@@ -868,10 +869,7 @@ fn link_useful_data_workspace_profile(
             .into_iter()
             .next()
         {
-            return Err(link_error(format!(
-                "workspace function `{}` uses authored type `{missing}`, which is outside the Useful Data linker profile",
-                function.id
-            )));
+            return Err(profile_diagnostics::uses_authored_type(function, &missing));
         }
     }
     for function in &functions {
@@ -1212,6 +1210,8 @@ mod tests {
     use std::path::Path;
 
     use crate::workspace_graph::{build_owned, WorkspaceSource};
+
+    mod profile_tests;
 
     const HOST_EFFECT: &str = "host.adjust";
 

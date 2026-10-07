@@ -49,7 +49,7 @@ impl Emitter<'_> {
         }
         let tail = self.emit_expr(tail)?;
         let result = self.materialize(expr, &tail)?;
-        self.emit_block_scope_cleanup(statements)?;
+        self.emit_block_scope_cleanup(expr)?;
         self.bindings = saved;
         Ok(result)
     }
@@ -278,4 +278,50 @@ impl Emitter<'_> {
         self.output.push(0x0b); // end block
         Ok(())
     }
+}
+
+/// Slots of this exact lexical Block region, including scalar operand owners.
+/// Nested Blocks own their children; direct HIR If arms share their parent.
+pub(super) fn block_scope_anchors(
+    plan: &crate::cleanup_plan::CleanupPlan,
+    expression: &ResolvedExpr,
+) -> std::collections::BTreeSet<crate::cleanup_plan::StorageId> {
+    use crate::cleanup_plan::StorageId;
+    let ResolvedExprKind::Block { statements, tail } = &expression.kind else {
+        return std::collections::BTreeSet::new();
+    };
+    let slots = plan
+        .regions
+        .iter()
+        .flat_map(|region| &region.slots)
+        .collect::<std::collections::BTreeSet<_>>();
+    let mut anchors = std::collections::BTreeSet::new();
+    let mut pending = vec![tail.as_ref()];
+    for statement in statements {
+        if let ResolvedStatement::Let { binding, .. } = statement {
+            let storage = StorageId::Value(binding.id.clone());
+            if slots.contains(&storage) {
+                anchors.insert(storage);
+            }
+        }
+        match statement {
+            ResolvedStatement::Let { value, .. } | ResolvedStatement::Assign { value, .. } => {
+                pending.push(value)
+            }
+            ResolvedStatement::Unsafe { body, .. } => pending.push(body),
+            ResolvedStatement::While { .. } => {}
+        }
+    }
+    while let Some(expression) = pending.pop() {
+        let storage = StorageId::Temporary(expression.id.clone());
+        if slots.contains(&storage) {
+            anchors.insert(storage);
+        }
+        match &expression.kind {
+            ResolvedExprKind::Block { .. } | ResolvedExprKind::Closure { .. } => {}
+            ResolvedExprKind::Match { scrutinee, .. } => pending.push(scrutinee),
+            _ => pending.extend(crate::interpreter::trace_child_expressions(expression)),
+        }
+    }
+    anchors
 }

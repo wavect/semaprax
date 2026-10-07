@@ -3524,46 +3524,8 @@ impl Emitter<'_> {
         self.emit_cleanup_actions(&actions)
     }
 
-    fn emit_block_scope_cleanup(
-        &mut self,
-        statements: &[ResolvedStatement],
-    ) -> Result<(), Diagnostic> {
-        let anchors = statements
-            .iter()
-            .flat_map(|statement| {
-                let mut anchors = Vec::with_capacity(2);
-                if let ResolvedStatement::Let { binding, .. } = statement {
-                    if binding.ty.is_once_function()
-                        || binding.ty == ResolvedType::Bytes
-                        || binding.ty == ResolvedType::String
-                        || owned_vec(self.program, &binding.ty)
-                        || crate::cleanup::is_owned_bounded_box_type(&binding.ty)
-                        || crate::iterator_ops::is_iter(&binding.ty)
-                        || crate::iterator_ops::is_step(&binding.ty)
-                    {
-                        anchors.push(crate::cleanup_plan::StorageId::Value(binding.id.clone()));
-                    }
-                }
-                let value = match statement {
-                    ResolvedStatement::Let { value, .. }
-                    | ResolvedStatement::Assign { value, .. } => Some(value),
-                    ResolvedStatement::Unsafe { body, .. } => Some(body.as_ref()),
-                    ResolvedStatement::While { .. } => None,
-                };
-                if let Some(value) = value.filter(|value| {
-                    value.ty.is_once_function()
-                        || value.ty == ResolvedType::Bytes
-                        || value.ty == ResolvedType::String
-                        || owned_vec(self.program, &value.ty)
-                        || crate::cleanup::is_owned_bounded_box_type(&value.ty)
-                        || crate::iterator_ops::is_iter(&value.ty)
-                        || crate::iterator_ops::is_step(&value.ty)
-                }) {
-                    anchors.push(crate::cleanup_plan::StorageId::Temporary(value.id.clone()));
-                }
-                anchors
-            })
-            .collect::<std::collections::BTreeSet<_>>();
+    fn emit_block_scope_cleanup(&mut self, expression: &ResolvedExpr) -> Result<(), Diagnostic> {
+        let anchors = expressions::block_scope_anchors(self.cleanup_plan, expression);
         if anchors.is_empty() {
             return Ok(());
         }

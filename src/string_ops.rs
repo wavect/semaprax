@@ -310,6 +310,16 @@ pub(crate) fn is_same_owner_concat_shape(value: &crate::ast::Expr, name: &str) -
         && type_arguments.is_empty()
         && args.len() == 2
         && matches!(&args[0].kind, crate::ast::ExprKind::Var(source) if source == name)
+        && !mentions_owner(&args[1], name)
+}
+
+/// The first operand consumes the owner, so a second operand that also names
+/// it (`string_concat(text, text)`) would read a moved value: that is not the
+/// admitted reopen and must take the ordinary ownership diagnostic. A `Var`
+/// prints as `Var("name")` while string-literal quotes print escaped, so the
+/// structured debug form cannot confuse a literal with a reference.
+fn mentions_owner(expression: &crate::ast::Expr, name: &str) -> bool {
+    format!("{:?}", expression.kind).contains(&format!("Var({name:?})"))
 }
 
 /// Resolved-HIR twin of [`is_same_owner_concat_source`]. Hostile HIR that
@@ -327,6 +337,9 @@ pub(crate) fn is_same_owner_concat_hir(value: &crate::hir::ResolvedExpr, owner: 
                     crate::hir::ResolvedExprKind::Place(place)
                         if &place.root == owner && place.projections.is_empty()
                 )
+                // As in the source twin: a second operand that reads the
+                // consumed owner is not the admitted reopen.
+                && !format!("{:?}", args[1]).contains(&format!("{owner:?}"))
     )
 }
 

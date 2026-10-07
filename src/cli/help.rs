@@ -1,6 +1,8 @@
 use std::fmt::Write as _;
 use std::process::ExitCode;
 
+mod diagnostic_index;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(usize)]
 pub(crate) enum CommandId {
@@ -444,56 +446,7 @@ pub(crate) fn diagnostic_entry(query: &str) -> Result<String, String> {
     let entries = index["entries"]
         .as_array()
         .expect("generated diagnostic-help JSON must contain entries");
-    if query == "codes" {
-        let mut output = String::from("Diagnostic codes:\n  ");
-        for (index, entry) in entries.iter().enumerate() {
-            if index > 0 {
-                output.push(' ');
-            }
-            output.push_str(
-                entry["code"]
-                    .as_str()
-                    .expect("generated diagnostic-help entry must have a code"),
-            );
-        }
-        output.push('\n');
-        return Ok(output);
-    }
-
-    let entry = entries
-        .iter()
-        .find(|entry| entry["code"].as_str() == Some(query));
-    let Some(entry) = entry else {
-        return Err(format!("diagnostic help has no exact match for `{query}`"));
-    };
-    let mut output = format!("{query}\n");
-    for (index, row) in entry["rows"]
-        .as_array()
-        .expect("generated diagnostic-help entry must contain rows")
-        .iter()
-        .enumerate()
-    {
-        if index > 0 {
-            output.push('\n');
-        }
-        writeln!(
-            output,
-            "wrote: {}",
-            row["wrote"]
-                .as_str()
-                .expect("generated diagnostic-help row must describe the attempt")
-        )
-        .expect("writing to a string cannot fail");
-        writeln!(
-            output,
-            "fix: {}",
-            row["fix"]
-                .as_str()
-                .expect("generated diagnostic-help row must describe the fix")
-        )
-        .expect("writing to a string cannot fail");
-    }
-    Ok(output)
+    diagnostic_index::response(query, entries)
 }
 
 /// The generated standard-library catalog, printed by `semaprax help library`:
@@ -1402,9 +1355,9 @@ mod tests {
         assert!(entries.len() >= 20);
 
         let codes = diagnostic_entry("codes").unwrap();
-        assert!(codes.starts_with("Diagnostic codes:\n  SPX-G170 "));
-        assert!(codes.ends_with(" SPX-U101\n"));
-        assert_eq!(codes.lines().count(), 2);
+        assert!(codes.starts_with("Common diagnostic codes:\n  SPX-P106 SPX-T203 "));
+        assert!(codes.ends_with("All: semaprax help language mistakes-index\n"));
+        assert_eq!(codes.lines().count(), 4);
         assert!(codes.len() <= 256, "{} bytes", codes.len());
         assert!(semaprax::agent_economics::lexical_tokens(&codes) <= 100);
 
@@ -1413,6 +1366,7 @@ mod tests {
             let output = diagnostic_entry(code).unwrap();
             assert!(output.starts_with(&format!("{code}\nwrote: ")));
             assert!(output.ends_with('\n'));
+            assert!(language_topic("mistakes-index").unwrap().contains(code));
             assert!(output.len() <= 1_024, "{code}: {} bytes", output.len());
             let units = semaprax::agent_economics::lexical_tokens(&output);
             assert!(units <= 300, "{code}: {units} lexical units");

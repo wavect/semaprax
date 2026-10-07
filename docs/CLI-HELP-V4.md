@@ -88,7 +88,14 @@ and hidden-command refusal are otherwise unchanged in bytes and status.
 
 `semaprax help diagnostic <SPX-code|codes>` is the third `help` shape. An exact,
 case-sensitive `SPX-*` code returns only the common failed form and correction
-rows indexed for that code. `codes` returns the closed supported-code inventory.
+rows indexed for that code. `codes` and bare `help diagnostic` return a
+common-code shortlist with commands for exact-code advice and the complete
+`help language mistakes-index` table. The shortlist ranks codes by the number
+of indexed failed forms, descending, then by exact code; this is advice
+coverage, not measured diagnostic frequency. It includes at most twelve whole
+codes, reserving space for both navigation commands within the byte bound.
+Adding an indexed code does not require it to fit this shortlist: every code
+remains available through exact lookup and the complete table.
 The response is derived from the diagnostic-index table in the compiler-checked
 [agent quick reference](AGENT-QUICK-REFERENCE.md) through the pinned
 `semaprax.agent-diagnostic-help.v1`
@@ -98,9 +105,9 @@ example in the card to have an indexed correction.
 
 No match exits two, emits no stdout, and reports the literal diagnostic
 “diagnostic help has no exact match for `<SPX-code>`” on stderr. Prefix, fuzzy,
-and case-folded matching are not admitted. The code inventory is capped at 256
-bytes and 100 repository
-lexical units. Every exact response is capped at 1,024 bytes and 300 units. The
+and case-folded matching are not admitted. The default shortlist is capped at
+256 bytes and 100 repository lexical units. Every exact response is capped at
+1,024 bytes and 300 units. The
 guarded `SPX-T208` response is 111 bytes and 32 units, more than twenty times
 smaller in both measures than the 2,513-byte, 916-unit complete diagnostic
 index. Even the nine-row `SPX-P106` response is only 773 bytes.
@@ -209,7 +216,8 @@ banner, byte bound, group headings, capability filtering, and that each guided
 entry resolves to a scoped-help command; `help all` byte structure, ordering,
 and capability filtering for both executables; that every `help all` line still
 has exact scoped help; all nine `help` grammar lines; the full language-card
-and both generated catalogs' byte identities; exact diagnostic-code inventory,
+and both generated catalogs' byte identities; bounded diagnostic navigation,
+complete-table reachability and exact lookup through catalogue growth,
 generated-companion pin, compiler-example coverage, topic inventory, and section
 boundaries; exact diagnostic, name, stable-ID, module, path-disambiguation,
 kind-exemplar, missing-selector, and token-economics behavior for scoped lookups;

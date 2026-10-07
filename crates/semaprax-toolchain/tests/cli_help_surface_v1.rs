@@ -41,10 +41,11 @@ const LANGUAGE_TOPICS: &str = concat!(
     "  specifications  Where the rules live\n",
 );
 const DIAGNOSTIC_CODES: &str = concat!(
-    "Diagnostic codes:\n",
-    "  SPX-G170 SPX-M105 SPX-O101 SPX-P003 SPX-P104 SPX-P105 SPX-P106 SPX-P201 SPX-P203 ",
-    "SPX-T001 SPX-T104 SPX-T202 SPX-T203 SPX-T205 SPX-T207 SPX-T208 SPX-T209 SPX-T218 ",
-    "SPX-T221 SPX-T232 SPX-T250 SPX-T262 SPX-T263 SPX-T266 SPX-T281 SPX-U101\n",
+    "Common diagnostic codes:\n",
+    "  SPX-P106 SPX-T203 SPX-P201 SPX-T266 SPX-G170 SPX-M105 SPX-O101 SPX-P003 ",
+    "SPX-P104 SPX-P105 SPX-P203 SPX-T001\n",
+    "Fix: semaprax help diagnostic <code>\n",
+    "All: semaprax help language mistakes-index\n",
 );
 const DIAGNOSTIC_T208: &str = concat!(
     "SPX-T208\n",

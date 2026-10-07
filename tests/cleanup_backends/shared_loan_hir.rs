@@ -213,15 +213,15 @@ module test.shared_loan_assignment_span;
     let mut owned = bytes_copy(input);
     let view = bytes_as_slice(owned);
     let observed = byte_len(view);
-    owned = bytes_copy(input);
+    owned = bytes_set(owned, 0usize, 65u8);
     observed
 }
 @id("app.main") fn main() -> i64 { 0 }
 "#;
     let assignment_start = assignment_source
-        .find("owned = bytes_copy(input);")
+        .find("owned = bytes_set(owned, 0usize, 65u8);")
         .unwrap();
-    let assignment_end = assignment_start + "owned = bytes_copy(input);".len();
+    let assignment_end = assignment_start + "owned = bytes_set(owned, 0usize, 65u8);".len();
     assert_overlap_span(
         assignment_source,
         "loan.invalid",

@@ -916,6 +916,10 @@ not select reservations or grant runtime authority. Source and HIR generic
 collection classifiers admit the bounded one- or two-type-parameter operation
 shape; cache encoding retains its exact ordered type vector and renewal facts.
 
+`src/wasm/aggregate/binary_ops.rs` owns aggregate Wasm scalar/String binary
+lowering and lazy Boolean evaluation, keeping the aggregate orchestration
+module within its recorded size budget as additive operations are composed.
+
 `src/cleanup_plan/build/while_condition.rs` derives optional condition child
 regions, settles them before both Boolean outcomes and checks entry-state
 preservation. String condition read classification remains in

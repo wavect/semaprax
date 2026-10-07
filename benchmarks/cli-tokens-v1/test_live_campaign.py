@@ -662,6 +662,143 @@ sys.stdout.write(json_line(report) if as_json else text(report))
         self.assertEqual(set(file_hashes), set(authored))
         self.assertEqual(file_hashes["main.spx"], hashlib.sha256(authored["main.spx"].encode()).hexdigest())
 
+    def _launch_trial_with_workspace_mutation(self, root, mutation_stage, mutated_path=None):
+        spec = b"# Public frozen spec\n"
+        sample = b"public sample input\n"
+        seed_hashes = {
+            "benchmarks/cli-tokens-v1/SPEC.md": hashlib.sha256(spec).hexdigest(),
+            "benchmarks/cli-tokens-v1/sample.log": hashlib.sha256(sample).hexdigest(),
+        }
+        workspace = root / "artifacts" / "worktrees" / "semaprax-01"
+        artifacts = root / "artifacts"
+        settings = {
+            "timeout_seconds": 5,
+            "model": live_campaign.MODEL,
+            "observed_model_id": live_campaign.MODEL,
+            "seed_files_sha256": seed_hashes,
+            "authored_source_tokenizer": None,
+        }
+
+        def add_worktree(_seed, path, _commit):
+            (path / "benchmarks/cli-tokens-v1/candidate").mkdir(parents=True)
+            (path / "benchmarks/cli-tokens-v1/SPEC.md").write_bytes(spec)
+            (path / "benchmarks/cli-tokens-v1/sample.log").write_bytes(sample)
+            return None
+
+        def run_claude(_command, _cwd, _env, stream, _stderr, _timeout):
+            stream.write_text("{}\n", encoding="utf-8")
+            if mutation_stage == "before_acceptance":
+                (workspace / mutated_path).write_bytes(b"changed public input\n")
+            return {"timed_out": False, "process_exit_code": 0, "elapsed_seconds": 0.1, "failure": None}
+
+        def check_program(_candidate, _timeout, _env):
+            if mutation_stage == "during_acceptance" and mutated_path:
+                (workspace / mutated_path).write_bytes(b"changed public input\n")
+            elif mutation_stage == "outside_candidate":
+                (workspace / "unexpected.txt").write_text("outside candidate\n", encoding="utf-8")
+            return {"accepted": True}
+
+        def archive_candidate(_candidate, _archive):
+            if mutation_stage == "during_archive":
+                (workspace / mutated_path).write_bytes(b"changed public input\n")
+            return {}, []
+
+        with patch.object(live_campaign, "add_seed_worktree", side_effect=add_worktree), \
+             patch.object(live_campaign, "prompt_for", return_value="test prompt"), \
+             patch.object(live_campaign, "run_claude", side_effect=run_claude), \
+             patch.object(live_campaign, "claude_command", return_value=[]), \
+             patch.object(live_campaign, "trial_environment", return_value={}), \
+             patch.object(live_campaign, "stream_usage", return_value={
+                 "models_observed": [live_campaign.MODEL], "usage": {}, "legacy_net_input": {},
+             }), \
+             patch.object(live_campaign, "rate_card_estimate_details", return_value={"usd": 0, "cache_write_pricing": {}}), \
+             patch.object(live_campaign, "authored_source_metrics", return_value={"status": "ok", "total_tokens": 1, "files": []}), \
+             patch.object(live_campaign, "check_program", side_effect=check_program) as check, \
+             patch.object(live_campaign, "archive_candidate", side_effect=archive_candidate) as archive, \
+             patch.object(live_campaign.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, "", "")) as git_remove:
+            row = live_campaign.launch_trial(
+                root / "seed", artifacts, "seed-commit", {"arm": "semaprax", "number": 1}, settings,
+                Path("/bin/true"),
+            )
+        return row, check, archive, git_remove, workspace
+
+    def test_launch_trial_fails_closed_if_public_input_drifts_before_acceptance(self):
+        for relative in ("benchmarks/cli-tokens-v1/SPEC.md", "benchmarks/cli-tokens-v1/sample.log"):
+            with self.subTest(relative=relative), tempfile.TemporaryDirectory() as directory:
+                row, check, archive, cleanup, workspace = self._launch_trial_with_workspace_mutation(
+                    Path(directory), "before_acceptance", relative,
+                )
+                self.assertEqual(row["status"], "not_accepted")
+                self.assertFalse(row["acceptance"]["accepted"])
+                self.assertTrue(row["acceptance_invalidated"])
+                self.assertFalse(check.called)
+                self.assertTrue(archive.called)
+                self.assertIn("candidate_archive", row)
+                self.assertFalse(cleanup.called)
+                self.assertTrue(row["workspace_retained_for_review"])
+                self.assertTrue(workspace.exists())
+                self.assertIn(relative, row["workspace_integrity_before_acceptance"]["public_inputs"]["failed_files"])
+                self.assertIn("final_candidate_source_metrics", row)
+
+    def test_launch_trial_invalidates_acceptance_if_public_input_drifts_during_acceptance(self):
+        for relative in ("benchmarks/cli-tokens-v1/SPEC.md", "benchmarks/cli-tokens-v1/sample.log"):
+            with self.subTest(relative=relative), tempfile.TemporaryDirectory() as directory:
+                row, check, archive, cleanup, workspace = self._launch_trial_with_workspace_mutation(
+                    Path(directory), "during_acceptance", relative,
+                )
+                self.assertTrue(check.called)
+                self.assertEqual(row["status"], "not_accepted")
+                self.assertFalse(row["acceptance"]["accepted"])
+                self.assertTrue(row["acceptance_invalidated"])
+                self.assertTrue(row["acceptance"]["invalidated"])
+                self.assertTrue(row["workspace_retained_for_review"])
+                self.assertTrue(workspace.exists())
+                self.assertTrue(archive.called)
+                self.assertFalse(cleanup.called)
+
+    def test_launch_trial_invalidates_acceptance_and_retains_external_workspace_writes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            row, check, archive, cleanup, workspace = self._launch_trial_with_workspace_mutation(
+                Path(directory), "outside_candidate",
+            )
+            self.assertTrue(check.called)
+            self.assertEqual(row["status"], "not_accepted")
+            self.assertFalse(row["acceptance"]["accepted"])
+            self.assertTrue(row["acceptance_invalidated"])
+            self.assertIn("unexpected.txt", row["workspace_integrity_before_archive"]["external_writes"]["paths"])
+            self.assertTrue(row["workspace_retained_for_review"])
+            self.assertTrue(workspace.exists())
+            self.assertTrue(archive.called)
+            self.assertIn("candidate_archive", row)
+            self.assertFalse(cleanup.called)
+
+    def test_launch_trial_rechecks_public_inputs_after_archive_before_cleanup(self):
+        with tempfile.TemporaryDirectory() as directory:
+            row, check, archive, cleanup, workspace = self._launch_trial_with_workspace_mutation(
+                Path(directory), "during_archive", "benchmarks/cli-tokens-v1/sample.log",
+            )
+            self.assertTrue(check.called)
+            self.assertTrue(archive.called)
+            self.assertEqual(row["status"], "not_accepted")
+            self.assertFalse(row["acceptance"]["accepted"])
+            self.assertIn("sample.log", row["failure"])
+            self.assertTrue(row["workspace_retained_for_review"])
+            self.assertTrue(row["candidate_archive"])
+            self.assertTrue(workspace.exists())
+            self.assertFalse(cleanup.called)
+
+    def test_launch_trial_accepts_and_cleans_up_when_inputs_and_workspace_are_unchanged(self):
+        with tempfile.TemporaryDirectory() as directory:
+            row, check, archive, cleanup, workspace = self._launch_trial_with_workspace_mutation(
+                Path(directory), "clean",
+            )
+        self.assertTrue(check.called)
+        self.assertEqual(row["status"], "accepted")
+        self.assertTrue(row["workspace_integrity_before_acceptance"]["status"] == "passed")
+        self.assertTrue(row["workspace_integrity_before_cleanup"]["status"] == "passed")
+        self.assertTrue(archive.called)
+        self.assertTrue(cleanup.called)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -288,6 +288,128 @@ def add_seed_worktree(seed_repo: Path, workspace: Path, seed_commit: str) -> str
     return shared.add_seed_worktree(seed_repo, workspace, seed_commit, SEED_FILES)
 
 
+def seeded_public_inputs_integrity(workspace: Path, settings: dict[str, Any]) -> dict[str, Any]:
+    """Compare public trial inputs with the hashes exported from the pinned source commit."""
+    expected = settings.get("seed_files_sha256")
+    expected_paths = {path.lstrip("/") for path in SEED_FILES}
+    if not isinstance(expected, dict) or set(expected) != expected_paths:
+        return {"status": "failed", "reason": "pinned public-input hashes are missing or incomplete", "files": {}}
+
+    files: dict[str, dict[str, Any]] = {}
+    for relative in sorted(expected_paths):
+        path = workspace / relative
+        expected_hash = expected[relative]
+        actual_hash = None
+        error = None
+        try:
+            if path.is_symlink() or not path.is_file():
+                error = "public input is missing or not a regular file"
+            else:
+                actual_hash = digest(path)
+        except OSError as caught:
+            error = str(caught)
+        matched = error is None and actual_hash == expected_hash
+        files[relative] = {
+            "expected_sha256": expected_hash,
+            "observed_sha256": actual_hash,
+            "status": "passed" if matched else "failed",
+            "error": error,
+        }
+    failed = [relative for relative, row in files.items() if row["status"] != "passed"]
+    return {
+        "status": "failed" if failed else "passed",
+        "failed_files": failed,
+        "files": files,
+    }
+
+
+def unexpected_workspace_writes(workspace: Path) -> dict[str, Any]:
+    """Find non-Git workspace paths outside candidate/ and the pinned seed files."""
+    candidate_rel = Path("benchmarks/cli-tokens-v1/candidate")
+    public_files = {Path(path.lstrip("/")) for path in SEED_FILES}
+    allowed_directories: set[Path] = set()
+    for relative in public_files | {candidate_rel}:
+        parent = relative.parent
+        while parent != Path("."):
+            allowed_directories.add(parent)
+            parent = parent.parent
+
+    unexpected: list[str] = []
+    try:
+        for path in workspace.rglob("*"):
+            relative = path.relative_to(workspace)
+            if relative.parts and relative.parts[0] == ".git":
+                continue
+            if relative == candidate_rel:
+                if path.is_symlink() or not path.is_dir():
+                    unexpected.append(relative.as_posix())
+                continue
+            if candidate_rel in relative.parents:
+                continue
+            if relative in public_files:
+                continue
+            if relative in allowed_directories and path.is_dir() and not path.is_symlink():
+                continue
+            unexpected.append(relative.as_posix())
+    except OSError as error:
+        return {"status": "failed", "paths": [], "error": str(error)}
+    return {"status": "failed" if unexpected else "passed", "paths": sorted(unexpected)}
+
+
+def invalidate_trial_acceptance(row: dict[str, Any], reason: str) -> None:
+    acceptance = row.get("acceptance")
+    if isinstance(acceptance, dict):
+        acceptance["accepted"] = False
+        acceptance["invalidated"] = reason
+    else:
+        row["acceptance"] = {"accepted": False, "status": "invalidated", "reason": reason}
+    row["status"] = "not_accepted"
+    row["failure"] = reason
+    row["acceptance_invalidated"] = True
+    row["workspace_retained_for_review"] = True
+    row["workspace_removed"] = False
+
+
+def trial_workspace_guard(workspace: Path, settings: dict[str, Any]) -> tuple[dict[str, Any], str | None]:
+    public_inputs = seeded_public_inputs_integrity(workspace, settings)
+    external_writes = unexpected_workspace_writes(workspace)
+    result = {
+        "status": "passed" if public_inputs["status"] == external_writes["status"] == "passed" else "failed",
+        "public_inputs": public_inputs,
+        "external_writes": external_writes,
+    }
+    reasons = []
+    if public_inputs["status"] != "passed":
+        changed = public_inputs.get("failed_files", [])
+        reasons.append(
+            "frozen SPEC/sample integrity check failed"
+            + (f": {', '.join(changed)}" if changed else " (pinned hashes unavailable or file check failed)")
+        )
+    if external_writes["status"] != "passed":
+        paths = external_writes.get("paths", [])
+        detail = ", ".join(paths) if paths else external_writes.get("error", "workspace inventory failed")
+        reasons.append(f"trial modified files outside candidate/: {detail}")
+    return result, "; ".join(reasons) if reasons else None
+
+
+def preserve_candidate_source(row: dict[str, Any], artifacts: Path, candidate: Path, label: str) -> None:
+    archive = artifacts / "candidates" / label
+    archive.parent.mkdir(parents=True, exist_ok=True)
+    archived_files, excluded_paths = archive_candidate(candidate, archive)
+    save_json(archive.parent / f"{label}.manifest.json", {
+        "trial": label,
+        "archive_kind": "rebuildable candidate archive with dependency/cache directories excluded",
+        "runnable_without_build": False,
+        "excluded_directory_names": sorted(ARCHIVE_EXCLUDED_DIRS),
+        "excluded_paths": excluded_paths,
+        "files_sha256": archived_files,
+        "candidate_archive": str(archive),
+    })
+    row["candidate_archive"] = str(archive)
+    row["candidate_files_sha256"] = archived_files
+    row["candidate_archive_excluded_paths"] = excluded_paths
+
+
 def run_claude(command: list[str], workspace: Path, env: dict[str, str], stream_path: Path, stderr_path: Path, timeout_seconds: int) -> dict[str, Any]:
     return shared.run_claude(command, workspace, env, stream_path, stderr_path, timeout_seconds)
 
@@ -619,12 +741,17 @@ def launch_trial(
     elif not model_matches:
         row["failure"] = "observed model missing or differs from calibration model"
     else:
-        acceptance_started = time.monotonic()
-        row["acceptance"] = check_program(candidate, settings["timeout_seconds"], env)
-        row["acceptance_elapsed_seconds"] = round(time.monotonic() - acceptance_started, 3)
-        row["status"] = "accepted" if row["acceptance"]["accepted"] else "not_accepted"
-        if row["status"] != "accepted":
-            row["failure"] = "candidate failed independent build or acceptance checks"
+        guard, guard_failure = trial_workspace_guard(workspace, settings)
+        row["workspace_integrity_before_acceptance"] = guard
+        if guard_failure:
+            invalidate_trial_acceptance(row, guard_failure)
+        else:
+            acceptance_started = time.monotonic()
+            row["acceptance"] = check_program(candidate, settings["timeout_seconds"], env)
+            row["acceptance_elapsed_seconds"] = round(time.monotonic() - acceptance_started, 3)
+            row["status"] = "accepted" if row["acceptance"]["accepted"] else "not_accepted"
+            if row["status"] != "accepted":
+                row["failure"] = "candidate failed independent build or acceptance checks"
     try:
         row["final_candidate_source_metrics"] = authored_source_metrics(
             candidate, settings.get("authored_source_tokenizer")
@@ -646,35 +773,28 @@ def launch_trial(
         "Raw provider-reported input and cache counters. These include repeated system/tool context on every turn "
         "and task/tool history; the separate one-turn calibration diagnostic is not subtracted."
     )
-    # Archive candidate files, excluding only known dependency and cache dirs,
-    # before deleting the disposable isolated checkout. Any write outside the
-    # advertised candidate directory keeps the checkout for inspection.
-    status = subprocess.run(
-        ["git", "status", "--porcelain", "--untracked-files=all"],
-        cwd=workspace, text=True, capture_output=True, check=False,
-    )
-    changed = [line[3:] for line in status.stdout.splitlines() if len(line) >= 4]
-    candidate_prefix = "benchmarks/cli-tokens-v1/candidate/"
-    if status.returncode or any(not path.startswith(candidate_prefix) for path in changed):
-        row["workspace_retained_for_review"] = True
-        row["unexpected_workspace_changes"] = changed
-        row["failure"] = row.get("failure") or "trial modified files outside candidate/"
+    # Recheck the public inputs and all workspace paths immediately before
+    # archiving. Acceptance is invalid if the candidate changed either input
+    # or wrote outside its advertised directory while its scripts were run.
+    guard, guard_failure = trial_workspace_guard(workspace, settings)
+    row["workspace_integrity_before_archive"] = guard
+    if guard_failure:
+        invalidate_trial_acceptance(row, guard_failure)
+    if row.get("acceptance_invalidated"):
+        try:
+            preserve_candidate_source(row, artifacts, candidate, label)
+        except (OSError, shutil.Error) as error:
+            row["candidate_archive_error"] = str(error)
         return row
-    archive = artifacts / "candidates" / label
-    archive.parent.mkdir(parents=True, exist_ok=True)
-    archived_files, excluded_paths = archive_candidate(candidate, archive)
-    save_json(archive.parent / f"{label}.manifest.json", {
-        "trial": label,
-        "archive_kind": "rebuildable candidate archive with dependency/cache directories excluded",
-        "runnable_without_build": False,
-        "excluded_directory_names": sorted(ARCHIVE_EXCLUDED_DIRS),
-        "excluded_paths": excluded_paths,
-        "files_sha256": archived_files,
-        "candidate_archive": str(archive),
-    })
-    row["candidate_archive"] = str(archive)
-    row["candidate_files_sha256"] = archived_files
-    row["candidate_archive_excluded_paths"] = excluded_paths
+    preserve_candidate_source(row, artifacts, candidate, label)
+    # Archiving may take time; bind cleanup to one last check of the frozen
+    # inputs and the disposable checkout. Keep both the archive and checkout if
+    # anything outside candidate/ changed at any point during the trial.
+    guard, guard_failure = trial_workspace_guard(workspace, settings)
+    row["workspace_integrity_before_cleanup"] = guard
+    if guard_failure:
+        invalidate_trial_acceptance(row, guard_failure)
+        return row
     removed = subprocess.run(
         ["git", "worktree", "remove", "--force", str(workspace)],
         cwd=repo, text=True, capture_output=True, check=False,

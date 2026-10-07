@@ -49,6 +49,7 @@ impl Emitter<'_> {
             source: destination.clone(),
             lifecycle_id: lifecycle.clone(),
             guard_flag: *flag,
+            active_case: None,
         };
         self.emit_cleanup_actions(&[action])
     }

@@ -99,5 +99,9 @@ mod tests {
         let new = String::from_utf8(crate::prelude::contract_bytes_v12()).unwrap();
         assert!(new.starts_with(&expected));
         assert!(new.ends_with("rule sort Copy_scalars_only ascending numeric_char_bool floating_IEEE_total_order no_payload_clones no_capacity_change generation=next\n"));
+        assert_eq!(
+            crate::prelude::contract_bytes_v12(),
+            include_bytes!("../../tests/fixtures/prelude-v12.contract")
+        );
     }
 }

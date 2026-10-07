@@ -78,7 +78,6 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
     /// `byte_get`/`Option<u8>` match. Every other construct is rejected
     /// fail-closed outside the admitted per-iteration lifetime profile.
     /// Computed String conditions have a separate per-iteration cleanup region.
-
     pub(super) fn reject_while_disallowed(&mut self, expression: &'p Expr) -> Result<(), ()> {
         self.reject_iterator_body(expression, None)
     }

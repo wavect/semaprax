@@ -13,7 +13,7 @@ impl NativeBytesPlan {
         }
         self.emit_finalizers(std::slice::from_ref(destination), false)
     }
-    pub(super) fn transfer_to(
+    pub(in crate::codegen) fn transfer_to(
         &self,
         storage: &StorageId,
         at: &ExpressionId,

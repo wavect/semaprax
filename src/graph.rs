@@ -6,7 +6,6 @@ use crate::ast::{BinaryOp, Program, UnaryOp};
 use crate::bounded_output::BudgetedJoin as _;
 use crate::call_index::PersistentCallIndex;
 use crate::diagnostic::{quote_json, Diagnostic};
-use crate::format;
 use crate::hir::{
     self, ByteSliceExtent, ByteSliceRootKind, DeclarationId, FunctionExecutionId,
     FunctionInstanceId, IdentityOrigin, OwnershipMode, Place, PlaceProjection, ResolvedExpr,

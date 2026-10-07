@@ -24,8 +24,8 @@ for(let i=0;i<12;i++){{ {expectation} }}
 fn wasm_typed_map_string_values_and_record_transport_settle_each_invocation() {
     run(r#"module test.wasm_map;
 @id("map.carrier") record Carrier {@id("map.carrier.words") words:Map<i64,string>,@id("map.carrier.name") name:string,}
-@id("map.wrap") fn wrap(own words:Map<i64,string>)->Carrier {Carrier {words:words,name:"tag\0"}}
-@id("map.read") fn read(borrow carrier:Carrier)->i64 {string_len(map_get_or<i64,string>(carrier.words,-3,"missing"))+string_len(carrier.name)}
+@id("map.wrap") fn wrap(words:own Map<i64,string>)->Carrier {Carrier {words:words,name:"tag\u{0}"}}
+@id("map.read") fn read(carrier:borrow Carrier)->i64 {string_len(map_get_or<i64,string>(carrier.words,-3,"missing"))+string_len(carrier.name)}
 @id("map.main") fn main()->i64 {let mut words=map_new<i64,string>(2usize);words=map_set<i64,string>(words,9,"last");words=map_set<i64,string>(words,-3,"hello");let carrier=wrap(words);read(carrier)}"#,
         "if(instance.exports.semaprax_main()!==9n)throw Error('Map record transport value changed');");
 }
@@ -43,7 +43,7 @@ fn wasm_map_checked_failures_keep_domain_and_release_staged_owners() {
         ("let m=set_new<bool>(65537usize);0","semaprax.map.v2",3),
         ("let mut m=map_new(1usize);m=map_set(m,\"x\",9223372036854775807);m=map_add(m,\"x\",1);0","semaprax.map.v1",4),
     ] {
-        let source=format!("module test.wasm_map_failure; @id(\"map.main\") fn main()->i64 {{{body}}}");
+        let source=format!("module test.wasm_map_failure; @id(\"marker\") record Marker {{ @id(\"marker.code\") code:i64, }} @id(\"map.main\") fn main()->i64 {{{body}}}");
         run(&source,&format!("let failed=false;try{{instance.exports.semaprax_main();}}catch(error){{const status=semanticStatus(error);if(status===null||status.domain_id!=={domain:?}||status.code!=={code})throw error;failed=true;}}if(!failed)throw Error('Map checked failure missing');"));
     }
 }
@@ -58,7 +58,7 @@ fn wasm_map_floating_values_survive_storage() {
 fn wasm_set_and_string_record_fields_settle_together() {
     run(r#"module test.wasm_set_record;
 @id("set.carrier") record Carrier {@id("set.carrier.keys") keys:Set<string>,@id("set.carrier.label") label:string,}
-@id("set.read") fn read(borrow carrier:Carrier)->i64 {if set_has<string>(carrier.keys,"key\0") {string_len(carrier.label)}else{-1}}
-@id("set.main") fn main()->i64 {let mut keys=set_new<string>(1usize);keys=set_insert<string>(keys,"key\0");let carrier=Carrier {keys:keys,label:"ready"};read(carrier)}"#,
+@id("set.read") fn read(carrier:borrow Carrier)->i64 {if set_has<string>(carrier.keys,"key\u{0}") {string_len(carrier.label)}else{-1}}
+@id("set.main") fn main()->i64 {let mut keys=set_new<string>(1usize);keys=set_insert<string>(keys,"key\u{0}");let carrier=Carrier {keys:keys,label:"ready"};read(carrier)}"#,
         "if(instance.exports.semaprax_main()!==5n)throw Error('Set and String record changed');");
 }

@@ -141,7 +141,6 @@ impl Resolver<'_> {
     /// calls, strings, unsafe boundaries, generic calls, non-scalar calls)
     /// is rejected fail-closed outside the admitted per-iteration lifetime profile.
     /// Computed String conditions have a separate per-iteration cleanup region.
-
     pub(super) fn reject_while_disallowed(&self, expression: &Expr) -> Result<(), Diagnostic> {
         self.reject_while_disallowed_scoped(expression, None)
     }

@@ -371,7 +371,7 @@ impl Evaluator<'_> {
                 vector.values.sort_unstable_by(|a, b| match (a, b) {
                     (Value::Int(a), Value::Int(b)) => a.cmp(b),
                     (Value::Int32(a), Value::Int32(b)) => a.cmp(b),
-                    (Value::U8(a), Value::U8(b)) => a.cmp(b),
+                    (Value::Uint8(a), Value::Uint8(b)) => a.cmp(b),
                     (Value::Usize(a), Value::Usize(b)) => a.cmp(b),
                     (Value::Char(a), Value::Char(b)) => a.cmp(b),
                     (Value::Float32(a), Value::Float32(b)) => a.total_cmp(b),

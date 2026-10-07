@@ -255,8 +255,8 @@ pub(super) fn check_declared_type(
         {
             continue;
         }
-        let admitted_owned_record = (types.is_nested_owned_byte_record(&instance)
-            || crate::source_verify::declared_type::string_record::admitted(&instance, types));
+        let admitted_owned_record = types.is_nested_owned_byte_record(&instance)
+            || crate::source_verify::declared_type::string_record::admitted(&instance, types);
         let admitted_owned_record_template =
             types.is_nested_owned_byte_record_template(&instance, parameters);
         let admitted_owned_variant = (types.is_flat_owned_byte_variant(&instance)
@@ -486,20 +486,20 @@ pub(super) fn generic_function_arguments_are_admitted(
             .filter(|param| param.mode == ParamMode::Own)
             .all(|param| {
                 if nested {
-                    (types.is_nested_owned_byte_record(&param.ty)
+                    types.is_nested_owned_byte_record(&param.ty)
                         || crate::source_verify::declared_type::string_record::admitted(
                             &param.ty, types,
-                        ))
+                        )
                 } else {
                     types.is_flat_owned_byte_record(&param.ty)
                 }
             })
             && if nested {
-                (types.is_nested_owned_byte_record(&specialized.return_type)
+                types.is_nested_owned_byte_record(&specialized.return_type)
                     || crate::source_verify::declared_type::string_record::admitted(
                         &specialized.return_type,
                         types,
-                    ))
+                    )
             } else {
                 types.is_flat_owned_byte_record(&specialized.return_type)
             }

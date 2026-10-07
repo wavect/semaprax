@@ -16,11 +16,13 @@ impl Executor<'_> {
         if flags.len() != 1 {
             return Err(invariant("String replacement needs one owned leaf"));
         }
-        let leaf = &self.leaves[&flags[0]];
+        let flag = *flags.iter().next().expect("one owned leaf checked above");
+        let leaf = &self.leaves[&flag];
         let action = super::super::FinalizeAction {
             source: destination.clone(),
             lifecycle_id: leaf.lifecycle.clone(),
-            guard_flag: flags[0],
+            guard_flag: flag,
+            active_case: None,
         };
         self.execute_finalizer_actions(&[action])
     }

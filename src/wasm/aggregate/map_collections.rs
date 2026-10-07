@@ -4,7 +4,7 @@ use crate::map_ops::MapOp;
 pub(super) const CHECKED_ID: &str = "core.collection.wasm.checked.v2";
 pub(super) const DROP_ID: &str = "core.collection.wasm.drop.v2";
 pub(super) const IMPORT_COUNT: u32 = 2;
-pub(super) fn uses(program: &ResolvedProgram) -> bool {
+pub(in crate::wasm) fn uses(program: &ResolvedProgram) -> bool {
     if crate::map_ops::resolved_program_uses(program) {
         return true;
     }

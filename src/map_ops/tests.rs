@@ -2,7 +2,7 @@
 use super::*;
 fn resolved()->crate::hir::ResolvedProgram {
     let source=r#"module test.map_replay;
-@id("map.read") fn read(borrow map:Map<i64,string>)->i64 {string_len(map_get_or<i64,string>(map,3,"missing"))}
+@id("map.read") fn read(map:borrow Map<i64,string>)->i64 {string_len(map_get_or<i64,string>(map,3,"missing"))}
 @id("map.main") fn main()->i64 {let mut map=map_new<i64,string>(2usize);map=map_set<i64,string>(map,3,"abc");read(map)}"#;
     let source=crate::check(source,"map-replay.spx").unwrap();crate::hir::resolve(&source).unwrap()
 }
@@ -67,18 +67,23 @@ fn authored_declarations_cannot_reuse_collection_operation_or_lifecycle_ids() {
 #[test]
 fn additive_transport_and_removal_select_the_collection_prelude() {
     for body in [
-        "@id(\"map.borrow\") fn read(borrow map:Map<string,i64>)->usize {map_len(map)} @id(\"map.main\") fn main()->i64 {0}",
+        "@id(\"map.borrow\") fn read(map:borrow Map<string,i64>)->usize {map_len(map)} @id(\"map.main\") fn main()->i64 {0}",
         "@id(\"map.carrier\") record Carrier {@id(\"map.field\") words:Map<string,i64>,} @id(\"map.main\") fn main()->i64 {0}",
         "@id(\"map.main\") fn main()->i64 {let mut map=map_new(1usize);map=map_remove(map,\"missing\");0}",
     ] {
         let source=format!("module test.map_selection; {body}");let program=crate::check(&source,"map-selection.spx").unwrap();assert!(program_uses(&program));
+        assert_eq!(crate::prelude::selected_for_program(&program).0, crate::prelude::SCHEMA_V13);
     }
     let old=crate::check("module test.old_map; @id(\"map.main\") fn main()->i64 {let map=map_new(1usize);0}","old-map.spx").unwrap();assert!(!program_uses(&old));
+    assert_eq!(
+        crate::prelude::contract_bytes_v13(),
+        include_bytes!("../../tests/fixtures/prelude-v13.contract")
+    );
 }
 
 #[test]
 fn legacy_collection_transport_emits_carriers_without_local_operations() {
-    let source=crate::check("module test.map_header; @id(\"map.ignore\") fn ignore(borrow map:Map<string,i64>)->i64 {7} @id(\"map.main\") fn main()->i64 {0}","map-header.spx").unwrap();
+    let source=crate::check("module test.map_header; @id(\"map.ignore\") fn ignore(map:borrow Map<string,i64>)->i64 {7} @id(\"map.main\") fn main()->i64 {0}","map-header.spx").unwrap();
     let program=crate::hir::resolve(&source).unwrap();let native=crate::codegen::emit_hir_c(&program).unwrap();
     assert!(native.contains("typedef struct spx_map_v1"));
     assert!(crate::wasm::emit_resolved_module(&program).is_ok());

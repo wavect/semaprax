@@ -237,20 +237,19 @@ pub(super) fn validate_nested_update_base_shape(
     base: &ResolvedExpr,
     span: crate::ast::Span,
 ) -> Result<(), Diagnostic> {
-    if crate::hir::type_reachability::is_nested_nonflat_owned_byte_record(
+    if (crate::hir::type_reachability::is_nested_nonflat_owned_byte_record(
         &program.declarations,
         &base.ty,
-    ) || crate::hir::owned_text_record::admitted(&base.ty, &program.declarations)
-    {
-        if !matches!(
+    ) || crate::hir::owned_text_record::admitted(&base.ty, &program.declarations))
+        && !matches!(
             &base.kind,
             ResolvedExprKind::Place(place) if place.projections.is_empty()
-        ) {
-            return Err(hir_error_at_span(
-                span,
-                "SPX-O117: nested owned-record update requires an exact named owned base place",
-            ));
-        }
+        )
+    {
+        return Err(hir_error_at_span(
+            span,
+            "SPX-O117: nested owned-record update requires an exact named owned base place",
+        ));
     }
     Ok(())
 }

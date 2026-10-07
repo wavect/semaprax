@@ -76,6 +76,10 @@ fn streaming_revision_matches_materialized_bytes_for_every_prelude() {
             crate::prelude::SCHEMA_V12,
             "fn sorted(values:own Vec<i64>)->Vec<i64>{vec_sort<i64>(values)}",
         ),
+        (
+            crate::prelude::SCHEMA_V13,
+            "fn values(values:own Map<i64,string>)->Map<i64,string>{values}",
+        ),
     ] {
         assert_oracle(&format!("module revision.prelude; {declarations}"), schema);
     }

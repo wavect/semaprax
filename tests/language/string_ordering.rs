@@ -2,7 +2,7 @@ use semaprax::{codegen, format, graph, hir, interpreter, parse, verify};
 use std::process::Command;
 const SOURCE: &str = r#"module ordering;
 @id("ordering.main") fn main()->i64 {
- let a="a";let b="ab";let nul="a\0b";let longer="a\0c";let bmp="\u{e000}";let supplementary="\u{10000}";
+ let a="a";let b="ab";let nul="a\u{0}b";let longer="a\u{0}c";let bmp="\u{e000}";let supplementary="\u{10000}";
  if a<b && a<=a && b>a && b>=b && nul<longer && bmp<supplementary && !(b<a) {42} else {1}
 }
 "#;

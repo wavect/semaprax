@@ -79,7 +79,7 @@ fn main() -> i64
 - `f64`, `f32`: `1.5`, `1.5f32`.
 - `bool`: `true`, `false`; `&&`, `||`, `!`.
 - `char`: `'a'`, `'\n'`, `'\u{2603}'`.
-- `string`: `"text"`; owned UTF-8; `==` compares content.
+- `string`: `"text"`; owned UTF-8; content equality and UTF-8 byte ordering.
 - `str`: no literal; borrowed by `borrow str` or `string_as_str(binding)`.
 - `[u8; N]`: `[97u8, 98u8]`; fixed; `array_as_slice(binding)` gives
   `Slice<u8>`.
@@ -272,9 +272,11 @@ fn main() -> i64
   functions are called with explicit type arguments: `identity<i64>(4)`.
 - `record … with { field: value }` is immutable update. Record construction
   must name every field (`SPX-T213`).
-- A record may declare a `string` field, but no backend lays one out yet:
-  taking or returning that record is `SPX-T309`. Pass the text as its own
-  `string` parameter beside a Copy-field record.
+- Monomorphic acyclic records may own String/Bytes and Copy scalar fields,
+  including nested records. Pass with `own` or `borrow`; results own their
+  leaves. Generic, resource/view/class and invariant-bearing String records
+  stay outside the executable profile (`SPX-T309`);
+  [String records](OWNED-STRING-RECORDS-V1.md) owns the exact shapes.
 - Classes hold fields and `fn name(self: Class, …)` methods, called as
   `value.method(args)`. `class Dog : Animal` inherits; `super.method()`
   dispatches to the parent. Records have no methods.

@@ -665,9 +665,9 @@ slice out of range, prints one line to stderr and exits with 1.
 [Text Toolkit v1](TEXT-TOOLKIT-V1.md) owns the rules.
 
 On the pure single-file interpreter route, `run` tries the ordinary
-`semaprax.interpret.v1` profile first. If an internal call with an owned
-`string` parameter or result is refused with `SPX-F102`, `run` retries with
-the internal String profile; if that also refuses, the ordinary diagnostic is
+`semaprax.interpret.v1` profile first. On refusal, `run` retries with the
+internal String profile, which admits internal owned `string` parameters and
+results otherwise refused with `SPX-F102`. If both refuse, the ordinary diagnostic is
 reported. With `--json`, inspect the top-level `schema`: the retry emits
 `semaprax.interpret.internal-strings.v1`. Permit-selected command and stdout
 routes use their separate runners and do not use this interpreter fallback.

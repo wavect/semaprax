@@ -24,6 +24,11 @@ loglens <file> [--top N] [--json]
 
 ## Input
 
+LF, CRLF, and CR each terminate a line; CRLF counts as one terminator.
+Terminators are removed before validating requests or testing whether a line
+is empty. An unterminated final line is processed normally. These explicit
+line-ending rules apply to future rounds; the round-3 prompt did not state them.
+
 Each non-empty line is one Common Log Format request:
 
 ```

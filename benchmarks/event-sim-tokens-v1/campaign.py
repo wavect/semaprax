@@ -198,6 +198,16 @@ def check_program(candidate: Path, timeout: int, env: dict[str, str]) -> dict[st
     return result
 
 
+def seeded_spec_integrity(workspace: Path, settings: dict[str, Any]) -> dict[str, Any]:
+    relative = "benchmarks/event-sim-tokens-v1/SPEC.md"
+    expected = settings.get("seed_files_sha256", {}).get(relative)
+    path = workspace / relative
+    observed = common.digest(path) if path.is_file() else None
+    status = "passed" if expected is not None and observed == expected else "failed"
+    return {"status": status, "path": relative, "expected_sha256": expected,
+            "observed_sha256": observed}
+
+
 def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict[str, Any],
                  settings: dict[str, Any], semaprax_bin: Path) -> dict[str, Any]:
     arm, number = trial["arm"], trial["number"]
@@ -231,12 +241,16 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
     row["provider_reported_api_equivalent_total_cost_usd"] = usage.get("provider_reported_api_equivalent_total_cost_usd")
     row["provider_receipt_actual_usd"] = None
     model_ok = common.observed_model_matches(usage.get("models_observed"), settings.get("observed_model_id"))
+    spec_integrity = seeded_spec_integrity(workspace, settings)
+    row["seeded_spec_integrity"] = spec_integrity
     if process["timed_out"]:
         row["failure"] = "trial hit wall-clock timeout"
     elif process["process_exit_code"] != 0:
         row["failure"] = f"Claude Code exited with {process['process_exit_code']}"
     elif not model_ok:
         row["failure"] = "observed model missing or differs from calibration model"
+    elif spec_integrity["status"] != "passed":
+        row["failure"] = "trial changed the frozen public benchmark specification"
     else:
         started = time.monotonic()
         row["acceptance"] = check_program(candidate, settings["timeout_seconds"], trial_environment(semaprax_bin))
@@ -255,7 +269,16 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
             "tokenizer": settings.get("authored_source_tokenizer"), "error": str(error),
         }
     archive = artifacts / "candidates" / label
-    archive.parent.mkdir(exist_ok=True)
+    archive.parent.mkdir(parents=True, exist_ok=True)
+    spec_integrity_before_archive = seeded_spec_integrity(workspace, settings)
+    row["seeded_spec_integrity_before_archive"] = spec_integrity_before_archive
+    if spec_integrity_before_archive["status"] != "passed":
+        if row["status"] == "accepted":
+            row["status"] = "not_accepted"
+        row["failure"] = "trial changed the frozen public benchmark specification; workspace retained for review"
+        row["workspace_retained_for_review"] = True
+        row["worktree_removed_after_archive"] = False
+        return row
     hashes, omitted = common.archive_candidate(candidate, archive)
     row["candidate_archive"] = str(archive)
     row["candidate_source_sha256"] = hashes
@@ -309,6 +332,10 @@ def summarize(rows: list[dict[str, Any]], calibration: dict[str, Any] | None = N
             "raw_usage_per_attempt": [row.get("observed", {}).get("usage") for row in selected],
             "raw_usage_known_subtotal_by_bucket": raw_usage_totals,
             "raw_usage_attempts_missing_bucket": raw_usage_incomplete,
+            "turns": sum(row.get("observed", {}).get("turns_with_usage", 0) for row in selected),
+            "turns_with_usage_per_attempt": [
+                row.get("observed", {}).get("turns_with_usage", 0) for row in selected
+            ],
             "raw_input_plus_cache_tokens_per_attempt": [row.get("provider_input_plus_cache_tokens_raw") for row in selected],
             "legacy_net_input_tokens_per_attempt": [row.get("observed", {}).get("legacy_net_input", {}).get("net_input_tokens") for row in selected],
             "final_authored_source_token_proxy_per_attempt": [

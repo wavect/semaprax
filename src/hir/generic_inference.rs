@@ -266,6 +266,7 @@ impl Resolver<'_> {
             ResolvedType::Bytes => Some(Type::Bytes),
             ResolvedType::Str => Some(Type::Str),
             ResolvedType::SliceU8 => Some(Type::SliceU8),
+            ResolvedType::StringMap => Some(Type::StringMap),
             ResolvedType::ArrayU8(length) => Some(Type::ArrayU8(*length)),
             ResolvedType::TypeParameter { owner, index } => {
                 let FunctionExecutionId::Monomorphic(caller) = caller else {

@@ -656,6 +656,9 @@ pub(super) fn type_json(ty: &ResolvedType) -> String {
         ResolvedType::String => bounded_output::budgeted_clone("{\"kind\":\"owned_string\"}"),
         ResolvedType::Bytes => bounded_output::budgeted_clone("{\"kind\":\"owned_bytes\"}"),
         ResolvedType::Str => bounded_output::budgeted_clone("{\"kind\":\"borrowed_str\"}"),
+        ResolvedType::StringMap => {
+            bounded_output::budgeted_clone("{\"kind\":\"owned_string_map\"}")
+        }
         ResolvedType::SliceU8 => bounded_output::budgeted_clone(
             "{\"kind\":\"borrowed_slice\",\"element\":{\"kind\":\"primitive\",\"name\":\"u8\"}}",
         ),

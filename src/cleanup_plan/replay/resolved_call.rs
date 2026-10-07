@@ -157,5 +157,8 @@ pub(super) fn defers_owner_commit(expression: &crate::hir::ResolvedExpr) -> bool
                 .is_some_and(crate::byte_ops::ByteOp::is_fallible)
             || (callee.as_str() == crate::box_ops::NEW_ID
                 && matches!(type_arguments.as_slice(), [crate::hir::ResolvedType::Bytes]))
+            // String Collections v1 map reopens fail before taking the map.
+            || crate::string_ops::by_id(callee.as_str())
+                .is_some_and(crate::string_ops::StringOp::reopens_map)
     )
 }

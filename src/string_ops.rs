@@ -48,9 +48,26 @@
 //! Out-of-range offsets, non-boundary slices, and invalid UTF-8 select the
 //! checked `semaprax.text.v1` status; file failures select the existing
 //! `semaprax.filesystem.v1` codes.
+//!
+//! String Collections v1 (`docs/STRING-COLLECTIONS-V1.md`, its own backend
+//! group) adds bytewise string ordering and the one admitted string-keyed
+//! map, `Map<string, i64>`, kept in ascending bytewise key order:
+//!
+//! - `string_compare(a: string, b: string) -> i64` is -1, 0, or 1.
+//! - `map_new(capacity: usize) -> Map<string, i64>` creates an empty map that
+//!   holds at most `capacity` (at most 65,536) entries.
+//! - `map_add(map: own Map, key: string, delta: i64) -> Map` and
+//!   `map_set(map: own Map, key: string, value: i64) -> Map` are same-owner
+//!   reopens: `counts = map_add(counts, key, 1);`.
+//! - `map_get_or`, `map_has`, `map_len`, `map_key_at`, and `map_value_at`
+//!   borrow the map.
+//!
+//! Map failures select the checked `semaprax.map.v1` status.
 
 use crate::ast::{Param, ParamMode, Span, Type};
 use crate::hir::{OwnershipMode, ResolvedParam, ResolvedType, ValueId};
+
+pub(crate) mod map_admission;
 
 pub(crate) const LEN_NAME: &str = "string_len";
 pub(crate) const CONCAT_NAME: &str = "string_concat";
@@ -67,6 +84,15 @@ pub(crate) const TO_I64_NAME: &str = "string_to_i64";
 pub(crate) const TRIM_NAME: &str = "string_trim";
 pub(crate) const BYTE_AT_NAME: &str = "string_byte_at";
 pub(crate) const FILE_READ_TEXT_NAME: &str = "file_read_text";
+pub(crate) const COMPARE_NAME: &str = "string_compare";
+pub(crate) const MAP_NEW_NAME: &str = "map_new";
+pub(crate) const MAP_ADD_NAME: &str = "map_add";
+pub(crate) const MAP_SET_NAME: &str = "map_set";
+pub(crate) const MAP_GET_OR_NAME: &str = "map_get_or";
+pub(crate) const MAP_HAS_NAME: &str = "map_has";
+pub(crate) const MAP_LEN_NAME: &str = "map_len";
+pub(crate) const MAP_KEY_AT_NAME: &str = "map_key_at";
+pub(crate) const MAP_VALUE_AT_NAME: &str = "map_value_at";
 
 pub(crate) const LEN_ID: &str = "core.string.len";
 pub(crate) const CONCAT_ID: &str = "core.string.concat";
@@ -83,6 +109,31 @@ pub(crate) const TO_I64_ID: &str = "core.string.to_i64";
 pub(crate) const TRIM_ID: &str = "core.string.trim";
 pub(crate) const BYTE_AT_ID: &str = "core.string.byte_at";
 pub(crate) const FILE_READ_TEXT_ID: &str = "core.host.file-read-text";
+pub(crate) const COMPARE_ID: &str = "core.string.compare";
+pub(crate) const MAP_NEW_ID: &str = "core.map.new";
+pub(crate) const MAP_ADD_ID: &str = "core.map.add";
+pub(crate) const MAP_SET_ID: &str = "core.map.set";
+pub(crate) const MAP_GET_OR_ID: &str = "core.map.get_or";
+pub(crate) const MAP_HAS_ID: &str = "core.map.has";
+pub(crate) const MAP_LEN_ID: &str = "core.map.len";
+pub(crate) const MAP_KEY_AT_ID: &str = "core.map.key_at";
+pub(crate) const MAP_VALUE_AT_ID: &str = "core.map.value_at";
+
+/// The checked status domain of String Collections v1 maps.
+pub(crate) const MAP_STATUS_DOMAIN: &str = "semaprax.map.v1";
+/// A new key does not fit: the map already holds `capacity` entries.
+pub(crate) const MAP_FULL_CODE: u32 = 1;
+/// `map_key_at` / `map_value_at` index is not below `map_len`.
+pub(crate) const MAP_INDEX_OUT_OF_RANGE_CODE: u32 = 2;
+/// `map_new` capacity is above [`MAX_MAP_CAPACITY`].
+pub(crate) const MAP_CAPACITY_CODE: u32 = 3;
+/// `map_add` would overflow the entry's `i64` value.
+pub(crate) const MAP_VALUE_OVERFLOW_CODE: u32 = 4;
+/// Canonical compiler-owned cleanup lifecycle for one `Map<string, i64>`
+/// carrier; it releases every key and the entry table.
+pub const MAP_DROP_LIFECYCLE_ID: &str = "core.map.drop";
+/// The largest entry count a map may declare.
+pub(crate) const MAX_MAP_CAPACITY: u64 = 65_536;
 
 /// The checked status domain of Text Toolkit v1.
 pub(crate) const TEXT_STATUS_DOMAIN: &str = "semaprax.text.v1";
@@ -131,6 +182,24 @@ pub(crate) enum StringOp {
     ByteAt,
     /// Bounded UTF-8 file read under `fs.read`.
     FileReadText,
+    /// Bytewise three-way comparison of two borrowed strings.
+    Compare,
+    /// An empty `Map<string, i64>` with a checked entry capacity.
+    MapNew,
+    /// Same-owner reopen: insert the key with `delta`, or add `delta`.
+    MapAdd,
+    /// Same-owner reopen: insert or replace the key's value.
+    MapSet,
+    /// Borrowed lookup with a default.
+    MapGetOr,
+    /// Borrowed membership test.
+    MapHas,
+    /// Borrowed entry count.
+    MapLen,
+    /// Borrowed key at an ascending-order index, as a new string.
+    MapKeyAt,
+    /// Borrowed value at an ascending-order index.
+    MapValueAt,
 }
 
 impl StringOp {
@@ -158,6 +227,20 @@ impl StringOp {
         Self::FileReadText,
     ];
 
+    /// String Collections v1 operations, outside the frozen [`Self::ALL`]
+    /// catalog and its own backend group.
+    pub(crate) const COLLECTIONS: [Self; 9] = [
+        Self::Compare,
+        Self::MapNew,
+        Self::MapAdd,
+        Self::MapSet,
+        Self::MapGetOr,
+        Self::MapHas,
+        Self::MapLen,
+        Self::MapKeyAt,
+        Self::MapValueAt,
+    ];
+
     pub(crate) fn name(self) -> &'static str {
         match self {
             StringOp::Len => LEN_NAME,
@@ -175,6 +258,15 @@ impl StringOp {
             StringOp::Trim => TRIM_NAME,
             StringOp::ByteAt => BYTE_AT_NAME,
             StringOp::FileReadText => FILE_READ_TEXT_NAME,
+            StringOp::Compare => COMPARE_NAME,
+            StringOp::MapNew => MAP_NEW_NAME,
+            StringOp::MapAdd => MAP_ADD_NAME,
+            StringOp::MapSet => MAP_SET_NAME,
+            StringOp::MapGetOr => MAP_GET_OR_NAME,
+            StringOp::MapHas => MAP_HAS_NAME,
+            StringOp::MapLen => MAP_LEN_NAME,
+            StringOp::MapKeyAt => MAP_KEY_AT_NAME,
+            StringOp::MapValueAt => MAP_VALUE_AT_NAME,
         }
     }
 
@@ -195,6 +287,15 @@ impl StringOp {
             StringOp::Trim => TRIM_ID,
             StringOp::ByteAt => BYTE_AT_ID,
             StringOp::FileReadText => FILE_READ_TEXT_ID,
+            StringOp::Compare => COMPARE_ID,
+            StringOp::MapNew => MAP_NEW_ID,
+            StringOp::MapAdd => MAP_ADD_ID,
+            StringOp::MapSet => MAP_SET_ID,
+            StringOp::MapGetOr => MAP_GET_OR_ID,
+            StringOp::MapHas => MAP_HAS_ID,
+            StringOp::MapLen => MAP_LEN_ID,
+            StringOp::MapKeyAt => MAP_KEY_AT_ID,
+            StringOp::MapValueAt => MAP_VALUE_AT_ID,
         }
     }
 
@@ -217,6 +318,14 @@ impl StringOp {
             StringOp::ToI64 | StringOp::Trim => &["s"],
             StringOp::ByteAt => &["s", "index"],
             StringOp::FileReadText => &["path"],
+            StringOp::Compare => &["a", "b"],
+            StringOp::MapNew => &["capacity"],
+            StringOp::MapAdd => &["map", "key", "delta"],
+            StringOp::MapSet => &["map", "key", "value"],
+            StringOp::MapGetOr => &["map", "key", "default"],
+            StringOp::MapHas => &["map", "key"],
+            StringOp::MapLen => &["map"],
+            StringOp::MapKeyAt | StringOp::MapValueAt => &["map", "index"],
         }
     }
 
@@ -240,11 +349,57 @@ impl StringOp {
             StringOp::ToI64 | StringOp::Trim => &[ResolvedType::String],
             StringOp::ByteAt => &[ResolvedType::String, ResolvedType::I64],
             StringOp::FileReadText => &[ResolvedType::Str],
+            StringOp::Compare => &[ResolvedType::String, ResolvedType::String],
+            StringOp::MapNew => &[ResolvedType::Usize],
+            StringOp::MapAdd | StringOp::MapSet | StringOp::MapGetOr => &[
+                ResolvedType::StringMap,
+                ResolvedType::String,
+                ResolvedType::I64,
+            ],
+            StringOp::MapHas => &[ResolvedType::StringMap, ResolvedType::String],
+            StringOp::MapLen => &[ResolvedType::StringMap],
+            StringOp::MapKeyAt | StringOp::MapValueAt => {
+                &[ResolvedType::StringMap, ResolvedType::Usize]
+            }
         }
     }
 
+    /// Whether every non-scalar operand is consumed (only `string_concat`).
     pub(crate) fn consumes_arguments(self) -> bool {
         matches!(self, StringOp::Concat)
+    }
+
+    /// The ownership mode of one parameter. `string_concat` consumes both
+    /// operands; `map_add` and `map_set` consume only their map (the
+    /// same-owner reopen) and borrow the key, which the map copies when it
+    /// inserts; every other non-scalar operand is borrowed; scalars are
+    /// copied.
+    pub(crate) fn param_ownership(self, index: usize) -> OwnershipMode {
+        match self.param_types().get(index) {
+            Some(ResolvedType::Char | ResolvedType::I64 | ResolvedType::Usize) => {
+                OwnershipMode::Value
+            }
+            _ if self.consumes_arguments() => OwnershipMode::Own,
+            _ if index == 0 && self.reopens_map() => OwnershipMode::Own,
+            _ => OwnershipMode::Borrow,
+        }
+    }
+
+    /// `map_add` and `map_set` return their consumed map as the next
+    /// generation; they are only admitted as a same-owner reopen.
+    pub(crate) fn reopens_map(self) -> bool {
+        matches!(self, StringOp::MapAdd | StringOp::MapSet)
+    }
+
+    /// String Collections v1 forms a fifth optional backend group.
+    pub(crate) fn is_collection(self) -> bool {
+        Self::COLLECTIONS.contains(&self)
+    }
+
+    /// Operations no Core Wasm lane lowers: Text Toolkit v1 and String
+    /// Collections v1.
+    pub(crate) fn is_wasm_refused(self) -> bool {
+        self.is_text_toolkit() || self.is_collection()
     }
 
     /// Whether the operation belongs to the breadth-v2 wave. Its native
@@ -275,9 +430,17 @@ impl StringOp {
 
     pub(crate) fn return_type(self) -> ResolvedType {
         match self {
-            StringOp::Len | StringOp::LenChars | StringOp::Find | StringOp::ByteAt => {
-                ResolvedType::I64
-            }
+            StringOp::Len
+            | StringOp::LenChars
+            | StringOp::Find
+            | StringOp::ByteAt
+            | StringOp::Compare
+            | StringOp::MapGetOr
+            | StringOp::MapValueAt => ResolvedType::I64,
+            StringOp::MapNew | StringOp::MapAdd | StringOp::MapSet => ResolvedType::StringMap,
+            StringOp::MapLen => ResolvedType::Usize,
+            StringOp::MapHas => ResolvedType::Bool,
+            StringOp::MapKeyAt => ResolvedType::String,
             StringOp::Concat
             | StringOp::FromChar
             | StringOp::FromI64
@@ -292,7 +455,17 @@ impl StringOp {
 
     pub(crate) fn ast_return_type(self) -> Type {
         match self {
-            StringOp::Len | StringOp::LenChars | StringOp::Find | StringOp::ByteAt => Type::I64,
+            StringOp::Len
+            | StringOp::LenChars
+            | StringOp::Find
+            | StringOp::ByteAt
+            | StringOp::Compare
+            | StringOp::MapGetOr
+            | StringOp::MapValueAt => Type::I64,
+            StringOp::MapNew | StringOp::MapAdd | StringOp::MapSet => Type::StringMap,
+            StringOp::MapLen => Type::Usize,
+            StringOp::MapHas => Type::Bool,
+            StringOp::MapKeyAt => Type::String,
             StringOp::Concat
             | StringOp::FromChar
             | StringOp::FromI64
@@ -349,6 +522,15 @@ pub(crate) fn by_name(name: &str) -> Option<StringOp> {
         TRIM_NAME => Some(StringOp::Trim),
         BYTE_AT_NAME => Some(StringOp::ByteAt),
         FILE_READ_TEXT_NAME => Some(StringOp::FileReadText),
+        COMPARE_NAME => Some(StringOp::Compare),
+        MAP_NEW_NAME => Some(StringOp::MapNew),
+        MAP_ADD_NAME => Some(StringOp::MapAdd),
+        MAP_SET_NAME => Some(StringOp::MapSet),
+        MAP_GET_OR_NAME => Some(StringOp::MapGetOr),
+        MAP_HAS_NAME => Some(StringOp::MapHas),
+        MAP_LEN_NAME => Some(StringOp::MapLen),
+        MAP_KEY_AT_NAME => Some(StringOp::MapKeyAt),
+        MAP_VALUE_AT_NAME => Some(StringOp::MapValueAt),
         _ => None,
     }
 }
@@ -371,6 +553,15 @@ pub(crate) fn by_id(id: &str) -> Option<StringOp> {
         TRIM_ID => Some(StringOp::Trim),
         BYTE_AT_ID => Some(StringOp::ByteAt),
         FILE_READ_TEXT_ID => Some(StringOp::FileReadText),
+        COMPARE_ID => Some(StringOp::Compare),
+        MAP_NEW_ID => Some(StringOp::MapNew),
+        MAP_ADD_ID => Some(StringOp::MapAdd),
+        MAP_SET_ID => Some(StringOp::MapSet),
+        MAP_GET_OR_ID => Some(StringOp::MapGetOr),
+        MAP_HAS_ID => Some(StringOp::MapHas),
+        MAP_LEN_ID => Some(StringOp::MapLen),
+        MAP_KEY_AT_ID => Some(StringOp::MapKeyAt),
+        MAP_VALUE_AT_ID => Some(StringOp::MapValueAt),
         _ => None,
     }
 }
@@ -380,11 +571,6 @@ pub(crate) fn by_id(id: &str) -> Option<StringOp> {
 /// borrowed arguments accept every argument ownership without a transfer,
 /// and copied scalar arguments use the ordinary `Value` mode of their kind.
 pub(crate) fn resolved_params(op: StringOp) -> Vec<ResolvedParam> {
-    let consumption = if op.consumes_arguments() {
-        OwnershipMode::Own
-    } else {
-        OwnershipMode::Borrow
-    };
     op.param_names()
         .iter()
         .zip(op.param_types())
@@ -392,14 +578,7 @@ pub(crate) fn resolved_params(op: StringOp) -> Vec<ResolvedParam> {
         .map(|(index, (name, ty))| ResolvedParam {
             id: ValueId::intrinsic_parameter(op.id(), index),
             name: (*name).to_owned(),
-            ownership: if matches!(
-                ty,
-                ResolvedType::Char | ResolvedType::I64 | ResolvedType::Usize
-            ) {
-                OwnershipMode::Value
-            } else {
-                consumption
-            },
+            ownership: op.param_ownership(index),
             ty: ty.clone(),
             span: Span::default(),
         })
@@ -413,24 +592,22 @@ pub(crate) fn ast_params(op: StringOp) -> Vec<Param> {
     op.param_names()
         .iter()
         .zip(op.param_types())
-        .map(|(name, ty)| Param {
+        .enumerate()
+        .map(|(index, (name, ty))| Param {
             name: (*name).to_owned(),
             mode: if *ty == ResolvedType::Str {
                 ParamMode::Borrow
-            } else if matches!(
-                ty,
-                ResolvedType::Char | ResolvedType::I64 | ResolvedType::Usize
-            ) || !op.consumes_arguments()
-            {
-                ParamMode::Value
-            } else {
+            } else if op.param_ownership(index) == OwnershipMode::Own {
                 ParamMode::Own
+            } else {
+                ParamMode::Value
             },
             ty: match ty {
                 ResolvedType::Char => Type::Char,
                 ResolvedType::I64 => Type::I64,
                 ResolvedType::Usize => Type::Usize,
                 ResolvedType::Str => Type::Str,
+                ResolvedType::StringMap => Type::StringMap,
                 _ => Type::String,
             },
             span: Span::default(),
@@ -443,8 +620,20 @@ pub(crate) fn ast_params(op: StringOp) -> Vec<Param> {
 /// `let mut` binding. The call consumes the current generation as its first
 /// staged argument and the assignment publishes the next one, so exactly one
 /// generation of the owner is live and no release happens at the assignment.
+///
+/// String Collections v1 adds the map reopens `counts = map_add(counts, …)`
+/// and `counts = map_set(counts, …)` on a `let mut` `Map<string, i64>`; they
+/// share this whole protocol.
 pub(crate) fn is_same_owner_concat_source(value: &crate::ast::Expr, name: &str, ty: &Type) -> bool {
-    *ty == Type::String && is_same_owner_concat_shape(value, name)
+    let crate::ast::ExprKind::Call { name: callee, .. } = &value.kind else {
+        return false;
+    };
+    let expected = match by_name(callee) {
+        Some(StringOp::Concat) => Type::String,
+        Some(op) if op.reopens_map() => Type::StringMap,
+        _ => return false,
+    };
+    *ty == expected && is_same_owner_concat_shape(value, name)
 }
 
 /// The syntactic half of [`is_same_owner_concat_source`], without the binding
@@ -458,11 +647,21 @@ pub(crate) fn is_same_owner_concat_shape(value: &crate::ast::Expr, name: &str) -
     else {
         return false;
     };
-    by_name(callee) == Some(StringOp::Concat)
+    by_name(callee).is_some_and(StringOp::is_same_owner_reopen)
         && type_arguments.is_empty()
-        && args.len() == 2
+        && args.len() == by_name(callee).map_or(0, StringOp::arity)
         && matches!(&args[0].kind, crate::ast::ExprKind::Var(source) if source == name)
-        && !mentions_owner(&args[1], name)
+        && !args[1..]
+            .iter()
+            .any(|argument| mentions_owner(argument, name))
+}
+
+impl StringOp {
+    /// The operations whose first operand moves a same-owner `let mut`
+    /// binding into the call: the String append and the two map reopens.
+    pub(crate) fn is_same_owner_reopen(self) -> bool {
+        self == StringOp::Concat || self.reopens_map()
+    }
 }
 
 /// The first operand consumes the owner, so a second operand that also names
@@ -480,18 +679,22 @@ pub(crate) fn is_same_owner_concat_hir(value: &crate::hir::ResolvedExpr, owner: 
     matches!(
         &value.kind,
         crate::hir::ResolvedExprKind::Call { callee, type_arguments, instance: None, args }
-            if by_id(callee.as_str()) == Some(StringOp::Concat)
+            if by_id(callee.as_str()).is_some_and(|op| {
+                op.is_same_owner_reopen()
+                    && args.len() == op.arity()
+                    && value.ty == op.return_type()
+            })
                 && type_arguments.is_empty()
-                && args.len() == 2
-                && value.ty == ResolvedType::String
                 && matches!(
                     &args[0].kind,
                     crate::hir::ResolvedExprKind::Place(place)
                         if &place.root == owner && place.projections.is_empty()
                 )
-                // As in the source twin: a second operand that reads the
+                // As in the source twin: a later operand that reads the
                 // consumed owner is not the admitted reopen.
-                && !format!("{:?}", args[1]).contains(&format!("{owner:?}"))
+                && !args[1..]
+                    .iter()
+                    .any(|argument| format!("{argument:?}").contains(&format!("{owner:?}")))
     )
 }
 
@@ -518,7 +721,11 @@ pub(crate) fn owned_string_in_condition(
         match &expression.kind {
             ExprKind::String(_) => return Some(expression.span),
             ExprKind::Call { name, args, .. } => {
-                if source_call_uses_string(name, uses_string) {
+                // `map_len` and `map_value_at` borrow their map and allocate
+                // nothing; their other operands are scanned like any other.
+                let allocation_free = by_name(name)
+                    .is_some_and(|op| matches!(op, StringOp::MapLen | StringOp::MapValueAt));
+                if !allocation_free && source_call_uses_string(name, uses_string) {
                     return Some(expression.span);
                 }
                 pending.extend(args.iter().rev());
@@ -631,10 +838,56 @@ pub(crate) fn text_toolkit_wasm_refusal(op: StringOp) -> crate::diagnostic::Diag
     crate::diagnostic::Diagnostic::io(
         "SPX-W116",
         format!(
-            "Text Toolkit v1 operation `{}` is not lowered to Core Wasm; run it on the reference interpreter or native C11",
+            "{} operation `{}` is not lowered to Core Wasm; run it on the reference interpreter or native C11",
+            if op.is_collection() {
+                "String Collections v1"
+            } else {
+                "Text Toolkit v1"
+            },
             op.name()
         ),
     )
+}
+
+/// Every Core Wasm lane refuses String Collections v1 up front with the one
+/// stable `SPX-W116` diagnostic, naming the first collection operation in
+/// authored order, before any lane-specific admission can report a less
+/// specific profile error.
+pub(crate) fn refuse_collections_for_wasm(
+    program: &crate::hir::ResolvedProgram,
+) -> Result<(), crate::diagnostic::Diagnostic> {
+    let mut pending = Vec::new();
+    for function in program.functions.iter().chain(
+        program
+            .function_instances
+            .iter()
+            .map(|instance| &instance.function),
+    ) {
+        pending.push(&function.body);
+        pending.extend(function.requires.iter().chain(&function.ensures));
+    }
+    pending.reverse();
+    while let Some(expression) = pending.pop() {
+        if let crate::hir::ResolvedExprKind::Call { callee, .. } = &expression.kind {
+            if let Some(op) = by_id(callee.as_str()).filter(|op| op.is_collection()) {
+                return Err(text_toolkit_wasm_refusal(op));
+            }
+        }
+        if expression.ty == ResolvedType::StringMap {
+            return Err(text_toolkit_wasm_refusal(StringOp::MapNew));
+        }
+        crate::hir::push_resolved_expression_children_in_authored_order(expression, &mut pending);
+    }
+    Ok(())
+}
+
+/// Bytewise three-way order of `string_compare`.
+pub(crate) fn compare_bytes(left: &[u8], right: &[u8]) -> i64 {
+    match left.cmp(right) {
+        std::cmp::Ordering::Less => -1,
+        std::cmp::Ordering::Equal => 0,
+        std::cmp::Ordering::Greater => 1,
+    }
 }
 
 /// The shared byte semantics of `string_find`: the first offset at or after

@@ -323,7 +323,12 @@ pub(super) fn scalar_type_name(ty: &Type) -> Option<&'static str> {
         Type::F64 => Some("f64"),
         Type::Bool => Some("bool"),
         Type::Char => Some("char"),
-        Type::String | Type::Str | Type::SliceU8 | Type::ArrayU8(_) | Type::Bytes => None,
+        Type::String
+        | Type::Str
+        | Type::SliceU8
+        | Type::StringMap
+        | Type::ArrayU8(_)
+        | Type::Bytes => None,
         Type::OnceFunction
         | Type::OnceFunctionI64
         | Type::OnceFunctionI64Pair

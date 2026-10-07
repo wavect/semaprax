@@ -82,6 +82,7 @@ pub(super) fn is_admitted(
                 | Type::String
                 | Type::Str
                 | Type::SliceU8
+                | Type::StringMap
                 | Type::OnceFunction
                 | Type::OnceFunctionI64
                 | Type::OnceFunctionI64Pair

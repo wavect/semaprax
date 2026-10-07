@@ -365,6 +365,7 @@ pub(super) fn generic_function_signature_slot(ty: &Type, parameters: &HashSet<&s
         | Type::Bytes
         | Type::Str
         | Type::SliceU8
+        | Type::StringMap
         | Type::OnceFunction
         | Type::OnceFunctionI64
         | Type::OnceFunctionI64Pair
@@ -547,6 +548,7 @@ pub(super) fn substitute_function_type(
                 Type::Bytes => resolved.push(Type::Bytes),
                 Type::Str => resolved.push(Type::Str),
                 Type::SliceU8 => resolved.push(Type::SliceU8),
+                Type::StringMap => resolved.push(Type::StringMap),
                 Type::Function { parameters, result } => {
                     frames.push(Frame::FinishFunction(parameters.len()));
                     frames.push(Frame::Enter(result));

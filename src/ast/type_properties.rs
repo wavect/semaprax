@@ -16,7 +16,11 @@ impl Type {
     /// Canonical ownership predicate. `Bytes` transfers uniquely without
     /// being misclassified as a user resource.
     pub fn is_uniquely_owned(&self) -> bool {
-        self.is_once_function() || matches!(self, Type::String | Type::Bytes | Type::MutFunctionI64)
+        self.is_once_function()
+            || matches!(
+                self,
+                Type::String | Type::Bytes | Type::StringMap | Type::MutFunctionI64
+            )
     }
 }
 
@@ -48,6 +52,7 @@ impl fmt::Display for Type {
                 Frame::Type(Type::MutFunctionI64) => f.write_str("FnMutI64(i64) -> i64")?,
                 Frame::Type(Type::Str) => f.write_str("str")?,
                 Frame::Type(Type::SliceU8) => f.write_str("Slice<u8>")?,
+                Frame::Type(Type::StringMap) => f.write_str("Map<string, i64>")?,
                 Frame::Type(Type::Function { parameters, result }) => {
                     f.write_str("fn(")?;
                     frames.push(Frame::FunctionResult(result));

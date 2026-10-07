@@ -39,8 +39,16 @@ pub(super) fn call_behavior(
             && matches!(type_arguments.as_slice(), [crate::hir::ResolvedType::Bytes]))
         || is_fallible_byte_operation(callee)
         || (callee.as_str() == crate::box_ops::NEW_ID
-            && matches!(type_arguments.as_slice(), [crate::hir::ResolvedType::Bytes]));
+            && matches!(type_arguments.as_slice(), [crate::hir::ResolvedType::Bytes]))
+        || is_map_reopen(callee);
     (op, deferred)
+}
+
+/// String Collections v1 `map_add`/`map_set` check capacity and overflow
+/// before they take the staged map, so a failed call leaves it in its
+/// call-argument slot for ordinary region cleanup.
+pub(super) fn is_map_reopen(callee: &DeclarationId) -> bool {
+    crate::string_ops::by_id(callee.as_str()).is_some_and(crate::string_ops::StringOp::reopens_map)
 }
 
 /// `true` for a byte operation that is total after HIR admission and therefore

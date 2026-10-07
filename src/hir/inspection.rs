@@ -179,7 +179,8 @@ fn audit_resolved_type(root: &ResolvedType) -> Result<(), Diagnostic> {
             | ResolvedType::String
             | ResolvedType::Bytes
             | ResolvedType::Str
-            | ResolvedType::SliceU8 => {}
+            | ResolvedType::SliceU8
+            | ResolvedType::StringMap => {}
             ResolvedType::TypeParameter { owner, .. } => {
                 reject_nul_identity("resolved type-parameter owner", owner.as_str())?;
             }

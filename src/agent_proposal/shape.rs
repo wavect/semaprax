@@ -67,6 +67,7 @@ impl Representation {
             | ResolvedType::Bytes
             | ResolvedType::Str
             | ResolvedType::SliceU8
+            | ResolvedType::StringMap
             | ResolvedType::TypeParameter { .. }
             | ResolvedType::Nominal { .. } => None,
         }

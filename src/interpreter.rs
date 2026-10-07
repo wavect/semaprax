@@ -3079,6 +3079,8 @@ enum Value {
     Iter(Arc<iterator::IteratorValue>),
     List(crate::immutable_list::ImmutableList),
     Box(Arc<owned_box::OwnedBoxValue>),
+    /// String Collections v1: one uniquely owned `Map<string, i64>`.
+    Map(Arc<string_operations::StringMapValue>),
     String(String),
     BorrowedStr(BorrowedStrValue),
     BorrowedSlice(BorrowedSliceValue),
@@ -3720,6 +3722,7 @@ impl Evaluator<'_> {
                 | ResolvedType::OnceFunctionI64Pair,
             )
             | (Value::Bytes(_), ResolvedType::Bytes)
+            | (Value::Map(_), ResolvedType::StringMap)
             | (Value::String(_), ResolvedType::String) => true,
             (Value::Closure(value), ResolvedType::MutFunctionI64) => value.mutable.is_some(),
             (Value::Variant(carrier), expected) => &carrier.ty == expected,
@@ -3947,6 +3950,7 @@ impl Evaluator<'_> {
                     && matches!(
                         &expression.ty,
                         ResolvedType::Bytes
+                            | ResolvedType::StringMap
                             | ResolvedType::OnceFunction
                             | ResolvedType::OnceFunctionI64
                             | ResolvedType::OnceFunctionI64Pair

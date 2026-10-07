@@ -25,6 +25,7 @@ impl HirValidator<'_> {
                     | ResolvedType::Bytes
                     | ResolvedType::Str
                     | ResolvedType::SliceU8
+                    | ResolvedType::StringMap
                     | ResolvedType::OnceFunction
                     | ResolvedType::OnceFunctionI64
                     | ResolvedType::OnceFunctionI64Pair

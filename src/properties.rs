@@ -1139,7 +1139,7 @@ impl ScalarKind {
             Type::Usize
             | Type::String
             | Type::Str
-            | Type::SliceU8
+            | Type::SliceU8 | Type::StringMap
             | Type::ArrayU8(_)
             | Type::Bytes
             | Type::OnceFunction

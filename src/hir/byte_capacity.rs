@@ -95,7 +95,8 @@ pub(super) fn inline_array_payload_bytes(
             | ResolvedType::String
             | ResolvedType::Bytes
             | ResolvedType::Str
-            | ResolvedType::SliceU8 => {}
+            | ResolvedType::SliceU8
+            | ResolvedType::StringMap => {}
             ResolvedType::TypeParameter { .. } => {
                 return Err(hir_error(
                     "inline-array capacity cannot inspect an unresolved type parameter",

@@ -290,7 +290,7 @@ fn layout_type(
         ResolvedType::Str => Err(layout_error(
             "borrowed string views have no aggregate value layout",
         )),
-        ResolvedType::SliceU8 => Err(layout_error(
+        ResolvedType::SliceU8 | ResolvedType::StringMap => Err(layout_error(
             "borrowed byte-slice views have no aggregate value layout",
         )),
         ResolvedType::TypeParameter { .. } => Err(layout_error(
@@ -553,6 +553,7 @@ fn concrete_layout_instance_is_admitted(
                 | ResolvedType::String
                 | ResolvedType::Str
                 | ResolvedType::SliceU8
+                | ResolvedType::StringMap
                 | ResolvedType::TypeParameter { .. }
                 | ResolvedType::OnceFunction
                 | ResolvedType::OnceFunctionI64

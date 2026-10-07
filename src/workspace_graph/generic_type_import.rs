@@ -30,6 +30,7 @@ pub(super) fn template_is_admitted(declaration: &TypeDeclaration) -> bool {
             Type::String
             | Type::Str
             | Type::SliceU8
+            | Type::StringMap
             | Type::ArrayU8(_)
             | Type::OnceFunction
             | Type::OnceFunctionI64

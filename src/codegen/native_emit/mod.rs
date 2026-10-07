@@ -43,6 +43,7 @@ mod network_io;
 mod output_profile;
 mod owned_strings;
 mod scope_anchors;
+mod string_collections;
 mod string_ops;
 mod string_views;
 mod symbols;
@@ -509,6 +510,7 @@ fn emit_native_prelude_inner(
     {
         output.push_str(text_toolkit::RUNTIME_C);
     }
+    string_collections::emit_runtime(output, program, strings);
     if needs_borrowed_str {
         // Borrowed text is a distinct length-aware carrier. Keep it behind a
         // reachability gate so every pre-text native projection is byte exact.
@@ -651,7 +653,7 @@ fn function_uses_strings(function: &ResolvedFunction) -> bool {
     let mut pending = vec![&function.body];
     pending.extend(function.requires.iter().chain(&function.ensures));
     while let Some(expression) = pending.pop() {
-        if matches!(expression.ty, ResolvedType::String)
+        if string_collections::owns_text(&expression.ty)
             || matches!(expression.kind, ResolvedExprKind::String(_))
         {
             return true;

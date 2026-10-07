@@ -392,6 +392,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             | Type::Bytes
             | Type::Str
             | Type::SliceU8
+            | Type::StringMap
             | Type::OnceFunction
             | Type::OnceFunctionI64
             | Type::OnceFunctionI64Pair

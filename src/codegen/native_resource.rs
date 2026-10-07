@@ -68,6 +68,8 @@ impl NativeResourceAbi {
             // definition is emitted only for programs reaching Str ops.
             ResolvedType::Str => Ok("spx_str_v1"),
             ResolvedType::SliceU8 => Ok("spx_slice_u8_v1"),
+            // String Collections v1: an owned sorted-entry map carrier.
+            ResolvedType::StringMap => Ok("spx_map_v1 *"),
             ResolvedType::Bytes => Ok("spx_bytes_v1"),
             // Fixed arrays have a length-specific inline C representation
             // emitted by the ordinary native backend.  Returning a generic

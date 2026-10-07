@@ -438,6 +438,9 @@ impl DeclarationIndex {
                         }
                         ResolvedType::Str => Some((false, false, false, "borrowed:str")),
                         ResolvedType::SliceU8 => Some((false, false, false, "borrowed:slice-u8")),
+                        ResolvedType::StringMap => {
+                            Some((false, false, true, "owned:map:string:i64"))
+                        }
                         ResolvedType::TypeParameter { .. } | ResolvedType::Nominal { .. } => None,
                     };
                     if let ResolvedType::ArrayU8(length) = &ty {
@@ -1431,6 +1434,7 @@ impl DeclarationIndex {
                     Type::MutFunctionI64 => resolved.push(ResolvedType::MutFunctionI64),
                     Type::Str => resolved.push(ResolvedType::Str),
                     Type::SliceU8 => resolved.push(ResolvedType::SliceU8),
+                    Type::StringMap => resolved.push(ResolvedType::StringMap),
                     Type::Named { name, arguments } => {
                         if arguments.is_empty() {
                             if let Some(owner) = parameter_owner {

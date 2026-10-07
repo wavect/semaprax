@@ -101,6 +101,8 @@ mod signed_minimum_literals;
 mod stable_id_nul;
 #[path = "language/std_collections_vec_wrappers.rs"]
 mod std_collections_vec_wrappers;
+#[path = "language/string_collections_v1.rs"]
+mod string_collections_v1;
 #[path = "language/string_numeric_text.rs"]
 mod string_numeric_text;
 #[path = "language/string_ops_v1.rs"]

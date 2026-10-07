@@ -170,7 +170,7 @@ impl Emitter<'_> {
         args: &[ResolvedExpr],
     ) -> Result<Value, Diagnostic> {
         use crate::string_ops::StringOp;
-        if operation.is_text_toolkit() {
+        if operation.is_wasm_refused() {
             return Err(crate::string_ops::text_toolkit_wasm_refusal(operation));
         }
         if args.len() != operation.arity() {

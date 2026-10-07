@@ -1180,6 +1180,9 @@ pub(crate) fn write_type(output: &mut impl std::fmt::Write, ty: &crate::ast::Typ
             }
             Frame::Type(crate::ast::Type::Str) => output.write_str("str").unwrap(),
             Frame::Type(crate::ast::Type::SliceU8) => output.write_str("Slice<u8>").unwrap(),
+            Frame::Type(crate::ast::Type::StringMap) => {
+                output.write_str("Map<string, i64>").unwrap()
+            }
             Frame::Type(crate::ast::Type::Function { parameters, result }) => {
                 output.write_str("fn(").unwrap();
                 frames.push(Frame::FunctionResult(result));

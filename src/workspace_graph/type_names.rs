@@ -14,6 +14,7 @@ pub(super) fn type_contains_name_from(ty: &Type, names: &BTreeSet<&str>) -> bool
         | Type::String
         | Type::Str
         | Type::SliceU8
+        | Type::StringMap
         | Type::ArrayU8(_)
         | Type::Bytes
         | Type::OnceFunction
@@ -49,6 +50,7 @@ pub(super) fn type_reference_is_admitted(
         | Type::String
         | Type::Str => true,
         Type::SliceU8
+        | Type::StringMap
         | Type::ArrayU8(_)
         | Type::OnceFunction
         | Type::OnceFunctionI64

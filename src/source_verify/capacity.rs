@@ -234,6 +234,7 @@ fn source_array_payload(types: &TypeTable<'_>, ty: &Type) -> Result<u32, ()> {
             | Type::Bytes
             | Type::Str
             | Type::SliceU8
+            | Type::StringMap
             | Type::OnceFunction
             | Type::OnceFunctionI64
             | Type::OnceFunctionI64Pair

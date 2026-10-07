@@ -825,6 +825,7 @@ pub fn emit_resolved_module_with_scalar_exports(
     program: &ResolvedProgram,
     export_ids: &[String],
 ) -> Result<Vec<u8>, Diagnostic> {
+    crate::string_ops::refuse_collections_for_wasm(program)?;
     let plans = scalar_exports::prepare(program, export_ids)?;
     emit_resolved_module_internal(program, &plans, &[])
 }
@@ -841,6 +842,7 @@ pub(crate) fn emit_resolved_package_scalar_exports(
     program: &ResolvedProgram,
     export_ids: &[String],
 ) -> Result<(Vec<u8>, Vec<PackageScalarExportFact>), Diagnostic> {
+    crate::string_ops::refuse_collections_for_wasm(program)?;
     let plans = scalar_exports::prepare(program, export_ids)?;
     let facts = plans
         .iter()
@@ -860,6 +862,7 @@ pub fn emit_resolved_module_with_text_exports(
     program: &ResolvedProgram,
     export_ids: &[String],
 ) -> Result<Vec<u8>, Diagnostic> {
+    crate::string_ops::refuse_collections_for_wasm(program)?;
     let plans = text_exports::prepare(program, export_ids)?;
     emit_resolved_module_internal(program, &[], &plans)
 }
@@ -871,6 +874,7 @@ pub fn emit_resolved_module_with_byte_exports(
     program: &ResolvedProgram,
     export_ids: &[String],
 ) -> Result<Vec<u8>, Diagnostic> {
+    crate::string_ops::refuse_collections_for_wasm(program)?;
     if aggregate::program_uses_owned_buffer(program) {
         return Err(Diagnostic::io(
             "SPX-W115",
@@ -889,6 +893,7 @@ pub(crate) fn emit_resolved_module_with_byte_exports_and_stdout_transcript(
     program: &ResolvedProgram,
     export_ids: &[String],
 ) -> Result<Vec<u8>, Diagnostic> {
+    crate::string_ops::refuse_collections_for_wasm(program)?;
     let plans = data_exports::prepare_with_stdout_transcript(program, export_ids)?;
     aggregate::emit_byte_exports_with_stdout_transcript(program, &plans)
 }
@@ -900,6 +905,7 @@ pub(crate) fn emit_resolved_useful_data_command_v2(
     program: &ResolvedProgram,
     command_id: &str,
 ) -> Result<Vec<u8>, Diagnostic> {
+    crate::string_ops::refuse_collections_for_wasm(program)?;
     let plans = data_exports::prepare_command_v2(program, command_id)?;
     aggregate::emit_useful_data_command_v2(program, &plans)
 }
@@ -909,6 +915,7 @@ pub(crate) fn emit_resolved_language_command_io_v1(
     program: &ResolvedProgram,
     command_id: &str,
 ) -> Result<Vec<u8>, Diagnostic> {
+    crate::string_ops::refuse_collections_for_wasm(program)?;
     let plan = command_io::prepare(program, command_id, CommandOperationProfile::LanguageV1)?;
     aggregate::emit_language_command_io(program, &plan)
 }
@@ -920,6 +927,7 @@ pub(crate) fn emit_resolved_language_network_io_v1(
     program: &ResolvedProgram,
     command_id: &str,
 ) -> Result<Vec<u8>, Diagnostic> {
+    crate::string_ops::refuse_collections_for_wasm(program)?;
     network_io::emit_resolved_language_network_io_v1(program, command_id)
 }
 
@@ -930,6 +938,7 @@ pub(crate) fn emit_resolved_https_command_io_v1(
     program: &ResolvedProgram,
     command_id: &str,
 ) -> Result<Vec<u8>, Diagnostic> {
+    crate::string_ops::refuse_collections_for_wasm(program)?;
     http_io::emit_resolved_https_command_io_v1(program, command_id)
 }
 
@@ -945,6 +954,7 @@ pub(crate) fn emit_resolved_line_command_io_v1(
     program: &ResolvedProgram,
     command_id: &str,
 ) -> Result<Vec<u8>, Diagnostic> {
+    crate::string_ops::refuse_collections_for_wasm(program)?;
     let plan = command_io::prepare(program, command_id, CommandOperationProfile::LineV1)?;
     aggregate::emit_language_command_io(program, &plan)
 }
@@ -954,6 +964,7 @@ fn emit_resolved_module_internal(
     scalar_exports: &[scalar_exports::ScalarExportPlan],
     text_exports: &[text_exports::TextExportPlan],
 ) -> Result<Vec<u8>, Diagnostic> {
+    crate::string_ops::refuse_collections_for_wasm(program)?;
     let has_public_profile = !scalar_exports.is_empty() || !text_exports.is_empty();
     if crate::list_ops::resolved_program_uses_list(program) {
         return aggregate::list_ops::emit_closed_list(program, has_public_profile);
@@ -3584,7 +3595,7 @@ fn emit_expr(
                     return Ok(());
                 }
                 if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
-                    if op.is_text_toolkit() {
+                    if op.is_wasm_refused() {
                         return Err(crate::string_ops::text_toolkit_wasm_refusal(op));
                     }
                     // Compiler-owned string operations lower through their

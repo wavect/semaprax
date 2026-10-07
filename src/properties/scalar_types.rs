@@ -13,7 +13,7 @@ pub(super) fn scalar_type_text(ty: &Type) -> &'static str {
         Type::Usize
         | Type::String
         | Type::Str
-        | Type::SliceU8
+        | Type::SliceU8 | Type::StringMap
         | Type::ArrayU8(_)
         | Type::Bytes
         | Type::OnceFunction

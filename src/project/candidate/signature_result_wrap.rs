@@ -319,6 +319,7 @@ fn source_type(
         Type::Bytes => ResolvedType::Bytes,
         Type::Str => ResolvedType::Str,
         Type::SliceU8 => ResolvedType::SliceU8,
+        Type::StringMap => ResolvedType::StringMap,
         Type::Named { name, arguments } => {
             *work = work
                 .checked_add(program.types.len() + program.module_uses.len())

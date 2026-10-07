@@ -461,6 +461,7 @@ fn recipe_type(
         ResolvedType::Bytes => Ok("Bytes".to_owned()),
         ResolvedType::Str => Ok("str".to_owned()),
         ResolvedType::SliceU8 => Ok("Slice<u8>".to_owned()),
+        ResolvedType::StringMap => Ok("Map<string, i64>".to_owned()),
         ResolvedType::Nominal {
             declaration,
             arguments,

@@ -23,7 +23,10 @@ impl PlanBuilder<'_> {
         expression: &ResolvedExpr,
         block: BlockId,
     ) -> Result<(), Diagnostic> {
-        if self.string_appends.contains_key(&expression.id) {
+        // Only a String operand would otherwise have cloned; a moving map
+        // reopen operand never had an inventory temporary.
+        if expression.ty == ResolvedType::String && self.string_appends.contains_key(&expression.id)
+        {
             let region = self.blocks[block.0 as usize].region;
             self.expression_slot(expression, region)?;
         }

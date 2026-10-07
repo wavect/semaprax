@@ -3919,6 +3919,7 @@ impl<'a> PlanBuilder<'a> {
                         | ResolvedType::Bytes
                         | ResolvedType::Str
                         | ResolvedType::SliceU8
+                        | ResolvedType::StringMap
                         | ResolvedType::TypeParameter { .. }
                         | ResolvedType::OnceFunction
                         | ResolvedType::OnceFunctionI64

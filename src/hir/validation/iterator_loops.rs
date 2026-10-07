@@ -99,8 +99,12 @@ impl HirValidator<'_> {
                     // Owned String Loops v1: a whole String binding may be
                     // read or consumed; ordinary ownership replay and the
                     // loop-invariant cleanup state authenticate the use.
-                    let whole_string =
-                        expression.ty == ResolvedType::String && place.projections.is_empty();
+                    // String Collections v1 maps are read and reopened the
+                    // same way, only as map-operation operands.
+                    let whole_string = matches!(
+                        expression.ty,
+                        ResolvedType::String | ResolvedType::StringMap
+                    ) && place.projections.is_empty();
                     if !whole_string
                         && (!crate::hir::is_scalar_resolved_type(&expression.ty)
                             || expression.ownership != OwnershipMode::Value)
@@ -556,7 +560,7 @@ pub(super) fn reopen_string(
     if target.availability != Availability::Moved
         || !target.active_loans.is_empty()
         || target.ownership != OwnershipMode::Own
-        || target.ty != ResolvedType::String
+        || !matches!(target.ty, ResolvedType::String | ResolvedType::StringMap)
     {
         return Err(hir_error(
             "string append did not consume its unique String owner",

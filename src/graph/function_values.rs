@@ -222,6 +222,7 @@ pub(super) fn type_has_usize(ty: &ResolvedType) -> bool {
         | ResolvedType::ArrayU8(_)
         | ResolvedType::Bytes
         | ResolvedType::SliceU8 => true,
+        ResolvedType::StringMap => false,
         ResolvedType::Nominal { arguments, .. } => arguments.iter().any(type_has_usize),
         ResolvedType::Unit
         | ResolvedType::I64

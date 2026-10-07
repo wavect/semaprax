@@ -4908,6 +4908,7 @@ fn validate_match_skeleton_shape(
         | ResolvedType::Bytes
         | ResolvedType::Str
         | ResolvedType::SliceU8
+        | ResolvedType::StringMap
         | ResolvedType::TypeParameter { .. }
         | ResolvedType::OnceFunction
         | ResolvedType::OnceFunctionI64

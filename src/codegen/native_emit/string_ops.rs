@@ -66,7 +66,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 &op.param_types()[index],
                 "string operation argument",
             )?;
-            arguments.push(if op.consumes_arguments() {
+            arguments.push(if op.param_ownership(index) == hir::OwnershipMode::Own {
                 self.stage_bytes_call_argument(
                     expression,
                     index,
@@ -144,6 +144,17 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             | crate::string_ops::StringOp::ByteAt
             | crate::string_ops::StringOp::FileReadText => {
                 self.emit_text_toolkit_op(op, &arguments, &temporary)?;
+            }
+            crate::string_ops::StringOp::Compare
+            | crate::string_ops::StringOp::MapNew
+            | crate::string_ops::StringOp::MapAdd
+            | crate::string_ops::StringOp::MapSet
+            | crate::string_ops::StringOp::MapGetOr
+            | crate::string_ops::StringOp::MapHas
+            | crate::string_ops::StringOp::MapLen
+            | crate::string_ops::StringOp::MapKeyAt
+            | crate::string_ops::StringOp::MapValueAt => {
+                self.emit_collection_op(op, &arguments, &temporary, expression)?;
             }
         }
         let code = if is_direct_plan_owned(self.program, &op.return_type()) {

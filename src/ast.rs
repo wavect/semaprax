@@ -48,6 +48,10 @@ pub enum Type {
     /// A non-escaping immutable byte view rooted in one external invocation
     /// input. It is written exactly `Slice<u8>` and has no owned form.
     SliceU8,
+    /// String Collections v1: the one admitted string-keyed map instantiation,
+    /// written exactly `Map<string, i64>`. Uniquely owned, never `Copy`, and
+    /// admitted only for local bindings.
+    StringMap,
     /// A noncapturing source-level callable signature. The resolved function
     /// reference retains its declaration identity separately from this type.
     /// Affine zero-argument callable with one owned Bytes capture and i64 result.
@@ -375,7 +379,8 @@ impl Drop for Program {
                 | Type::String
                 | Type::Bytes
                 | Type::Str
-                | Type::SliceU8 => {}
+                | Type::SliceU8
+                | Type::StringMap => {}
             }
         }
     }

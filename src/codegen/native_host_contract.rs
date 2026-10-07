@@ -366,7 +366,8 @@ pub(super) fn derive_from_admitted(
             ResolvedType::String
             | ResolvedType::Bytes
             | ResolvedType::Str
-            | ResolvedType::SliceU8 => {
+            | ResolvedType::SliceU8
+            | ResolvedType::StringMap => {
                 return Err(host_error(format!(
                     "text or borrowed-data parameter {} is outside the native host slice",
                     parameter_index

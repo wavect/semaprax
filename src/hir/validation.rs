@@ -890,7 +890,8 @@ impl<'a> HirValidator<'a> {
                             | ResolvedType::OnceFunctionI64Pair
                             | ResolvedType::MutFunctionI64
                             | ResolvedType::Function { .. }
-                            | ResolvedType::SliceU8 => {
+                            | ResolvedType::SliceU8
+                            | ResolvedType::StringMap => {
                                 return Err(hir_error(format!(
                                     "field `{}` has an invalid generic copy record template",
                                     field.id
@@ -1099,7 +1100,8 @@ impl<'a> HirValidator<'a> {
                             | ResolvedType::OnceFunctionI64Pair
                             | ResolvedType::MutFunctionI64
                             | ResolvedType::Function { .. }
-                            | ResolvedType::SliceU8 => {
+                            | ResolvedType::SliceU8
+                            | ResolvedType::StringMap => {
                                 return Err(hir_error(format!(
                                     "field `{}` has an invalid generic copy payload template",
                                     field.id

@@ -195,7 +195,11 @@ pub(crate) fn plan(
                 "non-i64 scalar result is outside the staged single-frame value corpus",
             ));
         }
-        ResolvedType::String | ResolvedType::Bytes | ResolvedType::Str | ResolvedType::SliceU8 => {
+        ResolvedType::String
+        | ResolvedType::Bytes
+        | ResolvedType::Str
+        | ResolvedType::SliceU8
+        | ResolvedType::StringMap => {
             return Err(value_error(
                 "text or borrowed-data result is outside the staged single-frame value corpus",
             ));
@@ -1005,7 +1009,8 @@ fn validate_signature(
             ResolvedType::String
             | ResolvedType::Bytes
             | ResolvedType::Str
-            | ResolvedType::SliceU8 => {
+            | ResolvedType::SliceU8
+            | ResolvedType::StringMap => {
                 return Err(value_error(
                     "text or borrowed-data parameter is outside the staged single-frame value corpus",
                 ));
@@ -1064,6 +1069,7 @@ fn validate_signature(
         | ResolvedType::Bytes
         | ResolvedType::Str
         | ResolvedType::SliceU8
+        | ResolvedType::StringMap
         | ResolvedType::TypeParameter { .. }
         | ResolvedType::Nominal { .. } => {
             Err(value_error("result type is outside the staged corpus"))

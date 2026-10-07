@@ -88,6 +88,7 @@ pub fn emit_module(
             .unwrap_or_else(|| error("standalone String HIR resolution failed"))
     })?;
     crate::hir::validate(&resolved)?;
+    crate::string_ops::refuse_collections_for_wasm(&resolved)?;
     if options.max_string_bytes > 65_536
         || options.max_live_bytes > 16_777_216
         || options.max_cumulative_bytes > 67_108_864

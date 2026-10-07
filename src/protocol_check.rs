@@ -416,7 +416,7 @@ fn check_type(
             &method.name,
             "borrowed `str` is outside Protocol Projection v1".to_owned(),
         )),
-        Type::SliceU8 => Err(signature_error(
+        Type::SliceU8 | Type::StringMap => Err(signature_error(
             &protocol.name,
             &method.name,
             "borrowed `Slice<u8>` is outside Protocol Projection v1".to_owned(),

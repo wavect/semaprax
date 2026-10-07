@@ -157,6 +157,10 @@ pub enum ResolvedType {
     Str,
     /// A non-owning byte view rooted in the current invocation.
     SliceU8,
+    /// String Collections v1: the uniquely owned `Map<string, i64>` carrier.
+    /// It needs drop, is never `Copy`, and is admitted only for local
+    /// bindings threaded through the compiler-owned `map_*` operations.
+    StringMap,
     TypeParameter {
         owner: DeclarationId,
         index: u32,
@@ -236,6 +240,7 @@ impl ResolvedType {
             | Self::Bytes
             | Self::Str
             | Self::SliceU8
+            | Self::StringMap
             | Self::TypeParameter { .. } => None,
         }
     }
@@ -277,6 +282,7 @@ impl ResolvedType {
                     Self::Bytes => keys.push("bytes".to_owned()),
                     Self::Str => keys.push("str".to_owned()),
                     Self::SliceU8 => keys.push("slice-u8".to_owned()),
+                    Self::StringMap => keys.push("map:string:i64:v1".to_owned()),
                     Self::TypeParameter { owner, index } => keys.push(format!(
                         "parameter:{}:{}:{index}",
                         owner.as_str().len(),

@@ -247,9 +247,11 @@ pub(super) fn wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
         | ResolvedType::MutFunctionI64
         | ResolvedType::Function { .. } => Ok(I32),
         // Owned strings lower to an abstract host handle riding the i64 lane.
-        ResolvedType::String | ResolvedType::Str | ResolvedType::SliceU8 | ResolvedType::Bytes => {
-            Ok(I64)
-        }
+        ResolvedType::String
+        | ResolvedType::Str
+        | ResolvedType::SliceU8
+        | ResolvedType::StringMap
+        | ResolvedType::Bytes => Ok(I64),
         ResolvedType::ArrayU8(_) => Err(Diagnostic::io(
             "SPX-W101",
             "fixed byte arrays require the aggregate WebAssembly path",

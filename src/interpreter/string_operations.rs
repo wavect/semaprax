@@ -11,11 +11,27 @@ impl Evaluator<'_> {
     ) -> Result<Value, Flow> {
         self.charge()?;
         let mut values = Vec::with_capacity(args.len());
-        for argument in args {
+        for (index, argument) in args.iter().enumerate() {
+            // A borrowed map operand aliases its owner instead of moving it.
+            if argument.ty == ResolvedType::StringMap
+                && op.param_ownership(index) == hir::OwnershipMode::Borrow
+            {
+                let ResolvedExprKind::Place(place) = &argument.kind else {
+                    return Err(Flow::Guard("borrowed map operand is not a named place"));
+                };
+                values.push(
+                    self.lookup_place(environment, place)?
+                        .ok_or(Flow::Guard("borrowed map owner is unavailable"))?,
+                );
+                continue;
+            }
             values.push(self.evaluate(argument, environment, depth)?);
         }
         if op.is_text_toolkit() {
             return self.evaluate_text_toolkit(op, &values);
+        }
+        if op.is_collection() {
+            return self.evaluate_collection(op, values);
         }
         match op {
             crate::string_ops::StringOp::Len => match values.first() {
@@ -134,6 +150,118 @@ impl Evaluator<'_> {
             _ => Err(Flow::Guard("ill-typed Text Toolkit operand")),
         }
     }
+}
+
+/// String Collections v1 map carrier: entries in ascending bytewise key
+/// order, at most `capacity` of them.
+#[derive(Debug, PartialEq)]
+pub(super) struct StringMapValue {
+    capacity: usize,
+    entries: Vec<(String, i64)>,
+}
+
+impl StringMapValue {
+    fn find(&self, key: &str) -> Result<usize, usize> {
+        self.entries
+            .binary_search_by(|(entry, _)| entry.as_bytes().cmp(key.as_bytes()))
+    }
+}
+
+impl Evaluator<'_> {
+    /// String Collections v1. Every failure is the checked `semaprax.map.v1`
+    /// status the native backend selects too.
+    fn evaluate_collection(
+        &mut self,
+        op: crate::string_ops::StringOp,
+        values: Vec<Value>,
+    ) -> Result<Value, Flow> {
+        use crate::string_ops::StringOp;
+        match (op, values.as_slice()) {
+            (StringOp::Compare, [Value::String(left), Value::String(right)]) => Ok(Value::Int(
+                crate::string_ops::compare_bytes(left.as_bytes(), right.as_bytes()),
+            )),
+            (StringOp::MapNew, [Value::Usize(capacity)]) => {
+                if *capacity > crate::string_ops::MAX_MAP_CAPACITY {
+                    return Err(map_failure(crate::string_ops::MAP_CAPACITY_CODE));
+                }
+                Ok(Value::Map(Arc::new(StringMapValue {
+                    capacity: *capacity as usize,
+                    entries: Vec::new(),
+                })))
+            }
+            (
+                StringOp::MapAdd | StringOp::MapSet,
+                [Value::Map(_), Value::String(_), Value::Int(_)],
+            ) => {
+                let mut values = values.into_iter();
+                let (Some(Value::Map(map)), Some(Value::String(key)), Some(Value::Int(value))) =
+                    (values.next(), values.next(), values.next())
+                else {
+                    return Err(Flow::Guard("ill-typed map operand"));
+                };
+                let mut map =
+                    Arc::try_unwrap(map).map_err(|_| Flow::Guard("aliased owned map carrier"))?;
+                match map.find(&key) {
+                    Ok(index) => {
+                        let entry = &mut map.entries[index].1;
+                        *entry = if op == StringOp::MapSet {
+                            value
+                        } else {
+                            entry.checked_add(value).ok_or_else(|| {
+                                map_failure(crate::string_ops::MAP_VALUE_OVERFLOW_CODE)
+                            })?
+                        };
+                    }
+                    Err(index) => {
+                        if map.entries.len() >= map.capacity {
+                            return Err(map_failure(crate::string_ops::MAP_FULL_CODE));
+                        }
+                        let key = self.materialize_utf8_copy(&key)?;
+                        map.entries.insert(index, (key, value));
+                    }
+                }
+                Ok(Value::Map(Arc::new(map)))
+            }
+            (StringOp::MapGetOr, [Value::Map(map), Value::String(key), Value::Int(fallback)]) => {
+                Ok(Value::Int(
+                    map.find(key)
+                        .map_or(*fallback, |index| map.entries[index].1),
+                ))
+            }
+            (StringOp::MapHas, [Value::Map(map), Value::String(key)]) => {
+                Ok(Value::Bool(map.find(key).is_ok()))
+            }
+            (StringOp::MapLen, [Value::Map(map)]) => Ok(Value::Usize(map.entries.len() as u64)),
+            (StringOp::MapKeyAt, [Value::Map(map), Value::Usize(index)]) => {
+                let key = usize::try_from(*index)
+                    .ok()
+                    .and_then(|index| map.entries.get(index))
+                    .map(|(key, _)| key.clone())
+                    .ok_or_else(|| map_failure(crate::string_ops::MAP_INDEX_OUT_OF_RANGE_CODE))?;
+                Ok(Value::String(self.materialize_utf8_copy(&key)?))
+            }
+            (StringOp::MapValueAt, [Value::Map(map), Value::Usize(index)]) => {
+                usize::try_from(*index)
+                    .ok()
+                    .and_then(|index| map.entries.get(index))
+                    .map(|(_, value)| Value::Int(*value))
+                    .ok_or_else(|| map_failure(crate::string_ops::MAP_INDEX_OUT_OF_RANGE_CODE))
+            }
+            _ => Err(Flow::Guard("ill-typed String Collections operand")),
+        }
+    }
+}
+
+fn map_failure(code: u32) -> Flow {
+    Flow::Failure(
+        NormalizedStatus::try_new(
+            crate::string_ops::MAP_STATUS_DOMAIN,
+            code,
+            StatusClass::Adapter,
+            Retryability::Known(false),
+        )
+        .expect("compiler-owned map status table is valid"),
+    )
 }
 
 /// Check `0 <= start <= end <= len` and convert to native offsets.

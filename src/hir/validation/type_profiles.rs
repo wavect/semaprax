@@ -225,6 +225,7 @@ pub(crate) fn resolved_type_contains_owned_bytes(
             | ResolvedType::String
             | ResolvedType::Str
             | ResolvedType::SliceU8
+            | ResolvedType::StringMap
             | ResolvedType::TypeParameter { .. } => {}
         }
     }

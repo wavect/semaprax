@@ -260,6 +260,7 @@ impl<'a> TypeTable<'a> {
                     Type::Bytes => resolved.push(Type::Bytes),
                     Type::Str => resolved.push(Type::Str),
                     Type::SliceU8 => resolved.push(Type::SliceU8),
+                    Type::StringMap => resolved.push(Type::StringMap),
                     Type::Function { parameters, result } => {
                         frames.push(Frame::FinishFunction(parameters.len()));
                         frames.push(Frame::Enter(result));
@@ -342,6 +343,7 @@ impl<'a> TypeTable<'a> {
             | Type::Bytes
             | Type::Str
             | Type::SliceU8
+            | Type::StringMap
             | Type::OnceFunction
             | Type::OnceFunctionI64
             | Type::OnceFunctionI64Pair
@@ -449,6 +451,7 @@ impl<'a> TypeTable<'a> {
                 Frame::Enter(ty) => match ty {
                     Type::String
                     | Type::Bytes
+                    | Type::StringMap
                     | Type::OnceFunction
                     | Type::OnceFunctionI64
                     | Type::OnceFunctionI64Pair => return true,
@@ -587,7 +590,8 @@ impl<'a> TypeTable<'a> {
                 | Type::Bool
                 | Type::String
                 | Type::Str
-                | Type::SliceU8 => {}
+                | Type::SliceU8
+                | Type::StringMap => {}
             }
         }
         false
@@ -1018,6 +1022,7 @@ pub(super) fn classify_nested_owned_byte_record(
                 | Type::String
                 | Type::Str
                 | Type::SliceU8
+                | Type::StringMap
                 | Type::OnceFunction
                 | Type::OnceFunctionI64
                 | Type::OnceFunctionI64Pair

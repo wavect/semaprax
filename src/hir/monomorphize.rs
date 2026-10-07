@@ -66,6 +66,7 @@ pub(crate) fn substitute_type(
                 ResolvedType::Bytes => resolved.push(ResolvedType::Bytes),
                 ResolvedType::Str => resolved.push(ResolvedType::Str),
                 ResolvedType::SliceU8 => resolved.push(ResolvedType::SliceU8),
+                ResolvedType::StringMap => resolved.push(ResolvedType::StringMap),
                 ResolvedType::TypeParameter {
                     owner: parameter_owner,
                     index,
@@ -168,6 +169,7 @@ pub(super) fn substitute_source_function_type(
                 Type::Bytes => resolved.push(Type::Bytes),
                 Type::Str => resolved.push(Type::Str),
                 Type::SliceU8 => resolved.push(Type::SliceU8),
+                Type::StringMap => resolved.push(Type::StringMap),
                 Type::Named {
                     name,
                     arguments: nested,

@@ -5337,6 +5337,7 @@ fn signature_type_is_admitted(
         | Type::String
         | Type::Str => true,
         Type::SliceU8
+        | Type::StringMap
         | Type::ArrayU8(_)
         | Type::Bytes
         | Type::OnceFunction
@@ -5480,6 +5481,7 @@ fn exposed_type_reference_is_directly_imported(
         | Type::String
         | Type::Str => true,
         Type::SliceU8
+        | Type::StringMap
         | Type::ArrayU8(_)
         | Type::OnceFunction
         | Type::OnceFunctionI64

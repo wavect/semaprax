@@ -27,6 +27,7 @@ pub(super) fn is_direct_plan_owned(program: &ResolvedProgram, ty: &ResolvedType)
         ty,
         ResolvedType::Bytes
             | ResolvedType::String
+            | ResolvedType::StringMap
             | ResolvedType::OnceFunction
             | ResolvedType::OnceFunctionI64
             | ResolvedType::OnceFunctionI64Pair

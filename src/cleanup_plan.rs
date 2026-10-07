@@ -696,9 +696,11 @@ fn resolved_type_owned_capacity(ty: &ResolvedType) -> Option<usize> {
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool => Some(0),
-        ResolvedType::String | ResolvedType::Bytes | ResolvedType::Str | ResolvedType::SliceU8 => {
-            Some(0)
-        }
+        ResolvedType::String
+        | ResolvedType::Bytes
+        | ResolvedType::Str
+        | ResolvedType::SliceU8
+        | ResolvedType::StringMap => Some(0),
         ResolvedType::TypeParameter { owner, .. } => Some(owner.as_str().len()),
         ResolvedType::Nominal {
             declaration,

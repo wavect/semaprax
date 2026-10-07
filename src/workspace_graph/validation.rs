@@ -514,7 +514,8 @@ mod clone_cost {
             | hir::ResolvedType::String
             | hir::ResolvedType::Bytes
             | hir::ResolvedType::Str
-            | hir::ResolvedType::SliceU8 => Ok(0),
+            | hir::ResolvedType::SliceU8
+            | hir::ResolvedType::StringMap => Ok(0),
         }
     }
 

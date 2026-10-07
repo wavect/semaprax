@@ -320,7 +320,7 @@ pub fn build_trace_path_certificate(
                                     "function value result is outside callable v2",
                                 ))
                             }
-                            ResolvedType::SliceU8 => {
+                            ResolvedType::SliceU8 | ResolvedType::StringMap => {
                                 return Err(certificate_error(
                                     "borrowed byte-slice result is outside callable v2",
                                 ))

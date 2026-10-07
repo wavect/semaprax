@@ -55,6 +55,7 @@ pub(crate) fn primitive_leaf_lifecycle(ty: &ResolvedType) -> Option<&'static str
         ResolvedType::OnceFunctionI64Pair => Some(crate::hir::closure::once::PAIR_DROP_ID),
         ResolvedType::Bytes => Some(super::BYTES_DROP_LIFECYCLE_ID),
         ResolvedType::String => Some(super::STRING_DROP_LIFECYCLE_ID),
+        ResolvedType::StringMap => Some(crate::string_ops::MAP_DROP_LIFECYCLE_ID),
         _ => None,
     }
 }

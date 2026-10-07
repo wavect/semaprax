@@ -5462,6 +5462,7 @@ fn type_json(ty: &ResolvedType) -> String {
         ResolvedType::String => "{\"kind\":\"primitive\",\"name\":\"string\"}".to_owned(),
         ResolvedType::Bytes => "{\"kind\":\"owned_bytes\"}".to_owned(),
         ResolvedType::Str => "{\"kind\":\"primitive\",\"name\":\"str\"}".to_owned(),
+        ResolvedType::StringMap => "{\"key\":{\"kind\":\"primitive\",\"name\":\"string\"},\"kind\":\"string_map\",\"value\":{\"kind\":\"primitive\",\"name\":\"i64\"}}".to_owned(),
         ResolvedType::SliceU8 => {
             "{\"element\":{\"kind\":\"primitive\",\"name\":\"u8\"},\"kind\":\"borrowed_slice\"}"
                 .to_owned()

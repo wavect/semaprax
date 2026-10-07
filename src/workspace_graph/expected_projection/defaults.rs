@@ -37,7 +37,7 @@ pub(super) fn default_expr_expanded_cost(
             string_bytes: 0,
             identity_slots: 0,
         }),
-        Type::SliceU8 => Err(vec![graph_error(
+        Type::SliceU8 | Type::StringMap => Err(vec![graph_error(
             "SPX-G173",
             "borrowed `Slice<u8>` has no synthesizable workspace default",
         )]),
@@ -219,7 +219,7 @@ pub(super) fn default_expr(
                 "borrowed `str` has no synthesizable workspace default",
             )]);
         }
-        Type::SliceU8 => {
+        Type::SliceU8 | Type::StringMap => {
             return Err(vec![graph_error(
                 "SPX-G173",
                 "borrowed `Slice<u8>` has no synthesizable workspace default",

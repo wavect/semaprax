@@ -464,7 +464,7 @@ fn classify_with(
         ResolvedType::TypeParameter { .. } => rejection(Rejection::TypeParameter),
         ResolvedType::String => rejection(Rejection::OwnedString),
         ResolvedType::Str => rejection(Rejection::BorrowedStr),
-        ResolvedType::SliceU8 => rejection(Rejection::BorrowedByteView),
+        ResolvedType::SliceU8 | ResolvedType::StringMap => rejection(Rejection::BorrowedByteView),
         ResolvedType::Unit => rejection(Rejection::Unit),
         ResolvedType::ArrayU8(_) => rejection(Rejection::InlineByteArray),
         ResolvedType::OnceFunction

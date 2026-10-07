@@ -1449,6 +1449,7 @@ impl<'a> Executor<'a> {
                 ResolvedType::Nominal { .. }
                 | ResolvedType::Bytes
                 | ResolvedType::String
+                | ResolvedType::StringMap
                 | ResolvedType::OnceFunction
                 | ResolvedType::OnceFunctionI64
                 | ResolvedType::OnceFunctionI64Pair,
@@ -1464,7 +1465,10 @@ impl<'a> Executor<'a> {
                 | ResolvedType::OnceFunctionI64Pair,
             )
             | (CleanupResultSource::Scalar { .. }, ResolvedType::Str)
-            | (CleanupResultSource::Scalar { .. }, ResolvedType::SliceU8)
+            | (
+                CleanupResultSource::Scalar { .. },
+                ResolvedType::SliceU8 | ResolvedType::StringMap,
+            )
             | (CleanupResultSource::Owned { .. }, ResolvedType::Unit)
             | (
                 CleanupResultSource::Owned { .. },

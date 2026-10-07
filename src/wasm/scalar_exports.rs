@@ -610,6 +610,7 @@ fn scalar_type(ty: &ResolvedType) -> Option<ScalarType> {
         | ResolvedType::String
         | ResolvedType::Str
         | ResolvedType::SliceU8
+        | ResolvedType::StringMap
         | ResolvedType::ArrayU8(_)
         | ResolvedType::Bytes
         | ResolvedType::TypeParameter { .. }

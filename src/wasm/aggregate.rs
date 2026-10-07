@@ -1454,6 +1454,7 @@ fn emit_byte_exports_profile(
     command_io: Option<&super::command_io::CommandPlan>,
     owned_plans: &[super::owned_data_exports::OwnedDataExportPlan],
 ) -> Result<Vec<u8>, Diagnostic> {
+    crate::string_ops::refuse_collections_for_wasm(program)?;
     let uses_owned_buffer = program_uses_owned_buffer(program);
     let private_command = command_io
         .is_some_and(|plan| plan.is_filesystem_command() || plan.is_environment_command())
@@ -2236,6 +2237,7 @@ fn emit_profile_with_scalar_exports(
     host_output: bool,
     scalar_exports: &[super::scalar_exports::ScalarExportPlan],
 ) -> Result<Vec<u8>, Diagnostic> {
+    crate::string_ops::refuse_collections_for_wasm(program)?;
     let uses_string_runtime = string_runtime::program_uses_runtime(program);
     let uses_byte_data =
         super::program_uses_byte_data(program) || super::program_uses_strings(program);

@@ -612,9 +612,11 @@ fn validate_supported_type(
         | ResolvedType::F64
         | ResolvedType::Bool => Ok(()),
         // Owned strings are ordinary values with backend-inline drops.
-        ResolvedType::String | ResolvedType::Bytes | ResolvedType::Str | ResolvedType::SliceU8 => {
-            Ok(())
-        }
+        ResolvedType::String
+        | ResolvedType::Bytes
+        | ResolvedType::Str
+        | ResolvedType::SliceU8
+        | ResolvedType::StringMap => Ok(()),
         ResolvedType::TypeParameter { .. } => Err(unsupported(
             function,
             format!(

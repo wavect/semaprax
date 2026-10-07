@@ -676,6 +676,7 @@ fn classify_nested_owned_byte_record(
                 | ResolvedType::String
                 | ResolvedType::Str
                 | ResolvedType::SliceU8
+                | ResolvedType::StringMap
                 | ResolvedType::TypeParameter { .. },
                 _,
             ) => return NestedOwnedRecordAdmission::OutsideProfile,

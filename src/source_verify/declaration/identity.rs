@@ -26,6 +26,14 @@ pub(super) fn check_type_identities<'p>(
                 declaration.name_span,
             ));
         }
+        if declaration.name == "Map" {
+            diagnostics.push(error(
+                program,
+                "SPX-S113",
+                "type name `Map` is reserved by String Collections v1 (`Map<string, i64>`)",
+                declaration.name_span,
+            ));
+        }
         if crate::prelude::is_reserved_type_name(&declaration.name) {
             diagnostics.push(error(
                 program,

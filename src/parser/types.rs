@@ -95,6 +95,9 @@ impl Parser {
             self.expect(&TokenKind::Gt, "`>` after `Slice<u8`")?;
             return Ok(Type::SliceU8);
         }
+        if name == "Map" {
+            return self.string_map_type();
+        }
         let is_primitive = matches!(
             name.as_str(),
             "i64"
@@ -132,6 +135,34 @@ impl Parser {
                 arguments: self.type_arguments()?,
             }),
         }
+    }
+
+    /// String Collections v1: `Map<string, i64>` is the one admitted map
+    /// instantiation. Any other spelling, including a bare `Map`, is refused
+    /// here with one stable diagnostic that names the admitted form.
+    fn string_map_type(&mut self) -> Result<Type, Diagnostic> {
+        let refusal = |parser: &Self, found: String| {
+            parser
+                .error_previous(
+                    "SPX-T274",
+                    format!("String Collections v1 admits only `Map<string, i64>`, not `{found}`"),
+                )
+                .with_help(
+                    "write `Map<string, i64>`; other key and value types are not admitted yet",
+                )
+        };
+        if !self.at(&TokenKind::Lt) {
+            return Err(refusal(self, "Map".to_owned()));
+        }
+        let arguments = self.type_arguments()?;
+        if arguments.as_slice() == [Type::String, Type::I64] {
+            return Ok(Type::StringMap);
+        }
+        let found = Type::Named {
+            name: "Map".to_owned(),
+            arguments,
+        };
+        Err(refusal(self, found.to_string()))
     }
 
     pub(super) fn type_parameters(&mut self) -> Result<Vec<TypeParameterDeclaration>, Diagnostic> {

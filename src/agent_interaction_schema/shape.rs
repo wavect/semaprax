@@ -98,6 +98,7 @@ impl Representation {
             | ResolvedType::F64
             | ResolvedType::Str
             | ResolvedType::SliceU8
+            | ResolvedType::StringMap
             | ResolvedType::TypeParameter { .. }
             | ResolvedType::Nominal { .. } => None,
         }

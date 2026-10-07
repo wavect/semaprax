@@ -26,6 +26,10 @@ The request is one JSON object with exactly these keys:
   completion time is greater than its deadline.
 - Empty server and patient arrays are valid. A non-empty patient array with
   no servers is invalid.
+- JSON whitespace may appear before, between, and after the request tokens.
+  This specification imposes no raw-input byte limit; implementations must
+  accept valid requests even when permitted whitespace makes the input exceed
+  65,536 bytes. The semantic array and field bounds above still apply.
 
 All integer fields are JSON integers, not booleans or floating point values.
 Unknown or missing keys, duplicate identifiers, invalid types, and out-of-range

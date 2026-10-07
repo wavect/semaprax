@@ -65,6 +65,9 @@ must run your own automated tests and fail nonzero on errors. The SEMAPRAX arm
 must use a native Project manifest and the compiler at `{semaprax_bin}` (also
 available as `$SEMAPRAX_BIN`), with the required stdin capability. The
 TypeScript arm must use Node from `PATH` and provide the same stdin interface.
+The specification explicitly has no raw-input byte limit for JSON whitespace;
+the hidden acceptance corpus includes a valid request over 65,536 bytes due to
+leading whitespace.
 
 Do not access material outside the public specification and your candidate
 directory. Finish by listing files written and stating whether the implementation

@@ -22,6 +22,47 @@
       }
     },
     {
+      "name": "large-leading-whitespace",
+      "leading_whitespace_bytes": 65537,
+      "input": {
+        "servers": [
+          "S1"
+        ],
+        "patients": [
+          {
+            "id": "P1",
+            "arrival": 0,
+            "service": 5,
+            "priority": 1,
+            "deadline": 8
+          }
+        ]
+      },
+      "expected": {
+        "assignments": [
+          {
+            "id": "P1",
+            "server": "S1",
+            "arrival": 0,
+            "start": 0,
+            "finish": 5,
+            "wait": 0,
+            "late": false
+          }
+        ],
+        "metrics": {
+          "patients": 1,
+          "total_wait": 0,
+          "max_wait": 0,
+          "late": 0,
+          "busy_time": 5,
+          "makespan": 5,
+          "peak_queue": 1,
+          "utilization_ppm": 1000000
+        }
+      }
+    },
+    {
       "name": "single-exact-deadline",
       "input": {
         "servers": [

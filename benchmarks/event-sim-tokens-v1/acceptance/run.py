@@ -13,13 +13,22 @@ ROOT = Path(__file__).resolve().parents[1]
 CORPUS = ROOT / "acceptance" / "corpus.json"
 
 
+def request_text(case: dict[str, object]) -> str:
+    """Render a request, including compactly declared leading whitespace."""
+    prefix_bytes = case.get("leading_whitespace_bytes", 0)
+    if type(prefix_bytes) is not int or prefix_bytes < 0:
+        raise ValueError("leading_whitespace_bytes must be a nonnegative integer")
+    request = json.dumps(case["input"], ensure_ascii=False, separators=(",", ":"))
+    return " " * prefix_bytes + request + "\n"
+
+
 def run(command: list[str]) -> int:
     corpus = json.loads(CORPUS.read_text(encoding="utf-8"))
     failures = []
     for case in corpus["valid"]:
         completed = subprocess.run(
             command,
-            input=json.dumps(case["input"], separators=(",", ":")) + "\n",
+            input=request_text(case),
             text=True,
             capture_output=True,
             check=False,

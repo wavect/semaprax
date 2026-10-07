@@ -80,6 +80,10 @@
 //! A value the target type cannot hold selects the checked
 //! `semaprax.convert.v1` status: code 1 for out of range, code 2 for NaN.
 
+//! Byte Widening v1 (`docs/BYTE-WIDENING-V1.md`) independently adds exact
+//! `i64_from_u8(value: u8) -> i64`; the frozen Conversions v1 catalog stays
+//! unchanged, and this scalar operation lowers inline on Core Wasm too.
+
 pub(crate) mod conditions;
 
 use crate::ast::{Param, ParamMode, Span, Type};
@@ -116,6 +120,7 @@ pub(crate) const F64_FROM_I64_NAME: &str = "f64_from_i64";
 pub(crate) const I64_FROM_F64_NAME: &str = "i64_from_f64";
 pub(crate) const USIZE_FROM_I64_NAME: &str = "usize_from_i64";
 pub(crate) const I64_FROM_USIZE_NAME: &str = "i64_from_usize";
+pub(crate) const I64_FROM_U8_NAME: &str = "i64_from_u8";
 
 pub(crate) const LEN_ID: &str = "core.string.len";
 pub(crate) const CONCAT_ID: &str = "core.string.concat";
@@ -146,6 +151,7 @@ pub(crate) const F64_FROM_I64_ID: &str = "core.num.f64_from_i64";
 pub(crate) const I64_FROM_F64_ID: &str = "core.num.i64_from_f64";
 pub(crate) const USIZE_FROM_I64_ID: &str = "core.num.usize_from_i64";
 pub(crate) const I64_FROM_USIZE_ID: &str = "core.num.i64_from_usize";
+pub(crate) const I64_FROM_U8_ID: &str = "core.num.i64_from_u8";
 
 /// The checked status domain of Conversions v1.
 pub(crate) const CONVERT_STATUS_DOMAIN: &str = "semaprax.convert.v1";
@@ -245,6 +251,8 @@ pub(crate) enum StringOp {
     UsizeFromI64,
     /// Checked `usize` to `i64`.
     I64FromUsize,
+    /// Exact infallible unsigned byte widening (Byte Widening v1).
+    I64FromU8,
 }
 
 impl StringOp {
@@ -327,6 +335,7 @@ impl StringOp {
             StringOp::I64FromF64 => I64_FROM_F64_NAME,
             StringOp::UsizeFromI64 => USIZE_FROM_I64_NAME,
             StringOp::I64FromUsize => I64_FROM_USIZE_NAME,
+            StringOp::I64FromU8 => I64_FROM_U8_NAME,
         }
     }
 
@@ -361,6 +370,7 @@ impl StringOp {
             StringOp::I64FromF64 => I64_FROM_F64_ID,
             StringOp::UsizeFromI64 => USIZE_FROM_I64_ID,
             StringOp::I64FromUsize => I64_FROM_USIZE_ID,
+            StringOp::I64FromU8 => I64_FROM_U8_ID,
         }
     }
 
@@ -395,7 +405,8 @@ impl StringOp {
             StringOp::F64FromI64
             | StringOp::I64FromF64
             | StringOp::UsizeFromI64
-            | StringOp::I64FromUsize => &["value"],
+            | StringOp::I64FromUsize
+            | StringOp::I64FromU8 => &["value"],
         }
     }
 
@@ -435,6 +446,7 @@ impl StringOp {
             StringOp::F64FromI64 | StringOp::UsizeFromI64 => &[ResolvedType::I64],
             StringOp::I64FromF64 => &[ResolvedType::F64],
             StringOp::I64FromUsize => &[ResolvedType::Usize],
+            StringOp::I64FromU8 => &[ResolvedType::U8],
         }
     }
 
@@ -451,7 +463,11 @@ impl StringOp {
     pub(crate) fn param_ownership(self, index: usize) -> OwnershipMode {
         match self.param_types().get(index) {
             Some(
-                ResolvedType::Char | ResolvedType::I64 | ResolvedType::Usize | ResolvedType::F64,
+                ResolvedType::Char
+                | ResolvedType::I64
+                | ResolvedType::Usize
+                | ResolvedType::F64
+                | ResolvedType::U8,
             ) => OwnershipMode::Value,
             _ if self.consumes_arguments() => OwnershipMode::Own,
             _ if index == 0 && self.reopens_map() => OwnershipMode::Own,
@@ -484,6 +500,7 @@ impl StringOp {
                 | StringOp::I64FromF64
                 | StringOp::UsizeFromI64
                 | StringOp::I64FromUsize
+                | StringOp::I64FromU8
         )
     }
 
@@ -529,7 +546,8 @@ impl StringOp {
             | StringOp::MapGetOr
             | StringOp::MapValueAt
             | StringOp::I64FromF64
-            | StringOp::I64FromUsize => ResolvedType::I64,
+            | StringOp::I64FromUsize
+            | StringOp::I64FromU8 => ResolvedType::I64,
             StringOp::F64FromI64 => ResolvedType::F64,
             StringOp::UsizeFromI64 => ResolvedType::Usize,
             StringOp::MapNew | StringOp::MapAdd | StringOp::MapSet => ResolvedType::StringMap,
@@ -559,7 +577,8 @@ impl StringOp {
             | StringOp::MapGetOr
             | StringOp::MapValueAt
             | StringOp::I64FromF64
-            | StringOp::I64FromUsize => Type::I64,
+            | StringOp::I64FromUsize
+            | StringOp::I64FromU8 => Type::I64,
             StringOp::F64FromI64 => Type::F64,
             StringOp::UsizeFromI64 => Type::Usize,
             StringOp::MapNew | StringOp::MapAdd | StringOp::MapSet => Type::StringMap,
@@ -637,6 +656,7 @@ pub(crate) fn by_name(name: &str) -> Option<StringOp> {
         I64_FROM_F64_NAME => Some(StringOp::I64FromF64),
         USIZE_FROM_I64_NAME => Some(StringOp::UsizeFromI64),
         I64_FROM_USIZE_NAME => Some(StringOp::I64FromUsize),
+        I64_FROM_U8_NAME => Some(StringOp::I64FromU8),
         _ => None,
     }
 }
@@ -673,6 +693,7 @@ pub(crate) fn by_id(id: &str) -> Option<StringOp> {
         I64_FROM_F64_ID => Some(StringOp::I64FromF64),
         USIZE_FROM_I64_ID => Some(StringOp::UsizeFromI64),
         I64_FROM_USIZE_ID => Some(StringOp::I64FromUsize),
+        I64_FROM_U8_ID => Some(StringOp::I64FromU8),
         _ => None,
     }
 }
@@ -715,6 +736,7 @@ pub(crate) fn ast_params(op: StringOp) -> Vec<Param> {
             },
             ty: match ty {
                 ResolvedType::Char => Type::Char,
+                ResolvedType::U8 => Type::U8,
                 ResolvedType::I64 => Type::I64,
                 ResolvedType::Usize => Type::Usize,
                 ResolvedType::F64 => Type::F64,

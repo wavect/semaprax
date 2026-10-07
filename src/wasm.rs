@@ -419,7 +419,9 @@ fn program_uses_string_ops(program: &ResolvedProgram) -> bool {
     }
     while let Some(expression) = pending.pop() {
         if let ResolvedExprKind::Call { callee, .. } = &expression.kind {
-            if crate::string_ops::by_id(callee.as_str()).is_some() {
+            if crate::string_ops::by_id(callee.as_str())
+                .is_some_and(crate::string_ops::StringOp::touches_string)
+            {
                 return true;
             }
         }
@@ -3606,6 +3608,7 @@ fn emit_expr(
                         emit_expr(output, arg, value_indexes, function_indexes, layout, result)?;
                     }
                     match op {
+                        crate::string_ops::StringOp::I64FromU8 => output.push(0xad), // i64.extend_i32_u
                         crate::string_ops::StringOp::Len => {
                             call_import(output, STRING_OPS_IMPORT_BASE_LEN);
                         }

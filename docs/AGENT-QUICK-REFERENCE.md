@@ -87,12 +87,14 @@ fn main() -> i64
 
 Types must match: `n: usize` needs `n < 5usize` (`SPX-T208`). Join strings
 with `string_concat`. No `as`; use `f64_from_i64`, `i64_from_f64` (truncates),
-`usize_from_i64`, or `i64_from_usize`.
+`usize_from_i64`, `i64_from_usize`, or exact `i64_from_u8`.
 
 ## Control flow, mutation, contracts, effects
 
-Scalar conversions fail out of range or on NaN with `semaprax.convert.v1`;
-Core Wasm refuses conversions (`SPX-W116`).
+Conversions v1 fail out of range or on NaN with `semaprax.convert.v1`;
+Core Wasm refuses that family (`SPX-W116`). `i64_from_u8(byte)` copies a `u8`
+exactly to `i64` without allocation or failure on the interpreter, native,
+and Core Wasm.
 
 ```semaprax
 module app.convert;
@@ -1145,9 +1147,12 @@ fn order_status(paid: bool) -> string
 
 ## Projects
 
-Convert `u8` in `useful-data.v1` with `std.bytes.byte_to_i64`:
-`semaprax help library std.bytes.byte_to_i64`. Single files need their own
-helper; `i64_from_u8` is unknown (`SPX-T203`).
+Convert a byte directly with `i64_from_u8(byte)` in single files or projects.
+For a `borrow str`, use `let view = str_as_bytes(text);` then
+`match byte_get(view, index) { Option::Some { value: byte } => i64_from_u8(byte), Option::None {} => -1, }`.
+This reads bytes without an owned text copy; choose the `None` result explicitly.
+The existing `std.bytes.get_or` library helper is also available in
+`useful-data.v1`: `semaprax help library std.bytes.get_or`.
 
 A project puts `semaprax.toml` beside `src/`. Use the extensible table layout
 below. The committed examples' frozen, one-line-per-key

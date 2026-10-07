@@ -9,6 +9,11 @@
   contextual owned variant matches through canonical formatting. Attach source
   spans to record-update, field-assignment, record-pattern and Useful Data
   function-body profile diagnostics.
+- Byte Widening v1: add exact, allocation-free `i64_from_u8` through the shared
+  intrinsic signature and interpreter/native/Core Wasm lowering. The frozen
+  Conversions v1 catalog remains separate; focused regressions cover all byte
+  values and the existing borrowed-text byte-view route. Central verification
+  of this addition is pending.
 
 - Copy variant guard execution: evaluate nominal guards on the reference
   interpreter before selecting an arm, and provide the explicit additive

@@ -416,6 +416,14 @@ impl Emitter<'_> {
         for value in &values {
             self.get_scalar(value);
         }
+        if operation == StringOp::I64FromU8 {
+            self.output.extend([0xad, 0x21]); // i64.extend_i32_u; local.set
+            write_u32(self.output, destination);
+            return Ok(Value::Scalar {
+                local: destination,
+                ty: expr.ty.clone(),
+            });
+        }
         let index = match operation {
             StringOp::Concat => 2,
             StringOp::FromChar => 3,

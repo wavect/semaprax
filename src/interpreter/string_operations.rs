@@ -50,7 +50,7 @@ impl Evaluator<'_> {
         if op.is_collection() {
             return self.evaluate_collection(op, values);
         }
-        if op.is_conversion() {
+        if op.is_conversion() || op == crate::string_ops::StringOp::I64FromU8 {
             return self.evaluate_conversion(op, &values);
         }
         match op {
@@ -289,6 +289,7 @@ impl Evaluator<'_> {
             }
             // Rust's `as` rounds to nearest, ties to even, like C and Wasm.
             (StringOp::F64FromI64, [Value::Int(value)]) => Ok(Value::Float64(*value as f64)),
+            (StringOp::I64FromU8, [Value::Uint8(value)]) => Ok(Value::Int(i64::from(*value))),
             (StringOp::I64FromF64, [Value::Float64(value)]) => {
                 if value.is_nan() {
                     Err(convert_failure(CONVERT_NAN_CODE))

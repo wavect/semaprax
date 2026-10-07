@@ -174,4 +174,5 @@ mod function_values_runtime;
 #[path = "language/function_values_generic.rs"]
 mod function_values_generic;
 
+#[path = "language/stream_text_command.rs"]
 mod stream_text_command;

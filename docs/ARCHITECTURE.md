@@ -955,6 +955,14 @@ This is a development/conformance lane, not a target backend or proof engine.
 classifier with `src/loop_calls.rs`; constructor and pattern replay still
 authenticate identities, inventories and ownership independently.
 
+`src/string_ops/conditions.rs` derives the narrow named String length inspection
+set from typed while conditions for cleanup construction, independent replay,
+and target emission. `src/interpreter/string_conditions.rs` owns while
+evaluation and scopes that inspection to condition evaluation, restoring
+ordinary String behavior before the body. The operand retains its fuel and
+trace charge. [Named String Length Conditions v1](STRING-LENGTH-CONDITIONS-V1.md)
+owns this additive profile; neither module accepts attached cleanup authority.
+
 `src/interpreter/internal_strings.rs` owns the additive `interpret-strings`
 facade and strict report boundary. A private profile selects internal String
 callee admission and a distinct report schema/domain through the existing
@@ -3264,7 +3272,7 @@ child and exercises the package across the three execution lanes.
 | Immutable Project revision inputs | `src/project_revision_store.rs`, `src/project_revision_store/unix.rs` |
 | Generated Rust package authority | `src/project/native_sdk.rs`, `crates/semaprax-native-rust-owned-data-package/`, `crates/semaprax-native-rust-interop-builder/`; exact Project crate inputs originate in `src/project/manifest/tables.rs` |
 | Signed doctor generation store | `crates/semaprax-doctor-release/src/install.rs`, `crates/semaprax-doctor-release/src/install/` |
-| Interpreter | `src/interpreter.rs`, `src/interpreter/variant_admission.rs`, `src/interpreter/prepared.rs`, `src/hosted_interpreter.rs`, `src/project/prepared_interpreter/`, `src/project/prepared_interpreter/trace/` |
+| Interpreter | `src/interpreter.rs`, `src/interpreter/variant_admission.rs`, `src/interpreter/string_conditions.rs`, `src/string_ops/conditions.rs`, `src/interpreter/prepared.rs`, `src/hosted_interpreter.rs`, `src/project/prepared_interpreter/`, `src/project/prepared_interpreter/trace/` |
 | Explicit Rust HTTP/TLS host runtime | `src/https_client.rs`, `src/network_provider.rs`, `src/network_provider/tcp.rs` |
 | Filesystem I/O | `src/filesystem_ops.rs` owns the closed compiler operations and bounds; `src/filesystem_provider.rs` and `src/filesystem_provider/` own explicit fixture, denied, and Unix scoped providers; `src/interpreter/filesystem/` and `src/project/filesystem.rs` bind injected providers to checked execution; `src/codegen/native_emit/filesystem_io.rs` and `src/codegen/native_emit/filesystem_io_v2.rs`, and `src/codegen/native_emit/filesystem_io_v3.rs` own the native callback ABIs; `src/wasm/filesystem_ops.rs`, `src/wasm/filesystem_v2.rs`, `src/wasm/aggregate/filesystem_ops.rs`, and `src/wasm/aggregate/filesystem_v2.rs` own the injected Core-Wasm imports and v2 lowering; `src/wasm/filesystem_v3.rs` and `src/wasm/aggregate/filesystem_checked.rs` own checked outcome lowering; `src/graph/filesystem.rs` owns filesystem facts and the final `src/graph/filesystem_outcome.rs` wrapper selects Graph v46 without replacing environment/process/iterator facts; `src/project/manifest/` owns Project v14 and private Project v15/v19 profile admission; `std/fs/` owns the source-authored `std.fs` composition. [Filesystem I/O v1](FILESYSTEM-IO-V1.md) and [Filesystem I/O v2](FILESYSTEM-IO-V2.md) and [Host Operation Outcome v1](HOST-OPERATION-OUTCOME-V1.md) own the frozen and additive contracts and authority boundary. |
 | Environment I/O | `src/environment_ops.rs` and `src/environment_snapshot.rs` own the closed operation vocabulary, status domain, immutable snapshot bounds, and canonicalization; `src/interpreter/environment.rs` and `src/project/environment.rs` bind the caller-supplied snapshot; `src/codegen/native_emit/environment_io.rs` and `src/codegen/native_emit/environment_runtime.c` own the native callback ABI; `src/wasm/environment_io.rs` and `src/wasm/aggregate/host_command.rs` own the private Core-Wasm imports and lowering; `src/graph/environment.rs` owns Graph environment facts; `src/project/manifest/` owns private `environment-io.v1` admission; `std/env/` owns the source-authored `std.env` composition. [Bounded Environment I/O v1](BOUNDED-ENVIRONMENT-IO-V1.md) owns the additive snapshot contract and authority boundary. |

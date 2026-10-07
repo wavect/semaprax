@@ -337,7 +337,7 @@ Independent replay reserves its existing materialization-operation allowance
 before building path evidence. Block estimates include continuation pushes,
 statement and tail sequencing, and the identity clones and transfers required
 by owned, droppable bindings and results. The same replay ownership/type
-predicates determine those extra charges. The program-wide 8,000,000-unit cap
+predicates determine those extra charges. The program-wide 32,000,000-unit cap
 and charge-before-materialization refusal remain unchanged; increasing a local
 estimate does not increase that cap or authorize different cleanup behavior.
 

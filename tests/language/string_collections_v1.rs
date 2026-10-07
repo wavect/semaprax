@@ -1,11 +1,11 @@
 //! String Collections v1 (`docs/STRING-COLLECTIONS-V1.md`): bytewise
-//! `string_compare` and the one admitted string-keyed map,
-//! `Map<string, i64>`, kept in ascending bytewise key order. The same corpus
-//! runs on the reference interpreter and on generated C11 under an
+//! `string_compare` and the legacy no-type-arguments map API, whose default
+//! shape is `Map<string, i64>` kept in ascending bytewise key order. The same
+//! corpus runs on the reference interpreter and on generated C11 under an
 //! allocation-counting allocator that rejects duplicate and foreign frees and
 //! requires zero live allocations after every case, including checked map
-//! failures inside loops. Core Wasm refuses the family with one stable
-//! diagnostic, and every misplaced map has one stable source diagnostic.
+//! failures inside loops. Invalid collection shapes and ownership modes keep
+//! stable source diagnostics.
 
 use std::path::Path;
 use std::process::Command;
@@ -392,24 +392,19 @@ fn native_string_collections_settle_every_allocation_on_every_exit() {
 }
 
 #[test]
-fn core_wasm_refuses_string_collections_with_one_stable_diagnostic() {
+fn core_wasm_emits_string_collections() {
     let program = parse(SOURCE, Path::new("string-collections-wasm.spx")).unwrap();
-    let error = emit_module(
+    emit_module(
         &program,
         &["coll.compare".to_owned()],
         InternalStringOptions::default(),
     )
-    .expect_err("String Collections v1 is not lowered to Core Wasm");
-    assert_eq!(error.code, "SPX-W116");
-    assert_eq!(
-        error.message,
-        "String Collections v1 operation `map_new` is not lowered to Core Wasm; run it on the reference interpreter or native C11"
-    );
+    .expect("String Collections v1 is lowered to Core Wasm");
     for lane in [
         semaprax::wasm::emit_module(&program),
         semaprax::wasm::emit_module_with_scalar_exports(&program, &["coll.compare".to_owned()]),
     ] {
-        assert_eq!(lane.expect_err("every lane refuses").code, "SPX-W116");
+        lane.expect("every Core Wasm lane emits String Collections v1");
     }
 }
 
@@ -443,12 +438,15 @@ fn first_code(prefix: &str, body: &str) -> (String, String) {
 
 #[test]
 fn misplaced_maps_have_stable_diagnostics() {
-    // Only `Map<string, i64>` is admitted, and the name is reserved.
-    let (code, message) = first_code("", "    let m: Map<string, u8> = map_new(1usize);\n    0");
-    assert_eq!(code, "SPX-T274");
+    // Unsupported collection shapes and missing type arguments retain stable
+    // type diagnostics; admitted maps can use the supported scalar types.
     assert_eq!(
-        message,
-        "String Collections v1 admits only `Map<string, i64>`, not `Map<string, u8>`"
+        first_code("", "    let m = map_new<char, i64>(1usize);\n    0").0,
+        "SPX-T274"
+    );
+    assert_eq!(
+        first_code("", "    let m = map_new<i64, Bytes>(1usize);\n    0").0,
+        "SPX-T274"
     );
     assert_eq!(
         first_code("", "    let m: Map = map_new(1usize);\n    0").0,
@@ -462,50 +460,15 @@ fn misplaced_maps_have_stable_diagnostics() {
         .0,
         "SPX-S113"
     );
-    // A map is a local binding: never a parameter, result, or field.
-    let (code, message) = first_code(
-        "@id(\"t.f\")\nfn f(m: borrow Map<string, i64>) -> i64\n{\n    0\n}\n\n",
-        "    0",
-    );
-    assert_eq!(code, "SPX-T275");
-    assert_eq!(
-        message,
-        "`Map<string, i64>` is not admitted in a function parameter; String Collections v1 maps are local bindings"
-    );
+    // Collection parameters require an explicit ownership mode.
     assert_eq!(
         first_code(
-            "@id(\"t.r\")\nrecord R {\n    @id(\"t.r.m\")\n    m: Map<string, i64>,\n}\n\n",
-            "    0"
+            "@id(\"t.f\")\nfn f(m: Map<i64, i64>) -> i64\n{\n    0\n}\n\n",
+            "    0",
         )
         .0,
-        "SPX-T275"
+        "SPX-O001"
     );
-    // A map value outside `let m = map_new(..)`, `m = map_add(m, ..)`, or the
-    // first operand of a map operation.
-    for (body, message) in [
-        (
-            "    let m = map_new(4usize);\n    let n = m;\n    0",
-            "a `Map<string, i64>` binding can only be passed as the first argument of a `map_*` operation; it cannot be copied, moved, captured, or returned",
-        ),
-        (
-            "    let mut m = map_new(4usize);\n    let n = map_add(m, \"a\", 1);\n    0",
-            "`map_add` is admitted only as the same-owner update `counts = map_add(counts, key, value);`",
-        ),
-        (
-            "    let m = if true { map_new(1usize) } else { map_new(2usize) };\n    0",
-            "a `Map<string, i64>` value must be a `map_new` binding; it cannot come from a branch, match, or block",
-        ),
-        (
-            "    if map_len(map_new(3usize)) == 0usize { 0 } else { 1 }",
-            "`map_new` must initialize a `let` binding; String Collections v1 maps are local bindings",
-        ),
-    ] {
-        assert_eq!(
-            first_code("", body),
-            ("SPX-T275".to_owned(), message.to_owned()),
-            "{body}"
-        );
-    }
     // Whole replacement and reuse after the reopen keep their ownership codes.
     assert_eq!(
         first_code(

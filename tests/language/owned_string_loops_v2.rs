@@ -216,7 +216,11 @@ fn command_available(command: &str) -> bool {
 #[test]
 fn loop_calls_round_trip_and_resolve() {
     let program = parse(SOURCE, Path::new("owned-string-loops-v2.spx")).unwrap();
-    assert!(verify::verify(&program).is_empty(), "{:?}", verify::verify(&program));
+    assert!(
+        verify::verify(&program).is_empty(),
+        "{:?}",
+        verify::verify(&program)
+    );
     let canonical = format::canonical(&program);
     let reparsed = parse(&canonical, Path::new("owned-string-loops-v2-canonical.spx")).unwrap();
     assert_eq!(format::canonical(&reparsed), canonical);

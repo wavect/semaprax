@@ -9,7 +9,7 @@
 //! and one destruction path; binding the chain's result is the freeze, after
 //! which the ordinary borrowed reads apply.
 
-use crate::ast::{Expr, ExprKind, MatchPattern, Span, Type};
+use crate::ast::{Expr, ExprKind, Span, Type};
 use crate::hir::{DeclarationId, OwnershipMode, ResolvedParam, ResolvedType, ValueId};
 
 pub(crate) const LEN_NAME: &str = "byte_len";

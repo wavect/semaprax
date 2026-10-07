@@ -209,6 +209,7 @@ mod list_ops;
 )]
 pub mod live_invocation;
 pub mod loan_plan;
+pub(crate) mod loop_calls;
 #[allow(
     clippy::too_many_arguments,
     reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"
@@ -409,7 +410,6 @@ pub mod source_command;
 #[cfg(feature = "unstable-rust-source-lowering")]
 pub mod stable_rust_lowering;
 pub mod static_protocol;
-pub(crate) mod loop_calls;
 pub(crate) mod str_ops;
 pub mod streaming_proposal_decode;
 pub(crate) mod string_ops;

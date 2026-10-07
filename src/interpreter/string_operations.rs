@@ -266,6 +266,8 @@ impl Evaluator<'_> {
         use crate::string_ops::{StringOp, CONVERT_NAN_CODE, CONVERT_OUT_OF_RANGE_CODE};
         match (op, values) {
             (StringOp::FromStr, [Value::BorrowedStr(text)]) => {
+                let text = std::str::from_utf8(text.bytes.as_ref())
+                    .map_err(|_| Flow::Guard("borrowed str is not UTF-8"))?;
                 Ok(Value::String(self.materialize_utf8_copy(text)?))
             }
             // Rust's `as` rounds to nearest, ties to even, like C and Wasm.

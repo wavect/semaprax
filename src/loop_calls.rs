@@ -33,7 +33,9 @@ pub(crate) fn ast_result_admitted(ty: &Type) -> bool {
 /// The resolved twin of [`ast_param_admitted`].
 pub(crate) fn resolved_param_admitted(ownership: OwnershipMode, ty: &ResolvedType) -> bool {
     match ownership {
-        OwnershipMode::Value => crate::hir::is_scalar_resolved_type(ty) || *ty == ResolvedType::String,
+        OwnershipMode::Value => {
+            crate::hir::is_scalar_resolved_type(ty) || *ty == ResolvedType::String
+        }
         OwnershipMode::Own => *ty == ResolvedType::String,
         OwnershipMode::Borrow => *ty == ResolvedType::SliceU8,
         OwnershipMode::Shared => false,

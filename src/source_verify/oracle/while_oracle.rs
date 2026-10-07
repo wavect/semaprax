@@ -1,11 +1,11 @@
 //! Test-only recursive `while` statement checking and the oracle form of the
 //! `while` admission rules.
 
-use crate::ast::{Expr, ExprKind, Function, ParamMode, Program, Span, Statement, Type};
+use crate::ast::{Expr, ExprKind, Function, Program, Span, Statement, Type};
 #[cfg(test)]
 use crate::diagnostic::Diagnostic;
 use crate::source_verify::binding::Binding;
-use crate::source_verify::diagnostics::{error, is_scalar_source_type, reject_native_unit_value};
+use crate::source_verify::diagnostics::{error, reject_native_unit_value};
 use crate::source_verify::oracle::check_expr;
 use crate::source_verify::type_table::TypeTable;
 use std::collections::HashMap;

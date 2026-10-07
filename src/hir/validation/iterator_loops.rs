@@ -22,20 +22,10 @@ impl HirValidator<'_> {
         while let Some(expression) = pending.pop() {
             match &expression.kind {
                 ResolvedExprKind::Closure { captures, .. } => {
-                    pending.extend(
-                        captures
-                            .iter()
-                            .rev()
-                            .map(|capture| &capture.value),
-                    );
+                    pending.extend(captures.iter().rev().map(|capture| &capture.value));
                 }
                 ResolvedExprKind::FunctionReference { .. } | ResolvedExprKind::Invoke { .. } => {
-                    pending.extend(
-                        self.while_callable_arguments(expression)?
-                            .into_iter()
-                            .rev()
-                            ,
-                    );
+                    pending.extend(self.while_callable_arguments(expression)?.into_iter().rev());
                 }
                 ResolvedExprKind::Int(_)
                 | ResolvedExprKind::Int32(_)
@@ -54,15 +44,16 @@ impl HirValidator<'_> {
                     // Owned String Loops v2: a whole Copy-payload variant
                     // place may be a match scrutinee; moving an outer one
                     // still fails the loop-entry state equality.
-                    let whole_string = (matches!(
-                        expression.ty,
-                        ResolvedType::String | ResolvedType::StringMap
-                    ) || (matches!(expression.ty, ResolvedType::Nominal { .. })
-                        && crate::loop_calls::resolved_match_scrutinee_admitted(
-                            &self.program.declarations,
-                            &expression.ty,
-                        )))
-                        && place.projections.is_empty();
+                    let whole_string =
+                        (matches!(
+                            expression.ty,
+                            ResolvedType::String | ResolvedType::StringMap
+                        ) || (matches!(expression.ty, ResolvedType::Nominal { .. })
+                            && crate::loop_calls::resolved_match_scrutinee_admitted(
+                                &self.program.declarations,
+                                &expression.ty,
+                            )))
+                            && place.projections.is_empty();
                     if !whole_string
                         && (!crate::hir::is_scalar_resolved_type(&expression.ty)
                             || expression.ownership != OwnershipMode::Value)
@@ -108,8 +99,7 @@ impl HirValidator<'_> {
                     pending.extend(
                         self.while_host_command_scalar_arguments(expression, call)?
                             .into_iter()
-                            .rev()
-                            ,
+                            .rev(),
                     );
                 }
                 ResolvedExprKind::Unary { value, .. } => pending.push(value),
@@ -221,7 +211,7 @@ impl HirValidator<'_> {
                                                 | crate::byte_ops::ByteOp::Set1Or6Or48
                                         ) && *index == 3)
                                 })
-                                .map(|(_, argument)| (argument)),
+                                .map(|(_, argument)| argument),
                         );
                         continue;
                     }
@@ -336,7 +326,7 @@ impl HirValidator<'_> {
                 ResolvedExprKind::Yield { request } => pending.push(request),
             }
         }
-        Ok()
+        Ok(())
     }
 
     pub(super) fn validate_loop_pair(
@@ -389,7 +379,7 @@ pub(super) fn reopen_string(
     target.availability = Availability::Available;
     target.moved_places.clear();
     target.definitely_partial.clear();
-    Ok()
+    Ok(())
 }
 
 pub(super) fn reopen_step(
@@ -411,5 +401,5 @@ pub(super) fn reopen_step(
     target.availability = Availability::Available;
     target.moved_places.clear();
     target.definitely_partial.clear();
-    Ok()
+    Ok(())
 }

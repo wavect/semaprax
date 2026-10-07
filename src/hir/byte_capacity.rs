@@ -213,7 +213,8 @@ pub(super) fn byte_slice_transcript_source(
                             }
                             ByteSliceRootKind::FunctionParameter
                             | ByteSliceRootKind::OwnedBytes
-                            | ByteSliceRootKind::BorrowedStr => TranscriptSource::Unknown,
+                            | ByteSliceRootKind::BorrowedStr
+                            | ByteSliceRootKind::StdinStreamReader => TranscriptSource::Unknown,
                         });
                     } else {
                         results.push(facts.value_type(&place.root).map_or(
@@ -760,6 +761,11 @@ pub(super) fn byte_capacity_expression(
                                         }
                                     }),
                                 ),
+                            })
+                        } else if call.operation == ResolvedHostCommandOperation::StdinStreamOpen {
+                            Some(CapacityFlow::StdinRead {
+                                site: expression.id.as_str().to_owned(),
+                                conservative_payload_bytes: crate::stdin_stream_ops::CHUNK_BYTES,
                             })
                         } else if call.operation == ResolvedHostCommandOperation::StdinRead {
                             Some(CapacityFlow::StdinRead {

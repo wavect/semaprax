@@ -598,6 +598,41 @@ fn main() -> i64
 | `box_get<T>` | `(value: borrow Box<T>) -> T` synchronous Copy access |
 | `box_into_inner<T>` | `(value: own Box<T>) -> T` consuming extraction |
 
+For input that must exceed the complete-snapshot limit, select Project v23 input
+`argv-utf8+stdin-stream.v1` and profile `language-command-io.stream.v1` explicitly.
+Its native command route uses one reusable 4096-byte buffer; `stdin_read()` stays
+on the snapshot profile. Open prefills, only a zero read means EOF, and a short
+positive read is a chunk. Process every borrowed chunk before renewing its owner:
+
+```semaprax
+module app.stream_count;
+permit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
+@id("app.count")
+fn count() -> bool uses { process.stdin.read } {
+    let mut reader = stdin_stream_open();
+    let mut total = 0usize;
+    while !stdin_stream_eof(reader) {
+        let ignored = {
+            let chunk = stdin_stream_chunk(reader);
+            total = total + byte_len(chunk);
+            0
+        };
+        reader = stdin_stream_next(reader);
+        0
+    }
+    total >= 0usize
+}
+@id("app.main") fn main() -> i64 { 0 }
+```
+
+Open/Next require `process.stdin.read`; Eof/Chunk are pure named-reader
+inspections. Open occurs once per reachable invocation path and is refused in
+loops. Reader has no constructor or generic/aggregate/public ABI escape. Chunk
+use after Next is `SPX-T265`; bind an inner processing block as above so the loan
+ends first. Exact acyclic `own StdinReader -> StdinReader` forwarding helpers may
+renew the same owner. See [the streaming contract](BOUNDED-STDIN-STREAM-V1.md) for
+the profile's current executable-gate status and failure/settlement rules.
+
 Reserved names: redefining `string_len` is `SPX-S113`.
 
 Box operations allocate uniquely; an authored `record Box<T>` alone stays inline.

@@ -1399,9 +1399,16 @@ impl Expr {
             }
             ExprKind::Match {
                 scrutinee, arms, ..
-            } => (index == 0)
-                .then_some(scrutinee.as_ref())
-                .or_else(|| arms.get(index - 1).map(|arm| &arm.value)),
+            } => (index == 0).then_some(scrutinee.as_ref()).or_else(|| {
+                arms.iter()
+                    .flat_map(|arm| {
+                        arm.guard
+                            .iter()
+                            .map(|guard| guard.as_ref())
+                            .chain(std::iter::once(&arm.value))
+                    })
+                    .nth(index - 1)
+            }),
             ExprKind::UpdateRecord { base, fields } => (index == 0)
                 .then_some(base.as_ref())
                 .or_else(|| fields.get(index - 1).map(|field| &field.value)),

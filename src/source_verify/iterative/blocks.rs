@@ -314,20 +314,26 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             // admitted owned reopen shapes. The right-hand side
                             // evaluates before publication, so exactly one
                             // generation of the owner is ever live.
-                            let owned_reopen = crate::vec_ops::is_same_owner_reassignment_source(
-                                self.program,
-                                value,
-                                name,
-                                &binding_ty,
-                            ) || crate::byte_ops::is_same_owner_set_source(
-                                value,
-                                name,
-                                &binding_ty,
-                            ) || crate::string_ops::is_same_owner_concat_source(
-                                value,
-                                name,
-                                &binding_ty,
-                            );
+                            let owned_reopen =
+                                crate::vec_ops::is_same_owner_reassignment_source(
+                                    self.program,
+                                    value,
+                                    name,
+                                    &binding_ty,
+                                ) || crate::byte_ops::is_same_owner_set_source(
+                                    value,
+                                    name,
+                                    &binding_ty,
+                                ) || crate::string_ops::is_same_owner_concat_source(
+                                    value,
+                                    name,
+                                    &binding_ty,
+                                ) || (crate::stdin_stream_ops::ast_is_reader(&binding_ty)
+                                    && crate::stdin_stream_ops::source_next_is_same_owner(
+                                        self.program,
+                                        name,
+                                        value,
+                                    ));
                             if !mutable {
                                 let mut diagnostic = error(
                                     self.program,

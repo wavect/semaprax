@@ -6,6 +6,8 @@
 use super::*;
 
 mod compiler_prelude;
+mod stdin_stream;
+pub(crate) use stdin_stream::link_stdin_stream_command_workspace;
 pub(in crate::hir) mod native_owner;
 
 pub(crate) use compiler_prelude::compiler_prelude_declarations;
@@ -732,6 +734,7 @@ enum WorkspaceIoProfile {
     Pure,
     Stdout,
     LanguageCommand { command: DeclarationId },
+    StdinStreamCommand { command: DeclarationId },
     LineCommand { command: DeclarationId },
     NetworkCommand { command: DeclarationId },
     NetworkEntry,
@@ -766,15 +769,18 @@ fn link_useful_data_workspace_profile(
                 function.effects.is_empty()
                     || function.effects == [crate::host_io_ops::STDOUT_WRITE_EFFECT]
             }
-            WorkspaceIoProfile::LanguageCommand { .. } => function.effects.iter().all(|effect| {
-                matches!(
-                    effect.as_str(),
-                    crate::command_io_ops::ARGS_READ_EFFECT
-                        | crate::command_io_ops::STDIN_READ_EFFECT
-                        | crate::command_io_ops::STDERR_WRITE_EFFECT
-                        | crate::host_io_ops::STDOUT_WRITE_EFFECT
-                )
-            }),
+            WorkspaceIoProfile::LanguageCommand { .. }
+            | WorkspaceIoProfile::StdinStreamCommand { .. } => {
+                function.effects.iter().all(|effect| {
+                    matches!(
+                        effect.as_str(),
+                        crate::command_io_ops::ARGS_READ_EFFECT
+                            | crate::command_io_ops::STDIN_READ_EFFECT
+                            | crate::command_io_ops::STDERR_WRITE_EFFECT
+                            | crate::host_io_ops::STDOUT_WRITE_EFFECT
+                    )
+                })
+            }
             WorkspaceIoProfile::LineCommand { .. } => function.effects.iter().all(|effect| {
                 matches!(
                     effect.as_str(),
@@ -796,11 +802,19 @@ fn link_useful_data_workspace_profile(
                 })
             }
         };
-        let return_admitted = useful_data_workspace_return_admitted(&function.return_type);
+        let stream = matches!(profile, WorkspaceIoProfile::StdinStreamCommand { .. });
+        let return_admitted = useful_data_workspace_return_admitted(&function.return_type)
+            || (stream && crate::stdin_stream_ops::resolved_forward_signature(function));
         if !effects_admitted
             || !return_admitted
             || function.params.iter().any(|parameter| {
                 !useful_data_workspace_parameter_admitted(&parameter.ty, parameter.ownership)
+                    && !(stream
+                        && crate::stdin_stream_ops::is_reader(&parameter.ty)
+                        && matches!(
+                            parameter.ownership,
+                            OwnershipMode::Own | OwnershipMode::Borrow
+                        ))
             })
         {
             return Err(link_error(format!(
@@ -825,22 +839,7 @@ fn link_useful_data_workspace_profile(
             "workspace useful-data entry point must have an explicit authored identity",
         ));
     }
-    if let WorkspaceIoProfile::LanguageCommand { command }
-    | WorkspaceIoProfile::LineCommand { command } = &profile
-    {
-        let selected = linked_functions
-            .iter()
-            .find(|linked| &linked.function.id == command)
-            .ok_or_else(|| link_error("workspace language-command identity is absent"))?;
-        if selected.origin != IdentityOrigin::Explicit
-            || !selected.function.params.is_empty()
-            || selected.function.return_type != ResolvedType::Bool
-        {
-            return Err(link_error(
-                "workspace language command must be an explicit stable-ID `fn () -> bool`",
-            ));
-        }
-    }
+    stdin_stream::validate_selected_command(&profile, &linked_functions)?;
 
     let origins = linked_functions
         .iter()
@@ -854,12 +853,16 @@ fn link_useful_data_workspace_profile(
     // result of `byte_get`. Rebuild the canonical prelude declaration facts
     // before inserting retained workspace functions; a default index would
     // lose the nominal type behind match/capacity validation.
-    let (mut declarations, compiler_types) = workspace_compiler_prelude()?;
+    let (mut declarations, compiler_types) =
+        if matches!(profile, WorkspaceIoProfile::StdinStreamCommand { .. }) {
+            compiler_prelude::workspace_compiler_prelude_for_stream()?
+        } else {
+            workspace_compiler_prelude()?
+        };
     // This profile retains no authored type declaration. A retained function
     // that still mentions one -- a bundled dependency member reached from the
     // established v1 inventory, say -- is refused here by name, rather than
-    // linked against a declaration set that no longer holds its type and left
-    // to surface much later as an unknown type inside capacity analysis.
+    // linked against an incomplete declaration set during capacity analysis.
     for function in &functions {
         if let Some(missing) = super::authored_nominal_declarations(function)
             .into_iter()
@@ -897,7 +900,8 @@ fn link_useful_data_workspace_profile(
         permits: match &profile {
             WorkspaceIoProfile::Pure => Vec::new(),
             WorkspaceIoProfile::Stdout => vec![crate::host_io_ops::STDOUT_WRITE_EFFECT.to_owned()],
-            WorkspaceIoProfile::LanguageCommand { .. } => vec![
+            WorkspaceIoProfile::LanguageCommand { .. }
+            | WorkspaceIoProfile::StdinStreamCommand { .. } => vec![
                 crate::command_io_ops::ARGS_READ_EFFECT.to_owned(),
                 crate::command_io_ops::STDERR_WRITE_EFFECT.to_owned(),
                 crate::command_io_ops::STDIN_READ_EFFECT.to_owned(),
@@ -938,6 +942,13 @@ fn link_useful_data_workspace_profile(
         function_instances: Vec::new(),
     };
     match &profile {
+        WorkspaceIoProfile::StdinStreamCommand { command } => {
+            crate::command_io_ops::validate_operation_profile(
+                &linked,
+                command,
+                crate::command_io_ops::CommandOperationProfile::StdinStreamV1,
+            )?;
+        }
         WorkspaceIoProfile::LanguageCommand { command } => {
             crate::command_io_ops::validate_operation_profile(
                 &linked,

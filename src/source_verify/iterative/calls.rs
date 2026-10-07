@@ -148,6 +148,24 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 }
             }
             VerifierCallTarget::CommandIo(op) => {
+                if crate::stdin_stream_ops::is_host(*op) {
+                    if let Some(parameter) = crate::command_io_ops::ast_params(*op).get(index) {
+                        check_argument_ownership(
+                            self.program,
+                            self.current,
+                            name,
+                            argument,
+                            parameter,
+                            actual.as_ref(),
+                            &mut self.scopes[scope].bindings,
+                            self.types,
+                            self.allow_moves,
+                            false,
+                            false,
+                            self.diagnostics,
+                        );
+                    }
+                }
                 if let Some(actual) = &actual {
                     reject_native_unit_value(self.program, argument, actual, self.diagnostics);
                     if !actual.native_unit

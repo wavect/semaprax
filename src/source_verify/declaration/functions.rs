@@ -109,7 +109,9 @@ pub(super) fn check_function_declarations<'p>(
                 function.name_span,
             ));
         }
-        if crate::command_io_ops::by_name(&function.name).is_some() {
+        if crate::command_io_ops::by_name(&function.name).is_some()
+            || crate::stdin_stream_ops::pure_by_name(&function.name).is_some()
+        {
             diagnostics.push(error(
                 program,
                 "SPX-S113",

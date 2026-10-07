@@ -121,6 +121,8 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
     // frame machinery they describe, so bind the root and the resolver files.
     let hir_resolver = concat!(
         include_str!("../../../../../src/hir.rs"),
+        include_str!("../../../../../src/stdin_stream_ops.rs"),
+        include_str!("../../../../../src/stdin_stream_ops/analysis.rs"),
         include_str!("../../../../../src/hir/generic_collection.rs"),
         include_str!("../../../../../src/hir/generic_inference.rs"),
         include_str!("../../../../../src/hir/closure.rs"),
@@ -141,6 +143,8 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
         include_str!("../../../../../src/hir/owned_result_try.rs"),
         include_str!("../../../../../src/hir/resolve_class.rs"),
         include_str!("../../../../../src/hir/resolve_expr.rs"),
+        include_str!("../../../../../src/hir/resolve_stdin_stream.rs"),
+        include_str!("../../../../../src/hir/workspace_link/stdin_stream.rs"),
         include_str!("../../../../../src/hir/resolve_expr/capacity.rs"),
         include_str!("../../../../../src/hir/resolve_box_call.rs"),
         include_str!("../../../../../src/hir/resolve_box_call/iterator.rs"),
@@ -190,6 +194,7 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
         include_str!("../../../../../src/hir/validation/closure.rs"),
         include_str!("../../../../../src/hir/validation/generic_variant.rs"),
         include_str!("../../../../../src/hir/validation/box_intrinsic.rs"),
+        include_str!("../../../../../src/hir/validation/stdin_stream.rs"),
         include_str!("../../../../../src/hir/validation/branch_merge.rs"),
         include_str!("../../../../../src/hir/validation/vec_intrinsic.rs"),
         include_str!("../../../../../src/hir/validation/borrowed_str.rs"),
@@ -214,6 +219,7 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
         include_str!("../../../../../src/source_verify/borrowed_closure.rs"),
         include_str!("../../../../../src/source_verify/function_value_inventory.rs"),
         include_str!("../../../../../src/source_verify/hints.rs"),
+        include_str!("../../../../../src/source_verify/stdin_stream.rs"),
         include_str!("../../../../../src/source_verify/owned_buffer.rs"),
         include_str!("../../../../../src/source_verify/variant_or.rs"),
         include_str!("../../../../../src/source_verify/record_invariants.rs"),

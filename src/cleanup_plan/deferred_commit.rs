@@ -18,6 +18,10 @@ use crate::hir::DeclarationId;
 pub(super) fn call_behavior(
     expression: &crate::hir::ResolvedExpr,
 ) -> (Option<crate::vec_ops::VecOp>, bool) {
+    if matches!(&expression.kind, crate::hir::ResolvedExprKind::HostCommandCall(call) if call.operation == crate::hir::ResolvedHostCommandOperation::StdinStreamNext)
+    {
+        return (None, true);
+    }
     let crate::hir::ResolvedExprKind::Call {
         callee,
         type_arguments,
@@ -85,6 +89,7 @@ pub(super) fn expression_is_infallible_compiler_operation(
                 || crate::host_io_ops::by_id(callee.as_str()).is_some()
                 || is_infallible_vec_operation(crate::vec_ops::by_id(callee.as_str()))
                 || is_infallible_box_operation(callee)
+                || callee.as_str() == crate::stdin_stream_ops::EOF_ID
     )
 }
 

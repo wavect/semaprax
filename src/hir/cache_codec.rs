@@ -25,7 +25,7 @@ codec_struct!(Declaration {
     identity_origin,
     owner
 });
-codec_enum!(ByteSliceRootKind {0=>FunctionParameter,1=>OwnedBytes,2=>FixedArray,3=>BorrowedStr,4=>CommandArguments});
+codec_enum!(ByteSliceRootKind {0=>FunctionParameter,1=>OwnedBytes,2=>FixedArray,3=>BorrowedStr,4=>CommandArguments,5=>StdinStreamReader});
 codec_enum!(ByteSliceExtent {0=>Constant(value),1=>ParameterLength,2=>ValueLength});
 codec_struct!(ByteSliceRangeStep {
     source,
@@ -117,7 +117,7 @@ codec_struct!(ResolvedNativeRustImportCall {
     args,
     result
 });
-codec_enum!(ResolvedHostCommandOperation {0=>ArgsLen,1=>ArgUtf8,2=>StdinRead,3=>StderrWrite,4=>StdoutAppend,5=>StderrAppend,6=>NetConnect,7=>NetSend,8=>NetRecv,9=>NetStreamStdout,10=>NetWait,11=>NetClose,12=>NetTlsConnect,13=>NetListen,14=>NetAccept,15=>NetCloseListener,16=>NetTlsAccept,17=>HttpsGet,18=>FileRead,19=>FileWriteNew,20=>FileStat,21=>FileList,22=>FileCreateDir,23=>FileRemove,24=>FileWriteAtomic,25=>EnvLen,26=>EnvNameUtf8,27=>EnvValueUtf8,28=>ProcessRun,29=>FileWriteAtomicChecked,30=>HttpsPost});
+codec_enum!(ResolvedHostCommandOperation {0=>ArgsLen,1=>ArgUtf8,2=>StdinRead,3=>StderrWrite,4=>StdoutAppend,5=>StderrAppend,6=>NetConnect,7=>NetSend,8=>NetRecv,9=>NetStreamStdout,10=>NetWait,11=>NetClose,12=>NetTlsConnect,13=>NetListen,14=>NetAccept,15=>NetCloseListener,16=>NetTlsAccept,17=>HttpsGet,18=>FileRead,19=>FileWriteNew,20=>FileStat,21=>FileList,22=>FileCreateDir,23=>FileRemove,24=>FileWriteAtomic,25=>EnvLen,26=>EnvNameUtf8,27=>EnvValueUtf8,28=>ProcessRun,29=>FileWriteAtomicChecked,30=>HttpsPost,31=>StdinStreamOpen,32=>StdinStreamNext});
 codec_struct!(ResolvedHostCommandCall {
     expression,
     operation,

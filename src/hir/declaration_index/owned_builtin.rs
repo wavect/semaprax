@@ -5,6 +5,9 @@ pub(super) fn owned_builtin_facts(
     declaration: &DeclarationId,
     arguments: &[ResolvedType],
 ) -> Option<TypeFacts> {
+    if let Some(facts) = crate::stdin_stream_ops::type_facts(declaration, arguments) {
+        return Some(facts);
+    }
     if let Some(facts) = crate::iterator_ops::type_facts(declaration, arguments) {
         return Some(facts);
     }

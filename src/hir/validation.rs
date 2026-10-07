@@ -20,11 +20,12 @@ mod native_borrow;
 mod owned_buffer;
 mod owned_result_try;
 mod proof_return;
+mod stdin_stream;
 mod type_profiles;
 mod unsafe_scan;
 mod vec_intrinsic;
-pub(crate) use type_profiles::resolved_type_contains_owned_bytes;
 use borrowed_argument::{hir_diagnostic_at_span, hir_error_at_span};
+pub(crate) use type_profiles::resolved_type_contains_owned_bytes;
 use type_profiles::{
     generic_instance_arguments_are_admitted, resolved_type_is_flat_owned_byte_variant,
     resolved_type_is_flat_owned_string_variant, template_contains_nested_owned_record_type,
@@ -103,6 +104,7 @@ impl<'a> HirValidator<'a> {
 
     pub(super) fn new(program: &'a ResolvedProgram) -> Result<Self, Diagnostic> {
         validate_nul_free_identities(program)?;
+        stdin_stream::reject_sealed_escape(program)?;
         box_intrinsic::reject_reserved_identities(program)?;
         super::closure::once::reject_reserved_identities(program)?;
         generic_template::validate_call_graph(program)?;
@@ -2990,16 +2992,13 @@ impl<'a> HirValidator<'a> {
                             scopes.push(scope);
                         }
                         ResolvedExprKind::BorrowPlace { operation, place } => {
-                            let op = crate::byte_ops::by_id(operation.as_str())
-                                .filter(|op| op.is_view())
-                                .ok_or_else(|| {
-                                    hir_error_at_span(
-                                        expression.span,
-                                        "borrowed view has an invalid compiler-owned operation",
-                                    )
-                                })?;
-                            self.validate_byte_view_place(op, place, expression.span, &scope)?;
-                            self.finish_expr(expression, &op.return_type(), OwnershipMode::Borrow)?;
+                            let ty = self.validate_borrowed_view(
+                                operation,
+                                place,
+                                expression.span,
+                                &scope,
+                            )?;
+                            self.finish_expr(expression, &ty, OwnershipMode::Borrow)?;
                             scopes.push(scope);
                         }
                         ResolvedExprKind::ByteRange {
@@ -4487,7 +4486,11 @@ impl<'a> HirValidator<'a> {
                     else {
                         unreachable!("assign frame resumes at an assignment statement")
                     };
-                    if crate::hir::iterator_loop::is_step_reassignment(assigned, &binding.id) {
+                    if crate::stdin_stream_ops::hir_reopen(assigned, &binding.id) {
+                        scope = assigned_scope;
+                        stdin_stream::reopen_reader(&mut scope, &binding.id)?;
+                    } else if crate::hir::iterator_loop::is_step_reassignment(assigned, &binding.id)
+                    {
                         scope = assigned_scope;
                         iterator_loops::reopen_step(&mut scope, &binding.id)?;
                     } else if crate::string_ops::is_same_owner_concat_hir(assigned, &binding.id) {
@@ -4533,6 +4536,7 @@ impl<'a> HirValidator<'a> {
                                     assigned,
                                     &binding.id,
                                 )
+                                && !crate::stdin_stream_ops::hir_reopen(assigned, &binding.id)
                                 && !crate::byte_ops::is_same_owner_set_hir(assigned, &binding.id)
                                 && !crate::string_ops::is_same_owner_concat_hir(
                                     assigned,
@@ -6205,18 +6209,10 @@ impl<'a> HirValidator<'a> {
                 }
                 self.resolve_place(place, binding)?
             }
-            ResolvedExprKind::BorrowPlace { operation, place } => {
-                let op = crate::byte_ops::by_id(operation.as_str())
-                    .filter(|op| op.is_view())
-                    .ok_or_else(|| {
-                        hir_error_at_span(
-                            expression.span,
-                            "borrowed view has an invalid compiler-owned operation",
-                        )
-                    })?;
-                self.validate_byte_view_place(op, place, expression.span, scope)?;
-                (op.return_type(), OwnershipMode::Borrow)
-            }
+            ResolvedExprKind::BorrowPlace { operation, place } => (
+                self.validate_borrowed_view(operation, place, expression.span, scope)?,
+                OwnershipMode::Borrow,
+            ),
             ResolvedExprKind::ByteRange {
                 operation,
                 source,
@@ -6804,6 +6800,9 @@ impl<'a> HirValidator<'a> {
                             ) {
                                 iterator_loops::reopen_step(&mut block_scope, &binding.id)?;
                             }
+                            if crate::stdin_stream_ops::hir_reopen(assigned, &binding.id) {
+                                stdin_stream::reopen_reader(&mut block_scope, &binding.id)?;
+                            }
                             if crate::string_ops::is_same_owner_concat_hir(assigned, &binding.id) {
                                 iterator_loops::reopen_string(&mut block_scope, &binding.id)?;
                             }
@@ -6847,6 +6846,10 @@ impl<'a> HirValidator<'a> {
                                         || !crate::hir::is_scalar_resolved_type(&target.ty))
                                         && !crate::vec_ops::is_same_owner_reassignment_hir(
                                             self.program,
+                                            assigned,
+                                            &binding.id,
+                                        )
+                                        && !crate::stdin_stream_ops::hir_reopen(
                                             assigned,
                                             &binding.id,
                                         )
@@ -8439,10 +8442,7 @@ impl<'a> HirValidator<'a> {
             .ok_or_else(|| {
                 hir_error_at_span(
                     argument.span,
-                    format!(
-                        "type `{}` has no semantic facts",
-                        param.ty.identity_key()
-                    ),
+                    format!("type `{}` has no semantic facts", param.ty.identity_key()),
                 )
             })?;
         let valid = if facts.copy {
@@ -8452,7 +8452,10 @@ impl<'a> HirValidator<'a> {
                 OwnershipMode::Own => actual == OwnershipMode::Own,
                 OwnershipMode::Borrow => {
                     let exact_place = matches!(&argument.kind, ResolvedExprKind::Place(_));
-                    if param.ty == ResolvedType::Bytes {
+                    if crate::stdin_stream_ops::is_reader(&param.ty) {
+                        matches!(actual, OwnershipMode::Own | OwnershipMode::Borrow)
+                            && matches!(&argument.kind, ResolvedExprKind::Place(place) if place.projections.is_empty())
+                    } else if param.ty == ResolvedType::Bytes {
                         matches!(actual, OwnershipMode::Own | OwnershipMode::Borrow) && exact_place
                     } else if resolved_type_contains_owned_bytes(self.program, &param.ty) {
                         (vec_intrinsic::is_owned_vec_carrier(self.program, &param.ty)

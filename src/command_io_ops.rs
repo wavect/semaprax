@@ -48,6 +48,8 @@ pub(crate) const OUTPUT_CAPACITY_EXCEEDED: u32 = 1;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum CommandOperationProfile {
     LanguageV1,
+    /// One invocation-scoped reader with a fixed reusable input buffer.
+    StdinStreamV1,
     LineV1,
     /// Bounded Language Network I/O v1: Language Command I/O plus the closed
     /// network operation family, appends, and `byte_range`; legacy
@@ -92,6 +94,8 @@ pub(crate) fn validate_operation_profile(
         .ok_or_else(|| profile_error("selected command is absent"))?;
     let mut pending_functions = vec![(format!("m:{command}"), command_function)];
     let mut visited = BTreeSet::new();
+    let mut saw_stream = false;
+    let mut saw_snapshot_stdin = false;
     let mut saw_range = false;
     let mut saw_append = false;
     let mut saw_legacy_write = false;
@@ -109,12 +113,18 @@ pub(crate) fn validate_operation_profile(
         if !visited.insert(execution_id) {
             continue;
         }
+        saw_stream |= crate::stdin_stream_ops::is_reader(&function.return_type)
+            || function
+                .params
+                .iter()
+                .any(|param| crate::stdin_stream_ops::is_reader(&param.ty));
         let mut expressions =
             Vec::with_capacity(function.requires.len() + function.ensures.len() + 1);
         expressions.extend(function.ensures.iter().rev());
         expressions.push(&function.body);
         expressions.extend(function.requires.iter().rev());
         while let Some(expression) = expressions.pop() {
+            saw_stream |= crate::stdin_stream_ops::is_reader(&expression.ty);
             match &expression.kind {
                 ResolvedExprKind::ByteRange { .. } => saw_range = true,
                 ResolvedExprKind::HostCommandCall(call) => {
@@ -133,8 +143,10 @@ pub(crate) fn validate_operation_profile(
                         | ResolvedHostCommandOperation::StderrAppend => saw_append = true,
                         ResolvedHostCommandOperation::StderrWrite => saw_legacy_write = true,
                         ResolvedHostCommandOperation::ArgsLen
-                        | ResolvedHostCommandOperation::ArgUtf8
-                        | ResolvedHostCommandOperation::StdinRead => {}
+                        | ResolvedHostCommandOperation::ArgUtf8 => {}
+                        ResolvedHostCommandOperation::StdinRead => saw_snapshot_stdin = true,
+                        ResolvedHostCommandOperation::StdinStreamOpen
+                        | ResolvedHostCommandOperation::StdinStreamNext => saw_stream = true,
                         network if crate::network_io_ops::is_network(network) => {
                             saw_network = true;
                             saw_service |= crate::network_io_ops::is_service(network);
@@ -164,6 +176,25 @@ pub(crate) fn validate_operation_profile(
         }
     }
 
+    if saw_stream && profile != CommandOperationProfile::StdinStreamV1 {
+        return Err(profile_error(
+            "streaming stdin requires the explicit language-command-io.stream.v1 profile",
+        ));
+    }
+    if profile == CommandOperationProfile::StdinStreamV1 {
+        return if saw_stream
+            && !saw_snapshot_stdin
+            && !saw_network
+            && !saw_filesystem
+            && !saw_environment
+            && !saw_process
+            && !saw_append
+        {
+            Ok(())
+        } else {
+            Err(profile_error("streaming stdin requires a reader and excludes snapshot stdin, append output, filesystem, environment, process launch and network operations"))
+        };
+    }
     if saw_process && profile != CommandOperationProfile::ProcessV1 {
         return Err(profile_error("process launch requires Process I/O v1"));
     }
@@ -265,6 +296,7 @@ pub(crate) fn validate_operation_profile(
             "Line Command I/O v1 must reach byte_range and stdout_append or stderr_append",
         )),
         CommandOperationProfile::LanguageV1
+        | CommandOperationProfile::StdinStreamV1
         | CommandOperationProfile::LineV1
         | CommandOperationProfile::NetworkV1
         | CommandOperationProfile::ServiceV1
@@ -301,7 +333,8 @@ pub(crate) fn by_name(name: &str) -> Option<ResolvedHostCommandOperation> {
         STDERR_WRITE_NAME => Some(ResolvedHostCommandOperation::StderrWrite),
         STDOUT_APPEND_NAME => Some(ResolvedHostCommandOperation::StdoutAppend),
         STDERR_APPEND_NAME => Some(ResolvedHostCommandOperation::StderrAppend),
-        _ => crate::process_ops::by_name(name)
+        _ => crate::stdin_stream_ops::host_by_name(name)
+            .or_else(|| crate::process_ops::by_name(name))
             .or_else(|| crate::environment_ops::by_name(name))
             .or_else(|| crate::filesystem_ops::by_name(name))
             .or_else(|| crate::network_io_ops::by_name(name)),
@@ -316,7 +349,8 @@ pub(crate) fn by_id(id: &str) -> Option<ResolvedHostCommandOperation> {
         STDERR_WRITE_ID => Some(ResolvedHostCommandOperation::StderrWrite),
         STDOUT_APPEND_ID => Some(ResolvedHostCommandOperation::StdoutAppend),
         STDERR_APPEND_ID => Some(ResolvedHostCommandOperation::StderrAppend),
-        _ => crate::process_ops::by_id(id)
+        _ => crate::stdin_stream_ops::host_by_id(id)
+            .or_else(|| crate::process_ops::by_id(id))
             .or_else(|| crate::environment_ops::by_id(id))
             .or_else(|| crate::filesystem_ops::by_id(id))
             .or_else(|| crate::network_io_ops::by_id(id)),
@@ -330,6 +364,8 @@ pub(crate) const fn name(op: ResolvedHostCommandOperation) -> &'static str {
         ResolvedHostCommandOperation::ArgsLen => ARGS_LEN_NAME,
         ResolvedHostCommandOperation::ArgUtf8 => ARG_UTF8_NAME,
         ResolvedHostCommandOperation::StdinRead => STDIN_READ_NAME,
+        ResolvedHostCommandOperation::StdinStreamOpen => "stdin_stream_open",
+        ResolvedHostCommandOperation::StdinStreamNext => "stdin_stream_next",
         ResolvedHostCommandOperation::StderrWrite => STDERR_WRITE_NAME,
         ResolvedHostCommandOperation::StdoutAppend => STDOUT_APPEND_NAME,
         ResolvedHostCommandOperation::StderrAppend => STDERR_APPEND_NAME,
@@ -347,6 +383,8 @@ pub(crate) const fn id(op: ResolvedHostCommandOperation) -> &'static str {
         ResolvedHostCommandOperation::ArgsLen => ARGS_LEN_ID,
         ResolvedHostCommandOperation::ArgUtf8 => ARG_UTF8_ID,
         ResolvedHostCommandOperation::StdinRead => STDIN_READ_ID,
+        ResolvedHostCommandOperation::StdinStreamOpen => crate::stdin_stream_ops::OPEN_ID,
+        ResolvedHostCommandOperation::StdinStreamNext => crate::stdin_stream_ops::NEXT_ID,
         ResolvedHostCommandOperation::StderrWrite => STDERR_WRITE_ID,
         ResolvedHostCommandOperation::StdoutAppend => STDOUT_APPEND_ID,
         ResolvedHostCommandOperation::StderrAppend => STDERR_APPEND_ID,
@@ -364,7 +402,9 @@ pub(crate) const fn effect(op: ResolvedHostCommandOperation) -> &'static str {
         ResolvedHostCommandOperation::ArgsLen | ResolvedHostCommandOperation::ArgUtf8 => {
             ARGS_READ_EFFECT
         }
-        ResolvedHostCommandOperation::StdinRead => STDIN_READ_EFFECT,
+        ResolvedHostCommandOperation::StdinRead
+        | ResolvedHostCommandOperation::StdinStreamOpen
+        | ResolvedHostCommandOperation::StdinStreamNext => STDIN_READ_EFFECT,
         ResolvedHostCommandOperation::StderrWrite => STDERR_WRITE_EFFECT,
         ResolvedHostCommandOperation::StdoutAppend => STDOUT_WRITE_EFFECT,
         ResolvedHostCommandOperation::StderrAppend => STDERR_WRITE_EFFECT,
@@ -382,9 +422,10 @@ pub(crate) const fn failure(op: ResolvedHostCommandOperation) -> CommandIoFailur
         ResolvedHostCommandOperation::ArgsLen | ResolvedHostCommandOperation::StderrWrite => {
             CommandIoFailure::Infallible
         }
-        ResolvedHostCommandOperation::ArgUtf8 | ResolvedHostCommandOperation::StdinRead => {
-            CommandIoFailure::Status
-        }
+        ResolvedHostCommandOperation::ArgUtf8
+        | ResolvedHostCommandOperation::StdinRead
+        | ResolvedHostCommandOperation::StdinStreamOpen
+        | ResolvedHostCommandOperation::StdinStreamNext => CommandIoFailure::Status,
         ResolvedHostCommandOperation::StdoutAppend | ResolvedHostCommandOperation::StderrAppend => {
             CommandIoFailure::Status
         }
@@ -414,6 +455,11 @@ pub(crate) const fn status_metadata(
         ResolvedHostCommandOperation::ArgUtf8 => Some(CommandIoStatusMetadata {
             domain: INPUT_STATUS_DOMAIN,
             codes: &[ARG_INDEX_OUT_OF_BOUNDS, ARG_INVALID_UTF8],
+        }),
+        ResolvedHostCommandOperation::StdinStreamOpen
+        | ResolvedHostCommandOperation::StdinStreamNext => Some(CommandIoStatusMetadata {
+            domain: INPUT_STATUS_DOMAIN,
+            codes: &[STDIN_READ_FAILED],
         }),
         ResolvedHostCommandOperation::StdinRead => Some(CommandIoStatusMetadata {
             domain: INPUT_STATUS_DOMAIN,
@@ -449,6 +495,8 @@ pub(crate) const fn status_metadata(
 
 pub(crate) const fn arity(op: ResolvedHostCommandOperation) -> usize {
     match op {
+        ResolvedHostCommandOperation::StdinStreamOpen => 0,
+        ResolvedHostCommandOperation::StdinStreamNext => 1,
         ResolvedHostCommandOperation::ProcessRun => 8,
         env if crate::environment_ops::is_environment(env) => crate::environment_ops::arity(env),
         ResolvedHostCommandOperation::ArgsLen | ResolvedHostCommandOperation::StdinRead => 0,
@@ -463,8 +511,10 @@ pub(crate) const fn arity(op: ResolvedHostCommandOperation) -> usize {
     }
 }
 
-pub(crate) const fn ast_return_type(op: ResolvedHostCommandOperation) -> Type {
+pub(crate) fn ast_return_type(op: ResolvedHostCommandOperation) -> Type {
     match op {
+        ResolvedHostCommandOperation::StdinStreamOpen
+        | ResolvedHostCommandOperation::StdinStreamNext => crate::stdin_stream_ops::ast_reader(),
         ResolvedHostCommandOperation::ProcessRun => Type::Bytes,
         env if crate::environment_ops::is_environment(env) => {
             crate::environment_ops::ast_return_type(env)
@@ -484,8 +534,10 @@ pub(crate) const fn ast_return_type(op: ResolvedHostCommandOperation) -> Type {
     }
 }
 
-pub(crate) const fn return_type(op: ResolvedHostCommandOperation) -> ResolvedType {
+pub(crate) fn return_type(op: ResolvedHostCommandOperation) -> ResolvedType {
     match op {
+        ResolvedHostCommandOperation::StdinStreamOpen
+        | ResolvedHostCommandOperation::StdinStreamNext => crate::stdin_stream_ops::reader(),
         ResolvedHostCommandOperation::ProcessRun => ResolvedType::Bytes,
         env if crate::environment_ops::is_environment(env) => {
             crate::environment_ops::return_type(env)
@@ -507,6 +559,8 @@ pub(crate) const fn return_type(op: ResolvedHostCommandOperation) -> ResolvedTyp
 
 pub(crate) const fn result_ownership(op: ResolvedHostCommandOperation) -> OwnershipMode {
     match op {
+        ResolvedHostCommandOperation::StdinStreamOpen
+        | ResolvedHostCommandOperation::StdinStreamNext => OwnershipMode::Own,
         ResolvedHostCommandOperation::ProcessRun => OwnershipMode::Own,
         env if crate::environment_ops::is_environment(env) => {
             crate::environment_ops::result_ownership(env)
@@ -546,6 +600,8 @@ pub(crate) fn required_effects(
 /// single writes stay out.
 pub(crate) const fn admitted_in_while(op: ResolvedHostCommandOperation) -> bool {
     match op {
+        ResolvedHostCommandOperation::StdinStreamOpen => false,
+        ResolvedHostCommandOperation::StdinStreamNext => true,
         ResolvedHostCommandOperation::ProcessRun => false,
         env if crate::environment_ops::is_environment(env) => true,
         ResolvedHostCommandOperation::StdoutAppend | ResolvedHostCommandOperation::StderrAppend => {
@@ -567,6 +623,11 @@ pub(crate) const fn admitted_in_while(op: ResolvedHostCommandOperation) -> bool 
 }
 
 pub(crate) fn accepts_ast(op: ResolvedHostCommandOperation, index: usize, ty: &Type) -> bool {
+    if crate::stdin_stream_ops::is_host(op) {
+        return op == ResolvedHostCommandOperation::StdinStreamNext
+            && index == 0
+            && crate::stdin_stream_ops::ast_is_reader(ty);
+    }
     if crate::process_ops::is_process(op) {
         return crate::process_ops::accepts_ast(index, ty);
     }
@@ -594,6 +655,11 @@ pub(crate) fn accepts_resolved(
     index: usize,
     ty: &ResolvedType,
 ) -> bool {
+    if crate::stdin_stream_ops::is_host(op) {
+        return op == ResolvedHostCommandOperation::StdinStreamNext
+            && index == 0
+            && crate::stdin_stream_ops::is_reader(ty);
+    }
     if crate::process_ops::is_process(op) {
         return crate::process_ops::accepts_resolved(index, ty);
     }
@@ -626,6 +692,9 @@ pub(crate) fn accepts_resolved(
 }
 
 pub(crate) fn ast_params(op: ResolvedHostCommandOperation) -> Vec<Param> {
+    if crate::stdin_stream_ops::is_host(op) {
+        return crate::stdin_stream_ops::host_params(op);
+    }
     if crate::process_ops::is_process(op) {
         return crate::process_ops::ast_params();
     }
@@ -671,6 +740,9 @@ pub(crate) fn ast_params(op: ResolvedHostCommandOperation) -> Vec<Param> {
 }
 
 pub(crate) fn resolved_params(op: ResolvedHostCommandOperation) -> Vec<ResolvedParam> {
+    if crate::stdin_stream_ops::is_host(op) {
+        return crate::stdin_stream_ops::resolved_host_params(op);
+    }
     ast_params(op)
         .into_iter()
         .enumerate()

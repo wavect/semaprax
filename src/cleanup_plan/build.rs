@@ -696,7 +696,7 @@ impl<'a> PlanBuilder<'a> {
         let root = CleanupRegionId(0);
         let entry = BlockId(0);
         let mut builder = Self {
-            string_appends: crate::string_ops::same_owner_concat_appends(function),
+            string_appends: crate::stdin_stream_ops::owner_reopens(function),
             string_condition_reads: crate::string_ops::conditions::function_reads(function),
             program,
             function,

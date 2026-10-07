@@ -1069,7 +1069,8 @@ pub(super) fn check_ownership_mode(
     if string_record::reject(program, &param.ty, "passed", param.span, types, diagnostics) {
         return;
     }
-    let requires_explicit_mode = crate::iterator_ops::ast_is_iterator(&param.ty)
+    let requires_explicit_mode = crate::stdin_stream_ops::ast_is_reader(&param.ty)
+        || crate::iterator_ops::ast_is_iterator(&param.ty)
         || types.contains_resource(&param.ty)
         || types.contains_owned_bytes(&param.ty)
         || matches!(&param.ty, Type::Named { name, arguments } if arguments.len() == 1 && types.declaration(name).is_some_and(|d| matches!(d.stable_id.as_str(), crate::prelude::BOX_ID | crate::prelude::VEC_ID)));

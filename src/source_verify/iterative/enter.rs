@@ -518,6 +518,20 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         ));
                     }
                     VerifierCallTarget::HostIo(op)
+                } else if let Some(op) = crate::stdin_stream_ops::pure_by_name(name) {
+                    if !type_arguments.is_empty() || args.len() != 1 {
+                        self.diagnostics.push(error(
+                            self.program,
+                            "SPX-T270",
+                            "invalid streaming stdin inspection call shape",
+                            expression.span,
+                        ));
+                    }
+                    VerifierCallTarget::Ordinary(Some(VerifierFunctionSignature::Specialized {
+                        params: op.params(),
+                        return_type: op.ast_result(),
+                        implicit_unique_ownership: false,
+                    }))
                 } else if let Some(op) = crate::command_io_ops::by_name(name) {
                     let params = crate::command_io_ops::ast_params(op);
                     if !type_arguments.is_empty() || args.len() != params.len() {

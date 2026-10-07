@@ -54,6 +54,18 @@ impl HirValidator<'_> {
         }
         let mut scalars = Vec::with_capacity(call.args.len());
         for (argument, param) in call.args.iter().zip(&params) {
+            if crate::stdin_stream_ops::is_reader(&param.ty) {
+                if operation != ResolvedHostCommandOperation::StdinStreamNext
+                    || argument.ownership != OwnershipMode::Own
+                    || !crate::stdin_stream_ops::is_reader(&argument.ty)
+                    || !matches!(&argument.kind, ResolvedExprKind::Place(place) if place.projections.is_empty())
+                {
+                    return Err(hir_error(
+                        "streaming advancement requires one exact owned reader",
+                    ));
+                }
+                continue;
+            }
             if param.ty != ResolvedType::SliceU8 {
                 scalars.push(argument);
                 continue;

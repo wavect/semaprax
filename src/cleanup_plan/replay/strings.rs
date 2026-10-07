@@ -30,7 +30,7 @@ pub(super) fn reserve_append(
     if !whole_value(source) && !whole_value(destination) {
         return Ok(None);
     }
-    let appends = crate::string_ops::same_owner_concat_appends(function);
+    let appends = crate::stdin_stream_ops::owner_reopens(function);
     if whole_value(source) && appends.contains_key(at) {
         if state
             .renewals

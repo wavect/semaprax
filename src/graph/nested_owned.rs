@@ -1,4 +1,4 @@
-pub(crate) use super::affine::{graph_schema, graph_schema_from_parts_and_instances};
+pub(crate) use super::stdin_stream::{graph_schema, graph_schema_from_parts_and_instances};
 use crate::cleanup::FieldLivenessShape;
 use crate::cleanup_plan::{
     StorageId, CLEANUP_PLAN_SCHEMA_V10, CLEANUP_PLAN_SCHEMA_V11, CLEANUP_PLAN_SCHEMA_V12,
@@ -556,6 +556,7 @@ pub(super) fn graph_schema_includes_modern_composite_facts(schema: &str) -> bool
             | "semaprax.graph.v62"
             | "semaprax.graph.v63"
             | "semaprax.graph.v64"
+            | "semaprax.graph.v65"
     )
 }
 
@@ -584,6 +585,7 @@ pub(super) fn graph_schema_includes_loans(schema: &str) -> bool {
             | "semaprax.graph.v62"
             | "semaprax.graph.v63"
             | "semaprax.graph.v64"
+            | "semaprax.graph.v65"
     )
 }
 
@@ -610,6 +612,7 @@ pub(super) fn graph_schema_includes_projected_provenance(schema: &str) -> bool {
             | "semaprax.graph.v62"
             | "semaprax.graph.v63"
             | "semaprax.graph.v64"
+            | "semaprax.graph.v65"
     )
 }
 

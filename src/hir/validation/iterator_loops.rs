@@ -79,6 +79,8 @@ impl HirValidator<'_> {
                     let exact_view = (operation.as_str() == crate::byte_ops::STRING_AS_STR_ID
                         && expression.ty == ResolvedType::Str)
                         || (operation.as_str() == crate::byte_ops::STR_AS_BYTES_ID
+                            && expression.ty == ResolvedType::SliceU8)
+                        || (operation.as_str() == crate::stdin_stream_ops::CHUNK_ID
                             && expression.ty == ResolvedType::SliceU8);
                     if !exact_view
                         || expression.ownership != OwnershipMode::Borrow
@@ -148,6 +150,16 @@ impl HirValidator<'_> {
                     type_arguments,
                     args,
                 } => {
+                    if callee.as_str() == crate::stdin_stream_ops::EOF_ID {
+                        if instance.is_some()
+                            || !type_arguments.is_empty()
+                            || expression.ty != ResolvedType::Bool
+                            || !matches!(args.as_slice(), [argument] if crate::stdin_stream_ops::is_reader(&argument.ty) && matches!(&argument.kind, ResolvedExprKind::Place(place) if place.projections.is_empty()))
+                        {
+                            return Err(hir_error("invalid streaming EOF inspection in while"));
+                        }
+                        continue;
+                    }
                     let vec_operation = instance
                         .is_none()
                         .then(|| crate::vec_ops::by_id(callee.as_str()))
@@ -252,6 +264,27 @@ impl HirValidator<'_> {
                     // borrowed slice cannot escape because the result remains
                     // scalar; transitive allocation/call cycles are still
                     // rejected by the byte-capacity analysis after HIR replay.
+                    if crate::stdin_stream_ops::resolved_forward_signature(target) {
+                        if !crate::stdin_stream_ops::hir_reopen(
+                            expression,
+                            &match args.as_slice() {
+                                [argument] => match &argument.kind {
+                                    ResolvedExprKind::Place(place) => place.root.clone(),
+                                    _ => {
+                                        return Err(hir_error(
+                                            "forwarding helper requires a named reader",
+                                        ))
+                                    }
+                                },
+                                _ => {
+                                    return Err(hir_error("forwarding helper requires one reader"))
+                                }
+                            },
+                        ) {
+                            return Err(hir_error("invalid reader forwarding call"));
+                        }
+                        continue;
+                    }
                     let scalar_signature = crate::loop_calls::effects_admitted(&target.effects)
                         && crate::loop_calls::resolved_result_admitted(&target.return_type)
                         && target.params.iter().zip(args).all(|(param, argument)| {

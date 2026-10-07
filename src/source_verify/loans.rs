@@ -48,6 +48,23 @@ pub(super) fn local_borrow_origin(
                 |origin| (origin.root, origin.projections, Some(origin.loan)),
             )
         }
+        ExprKind::Call {
+            name,
+            type_arguments,
+            args,
+        } if name == "stdin_stream_chunk" && type_arguments.is_empty() => {
+            let [source] = args.as_slice() else {
+                return None;
+            };
+            let ExprKind::Var(root) = &source.kind else {
+                return None;
+            };
+            let binding = variables.get(root)?;
+            if !crate::stdin_stream_ops::ast_is_reader(&binding.ty) {
+                return None;
+            }
+            (root.clone(), Vec::new(), None)
+        }
         ExprKind::Call { name, args, .. } => {
             let operation = crate::byte_ops::by_name(name)?;
             if !operation.is_view() && operation != crate::byte_ops::ByteOp::Range {

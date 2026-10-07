@@ -300,11 +300,14 @@ impl Resolver<'_> {
                         .find(|function| function.name == *name);
                     if let Some(declared) = declared {
                         let scalar_signature =
-                            crate::loop_calls::effects_admitted(&declared.effects)
-                                && crate::loop_calls::ast_result_admitted(&declared.return_type)
-                                && declared.params.iter().all(|param| {
-                                    crate::loop_calls::ast_param_admitted(param.mode, &param.ty)
-                                });
+                            crate::stdin_stream_ops::ast_forward_signature(declared)
+                                || (crate::loop_calls::effects_admitted(&declared.effects)
+                                    && crate::loop_calls::ast_result_admitted(
+                                        &declared.return_type,
+                                    )
+                                    && declared.params.iter().all(|param| {
+                                        crate::loop_calls::ast_param_admitted(param.mode, &param.ty)
+                                    }));
                         if !scalar_signature {
                             return Err(self.error(
                                 "SPX-T252",

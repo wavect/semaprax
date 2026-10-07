@@ -100,6 +100,18 @@ pub(super) fn check_argument_ownership(
                 ));
             }
         }
+        ParamMode::Borrow if crate::stdin_stream_ops::ast_is_reader(&param.ty) => {
+            if !matches!(actual.mode, ParamMode::Own | ParamMode::Borrow)
+                || !matches!(&arg.kind, ExprKind::Var(_))
+            {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T270",
+                    "streaming stdin inspection requires one available named reader",
+                    arg.span,
+                ));
+            }
+        }
         ParamMode::Shared if actual.mode != ParamMode::Shared => diagnostics.push(
             error(
                 program,
@@ -206,9 +218,14 @@ pub(super) fn activate_borrowed_bytes_call_loans(
 ) -> Vec<(String, SourceLoanId)> {
     let mut active = Vec::new();
     for (index, (borrowed, parameter)) in arguments.iter().zip(parameters).enumerate() {
+        let reader = crate::stdin_stream_ops::ast_is_reader(&parameter.ty)
+            && matches!(&borrowed.kind, ExprKind::Var(name) if variables.get(name).is_some_and(|binding| crate::stdin_stream_ops::ast_is_reader(&binding.ty)));
         if parameter.mode != ParamMode::Borrow
-            || parameter.ty != Type::Bytes
-            || !source_borrowed_bytes_call_place_is_admitted(borrowed, variables, types, true)
+            || (!reader
+                && (parameter.ty != Type::Bytes
+                    || !source_borrowed_bytes_call_place_is_admitted(
+                        borrowed, variables, types, true,
+                    )))
         {
             continue;
         }

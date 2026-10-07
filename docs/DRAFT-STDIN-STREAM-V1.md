@@ -6,6 +6,11 @@ schema, or benchmark support is implemented by this document.
 Audience: SEMAPRAX compiler contributors, host-adapter implementers, and
 reviewers.
 
+The assigned compiler/profile contract now lives in
+[Bounded Standard Input Streaming v1](BOUNDED-STDIN-STREAM-V1.md). This draft
+retains the original motivation and design questions; its placeholder API and
+version language are historical, not the assigned contract.
+
 ## Summary
 
 This draft proposes a new, explicitly selected command-input profile for

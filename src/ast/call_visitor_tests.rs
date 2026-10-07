@@ -219,3 +219,70 @@ fn iterative_call_visitors_preserve_preorder_and_authored_child_order() {
         (0..=17).collect::<Vec<_>>()
     );
 }
+
+#[test]
+fn match_call_visitors_include_each_guard_before_its_value() {
+    let span = Span::default();
+    let expression = Expr {
+        span,
+        kind: ExprKind::Match {
+            mode: MatchMode::Value,
+            scrutinee: Box::new(call("scrutinee", 1)),
+            arms: vec![
+                MatchArm {
+                    pattern: MatchPattern::Wildcard { span },
+                    guard: Some(Box::new(call("guard", 2))),
+                    value: call("guarded_value", 3),
+                    span,
+                },
+                MatchArm {
+                    pattern: MatchPattern::Wildcard { span },
+                    guard: None,
+                    value: call("fallback", 4),
+                    span,
+                },
+            ],
+        },
+    };
+    let mut names = Vec::new();
+    expression.visit_calls(&mut |name, _| names.push(name.to_owned()));
+    assert_eq!(names, ["scrutinee", "guard", "guarded_value", "fallback"]);
+}
+
+#[test]
+fn nonstream_guard_only_calls_select_prelude_and_require_effects() {
+    let source = r#"module test.guard_metadata;
+permit { process.args.read }
+@id("guard.positive") fn positive(value: i64) -> bool { value > 0 }
+@id("app.main") fn main() -> i64 uses { process.args.read } {
+    match true {
+        true if {
+            let value = box_new<i64>(1);
+            positive(box_get<i64>(value)) && args_len() == 0usize
+        } => 0,
+        _ => 1
+    }
+}
+"#;
+    let parsed = crate::parse(source, "guard-metadata.spx").unwrap();
+    assert_eq!(
+        crate::prelude::selected_for_program(&parsed).0,
+        "semaprax.prelude.v4"
+    );
+    let diagnostics = crate::verify::verify(&parsed);
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    let document = crate::graph::to_json(&parsed).unwrap();
+    assert!(document.contains("guard.positive"));
+    assert!(document.contains("core.box"));
+    assert!(!document.contains("stdin_stream"));
+    let missing_effect = crate::parse(
+        &source.replace("uses { process.args.read }", ""),
+        "guard-metadata.spx",
+    )
+    .unwrap();
+    let diagnostics = crate::verify::verify(&missing_effect);
+    assert!(
+        diagnostics.iter().any(|d| d.code == "SPX-E102"),
+        "{diagnostics:?}"
+    );
+}

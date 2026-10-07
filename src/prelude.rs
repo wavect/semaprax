@@ -24,6 +24,7 @@ pub(crate) const SCHEMA_V6: &str = "semaprax.prelude.v6";
 pub(crate) const SCHEMA_V7: &str = "semaprax.prelude.v7";
 pub(crate) const SCHEMA_V8: &str = "semaprax.prelude.v8";
 pub(crate) const SCHEMA_V9: &str = "semaprax.prelude.v9";
+pub(crate) const SCHEMA_V10: &str = "semaprax.prelude.v10";
 
 pub(crate) const OPTION_ID: &str = "core.option";
 pub(crate) const OPTION_NONE_ID: &str = "core.option.none";
@@ -50,6 +51,7 @@ pub(crate) fn declarations() -> &'static [TypeDeclaration] {
             iter_step(),
             immutable_list(),
             list_step(),
+            crate::stdin_stream_ops::declaration(),
         ]
     })
 }
@@ -57,8 +59,10 @@ pub(crate) fn declarations() -> &'static [TypeDeclaration] {
 pub(crate) fn declarations_for_program(
     program: &crate::ast::Program,
 ) -> &'static [TypeDeclaration] {
-    if crate::list_ops::program_uses_list(program) {
+    if crate::stdin_stream_ops::program_uses(program) {
         declarations()
+    } else if crate::list_ops::program_uses_list(program) {
+        &declarations()[..8]
     } else if crate::iterator_ops::program_uses_iterator(program) {
         &declarations()[..6]
     } else if crate::box_ops::program_uses_owned_payload(program) || program_uses_box(program) {
@@ -73,14 +77,15 @@ pub(crate) fn declarations_for_program(
 pub(crate) fn is_reserved_type_name(name: &str) -> bool {
     matches!(
         name,
-        "Option" | "Result" | "Vec" | "Iter" | "IterStep" | "List" | "ListStep"
+        "Option" | "Result" | "Vec" | "Iter" | "IterStep" | "List" | "ListStep" | "StdinReader"
     )
 }
 
 pub(crate) fn is_compiler_owned_id(id: &str) -> bool {
     matches!(
         id,
-        OPTION_ID
+        crate::stdin_stream_ops::READER_ID
+            | OPTION_ID
             | OPTION_NONE_ID
             | OPTION_SOME_ID
             | OPTION_SOME_VALUE_ID
@@ -186,7 +191,7 @@ pub(crate) fn all_type_ids_v9() -> [&'static str; 23] {
     ids
 }
 
-pub(crate) fn all_reserved_ids() -> [&'static str; 39] {
+pub(crate) fn all_reserved_ids() -> [&'static str; 45] {
     [
         OPTION_ID,
         OPTION_NONE_ID,
@@ -227,6 +232,12 @@ pub(crate) fn all_reserved_ids() -> [&'static str; 39] {
         crate::list_ops::NIL_ID,
         crate::list_ops::CONS_ID,
         crate::list_ops::UNCONS_ID,
+        crate::stdin_stream_ops::READER_ID,
+        crate::stdin_stream_ops::DROP_ID,
+        crate::stdin_stream_ops::OPEN_ID,
+        crate::stdin_stream_ops::NEXT_ID,
+        crate::stdin_stream_ops::CHUNK_ID,
+        crate::stdin_stream_ops::EOF_ID,
     ]
 }
 
@@ -626,7 +637,13 @@ pub(crate) fn selected_for_source(source: &str) -> (&'static str, Vec<u8>, Strin
 pub(crate) fn selected_for_program(
     program: &crate::ast::Program,
 ) -> (&'static str, Vec<u8>, String) {
-    if crate::list_ops::program_uses_list(program) {
+    if crate::stdin_stream_ops::program_uses(program) {
+        (
+            SCHEMA_V10,
+            crate::stdin_stream_ops::contract_bytes(),
+            crate::stdin_stream_ops::digest_text(),
+        )
+    } else if crate::list_ops::program_uses_list(program) {
         (SCHEMA_V9, contract_bytes_v9(), digest_text_v9())
     } else if crate::iterator_ops::program_uses_owned_iterator(program) {
         (SCHEMA_V8, contract_bytes_v8(), digest_text_v8())

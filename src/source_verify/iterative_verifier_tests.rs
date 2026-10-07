@@ -778,3 +778,11 @@ fn copy_variant_guards_match_recursive_oracle() {
         compare_scalar_body(&format!("module t; @id(\"t.main\") fn main()->i64 {{ let x=Option<i64>::Some {{ value: 7 }}; match x {{ {arms} }} }}"));
     }
 }
+
+#[test]
+fn streaming_inspection_calls_match_recursive_oracle() {
+    // The recursive oracle's assignment statement restriction remains unchanged;
+    // runtime owner renewal is checked separately by stdin_stream_ops::tests.
+    compare_scalar_body("module test.stream_oracle; @id(\"stream.inspect\") fn main(reader: borrow StdinReader) -> bool { stdin_stream_eof(reader) }");
+    compare_scalar_body("module test.stream_oracle; @id(\"stream.inspect\") fn main(reader: borrow StdinReader) -> usize { byte_len(stdin_stream_chunk(reader)) }");
+}

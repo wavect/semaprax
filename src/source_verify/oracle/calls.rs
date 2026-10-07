@@ -44,6 +44,24 @@ pub(super) fn oracle_call(
     ) {
         return result;
     }
+    if crate::stdin_stream_ops::pure_by_name(name).is_some()
+        || crate::stdin_stream_ops::host_by_name(name).is_some()
+    {
+        return super::stdin_stream::check_call(
+            name,
+            type_arguments,
+            args,
+            program,
+            current,
+            expr,
+            variables,
+            functions,
+            types,
+            result_type,
+            allow_moves,
+            diagnostics,
+        );
+    }
     if let Some(binding_type) = variables.get(name.as_str()).map(|binding| {
         crate::source_verify::mutable_closure::invocation_signature(
             program,

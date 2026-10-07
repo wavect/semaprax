@@ -44,6 +44,7 @@ mod owning_closure;
 mod place;
 mod record_invariants;
 mod scope;
+mod stdin_stream;
 mod type_table;
 mod variant_guards;
 mod variant_or;

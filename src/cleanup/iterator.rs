@@ -56,6 +56,7 @@ pub(crate) fn primitive_leaf_lifecycle(ty: &ResolvedType) -> Option<&'static str
         ResolvedType::Bytes => Some(super::BYTES_DROP_LIFECYCLE_ID),
         ResolvedType::String => Some(super::STRING_DROP_LIFECYCLE_ID),
         ResolvedType::StringMap => Some(crate::string_ops::MAP_DROP_LIFECYCLE_ID),
+        ty if crate::stdin_stream_ops::is_reader(ty) => Some(crate::stdin_stream_ops::DROP_ID),
         _ => None,
     }
 }

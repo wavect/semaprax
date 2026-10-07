@@ -102,8 +102,10 @@ fn swap_let_statements(function: &mut hir::ResolvedFunction, first: &str, second
     let position = |name: &str| {
         statements
             .iter()
-            .position(|statement| matches!(statement,
-                ResolvedStatement::Let { binding, .. } if binding.name == name))
+            .position(|statement| {
+                matches!(statement,
+                ResolvedStatement::Let { binding, .. } if binding.name == name)
+            })
             .unwrap_or_else(|| panic!("missing let binding {name}"))
     };
     let first = position(first);
@@ -117,8 +119,10 @@ fn move_assignment_before_let(function: &mut hir::ResolvedFunction, let_name: &s
     };
     let let_index = statements
         .iter()
-        .position(|statement| matches!(statement,
-            ResolvedStatement::Let { binding, .. } if binding.name == let_name))
+        .position(|statement| {
+            matches!(statement,
+            ResolvedStatement::Let { binding, .. } if binding.name == let_name)
+        })
         .unwrap_or_else(|| panic!("missing let binding {let_name}"));
     let assign_index = statements
         .iter()
@@ -127,10 +131,7 @@ fn move_assignment_before_let(function: &mut hir::ResolvedFunction, let_name: &s
     statements.swap(let_index, assign_index);
 }
 
-fn move_assignment_before_let_without_span(
-    function: &mut hir::ResolvedFunction,
-    let_name: &str,
-) {
+fn move_assignment_before_let_without_span(function: &mut hir::ResolvedFunction, let_name: &str) {
     move_assignment_before_let(function, let_name);
     let ResolvedExprKind::Block { statements, .. } = &mut function.body.kind else {
         unreachable!("function body remains a block");
@@ -153,7 +154,9 @@ fn assert_overlap_span(
     let parsed = parse(source, Path::new("shared-loan-overlap-span.spx")).unwrap();
     let source_diagnostics = verify::verify(&parsed);
     assert!(
-        source_diagnostics.iter().all(|diagnostic| !diagnostic.severity.is_error()),
+        source_diagnostics
+            .iter()
+            .all(|diagnostic| !diagnostic.severity.is_error()),
         "fixture source must be valid before hostile HIR reorder: {source_diagnostics:?}"
     );
     let mut program = hir::resolve(&parsed).unwrap();
@@ -172,7 +175,9 @@ fn assert_overlap_span(
         "move, mutation, or transfer overlaps an active shared loan"
     );
     if let Some((operation_start, operation_end)) = operation_span {
-        let span = diagnostic.span.expect("overlap points to the source operation");
+        let span = diagnostic
+            .span
+            .expect("overlap points to the source operation");
         let (line, column) = source_line_column(source, operation_start);
         assert_eq!(span.start, operation_start);
         assert_eq!(span.end, operation_end);
@@ -181,7 +186,8 @@ fn assert_overlap_span(
         assert_eq!(diagnostic.span, None, "missing HIR span stays locationless");
     }
 
-    let hostile = hir::validate(&program).expect_err("overlapping hostile HIR must remain rejected");
+    let hostile =
+        hir::validate(&program).expect_err("overlapping hostile HIR must remain rejected");
     assert_eq!(hostile.code, "SPX-H006");
 }
 
@@ -229,12 +235,9 @@ module test.shared_loan_assignment_span;
         |function| move_assignment_before_let(function, "observed"),
     );
 
-    assert_overlap_span(
-        assignment_source,
-        "loan.invalid",
-        None,
-        |function| move_assignment_before_let_without_span(function, "observed"),
-    );
+    assert_overlap_span(assignment_source, "loan.invalid", None, |function| {
+        move_assignment_before_let_without_span(function, "observed")
+    });
 }
 
 #[test]

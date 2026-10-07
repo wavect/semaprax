@@ -1,5 +1,7 @@
 # Bounded Stdin Command Exit Status v1
 
+Audience: Project command authors and native backend contributors.
+
 Status: additive native Project profile. Focused Project/native regressions
 cover the executable route; Wasm and npm remain explicitly refused. The
 Bool-returning streaming profile remains frozen.

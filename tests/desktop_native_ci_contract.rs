@@ -175,7 +175,7 @@ fn macos_source_lock_rejects_hostile_gate_removal() {
         source.replace("\"$load_commands\" | sed '1d'", "\"$load_commands\""),
         source.replace("nm -gjU", "nm"),
         source.replace(
-            "_spx_2b999dea815d395bbd8791a5bbce1859898076656517a557_settle_v3",
+            "_spx_7ee75caba261afcb2614a8fe1804e2fabf45872c91f20f29_settle_v3",
             "_spx_forged_settle_v3",
         ),
         source.replace("build_once second", ": second build removed"),
@@ -418,7 +418,7 @@ fn macos_contract(source: &str) -> Result<(), String> {
             "actual_provider_images",
             "nm -gjU",
             "actual_provider_exports",
-            "expected_provider_exports='_spx_19509d02ccc7f5d25972f2cb6ccd845c2f49a9cadb193812_execute_v3\n_spx_2b999dea815d395bbd8791a5bbce1859898076656517a557_settle_v3\n_spx_e0be0721965b6529644f153cb905b00cdf5e6c1fd6e5d77e_descriptor_v3'",
+            "expected_provider_exports='_spx_7ee75caba261afcb2614a8fe1804e2fabf45872c91f20f29_settle_v3\n_spx_9afe61f6581725ff59a03478edbc1ba2be92bfbf24bd1eb4_descriptor_v3\n_spx_cace372169b82b275cadbc80a88ad3b2b15101b7e9b9be32_execute_v3'",
             "actual_app_exports",
             "expected_inventory=",
             "find \"$app\" -type l",

@@ -1,5 +1,7 @@
 # Bounded Standard Input Streaming v1
 
+Audience: Project command authors and native backend contributors.
+
 Status: additive compiler and provider contract under integration. The compiler
 foundation and target implementations require the affected executable gates
 before this profile is reported as implemented. This specification assigns the

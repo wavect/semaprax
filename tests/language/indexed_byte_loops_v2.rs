@@ -5,8 +5,8 @@
 //! ownership, identity, and type forgeries remain rejected.
 
 use semaprax::hir::{
-    self, DeclarationId, OwnershipMode, ResolvedExpr, ResolvedExprKind, ResolvedMatchPattern,
-    ResolvedProgram, ResolvedStatement, ResolvedType,
+    self, DeclarationId, OwnershipMode, ResolvedExpr, ResolvedExprKind, ResolvedMatchMode,
+    ResolvedMatchPattern, ResolvedProgram, ResolvedStatement, ResolvedType,
 };
 use semaprax::{format, graph, parse, verify};
 use sha2::{Digest, Sha256};
@@ -285,6 +285,22 @@ fn hostile_hir_cannot_forge_indexed_match_identity_inventory_or_types() {
         fields[0].binding.ty = ResolvedType::Bool;
         fields[0].binding.ownership = OwnershipMode::Borrow;
     });
+    for forged_mode in [ResolvedMatchMode::Own, ResolvedMatchMode::Borrow] {
+        assert_hostile_rejected(&baseline, |expression| {
+            let ResolvedExprKind::Match { mode, .. } = &mut expression.kind else {
+                unreachable!();
+            };
+            *mode = forged_mode;
+        });
+    }
+    for forged_ownership in [OwnershipMode::Own, OwnershipMode::Borrow] {
+        assert_hostile_rejected(&baseline, |expression| {
+            let ResolvedExprKind::Match { scrutinee, .. } = &mut expression.kind else {
+                unreachable!();
+            };
+            scrutinee.ownership = forged_ownership;
+        });
+    }
     assert_hostile_rejected(&baseline, |expression| {
         expression.ownership = OwnershipMode::Borrow;
     });

@@ -75,7 +75,7 @@ impl Snapshot {
     /// Recapture and require the identical revision (stale refusal otherwise).
     pub fn verify_current(&self) -> HarnessResult<()> {
         let now = Snapshot::capture(&self.root)?;
-        if now.revision != self.revision {
+        if now.root != self.root || now.revision != self.revision || now.files != self.files {
             let changed: Vec<&String> = now
                 .files
                 .keys()

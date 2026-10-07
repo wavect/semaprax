@@ -30,8 +30,12 @@ pub(super) fn scan_is_admitted(
             } else {
                 hir::OwnershipMode::Value
             }
-        && operand.ty == *residual_type
         && is_admitted_owned_byte_variant(declarations, &operand.ty)
+        && is_admitted_owned_byte_variant(declarations, residual_type)
+        && matches!((&operand.ty, residual_type),
+            (ResolvedType::Nominal { arguments: source, .. },
+             ResolvedType::Nominal { arguments: target, .. })
+                if source.get(1) == target.get(1))
         && result.as_str() == crate::prelude::RESULT_ID
         && ok_case.as_str() == crate::prelude::RESULT_OK_ID
         && ok_field.as_str() == crate::prelude::RESULT_OK_VALUE_ID
@@ -78,7 +82,10 @@ impl Evaluator<'_> {
             || source_result != result
             || target_result != result
             || !hir::admitted_owned_byte_prelude_instance(source_result, source_arguments)
-            || source_arguments != target_arguments
+            || source_arguments.len() != 2
+            || target_arguments.len() != 2
+            || source_arguments[1] != target_arguments[1]
+            || !hir::admitted_owned_byte_prelude_instance(target_result, target_arguments)
             || source_arguments.first() != Some(&expression.ty)
             || ok_case.as_str() != crate::prelude::RESULT_OK_ID
             || ok_field.as_str() != crate::prelude::RESULT_OK_VALUE_ID

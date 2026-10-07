@@ -350,6 +350,7 @@ module test.while_call;
 record Token {
     weight: i64,
 }
+
 @id("call.consume")
 fn consume(token: own Token) -> i64 { token.weight }
 @id("app.main")
@@ -369,6 +370,119 @@ fn main() -> i64 {
             .iter()
             .any(|item| item.code == "SPX-T252" && item.message.contains("`consume`")),
         "own-parameter calls stay outside loops: {report:?}"
+    );
+}
+
+#[test]
+fn record_owner_renewal_replays_every_copy_argument_at_both_trust_boundaries() {
+    let rejected = r#"
+module test.while_record_renewal_argument;
+@id("cursor.type") record Cursor {
+    @id("cursor.data") data: Bytes,
+    @id("cursor.position") position: usize,
+}
+@id("cursor.renew")
+fn renew(value: own Cursor, amount: i64) -> Cursor { value }
+@id("cursor.identity")
+fn identity<T>(value: T) -> T { value }
+@id("app.main")
+fn main() -> i64 {
+    let mut cursor = Cursor { data: bytes_zeroed(0usize), position: 0usize };
+    let mut count = 0;
+    while count < 1 {
+        cursor = renew(cursor, identity<i64>(count));
+        count = count + 1;
+        count < 1
+    }
+    0
+}
+"#;
+    let report = verify_diagnostics(rejected);
+    assert!(
+        report
+            .iter()
+            .any(|item| item.code == "SPX-T252" && item.message.contains("generic calls")),
+        "renewal must not hide a disallowed nested argument: {report:?}"
+    );
+
+    let admitted = rejected.replace("identity<i64>(count)", "count");
+    let parsed = semaprax::check(&admitted, "while-record-renewal-argument.spx").unwrap();
+    let mut hostile = hir::resolve(&parsed).unwrap();
+    hir::validate(&hostile).unwrap();
+    let main = hostile
+        .functions
+        .iter_mut()
+        .find(|function| function.id.as_str() == "app.main")
+        .unwrap();
+    let hir::ResolvedExprKind::Block { statements, .. } = &mut main.body.kind else {
+        panic!("renewal witness main must remain a block")
+    };
+    let while_body = statements
+        .iter_mut()
+        .find_map(|statement| match statement {
+            hir::ResolvedStatement::While { body, .. } => Some(body),
+            _ => None,
+        })
+        .expect("renewal witness while statement");
+    let hir::ResolvedExprKind::Block { statements, .. } = &mut while_body.kind else {
+        panic!("renewal witness while body must remain a block")
+    };
+    let argument = statements
+        .iter_mut()
+        .find_map(|statement| match statement {
+            hir::ResolvedStatement::Assign { value, .. } => match &mut value.kind {
+                hir::ResolvedExprKind::Call { args, .. } => args.get_mut(1),
+                _ => None,
+            },
+            _ => None,
+        })
+        .expect("renewal witness Copy argument");
+    argument.kind = hir::ResolvedExprKind::ArrayU8(vec![1]);
+    assert_eq!(hir::validate(&hostile).unwrap_err().code, "SPX-H006");
+    assert_eq!(
+        interpreter::evaluate_resolved_owned_data(&hostile, "app.main", &[], 10_000).unwrap_err()
+            [0]
+        .code,
+        "SPX-H006"
+    );
+    assert_eq!(codegen::emit_hir_c(&hostile).unwrap_err().code, "SPX-H006");
+    assert_eq!(
+        semaprax::wasm::emit_resolved_module(&hostile)
+            .unwrap_err()
+            .code,
+        "SPX-H006"
+    );
+}
+
+#[test]
+fn record_owner_renewal_cannot_replace_storage_with_a_live_projected_borrow() {
+    let source = r#"
+module test.while_record_renewal_live_borrow;
+@id("cursor.type") record Cursor {
+    @id("cursor.data") data: Bytes,
+    @id("cursor.position") position: usize,
+}
+@id("cursor.renew")
+fn renew(value: own Cursor, amount: usize) -> Cursor { value }
+@id("app.main")
+fn main() -> i64 {
+    let mut cursor = Cursor { data: bytes_zeroed(1usize), position: 0usize };
+    let view = bytes_as_slice(cursor.data);
+    let mut count = 0usize;
+    while count < 1usize {
+        cursor = renew(cursor, count);
+        count = count + 1usize;
+        count < 1usize
+    }
+    if byte_len(view) == 1usize { 0 } else { 1 }
+}
+"#;
+    let report = verify_diagnostics(source);
+    assert!(
+        report
+            .iter()
+            .any(|item| item.code == "SPX-T265" && item.message.contains("borrow")),
+        "renewal must not replace an owner while its projected borrow remains live: {report:?}"
     );
 }
 

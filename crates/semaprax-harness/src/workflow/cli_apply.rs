@@ -7,8 +7,12 @@ use super::session::{apply_result, SESSION_FILE};
 use super::snapshot::Snapshot;
 use crate::cli::{Environment, Outcome};
 use crate::diag::{HarnessDiagnostic, HarnessResult};
+use crate::json::{parse_strict, JsonLimits};
 use serde_json::{json, Value};
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
+
+const MAX_APPLY_RECORD_BYTES: usize = 16 * 1024 * 1024;
 
 fn d(code: &'static str, msg: impl Into<String>) -> HarnessDiagnostic {
     HarnessDiagnostic::new(code, msg)
@@ -68,40 +72,68 @@ fn run(args: &[String], env: &Environment) -> HarnessResult<Outcome> {
     let result_dir = if session.is_dir() {
         session
     } else {
-        let v: Value = serde_json::from_slice(
-            &std::fs::read(&session)
-                .map_err(|e| d("SPX-HPD115", format!("session report: {e}")))?,
-        )
-        .map_err(|e| d("SPX-HPD115", format!("session report is not JSON: {e}")))?;
+        let v = read_json(&session, "session report")?;
         PathBuf::from(
             v.pointer("/session/result/dir")
                 .and_then(Value::as_str)
                 .ok_or_else(|| d("SPX-HPD115", "the report carries no session result"))?,
         )
     };
-    let meta: Value = serde_json::from_slice(
-        &std::fs::read(result_dir.join(SESSION_FILE))
-            .map_err(|e| d("SPX-HPD115", format!("session result record: {e}")))?,
-    )
-    .map_err(|e| d("SPX-HPD115", format!("session result record: {e}")))?;
-    if meta["result_revision"].as_str() != Some(expected.as_str()) {
+    let meta = read_json(&result_dir.join(SESSION_FILE), "session result record")?;
+    let object = meta.as_object().filter(|object| {
+        object.len() == 4
+            && [
+                "schema",
+                "baseline_revision",
+                "baseline_files",
+                "result_revision",
+            ]
+            .iter()
+            .all(|field| object.contains_key(*field))
+    });
+    let object = object.ok_or_else(|| {
+        d(
+            "SPX-HPD115",
+            "session result record has missing or unknown fields",
+        )
+    })?;
+    if object.get("schema").and_then(Value::as_str) != Some("semaprax.harness-session-result.v1") {
+        return Err(d("SPX-HPD115", "session result record schema is invalid"));
+    }
+    if object.get("result_revision").and_then(Value::as_str) != Some(expected.as_str()) {
         return Err(d(
             "SPX-HPD115",
             "the session result is not at the expected revision",
         ));
     }
-    // The baseline the session was computed from: current files must still match it.
-    let mut snap = Snapshot::capture(&project)?;
-    snap.revision = meta["baseline_revision"]
-        .as_str()
-        .unwrap_or_default()
-        .to_string();
-    snap.files = meta["baseline_files"]
-        .as_object()
-        .ok_or_else(|| d("SPX-HPD115", "session record lacks the baseline"))?
+    let snap = Snapshot::capture(&project)?;
+    let baseline_revision = object
+        .get("baseline_revision")
+        .and_then(Value::as_str)
+        .ok_or_else(|| d("SPX-HPD115", "session record baseline revision is invalid"))?;
+    let baseline_files = object
+        .get("baseline_files")
+        .and_then(Value::as_object)
+        .ok_or_else(|| d("SPX-HPD115", "session record baseline files are invalid"))?
         .iter()
-        .map(|(k, v)| (k.clone(), v.as_str().unwrap_or_default().to_string()))
-        .collect();
+        .map(|(path, digest)| {
+            digest
+                .as_str()
+                .map(|digest| (path.clone(), digest.to_string()))
+                .ok_or_else(|| {
+                    d(
+                        "SPX-HPD115",
+                        format!("session record digest for `{path}` is invalid"),
+                    )
+                })
+        })
+        .collect::<HarnessResult<BTreeMap<_, _>>>()?;
+    if baseline_revision != snap.revision || baseline_files != snap.files {
+        return Err(d(
+            "SPX-HPD115",
+            "session result baseline inventory differs from the live authenticated project",
+        ));
+    }
     let home = env
         .harness_home
         .clone()
@@ -123,4 +155,21 @@ fn run(args: &[String], env: &Environment) -> HarnessResult<Outcome> {
         },
         stderr: String::new(),
     })
+}
+
+fn read_json(path: &Path, what: &str) -> HarnessResult<Value> {
+    let metadata =
+        std::fs::symlink_metadata(path).map_err(|e| d("SPX-HPD115", format!("{what}: {e}")))?;
+    if !metadata.is_file()
+        || metadata.file_type().is_symlink()
+        || metadata.len() > MAX_APPLY_RECORD_BYTES as u64
+    {
+        return Err(d(
+            "SPX-HPD115",
+            format!("{what} must be an ordinary file of at most {MAX_APPLY_RECORD_BYTES} bytes"),
+        ));
+    }
+    let bytes = std::fs::read(path).map_err(|e| d("SPX-HPD115", format!("{what}: {e}")))?;
+    parse_strict(&bytes, &JsonLimits::frame(MAX_APPLY_RECORD_BYTES))
+        .map_err(|error| d("SPX-HPD115", format!("{what}: {}", error.message)))
 }

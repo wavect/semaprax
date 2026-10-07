@@ -15,6 +15,24 @@ const SOURCE: &str = r#"module fixture.app;
 @id("fixture.public") fn published() -> i64 { 0 }
 "#;
 
+const RECORD_SOURCE: &str = r#"module fixture.app;
+@id("fixture.item") record Item {
+ @id("fixture.item.left") left:Bytes,
+ @id("fixture.item.right") right:Bytes,
+ @id("fixture.item.marker") marker:i64,
+}
+@id("fixture.consume") fn consume(value:own Item)->i64 {
+ match own value {Item{left,right,marker}=>marker,}
+}
+@id("fixture.main") fn main()->i64 {
+ let values=vec_push<Item>(vec_with_capacity<Item>(1usize),Item{left:bytes_zeroed(1usize),right:bytes_zeroed(2usize),marker:7});
+ let mut total=0;
+ for own item in vec_into_iter<Item>(values){total=total+consume(item);0}
+ if total==7 {0}else{1}
+}
+@id("fixture.public") fn published()->i64 {0}
+"#;
+
 fn fixture(label: &str, source: &str) -> Fixture {
     let fixture = Fixture::owned_vec(label, false);
     if source.contains("fixture.consume") {
@@ -41,6 +59,7 @@ fn fixture(label: &str, source: &str) -> Fixture {
 
 fn verify_root(
     fixture: &Fixture,
+    prelude_contract: &[u8],
 ) -> (Arc<ProjectRevision>, SemanticWorkspaceRevision, ProgramRoot) {
     let revision = fixture.revision();
     let workspace = revision.canonical_workspace_revision().unwrap();
@@ -49,7 +68,7 @@ fn verify_root(
         semantic["payload"]["prelude_digest"],
         framed(
             b"semaprax.semantic-workspace-revision.prelude.digest.v1\0",
-            include_bytes!("../../fixtures/prelude-v8.contract"),
+            prelude_contract,
         )
     );
     let root = workspace.program_root().unwrap();
@@ -79,7 +98,10 @@ fn owned_iterator_workspace_binds_payload_cleanup_and_rejects_source_drift() {
         graph["owned_iterator_payloads"]["cleanup_schema"],
         "semaprax.cleanup-plan.v13"
     );
-    let (_, before, root) = verify_root(&fixture);
+    let (_, before, root) = verify_root(
+        &fixture,
+        include_bytes!("../../fixtures/prelude-v8.contract"),
+    );
     let changed = SOURCE.replace("[1u8]", "[2u8]");
     let path = fixture.0.join("src/app.spx");
     std::fs::write(
@@ -87,7 +109,10 @@ fn owned_iterator_workspace_binds_payload_cleanup_and_rejects_source_drift() {
         semaprax::format::canonical(&semaprax::parse(&changed, &path).unwrap()),
     )
     .unwrap();
-    let (_, after, next_root) = verify_root(&fixture);
+    let (_, after, next_root) = verify_root(
+        &fixture,
+        include_bytes!("../../fixtures/prelude-v8.contract"),
+    );
     assert_ne!(
         before.semantic_program().digest(),
         after.semantic_program().digest()
@@ -115,5 +140,28 @@ fn owned_iterator_local_done_retains_payload_prelude_without_vec_operations() {
 }
 @id("fixture.public") fn published() -> i64 { 0 }
 "#;
-    verify_root(&fixture("owned-iterator-done-root", source));
+    verify_root(
+        &fixture("owned-iterator-done-root", source),
+        include_bytes!("../../fixtures/prelude-v8.contract"),
+    );
+}
+
+#[test]
+fn record_iterator_workspace_and_program_root_replay_prelude_v10() {
+    let fixture = fixture("owned-record-iterator-root", RECORD_SOURCE);
+    let source = semaprax::parse(RECORD_SOURCE, fixture.0.join("src/app.spx")).unwrap();
+    let graph: Value = serde_json::from_str(&semaprax::graph::to_json(&source).unwrap()).unwrap();
+    assert_eq!(graph["schema"], "semaprax.graph.v65");
+    assert_eq!(
+        graph["owned_iterator_payloads"]["schema"],
+        "semaprax.owned-record-iterator.v3"
+    );
+    assert_eq!(
+        graph["owned_iterator_payloads"]["cleanup_schema"],
+        "semaprax.cleanup-plan.v13"
+    );
+    verify_root(
+        &fixture,
+        include_bytes!("../../fixtures/prelude-v10.contract"),
+    );
 }

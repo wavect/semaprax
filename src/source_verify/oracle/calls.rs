@@ -301,7 +301,11 @@ pub(super) fn oracle_call(
     if let Some(op) = crate::iterator_ops::by_name(name) {
         let element = type_arguments.first();
         if type_arguments.len() != 1
-            || element.is_none_or(|ty| !crate::iterator_ops::ast_element_is_admitted(ty))
+            || element.is_none_or(|ty| {
+                !crate::iterator_ops::ast_element_is_admitted(ty)
+                    && !crate::source_verify::declared_type::owned_record_collection::
+                        is_admitted_owned_record_collection_element(types, ty)
+            })
         {
             diagnostics.push(error(
                 program,

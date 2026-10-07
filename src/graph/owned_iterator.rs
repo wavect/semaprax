@@ -1,19 +1,25 @@
-//! Graph v45 binds the independent item and remainder owners of Bytes iteration.
+//! Graph v45 binds Bytes iteration; additive v65 binds owned-record iteration.
 use super::*;
+const RECORD_GRAPH_SCHEMA: &str = "semaprax.graph.v65";
 pub(super) fn requires(program: &ResolvedProgram) -> bool {
     crate::iterator_ops::resolved_program_uses_owned_iterator(program)
-        || program
-            .function_templates
-            .iter()
-            .any(crate::iterator_ops::template_uses_owned_iterator)
+        || crate::iterator_ops::resolved_program_uses_record_iterator(program)
+        || program.function_templates.iter().any(|template| {
+            crate::iterator_ops::template_uses_owned_iterator(template)
+                || crate::iterator_ops::template_uses_record_iterator(template)
+        })
 }
 pub(crate) fn graph_schema(program: &ResolvedProgram) -> Result<&'static str, Diagnostic> {
     let previous = super::process::graph_schema(program)?;
-    Ok(if requires(program) {
-        "semaprax.graph.v45"
-    } else {
-        previous
-    })
+    Ok(
+        if crate::iterator_ops::resolved_program_uses_record_iterator(program) {
+            RECORD_GRAPH_SCHEMA
+        } else if requires(program) {
+            "semaprax.graph.v45"
+        } else {
+            previous
+        },
+    )
 }
 pub(crate) fn graph_schema_from_parts_and_instances(
     interfaces: &[hir::ResolvedInterface],
@@ -27,6 +33,15 @@ pub(crate) fn graph_schema_from_parts_and_instances(
     )?;
     Ok(
         if functions
+            .iter()
+            .chain(instances.iter().map(|i| &i.function))
+            .any(crate::iterator_ops::function_uses_record_iterator)
+            || templates
+                .iter()
+                .any(crate::iterator_ops::template_uses_record_iterator)
+        {
+            RECORD_GRAPH_SCHEMA
+        } else if functions
             .iter()
             .chain(instances.iter().map(|i| &i.function))
             .any(crate::iterator_ops::function_uses_owned_iterator)
@@ -60,8 +75,19 @@ pub(super) fn graph_json(
     if !graph.starts_with(&prefix) || !graph.ends_with('}') {
         return Err(Diagnostic::io("SPX-G411", "noncanonical checked graph"));
     }
-    graph.replace_range(..prefix.len(), "{\"schema\":\"semaprax.graph.v45\"");
+    graph.replace_range(
+        ..prefix.len(),
+        if crate::iterator_ops::resolved_program_uses_record_iterator(program) {
+            "{\"schema\":\"semaprax.graph.v65\""
+        } else {
+            "{\"schema\":\"semaprax.graph.v45\""
+        },
+    );
     graph.pop();
-    graph.push_str(",\"owned_iterator_payloads\":{\"schema\":\"semaprax.owned-iterator-payloads.v2\",\"element\":\"Bytes\",\"initialized_window\":\"[cursor,length)\",\"detached_prefix\":\"[0,cursor)\",\"authority\":\"distinct-from-vec\",\"yield_owners\":[\"core.iter-step.yield.item\",\"core.iter-step.yield.rest\"],\"commit\":\"validate-then-detach-item-and-successor\",\"drop_order\":\"remaining-index-order-then-backing\",\"cleanup_schema\":\"semaprax.cleanup-plan.v13\"}}");
+    if crate::iterator_ops::resolved_program_uses_record_iterator(program) {
+        graph.push_str(",\"owned_iterator_payloads\":{\"schema\":\"semaprax.owned-record-iterator.v3\",\"element\":\"explicit-record(two:Bytes,one:CopyScalar)\",\"initialized_window\":\"[cursor,length)\",\"detached_prefix\":\"[0,cursor)\",\"authority\":\"distinct-from-vec\",\"yield_owners\":[\"core.iter-step.yield.item\",\"core.iter-step.yield.rest\"],\"commit\":\"validate-then-detach-record-and-successor\",\"drop_order\":\"remaining-index-and-field-declaration-order-then-backing\",\"cleanup_schema\":\"semaprax.cleanup-plan.v13\"}}");
+    } else {
+        graph.push_str(",\"owned_iterator_payloads\":{\"schema\":\"semaprax.owned-iterator-payloads.v2\",\"element\":\"Bytes\",\"initialized_window\":\"[cursor,length)\",\"detached_prefix\":\"[0,cursor)\",\"authority\":\"distinct-from-vec\",\"yield_owners\":[\"core.iter-step.yield.item\",\"core.iter-step.yield.rest\"],\"commit\":\"validate-then-detach-item-and-successor\",\"drop_order\":\"remaining-index-order-then-backing\",\"cleanup_schema\":\"semaprax.cleanup-plan.v13\"}}");
+    }
     Ok(graph)
 }

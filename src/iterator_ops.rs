@@ -90,6 +90,16 @@ pub(crate) fn ast_element_is_admitted(ty: &Type) -> bool {
 pub(crate) fn resolved_element_is_admitted(ty: &ResolvedType) -> bool {
     crate::vec_ops::resolved_element_is_admitted(ty) || *ty == ResolvedType::Bytes
 }
+pub(crate) fn resolved_element_is_admitted_in(
+    declarations: &crate::hir::DeclarationIndex,
+    ty: &ResolvedType,
+) -> bool {
+    resolved_element_is_admitted(ty)
+        || crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
+            declarations,
+            ty,
+        )
+}
 fn nominal(name: &str, element: Type) -> Type {
     Type::Named {
         name: name.into(),
@@ -114,7 +124,7 @@ pub(crate) fn element(ty: &ResolvedType) -> Option<&ResolvedType> {
             declaration,
             arguments,
         } if matches!(declaration.as_str(), ITER_ID | STEP_ID) => match arguments.as_slice() {
-            [element] if resolved_element_is_admitted(element) => Some(element),
+            [element] => Some(element),
             _ => None,
         },
         _ => None,
@@ -307,12 +317,56 @@ pub(crate) fn resolved_expression_uses_iterator(expression: &crate::hir::Resolve
     false
 }
 
+pub(crate) fn function_uses_record_iterator_in(
+    declarations: &crate::hir::DeclarationIndex,
+    function: &crate::hir::ResolvedFunction,
+) -> bool {
+    let admitted = |ty: &ResolvedType| {
+        element(ty).is_some_and(|element| {
+            crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
+                declarations,
+                element,
+            )
+        })
+    };
+    if admitted(&function.return_type) || function.params.iter().any(|p| admitted(&p.ty)) {
+        return true;
+    }
+    let mut pending = function
+        .requires
+        .iter()
+        .chain(std::iter::once(&function.body))
+        .chain(&function.ensures)
+        .collect::<Vec<_>>();
+    while let Some(expression) = pending.pop() {
+        if admitted(&expression.ty) {
+            return true;
+        }
+        crate::hir::push_resolved_expression_children_in_authored_order(expression, &mut pending);
+    }
+    false
+}
+
+pub(crate) fn resolved_program_uses_record_iterator(program: &crate::hir::ResolvedProgram) -> bool {
+    program
+        .functions
+        .iter()
+        .chain(
+            program
+                .function_instances
+                .iter()
+                .map(|instance| &instance.function),
+        )
+        .any(|function| function_uses_record_iterator_in(&program.declarations, function))
+}
+
 pub(crate) fn type_facts(
+    declarations: &crate::hir::DeclarationIndex,
     declaration: &DeclarationId,
     arguments: &[ResolvedType],
 ) -> Option<crate::hir::TypeFacts> {
     if !matches!(declaration.as_str(), ITER_ID | STEP_ID)
-        || !matches!(arguments,[element] if resolved_element_is_admitted(element))
+        || !matches!(arguments,[element] if resolved_element_is_admitted_in(declarations, element))
     {
         return None;
     }
@@ -323,7 +377,12 @@ pub(crate) fn type_facts(
         needs_drop: true,
         layout_key: format!(
             "iterator-{}:{}:{}",
-            if arguments[0] == ResolvedType::Bytes {
+            if crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
+                declarations,
+                &arguments[0],
+            ) {
+                "record-v3"
+            } else if arguments[0] == ResolvedType::Bytes {
                 "v2"
             } else {
                 "v1"
@@ -336,7 +395,9 @@ pub(crate) fn type_facts(
 
 /// Authenticate the closed Step declaration, independently of its supplied case tag.
 pub(crate) fn step_shape(index: &crate::hir::DeclarationIndex, ty: &ResolvedType) -> bool {
-    if !is_step(ty) {
+    if !is_step(ty)
+        || !element(ty).is_some_and(|element| resolved_element_is_admitted_in(index, element))
+    {
         return false;
     }
     let owner = DeclarationId::new(STEP_ID);

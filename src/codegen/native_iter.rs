@@ -68,13 +68,13 @@ pub(super) fn c_type(ty: &crate::hir::ResolvedType) -> Option<&'static str> {
     if crate::iterator_ops::is_iter(ty) {
         Some("spx_iter_v1")
     } else if crate::iterator_ops::is_step(ty) {
-        Some(
-            if crate::iterator_ops::element(ty) == Some(&crate::hir::ResolvedType::Bytes) {
-                "spx_iter_bytes_step_v2"
-            } else {
-                "spx_iter_step_v1"
-            },
-        )
+        match crate::iterator_ops::element(ty) {
+            Some(crate::hir::ResolvedType::Bytes) => Some("spx_iter_bytes_step_v2"),
+            Some(element) if crate::iterator_ops::resolved_element_is_admitted(element) => {
+                Some("spx_iter_step_v1")
+            }
+            _ => None,
+        }
     } else {
         None
     }
@@ -143,5 +143,19 @@ pub(super) fn item_bits(code: &str, ty: &crate::hir::ResolvedType) -> String {
         crate::hir::ResolvedType::F32 => format!("spx_vec_f32_bits({code})"),
         crate::hir::ResolvedType::F64 => format!("spx_vec_f64_bits({code})"),
         _ => format!("((uint64_t)({code}))"),
+    }
+}
+
+pub(super) fn item_from_bits(code: &str, ty: &crate::hir::ResolvedType) -> String {
+    match ty {
+        crate::hir::ResolvedType::I64 => format!("((int64_t)({code}))"),
+        crate::hir::ResolvedType::I32 => format!("((int32_t)({code}))"),
+        crate::hir::ResolvedType::U8 => format!("((uint8_t)({code}))"),
+        crate::hir::ResolvedType::Usize => code.to_owned(),
+        crate::hir::ResolvedType::Char => format!("((uint32_t)({code}))"),
+        crate::hir::ResolvedType::F32 => format!("spx_vec_bits_f32({code})"),
+        crate::hir::ResolvedType::F64 => format!("spx_vec_bits_f64({code})"),
+        crate::hir::ResolvedType::Bool => format!("((bool)({code}))"),
+        _ => code.to_owned(),
     }
 }

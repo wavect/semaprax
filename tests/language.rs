@@ -55,6 +55,8 @@ mod guarded_copy_variants;
 mod i32_scalars;
 #[path = "language/indexed_byte_loops_v2.rs"]
 mod indexed_byte_loops_v2;
+#[path = "language/integer_profiles.rs"]
+mod integer_profiles;
 #[path = "language/interop_scalar_widen.rs"]
 mod interop_scalar_widen;
 #[path = "language/interpreter_scalar_widen.rs"]

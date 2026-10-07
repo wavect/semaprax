@@ -68,7 +68,7 @@ fn scalar_value_matches_type(value: &Value, ty: &ResolvedType) -> bool {
 /// field identities, and hold a value of the declared type in each. A forged
 /// or mis-typed record carrier therefore cannot enter the vector, and field
 /// selection never consults a display name.
-fn element_value_matches_type(
+pub(super) fn element_value_matches_type(
     declarations: &crate::hir::DeclarationIndex,
     value: &Value,
     ty: &ResolvedType,

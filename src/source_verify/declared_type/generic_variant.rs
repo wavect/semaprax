@@ -203,8 +203,8 @@ pub(in crate::source_verify) fn match_result(
     }
     if mode == crate::ast::MatchMode::Own
         && ownership == ParamMode::Own
-        && matches!(ty, Type::Named { name, arguments } if name == "IterStep"
-            && matches!(arguments.as_slice(), [element] if crate::iterator_ops::ast_element_is_admitted(element)))
+        && matches!(ty, Type::Named { name, .. } if name == "IterStep")
+        && types.is_admitted_iterator(ty)
         && types.is_flat_owned_byte_variant(ty)
     {
         return true;

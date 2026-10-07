@@ -93,6 +93,43 @@ fn test_bare_cr() -> i64
     line_case(array_as_slice(source), writer_from_bytes(bytes_zeroed(3usize)), 3usize, 3usize, false, 3usize, array_as_slice(expected))
 }
 
+@id("std.io.lines.tests.test-bare-cr-eof")
+fn test_bare_cr_eof() -> i64
+{
+    let source = [97u8, 13u8];
+    let expected = [97u8, 13u8];
+    line_case(array_as_slice(source), writer_from_bytes(bytes_zeroed(2usize)), 2usize, 2usize, false, 2usize, array_as_slice(expected))
+}
+
+@id("std.io.lines.tests.test-lone-cr-eof")
+fn test_lone_cr_eof() -> i64
+{
+    let source = [13u8];
+    let expected = [13u8];
+    line_case(array_as_slice(source), writer_from_bytes(bytes_zeroed(1usize)), 1usize, 1usize, false, 1usize, array_as_slice(expected))
+}
+
+@id("std.io.lines.tests.test-double-cr-eof")
+fn test_double_cr_eof() -> i64
+{
+    let source = [97u8, 13u8, 13u8];
+    let expected = [97u8, 13u8, 13u8];
+    line_case(array_as_slice(source), writer_from_bytes(bytes_zeroed(3usize)), 3usize, 3usize, false, 3usize, array_as_slice(expected))
+}
+
+@id("std.io.lines.tests.test-bare-cr-offset")
+fn test_bare_cr_offset() -> i64
+{
+    let source = [10u8, 97u8, 13u8];
+    let expected = [97u8, 13u8];
+    let input = bytes_copy(array_as_slice(source));
+    let reader0 = reader_from_bytes(input);
+    let reader1 = reader_next_line(reader0);
+    let written = reader_line_into(reader1, writer_from_bytes(bytes_zeroed(2usize)));
+    let copied = writer_finish(written);
+    if reader_position(reader1) == 1usize && reader_line_len(reader1) == 2usize && equal(bytes_as_slice(copied), array_as_slice(expected)) { 0 } else { 1 }
+}
+
 @id("std.io.lines.tests.test-unterminated-tail")
 fn test_unterminated_tail() -> i64
 {
@@ -117,6 +154,62 @@ fn test_two_line_walk() -> i64
     let retained = reader_finish(reader2);
     let bytes = writer_finish(out2);
     if walked && byte_len(bytes_as_slice(retained)) == 6usize && equal(bytes_as_slice(bytes), array_as_slice(expected)) { 0 } else { 1 }
+}
+
+@id("std.io.lines.tests.test-runtime-line-walk")
+fn test_runtime_line_walk() -> i64
+{
+    let source = [10u8, 97u8, 10u8, 98u8, 13u8, 10u8, 99u8];
+    let expected = [97u8, 98u8, 99u8];
+    let mut reader = reader_from_bytes(bytes_copy(array_as_slice(source)));
+    let mut writer = writer_from_bytes(bytes_zeroed(3usize));
+    let mut lines = 0usize;
+    while reader_remaining(reader) > 0usize {
+        writer = reader_line_into(reader, writer);
+        reader = reader_next_line(reader);
+        lines = lines + 1usize;
+        reader_remaining(reader) > 0usize
+    }
+    let retained = reader_finish(reader);
+    let output = writer_finish(writer);
+    if lines == 4usize && byte_len(bytes_as_slice(retained)) == 7usize && equal(bytes_as_slice(output), array_as_slice(expected)) { 0 } else { 1 }
+}
+
+@id("std.io.lines.tests.test-runtime-zero-line-walk")
+fn test_runtime_zero_line_walk() -> i64
+{
+    let mut reader = reader_from_bytes(bytes_zeroed(0usize));
+    let mut writer = writer_from_bytes(bytes_zeroed(0usize));
+    let mut lines = 0usize;
+    while reader_remaining(reader) > 0usize {
+        writer = reader_line_into(reader, writer);
+        reader = reader_next_line(reader);
+        lines = lines + 1usize;
+        reader_remaining(reader) > 0usize
+    }
+    let retained = reader_finish(reader);
+    let output = writer_finish(writer);
+    if lines == 0usize && byte_len(bytes_as_slice(retained)) == 0usize && byte_len(bytes_as_slice(output)) == 0usize { 0 } else { 1 }
+}
+
+@id("std.io.lines.tests.test-runtime-many-line-walk")
+fn test_runtime_many_line_walk() -> i64
+{
+    let source = [97u8, 10u8, 98u8, 10u8, 99u8, 10u8, 100u8, 10u8, 101u8, 10u8, 102u8, 10u8, 103u8, 10u8, 104u8, 10u8, 105u8, 10u8, 106u8, 10u8];
+    let expected = [97u8, 98u8, 99u8, 100u8, 101u8, 102u8, 103u8, 104u8, 105u8, 106u8];
+    let mut reader = reader_from_bytes(bytes_copy(array_as_slice(source)));
+    let mut writer = writer_from_bytes(bytes_zeroed(10usize));
+    let mut lines = 0usize;
+    while reader_remaining(reader) > 0usize {
+        writer = reader_line_into(reader, writer);
+        reader = reader_next_line(reader);
+        lines = lines + 1usize;
+        reader_remaining(reader) > 0usize
+    }
+    let walked = reader_position(reader) == 20usize && reader_remaining(reader) == 0usize;
+    let retained = reader_finish(reader);
+    let output = writer_finish(writer);
+    if lines == 10usize && walked && byte_len(bytes_as_slice(retained)) == 20usize && equal(bytes_as_slice(output), array_as_slice(expected)) { 0 } else { 1 }
 }
 
 @id("std.io.lines.tests.test-offset-write")

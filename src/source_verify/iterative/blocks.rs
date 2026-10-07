@@ -327,7 +327,8 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 value,
                                 name,
                                 &binding_ty,
-                            );
+                            ) || (self.loop_depth != 0
+                                && self.admits_record_owner_renewal(name, value));
                             if !mutable {
                                 let mut diagnostic = error(
                                     self.program,

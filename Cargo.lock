@@ -1880,6 +1880,7 @@ name = "semaprax-harness"
 version = "0.1.0"
 dependencies = [
  "rustix",
+ "semaprax",
  "semaprax-decision-core",
  "serde_json",
  "sha2 0.11.0",

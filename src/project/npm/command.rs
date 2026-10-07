@@ -42,7 +42,14 @@ pub(super) fn prepare(
         manifest.web_exports(),
     )?;
     let recipe = super::render_semantic_recipe(program)?;
-    let artifacts = render_package(manifest.name(), version, command, &wasm, &exports)?;
+    let artifacts = render_package(
+        manifest.name(),
+        version,
+        command,
+        &wasm,
+        &exports,
+        crate::wasm::numeric_conversions::used(program),
+    )?;
     let artifact_bytes = artifacts.iter().try_fold(0_usize, |total, item| {
         total
             .checked_add(item.bytes.len())
@@ -145,13 +152,22 @@ fn render_package(
     command: &str,
     wasm: &[u8],
     exports: &[data::DataExport],
+    integer_conversions: bool,
 ) -> Result<[NpmArtifact; 7], Diagnostic> {
     if wasm.is_empty() || wasm.len() > 16 * 1024 * 1024 {
         return Err(package_error("npm command facade Wasm is not bounded"));
     }
     let digest = data::hex_sha256(wasm);
     let metadata = render_metadata(name, version, command, &digest);
-    render_package_with_metadata(name, version, command, wasm, exports, metadata.as_bytes())
+    render_package_with_metadata(
+        name,
+        version,
+        command,
+        wasm,
+        exports,
+        metadata.as_bytes(),
+        integer_conversions,
+    )
 }
 
 /// Render the frozen seven-file command facade around caller-authenticated
@@ -164,13 +180,14 @@ pub(super) fn render_package_with_metadata(
     wasm: &[u8],
     exports: &[data::DataExport],
     metadata: &[u8],
+    integer_conversions: bool,
 ) -> Result<[NpmArtifact; 7], Diagnostic> {
     if wasm.is_empty() || wasm.len() > 16 * 1024 * 1024 {
         return Err(package_error("npm command facade Wasm is not bounded"));
     }
     let digest = data::hex_sha256(wasm);
     let runtime = render_runtime(&digest)?;
-    let bindings = render_bindings(exports, &digest)?;
+    let bindings = render_bindings(exports, &digest, integer_conversions)?;
     let declarations = data::render_declarations(exports);
     if exports.len() != 1 || exports[0].stable_id != command {
         return Err(package_error(
@@ -208,9 +225,13 @@ fn render_runtime(wasm_sha256: &str) -> Result<String, Diagnostic> {
     )
 }
 
-fn render_bindings(exports: &[data::DataExport], wasm_sha256: &str) -> Result<String, Diagnostic> {
+fn render_bindings(
+    exports: &[data::DataExport],
+    wasm_sha256: &str,
+    integer_conversions: bool,
+) -> Result<String, Diagnostic> {
     let bindings = replace_once(
-        data::render_bindings(exports, wasm_sha256),
+        data::render_bindings(exports, wasm_sha256, integer_conversions),
         "e.memory.buffer.byteLength !== 131072",
         "e.memory.buffer.byteLength !== 196608",
     )?;
@@ -337,7 +358,14 @@ pub(super) fn validate_replayed(
             "npm command app.wasm disagrees with semantic replay",
         ));
     }
-    let expected = render_package(identity.package, identity.version, command, &wasm, &exports)?;
+    let expected = render_package(
+        identity.package,
+        identity.version,
+        command,
+        &wasm,
+        &exports,
+        crate::wasm::numeric_conversions::used(&program),
+    )?;
     if artifacts != &expected {
         return Err(package_error(
             "npm command artifacts disagree with semantic replay",

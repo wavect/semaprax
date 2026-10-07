@@ -45,6 +45,7 @@ pub(super) fn prepare(
         &wasm,
         &exports,
         metadata.as_bytes(),
+        crate::wasm::numeric_conversions::used(program),
     )?;
     let artifact_bytes = artifacts.iter().try_fold(0_usize, |total, item| {
         total
@@ -120,9 +121,17 @@ fn render_package(
     wasm: &[u8],
     exports: &[data::DataExport],
     metadata: &[u8],
+    integer_conversions: bool,
 ) -> Result<[NpmArtifact; 7], Diagnostic> {
-    let mut artifacts =
-        command::render_package_with_metadata(name, version, command_id, wasm, exports, metadata)?;
+    let mut artifacts = command::render_package_with_metadata(
+        name,
+        version,
+        command_id,
+        wasm,
+        exports,
+        metadata,
+        integer_conversions,
+    )?;
     let bindings = artifact_text(&artifacts, "semaprax.bindings.js")?;
     let bindings = replace_once(
         bindings,
@@ -295,6 +304,7 @@ pub(super) fn validate_replayed(
         &wasm,
         &exports,
         expected_metadata.as_bytes(),
+        crate::wasm::numeric_conversions::used(&program),
     )?;
     if artifacts != &expected {
         return Err(package_error(

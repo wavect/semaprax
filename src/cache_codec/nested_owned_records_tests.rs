@@ -45,4 +45,32 @@ fn iterator_cleanup_cache_retains_exact_version_and_replays_owned_payloads() {
     function.cleanup_plan = super::decode(&bytes).unwrap();
     assert_eq!(super::encode(&function.cleanup_plan).unwrap(), bytes);
     crate::hir::validate(&program).unwrap();
+
+    let record_source = crate::check(
+        r#"module record.iterator.cache;
+@id("cache.item") record Item {@id("cache.item.left") left:Bytes,@id("cache.item.right") right:Bytes,@id("cache.item.marker") marker:i64,}
+@id("cache.main") fn main()->i64 {
+ let values=vec_push<Item>(vec_with_capacity<Item>(1usize),Item{left:bytes_zeroed(1usize),right:bytes_zeroed(2usize),marker:7});
+ match own iter_next<Item>(vec_into_iter<Item>(values)){IterStep::Done{}=>0,IterStep::Yield{item,rest}=>7,}
+}"#,
+        "record-iterator-cache.spx",
+    )
+    .unwrap();
+    let mut record_program = crate::hir::resolve(&record_source).unwrap();
+    let record_function = record_program
+        .functions
+        .iter_mut()
+        .find(|function| function.id.as_str() == "cache.main")
+        .unwrap();
+    assert_eq!(
+        record_function.cleanup_plan.schema,
+        "semaprax.cleanup-plan.v13"
+    );
+    let record_bytes = super::encode(&record_function.cleanup_plan).unwrap();
+    record_function.cleanup_plan = super::decode(&record_bytes).unwrap();
+    assert_eq!(
+        super::encode(&record_function.cleanup_plan).unwrap(),
+        record_bytes
+    );
+    crate::hir::validate(&record_program).unwrap();
 }

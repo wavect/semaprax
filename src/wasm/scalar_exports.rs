@@ -430,15 +430,18 @@ fn validate_function_profile(
             function.id
         )));
     }
+    let integer_profile = super::numeric_conversions::used(program);
     for parameter in &function.params {
-        if parameter.ownership != OwnershipMode::Value || scalar_type(&parameter.ty).is_none() {
+        if parameter.ownership != OwnershipMode::Value
+            || !internal_scalar_type(&parameter.ty, integer_profile)
+        {
             return Err(admission(format!(
                 "Public Scalar Export Profile v1 function `{}` has a non-value scalar parameter",
                 function.id
             )));
         }
     }
-    if scalar_type(&function.return_type).is_none() {
+    if !internal_scalar_type(&function.return_type, integer_profile) {
         return Err(admission(format!(
             "Public Scalar Export Profile v1 function `{}` has a non-scalar result",
             function.id
@@ -453,7 +456,7 @@ fn validate_function_profile(
         if has_internal_owned_records {
             internal_owned_record::validate_expression(program, expression, &function.id)?;
         } else {
-            validate_expression_profile(expression, &function.id)?;
+            validate_expression_profile(expression, &function.id, integer_profile)?;
         }
     }
     Ok(())
@@ -462,11 +465,12 @@ fn validate_function_profile(
 fn validate_expression_profile(
     expression: &ResolvedExpr,
     function_id: &DeclarationId,
+    integer_profile: bool,
 ) -> Result<(), Diagnostic> {
     let mut pending = vec![expression];
     while let Some(expression) = pending.pop() {
         if expression.ownership != OwnershipMode::Value
-            || (scalar_type(&expression.ty).is_none()
+            || (!internal_scalar_type(&expression.ty, integer_profile)
                 && !hir::function_value::is_signature(&expression.ty)
                 && !expression.ty.is_mut_function())
         {
@@ -549,7 +553,7 @@ fn validate_expression_profile(
                 for statement in statements {
                     if let ResolvedStatement::Let { binding, .. } = statement {
                         if binding.ownership != OwnershipMode::Value
-                            || scalar_type(&binding.ty).is_none()
+                            || !internal_scalar_type(&binding.ty, integer_profile)
                         {
                             return Err(admission(format!(
                                 "Public Scalar Export Profile v1 function `{function_id}` binds a non-value scalar"
@@ -591,6 +595,12 @@ fn validate_expression_profile(
         }
     }
     Ok(())
+}
+
+// Integer Numeric Profile v2 admits portable u64 usize internally. Public
+// wrappers still use the frozen scalar_type inventory below.
+fn internal_scalar_type(ty: &ResolvedType, integer_profile: bool) -> bool {
+    scalar_type(ty).is_some() || (integer_profile && *ty == ResolvedType::Usize)
 }
 
 fn scalar_type(ty: &ResolvedType) -> Option<ScalarType> {

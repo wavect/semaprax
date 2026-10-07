@@ -113,6 +113,20 @@ fn main() -> i64
     if writer_position(written) == 2usize { 0 } else { 1 }
 }
 "#,
+        // A bare CR at EOF is content, so one byte of capacity is too short
+        // for `a\r` and the precondition fails before the Writer is consumed.
+        r#"
+@id("app.main")
+fn main() -> i64
+{
+    let source = [97u8, 13u8];
+    let input = bytes_copy(array_as_slice(source));
+    let reader = reader_from_bytes(input);
+    let output = writer_from_bytes(bytes_zeroed(1usize));
+    let written = reader_line_into(reader, output);
+    if writer_position(written) == 2usize { 0 } else { 1 }
+}
+"#,
         // A writer whose cursor leaves less capacity than the line needs.
         r#"
 @id("app.main")
@@ -188,6 +202,26 @@ fn main() -> i64
     let data = bytes_zeroed(1usize);
     let view = bytes_as_slice(data);
     if line_terminated(view, 2usize) { 0 } else { 1 }
+}
+"#,
+        // The third copy fails after two successful Reader/Writer renewals.
+        // The call publishes no partial function result and ordinary cleanup
+        // settles both loop-carried owners under the selected contract status.
+        r#"
+@id("app.main")
+fn main() -> i64
+{
+    let source = [97u8, 10u8, 98u8, 10u8, 99u8, 10u8];
+    let mut reader = reader_from_bytes(bytes_copy(array_as_slice(source)));
+    let mut writer = writer_from_bytes(bytes_zeroed(2usize));
+    while reader_remaining(reader) > 0usize {
+        writer = reader_line_into(reader, writer);
+        reader = reader_next_line(reader);
+        reader_remaining(reader) > 0usize
+    }
+    let retained = reader_finish(reader);
+    let output = writer_finish(writer);
+    if byte_len(bytes_as_slice(retained)) == 6usize && byte_len(bytes_as_slice(output)) == 2usize { 0 } else { 1 }
 }
 "#,
     ] {
@@ -357,8 +391,15 @@ pub(super) fn conformance_manifests(scratch: &Path, manifest: &Path) -> Vec<Path
         "test_empty_line",
         "test_crlf_only",
         "test_bare_cr",
+        "test_bare_cr_eof",
+        "test_lone_cr_eof",
+        "test_double_cr_eof",
+        "test_bare_cr_offset",
         "test_unterminated_tail",
         "test_two_line_walk",
+        "test_runtime_line_walk",
+        "test_runtime_zero_line_walk",
+        "test_runtime_many_line_walk",
         "test_offset_write",
     ];
     let parsed = parse(SOURCE, "io-lines-cases.spx").unwrap();

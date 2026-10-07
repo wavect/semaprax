@@ -2630,7 +2630,6 @@ fn scan_closure(
                     (*op, &expression.ty),
                     (BinaryOp::Rem, ResolvedType::F32)
                         | (BinaryOp::Rem, ResolvedType::F64)
-                        | (BinaryOp::Rem, ResolvedType::U8)
                         | (BinaryOp::Add, ResolvedType::Char)
                         | (BinaryOp::Sub, ResolvedType::Char)
                         | (BinaryOp::Mul, ResolvedType::Char)

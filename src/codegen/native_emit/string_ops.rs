@@ -160,6 +160,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             | crate::string_ops::StringOp::F64FromI64
             | crate::string_ops::StringOp::I64FromF64
             | crate::string_ops::StringOp::UsizeFromI64
+            | crate::string_ops::StringOp::I64FromU8
+            | crate::string_ops::StringOp::I64FromI32
+            | crate::string_ops::StringOp::UsizeFromU8
             | crate::string_ops::StringOp::I64FromUsize => {
                 self.emit_conversion_op(op, &arguments[0].code, &temporary)?;
             }
@@ -209,6 +212,15 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 // C converts to the nearest double, ties to even, under the
                 // default rounding mode the runtime never changes.
                 self.line(&format!("{temporary} = (double)({operand});"));
+                return Ok(());
+            }
+            StringOp::I64FromU8 | StringOp::I64FromI32 | StringOp::UsizeFromU8 => {
+                let target = if op == StringOp::UsizeFromU8 {
+                    "uint64_t"
+                } else {
+                    "int64_t"
+                };
+                self.line(&format!("{temporary} = ({target})({operand});"));
                 return Ok(());
             }
             StringOp::I64FromF64 => (ResolvedType::F64, "int64_t"),

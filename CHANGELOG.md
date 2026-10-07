@@ -1,5 +1,19 @@
 # Changelog
 
+- GAP integer and data corrections: exact named `u8`/`i32` widening and checked
+  integer conversions execute on the interpreter, C11 and Core Wasm; byte helpers
+  use constant work, and equal-width `i32`/`u8` remainder preserves normalized
+  failures. Typed Err reconstruction permits changing an owned Result’s success
+  type, and exact Reader/Writer owners may renew through checked loop calls.
+  The existing two-Bytes-plus-Copy record vector gains consuming iteration,
+  with additive Prelude v10/Graph v65 and a distinct checked Wasm host protocol.
+  Executable invariants over unsupported owned record fields fail
+  before backend admission. Bundled dependency registration, bare-CR EOF line
+  framing, strict padded Base64 decoding and multiline CSV record decoding gain
+  focused regressions. Harness snapshots authenticate complete oracle inventory;
+  repair preserves parsed contracts/effects, and context facets bind full bounded
+  work and canonical digest inputs. These additions carry local evidence only.
+
 - Copy variant guard execution: evaluate nominal guards on the reference
   interpreter before selecting an arm, and provide the explicit additive
   `emit_copy_variant_module` String-settling Wasm profile. The older Wasm entry

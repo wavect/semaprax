@@ -87,12 +87,15 @@ fn main() -> i64
 
 Types must match: `n: usize` needs `n < 5usize` (`SPX-T208`). Join strings
 with `string_concat`. No `as`; use `f64_from_i64`, `i64_from_f64` (truncates),
-`usize_from_i64`, or `i64_from_usize`.
+`usize_from_i64`, or `i64_from_usize`. Exact integer widening uses
+`i64_from_u8`, `i64_from_i32`, or `usize_from_u8`.
 
 ## Control flow, mutation, contracts, effects
 
 Scalar conversions fail out of range or on NaN with `semaprax.convert.v1`;
-Core Wasm refuses conversions (`SPX-W116`).
+Integer conversions run on Core Wasm; float conversions and `string_from_str`
+retain `SPX-W116`. Integer `%` supports i64, i32, u8, and usize: zero divisors
+fail; signed MIN % -1 fails with remainder overflow.
 
 ```semaprax
 module app.convert;
@@ -325,7 +328,8 @@ fn main() -> i64
   name. Every literal, `with` update, and field assignment re-checks them; a
   false one is the same contract failure as a function `requires`. Each must
   be `bool` and effect-free (`SPX-C101`, `SPX-C102`); generic records take
-  none (`SPX-C103`).
+  none (`SPX-C103`). Executable owned records refuse invariants (`SPX-C104`);
+  direct string fields retain the graph/webapp-only exception.
 
 ## Ownership and resources
 

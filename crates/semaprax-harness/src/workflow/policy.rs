@@ -9,6 +9,40 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(super) struct ProtectedSourceFacts {
+    declarations: Vec<ProtectedDeclarationFacts>,
+}
+
+impl ProtectedSourceFacts {
+    pub(super) fn same_laws(&self, other: &Self) -> bool {
+        self.declarations
+            .iter()
+            .map(|facts| (&facts.id, &facts.laws))
+            .eq(other
+                .declarations
+                .iter()
+                .map(|facts| (&facts.id, &facts.laws)))
+    }
+
+    pub(super) fn same_effects(&self, other: &Self) -> bool {
+        self.declarations
+            .iter()
+            .map(|facts| (&facts.id, &facts.effects))
+            .eq(other
+                .declarations
+                .iter()
+                .map(|facts| (&facts.id, &facts.effects)))
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct ProtectedDeclarationFacts {
+    id: String,
+    laws: Vec<(String, String)>,
+    effects: BTreeSet<String>,
+}
+
 /// The compiler's fixed requirement inventory; the host always sends all of it.
 pub const REQUIREMENTS: [&str; 9] = [
     "preserve_stable_identity",
@@ -182,6 +216,219 @@ pub(super) fn effect_tokens(src: &str) -> BTreeSet<String> {
         }
     }
     out
+}
+
+/// Parse the source with the compiler's grammar and retain complete,
+/// declaration-bound contract/effect facts. If only implementation bodies are
+/// damaged, replace those bodies in memory and parse the recoverable headers;
+/// ambiguity remains a refusal instead of an empty protected inventory.
+pub(super) fn protected_source_facts(src: &str, path: &str) -> HarnessResult<ProtectedSourceFacts> {
+    let program = match semaprax::parse(src, path) {
+        Ok(program) => program,
+        Err(_) => {
+            let recovered = recover_function_headers(src).ok_or_else(|| {
+                d(
+                    "SPX-HPD042",
+                    format!("protected contracts/effects in `{path}` cannot be recovered"),
+                )
+            })?;
+            semaprax::parse(&recovered, path).map_err(|_| {
+                d(
+                    "SPX-HPD042",
+                    format!("protected contracts/effects in `{path}` are ambiguous"),
+                )
+            })?
+        }
+    };
+
+    let mut declarations = Vec::new();
+    for function in &program.functions {
+        declarations.push(function_facts(function));
+    }
+    for declaration in &program.types {
+        if !declaration.invariants().is_empty() {
+            declarations.push(ProtectedDeclarationFacts {
+                id: declaration.stable_id.clone(),
+                laws: declaration
+                    .invariants()
+                    .iter()
+                    .map(|law| ("invariant".to_string(), semaprax::format::expr(law, 0)))
+                    .collect(),
+                effects: BTreeSet::new(),
+            });
+        }
+        if let semaprax::ast::TypeDeclarationKind::Class { methods, .. } = &declaration.kind {
+            declarations.extend(methods.iter().map(function_facts));
+        }
+    }
+    declarations.sort_by(|left, right| left.id.cmp(&right.id));
+    Ok(ProtectedSourceFacts { declarations })
+}
+
+fn function_facts(function: &semaprax::ast::Function) -> ProtectedDeclarationFacts {
+    let mut laws = function
+        .requires
+        .iter()
+        .map(|law| ("requires".to_string(), semaprax::format::expr(law, 0)))
+        .collect::<Vec<_>>();
+    laws.extend(
+        function
+            .ensures
+            .iter()
+            .map(|law| ("ensures".to_string(), semaprax::format::expr(law, 0))),
+    );
+    ProtectedDeclarationFacts {
+        id: function.stable_id.clone(),
+        laws,
+        effects: function.effects.iter().cloned().collect(),
+    }
+}
+
+#[derive(Clone, Copy)]
+struct HeaderToken<'a> {
+    text: &'a str,
+    start: usize,
+    end: usize,
+    depth: usize,
+}
+
+/// Replace each function body with `0` while leaving declaration headers,
+/// contracts and effect sets byte-for-byte available to the real parser.
+fn recover_function_headers(source: &str) -> Option<String> {
+    let tokens = header_tokens(source)?;
+    let mut bodies = Vec::new();
+    for (index, token) in tokens
+        .iter()
+        .enumerate()
+        .filter(|(_, token)| token.text == "fn")
+    {
+        let base = token.depth;
+        let mut candidates = Vec::new();
+        let mut cursor = index + 1;
+        while cursor < tokens.len() {
+            let current = tokens[cursor];
+            if current.depth < base
+                || (current.depth == base
+                    && (current.text == "fn"
+                        || current.text == "@" && !candidates.is_empty()
+                        || current.text == "}"))
+            {
+                break;
+            }
+            if current.text == "{" && current.depth == base {
+                let mut close = cursor + 1;
+                while close < tokens.len()
+                    && !(tokens[close].text == "}" && tokens[close].depth == base + 1)
+                {
+                    close += 1;
+                }
+                if close == tokens.len() {
+                    return None;
+                }
+                candidates.push((current.end, tokens[close].start));
+                cursor = close;
+            }
+            cursor += 1;
+        }
+        bodies.push(*candidates.last()?);
+    }
+    if bodies.is_empty() {
+        return None;
+    }
+    bodies.sort_unstable();
+    bodies.dedup();
+    let mut recovered = source.to_string();
+    for (start, end) in bodies.into_iter().rev() {
+        recovered.replace_range(start..end, " 0 ");
+    }
+    Some(recovered)
+}
+
+fn header_tokens(source: &str) -> Option<Vec<HeaderToken<'_>>> {
+    let bytes = source.as_bytes();
+    let mut out = Vec::new();
+    let (mut offset, mut depth) = (0usize, 0usize);
+    while offset < bytes.len() {
+        match bytes[offset] {
+            byte if byte.is_ascii_whitespace() => offset += 1,
+            b'/' if bytes.get(offset + 1) == Some(&b'/') => {
+                offset += 2;
+                while offset < bytes.len() && bytes[offset] != b'\n' {
+                    offset += 1;
+                }
+            }
+            b'"' | b'\'' => {
+                let quote = bytes[offset];
+                let start = offset;
+                offset += 1;
+                while offset < bytes.len() {
+                    if bytes[offset] == b'\\' {
+                        offset = offset.checked_add(2)?;
+                    } else if bytes[offset] == quote {
+                        offset += 1;
+                        break;
+                    } else {
+                        offset += 1;
+                    }
+                }
+                if offset > bytes.len() || bytes.get(offset.wrapping_sub(1)) != Some(&quote) {
+                    return None;
+                }
+                out.push(HeaderToken {
+                    text: &source[start..offset],
+                    start,
+                    end: offset,
+                    depth,
+                });
+            }
+            b'a'..=b'z' | b'A'..=b'Z' | b'_' => {
+                let start = offset;
+                offset += 1;
+                while matches!(
+                    bytes.get(offset),
+                    Some(b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9' | b'_')
+                ) {
+                    offset += 1;
+                }
+                out.push(HeaderToken {
+                    text: &source[start..offset],
+                    start,
+                    end: offset,
+                    depth,
+                });
+            }
+            b'{' => {
+                out.push(HeaderToken {
+                    text: &source[offset..offset + 1],
+                    start: offset,
+                    end: offset + 1,
+                    depth,
+                });
+                depth = depth.checked_add(1)?;
+                offset += 1;
+            }
+            b'}' => {
+                depth = depth.checked_sub(1)?;
+                out.push(HeaderToken {
+                    text: &source[offset..offset + 1],
+                    start: offset,
+                    end: offset + 1,
+                    depth: depth + 1,
+                });
+                offset += 1;
+            }
+            _ => {
+                out.push(HeaderToken {
+                    text: &source[offset..offset + 1],
+                    start: offset,
+                    end: offset + 1,
+                    depth,
+                });
+                offset += 1;
+            }
+        }
+    }
+    Some(out)
 }
 
 /// Verify the compiler's preview against the authenticated base. Refusals:

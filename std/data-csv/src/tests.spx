@@ -1,4 +1,5 @@
 module std.data.csv.tests;
+use type @id("std.io.writer") from std.io as Writer;
 use function @id("std.data.csv.content_end") from std.data.csv as content_end;
 use function @id("std.data.csv.content_start") from std.data.csv as content_start;
 use function @id("std.data.csv.field_count") from std.data.csv as field_count;
@@ -7,6 +8,22 @@ use function @id("std.data.csv.field_is_quoted") from std.data.csv as field_is_q
 use function @id("std.data.csv.field_start") from std.data.csv as field_start;
 use function @id("std.data.csv.has_balanced_quotes") from std.data.csv as has_balanced_quotes;
 use function @id("std.data.csv.is_well_formed_record") from std.data.csv as is_well_formed_record;
+use function @id("std.data.csv.at-is") from std.data.csv as csv_at_is;
+use function @id("std.data.csv.record-available") from std.data.csv as record_available;
+use function @id("std.data.csv.record-end") from std.data.csv as record_end;
+use function @id("std.data.csv.record-error-kind") from std.data.csv as record_error_kind;
+use function @id("std.data.csv.record-error-offset") from std.data.csv as record_error_offset;
+use function @id("std.data.csv.record-field-decoded-len") from std.data.csv as record_field_decoded_len;
+use function @id("std.data.csv.record-field-end") from std.data.csv as record_field_end;
+use function @id("std.data.csv.record-field-has-next") from std.data.csv as record_field_has_next;
+use function @id("std.data.csv.record-field-into") from std.data.csv as record_field_into;
+use function @id("std.data.csv.record-field-is-quoted") from std.data.csv as record_field_is_quoted;
+use function @id("std.data.csv.record-field-next") from std.data.csv as record_field_next;
+use function @id("std.data.csv.record-field-present") from std.data.csv as record_field_present;
+use function @id("std.data.csv.record-next") from std.data.csv as record_next;
+use function @id("std.data.csv.record-scan") from std.data.csv as record_scan;
+use function @id("std.io.writer.finish") from std.io as writer_finish;
+use function @id("std.io.writer.cursor") from std.io as writer_position;
 
 @id("std.data.csv.tests.fields")
 fn fields() -> bool
@@ -57,6 +74,78 @@ fn cursors() -> bool
     plain && bounds && quoted && inner && last && pairs
 }
 
+@id("std.data.csv.tests.multiline-records")
+fn multiline_records() -> bool
+{
+    let source = [97u8, 44u8, 34u8, 98u8, 13u8, 10u8, 99u8, 34u8, 44u8, 100u8, 13u8, 10u8, 120u8, 44u8, 121u8];
+    let view = array_as_slice(source);
+    let first = csv_at_is(view, 10usize, 13u8) && record_scan(view, 0usize, 1usize) == 12usize && record_end(view, 0usize) == 10usize && record_next(view, 0usize) == 12usize && record_error_kind(view, 0usize) == 0usize;
+    let field = record_field_next(view, 0usize, 0usize);
+    let quoted = field == 2usize && record_field_is_quoted(view, 0usize, field) && record_field_end(view, 0usize, field) == 8usize && record_field_decoded_len(view, 0usize, field) == 4usize;
+    let mut cursor = 0usize;
+    let mut count = 0usize;
+    while record_available(view, cursor) {
+        cursor = record_next(view, cursor);
+        count = count + 1usize;
+        record_available(view, cursor)
+    }
+    first && quoted && count == 2usize && cursor == 15usize
+}
+
+@id("std.data.csv.tests.decoded-field-copy")
+fn decoded_field_copy() -> bool
+{
+    let source = [34u8, 97u8, 34u8, 34u8, 98u8, 34u8, 44u8];
+    let view = array_as_slice(source);
+    let exact_written = record_field_into(view, 0usize, 0usize, Writer { data: bytes_set(bytes_zeroed(4usize), 0usize, 91u8), position: 1usize });
+    let exact_cursor = writer_position(exact_written);
+    let exact_output = writer_finish(exact_written);
+    let exact_prefix = match byte_get(bytes_as_slice(exact_output), 0usize) { Option::Some { value } => value, Option::None {} => 0u8, };
+    let target = bytes_set(bytes_set(bytes_zeroed(5usize), 0usize, 91u8), 4usize, 88u8);
+    let written = record_field_into(view, 0usize, 0usize, Writer { data: target, position: 1usize });
+    let cursor = writer_position(written);
+    let output = writer_finish(written);
+    let prefix = match byte_get(bytes_as_slice(output), 0usize) { Option::Some { value } => value, Option::None {} => 0u8, };
+    let a = match byte_get(bytes_as_slice(output), 1usize) { Option::Some { value } => value, Option::None {} => 0u8, };
+    let quote = match byte_get(bytes_as_slice(output), 2usize) { Option::Some { value } => value, Option::None {} => 0u8, };
+    let b = match byte_get(bytes_as_slice(output), 3usize) { Option::Some { value } => value, Option::None {} => 0u8, };
+    let suffix = match byte_get(bytes_as_slice(output), 4usize) { Option::Some { value } => value, Option::None {} => 0u8, };
+    let trailing = record_field_next(view, 0usize, 0usize);
+    let empty = record_field_has_next(view, 0usize, 0usize) && trailing == 7usize && record_field_present(view, 0usize, trailing) && record_field_decoded_len(view, 0usize, trailing) == 0usize && !record_field_has_next(view, 0usize, trailing);
+    exact_cursor == 4usize && exact_prefix == 91u8 && cursor == 4usize && prefix == 91u8 && a == 97u8 && quote == 34u8 && b == 98u8 && suffix == 88u8 && empty
+}
+
+@id("std.data.csv.tests.record-errors")
+fn record_errors() -> bool
+{
+    let embedded = [97u8, 34u8, 98u8];
+    let suffix = [34u8, 97u8, 34u8, 120u8];
+    let open = [34u8, 97u8];
+    record_error_kind(array_as_slice(embedded), 0usize) == 1usize && record_error_offset(array_as_slice(embedded), 0usize) == 1usize && record_error_kind(array_as_slice(suffix), 0usize) == 2usize && record_error_offset(array_as_slice(suffix), 0usize) == 3usize && record_error_kind(array_as_slice(open), 0usize) == 3usize && record_error_offset(array_as_slice(open), 0usize) == 2usize
+}
+
+@id("std.data.csv.tests.record-boundaries")
+fn record_boundaries() -> bool
+{
+    let empty = [0u8; 0];
+    let blank = [10u8];
+    let tail = [97u8, 44u8, 98u8];
+    !record_available(array_as_slice(empty), 0usize) && record_available(array_as_slice(blank), 0usize) && record_end(array_as_slice(blank), 0usize) == 0usize && record_next(array_as_slice(blank), 0usize) == 1usize && record_field_present(array_as_slice(blank), 0usize, 0usize) && record_field_decoded_len(array_as_slice(blank), 0usize, 0usize) == 0usize && record_end(array_as_slice(tail), 0usize) == 3usize && record_next(array_as_slice(tail), 0usize) == 3usize
+}
+
+@id("std.data.csv.tests.empty-field-walk")
+fn empty_field_walk() -> bool
+{
+    let source = [34u8, 34u8, 44u8, 44u8];
+    let view = array_as_slice(source);
+    let second = record_field_next(view, 0usize, 0usize);
+    let third = record_field_next(view, 0usize, second);
+    let first_empty = record_field_decoded_len(view, 0usize, 0usize) == 0usize && record_field_has_next(view, 0usize, 0usize);
+    let middle_empty = second == 3usize && record_field_decoded_len(view, 0usize, second) == 0usize && record_field_has_next(view, 0usize, second);
+    let trailing_empty = third == 4usize && record_field_present(view, 0usize, third) && record_field_decoded_len(view, 0usize, third) == 0usize && !record_field_has_next(view, 0usize, third);
+    first_empty && middle_empty && trailing_empty
+}
+
 @id("std.data.csv.tests.main")
 fn main() -> i64
 {
@@ -65,5 +154,10 @@ fn main() -> i64
     failed = failed + if quotes() { 0 } else { 2 };
     failed = failed + if validation() { 0 } else { 4 };
     failed = failed + if cursors() { 0 } else { 8 };
+    failed = failed + if multiline_records() { 0 } else { 16 };
+    failed = failed + if decoded_field_copy() { 0 } else { 32 };
+    failed = failed + if record_errors() { 0 } else { 64 };
+    failed = failed + if record_boundaries() { 0 } else { 128 };
+    failed = failed + if empty_field_walk() { 0 } else { 256 };
     failed
 }

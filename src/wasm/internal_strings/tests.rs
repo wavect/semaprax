@@ -275,6 +275,7 @@ fn unrelated_declarations_cannot_change_selected_artifacts_or_planning() {
 @id("unused.record_value") fn record_value() -> Unused { Unused { value: 3 } }
 @id("unused.generic") fn generic<T>(value: T) -> T { value }
 @id("unused.instance") fn instance() -> i64 { generic<i64>(9) }
+@id("unused.convert") fn convert(value: i64) -> i64 { i64_from_usize(usize_from_i64(value)) }
 @id("unused.recursive") fn recursive() -> i64 { recursive() }
 @id("unused.arguments") fn arguments() -> i64 uses { process.args.read } {
     if args_len() == 0usize { 0 } else { 1 }
@@ -332,4 +333,33 @@ fn unrelated_declarations_cannot_change_selected_artifacts_or_planning() {
             "SPX-W111"
         );
     }
+}
+
+#[test]
+fn selected_integer_conversion_extends_only_its_standalone_runtime_statuses() {
+    let source = program(
+        r#"module test.standalone_conversion;
+@id("s.convert") fn convert(value: i64) -> i64 {
+    i64_from_usize(usize_from_i64(value))
+}
+"#,
+    );
+    let module = emit_copy_variant_module(
+        &source,
+        &["s.convert".to_owned()],
+        InternalStringOptions::default(),
+    )
+    .unwrap();
+    assert!(module.runtime_source().contains("status>11&&status!==21"));
+    assert!(module.runtime_source().contains(
+        "status===21)result=Object.freeze({kind:\"failure\",domain:\"semaprax.convert.v1\",code:1})"
+    ));
+    let baseline = emit_module(
+        &program(SOURCE),
+        &["s.main".to_owned()],
+        InternalStringOptions::default(),
+    )
+    .unwrap();
+    assert!(!baseline.runtime_source().contains("status!==21"));
+    assert!(!baseline.runtime_source().contains("semaprax.convert.v1"));
 }

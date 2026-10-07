@@ -15,6 +15,8 @@
 
 use semaprax::{codegen, hir, interpreter};
 
+#[path = "owned_record_vec_runtime/iterator.rs"]
+mod iterator;
 #[path = "owned_record_vec_runtime/native.rs"]
 mod native;
 #[path = "owned_record_vec_runtime/wasm.rs"]

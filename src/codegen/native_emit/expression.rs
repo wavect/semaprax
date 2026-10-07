@@ -2502,11 +2502,6 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 "floating-point remainder has no admitted native lowering",
             ));
         }
-        if narrow_operand && op == BinaryOp::Rem {
-            return Err(backend_error(
-                "u8 remainder has no admitted native lowering",
-            ));
-        }
         if char_operand
             && matches!(
                 op,
@@ -2538,7 +2533,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         } else if narrow_operand
             && matches!(
                 op,
-                BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div
+                BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
             )
         {
             // Checked u8 arithmetic computes in int64_t and range-checks the
@@ -2548,6 +2543,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 BinaryOp::Sub => "spx_rt_u8_sub",
                 BinaryOp::Mul => "spx_rt_u8_mul",
                 BinaryOp::Div => "spx_rt_u8_div",
+                BinaryOp::Rem => "spx_rt_u8_rem",
                 _ => unreachable!("u8 arithmetic operation was matched above"),
             };
             self.line(&format!(

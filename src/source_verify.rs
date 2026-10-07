@@ -60,6 +60,83 @@ use type_table::{resolve_class_method, TypeTable};
 pub(crate) use declaration::verify;
 pub(crate) use diagnostics::is_scalar_source_type;
 
+pub(crate) fn program_uses_record_iterator(program: &Program) -> bool {
+    let types = TypeTable::new(program);
+    fn type_uses(types: &TypeTable<'_>, ty: &Type) -> bool {
+        match ty {
+            Type::Named { name, arguments } => {
+                (matches!(name.as_str(), "Iter" | "IterStep")
+                    && matches!(arguments.as_slice(), [element]
+                        if declared_type::owned_record_collection::
+                            is_admitted_owned_record_collection_element(types, element)))
+                    || arguments.iter().any(|argument| type_uses(types, argument))
+            }
+            Type::Function { parameters, result } => {
+                parameters
+                    .iter()
+                    .any(|parameter| type_uses(types, parameter))
+                    || type_uses(types, result)
+            }
+            _ => false,
+        }
+    }
+    let record_element = |ty: &Type| {
+        declared_type::owned_record_collection::is_admitted_owned_record_collection_element(
+            &types, ty,
+        )
+    };
+    let function_uses = |function: &Function| {
+        if type_uses(&types, &function.return_type)
+            || function.params.iter().any(|p| type_uses(&types, &p.ty))
+        {
+            return true;
+        }
+        let mut pending = function
+            .requires
+            .iter()
+            .chain(std::iter::once(&function.body))
+            .chain(&function.ensures)
+            .collect::<Vec<_>>();
+        while let Some(expression) = pending.pop() {
+            if let ExprKind::Call {
+                name,
+                type_arguments,
+                ..
+            } = &expression.kind
+            {
+                if crate::iterator_ops::by_name(name).is_some()
+                    && matches!(type_arguments.as_slice(), [element] if record_element(element))
+                {
+                    return true;
+                }
+            }
+            if let ExprKind::ConstructVariant {
+                type_name,
+                type_arguments,
+                ..
+            } = &expression.kind
+            {
+                if type_name == "IterStep"
+                    && matches!(type_arguments.as_slice(), [element] if record_element(element))
+                {
+                    return true;
+                }
+            }
+            let mut index = 0;
+            while let Some(child) = expression.child(index) {
+                pending.push(child);
+                index += 1;
+            }
+        }
+        false
+    };
+    program.functions.iter().any(function_uses)
+        || program.types.iter().any(|declaration| {
+            matches!(&declaration.kind, TypeDeclarationKind::Class { methods, .. }
+                if methods.iter().any(function_uses))
+        })
+}
+
 #[cfg(test)]
 use binding::Availability;
 #[cfg(test)]

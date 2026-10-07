@@ -6,6 +6,8 @@ use semaprax::hir::{self, DeclarationId, ResolvedType};
 use semaprax::interpreter::{self, InterpreterOptions};
 use semaprax::{codegen, parse, verify, wasm};
 
+#[path = "generic_owned_function_runtime/changed_success_result.rs"]
+mod changed_success_result;
 #[path = "generic_owned_function_runtime/copy_success_result.rs"]
 mod copy_success_result;
 #[path = "generic_owned_function_runtime/matrix.rs"]

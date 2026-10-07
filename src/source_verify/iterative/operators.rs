@@ -167,10 +167,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             .as_ref()
             .map(|value| value.ty.clone())
             .filter(|ty| matches!(ty, Type::I32));
-        if !native_unit
-            && matches!(op, BinaryOp::Rem)
-            && (left_numeric.is_some() || left_integer.is_some() || left_narrow.is_some())
-        {
+        if !native_unit && matches!(op, BinaryOp::Rem) && left_numeric.is_some() {
             self.diagnostics.push(error(
                 self.program,
                 "SPX-T208",

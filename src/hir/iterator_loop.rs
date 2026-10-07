@@ -1,7 +1,11 @@
 //! Structural authentication of the consuming iterator loop's retained lowering.
 use super::*;
 mod renewal;
-pub(crate) use renewal::{function_requires_renewal, renewal_binding, template_requires_renewal};
+pub(crate) use renewal::{
+    function_has_record_renewal_outside_loop, function_may_require_record_renewal,
+    function_requires_record_renewal, function_requires_renewal, is_owner_renewal_record,
+    is_record_owner_renewal, renewal_binding, template_requires_renewal,
+};
 
 pub(crate) struct IteratorLoop<'a> {
     pub(crate) step: &'a ResolvedBinding,
@@ -156,7 +160,7 @@ fn recognize_scoped<'a>(
     {
         return None;
     }
-    let owned_item = if *element == ResolvedType::Bytes {
+    let owned_item = if crate::iterator_ops::item_ownership(element, false) == OwnershipMode::Own {
         let ResolvedExprKind::Match { arms, .. } = &value.kind else {
             return None;
         };
@@ -267,6 +271,7 @@ fn step_element<'a>(
     };
     (declaration.as_str() == crate::iterator_ops::STEP_ID
         && (crate::iterator_ops::resolved_element_is_admitted(element)
+            || matches!(element, ResolvedType::Nominal { arguments, .. } if arguments.is_empty())
             || owner.is_some_and(|(owner, count)| {
                 generic_collection::parameter(element, owner, count)
             })))

@@ -278,7 +278,7 @@ fn run_executes_conversions_and_reports_a_failure_on_both_routes() {
 }
 
 #[test]
-fn core_wasm_refuses_conversions_with_one_stable_diagnostic() {
+fn core_wasm_keeps_float_conversion_refusal_with_one_stable_diagnostic() {
     let program = parse(SOURCE, Path::new("conversions-wasm.spx")).unwrap();
     let error = semaprax::wasm::emit_module(&program).expect_err("scalar Core Wasm lane");
     assert_eq!(error.code, "SPX-W116", "{}", error.message);

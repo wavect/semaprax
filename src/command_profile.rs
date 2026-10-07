@@ -209,7 +209,10 @@ fn validate_function(
                         ))
                     })?;
                     validate_stdout_external_argument(program, function, args, roots)?;
-                } else if crate::byte_ops::by_id(callee.as_str()).is_none() {
+                } else if crate::byte_ops::by_id(callee.as_str()).is_none()
+                    && !crate::string_ops::by_id(callee.as_str())
+                        .is_some_and(|op| op.is_integer_conversion())
+                {
                     if !functions.contains_key(callee.as_str()) {
                         return Err(admission(format!(
                             "Useful Data Command v2 function `{}` reaches unavailable call `{callee}`",

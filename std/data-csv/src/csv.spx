@@ -1,4 +1,5 @@
 module std.data.csv;
+use type @id("std.io.writer") from std.io as Writer;
 
 @id("std.data.csv.field_count")
 fn field_count(record: borrow Slice<u8>) -> usize
@@ -117,4 +118,194 @@ fn csv_content_end(record: borrow Slice<u8>, start: usize) -> usize
 {
     let end = csv_field_end(record, start);
     if csv_field_is_quoted(record, start) { end - 1usize } else { end }
+}
+
+@id("std.data.csv.at-is")
+fn csv_at_is(input: borrow Slice<u8>, index: usize, expected: u8) -> bool
+{
+    match byte_get(input, index) { Option::Some { value } => value == expected, Option::None {} => false, }
+}
+
+// Quote-aware framing over a complete CSV byte view. Modes select the logical
+// record end, next record start, stable error kind, or exact error offset.
+// Kinds are 0 success, 1 quote outside a field start, 2 junk after a closing
+// quote, and 3 an incomplete quoted record at EOF.
+@id("std.data.csv.record-scan")
+fn csv_record_scan(input: borrow Slice<u8>, start: usize, mode: usize) -> usize
+    requires start <= byte_len(input)
+    requires mode <= 3usize
+{
+    let length = byte_len(input);
+    let mut index = start;
+    let mut end = length;
+    let mut next = length;
+    let mut kind = 0usize;
+    let mut fault = length;
+    let mut quoted = false;
+    let mut field_start = true;
+    let mut after_quote = false;
+    let mut scanning = index < length;
+    while scanning {
+        let byte = match byte_get(input, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let quote = byte == 34u8;
+        let escaped = quoted && quote && csv_at_is(input, index + 1usize, 34u8);
+        let crlf = !quoted && byte == 13u8 && csv_at_is(input, index + 1usize, 10u8);
+        let lf = !quoted && byte == 10u8;
+        let terminator = crlf || lf;
+        let comma = !quoted && byte == 44u8;
+        let closes = quoted && quote && !escaped;
+        let opens = !quoted && !after_quote && quote && field_start;
+        let misplaced = !quoted && !after_quote && quote && !field_start;
+        let junk = !quoted && after_quote && !comma && !terminator;
+        end = if terminator { index } else { end };
+        next = if terminator { index + if crlf { 2usize } else { 1usize } } else { next };
+        fault = if misplaced || junk { index } else { fault };
+        kind = if misplaced { 1usize } else { if junk { 2usize } else { kind } };
+        field_start = if quoted || terminator || misplaced || junk { field_start } else { comma };
+        quoted = if closes { false } else { if opens { true } else { quoted } };
+        after_quote = if closes { true } else { if comma { false } else { after_quote } };
+        index = if terminator || misplaced || junk { index } else { index + if escaped { 2usize } else { 1usize } };
+        scanning = !terminator && !misplaced && !junk && index < length;
+        scanning
+    }
+    let incomplete = kind == 0usize && quoted;
+    kind = if incomplete { 3usize } else { kind };
+    fault = if incomplete { length } else { fault };
+    if mode == 0usize { end } else { if mode == 1usize { next } else { if mode == 2usize { kind } else { fault } } }
+}
+
+@id("std.data.csv.record-available")
+fn csv_record_available(input: borrow Slice<u8>, start: usize) -> bool
+    requires start <= byte_len(input)
+{
+    start < byte_len(input)
+}
+
+@id("std.data.csv.record-end")
+fn csv_record_end(input: borrow Slice<u8>, start: usize) -> usize
+    requires start <= byte_len(input)
+    ensures result >= start && result <= byte_len(input)
+{
+    csv_record_scan(input, start, 0usize)
+}
+
+@id("std.data.csv.record-next")
+fn csv_record_next(input: borrow Slice<u8>, start: usize) -> usize
+    requires start <= byte_len(input)
+    ensures result >= start && result <= byte_len(input)
+{
+    csv_record_scan(input, start, 1usize)
+}
+
+@id("std.data.csv.record-error-kind")
+fn csv_record_error_kind(input: borrow Slice<u8>, start: usize) -> usize
+    requires start <= byte_len(input)
+    ensures result <= 3usize
+{
+    csv_record_scan(input, start, 2usize)
+}
+
+@id("std.data.csv.record-error-offset")
+fn csv_record_error_offset(input: borrow Slice<u8>, start: usize) -> usize
+    requires start <= byte_len(input)
+    ensures result <= byte_len(input)
+{
+    csv_record_scan(input, start, 3usize)
+}
+
+@id("std.data.csv.record-field-present")
+fn csv_record_field_present(input: borrow Slice<u8>, record_start: usize, field_start: usize) -> bool
+    requires record_start <= byte_len(input)
+    requires field_start >= record_start && field_start <= csv_record_end(input, record_start)
+    requires csv_record_error_kind(input, record_start) == 0usize
+{
+    let end = csv_record_end(input, record_start);
+    let mut index = record_start;
+    let mut quoted = false;
+    let mut boundary = field_start == record_start;
+    while index < field_start && index < end {
+        let quote = csv_at_is(input, index, 34u8);
+        let escaped = quoted && quote && csv_at_is(input, index + 1usize, 34u8);
+        quoted = if quote && !escaped { !quoted } else { quoted };
+        boundary = boundary || !quoted && csv_at_is(input, index, 44u8) && index + 1usize == field_start;
+        index = index + if escaped { 2usize } else { 1usize };
+        index < field_start && index < end
+    }
+    csv_record_available(input, record_start) && boundary && (field_start < end || field_start == record_start || field_start == end && field_start > record_start && csv_at_is(input, field_start - 1usize, 44u8))
+}
+
+@id("std.data.csv.record-field-end")
+fn csv_record_field_end(input: borrow Slice<u8>, record_start: usize, field_start: usize) -> usize
+    requires csv_record_field_present(input, record_start, field_start)
+    ensures result >= field_start && result <= csv_record_end(input, record_start)
+{
+    let record_end = csv_record_end(input, record_start);
+    let mut index = field_start;
+    let mut quoted = false;
+    let mut end = record_end;
+    let mut scanning = index < record_end;
+    while scanning {
+        let byte = match byte_get(input, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let quote = byte == 34u8;
+        let escaped = quote && quoted && csv_at_is(input, index + 1usize, 34u8);
+        quoted = if quote && !escaped { !quoted } else { quoted };
+        let stop = byte == 44u8 && !quoted;
+        end = if stop { index } else { end };
+        index = if stop { record_end } else { index + if escaped { 2usize } else { 1usize } };
+        scanning = !stop && index < record_end;
+        scanning
+    }
+    end
+}
+
+@id("std.data.csv.record-field-has-next")
+fn csv_record_field_has_next(input: borrow Slice<u8>, record_start: usize, field_start: usize) -> bool
+    requires csv_record_field_present(input, record_start, field_start)
+{
+    csv_record_field_end(input, record_start, field_start) < csv_record_end(input, record_start)
+}
+
+@id("std.data.csv.record-field-next")
+fn csv_record_field_next(input: borrow Slice<u8>, record_start: usize, field_start: usize) -> usize
+    requires csv_record_field_present(input, record_start, field_start)
+    ensures result >= field_start && result <= csv_record_end(input, record_start)
+{
+    let end = csv_record_field_end(input, record_start, field_start);
+    if end < csv_record_end(input, record_start) { end + 1usize } else { end }
+}
+
+@id("std.data.csv.record-field-is-quoted")
+fn csv_record_field_is_quoted(input: borrow Slice<u8>, record_start: usize, field_start: usize) -> bool
+    requires csv_record_field_present(input, record_start, field_start)
+{
+    let end = csv_record_field_end(input, record_start, field_start);
+    end - field_start >= 2usize && csv_at_is(input, field_start, 34u8) && csv_at_is(input, end - 1usize, 34u8)
+}
+
+@id("std.data.csv.record-field-decoded-len")
+fn csv_record_field_decoded_len(input: borrow Slice<u8>, record_start: usize, field_start: usize) -> usize
+    requires csv_record_field_present(input, record_start, field_start)
+{
+    let end = csv_record_field_end(input, record_start, field_start);
+    let quoted = csv_record_field_is_quoted(input, record_start, field_start);
+    let content_end = if quoted { end - 1usize } else { end };
+    let mut index = if quoted { field_start + 1usize } else { field_start };
+    let mut total = 0usize;
+    let mut scanning = index < content_end;
+    while scanning {
+        let escaped = quoted && csv_at_is(input, index, 34u8) && csv_at_is(input, index + 1usize, 34u8);
+        index = index + if escaped { 2usize } else { 1usize };
+        total = total + 1usize;
+        scanning = index < content_end;
+        scanning
+    }
+    total
+}
+
+@id("std.data.csv.record-field-into")
+fn csv_record_field_into(input: borrow Slice<u8>, record_start: usize, field_start: usize, output: own Writer) -> Writer
+    requires csv_record_field_present(input, record_start, field_start)
+    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && csv_record_field_decoded_len(input, record_start, field_start) <= byte_len(bytes_as_slice(data)) - position, }
+{
+    match own output { Writer { data, position } => { let end = csv_record_field_end(input, record_start, field_start); let quoted = csv_record_field_is_quoted(input, record_start, field_start); let content_end = if quoted { end - 1usize } else { end }; let mut source = if quoted { field_start + 1usize } else { field_start }; let mut next = data; let mut count = 0usize; let mut scanning = source < content_end; while scanning { let escaped = quoted && csv_at_is(input, source, 34u8) && csv_at_is(input, source + 1usize, 34u8); let value = if escaped { 34u8 } else { match byte_get(input, source) { Option::Some { value } => value, Option::None {} => 0u8, } }; next = bytes_set(next, position + count, value); source = source + if escaped { 2usize } else { 1usize }; count = count + 1usize; scanning = source < content_end; scanning } Writer { data: next, position: position + count } }, }
 }

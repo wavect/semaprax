@@ -36,6 +36,8 @@ byte-identical content. `line_content_len` is that length. A carriage return not
 immediately followed by a line feed is ordinary content: `a\rb` is one
 unterminated three-byte line, not two lines. This is the whole policy; the
 profile performs no other rewriting, no UTF-8 interpretation, and no trimming.
+A carriage return at EOF is therefore preserved too: `\r`, `a\r`, and `a\r\r`
+have content lengths one, two, and three respectively.
 
 Empty lines are represented exactly: `\nab` has a zero-length first line
 followed by an unterminated `ab`, and `\r\n` is one zero-length complete line.
@@ -59,9 +61,19 @@ current line and its terminator, clamped to the buffer length for an
 unterminated tail. Repeated application therefore reaches an exhausted cursor
 and stays there; an exhausted cursor reports a zero-length, unterminated line.
 
-Line transitions return records, so a `while` body cannot step them
-(`SPX-T252`). A bounded caller unrolls the walk, as the executed two-line case
-does. General streaming and mutable in-loop cursor replacement remain open.
+An input-dependent `while` may renew the exact source-authored Reader and
+Writer owner shapes. The mutable local keeps one cleanup position while an
+effect-free checked call consumes that complete owner and returns the same
+record type. Borrowed Reader observations, including `reader_remaining` and
+the Reader input to `reader_line_into`, end within the iteration before a
+Reader replacement commits. A failed precondition selects its contract status,
+publishes no replacement owner or partial function result, and leaves cleanup
+to settle the staged Reader and Writer state. This is a structural
+one-`Bytes`-plus-`usize` record rule with explicit type and field identities;
+it is not a name-based exception for these two spellings.
+
+General streaming, arbitrary record replacement, borrowed views that survive
+an owning update, and effectful in-loop transitions remain open.
 
 ## Boundaries
 
@@ -81,13 +93,17 @@ cargo test --locked -p semaprax --test project standard_library::io_lines::io_li
 cargo test --locked -p semaprax --test project standard_library::io_cursors
 ```
 
-Eight named cases in `tests/project/standard_library/io_lines_cases.spx` run as
+Fifteen named cases in `tests/project/standard_library/io_lines_cases.spx` run as
 individual bounded projects, each with its own local call closure, on the
 interpreter, native C11 at `-O0` and `-O2`, and repeated Core Wasm under Node
 with an exact live-`Bytes` bound of two: CRLF and LF lines, an empty line, a
-bare `\r\n`, a bare carriage return, an unterminated tail, an unrolled
-two-line walk, and a prefixed Writer. The shipped package's own examples and
-conformance modules execute on the same three backends, and the unchanged
+bare `\r\n`, a bare carriage return in content, lone and repeated carriage
+returns at EOF, a bare carriage return at EOF from a nonzero cursor, an
+unterminated tail, an unrolled two-line walk, a zero-iteration runtime walk, a
+runtime four-line walk spanning empty LF, LF, CRLF, and an unterminated tail, a
+ten-line repeated-renewal walk, and a prefixed Writer. The runtime walks renew
+both record owners through CleanupPlan v12. The shipped package's own examples
+and conformance modules execute on the same three backends, and the unchanged
 `std.io` package keeps its own hosted-green corpus.
 
 A graph check derives the projection for one fixture, replays it, and pins the
@@ -98,12 +114,13 @@ owned parameter with the `core.bytes.drop` leaf lifecycle, and the borrowed
 Reader never enters an owned inventory. A reminted field identity and a
 one-byte source drift each fail replay.
 
-Nine hostile interpreter cases reject before execution or any write:
-insufficient writer capacity, a live cursor that leaves too little capacity, a
+Eleven hostile interpreter cases reject before execution or any write:
+insufficient writer capacity including one byte for `a\r`, a live cursor that leaves too little capacity, a
 forged Reader position through each line observer and both transitions, and a
-view offset past the end through each view helper. Each fails with the exact
-`requires`-false contract status. Existing borrow-escape, no-public-descriptor,
-and bundled-dependency checks continue to pass unchanged.
+view offset past the end through each view helper. The additional loop case
+fails capacity after two successful renewals. Each fails with the exact
+`requires`-false contract status. Existing borrow-escape,
+no-public-descriptor, and bundled-dependency checks continue to pass unchanged.
 
 This is source-level line processing over caller-supplied buffers. It is not
 evidence of a stream, a physical file, a hosted provider, or any public API.

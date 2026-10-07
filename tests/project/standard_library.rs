@@ -780,7 +780,7 @@ fn package_manifest_links_bundled_std_csv_toml_and_path() {
     std::fs::create_dir_all(scratch.join("src")).unwrap();
     std::fs::write(
         scratch.join("semaprax.toml"),
-        "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"csv-consumer\"\nversion = \"0.1.0\"\nprofile = \"useful-data.v1\"\n\n[modules]\nentry = \"consumer.csv\"\nsources = [\"src/csv.spx\", \"src/tests.spx\"]\ntests = [\"consumer.tests\"]\n\n[exports]\nweb = [\"consumer.csv-fields\"]\n\n[dependencies]\nstd.data.csv = \"^0.1.0\"\nstd.data.toml = \"~0.1.0\"\nstd.path = \"=0.1.0\"\n",
+        "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"csv-consumer\"\nversion = \"0.1.0\"\nprofile = \"useful-data.v2\"\n\n[modules]\nentry = \"consumer.csv\"\nsources = [\"src/csv.spx\", \"src/tests.spx\"]\ntests = [\"consumer.tests\"]\n\n[exports]\nweb = [\"consumer.csv-fields\"]\n\n[dependencies]\nstd.data.csv = \"^0.1.0\"\nstd.data.toml = \"~0.1.0\"\nstd.path = \"=0.1.0\"\n",
     )
     .unwrap();
     std::fs::write(
@@ -805,6 +805,9 @@ fn package_manifest_links_bundled_std_csv_toml_and_path() {
         assert!(snapshot
             .workspace_manifest()
             .contains("dependencies/std.data.csv/0.1.0/csv.spx"));
+        assert!(snapshot
+            .workspace_manifest()
+            .contains("dependencies/std.io/0.1.0/io.spx"));
         assert!(snapshot
             .workspace_manifest()
             .contains("dependencies/std.data.toml/0.1.0/toml.spx"));
@@ -1266,6 +1269,10 @@ mod base64;
 mod byte_spans;
 #[path = "standard_library/catalog.rs"]
 mod catalog;
+#[path = "standard_library/csv.rs"]
+mod csv;
+#[path = "standard_library/dependency_registry.rs"]
+mod dependency_registry;
 #[path = "standard_library/env_policy.rs"]
 mod env_policy;
 #[path = "standard_library/execution_matrix.rs"]

@@ -439,6 +439,9 @@ pub(in crate::wasm) fn box_import_base(program: &ResolvedProgram) -> u32 {
         } else {
             0
         }
+        + super::iterator_ops::record_import_count(
+            crate::iterator_ops::resolved_program_uses_record_iterator(program),
+        )
 }
 
 pub(super) fn executable_functions(

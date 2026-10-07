@@ -364,3 +364,31 @@ use function @id("reader.inspect-outcome") from reader.provider as inspect_outco
         .expect("payload variant result stays outside owned-record import lane");
     assert!(errors.iter().any(|error| error.code == "SPX-G172"));
 }
+
+#[test]
+fn borrowed_byte_view_and_owned_record_import_compose_without_public_abi_widening() {
+    let provider = PROVIDER
+        .replace(
+            "fn advance(value:own Reader)",
+            "fn advance(value:own Reader, view:borrow Slice<u8>)",
+        )
+        .replace("cursor:cursor+1usize", "cursor:cursor+byte_len(view)");
+    let app = APP.replace("advance(reader)", "advance(reader, array_as_slice(input))");
+    let built = build_owned(sources(&app, &provider)).expect("byte view plus exact record import");
+    let linked = built
+        .linked_owned_data_api_program_with_roots("reader.app", &[])
+        .unwrap();
+    hir::validate(&linked).unwrap();
+    let value =
+        crate::interpreter::evaluate_resolved_zero_arg_i64(&linked, "app.main", 100_000).unwrap();
+    assert!(matches!(
+        value.outcome,
+        crate::interpreter::ResolvedEvaluationOutcome::ReturnedI64(1)
+    ));
+    assert!(built.linked_scalar_program("reader.app").is_err());
+    let missing = app.replace(
+        "use type @id(\"reader.type\") from reader.provider as Reader;",
+        "",
+    );
+    assert!(build_owned(sources(&missing, &provider)).is_err());
+}

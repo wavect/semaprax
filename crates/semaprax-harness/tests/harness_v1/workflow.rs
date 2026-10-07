@@ -14,8 +14,8 @@ use serde_json::{json, Value};
 use std::cell::{Cell, RefCell};
 use std::path::{Path, PathBuf};
 
-const LIB: &str = "module t.lib;\n@id(\"t.f\")\nfn f(x: i64) -> i64\n    requires x >= 0\n    ensures result == x\n    uses { clock.read }\n{\n    BUG\n}\n";
-const FIXED: &str = "module t.lib;\n@id(\"t.f\")\nfn f(x: i64) -> i64\n    requires x >= 0\n    ensures result == x\n    uses { clock.read }\n{\n    x\n}\n";
+const LIB: &str = "module t.lib;\n@id(\"t.f\")\nfn f(x: i64) -> i64\n    uses { clock.read }\n    requires x >= 0\n    ensures result == x\n{\n    BUG\n}\n";
+const FIXED: &str = "module t.lib;\n@id(\"t.f\")\nfn f(x: i64) -> i64\n    uses { clock.read }\n    requires x >= 0\n    ensures result == x\n{\n    x\n}\n";
 
 fn rev_of(s: &str) -> String {
     sha256_plain(s.as_bytes())
@@ -224,9 +224,14 @@ fn setup(src: &str) -> Env {
     write(
         &project,
         "semaprax.toml",
-        "schema = \"semaprax.manifest.v1\"\n",
+        "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"fixture\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"t.lib\"\nsources = [\"src/lib.spx\", \"src/tests.spx\"]\ntests = [\"t.tests\"]\n\n[exports]\nweb = [\"t.f\"]\n",
     );
     write(&project, "src/lib.spx", src);
+    write(
+        &project,
+        "src/tests.spx",
+        "module t.tests;\n@id(\"t.tests.main\")\nfn main() -> i64 { 0 }\n",
+    );
     Env {
         cache: root.join("cache"),
         root,

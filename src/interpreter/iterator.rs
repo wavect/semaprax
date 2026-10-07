@@ -19,7 +19,7 @@ impl Evaluator<'_> {
         let ([element], [argument]) = (type_arguments, args) else {
             return Err(Flow::Guard("invalid iterator operation shape"));
         };
-        if !iterator_ops::resolved_element_is_admitted(element) {
+        if !iterator_ops::resolved_element_is_admitted_in(self.declarations, element) {
             return Err(Flow::Guard("invalid iterator scalar element"));
         }
         // A place remains owned by its caller until all fallible reads finish.
@@ -30,7 +30,12 @@ impl Evaluator<'_> {
         } else {
             self.evaluate(argument, environment, depth)?
         };
-        if *element == ResolvedType::Bytes {
+        let owns_payload = *element == ResolvedType::Bytes
+            || crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
+                self.declarations,
+                element,
+            );
+        if owns_payload {
             // A Place staging clone adds exactly one alias to the caller's
             // owner. Reject all other aliases before removing that owner.
             let expected = if matches!(argument.kind, ResolvedExprKind::Place(_)) {
@@ -61,13 +66,19 @@ impl Evaluator<'_> {
                     && iterator.cursor <= iterator.vector.values.len() =>
             {
                 self.charge()?;
-                if *element == ResolvedType::Bytes {
+                if owns_payload {
                     if !iterator.vector.values[..iterator.cursor]
                         .iter()
                         .all(|value| matches!(value, Value::Bool(false)))
                         || !iterator.vector.values[iterator.cursor..]
                             .iter()
-                            .all(|value| matches!(value, Value::Bytes(_)))
+                            .all(|value| {
+                                owned_vec::element_value_matches_type(
+                                    self.declarations,
+                                    value,
+                                    element,
+                                )
+                            })
                     {
                         return Err(Flow::Guard("invalid owned iterator initialized window"));
                     }
@@ -94,8 +105,8 @@ impl Evaluator<'_> {
             (IteratorOp::VecIntoIter, Value::Vec(vector)) => {
                 Ok(Value::Iter(Arc::new(IteratorValue { vector, cursor: 0 })))
             }
-            (IteratorOp::Next, Value::Iter(iterator)) if *element == ResolvedType::Bytes => {
-                self.finish_owned_iterator_next(iterator)
+            (IteratorOp::Next, Value::Iter(iterator)) if owns_payload => {
+                self.finish_owned_iterator_next(iterator, element)
             }
             (IteratorOp::Next, Value::Iter(iterator)) => {
                 let mut fields = BTreeMap::new();
@@ -126,7 +137,11 @@ impl Evaluator<'_> {
 }
 
 impl Evaluator<'_> {
-    fn finish_owned_iterator_next(&mut self, iterator: Arc<IteratorValue>) -> Result<Value, Flow> {
+    fn finish_owned_iterator_next(
+        &mut self,
+        iterator: Arc<IteratorValue>,
+        element: &ResolvedType,
+    ) -> Result<Value, Flow> {
         let iterator =
             Arc::try_unwrap(iterator).map_err(|_| Flow::Guard("aliased owned iterator"))?;
         let mut vector = Arc::try_unwrap(iterator.vector)
@@ -147,7 +162,7 @@ impl Evaluator<'_> {
             crate::iterator_ops::DONE_ID
         };
         Ok(Value::Variant(Arc::new(OwnedVariantValue {
-            ty: crate::iterator_ops::resolved_iter_step(ResolvedType::Bytes),
+            ty: crate::iterator_ops::resolved_iter_step(element.clone()),
             variant: hir::DeclarationId::new(crate::iterator_ops::STEP_ID),
             case: hir::DeclarationId::new(case),
             fields,

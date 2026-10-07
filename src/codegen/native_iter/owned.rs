@@ -18,9 +18,14 @@ static __attribute__((unused)) spx_iter_v1 spx_iter_bytes_from_vec(struct spx_co
     e->type_tag=UINT32_C(10); e->iterator_end=s->len; e->len=0; e->generation=generation;
     *s=(spx_vec_v1){0}; return r;
 }
+static __attribute__((unused)) struct spx_vec_authority_entry *spx_iter_record_valid(struct spx_context *c, const spx_iter_v1 *s);
+static __attribute__((unused)) void spx_iter_record_drop(struct spx_context *c, spx_iter_v1 *s);
 static __attribute__((unused)) spx_iter_v1 spx_iter_move(struct spx_context *c, spx_iter_v1 *s) {
     if(s!=NULL&&s->vec.type_tag==UINT32_C(10)) {
         (void)spx_iter_bytes_valid(c,s); spx_iter_v1 r=*s; *s=(spx_iter_v1){0}; return r;
+    }
+    if(s!=NULL&&s->vec.type_tag==UINT32_C(11)) {
+        (void)spx_iter_record_valid(c,s); spx_iter_v1 r=*s; *s=(spx_iter_v1){0}; return r;
     }
     return spx_iter_scalar_move(c,s);
 }
@@ -30,6 +35,7 @@ static __attribute__((unused)) void spx_iter_drop(struct spx_context *c, spx_ite
         for(uint64_t i=s->cursor;i<s->vec.len;++i) spx_bytes_drop(&s->vec.ptr[i]);
         free(s->vec.ptr); *e=(struct spx_vec_authority_entry){0}; *s=(spx_iter_v1){0}; return;
     }
+    if(s!=NULL&&s->vec.type_tag==UINT32_C(11)) {spx_iter_record_drop(c,s);return;}
     spx_iter_scalar_drop(c,s);
 }
 static __attribute__((unused)) uint32_t spx_iter_bytes_next(struct spx_context *c, spx_iter_v1 *s, spx_iter_bytes_step_v2 *out) {
@@ -44,5 +50,23 @@ static __attribute__((unused)) uint32_t spx_iter_bytes_next(struct spx_context *
     r.spx_payload.ITER_CASE.ITER_REST.vec.generation=generation;
     e->len++; e->generation=generation;
     r.spx_tag=UINT32_C(1); *s=(spx_iter_v1){0}; *out=r;return SPX_STATUS_SUCCESS;
+}
+static __attribute__((unused)) struct spx_vec_authority_entry *spx_iter_record_valid(struct spx_context *c, const spx_iter_v1 *s) {
+    if(c==NULL||c->state!=SPX_CONTEXT_INITIALIZED||s==NULL||s->vec.type_tag!=UINT32_C(11)||s->vec.authority==0||s->vec.authority>SPX_VEC_AUTHORITY_CAPACITY||s->cursor>s->vec.len||s->vec.len>s->vec.capacity||s->vec.capacity>SPX_VEC_RECORD_MAX_CAPACITY||((s->vec.capacity==0)!=(s->vec.ptr==NULL))) spx_runtime_invariant_failure("invalid record iterator carrier");
+    struct spx_vec_authority_entry *e=&c->vec_authority[s->vec.authority-1];
+    if(!e->live||e->type_tag!=UINT32_C(11)||e->ptr!=(void*)s->vec.ptr||e->capacity!=s->vec.capacity||e->generation!=s->vec.generation||e->len!=s->cursor||e->iterator_end!=s->vec.len) spx_runtime_invariant_failure("stale record iterator window");
+    return e;
+}
+static __attribute__((unused)) void spx_iter_record_drop(struct spx_context*c,spx_iter_v1*s){struct spx_vec_authority_entry*e=spx_iter_record_valid(c,s);spx_vec_record_v1*slots=(spx_vec_record_v1*)(void*)s->vec.ptr;if(s->cursor<s->vec.len)spx_vec_record_drop_slots(slots+s->cursor,s->vec.len-s->cursor);free(s->vec.ptr);*e=(struct spx_vec_authority_entry){0};*s=(spx_iter_v1){0};}
+static __attribute__((unused)) spx_iter_v1 spx_iter_record_from_vec(struct spx_context *c, spx_vec_v1 *s) {
+    struct spx_vec_authority_entry *e=spx_vec_require_valid(c,s,UINT32_C(10));
+    uint64_t generation=spx_vec_next_generation(c); spx_iter_v1 r={.vec=*s,.cursor=0};
+    r.vec.type_tag=UINT32_C(11);r.vec.generation=generation;e->type_tag=UINT32_C(11);e->iterator_end=s->len;e->len=0;e->generation=generation;*s=(spx_vec_v1){0};return r;
+}
+static __attribute__((unused)) uint32_t spx_iter_record_next(struct spx_context *c,spx_iter_v1*s,uint32_t*tag,spx_vec_record_v1*item,spx_iter_v1*rest){
+    struct spx_vec_authority_entry*e=spx_iter_record_valid(c,s);if(tag==NULL||item==NULL||rest==NULL)spx_runtime_invariant_failure("invalid record iterator output");*tag=UINT32_C(0);*item=(spx_vec_record_v1){0};*rest=(spx_iter_v1){0};
+    if(s->cursor==s->vec.len){free(s->vec.ptr);*e=(struct spx_vec_authority_entry){0};*s=(spx_iter_v1){0};return SPX_STATUS_SUCCESS;}
+    spx_vec_record_v1*slots=(spx_vec_record_v1*)(void*)s->vec.ptr;item->spx_owned[0]=spx_bytes_move(&slots[s->cursor].spx_owned[0]);item->spx_owned[1]=spx_bytes_move(&slots[s->cursor].spx_owned[1]);item->spx_scalar=slots[s->cursor].spx_scalar;slots[s->cursor].spx_scalar=UINT64_C(0);
+    uint64_t generation=spx_vec_next_generation(c);*rest=*s;rest->cursor++;rest->vec.generation=generation;e->len++;e->generation=generation;*tag=UINT32_C(1);*s=(spx_iter_v1){0};return SPX_STATUS_SUCCESS;
 }
 "#;

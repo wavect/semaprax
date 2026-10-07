@@ -1,4 +1,5 @@
 module std.data.csv.examples;
+use type @id("std.io.writer") from std.io as Writer;
 use function @id("std.data.csv.content_end") from std.data.csv as content_end;
 use function @id("std.data.csv.content_start") from std.data.csv as content_start;
 use function @id("std.data.csv.field_count") from std.data.csv as field_count;
@@ -6,6 +7,11 @@ use function @id("std.data.csv.field_end") from std.data.csv as field_end;
 use function @id("std.data.csv.field_start") from std.data.csv as field_start;
 use function @id("std.data.csv.has_balanced_quotes") from std.data.csv as has_balanced_quotes;
 use function @id("std.data.csv.is_well_formed_record") from std.data.csv as is_well_formed_record;
+use function @id("std.data.csv.record-end") from std.data.csv as record_end;
+use function @id("std.data.csv.record-field-decoded-len") from std.data.csv as record_field_decoded_len;
+use function @id("std.data.csv.record-field-into") from std.data.csv as record_field_into;
+use function @id("std.data.csv.record-next") from std.data.csv as record_next;
+use function @id("std.io.writer.finish") from std.io as writer_finish;
 
 // The record `"a,b",c` walked field by field: the quoted field keeps its comma
 // and its content excludes the surrounding quotes.  Nothing is copied.
@@ -21,10 +27,22 @@ fn walk() -> i64
     if first && inner && second && tail { 0 } else { 1 }
 }
 
+// A quoted field may span a physical CRLF.  Record framing skips only the
+// terminator outside quotes, and decoded copy preserves embedded CRLF.
+@id("std.data.csv.examples.multiline")
+fn multiline() -> i64
+{
+    let source = [34u8, 97u8, 13u8, 10u8, 98u8, 34u8, 13u8, 10u8, 99u8];
+    let view = array_as_slice(source);
+    let written = record_field_into(view, 0usize, 0usize, Writer { data: bytes_zeroed(4usize), position: 0usize });
+    let decoded = writer_finish(written);
+    if record_end(view, 0usize) == 6usize && record_next(view, 0usize) == 8usize && record_field_decoded_len(view, 0usize, 0usize) == 4usize && byte_len(bytes_as_slice(decoded)) == 4usize { 0 } else { 1 }
+}
+
 @id("std.data.csv.examples.main")
 fn main() -> i64
 {
     let record = [34u8, 97u8, 44u8, 98u8, 34u8, 44u8, 99u8];
     let view = array_as_slice(record);
-    if field_count(view) == 2usize && has_balanced_quotes(view) && is_well_formed_record(view) { walk() } else { 1 }
+    if field_count(view) == 2usize && has_balanced_quotes(view) && is_well_formed_record(view) { walk() + multiline() } else { 1 }
 }

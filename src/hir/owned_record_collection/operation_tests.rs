@@ -8,11 +8,9 @@
 //! rather than a hand-built intermediate representation asserting against
 //! itself.
 //!
-//! The profile is deliberately admitted only through the front end: no
-//! ordinary execution target implements its carrier yet (SPX-AI-020, issue
-//! #119), and `ordinary_execution_targets_refuse_the_profile` pins that each
-//! target refuses it with its own stable diagnostic instead of emitting a
-//! broken carrier.
+//! The profile is implemented by all ordinary execution targets. These tests
+//! pin the source/HIR admission and cleanup contracts before the backend owner
+//! harnesses execute the same shapes.
 
 use crate::cleanup::FieldLivenessShape;
 use crate::cleanup_plan::CleanupTransition;
@@ -101,6 +99,96 @@ fn function<'a>(program: &'a ResolvedProgram, id: &str) -> &'a crate::hir::Resol
         .iter()
         .find(|function| function.id.as_str() == id)
         .expect("the fixture function must resolve")
+}
+
+#[test]
+fn consuming_record_traversal_selects_the_frozen_v3_contract() {
+    let source = program(
+        DECLARATION,
+        r#"@id("owned_record_collection.ops.traverse") fn traverse(values:own Vec<Item>)->i64 {
+    let mut total=0;
+    for own item in vec_into_iter<Item>(values) {
+        match own item {Item{id,label,quantity}=>{total=total+quantity;0},}
+    }
+    total
+}"#,
+    );
+    let parsed = crate::check(&source, "owned-record-iterator.spx").unwrap();
+    assert_eq!(
+        crate::prelude::selected_for_program(&parsed).0,
+        crate::prelude::SCHEMA_V10
+    );
+    assert_eq!(
+        crate::prelude::contract_bytes_v10(),
+        include_bytes!("../../../tests/fixtures/prelude-v10.contract")
+    );
+    let resolved = crate::hir::resolve(&parsed).unwrap();
+    crate::hir::validate(&resolved).unwrap();
+    assert_eq!(
+        function(&resolved, "owned_record_collection.ops.traverse")
+            .cleanup_plan
+            .schema,
+        crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V13
+    );
+    let graph_json = crate::graph::to_json(&parsed).unwrap();
+    crate::graph::verify_json(&parsed, &graph_json).unwrap();
+    let graph: serde_json::Value = serde_json::from_str(&graph_json).unwrap();
+    assert_eq!(graph["schema"], "semaprax.graph.v65");
+    assert_eq!(graph["prelude"]["schema"], crate::prelude::SCHEMA_V10);
+    assert_eq!(
+        graph["prelude"]["digest"],
+        crate::prelude::digest_text_v10()
+    );
+
+    let mut forged = resolved.clone();
+    let item = forged
+        .types
+        .iter_mut()
+        .find(|declaration| declaration.id.as_str() == "owned_record_collection.ops.item")
+        .unwrap();
+    let crate::hir::ResolvedTypeDeclarationKind::Record { fields } = &mut item.kind else {
+        unreachable!()
+    };
+    fields[0].id = crate::hir::DeclarationId::new("foreign.item.payload");
+    assert!(crate::hir::validate(&forged).is_err());
+}
+
+#[test]
+fn prelude_v10_is_selected_only_by_the_record_iterator_extension() {
+    let record_vec =
+        crate::check(&program(DECLARATION, BUILD), "owned-record-vec-prelude.spx").unwrap();
+    assert_ne!(
+        crate::prelude::selected_for_program(&record_vec).0,
+        crate::prelude::SCHEMA_V10
+    );
+    let bytes_iterator = crate::check(
+        r#"module owned.bytes.iterator;
+@id("owned.bytes.iterator.main") fn main()->i64 {
+ let step=iter_next<Bytes>(vec_into_iter<Bytes>(vec_with_capacity<Bytes>(0usize)));
+ match own step {IterStep::Done{}=>0,IterStep::Yield{item,rest}=>1,}
+}"#,
+        "owned-bytes-iterator-prelude.spx",
+    )
+    .unwrap();
+    assert_eq!(
+        crate::prelude::selected_for_program(&bytes_iterator).0,
+        crate::prelude::SCHEMA_V8
+    );
+    let local_done = crate::check(
+        &format!(
+            r#"{DECLARATION}
+@id("owned_record_collection.ops.main") fn main()->i64 {{
+ let step=IterStep<Item>::Done{{}};
+ match own step {{IterStep::Done{{}}=>0,IterStep::Yield{{item,rest}}=>1,}}
+}}"#
+        ),
+        "owned-record-iterator-done-prelude.spx",
+    )
+    .unwrap();
+    assert_eq!(
+        crate::prelude::selected_for_program(&local_done).0,
+        crate::prelude::SCHEMA_V10
+    );
 }
 
 const BUILD: &str = r#"@id("owned_record_collection.ops.build") fn build()->usize {

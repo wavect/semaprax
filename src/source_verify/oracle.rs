@@ -339,9 +339,7 @@ pub(super) fn check_expr(
                 .filter(|ty| matches!(ty, Type::I32));
             if !native_unit_operand
                 && matches!(op, BinaryOp::Rem)
-                && (left_numeric.is_some()
-                    || left_integer.is_some()
-                    || left_narrow.is_some())
+                && left_numeric.is_some()
             {
                 diagnostics.push(error(
                     program,

@@ -140,8 +140,17 @@ impl Resolver<'_> {
                     {
                         Some(left)
                     }
-                    BinaryOp::Rem if left == ResolvedType::I64 && right == ResolvedType::I64 => {
-                        Some(ResolvedType::I64)
+                    BinaryOp::Rem
+                        if left == right
+                            && matches!(
+                                left,
+                                ResolvedType::I64
+                                    | ResolvedType::I32
+                                    | ResolvedType::U8
+                                    | ResolvedType::Usize
+                            ) =>
+                    {
+                        Some(left)
                     }
                     BinaryOp::Eq | BinaryOp::Ne if left == right => Some(ResolvedType::Bool),
                     BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge

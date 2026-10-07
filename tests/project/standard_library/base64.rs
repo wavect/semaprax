@@ -11,18 +11,24 @@ use semaprax::{format, graph, hir, parse, verify};
 static NEXT_ID: AtomicU64 = AtomicU64::new(0);
 
 const ENCODING: &str = include_str!("../../../std/encoding/src/encoding.spx");
+const CURSORS: &str = include_str!("../../../std/io/src/io.spx");
 const BASE64: &str = include_str!("../../../std/encoding-base64/src/base64.spx");
 
 /// One checked module holds both libraries: the digit table the package
 /// imports across its dependency, and the padded encoder itself.
 fn source(main: &str) -> String {
     let table = ENCODING.replacen("module std.encoding;", "module app;", 1);
+    let cursors: String = CURSORS
+        .lines()
+        .filter(|line| !line.starts_with("module "))
+        .collect::<Vec<_>>()
+        .join("\n");
     let encoder: String = BASE64
         .lines()
         .filter(|line| !line.starts_with("module ") && !line.starts_with("use "))
         .collect::<Vec<_>>()
         .join("\n");
-    format!("{table}\n{encoder}\n{main}\n")
+    format!("{table}\n{cursors}\n{encoder}\n{main}\n")
 }
 
 fn canonical_checked(main: &str) -> String {
@@ -135,6 +141,48 @@ fn main() -> i64
     let empty = bytes_zeroed(0usize);
     let view = bytes_as_slice(empty);
     if base64_byte(view, 0usize) == 61 { 0 } else { 1 }
+}
+"#,
+    ] {
+        fails(main);
+    }
+}
+
+#[test]
+fn base64_decoder_reports_strict_faults_and_preflights_capacity() {
+    returns(
+        r#"
+@id("app.main")
+fn main() -> i64
+{
+    let nonzero_two_pad = [90u8, 104u8, 61u8, 61u8];
+    let nonzero_one_pad = [90u8, 109u8, 57u8, 61u8];
+    let whitespace = [90u8, 103u8, 10u8, 61u8];
+    let interior = [90u8, 103u8, 61u8, 61u8, 65u8, 65u8, 65u8, 65u8];
+    let strict = base64_decode_error_kind(array_as_slice(nonzero_two_pad)) == 4usize && base64_decode_error_offset(array_as_slice(nonzero_two_pad)) == 1usize && base64_decode_error_kind(array_as_slice(nonzero_one_pad)) == 4usize && base64_decode_error_offset(array_as_slice(nonzero_one_pad)) == 2usize;
+    let syntax = base64_decode_error_kind(array_as_slice(whitespace)) == 2usize && base64_decode_error_offset(array_as_slice(whitespace)) == 2usize && base64_decode_error_kind(array_as_slice(interior)) == 3usize && base64_decode_error_offset(array_as_slice(interior)) == 4usize;
+    if strict && syntax { 0 } else { 1 }
+}
+"#,
+        "0",
+    );
+    for main in [
+        r#"
+@id("app.main")
+fn main() -> i64
+{
+    let invalid = [90u8, 104u8, 61u8, 61u8];
+    let written = base64_decode_into(array_as_slice(invalid), writer_from_bytes(bytes_zeroed(1usize)));
+    if writer_position(written) == 1usize { 0 } else { 1 }
+}
+"#,
+        r#"
+@id("app.main")
+fn main() -> i64
+{
+    let encoded = [90u8, 109u8, 57u8, 118u8];
+    let written = base64_decode_into(array_as_slice(encoded), Writer { data: bytes_zeroed(3usize), position: 1usize });
+    if writer_position(written) == 4usize { 0 } else { 1 }
 }
 "#,
     ] {

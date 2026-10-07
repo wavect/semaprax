@@ -87,8 +87,11 @@ pub(in crate::source_verify) fn substitutions(function: &Function) -> Vec<Vec<Ty
 }
 
 pub(in crate::source_verify) fn concrete_try(operand: &Type, result: &Type) -> bool {
-    operand == result
-        && matches!(ordinary_result_arguments(operand), Some((ok, error))
-        if (*ok == Type::Bytes || *error == Type::Bytes)
-            && owned_byte_prelude_instance_is_admitted("Result", &[ok.clone(), error.clone()]))
+    matches!((ordinary_result_arguments(operand), ordinary_result_arguments(result)),
+        (Some((ok, error)), Some((residual_ok, residual_error)))
+        if error == residual_error
+            && (*ok == Type::Bytes || *error == Type::Bytes)
+            && (*residual_ok == Type::Bytes || *residual_error == Type::Bytes)
+            && owned_byte_prelude_instance_is_admitted("Result", &[ok.clone(), error.clone()])
+            && owned_byte_prelude_instance_is_admitted("Result", &[residual_ok.clone(), residual_error.clone()]))
 }

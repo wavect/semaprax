@@ -161,7 +161,8 @@ impl PlanBuilder<'_> {
         if !matches!(
             self.schema,
             super::super::CLEANUP_PLAN_SCHEMA_V12 | super::super::CLEANUP_PLAN_SCHEMA_V13
-        ) || crate::hir::iterator_loop::renewal_binding(self.function, &value.id).is_none()
+        ) || crate::hir::iterator_loop::renewal_binding(self.program, self.function, &value.id)
+            .is_none()
         {
             return Ok(());
         }
@@ -171,7 +172,7 @@ impl PlanBuilder<'_> {
         let flags = self.flags_under(&place);
         if flags.len() != 1 || !state.live_order.contains(&flags[0]) || !state.renewals.is_empty() {
             return Err(plan_error(
-                "renewal reservation requires one live unreserved Vec owner",
+                "renewal reservation requires one live unreserved owner leaf",
             ));
         }
         state
@@ -195,7 +196,7 @@ impl PlanBuilder<'_> {
     ) -> Result<(), Diagnostic> {
         let flags = self.flags_under(destination);
         if flags.len() != 1 {
-            return Err(plan_error("renewal destination is not one Vec leaf"));
+            return Err(plan_error("renewal destination is not one owner leaf"));
         }
         let flag = flags[0];
         let expected = history

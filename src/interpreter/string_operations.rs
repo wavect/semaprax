@@ -287,6 +287,9 @@ impl Evaluator<'_> {
                     .map_err(|_| Flow::Guard("ill-typed borrowed string operand"))?;
                 Ok(Value::String(self.materialize_utf8_copy(text)?))
             }
+            (StringOp::I64FromU8, [Value::Uint8(value)]) => Ok(Value::Int(i64::from(*value))),
+            (StringOp::I64FromI32, [Value::Int32(value)]) => Ok(Value::Int(i64::from(*value))),
+            (StringOp::UsizeFromU8, [Value::Uint8(value)]) => Ok(Value::Usize(u64::from(*value))),
             // Rust's `as` rounds to nearest, ties to even, like C and Wasm.
             (StringOp::F64FromI64, [Value::Int(value)]) => Ok(Value::Float64(*value as f64)),
             (StringOp::I64FromF64, [Value::Float64(value)]) => {

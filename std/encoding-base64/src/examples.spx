@@ -1,6 +1,11 @@
 module std.encoding.base64.examples;
+use type @id("std.io.writer") from std.io as Writer;
 use function @id("std.encoding.base64.byte") from std.encoding.base64 as base64_byte;
+use function @id("std.encoding.base64.decode-error-kind") from std.encoding.base64 as decode_error_kind;
+use function @id("std.encoding.base64.decode-into") from std.encoding.base64 as decode_into;
+use function @id("std.encoding.base64.decoded-len") from std.encoding.base64 as decoded_len;
 use function @id("std.encoding.base64.len") from std.encoding.base64 as base64_len;
+use function @id("std.io.writer.finish") from std.io as writer_finish;
 
 // "fo" encodes to the padded quad "Zm8=": the pull-based accessor produces
 // each digit on demand from the borrowed view, with no intermediate buffer.
@@ -15,8 +20,20 @@ fn short_input() -> i64
     if length == 4usize && first && pad { 0 } else { 1 }
 }
 
+// Strict decoding validates the whole padded input before copying into the
+// caller-owned output buffer.
+@id("std.encoding.base64.examples.decode")
+fn decode() -> i64
+{
+    let encoded = [90u8, 109u8, 56u8, 61u8];
+    let view = array_as_slice(encoded);
+    let written = decode_into(view, Writer { data: bytes_zeroed(2usize), position: 0usize });
+    let output = writer_finish(written);
+    if decode_error_kind(view) == 0usize && decoded_len(view) == 2usize && byte_len(bytes_as_slice(output)) == 2usize { 0 } else { 1 }
+}
+
 @id("std.encoding.base64.examples.main")
 fn main() -> i64
 {
-    short_input()
+    short_input() + decode()
 }

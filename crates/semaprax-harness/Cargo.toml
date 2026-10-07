@@ -8,6 +8,7 @@ description = "Private SEMAPRAX development-harness provider host (docs/HARNESS-
 license = "Apache-2.0"
 
 [dependencies]
+semaprax = { version = "=0.9.0", path = "../.." }
 semaprax-decision-core = { version = "=0.1.0", path = "../semaprax-decision-core" }
 serde_json = "=1.0.151"
 sha2 = "=0.11.0"

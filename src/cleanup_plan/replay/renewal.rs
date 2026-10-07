@@ -1,7 +1,8 @@
-//! Replay the narrowly authenticated conditional Vec renewal protocol.
+//! Replay the narrowly authenticated same-owner renewal protocol.
 use super::*;
 
 pub(super) fn validate_binding(
+    program: &ResolvedProgram,
     function: &ResolvedFunction,
     at: &ExpressionId,
     place: &CleanupPlace,
@@ -9,7 +10,7 @@ pub(super) fn validate_binding(
     if !matches!(
         function.cleanup_plan.schema,
         CLEANUP_PLAN_SCHEMA_V12 | CLEANUP_PLAN_SCHEMA_V13 | CLEANUP_PLAN_SCHEMA_V14
-    ) || !crate::hir::iterator_loop::renewal_binding(function, at)
+    ) || !crate::hir::iterator_loop::renewal_binding(program, function, at)
         .is_some_and(|binding| *place == CleanupPlace::whole(StorageId::Value(binding.id.clone())))
     {
         return Err(replay_error(
@@ -20,11 +21,12 @@ pub(super) fn validate_binding(
     Ok(())
 }
 pub(super) fn reject_unmarked_finish(
+    program: &ResolvedProgram,
     function: &ResolvedFunction,
     at: &ExpressionId,
     destination: &CleanupPlace,
 ) -> Result<(), Diagnostic> {
-    if crate::hir::iterator_loop::renewal_binding(function, at).is_some_and(|binding| {
+    if crate::hir::iterator_loop::renewal_binding(program, function, at).is_some_and(|binding| {
         *destination == CleanupPlace::whole(StorageId::Value(binding.id.clone()))
     }) {
         return Err(replay_error(
@@ -35,6 +37,7 @@ pub(super) fn reject_unmarked_finish(
     Ok(())
 }
 pub(super) fn reserve(
+    program: &ResolvedProgram,
     function: &ResolvedFunction,
     at: &ExpressionId,
     binding: &CleanupPlace,
@@ -42,18 +45,19 @@ pub(super) fn reserve(
     storage: &BTreeSet<StorageId>,
     leaves: &Leaves,
 ) -> Result<(), Diagnostic> {
-    validate_binding(function, at, binding)?;
+    validate_binding(program, function, at, binding)?;
     let flags = validate_place(function, binding, storage, leaves)?;
     if flags.len() != 1 || !state.live_order.contains(&flags[0]) || !state.renewals.is_empty() {
         return Err(replay_error(
             function,
-            "renewal reservation requires one live unreserved Vec owner",
+            "renewal reservation requires one live unreserved owner leaf",
         ));
     }
     state.renewals.insert(at.clone(), state.live_order.clone());
     Ok(())
 }
 pub(super) fn renew(
+    program: &ResolvedProgram,
     function: &ResolvedFunction,
     at: &ExpressionId,
     source: &CleanupPlace,
@@ -62,7 +66,7 @@ pub(super) fn renew(
     storage: &BTreeSet<StorageId>,
     leaves: &Leaves,
 ) -> Result<(), Diagnostic> {
-    validate_binding(function, at, destination)?;
+    validate_binding(program, function, at, destination)?;
     let history = state
         .renewals
         .remove(at)
@@ -71,7 +75,7 @@ pub(super) fn renew(
     if flags.len() != 1 {
         return Err(replay_error(
             function,
-            "renewal destination is not one Vec leaf",
+            "renewal destination is not one owner leaf",
         ));
     }
     replay_transfer(function, state, source, destination, storage, leaves)?;
@@ -94,12 +98,13 @@ pub(super) fn renew(
     Ok(())
 }
 pub(super) fn prepend_reservation(
+    program: &ResolvedProgram,
     function: &ResolvedFunction,
     expression: &ResolvedExpr,
     paths: &mut [ExprSkeletonPath],
     work: &mut SkeletonWork<'_, '_>,
 ) -> Result<(), Diagnostic> {
-    let binding = crate::hir::iterator_loop::renewal_binding(function, &expression.id)
+    let binding = crate::hir::iterator_loop::renewal_binding(program, function, &expression.id)
         .ok_or_else(|| replay_error(function, "renewal HIR binding disappeared"))?;
     for path in paths {
         let at = work.clone_owned(&expression.id, "renewal expression clone")?;
@@ -294,5 +299,75 @@ module test.iterator_renewal;
         let mut downgraded = function.clone();
         downgraded.cleanup_plan.schema = CLEANUP_PLAN_SCHEMA_V11;
         assert!(validate_structure(&program, &downgraded).is_err());
+    }
+
+    #[test]
+    fn record_renewal_replay_rejects_forged_binding_projection_and_transfer() {
+        let source = format!(
+            "{}\n{}",
+            include_str!("../../../std/io/src/io.spx"),
+            r#"
+@id("app.main")
+fn main() -> i64
+{
+    let mut reader = reader_from_bytes(bytes_zeroed(2usize));
+    while reader_remaining(reader) > 0usize {
+        reader = reader_advance(reader, 1usize);
+        reader_remaining(reader) > 0usize
+    }
+    let retained = reader_finish(reader);
+    if byte_len(bytes_as_slice(retained)) == 2usize { 0 } else { 1 }
+}
+"#,
+        );
+        let source = crate::check(&source, std::path::Path::new("record-renewal.spx"))
+            .expect("record renewal source checks");
+        let program = crate::hir::resolve(&source).expect("record renewal resolves");
+        let function = program
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "app.main")
+            .expect("main");
+        assert_eq!(function.cleanup_plan.schema, CLEANUP_PLAN_SCHEMA_V12);
+        validate_structure(&program, function).expect("record renewal independently replays");
+
+        let mut forged = function.clone();
+        let binding = forged
+            .cleanup_plan
+            .blocks
+            .iter_mut()
+            .flat_map(|block| &mut block.transitions)
+            .find_map(|transition| match transition {
+                CleanupTransition::ReserveRenewal { binding, .. } => Some(binding),
+                _ => None,
+            })
+            .expect("reservation");
+        binding
+            .projections
+            .push(DeclarationId::new("std.io.reader.forged"));
+        assert!(validate_structure(&program, &forged).is_err());
+
+        let mut unmarked = function.clone();
+        let transition = unmarked
+            .cleanup_plan
+            .blocks
+            .iter_mut()
+            .flat_map(|block| &mut block.transitions)
+            .find(|transition| matches!(transition, CleanupTransition::Renew { .. }))
+            .expect("renewal");
+        let CleanupTransition::Renew {
+            at,
+            source,
+            destination,
+        } = transition
+        else {
+            unreachable!()
+        };
+        *transition = CleanupTransition::Transfer {
+            at: at.clone(),
+            source: source.clone(),
+            destination: destination.clone(),
+        };
+        assert!(validate_structure(&program, &unmarked).is_err());
     }
 }

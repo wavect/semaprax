@@ -275,6 +275,7 @@ pub(super) fn pre_filesystem_schema_from_parts(
     function_instances: &[crate::hir::ResolvedFunctionInstance],
 ) -> Result<&'static str, Diagnostic> {
     let iterator_schema = iterator_loop_schema(
+        None,
         functions
             .iter()
             .chain(function_instances.iter().map(|instance| &instance.function)),
@@ -371,6 +372,7 @@ pub(super) fn pre_filesystem_graph_schema(
     program: &ResolvedProgram,
 ) -> Result<&'static str, Diagnostic> {
     let iterator_schema = iterator_loop_schema(
+        Some(program),
         program.functions.iter().chain(
             program
                 .function_instances
@@ -468,6 +470,7 @@ fn program_schema(
 ) -> Result<&'static str, Diagnostic> {
     super::work_counter::record(super::work_counter::Work::SchemaSelection, 1);
     let iterator_schema = iterator_loop_schema(
+        Some(program),
         program.functions.iter().chain(
             program
                 .function_instances
@@ -556,6 +559,7 @@ pub(super) fn graph_schema_includes_modern_composite_facts(schema: &str) -> bool
             | "semaprax.graph.v62"
             | "semaprax.graph.v63"
             | "semaprax.graph.v64"
+            | "semaprax.graph.v65"
     )
 }
 
@@ -584,6 +588,7 @@ pub(super) fn graph_schema_includes_loans(schema: &str) -> bool {
             | "semaprax.graph.v62"
             | "semaprax.graph.v63"
             | "semaprax.graph.v64"
+            | "semaprax.graph.v65"
     )
 }
 
@@ -610,6 +615,7 @@ pub(super) fn graph_schema_includes_projected_provenance(schema: &str) -> bool {
             | "semaprax.graph.v62"
             | "semaprax.graph.v63"
             | "semaprax.graph.v64"
+            | "semaprax.graph.v65"
     )
 }
 
@@ -642,6 +648,7 @@ pub(super) fn reject_nested_native_flags(
 }
 
 fn iterator_loop_schema<'a>(
+    program: Option<&ResolvedProgram>,
     functions: impl IntoIterator<Item = &'a ResolvedFunction>,
     templates: &[crate::hir::ResolvedFunctionTemplate],
 ) -> Result<&'static str, Diagnostic> {
@@ -652,9 +659,25 @@ fn iterator_loop_schema<'a>(
         .iter()
         .any(crate::hir::iterator_loop::template_requires_renewal);
     for function in functions {
-        let expected_loop = crate::hir::iterator_loop::function_contains(function);
-        let expected_renewal = crate::hir::iterator_loop::function_requires_renewal(function);
-        let owned_iterator = crate::iterator_ops::function_uses_owned_iterator(function);
+        let expected_renewal = crate::hir::iterator_loop::function_requires_renewal(function)
+            || program.map_or_else(
+                || crate::hir::iterator_loop::function_may_require_record_renewal(function),
+                |program| {
+                    crate::hir::iterator_loop::function_requires_record_renewal(program, function)
+                },
+            );
+        let expected_loop =
+            crate::hir::iterator_loop::function_contains(function) || expected_renewal;
+        let owned_iterator = crate::iterator_ops::function_uses_owned_iterator(function)
+            || program.map_or_else(
+                || crate::iterator_ops::function_uses_record_iterator(function),
+                |program| {
+                    crate::iterator_ops::function_uses_record_iterator_in(
+                        &program.declarations,
+                        function,
+                    )
+                },
+            );
         if owned_iterator && function.cleanup_plan.schema != CLEANUP_PLAN_SCHEMA_V13 {
             return Err(composition_error("owned iterator cleanup schema disagrees"));
         }
@@ -690,7 +713,8 @@ pub(super) fn has_iterator_cleanup(function: &ResolvedFunction) -> bool {
             .iter()
             .any(|flag| flag.lifecycle.as_str() == crate::cleanup::ITER_DROP_LIFECYCLE_ID)
             || crate::hir::iterator_loop::function_contains(function)
-            || crate::iterator_ops::function_uses_owned_iterator(function);
+            || crate::iterator_ops::function_uses_owned_iterator(function)
+            || crate::iterator_ops::function_uses_record_iterator(function);
     }
     matches!(
         function.cleanup_plan.schema,

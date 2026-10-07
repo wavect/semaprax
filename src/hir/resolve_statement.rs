@@ -184,6 +184,18 @@ impl Resolver<'_> {
         while let Some(item) = pending.pop() {
             let expression = match item {
                 Item::Statement(statement) => match statement {
+                    Statement::Assign {
+                        name,
+                        field: None,
+                        value,
+                        ..
+                    } if self.source_record_owner_renewal(name, value) => {
+                        let ExprKind::Call { args, .. } = &value.kind else {
+                            unreachable!("record renewal admission requires a call")
+                        };
+                        pending.extend(args.iter().rev().map(Item::Expression));
+                        continue;
+                    }
                     Statement::Let { value, .. } | Statement::Assign { value, .. } => value,
                     Statement::Unsafe { span, .. } => {
                         return Err(self.error(
@@ -304,6 +316,15 @@ impl Resolver<'_> {
                                 && crate::loop_calls::ast_result_admitted(&declared.return_type)
                                 && declared.params.iter().all(|param| {
                                     crate::loop_calls::ast_param_admitted(param.mode, &param.ty)
+                                || (param.mode == crate::ast::ParamMode::Borrow
+                                    && self.resolve_type(&param.ty, expression.span).is_ok_and(
+                                        |ty| {
+                                            crate::hir::iterator_loop::is_owner_renewal_record(
+                                                &self.declarations,
+                                                &ty,
+                                            )
+                                        },
+                                    ))
                                 });
                         if !scalar_signature {
                             return Err(self.error(
@@ -387,5 +408,67 @@ impl Resolver<'_> {
             }
         }
         Ok(())
+    }
+
+    fn source_record_owner_renewal(&self, binding: &str, value: &Expr) -> bool {
+        let ExprKind::Call {
+            name,
+            type_arguments,
+            args,
+            ..
+        } = &value.kind
+        else {
+            return false;
+        };
+        let Some(target) = self
+            .program
+            .functions
+            .iter()
+            .find(|function| function.name == *name)
+        else {
+            return false;
+        };
+        type_arguments.is_empty()
+            && target.effects.is_empty()
+            && self
+                .resolve_type(&target.return_type, value.span)
+                .is_ok_and(|ty| {
+                    crate::hir::iterator_loop::is_owner_renewal_record(&self.declarations, &ty)
+                })
+            && target.params.len() == args.len()
+            && target
+                .params
+                .iter()
+                .zip(args)
+                .filter(|(parameter, argument)| {
+                    parameter.mode == crate::ast::ParamMode::Own
+                        && parameter.ty == target.return_type
+                        && matches!(&argument.kind, ExprKind::Var(name) if name == binding)
+                })
+                .count()
+                == 1
+            && target
+                .params
+                .iter()
+                .zip(args)
+                .all(|(parameter, argument)| match parameter.mode {
+                    crate::ast::ParamMode::Own => {
+                        parameter.ty == target.return_type
+                            && matches!(&argument.kind, ExprKind::Var(name) if name == binding)
+                    }
+                    crate::ast::ParamMode::Borrow => {
+                        matches!(argument.kind, ExprKind::Var(_))
+                            && self
+                                .resolve_type(&parameter.ty, value.span)
+                                .is_ok_and(|ty| {
+                                    crate::hir::iterator_loop::is_owner_renewal_record(
+                                        &self.declarations,
+                                        &ty,
+                                    )
+                                })
+                    }
+                    crate::ast::ParamMode::Value => true,
+                    crate::ast::ParamMode::Shared => false,
+                })
     }
 }

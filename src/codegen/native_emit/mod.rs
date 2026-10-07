@@ -38,6 +38,7 @@ mod generic_variant;
 mod guarded_variant;
 mod http_io;
 mod literals;
+mod narrow_remainder;
 mod native_list;
 mod nested_owned;
 mod network_io;
@@ -469,9 +470,8 @@ fn emit_native_prelude_inner(
     }
     native_list::emit_runtime(output, program);
     if closure::enabled(program) || program_uses_u8_arithmetic(program) {
-        // Checked u8 helpers stay out of programs that cannot reach them, so
-        // existing projections keep their exact committed bytes.
         output.push_str(NATIVE_U8_RUNTIME_C);
+        narrow_remainder::emit_runtime(output, program);
     }
     if closure::enabled(program) || program_uses_usize_arithmetic(program) {
         // Portable usize is semantic u64 on every target. Keep its helpers
@@ -2151,6 +2151,7 @@ fn emit_function(
             nested_owned::emit_owned_variant_shell(
                 output,
                 program,
+                emission.record_layouts,
                 layout,
                 "(*spx_result_out)",
                 "spx_result",

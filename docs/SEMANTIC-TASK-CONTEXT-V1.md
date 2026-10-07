@@ -84,6 +84,21 @@ produced by calling `agent_context_v2_json` unchanged.
    `tests::digest_changes_with_budget`). This digest is computed *from* the
    compiled output; it identifies content after the fact and is not itself a
    pre-compile cache key -- see item 7 below for that.
+
+   `compile_with_declaration_facets` uses the additive
+   `semaprax.semantic-task-context.goal-digest.facets.v1` digest domain. For
+   that API, each seed's counted semantic payload is the complete compact
+   `context` plus the canonical `declaration_facets` array selected for the
+   seed's reachable declaration identities. Requirement IDs, test IDs and
+   `candidate_diff` therefore contribute to both the seed's reported token
+   cost and the content identity whenever they are returned. Facets for
+   unreachable declarations contribute to neither. Equivalent facet sets are
+   byte-sorted by their set/map representation, so caller insertion order does
+   not affect bytes or identity. A seed is still included or omitted only as a
+   complete unit. Facet identifiers are limited to 4 KiB each, and a call is
+   refused before rendering when its supplied facet inventory exceeds 1 MiB or
+   65,536 accounted identifiers. The legacy `compile` API retains its existing
+   bytes, `goal_digest` domain and context-only accounting contract.
 5. **A tokenizer algorithm identity.** `TokenizerId::algorithm_digest()` is a
    `sha256:`-prefixed digest of each unit's exact counting algorithm,
    separate from and stricter than its short name (`byte-v1`/`lexical-v1`).

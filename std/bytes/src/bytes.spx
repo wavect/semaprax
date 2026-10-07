@@ -4,14 +4,7 @@ module std.bytes;
 fn byte_to_i64(byte: u8) -> i64
     ensures result >= 0 && result <= 255
 {
-    let mut value = 0;
-    let mut probe = 0u8;
-    while probe != byte {
-        value = value + 1;
-        probe = probe + 1u8;
-        probe != byte
-    }
-    value
+    i64_from_u8(byte)
 }
 
 @id("std.bytes.get_or")
@@ -42,14 +35,7 @@ fn position_of(next_index: usize) -> i64
     requires next_index >= 1usize
     ensures result >= 0
 {
-    let mut remaining = next_index - 1usize;
-    let mut position = 0;
-    while remaining > 0usize {
-        remaining = remaining - 1usize;
-        position = position + 1;
-        remaining > 0usize
-    }
-    position
+    i64_from_usize(next_index - 1usize)
 }
 
 @id("std.bytes.count")

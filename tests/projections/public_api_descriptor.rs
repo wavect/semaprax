@@ -616,6 +616,7 @@ fn project_v8_is_activated_only_by_manifest_and_profile_admission() {
         include_str!("../../src/wasm/string_ops_v2_use.rs"),
         include_str!("../../src/wasm/browser_runtime.js"),
         include_str!("../../src/wasm/arithmetic.rs"),
+        include_str!("../../src/wasm/numeric_conversions.rs"),
         include_str!("../../src/wasm/function_value.rs"),
         include_str!("../../src/wasm/box_ops.rs"),
         include_str!("../../src/wasm/filesystem_ops.rs"),

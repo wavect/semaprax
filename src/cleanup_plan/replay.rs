@@ -66,7 +66,9 @@ use nested_shape::expected_shape_for_type;
 use nested_shape::type_needs_drop;
 use path_join::validate_path_states;
 use record_destructure::finish_owned_match_result as finish_owned;
-use resolved_call::resolved_call_params;
+use resolved_call::{
+    exact_owned_try, resolved_call_params, seal_changed_success_try_residual as seal_try_residual,
+};
 pub(crate) use schema::selected_schema;
 
 const MAX_REPLAY_PATHS: usize = 65_536;
@@ -2292,7 +2294,7 @@ fn validate_blocks_and_edges(
                     validate_place(function, destination, storage, leaves)?;
                 }
                 CleanupTransition::ReserveRenewal { at, binding } => {
-                    renewal::validate_binding(function, at, binding)?;
+                    renewal::validate_binding(program, function, at, binding)?;
                     require_expression(function, expressions, at)?;
                     validate_place(function, binding, storage, leaves)?;
                 }
@@ -2301,7 +2303,7 @@ fn validate_blocks_and_edges(
                     source,
                     destination,
                 } => {
-                    renewal::validate_binding(function, at, destination)?;
+                    renewal::validate_binding(program, function, at, destination)?;
                     require_expression(function, expressions, at)?;
                     validate_place(function, source, storage, leaves)?;
                     validate_place(function, destination, storage, leaves)?;
@@ -3297,7 +3299,7 @@ fn expression_skeleton(
         match frame {
             Frame::RenewalPrefix(expression) => {
                 let mut paths = produced.take().expect("renewal RHS paths retained");
-                renewal::prepend_reservation(function, expression, &mut paths, work)?;
+                renewal::prepend_reservation(program, function, expression, &mut paths, work)?;
                 produced = Some(paths);
             }
             Frame::Eval(expression) => {
@@ -3309,7 +3311,9 @@ fn expression_skeleton(
                     produced = Some(strings::paths(expression, work)?);
                     continue;
                 }
-                if crate::hir::iterator_loop::renewal_binding(function, &expression.id).is_some() {
+                if crate::hir::iterator_loop::renewal_binding(program, function, &expression.id)
+                    .is_some()
+                {
                     push_frame!(frames, Frame::RenewalPrefix(expression));
                 }
 
@@ -4671,24 +4675,7 @@ fn authenticated_try_stage_source(
     }
     let source_arguments = replay_result_arguments(function, &operand.ty, result)?;
     let target_arguments = replay_result_arguments(function, residual_type, result)?;
-    let exact_owned = matches!(
-        source_arguments,
-        [
-            ResolvedType::Bytes,
-            ResolvedType::Bytes
-                | ResolvedType::I64
-                | ResolvedType::I32
-                | ResolvedType::U8
-                | ResolvedType::Usize
-                | ResolvedType::Char
-                | ResolvedType::F32
-                | ResolvedType::F64
-                | ResolvedType::Bool
-        ]
-    ) && source_arguments == target_arguments
-        || matches!(source_arguments, [success, ResolvedType::Bytes]
-                if crate::hir::is_scalar_resolved_type(success))
-            && source_arguments == target_arguments;
+    let exact_owned = exact_owned_try(source_arguments, target_arguments);
     if source_arguments.len() != 2
         || target_arguments.len() != 2
         || (!exact_owned
@@ -4727,7 +4714,7 @@ fn authenticated_try_stage_source(
         } else {
             OwnershipMode::Value
         };
-        if expression.ownership != expected_ownership || operand.ty != *residual_type {
+        if expression.ownership != expected_ownership {
             return Err(replay_error(
                 function,
                 "owned postfix `?` has inconsistent ownership or instance identity",
@@ -6673,21 +6660,31 @@ fn execute_replay_transition(
             append_dead_flags(function, state, flags, "initialize transition")?;
         }
         CleanupTransition::ReserveRenewal { at, binding } => {
-            renewal::reserve(function, at, binding, state, storage, leaves)?
+            renewal::reserve(program, function, at, binding, state, storage, leaves)?
         }
         CleanupTransition::Renew {
             at,
             source,
             destination,
-        } => renewal::renew(function, at, source, destination, state, storage, leaves)?,
+        } => renewal::renew(
+            program,
+            function,
+            at,
+            source,
+            destination,
+            state,
+            storage,
+            leaves,
+        )?,
         CleanupTransition::Transfer {
             at,
             source,
             destination,
         } => {
-            renewal::reject_unmarked_finish(function, at, destination)?;
+            renewal::reject_unmarked_finish(program, function, at, destination)?;
             let append = strings::reserve_append(function, at, source, destination, state)?;
             replay_transfer(function, state, source, destination, storage, leaves)?;
+            seal_try_residual(program, function, at, destination, state, storage, leaves)?;
             strings::publish_append(function, append, state)?;
         }
         CleanupTransition::TransferVariant {

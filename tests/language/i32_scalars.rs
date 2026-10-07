@@ -316,8 +316,8 @@ fn main() -> i64 { if 7i32 % 2i32 == 1i32 { 7 } else { 8 } }
 "#,
     );
     assert!(
-        remainder.iter().any(|item| item.code == "SPX-T208"),
-        "integer remainder stays restricted to i64"
+        remainder.iter().all(|item| !item.severity.is_error()),
+        "i32 remainder is checked arithmetic: {remainder:?}"
     );
 
     let mixed_equality = diagnostics(

@@ -480,6 +480,130 @@ fn hp_hn02_real_repeated_bad_proposals_stop_oracle_edits_are_refused_and_uncerta
 }
 
 #[test]
+#[ignore = "provisioned: needs SEMAPRAX_COMPILER"]
+fn hp_hn02_real_oracle_inventory_survives_tests_in_package_name_and_module_comments() {
+    for (tag, mutation) in [
+        ("hp-hn02-oracle-name", "package-name"),
+        ("hp-hn02-oracle-comment", "module-comment"),
+    ] {
+        let r = rig(tag, None);
+        if mutation == "package-name" {
+            let path = r.project.join("semaprax.toml");
+            let source = std::fs::read_to_string(&path)
+                .unwrap()
+                .replace("name = \"ledger\"", "name = \"testsledger\"");
+            semaprax::project::ProjectManifest::parse(&source).unwrap();
+            std::fs::write(path, source).unwrap();
+        } else {
+            let path = r.project.join("src/tests.spx");
+            let source = std::fs::read_to_string(&path).unwrap().replace(
+                "module ledger.tests;",
+                "module ledger.tests; // acceptance oracle",
+            );
+            std::fs::write(path, source).unwrap();
+        }
+        assert!(r.compiler.check(&r.project).unwrap().ok);
+        let proposal = intent(json!({
+            "kind": "replace_function_body",
+            "target": "ledger.tests.main",
+            "body": {"kind": "i64", "value": 0}
+        }));
+        let report = go(
+            &r,
+            &cfg(
+                &r,
+                change(|task| {
+                    task.session = Some(SessionBounds {
+                        max_attempts: 1,
+                        ..Default::default()
+                    });
+                }),
+            ),
+            &Script::new(vec![proposal]),
+        );
+        assert_eq!(report.session["attempts"][0]["code"], "SPX-HPD114");
+    }
+
+    let r = rig(
+        "hp-hn02-oracle-repair",
+        Some(("    price * qty\n", "    price * \n")),
+    );
+    let proposal = json!({"schema": "semaprax.harness-proposal.v1", "source_patch": {
+        "edits": [{"path": "src/tests.spx", "find": "12", "replace": "7"}]
+    }});
+    let report = go(
+        &r,
+        &cfg(
+            &r,
+            change(|task| {
+                task.mode = TaskMode::Repair;
+                task.session = Some(SessionBounds {
+                    max_attempts: 1,
+                    ..Default::default()
+                });
+            }),
+        ),
+        &Script::new(vec![proposal]),
+    );
+    assert_eq!(report.session["attempts"][0]["code"], "SPX-HPD114");
+}
+
+#[test]
+#[ignore = "provisioned: needs SEMAPRAX_COMPILER"]
+fn hp_hn02_real_source_repair_preserves_multiline_contracts_and_effect_sets() {
+    let run = |tag: &str, source: String, hostile: Value, expected: &str| {
+        let r = rig(tag, None);
+        std::fs::write(r.project.join("src/lib.spx"), &source).unwrap();
+        assert!(!r.compiler.check(&r.project).unwrap().ok);
+        let honest = patch("SYNTAXERR", "price * qty");
+        let report = go(
+            &r,
+            &cfg(
+                &r,
+                change(|task| {
+                    task.mode = TaskMode::Repair;
+                    task.session = Some(SessionBounds::default());
+                }),
+            ),
+            &Script::new(vec![hostile, honest]),
+        );
+        assert_eq!(report.session["attempts"][0]["code"], expected);
+        assert_eq!(report.status, "candidate-ready", "{:?}", report.refusals);
+        assert_eq!(read(&r, "src/lib.spx"), source);
+    };
+
+    let base = std::fs::read_to_string(fixtures().join("healthy/src/lib.spx")).unwrap();
+    let contract = base
+        .replace(
+            "    ensures result == price * qty\n",
+            "    ensures\n        result == price * qty\n",
+        )
+        .replace("    price * qty\n}", "    SYNTAXERR\n}");
+    run(
+        "hp-hn02-contract-facts",
+        contract,
+        patch(
+            "        result == price * qty\n{\n    SYNTAXERR",
+            "        true\n{\n    price * qty",
+        ),
+        "SPX-HPD042",
+    );
+
+    let effects = base
+        .replace("module ledger.lib;", "module ledger.lib;\n\npermit { clock.read }")
+        + "\n@id(\"ledger.effect_helper\")\nfn effect_helper(price: i64, qty: i64) -> i64\n    uses {\n    }\n{\n    SYNTAXERR\n}\n";
+    run(
+        "hp-hn02-effect-facts",
+        effects,
+        patch(
+            "    uses {\n    }\n{\n    SYNTAXERR",
+            "    uses {\n        clock.read\n    }\n{\n    price * qty",
+        ),
+        "SPX-HPD043",
+    );
+}
+
+#[test]
 #[ignore = "provisioned: needs SEMAPRAX_COMPILER HN11_PYTHON HN11_TIKTOKEN_CACHE"]
 fn hp_hn11_real_o200k_counts_the_exact_request_and_bytes_div_4_would_admit_an_oversized_one() {
     use semaprax_harness::decision::{Destination, ModelPlan};
@@ -678,6 +802,78 @@ fn hp_hn02_real_cli_run_session_then_apply_succeeds_and_drift_is_refused_without
         ],
     );
     assert_eq!((code, out.contains("SPX-HPD115")), (1, true), "{out}");
+    // The editable result record cannot substitute the authenticated source
+    // inventory, expand it with traversal/absolute paths, or exploit a loose
+    // JSON/schema parser.
+    let result_dir = PathBuf::from(rep["session"]["result"]["dir"].as_str().unwrap());
+    let record_path = result_dir.join("semaprax.harness-session.json");
+    let original_record = std::fs::read(&record_path).unwrap();
+    let original_value: Value = serde_json::from_slice(&original_record).unwrap();
+    let victim = r.project.parent().unwrap().join("victim.txt");
+    std::fs::write(&victim, "KEEP THIS").unwrap();
+    let refuse = || {
+        let (code, out) = bin(
+            &r,
+            &[
+                "apply",
+                &project,
+                "--session",
+                &report,
+                "--expected-revision",
+                &rev,
+                "--json",
+            ],
+        );
+        assert_eq!((code, out.contains("SPX-HPD115")), (1, true), "{out}");
+        assert_eq!(std::fs::read_to_string(&victim).unwrap(), "KEEP THIS");
+    };
+    for mutation in ["missing", "extra", "digest", "parent", "absolute", "type"] {
+        let mut hostile = original_value.clone();
+        if mutation == "type" {
+            hostile["baseline_files"] = json!([]);
+            std::fs::write(&record_path, hostile.to_string()).unwrap();
+            refuse();
+            continue;
+        }
+        let files = hostile["baseline_files"].as_object_mut().unwrap();
+        match mutation {
+            "missing" => {
+                let key = files.keys().next().unwrap().clone();
+                files.remove(&key);
+            }
+            "extra" => {
+                files.insert("src/extra.spx".into(), Value::String("sha256:00".into()));
+            }
+            "digest" => {
+                let key = files.keys().next().unwrap().clone();
+                files.insert(key, Value::String("sha256:00".into()));
+            }
+            "parent" => {
+                files.clear();
+                files.insert("../victim.txt".into(), Value::String("sha256:00".into()));
+            }
+            "absolute" => {
+                files.clear();
+                files.insert(
+                    victim.to_string_lossy().into_owned(),
+                    Value::String("sha256:00".into()),
+                );
+            }
+            _ => unreachable!(),
+        }
+        std::fs::write(&record_path, hostile.to_string()).unwrap();
+        refuse();
+    }
+    let duplicate = String::from_utf8(original_record.clone())
+        .unwrap()
+        .replacen("{", "{\"schema\":\"duplicate\",", 1);
+    std::fs::write(&record_path, duplicate).unwrap();
+    refuse();
+    let mut unknown = original_value;
+    unknown["unbound"] = true.into();
+    std::fs::write(&record_path, unknown.to_string()).unwrap();
+    refuse();
+    std::fs::write(&record_path, original_record).unwrap();
     // The undrifted project accepts the verified result; nothing is published.
     let (code, out) = bin(
         &r,

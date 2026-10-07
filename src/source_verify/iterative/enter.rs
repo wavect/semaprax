@@ -396,8 +396,15 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     let element = type_arguments.first();
                     if type_arguments.len() != 1
                         || args.len() != 1
-                        || element
-                            .is_none_or(|ty| !crate::iterator_ops::ast_element_is_admitted(ty))
+                        || element.is_none_or(|ty| {
+                            !crate::iterator_ops::ast_element_is_admitted(ty)
+                                    && !crate::source_verify::declared_type::
+                                        owned_record_collection::
+                                        is_admitted_owned_record_collection_element(
+                                            self.types,
+                                            ty,
+                                        )
+                        })
                     {
                         self.diagnostics.push(error(self.program,"SPX-T290","iterator operations require one concrete scalar type argument and one owned argument",expression.span));
                     }

@@ -30,6 +30,12 @@ const PACKAGES: &[BundledPackage] = &[
         dependencies: &[],
     },
     BundledPackage {
+        name: "std.async",
+        path: "dependencies/std.async/0.1.0/async.spx",
+        source: include_str!("../../std/async/src/async.spx"),
+        dependencies: &[],
+    },
+    BundledPackage {
         name: "std.auth",
         path: "dependencies/std.auth/0.1.0/auth.spx",
         source: include_str!("../../std/auth/src/auth.spx"),
@@ -57,7 +63,7 @@ const PACKAGES: &[BundledPackage] = &[
         name: "std.data.csv",
         path: "dependencies/std.data.csv/0.1.0/csv.spx",
         source: include_str!("../../std/data-csv/src/csv.spx"),
-        dependencies: &[],
+        dependencies: &["std.io"],
     },
     BundledPackage {
         name: "std.data.json",
@@ -114,16 +120,34 @@ const PACKAGES: &[BundledPackage] = &[
         dependencies: &[],
     },
     BundledPackage {
+        name: "std.email",
+        path: "dependencies/std.email/0.1.0/policy.spx",
+        source: include_str!("../../std/email/src/policy.spx"),
+        dependencies: &["std.log.redact"],
+    },
+    BundledPackage {
         name: "std.encoding",
         path: "dependencies/std.encoding/0.1.0/encoding.spx",
         source: include_str!("../../std/encoding/src/encoding.spx"),
         dependencies: &[],
     },
     BundledPackage {
+        name: "std.encoding.base64",
+        path: "dependencies/std.encoding.base64/0.1.0/base64.spx",
+        source: include_str!("../../std/encoding-base64/src/base64.spx"),
+        dependencies: &["std.encoding", "std.io"],
+    },
+    BundledPackage {
         name: "std.env",
         path: "dependencies/std.env/0.1.0/env.spx",
         source: include_str!("../../std/env/src/env.spx"),
         dependencies: &["std.format", "std.io"],
+    },
+    BundledPackage {
+        name: "std.env.policy",
+        path: "dependencies/std.env.policy/0.1.0/policy.spx",
+        source: include_str!("../../std/env-policy/src/policy.spx"),
+        dependencies: &[],
     },
     BundledPackage {
         name: "std.export.policy",
@@ -154,6 +178,12 @@ const PACKAGES: &[BundledPackage] = &[
         path: "dependencies/std.io/0.1.0/io.spx",
         source: include_str!("../../std/io/src/io.spx"),
         dependencies: &[],
+    },
+    BundledPackage {
+        name: "std.io.lines",
+        path: "dependencies/std.io.lines/0.1.0/lines.spx",
+        source: include_str!("../../std/io-lines/src/lines.spx"),
+        dependencies: &["std.io"],
     },
     BundledPackage {
         name: "std.jobs",
@@ -191,6 +221,12 @@ const PACKAGES: &[BundledPackage] = &[
         dependencies: &["std.log.redact", "std.num.overflow"],
     },
     BundledPackage {
+        name: "std.net",
+        path: "dependencies/std.net/0.1.0/net.spx",
+        source: include_str!("../../std/net/src/net.spx"),
+        dependencies: &[],
+    },
+    BundledPackage {
         name: "std.num",
         path: "dependencies/std.num/0.1.0/num.spx",
         source: include_str!("../../std/num/src/num.spx"),
@@ -207,6 +243,12 @@ const PACKAGES: &[BundledPackage] = &[
         path: "dependencies/std.path/0.1.0/path.spx",
         source: include_str!("../../std/path/src/path.spx"),
         dependencies: &[],
+    },
+    BundledPackage {
+        name: "std.path.normalize",
+        path: "dependencies/std.path.normalize/0.1.0/normalize.spx",
+        source: include_str!("../../std/path-normalize/src/normalize.spx"),
+        dependencies: &["std.path.value"],
     },
     BundledPackage {
         name: "std.path.value",
@@ -457,6 +499,54 @@ mod tests {
         assert_eq!(
             package("std.webhook").unwrap().dependencies,
             &["std.log.redact"]
+        );
+    }
+
+    #[test]
+    fn shipped_package_catalog_and_bundled_registry_are_identical() {
+        let catalog: serde_json::Value =
+            serde_json::from_str(include_str!("../../std/packages.json")).unwrap();
+        let catalog_names = catalog["packages"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|package| package["module"].as_str().unwrap())
+            .collect::<Vec<_>>();
+        let bundled_names = PACKAGES
+            .iter()
+            .map(|package| package.name)
+            .collect::<Vec<_>>();
+        assert_eq!(bundled_names, catalog_names);
+    }
+
+    #[test]
+    fn issue_619_packages_are_bundled_with_their_manifest_dependencies() {
+        for name in [
+            "std.async",
+            "std.email",
+            "std.encoding.base64",
+            "std.env.policy",
+            "std.io.lines",
+            "std.net",
+            "std.path.normalize",
+        ] {
+            assert!(is_bundled(name), "`{name}` is not a bundled package");
+        }
+        assert_eq!(package("std.async").unwrap().dependencies, &[]);
+        assert_eq!(
+            package("std.email").unwrap().dependencies,
+            &["std.log.redact"]
+        );
+        assert_eq!(
+            package("std.encoding.base64").unwrap().dependencies,
+            &["std.encoding", "std.io"]
+        );
+        assert_eq!(package("std.env.policy").unwrap().dependencies, &[]);
+        assert_eq!(package("std.io.lines").unwrap().dependencies, &["std.io"]);
+        assert_eq!(package("std.net").unwrap().dependencies, &[]);
+        assert_eq!(
+            package("std.path.normalize").unwrap().dependencies,
+            &["std.path.value"]
         );
     }
 

@@ -55,7 +55,6 @@ impl<O: COutput> CEmitter<'_, O> {
                     "copy-result Err payload",
                 )?;
                 let owned_bytes = operand.ownership == hir::OwnershipMode::Own
-                    && operand.ty == *residual_type
                     && result.as_str() == crate::prelude::RESULT_ID
                     && matches!(
                         &operand.ty,
@@ -67,7 +66,12 @@ impl<O: COutput> CEmitter<'_, O> {
                                 declaration,
                                 arguments,
                             )
-                    );
+                    )
+                    && matches!(residual_type,
+                        ResolvedType::Nominal { declaration, arguments }
+                            if declaration == result
+                                && crate::hir::admitted_owned_byte_prelude_instance(
+                                    declaration, arguments));
                 let operand_value = self.emit_expr(operand)?;
                 self.require_type(&operand_value.ty, &operand.ty, "copy-result operand")?;
                 if owned_bytes {

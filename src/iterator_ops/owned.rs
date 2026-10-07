@@ -1,7 +1,9 @@
 //! Exact owned-Bytes iterator feature selection. Layout never grants admission.
 use super::*;
 pub(crate) fn item_ownership(element: &ResolvedType, borrowed: bool) -> OwnershipMode {
-    if *element == ResolvedType::Bytes {
+    if *element == ResolvedType::Bytes
+        || matches!(element, ResolvedType::Nominal { arguments, .. } if arguments.is_empty())
+    {
         if borrowed {
             OwnershipMode::Borrow
         } else {
@@ -28,6 +30,23 @@ pub(crate) fn resolved_type_uses_owned_iterator(ty: &ResolvedType) -> bool {
         _ => false,
     }
 }
+fn resolved_type_uses_record_iterator(ty: &ResolvedType) -> bool {
+    match ty {
+        ResolvedType::Nominal {
+            declaration,
+            arguments,
+        } => {
+            (matches!(declaration.as_str(), ITER_ID | STEP_ID)
+                && matches!(arguments.as_slice(), [ResolvedType::Nominal { arguments, .. }] if arguments.is_empty()))
+                || arguments.iter().any(resolved_type_uses_record_iterator)
+        }
+        ResolvedType::Function { parameters, result } => {
+            parameters.iter().any(resolved_type_uses_record_iterator)
+                || resolved_type_uses_record_iterator(result)
+        }
+        _ => false,
+    }
+}
 pub(crate) fn function_uses_owned_iterator(function: &crate::hir::ResolvedFunction) -> bool {
     if resolved_type_uses_owned_iterator(&function.return_type)
         || function
@@ -45,6 +64,29 @@ pub(crate) fn function_uses_owned_iterator(function: &crate::hir::ResolvedFuncti
         .collect();
     while let Some(expr) = pending.pop() {
         if resolved_type_uses_owned_iterator(&expr.ty) {
+            return true;
+        }
+        crate::hir::push_resolved_expression_children_in_authored_order(expr, &mut pending);
+    }
+    false
+}
+pub(crate) fn function_uses_record_iterator(function: &crate::hir::ResolvedFunction) -> bool {
+    if resolved_type_uses_record_iterator(&function.return_type)
+        || function
+            .params
+            .iter()
+            .any(|p| resolved_type_uses_record_iterator(&p.ty))
+    {
+        return true;
+    }
+    let mut pending: Vec<_> = function
+        .requires
+        .iter()
+        .chain(std::iter::once(&function.body))
+        .chain(&function.ensures)
+        .collect();
+    while let Some(expr) = pending.pop() {
+        if resolved_type_uses_record_iterator(&expr.ty) {
             return true;
         }
         crate::hir::push_resolved_expression_children_in_authored_order(expr, &mut pending);
@@ -75,6 +117,33 @@ pub(crate) fn template_uses_owned_iterator(
         crate::hir::push_resolved_expression_children_in_authored_order(expr, &mut pending);
     }
     false
+}
+pub(crate) fn template_uses_record_iterator(
+    template: &crate::hir::ResolvedFunctionTemplate,
+) -> bool {
+    resolved_type_uses_record_iterator(&template.return_type)
+        || template
+            .params
+            .iter()
+            .any(|p| resolved_type_uses_record_iterator(&p.ty))
+        || template
+            .requires
+            .iter()
+            .chain(std::iter::once(&template.body))
+            .chain(&template.ensures)
+            .any(|expr| {
+                let mut pending = vec![expr];
+                while let Some(expr) = pending.pop() {
+                    if resolved_type_uses_record_iterator(&expr.ty) {
+                        return true;
+                    }
+                    crate::hir::push_resolved_expression_children_in_authored_order(
+                        expr,
+                        &mut pending,
+                    );
+                }
+                false
+            })
 }
 pub(crate) fn resolved_program_uses_owned_iterator(program: &crate::hir::ResolvedProgram) -> bool {
     program

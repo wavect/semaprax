@@ -470,7 +470,11 @@ pub(crate) fn type_needs_resource_cleanup(
                 arguments,
             } => {
                 if declaration.as_str() == crate::iterator_ops::ITER_ID
-                    && matches!(arguments.as_slice(), [element] if crate::iterator_ops::resolved_element_is_admitted(element))
+                    && matches!(arguments.as_slice(), [element]
+                    if crate::iterator_ops::resolved_element_is_admitted_in(
+                        &program.declarations,
+                        element,
+                    ))
                 {
                     return Ok(true);
                 }

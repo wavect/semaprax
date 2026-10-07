@@ -1212,6 +1212,7 @@ pub(crate) fn reject_while_loop_evidence_schema(schema: &str) -> Result<(), Diag
             | "semaprax.graph.v44"
             | "semaprax.graph.v45"
             | "semaprax.graph.v46"
+            | "semaprax.graph.v65"
     ) {
         return Err(Diagnostic::io(
             "SPX-G410",

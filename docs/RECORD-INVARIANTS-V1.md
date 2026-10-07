@@ -31,7 +31,13 @@ exactly like the preconditions of a function whose parameters are the fields:
 | `SPX-C102` | The clause calls a function with effects. |
 | `SPX-T269`, `SPX-T270` | The clause names a host or command I/O operation. |
 | `SPX-T202` | The clause names something that is not a field, function, or builtin; the help lists the fields. |
+| `SPX-C104` | An executable owned record has no ownership-preserving invariant check; this profile refuses it. |
 | `SPX-C103` | The record is generic; v1 admits invariants only on non-generic records. |
+
+Executable records with Bytes, resources, Vec, Box, or other non-string owners
+refuse invariant clauses with `SPX-C104` before HIR or backend admission. The
+graph/webapp exception below applies only to direct string fields and Copy
+fields; it does not exempt executable owned records.
 
 Semantics: every new value of the record satisfies its clauses. A record
 literal, a `base with { ... }` update, and a field assignment `t.f = v;` each

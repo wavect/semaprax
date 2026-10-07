@@ -56,7 +56,10 @@ pub(super) fn validate_shape<'a>(
             "resolved `?` operand or residual is not nominal Result",
         ));
     };
-    let exact_owned = owns_carrier(&operand.ty) && operand.ty == *residual_type;
+    let exact_owned = owns_carrier(&operand.ty)
+        && owns_carrier(residual_type)
+        && matches!((operand_arguments.as_slice(), residual_arguments.as_slice()),
+            ([_, source_error], [_, target_error]) if source_error == target_error);
     if operand_result != result
         || residual_result != result
         || operand_arguments.len() != 2

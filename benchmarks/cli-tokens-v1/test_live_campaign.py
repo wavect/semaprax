@@ -2,6 +2,7 @@ import json
 import os
 import tempfile
 import unittest
+from argparse import Namespace
 from pathlib import Path
 
 import live_campaign
@@ -78,6 +79,23 @@ class LiveCampaignTests(unittest.TestCase):
         })
         self.assertEqual(estimate, 14.7)
         self.assertEqual(live_campaign.PRICE_BOOK_DATE, "2026-09-25")
+
+    def test_campaign_plan_requires_five_trials_and_external_artifacts(self):
+        args = Namespace(
+            repo=str(live_campaign.REPO),
+            base_ref="HEAD",
+            artifacts=str(live_campaign.REPO / "campaign-artifacts"),
+            trials_per_arm=4,
+            timeout_seconds=1800,
+            max_budget_usd=None,
+            model=live_campaign.MODEL,
+            effort=live_campaign.EFFORT,
+        )
+        with self.assertRaisesRegex(ValueError, "outside the repository"):
+            live_campaign.plan(args)
+        args.artifacts = "/tmp/loglens-campaign-plan-test"
+        with self.assertRaisesRegex(ValueError, "at least 5 trials"):
+            live_campaign.plan(args)
 
     def test_independent_acceptance_runner_checks_build_goldens_and_error_statuses(self):
         with tempfile.TemporaryDirectory() as directory:

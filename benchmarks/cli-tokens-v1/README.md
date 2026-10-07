@@ -33,6 +33,9 @@ Here it is the whole task, and the core language cannot yet:
 Each of these is now an improvement target. The next rounds re-run the same
 spec as they land; see [results-live.json](results-live.json).
 
+Round 3's matched live campaign uses the pinned-model launcher and independent
+acceptance collector in [LIVE-CAMPAIGN.md](LIVE-CAMPAIGN.md).
+
 ## Round 2 (Owned String Loops, Text Toolkit, String Collections, factored replay)
 
 | | TypeScript | SEMAPRAX run 1 | SEMAPRAX run 2 |

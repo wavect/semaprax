@@ -36,6 +36,11 @@ updated `results.json`. The runner does not inspect credentials. Claude Code
 must already be authenticated for the selected account, and that account must
 be entitled to the pinned model.
 
+Each trial is an independent Claude Code print session, not a nested subagent
+inside a longer parent session. The allowed built-in tools are fixed to Bash,
+Read, Edit, Write, Glob, and Grep so that the session can build and check its
+candidate without inheriting user-installed MCP tools.
+
 Input, cache-write, cache-read, and output usage values are copied from the
 stream transcript when present. The first turn's input is reported separately
 as initial context; it is not silently subtracted from the gross total. The

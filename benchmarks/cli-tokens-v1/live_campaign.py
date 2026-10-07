@@ -79,6 +79,12 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
     repo = Path(args.repo).resolve(strict=True)
     commit = resolve_commit(repo, args.base_ref)
     artifacts = Path(args.artifacts).expanduser().absolute()
+    try:
+        artifacts.relative_to(repo)
+    except ValueError:
+        pass
+    else:
+        raise ValueError("artifact directory must be outside the repository")
     if artifacts.exists():
         raise ValueError(f"artifact path must not already exist: {artifacts}")
     if args.trials_per_arm < MIN_TRIALS_PER_ARM:
@@ -353,6 +359,10 @@ def launch_trial(
         "acceptEdits",
         "--permission-prompts",
         "none",
+        "--tools",
+        "Bash,Read,Edit,Write,Glob,Grep",
+        "--allowedTools",
+        "Bash,Read,Edit,Write,Glob,Grep",
     ]
     if settings.get("max_budget_usd") is not None:
         command.extend(["--max-budget-usd", str(settings["max_budget_usd"])])

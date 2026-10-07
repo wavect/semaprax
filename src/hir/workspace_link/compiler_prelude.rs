@@ -189,8 +189,8 @@ pub(super) fn compiler_prelude_declarations_for(
     Ok(declarations)
 }
 
-pub(super) fn workspace_compiler_prelude(
-) -> Result<(DeclarationIndex, Vec<ResolvedTypeDeclaration>), Diagnostic> {
+pub(super) fn workspace_compiler_prelude()
+-> Result<(DeclarationIndex, Vec<ResolvedTypeDeclaration>), Diagnostic> {
     workspace_compiler_prelude_for_vec(false)
 }
 
@@ -214,11 +214,16 @@ pub(super) fn workspace_compiler_prelude_for(
         include_list,
         false,
         include_record_iterator,
+        false,
     )
 }
-pub(super) fn workspace_compiler_prelude_for_stream(
-) -> Result<(DeclarationIndex, Vec<ResolvedTypeDeclaration>), Diagnostic> {
-    workspace_compiler_prelude_selected(false, false, false, false, true, false)
+pub(super) fn workspace_compiler_prelude_for_stream()
+-> Result<(DeclarationIndex, Vec<ResolvedTypeDeclaration>), Diagnostic> {
+    workspace_compiler_prelude_selected(false, false, false, false, true, false, false)
+}
+pub(super) fn workspace_compiler_prelude_for_collections()
+-> Result<(DeclarationIndex, Vec<ResolvedTypeDeclaration>), Diagnostic> {
+    workspace_compiler_prelude_selected(false, false, false, false, true, false, true)
 }
 fn workspace_compiler_prelude_selected(
     include_vec: bool,
@@ -227,10 +232,13 @@ fn workspace_compiler_prelude_selected(
     include_list: bool,
     include_stream: bool,
     include_record_iterator: bool,
+    include_collections: bool,
 ) -> Result<(DeclarationIndex, Vec<ResolvedTypeDeclaration>), Diagnostic> {
     let prelude_program = workspace_linker_prelude_program();
-    let compiler_declarations = if include_stream || include_record_iterator {
+    let compiler_declarations = if include_collections {
         crate::prelude::declarations()
+    } else if include_stream || include_record_iterator {
+        &crate::prelude::declarations()[..9]
     } else if include_list {
         &crate::prelude::declarations()[..8]
     } else if include_iterator {
@@ -284,4 +292,49 @@ fn workspace_compiler_prelude_selected(
         })
         .collect::<Result<Vec<_>, Diagnostic>>()?;
     Ok((declarations, compiler_types))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn frozen_stream_and_record_iterator_preludes_exclude_collection_roots() {
+        let expected = crate::prelude::declarations()[..9]
+            .iter()
+            .map(|declaration| declaration.stable_id.as_str())
+            .collect::<Vec<_>>();
+        for (index, types) in [
+            workspace_compiler_prelude_for_stream().unwrap(),
+            workspace_compiler_prelude_for(false, false, false, false, true).unwrap(),
+        ] {
+            assert_eq!(
+                types.iter().map(|ty| ty.id.as_str()).collect::<Vec<_>>(),
+                expected
+            );
+            for id in [crate::map_ops::MAP_ID, crate::map_ops::SET_ID] {
+                assert!(index.record_fields(&DeclarationId::new(id)).is_none());
+            }
+        }
+        let (index, types) = workspace_compiler_prelude_for_collections().unwrap();
+        assert_eq!(
+            types.iter().map(|ty| ty.id.as_str()).collect::<Vec<_>>(),
+            crate::prelude::declarations()
+                .iter()
+                .map(|declaration| declaration.stable_id.as_str())
+                .collect::<Vec<_>>()
+        );
+        for id in [crate::map_ops::MAP_ID, crate::map_ops::SET_ID] {
+            let id = DeclarationId::new(id);
+            assert_eq!(index.record_fields(&id).unwrap().len(), 0);
+            assert_eq!(
+                index.type_parameters(&id).unwrap().len(),
+                if id.as_str() == crate::map_ops::MAP_ID {
+                    2
+                } else {
+                    1
+                }
+            );
+        }
+    }
 }

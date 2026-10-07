@@ -467,10 +467,9 @@ pub(crate) fn link_owned_data_api_workspace(
         .collect::<Vec<_>>();
     let uses_private_collections = functions.iter().any(|f| {
         crate::map_ops::is_collection(&f.return_type)
-            || crate::stdin_stream_ops::is_reader(&f.return_type)
-            || f.params.iter().any(|p| {
-                crate::map_ops::is_collection(&p.ty) || crate::stdin_stream_ops::is_reader(&p.ty)
-            })
+            || f.params
+                .iter()
+                .any(|p| crate::map_ops::is_collection(&p.ty))
     }) || functions.iter().any(|f| {
         f.requires
             .iter()
@@ -488,6 +487,11 @@ pub(crate) fn link_owned_data_api_workspace(
         .iter()
         .any(|t| crate::map_ops::is_declaration(t.id.as_str()));
     let (mut declarations, mut types) = if uses_private_collections {
+        compiler_prelude::workspace_compiler_prelude_for_collections()?
+    } else if functions
+        .iter()
+        .any(crate::stdin_stream_ops::resolved_function_uses)
+    {
         compiler_prelude::workspace_compiler_prelude_for_stream()?
     } else {
         compiler_prelude::selected_for_owned_data(&functions, &parts)?
@@ -1141,7 +1145,7 @@ fn resolved_function_uses_list(function: &ResolvedFunction) -> bool {
 mod tests {
     use std::path::Path;
 
-    use crate::workspace_graph::{build_owned, WorkspaceSource};
+    use crate::workspace_graph::{WorkspaceSource, build_owned};
 
     mod profile_tests;
 

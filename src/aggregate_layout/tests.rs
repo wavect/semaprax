@@ -836,7 +836,7 @@ fn internal_collection_record_layout_authenticates_owning_leaves_on_both_targets
     };
     // The additive internal carrier admission never extends the frozen concrete
     // Byte-record classifier, even though every collection has an eight-byte ABI.
-    assert!(!concrete_layout_instance_is_admitted(&program, &ty));
+    assert!(!super::concrete_layout_instance_is_admitted(&program, &ty));
     for target in [AggregateTarget::Native64, AggregateTarget::Wasm32] {
         let layout = AggregateLayout::for_type(&program, target, &ty).unwrap();
         assert_eq!((layout.size, layout.align), (32, 8));

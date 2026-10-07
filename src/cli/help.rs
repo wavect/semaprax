@@ -702,17 +702,17 @@ static GUIDE: &[GuideGroup] = &[
             GuideEntry {
                 id: CommandId::Check,
                 shape: "check [<input>] [--json]",
-                summary: "Parse, resolve, type-check, verify",
+                summary: "Parse, type-check, verify",
             },
             GuideEntry {
                 id: CommandId::Fmt,
                 shape: "fmt <input> [--check]",
-                summary: "Rewrite canonically; --check reports drift",
+                summary: "Format; --check reports drift",
             },
             GuideEntry {
                 id: CommandId::Run,
                 shape: "run <input>",
-                summary: "Execute main and print its i64 result",
+                summary: "Execute main; print its result",
             },
             GuideEntry {
                 id: CommandId::Test,
@@ -722,7 +722,7 @@ static GUIDE: &[GuideGroup] = &[
             GuideEntry {
                 id: CommandId::Build,
                 shape: "build <input> --target <target>",
-                summary: "Emit a native, web, wasm, or npm artifact",
+                summary: "Emit native, web, wasm, or npm",
             },
         ],
     },
@@ -741,13 +741,13 @@ static GUIDE: &[GuideGroup] = &[
             },
             GuideEntry {
                 id: CommandId::Doc,
-                shape: "doc <file|project> [--module <source-path>] [--json]",
+                shape: "doc <input> [--json]",
                 summary: "Documentation from the graph",
             },
             GuideEntry {
                 id: CommandId::Query,
                 shape: "query <input> [--kind K]",
-                summary: "Find declarations by kind, name, effect, call",
+                summary: "Find declarations and callers",
             },
         ],
     },
@@ -767,7 +767,7 @@ static GUIDE: &[GuideGroup] = &[
             GuideEntry {
                 id: CommandId::Review,
                 shape: "review <input> <change>",
-                summary: "Review a patch or transaction without writing",
+                summary: "Review a patch or transaction",
             },
             GuideEntry {
                 id: CommandId::Verify,
@@ -795,7 +795,7 @@ static GUIDE: &[GuideGroup] = &[
             GuideEntry {
                 id: CommandId::ProjectScaffold,
                 shape: "project-scaffold --name <name>",
-                summary: "The calculator template as one JSON capsule",
+                summary: "Calculator template as JSON",
             },
         ],
     },

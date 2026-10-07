@@ -321,7 +321,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             self.diagnostics.push(error(
                                 self.program,
                                 "SPX-T283",
-                                "only exact typed Vec push/read operations are admitted in while bodies",
+                                "only exact typed scalar Vec update/read operations are admitted in while bodies",
                                 expression.span,
                             ));
                             results.push(Err(()));

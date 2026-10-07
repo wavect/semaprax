@@ -35,7 +35,7 @@ use sha2::{Digest, Sha256};
 #[test]
 fn every_shipped_template_walks_the_documented_quickstart_journey() {
     for template in PROJECT_SCAFFOLD_TEMPLATES {
-        let layout = if template == "service" {
+        let layout = if matches!(template, "service" | "stdin-stream-text") {
             ScaffoldLayout::Tables
         } else {
             ScaffoldLayout::Frozen
@@ -95,7 +95,7 @@ fn every_shipped_template_walks_the_documented_quickstart_journey() {
 #[test]
 fn every_shipped_template_fits_the_default_assurance_budget() {
     for template in PROJECT_SCAFFOLD_TEMPLATES {
-        let layout = if template == "service" {
+        let layout = if matches!(template, "service" | "stdin-stream-text") {
             ScaffoldLayout::Tables
         } else {
             ScaffoldLayout::Frozen
@@ -594,6 +594,109 @@ fn tables_layout_derives_a_v3_capsule_and_replays_only_as_itself() {
         .find(|file| file.path() == "semaprax.toml")
         .unwrap();
     assert_eq!(manifest.bytes(), LIBRARY_TABLES_MANIFEST);
+}
+
+#[test]
+fn stdin_stream_text_template_selects_one_native_v25_command() {
+    let long_name = "a".repeat(64);
+    let long = derive_project_scaffold_v1_with_layout(
+        &long_name,
+        "stdin-stream-text",
+        ScaffoldLayout::Tables,
+    )
+    .unwrap();
+    let replayed_long = replay_project_scaffold_v1(
+        &long_name,
+        "stdin-stream-text",
+        &long.canonical_bytes(),
+        long.digest(),
+    )
+    .unwrap();
+    assert_eq!(replayed_long.canonical_bytes(), long.canonical_bytes());
+    let command_line = long.files()[2]
+        .utf8()
+        .lines()
+        .find(|line| line.starts_with("function = "))
+        .unwrap();
+    let command_id = command_line
+        .strip_prefix("function = \"")
+        .unwrap()
+        .strip_suffix('"')
+        .unwrap();
+    assert!(command_id.len() <= 32);
+    let frozen =
+        derive_project_scaffold_v1_with_layout(NAME, "stdin-stream-text", ScaffoldLayout::Frozen)
+            .unwrap_err();
+    assert_eq!(frozen[0].code, "SPX-J115");
+
+    let derived =
+        derive_project_scaffold_v1_with_layout(NAME, "stdin-stream-text", ScaffoldLayout::Tables)
+            .unwrap();
+    assert_eq!(derived.schema(), "semaprax.project-scaffold.v4");
+    assert_eq!(derived.project_schema(), "semaprax.project.v25");
+    let descriptor: serde_json::Value = serde_json::from_slice(&derived.canonical_bytes()).unwrap();
+    assert_eq!(descriptor["schema"], "semaprax.project-scaffold.v4");
+    assert_eq!(descriptor["project_schema"], "semaprax.project.v25");
+    assert_eq!(
+        derived
+            .files()
+            .iter()
+            .map(|file| file.path())
+            .collect::<Vec<_>>(),
+        [
+            "README.md",
+            "AGENTS.md",
+            "semaprax.toml",
+            "src/app.spx",
+            "src/input.spx",
+            "src/tests.spx",
+        ]
+    );
+
+    let manifest = derived.files()[2].utf8();
+    assert!(manifest.contains("profile = \"language-command-io.stream-text.v1\""));
+    assert!(manifest.contains("sources = [\"src/app.spx\", \"src/input.spx\", \"src/tests.spx\"]"));
+    assert!(manifest.contains("web = [\"demo-project.command\"]"));
+    assert!(manifest.contains("function = \"demo-project.command\""));
+    assert!(manifest.contains("input = \"argv-utf8+stdin-stream.v1\""));
+    assert!(manifest.contains("required = [\"process.args.read\", \"process.stderr.write\", \"process.stdin.read\", \"process.stdout.write\"]"));
+    assert_eq!(manifest.matches("web = [").count(), 1);
+    assert_eq!(manifest.matches("function = ").count(), 1);
+
+    let app = derived.files()[3].utf8();
+    assert!(app.contains("@id(\"demo-project.command\")"));
+    assert!(app.contains("as normalize;"));
+    assert!(app.contains("normalize(\" ready \");"));
+    assert!(app.contains("fn main() -> i64"));
+    let input = derived.files()[4].utf8();
+    for operation in [
+        "stdin_stream_open()",
+        "stdin_stream_eof(reader)",
+        "stdin_stream_chunk(reader)",
+        "stdin_stream_next(reader)",
+        "fn normalize(text: string) -> string",
+        "string_trim(text)",
+    ] {
+        assert!(input.contains(operation), "missing `{operation}`");
+    }
+    let guide = derived.files()[1].utf8();
+    assert!(guide.contains("doctor --profile` reports compiler support"));
+    assert!(guide.contains("Process each borrowed chunk"));
+    assert!(!guide.contains("--target web"));
+    assert!(!guide.contains("`if` always has `else`"));
+    assert!(!guide.contains("body ends with the bool"));
+    let tests = derived.files()[5].utf8();
+    assert!(tests.contains("demo-project.tests.main"));
+    assert!(tests.contains("from demo_project.input as normalize;"));
+    assert!(tests.contains("let marker = normalize(\" ready \");"));
+    let replayed = replay_project_scaffold_v1(
+        NAME,
+        "stdin-stream-text",
+        &derived.canonical_bytes(),
+        derived.digest(),
+    )
+    .unwrap();
+    assert_eq!(replayed.canonical_bytes(), derived.canonical_bytes());
 }
 
 /// The service template composes bundled standard-library dependencies through

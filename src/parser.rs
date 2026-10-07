@@ -1319,6 +1319,7 @@ impl Parser {
             .expect(&TokenKind::Semicolon, "`;` after local binding")?
             .span;
         Ok(Statement::Let {
+            syntax: crate::ast::LetSyntax::Authored,
             name,
             name_span,
             mutable,

@@ -1,4 +1,4 @@
-//! Replay the narrowly authenticated same-owner renewal protocol.
+//! Replay narrowly authenticated same-owner renewal without changing canonical history.
 use super::*;
 
 pub(super) fn validate_binding(
@@ -9,13 +9,19 @@ pub(super) fn validate_binding(
 ) -> Result<(), Diagnostic> {
     if !matches!(
         function.cleanup_plan.schema,
-        CLEANUP_PLAN_SCHEMA_V12 | CLEANUP_PLAN_SCHEMA_V13 | CLEANUP_PLAN_SCHEMA_V14
-    ) || !crate::hir::iterator_loop::renewal_binding(program, function, at)
-        .is_some_and(|binding| *place == CleanupPlace::whole(StorageId::Value(binding.id.clone())))
+        CLEANUP_PLAN_SCHEMA_V12
+            | CLEANUP_PLAN_SCHEMA_V13
+            | CLEANUP_PLAN_SCHEMA_V14
+            | CLEANUP_PLAN_SCHEMA_V15
+    ) || (crate::hir::vec_loop_renewal::binding(function, at).is_some()
+        && function.cleanup_plan.schema != CLEANUP_PLAN_SCHEMA_V15)
+        || !crate::cleanup_plan::renewal_binding(program, function, at).is_some_and(|binding| {
+            *place == CleanupPlace::whole(StorageId::Value(binding.id.clone()))
+        })
     {
         return Err(replay_error(
             function,
-            "renewal is outside an exact conditional iterator assignment",
+            "renewal is outside an exact authenticated same-owner assignment",
         ));
     }
     Ok(())
@@ -26,12 +32,12 @@ pub(super) fn reject_unmarked_finish(
     at: &ExpressionId,
     destination: &CleanupPlace,
 ) -> Result<(), Diagnostic> {
-    if crate::hir::iterator_loop::renewal_binding(program, function, at).is_some_and(|binding| {
+    if crate::cleanup_plan::renewal_binding(program, function, at).is_some_and(|binding| {
         *destination == CleanupPlace::whole(StorageId::Value(binding.id.clone()))
     }) {
         return Err(replay_error(
             function,
-            "conditional renewal uses an ordinary transfer",
+            "authenticated renewal uses an ordinary transfer",
         ));
     }
     Ok(())
@@ -104,7 +110,7 @@ pub(super) fn prepend_reservation(
     paths: &mut [ExprSkeletonPath],
     work: &mut SkeletonWork<'_, '_>,
 ) -> Result<(), Diagnostic> {
-    let binding = crate::hir::iterator_loop::renewal_binding(program, function, &expression.id)
+    let binding = crate::cleanup_plan::renewal_binding(program, function, &expression.id)
         .ok_or_else(|| replay_error(function, "renewal HIR binding disappeared"))?;
     for path in paths {
         let at = work.clone_owned(&expression.id, "renewal expression clone")?;
@@ -300,7 +306,6 @@ module test.iterator_renewal;
         downgraded.cleanup_plan.schema = CLEANUP_PLAN_SCHEMA_V11;
         assert!(validate_structure(&program, &downgraded).is_err());
     }
-
     #[test]
     fn record_renewal_replay_rejects_forged_binding_projection_and_transfer() {
         let source = format!(
@@ -428,5 +433,80 @@ fn main() -> i64
             destination: destination.clone(),
         };
         assert!(validate_structure(&program, &unmarked).is_err());
+    }
+
+    #[test]
+    fn ordinary_vec_renewal_rejects_missing_forged_and_downgraded_proofs() {
+        let source = crate::check(
+            r#"module test.ordinary_vec_renewal;
+@id("app.main") fn main()->i64 {
+ let mut values=vec_with_capacity<i64>(2usize);
+ let mut untouched=vec_with_capacity<i64>(1usize);
+ let mut i=0;
+ while i<2 { if i==0 { values=vec_push<i64>(values,i); 0 } else {0} i=i+1; 0 }
+ if vec_len<i64>(values)==1usize && vec_len<i64>(untouched)==0usize {7}else{0}
+}
+"#,
+            "ordinary-renewal.spx",
+        )
+        .unwrap();
+        let program = crate::hir::resolve(&source).unwrap();
+        let function = &program.functions[0];
+        assert_eq!(function.cleanup_plan.schema, CLEANUP_PLAN_SCHEMA_V15);
+        validate_structure(&program, function).unwrap();
+        for mode in 0..6 {
+            let mut forged = function.clone();
+            for block in &mut forged.cleanup_plan.blocks {
+                if mode == 0 {
+                    block
+                        .transitions
+                        .retain(|t| !matches!(t, CleanupTransition::ReserveRenewal { .. }));
+                }
+                for transition in &mut block.transitions {
+                    match transition {
+                        CleanupTransition::ReserveRenewal { binding, .. } if mode == 1 => {
+                            *binding =
+                                CleanupPlace::whole(StorageId::Value(function.result_id.clone()));
+                        }
+                        CleanupTransition::Renew {
+                            at,
+                            source,
+                            destination,
+                        } if mode == 2 => {
+                            *transition = CleanupTransition::Transfer {
+                                at: at.clone(),
+                                source: source.clone(),
+                                destination: destination.clone(),
+                            };
+                        }
+                        CleanupTransition::Renew {
+                            source,
+                            destination,
+                            ..
+                        } if mode == 3 => {
+                            *destination = source.clone();
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            if mode == 4 {
+                forged.cleanup_plan.schema = CLEANUP_PLAN_SCHEMA_V12;
+            }
+            if mode == 5 {
+                let crate::hir::ResolvedExprKind::Block { statements, .. } = &mut forged.body.kind
+                else {
+                    panic!("function block")
+                };
+                let crate::hir::ResolvedStatement::Let { mutable, .. } = &mut statements[0] else {
+                    panic!("mutable Vec binding")
+                };
+                *mutable = false;
+                assert!(!crate::hir::vec_loop_renewal::requires(&forged));
+            }
+
+            let error = validate_structure(&program, &forged).unwrap_err();
+            assert_eq!(error.code, "SPX-H006", "mode {mode}: {error:?}");
+        }
     }
 }

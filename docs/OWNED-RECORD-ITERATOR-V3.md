@@ -47,7 +47,7 @@ unvisited remainder exactly once.
 CleanupPlan v13 already represents the relevant meaning: the yielded owned
 item and the remainder are independent owners. V3 therefore retains v13.
 The exact item type and field identities remain in checked HIR and additive
-Graph v66; frozen Graph v45 remains the `Bytes` payload contract.
+Graph v67; frozen Graph v45 remains the `Bytes` payload contract.
 Prelude v11 binds the added admission, layout, and host protocol. Existing
 scalar and `Bytes` iterator programs keep their prior prelude, cleanup,
 Graph, and generated-byte contracts.

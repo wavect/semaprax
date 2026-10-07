@@ -22,6 +22,97 @@ use super::{
     REASON_UNSUPPORTED_RESULT_TYPE,
 };
 
+/// The retained Project v25 selector; legacy callers retain their closed map.
+#[derive(Clone, Copy)]
+pub(crate) enum ResolvedFunctionProfile {
+    Legacy,
+    StreamText,
+}
+impl ResolvedFunctionProfile {
+    pub(crate) fn for_project(profile: crate::project::ProjectProfile) -> Self {
+        if profile == crate::project::ProjectProfile::StdinStreamTextCommandIoV1 {
+            Self::StreamText
+        } else {
+            Self::Legacy
+        }
+    }
+    pub(super) fn admitted(
+        self,
+        program: &hir::ResolvedProgram,
+    ) -> std::collections::BTreeMap<&str, &hir::ResolvedFunction> {
+        let mut admitted = admitted_resolved_functions(program);
+        if matches!(self, Self::StreamText) {
+            admitted.extend(
+                program
+                    .functions
+                    .iter()
+                    .filter(|function| {
+                        function.effects.is_empty()
+                            && (function.return_type == ResolvedType::String
+                                || function.params.iter().any(|p| p.ty == ResolvedType::String))
+                            && hir::stream_text_return_admitted(&function.return_type)
+                            && (!crate::stdin_stream_ops::is_reader(&function.return_type)
+                                || crate::stdin_stream_ops::resolved_forward_signature(function))
+                            && function
+                                .params
+                                .iter()
+                                .all(hir::stream_text_parameter_admitted)
+                            && program
+                                .declarations
+                                .declaration(&function.id)
+                                .is_some_and(|d| d.identity_origin == hir::IdentityOrigin::Explicit)
+                    })
+                    .map(|function| (function.id.as_str(), function)),
+            );
+        }
+        admitted
+    }
+}
+
+pub(crate) fn evaluate_resolved_profile_i64_entry(
+    program: &hir::ResolvedProgram,
+    entry_id: &str,
+    max_steps: usize,
+    profile: ResolvedFunctionProfile,
+) -> Result<super::ResolvedEvaluation, Vec<Diagnostic>> {
+    let evaluated = evaluate_resolved_i64_function_with_profile(
+        program,
+        entry_id,
+        max_steps,
+        true,
+        PreparedCancellation::Never,
+        profile,
+    )?;
+    let outcome = match evaluated.outcome {
+        PreparedResolvedEvaluationOutcome::ReturnedI64(v) => {
+            super::ResolvedEvaluationOutcome::ReturnedI64(v)
+        }
+        PreparedResolvedEvaluationOutcome::LanguageFailure(s) => {
+            super::ResolvedEvaluationOutcome::LanguageFailure(s)
+        }
+        PreparedResolvedEvaluationOutcome::FuelExhausted => {
+            super::ResolvedEvaluationOutcome::FuelExhausted
+        }
+        PreparedResolvedEvaluationOutcome::CallDepthExceeded => {
+            super::ResolvedEvaluationOutcome::CallDepthExceeded
+        }
+        PreparedResolvedEvaluationOutcome::GuardError(detail) => {
+            super::ResolvedEvaluationOutcome::GuardError(detail)
+        }
+        PreparedResolvedEvaluationOutcome::Cancelled { .. } => {
+            return Err(vec![guard_error(
+                "unexpected cancellation in profile entry evaluation",
+            )])
+        }
+    };
+    Ok(super::ResolvedEvaluation {
+        outcome,
+        steps_used: evaluated.steps_used,
+        max_steps: evaluated.max_steps,
+        failure: evaluated.failure,
+    })
+}
+
 /// Evaluate `function_id` as a zero-argument `i64` function of `program`.
 ///
 /// With `entrypoint_only`, the selection must be the resolved entrypoint, which
@@ -35,6 +126,24 @@ pub(crate) fn evaluate_resolved_zero_arg_i64_function(
     max_steps: usize,
     entrypoint_only: bool,
     cancellation: PreparedCancellation<'_>,
+) -> Result<PreparedResolvedEvaluation, Vec<Diagnostic>> {
+    evaluate_resolved_i64_function_with_profile(
+        program,
+        function_id,
+        max_steps,
+        entrypoint_only,
+        cancellation,
+        ResolvedFunctionProfile::Legacy,
+    )
+}
+
+pub(crate) fn evaluate_resolved_i64_function_with_profile(
+    program: &hir::ResolvedProgram,
+    function_id: &str,
+    max_steps: usize,
+    entrypoint_only: bool,
+    cancellation: PreparedCancellation<'_>,
+    profile: ResolvedFunctionProfile,
 ) -> Result<PreparedResolvedEvaluation, Vec<Diagnostic>> {
     if !(1..=MAX_STEPS_LIMIT).contains(&max_steps) {
         return Err(vec![option_error(format!(
@@ -86,7 +195,7 @@ pub(crate) fn evaluate_resolved_zero_arg_i64_function(
         )]);
     }
 
-    let admitted = admitted_resolved_functions(program);
+    let admitted = profile.admitted(program);
     scan_closure(function_id, &admitted, program)?;
     // Even uncalled attached instances must authenticate before execution.
     hir::validate(program).map_err(|error| vec![error])?;
@@ -155,4 +264,86 @@ pub(crate) fn evaluate_resolved_zero_arg_i64_function(
             )]
         })
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn string_program(body: &str) -> hir::ResolvedProgram {
+        let source = format!("module text.calls; @id(\"text.helper\") fn helper(text:string)->string {{ {body} }} @id(\"app.main\") fn main()->i64 {{ let text=helper(\" ready \"); string_len(text) }}");
+        hir::resolve(&crate::parse(&source, "text-calls.spx").unwrap()).unwrap()
+    }
+    #[test]
+    fn stream_text_owned_calls_execute_and_legacy_stays_closed() {
+        let program = string_program("string_trim(text)");
+        let refused = evaluate_resolved_zero_arg_i64_function(
+            &program,
+            "app.main",
+            1000,
+            true,
+            PreparedCancellation::Never,
+        )
+        .unwrap_err();
+        assert!(refused[0].message.contains("unsupported_callee"));
+        let evaluated = evaluate_resolved_profile_i64_entry(
+            &program,
+            "app.main",
+            1000,
+            ResolvedFunctionProfile::StreamText,
+        )
+        .unwrap();
+        assert!(matches!(
+            evaluated.outcome,
+            super::super::ResolvedEvaluationOutcome::ReturnedI64(5)
+        ));
+        let prepared = super::super::prepared::prepare_resolved_i64_with_profile(
+            &program,
+            "app.main",
+            ResolvedFunctionProfile::StreamText,
+        )
+        .unwrap();
+        assert!(prepared.function_ids().any(|id| id == "text.helper"));
+        let helper_index = program
+            .functions
+            .iter()
+            .position(|function| function.id.as_str() == "text.helper")
+            .unwrap();
+        let helper = &program.functions[helper_index];
+        let mut hostile = program.clone();
+        hostile.functions[helper_index].params[0].ownership = hir::OwnershipMode::Borrow;
+        assert!(!ResolvedFunctionProfile::StreamText
+            .admitted(&hostile)
+            .contains_key(helper.id.as_str()));
+        hostile = program.clone();
+        hostile.functions[helper_index]
+            .effects
+            .push("fs.read".into());
+        assert!(!ResolvedFunctionProfile::StreamText
+            .admitted(&hostile)
+            .contains_key(helper.id.as_str()));
+        assert!(matches!(
+            ResolvedFunctionProfile::for_project(
+                crate::project::ProjectProfile::StdinStreamCommandIoV2
+            ),
+            ResolvedFunctionProfile::Legacy
+        ));
+    }
+    #[test]
+    fn stream_text_owned_call_failure_keeps_selected_status() {
+        let program = string_program("string_slice(text,0,99)");
+        let evaluated = evaluate_resolved_profile_i64_entry(
+            &program,
+            "app.main",
+            1000,
+            ResolvedFunctionProfile::StreamText,
+        )
+        .unwrap();
+        match evaluated.outcome {
+            super::super::ResolvedEvaluationOutcome::LanguageFailure(status) => {
+                assert_eq!(status.domain_id(), "semaprax.text.v1");
+                assert_eq!(status.code(), 1);
+            }
+            other => panic!("expected selected Text failure, got {other:?}"),
+        }
+    }
 }

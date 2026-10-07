@@ -81,3 +81,7 @@ records the shared corpus and Linux selector. The implemented release corpus
 is hosted green; historical local results retain their original scope. The
 additive Reader/Writer evidence lives in the `std.io.lines` all-backend and
 contract-failure selectors recorded by [IO Lines v1](IO-LINES-V1.md).
+
+The separately versioned [Ordinary Vec Loop Renewal v1](VEC-LOOP-RENEWAL-V1.md)
+adds exact same-cell updates in ordinary `while` bodies. It excludes this
+consuming traversal protocol and preserves its frozen v12/v40 selection.

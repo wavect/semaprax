@@ -3092,6 +3092,163 @@
     {
       "declarations": [
         {
+          "description": [
+            "Pure borrowed-slice projection of the decoder pull loop. The scalar escape",
+            "and UTF-8 rules intentionally mirror std.data.json.dec; Reader/Writer",
+            "adapters stay in that package's owned-data-api profile."
+          ],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn byte_code(byte: u8) -> i64",
+            "    ensures result >= 0 && result <= 255"
+          ],
+          "id": "std.data.json.query.byte_code",
+          "kind": "function",
+          "name": "byte_code",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn scalar_at(input: borrow Slice<u8>, start: usize) -> i64",
+            "    ensures result >= -1 && result <= 1114111"
+          ],
+          "id": "std.data.json.query.scalar_at",
+          "kind": "function",
+          "name": "scalar_at",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn utf8_len(scalar: i64) -> usize",
+            "    ensures result <= 4usize"
+          ],
+          "id": "std.data.json.query.utf8_len",
+          "kind": "function",
+          "name": "utf8_len",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn utf8_at(scalar: i64, index: usize) -> i64",
+            "    ensures result >= -1 && result <= 255"
+          ],
+          "id": "std.data.json.query.utf8_at",
+          "kind": "function",
+          "name": "utf8_at",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn emit_len(input: borrow Slice<u8>, index: usize) -> usize",
+            "    ensures result <= 4usize"
+          ],
+          "id": "std.data.json.query.emit_len",
+          "kind": "function",
+          "name": "emit_len",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn emit_at(input: borrow Slice<u8>, index: usize, offset: usize) -> i64",
+            "    ensures result >= -1 && result <= 255"
+          ],
+          "id": "std.data.json.query.emit_at",
+          "kind": "function",
+          "name": "emit_at",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn token_end(input: borrow Slice<u8>, index: usize) -> usize"
+          ],
+          "id": "std.data.json.query.token_end",
+          "kind": "function",
+          "name": "token_end",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn scan_string(input: borrow Slice<u8>, start: usize, measure: bool) -> usize"
+          ],
+          "id": "std.data.json.query.scan_string",
+          "kind": "function",
+          "name": "scan_string",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn decoded_len(input: borrow Slice<u8>, start: usize) -> usize"
+          ],
+          "id": "std.data.json.query.decoded_len",
+          "kind": "function",
+          "name": "decoded_len",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn decoded_token_eq(input: borrow Slice<u8>, left: usize, right: usize) -> bool"
+          ],
+          "id": "std.data.json.query.decoded_token_eq",
+          "kind": "function",
+          "name": "decoded_token_eq",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn is_string(input: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.data.json.query.is_string",
+          "kind": "function",
+          "name": "is_string",
+          "requires": 0
+        }
+      ],
+      "dependency": "std.data.json.query = \"^0.1.0\"",
+      "module": "std.data.json.query",
+      "package": "std/data-json-query",
+      "required_profile": "useful-data.v1",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "portable"
+    },
+    {
+      "declarations": [
+        {
           "description": [],
           "effects": [],
           "ensures": 0,

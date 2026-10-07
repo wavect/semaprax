@@ -874,6 +874,7 @@ pub fn lower(program: &Program, function: &Function) -> Result<Lowered, Refusal>
     for (guards, value, ty) in std::mem::take(&mut lowerer.touches) {
         let name = lowerer.fresh();
         touch_statements.push(Statement::Let {
+            syntax: crate::ast::LetSyntax::Authored,
             name,
             name_span: value.span,
             mutable: false,

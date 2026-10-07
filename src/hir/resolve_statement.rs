@@ -284,7 +284,7 @@ impl Resolver<'_> {
                         {
                             return Err(self.error(
                                 "SPX-T283",
-                                "only exact typed Vec push/read operations are admitted in while bodies",
+                                "only exact typed scalar Vec update/read operations are admitted in while bodies",
                                 expression.span,
                             ));
                         }

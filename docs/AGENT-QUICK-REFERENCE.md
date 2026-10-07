@@ -159,9 +159,9 @@ fn main() -> i64
 
 - As a value, `if` always has `else`; `else if` chains are fine (`fmt`
   writes them as `else { if … }`). As a statement, `if c { x = x + 1; }`
-  needs no `else` and no branch value, in loop bodies too; `fmt` writes it
-  as `let _if1 = if c { x = x + 1; 0 } else { 0 };`. The block still ends
-  with its own final expression.
+  needs no `else` and no branch value, in loop bodies too; `fmt` keeps that
+  statement spelling and any explicit `else`. The block still ends with its
+  own final expression.
 - A `while` condition must be `bool` and is checked before every iteration.
   Its body still needs a final expression, but that value is discarded; the
   condition controls repetition. While bodies admit
@@ -1212,6 +1212,9 @@ by `semaprax help library`, lists every `std.*` function with its contract,
 required project profile, and exact `[dependencies]` route. Add the dependency
 to the table manifest and import the function by its `@id` as above; an
 installed compiler supplies the bundled package without a repository checkout.
+For JSON escape expansion and decoded member-name comparison in a v25
+`stream-text` project, use [JSON String Query v1](JSON-STRING-QUERY-V1.md) and
+the `std.data.json.query` catalog entry.
 Bounded Vec uses profile `owned-data-api.v1` and
 `std.collections = "^0.1.0"`. Import `std.collections.vec.*` by stable identity
 with an explicit Copy-scalar type argument. Mutators transfer and return the
@@ -1226,8 +1229,10 @@ smaller than the 22,076-byte, 6,662-unit full catalog.
 [Package Manifest v1](PACKAGE-MANIFEST-V1.md) owns the table layout,
 [Project Manifest v1](PROJECT-MANIFEST-V1.md) the frozen one,
 [examples/calculator-project](../examples/calculator-project/semaprax.toml) is
-the committed instance, and `semaprax project-scaffold --name <name>` prints a
-complete scaffold to stdout without writing files.
+the committed instance. `semaprax new <dir> --template stdin-stream-text` creates
+a Project v25 streaming command; `doctor --profile` reports support but does
+not select the Project profile. `project-scaffold` accepts the same template
+and chooses the required tables layout.
 
 `semaprax lock semaprax.toml --write` pins the project to a deterministic
 `semaprax.lock` (identity, source digests, interface digest, targets,

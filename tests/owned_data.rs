@@ -86,3 +86,6 @@ mod owned_vec_bytes_runtime;
 
 #[path = "owned_data/owned_iterator_payloads.rs"]
 mod owned_iterator_payloads;
+
+#[path = "owned_data/vec_loop_renewal.rs"]
+mod vec_loop_renewal;

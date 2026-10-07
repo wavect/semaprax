@@ -112,7 +112,7 @@ fn source_hir_graph_and_renewal_keep_exact_streaming_facts() {
 }
 
 #[test]
-fn record_iteration_and_streaming_bind_the_complete_v11_v66_facts() {
+fn record_iteration_and_streaming_bind_the_complete_v11_v67_facts() {
     let source = r#"module test.record_stream;
 permit { process.stdin.read }
 @id("record-stream.item") record Item {
@@ -146,7 +146,7 @@ permit { process.stdin.read }
     assert!(contract.contains("profile core.iter.owned-record.v3"));
     let document: serde_json::Value =
         serde_json::from_str(&graph::to_json(&parsed).unwrap()).unwrap();
-    assert_eq!(document["schema"], "semaprax.graph.v66");
+    assert_eq!(document["schema"], "semaprax.graph.v67");
     assert_eq!(document["prelude"]["schema"], crate::prelude::SCHEMA_V11);
     assert_eq!(
         document["owned_iterator_payloads"]["schema"],

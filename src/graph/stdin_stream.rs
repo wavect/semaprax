@@ -4,7 +4,7 @@ pub(crate) fn graph_schema(program: &ResolvedProgram) -> Result<&'static str, Di
     let previous = super::affine::graph_schema(program)?;
     if crate::stdin_stream_ops::resolved_program_uses(program) {
         crate::stdin_stream_ops::analysis::derive(program)?;
-        Ok(if previous == "semaprax.graph.v66" {
+        Ok(if previous == "semaprax.graph.v67" {
             previous
         } else {
             "semaprax.graph.v65"
@@ -29,7 +29,7 @@ pub(crate) fn graph_schema_from_parts_and_instances(
             .chain(instances.iter().map(|instance| &instance.function))
             .any(crate::stdin_stream_ops::resolved_function_uses)
         {
-            if previous == "semaprax.graph.v66" {
+            if previous == "semaprax.graph.v67" {
                 previous
             } else {
                 "semaprax.graph.v65"
@@ -62,8 +62,8 @@ pub(super) fn graph_json(
     }
     graph.replace_range(
         ..prefix.len(),
-        if previous == "semaprax.graph.v66" {
-            "{\"schema\":\"semaprax.graph.v66\""
+        if previous == "semaprax.graph.v67" {
+            "{\"schema\":\"semaprax.graph.v67\""
         } else {
             "{\"schema\":\"semaprax.graph.v65\""
         },

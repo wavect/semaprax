@@ -225,12 +225,13 @@ pub(super) fn run_cases(
             Some(flag) => PreparedCancellation::Atomic(flag),
             None => PreparedCancellation::Never,
         };
-        let evaluated = interpreter::evaluate_resolved_zero_arg_i64_function(
+        let evaluated = interpreter::evaluate_resolved_i64_function_with_profile(
             program,
             stable_id,
             options.max_steps,
             false,
             cancellation,
+            interpreter::ResolvedFunctionProfile::for_project(snapshot.manifest.project_profile()),
         )?;
         let outcome = match evaluated.outcome {
             PreparedResolvedEvaluationOutcome::ReturnedI64(value) => {

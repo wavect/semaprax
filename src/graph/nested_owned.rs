@@ -1,9 +1,9 @@
-pub(crate) use super::stdin_stream::{graph_schema, graph_schema_from_parts_and_instances};
+pub(crate) use super::vec_loop_renewal::{graph_schema, graph_schema_from_parts_and_instances};
 use crate::cleanup::FieldLivenessShape;
 use crate::cleanup_plan::{
     StorageId, CLEANUP_PLAN_SCHEMA_V10, CLEANUP_PLAN_SCHEMA_V11, CLEANUP_PLAN_SCHEMA_V12,
-    CLEANUP_PLAN_SCHEMA_V13, CLEANUP_PLAN_SCHEMA_V14, CLEANUP_PLAN_SCHEMA_V7,
-    CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
+    CLEANUP_PLAN_SCHEMA_V13, CLEANUP_PLAN_SCHEMA_V14, CLEANUP_PLAN_SCHEMA_V15,
+    CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
 };
 use crate::diagnostic::Diagnostic;
 use crate::hir::{PlaceProjection, ResolvedFunction, ResolvedProgram};
@@ -74,6 +74,7 @@ pub(super) fn nested_cleanup_graph_schema<'a>(
                         | CLEANUP_PLAN_SCHEMA_V11
                         | CLEANUP_PLAN_SCHEMA_V12
                         | CLEANUP_PLAN_SCHEMA_V13
+                        | CLEANUP_PLAN_SCHEMA_V15
                 )
                 || !function_has_nested_storage(function)?
                 || !loan_origin_is_nested_owned_leaf(function, loan)
@@ -291,6 +292,7 @@ pub(super) fn pre_filesystem_schema_from_parts(
                     | CLEANUP_PLAN_SCHEMA_V11
                     | CLEANUP_PLAN_SCHEMA_V12
                     | CLEANUP_PLAN_SCHEMA_V13
+                    | CLEANUP_PLAN_SCHEMA_V15
             )
         })
         && super::native_import::declares_native_rust_import(interfaces)
@@ -397,6 +399,7 @@ pub(super) fn pre_filesystem_graph_schema(
                     | CLEANUP_PLAN_SCHEMA_V11
                     | CLEANUP_PLAN_SCHEMA_V12
                     | CLEANUP_PLAN_SCHEMA_V13
+                    | CLEANUP_PLAN_SCHEMA_V15
             )
         })
         && super::native_import::declares_native_rust_import(&program.interfaces)
@@ -561,6 +564,7 @@ pub(super) fn graph_schema_includes_modern_composite_facts(schema: &str) -> bool
             | "semaprax.graph.v64"
             | "semaprax.graph.v65"
             | "semaprax.graph.v66"
+            | "semaprax.graph.v67"
     )
 }
 
@@ -591,6 +595,7 @@ pub(super) fn graph_schema_includes_loans(schema: &str) -> bool {
             | "semaprax.graph.v64"
             | "semaprax.graph.v65"
             | "semaprax.graph.v66"
+            | "semaprax.graph.v67"
     )
 }
 
@@ -619,11 +624,14 @@ pub(super) fn graph_schema_includes_projected_provenance(schema: &str) -> bool {
             | "semaprax.graph.v64"
             | "semaprax.graph.v65"
             | "semaprax.graph.v66"
+            | "semaprax.graph.v67"
     )
 }
 
 pub(super) fn rejected_evidence_schema(schema: &str) -> Option<Diagnostic> {
     let message = match schema {
+        "semaprax.graph.v67" => "owned-record iteration selects `semaprax.graph.v67`, which is outside this evidence flow's admission",
+        "semaprax.graph.v66" => "ordinary Vec renewal selects `semaprax.graph.v66`, which is outside this evidence flow's admission",
         "semaprax.graph.v27" => "nested owned-record programs composed with shared loans select `semaprax.graph.v27`, which is outside this evidence flow's admission",
         "semaprax.graph.v26" => "nested owned-record programs select `semaprax.graph.v26`, which is outside this evidence flow's admission",
         "semaprax.graph.v29" => "nested owned-record destructuring composed with authenticated projected loans selects `semaprax.graph.v29`, which is outside this evidence flow's admission",
@@ -681,10 +689,22 @@ fn iterator_loop_schema<'a>(
                     )
                 },
             );
-        if owned_iterator && function.cleanup_plan.schema != CLEANUP_PLAN_SCHEMA_V13 {
+        if owned_iterator
+            && !matches!(
+                function.cleanup_plan.schema,
+                CLEANUP_PLAN_SCHEMA_V13 | CLEANUP_PLAN_SCHEMA_V15
+            )
+        {
             return Err(composition_error("owned iterator cleanup schema disagrees"));
         }
+        let ordinary_renewal = crate::hir::vec_loop_renewal::requires(function);
+        if (function.cleanup_plan.schema == CLEANUP_PLAN_SCHEMA_V15) != ordinary_renewal {
+            return Err(composition_error(
+                "ordinary Vec renewal cleanup schema disagrees",
+            ));
+        }
         if !owned_iterator
+            && !ordinary_renewal
             && (expected_loop
                 != matches!(
                     function.cleanup_plan.schema,
@@ -709,7 +729,10 @@ fn iterator_loop_schema<'a>(
 }
 
 pub(super) fn has_iterator_cleanup(function: &ResolvedFunction) -> bool {
-    if function.cleanup_plan.schema == CLEANUP_PLAN_SCHEMA_V14 {
+    if matches!(
+        function.cleanup_plan.schema,
+        CLEANUP_PLAN_SCHEMA_V14 | CLEANUP_PLAN_SCHEMA_V15
+    ) {
         return function
             .cleanup
             .flags
@@ -725,11 +748,15 @@ pub(super) fn has_iterator_cleanup(function: &ResolvedFunction) -> bool {
             | CLEANUP_PLAN_SCHEMA_V11
             | CLEANUP_PLAN_SCHEMA_V12
             | CLEANUP_PLAN_SCHEMA_V13
+            | CLEANUP_PLAN_SCHEMA_V15
     )
 }
 
 pub(super) fn has_nested_cleanup(function: &ResolvedFunction) -> bool {
-    if function.cleanup_plan.schema == CLEANUP_PLAN_SCHEMA_V14 {
+    if matches!(
+        function.cleanup_plan.schema,
+        CLEANUP_PLAN_SCHEMA_V14 | CLEANUP_PLAN_SCHEMA_V15
+    ) {
         return function.cleanup.slots.iter().any(|slot| {
             crate::cleanup::cleanup_shape_profile(&slot.shape)
                 .is_ok_and(|shape| shape.has_nested_owned_bytes)

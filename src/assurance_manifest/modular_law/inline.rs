@@ -101,6 +101,7 @@ impl Lowerer<'_> {
                     let name = self.fresh("local")?;
                     local.insert(binding.id.clone(), name.clone());
                     lowered.push(Statement::Let {
+                        syntax: crate::ast::LetSyntax::Authored,
                         name,
                         name_span: Span::default(),
                         mutable: false,
@@ -143,6 +144,7 @@ impl Lowerer<'_> {
             let name = self.fresh("actual")?;
             callee_scope.insert(param.id.clone(), name.clone());
             actuals.push(Statement::Let {
+                syntax: crate::ast::LetSyntax::Authored,
                 name,
                 name_span: Span::default(),
                 mutable: false,
@@ -189,6 +191,7 @@ fn trap(ty: &ResolvedType, name: String) -> Result<Expr, Refusal> {
     });
     Ok(node(ExprKind::Block {
         statements: vec![Statement::Let {
+            syntax: crate::ast::LetSyntax::Authored,
             name,
             name_span: Span::default(),
             mutable: false,

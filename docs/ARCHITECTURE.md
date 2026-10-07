@@ -92,6 +92,13 @@ canonical .spx source or held Project inputs
 Every backend passes source verification and validated HIR. Cleanup-plan vectors
 are canonical runtime order; projections and backends must never sort or repair them.
 
+Project execution selects interpreter closure admission from the retained manifest
+profile in `interpreter/resolved_case.rs`. Only Project v25 stream-text admits
+pure, explicit-ID owned-String helpers with its checked parameter/result shapes.
+Entry, ordinary/named tests, cancellable execution and prepared-origin closure
+maps use that same selector. Legacy interpreter and Project profiles retain
+their existing closed maps; this selection grants no host effects or authority.
+
 `ast/type_properties.rs` owns primitive type formatting and classification.
 The reserved mutable callable type has independent source and retained-HIR
 admission guards in `source_verify/declared_type.rs`, `source_verify/closure.rs`
@@ -680,7 +687,12 @@ assignment, tuples, indexing, `Some(x)` patterns, `struct`/`enum`/`pub`/`const`
 declarations, missing trailing commas, missing or unit result types, valueless
 blocks) without admitting any new syntax or changing a stable code.
 `src/format.rs` is the canonical source projection. Revision digests bind the
-canonical bytes, not incidental whitespace.
+canonical bytes, not incidental whitespace. `src/ast/statement_if.rs` carries
+parser-minted statement syntax provenance on the existing normalized let tree.
+`src/format/statement_if.rs` authenticates that shape and projects the preserved
+statement spelling through the shared iterative formatter, including exact
+measurement of omitted normalization nodes. No alternate semantic tree is kept;
+[Statement If Canonical Source v1](STATEMENT-IF-CANONICAL-V1.md) owns the projection.
 
 Source is the canonical Git representation. A managed workspace publishes an
 immutable generated source set for cooperating readers; it does not rewrite the
@@ -892,6 +904,14 @@ not select reservations or grant runtime authority. Source and HIR generic
 collection classifiers admit the bounded one- or two-type-parameter operation
 shape; cache encoding retains its exact ordered type vector and renewal facts.
 
+`src/hir/vec_loop_renewal.rs` separately derives direct same-binding scalar Vec
+updates in ordinary `while` bodies, excluding authenticated consuming traversal.
+`src/cleanup_plan/renewal_profile.rs` supplies that exact site identity to build
+and independent replay. CleanupPlan v15 retains the existing reservation and
+history algorithms; `src/graph/vec_loop_renewal.rs` composes Graph v66 with all
+preceding admitted facts. [Ordinary Vec Loop Renewal v1](VEC-LOOP-RENEWAL-V1.md)
+owns this additive profile and its executable gate.
+
 The additive owned-payload iterator is split across
 `src/interpreter/iterator.rs`, which validates the initialized suffix and uses a
 detached-prefix sentinel for the moved slot, and
@@ -905,7 +925,7 @@ Graph v45 facts; the admitted native/Wasm regression corpus is HOSTED GREEN for 
 The exact two-Bytes-plus-one-Copy record iterator extension is owned by
 `src/hir/owned_record_collection.rs`, the typed iterator classifiers, and
 `src/wasm/aggregate/iterator_ops/owned.rs`. It selects Prelude v11, the existing
-independent-item/remainder CleanupPlan v13, and additive Graph v66. Its separate
+independent-item/remainder CleanupPlan v13, and additive Graph v67. Its separate
 record-v3 Wasm imports authenticate poisoned output frames before call commit;
 prior scalar/Bytes iterator frames and schemas retain their old meanings.
 [Owned Record Iterator v3](OWNED-RECORD-ITERATOR-V3.md) owns the focused local

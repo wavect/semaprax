@@ -195,7 +195,7 @@ fn record_iterator_workspace_and_program_root_replay_prelude_v11() {
     let fixture = fixture("owned-record-iterator-root", RECORD_SOURCE);
     let source = semaprax::parse(RECORD_SOURCE, fixture.0.join("src/app.spx")).unwrap();
     let graph: Value = serde_json::from_str(&semaprax::graph::to_json(&source).unwrap()).unwrap();
-    assert_eq!(graph["schema"], "semaprax.graph.v66");
+    assert_eq!(graph["schema"], "semaprax.graph.v67");
     assert_eq!(
         graph["owned_iterator_payloads"]["schema"],
         "semaprax.owned-record-iterator.v3"
@@ -211,7 +211,39 @@ fn record_iterator_workspace_and_program_root_replay_prelude_v11() {
 }
 
 #[test]
-fn imported_record_iterator_workspace_and_program_root_bind_v11_v66() {
+fn record_iterator_and_scalar_vec_renewal_compose_as_graph_v67() {
+    let source = RECORD_SOURCE.replace(
+        "@id(\"fixture.main\")",
+        r#"@id("fixture.renew") fn renew()->i64 {
+ let mut values=vec_with_capacity<i64>(1usize);
+ let mut i=0;
+ while i<1 {values=vec_push<i64>(values,i);i=i+1;0}
+ if vec_len<i64>(values)==1usize {0}else{1}
+}
+@id("fixture.main")"#,
+    );
+    let parsed = semaprax::check(&source, "record-iterator-vec-renewal.spx").unwrap();
+    let graph: Value = serde_json::from_str(&semaprax::graph::to_json(&parsed).unwrap()).unwrap();
+    assert_eq!(graph["schema"], "semaprax.graph.v67");
+    assert_eq!(
+        graph["owned_iterator_payloads"]["schema"],
+        "semaprax.owned-record-iterator.v3"
+    );
+    assert_eq!(
+        graph["vec_loop_renewal"]["schema"],
+        "semaprax.vec-loop-renewal.v1"
+    );
+    assert_eq!(
+        graph["vec_loop_renewal"]["updates"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+}
+
+#[test]
+fn imported_record_iterator_workspace_and_program_root_bind_v11_v67() {
     let fixture = imported_record_fixture();
     let revision = fixture.revision();
     let caller = revision
@@ -219,7 +251,7 @@ fn imported_record_iterator_workspace_and_program_root_bind_v11_v66() {
         .iter()
         .find(|source| source.path() == "src/app.spx")
         .unwrap();
-    assert_eq!(caller.source_graph_schema(), "semaprax.graph.v66");
+    assert_eq!(caller.source_graph_schema(), "semaprax.graph.v67");
     verify_root(
         &fixture,
         include_bytes!("../../fixtures/prelude-v11.contract"),

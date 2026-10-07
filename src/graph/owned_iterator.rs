@@ -1,6 +1,6 @@
-//! Graph v45 binds Bytes iteration; additive v66 binds owned-record iteration.
+//! Graph v45 binds Bytes iteration; additive v67 binds owned-record iteration.
 use super::*;
-const RECORD_GRAPH_SCHEMA: &str = "semaprax.graph.v66";
+const RECORD_GRAPH_SCHEMA: &str = "semaprax.graph.v67";
 pub(super) fn requires(program: &ResolvedProgram) -> bool {
     crate::iterator_ops::resolved_program_uses_owned_iterator(program)
         || crate::iterator_ops::resolved_program_uses_record_iterator(program)
@@ -78,7 +78,7 @@ pub(super) fn graph_json(
     graph.replace_range(
         ..prefix.len(),
         if crate::iterator_ops::resolved_program_uses_record_iterator(program) {
-            "{\"schema\":\"semaprax.graph.v66\""
+            "{\"schema\":\"semaprax.graph.v67\""
         } else {
             "{\"schema\":\"semaprax.graph.v45\""
         },

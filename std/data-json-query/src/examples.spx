@@ -1,0 +1,10 @@
+module std.data.json.query.examples;
+use function @id("std.data.json.query.decoded_token_eq") from std.data.json.query as decoded_token_eq;
+
+@id("std.data.json.query.examples.main")
+fn main() -> i64
+{
+    let input = [91u8, 34u8, 92u8, 117u8, 48u8, 48u8, 54u8, 49u8, 34u8, 44u8, 34u8, 97u8, 34u8, 93u8];
+    let view = array_as_slice(input);
+    if decoded_token_eq(view, 1usize, 10usize) { 0 } else { 1 }
+}

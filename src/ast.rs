@@ -2,10 +2,13 @@ use std::{fmt, mem};
 
 #[path = "ast/session_protocol.rs"]
 mod session_protocol;
+#[path = "ast/statement_if.rs"]
+mod statement_if;
 pub use session_protocol::{
     SessionProtocolDeclaration, SessionProtocolFollowsClause, SessionProtocolKind,
     SessionProtocolName, SessionProtocolNext, SessionProtocolTerminal, SessionProtocolTransition,
 };
+pub use statement_if::{BranchTail, LetSyntax, StatementIfSyntax};
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct Span {
@@ -1130,6 +1133,8 @@ pub struct FieldTarget {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Statement {
     Let {
+        /// Authored syntax provenance; it grants no semantic authority.
+        syntax: LetSyntax,
         name: String,
         name_span: Span,
         /// Explicit Mutation v1: `true` when the source declared `let mut`.

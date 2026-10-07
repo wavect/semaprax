@@ -9,9 +9,9 @@ use crate::diagnostic::Diagnostic;
 use crate::hir::{self, ResolvedExpr, ResolvedType};
 
 use super::{
-    admitted_resolved_functions, child_expressions, guard_error, option_error, scan_closure,
-    selection_error, Evaluator, Flow, FunctionLookup, Value, MAX_STEPS_LIMIT,
-    REASON_AUTOMATIC_IDENTITY, REASON_UNSUPPORTED_CALLEE, REASON_UNSUPPORTED_RESULT_TYPE,
+    child_expressions, guard_error, option_error, scan_closure, selection_error, Evaluator, Flow,
+    FunctionLookup, Value, MAX_STEPS_LIMIT, REASON_AUTOMATIC_IDENTITY, REASON_UNSUPPORTED_CALLEE,
+    REASON_UNSUPPORTED_RESULT_TYPE,
 };
 
 /// Fixed preparation bounds for the retained Project interpreter index.
@@ -104,6 +104,14 @@ pub(crate) fn prepare_resolved_zero_arg_i64(
     program: &hir::ResolvedProgram,
     entry_id: &str,
 ) -> Result<PreparedResolvedI64, Vec<Diagnostic>> {
+    prepare_resolved_i64_with_profile(program, entry_id, super::ResolvedFunctionProfile::Legacy)
+}
+
+pub(crate) fn prepare_resolved_i64_with_profile(
+    program: &hir::ResolvedProgram,
+    entry_id: &str,
+    profile: super::ResolvedFunctionProfile,
+) -> Result<PreparedResolvedI64, Vec<Diagnostic>> {
     hir::validate(program).map_err(|diagnostic| vec![diagnostic])?;
     if program.entrypoint.as_str() != entry_id {
         return Err(vec![selection_error(
@@ -141,7 +149,7 @@ pub(crate) fn prepare_resolved_zero_arg_i64(
             format!("resolved entry `{entry_id}` must have type `fn main() -> i64`"),
         )]);
     }
-    let admitted = admitted_resolved_functions(program);
+    let admitted = profile.admitted(program);
     let closure = scan_closure(entry_id, &admitted, program)?;
     let index = index_closure(program, entry_id, &closure)?;
     Ok(PreparedResolvedI64 {

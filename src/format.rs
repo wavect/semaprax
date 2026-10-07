@@ -25,10 +25,14 @@ mod kernel_zero_tokens;
 mod literals;
 #[path = "format/session_protocol.rs"]
 mod session_protocol;
+#[path = "format/statement_if.rs"]
+mod statement_if;
 use block_statement::write_block_statement;
 use closure::contains_record_construction;
 
-use capacity::{legacy_canonical_temporary_bytes, legacy_expr_temporary_bytes};
+use capacity::{
+    legacy_canonical_temporary_bytes, legacy_expr_temporary_bytes, write_expr_measured,
+};
 use kernel_zero_tokens::{canonical_binary_op, canonical_unary_op};
 pub(crate) use kernel_zero_tokens::{
     canonical_bool, canonical_char, canonical_int, canonical_string, write_string_escaped,
@@ -39,11 +43,19 @@ enum ExprFormatFrame<'a> {
     MeasureEnd(usize, u8, usize),
     CallArgs(&'a [Expr], usize),
     BinaryRight(&'a Expr, BinaryOp, bool),
-    Block(&'a [Statement], &'a Expr, usize),
-    BlockNext(&'a [Statement], &'a Expr, usize),
-    BlockNextAfterUnsafe(&'a [Statement], &'a Expr, usize),
+    Block(&'a [Statement], Option<&'a Expr>, usize),
+    BlockNext(&'a [Statement], Option<&'a Expr>, usize),
+    BlockNextAfterUnsafe(&'a [Statement], Option<&'a Expr>, usize),
     WhileBody(&'a Expr),
-    BlockNextAfterWhile(&'a [Statement], &'a Expr, usize),
+    BlockNextAfterWhile(&'a [Statement], Option<&'a Expr>, usize),
+    StatementIf(
+        &'a Expr,
+        &'a [crate::ast::BranchTail],
+        Option<crate::ast::BranchTail>,
+        bool,
+    ),
+    StatementBranch(&'a Expr, crate::ast::BranchTail),
+    StatementElse,
     IfThen(&'a Expr, &'a Expr),
     IfElse(&'a Expr),
     Fields(&'a [crate::ast::FieldInitializer], usize, &'static str),
@@ -614,10 +626,9 @@ fn rendered_expr_lengths(value: &Expr, parent_precedence: u8) -> HashMap<(usize,
     lengths
 }
 
-fn write_expr_measured(
+fn write_format_frames(
     output: &mut impl std::fmt::Write,
-    value: &Expr,
-    parent_precedence: u8,
+    initial: ExprFormatFrame<'_>,
     mut lengths: Option<&mut HashMap<(usize, u8), usize>>,
 ) {
     struct Positioned<'a, W> {
@@ -637,10 +648,7 @@ fn write_expr_measured(
         bytes: 0,
     };
     use ExprFormatFrame as Frame;
-    let mut frames = FormatFrameStack::new(
-        Frame::Expr(value, parent_precedence),
-        ScratchStackKind::Expression,
-    );
+    let mut frames = FormatFrameStack::new(initial, ScratchStackKind::Expression);
     while let Some(frame) = frames.pop() {
         match frame {
             Frame::Expr(value, parent_precedence) => {
@@ -751,7 +759,7 @@ fn write_expr_measured(
                     }
                     ExprKind::Block { statements, tail } => {
                         output.write_str("{ ").unwrap();
-                        frames.push(Frame::Block(statements, tail, 0));
+                        frames.push(Frame::Block(statements, Some(tail), 0));
                     }
                     ExprKind::If {
                         condition,
@@ -924,6 +932,16 @@ fn write_expr_measured(
             }
             Frame::Block(statements, tail, index) => {
                 if let Some(statement) = statements.get(index) {
+                    if let Some((value, syntax)) = statement_if::prepare(statement) {
+                        frames.push(Frame::BlockNextAfterWhile(statements, tail, index + 1));
+                        frames.push(Frame::StatementIf(
+                            value,
+                            syntax.branches(),
+                            syntax.alternative(),
+                            true,
+                        ));
+                        continue;
+                    }
                     match statement {
                         Statement::Let {
                             name,
@@ -990,16 +1008,30 @@ fn write_expr_measured(
                         }
                     }
                 } else {
-                    frames.push(Frame::Close('}'));
-                    frames.push(Frame::Expr(tail, 0));
+                    if tail.is_none() && statements.is_empty() {
+                        output.write_char('}').unwrap();
+                    } else {
+                        frames.push(Frame::Close('}'));
+                        if let Some(tail) = tail {
+                            frames.push(Frame::Expr(tail, 0));
+                        }
+                    }
                 }
             }
             Frame::BlockNext(statements, tail, index) => {
-                output.write_str("; ").unwrap();
+                output
+                    .write_str(if tail.is_none() && index == statements.len() {
+                        ";"
+                    } else {
+                        "; "
+                    })
+                    .unwrap();
                 frames.push(Frame::Block(statements, tail, index));
             }
             Frame::BlockNextAfterUnsafe(statements, tail, index) => {
-                output.write_char(' ').unwrap();
+                if tail.is_some() || index != statements.len() {
+                    output.write_char(' ').unwrap();
+                }
                 frames.push(Frame::Block(statements, tail, index));
             }
             Frame::WhileBody(body) => {
@@ -1007,8 +1039,63 @@ fn write_expr_measured(
                 frames.push(Frame::Expr(body, 0));
             }
             Frame::BlockNextAfterWhile(statements, tail, index) => {
-                output.write_char(' ').unwrap();
+                if tail.is_some() || index != statements.len() {
+                    output.write_char(' ').unwrap();
+                }
                 frames.push(Frame::Block(statements, tail, index));
+            }
+            Frame::StatementIf(value, tails, alternative, first) => {
+                statement_if::begin_measure(
+                    &mut frames,
+                    lengths.is_some(),
+                    value,
+                    output.bytes + if first { 0 } else { 6 },
+                );
+                if first {
+                    if let Some(lengths) = lengths.as_deref_mut() {
+                        statement_if::measure_erased(value, tails, alternative, lengths);
+                    }
+                }
+
+                let ExprKind::If {
+                    condition,
+                    then_branch,
+                    else_branch,
+                } = &value.kind
+                else {
+                    unreachable!("prepared if")
+                };
+                output
+                    .write_str(if first { "if " } else { " else if " })
+                    .unwrap();
+                if tails.len() > 1 {
+                    frames.push(Frame::StatementIf(
+                        statement_if::continuation(else_branch).expect("prepared chain"),
+                        &tails[1..],
+                        alternative,
+                        false,
+                    ));
+                } else if let Some(tail) = alternative {
+                    frames.push(Frame::StatementBranch(else_branch, tail));
+                    // The branch frame emits its own leading space.
+                    frames.push(Frame::StatementElse);
+                }
+                frames.push(Frame::StatementBranch(then_branch, tails[0]));
+                frames.push(Frame::Expr(condition, 0));
+            }
+            Frame::StatementElse => output.write_str(" else").unwrap(),
+            Frame::StatementBranch(value, syntax) => {
+                statement_if::begin_measure(
+                    &mut frames,
+                    lengths.is_some(),
+                    value,
+                    output.bytes + 1,
+                );
+
+                output.write_str(" { ").unwrap();
+                let (statements, tail) =
+                    statement_if::branch(value, syntax).expect("prepared branch");
+                frames.push(Frame::Block(statements, tail, 0));
             }
             Frame::IfThen(then_branch, else_branch) => {
                 output.write_char(' ').unwrap();

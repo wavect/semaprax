@@ -218,7 +218,7 @@ pub(super) fn reject_while_disallowed_oracle(
                     diagnostics.push(error(
                         program,
                         "SPX-T283",
-                        "only exact typed Vec push/read operations are admitted in while bodies",
+                        "only exact typed scalar Vec update/read operations are admitted in while bodies",
                         expression.span,
                     ));
                     return Err(());

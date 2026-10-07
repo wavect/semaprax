@@ -19,7 +19,7 @@ The table layout lets a new project start in the format ecosystem tooling reads.
 ## Command
 
 ```text
-semaprax project-scaffold --name <name> [--template calculator|library|service] [--layout frozen|tables]
+semaprax project-scaffold --name <name> [--template calculator|library|service|stdin-stream-text] [--layout frozen|tables]
 ```
 
 `--layout frozen` (the default) emits the v2 capsule, byte-for-byte identical
@@ -33,6 +33,10 @@ manifest carries a `[dependencies]` table, which the frozen `semaprax.project.v1
 layout cannot represent. Therefore `--template service` with the default
 `frozen` layout is refused (`SPX-J115`) before rendering; dependencies are never
 silently removed.
+
+The `stdin-stream-text` template uses the same command syntax but emits the
+additive v4 capsule because its manifest lowers to Project v25. See
+[Project Scaffold Capsule v4](PROJECT-SCAFFOLD-V4.md).
 
 ## Capsule
 

@@ -74,7 +74,16 @@ impl VecOp {
     }
 
     pub(crate) const fn admitted_in_while(self) -> bool {
-        matches!(self, Self::Push | Self::Len | Self::Capacity | Self::Get)
+        matches!(
+            self,
+            Self::Push
+                | Self::Len
+                | Self::Capacity
+                | Self::Get
+                | Self::Set
+                | Self::Clear
+                | Self::ReserveExact
+        )
     }
 
     pub(crate) const fn capacity_argument(self) -> Option<usize> {

@@ -320,6 +320,35 @@ fn standalone_new_creates_the_service_template_and_the_project_works() {
 }
 
 #[test]
+fn standalone_new_creates_the_stream_text_template_and_tests_owned_string_helpers() {
+    let fixture = Fixture::new("stdin-stream-text");
+    let created = cli(
+        &fixture.root,
+        &["new", "text-command", "--template", "stdin-stream-text"],
+    );
+    assert!(created.status.success(), "{}", stderr(&created));
+    assert_eq!(
+        stdout(&created),
+        "created stdin-stream-text project text-command\n"
+    );
+    let project = fixture.root.join("text-command");
+    assert_eq!(
+        read_tree(&project),
+        scaffold_files("text-command", "stdin-stream-text")
+    );
+
+    let manifest = std::fs::read_to_string(project.join("semaprax.toml")).unwrap();
+    assert!(manifest.contains("profile = \"language-command-io.stream-text.v1\""));
+    assert!(manifest.contains("web = [\"text-command.command\"]"));
+    assert!(manifest.contains("function = \"text-command.command\""));
+    let check = cli(&project, &["check", "."]);
+    assert!(check.status.success(), "{}", stderr(&check));
+    let tested = cli(&project, &["test", "."]);
+    assert!(tested.status.success(), "{}", stderr(&tested));
+    assert_eq!(stdout(&tested), "project tests passed\n");
+}
+
+#[test]
 fn standalone_new_refuses_existing_invalid_and_parentless_destinations() {
     let fixture = Fixture::new("rejections");
     std::fs::create_dir(fixture.root.join("existing")).unwrap();
@@ -360,7 +389,7 @@ hint: run `semaprax new --help` for usage\n"
     assert_eq!(template.status.code(), Some(2));
     assert_eq!(
         stderr(&template),
-        "new: unknown new template `web`; expected calculator or library or service\nhint: run `semaprax new --help` for usage\n"
+        "new: unknown new template `web`; expected calculator or library or service or stdin-stream-text\nhint: run `semaprax new --help` for usage\n"
     );
     assert!(!fixture.root.join("fine").exists());
 
@@ -392,7 +421,7 @@ fn standalone_new_is_listed_by_help_and_describes_its_grammar() {
     assert!(scoped.status.success());
     assert_eq!(
         stdout(&scoped),
-        "Usage:\n  semaprax new <destination> [--name project-name] [--template calculator|library|service]\n"
+        "Usage:\n  semaprax new <destination> [--name project-name] [--template calculator|library|service|stdin-stream-text]\n"
     );
     let guided = cli(&fixture.root, &["--help"]);
     assert!(stdout(&guided).contains("\n  new <destination>"));

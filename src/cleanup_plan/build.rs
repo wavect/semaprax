@@ -727,11 +727,14 @@ impl<'a> PlanBuilder<'a> {
                 conditional_variants: Vec::new(),
             },
             pending_try_residuals: Vec::new(),
-            schema: if crate::iterator_ops::function_uses_owned_iterator(function)
+            schema: if crate::hir::vec_loop_renewal::requires(function) {
+                super::CLEANUP_PLAN_SCHEMA_V15
+            } else if crate::iterator_ops::function_uses_owned_iterator(function)
                 || crate::iterator_ops::function_uses_record_iterator_in(
                     &program.declarations,
                     function,
-                ) {
+                )
+            {
                 super::CLEANUP_PLAN_SCHEMA_V13
             } else if crate::hir::iterator_loop::function_requires_renewal(function)
                 || crate::hir::iterator_loop::function_requires_record_renewal(program, function)
@@ -942,7 +945,9 @@ impl<'a> PlanBuilder<'a> {
             })
             .collect::<Result<Vec<_>, Diagnostic>>()?;
         Ok(CleanupPlan {
-            schema: if self
+            schema: if self.schema == super::CLEANUP_PLAN_SCHEMA_V15 {
+                self.schema
+            } else if self
                 .status_sources
                 .iter()
                 .any(|source| source.id.lane == StatusLane::OwnerAdmission)
@@ -1119,7 +1124,7 @@ impl<'a> PlanBuilder<'a> {
         self.reserve_string_append(&at, &source, state)?;
         let renewal = state.renewals.get(&at).cloned().filter(|_| {
             matches!(&destination.storage, StorageId::Value(_))
-                && crate::hir::iterator_loop::renewal_binding(self.program, self.function, &at)
+                && crate::cleanup_plan::renewal_binding(self.program, self.function, &at)
                     .is_some_and(|binding| {
                         destination == CleanupPlace::whole(StorageId::Value(binding.id.clone()))
                     })

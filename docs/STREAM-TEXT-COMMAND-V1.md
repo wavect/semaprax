@@ -2,6 +2,8 @@
 
 Status: implemented additive native profile with focused local executable evidence.
 
+Audience: compiler contributors and authors of streaming command applications.
+
 Project v25 (`semaprax.project.v25`) selects
 `language-command-io.stream-text.v1`. It retains the exact
 `argv-utf8+stdin-stream.v1` input, four command capabilities, and explicit
@@ -119,3 +121,9 @@ checks and both owning native integration checks passed locally. The native
 helper table anchors optional stream operations so Open/EOF-only and
 Open/Next/EOF-without-Chunk programs compile under `-Werror`. This is local
 evidence, not hosted or production promotion.
+
+Focused local test-call evidence covers cross-module owned-String helpers in
+entry and test modules, named cases, cancellable execution and prepared traced
+tests. Legacy interpreter APIs still refuse the same helper closure. Exact Own
+modes and pure effects remain required, and a selected Text failure survives
+owned-argument cleanup (`interpreter::resolved_case::tests::stream_text_owned_`).

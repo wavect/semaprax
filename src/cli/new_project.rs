@@ -1,11 +1,10 @@
 //! The `new` invocation grammar shared by both executables.
 //!
-//! `semaprax new <destination> [--name project-name] [--template calculator|library|service]`.
+//! `semaprax new <destination> [--name project-name] [--template calculator|library|service|stdin-stream-text]`.
 //! The full toolchain parses the same grammar inside its private publication
 //! module and spells every shared rejection identically; its held-parent
-//! authority has one source-directory shape for the calculator and service
-//! templates (both name their sources `app.spx`, `core.spx`, `tests.spx`) and
-//! a separate one for the library template.
+//! authority shares the calculator and service source-directory shape, with
+//! a separate library shape; the stream-text template adds `input.spx`.
 
 use std::path::PathBuf;
 
@@ -168,11 +167,14 @@ mod tests {
         );
         assert_eq!(
             parse(&strings(&["x", "--template", "web"])).unwrap_err(),
-            "unknown new template `web`; expected calculator or library or service"
+            "unknown new template `web`; expected calculator or library or service or stdin-stream-text"
         );
         let service = parse(&strings(&["svc", "--template", "service"])).unwrap();
         assert_eq!(service.template, "service");
         assert_eq!(service.name, "svc");
+        let stream = parse(&strings(&["streamer", "--template", "stdin-stream-text"])).unwrap();
+        assert_eq!(stream.template, "stdin-stream-text");
+        assert_eq!(stream.name, "streamer");
         assert_eq!(
             parse(&strings(&["x", "--name"])).unwrap_err(),
             "new option `--name` requires a value"

@@ -307,14 +307,18 @@ permit { process.args.read, process.stderr.write, process.stdin.read, process.st
             .map(|byte| format!("{byte:02x}"))
             .collect::<String>()
     );
-    let run_start = emitted
+    let run_signature = emitted
         .find(&format!("static __attribute__((unused)) spx_status_token {run_symbol}("))
         .expect("native lowering must emit stream.run");
-    let run_end = emitted[run_start..]
+    let run_body = emitted[run_signature..]
+        .find(") {")
+        .map(|end| run_signature + end + 3)
+        .expect("native lowering must emit a stream.run definition after its prototype");
+    let run_end = emitted[run_body..]
         .find("\n}\n")
-        .map(|end| run_start + end)
+        .map(|end| run_body + end)
         .expect("stream.run must have a closed C body");
-    let run_c = &emitted[run_start..run_end];
+    let run_c = &emitted[run_body..run_end];
     let reader_drop = format!(
         "spx_stdin_stream_drop_v1(spx_ctx, spx_bytes_slot_{});",
         reader_slot.id.0

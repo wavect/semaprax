@@ -58,6 +58,10 @@ Consumption follows existing String move-checking:
 - `string_len` / `string_is_empty` use non-transferring parameters, so reads
   leave the operand available.
 
+The additive [Named String Length Conditions v1](STRING-LENGTH-CONDITIONS-V1.md)
+reads a whole named owner directly when `string_len` occurs in a `while`
+condition. Other String place reads retain their existing clone behavior.
+
 ## Backends
 
 - Native C11: helpers append only when used, preserving prior projection bytes.

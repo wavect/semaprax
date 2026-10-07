@@ -139,6 +139,7 @@ pub(crate) fn evaluate_profile(
         failure_detail: None,
         resumption: crate::interpreter::resumable::Resumption::Refused,
         semantic: Default::default(),
+        string_condition_reads: Default::default(),
     };
     let evaluated = evaluator.call_frame(entry, Vec::new(), 0);
     // Settlement releases invocation transients before the result is

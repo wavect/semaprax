@@ -2392,9 +2392,8 @@ struct CEmitter<'a, O: COutput> {
     semantic_metered: bool,
     owned_strings: Option<owned_strings::OwnedStrings>,
     try_target_enabled: bool,
-    /// Owned String Loops v1 same-owner append operands that move, not clone.
     string_owner_moves: BTreeSet<hir::ExpressionId>,
-    /// `while` bodies, whose nested String temporaries settle per iteration.
+    string_condition_reads: BTreeSet<hir::ExpressionId>,
     loop_bodies: BTreeSet<hir::ExpressionId>,
     next_local: usize,
     indent: usize,
@@ -2428,6 +2427,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             owned_strings: track_strings.then(owned_strings::OwnedStrings::default),
             try_target_enabled: false,
             string_owner_moves: crate::string_ops::same_owner_concat_operands(function),
+            string_condition_reads: crate::string_ops::conditions::function_reads(function),
             loop_bodies: scope_anchors::while_bodies(function),
             next_local: 0,
             indent: 1,

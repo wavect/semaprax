@@ -52,9 +52,10 @@ ownership `Own`, not `Value`; profile admission rejects forged ownership modes
 without widening the public scalar boundary. Ordinary verified literals,
 cloning reads, all seven String intrinsics, String equality/inequality,
 branches, lazy Boolean flow, scalar matching/guards, mutable scalar bindings,
-loops, internal calls, requires and ensures are covered. Loop bodies and
-conditions retain the existing Copy-only source/HIR admission (`SPX-T252`
-for direct String storage or non-scalar call signatures). Repeated String
+loops, internal calls, requires and ensures are covered. Later [Owned String Loops v1](OWNED-STRING-LOOPS-V1.md) admits owned
+body storage and same-owner append. [Named String Length Conditions v1](STRING-LENGTH-CONDITIONS-V1.md)
+adds exact `string_len(namedString)` inspection in conditions without a clone.
+Allocating String conditions retain `SPX-T252`. Repeated String
 settlement is exercised by scalar-signature helpers that allocate and release
 Strings internally on each iteration; this does not add owned loop storage
 or CleanupPlan back-edges.

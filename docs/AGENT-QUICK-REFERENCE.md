@@ -647,9 +647,10 @@ fn main() -> i64
 ```
 
 `semaprax run join.spx` prints `0,1,2,3,4`. `while string_len(text) < 4` is
-`SPX-T252`; track the length in a scalar instead: `let mut size =
-string_len(text);` before the loop, `size = string_len(text);` in the body,
-and `while size < 4`. `text = "b";` on a string is `SPX-U105`; append with
+admitted for an available named String owner: the condition reads its current
+byte length without allocating. String literals and produced strings in
+conditions retain `SPX-T252`; for those, compute a scalar in the body and test
+that scalar on the next iteration. `text = "b";` on a string is `SPX-U105`; append with
 `text = string_concat(text, "b");` or bind a new name.
 
 ## Command-line programs

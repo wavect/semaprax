@@ -521,6 +521,82 @@ pub(super) fn oracle_call(
         }
         return Some(checked);
     }
+    // The condition profile needs the reserved non-transferring Len signature
+    // in the recursive oracle as well as the iterative verifier.
+    if crate::string_ops::by_name(name) == Some(crate::string_ops::StringOp::Len) {
+        let params = crate::string_ops::ast_params(crate::string_ops::StringOp::Len);
+        if !type_arguments.is_empty() {
+            diagnostics.push(error(
+                program,
+                "SPX-T225",
+                format!("monomorphic function `{name}` does not accept type arguments"),
+                expr.span,
+            ));
+        }
+        if args.len() != params.len() {
+            diagnostics.push(error(
+                program,
+                "SPX-T204",
+                format!(
+                    "`{name}` expects {} arguments, received {}",
+                    params.len(),
+                    args.len()
+                ),
+                expr.span,
+            ));
+        }
+        for (index, arg) in args.iter().enumerate() {
+            let actual = check_expr(
+                program,
+                current,
+                arg,
+                variables,
+                functions,
+                types,
+                result_type,
+                allow_moves,
+                diagnostics,
+            );
+            let Some(param) = params.get(index) else {
+                continue;
+            };
+            if let Some(actual) = &actual {
+                reject_native_unit_value(program, arg, actual, diagnostics);
+            }
+            if let Some(actual) = actual
+                .as_ref()
+                .filter(|actual| !actual.native_unit && actual.ty != param.ty)
+            {
+                diagnostics.push(hints::with_optional_help(
+                    error(
+                        program,
+                        "SPX-T205",
+                        format!(
+                            "argument `{}` to `{name}` expects {}, received {}",
+                            param.name, param.ty, actual.ty
+                        ),
+                        arg.span,
+                    ),
+                    hints::argument_view_help(name, &param.ty, &actual.ty),
+                ));
+            }
+            check_argument_ownership(
+                program,
+                current,
+                name,
+                arg,
+                param,
+                actual.as_ref(),
+                variables,
+                types,
+                allow_moves,
+                false,
+                false,
+                diagnostics,
+            );
+        }
+        return Some(CheckedValue::returned(Type::I64, false));
+    }
     let target = functions.get(name.as_str()).copied();
     if target.is_none() {
         diagnostics.push(hints::unknown_function(program, name, functions, expr.span));

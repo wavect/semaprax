@@ -130,6 +130,52 @@ fn traverse() -> i64
     string_len(out)
 }
 
+@id("loops.condition_grow")
+fn condition_grow() -> i64
+{
+    let mut out = "é";
+    let mut i = 0;
+    while string_len(out) < 6 {
+        out = string_concat(out, "x");
+        i = i + 1;
+        0
+    }
+    string_len(out) * 10 + i
+}
+
+@id("loops.condition_stable")
+fn condition_stable() -> i64
+{
+    let text = "abc";
+    let mut i = 0;
+    while i < 1000 && string_len(text) == 3 {
+        i = i + 1;
+        0
+    }
+    i
+}
+
+@id("loops.condition_skip")
+fn condition_skip() -> i64
+{
+    let mut out = "a";
+    while string_len(out) < 1 {
+        out = string_concat(out, "x");
+        0
+    }
+    7
+}
+
+@id("loops.condition_failure")
+fn condition_failure() -> i64
+{
+    let text = "a";
+    while string_len(text) + 9223372036854775807 > 0 {
+        0
+    }
+    0
+}
+
 @id("app.main")
 fn main() -> i64
 {
@@ -145,6 +191,10 @@ const CASES: &[(&str, &str)] = &[
     ("loops.contract", "semaprax.contract.v1|1"),
     ("loops.staged", "semaprax.contract.v1|1"),
     ("loops.traverse", "ok|11"),
+    ("loops.condition_grow", "ok|64"),
+    ("loops.condition_stable", "ok|1000"),
+    ("loops.condition_skip", "ok|7"),
+    ("loops.condition_failure", "semaprax.arithmetic.v1|1"),
 ];
 
 /// The literal-only cases the String-settling Wasm profile admits; numeric
@@ -154,6 +204,10 @@ const WASM_CASES: &[&str] = &[
     "loops.overflow",
     "loops.contract",
     "loops.staged",
+    "loops.condition_grow",
+    "loops.condition_stable",
+    "loops.condition_skip",
+    "loops.condition_failure",
 ];
 
 fn command_available(command: &str) -> bool {
@@ -180,7 +234,85 @@ fn owned_string_loops_round_trip_and_move_the_appended_owner() {
     assert!(graph.contains(&transfer), "{graph}");
     assert!(!graph.contains(&format!("\"kind\":\"initialize\",\"at\":\"{operand}\"")));
     assert!(graph.contains("\"callee\":\"core.string.concat\""));
-    hir::validate(&hir::resolve(&program).unwrap()).unwrap();
+    let mut resolved = hir::resolve(&program).unwrap();
+    hir::validate(&resolved).unwrap();
+    let read = condition_operand(&mut resolved).id.clone();
+    assert!(!graph.contains(&format!("\"kind\":\"initialize\",\"at\":\"{read}\"")));
+    assert!(graph.contains("\"callee\":\"core.string.len\""));
+}
+
+fn condition_operand(program: &mut hir::ResolvedProgram) -> &mut hir::ResolvedExpr {
+    let function = program
+        .functions
+        .iter_mut()
+        .find(|function| function.id.as_str() == "loops.condition_skip")
+        .unwrap();
+    let hir::ResolvedExprKind::Block { statements, .. } = &mut function.body.kind else {
+        panic!()
+    };
+    let hir::ResolvedStatement::While { condition, .. } = &mut statements[1] else {
+        panic!()
+    };
+    let hir::ResolvedExprKind::Binary { left, .. } = &mut condition.kind else {
+        panic!()
+    };
+    let hir::ResolvedExprKind::Call { args, .. } = &mut left.kind else {
+        panic!()
+    };
+    &mut args[0]
+}
+
+#[test]
+fn string_length_conditions_reject_forged_operands_and_clone_plans() {
+    let program = parse(SOURCE, Path::new("string-length-condition-hostile.spx")).unwrap();
+    let resolved = hir::resolve(&program).unwrap();
+    for hostile in 0..3 {
+        let mut candidate = resolved.clone();
+        let operand = condition_operand(&mut candidate);
+        match hostile {
+            0 => operand.ownership = hir::OwnershipMode::Borrow,
+            1 => operand.kind = hir::ResolvedExprKind::String("allocated".to_owned()),
+            _ => {
+                let hir::ResolvedExprKind::Place(place) = &mut operand.kind else {
+                    panic!()
+                };
+                place
+                    .projections
+                    .push(hir::PlaceProjection::Field(hir::DeclarationId::new(
+                        "foreign.field",
+                    )));
+            }
+        }
+        assert_eq!(hir::validate(&candidate).unwrap_err().code, "SPX-H006");
+        assert_eq!(
+            semaprax::codegen::emit_hir_c(&candidate).unwrap_err().code,
+            "SPX-H006"
+        );
+    }
+    let mut candidate = resolved;
+    let read = condition_operand(&mut candidate).id.clone();
+    let function = candidate
+        .functions
+        .iter_mut()
+        .find(|function| function.id.as_str() == "loops.condition_skip")
+        .unwrap();
+    let initialization = function
+        .cleanup_plan
+        .blocks
+        .iter_mut()
+        .flat_map(|block| &mut block.transitions)
+        .find(|transition| {
+            matches!(
+                transition,
+                semaprax::cleanup_plan::CleanupTransition::Initialize { .. }
+            )
+        })
+        .unwrap();
+    let semaprax::cleanup_plan::CleanupTransition::Initialize { at, .. } = initialization else {
+        unreachable!()
+    };
+    *at = read;
+    assert_eq!(hir::validate(&candidate).unwrap_err().code, "SPX-H006");
 }
 
 #[test]
@@ -230,6 +362,7 @@ fn native_string_loops_settle_every_allocation_on_every_exit() {
             .collect::<String>();
         probe.push_str(&format!(
             r#"{{
+    size_t before=fixture_allocations;
     int64_t value=INT64_MIN;
     spx_status_token token=spx_decl_{symbol}(&context,&value);
     if(token==0) {{ (void)printf("{id}|ok|%lld\n",(long long)value); }}
@@ -240,6 +373,7 @@ fn native_string_loops_settle_every_allocation_on_every_exit() {
         (void)printf("{id}|%s|%u\n",status->domain_id,(unsigned)status->code);
     }}
     REQUIRE(fixture_live==0 && fixture_allocations==fixture_frees);
+    if(strcmp("{id}","loops.condition_stable")==0) REQUIRE(fixture_allocations-before==1);
 }}
 "#
         ));
@@ -330,8 +464,11 @@ fn shapes_outside_owned_string_loops_v1_stay_refused() {
         );
     }
     // A condition re-evaluates outside the per-iteration body region, so it
-    // may create no String, not even the clone a String read allocates.
-    for condition in ["string_len(text) < 9", "i < string_len(\"abc\")"] {
+    // may create no String; named length inspection is allocation-free.
+    for condition in [
+        "string_len(string_concat(\"a\", \"b\")) < 9",
+        "i < string_len(\"abc\")",
+    ] {
         let found = diagnostics(&format!(
             "    let text = \"x\";\n    let mut i = 0;\n    while {condition} {{\n        i = i + 1;\n        0\n    }}\n    i"
         ));
@@ -355,6 +492,23 @@ fn shapes_outside_owned_string_loops_v1_stay_refused() {
         found[0].message,
         "ownership of `text` changes inside a while loop, which is not yet admitted"
     );
+}
+
+#[test]
+fn string_length_conditions_keep_allocating_and_consuming_shapes_refused() {
+    for condition in [
+        "string_len(\"a\") < 2",
+        "string_len(string_concat(text, \"b\")) < 2",
+        "string_len({ text }) < 2",
+        "string_is_empty(text)",
+        "match 0 { n if string_len(\"guard\") > n => true, _ => false, }",
+    ] {
+        let found = diagnostics(&format!(
+            "    let text = \"a\";\n    while {condition} {{ 0 }}\n    0"
+        ));
+        assert!(found.iter().any(|diagnostic| diagnostic.code == "SPX-T252"
+            && diagnostic.message == "string values are not admitted in while conditions; compute a scalar such as `string_len(text)` in the loop body and test that"), "{condition}: {found:?}");
+    }
 }
 
 #[test]

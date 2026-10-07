@@ -10,6 +10,23 @@ impl Evaluator<'_> {
         depth: usize,
     ) -> Result<Value, Flow> {
         self.charge()?;
+        if op == crate::string_ops::StringOp::Len
+            && args.len() == 1
+            && self.string_condition_reads.contains(&args[0].id)
+        {
+            // Preserve the operand's ordinary expression fuel charge without
+            // evaluating an owning Place read (which would allocate a clone).
+            self.begin_expression(&args[0], depth)?;
+            let ResolvedExprKind::Place(place) = &args[0].kind else {
+                return Err(Flow::Guard("String condition inspection is not a place"));
+            };
+            return match environment.get(&place.root) {
+                Some(Value::String(value)) if place.projections.is_empty() => {
+                    Ok(Value::Int(value.len() as i64))
+                }
+                _ => Err(Flow::Guard("String condition owner is unavailable")),
+            };
+        }
         let mut values = Vec::with_capacity(args.len());
         for (index, argument) in args.iter().enumerate() {
             // A borrowed map operand aliases its owner instead of moving it.

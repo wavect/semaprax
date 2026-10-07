@@ -10,6 +10,7 @@ pub(super) struct SkeletonWork<'a, 'b> {
     pub(super) budget: &'b mut ReplayBudget,
     /// Owned String Loops v1 same-owner append operands that move, not clone.
     pub(super) string_owner_moves: BTreeSet<ExpressionId>,
+    pub(super) string_condition_reads: BTreeSet<ExpressionId>,
 }
 
 impl<'a, 'b> SkeletonWork<'a, 'b> {
@@ -18,6 +19,7 @@ impl<'a, 'b> SkeletonWork<'a, 'b> {
             function,
             budget,
             string_owner_moves: crate::string_ops::same_owner_concat_operands(function),
+            string_condition_reads: crate::string_ops::conditions::function_reads(function),
         }
     }
 }

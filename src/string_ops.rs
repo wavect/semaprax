@@ -80,6 +80,8 @@
 //! A value the target type cannot hold selects the checked
 //! `semaprax.convert.v1` status: code 1 for out of range, code 2 for NaN.
 
+pub(crate) mod conditions;
+
 use crate::ast::{Param, ParamMode, Span, Type};
 use crate::hir::{OwnershipMode, ResolvedParam, ResolvedType, ValueId};
 
@@ -816,8 +818,9 @@ pub(crate) fn source_call_uses_string(name: &str, uses_string: &dyn Fn(&str) -> 
     by_name(name).is_some_and(StringOp::touches_string) || uses_string(name)
 }
 
-/// Owned String Loops v1 keeps every `while` condition free of owned String
-/// values: a condition re-evaluates outside the per-iteration body region, so
+/// String condition admission keeps every `while` condition free of allocated
+/// String values (exact named length reads inspect an existing owner). A condition
+/// re-evaluates outside the per-iteration body region, so
 /// an owned temporary there (a literal, a produced String, or the clone an
 /// owning String read allocates) would have no per-iteration release point.
 /// Return the span of the first string literal or String-touching call in
@@ -832,6 +835,9 @@ pub(crate) fn owned_string_in_condition(
         match &expression.kind {
             ExprKind::String(_) => return Some(expression.span),
             ExprKind::Call { name, args, .. } => {
+                if conditions::source_named_length(expression) {
+                    continue;
+                }
                 // `map_len` and `map_value_at` borrow their map and allocate
                 // nothing; their other operands are scanned like any other.
                 let allocation_free = by_name(name)
@@ -870,7 +876,12 @@ pub(crate) fn owned_string_in_condition(
             ExprKind::Match {
                 scrutinee, arms, ..
             } => {
-                pending.extend(arms.iter().rev().map(|arm| &arm.value));
+                for arm in arms.iter().rev() {
+                    pending.push(&arm.value);
+                    if let Some(guard) = &arm.guard {
+                        pending.push(guard);
+                    }
+                }
                 pending.push(scrutinee);
             }
             ExprKind::Yield { request } => pending.push(request),

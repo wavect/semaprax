@@ -619,6 +619,7 @@ struct PlanBuilder<'a> {
     pending_try_residuals: Vec<PendingTryResidual>,
     schema: &'static str,
     string_appends: BTreeMap<ExpressionId, ExpressionId>,
+    string_condition_reads: BTreeSet<ExpressionId>,
 }
 
 impl<'a> PlanBuilder<'a> {
@@ -694,6 +695,7 @@ impl<'a> PlanBuilder<'a> {
         let entry = BlockId(0);
         let mut builder = Self {
             string_appends: crate::string_ops::same_owner_concat_appends(function),
+            string_condition_reads: crate::string_ops::conditions::function_reads(function),
             program,
             function,
             slots,
@@ -1547,16 +1549,10 @@ impl<'a> PlanBuilder<'a> {
         Ok(())
     }
 
-    /// Lower one Bounded While-Loops v1 statement.
-    ///
-    /// The admission profile guarantees the condition and body contain only
-    /// Copy-scalar operations, so the loop contributes no cleanup slots,
-    /// transfers, or finalizers of its own: every failure exit inside the
-    /// loop finalizes exactly what was live on loop entry. The plan therefore
-    /// linearizes one admitted iteration — condition evaluation branches on
-    /// its Boolean result into a single body pass or the loop continuation,
-    /// and the builder fail-closes if the body pass could ever change owned
-    /// liveness (which would make a single pass unrepresentative).
+    /// Linearize one admitted iteration: a scalar condition (including exact
+    /// named String length inspection) branches to the body or continuation.
+    /// Body cleanup must restore entry ownership, so every physical iteration
+    /// repeats the same checked lifecycle without a CleanupPlan back-edge.
     fn lower_while(
         &mut self,
         condition: &ResolvedExpr,
@@ -2511,7 +2507,8 @@ impl<'a> PlanBuilder<'a> {
                     }
                     ResolvedExprKind::Place(place) => {
                         self.assign_moved_string_slot(expression, block)?;
-                        let owned_source = if expression.ownership == OwnershipMode::Own
+                        let owned_source = if !self.string_condition_reads.contains(&expression.id)
+                            && expression.ownership == OwnershipMode::Own
                             && self.needs_drop(&expression.ty)?
                         {
                             Some(self.place_from_hir(place)?)
@@ -4705,7 +4702,8 @@ impl<'a> PlanBuilder<'a> {
             }),
             ResolvedExprKind::Place(place) => {
                 self.assign_moved_string_slot(expression, block)?;
-                let owned_source = if expression.ownership == OwnershipMode::Own
+                let owned_source = if !self.string_condition_reads.contains(&expression.id)
+                    && expression.ownership == OwnershipMode::Own
                     && self.needs_drop(&expression.ty)?
                 {
                     Some(self.place_from_hir(place)?)

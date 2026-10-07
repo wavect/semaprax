@@ -580,6 +580,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 if matches!(value.ty, ResolvedType::String)
                     && expr.ownership == hir::OwnershipMode::Own
                     && !self.string_owner_moves.contains(&expr.id)
+                    && !self.string_condition_reads.contains(&expr.id)
                 {
                     let temporary = self
                         .bytes_plan

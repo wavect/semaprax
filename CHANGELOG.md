@@ -57,6 +57,8 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Admit `string_len(namedString)` in while conditions without cloning the owner, preserving fuel and cleanup across interpreter, native C11, and admitted Core Wasm profiles. Allocating String conditions remain outside this narrow profile.
+
 ## 0.9.0 — 2026-10-06
 
 - Installation: one-command per-user installers. `install.sh` (macOS and

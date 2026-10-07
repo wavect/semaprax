@@ -31,8 +31,9 @@ All owner flags and temporary pointer cells are initialized at function entry,
 before any recoverable failure branch; block-local addresses are not retained.
 
 - Literal, clone, and successful call results establish one live owner.
-- Owning place reads retain the existing clone behavior; borrowed reads alias
-  the existing carrier. A temporary handoff moves
+- Owning place reads retain the existing clone behavior, with the additive
+  [named length condition](STRING-LENGTH-CONDITIONS-V1.md) inspection exception;
+  borrowed reads alias the existing carrier. A temporary handoff moves
   its value and clears its source ownership.
 - Binding, branch, match, and provisional-result transfers require a live
   source and dead destination. A live cell must not be overwritten on reuse.

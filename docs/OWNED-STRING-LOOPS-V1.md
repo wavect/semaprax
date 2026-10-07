@@ -75,10 +75,11 @@ transition kind, or graph version changes: the plan carries ordinary
 
 ## Loop conditions
 
-A `while` condition re-evaluates outside the per-iteration body region, so it
-may hold no String value at all — not a literal, not a produced string, and
-not a read of a `string` binding, because an owning read allocates a clone.
-Such a condition is `SPX-T252`:
+The additive [Named String Length Conditions v1](STRING-LENGTH-CONDITIONS-V1.md)
+admits `string_len(text)` where `text` is an available whole named String
+binding. It inspects the current owner without allocating a clone, including
+after a same-owner append in the body. Allocating expressions such as
+`string_len("literal")` and other String operations retain `SPX-T252`:
 
 ```text
 string values are not admitted in while conditions; compute a scalar such as `string_len(text)` in the loop body and test that
@@ -101,7 +102,7 @@ while size < 1000 {
 | --- | --- |
 | Whole replacement `text = "other"` | `SPX-U105` |
 | Owner not the first operand, `text = string_concat("p", text)` | `SPX-U105` |
-| A String value in a `while` condition | `SPX-T252` |
+| An allocating String expression or a String operation other than named `string_len` in a `while` condition | `SPX-T252` |
 | Consuming an outer `string` binding inside a loop body (`let t = outer;`, `string_concat(outer, …)`) | `SPX-T252` (ownership changes inside a loop); malformed HIR still fails independently with `SPX-H006` |
 | `yield` in a function whose loop carries a `string` | `SPX-T303` |
 

@@ -3294,6 +3294,7 @@ fn expression_skeleton(
                 debug_assert!(produced.is_none());
                 if strings::owns_clone(expression)
                     && !work.string_owner_moves.contains(&expression.id)
+                    && !work.string_condition_reads.contains(&expression.id)
                 {
                     produced = Some(strings::paths(expression, work)?);
                     continue;
@@ -3324,7 +3325,8 @@ fn expression_skeleton(
                             Some(work.singleton_path(empty_expr_path(), "literal skeleton path")?);
                     }
                     ResolvedExprKind::Place(place) => {
-                        let owned_source = if expression.ownership == OwnershipMode::Own
+                        let owned_source = if !work.string_condition_reads.contains(&expression.id)
+                            && expression.ownership == OwnershipMode::Own
                             && type_needs_drop(program, function, &expression.ty)?
                         {
                             Some(cleanup_place_from_hir(function, place, work)?)

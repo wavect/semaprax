@@ -228,6 +228,7 @@ pub(super) fn evaluate_resolved_entry_with_utf8_budget<'a>(
         failure_detail: None,
         resumption: crate::interpreter::resumable::Resumption::Refused,
         semantic: Default::default(),
+        string_condition_reads: Default::default(),
     };
     let outcome = evaluator.evaluate_entry(entry, arguments);
     let utf8_usage = evaluator.utf8_materialization_budget.usage();

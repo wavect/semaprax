@@ -731,10 +731,10 @@ fn function_count_bound_rejects_before_per_function_capacity_projection() {
 
 #[test]
 fn owned_string_loop_admission_matches_recursive_oracle() {
-    // Owned String Loops v1: a literal is admitted in a loop body, and any
-    // String value in the condition is the same T252 diagnostic in both
-    // verifiers, ahead of the admission scan. (The recursive oracle predates
-    // the compiler-owned String calls, so the parity corpus avoids them.)
+    // Body literals are admitted; allocating conditions retain the same T252
+    // diagnostic in both verifiers, ahead of the admission scan. Reserved Len
+    // parity has its own corpus below; other String operations remain outside
+    // this recursive oracle's call profile.
     let prefix = "module t; @id(\"t.label\") fn label(value: i64) -> string { \"x\" } ";
     for body in [
         "fn main()->i64{let i=0; while i<1 { let t=\"y\"; 0 } 0}",
@@ -743,5 +743,20 @@ fn owned_string_loop_admission_matches_recursive_oracle() {
         "fn main()->i64{let i=0; while i<1 { let t=label(i); 0 } 0}",
     ] {
         compare_scalar_body(&format!("{prefix}{body}"));
+    }
+}
+
+#[test]
+fn named_string_length_conditions_match_recursive_oracle() {
+    for body in [
+        "let text=\"é\"; let mut i=0; while i<2 && string_len(text)==2 { i=i+1; 0 } i",
+        "let text=\"a\"; while string_len(text)<1 { 0 } 0",
+        "let text=\"a\"; while string_len(\"literal\")<1 { 0 } 0",
+        "let text=\"a\"; while string_len({ text })<1 { 0 } 0",
+        "let text=0; while string_len(text)<1 { 0 } 0",
+        "let text=\"a\"; while string_len(text, 0)<1 { 0 } 0",
+        "let text=\"a\"; while match 0 { n if string_len(\"guard\")>n => true, _ => false, } { 0 } 0",
+    ] {
+        compare_scalar_body(&format!("module t; @id(\"t.main\") fn main()->i64{{{body}}}"));
     }
 }

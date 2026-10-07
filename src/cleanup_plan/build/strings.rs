@@ -13,7 +13,9 @@ impl PlanBuilder<'_> {
     /// An owning String read allocates a clone, except the first operand of
     /// an Owned String Loops v1 same-owner append, which moves the binding.
     pub(super) fn owns_string_clone(&self, expression: &ResolvedExpr) -> bool {
-        owns_clone(expression) && !self.string_appends.contains_key(&expression.id)
+        owns_clone(expression)
+            && !self.string_appends.contains_key(&expression.id)
+            && !self.string_condition_reads.contains(&expression.id)
     }
 
     /// A moving append operand never initializes its inventory temporary,

@@ -367,12 +367,12 @@ impl HirValidator<'_> {
             }
             self.validate_iterator_body(protocol.authored_body, protocol.owned_item)
         } else {
-            // Owned String Loops v1: a condition re-evaluates outside the
-            // per-iteration body region, so it may create no owned String;
-            // even a String place read there would allocate a clone.
+            // A condition creates no String owner. Exact named length reads
+            // inspect a carrier; ordinary HIR replay authenticates the place.
+            let reads = crate::string_ops::conditions::condition_reads(condition);
             let mut pending = vec![condition];
             while let Some(expression) = pending.pop() {
-                if expression.ty == ResolvedType::String {
+                if expression.ty == ResolvedType::String && !reads.contains(&expression.id) {
                     return Err(hir_error(
                         "while loop condition creates an owned String outside the body region",
                     ));

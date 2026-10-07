@@ -48,8 +48,10 @@ mutable-borrow, import, unsafe, or effectful-call support.
 
 The ordinary verifier and validated HIR remain the source of meaning. The
 existing evaluator already represents String values as Rust-owned UTF-8;
-there is no second String execution engine. Place reads clone, arguments
-evaluate left to right into an invocation-owned vector, and the complete
+there is no second String execution engine. Place reads clone, except the exact named String length inspection in
+[while conditions](STRING-LENGTH-CONDITIONS-V1.md). That inspection preserves
+the operand expression fuel and trace charge without UTF-8 materialization.
+Arguments evaluate left to right into an invocation-owned vector, and the complete
 vector enters the callee frame. Rust ownership releases frames and temporaries
 on normal return, late-argument failure, failed pre/postconditions, fuel
 exhaustion, and depth refusal. Failed postconditions do not publish a

@@ -88,6 +88,7 @@ pub mod retained_call;
 mod scalar_profile;
 mod semantic_work;
 pub(crate) mod source_command;
+mod string_conditions;
 mod string_operations;
 use api_admission::{
     owned_utf8_api_result_matches, public_api_argument_matches, public_api_parameter_type_matches,
@@ -3036,6 +3037,7 @@ pub(crate) fn evaluate_resolved_language_command(
         failure_detail: None,
         resumption: resumable::Resumption::Refused,
         semantic: Default::default(),
+        string_condition_reads: Default::default(),
     };
     let evaluated = evaluator.call_frame(entry, Vec::new(), 0);
     let outcome = match evaluated {
@@ -3470,6 +3472,7 @@ struct Evaluator<'a> {
     failure_detail: Option<ContractFailureDetail>,
     resumption: resumable::Resumption,
     semantic: semantic_work::SemanticMeter,
+    string_condition_reads: BTreeSet<hir::ExpressionId>,
 }
 
 use function_values::{evaluate_resolved_entry, evaluate_resolved_entry_with_utf8_budget};
@@ -3506,6 +3509,7 @@ impl Evaluator<'_> {
             failure_detail: None,
             resumption: resumable::Resumption::Refused,
             semantic: Default::default(),
+            string_condition_reads: Default::default(),
         }
     }
 
@@ -4620,39 +4624,11 @@ impl Evaluator<'_> {
                         ResolvedStatement::While {
                             condition, body, ..
                         } => {
-                            // Bounded While-Loops v1: the condition
-                            // re-evaluates before every iteration and every
-                            // evaluated node charges fuel, so a non-terminating
-                            // loop fails closed through the existing exhausted
-                            // budget path.
-                            loop {
-                                if let Err(flow) = self.charge() {
-                                    interrupted = Some(flow);
-                                    break 'statements;
-                                }
-                                let flag = match self.evaluate(condition, environment, depth) {
-                                    Ok(Value::Bool(flag)) => flag,
-                                    Ok(_) => {
-                                        interrupted =
-                                            Some(Flow::Guard("non-boolean while condition"));
-                                        break 'statements;
-                                    }
-                                    Err(flow) => {
-                                        interrupted = Some(flow);
-                                        break 'statements;
-                                    }
-                                };
-                                if !flag {
-                                    break;
-                                }
-                                // Stage semantic work v1: one unit per entered body.
-                                if let Err(flow) = self
-                                    .semantic_charge()
-                                    .and_then(|()| self.evaluate(body, environment, depth))
-                                {
-                                    interrupted = Some(flow);
-                                    break 'statements;
-                                }
+                            if let Err(flow) =
+                                self.evaluate_while(condition, body, environment, depth)
+                            {
+                                interrupted = Some(flow);
+                                break 'statements;
                             }
                         }
                     }
@@ -6071,6 +6047,7 @@ fn main() -> i64 { 0 }
                 failure_detail: None,
                 resumption: resumable::Resumption::Refused,
                 semantic: Default::default(),
+                string_condition_reads: Default::default(),
             };
             let outcome = evaluator.call_frame(
                 inspect,
@@ -6159,6 +6136,7 @@ fn inspect(value: borrow Either<Bytes, Bytes>) -> i64 {
                 failure_detail: None,
                 resumption: resumable::Resumption::Refused,
                 semantic: Default::default(),
+                string_condition_reads: Default::default(),
             };
             let outcome = evaluator.call_frame(
                 inspect,

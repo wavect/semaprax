@@ -92,6 +92,10 @@ transitions, or finalizers: the CleanupPlan v2/v3 schema set, the plan
 builder, the independent replay gate, and every serialized plan for programs
 without while syntax are byte-identical to pre-feature output.
 
+The additive [Named String Length Conditions v1](STRING-LENGTH-CONDITIONS-V1.md)
+admits `string_len(namedString)` in conditions as an allocation-free borrowed
+inspection. Other allocating String condition expressions remain refused.
+
 ## Indexed Byte Loop v2
 
 The additive v2 profile admits immutable indexed byte inspection without

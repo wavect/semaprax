@@ -3203,6 +3203,7 @@ fn emit_function_profile(
         environment_utf8_index,
         list_heap_global,
         standalone_strings,
+        string_condition_reads: crate::string_ops::conditions::function_reads(function),
     };
     emitter.call_depth_admission()?;
     emitter.semantic_charge()?;
@@ -3421,10 +3422,7 @@ struct Emitter<'a> {
     return_type: &'a ResolvedType,
     cleanup_plan: &'a crate::cleanup_plan::CleanupPlan,
     bindings: HashMap<ValueId, Value>,
-    /// Exact physical carriers for projected call-argument epochs. Scalar
-    /// `Bytes` and `String` epochs own a dedicated local in `FunctionPlan`; a
-    /// flat owned record keeps its materialized aggregate pointer and changes
-    /// only CleanupPlan liveness until `CallCommit`.
+    /// Exact physical carriers for authenticated call-argument epochs.
     call_argument_values: HashMap<crate::cleanup_plan::StorageId, Value>,
     control_depth: u32,
     status_exit_extra_depth: u32,
@@ -3436,6 +3434,7 @@ struct Emitter<'a> {
     environment_utf8_index: Option<u32>,
     list_heap_global: Option<u32>,
     standalone_strings: bool,
+    string_condition_reads: std::collections::BTreeSet<ExpressionId>,
 }
 
 impl Emitter<'_> {
@@ -4636,6 +4635,9 @@ impl Emitter<'_> {
             }
             ResolvedExprKind::Place(place) => {
                 let value = self.place_value(place)?;
+                if self.string_condition_reads.contains(&expr.id) {
+                    return Ok(value);
+                }
                 if self.owned_utf8_literals.is_some()
                     && expr.ty == ResolvedType::String
                     && expr.ownership == crate::hir::OwnershipMode::Own
@@ -4820,9 +4822,7 @@ impl Emitter<'_> {
                 } else {
                     self.emit_expr(scrutinee)?
                 };
-                // Refutable Match v1: Copy-scalar scrutinees lower to the
-                // literal/guard decision chain even on the aggregate lane;
-                // aggregate storage keeps the pre-feature lowering below.
+                // Scalar decisions and aggregate storage keep distinct lowering.
                 if crate::hir::is_refutable_match_scalar(value_type(&scrutinee)) {
                     return self.emit_scalar_refutable_match(expr, &scrutinee, arms);
                 }

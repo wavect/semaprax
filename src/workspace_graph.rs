@@ -1373,6 +1373,8 @@ impl WorkspaceGraphBuild {
                 if !matches!(
                     profile,
                     crate::project::ProjectProfile::LanguageCommandIoV1
+                        | crate::project::ProjectProfile::StdinStreamCommandIoV1
+                        | crate::project::ProjectProfile::StdinStreamCommandIoV2
                         | crate::project::ProjectProfile::LineCommandIoV1
                         | crate::project::ProjectProfile::ProcessIoV1
                 ) || function.effects.is_empty()
@@ -1473,7 +1475,9 @@ impl WorkspaceGraphBuild {
                     functions,
                 )
             }
-            crate::project::ProjectProfile::LanguageCommandIoV1 => {
+            crate::project::ProjectProfile::LanguageCommandIoV1
+            | crate::project::ProjectProfile::StdinStreamCommandIoV1
+            | crate::project::ProjectProfile::StdinStreamCommandIoV2 => {
                 // The ordinary project/test entry remains a pure useful-data
                 // closure. `linked_scalar_program_with_roots` below retains
                 // the selected command as a distinct authenticated root.
@@ -1675,14 +1679,23 @@ impl WorkspaceGraphBuild {
             crate::project::ProjectProfile::UsefulDataCommandV2 => {
                 hir::link_useful_data_command_workspace(base.module, base.entrypoint, functions)
             }
-            crate::project::ProjectProfile::LanguageCommandIoV1 => {
+            crate::project::ProjectProfile::LanguageCommandIoV1
+            | crate::project::ProjectProfile::StdinStreamCommandIoV1
+            | crate::project::ProjectProfile::StdinStreamCommandIoV2 => {
                 let [command_id] = additional_roots else {
                     return Err(vec![graph_error(
                         "SPX-G172",
                         "Language Command I/O v1 must select exactly one command identity",
                     )]);
                 };
-                hir::link_language_command_io_workspace(
+                let link = if profile == crate::project::ProjectProfile::StdinStreamCommandIoV2 {
+                    hir::link_stdin_stream_exit_command_workspace
+                } else if profile.is_stdin_stream() {
+                    hir::link_stdin_stream_command_workspace
+                } else {
+                    hir::link_language_command_io_workspace
+                };
+                link(
                     base.module,
                     base.entrypoint,
                     hir::DeclarationId::new(command_id.clone()),
@@ -1778,6 +1791,8 @@ impl WorkspaceGraphBuild {
         if matches!(
             web_roots.profile,
             crate::project::ProjectProfile::LanguageCommandIoV1
+                | crate::project::ProjectProfile::StdinStreamCommandIoV1
+                | crate::project::ProjectProfile::StdinStreamCommandIoV2
                 | crate::project::ProjectProfile::LineCommandIoV1
                 | crate::project::ProjectProfile::ProcessIoV1
         ) {
@@ -1804,13 +1819,16 @@ impl WorkspaceGraphBuild {
                 .declarations
                 .get(command.id.as_str())
                 .is_some_and(|fact| fact.origin == hir::IdentityOrigin::Explicit);
-            if !explicit
-                || !command.params.is_empty()
-                || command.return_type != hir::ResolvedType::Bool
-            {
+            let (return_type, signature) = match web_roots.profile {
+                crate::project::ProjectProfile::StdinStreamCommandIoV2 => {
+                    (hir::ResolvedType::I64, "i64")
+                }
+                _ => (hir::ResolvedType::Bool, "bool"),
+            };
+            if !explicit || !command.params.is_empty() || command.return_type != return_type {
                 return Err(vec![graph_error(
                     "SPX-G172",
-                    "command I/O profile command must have an explicit identity and exact signature fn() -> bool",
+                    format!("command I/O profile command must have an explicit identity and exact signature fn() -> {signature}"),
                 )]);
             }
         }
@@ -2038,6 +2056,10 @@ impl WorkspaceGraphBuild {
                         .get(function.id.as_str())
                         .is_some_and(|fact| fact.owner.is_some());
                 let admitted_parameter = |parameter: &hir::ResolvedParam| match profile {
+                    crate::project::ProjectProfile::StdinStreamCommandIoV1
+                    | crate::project::ProjectProfile::StdinStreamCommandIoV2 => {
+                        retained_validation::stream_parameter_admitted(parameter)
+                    }
                     crate::project::ProjectProfile::ScalarV1 => {
                         parameter.ownership == hir::OwnershipMode::Value
                             && hir::copy_scalar_type(&parameter.ty)
@@ -2076,6 +2098,10 @@ impl WorkspaceGraphBuild {
                     }
                 };
                 let admitted_return = match profile {
+                    crate::project::ProjectProfile::StdinStreamCommandIoV1
+                    | crate::project::ProjectProfile::StdinStreamCommandIoV2 => {
+                        retained_validation::stream_return_admitted(&function.return_type)
+                    }
                     crate::project::ProjectProfile::ScalarV1 => {
                         hir::copy_scalar_type(&function.return_type)
                     }
@@ -5609,6 +5635,8 @@ fn reconstruct_workspace_declaration_facts(
         uses_box,
         uses_iterator,
         uses_list,
+        prelude_binding::uses_stream(programs),
+        prelude_binding::uses_record_iterator(programs),
     )?;
     let mut actual = BTreeMap::new();
     for (module, resolved) in modules {
@@ -5623,6 +5651,8 @@ fn reconstruct_workspace_declaration_facts(
             prelude::program_uses_box(source) || imports_box_wrapper,
             crate::iterator_ops::program_uses_iterator(source),
             crate::list_ops::program_uses_list(source),
+            prelude_binding::module_uses_stream(source, programs),
+            crate::source_verify::program_uses_record_iterator(source),
         )?;
         let direct_targets = source
             .module_uses

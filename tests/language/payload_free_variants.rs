@@ -477,10 +477,9 @@ fn or_patterns_agree_on_interpreter_native_and_wasm() {
 #[test]
 fn rejected_or_patterns_keep_stable_diagnostics() {
     let prefix = &OR_PATTERNS[..OR_PATTERNS.find("@id(\"orpat.weight\")").unwrap()];
-    let help = "over a record or variant scrutinee, arms admit case patterns, `_`, and `|` \
-                between payload-free cases of the scrutinee's variant \
-                (`Status::Todo {} | Status::Doing {} => ...`); literal patterns, bindings, \
-                and guards need an i64/i32/u8/char/bool scrutinee";
+    let help = "records/variants admit case patterns and `_`; `|` joins payload-free cases. \
+                Exact Copy-payload cases also admit scalar-operator guards with unguarded \
+                fallbacks. Literal/binding patterns and broader guards require scalar scrutinees";
     let cases: [(&str, Vec<String>); 7] = [
         (
             "Shape::Dot {} | Shape::Square { side: s } => 0, Shape::Empty {} => 1,",

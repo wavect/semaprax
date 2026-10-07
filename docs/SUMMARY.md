@@ -395,6 +395,8 @@ Audience: all documentation readers.
 - [Useful Text Consumer v1](USEFUL-TEXT-CONSUMER-V1.md)
 - [Bounded stdout transcript](BOUNDED-STDOUT-TRANSCRIPT-V1.md)
 - [Bounded Language Command I/O](BOUNDED-LANGUAGE-COMMAND-IO-V1.md)
+- [Bounded Standard Input Streaming v1](BOUNDED-STDIN-STREAM-V1.md)
+- [Bounded Stdin Command Exit Status v1](BOUNDED-STDIN-COMMAND-EXIT-V1.md)
 - [Draft: Bounded Streaming Standard Input](DRAFT-STDIN-STREAM-V1.md)
 - [Bounded Language Network I/O](BOUNDED-LANGUAGE-NETWORK-IO-V1.md)
 - [Bounded Network Services](BOUNDED-NETWORK-SERVICES-V1.md)

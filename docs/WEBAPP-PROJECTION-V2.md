@@ -94,6 +94,11 @@ audit history, CSV, and rollups. When accounts exist it also checks sign-in,
 sign-out, and a 401 without a session. For every case of every enumeration
 field of the account entity, it compares each entity's list visibility and
 PUT result against the schema's own permission predicates.
+For row-aware policies over account-reference fields, it also creates an owned
+row for each test account and reports own-account, other-account, and unowned
+row actions separately. The fixture lives in the [generated server
+self-test](../src/webapp/runtime/server.mjs) and is exercised by the
+[webapp tests](../src/webapp/tests.rs).
 
 `semaprax webapp <file> --api` verifies and projects the module like a
 normal run but writes nothing. Instead it prints a compact plain-text

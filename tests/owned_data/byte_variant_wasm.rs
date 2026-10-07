@@ -73,3 +73,30 @@ console.log('owned-byte-variant-wasm-v1-failure-ok');
         );
     }
 }
+
+#[test]
+fn constructed_owned_byte_cases_keep_inactive_payloads_dead() {
+    let source = include_str!("../owned_byte_constructed_case_fixture.spx");
+    run_node(
+        source,
+        "constructed",
+        r#"import {readFile} from 'node:fs/promises';
+import {instantiateBytes} from './semaprax.js';
+const {instance}=await instantiateBytes(await readFile('./app.wasm'),{maxOwnedByteEntries:1});
+for(let i=0;i<6;i+=1){if(instance.exports.semaprax_main()!==11n)throw Error('constructed-case');}
+"#,
+    );
+    let failed = source.replace(
+        "fn main() -> i64 { local_some() + direct_some() + local_none() + two_owned() }",
+        "fn main() -> i64 { fail_case() }",
+    );
+    run_node(
+        &failed,
+        "constructed-failure",
+        r#"import {readFile} from 'node:fs/promises';
+import {instantiateBytes} from './semaprax.js';
+const {instance}=await instantiateBytes(await readFile('./app.wasm'),{maxOwnedByteEntries:1});
+for(let i=0;i<6;i+=1){let failed=false;try{instance.exports.semaprax_main()}catch(error){if(error.message!=='SEMAPRAX checked arithmetic failure: addition overflow')throw error;failed=true}if(!failed)throw Error('missing-constructed-case-failure');}
+"#,
+    );
+}

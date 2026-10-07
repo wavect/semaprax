@@ -89,7 +89,6 @@ impl ReplayBudget {
             merge_paths: false,
         }
     }
-
     #[cfg(test)]
     fn with_skeleton_limit(limit: usize) -> Self {
         Self {
@@ -1710,7 +1709,8 @@ fn collect_expression_statuses(
             } => {
                 if instance.is_none()
                     && (crate::byte_ops::by_id(callee.as_str()).is_some_and(|op| !op.is_fallible())
-                        || crate::host_io_ops::by_id(callee.as_str()).is_some())
+                        || crate::host_io_ops::by_id(callee.as_str()).is_some()
+                        || callee.as_str() == crate::stdin_stream_ops::EOF_ID)
                 {
                     // Byte-data operations are total after HIR admission, with
                     // the bounded `bytes_set`, `bytes_set5`, and `bytes_set1_or5_from_slice` stores, whose computed
@@ -3493,7 +3493,8 @@ fn expression_skeleton(
                             crate::host_io_ops::resolved_params(op)
                         } else if instance.is_none()
                             && (crate::iterator_ops::by_id(callee.as_str()).is_some()
-                                || crate::list_ops::by_id(callee.as_str()).is_some())
+                                || crate::list_ops::by_id(callee.as_str()).is_some()
+                                || callee.as_str() == crate::stdin_stream_ops::EOF_ID)
                         {
                             resolved_call_params(program, function, callee, None, type_arguments)?
                         } else if let Some(op) = vec_intrinsic {
@@ -6765,11 +6766,10 @@ fn execute_replay_transition(
             case,
             ..
         } => {
-            if strings::needs_complete_case_domain(program, variant)
-                && !state
-                    .conditional_variants
-                    .iter()
-                    .any(|entry| entry.root == *source)
+            if !state
+                .conditional_variants
+                .iter()
+                .any(|entry| entry.root == *source)
             {
                 materialize_constructed_variant(
                     program, function, state, source, variant, storage, leaves,
@@ -7064,30 +7064,25 @@ fn materialize_constructed_variant(
     state.conditional_variants.push(ReplayConditionalVariant {
         root: source.clone(),
         variant: variant.clone(),
-        cases: if strings::needs_complete_case_domain(program, variant) {
-            // Independently retain every guarded case after authenticating the constructed payload; inactive runtime flags remain dead.
-            program
-                .declarations
-                .variant_cases(variant)
-                .ok_or_else(|| {
-                    replay_error(function, "constructed owning variant has no case domain")
-                })?
-                .iter()
-                .map(|candidate| {
-                    let prefix = source.projected(candidate.id.clone()).projections;
-                    (
-                        candidate.id.clone(),
-                        all_flags
-                            .iter()
-                            .filter(|flag| leaves[flag].place.projections.starts_with(&prefix))
-                            .copied()
-                            .collect(),
-                    )
-                })
-                .collect()
-        } else {
-            vec![(case.clone(), selected)]
-        },
+        // Rebuild the closed tag domain only after checking the constructed
+        // case's complete payload and every inactive runtime flag above.
+        cases: program
+            .declarations
+            .variant_cases(variant)
+            .ok_or_else(|| replay_error(function, "constructed owning variant has no case domain"))?
+            .iter()
+            .map(|candidate| {
+                let prefix = source.projected(candidate.id.clone()).projections;
+                (
+                    candidate.id.clone(),
+                    all_flags
+                        .iter()
+                        .filter(|flag| leaves[flag].place.projections.starts_with(&prefix))
+                        .copied()
+                        .collect(),
+                )
+            })
+            .collect(),
     });
     Ok(())
 }

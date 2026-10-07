@@ -1,0 +1,49 @@
+module test.constructed_owned_bytes;
+
+@id("case.local-some")
+fn local_some() -> i64 {
+    let data = bytes_zeroed(1usize);
+    let owned = Option<Bytes>::Some { value: data };
+    match own owned {
+        Option::None {} => 0,
+        Option::Some { value } => if byte_len(bytes_as_slice(value)) == 1usize { 1 } else { 90 },
+    }
+}
+
+@id("case.direct-some")
+fn direct_some() -> i64 {
+    match own Option<Bytes>::Some { value: bytes_zeroed(1usize) } {
+        Option::Some { value } => if byte_len(bytes_as_slice(value)) == 1usize { 1 } else { 90 },
+        Option::None {} => 0,
+    }
+}
+
+@id("case.local-none")
+fn local_none() -> i64 {
+    let owned = Option<Bytes>::None {};
+    match own owned {
+        Option::Some { value } => 90,
+        Option::None {} => 7,
+    }
+}
+
+@id("case.two-owned")
+fn two_owned() -> i64 {
+    let owned = Result<Bytes, Bytes>::Err { error: bytes_zeroed(2usize) };
+    match own owned {
+        Result::Ok { value } => 90,
+        Result::Err { error } => if byte_len(bytes_as_slice(error)) == 2usize { 2 } else { 90 },
+    }
+}
+
+@id("case.fail")
+fn fail_case() -> i64 {
+    let owned = Option<Bytes>::Some { value: bytes_zeroed(1usize) };
+    match own owned {
+        Option::None {} => 0,
+        Option::Some { value } => 9223372036854775807 + 1,
+    }
+}
+
+@id("app.main")
+fn main() -> i64 { local_some() + direct_some() + local_none() + two_owned() }

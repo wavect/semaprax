@@ -346,7 +346,8 @@ async function selfTest() {
   entities.forEach((e) => visit(e, []));
   const isAcc = (ent) => ACCOUNT && ent.path === ACCOUNT.entity;
   let roles = 0, persisted = 0, authNote = [], permEnts = 0;
-  const perRole = new Map(); // role -> { hidden: [], writes: [] } observed on the synthesized rows
+  const perRole = new Map(); // role -> observed own, foreign, and unowned row actions
+  const ownRows = [];
   const ev = new Map(), note = (k, v) => { if (!ev.has(k)) ev.set(k, v); }, cr = {}, trunc = (t, m) => (t.length > m ? t.slice(0, m - 3) + "..." : t);
   try {
     base = await start();
@@ -473,6 +474,25 @@ async function selfTest() {
             if (check(n, "auth", `201 for an account with ${f.name}=${cs}`, `${r.status} ${r.text}`, r.status === 201 && !!got)) { accts.push({ ent, row: s.row, id: got.id }); extra.push(accts.at(-1)); }
           }
         }
+        // Seed policy fixtures while setup is still open; later checks always
+        // go through the real sign-in, list, and PUT routes below.
+        for (const acct of accts) {
+          for (const rowEnt of entities) {
+            const ownerFields = rowEnt.fields.filter((f) => f.type === "ref" && f.ref === ACCOUNT.entity);
+            if (!ownerFields.length || !(rowEnt.canRead?.row || rowEnt.canWrite?.row)) continue;
+            const fixed = Object.fromEntries(ownerFields.map((f) => [f.name, acct.id]));
+            const existing = [...made, ...ownRows]
+              .filter((m) => m.ent.path === rowEnt.path)
+              .map((m) => ({ ...m.row, id: m.id }));
+            const unique = { text: "unique keys", test: (r) => !rt.keyErrors(rt.keysOf(rowEnt, ACCOUNT), r, existing).length };
+            const s = rt.synthesizeRow(rowEnt, enums, refs, 20000, { fixed, extra: [unique], vary: true });
+            if (!check(rowEnt.name, "own-row synthesize", `row for ${ACCOUNT.login}=${acct.row[ACCOUNT.login]}`, s.fail, !!s.row)) continue;
+            const r = await call("POST", rowEnt.path, rt.toJSON(rowEnt, s.row)), got = dec(rowEnt, r.text);
+            if (check(rowEnt.name, "own-row create", "201 + echo", `${r.status} ${r.text}`, r.status === 201 && same(rowEnt, s.row, got))) {
+              ownRows.push({ ent: rowEnt, row: s.row, id: got.id });
+            }
+          }
+        }
         const login = (a, pw = PW) => JSON.stringify({ login: a.row[ACCOUNT.login], password: pw });
         let r = await call("PUT", `${ent.path}/${am.id}`, withPw(rt.toJSON(ent, am.row)));
         check(n, "auth", "200 setting a password", `${r.status} ${r.text}`, r.status === 200 && !r.text.includes(PW));
@@ -498,7 +518,7 @@ async function selfTest() {
           roles++; permEnts = made.length;
           r = await call("GET", "session", undefined, ck);
           check(n, "auth", `200 current account for ${what}`, `${r.status} ${r.text}`, r.status === 200 && (dec(ent, r.text) || {}).id === acct.id);
-          for (const m of made) {
+          for (const m of [...made, ...ownRows]) {
             const mr = { ...m.row, id: m.id }, read = !m.ent.canRead || pass(m.ent.canRead, mr, u), write = !m.ent.canWrite || pass(m.ent.canWrite, mr, u);
             r = await call("GET", m.ent.path, undefined, ck);
             const vis = arr(r.text).some((o) => String(o.id) === String(m.id));
@@ -507,8 +527,19 @@ async function selfTest() {
             r = await call("PUT", `${m.ent.path}/${m.id}`, rt.toJSON(m.ent, m.row), ck);
             const want = !read ? 404 : write ? 200 : 403;
             check(m.ent.name, "permissions", `${what}: PUT ${want}`, `${r.status} ${r.text}`, r.status === want);
-            const tally = perRole.get(role) ?? perRole.set(role, { hidden: [], writes: [] }).get(role);
-            if (r.status === want) { if (!read) tally.hidden.push(m.ent.name); else if (write) tally.writes.push(m.ent.name); }
+            const tally = perRole.get(role) ?? perRole.set(role, {
+              own: { hidden: [], denied: [], writes: [] },
+              foreign: { hidden: [], denied: [], writes: [] },
+              unowned: { hidden: [], denied: [], writes: [] },
+            }).get(role);
+            const ownerFields = m.ent.fields.filter((f) => f.type === "ref" && f.ref === ACCOUNT.entity);
+            const isOwn = ownerFields.length > 0 && ownerFields.every((f) => String(m.row[f.name]) === String(acct.id));
+            const actions = ownerFields.length ? (isOwn ? tally.own : tally.foreign) : tally.unowned;
+            if (r.status === want) {
+              if (!read) actions.hidden.push(m.ent.name);
+              else if (write) actions.writes.push(m.ent.name);
+              else actions.denied.push(m.ent.name);
+            }
             if (!read) note("permRead", `${role} list ${m.ent.name} hides #${m.id}`);
             else if (!write && r.status === 403) note("permWrite", `${role} PUT ${m.ent.name} #${m.id} 403`);
           }
@@ -520,7 +551,7 @@ async function selfTest() {
         }
         await stop(); fs.rmSync(authFile); base = await start(); // back to setup mode for the deletes
       }
-      for (const { ent, id } of [...[...extra].reverse(), ...[...made].reverse()]) {
+      for (const { ent, id } of [...[...ownRows].reverse(), ...[...extra].reverse(), ...[...made].reverse()]) {
         const r = await call("DELETE", `${ent.path}/${id}`);
         check(ent.name, "delete", "204", `${r.status} ${r.text}`, r.status === 204);
         if (ent.path === cr.path && id === cr.id0) cr.txt = cr.txt.replace("DELETE @", `DELETE ${r.status}`);
@@ -541,9 +572,16 @@ async function selfTest() {
   put("csv", ev.get("csv")); put("persist", persisted && `${persisted} rows identical after restart`);
   if (ACCOUNT) {
     put("auth", authNote.join(", "));
-    put("permissions", `${roles} roles x ${permEnts} entities agree with schema` + [ev.get("permWrite"), ev.get("permRead")].filter(Boolean).map((x, i) => (i ? ", " : "; e.g. ") + x).join(""));
-    const names = (xs) => xs.length === 0 ? "none" : xs.length === permEnts ? "all" : xs.join(" ");
-    for (const [role, t] of perRole) put(`  ${role} on rows another account owns`, `hidden: ${names(t.hidden)}; writes: ${names(t.writes)}`);
+    put("permissions", `${roles} roles x ${permEnts} entities plus ${ownRows.length} own-row fixtures agree with schema` + [ev.get("permWrite"), ev.get("permRead")].filter(Boolean).map((x, i) => (i ? ", " : "; e.g. ") + x).join(""));
+    const names = (xs) => {
+      const selected = new Set(xs);
+      return entities.filter((e) => selected.has(e.name)).map((e) => e.name).join(" ") || "none";
+    };
+    for (const [role, t] of perRole) {
+      put(`  ${role} on own-account rows`, `hidden: ${names(t.own.hidden)}; denied writes: ${names(t.own.denied)}; writes: ${names(t.own.writes)}`);
+      put(`  ${role} on other-account rows`, `hidden: ${names(t.foreign.hidden)}; denied writes: ${names(t.foreign.denied)}; writes: ${names(t.foreign.writes)}`);
+      put(`  ${role} on unowned rows`, `hidden: ${names(t.unowned.hidden)}; denied writes: ${names(t.unowned.denied)}; writes: ${names(t.unowned.writes)}`);
+    }
   }
   put("cleanup", `${stopped ? "test server stopped, no process left running" : "test server STILL RUNNING"}, ${given ? "data kept in --data dir" : cleaned ? "temporary data removed" : "temporary data NOT removed"}`);
   if (lines.length) console.log(lines.join("\n"));

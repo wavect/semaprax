@@ -6,13 +6,23 @@
   failures. Typed Err reconstruction permits changing an owned Result’s success
   type, and exact Reader/Writer owners may renew through checked loop calls.
   The existing two-Bytes-plus-Copy record vector gains consuming iteration,
-  with additive Prelude v10/Graph v65 and a distinct checked Wasm host protocol.
+  with additive Prelude v11/Graph v66 and a distinct checked Wasm host protocol.
   Executable invariants over unsupported owned record fields fail
   before backend admission. Bundled dependency registration, bare-CR EOF line
   framing, strict padded Base64 decoding and multiline CSV record decoding gain
   focused regressions. Harness snapshots authenticate complete oracle inventory;
   repair preserves parsed contracts/effects, and context facets bind full bounded
   work and canonical digest inputs. These additions carry local evidence only.
+
+- Add native Project v24 streaming commands with explicit `i64` application
+  exit statuses (0–255), staged output rejection for invalid results, and
+  artifact-free Wasm/npm refusal. Project v23 Bool status mapping remains
+  frozen. ShiftSim qualification now selects the explicit v24 route.
+
+- Preserve complete owned byte-variant case domains after construction and
+  contextual owned variant matches through canonical formatting. Attach source
+  spans to record-update, field-assignment, record-pattern and Useful Data
+  function-body profile diagnostics.
 
 - Copy variant guard execution: evaluate nominal guards on the reference
   interpreter before selecting an arm, and provide the explicit additive

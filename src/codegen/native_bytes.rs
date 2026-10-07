@@ -21,7 +21,7 @@ mod scalar_match_scope;
 mod semantic_work;
 mod string_slots;
 mod variant_match;
-use owned_leaf::{emit_transfer, OwnedLeafKind};
+use owned_leaf::{emit_transfer, ByteSlot, OwnedLeafKind};
 use scalar_match_scope::ScopeExit;
 
 #[derive(Clone, Debug)]
@@ -35,14 +35,6 @@ pub(super) struct NativeBytesPlan {
     inactive_places: BTreeSet<CleanupPlace>,
     variant_storage: BTreeSet<StorageId>,
     semantic_function: Option<u32>,
-}
-
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
-struct ByteSlot {
-    place: CleanupPlace,
-    value: String,
-    flag: String,
-    kind: OwnedLeafKind,
 }
 
 impl NativeBytesPlan {
@@ -71,6 +63,9 @@ impl NativeBytesPlan {
                         crate::cleanup::STRING_DROP_LIFECYCLE_ID => OwnedLeafKind::String,
                         crate::string_ops::MAP_DROP_LIFECYCLE_ID => OwnedLeafKind::Map,
                         crate::cleanup::ITER_DROP_LIFECYCLE_ID => OwnedLeafKind::Iter,
+                        crate::stdin_stream_ops::DROP_ID if place.projections.is_empty() => {
+                            OwnedLeafKind::StdinReader
+                        }
                         crate::cleanup::VEC_DROP_LIFECYCLE_ID if place.projections.is_empty() => {
                             OwnedLeafKind::Vec
                         }

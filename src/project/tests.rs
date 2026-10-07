@@ -7,6 +7,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 mod host_policy;
 #[path = "tests/process_profile.rs"]
 mod process_profile;
+#[path = "tests/stdin_stream_command.rs"]
+mod stdin_stream_command;
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 

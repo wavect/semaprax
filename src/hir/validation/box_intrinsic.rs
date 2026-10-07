@@ -65,14 +65,16 @@ fn reject_function(function: &ResolvedFunction) -> Result<(), Diagnostic> {
     Ok(())
 }
 pub(super) fn is_call(callee: &DeclarationId, instance: &Option<FunctionInstanceId>) -> bool {
-    super::vec_intrinsic::is_call(callee, instance)
+    (instance.is_none() && callee.as_str() == crate::stdin_stream_ops::EOF_ID)
+        || super::vec_intrinsic::is_call(callee, instance)
         || (instance.is_none()
             && (crate::box_ops::by_id(callee.as_str()).is_some()
                 || crate::iterator_ops::by_id(callee.as_str()).is_some()))
         || (instance.is_none() && crate::list_ops::by_id(callee.as_str()).is_some())
 }
 pub(super) fn is_intrinsic_id(callee: &DeclarationId) -> bool {
-    crate::list_ops::by_id(callee.as_str()).is_some()
+    crate::stdin_stream_ops::pure_by_id(callee.as_str()).is_some()
+        || crate::list_ops::by_id(callee.as_str()).is_some()
         || crate::iterator_ops::by_id(callee.as_str()).is_some()
         || crate::vec_ops::by_id(callee.as_str()).is_some()
         || crate::box_ops::by_id(callee.as_str()).is_some()
@@ -122,6 +124,16 @@ pub(super) fn signature(
     instance: &Option<FunctionInstanceId>,
     args: &[ResolvedExpr],
 ) -> Result<Option<(Vec<ResolvedParam>, ResolvedType)>, Diagnostic> {
+    if let Some(op) = crate::stdin_stream_ops::pure_by_id(callee.as_str()) {
+        if op != crate::stdin_stream_ops::PureOp::Eof
+            || instance.is_some()
+            || !type_arguments.is_empty()
+            || args.len() != 1
+        {
+            return Err(hir_error("invalid streaming stdin inspection call shape"));
+        }
+        return Ok(Some((op.resolved_params(), op.result())));
+    }
     if let Some(signature) =
         super::vec_intrinsic::signature(declarations, callee, type_arguments, instance, args)?
     {

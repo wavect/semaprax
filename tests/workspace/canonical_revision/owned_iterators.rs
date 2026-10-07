@@ -147,11 +147,11 @@ fn owned_iterator_local_done_retains_payload_prelude_without_vec_operations() {
 }
 
 #[test]
-fn record_iterator_workspace_and_program_root_replay_prelude_v10() {
+fn record_iterator_workspace_and_program_root_replay_prelude_v11() {
     let fixture = fixture("owned-record-iterator-root", RECORD_SOURCE);
     let source = semaprax::parse(RECORD_SOURCE, fixture.0.join("src/app.spx")).unwrap();
     let graph: Value = serde_json::from_str(&semaprax::graph::to_json(&source).unwrap()).unwrap();
-    assert_eq!(graph["schema"], "semaprax.graph.v65");
+    assert_eq!(graph["schema"], "semaprax.graph.v66");
     assert_eq!(
         graph["owned_iterator_payloads"]["schema"],
         "semaprax.owned-record-iterator.v3"
@@ -162,6 +162,6 @@ fn record_iterator_workspace_and_program_root_replay_prelude_v10() {
     );
     verify_root(
         &fixture,
-        include_bytes!("../../fixtures/prelude-v10.contract"),
+        include_bytes!("../../fixtures/prelude-v11.contract"),
     );
 }

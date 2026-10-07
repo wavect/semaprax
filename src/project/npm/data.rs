@@ -780,6 +780,38 @@ mod tests {
     }
 
     #[test]
+    fn conversion_status_mapping_is_selected_without_widening_legacy_facades() {
+        let legacy = crate::parse(
+            "module data.legacy; @id(\"data.len\") fn len(value: borrow Slice<u8>) -> usize { byte_len(value) } @id(\"main\") fn main() -> i64 { 0 }",
+            Path::new("data-legacy.spx"),
+        )
+        .unwrap();
+        let selected = crate::parse(
+            "module data.convert; @id(\"data.checked\") fn checked(value: borrow Slice<u8>) -> usize { byte_len(value) + usize_from_i64(-1) } @id(\"main\") fn main() -> i64 { 0 }",
+            Path::new("data-convert.spx"),
+        )
+        .unwrap();
+        let legacy = crate::hir::resolve(&legacy).unwrap();
+        let selected = crate::hir::resolve(&selected).unwrap();
+        assert!(!crate::wasm::numeric_conversions::used(&legacy));
+        assert!(crate::wasm::numeric_conversions::used(&selected));
+
+        let exports = [DataExport {
+            stable_id: "data.checked".to_owned(),
+            wasm_export: "spx_data_checked".to_owned(),
+            parameters: vec![DataType::SliceU8],
+            result: DataType::Usize,
+        }];
+        let legacy = render_bindings(&exports, "00", false);
+        let selected = render_bindings(&exports, "00", true);
+        let mapping =
+            "if (status === 21) return new SemapraxDataError(1, \"semaprax.convert.v1\");";
+        assert!(!legacy.contains(mapping));
+        assert!(selected.contains(mapping));
+        assert!(legacy.contains("invalid SEMAPRAX aggregate status ${status}"));
+    }
+
+    #[test]
     fn v2_replay_rejects_resigned_artifact_and_cross_label_substitution() {
         let source = crate::parse(
             "module data.app;\n@id(\"data.len\") fn len(value: borrow Slice<u8>) -> usize { byte_len(value) }\n@id(\"main\") fn main() -> i64 { 0 }\n",

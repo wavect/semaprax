@@ -586,6 +586,7 @@ fn legacy_project_v1_through_v7_canonical_manifest_bytes_are_unchanged() {
 fn project_v8_is_activated_only_by_manifest_and_profile_admission() {
     let manifest = concat!(
         include_str!("../../src/project/manifest.rs"),
+        include_str!("../../src/project/manifest/stream.rs"),
         include_str!("../../src/project/manifest/tables.rs"),
         include_str!("../../src/project/manifest/validation.rs")
     );

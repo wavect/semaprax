@@ -12,6 +12,10 @@ impl PlanBuilder<'_> {
         flow: (BlockId, FlowState, CleanupRegionId),
     ) -> Result<EvalResult, Diagnostic> {
         let (block, state, region) = flow;
+        if matches!(&expression.kind, ResolvedExprKind::HostCommandCall(call) if call.operation == crate::hir::ResolvedHostCommandOperation::StdinStreamNext)
+        {
+            super::finish_call::stream_next_signature(expression)?;
+        }
         let type_arguments = bounded_vec::type_arguments(expression)?;
         let params = if matches!(
             expression.kind,
@@ -27,6 +31,8 @@ impl PlanBuilder<'_> {
                 crate::str_ops::resolved_params(op)
             } else if let Some(op) = crate::byte_ops::by_id(callee.as_str()) {
                 crate::byte_ops::resolved_params(op)
+            } else if callee.as_str() == crate::stdin_stream_ops::EOF_ID {
+                bounded_box::stream_eof_params(false, args.len(), type_arguments)?
             } else if let Some(op) = crate::host_io_ops::by_id(callee.as_str()) {
                 crate::host_io_ops::resolved_params(op)
             } else if let Some(op) = crate::command_io_ops::by_id(callee.as_str()) {
@@ -100,6 +106,13 @@ impl PlanBuilder<'_> {
             } else {
                 self.lower_expr_recursive_reference(argument, current, current_state, region)?
             };
+            if matches!(&expression.kind, ResolvedExprKind::HostCommandCall(call) if call.operation != crate::hir::ResolvedHostCommandOperation::StdinStreamNext)
+                && evaluated.owned_source.is_some()
+            {
+                return Err(plan_error(
+                    "host-command operation received an owned argument",
+                ));
+            }
             current = evaluated.block;
             current_state = evaluated.state;
             if parameter.ownership == OwnershipMode::Own && self.needs_drop(&parameter.ty)? {
@@ -149,6 +162,7 @@ impl PlanBuilder<'_> {
             || crate::host_io_ops::by_id(callee.as_str()).is_some()
             || super::super::deferred_commit::is_infallible_vec_operation(vec_op)
             || super::super::deferred_commit::is_infallible_box_operation(callee)
+            || callee.as_str() == crate::stdin_stream_ops::EOF_ID
             || crate::command_io_ops::by_id(callee.as_str()).is_some_and(|op| {
                 crate::command_io_ops::failure(op)
                     == crate::command_io_ops::CommandIoFailure::Infallible

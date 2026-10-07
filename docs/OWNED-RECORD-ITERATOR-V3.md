@@ -47,8 +47,8 @@ unvisited remainder exactly once.
 CleanupPlan v13 already represents the relevant meaning: the yielded owned
 item and the remainder are independent owners. V3 therefore retains v13.
 The exact item type and field identities remain in checked HIR and additive
-Graph v65; frozen Graph v45 remains the `Bytes` payload contract.
-Prelude v10 binds the added admission, layout, and host protocol. Existing
+Graph v66; frozen Graph v45 remains the `Bytes` payload contract.
+Prelude v11 binds the added admission, layout, and host protocol. Existing
 scalar and `Bytes` iterator programs keep their prior prelude, cleanup,
 Graph, and generated-byte contracts.
 
@@ -88,7 +88,7 @@ The owner harness executes manual `iter_next` and `for own` on the interpreter,
 native C11 at `-O0` and `-O2`, and Core Wasm for all eight Copy scalar shapes.
 It observes both byte lengths and scalar values, checks repeated settlement,
 forces failure after the first detached item to prove suffix cleanup, and
-injects hostile Wasm frames. Source/HIR tests freeze Prelude v10, CleanupPlan
+injects hostile Wasm frames. Source/HIR tests freeze Prelude v11, CleanupPlan
 v13, stable identity reconstruction, canonical formatting, and refusal of
 near-miss record shapes. The scalar and `Bytes` iterator suites remain the
 compatibility gates.

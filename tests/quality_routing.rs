@@ -25,6 +25,7 @@ fn profiles_are_deterministic_and_broad_dispatch_files_force_full() {
         "pub fn select_prelude() { /* changed */ }\n",
     );
     repository.write("src/graph/affine.rs", "pub fn affine() {}\n");
+    repository.write("src/graph/stdin_stream.rs", "pub fn stream() {}\n");
     repository.write(
         "src/graph/function_values.rs",
         "pub fn function_values() {}\n",

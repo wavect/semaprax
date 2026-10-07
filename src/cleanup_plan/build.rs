@@ -632,7 +632,6 @@ impl<'a> PlanBuilder<'a> {
         let mut storage_to_slot = BTreeMap::new();
         let mut inventory_storage = BTreeMap::new();
         let mut slots = Vec::with_capacity(function.cleanup.slots.len());
-
         for inventory_slot in &function.cleanup.slots {
             let storage = match &inventory_slot.origin {
                 crate::cleanup::CleanupStorageOrigin::Parameter { value, .. }
@@ -667,7 +666,6 @@ impl<'a> PlanBuilder<'a> {
                 field_liveness_shape: inventory_slot.shape.clone(),
             });
         }
-
         let mut leaves = BTreeMap::new();
         for flag in &function.cleanup.flags {
             let storage = inventory_storage
@@ -692,11 +690,10 @@ impl<'a> PlanBuilder<'a> {
         }
         let next_flag = u32::try_from(leaves.len())
             .map_err(|_| plan_error("too many cleanup liveness flags"))?;
-
         let root = CleanupRegionId(0);
         let entry = BlockId(0);
         let mut builder = Self {
-            string_appends: crate::string_ops::same_owner_concat_appends(function),
+            string_appends: crate::stdin_stream_ops::owner_reopens(function),
             string_condition_reads: crate::string_ops::conditions::function_reads(function),
             program,
             function,
@@ -749,7 +746,6 @@ impl<'a> PlanBuilder<'a> {
         builder.seed_entry(root)?;
         Ok(builder)
     }
-
     fn seed_entry(&mut self, root: CleanupRegionId) -> Result<(), Diagnostic> {
         for storage in &self.function.cleanup.entry_state.live_owned_parameters {
             let plan_storage = self
@@ -823,12 +819,10 @@ impl<'a> PlanBuilder<'a> {
         }
         Ok(())
     }
-
     fn build(mut self) -> Result<CleanupPlan, Diagnostic> {
         let root = CleanupRegionId(0);
         let mut current = BlockId(0);
         let mut state = self.initial_state.clone();
-
         for (ordinal, contract) in self.function.requires.iter().enumerate() {
             let continued = self.lower_contract_expression(
                 contract,
@@ -1352,22 +1346,19 @@ impl<'a> PlanBuilder<'a> {
         state.conditional_variants.push(ConditionalFlowVariant {
             root: destination.clone(),
             variant: variant.clone(),
-            cases: if strings::needs_complete_case_domain(self.program, variant) {
-                // Keep the closed domain at a consuming match boundary: both
-                // guarded arms are checked even for a statically constructed case.
-                self.program
-                    .declarations
-                    .variant_cases(variant)
-                    .ok_or_else(|| plan_error("constructed owning variant has no case domain"))?
-                    .iter()
-                    .map(|candidate| {
-                        let prefix = destination.projected(candidate.id.clone());
-                        (candidate.id.clone(), self.flags_under(&prefix))
-                    })
-                    .collect()
-            } else {
-                vec![(case.clone(), flags)]
-            },
+            // Every tag edge of a later owning match needs the closed domain,
+            // including payload-free cases. Runtime inactive leaves stay dead.
+            cases: self
+                .program
+                .declarations
+                .variant_cases(variant)
+                .ok_or_else(|| plan_error("constructed owning variant has no case domain"))?
+                .iter()
+                .map(|candidate| {
+                    let prefix = destination.projected(candidate.id.clone());
+                    (candidate.id.clone(), self.flags_under(&prefix))
+                })
+                .collect(),
         });
         Ok(())
     }
@@ -2628,6 +2619,25 @@ impl<'a> PlanBuilder<'a> {
                             },
                         })
                     }
+                    ResolvedExprKind::HostCommandCall(call)
+                        if call.operation
+                            == crate::hir::ResolvedHostCommandOperation::StdinStreamNext =>
+                    {
+                        let (callee, params) = finish_call::stream_next_signature(expression)?;
+                        frames.push(Frame::CallNext {
+                            expression,
+                            callee,
+                            args: &call.args,
+                            params,
+                            index: 0,
+                            flow: EvalResult {
+                                block,
+                                state,
+                                owned_source: None,
+                            },
+                            commits: Vec::new(),
+                        });
+                    }
                     ResolvedExprKind::HostCommandCall(call) => {
                         frames.push(Frame::HostCommandNext {
                             expression,
@@ -2710,6 +2720,12 @@ impl<'a> PlanBuilder<'a> {
                                 )));
                             }
                             crate::byte_ops::resolved_params(op)
+                        } else if callee.as_str() == crate::stdin_stream_ops::EOF_ID {
+                            bounded_box::stream_eof_params(
+                                instance.is_some(),
+                                args.len(),
+                                type_arguments,
+                            )?
                         } else if let Some(op) = crate::host_io_ops::by_id(callee.as_str()) {
                             if instance.is_some() || args.len() != op.arity() {
                                 return Err(plan_error(format!(
@@ -3265,40 +3281,12 @@ impl<'a> PlanBuilder<'a> {
                         });
                         continue;
                     }
-                    self.push_transition(
-                        flow.block,
-                        CleanupTransition::CallCommit {
-                            call: expression.id.clone(),
-                            arguments: Vec::new(),
-                        },
-                    );
-                    let state = flow.state;
-                    let (block, mut state) = if crate::command_io_ops::failure(operation)
-                        == crate::command_io_ops::CommandIoFailure::Status
-                    {
-                        let source = StatusSourceId {
-                            expression: expression.id.clone(),
-                            lane: StatusLane::OperationFailure,
-                        };
-                        self.add_status_source(
-                            source.clone(),
-                            StatusProducer::PropagatedCall {
-                                callee: DeclarationId::new(crate::command_io_ops::id(operation)),
-                            },
-                        )?;
-                        self.split_status(flow.block, state, active_region, source)?
-                    } else {
-                        (flow.block, state)
-                    };
-                    let destination = self.expression_slot(expression, active_region)?;
-                    if let Some(destination) = destination.clone() {
-                        self.initialize(block, expression.id.clone(), destination, &mut state)?;
-                    }
-                    results.push(EvalResult {
-                        block,
-                        state,
-                        owned_source: destination,
-                    });
+                    results.push(self.finish_host_command(
+                        expression,
+                        operation,
+                        flow,
+                        active_region,
+                    )?);
                 }
                 Frame::HostCommandAfterArg {
                     expression,

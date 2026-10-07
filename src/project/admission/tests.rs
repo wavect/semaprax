@@ -24,6 +24,14 @@ fn every_legacy_marker_reports_one_exact_closed_profile() {
             ProjectProfile::LanguageCommandIoV1,
         ),
         (
+            PreparedProjectAdmission::StdinStreamCommandIoV1,
+            ProjectProfile::StdinStreamCommandIoV1,
+        ),
+        (
+            PreparedProjectAdmission::StdinStreamCommandIoV2,
+            ProjectProfile::StdinStreamCommandIoV2,
+        ),
+        (
             PreparedProjectAdmission::LineCommandIoV1,
             ProjectProfile::LineCommandIoV1,
         ),

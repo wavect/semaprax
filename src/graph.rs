@@ -37,17 +37,18 @@ mod process;
 mod session_protocol_decl;
 mod session_protocol_facet;
 mod session_protocol_follows;
+mod stdin_stream;
 mod work_counter;
 pub(crate) use agent_execution::facts as agent_execution_facts;
 use expression::expr_json;
 mod generic_instances;
 mod generic_mapping;
-use affine::graph_json;
 use filesystem::string_array;
 use generic_instances::legacy_graph_json;
 pub(crate) use generic_instances::to_legacy_hir_json;
 pub use generic_instances::{legacy_context_json, to_legacy_json, verify_json};
 pub(crate) use generic_mapping::requires_v35;
+use stdin_stream::graph_json;
 
 #[path = "graph/native_import.rs"]
 mod native_import;
@@ -1213,6 +1214,7 @@ pub(crate) fn reject_while_loop_evidence_schema(schema: &str) -> Result<(), Diag
             | "semaprax.graph.v45"
             | "semaprax.graph.v46"
             | "semaprax.graph.v65"
+            | "semaprax.graph.v66"
     ) {
         return Err(Diagnostic::io(
             "SPX-G410",
@@ -3653,6 +3655,7 @@ fn byte_slice_fact_json(
         ByteSliceRootKind::FixedArray => "fixed_array",
         ByteSliceRootKind::BorrowedStr => "borrowed_str",
         ByteSliceRootKind::CommandArguments => "command_arguments",
+        ByteSliceRootKind::StdinStreamReader => "stdin_stream_reader",
     };
     let mut base = format!(
         "{{\"value\":{},\"root\":{},\"root_kind\":{},\"root_length\":{},\"offset\":{},\"length\":{},\"producer\":{}}}",

@@ -17,8 +17,7 @@ use super::ids::{DeclarationId, ExpressionId, FunctionExecutionId, ValueId};
 use super::monomorphize::substitute_type;
 use super::nodes::{
     is_scalar_resolved_type, DeclarationKind, OwnershipMode, ResolvedBinding,
-    ResolvedHostCommandCall, ResolvedImportResultKind, ResolvedMatchMode,
-    ResolvedNativeRustImportCall, ResolvedType,
+    ResolvedImportResultKind, ResolvedMatchMode, ResolvedNativeRustImportCall, ResolvedType,
 };
 use super::resolve_expr_frame::{take_results, Frame};
 use super::type_reachability::record_args_ok;
@@ -52,6 +51,14 @@ impl Resolver<'_> {
                     bindings,
                     path,
                 } => match &expr.kind {
+                    ExprKind::Call { name, .. }
+                        if crate::stdin_stream_ops::pure_by_name(name).is_some() =>
+                    {
+                        results.push(
+                            self.resolve_stdin_inspection(function, expr, &bindings, &path)?
+                                .expect("matched intrinsic"),
+                        );
+                    }
                     ExprKind::Closure { .. } => {
                         results.push(self.resolve_closure(function, expr, &bindings, &path, false)?)
                     }
@@ -1087,30 +1094,7 @@ impl Resolver<'_> {
                     argument_count,
                 } => {
                     let args = take_results(&mut results, argument_count);
-                    for (index, argument) in args.iter().enumerate() {
-                        if !crate::command_io_ops::accepts_resolved(op, index, &argument.ty) {
-                            return Err(self.error(
-                                "SPX-T270",
-                                format!(
-                                    "command I/O operation `{}` argument {index} has the wrong type",
-                                    crate::command_io_ops::name(op)
-                                ),
-                                argument.span,
-                            ));
-                        }
-                    }
-                    let expression = ExpressionId::new(function, &path);
-                    results.push(ResolvedExpr {
-                        id: expression.clone(),
-                        ty: crate::command_io_ops::return_type(op),
-                        ownership: crate::command_io_ops::result_ownership(op),
-                        kind: ResolvedExprKind::HostCommandCall(ResolvedHostCommandCall {
-                            expression,
-                            operation: op,
-                            args,
-                        }),
-                        span,
-                    });
+                    results.push(self.finish_host_command(function, &path, span, op, args)?);
                 }
                 Frame::ChildNext {
                     children,

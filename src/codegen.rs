@@ -45,6 +45,17 @@ mod native_scalar_runtime;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
 mod native_settlement_derivation;
 mod native_source_command;
+#[cfg_attr(
+    not(test),
+    allow(
+        dead_code,
+        reason = "stdin stream provider is not routed until SPX-B104 integration"
+    )
+)]
+mod native_stdin_stream;
+pub use native_stdin_stream::{
+    emit_hir_c_with_stdin_stream, emit_hir_c_with_stdin_stream_exit_status,
+};
 mod native_trace;
 mod native_trace_runtime;
 mod native_value;

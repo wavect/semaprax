@@ -32,6 +32,7 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 
 mod calls;
 mod matching;
+mod stdin_stream;
 mod while_oracle;
 
 #[cfg(test)]

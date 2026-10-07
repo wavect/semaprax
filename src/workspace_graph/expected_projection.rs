@@ -41,11 +41,11 @@ use declaration_cost::{
     ast_field_cost, ast_function_contract_cost, ast_function_cost, ast_function_signature_cost,
     ast_program_cost,
 };
-use defaults::{default_expr, default_expr_expanded_cost};
 use identity_slots::{
     ast_function_identity_slots, ast_program_identity_slots, ast_type_declaration_identity_slots,
     ast_type_identity_slots,
 };
+use import_stub::{default_expr, default_expr_expanded_cost};
 use uncached_peak::uncached_peak_prebound;
 pub(super) use uncached_peak::{
     initial_core_prebound, next_retention_prebound_with_uncached_peak,
@@ -141,7 +141,7 @@ pub(super) fn synthetic_builder_bytes_scoped(
                 &mut runtime,
             )?;
             let cost = default_expr_expanded_cost(
-                &function.return_type,
+                function,
                 target.module,
                 program,
                 authored,
@@ -524,6 +524,9 @@ pub(super) fn rewrite_type_runtime_cost(
     programs: &[Program],
     cost: &mut StructuralCost,
 ) -> Result<(), Vec<Diagnostic>> {
+    if crate::stdin_stream_ops::ast_is_reader(ty) {
+        return Ok(());
+    }
     let Type::Named { name, arguments } = ty else {
         return Ok(());
     };
@@ -554,7 +557,6 @@ pub(super) fn rewrite_type_runtime_cost(
         })?;
     cost.string(alias)
 }
-
 fn synthetic_main_runtime_cost(module: &str) -> Result<StructuralCost, Vec<Diagnostic>> {
     let mut cost = StructuralCost::new();
     cost.add(std::mem::size_of::<Function>())?;
@@ -567,7 +569,6 @@ fn synthetic_main_runtime_cost(module: &str) -> Result<StructuralCost, Vec<Diagn
     cost.add_split(module.len(), module.len())?;
     Ok(cost)
 }
-
 fn ast_type_declaration_cost(
     declaration: &TypeDeclaration,
     cost: &mut StructuralCost,
@@ -618,7 +619,6 @@ fn ast_type_declaration_cost(
     }
     Ok(())
 }
-
 fn ast_pattern_cost(
     pattern: &crate::ast::MatchPattern,
     cost: &mut StructuralCost,
@@ -663,7 +663,6 @@ fn ast_pattern_cost(
     }
     Ok(())
 }
-
 fn ast_record_pattern_field_cost(
     field: &crate::ast::RecordMatchPatternField,
     cost: &mut StructuralCost,
@@ -685,7 +684,6 @@ fn ast_record_pattern_field_cost(
     }
     Ok(())
 }
-
 #[allow(clippy::too_many_arguments)]
 pub(super) fn validate_dependency_dag(
     programs: &[Program],
@@ -709,7 +707,6 @@ pub(super) fn validate_dependency_dag(
     }
     Ok(depths)
 }
-
 pub(super) fn dependency_depths<'a>(
     dependencies: &BTreeMap<&'a str, BTreeSet<&'a str>>,
 ) -> Result<BTreeMap<&'a str, usize>, Vec<Diagnostic>> {
@@ -852,7 +849,7 @@ pub(super) fn synthetic_program(
         function.requires = Vec::new();
         function.ensures = Vec::new();
         function.body = default_expr(
-            &function.return_type,
+            &function,
             &type_declarations,
             super::owned_function_import::admitted(program, target, authored, programs),
         )?;
@@ -897,6 +894,9 @@ pub(super) fn rewrite_type(
     caller: &Program,
     programs: &[Program],
 ) -> Result<(), Vec<Diagnostic>> {
+    if crate::stdin_stream_ops::ast_is_reader(ty) {
+        return Ok(());
+    }
     let Type::Named { name, arguments } = ty else {
         return Ok(());
     };

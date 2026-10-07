@@ -532,7 +532,7 @@ mod tests {
         ] {
             assert!(is_bundled(name), "`{name}` is not a bundled package");
         }
-        assert_eq!(package("std.async").unwrap().dependencies, &[]);
+        assert!(package("std.async").unwrap().dependencies.is_empty());
         assert_eq!(
             package("std.email").unwrap().dependencies,
             &["std.log.redact"]

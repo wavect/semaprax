@@ -429,6 +429,15 @@ impl ProjectRevision {
 
     /// Build Project v1 as one deterministic pathless scalar-Web carrier.
     pub fn build_web_inline(&self, max_bytes: usize) -> Result<ProjectWebBuild, Vec<Diagnostic>> {
+        if self.manifest.project_profile().is_stdin_stream() {
+            return Err(vec![Diagnostic::io(
+                "SPX-W120",
+                format!(
+                    "{} has no WebAssembly bridge yet",
+                    self.manifest.project_profile().name().unwrap()
+                ),
+            )]);
+        }
         if self.manifest.project_profile().is_source_local_future() {
             return Err(vec![Diagnostic::io(
                 "SPX-W120",
@@ -444,6 +453,8 @@ impl ProjectRevision {
                 ProjectProfile::UsefulDataCommandV1 => "v4",
                 ProjectProfile::UsefulDataCommandV2 => "v5",
                 ProjectProfile::LanguageCommandIoV1 => "v6",
+                ProjectProfile::StdinStreamCommandIoV1 => "v23",
+                ProjectProfile::StdinStreamCommandIoV2 => "v24",
                 ProjectProfile::LineCommandIoV1 => "v7",
                 ProjectProfile::OwnedDataApiV1 => "v8",
                 ProjectProfile::FlatOwnedRecordApiV1 => "v9",
@@ -494,6 +505,15 @@ impl ProjectRevision {
 
     /// Build one deterministic, pathless, context-bound npm carrier.
     pub fn build_npm_inline(&self, max_bytes: usize) -> Result<ProjectNpmBuild, Vec<Diagnostic>> {
+        if self.manifest.project_profile().is_stdin_stream() {
+            return Err(vec![Diagnostic::io(
+                "SPX-W120",
+                format!(
+                    "{} has no npm/WebAssembly bridge yet",
+                    self.manifest.project_profile().name().unwrap()
+                ),
+            )]);
+        }
         if self.manifest.project_profile().is_source_local_future() {
             return Err(vec![Diagnostic::io(
                 "SPX-W120",

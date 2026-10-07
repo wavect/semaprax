@@ -42,6 +42,8 @@ pub(super) fn seal_changed_success_try_residual(
     let ResolvedExprKind::Try {
         operand,
         result,
+        ok_case,
+        ok_field,
         err_case,
         err_field,
         residual_type,
@@ -73,18 +75,32 @@ pub(super) fn seal_changed_success_try_residual(
         ));
     };
     if result.as_str() != crate::prelude::RESULT_ID
+        || ok_case.as_str() != crate::prelude::RESULT_OK_ID
+        || ok_field.as_str() != crate::prelude::RESULT_OK_VALUE_ID
         || err_case.as_str() != crate::prelude::RESULT_ERR_ID
         || err_field.as_str() != crate::prelude::RESULT_ERR_ERROR_ID
-        || [result, err_case, err_field].iter().any(|id| {
-            program
-                .declarations
-                .declaration(id)
-                .is_none_or(|item| item.identity_origin != IdentityOrigin::CompilerOwned)
-        })
+        || [result, ok_case, ok_field, err_case, err_field]
+            .iter()
+            .any(|id| {
+                program
+                    .declarations
+                    .declaration(id)
+                    .is_none_or(|item| item.identity_origin != IdentityOrigin::CompilerOwned)
+            })
         || program
             .declarations
             .variant_cases(result)
-            .is_none_or(|cases| !cases.iter().any(|case| case.id == *err_case))
+            .is_none_or(|cases| {
+                cases.len() != 2
+                    || !cases
+                        .iter()
+                        .any(|case| case.id == *ok_case && case.id != *err_case)
+                    || !cases.iter().any(|case| case.id == *err_case)
+            })
+        || program
+            .declarations
+            .case_fields(ok_case)
+            .is_none_or(|fields| !matches!(fields, [field] if field.id == *ok_field))
         || program
             .declarations
             .case_fields(err_case)
@@ -130,7 +146,27 @@ pub(super) fn seal_changed_success_try_residual(
     state.conditional_variants.push(ReplayConditionalVariant {
         root,
         variant: result.clone(),
-        cases: vec![(err_case.clone(), selected)],
+        cases: program
+            .declarations
+            .variant_cases(result)
+            .ok_or_else(|| replay_error(function, "changed-success Result has no case domain"))?
+            .iter()
+            .map(|case| {
+                (
+                    case.id.clone(),
+                    flags
+                        .iter()
+                        .filter(|flag| {
+                            leaves[flag]
+                                .place
+                                .projections
+                                .starts_with(&[case.id.clone()])
+                        })
+                        .copied()
+                        .collect(),
+                )
+            })
+            .collect(),
     });
     Ok(())
 }
@@ -190,6 +226,15 @@ pub(super) fn resolved_call_params(
         }
         if let Some(op) = crate::byte_ops::by_id(callee.as_str()) {
             return Ok(crate::byte_ops::resolved_params(op));
+        }
+        if callee.as_str() == crate::stdin_stream_ops::EOF_ID {
+            if !type_arguments.is_empty() {
+                return Err(replay_error(
+                    function,
+                    "streaming EOF call has type arguments",
+                ));
+            }
+            return Ok(crate::stdin_stream_ops::PureOp::Eof.resolved_params());
         }
         if let Some(op) = crate::host_io_ops::by_id(callee.as_str()) {
             return Ok(crate::host_io_ops::resolved_params(op));
@@ -263,6 +308,11 @@ pub(super) fn resolved_call_params(
 
 // Independently replay the exact failure-before-transfer operation profile.
 pub(super) fn defers_owner_commit(expression: &crate::hir::ResolvedExpr) -> bool {
+    if matches!(&expression.kind, crate::hir::ResolvedExprKind::HostCommandCall(call)
+        if call.operation == crate::hir::ResolvedHostCommandOperation::StdinStreamNext)
+    {
+        return true;
+    }
     matches!(
         &expression.kind,
         crate::hir::ResolvedExprKind::Call {

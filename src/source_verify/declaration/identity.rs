@@ -577,6 +577,7 @@ pub(super) fn check_interface_identities<'p>(
             }
             if crate::host_io_ops::by_name(&import.name).is_some()
                 || crate::command_io_ops::by_name(&import.name).is_some()
+                || crate::stdin_stream_ops::pure_by_name(&import.name).is_some()
                 || crate::vec_ops::by_name(&import.name).is_some()
                 || crate::box_ops::by_name(&import.name).is_some()
             {

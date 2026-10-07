@@ -28,6 +28,7 @@ impl PlanBuilder<'_> {
             || crate::host_io_ops::by_id(callee.as_str()).is_some()
             || super::super::deferred_commit::is_infallible_vec_operation(vec_op)
             || super::super::deferred_commit::is_infallible_box_operation(callee)
+            || callee.as_str() == crate::stdin_stream_ops::EOF_ID
         {
             let destination = self.expression_slot(expression, active_region)?;
             if let Some(destination) = destination.clone() {
@@ -97,4 +98,77 @@ impl PlanBuilder<'_> {
         )?;
         self.split_status(block, state, region, source)
     }
+}
+
+impl PlanBuilder<'_> {
+    pub(super) fn finish_host_command(
+        &mut self,
+        expression: &ResolvedExpr,
+        operation: crate::hir::ResolvedHostCommandOperation,
+        flow: EvalResult,
+        active_region: CleanupRegionId,
+    ) -> Result<EvalResult, Diagnostic> {
+        self.push_transition(
+            flow.block,
+            CleanupTransition::CallCommit {
+                call: expression.id.clone(),
+                arguments: Vec::new(),
+            },
+        );
+        let state = flow.state;
+        let (block, mut state) = if crate::command_io_ops::failure(operation)
+            == crate::command_io_ops::CommandIoFailure::Status
+        {
+            let source = StatusSourceId {
+                expression: expression.id.clone(),
+                lane: StatusLane::OperationFailure,
+            };
+            self.add_status_source(
+                source.clone(),
+                StatusProducer::PropagatedCall {
+                    callee: DeclarationId::new(crate::command_io_ops::id(operation)),
+                },
+            )?;
+            self.split_status(flow.block, state, active_region, source)?
+        } else {
+            (flow.block, state)
+        };
+        let destination = self.expression_slot(expression, active_region)?;
+        if let Some(destination) = destination.clone() {
+            self.initialize(block, expression.id.clone(), destination, &mut state)?;
+        }
+        Ok(EvalResult {
+            block,
+            state,
+            owned_source: destination,
+        })
+    }
+}
+
+/// Authenticate the sole owned host-call profile before ordinary call staging.
+/// The availability/loan proof remains the independent HIR validator's job.
+pub(super) fn stream_next_signature(
+    expression: &ResolvedExpr,
+) -> Result<(&'static DeclarationId, Vec<crate::hir::ResolvedParam>), Diagnostic> {
+    let ResolvedExprKind::HostCommandCall(call) = &expression.kind else {
+        return Err(plan_error("streaming advancement has no host-call shape"));
+    };
+    if call.operation != crate::hir::ResolvedHostCommandOperation::StdinStreamNext
+        || call.expression != expression.id
+        || expression.ownership != OwnershipMode::Own
+        || !crate::stdin_stream_ops::is_reader(&expression.ty)
+        || !matches!(call.args.as_slice(), [argument] if argument.ownership == OwnershipMode::Own
+            && crate::stdin_stream_ops::is_reader(&argument.ty)
+            && matches!(&argument.kind, ResolvedExprKind::Place(place) if place.projections.is_empty()))
+    {
+        return Err(plan_error(
+            "streaming advancement requires one exact owned reader",
+        ));
+    }
+    static NEXT: std::sync::LazyLock<DeclarationId> =
+        std::sync::LazyLock::new(|| DeclarationId::new(crate::stdin_stream_ops::NEXT_ID));
+    Ok((
+        &NEXT,
+        crate::stdin_stream_ops::resolved_host_params(call.operation),
+    ))
 }

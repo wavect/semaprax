@@ -22,7 +22,7 @@ pub(super) fn collect_supplemental_slots(
                     instance,
                     args,
                     type_arguments,
-                }) = parts(expression)
+                }) = parts(expression, function)?
                 {
                     let params =
                         resolved_call_params(program, function, callee, instance, type_arguments)?;
@@ -60,7 +60,7 @@ pub(super) fn collect_supplemental_slots(
                     instance,
                     args,
                     type_arguments,
-                }) = parts(expression)
+                }) = parts(expression, function)?
                 else {
                     unreachable!("call-argument continuation retains a call");
                 };
@@ -93,16 +93,50 @@ pub(super) fn collect_supplemental_slots(
 }
 
 // Affine creation and invocation have ordinary owned argument epochs even
-// though their checked syntax is not an ordinary named Call node.
-fn parts(expression: &ResolvedExpr) -> Option<super::super::native_rust::CallParts<'_>> {
-    if let Some((callee, args)) = crate::hir::closure::once::call(expression) {
-        Some(super::super::native_rust::CallParts {
-            callee,
-            args,
-            instance: None,
-            type_arguments: &[],
-        })
-    } else {
-        super::super::native_rust::parts(expression)
+// though their checked syntax is not an ordinary named Call node. Streaming
+// Next likewise stages one Reader before its failure-before-commit boundary.
+fn parts<'a>(
+    expression: &'a ResolvedExpr,
+    function: &ResolvedFunction,
+) -> Result<Option<super::super::native_rust::CallParts<'a>>, Diagnostic> {
+    if let ResolvedExprKind::HostCommandCall(call) = &expression.kind {
+        if call.operation == crate::hir::ResolvedHostCommandOperation::StdinStreamNext {
+            // Re-derive the sealed signature from typed HIR, independently of
+            // builder slots and its authenticated call-routing helper.
+            if call.expression != expression.id
+                || expression.ownership != OwnershipMode::Own
+                || !crate::stdin_stream_ops::is_reader(&expression.ty)
+                || !matches!(call.args.as_slice(), [argument] if argument.ownership == OwnershipMode::Own
+                    && crate::stdin_stream_ops::is_reader(&argument.ty)
+                    && matches!(&argument.kind, ResolvedExprKind::Place(place) if place.projections.is_empty()))
+            {
+                return Err(replay_error(
+                    function,
+                    "streaming advancement has a noncanonical owned signature",
+                ));
+            }
+            static NEXT: std::sync::LazyLock<DeclarationId> =
+                std::sync::LazyLock::new(|| DeclarationId::new(crate::stdin_stream_ops::NEXT_ID));
+            return Ok(Some(super::super::native_rust::CallParts {
+                callee: &NEXT,
+                instance: None,
+                args: &call.args,
+                type_arguments: &[],
+            }));
+        }
+        // Every older host operation still has no owned argument epoch.
+        return Ok(None);
     }
+    Ok(
+        if let Some((callee, args)) = crate::hir::closure::once::call(expression) {
+            Some(super::super::native_rust::CallParts {
+                callee,
+                args,
+                instance: None,
+                type_arguments: &[],
+            })
+        } else {
+            super::super::native_rust::parts(expression)
+        },
+    )
 }

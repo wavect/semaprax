@@ -7,6 +7,7 @@ use super::workspace_link::native_owner::admitted_ri06_regex_result as regex_res
 use super::*;
 use crate::loan_plan::{LoanCause, LoanId, LoanPointPhase};
 
+mod borrowed_argument;
 mod borrowed_str;
 mod box_intrinsic;
 mod branch_merge;
@@ -20,9 +21,11 @@ mod owned_buffer;
 mod owned_result_try;
 mod owner_renewal;
 mod proof_return;
+mod stdin_stream;
 mod type_profiles;
 mod unsafe_scan;
 mod vec_intrinsic;
+use borrowed_argument::{hir_diagnostic_at_span, hir_error_at_span};
 pub(crate) use type_profiles::resolved_type_contains_owned_bytes;
 use type_profiles::{
     generic_instance_arguments_are_admitted, resolved_type_is_flat_owned_byte_variant,
@@ -102,6 +105,7 @@ impl<'a> HirValidator<'a> {
 
     pub(super) fn new(program: &'a ResolvedProgram) -> Result<Self, Diagnostic> {
         validate_nul_free_identities(program)?;
+        stdin_stream::reject_sealed_escape(program)?;
         box_intrinsic::reject_reserved_identities(program)?;
         super::closure::once::reject_reserved_identities(program)?;
         generic_template::validate_call_graph(program)?;
@@ -2990,15 +2994,13 @@ impl<'a> HirValidator<'a> {
                             scopes.push(scope);
                         }
                         ResolvedExprKind::BorrowPlace { operation, place } => {
-                            let op = crate::byte_ops::by_id(operation.as_str())
-                                .filter(|op| op.is_view())
-                                .ok_or_else(|| {
-                                    hir_error(
-                                        "borrowed view has an invalid compiler-owned operation",
-                                    )
-                                })?;
-                            self.validate_byte_view_place(op, place, &scope)?;
-                            self.finish_expr(expression, &op.return_type(), OwnershipMode::Borrow)?;
+                            let ty = self.validate_borrowed_view(
+                                operation,
+                                place,
+                                expression.span,
+                                &scope,
+                            )?;
+                            self.finish_expr(expression, &ty, OwnershipMode::Borrow)?;
                             scopes.push(scope);
                         }
                         ResolvedExprKind::ByteRange {
@@ -4487,12 +4489,17 @@ impl<'a> HirValidator<'a> {
                         binding,
                         field,
                         value: assigned,
+                        span: assignment_span,
                         ..
                     } = &statements[index]
                     else {
                         unreachable!("assign frame resumes at an assignment statement")
                     };
-                    if crate::hir::iterator_loop::is_step_reassignment(assigned, &binding.id) {
+                    if crate::stdin_stream_ops::hir_reopen(assigned, &binding.id) {
+                        scope = assigned_scope;
+                        stdin_stream::reopen_reader(&mut scope, &binding.id)?;
+                    } else if crate::hir::iterator_loop::is_step_reassignment(assigned, &binding.id)
+                    {
                         scope = assigned_scope;
                         iterator_loops::reopen_step(&mut scope, &binding.id)?;
                     } else if crate::string_ops::is_same_owner_concat_hir(assigned, &binding.id) {
@@ -4527,7 +4534,12 @@ impl<'a> HirValidator<'a> {
                                     "field assignment base is not a value-owned aggregate",
                                 ));
                             }
-                            self.validate_assign_field(&target.ty, field, assigned)?;
+                            self.validate_assign_field(
+                                &target.ty,
+                                field,
+                                assigned,
+                                *assignment_span,
+                            )?;
                         }
                         None => {
                             self.require_type(&target.ty, &assigned.ty, "assignment")?;
@@ -4825,7 +4837,7 @@ impl<'a> HirValidator<'a> {
                             "record update for `{record}` has an invalid concrete instance"
                         )));
                     }
-                    validate_nested_update_base_shape(self.program, base)?;
+                    validate_nested_update_base_shape(self.program, base, expression.span)?;
                     let ownership = self.expected_ownership(&base.ty, OwnershipMode::Own)?;
                     if base.ownership != ownership {
                         return Err(hir_error(format!(
@@ -5095,16 +5107,20 @@ impl<'a> HirValidator<'a> {
                                 record,
                                 instance,
                                 fields,
-                            } => self.validate_record_match_pattern(
-                                function,
-                                &scrutinee.ty,
-                                record,
-                                instance,
-                                fields,
-                                &mut arm_scope,
-                                &format!("{path}.arm.0.record"),
-                                *mode,
-                            )?,
+                            } => self
+                                .validate_record_match_pattern(
+                                    function,
+                                    &scrutinee.ty,
+                                    record,
+                                    instance,
+                                    fields,
+                                    &mut arm_scope,
+                                    &format!("{path}.arm.0.record"),
+                                    *mode,
+                                )
+                                .map_err(|diagnostic| {
+                                    hir_diagnostic_at_span(diagnostic, expression.span)
+                                })?,
                             ResolvedMatchPattern::Variant { .. } => {
                                 return Err(hir_error(
                                     "resolved variant pattern has a record scrutinee",
@@ -6201,15 +6217,10 @@ impl<'a> HirValidator<'a> {
                 }
                 self.resolve_place(place, binding)?
             }
-            ResolvedExprKind::BorrowPlace { operation, place } => {
-                let op = crate::byte_ops::by_id(operation.as_str())
-                    .filter(|op| op.is_view())
-                    .ok_or_else(|| {
-                        hir_error("borrowed view has an invalid compiler-owned operation")
-                    })?;
-                self.validate_byte_view_place(op, place, scope)?;
-                (op.return_type(), OwnershipMode::Borrow)
-            }
+            ResolvedExprKind::BorrowPlace { operation, place } => (
+                self.validate_borrowed_view(operation, place, expression.span, scope)?,
+                OwnershipMode::Borrow,
+            ),
             ResolvedExprKind::ByteRange {
                 operation,
                 source,
@@ -6777,6 +6788,7 @@ impl<'a> HirValidator<'a> {
                             binding,
                             field,
                             value: assigned,
+                            span: assignment_span,
                             ..
                         } => {
                             if crate::byte_ops::is_same_owner_set_hir(assigned, &binding.id) {
@@ -6796,6 +6808,9 @@ impl<'a> HirValidator<'a> {
                                 &binding.id,
                             ) {
                                 iterator_loops::reopen_step(&mut block_scope, &binding.id)?;
+                            }
+                            if crate::stdin_stream_ops::hir_reopen(assigned, &binding.id) {
+                                stdin_stream::reopen_reader(&mut block_scope, &binding.id)?;
                             }
                             if crate::string_ops::is_same_owner_concat_hir(assigned, &binding.id) {
                                 iterator_loops::reopen_string(&mut block_scope, &binding.id)?;
@@ -6832,7 +6847,12 @@ impl<'a> HirValidator<'a> {
                                             "field assignment base is not a value-owned aggregate",
                                         ));
                                     }
-                                    self.validate_assign_field(&target.ty, field, assigned)?;
+                                    self.validate_assign_field(
+                                        &target.ty,
+                                        field,
+                                        assigned,
+                                        *assignment_span,
+                                    )?;
                                 }
                                 None => {
                                     self.require_type(&target.ty, &assigned.ty, "assignment")?;
@@ -7408,16 +7428,20 @@ impl<'a> HirValidator<'a> {
                             record,
                             instance,
                             fields,
-                        } => self.validate_record_match_pattern(
-                            function,
-                            &scrutinee.ty,
-                            record,
-                            instance,
-                            fields,
-                            &mut arm_scope,
-                            &format!("{path}.arm.0.record"),
-                            *mode,
-                        )?,
+                        } => self
+                            .validate_record_match_pattern(
+                                function,
+                                &scrutinee.ty,
+                                record,
+                                instance,
+                                fields,
+                                &mut arm_scope,
+                                &format!("{path}.arm.0.record"),
+                                *mode,
+                            )
+                            .map_err(|diagnostic| {
+                                hir_diagnostic_at_span(diagnostic, expression.span)
+                            })?,
                         ResolvedMatchPattern::Variant { .. } => {
                             return Err(hir_error(
                                 "resolved variant pattern has a record scrutinee",
@@ -7975,7 +7999,7 @@ impl<'a> HirValidator<'a> {
                         "record update for `{record}` has an invalid concrete instance"
                     )));
                 }
-                validate_nested_update_base_shape(self.program, base)?;
+                validate_nested_update_base_shape(self.program, base, expression.span)?;
                 self.require_type(&base.ty, &ty, "record update base")?;
                 let ownership = self.expected_ownership(&ty, OwnershipMode::Own)?;
                 if base.ownership != ownership {
@@ -8124,53 +8148,6 @@ impl<'a> HirValidator<'a> {
             }
         }
         Ok((ty, ownership))
-    }
-
-    fn validate_byte_view_place(
-        &self,
-        operation: crate::byte_ops::ByteOp,
-        place: &Place,
-        scope: &BTreeMap<ValueId, ValidationBinding>,
-    ) -> Result<(), Diagnostic> {
-        let binding = scope
-            .get(&place.root)
-            .ok_or_else(|| hir_error("borrowed view root is out of scope"))?;
-        if Self::place_availability(binding, &place.projections) != Availability::Available {
-            return Err(hir_error(
-                "borrowed view place is moved or conditionally moved",
-            ));
-        }
-        let (place_ty, place_ownership) = self.resolve_place(place, binding)?;
-        if place.projections.is_empty() {
-            if !operation.accepts_resolved(0, &place_ty) {
-                return Err(hir_error("borrowed view root has the wrong storage type"));
-            }
-            return Ok(());
-        }
-        if operation == crate::byte_ops::ByteOp::StringAsStr {
-            return Err(hir_error(
-                "owned String view requires one unprojected named storage root",
-            ));
-        }
-        if operation != crate::byte_ops::ByteOp::BytesAsSlice
-            || place.projections.is_empty()
-            || place
-                .projections
-                .iter()
-                .any(|projection| !matches!(projection, PlaceProjection::Field(_)))
-            || binding.ownership != OwnershipMode::Own
-            || !super::type_reachability::is_admitted_nested_owned_byte_record(
-                &self.program.declarations,
-                &binding.ty,
-            )
-            || place_ty != ResolvedType::Bytes
-            || place_ownership != OwnershipMode::Own
-        {
-            return Err(hir_error(
-                "projected byte view is outside the exact nested owned-Bytes field profile",
-            ));
-        }
-        Ok(())
     }
 
     fn field_type_for_type(
@@ -8465,10 +8442,10 @@ impl<'a> HirValidator<'a> {
             .declarations
             .type_facts(&param.ty)
             .ok_or_else(|| {
-                hir_error(format!(
-                    "type `{}` has no semantic facts",
-                    param.ty.identity_key()
-                ))
+                hir_error_at_span(
+                    argument.span,
+                    format!("type `{}` has no semantic facts", param.ty.identity_key()),
+                )
             })?;
         let valid = if facts.copy {
             actual == OwnershipMode::Value && param.ownership == OwnershipMode::Value
@@ -8477,7 +8454,10 @@ impl<'a> HirValidator<'a> {
                 OwnershipMode::Own => actual == OwnershipMode::Own,
                 OwnershipMode::Borrow => {
                     let exact_place = matches!(&argument.kind, ResolvedExprKind::Place(_));
-                    if param.ty == ResolvedType::Bytes {
+                    if crate::stdin_stream_ops::is_reader(&param.ty) {
+                        matches!(actual, OwnershipMode::Own | OwnershipMode::Borrow)
+                            && matches!(&argument.kind, ResolvedExprKind::Place(place) if place.projections.is_empty())
+                    } else if param.ty == ResolvedType::Bytes {
                         matches!(actual, OwnershipMode::Own | OwnershipMode::Borrow) && exact_place
                     } else if resolved_type_contains_owned_bytes(self.program, &param.ty) {
                         (vec_intrinsic::is_owned_vec_carrier(self.program, &param.ty)
@@ -8508,91 +8488,14 @@ impl<'a> HirValidator<'a> {
         if valid {
             Ok(())
         } else {
-            Err(hir_error(format!(
-                "argument ownership is incompatible with parameter `{}`",
-                param.id
-            )))
+            Err(hir_error_at_span(
+                argument.span,
+                format!(
+                    "argument ownership is incompatible with parameter `{}`",
+                    param.id
+                ),
+            ))
         }
-    }
-
-    fn validate_borrowed_bytes_call_argument(
-        &self,
-        call: &ResolvedExpr,
-        argument: &ResolvedExpr,
-        parameter: &ResolvedParam,
-        parameter_index: usize,
-        scope: &BTreeMap<ValueId, ValidationBinding>,
-    ) -> Result<(), Diagnostic> {
-        if parameter.ty != ResolvedType::Bytes || parameter.ownership != OwnershipMode::Borrow {
-            return Ok(());
-        }
-        let ResolvedExprKind::Call {
-            type_arguments,
-            instance,
-            ..
-        } = &call.kind
-        else {
-            return Err(hir_error(
-                "borrowed Bytes argument is not attached to an exact call",
-            ));
-        };
-        if instance.is_some() || !type_arguments.is_empty() {
-            return Err(hir_error(
-                "borrowed Bytes calls must be monomorphic source-defined calls",
-            ));
-        }
-        let ResolvedExprKind::Place(place) = &argument.kind else {
-            return Err(hir_error(
-                "borrowed Bytes call argument is not an exact storage place",
-            ));
-        };
-        let binding = scope
-            .get(&place.root)
-            .ok_or_else(|| hir_error("borrowed Bytes call root is out of scope"))?;
-        if Self::place_availability(binding, &place.projections) != Availability::Available {
-            return Err(hir_error(
-                "borrowed Bytes call place is moved or conditionally moved",
-            ));
-        }
-        let (place_ty, place_ownership) = self.resolve_place(place, binding)?;
-        if place_ty != ResolvedType::Bytes || argument.ty != ResolvedType::Bytes {
-            return Err(hir_error(
-                "borrowed Bytes call place has the wrong storage type",
-            ));
-        }
-        let admitted = if place.projections.is_empty() {
-            matches!(place_ownership, OwnershipMode::Own | OwnershipMode::Borrow)
-        } else {
-            !place.projections.is_empty()
-                && place
-                    .projections
-                    .iter()
-                    .all(|projection| matches!(projection, PlaceProjection::Field(_)))
-                && binding.ownership == OwnershipMode::Own
-                && place_ownership == OwnershipMode::Own
-                && super::type_reachability::is_admitted_nested_owned_byte_record(
-                    &self.program.declarations,
-                    &binding.ty,
-                )
-        };
-        if !admitted {
-            return Err(hir_error(
-                "borrowed Bytes call is outside the exact named or nested owned-field profile",
-            ));
-        }
-        if binding.ownership == OwnershipMode::Own {
-            let argument = u16::try_from(parameter_index)
-                .map_err(|_| hir_error("borrowed Bytes argument index overflows"))?;
-            if !self
-                .canonical_loan_ids
-                .contains_key(&(call.id.clone(), LoanCause::BorrowedCall { argument }))
-            {
-                return Err(hir_error(
-                    "borrowed Bytes call lacks its canonical shared-loan identity",
-                ));
-            }
-        }
-        Ok(())
     }
 
     /// Class Inheritance v1: independent re-derivation of the upcast
@@ -8710,13 +8613,17 @@ impl<'a> HirValidator<'a> {
         target_ty: &ResolvedType,
         field: &DeclarationId,
         assigned: &ResolvedExpr,
+        span: crate::ast::Span,
     ) -> Result<(), Diagnostic> {
         let ResolvedType::Nominal {
             declaration: owner,
             arguments,
         } = target_ty
         else {
-            return Err(hir_error("field assignment base is not a record"));
+            return Err(hir_error_at_span(
+                span,
+                "field assignment base is not a record",
+            ));
         };
         if self
             .program
@@ -8726,7 +8633,10 @@ impl<'a> HirValidator<'a> {
                 !matches!(item.kind, DeclarationKind::Record | DeclarationKind::Class)
             })
         {
-            return Err(hir_error("field assignment base is not a record"));
+            return Err(hir_error_at_span(
+                span,
+                "field assignment base is not a record",
+            ));
         }
         let declared = self
             .program
@@ -8735,19 +8645,23 @@ impl<'a> HirValidator<'a> {
             .and_then(|fields| fields.iter().find(|item| &item.id == field))
             .map(|item| item.ty.clone())
             .ok_or_else(|| {
-                hir_error(format!(
-                    "record `{owner}` has no assignment field `{field}`"
-                ))
+                hir_error_at_span(
+                    span,
+                    format!("record `{owner}` has no assignment field `{field}`"),
+                )
             })?;
         let field_ty =
             crate::hir::substitute_type(&declared, owner, arguments).map_err(|diagnostic| {
-                hir_error(format!(
-                    "assignment field type substitution failed: {diagnostic}"
-                ))
+                hir_error_at_span(
+                    span,
+                    format!("assignment field type substitution failed: {diagnostic}"),
+                )
             })?;
-        self.require_type(&field_ty, &assigned.ty, "field assignment")?;
+        self.require_type(&field_ty, &assigned.ty, "field assignment")
+            .map_err(|diagnostic| hir_diagnostic_at_span(diagnostic, span))?;
         if !crate::hir::is_scalar_resolved_type(&field_ty) {
-            return Err(hir_error(
+            return Err(hir_error_at_span(
+                span,
                 "field mutation v1 supports only direct scalar Copy record fields",
             ));
         }

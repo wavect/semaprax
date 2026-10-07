@@ -2,6 +2,7 @@ use super::profile::{
     valid_environment_capabilities, valid_process_capabilities, PROJECT_PROFILE_ENVIRONMENT_IO_V1,
     PROJECT_PROFILE_PROCESS_IO_V1,
 };
+mod stream;
 mod tables;
 mod validation;
 use super::profile::{
@@ -24,12 +25,11 @@ use super::profile::{
     PROJECT_COMMAND_STDOUT_CAPABILITY, PROJECT_HTTPS_COMMAND_CAPABILITIES_V1,
     PROJECT_LANGUAGE_COMMAND_INPUT_V1, PROJECT_NETWORK_COMMAND_CAPABILITIES_V1,
     PROJECT_PROFILE_FLAT_OWNED_RECORD_API_V1, PROJECT_PROFILE_HTTPS_COMMAND_IO_V1,
-    PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1, PROJECT_PROFILE_LINE_COMMAND_IO_V1,
-    PROJECT_PROFILE_NESTED_OWNED_RECORD_API_V1, PROJECT_PROFILE_NETWORK_COMMAND_IO_V1,
-    PROJECT_PROFILE_OWNED_DATA_API_V1, PROJECT_PROFILE_OWNED_UTF8_API_V1,
-    PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2,
-    PROJECT_PROFILE_USEFUL_DATA_V1, PROJECT_PROFILE_USEFUL_DATA_V2,
-    PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
+    PROJECT_PROFILE_LINE_COMMAND_IO_V1, PROJECT_PROFILE_NESTED_OWNED_RECORD_API_V1,
+    PROJECT_PROFILE_NETWORK_COMMAND_IO_V1, PROJECT_PROFILE_OWNED_DATA_API_V1,
+    PROJECT_PROFILE_OWNED_UTF8_API_V1, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1,
+    PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2, PROJECT_PROFILE_USEFUL_DATA_V1,
+    PROJECT_PROFILE_USEFUL_DATA_V2, PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
 };
 
 /// Frozen scalar Project Manifest v1 schema.
@@ -73,6 +73,9 @@ pub const PROJECT_SCHEMA_V20: &str = "semaprax.project.v20";
 pub const PROJECT_SCHEMA_V21: &str = "semaprax.project.v21";
 /// Additive closed source-local Future + indexed native-Rust dependency route.
 pub const PROJECT_SCHEMA_V22: &str = "semaprax.project.v22";
+/// Additive Project Manifest v23 schema for native chunked stdin commands.
+pub const PROJECT_SCHEMA_V23: &str = "semaprax.project.v23";
+pub const PROJECT_SCHEMA_V24: &str = "semaprax.project.v24";
 pub const PROJECT_SCHEMA_V16: &str = "semaprax.project.v16";
 pub const PROJECT_SCHEMA_V15: &str = "semaprax.project.v15";
 pub const PROJECT_SCHEMA_V14: &str = "semaprax.project.v14";
@@ -350,56 +353,7 @@ impl ProjectManifest {
                         parse_array_assignment(lines[10], "tests")?,
                     )
                 }
-                PROJECT_SCHEMA_V6 => {
-                    if lines.len() != 12 || lines.last() != Some(&"") {
-                        return Err(grammar(
-                            "Project v6 manifest must contain exactly eleven ordered assignments and one terminal LF",
-                        ));
-                    }
-                    let version = parse_string_assignment(lines[2], "version")?;
-                    if !valid_semver(&version) {
-                        return Err(grammar(
-                            "Project v6 version must be canonical Semantic Versioning text of at most 128 bytes",
-                        ));
-                    }
-                    if parse_string_assignment(lines[3], "profile")?
-                        != PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1
-                    {
-                        return Err(grammar(
-                            "Project v6 profile is not language-command-io.v1",
-                        ));
-                    }
-                    let command = parse_string_assignment(lines[7], "command")?;
-                    let input = parse_string_assignment(lines[8], "input")?;
-                    if input != PROJECT_LANGUAGE_COMMAND_INPUT_V1 {
-                        return Err(grammar(
-                            "Project v6 input is not argv-utf8+stdin-bytes.v1",
-                        ));
-                    }
-                    let capabilities = parse_array_assignment(lines[9], "capabilities")?;
-                    if !capabilities
-                        .iter()
-                        .map(String::as_str)
-                        .eq(PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2)
-                    {
-                        return Err(grammar(
-                            "Project v6 capabilities must be exactly [\"process.args.read\", \"process.stderr.write\", \"process.stdin.read\", \"process.stdout.write\"]",
-                        ));
-                    }
-                    (
-                        PROJECT_SCHEMA_V6,
-                        parse_string_assignment(lines[1], "name")?,
-                        Some(version),
-                        ProjectProfile::LanguageCommandIoV1,
-                        parse_string_assignment(lines[4], "entry")?,
-                        parse_array_assignment(lines[5], "sources")?,
-                        parse_array_assignment(lines[6], "web_exports")?,
-                        Some(command),
-                        Some(input),
-                        capabilities,
-                        parse_array_assignment(lines[10], "tests")?,
-                    )
-                }
+                PROJECT_SCHEMA_V6 | PROJECT_SCHEMA_V23 | PROJECT_SCHEMA_V24 => stream::parse(&lines, &schema)?,
                 PROJECT_SCHEMA_V7 => {
                     if lines.len() != 12 || lines.last() != Some(&"") {
                         return Err(grammar(
@@ -774,6 +728,8 @@ impl ProjectManifest {
             PROJECT_SCHEMA_V4 => "Project v4",
             PROJECT_SCHEMA_V5 => "Project v5",
             PROJECT_SCHEMA_V6 => "Project v6",
+            PROJECT_SCHEMA_V23 => "Project v23",
+            PROJECT_SCHEMA_V24 => "Project v24",
             PROJECT_SCHEMA_V7 => "Project v7",
             PROJECT_SCHEMA_V8 => "Project v8",
             PROJECT_SCHEMA_V9 => "Project v9",
@@ -994,6 +950,10 @@ impl ProjectManifest {
         self.schema == PROJECT_SCHEMA_V6
     }
 
+    pub fn is_v23(&self) -> bool {
+        self.schema == PROJECT_SCHEMA_V23
+    }
+
     pub fn is_v7(&self) -> bool {
         self.schema == PROJECT_SCHEMA_V7
     }
@@ -1211,6 +1171,21 @@ impl ProjectManifest {
                 render_array(&self.web_exports),
                 self.command.as_deref().expect("Project v6 carries a command stable ID"),
                 self.command_input.as_deref().expect("Project v6 carries a command input profile"),
+                render_array(&self.capabilities),
+                self.test_module,
+            )
+        } else if matches!(self.schema, PROJECT_SCHEMA_V23 | PROJECT_SCHEMA_V24) {
+            format!(
+                "schema = \"{}\"\nname = \"{}\"\nversion = \"{}\"\nprofile = \"{}\"\nentry = \"{}\"\nsources = {}\nweb_exports = {}\ncommand = \"{}\"\ninput = \"{}\"\ncapabilities = {}\ntests = [\"{}\"]\n",
+                self.schema,
+                self.name,
+                self.package_version.as_deref().expect("Project v23 carries a package version"),
+                self.profile.name().expect("Project v23 carries a named profile"),
+                self.entry,
+                render_array(&self.sources),
+                render_array(&self.web_exports),
+                self.command.as_deref().expect("Project v23 carries a command stable ID"),
+                self.command_input.as_deref().expect("Project v23 carries a command input profile"),
                 render_array(&self.capabilities),
                 self.test_module,
             )

@@ -1,6 +1,14 @@
 //! Native carrier selection for compiler-owned cleanup leaves.
 
-use super::ByteSlot;
+use crate::cleanup_plan::CleanupPlace;
+
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub(super) struct ByteSlot {
+    pub(super) place: CleanupPlace,
+    pub(super) value: String,
+    pub(super) flag: String,
+    pub(super) kind: OwnedLeafKind,
+}
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub(super) enum OwnedLeafKind {
@@ -14,6 +22,7 @@ pub(super) enum OwnedLeafKind {
     Vec,
     Box,
     Iter,
+    StdinReader,
 }
 
 impl OwnedLeafKind {
@@ -28,6 +37,7 @@ impl OwnedLeafKind {
             Self::Vec => "spx_vec_v1",
             Self::Box => "spx_box_v1",
             Self::Iter => "spx_iter_v1",
+            Self::StdinReader => "uintptr_t",
         }
     }
 
@@ -41,6 +51,7 @@ impl OwnedLeafKind {
             Self::Vec => format!("spx_vec_move(spx_ctx, &{source})"),
             Self::Box => format!("spx_box_move(spx_ctx, &{source})"),
             Self::Iter => format!("spx_iter_move(spx_ctx, &{source})"),
+            Self::StdinReader => format!("spx_stdin_stream_move_v1(spx_ctx, &{source})"),
         }
     }
 
@@ -55,6 +66,7 @@ impl OwnedLeafKind {
             Self::Vec => format!("spx_vec_drop(spx_ctx, &{value})"),
             Self::Box => format!("spx_box_drop(spx_ctx, &{value})"),
             Self::Iter => format!("spx_iter_drop(spx_ctx, &{value})"),
+            Self::StdinReader => format!("spx_stdin_stream_drop_v1(spx_ctx, {value})"),
         }
     }
 }

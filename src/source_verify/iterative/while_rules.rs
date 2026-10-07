@@ -373,7 +373,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     // loop cleanup-edge-free; unknown names keep flowing so the
                     // established unresolved-value diagnostic fires instead.
                     if let Some(declared) = self.functions.get(name.as_str()) {
-                        let scalar_signature = crate::loop_calls::effects_admitted(&declared.effects)
+                        let scalar_signature = crate::stdin_stream_ops::ast_forward_signature(declared) || ( crate::loop_calls::effects_admitted(&declared.effects)
                             && crate::loop_calls::ast_result_admitted(&declared.return_type)
                             && declared.params.iter().zip(args).all(|(param, argument)| {
                                 crate::loop_calls::ast_param_admitted(param.mode, &param.ty)
@@ -381,7 +381,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                         && crate::source_verify::declared_type::owned_record_collection::is_owner_renewal_record(self.types, &param.ty))
                                     || (param.mode == ParamMode::Own && param.ty == Type::Bytes
                                         && owned_item.is_some_and(|item| matches!(&argument.kind, ExprKind::Var(name) if name == item)))
-                            });
+                            }));
                         if !scalar_signature {
                             self.diagnostics.push(error(
                             self.program,

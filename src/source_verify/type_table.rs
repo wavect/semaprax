@@ -465,6 +465,12 @@ impl<'a> TypeTable<'a> {
                     | Type::OnceFunctionI64Pair => return true,
                     Type::MutFunctionI64 => {}
                     Type::Named { name, arguments } => {
+                        if crate::stdin_stream_ops::ast_is_reader(&Type::Named {
+                            name: name.clone(),
+                            arguments: arguments.clone(),
+                        }) {
+                            return true;
+                        }
                         if self.is_admitted_iterator(&Type::Named {
                             name: name.clone(),
                             arguments: arguments.clone(),

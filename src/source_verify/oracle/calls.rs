@@ -44,6 +44,76 @@ pub(super) fn oracle_call(
     ) {
         return result;
     }
+    // The recursive oracle predates the byte vocabulary. Keep length inspection
+    // independently checked so streaming Chunk + Len exercises both walkers.
+    if name == crate::byte_ops::LEN_NAME {
+        let op = crate::byte_ops::ByteOp::Len;
+        if !type_arguments.is_empty() {
+            diagnostics.push(error(
+                program,
+                "SPX-T263",
+                format!("byte operation `{name}` does not accept type arguments"),
+                expr.span,
+            ));
+        }
+        if args.len() != op.arity() {
+            diagnostics.push(error(
+                program,
+                "SPX-T263",
+                format!(
+                    "byte operation `{name}` expects {} arguments, received {}",
+                    op.arity(),
+                    args.len()
+                ),
+                expr.span,
+            ));
+        }
+        for (index, argument) in args.iter().enumerate() {
+            if let Some(actual) = check_expr(
+                program,
+                current,
+                argument,
+                variables,
+                functions,
+                types,
+                result_type,
+                allow_moves,
+                diagnostics,
+            ) {
+                reject_native_unit_value(program, argument, &actual, diagnostics);
+                if !actual.native_unit && !op.accepts_ast(index, &actual.ty) {
+                    diagnostics.push(hints::with_optional_help(
+                        error(
+                            program,
+                            "SPX-T263",
+                            format!("byte operation `{name}` argument {index} has the wrong type"),
+                            argument.span,
+                        ),
+                        hints::view_argument_help(name, &actual.ty),
+                    ));
+                }
+            }
+        }
+        return Some(CheckedValue::returned(op.ast_return_type(), false));
+    }
+    if crate::stdin_stream_ops::pure_by_name(name).is_some()
+        || crate::stdin_stream_ops::host_by_name(name).is_some()
+    {
+        return super::stdin_stream::check_call(
+            name,
+            type_arguments,
+            args,
+            program,
+            current,
+            expr,
+            variables,
+            functions,
+            types,
+            result_type,
+            allow_moves,
+            diagnostics,
+        );
+    }
     if let Some(binding_type) = variables.get(name.as_str()).map(|binding| {
         crate::source_verify::mutable_closure::invocation_signature(
             program,

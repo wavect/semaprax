@@ -671,6 +671,48 @@ below the current directory. A checked failure, such as a missing file or a
 slice out of range, prints one line to stderr and exits with 1.
 [Text Toolkit v1](TEXT-TOOLKIT-V1.md) owns the rules.
 
+For input that must exceed the complete-snapshot limit, select Project v23 input
+`argv-utf8+stdin-stream.v1` and profile `language-command-io.stream.v1` explicitly.
+Its native command route uses one reusable 4096-byte buffer; `stdin_read()` stays
+on the snapshot profile. Open prefills, only a zero read means EOF, and a short
+positive read is a chunk. Process every borrowed chunk before renewing its owner:
+
+```semaprax
+module app.stream_count;
+
+permit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
+
+@id("app.count")
+fn count() -> bool
+    uses { process.stdin.read }
+{
+    let mut reader = stdin_stream_open();
+    let mut total = 0usize;
+    while !stdin_stream_eof(reader) {
+        let ignored = { let chunk = stdin_stream_chunk(reader); total = total + byte_len(chunk); 0 };
+        reader = stdin_stream_next(reader);
+        0
+    }
+    total >= 0usize
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    0
+}
+```
+
+Open/Next require `process.stdin.read`; Eof/Chunk are pure named-reader
+inspections. Open occurs once per reachable invocation path and is refused in
+loops. Reader has no constructor or generic/aggregate/public ABI escape. Chunk
+use after Next is `SPX-T265`; bind an inner processing block as above so the loan
+ends first. Exact acyclic `own StdinReader -> StdinReader` forwarding helpers may
+renew the same owner. See [the streaming contract](BOUNDED-STDIN-STREAM-V1.md) for
+the profile's current executable-gate status and failure/settlement rules.
+
+Exit codes: `semaprax help language specifications`.
+
 On the pure single-file interpreter route, `run` tries the ordinary
 `semaprax.interpret.v1` profile first. On refusal, `run` retries with the
 internal String profile, which admits internal owned `string` parameters and
@@ -1107,6 +1149,10 @@ fn order_status(paid: bool) -> string
 
 ## Projects
 
+Convert `u8` in `useful-data.v1` with `std.bytes.byte_to_i64`:
+`semaprax help library std.bytes.byte_to_i64`. Single files need their own
+helper; `i64_from_u8` is unknown (`SPX-T203`).
+
 A project puts `semaprax.toml` beside `src/`. Use the extensible table layout
 below. The committed examples' frozen, one-line-per-key
 `semaprax.project.v1` layout also remains admitted:
@@ -1191,6 +1237,16 @@ dependencies. See [Project Lock v1](PROJECT-LOCK-V1.md) and
 [Project Dependency Resolution v1](PROJECT-DEPENDENCY-RESOLUTION-V1.md).
 
 ## Where the rules live
+
+For an application-defined exit status, select Project v24 profile
+`language-command-io.stream.v2` with the same `argv-utf8+stdin-stream.v1` input
+and an explicit command `fn() -> i64`. Return a status from 0 through 255;
+status 2 may accompany your own stderr diagnostic and empty stdout. Build with
+`semaprax build --manifest-path semaprax.toml --target native --output app` and run
+that binary. Out-of-range results or checked execution failures discard staged
+output and produce the generic adapter diagnostic with status 2. Project v23
+keeps its Bool status 0/1 mapping. [Streaming command exit status
+v1](BOUNDED-STDIN-COMMAND-EXIT-V1.md) owns selection and the verification boundary.
 
 - [RFC 0001](RFC-0001.md): language and toolchain contract.
 - [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md): records, variants, generics,

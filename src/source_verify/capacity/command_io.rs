@@ -38,6 +38,11 @@ pub(super) fn flow(
                 }),
             ),
         }),
+        ResolvedHostCommandOperation::StdinStreamOpen => Some(CapacityFlow::StdinRead {
+            site,
+            conservative_payload_bytes: crate::stdin_stream_ops::CHUNK_BYTES,
+        }),
+        ResolvedHostCommandOperation::StdinStreamNext => None,
         ResolvedHostCommandOperation::StdinRead => Some(CapacityFlow::StdinRead {
             site,
             conservative_payload_bytes: crate::command_io_ops::MAX_INPUT_BYTES,

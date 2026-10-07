@@ -72,6 +72,8 @@ pub enum ByteSliceRootKind {
     /// The one immutable argument arena owned by the enclosing command
     /// invocation. Every `arg_utf8` view authenticates this same root.
     CommandArguments,
+    /// Current chunk in the invocation-scoped reusable streaming reader buffer.
+    StdinStreamReader,
 }
 
 /// A symbolic extent deliberately independent of the compiler host's pointer
@@ -528,6 +530,8 @@ pub enum ResolvedHostCommandOperation {
     ArgsLen,
     ArgUtf8,
     StdinRead,
+    StdinStreamOpen,
+    StdinStreamNext,
     StderrWrite,
     StdoutAppend,
     StderrAppend,

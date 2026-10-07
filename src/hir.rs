@@ -108,6 +108,7 @@ mod resolve_native_rust_result;
 mod resolve_pattern;
 mod resolve_program;
 mod resolve_statement;
+mod resolve_stdin_stream;
 mod resolve_variant_or;
 mod resolve_vec_call;
 mod resolve_yield;
@@ -230,6 +231,7 @@ pub(crate) use workspace_link::{
     link_language_command_io_workspace, link_line_command_io_workspace,
     link_network_command_io_workspace, link_network_entry_workspace, link_owned_data_api_workspace,
     link_package_scalar_workspace, link_scalar_project_exports, link_scalar_project_workspace,
+    link_stdin_stream_command_workspace, link_stdin_stream_exit_command_workspace,
     link_useful_data_command_workspace, link_useful_data_workspace, link_useful_text_workspace,
     owned_data_api_workspace_return_admitted, package_scalar_type,
     useful_data_workspace_parameter_admitted, useful_data_workspace_return_admitted,

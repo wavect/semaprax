@@ -460,6 +460,10 @@ fn validation_rejects_a_forged_nested_record_pattern_field_identity() {
         .find(|function| function.id.as_str() == "pattern.consume")
         .expect("nested pattern function")
         .clone();
+    let ResolvedExprKind::Block { tail, .. } = &function.body.kind else {
+        panic!("nested pattern body remains a block")
+    };
+    let match_span = tail.span;
     let execution = FunctionExecutionId::Monomorphic(function.id.clone());
     let diagnostic = HirValidator::new(&program)
         .expect("hostile identities remain indexed")
@@ -472,6 +476,80 @@ fn validation_rejects_a_forged_nested_record_pattern_field_identity() {
             .contains("resolved record pattern contains foreign field"),
         "{diagnostic:?}"
     );
+    assert_eq!(diagnostic.span, Some(match_span));
+}
+
+#[test]
+fn field_assignment_h006_uses_statement_span_and_keeps_missing_span_locationless() {
+    let source = r#"
+module test.assignment_span;
+@id("item.type") record Item { @id("item.value") value: i64, }
+@id("item.change") fn change() -> i64 {
+  let mut item = Item { value: 0 };
+  item.value = 1;
+  item.value
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let parsed = crate::parse(source, std::path::Path::new("assignment-span.spx"))
+        .expect("assignment span fixture parses");
+    let mut program = crate::hir::resolve(&parsed).expect("assignment span fixture resolves");
+    let function = program
+        .functions
+        .iter_mut()
+        .find(|function| function.id.as_str() == "item.change")
+        .expect("change function");
+    let ResolvedExprKind::Block { statements, .. } = &mut function.body.kind else {
+        panic!("change body remains a block")
+    };
+    let (field, assignment_span) = statements
+        .iter_mut()
+        .find_map(|statement| match statement {
+            ResolvedStatement::Assign {
+                field: Some(field),
+                span,
+                ..
+            } => Some((field, *span)),
+            _ => None,
+        })
+        .expect("change body has a field assignment");
+    *field = DeclarationId::new("item.foreign-field");
+    let function = function.clone();
+    let execution = FunctionExecutionId::Monomorphic(function.id.clone());
+    let diagnostic = HirValidator::new(&program)
+        .expect("fixture identities remain indexed")
+        .validate_function(&function, &execution)
+        .expect_err("foreign assignment field must fail closed");
+    assert_eq!(diagnostic.code, "SPX-H006");
+    assert_eq!(
+        diagnostic.message,
+        "record `item.type` has no assignment field `item.foreign-field`"
+    );
+    assert_eq!(diagnostic.span, Some(assignment_span));
+
+    let mut function_without_span = function;
+    let ResolvedExprKind::Block { statements, .. } = &mut function_without_span.body.kind else {
+        panic!("change body remains a block")
+    };
+    let assignment = statements
+        .iter_mut()
+        .find_map(|statement| match statement {
+            ResolvedStatement::Assign {
+                field: Some(_),
+                span,
+                ..
+            } => Some(span),
+            _ => None,
+        })
+        .expect("change body has a field assignment");
+    *assignment = crate::ast::Span::default();
+    let execution = FunctionExecutionId::Monomorphic(function_without_span.id.clone());
+    let diagnostic = HirValidator::new(&program)
+        .expect("fixture identities remain indexed")
+        .validate_function(&function_without_span, &execution)
+        .expect_err("foreign assignment field without a span must fail closed");
+    assert_eq!(diagnostic.code, "SPX-H006");
+    assert_eq!(diagnostic.span, None);
 }
 
 #[test]
@@ -642,6 +720,7 @@ module test.hostile_nested_update_base;
     let ResolvedExprKind::UpdateRecord { base, .. } = &tail.kind else {
         panic!("update function tail remains an update")
     };
+    let update_span = tail.span;
     let mut hostile = (**base).clone();
     hostile.kind = ResolvedExprKind::Call {
         callee: DeclarationId::new("update.apply"),
@@ -649,7 +728,7 @@ module test.hostile_nested_update_base;
         instance: None,
         args: Vec::new(),
     };
-    let diagnostic = validate_nested_update_base_shape(&program, &hostile)
+    let diagnostic = validate_nested_update_base_shape(&program, &hostile, update_span)
         .expect_err("well-typed non-place update base must fail the exact-shape boundary");
     assert_eq!(diagnostic.code, "SPX-H006");
     assert!(
@@ -658,4 +737,11 @@ module test.hostile_nested_update_base;
             .contains("nested owned-record update requires an exact named owned base place"),
         "{diagnostic:?}"
     );
+    assert_eq!(diagnostic.span, Some(update_span));
+
+    let diagnostic =
+        validate_nested_update_base_shape(&program, &hostile, crate::ast::Span::default())
+            .expect_err("well-typed non-place update base without a span must fail closed");
+    assert_eq!(diagnostic.code, "SPX-H006");
+    assert_eq!(diagnostic.span, None);
 }

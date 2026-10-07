@@ -168,6 +168,25 @@ int main(void) {{
 #[test]
 fn data_package_is_digest_authenticated_strict_and_installed_compiler_free() {
     let root = copy_fixture("npm");
+    let frame_path = root.join("src/frame.spx");
+    let frame_source = std::fs::read_to_string(&frame_path).unwrap();
+    std::fs::write(
+        &frame_path,
+        format!(
+            "{frame_source}\n@id(\"binary-frame.checked-index\")\nfn checked_index(frame: borrow Slice<u8>) -> usize\n{{\n    let length = byte_len(frame);\n    length + usize_from_i64(-1)\n}}\n"
+        ),
+    )
+    .unwrap();
+    let manifest_path = root.join("semaprax.toml");
+    let manifest = std::fs::read_to_string(&manifest_path).unwrap();
+    std::fs::write(
+        &manifest_path,
+        manifest.replace(
+            "\"binary-frame.checksum\",",
+            "\"binary-frame.checked-index\", \"binary-frame.checksum\",",
+        ),
+    )
+    .unwrap();
     let output = root.join("package");
     let inline = project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
         snapshot.build_npm_inline(project::MAX_PROJECT_NPM_BUILD_BYTES)
@@ -214,6 +233,10 @@ assert.equal(runtime.functions["binary-frame.checksum"](movedFrame), 2n);
 assert.equal(runtime.functions["binary-frame.checksum"](new Uint8Array()), 0n);
 assert.equal(runtime.functions["binary-frame.combine-length"](frame, frame), 14n);
 assert.equal(runtime.functions["binary-frame.length"](new Uint8Array(65536)), 65536n);
+let conversion;
+assert.throws(() => runtime.functions["binary-frame.checked-index"](frame), error => { conversion = error; return error instanceof SemapraxDataError; });
+assert.equal(conversion.code, 1); assert.equal(conversion.domain, "semaprax.convert.v1");
+assert.equal(runtime.functions["binary-frame.length"](frame), 7n);
 let boundary;
 assert.throws(() => runtime.functions["binary-frame.combine-length"](new Uint8Array(32768), new Uint8Array(32769)), error => { boundary = error; return error instanceof SemapraxDataError; });
 assert.equal(boundary.code, 11); assert.equal(boundary.domain, "semaprax.data-adapter.v1");

@@ -41,6 +41,7 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
         );
         return diagnostics;
     }
+    super::stdin_stream::check(program, &mut diagnostics);
     let capacity_functions = source_capacity_functions(program);
     if capacity_functions.len() > crate::byte_data_capacity::MAX_FUNCTIONS {
         let (_, function) = capacity_functions[crate::byte_data_capacity::MAX_FUNCTIONS];

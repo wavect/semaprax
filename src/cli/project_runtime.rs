@@ -23,6 +23,8 @@ pub(crate) fn execute_held(
                     snapshot.manifest().project_profile(),
                     project::ProjectProfile::UsefulDataCommandV2
                         | project::ProjectProfile::LanguageCommandIoV1
+                        | project::ProjectProfile::StdinStreamCommandIoV1
+                        | project::ProjectProfile::StdinStreamCommandIoV2
                         | project::ProjectProfile::LineCommandIoV1
                         | project::ProjectProfile::NetworkCommandIoV1
                         | project::ProjectProfile::HttpsCommandIoV1
@@ -31,6 +33,7 @@ pub(crate) fn execute_held(
                     (
                         snapshot.entry_program().entrypoint.as_str().to_owned(),
                         command_id.to_owned(),
+                        snapshot.manifest().project_profile().is_stdin_stream(),
                     )
                 })
             } else {
@@ -49,10 +52,13 @@ pub(crate) fn execute_held(
         })?;
 
     if !options.json {
-        if let Some((entry_id, command_id)) = command_note {
-            eprintln!(
-                "note: project run executes entry `{entry_id}`; command function `{command_id}` is exercised by built native and web/npm adapters"
-            );
+        if let Some((entry_id, command_id, streaming)) = command_note {
+            let adapters = if streaming {
+                "the built native adapter"
+            } else {
+                "built native and web/npm adapters"
+            };
+            eprintln!("note: project run executes entry `{entry_id}`; command function `{command_id}` is exercised by {adapters}");
         }
     }
 

@@ -328,7 +328,13 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 name,
                                 &binding_ty,
                             ) || (self.loop_depth != 0
-                                && self.admits_record_owner_renewal(name, value));
+                                && self.admits_record_owner_renewal(name, value))
+                                || (crate::stdin_stream_ops::ast_is_reader(&binding_ty)
+                                    && crate::stdin_stream_ops::source_next_is_same_owner(
+                                        self.program,
+                                        name,
+                                        value,
+                                    ));
                             if !mutable {
                                 let mut diagnostic = error(
                                     self.program,

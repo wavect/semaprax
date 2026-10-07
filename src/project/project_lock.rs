@@ -99,6 +99,8 @@ pub fn render_project_lock(snapshot: &ProjectSnapshot) -> Result<String, Vec<Dia
         | ProjectProfile::UsefulDataCommandV1
         | ProjectProfile::UsefulDataCommandV2
         | ProjectProfile::LanguageCommandIoV1
+        | ProjectProfile::StdinStreamCommandIoV1
+        | ProjectProfile::StdinStreamCommandIoV2
         | ProjectProfile::LineCommandIoV1
         | ProjectProfile::NetworkCommandIoV1
         | ProjectProfile::HttpsCommandIoV1

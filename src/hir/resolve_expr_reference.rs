@@ -10,8 +10,8 @@ use super::ids::{DeclarationId, ExpressionId, FunctionExecutionId, ValueId};
 use super::monomorphize::substitute_type;
 use super::nodes::{
     is_scalar_resolved_type, resolver_admits_owned_variant, DeclarationKind, OwnershipMode,
-    ResolvedBinding, ResolvedHostCommandCall, ResolvedImportResultKind, ResolvedMatchMode,
-    ResolvedNativeRustImportCall, ResolvedType,
+    ResolvedBinding, ResolvedImportResultKind, ResolvedMatchMode, ResolvedNativeRustImportCall,
+    ResolvedType,
 };
 use super::type_reachability::record_args_ok;
 use super::{Binding, Place, PlaceProjection, Resolver};
@@ -29,6 +29,9 @@ impl Resolver<'_> {
         bindings: &BTreeMap<String, Binding>,
         path: &str,
     ) -> Result<ResolvedExpr, Diagnostic> {
+        if let Some(inspect) = self.resolve_stdin_inspection(function, expr, bindings, path)? {
+            return Ok(inspect);
+        }
         if matches!(expr.kind, ExprKind::Closure { .. }) {
             return self.resolve_closure(function, expr, bindings, path, true);
         }
@@ -505,26 +508,7 @@ impl Resolver<'_> {
                             )
                         })
                         .collect::<Result<Vec<_>, _>>()?;
-                    for (index, argument) in args.iter().enumerate() {
-                        if !crate::command_io_ops::accepts_resolved(op, index, &argument.ty) {
-                            return Err(self.error(
-                                "SPX-T270",
-                                format!("command I/O operation `{name}` argument {index} has the wrong type"),
-                                argument.span,
-                            ));
-                        }
-                    }
-                    return Ok(ResolvedExpr {
-                        id: id.clone(),
-                        ty: crate::command_io_ops::return_type(op),
-                        ownership: crate::command_io_ops::result_ownership(op),
-                        kind: ResolvedExprKind::HostCommandCall(ResolvedHostCommandCall {
-                            expression: id,
-                            operation: op,
-                            args,
-                        }),
-                        span: expr.span,
-                    });
+                    return self.finish_host_command(function, path, expr.span, op, args);
                 }
                 let template = self
                     .declarations

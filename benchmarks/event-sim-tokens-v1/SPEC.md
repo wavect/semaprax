@@ -92,6 +92,6 @@ The shared corpus in `acceptance/corpus.json` covers empty input, simultaneous
 arrivals, priority and identifier tie-breaking, simultaneous completion and
 arrival, multiple workers, idle gaps, deadline boundaries, and a longer
 queue. An implementation is accepted only when it matches every expected
-report and both invalid-input cases. The corpus and oracle are test material;
+report and every invalid-input case. The corpus and oracle are test material;
 the live task prompt should direct agents to the request, this specification,
 and the public interface only.

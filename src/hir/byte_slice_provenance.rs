@@ -500,6 +500,15 @@ pub(super) fn derive_byte_slice_provenance(
                     return true;
                 };
                 let (root_kind, root_length, projected_type) = match root_ty {
+                    ty if crate::stdin_stream_ops::is_reader(ty)
+                        && place.projections.is_empty() =>
+                    {
+                        (
+                            ByteSliceRootKind::StdinStreamReader,
+                            ByteSliceExtent::ValueLength,
+                            ty.clone(),
+                        )
+                    }
                     ResolvedType::Bytes => (
                         ByteSliceRootKind::OwnedBytes,
                         ByteSliceExtent::ValueLength,
@@ -541,11 +550,16 @@ pub(super) fn derive_byte_slice_provenance(
                     }
                     _ => return true,
                 };
-                if place.projections.is_empty() != !matches!(root_ty, ResolvedType::Nominal { .. })
+                if !crate::stdin_stream_ops::is_reader(root_ty)
+                    && place.projections.is_empty()
+                        != !matches!(root_ty, ResolvedType::Nominal { .. })
                 {
                     return true;
                 }
                 let expected_operation = match &projected_type {
+                    ty if crate::stdin_stream_ops::is_reader(ty) => {
+                        crate::stdin_stream_ops::CHUNK_ID
+                    }
                     ResolvedType::Bytes => crate::byte_ops::BYTES_AS_SLICE_ID,
                     ResolvedType::ArrayU8(_) => crate::byte_ops::ARRAY_AS_SLICE_ID,
                     ResolvedType::Str => crate::byte_ops::STR_AS_BYTES_ID,

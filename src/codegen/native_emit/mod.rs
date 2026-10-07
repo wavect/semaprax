@@ -114,6 +114,12 @@ fn emit_hir_c_with_options(
     semantic: Option<&NativeSemanticMetering>,
 ) -> Result<String, Diagnostic> {
     hir::validate(program)?;
+    if !output_profile.is_stdin_stream() && crate::stdin_stream_ops::resolved_program_uses(program)
+    {
+        return Err(backend_error(
+            "stdin reader requires the explicit native streaming-command profile",
+        ));
+    }
     if program.types.iter().any(|declaration| {
         matches!(
             declaration.kind,
@@ -129,9 +135,10 @@ fn emit_hir_c_with_options(
     debug_assert!(resource_abi.resources.is_empty());
     let mut output = crate::bounded_output::CappedString::new();
     // Feature-test macros must precede the first system include. The
-    // `file_read_text` runtime needs `openat` and `O_NOFOLLOW`, which glibc
-    // declares under strict C11 only with POSIX.1-2008 visibility.
-    if output_profile == NativeOutputProfile::NetworkCommandIo
+    // `file_read_text` runtime needs `openat` and `O_NOFOLLOW`, and every
+    // command entry opens its file root with `O_DIRECTORY | O_CLOEXEC`;
+    // glibc declares these under strict C11 only with POSIX.1-2008 visibility.
+    if output_profile.is_command()
         || crate::string_ops::program_uses_op(program, crate::string_ops::StringOp::FileReadText)
     {
         network_io::emit_feature_macros(&mut output);
@@ -142,6 +149,7 @@ fn emit_hir_c_with_options(
             &resource_abi,
             program,
             output_profile.is_language_command(),
+            output_profile.string_runtime(),
         );
     } else {
         emit_native_prelude_profile(
@@ -168,6 +176,11 @@ fn emit_hir_c_with_options(
     } else if output_profile == NativeOutputProfile::LineCommandIo {
         native_host_output::emit_line_command_runtime(&mut output);
         native_command_io::emit_line_runtime(&mut output);
+    } else if output_profile.is_stdin_stream() {
+        native_host_output::emit_language_command_runtime(&mut output);
+        native_command_io::emit_runtime(&mut output);
+        super::native_stdin_stream::emit_runtime(&mut output);
+        super::native_stdin_stream::emit_command_helper_table(&mut output);
     } else if output_profile == NativeOutputProfile::LanguageCommandIo {
         native_host_output::emit_language_command_runtime(&mut output);
         native_command_io::emit_runtime(&mut output);
@@ -255,6 +268,14 @@ fn emit_hir_c_with_options(
             process_io::emit_runner(&mut output, symbol);
         } else if output_profile == NativeOutputProfile::EnvironmentCommandIo {
             environment_io::emit_runner(&mut output, symbol);
+        } else if output_profile.is_stdin_stream() {
+            if output_profile == NativeOutputProfile::StdinStreamExitCommandIo {
+                super::native_stdin_stream::exit_status::emit_runner(&mut output, symbol);
+                super::native_stdin_stream::exit_status::emit_process_adapter(&mut output);
+            } else {
+                super::native_stdin_stream::emit_runner(&mut output, symbol);
+                super::native_stdin_stream::emit_process_adapter(&mut output);
+            }
         } else if output_profile.is_language_command() {
             native_command_io::emit_runner(&mut output, symbol);
             native_command_io::emit_process_adapter(&mut output);
@@ -427,6 +448,7 @@ fn emit_native_prelude_without_public_failure(
     resource_abi: &native_resource::NativeResourceAbi,
     program: &ResolvedProgram,
     command_carriers: bool,
+    strings: StringRuntimeSelection,
 ) {
     emit_native_prelude_inner(
         output,
@@ -434,7 +456,7 @@ fn emit_native_prelude_without_public_failure(
         program,
         true,
         command_carriers,
-        StringRuntimeSelection::FROZEN,
+        strings,
     );
 }
 fn emit_native_prelude_inner(
@@ -525,13 +547,19 @@ fn emit_native_prelude_inner(
         });
     }
     if program_uses_byte_data(program) || strings.provider_carriers || strings.command_carriers {
-        if strings.reserved_bytes {
+        if strings.stream_epochs {
+            native_byte_data::emit_stream_epoch_runtime(output);
+        } else if strings.reserved_bytes {
             native_byte_data::emit_reserved_runtime(output);
         } else {
             native_byte_data::emit_runtime(output);
         }
         if program_uses_additive_byte_operations(program) {
-            native_byte_data::emit_additive_operations(output);
+            if strings.stream_epochs {
+                native_byte_data::emit_stream_epoch_additive_operations(output);
+            } else {
+                native_byte_data::emit_additive_operations(output);
+            }
         }
     }
     if native_vec::program_uses_vec(program) || native_iter::program_uses_iterator(program) {
@@ -1033,92 +1061,13 @@ fn emit_variant_declaration(
     Ok(())
 }
 
-use owned_carrier::c_value_type;
+use owned_carrier::{c_value_type, record_declaration_id, variant_declaration_id};
 
 fn is_aggregate_type(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic> {
     Ok(matches!(ty, ResolvedType::ArrayU8(length) if *length != 0)
         || crate::iterator_ops::is_step(ty)
         || record_declaration_id(program, ty)?.is_some()
         || variant_declaration_id(program, ty)?.is_some())
-}
-
-fn record_declaration_id<'a>(
-    program: &ResolvedProgram,
-    ty: &'a ResolvedType,
-) -> Result<Option<&'a DeclarationId>, Diagnostic> {
-    let ResolvedType::Nominal {
-        declaration,
-        arguments,
-    } = ty
-    else {
-        return Ok(None);
-    };
-    if crate::list_ops::is_list(ty)
-        || crate::iterator_ops::is_iter(ty)
-        || is_native_owned_vec_type(program, ty)
-        || crate::cleanup::is_owned_bounded_box_type(ty)
-    {
-        return Ok(None);
-    }
-    let item = program
-        .types
-        .iter()
-        .find(|item| item.id == *declaration)
-        .ok_or_else(|| backend_error(format!("unknown native type `{declaration}`")))?;
-    if !matches!(
-        item.kind,
-        ResolvedTypeDeclarationKind::Record { .. } | ResolvedTypeDeclarationKind::Class { .. }
-    ) {
-        return Ok(None);
-    }
-    if arguments.len() != item.type_parameters.len()
-        || (!arguments.is_empty()
-            && (!matches!(item.kind, ResolvedTypeDeclarationKind::Record { .. })
-                || !generic_record::is_admitted(program, ty)?))
-    {
-        return Err(backend_error(format!(
-            "native record representation requires admitted exact concrete arguments for `{}`",
-            ty.identity_key()
-        )));
-    }
-    Ok(Some(declaration))
-}
-
-fn variant_declaration_id<'a>(
-    program: &ResolvedProgram,
-    ty: &'a ResolvedType,
-) -> Result<Option<&'a DeclarationId>, Diagnostic> {
-    let ResolvedType::Nominal {
-        declaration,
-        arguments,
-    } = ty
-    else {
-        return Ok(None);
-    };
-    let item = program
-        .types
-        .iter()
-        .find(|item| item.id == *declaration)
-        .ok_or_else(|| backend_error(format!("unknown native type `{declaration}`")))?;
-    if !matches!(item.kind, ResolvedTypeDeclarationKind::Variant { .. }) {
-        return Ok(None);
-    }
-    if arguments.len() != item.type_parameters.len()
-        || (!crate::iterator_ops::step_shape(&program.declarations, ty)
-            && !crate::hir::admitted_owned_byte_prelude_instance(declaration, arguments)
-            && !crate::hir::is_admitted_concrete_owned_byte_variant(&program.declarations, ty)
-            && arguments.iter().any(|argument| {
-                !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
-                    && !(declaration.as_str() == crate::prelude::OPTION_ID
-                        && *argument == ResolvedType::U8)
-            }))
-    {
-        return Err(backend_error(format!(
-            "native variant representation requires admitted exact concrete arguments for `{}`",
-            ty.identity_key()
-        )));
-    }
-    Ok(Some(declaration))
 }
 
 pub(super) fn emit_function_prototypes(

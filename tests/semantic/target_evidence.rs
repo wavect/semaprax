@@ -508,6 +508,12 @@ fn graph_v10_through_v14_target_projections_are_admitted() {
 ///   bytes; `scalar_exports`/`text_exports` wrappers (not reached by these
 ///   three fixtures) gained the identical reset in place. Identity fields
 ///   were confirmed byte-identical field by field again before this re-take.
+/// * Re-taken for the v0.9.0 tag: the native C11 row grew 26671 -> 27032
+///   bytes for `fixture 0` (Wasm core unchanged at 268 bytes), and the graph
+///   revisions moved with the graph-surface additions since `77d68e492`
+///   (`828ae6077` record invariants, `ba0789aa3` String Collections v1,
+///   `8d4c2f8a3` REF-09..11). The same fingerprints re-derived the private
+///   desktop provider's v3 export symbols in the same change.
 #[test]
 fn whole_report_sha_kats_cover_patch_v1_v2_v3() {
     let reports = [
@@ -522,17 +528,17 @@ fn whole_report_sha_kats_cover_patch_v1_v2_v3() {
             .each_ref()
             .map(|report| sha256(&report.replace("0.259.0", "0.256.0"))),
         [
-            "dc9d387f9d7775e1f6b73f075420577961c3bf91aba1055595e51515535dc8fc".to_owned(),
-            "c15b8729914463a06d8278fd6916e707d0846f905c91fecaadfad2c4048fb23b".to_owned(),
-            "d7f8a57320f14900188730eadeb5f64c212719551912c0791797a23da9dcca9f".to_owned(),
+            "e56cd9899f802904a852481c2d3ccaf1de2534598dee2a3d8600b2643b5ece76".to_owned(),
+            "e4c38f31ff3c6d7609b46399081092d3d21a290c4f539fe503151099a65996c1".to_owned(),
+            "1e54792c94a03de98389259feb8f80c61ac64e7c28860390a788c94d45d7339a".to_owned(),
         ]
     );
     assert_eq!(
         reports.each_ref().map(|report| sha256(report)),
         [
-            "6faa250b181901da03dbcd3983541972573b22b06416ba5ef44ae93942e57a70".to_owned(),
-            "e3da526b723fe01a2f545f6bbfaf721cfa8300109c7777f85405c1671a174a30".to_owned(),
-            "c5bd250e5f73f7987484057c15c6907260b40b538753d1df24c14f5042ccdf60".to_owned(),
+            "fd56977267b32d66d80ff3da9a632da562a26d1e80459e0ada67917db92c4c7b".to_owned(),
+            "3d05b636300e13b80c7f4e973294ea95d4db4ef4324a404703aa419dc1d2ac1c".to_owned(),
+            "cc839eed47b047040e9a5318159c518899dff9c2bdc46ff8936809b075753eef".to_owned(),
         ]
     );
 }

@@ -23,6 +23,8 @@ pub(crate) enum NativeOutputProfile {
     SourceCommand,
     UsefulDataCommand,
     LanguageCommandIo,
+    StdinStreamCommandIo,
+    StdinStreamExitCommandIo,
     LineCommandIo,
     /// Bounded Language Network I/O v1: the line-command input/output
     /// machinery plus the closed TCP operation family and its settlement.
@@ -49,6 +51,7 @@ pub(super) struct StringRuntimeSelection {
     pub(super) provider_carriers: bool,
     pub(super) include_instances: bool,
     pub(super) reserved_bytes: bool,
+    pub(super) stream_epochs: bool,
     /// The single-file command profile always carries borrowed text and byte
     /// slices, which its argument and output adapters use.
     pub(super) command_carriers: bool,
@@ -60,6 +63,7 @@ impl StringRuntimeSelection {
         provider_carriers: false,
         include_instances: false,
         reserved_bytes: false,
+        stream_epochs: false,
         command_carriers: false,
     };
 }
@@ -90,6 +94,7 @@ impl NativeOutputProfile {
                     provider_carriers: false,
                     include_instances: true,
                     reserved_bytes: false,
+                    stream_epochs: false,
                     command_carriers: false,
                 }
             }
@@ -98,6 +103,7 @@ impl NativeOutputProfile {
                 provider_carriers: false,
                 include_instances: true,
                 reserved_bytes: false,
+                stream_epochs: false,
                 command_carriers: true,
             },
             Self::OwnedUtf8Provider => StringRuntimeSelection {
@@ -105,6 +111,7 @@ impl NativeOutputProfile {
                 provider_carriers: true,
                 include_instances: false,
                 reserved_bytes: false,
+                stream_epochs: false,
                 command_carriers: false,
             },
             Self::ReservedBytesProvider => StringRuntimeSelection {
@@ -112,7 +119,13 @@ impl NativeOutputProfile {
                 provider_carriers: true,
                 include_instances: false,
                 reserved_bytes: true,
+                stream_epochs: false,
                 command_carriers: false,
+            },
+            Self::StdinStreamCommandIo | Self::StdinStreamExitCommandIo => StringRuntimeSelection {
+                stream_epochs: true,
+                command_carriers: true,
+                ..StringRuntimeSelection::FROZEN
             },
             Self::UsefulDataCommand
             | Self::LanguageCommandIo
@@ -125,6 +138,13 @@ impl NativeOutputProfile {
             | Self::EnvironmentCommandIo
             | Self::ProcessCommandIo => StringRuntimeSelection::FROZEN,
         }
+    }
+
+    pub(super) const fn is_stdin_stream(self) -> bool {
+        matches!(
+            self,
+            Self::StdinStreamCommandIo | Self::StdinStreamExitCommandIo
+        )
     }
 
     pub(super) const fn tracks_present_strings(self) -> bool {
@@ -146,6 +166,8 @@ impl NativeOutputProfile {
                 | Self::SourceCommand
                 | Self::UsefulDataCommand
                 | Self::LanguageCommandIo
+                | Self::StdinStreamCommandIo
+                | Self::StdinStreamExitCommandIo
                 | Self::LineCommandIo
                 | Self::NetworkCommandIo
                 | Self::HttpsCommandIo
@@ -161,6 +183,8 @@ impl NativeOutputProfile {
             self,
             Self::UsefulDataCommand
                 | Self::LanguageCommandIo
+                | Self::StdinStreamCommandIo
+                | Self::StdinStreamExitCommandIo
                 | Self::LineCommandIo
                 | Self::NetworkCommandIo
                 | Self::HttpsCommandIo
@@ -178,6 +202,8 @@ impl NativeOutputProfile {
         matches!(
             self,
             Self::LanguageCommandIo
+                | Self::StdinStreamCommandIo
+                | Self::StdinStreamExitCommandIo
                 | Self::LineCommandIo
                 | Self::NetworkCommandIo
                 | Self::HttpsCommandIo

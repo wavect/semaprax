@@ -22,6 +22,35 @@ Both reference arms pass end-to-end checks. The TS arm passes `tsc`,
 entity, and its permission check covers all four roles against the schema's
 own predicates.
 
+For observed cross-account row behavior, run the separate
+[`checks/permission-api-self-test.mjs`](checks/permission-api-self-test.mjs)
+against a fresh, disposable SEMAPRAX or TypeScript API server. It creates two
+distinct Agent accounts and owned Task, Expense, and Leave rows; it checks
+each owner's reads and updates, the other Agent's denied writes, and the
+Expense row-hiding rule. This external API check is distinct from the
+generated server's `--self-test` and does not exercise a browser UI.
+The existing green-cycle transcript predates this external check and is not
+evidence that these cross-account requests have run; retain each arm's output
+as separate permission-API evidence when the scenario is executed.
+
+Example launch and check commands (replace each data path with a newly created
+empty disposable directory, use separate ports, and discard the directories
+afterward). Run each server command in Terminal A and its matching checker in
+Terminal B; stop the server and discard its data directory after the check:
+
+```sh
+# Terminal A: SEMAPRAX, with a fresh empty data directory
+node out/server.mjs --port 3101 --data /tmp/teamdesk-semaprax-605 --setup
+node benchmarks/webapp-tokens-v2/checks/permission-api-self-test.mjs \
+  --arm semaprax --base-url http://127.0.0.1:3101
+
+# Terminal A: TypeScript, with a separate fresh empty data directory
+PORT=3102 DATA_DIR=/tmp/teamdesk-typescript-605 npm run server --prefix \
+  benchmarks/webapp-tokens-v2/typescript
+node benchmarks/webapp-tokens-v2/checks/permission-api-self-test.mjs \
+  --arm typescript --base-url http://127.0.0.1:3102
+```
+
 ## Result 1: live agent runs (headline)
 
 Matched prompts, Claude Sonnet as a Claude Code subagent. Every agent starts

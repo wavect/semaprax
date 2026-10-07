@@ -116,11 +116,11 @@ fn consuming_record_traversal_selects_the_frozen_v3_contract() {
     let parsed = crate::check(&source, "owned-record-iterator.spx").unwrap();
     assert_eq!(
         crate::prelude::selected_for_program(&parsed).0,
-        crate::prelude::SCHEMA_V10
+        crate::prelude::SCHEMA_V11
     );
     assert_eq!(
-        crate::prelude::contract_bytes_v10(),
-        include_bytes!("../../../tests/fixtures/prelude-v10.contract")
+        crate::prelude::contract_bytes_v11(),
+        include_bytes!("../../../tests/fixtures/prelude-v11.contract")
     );
     let resolved = crate::hir::resolve(&parsed).unwrap();
     crate::hir::validate(&resolved).unwrap();
@@ -133,11 +133,11 @@ fn consuming_record_traversal_selects_the_frozen_v3_contract() {
     let graph_json = crate::graph::to_json(&parsed).unwrap();
     crate::graph::verify_json(&parsed, &graph_json).unwrap();
     let graph: serde_json::Value = serde_json::from_str(&graph_json).unwrap();
-    assert_eq!(graph["schema"], "semaprax.graph.v65");
-    assert_eq!(graph["prelude"]["schema"], crate::prelude::SCHEMA_V10);
+    assert_eq!(graph["schema"], "semaprax.graph.v66");
+    assert_eq!(graph["prelude"]["schema"], crate::prelude::SCHEMA_V11);
     assert_eq!(
         graph["prelude"]["digest"],
-        crate::prelude::digest_text_v10()
+        crate::prelude::digest_text_v11()
     );
 
     let mut forged = resolved.clone();
@@ -154,12 +154,12 @@ fn consuming_record_traversal_selects_the_frozen_v3_contract() {
 }
 
 #[test]
-fn prelude_v10_is_selected_only_by_the_record_iterator_extension() {
+fn prelude_v11_is_selected_only_by_the_record_iterator_extension() {
     let record_vec =
         crate::check(&program(DECLARATION, BUILD), "owned-record-vec-prelude.spx").unwrap();
     assert_ne!(
         crate::prelude::selected_for_program(&record_vec).0,
-        crate::prelude::SCHEMA_V10
+        crate::prelude::SCHEMA_V11
     );
     let bytes_iterator = crate::check(
         r#"module owned.bytes.iterator;
@@ -187,7 +187,7 @@ fn prelude_v10_is_selected_only_by_the_record_iterator_extension() {
     .unwrap();
     assert_eq!(
         crate::prelude::selected_for_program(&local_done).0,
-        crate::prelude::SCHEMA_V10
+        crate::prelude::SCHEMA_V11
     );
 }
 

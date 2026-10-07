@@ -73,7 +73,11 @@ fn checked(source: &str) -> (semaprax::hir::ResolvedProgram, String) {
 fn frozen_runtime() {
     // Independently extracted from the pre-profile runtime at 69e0b65b.
     // The concatenation is the exact unchanged default emitter order.
-    let source = include_str!("../../../src/codegen/native_byte_data.rs");
+    let source = concat!(
+        include_str!("../../../src/codegen/native_byte_data.rs"),
+        include_str!("../../../src/codegen/native_byte_data/stream_epoch.rs")
+    );
+    assert!(source.contains("STREAM_EPOCH_PREFIX_C"));
     let mut runtime = String::new();
     for name in ["PREFIX", "ALLOCATORS", "OPERATIONS", "DROP"] {
         let start = format!("const BYTE_DATA_{name}_C: &str = r#\"");

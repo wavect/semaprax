@@ -78,12 +78,13 @@ operation core.list.uncons list_uncons (list:List<i64>)->ListStep<i64>
 limit max_length:8192
 rule constructor_failure_leaves_input_unchanged
 rule uncons_shares_immutable_tail
-profile core.iter.owned-record.v3 element:explicit-record(two:Bytes,one:CopyScalar)
-operation core.vec.into-iter vec_into_iter <Record>(own:Vec<Record>)->own:Iter<Record>
-operation core.iter.next iter_next <Record>(own:Iter<Record>)->own:IterStep<Record>
-rule owned_record_iter nominal_and_field_id_authentication
-rule owned_record_iter_next atomic_whole_record_and_remainder_transfer
-rule owned_record_iter_drop suffix_leaf_order_then_backing
-wasm_import env.spx_iter_record_into_v3 (i64,i32)->i32
-wasm_import env.spx_iter_record_next_v3 (i64,i64,i32,i32,i32,i32,i32)->i32
-wasm_import env.spx_iter_record_drop_v3 (i64,i64)->void
+opaque core.stdin-stream.reader StdinReader copy:false contains_resource:false needs_drop:true lifecycle:core.stdin-stream.drop
+operation core.host.stdin-stream-open stdin_stream_open ()->own:StdinReader effect:process.stdin.read
+operation core.host.stdin-stream-next stdin_stream_next (own:StdinReader)->own:StdinReader effect:process.stdin.read
+operation core.stdin-stream.chunk stdin_stream_chunk (borrow:StdinReader)->borrow:Slice<u8>
+operation core.stdin-stream.eof stdin_stream_eof (borrow:StdinReader)->value:bool
+profile language-command-io.stream.v1 input:argv-utf8+stdin-stream.v1 chunk_bytes:4096 opens_per_path:1
+rule next_reuses_buffer_and_returns_same_owner
+rule chunk_loan_ends_before_next
+rule short_read_is_not_eof
+rule no_cumulative_stream_input_byte_limit

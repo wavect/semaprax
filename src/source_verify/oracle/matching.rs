@@ -448,6 +448,7 @@ pub(super) fn oracle_match(
         | Type::Bytes
         | Type::Str
         | Type::SliceU8
+        | Type::StringMap
         | Type::OnceFunction
         | Type::OnceFunctionI64
         | Type::OnceFunctionI64Pair

@@ -106,6 +106,7 @@ pub(super) fn ast_type_owned_capacity(ty: &Type) -> usize {
         | Type::Bytes
         | Type::Str
         | Type::SliceU8
+        | Type::StringMap
         | Type::OnceFunction
         | Type::OnceFunctionI64
         | Type::OnceFunctionI64Pair

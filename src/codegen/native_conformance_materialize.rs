@@ -337,7 +337,7 @@ fn materialize_result(
         | (ResolvedType::Bool, _)
         | (ResolvedType::String, _)
         | (ResolvedType::Str, _)
-        | (ResolvedType::SliceU8, _)
+        | (ResolvedType::SliceU8 | ResolvedType::StringMap, _)
         | (ResolvedType::ArrayU8(_), _)
         | (ResolvedType::Bytes, _)
         | (ResolvedType::TypeParameter { .. }, _)

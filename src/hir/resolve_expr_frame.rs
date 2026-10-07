@@ -540,7 +540,7 @@ pub(super) fn frame_owned_capacity(
                     | Type::F32
                     | Type::F64
                     | Type::Bool => 0,
-                    Type::String | Type::Bytes | Type::Str | Type::SliceU8 => 0,
+                    Type::String | Type::Bytes | Type::Str | Type::SliceU8 | Type::StringMap => 0,
                     Type::Named { name, arguments } => {
                         name.capacity() + arguments.capacity() * std::mem::size_of::<Type>()
                     }

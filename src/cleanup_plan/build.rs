@@ -462,7 +462,8 @@ fn resolved_type_owned_capacity(ty: &ResolvedType) -> usize {
         | ResolvedType::ArrayU8(_)
         | ResolvedType::F32
         | ResolvedType::F64
-        | ResolvedType::Bool => 0,
+        | ResolvedType::Bool
+        | ResolvedType::StringMap => 0,
         ResolvedType::String | ResolvedType::Bytes | ResolvedType::Str | ResolvedType::SliceU8 => 0,
         ResolvedType::TypeParameter { owner, .. } => owner.as_str().len(),
         ResolvedType::Nominal {
@@ -6108,6 +6109,7 @@ impl<'a> PlanBuilder<'a> {
             | ResolvedType::Bytes
             | ResolvedType::Str
             | ResolvedType::SliceU8
+            | ResolvedType::StringMap
             | ResolvedType::TypeParameter { .. }
             | ResolvedType::OnceFunction
             | ResolvedType::OnceFunctionI64

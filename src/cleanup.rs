@@ -17,7 +17,11 @@ use crate::hir::{
 
 mod generic_record;
 mod iterator;
+#[cfg(test)]
+mod owned_capacity;
 pub(crate) use iterator::{primitive_leaf_lifecycle, variant_leaf_lifecycle};
+#[cfg(test)]
+use owned_capacity::resolved_type_owned_capacity;
 pub const ITER_DROP_LIFECYCLE_ID: &str = "core.iter.drop";
 
 #[cfg(test)]
@@ -38,48 +42,6 @@ pub(crate) fn capacity_high_water() -> usize {
 #[cfg(test)]
 fn note_capacity_high_water(bytes: usize) {
     INVENTORY_CAPACITY_HIGH_WATER.with(|water| water.set(water.get().max(bytes)));
-}
-
-#[cfg(test)]
-fn resolved_type_owned_capacity(ty: &ResolvedType) -> usize {
-    match ty {
-        ResolvedType::Function { parameters, result } => {
-            parameters.capacity() * std::mem::size_of::<ResolvedType>()
-                + std::mem::size_of::<ResolvedType>()
-                + parameters
-                    .iter()
-                    .map(resolved_type_owned_capacity)
-                    .sum::<usize>()
-                + resolved_type_owned_capacity(result)
-        }
-        ResolvedType::OnceFunction
-        | ResolvedType::OnceFunctionI64
-        | ResolvedType::OnceFunctionI64Pair
-        | ResolvedType::MutFunctionI64
-        | ResolvedType::Unit
-        | ResolvedType::I64
-        | ResolvedType::I32
-        | ResolvedType::Char
-        | ResolvedType::U8
-        | ResolvedType::Usize
-        | ResolvedType::ArrayU8(_)
-        | ResolvedType::F32
-        | ResolvedType::F64
-        | ResolvedType::Bool => 0,
-        ResolvedType::String | ResolvedType::Bytes | ResolvedType::Str | ResolvedType::SliceU8 => 0,
-        ResolvedType::TypeParameter { owner, .. } => owner.as_str().len(),
-        ResolvedType::Nominal {
-            declaration,
-            arguments,
-        } => {
-            declaration.as_str().len()
-                + arguments.capacity() * std::mem::size_of::<ResolvedType>()
-                + arguments
-                    .iter()
-                    .map(resolved_type_owned_capacity)
-                    .sum::<usize>()
-        }
-    }
 }
 
 #[cfg(test)]

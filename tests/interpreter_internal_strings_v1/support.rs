@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 
-pub(super) struct Fixture {
+pub(crate) struct Fixture {
     pub root: PathBuf,
     pub source: PathBuf,
     permitted: Vec<PathBuf>,

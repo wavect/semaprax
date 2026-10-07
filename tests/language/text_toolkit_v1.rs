@@ -16,8 +16,8 @@ use semaprax::wasm::internal_strings::{emit_module, InternalStringOptions};
 use semaprax::{format, graph, hir, parse, verify};
 use serde_json::Value;
 
-#[path = "../interpreter_internal_strings_v1/support.rs"]
-mod support;
+// Loaded once by the sibling module; a second `mod` would duplicate it.
+use super::owned_string_loops_v1::support;
 use support::Fixture;
 
 const SOURCE: &str = r#"
@@ -317,8 +317,7 @@ fn core_wasm_refuses_text_toolkit_with_one_stable_diagnostic() {
         &["text.trim".to_owned()],
         InternalStringOptions::default(),
     )
-    .err()
-    .expect("Text Toolkit v1 is not lowered to Core Wasm");
+    .expect_err("Text Toolkit v1 is not lowered to Core Wasm");
     assert_eq!(error.code, "SPX-W116");
     assert_eq!(
         error.message,

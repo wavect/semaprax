@@ -13,7 +13,7 @@ use semaprax::{format, graph, hir, parse, verify};
 use serde_json::Value;
 
 #[path = "../interpreter_internal_strings_v1/support.rs"]
-mod support;
+pub(super) mod support;
 use support::Fixture;
 
 const SOURCE: &str = r#"

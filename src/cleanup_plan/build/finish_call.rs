@@ -28,6 +28,7 @@ impl PlanBuilder<'_> {
             || crate::host_io_ops::by_id(callee.as_str()).is_some()
             || super::super::deferred_commit::is_infallible_vec_operation(vec_op)
             || super::super::deferred_commit::is_infallible_box_operation(callee)
+            || callee.as_str() == crate::stdin_stream_ops::EOF_ID
         {
             let destination = self.expression_slot(expression, active_region)?;
             if let Some(destination) = destination.clone() {

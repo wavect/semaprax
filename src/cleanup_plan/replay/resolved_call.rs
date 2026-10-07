@@ -64,6 +64,15 @@ pub(super) fn resolved_call_params(
         if let Some(op) = crate::byte_ops::by_id(callee.as_str()) {
             return Ok(crate::byte_ops::resolved_params(op));
         }
+        if callee.as_str() == crate::stdin_stream_ops::EOF_ID {
+            if !type_arguments.is_empty() {
+                return Err(replay_error(
+                    function,
+                    "streaming EOF call has type arguments",
+                ));
+            }
+            return Ok(crate::stdin_stream_ops::PureOp::Eof.resolved_params());
+        }
         if let Some(op) = crate::host_io_ops::by_id(callee.as_str()) {
             return Ok(crate::host_io_ops::resolved_params(op));
         }

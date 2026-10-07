@@ -260,7 +260,7 @@ permit { process.args.read }
             let value = box_new<i64>(1);
             positive(box_get<i64>(value)) && args_len() == 0usize
         } => 0,
-        _ => 1
+        _ => 1,
     }
 }
 "#;

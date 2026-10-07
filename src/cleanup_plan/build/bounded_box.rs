@@ -40,6 +40,19 @@ impl PlanBuilder<'_> {
     }
 }
 
+pub(super) fn stream_eof_params(
+    has_instance: bool,
+    argument_count: usize,
+    type_arguments: &[ResolvedType],
+) -> Result<Vec<ResolvedParam>, Diagnostic> {
+    if has_instance || argument_count != 1 || !type_arguments.is_empty() {
+        return Err(plan_error(
+            "cleanup streaming EOF call has inconsistent shape",
+        ));
+    }
+    Ok(crate::stdin_stream_ops::PureOp::Eof.resolved_params())
+}
+
 pub(super) fn resolved_params(
     op: crate::box_ops::BoxOp,
     has_instance: bool,

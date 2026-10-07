@@ -87,7 +87,6 @@ impl ReplayBudget {
             merge_paths: false,
         }
     }
-
     #[cfg(test)]
     fn with_skeleton_limit(limit: usize) -> Self {
         Self {
@@ -1708,7 +1707,8 @@ fn collect_expression_statuses(
             } => {
                 if instance.is_none()
                     && (crate::byte_ops::by_id(callee.as_str()).is_some_and(|op| !op.is_fallible())
-                        || crate::host_io_ops::by_id(callee.as_str()).is_some())
+                        || crate::host_io_ops::by_id(callee.as_str()).is_some()
+                        || callee.as_str() == crate::stdin_stream_ops::EOF_ID)
                 {
                     // Byte-data operations are total after HIR admission, with
                     // the bounded `bytes_set`, `bytes_set5`, and `bytes_set1_or5_from_slice` stores, whose computed
@@ -3489,7 +3489,8 @@ fn expression_skeleton(
                             crate::host_io_ops::resolved_params(op)
                         } else if instance.is_none()
                             && (crate::iterator_ops::by_id(callee.as_str()).is_some()
-                                || crate::list_ops::by_id(callee.as_str()).is_some())
+                                || crate::list_ops::by_id(callee.as_str()).is_some()
+                                || callee.as_str() == crate::stdin_stream_ops::EOF_ID)
                         {
                             resolved_call_params(program, function, callee, None, type_arguments)?
                         } else if let Some(op) = vec_intrinsic {

@@ -27,6 +27,8 @@ impl PlanBuilder<'_> {
                 crate::str_ops::resolved_params(op)
             } else if let Some(op) = crate::byte_ops::by_id(callee.as_str()) {
                 crate::byte_ops::resolved_params(op)
+            } else if callee.as_str() == crate::stdin_stream_ops::EOF_ID {
+                bounded_box::stream_eof_params(false, args.len(), type_arguments)?
             } else if let Some(op) = crate::host_io_ops::by_id(callee.as_str()) {
                 crate::host_io_ops::resolved_params(op)
             } else if let Some(op) = crate::command_io_ops::by_id(callee.as_str()) {
@@ -142,6 +144,7 @@ impl PlanBuilder<'_> {
             || crate::host_io_ops::by_id(callee.as_str()).is_some()
             || super::super::deferred_commit::is_infallible_vec_operation(vec_op)
             || super::super::deferred_commit::is_infallible_box_operation(callee)
+            || callee.as_str() == crate::stdin_stream_ops::EOF_ID
             || crate::command_io_ops::by_id(callee.as_str()).is_some_and(|op| {
                 crate::command_io_ops::failure(op)
                     == crate::command_io_ops::CommandIoFailure::Infallible

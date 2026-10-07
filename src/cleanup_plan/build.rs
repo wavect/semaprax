@@ -632,7 +632,6 @@ impl<'a> PlanBuilder<'a> {
         let mut storage_to_slot = BTreeMap::new();
         let mut inventory_storage = BTreeMap::new();
         let mut slots = Vec::with_capacity(function.cleanup.slots.len());
-
         for inventory_slot in &function.cleanup.slots {
             let storage = match &inventory_slot.origin {
                 crate::cleanup::CleanupStorageOrigin::Parameter { value, .. }
@@ -667,7 +666,6 @@ impl<'a> PlanBuilder<'a> {
                 field_liveness_shape: inventory_slot.shape.clone(),
             });
         }
-
         let mut leaves = BTreeMap::new();
         for flag in &function.cleanup.flags {
             let storage = inventory_storage
@@ -692,7 +690,6 @@ impl<'a> PlanBuilder<'a> {
         }
         let next_flag = u32::try_from(leaves.len())
             .map_err(|_| plan_error("too many cleanup liveness flags"))?;
-
         let root = CleanupRegionId(0);
         let entry = BlockId(0);
         let mut builder = Self {
@@ -743,7 +740,6 @@ impl<'a> PlanBuilder<'a> {
         builder.seed_entry(root)?;
         Ok(builder)
     }
-
     fn seed_entry(&mut self, root: CleanupRegionId) -> Result<(), Diagnostic> {
         for storage in &self.function.cleanup.entry_state.live_owned_parameters {
             let plan_storage = self
@@ -817,12 +813,10 @@ impl<'a> PlanBuilder<'a> {
         }
         Ok(())
     }
-
     fn build(mut self) -> Result<CleanupPlan, Diagnostic> {
         let root = CleanupRegionId(0);
         let mut current = BlockId(0);
         let mut state = self.initial_state.clone();
-
         for (ordinal, contract) in self.function.requires.iter().enumerate() {
             let continued = self.lower_contract_expression(
                 contract,
@@ -2727,6 +2721,12 @@ impl<'a> PlanBuilder<'a> {
                                 )));
                             }
                             crate::byte_ops::resolved_params(op)
+                        } else if callee.as_str() == crate::stdin_stream_ops::EOF_ID {
+                            bounded_box::stream_eof_params(
+                                instance.is_some(),
+                                args.len(),
+                                type_arguments,
+                            )?
                         } else if let Some(op) = crate::host_io_ops::by_id(callee.as_str()) {
                             if instance.is_some() || args.len() != op.arity() {
                                 return Err(plan_error(format!(

@@ -785,4 +785,5 @@ fn streaming_inspection_calls_match_recursive_oracle() {
     // runtime owner renewal is checked separately by stdin_stream_ops::tests.
     compare_scalar_body("module test.stream_oracle; @id(\"stream.inspect\") fn main(reader: borrow StdinReader) -> bool { stdin_stream_eof(reader) }");
     compare_scalar_body("module test.stream_oracle; @id(\"stream.inspect\") fn main(reader: borrow StdinReader) -> usize { byte_len(stdin_stream_chunk(reader)) }");
+    compare_scalar_body("module test.stream_oracle; @id(\"stream.inspect\") fn main(reader: borrow StdinReader) -> usize { byte_len(1) }");
 }

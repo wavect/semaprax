@@ -111,6 +111,23 @@ fn source_hir_graph_and_renewal_keep_exact_streaming_facts() {
     assert_eq!(document["stdin_stream"]["failure"]["code"], 3);
 }
 #[test]
+fn direct_reader_refill_retains_same_owner_and_replayed_cleanup() {
+    let parsed = ast(&SOURCE.replace(
+        "reader = advance(reader);",
+        "reader = stdin_stream_next(reader);",
+    ));
+    let diagnostics = verify::verify(&parsed);
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    let program = hir::resolve(&parsed).unwrap();
+    hir::validate(&program).unwrap();
+    let run = program
+        .functions
+        .iter()
+        .find(|f| f.id.as_str() == "stream.run")
+        .unwrap();
+    assert_eq!(reader_reopens(run).len(), 1);
+}
+#[test]
 fn singleton_open_and_sealed_reader_refusals_have_source_locations() {
     refused(
         &SOURCE.replace(
@@ -245,6 +262,25 @@ permit { process.args.read, process.stderr.write, process.stdin.read, process.st
 @id("app.main") fn main() -> i64 { 0 }
 "#);
     let program = hir::resolve(&parsed).unwrap();
+    let run = program
+        .functions
+        .iter()
+        .find(|f| f.id.as_str() == "stream.run")
+        .unwrap();
+    let hir::ResolvedExprKind::Block { tail, .. } = &run.body.kind else {
+        panic!()
+    };
+    assert!(
+        matches!(&tail.kind, hir::ResolvedExprKind::Call { callee, .. } if callee.as_str() == EOF_ID)
+    );
+    // Borrow-only inspection publishes no operation failure source and never
+    // stages an owned Reader transfer. HIR validation independently replays it.
+    assert!(run
+        .cleanup_plan
+        .status_sources
+        .iter()
+        .all(|source| source.id.expression != tail.id));
+    hir::validate(&program).unwrap();
     let emitted = crate::codegen::emit_hir_c_with_stdin_stream(&program, "stream.run").unwrap();
     assert!(emitted.contains("spx_slice_u8_v1"));
     assert!(emitted.contains("captured_epoch"));
@@ -257,7 +293,7 @@ permit { process.stdin.read }
 @id("stream.run") fn run() -> bool {
     match true {
         true if { let reader = stdin_stream_open(); stdin_stream_eof(reader) } => true,
-        _ => false
+        _ => false,
     }
 }
 @id("app.main") fn main() -> i64 { 0 }
@@ -335,6 +371,11 @@ fn legacy_native_profile_refuses_forwarding_only_reader_signatures() {
             .is_some()
     );
     let refusal = crate::codegen::emit_hir_c(&program).unwrap_err();
-    assert_eq!(refusal.code, "SPX-B107");
-    assert!(refusal.message.contains("streaming"));
+    // The early profile boundary uses the native backend's B103 diagnostic,
+    // before carrier/runtime emission, even without a stream operation site.
+    assert_eq!(refusal.code, "SPX-B103");
+    assert_eq!(
+        refusal.message,
+        "stdin reader requires the explicit native streaming-command profile"
+    );
 }

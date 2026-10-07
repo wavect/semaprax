@@ -75,3 +75,11 @@ fn additive_transport_and_removal_select_the_collection_prelude() {
     }
     let old=crate::check("module test.old_map; @id(\"map.main\") fn main()->i64 {let map=map_new(1usize);0}","old-map.spx").unwrap();assert!(!program_uses(&old));
 }
+
+#[test]
+fn legacy_collection_transport_emits_carriers_without_local_operations() {
+    let source=crate::check("module test.map_header; @id(\"map.ignore\") fn ignore(borrow map:Map<string,i64>)->i64 {7} @id(\"map.main\") fn main()->i64 {0}","map-header.spx").unwrap();
+    let program=crate::hir::resolve(&source).unwrap();let native=crate::codegen::emit_hir_c(&program).unwrap();
+    assert!(native.contains("typedef struct spx_map_v1"));
+    assert!(crate::wasm::emit_resolved_module(&program).is_ok());
+}

@@ -41,7 +41,11 @@ pub(super) fn program_uses_collections(
     include_instances: bool,
 ) -> bool {
     let mut pending = Vec::new();
+    if program.types.iter().any(|declaration|match &declaration.kind {
+        crate::hir::ResolvedTypeDeclarationKind::Record{fields}|crate::hir::ResolvedTypeDeclarationKind::Class{fields,..}=>fields.iter().any(|field|field.ty==ResolvedType::StringMap),_=>false,
+    }){return true;}
     for function in super::string_runtime_functions(program, include_instances) {
+        if function.return_type==ResolvedType::StringMap || function.params.iter().any(|param|param.ty==ResolvedType::StringMap){return true;}
         pending.push(&function.body);
         pending.extend(function.requires.iter().chain(&function.ensures));
     }

@@ -503,6 +503,20 @@ class LiveCampaignTests(unittest.TestCase):
         self.assertFalse(imported["provider_origin_verified"])
         self.assertIsNone(imported["actual_billed_usd"])
 
+    def test_measurement_sidecars_support_symlinked_artifact_root(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            root = base / "artifact-alias"
+            (base / "artifacts").mkdir()
+            root.symlink_to(base / "artifacts", target_is_directory=True)
+            binding = self._measurement_binding(root)
+            receipt = self._write_receipt(root, binding)
+            imported_receipt = measurement_evidence._receipt(root, receipt, binding)
+            trace, turns = self._trace_fixture(root, binding)
+            imported_trace = measurement_evidence._trace(root, trace, binding, turns)
+        self.assertEqual(imported_receipt["sidecar_path"], "provider-receipts/semaprax-01.json")
+        self.assertEqual(imported_trace["sidecar_path"], "trace.json")
+
     def test_receipt_import_rejects_binding_document_and_decimal_drift(self):
         for mutation in ("binding", "document", "decimal", "path"):
             with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as directory:
@@ -542,8 +556,6 @@ class LiveCampaignTests(unittest.TestCase):
                 "task_prompt_tokens": 4,
                 "conversation_history_tokens": 6 if index == 0 else 1,
             }
-            if missing_bucket and index == 1:
-                composition["tool_schema_tokens"] = None
             # The second turn has smaller explicit composition counts so each
             # bucket still totals its raw input plus cache counters.
             if index == 1:
@@ -553,6 +565,8 @@ class LiveCampaignTests(unittest.TestCase):
                     "task_prompt_tokens": 1,
                     "conversation_history_tokens": 6,
                 })
+            if missing_bucket and index == 1:
+                composition["tool_schema_tokens"] = None
             rows.append({
                 "message_id": observed["message_id"],
                 "request_id": f"provider-request-{index + 1}",

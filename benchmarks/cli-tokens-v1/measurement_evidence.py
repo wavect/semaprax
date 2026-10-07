@@ -110,7 +110,9 @@ def _artifact_path(root: Path, relative: Any, label: str) -> Path:
 
 
 def _receipt(root: Path, sidecar: Path, expected: dict[str, Any]) -> dict[str, Any]:
-    sidecar = _artifact_path(root, str(sidecar.relative_to(root)), "provider receipt sidecar")
+    relative_sidecar = sidecar.relative_to(root)
+    root = root.resolve(strict=True)
+    sidecar = _artifact_path(root, str(relative_sidecar), "provider receipt sidecar")
     value, sidecar_hash = _read_json(sidecar, "provider receipt sidecar")
     _strict_keys(value, {"schema", "binding", "provenance", "billed"}, "provider receipt")
     if value.get("schema") != RECEIPT_SCHEMA:
@@ -166,7 +168,9 @@ def _trace(
     expected: dict[str, Any],
     turn_usage: Any,
 ) -> dict[str, Any]:
-    sidecar = _artifact_path(root, str(sidecar.relative_to(root)), "request-context trace sidecar")
+    relative_sidecar = sidecar.relative_to(root)
+    root = root.resolve(strict=True)
+    sidecar = _artifact_path(root, str(relative_sidecar), "request-context trace sidecar")
     value, sidecar_hash = _read_json(sidecar, "request-context trace sidecar")
     _strict_keys(value, {"schema", "binding", "provenance", "turns"}, "request-context trace")
     if value.get("schema") != TRACE_SCHEMA:

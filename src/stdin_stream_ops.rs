@@ -349,11 +349,10 @@ pub(crate) fn ast_expression_uses(expression: &crate::ast::Expr) -> bool {
                 params,
                 return_type,
                 ..
-            } => {
-                if ast_type_uses(return_type) || params.iter().any(|param| ast_type_uses(&param.ty))
-                {
-                    return true;
-                }
+            } if ast_type_uses(return_type)
+                || params.iter().any(|param| ast_type_uses(&param.ty)) =>
+            {
+                return true;
             }
             _ => {}
         }

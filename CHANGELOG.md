@@ -1,5 +1,10 @@
 # Changelog
 
+- Restore bounded CLI language help without changing its topic limits; complete
+  documentation metadata and navigation, and join relocated source into the
+  contracts that audit it. Make the stream-text native probe completion marker
+  independent of host newline translation.
+
 - GAP integer and data corrections: exact named `u8`/`i32` widening and checked
   integer conversions execute on the interpreter, C11 and Core Wasm; byte helpers
   use constant work, and equal-width `i32`/`u8` remainder preserves normalized

@@ -187,6 +187,8 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
         include_str!("../../../../../src/hir/type_reachability/nested_generic_function.rs"),
         include_str!("../../../../../src/hir/workspace_link/compiler_prelude.rs"),
         include_str!("../../../../../src/hir/workspace_link/profile_diagnostics.rs"),
+        include_str!("../../../../../src/hir/workspace_link/native_owner.rs"),
+        include_str!("../../../../../src/hir/workspace_link/native_owner/url_view.rs"),
     );
     let hir_validator = concat!(
         include_str!("../../../../../src/hir/validation.rs"),

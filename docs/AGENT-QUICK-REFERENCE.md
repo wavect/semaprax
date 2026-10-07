@@ -85,13 +85,13 @@ fn main() -> i64
   `Slice<u8>`.
 - `Bytes`, `Slice<u8>`: no literal; owned bytes and borrowed byte view.
 
-Types must match: `n: usize` needs `n < 5usize` (`SPX-T208`). Join strings
+`n: usize` needs `n < 5usize` (`SPX-T208`). Join strings
 with `string_concat`. No `as`; use `f64_from_i64`, `i64_from_f64` (truncates),
-`usize_from_i64`, or `i64_from_usize`. Exact integer widening uses
-`i64_from_u8`, `i64_from_i32`, or `usize_from_u8`.
+`usize_from_i64` or `i64_from_usize`.
 
 ## Control flow, mutation, contracts, effects
 
+Exact integer widening uses `i64_from_u8`, `i64_from_i32`, or `usize_from_u8`.
 Scalar conversions fail out of range or on NaN with `semaprax.convert.v1`.
 Exact integer widening and checked integer conversions run on the interpreter,
 native, and Core Wasm; float conversions and `string_from_str` retain
@@ -472,25 +472,23 @@ fn main() -> i64
 }
 ```
 
-- A `string` literal or `string_concat` result is owned. Borrow it with
-  `string_as_str(binding)`; the argument must be a plain `let` binding, not a
-  literal or call (`SPX-T266`). Pass the `str` view to `borrow str`
-  parameters and to `str_as_bytes`.
+- String literals and `string_concat` results are owned. `string_as_str(binding)`
+  requires a plain `let` binding, not a literal or call (`SPX-T266`). Pass its
+  view to `borrow str` parameters or `str_as_bytes`.
 - Byte functions take `borrow Slice<u8>`. Get one from `str_as_bytes(view)`,
   `array_as_slice(array_binding)`, or `bytes_as_slice(bytes_binding)`.
-- Build an owned bounded byte buffer as one write-once expression:
-  `bytes_zeroed` allocates at a `usize` literal capacity, and each `bytes_set`
-  link takes the previous link, any `usize` index expression, and the byte.
-  A binding freezes the result; read it with borrowed operations. You cannot
-  re-open a named binding (`SPX-T271`); a literal index at or above capacity is
-  `SPX-T272`, and a computed index outside the buffer fails at run time with
-  `semaprax.byte-buffer.v1` code 1 before anything is written.
+- Build a bounded byte buffer in one write-once expression: `bytes_zeroed`
+  requires a literal `usize` capacity; each `bytes_set` takes the prior link,
+  a `usize` index expression, and a byte. Binding freezes it for borrowed reads.
+  Re-opening a named binding is `SPX-T271`; a literal index >= capacity is
+  `SPX-T272`. A computed out-of-bounds index fails before writing with
+  `semaprax.byte-buffer.v1` code 1.
   [Owned Bounded Byte Buffer v1](OWNED-BOUNDED-BYTE-BUFFER-V1.md) owns the rule.
 - One form re-opens a frozen buffer: the same-owner replacement
   `buffer = bytes_set(buffer, index, value)`, where the assignment target and
   the `buffer` operand are the same `let mut` binding. That is also the only
-  `bytes_set` a bounded `while` body admits, so a loop fills a buffer the loop
-  did not allocate. `bytes_zeroed` stays outside the loop (`SPX-T267`), and a
+  `bytes_set` a bounded `while` admits. Allocate before the loop:
+  `bytes_zeroed` inside is `SPX-T267`. A
   borrowed view may not be live across the replacement (`SPX-T265`).
 
 ```semaprax
@@ -527,15 +525,13 @@ fn main() -> i64
 
 - `stdout_write(slice)` needs both `permit { process.stdout.write }` and
   `uses { process.stdout.write }` and returns the `usize` byte count.
-- Single-file `run` evaluates `app.main`, or `fn main` under any other `@id`,
-  in the bounded reference interpreter.
-  `--json`, `--max-steps`, and `--max-bytes` are available; `--native`
-  explicitly selects the generated C11 route. The exact
-  `process.stdout.write` authority automatically selects the bounded stdout
-  transcript interpreter, so the example above prints `banana!0`. A file that
-  permits `process.args.read`, `fs.read`, or `process.stderr.write` is a
-  command-line program instead (see below). `stdin_read` needs a project with
-  the `useful-data-command.v1` profile built for the native target.
+- Single-file `run` evaluates `app.main`, or `fn main` with another `@id`,
+  in the bounded interpreter. Options: `--json`, `--max-steps`, `--max-bytes`;
+  `--native` selects generated C11. Exact `process.stdout.write` authority
+  selects the bounded stdout transcript interpreter: the example prints
+  `banana!0`. Permitting `process.args.read`, `fs.read`, or
+  `process.stderr.write` selects command-line behavior (below). `stdin_read`
+  needs native project profile `useful-data-command.v1`.
 - `net_connect`, `net_send`, `net_recv`, `net_stream_stdout`, `net_wait`, and
   `net_close` are the effect-gated TCP client operations of
   [Bounded Language Network I/O v1](BOUNDED-LANGUAGE-NETWORK-IO-V1.md); they
@@ -549,10 +545,9 @@ fn main() -> i64
   listing, directory creation, removal, and atomic replacement. Only stat/list
   accept an empty path for the injected root. `std.fs` composes typed Path,
   FileInfo, and Reader/Writer values through these boundaries.
-- Reference-interpreter and generated native calls have a fixed 256-frame
-  recursion bound. Exceeding it is a reported runtime-capacity failure, not a
-  language status or process signal. Raw WebAssembly execution remains subject
-  to its engine's visible stack-limit trap.
+- Interpreter and native calls have a 256-frame recursion bound; exceeding it
+  reports runtime capacity, not a language status or process signal. Raw
+  WebAssembly uses its engine's stack-limit trap.
 
 ## Compiler-owned functions
 
@@ -563,13 +558,13 @@ fn main() -> i64
 | `string_concat` | `(a: string, b: string) -> string` consumes both |
 | `string_starts_with`, `string_contains` | `(s: string, other: string) -> bool` |
 | `string_from_char` | `(c: char) -> string` |
-| `string_from_i64` | `(value: i64) -> string` canonical decimal text |
-| `string_from_usize` | `(value: usize) -> string` canonical decimal text |
-| `string_slice` | `(s: string, start: i64, end: i64) -> string` byte offsets, on character boundaries |
-| `string_find` | `(s: string, needle: string, from: i64) -> i64` first byte offset at or after `from`, or `-1` |
+| `string_from_i64` | `(value: i64) -> string` canonical decimal |
+| `string_from_usize` | `(value: usize) -> string` canonical decimal |
+| `string_slice` | `(s: string, start: i64, end: i64) -> string` UTF-8 byte boundaries |
+| `string_find` | `(s: string, needle: string, from: i64) -> i64` first byte offset >= `from`, or `-1` |
 | `string_to_i64` | `(s: string) -> Option<i64>` optional `-`, then digits only |
-| `string_trim` | `(s: string) -> string` strips ASCII whitespace at both ends |
-| `string_byte_at` | `(s: string, index: i64) -> i64` the byte, `0..=255` |
+| `string_trim` | `(s: string) -> string` trims ASCII whitespace |
+| `string_byte_at` | `(s: string, index: i64) -> i64` byte `0..=255` |
 | `file_read_text` | `(path: borrow str) -> string` whole UTF-8 file, at most 64 KiB; needs `fs.read` |
 | `string_compare` | `(a: string, b: string) -> i64` `-1`/`0`/`1` in bytewise order |
 | `map_new`, `map_add`, `map_get_or`, … | `Map<string, i64>`; see String-keyed maps below |
@@ -597,17 +592,16 @@ fn main() -> i64
 | `file_list` | `(path: borrow Slice<u8>, length: usize, max: usize) -> own Bytes` |
 | `file_write_atomic` | `(path: borrow Slice<u8>, length: usize, data: borrow Slice<u8>, data_length: usize) -> usize` |
 | `box_new<T>` | `(value: T) -> Box<T>` for an explicit admitted Copy scalar |
-| `box_get<T>` | `(value: borrow Box<T>) -> T` synchronous Copy access |
-| `box_into_inner<T>` | `(value: own Box<T>) -> T` consuming extraction |
+| `box_get<T>` | `(value: borrow Box<T>) -> T` Copy read |
+| `box_into_inner<T>` | `(value: own Box<T>) -> T` consumes |
 
-Reserved names: redefining `string_len` is `SPX-S113`.
+Redefining reserved `string_len` is `SPX-S113`.
 
-Box operations allocate uniquely; an authored `record Box<T>` alone stays inline.
+Box operations allocate uniquely; authored `record Box<T>` stays inline.
 Owned payloads, public generic ABI, regions, arenas and shared ownership remain
 outside [Owned Bounded Box v1](OWNED-BOUNDED-BOX-V1.md).
 
-To print a computed integer from one file, render it, borrow the resulting
-string, and write its bytes:
+Render, borrow, and write integers:
 
 ```semaprax
 module app.print_count;
@@ -626,10 +620,9 @@ fn main() -> i64
 }
 ```
 
-`semaprax run count.spx` prints `42`. Use `string_from_i64` for signed values.
+`semaprax run count.spx` prints `42`; signed values use `string_from_i64`.
 
-Build text in a loop by appending to a `let mut` string. Keep the loop
-condition scalar; a string there is `SPX-T252`
+Loop with a `let mut` string and scalar condition (`SPX-T252`)
 ([Owned String Loops v1](OWNED-STRING-LOOPS-V1.md)):
 
 ```semaprax
@@ -655,30 +648,27 @@ fn main() -> i64
 }
 ```
 
-`semaprax run join.spx` prints `0,1,2,3,4`. `while string_len(text) < 4` is
-admitted for an available named String owner: the condition reads its current
-byte length without allocating. String literals and produced strings in
-conditions retain `SPX-T252`; for those, compute a scalar in the body and test
-that scalar on the next iteration. `text = "b";` on a string is `SPX-U105`; append with
-`text = string_concat(text, "b");` or bind a new name.
+`semaprax run join.spx` prints `0,1,2,3,4`. For an available String,
+`while string_len(text) < 4` reads byte length without allocation.
+Literal/produced strings in conditions are `SPX-T252`; compute the next
+scalar in the body. `text = "b";` is `SPX-U105`; use
+`text = string_concat(text, "b");` or rebind.
 
 ## Command-line programs
 
-A single file whose `permit` set uses `fs.read`, `process.args.read`, or
-`process.stderr.write` (with or without `process.stdout.write`) is a
-command-line program. `semaprax run lines.spx -- data.txt` (or `--native`,
-or a binary from `build --target native`) passes `data.txt` to `arg_utf8`,
-`main`'s result becomes the exit status (`0..=255`, not printed), and stdout
-and stderr appear after `main` returns. `file_read_text` reads relative paths
-below the current directory. A checked failure, such as a missing file or a
-slice out of range, prints one line to stderr and exits with 1.
-[Text Toolkit v1](TEXT-TOOLKIT-V1.md) owns the rules.
+Permitting `fs.read`, `process.args.read`, or `process.stderr.write`
+(with optional `process.stdout.write`) selects command-line behavior.
+`semaprax run lines.spx -- data.txt` (also `--native` or a binary from
+`build --target native`) passes `data.txt` to `arg_utf8`. `main` returns the
+exit status (`0..=255`, not printed); stdout/stderr appear after it returns. `file_read_text` reads relative paths
+below the current directory. A checked failure (missing file, out-of-range slice) prints one stderr line
+and exits with 1.
+Rules: [Text Toolkit v1](TEXT-TOOLKIT-V1.md).
 
-For input that must exceed the complete-snapshot limit, select Project v23 input
-`argv-utf8+stdin-stream.v1` and profile `language-command-io.stream.v1` explicitly.
-Its native command route uses one reusable 4096-byte buffer; `stdin_read()` stays
-on the snapshot profile. Open prefills, only a zero read means EOF, and a short
-positive read is a chunk. Process every borrowed chunk before renewing its owner:
+For streaming, select Project v23 input
+`argv-utf8+stdin-stream.v1` and profile `language-command-io.stream.v1`.
+Native reuses a 4096-byte buffer; `stdin_read()` stays a snapshot.
+Open prefills; zero read means EOF; short positive reads are chunks. Process borrowed chunks before owner renewal:
 
 ```semaprax
 module app.stream_count;
@@ -706,23 +696,21 @@ fn main() -> i64
 }
 ```
 
-Open/Next require `process.stdin.read`; Eof/Chunk are pure named-reader
-inspections. Open occurs once per reachable invocation path and is refused in
-loops. Reader has no constructor or generic/aggregate/public ABI escape. Chunk
-use after Next is `SPX-T265`; bind an inner processing block as above so the loan
-ends first. Exact acyclic `own StdinReader -> StdinReader` forwarding helpers may
-renew the same owner. See [the streaming contract](BOUNDED-STDIN-STREAM-V1.md) for
-the profile's current executable-gate status and failure/settlement rules.
+Open/Next require `process.stdin.read`; Eof/Chunk inspect named readers purely.
+Open occurs once per reachable path, never in loops. Reader has no
+constructor or generic/aggregate/public ABI escape. Chunk use after Next is
+`SPX-T265`; the inner block above ends its loan first. Exact acyclic
+`own StdinReader -> StdinReader` helpers may renew that owner.
+[Streaming contract](BOUNDED-STDIN-STREAM-V1.md): gates and settlement.
 
 Exit codes: `semaprax help language specifications`.
 
 On the pure single-file interpreter route, `run` tries the ordinary
-`semaprax.interpret.v1` profile first. On refusal, `run` retries with the
-internal String profile, which admits internal owned `string` parameters and
-results otherwise refused with `SPX-F102`. If both refuse, the ordinary diagnostic is
-reported. With `--json`, inspect the top-level `schema`: the retry emits
-`semaprax.interpret.internal-strings.v1`. Permit-selected command and stdout
-routes use their separate runners and do not use this interpreter fallback.
+`semaprax.interpret.v1` profile. On refusal, `run` retries with the
+internal String profile: owned `string` parameters and
+results otherwise refused with `SPX-F102`. If both refuse, report the ordinary
+diagnostic. The retry's JSON `schema` is `semaprax.interpret.internal-strings.v1`.
+Permit-selected command and stdout runners do not use this interpreter fallback.
 See [Internal String Interpreter v1](INTERPRETER-INTERNAL-STRINGS-V1.md) for
 the separate profile contract.
 
@@ -1157,9 +1145,8 @@ match its `Option<u8>` and use `i64_from_u8(byte)` to widen `Some` exactly.
 `std.bytes.get_or` is also available in `useful-data.v1`:
 `semaprax help library std.bytes.get_or`.
 
-A project puts `semaprax.toml` beside `src/`. Use the extensible table layout
-below. The committed examples' frozen, one-line-per-key
-`semaprax.project.v1` layout also remains admitted:
+A project puts `semaprax.toml` beside `src/`. Use the table layout below;
+the frozen one-line-per-key `semaprax.project.v1` layout remains admitted:
 
 ```toml
 schema = "semaprax.manifest.v1"
@@ -1180,38 +1167,34 @@ web = ["calculator.add"]
 std.num = "^0.1.0"
 ```
 
-Manifest bytes must be canonical: keep the shown table order, one blank line
-between tables, one-line arrays, and no comments. A non-canonical manifest
-fails with `SPX-J100`; its `help` line names the first differing line (for the frozen
-one-line-per-key layout, the six lines in order); an unknown or reserved table
-or key fails with `SPX-J120`. `[package] profile` selects the admitted consumer
+Canonical manifests use the shown table order, one blank line between tables,
+one-line arrays, and no comments. Otherwise `SPX-J100` names the first differing
+line in `help` (the frozen layout uses six ordered lines). Unknown/reserved tables
+or keys are `SPX-J120`. `[package] profile` selects the admitted consumer
 profile. `[dependencies]` links packages from the compiler's closed bundled
 `std.*` inventory at version `0.1.0`; unknown packages and unsatisfied ranges
 fail with `SPX-J121`, while ordinary non-bundled packages still require the
 separate resolution route. `[targets] matrix = ["wasm32"]` rejects native
 builds with `SPX-J122`.
 
-Import modules by stable identity, not by path:
+Import by stable identity:
 `use function @id("calculator.add") from calculator.core as add;` directly
-after the `module` line of the importing file; `entry` names the one module
-that declares `main`. Project v1 function parameters and results are limited
+after `module`; `entry` names the module declaring `main`. Project v1 function parameters and results are limited
 to Copy scalar values. Records, classes, variants, `Option`, and `Result` may
 be used as module-local implementation details inside scalar-signature
 functions, but cannot cross a function boundary; `SPX-G174` points at a
-declaration whose signature leaves that profile. A test module is an ordinary module whose `main` returns
-`0` on success; `semaprax test semaprax.toml` prints `project tests passed`.
-Give each check its own `fn test_<name>() -> i64` with an `@id` in the test
-module: every such zero-parameter function runs on its own and a failure is
-reported by stable id and outcome (`failed calculator.tests.test_add: returned
+declaration whose signature leaves that profile. A test module's `main` returns `0` on success;
+`semaprax test semaprax.toml` prints `project tests passed`. Each
+`fn test_<name>() -> i64` with an `@id` runs independently, without parameters.
+Failures report stable id and outcome (`failed calculator.tests.test_add: returned
 2`), with `cases` in the `--json` envelope. A violated `requires` or `ensures`
 reports the function, the clause, and the argument values (`contract: requires
 right != 0 in calculator.divide` / `arguments: left = 1, right = 0`).
 [Project Test Cases v1](PROJECT-TEST-CASES-V1.md) owns both.
-The [standard library catalog](STANDARD-LIBRARY-CATALOG.md), printed offline
-by `semaprax help library`, lists every `std.*` function with its contract,
-required project profile, and exact `[dependencies]` route. Add the dependency
-to the table manifest and import the function by its `@id` as above; an
-installed compiler supplies the bundled package without a repository checkout.
+`semaprax help library` prints the [standard library catalog](STANDARD-LIBRARY-CATALOG.md)
+offline: every `std.*` function, contract, profile, and `[dependencies]` route.
+Add the dependency and import its `@id`; the installed compiler supplies bundled
+packages without a checkout.
 For JSON escape expansion and decoded member-name comparison in a v25
 `stream-text` project, use [JSON String Query v1](JSON-STRING-QUERY-V1.md) and
 the `std.data.json.query` catalog entry.
@@ -1219,13 +1202,9 @@ Bounded Vec uses profile `owned-data-api.v1` and
 `std.collections = "^0.1.0"`. Import `std.collections.vec.*` by stable identity
 with an explicit Copy-scalar type argument. Mutators transfer and return the
 owner; the package has no public exports or stable generic ABI.
-For one API, prefer
-`semaprax help library <module|name|stable-id>`: the exact lookup prints only
-the matched stable identity, dependency row, required profile, signature,
-effects, and contracts. It does not do fuzzy or prefix search. The guarded
-`std.core.compare` result is 226 bytes and 68 lexical units, with guarded
-ceilings of 512 bytes and 128 units; both measures are more than 50 times
-smaller than the 22,076-byte, 6,662-unit full catalog.
+For one API, use `semaprax help library <module|name|stable-id>`: exact identity,
+dependency, profile, signature, effects, and contracts, without fuzzy or prefix
+search. [CLI Help v4](CLI-HELP-V4.md) owns the bounded lookup measurements.
 [Package Manifest v1](PACKAGE-MANIFEST-V1.md) owns the table layout,
 [Project Manifest v1](PROJECT-MANIFEST-V1.md) the frozen one,
 [examples/calculator-project](../examples/calculator-project/semaprax.toml) is

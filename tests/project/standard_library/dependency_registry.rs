@@ -16,14 +16,14 @@ fn every_issue_619_package_resolves_for_an_ordinary_dependency_consumer() {
         Case {
             directory: "async",
             dependency: "std.async",
-            profile: "useful-data.v1",
+            profile: "owned-data-api.v1",
             source: "module consumer.app;\nuse function @id(\"std.async.clamp_wait_ms\") from std.async as clamp_wait_ms;\n\n@id(\"consumer.main\")\nfn main() -> i64\n{\n    if clamp_wait_ms(70000usize) == 30000usize { 0 } else { 1 }\n}\n",
             transitive: &[],
         },
         Case {
             directory: "email",
             dependency: "std.email",
-            profile: "useful-data.v2",
+            profile: "owned-data-api.v1",
             source: "module consumer.app;\nuse function @id(\"std.email.recipient_count_admitted\") from std.email as recipient_count_admitted;\n\n@id(\"consumer.main\")\nfn main() -> i64\n{\n    if recipient_count_admitted(1usize) { 0 } else { 1 }\n}\n",
             transitive: &["std.log.redact"],
         },
@@ -79,7 +79,7 @@ fn main() -> i64
         Case {
             directory: "net",
             dependency: "std.net",
-            profile: "useful-data.v1",
+            profile: "owned-data-api.v1",
             source: "module consumer.app;\nuse function @id(\"std.net.port_is_valid\") from std.net as port_is_valid;\n\n@id(\"consumer.main\")\nfn main() -> i64\n{\n    if port_is_valid(443usize) { 0 } else { 1 }\n}\n",
             transitive: &[],
         },
@@ -94,7 +94,7 @@ fn main() -> i64
     let scratch = temporary("issue-619-dependencies");
     for case in cases {
         let project_root = scratch.join(case.directory);
-        let web_exports = if case.directory == "encoding-base64" {
+        let web_exports = if case.profile == "owned-data-api.v1" {
             "[]"
         } else {
             "[\"consumer.main\"]"
@@ -144,7 +144,12 @@ fn main() -> i64
             }
             Ok(())
         })
-        .unwrap();
+        .unwrap_or_else(|diagnostics| {
+            panic!(
+                "{} dependency consumer failed: {diagnostics:?}",
+                case.dependency
+            )
+        });
     }
     let _ = std::fs::remove_dir_all(scratch);
 }

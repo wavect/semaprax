@@ -79,6 +79,74 @@ pub(super) fn seal_changed_success_try_residual(
     let Some(expression) = find_resolved_expression(function, at) else {
         return Ok(());
     };
+    let Some(result) =
+        authenticated_changed_success_result(program, function, expression, destination)?
+    else {
+        return Ok(());
+    };
+    let root = CleanupPlace::whole(StorageId::ProvisionalResult);
+    let flags = validate_place(function, &root, storage, leaves)?;
+    let selected = flags
+        .iter()
+        .filter(|flag| {
+            leaves[flag]
+                .place
+                .projections
+                .starts_with(&destination.projections[..1])
+        })
+        .copied()
+        .collect::<Vec<_>>();
+    if selected.is_empty()
+        || selected.iter().any(|flag| !state.live_order.contains(flag))
+        || flags
+            .iter()
+            .any(|flag| state.live_order.contains(flag) && !selected.contains(flag))
+        || state
+            .conditional_variants
+            .iter()
+            .any(|variant| variant.root == root)
+    {
+        return Err(replay_error(
+            function,
+            "changed-success Try residual has inconsistent provisional liveness",
+        ));
+    }
+    let selected_set = selected.iter().copied().collect::<BTreeSet<_>>();
+    state.live_order.retain(|flag| !selected_set.contains(flag));
+    state.conditional_variants.push(ReplayConditionalVariant {
+        root,
+        variant: result.clone(),
+        cases: program
+            .declarations
+            .variant_cases(result)
+            .ok_or_else(|| replay_error(function, "changed-success Result has no case domain"))?
+            .iter()
+            .map(|case| {
+                (
+                    case.id.clone(),
+                    flags
+                        .iter()
+                        .filter(|flag| {
+                            leaves[flag]
+                                .place
+                                .projections
+                                .starts_with(&[case.id.clone()])
+                        })
+                        .copied()
+                        .collect(),
+                )
+            })
+            .collect(),
+    });
+    Ok(())
+}
+
+fn authenticated_changed_success_result<'a>(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    expression: &'a crate::hir::ResolvedExpr,
+    destination: &CleanupPlace,
+) -> Result<Option<&'a DeclarationId>, Diagnostic> {
     let ResolvedExprKind::Try {
         operand,
         result,
@@ -90,13 +158,13 @@ pub(super) fn seal_changed_success_try_residual(
         ..
     } = &expression.kind
     else {
-        return Ok(());
+        return Ok(None);
     };
     if operand.ty == *residual_type
         || destination.storage != StorageId::ProvisionalResult
         || destination.projections.as_slice() != [err_case.clone(), err_field.clone()]
     {
-        return Ok(());
+        return Ok(None);
     }
     let (
         ResolvedType::Nominal {
@@ -154,61 +222,25 @@ pub(super) fn seal_changed_success_try_residual(
             "changed-success Try residual has unauthenticated Result types",
         ));
     }
-    let root = CleanupPlace::whole(StorageId::ProvisionalResult);
-    let flags = validate_place(function, &root, storage, leaves)?;
-    let selected = flags
-        .iter()
-        .filter(|flag| {
-            leaves[flag]
-                .place
-                .projections
-                .starts_with(&destination.projections[..1])
-        })
-        .copied()
-        .collect::<Vec<_>>();
-    if selected.is_empty()
-        || selected.iter().any(|flag| !state.live_order.contains(flag))
-        || flags
-            .iter()
-            .any(|flag| state.live_order.contains(flag) && !selected.contains(flag))
-        || state
-            .conditional_variants
-            .iter()
-            .any(|variant| variant.root == root)
-    {
+    Ok(Some(result))
+}
+
+pub(super) fn owned_try_residual_result_place(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    expression: &crate::hir::ResolvedExpr,
+    destination: &CleanupPlace,
+) -> Result<CleanupPlace, Diagnostic> {
+    if destination.projections.is_empty() {
+        return Ok(destination.clone());
+    }
+    if authenticated_changed_success_result(program, function, expression, destination)?.is_none() {
         return Err(replay_error(
             function,
-            "changed-success Try residual has inconsistent provisional liveness",
+            "owned Result residual has unauthenticated projected staging",
         ));
     }
-    let selected_set = selected.iter().copied().collect::<BTreeSet<_>>();
-    state.live_order.retain(|flag| !selected_set.contains(flag));
-    state.conditional_variants.push(ReplayConditionalVariant {
-        root,
-        variant: result.clone(),
-        cases: program
-            .declarations
-            .variant_cases(result)
-            .ok_or_else(|| replay_error(function, "changed-success Result has no case domain"))?
-            .iter()
-            .map(|case| {
-                (
-                    case.id.clone(),
-                    flags
-                        .iter()
-                        .filter(|flag| {
-                            leaves[flag]
-                                .place
-                                .projections
-                                .starts_with(&[case.id.clone()])
-                        })
-                        .copied()
-                        .collect(),
-                )
-            })
-            .collect(),
-    });
-    Ok(())
+    Ok(CleanupPlace::whole(StorageId::ProvisionalResult))
 }
 
 /// Resolve one call's parameters for replay: compiler-owned operations carry

@@ -1361,6 +1361,10 @@ fn csv_record_field_decoded_len(input: borrow Slice<u8>, record_start: usize, fi
     requires csv_record_field_present(input, record_start, field_start)
 ```
 
+## `std.data.csv.decode`
+
+Package `std/data-csv`, tier `portable`, status partial. Required project profile: `useful-data.v2`. Dependency: `std.data.csv = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
 ### `std.data.csv.record-field-into`
 
 ```semaprax

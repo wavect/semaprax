@@ -55,21 +55,23 @@ const IMPORTED_RECORD_PROVIDER: &str = r#"module fixture.types;
  @id("fixture.line.right") right:Bytes,
  @id("fixture.line.marker") marker:i64,
 }
-@id("fixture.types.main") fn main()->i64 {0}
+@id("fixture.types.marker") fn marker(value:i64)->i64 {value}
 "#;
 
 fn fixture(label: &str, source: &str) -> Fixture {
     let fixture = Fixture::owned_vec(label, false);
     if source.contains("fixture.consume") {
         let manifest = std::fs::read_to_string(fixture.manifest()).unwrap();
-        std::fs::write(
-            fixture.manifest(),
-            manifest.replace(
-                "version = \"0.1.0\"",
-                "version = \"0.1.0\"\nprofile = \"owned-data-api.v1\"",
-            ),
-        )
-        .unwrap();
+        let manifest = manifest.replace(
+            "version = \"0.1.0\"",
+            "version = \"0.1.0\"\nprofile = \"owned-data-api.v1\"",
+        );
+        let manifest = if source == RECORD_SOURCE || source == IMPORTED_RECORD_SOURCE {
+            manifest.replace("web = [\"fixture.public\"]", "web = []")
+        } else {
+            manifest
+        };
+        std::fs::write(fixture.manifest(), manifest).unwrap();
     }
     let path = fixture.0.join("src/app.spx");
     let parsed = semaprax::parse(source, &path).unwrap();

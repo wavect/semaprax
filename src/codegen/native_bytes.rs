@@ -12,7 +12,7 @@ use crate::diagnostic::Diagnostic;
 use crate::hir::{DeclarationId, ExpressionId, ResolvedFunction};
 use crate::variant_layout::VariantLayout;
 
-use super::native_emit::{c_case_symbol, c_field_symbol};
+use super::native_emit::c_case_symbol;
 
 mod nested_owned;
 mod owned_leaf;
@@ -29,6 +29,7 @@ pub(super) struct NativeBytesPlan {
     slots: BTreeMap<CleanupPlace, ByteSlot>,
     storage_leaves: BTreeMap<StorageId, Vec<CleanupPlace>>,
     transitions: BTreeMap<ExpressionId, Vec<CleanupTransition>>,
+    variant_case_transitions: BTreeMap<(ExpressionId, DeclarationId), Vec<CleanupTransition>>,
     finalizers: Vec<ByteSlot>,
     scope_exits: Vec<ScopeExit>,
     referenced_places: BTreeSet<CleanupPlace>,
@@ -105,7 +106,29 @@ impl NativeBytesPlan {
             return Ok(None);
         }
         let mut transitions = BTreeMap::<ExpressionId, Vec<CleanupTransition>>::new();
+        let mut variant_case_transitions = BTreeMap::new();
         for block in &function.cleanup_plan.blocks {
+            for (at, case) in block
+                .transitions
+                .iter()
+                .filter_map(|transition| match transition {
+                    CleanupTransition::AuthenticateVariantCase { at, case, .. } => Some((at, case)),
+                    _ => None,
+                })
+            {
+                let selected = block
+                    .transitions
+                    .iter()
+                    .filter(|transition| nested_owned::transition_at(transition) == Some(at))
+                    .cloned()
+                    .collect();
+                if variant_case_transitions
+                    .insert((at.clone(), case.clone()), selected)
+                    .is_some()
+                {
+                    return Err(error("variant case transition block is duplicated"));
+                }
+            }
             for transition in &block.transitions {
                 let at = match transition {
                     CleanupTransition::Initialize { at, .. }
@@ -158,7 +181,7 @@ impl NativeBytesPlan {
             .flat_map(|(storage, leaves)| {
                 let reachable = reachable_cases.get(storage);
                 leaves.iter().filter_map(move |place| {
-                    let [case, _field] = place.projections.as_slice() else {
+                    let [case, _field, ..] = place.projections.as_slice() else {
                         return None;
                     };
                     reachable
@@ -266,6 +289,7 @@ impl NativeBytesPlan {
             slots,
             storage_leaves,
             transitions,
+            variant_case_transitions,
             finalizers,
             scope_exits,
             referenced_places,
@@ -380,7 +404,7 @@ impl NativeBytesPlan {
                 case.tag
             ));
             for place in case_leaves {
-                let [case_id, field_id] = place.projections.as_slice() else {
+                let [case_id, field_id, ..] = place.projections.as_slice() else {
                     return Err(error(
                         "owned variant parameter Bytes leaf is not case-qualified",
                     ));
@@ -393,7 +417,7 @@ impl NativeBytesPlan {
                     "        if ({}) spx_runtime_invariant_failure(\"owned variant parameter leaf already live\");\n        {} = {};\n        {} = true;\n",
                     slot.flag,
                     slot.value,
-                    slot.kind.move_call(&format!("({parameter}->spx_payload.{}.{})",c_case_symbol(case_id),c_field_symbol(field_id))),
+                    slot.kind.move_call(&format!("({parameter}->spx_payload.{}.{})",c_case_symbol(case_id),nested_owned::variant_field_path(case, &place.projections[1..])?)),
                     slot.flag,
                 ));
             }
@@ -553,6 +577,24 @@ impl NativeBytesPlan {
                     | CleanupTransition::StageCopyResult { .. } => None,
                 })
         })
+    }
+    pub(super) fn apply_try_success_at(
+        &self,
+        at: &ExpressionId,
+        case: &DeclarationId,
+    ) -> Result<(String, &str), Diagnostic> {
+        let transitions = self
+            .variant_case_transitions
+            .get(&(at.clone(), case.clone()))
+            .ok_or_else(|| error("owned Result success has no authenticated cleanup block"))?;
+        let output = self.apply_transitions(transitions.iter())?;
+        let result = transitions
+            .iter()
+            .rev()
+            .find_map(nested_owned::transition_destination)
+            .and_then(|destination| self.slots.get(destination))
+            .ok_or_else(|| error("owned Result success has no Bytes destination"))?;
+        Ok((output, result.value.as_str()))
     }
     pub(super) fn transfer_to(
         &self,
@@ -843,7 +885,7 @@ impl NativeBytesPlan {
                 .iter()
                 .filter(|place| place.projections.first() == Some(&case.case))
             {
-                let [case_id, field_id] = place.projections.as_slice() else {
+                let [case_id, field_id, ..] = place.projections.as_slice() else {
                     return Err(error(
                         "owned variant carrier Bytes leaf is not case-qualified",
                     ));
@@ -857,7 +899,7 @@ impl NativeBytesPlan {
                     case.tag,
                     slot.flag,
                     c_case_symbol(case_id),
-                    c_field_symbol(field_id),
+                    nested_owned::variant_field_path(case, &place.projections[1..])?,
                     slot.kind.move_call(&slot.value),
                     slot.flag,
                     slot.flag,
@@ -910,63 +952,6 @@ impl NativeBytesPlan {
                 "{} = {};\n",
                 slot.value,
                 slot.kind.move_call(&format!("(({carrier}).{path})")),
-            ));
-        }
-        Ok(output)
-    }
-
-    pub(super) fn initialize_variant_result_at(
-        &self,
-        at: &ExpressionId,
-        carrier: &str,
-        layout: &VariantLayout,
-    ) -> Result<String, Diagnostic> {
-        let mut destinations = self.transitions.get(at).into_iter().flatten().filter_map(
-            |transition| match transition {
-                CleanupTransition::InitializeVariant {
-                    destination,
-                    variant,
-                    ..
-                } if destination.projections.is_empty()
-                    && self.has_variant_leaves(&destination.storage)
-                    && variant == &layout.variant =>
-                {
-                    Some(destination)
-                }
-                _ => None,
-            },
-        );
-        let destination = destinations
-            .next()
-            .ok_or_else(|| error("owned variant result has no canonical initialization"))?;
-        if destinations.next().is_some() {
-            return Err(error("owned variant result initialization is ambiguous"));
-        }
-        let mut output = format!(
-            "if (({carrier}).spx_tag >= UINT32_C({})) spx_runtime_invariant_failure(\"invalid owned variant result tag\");\n",
-            layout.cases.len()
-        );
-        for place in self.leaves_under(destination)? {
-            let [case_id, field_id] = place.projections.as_slice() else {
-                return Err(error(
-                    "owned variant result Bytes leaf is not case-qualified",
-                ));
-            };
-            let case = layout
-                .case(case_id)
-                .ok_or_else(|| error("owned variant result case disagrees with layout"))?;
-            if case.field(field_id).is_none() {
-                return Err(error("owned variant result field disagrees with layout"));
-            }
-            let slot = &self.slots[place];
-            output.push_str(&format!(
-                "if (({carrier}).spx_tag == UINT32_C({})) {{\n    if ({}) spx_runtime_invariant_failure(\"owned variant result leaf already live\");\n    {} = {};\n    {} = true;\n}} else if ({}) spx_runtime_invariant_failure(\"inactive owned variant result leaf is live\");\n",
-                case.tag,
-                slot.flag,
-                slot.value,
-                slot.kind.move_call(&format!("(({carrier}).spx_payload.{}.{})",c_case_symbol(case_id),c_field_symbol(field_id))),
-                slot.flag,
-                slot.flag,
             ));
         }
         Ok(output)
@@ -1096,20 +1081,14 @@ impl NativeBytesPlan {
         destination: &CleanupPlace,
         case: &DeclarationId,
     ) -> Result<Vec<(&ByteSlot, &ByteSlot)>, Diagnostic> {
+        let source_case_index = source.projections.len();
+        let destination_case_index = destination.projections.len();
         Ok(self
             .transfer_pairs(source, destination)?
             .into_iter()
             .filter(|(source, destination)| {
-                source
-                    .place
-                    .projections
-                    .get(source.place.projections.len().saturating_sub(2))
-                    == Some(case)
-                    && destination
-                        .place
-                        .projections
-                        .get(destination.place.projections.len().saturating_sub(2))
-                        == Some(case)
+                source.place.projections.get(source_case_index) == Some(case)
+                    && destination.place.projections.get(destination_case_index) == Some(case)
             })
             .collect())
     }

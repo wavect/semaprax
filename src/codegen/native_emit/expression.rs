@@ -25,6 +25,7 @@ mod owned_buffer;
 mod owned_try;
 mod owned_values;
 mod places;
+mod record_iterator_item;
 mod stdin_stream;
 mod unary;
 mod variant_equality;
@@ -1910,6 +1911,13 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                     &field.ty,
                                     "match payload binding",
                                 )?;
+                                let record_iterator_item = record_iterator_item::is_exact(
+                                    self.program,
+                                    &scrutinee.ty,
+                                    case,
+                                    &field.field,
+                                    &field.ty,
+                                );
                                 let name = if is_direct_plan_owned(self.program, &field.ty)
                                     || crate::iterator_ops::is_iter(&field.ty)
                                 {
@@ -1963,6 +1971,17 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                             ));
                                         }
                                     }
+                                } else if record_iterator_item {
+                                    record_iterator_item::bind(
+                                        self,
+                                        &staged,
+                                        case,
+                                        &field.field,
+                                        &field.ty,
+                                        &pattern_field.binding,
+                                        *mode,
+                                        source_storage.as_ref(),
+                                    )?
                                 } else if pattern_field.binding.ownership
                                     == hir::OwnershipMode::Value
                                     && crate::iterator_ops::is_step(&scrutinee.ty)
@@ -2059,9 +2078,18 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     }
                     if *mode == hir::ResolvedMatchMode::Own {
                         let anchors = match &arm.pattern {
-                            hir::ResolvedMatchPattern::Variant { fields, .. } => fields
+                            hir::ResolvedMatchPattern::Variant { case, fields, .. } => fields
                                 .iter()
-                                .filter(|own| is_direct_plan_owned(self.program, &own.binding.ty))
+                                .filter(|own| {
+                                    is_direct_plan_owned(self.program, &own.binding.ty)
+                                        || record_iterator_item::is_exact(
+                                            self.program,
+                                            &scrutinee.ty,
+                                            case,
+                                            &own.field,
+                                            &own.binding.ty,
+                                        )
+                                })
                                 .map(|field| {
                                     crate::cleanup_plan::StorageId::Value(field.binding.id.clone())
                                 })

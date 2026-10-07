@@ -3720,7 +3720,7 @@ impl Emitter<'_> {
                     }
                 }
             };
-        if place.projections.len() == 2 && is_variant(self.program, value_type(&value))? {
+        if place.projections.len() >= 2 && is_variant(self.program, value_type(&value))? {
             let Value::Aggregate { pointer, ty } = value else {
                 return Err(error("variant cleanup leaf base is not aggregate storage"));
             };
@@ -3731,7 +3731,7 @@ impl Emitter<'_> {
             let field = case
                 .field(&place.projections[1])
                 .ok_or_else(|| error("variant cleanup leaf field is absent"))?;
-            return value_at(
+            value = value_at(
                 Pointer {
                     local: pointer.local,
                     offset: pointer
@@ -3742,7 +3742,11 @@ impl Emitter<'_> {
                 },
                 field.ty.clone(),
                 self.program,
-            );
+            )?;
+            for projection in &place.projections[2..] {
+                value = self.project_value(&value, projection)?;
+            }
+            return Ok(value);
         }
         for projection in &place.projections {
             value = self.project_value(&value, projection)?;
@@ -3832,7 +3836,7 @@ impl Emitter<'_> {
             .plan
             .cleanup_place_flags
             .iter()
-            .filter(|(leaf, _)| leaf.storage == place.storage && leaf.projections.len() == 2)
+            .filter(|(leaf, _)| leaf.storage == place.storage && leaf.projections.len() >= 2)
             .map(|(leaf, flag)| (leaf.clone(), *flag))
             .collect::<Vec<_>>();
         if leaves.is_empty() {
@@ -3893,7 +3897,7 @@ impl Emitter<'_> {
             .filter(|(leaf, _)| {
                 leaf.storage == place.storage
                     && leaf.projections.starts_with(&place.projections)
-                    && leaf.projections.len() == place.projections.len() + 2
+                    && leaf.projections.len() >= place.projections.len() + 2
             })
             .map(|(leaf, flag)| (leaf.clone(), *flag))
             .collect::<Vec<_>>();
@@ -3982,7 +3986,7 @@ impl Emitter<'_> {
             .filter(|(leaf, _)| {
                 leaf.storage == place.storage
                     && leaf.projections.starts_with(&place.projections)
-                    && leaf.projections.len() == place.projections.len() + 2
+                    && leaf.projections.len() >= place.projections.len() + 2
             })
             .map(|(leaf, flag)| (leaf.clone(), *flag))
             .collect::<Vec<_>>();
@@ -4205,7 +4209,7 @@ impl Emitter<'_> {
             .filter(|leaf| {
                 leaf.storage == sources[0].storage
                     && leaf.projections.starts_with(&sources[0].projections)
-                    && leaf.projections.len() == sources[0].projections.len() + 2
+                    && leaf.projections.len() >= sources[0].projections.len() + 2
             })
             .cloned()
             .collect::<Vec<_>>();
@@ -4369,11 +4373,23 @@ impl Emitter<'_> {
         expression: &ExpressionId,
         selected: &DeclarationId,
     ) -> Result<(), Diagnostic> {
-        let transitions = self
-            .cleanup_plan
-            .blocks
+        let mut blocks = self.cleanup_plan.blocks.iter().filter(|block| {
+            block.transitions.iter().any(|transition| {
+                matches!(transition,
+                        crate::cleanup_plan::CleanupTransition::AuthenticateVariantCase {
+                            at, case, ..
+                        } if at == expression && case == selected)
+            })
+        });
+        let block = blocks
+            .next()
+            .ok_or_else(|| error("owned Try success has no authenticated cleanup block"))?;
+        if blocks.next().is_some() {
+            return Err(error("owned Try success cleanup block is ambiguous"));
+        }
+        let transitions = block
+            .transitions
             .iter()
-            .flat_map(|block| &block.transitions)
             .filter(|transition| match transition {
                 crate::cleanup_plan::CleanupTransition::Initialize { at, .. }
                 | crate::cleanup_plan::CleanupTransition::Transfer { at, .. }

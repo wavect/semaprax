@@ -6,28 +6,37 @@ fn source(success: &str, mode: usize, manual: bool) -> String {
         "bool" => (
             "byte_len(bytes_as_slice(payload)) == 0usize",
             "computed",
-            "if value { 10 } else { 11 }",
+            "if success_value { 10 } else { 11 }",
         ),
         "i64" => (
             "if byte_len(bytes_as_slice(payload)) == 0usize { 20 } else { 22 }",
             "computed",
-            "value",
+            "success_value",
         ),
         _ => unreachable!(),
     };
     let post = mode != 1 && mode != 2;
-    let route = if manual { "manual" } else { "convert" };
+    let call = |kind: usize, divisor: usize| {
+        if manual {
+            format!("manual({kind}, {divisor})")
+        } else {
+            format!("convert(make({kind}), {divisor})")
+        }
+    };
     let entry = match mode {
         // Empty/nonempty success plus an Err whose zero divisor proves that
         // propagation skips every later expression.
         0 => format!(
-            "consume({route}(make(0), 1)) + consume({route}(make(1), 1)) + consume({route}(make(2), 0))"
+            "consume({}) + consume({}) + consume({})",
+            call(0, 1),
+            call(1, 1),
+            call(2, 0)
         ),
         // Postconditions run for both the ordinary and propagated-Err lanes.
-        1 => format!("consume({route}(make(0), 1))"),
-        2 => format!("consume({route}(make(2), 0))"),
+        1 => format!("consume({})", call(0, 1)),
+        2 => format!("consume({})", call(2, 0)),
         // The success payload is already extracted when this failure is selected.
-        3 => format!("consume({route}(make(1), 0))"),
+        3 => format!("consume({})", call(1, 0)),
         _ => unreachable!(),
     };
     format!(
@@ -52,25 +61,34 @@ fn convert(value: own Result<Bytes, Bytes>, divisor: i64) -> Result<{success}, B
   Result<{success}, Bytes>::Ok {{ value: {ok_value} }}
 }}
 @id("changed.manual")
-fn manual(value: own Result<Bytes, Bytes>, divisor: i64) -> Result<{success}, Bytes>
+fn manual(kind: i64, divisor: i64) -> Result<{success}, Bytes>
   ensures {post}
 {{
-  match own value {{
-    Result::Ok {{ value: payload }} => {{
-      let unrelated_input = [7u8];
-      let unrelated = bytes_copy(array_as_slice(unrelated_input));
-      let _ = 1 / divisor;
-      let computed = {computed};
-      Result<{success}, Bytes>::Ok {{ value: {ok_value} }}
-    }},
-    Result::Err {{ error: error }} => Result<{success}, Bytes>::Err {{ error: error }},
+  let input = [4u8, 5u8];
+  let error = [9u8];
+  if kind == 0 {{
+    let payload = bytes_zeroed(0usize);
+    let unrelated_input = [7u8];
+    let unrelated = bytes_copy(array_as_slice(unrelated_input));
+    let _ = 1 / divisor;
+    let computed = {computed};
+    Result<{success}, Bytes>::Ok {{ value: {ok_value} }}
   }}
+  else if kind == 1 {{
+    let payload = bytes_copy(array_as_slice(input));
+    let unrelated_input = [7u8];
+    let unrelated = bytes_copy(array_as_slice(unrelated_input));
+    let _ = 1 / divisor;
+    let computed = {computed};
+    Result<{success}, Bytes>::Ok {{ value: {ok_value} }}
+  }}
+  else {{ Result<{success}, Bytes>::Err {{ error: bytes_copy(array_as_slice(error)) }} }}
 }}
-@id("changed.consume") fn consume(value: own Result<{success}, Bytes>) -> i64 {{
-  match own value {{
-    Result::Ok {{ value: value }} => {inspect_ok},
-    Result::Err {{ error: payload }} => {{
-      let view = bytes_as_slice(payload);
+@id("changed.consume") fn consume(packet: own Result<{success}, Bytes>) -> i64 {{
+  match own packet {{
+    Result::Ok {{ value: success_value }} => {inspect_ok},
+    Result::Err {{ error: error_payload }} => {{
+      let view = bytes_as_slice(error_payload);
       match byte_get(view, 0usize) {{
         Option::Some {{ value: byte }} => if byte == 9u8 {{ 12 }} else {{ 0 }},
         Option::None {{}} => 0,
@@ -120,8 +138,8 @@ fn changed_success_result_preserves_error_and_settles_every_lane_on_all_engines(
                 run_native(&parsed, expected);
             }
             if node {
-                // A manual `match own` implementation is the independent
-                // memory-copy baseline for the new typed reconstruction.
+                // Direct target-Result construction is the independent
+                // memory-copy baseline for typed residual reconstruction.
                 run_wasm_source(&parsed, &source(success, mode, true), expected);
             }
         }
@@ -155,10 +173,10 @@ fn convert(value: own Result<Bytes, Bytes>) -> Result<bool, Bytes> {
   let empty = byte_len(bytes_as_slice(payload)) == 0usize;
   Result<bool, Bytes>::Ok { value: empty }
 }
-@id("changed.refusal.consume") fn consume(value: own Result<bool, Bytes>) -> i64 {
-  match own value {
-    Result::Ok { value: value } => if value { 1 } else { 2 },
-    Result::Err { error: error } => 3,
+@id("changed.refusal.consume") fn consume(packet: own Result<bool, Bytes>) -> i64 {
+  match own packet {
+    Result::Ok { value: success_value } => if success_value { 1 } else { 2 },
+    Result::Err { error: error_payload } => 3,
   }
 }
 @id("app.main") fn main() -> i64 { consume(convert(make())) }

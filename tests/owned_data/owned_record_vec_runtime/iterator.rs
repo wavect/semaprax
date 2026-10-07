@@ -11,10 +11,10 @@ const MANUAL_AND_LOOP: &str = r#"
  }, }
 }
 @id("app.main") fn main()->i64 {
- let mut values=vec_with_capacity<Line>(3usize);
- values=vec_push<Line>(values,Line{id:bytes_zeroed(1usize),label:bytes_zeroed(2usize),quantity:11});
- values=vec_push<Line>(values,Line{id:bytes_zeroed(1usize),label:bytes_zeroed(2usize),quantity:22});
- values=vec_push<Line>(values,Line{id:bytes_zeroed(1usize),label:bytes_zeroed(2usize),quantity:33});
+ let values0=vec_with_capacity<Line>(3usize);
+ let values1=vec_push<Line>(values0,Line{id:bytes_zeroed(1usize),label:bytes_zeroed(2usize),quantity:11});
+ let values2=vec_push<Line>(values1,Line{id:bytes_zeroed(1usize),label:bytes_zeroed(2usize),quantity:22});
+ let values=vec_push<Line>(values2,Line{id:bytes_zeroed(1usize),label:bytes_zeroed(2usize),quantity:33});
  let step=iter_next<Line>(vec_into_iter<Line>(values));
  match own step {
   IterStep::Done{}=>0,

@@ -2201,7 +2201,22 @@
           "kind": "function",
           "name": "csv_record_field_decoded_len",
           "requires": 1
-        },
+        }
+      ],
+      "dependency": "std.data.csv = \"^0.1.0\"",
+      "module": "std.data.csv",
+      "package": "std/data-csv",
+      "required_profile": "useful-data.v2",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "portable"
+    },
+    {
+      "declarations": [
         {
           "description": [],
           "effects": [],
@@ -2218,7 +2233,7 @@
         }
       ],
       "dependency": "std.data.csv = \"^0.1.0\"",
-      "module": "std.data.csv",
+      "module": "std.data.csv.decode",
       "package": "std/data-csv",
       "required_profile": "useful-data.v2",
       "status": "partial",

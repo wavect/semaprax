@@ -789,12 +789,12 @@ module fixture.app;
 fn changed_success_result_program_root_replays_typed_residual_reconstruction() {
     let fixture = Fixture::owned_vec("changed-success-result-root", false);
     let source = r#"module fixture.app;
-@id("fixture.convert") fn convert(value:own Result<Bytes,Bytes>)->Result<bool,Bytes> {
- let payload=value?;
+@id("fixture.convert") fn convert(input_result:own Result<Bytes,Bytes>)->Result<bool,Bytes> {
+ let payload=input_result?;
  Result<bool,Bytes>::Ok{value:byte_len(bytes_as_slice(payload))==1usize}
 }
-@id("fixture.consume") fn consume(value:own Result<bool,Bytes>)->i64 {
- match own value {Result::Ok{value}=>if value{0}else{1},Result::Err{error}=>2,}
+@id("fixture.consume") fn consume(output_result:own Result<bool,Bytes>)->i64 {
+ match own output_result {Result::Ok{value:success_value}=>if success_value{0}else{1},Result::Err{error:error_payload}=>2,}
 }
 @id("fixture.main") fn main()->i64 {
  let input=[1u8];

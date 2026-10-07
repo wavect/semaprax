@@ -131,11 +131,12 @@ impl<O: COutput> CEmitter<'_, O> {
                     for line in authentication.lines() {
                         self.line(line);
                     }
-                    // The success lane continues through every ordinary transfer
-                    // anchored at the Try expression (projected extraction, then
-                    // any enclosing binding/block destinations).
-                    // Dynamic TransferVariant runs only on the Err lane above.
-                    let transitions = plan.apply_at(&expr.id)?;
+                    // The authenticated success block owns the projected
+                    // extraction and its enclosing transfer chain. The same
+                    // expression ID also anchors the mutually exclusive Err
+                    // residual block, which must remain dead on this lane.
+                    let (transitions, success_result) =
+                        plan.apply_try_success_at(&expr.id, ok_case)?;
                     for line in transitions.lines() {
                         self.line(line);
                     }
@@ -151,11 +152,8 @@ impl<O: COutput> CEmitter<'_, O> {
                             ty: expr.ty.clone(),
                         });
                     }
-                    let output = plan.result_at(&expr.id).ok_or_else(|| {
-                        backend_error("owned Result Ok extraction has no Bytes destination")
-                    })?;
                     return Ok(CValue {
-                        code: output.to_owned(),
+                        code: success_result.to_owned(),
                         ty: expr.ty.clone(),
                     });
                 }

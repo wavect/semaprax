@@ -67,8 +67,8 @@ use nested_shape::type_needs_drop;
 use path_join::validate_path_states;
 use record_destructure::finish_owned_match_result as finish_owned;
 use resolved_call::{
-    exact_owned_try, owned_try_residual_places, resolved_call_params,
-    seal_changed_success_try_residual as seal_try_residual,
+    exact_owned_try, owned_try_residual_places, owned_try_residual_result_place,
+    resolved_call_params, seal_changed_success_try_residual as seal_try_residual,
 };
 pub(crate) use schema::selected_schema;
 
@@ -5762,6 +5762,8 @@ fn finish_try_paths(
             })?;
             let (owned_source, destination) =
                 owned_try_residual_places(function, expression, owned_source, work)?;
+            let result_place =
+                owned_try_residual_result_place(program, function, expression, &destination)?;
             let at = work.clone_owned(&expression.id, "try residual transfer identity")?;
             let observed_destination =
                 work.clone_owned(&destination, "try residual transfer destination")?;
@@ -5774,7 +5776,7 @@ fn finish_try_paths(
                 },
                 "owned try residual transfer",
             )?;
-            residual.owned_source = Some(destination);
+            residual.owned_source = Some(result_place);
         }
         residual.residual = true;
         work.push_expr_path(&mut paths, residual, "try residual path")?;

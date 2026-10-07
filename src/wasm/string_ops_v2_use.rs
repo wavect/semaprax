@@ -91,3 +91,23 @@ pub(super) fn program_uses_string_ops_v2(program: &ResolvedProgram) -> bool {
     }
     false
 }
+
+/// Whether a program reaches either canonical integer-to-decimal operation.
+pub(super) fn program_uses_numeric_text(program: &ResolvedProgram) -> bool {
+    let mut pending: Vec<&ResolvedExpr> = Vec::new();
+    for function in &program.functions {
+        pending.push(&function.body);
+        pending.extend(function.requires.iter().chain(&function.ensures));
+    }
+    while let Some(expression) = pending.pop() {
+        if let ResolvedExprKind::Call { callee, .. } = &expression.kind {
+            if crate::string_ops::by_id(callee.as_str())
+                .is_some_and(crate::string_ops::StringOp::is_numeric_text)
+            {
+                return true;
+            }
+        }
+        crate::hir::push_resolved_expression_children_in_authored_order(expression, &mut pending);
+    }
+    false
+}

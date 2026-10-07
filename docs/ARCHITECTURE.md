@@ -904,8 +904,8 @@ Graph v45 facts; the admitted native/Wasm regression corpus is HOSTED GREEN for 
 
 The exact two-Bytes-plus-one-Copy record iterator extension is owned by
 `src/hir/owned_record_collection.rs`, the typed iterator classifiers, and
-`src/wasm/aggregate/iterator_ops/owned.rs`. It selects Prelude v10, the existing
-independent-item/remainder CleanupPlan v13, and additive Graph v65. Its separate
+`src/wasm/aggregate/iterator_ops/owned.rs`. It selects Prelude v11, the existing
+independent-item/remainder CleanupPlan v13, and additive Graph v66. Its separate
 record-v3 Wasm imports authenticate poisoned output frames before call commit;
 prior scalar/Bytes iterator frames and schemas retain their old meanings.
 [Owned Record Iterator v3](OWNED-RECORD-ITERATOR-V3.md) owns the focused local

@@ -7,7 +7,7 @@ profile = "useful-data.v2"
 
 [modules]
 entry = "std.data.csv.examples"
-sources = ["src/csv.spx", "src/examples.spx", "src/tests.spx"]
+sources = ["src/csv.spx", "src/decode.spx", "src/examples.spx", "src/tests.spx"]
 tests = ["std.data.csv.tests"]
 
 [exports]

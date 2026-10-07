@@ -4,14 +4,7 @@ module std.encoding;
 fn byte_value(byte: u8) -> i64
     ensures result >= 0 && result <= 255
 {
-    let mut value = 0;
-    let mut probe = 0u8;
-    while probe != byte {
-        value = value + 1;
-        probe = probe + 1u8;
-        probe != byte
-    }
-    value
+    i64_from_u8(byte)
 }
 
 @id("std.encoding.hex_value")

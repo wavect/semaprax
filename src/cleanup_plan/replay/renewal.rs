@@ -347,6 +347,65 @@ fn main() -> i64
             .push(DeclarationId::new("std.io.reader.forged"));
         assert!(validate_structure(&program, &forged).is_err());
 
+        let mut duplicate_reservation = function.clone();
+        let block = duplicate_reservation
+            .cleanup_plan
+            .blocks
+            .iter_mut()
+            .find(|block| {
+                block.transitions.iter().any(|transition| {
+                    matches!(transition, CleanupTransition::ReserveRenewal { .. })
+                })
+            })
+            .expect("reservation block");
+        let index = block
+            .transitions
+            .iter()
+            .position(|transition| matches!(transition, CleanupTransition::ReserveRenewal { .. }))
+            .expect("reservation");
+        block
+            .transitions
+            .insert(index, block.transitions[index].clone());
+        assert!(validate_structure(&program, &duplicate_reservation).is_err());
+
+        let mut duplicate_renewal = function.clone();
+        let block = duplicate_renewal
+            .cleanup_plan
+            .blocks
+            .iter_mut()
+            .find(|block| {
+                block
+                    .transitions
+                    .iter()
+                    .any(|transition| matches!(transition, CleanupTransition::Renew { .. }))
+            })
+            .expect("renewal block");
+        let index = block
+            .transitions
+            .iter()
+            .position(|transition| matches!(transition, CleanupTransition::Renew { .. }))
+            .expect("renewal");
+        block
+            .transitions
+            .insert(index, block.transitions[index].clone());
+        assert!(validate_structure(&program, &duplicate_renewal).is_err());
+
+        let mut forged_destination = function.clone();
+        let destination = forged_destination
+            .cleanup_plan
+            .blocks
+            .iter_mut()
+            .flat_map(|block| &mut block.transitions)
+            .find_map(|transition| match transition {
+                CleanupTransition::Renew { destination, .. } => Some(destination),
+                _ => None,
+            })
+            .expect("renewal destination");
+        destination
+            .projections
+            .push(DeclarationId::new("std.io.writer.position"));
+        assert!(validate_structure(&program, &forged_destination).is_err());
+
         let mut unmarked = function.clone();
         let transition = unmarked
             .cleanup_plan

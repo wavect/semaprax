@@ -22,6 +22,16 @@ struct BundledPackage {
     dependencies: &'static [&'static str],
 }
 
+struct BundledSource {
+    path: &'static str,
+    source: &'static str,
+}
+
+const CSV_ADDITIONAL_SOURCES: &[BundledSource] = &[BundledSource {
+    path: "dependencies/std.data.csv/0.1.0/decode.spx",
+    source: include_str!("../../std/data-csv/src/decode.spx"),
+}];
+
 const PACKAGES: &[BundledPackage] = &[
     BundledPackage {
         name: "std.agent",
@@ -360,13 +370,22 @@ pub(super) fn extend_sources(
         // `SPX-G174: ... paths must be strictly sorted and unique` with no
         // indication of which path or why (issue #272). Guarding here fixes
         // it for every caller rather than for the one that was found.
-        if sources.iter().any(|source| source.path == package.path) {
-            continue;
+        let additional = if package.name == "std.data.csv" {
+            CSV_ADDITIONAL_SOURCES
+        } else {
+            &[]
+        };
+        for (path, source) in std::iter::once((package.path, package.source))
+            .chain(additional.iter().map(|source| (source.path, source.source)))
+        {
+            if sources.iter().any(|source| source.path == path) {
+                continue;
+            }
+            sources.push(SemanticWorkspaceSource {
+                path: path.to_owned(),
+                source: source.to_owned(),
+            });
         }
-        sources.push(SemanticWorkspaceSource {
-            path: package.path.to_owned(),
-            source: package.source.to_owned(),
-        });
     }
     Ok(())
 }

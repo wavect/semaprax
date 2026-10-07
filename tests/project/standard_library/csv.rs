@@ -11,6 +11,7 @@ static NEXT_ID: AtomicU64 = AtomicU64::new(0);
 
 const CURSORS: &str = include_str!("../../../std/io/src/io.spx");
 const CSV: &str = include_str!("../../../std/data-csv/src/csv.spx");
+const CSV_DECODE: &str = include_str!("../../../std/data-csv/src/decode.spx");
 
 fn source(main: &str) -> String {
     let cursors = CURSORS.replacen("module std.io;", "module app;", 1);
@@ -19,7 +20,12 @@ fn source(main: &str) -> String {
         .filter(|line| !line.starts_with("module ") && !line.starts_with("use "))
         .collect::<Vec<_>>()
         .join("\n");
-    format!("{cursors}\n{csv}\n{main}\n")
+    let decode = CSV_DECODE
+        .lines()
+        .filter(|line| !line.starts_with("module ") && !line.starts_with("use "))
+        .collect::<Vec<_>>()
+        .join("\n");
+    format!("{cursors}\n{csv}\n{decode}\n{main}\n")
 }
 
 fn interpretation(main: &str) -> interpreter::Interpretation {
@@ -76,6 +82,77 @@ fn csv_record_decoding_executes_on_all_three_backends() {
 }
 
 #[test]
+fn bundled_dependency_consumer_frames_and_decodes_through_transitive_io() {
+    let scratch = super::temporary("csv-bundled-dependency");
+    std::fs::create_dir(scratch.join("src")).unwrap();
+    std::fs::write(
+        scratch.join("semaprax.toml"),
+        r#"schema = "semaprax.manifest.v1"
+
+[package]
+name = "csv-consumer"
+version = "0.1.0"
+profile = "useful-data.v2"
+
+[modules]
+entry = "consumer.app"
+sources = ["src/app.spx", "src/tests.spx"]
+tests = ["consumer.tests"]
+
+[exports]
+web = []
+
+[dependencies]
+std.data.csv = "=0.1.0"
+"#,
+    )
+    .unwrap();
+    std::fs::write(
+        scratch.join("src/app.spx"),
+        r#"module consumer.app;
+use type @id("std.io.writer") from std.io as Writer;
+use function @id("std.data.csv.record-field-into") from std.data.csv.decode as record_field_into;
+use function @id("std.data.csv.record-field-next") from std.data.csv as record_field_next;
+use function @id("std.data.csv.record-next") from std.data.csv as record_next;
+use function @id("std.io.writer.finish") from std.io as writer_finish;
+
+@id("consumer.main")
+fn main() -> i64
+{
+    let source = [34u8, 97u8, 34u8, 34u8, 98u8, 34u8, 13u8, 10u8, 120u8, 44u8, 13u8, 10u8];
+    let view = array_as_slice(source);
+    let written = record_field_into(view, 0usize, 0usize, Writer { data: bytes_zeroed(3usize), position: 0usize });
+    let decoded = writer_finish(written);
+    let first = match byte_get(bytes_as_slice(decoded), 0usize) { Option::Some { value } => value, Option::None {} => 0u8, };
+    let quote = match byte_get(bytes_as_slice(decoded), 1usize) { Option::Some { value } => value, Option::None {} => 0u8, };
+    let last = match byte_get(bytes_as_slice(decoded), 2usize) { Option::Some { value } => value, Option::None {} => 0u8, };
+    let second = record_next(view, 0usize);
+    let trailing = record_field_next(view, second, second);
+    if first == 97u8 && quote == 34u8 && last == 98u8 && second == 8usize && trailing == 10usize { 0 } else { 1 }
+}
+"#,
+    )
+    .unwrap();
+    std::fs::write(
+        scratch.join("src/tests.spx"),
+        "module consumer.tests;\n\n@id(\"consumer.tests.main\")\nfn main() -> i64\n{\n    0\n}\n",
+    )
+    .unwrap();
+    semaprax::project::with_authenticated_project(&scratch.join("semaprax.toml"), |snapshot| {
+        snapshot.check()?;
+        let options = semaprax::project::ProjectExecutionOptions::default();
+        assert_eq!(
+            snapshot.execute_entry(&options)?.outcome(),
+            &semaprax::project::ProjectExecutionOutcome::Returned(0)
+        );
+        assert!(snapshot.public_api_descriptor().is_err());
+        Ok(())
+    })
+    .unwrap();
+    std::fs::remove_dir_all(scratch).unwrap();
+}
+
+#[test]
 fn multiline_records_and_decoded_quotes_preserve_exact_bytes() {
     returns_zero(
         r#"
@@ -94,11 +171,12 @@ fn main() -> i64
     let lf = match byte_get(bytes_view, 9usize) { Option::Some { value } => value, Option::None {} => 0u8, };
     let suffix = match byte_get(bytes_view, 14usize) { Option::Some { value } => value, Option::None {} => 0u8, };
     let expected = [115u8, 97u8, 121u8, 32u8, 34u8, 104u8, 105u8, 34u8, 13u8, 10u8, 110u8, 101u8, 120u8, 116u8];
+    let expected_view = array_as_slice(expected);
     let mut index = 0usize;
     let mut exact = cursor == 14usize;
     while exact && index < 14usize {
         let actual = match byte_get(bytes_view, index) { Option::Some { value } => value, Option::None {} => 0u8, };
-        let wanted = match byte_get(array_as_slice(expected), index) { Option::Some { value } => value, Option::None {} => 1u8, };
+        let wanted = match byte_get(expected_view, index) { Option::Some { value } => value, Option::None {} => 1u8, };
         exact = actual == wanted;
         index = index + 1usize;
         exact && index < 14usize
@@ -136,8 +214,13 @@ fn retained_multiline_oracle_decodes_every_row_and_trailing_empty_field() {
             )
         }
     };
-    let mut body = format!(
-        r#"
+    let record_starts = [0usize, 16usize, 46usize];
+    let record_ends = [16usize, 46usize, input.len()];
+    for (row_index, row) in expected.iter().enumerate() {
+        let record_start = record_starts[row_index];
+        let record_end = record_ends[row_index];
+        let mut body = format!(
+            r#"
 @id("app.equal")
 fn equal(left: borrow Slice<u8>, right: borrow Slice<u8>) -> bool
 {{
@@ -157,16 +240,13 @@ fn main() -> i64
 {{
     let input = {};
     let view = array_as_slice(input);
-    let mut record = 0usize;
-    let mut field = 0usize;
+    let record = {record_start}usize;
+    let mut field = record;
     let mut exact = true;
 "#,
-        array(&input)
-    );
-    for (row_index, row) in expected.iter().enumerate() {
-        body.push_str(
-            "    exact = exact && csv_record_available(view, record);\n    field = record;\n",
+            array(&input)
         );
+        body.push_str("    exact = exact && csv_record_available(view, record);\n");
         for (field_index, value) in row.iter().enumerate() {
             let label = format!("{row_index}_{field_index}");
             let bytes = value.as_bytes();
@@ -184,12 +264,17 @@ fn main() -> i64
                 body.push_str("    field = csv_record_field_next(view, record, field);\n");
             }
         }
-        body.push_str("    record = csv_record_next(view, record);\n");
+        body.push_str(&format!(
+            "    exact = exact && csv_record_next(view, record) == {record_end}usize;\n"
+        ));
+        if row_index + 1 == expected.len() {
+            body.push_str(
+                "    exact = exact && !csv_record_available(view, csv_record_next(view, record));\n",
+            );
+        }
+        body.push_str("    if exact { 0 } else { 1 }\n}\n");
+        returns_zero(&body);
     }
-    body.push_str(
-        "    exact = exact && record == byte_len(view) && !csv_record_available(view, record);\n    if exact { 0 } else { 1 }\n}\n",
-    );
-    returns_zero(&body);
 }
 
 #[test]

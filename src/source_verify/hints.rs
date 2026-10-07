@@ -61,9 +61,14 @@ fn standard_library_function(name: &str) -> Option<&'static StandardFunction> {
             .as_array()
             .expect("the standard-library catalog has modules")
         {
-            let package = module["module"]
+            let provider = module["module"]
                 .as_str()
                 .expect("a standard-library module has an identity");
+            let dependency = module["dependency"]
+                .as_str()
+                .and_then(|value| value.split_once(" = "))
+                .map(|(name, _)| name)
+                .expect("a standard-library module has a dependency route");
             for declaration in module["declarations"]
                 .as_array()
                 .expect("a standard-library module has declarations")
@@ -76,7 +81,8 @@ fn standard_library_function(name: &str) -> Option<&'static StandardFunction> {
                     .expect("a standard-library function has a name")
                     .to_owned();
                 let entry = StandardFunction {
-                    package: package.to_owned(),
+                    dependency: dependency.to_owned(),
+                    provider: provider.to_owned(),
                     id: declaration["id"].as_str().unwrap_or_default().to_owned(),
                     signature: declaration["head"][0]
                         .as_str()
@@ -95,7 +101,8 @@ fn standard_library_function(name: &str) -> Option<&'static StandardFunction> {
 }
 
 struct StandardFunction {
-    package: String,
+    dependency: String,
+    provider: String,
     id: String,
     signature: String,
 }
@@ -145,14 +152,15 @@ pub(super) fn unknown_function(
     // is `std.core`'s, not a typo of `main`.
     if let Some(function) = standard_library_function(name) {
         let StandardFunction {
-            package,
+            dependency,
+            provider,
             id,
             signature,
         } = function;
         return diagnostic.with_help(format!(
-            "`{signature}` is in `{package}`: add `[dependencies] {package} = \"^0.1.0\"` to \
+            "`{signature}` is in `{provider}`: add `[dependencies] {dependency} = \"^0.1.0\"` to \
              `semaprax.toml` and import it directly after the `module` line: `use function \
-             @id(\"{id}\") from {package} as {name};`"
+             @id(\"{id}\") from {provider} as {name};`"
         ));
     }
     match nearest_function_name(name, functions) {

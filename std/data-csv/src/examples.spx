@@ -9,7 +9,7 @@ use function @id("std.data.csv.has_balanced_quotes") from std.data.csv as has_ba
 use function @id("std.data.csv.is_well_formed_record") from std.data.csv as is_well_formed_record;
 use function @id("std.data.csv.record-end") from std.data.csv as record_end;
 use function @id("std.data.csv.record-field-decoded-len") from std.data.csv as record_field_decoded_len;
-use function @id("std.data.csv.record-field-into") from std.data.csv as record_field_into;
+use function @id("std.data.csv.record-field-into") from std.data.csv.decode as record_field_into;
 use function @id("std.data.csv.record-next") from std.data.csv as record_next;
 use function @id("std.io.writer.finish") from std.io as writer_finish;
 
@@ -44,5 +44,5 @@ fn main() -> i64
 {
     let record = [34u8, 97u8, 44u8, 98u8, 34u8, 44u8, 99u8];
     let view = array_as_slice(record);
-    if field_count(view) == 2usize && has_balanced_quotes(view) && is_well_formed_record(view) { walk() + multiline() } else { 1 }
+    if field_count(view) == 2usize && has_balanced_quotes(view) && is_well_formed_record(view) { walk() } else { 1 }
 }

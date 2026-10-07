@@ -66,12 +66,17 @@ fn every_issue_619_package_resolves_for_an_ordinary_dependency_consumer() {
     let scratch = temporary("issue-619-dependencies");
     for case in cases {
         let project_root = scratch.join(case.directory);
+        let web_exports = if case.directory == "encoding-base64" {
+            "[]"
+        } else {
+            "[\"consumer.main\"]"
+        };
         std::fs::create_dir_all(project_root.join("src")).unwrap();
         std::fs::write(
             project_root.join("semaprax.toml"),
             format!(
-                "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"consumer-{}\"\nversion = \"0.1.0\"\nprofile = \"{}\"\n\n[modules]\nentry = \"consumer.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"consumer.tests\"]\n\n[exports]\nweb = [\"consumer.main\"]\n\n[dependencies]\n{} = \"=0.1.0\"\n",
-                case.directory, case.profile, case.dependency
+                "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"consumer-{}\"\nversion = \"0.1.0\"\nprofile = \"{}\"\n\n[modules]\nentry = \"consumer.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"consumer.tests\"]\n\n[exports]\nweb = {}\n\n[dependencies]\n{} = \"=0.1.0\"\n",
+                case.directory, case.profile, web_exports, case.dependency
             ),
         )
         .unwrap();

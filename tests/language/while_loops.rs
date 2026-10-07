@@ -478,11 +478,22 @@ fn main() -> i64 {
 }
 "#;
     let report = verify_diagnostics(source);
-    assert!(
+    assert_eq!(
         report
             .iter()
-            .any(|item| item.code == "SPX-T265" && item.message.contains("borrow")),
-        "renewal must not replace an owner while its projected borrow remains live: {report:?}"
+            .map(|item| (item.code, item.message.as_str()))
+            .collect::<Vec<_>>(),
+        vec![
+            (
+                "SPX-T265",
+                "move or call transfer would invalidate a lexical byte view"
+            ),
+            (
+                "SPX-T265",
+                "assignment would replace storage held by a lexical byte view"
+            ),
+        ],
+        "renewal must refuse both transfer and replacement while its projected borrow remains live"
     );
 }
 

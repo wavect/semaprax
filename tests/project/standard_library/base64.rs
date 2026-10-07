@@ -204,7 +204,9 @@ fn base64_decoder_matches_node_buffer_for_the_complete_corpus_and_all_bytes() {
         vec![0, 255, 16],
         b"Man".to_vec(),
     ];
-    corpus.push((0u8..=u8::MAX).collect());
+    for start in [0u8, 64u8, 128u8, 192u8] {
+        corpus.push((start..=start.saturating_add(63)).collect());
+    }
     let hex = corpus
         .iter()
         .map(|bytes| {
@@ -245,6 +247,7 @@ fn base64_decoder_matches_node_buffer_for_the_complete_corpus_and_all_bytes() {
     };
     for (case, (expected, encoded)) in corpus.iter().zip(encoded).enumerate() {
         let failure = case + 1;
+        let capacity = expected.len();
         let encoded = array(encoded.as_bytes());
         let expected = array(expected);
         returns(
@@ -257,11 +260,16 @@ fn main() -> i64
     let expected = {expected};
     let view = array_as_slice(encoded);
     let expected_view = array_as_slice(expected);
+    let written = base64_decode_into(view, writer_from_bytes(bytes_zeroed({capacity}usize)));
+    let cursor = writer_position(written);
+    let decoded = writer_finish(written);
+    let decoded_view = bytes_as_slice(decoded);
     let mut index = 0usize;
-    let mut same = base64_decoded_len(view) == byte_len(expected_view);
+    let mut same = base64_decoded_len(view) == byte_len(expected_view) && cursor == byte_len(expected_view);
     while same && index < byte_len(expected_view) {{
+        let actual = match byte_get(decoded_view, index) {{ Option::Some {{ value }} => value, Option::None {{}} => 0u8, }};
         let wanted = match byte_get(expected_view, index) {{ Option::Some {{ value }} => value, Option::None {{}} => 0u8, }};
-        same = base64_decoded_byte(view, index) == wanted;
+        same = actual == wanted;
         index = index + 1usize;
         same && index < byte_len(expected_view)
     }}

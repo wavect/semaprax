@@ -22,6 +22,23 @@ fn values() -> bool
     hex_value(48u8) == 0 && hex_value(57u8) == 9 && hex_value(65u8) == 10 && hex_value(70u8) == 15 && hex_value(97u8) == 10 && hex_value(102u8) == 15 && hex_value(120u8) == -1 && byte_value(0u8) == 0 && byte_value(255u8) == 255
 }
 
+@id("std.encoding.tests.all-byte-values")
+fn all_byte_values() -> bool
+{
+    let mut byte = 0u8;
+    let mut expected = 0;
+    let mut remaining = 256usize;
+    let mut exact = true;
+    while exact && remaining > 0usize {
+        exact = byte_value(byte) == expected;
+        byte = if byte == 255u8 { byte } else { byte + 1u8 };
+        expected = expected + 1;
+        remaining = remaining - 1usize;
+        exact && remaining > 0usize
+    }
+    exact
+}
+
 @id("std.encoding.tests.decoding")
 fn decoding() -> bool
 {
@@ -70,5 +87,6 @@ fn main() -> i64
     failed = failed + if base64_values() { 0 } else { 32 };
     failed = failed + if base64_encoding() { 0 } else { 64 };
     failed = failed + if base64_quads() { 0 } else { 128 };
+    failed = failed + if all_byte_values() { 0 } else { 256 };
     failed
 }

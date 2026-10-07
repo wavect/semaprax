@@ -298,6 +298,39 @@ use type @id("record.line") from record.types as Line;
             ),
         ])
         .unwrap();
+        let references = build
+            .edges
+            .iter()
+            .filter(|edge| edge.kind == "type_reference" && edge.target == "record.line")
+            .map(|edge| {
+                (
+                    edge.caller.as_str(),
+                    edge.ast_path.as_str(),
+                    edge.alias.as_str(),
+                )
+            })
+            .collect::<BTreeSet<_>>();
+        assert_eq!(
+            references,
+            BTreeSet::from([
+                (
+                    "record.consume",
+                    "function.record.consume.param.0.argument.0",
+                    "Line",
+                ),
+                (
+                    "record.consume",
+                    "body.s1.value.s0.value.arg.0.type_argument.0",
+                    "Line",
+                ),
+                (
+                    "record.consume",
+                    "body.s1.value.s1.body.s0.value.arm.1.value.s0.value.tail.arm.0.pattern",
+                    "Line",
+                ),
+                ("app.main", "body.tail.arg.0.type_argument.0", "Line",),
+            ])
+        );
         for id in [
             crate::iterator_ops::ITER_ID,
             crate::list_ops::LIST_ID,

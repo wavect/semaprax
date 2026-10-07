@@ -49,9 +49,11 @@ struct LibrarySource {
     source: String,
 }
 
-/// The library module of a package: the one listed source that is neither
-/// the entry (examples) module nor the test (conformance) module.
-fn package_sources(package: &PackageMetadata) -> (LibrarySource, String, String) {
+/// The library modules of a package: listed sources other than its entry
+/// (examples) and test (conformance) modules. Every legacy package has exactly
+/// one; CSV has one sibling that isolates its internal Writer API from the
+/// contracted public byte facade.
+fn package_libraries(package: &PackageMetadata) -> (Vec<LibrarySource>, String, String) {
     let package_root = root().join("std").join(&package.directory);
     let manifest = std::fs::read_to_string(package_root.join("semaprax.toml")).unwrap();
     let field = |name: &str| -> String {
@@ -92,19 +94,30 @@ fn package_sources(package: &PackageMetadata) -> (LibrarySource, String, String)
             });
         }
     }
+    let expected = if package.module == "std.data.csv" {
+        vec!["std.data.csv", "std.data.csv.decode"]
+    } else {
+        vec![package.module.as_str()]
+    };
     assert_eq!(
-        library.len(),
-        1,
-        "{}: a standard-library package holds exactly one library module beside its examples and conformance modules",
-        package.directory
-    );
-    let library = library.pop().unwrap();
-    assert_eq!(
-        library.program.module, package.module,
-        "{}: library module name disagrees with {PACKAGES}",
+        library
+            .iter()
+            .map(|source| source.program.module.as_str())
+            .collect::<Vec<_>>(),
+        expected,
+        "{}: standard-library module inventory is closed",
         package.directory
     );
     (library, entry, tests)
+}
+
+fn package_sources(package: &PackageMetadata) -> (LibrarySource, String, String) {
+    let (mut libraries, entry, tests) = package_libraries(package);
+    let index = libraries
+        .iter()
+        .position(|library| library.program.module == package.module)
+        .expect("package library inventory includes its catalog module");
+    (libraries.remove(index), entry, tests)
 }
 
 fn required_consumer_profile(package: &PackageMetadata) -> String {
@@ -127,7 +140,7 @@ fn required_consumer_profile(package: &PackageMetadata) -> String {
 #[test]
 fn every_public_declaration_has_a_std_identity_contracts_examples_and_conformance() {
     for package in packages() {
-        let (library, entry, tests) = package_sources(&package);
+        let (libraries, entry, tests) = package_libraries(&package);
         assert_eq!(entry, format!("{}.examples", package.module));
         assert_eq!(tests, format!("{}.tests", package.module));
         let package_root = root().join("std").join(&package.directory);
@@ -141,97 +154,99 @@ fn every_public_declaration_has_a_std_identity_contracts_examples_and_conformanc
             ));
         }
         let examples = std::fs::read_to_string(package_root.join("src/examples.spx")).unwrap();
-        assert!(
-            !library.program.functions.is_empty(),
-            "{}: library module declares no functions",
-            library.path.display()
-        );
-        for function in &library.program.functions {
-            let prefix = format!("{}.", package.module);
+        for library in libraries {
             assert!(
-                function.explicit_id && function.stable_id.starts_with(&prefix),
-                "{}: `{}` needs an explicit @id below `{prefix}`",
-                library.path.display(),
-                function.name
+                !library.program.functions.is_empty(),
+                "{}: library module declares no functions",
+                library.path.display()
             );
-            let expected_effects: Vec<String> =
-                match (package.module.as_str(), function.stable_id.as_str()) {
-                    ("std.fs", "std.fs.read" | "std.fs.metadata" | "std.fs.list") => {
-                        vec!["fs.read".into()]
-                    }
-                    (
-                        "std.fs",
-                        "std.fs.write-new"
-                        | "std.fs.write-atomic"
-                        | "std.fs.write-atomic-checked"
-                        | "std.fs.create-dir"
-                        | "std.fs.remove",
-                    ) => vec!["fs.write".into()],
-                    ("std.env", _) => vec!["process.environment.read".into()],
-                    ("std.process", "std.process.run") => vec!["process.execute".into()],
-                    _ => vec![],
-                };
+            for function in &library.program.functions {
+                let prefix = format!("{}.", package.module);
+                assert!(
+                    function.explicit_id && function.stable_id.starts_with(&prefix),
+                    "{}: `{}` needs an explicit @id below `{prefix}`",
+                    library.path.display(),
+                    function.name
+                );
+                let expected_effects: Vec<String> =
+                    match (package.module.as_str(), function.stable_id.as_str()) {
+                        ("std.fs", "std.fs.read" | "std.fs.metadata" | "std.fs.list") => {
+                            vec!["fs.read".into()]
+                        }
+                        (
+                            "std.fs",
+                            "std.fs.write-new"
+                            | "std.fs.write-atomic"
+                            | "std.fs.write-atomic-checked"
+                            | "std.fs.create-dir"
+                            | "std.fs.remove",
+                        ) => vec!["fs.write".into()],
+                        ("std.env", _) => vec!["process.environment.read".into()],
+                        ("std.process", "std.process.run") => vec!["process.execute".into()],
+                        _ => vec![],
+                    };
+                assert_eq!(
+                    function.effects,
+                    expected_effects,
+                    "{}: `{}` declares an unexpected effect inventory",
+                    library.path.display(),
+                    function.name
+                );
+                let import = format!(
+                    "use function @id(\"{}\") from {} as ",
+                    function.stable_id, library.program.module
+                );
+                assert!(
+                    conformance.contains(&import),
+                    "{}: conformance module does not import `{}`",
+                    library.path.display(),
+                    function.stable_id
+                );
+                assert_ne!(function.name, "main");
+            }
+            for declaration in &library.program.types {
+                assert!(
+                    declaration.explicit_id
+                        && declaration
+                            .stable_id
+                            .starts_with(&format!("{}.", package.module))
+                );
+                assert!(conformance.contains(&format!(
+                    "use type @id(\"{}\") from {} as ",
+                    declaration.stable_id, library.program.module
+                )));
+            }
+            assert!(
+                library
+                    .program
+                    .functions
+                    .iter()
+                    .any(|function| examples.contains(&format!("@id(\"{}\")", function.stable_id))),
+                "{}: examples module imports nothing from the library",
+                library.path.display()
+            );
+            let expected_permits: Vec<String> = if package.module == "std.fs" {
+                assert_eq!(package.tier, "hosted");
+                assert_eq!(required_consumer_profile(&package), "filesystem-io.v3");
+                vec!["fs.read".into(), "fs.write".into()]
+            } else if package.module == "std.env" {
+                assert_eq!(package.tier, "hosted");
+                assert_eq!(required_consumer_profile(&package), "environment-io.v1");
+                vec!["process.environment.read".into()]
+            } else if package.module == "std.process" {
+                assert_eq!(package.tier, "hosted");
+                assert_eq!(required_consumer_profile(&package), "process-io.v1");
+                vec!["process.execute".into()]
+            } else {
+                vec![]
+            };
             assert_eq!(
-                function.effects,
-                expected_effects,
-                "{}: `{}` declares an unexpected effect inventory",
-                library.path.display(),
-                function.name
+                library.program.permits,
+                expected_permits,
+                "{}: library declarations must carry exactly their admitted capabilities",
+                library.path.display()
             );
-            let import = format!(
-                "use function @id(\"{}\") from {} as ",
-                function.stable_id, package.module
-            );
-            assert!(
-                conformance.contains(&import),
-                "{}: conformance module does not import `{}`",
-                library.path.display(),
-                function.stable_id
-            );
-            assert_ne!(function.name, "main");
         }
-        for declaration in &library.program.types {
-            assert!(
-                declaration.explicit_id
-                    && declaration
-                        .stable_id
-                        .starts_with(&format!("{}.", package.module))
-            );
-            assert!(conformance.contains(&format!(
-                "use type @id(\"{}\") from {} as ",
-                declaration.stable_id, package.module
-            )));
-        }
-        assert!(
-            library
-                .program
-                .functions
-                .iter()
-                .any(|function| examples.contains(&format!("@id(\"{}\")", function.stable_id))),
-            "{}: examples module imports nothing from the library",
-            library.path.display()
-        );
-        let expected_permits: Vec<String> = if package.module == "std.fs" {
-            assert_eq!(package.tier, "hosted");
-            assert_eq!(required_consumer_profile(&package), "filesystem-io.v3");
-            vec!["fs.read".into(), "fs.write".into()]
-        } else if package.module == "std.env" {
-            assert_eq!(package.tier, "hosted");
-            assert_eq!(required_consumer_profile(&package), "environment-io.v1");
-            vec!["process.environment.read".into()]
-        } else if package.module == "std.process" {
-            assert_eq!(package.tier, "hosted");
-            assert_eq!(required_consumer_profile(&package), "process-io.v1");
-            vec!["process.execute".into()]
-        } else {
-            vec![]
-        };
-        assert_eq!(
-            library.program.permits,
-            expected_permits,
-            "{}: library declarations must carry exactly their admitted capabilities",
-            library.path.display()
-        );
     }
 }
 
@@ -571,7 +586,7 @@ for (let r = 0; r < 4; ++r) {{ assert.equal(linked.instance.exports.semaprax_mai
             ] {
                 let cursor_case = json_cursors::is_cursor_case(&manifest);
                 // Each fixture must balance its declared live Bytes bound.
-                let arena = role == "tests" && (cursor_case || matches!(package.module.as_str(), "std.data.json.dec" | "std.io" | "std.io.lines" | "std.path.value" | "std.path.normalize" | "std.log.redact" | "std.email" | "std.webhook" | "std.tracing" | "std.metrics" | "std.http") || (package.module == "std.format" && formatting::uses_byte_arena(&manifest)) || (package.module == "std.log" && logging::uses_byte_writes(&manifest)));
+                let arena = role == "tests" && (cursor_case || matches!(package.module.as_str(), "std.data.json.dec" | "std.data.csv" | "std.encoding.base64" | "std.io" | "std.io.lines" | "std.path.value" | "std.path.normalize" | "std.log.redact" | "std.email" | "std.webhook" | "std.tracing" | "std.metrics" | "std.http") || (package.module == "std.format" && formatting::uses_byte_arena(&manifest)) || (package.module == "std.log" && logging::uses_byte_writes(&manifest)));
                 if role == "tests" {
                     for name in ["spx_bytes_zeroed", "spx_bytes_set"] {
                         let present = module_bytes.windows(name.len()).any(|w| w == name.as_bytes());
@@ -582,7 +597,7 @@ for (let r = 0; r < 4; ++r) {{ assert.equal(linked.instance.exports.semaprax_mai
                         }
                     }
                 }
-                let live_entry_bound = if role == "examples" { 4096 } else if package.module == "std.log" { logging::live_byte_bound(&manifest) } else if package.module == "std.io.lines" { io_lines::live_byte_bound(&manifest) } else if package.module == "std.path.normalize" { path_normalize::live_byte_bound(&manifest) } else if cursor_case || package.module == "std.format" { 2 } else if package.module == "std.path.value" { 3 } else if arena { 1 } else { 4096 };
+                let live_entry_bound = if role == "examples" { 4096 } else if package.module == "std.log" { logging::live_byte_bound(&manifest) } else if package.module == "std.io.lines" { io_lines::live_byte_bound(&manifest) } else if package.module == "std.path.normalize" { path_normalize::live_byte_bound(&manifest) } else if cursor_case || matches!(package.module.as_str(), "std.format" | "std.data.csv") { 2 } else if package.module == "std.path.value" || package.module == "std.encoding.base64" { 3 } else if arena { 1 } else { 4096 };
                 // Issue #102: the value Core Wasm must reproduce is the
                 // interpreter's actual computed value for this same role,
                 // not an independent `0` sentinel.
@@ -631,11 +646,16 @@ fn every_library_module_is_self_contained_when_vendored() {
             assert_eq!(package.tier, "alloc");
             continue;
         }
-        let (library, entry, tests) = package_sources(&package);
+        let (libraries, entry, tests) = package_libraries(&package);
         let package_root = root().join("std").join(&package.directory);
         let project = scratch.join(&package.directory);
         std::fs::create_dir_all(project.join("src")).unwrap();
-        std::fs::write(project.join("src/vendored.spx"), &library.source).unwrap();
+        let mut vendored = Vec::new();
+        for (index, library) in libraries.iter().enumerate() {
+            let name = format!("vendored-{index}.spx");
+            std::fs::write(project.join("src").join(&name), &library.source).unwrap();
+            vendored.push(format!("\"src/{name}\""));
+        }
         for file in ["examples.spx", "tests.spx"] {
             std::fs::copy(
                 package_root.join("src").join(file),
@@ -645,13 +665,16 @@ fn every_library_module_is_self_contained_when_vendored() {
         }
         // Keep the package's own schema, profile, exports, and test module;
         // only the source inventory and name change.
+        let sources = format!(
+            "sources = [\"src/examples.spx\", \"src/tests.spx\", {}]",
+            vendored.join(", ")
+        );
         let manifest = std::fs::read_to_string(package_root.join("semaprax.toml"))
             .unwrap()
             .lines()
             .map(|line| {
                 if line.starts_with("sources = ") {
-                    "sources = [\"src/examples.spx\", \"src/tests.spx\", \"src/vendored.spx\"]"
-                        .to_owned()
+                    sources.clone()
                 } else if line.starts_with("name = ") {
                     format!("name = \"vendored-{}\"", package.directory)
                 } else {
@@ -790,7 +813,7 @@ fn package_manifest_links_bundled_std_csv_toml_and_path() {
     .unwrap();
     std::fs::write(
         scratch.join("src/csv.spx"),
-        "module consumer.csv;\nuse type @id(\"std.io.writer\") from std.io as Writer;\nuse function @id(\"std.data.csv.field_count\") from std.data.csv as field_count;\nuse function @id(\"std.data.csv.record-field-into\") from std.data.csv as record_field_into;\nuse function @id(\"std.data.csv.record-field-next\") from std.data.csv as record_field_next;\nuse function @id(\"std.data.csv.record-next\") from std.data.csv as record_next;\nuse function @id(\"std.data.toml.assignment_index\") from std.data.toml as assignment_index;\nuse function @id(\"std.io.writer.finish\") from std.io as writer_finish;\nuse function @id(\"std.path.segment_count\") from std.path as segment_count;\n\n@id(\"consumer.csv-fields\")\nfn csv_fields(record: borrow Slice<u8>) -> usize\n{\n    field_count(record)\n}\n\n@id(\"consumer.main\")\nfn main() -> i64\n{\n    let record = [34u8, 97u8, 34u8, 34u8, 98u8, 34u8, 44u8, 13u8, 10u8, 120u8];\n    let view = array_as_slice(record);\n    let next = record_field_next(view, 0usize, 0usize);\n    let written = record_field_into(view, 0usize, 0usize, Writer { data: bytes_zeroed(3usize), position: 0usize });\n    let output = writer_finish(written);\n    let quote = match byte_get(bytes_as_slice(output), 1usize) { Option::Some { value } => value, Option::None {} => 0u8, };\n    let line = [97u8, 61u8, 49u8];\n    let path = [97u8, 47u8, 98u8];\n    if csv_fields(view) == 2usize && next == 7usize && record_next(view, 0usize) == 9usize && byte_len(bytes_as_slice(output)) == 3usize && quote == 34u8 && assignment_index(array_as_slice(line)) == 1 && segment_count(array_as_slice(path)) == 2usize { 0 } else { 1 }\n}\n",
+        "module consumer.csv;\nuse type @id(\"std.io.writer\") from std.io as Writer;\nuse function @id(\"std.data.csv.field_count\") from std.data.csv as field_count;\nuse function @id(\"std.data.csv.record-field-into\") from std.data.csv.decode as record_field_into;\nuse function @id(\"std.data.csv.record-field-next\") from std.data.csv as record_field_next;\nuse function @id(\"std.data.csv.record-next\") from std.data.csv as record_next;\nuse function @id(\"std.data.toml.assignment_index\") from std.data.toml as assignment_index;\nuse function @id(\"std.io.writer.finish\") from std.io as writer_finish;\nuse function @id(\"std.path.segment_count\") from std.path as segment_count;\n\n@id(\"consumer.csv-fields\")\nfn csv_fields(record: borrow Slice<u8>) -> usize\n{\n    field_count(record)\n}\n\n@id(\"consumer.main\")\nfn main() -> i64\n{\n    let record = [34u8, 97u8, 34u8, 34u8, 98u8, 34u8, 44u8, 13u8, 10u8, 120u8];\n    let view = array_as_slice(record);\n    let next = record_field_next(view, 0usize, 0usize);\n    let written = record_field_into(view, 0usize, 0usize, Writer { data: bytes_zeroed(3usize), position: 0usize });\n    let output = writer_finish(written);\n    let quote = match byte_get(bytes_as_slice(output), 1usize) { Option::Some { value } => value, Option::None {} => 0u8, };\n    let line = [97u8, 61u8, 49u8];\n    let path = [97u8, 47u8, 98u8];\n    if csv_fields(view) == 2usize && next == 7usize && record_next(view, 0usize) == 9usize && byte_len(bytes_as_slice(output)) == 3usize && quote == 34u8 && assignment_index(array_as_slice(line)) == 1 && segment_count(array_as_slice(path)) == 2usize { 0 } else { 1 }\n}\n",
     )
     .unwrap();
 
@@ -805,6 +828,9 @@ fn package_manifest_links_bundled_std_csv_toml_and_path() {
         assert!(snapshot
             .workspace_manifest()
             .contains("dependencies/std.data.csv/0.1.0/csv.spx"));
+        assert!(snapshot
+            .workspace_manifest()
+            .contains("dependencies/std.data.csv/0.1.0/decode.spx"));
         assert!(snapshot
             .workspace_manifest()
             .contains("dependencies/std.io/0.1.0/io.spx"));
@@ -1311,27 +1337,29 @@ fn library_modules_verify_inside_their_packages_only() {
     // standalone check reports the corresponding workspace-only diagnostic;
     // the owning package route above is the supported verification surface.
     for package in packages() {
-        let (library, _, _) = package_sources(&package);
-        let diagnostics = verify::verify(&library.program);
-        let expected = if library.program.module_uses.is_empty() {
-            "SPX-T105"
-        } else {
-            "SPX-G172"
-        };
-        assert!(
-            diagnostics
-                .iter()
-                .any(|diagnostic| diagnostic.code == expected),
-            "{}: expected standalone diagnostic {expected}, found {diagnostics:?}",
-            library.path.display()
-        );
-        assert!(
-            diagnostics
-                .iter()
-                .all(|diagnostic| diagnostic.code == expected),
-            "{}: library module has diagnostics beyond {expected}: {diagnostics:?}",
-            library.path.display()
-        );
+        let (libraries, _, _) = package_libraries(&package);
+        for library in libraries {
+            let diagnostics = verify::verify(&library.program);
+            let expected = if library.program.module_uses.is_empty() {
+                "SPX-T105"
+            } else {
+                "SPX-G172"
+            };
+            assert!(
+                diagnostics
+                    .iter()
+                    .any(|diagnostic| diagnostic.code == expected),
+                "{}: expected standalone diagnostic {expected}, found {diagnostics:?}",
+                library.path.display()
+            );
+            assert!(
+                diagnostics
+                    .iter()
+                    .all(|diagnostic| diagnostic.code == expected),
+                "{}: library module has diagnostics beyond {expected}: {diagnostics:?}",
+                library.path.display()
+            );
+        }
     }
 }
 

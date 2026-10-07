@@ -1,0 +1,15 @@
+module std.data.csv.decode;
+use type @id("std.io.writer") from std.io as Writer;
+use function @id("std.data.csv.at-is") from std.data.csv as csv_at_is;
+use function @id("std.data.csv.record-field-decoded-len") from std.data.csv as csv_record_field_decoded_len;
+use function @id("std.data.csv.record-field-end") from std.data.csv as csv_record_field_end;
+use function @id("std.data.csv.record-field-is-quoted") from std.data.csv as csv_record_field_is_quoted;
+use function @id("std.data.csv.record-field-present") from std.data.csv as csv_record_field_present;
+
+@id("std.data.csv.record-field-into")
+fn csv_record_field_into(input: borrow Slice<u8>, record_start: usize, field_start: usize, output: own Writer) -> Writer
+    requires csv_record_field_present(input, record_start, field_start)
+    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && csv_record_field_decoded_len(input, record_start, field_start) <= byte_len(bytes_as_slice(data)) - position, }
+{
+    match own output { Writer { data, position } => { let end = csv_record_field_end(input, record_start, field_start); let quoted = csv_record_field_is_quoted(input, record_start, field_start); let content_end = if quoted { end - 1usize } else { end }; let mut source = if quoted { field_start + 1usize } else { field_start }; let mut next = data; let mut count = 0usize; let mut scanning = source < content_end; while scanning { let escaped = quoted && csv_at_is(input, source, 34u8) && csv_at_is(input, source + 1usize, 34u8); let value = if escaped { 34u8 } else { match byte_get(input, source) { Option::Some { value } => value, Option::None {} => 0u8, } }; next = bytes_set(next, position + count, value); source = source + if escaped { 2usize } else { 1usize }; count = count + 1usize; scanning = source < content_end; scanning } Writer { data: next, position: position + count } }, }
+}

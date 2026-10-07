@@ -27,6 +27,46 @@ pub(super) fn exact_owned_try(source: &[ResolvedType], target: &[ResolvedType]) 
         && (source == target || (source.get(1) == Some(&ResolvedType::Bytes) && admitted_target))
 }
 
+pub(super) fn owned_try_residual_places(
+    function: &ResolvedFunction,
+    expression: &crate::hir::ResolvedExpr,
+    mut source: CleanupPlace,
+    work: &mut super::SkeletonWork<'_, '_>,
+) -> Result<(CleanupPlace, CleanupPlace), Diagnostic> {
+    let ResolvedExprKind::Try {
+        operand,
+        err_case,
+        err_field,
+        residual_type,
+        ..
+    } = &expression.kind
+    else {
+        return Err(replay_error(
+            function,
+            "owned Result residual projection does not name a Try expression",
+        ));
+    };
+    let mut destination = CleanupPlace::whole(StorageId::ProvisionalResult);
+    if operand.ty != *residual_type {
+        source
+            .projections
+            .push(work.clone_owned(err_case, "changed-success residual source case projection")?);
+        source.projections.push(work.clone_owned(
+            err_field,
+            "changed-success residual source field projection",
+        )?);
+        destination.projections.push(work.clone_owned(
+            err_case,
+            "changed-success residual destination case projection",
+        )?);
+        destination.projections.push(work.clone_owned(
+            err_field,
+            "changed-success residual destination field projection",
+        )?);
+    }
+    Ok((source, destination))
+}
+
 pub(super) fn seal_changed_success_try_residual(
     program: &ResolvedProgram,
     function: &ResolvedFunction,

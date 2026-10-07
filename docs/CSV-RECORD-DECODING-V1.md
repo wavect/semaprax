@@ -27,6 +27,14 @@ the supplied Writer, preserves its prefix/suffix, and returns the advanced
 Writer without allocation. Invalid inputs and insufficient capacity select the
 ordinary contract failure, with no partial successful result.
 
+The pure framing and field observers remain in `std.data.csv`, including the
+three existing contracted web exports. The owning copy operation keeps its
+persistent `std.data.csv.record-field-into` identity in the sibling provider
+module `std.data.csv.decode`. That module alone imports `std.io.Writer` and the
+pure checked helpers it calls. This keeps the frozen public byte facade free of
+an owning Writer ABI while the owning example declaration, conformance module,
+and focused gates retain the full decoded-copy behavior under `useful-data.v2`.
+
 The internal import lane permits a borrowed byte view alongside an explicitly
 imported resource-free owned byte record. Public Project signature and ABI
 admission remains unchanged. Persistent identities use `std.data.csv.record-*`;

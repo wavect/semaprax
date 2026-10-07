@@ -16,7 +16,7 @@ use function @id("std.data.csv.record-error-offset") from std.data.csv as record
 use function @id("std.data.csv.record-field-decoded-len") from std.data.csv as record_field_decoded_len;
 use function @id("std.data.csv.record-field-end") from std.data.csv as record_field_end;
 use function @id("std.data.csv.record-field-has-next") from std.data.csv as record_field_has_next;
-use function @id("std.data.csv.record-field-into") from std.data.csv as record_field_into;
+use function @id("std.data.csv.record-field-into") from std.data.csv.decode as record_field_into;
 use function @id("std.data.csv.record-field-is-quoted") from std.data.csv as record_field_is_quoted;
 use function @id("std.data.csv.record-field-next") from std.data.csv as record_field_next;
 use function @id("std.data.csv.record-field-present") from std.data.csv as record_field_present;

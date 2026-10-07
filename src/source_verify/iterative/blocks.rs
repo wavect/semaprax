@@ -354,6 +354,8 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                     name,
                                     &binding_ty,
                                 )
+                                || (self.loop_depth != 0
+                                    && self.admits_record_owner_renewal(name, value))
                                 || (crate::stdin_stream_ops::ast_is_reader(&binding_ty)
                                     && crate::stdin_stream_ops::source_next_is_same_owner(
                                         self.program,
@@ -637,13 +639,16 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             Type::Named { name, arguments }
                 if name == (if consuming { "Iter" } else { "Vec" })
                     && matches!(arguments.as_slice(), [ty] if crate::vec_ops::ast_element_is_admitted(ty)
-                        || (consuming && (*ty == Type::Bytes || crate::source_verify::declared_type::generic_collection::slot(self.current, &actual.ty))))
+                        || (consuming && (*ty == Type::Bytes
+                            || crate::source_verify::declared_type::owned_record_collection::
+                                is_admitted_owned_record_collection_element(self.types, ty)
+                            || crate::source_verify::declared_type::generic_collection::slot(self.current, &actual.ty))))
                     && (!consuming || actual.mode == ParamMode::Own) => Some(arguments[0].clone()),
             _ => None,
         });
         if (!consuming && source.is_none()) || element.is_none() {
             self.diagnostics.push(error(self.program, "SPX-T284",
-                if consuming { "for own traversal requires an owned Iter<T> for a Copy scalar T" }
+                if consuming { "for own traversal requires an owned Iter<T> for an admitted scalar, Bytes, or owned-record T" }
                 else { "for traversal requires a simple immutable binding of exact Vec<T> for a Copy scalar T" }, values.span));
         }
         if consuming {
@@ -683,9 +688,13 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             let _ = self.reject_for_body_disallowed(body, source);
         }
         let baseline = consuming.then(|| self.scopes[block_scope].bindings.clone());
+        let owned_record_item = element.as_ref().is_some_and(|element| {
+            crate::source_verify::declared_type::owned_record_collection::
+                is_admitted_owned_record_collection_element(self.types, element)
+        });
         let _ = self.reject_iterator_body(
             body,
-            (consuming && element == Some(Type::Bytes)).then_some(item),
+            (consuming && (element == Some(Type::Bytes) || owned_record_item)).then_some(item),
         );
         let item_inserted = !self.scopes[block_scope].bindings.contains_key(item);
         if !item_inserted {
@@ -701,7 +710,14 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 self.scopes[block_scope].bindings.insert(
                     item.to_owned(),
                     Binding {
-                        mode: if consuming && element == Type::Bytes {
+                        mode: if consuming
+                            && (element == Type::Bytes
+                                || crate::source_verify::declared_type::owned_record_collection::
+                                    is_admitted_owned_record_collection_element(
+                                        self.types,
+                                        &element,
+                                    ))
+                        {
                             ParamMode::Own
                         } else {
                             ParamMode::Value
@@ -733,6 +749,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 baseline,
             });
         self.loop_depth += 1;
+        if item_inserted && consuming && owned_record_item {
+            self.owned_iterator_items.push(item.to_owned());
+        }
         self.frames
             .push(crate::source_verify::scope::VerifierFrame::Enter {
                 expression: body,
@@ -758,6 +777,14 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
     ) -> Result<(), Diagnostic> {
         let _ = self.values.pop();
         self.loop_depth = self.loop_depth.saturating_sub(1);
+        if item_inserted
+            && self
+                .owned_iterator_items
+                .last()
+                .is_some_and(|active| active == item)
+        {
+            self.owned_iterator_items.pop();
+        }
         if item_inserted {
             self.scopes[block_scope].bindings.remove(item);
         }

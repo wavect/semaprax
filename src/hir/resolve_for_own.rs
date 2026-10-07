@@ -145,7 +145,7 @@ fn source_element(
     };
     if declaration.as_str() != crate::iterator_ops::ITER_ID
         || source.ownership != OwnershipMode::Own
-        || !(crate::iterator_ops::resolved_element_is_admitted(element)
+        || !(crate::iterator_ops::resolved_element_is_admitted_in(&resolver.declarations, element)
             || super::generic_collection::source_parameter(resolver.program, function, element))
     {
         return Err(Diagnostic::io(

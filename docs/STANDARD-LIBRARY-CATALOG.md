@@ -1192,7 +1192,7 @@ fn implies(premise: bool, conclusion: bool) -> bool
 
 ## `std.data.csv`
 
-Package `std/data-csv`, tier `portable`, status partial. Required project profile: `useful-data.v1`. Dependency: `std.data.csv = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+Package `std/data-csv`, tier `portable`, status partial. Required project profile: `useful-data.v2`. Dependency: `std.data.csv = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
 
 ### `std.data.csv.field_count`
 
@@ -1255,6 +1255,122 @@ fn csv_content_start(record: borrow Slice<u8>, start: usize) -> usize
 fn csv_content_end(record: borrow Slice<u8>, start: usize) -> usize
     requires start <= byte_len(record)
     ensures result >= csv_content_start(record, start) && result <= byte_len(record)
+```
+
+### `std.data.csv.at-is`
+
+```semaprax
+fn csv_at_is(input: borrow Slice<u8>, index: usize, expected: u8) -> bool
+```
+
+### `std.data.csv.record-scan`
+
+Quote-aware framing over a complete CSV byte view. Modes select the logical
+record end, next record start, stable error kind, or exact error offset.
+Kinds are 0 success, 1 quote outside a field start, 2 junk after a closing
+quote, and 3 an incomplete quoted record at EOF.
+
+```semaprax
+fn csv_record_scan(input: borrow Slice<u8>, start: usize, mode: usize) -> usize
+    requires start <= byte_len(input)
+    requires mode <= 3usize
+```
+
+### `std.data.csv.record-available`
+
+```semaprax
+fn csv_record_available(input: borrow Slice<u8>, start: usize) -> bool
+    requires start <= byte_len(input)
+```
+
+### `std.data.csv.record-end`
+
+```semaprax
+fn csv_record_end(input: borrow Slice<u8>, start: usize) -> usize
+    requires start <= byte_len(input)
+    ensures result >= start && result <= byte_len(input)
+```
+
+### `std.data.csv.record-next`
+
+```semaprax
+fn csv_record_next(input: borrow Slice<u8>, start: usize) -> usize
+    requires start <= byte_len(input)
+    ensures result >= start && result <= byte_len(input)
+```
+
+### `std.data.csv.record-error-kind`
+
+```semaprax
+fn csv_record_error_kind(input: borrow Slice<u8>, start: usize) -> usize
+    requires start <= byte_len(input)
+    ensures result <= 3usize
+```
+
+### `std.data.csv.record-error-offset`
+
+```semaprax
+fn csv_record_error_offset(input: borrow Slice<u8>, start: usize) -> usize
+    requires start <= byte_len(input)
+    ensures result <= byte_len(input)
+```
+
+### `std.data.csv.record-field-present`
+
+```semaprax
+fn csv_record_field_present(input: borrow Slice<u8>, record_start: usize, field_start: usize) -> bool
+    requires record_start <= byte_len(input)
+    requires field_start >= record_start && field_start <= csv_record_end(input, record_start)
+    requires csv_record_error_kind(input, record_start) == 0usize
+```
+
+### `std.data.csv.record-field-end`
+
+```semaprax
+fn csv_record_field_end(input: borrow Slice<u8>, record_start: usize, field_start: usize) -> usize
+    requires csv_record_field_present(input, record_start, field_start)
+    ensures result >= field_start && result <= csv_record_end(input, record_start)
+```
+
+### `std.data.csv.record-field-has-next`
+
+```semaprax
+fn csv_record_field_has_next(input: borrow Slice<u8>, record_start: usize, field_start: usize) -> bool
+    requires csv_record_field_present(input, record_start, field_start)
+```
+
+### `std.data.csv.record-field-next`
+
+```semaprax
+fn csv_record_field_next(input: borrow Slice<u8>, record_start: usize, field_start: usize) -> usize
+    requires csv_record_field_present(input, record_start, field_start)
+    ensures result >= field_start && result <= csv_record_end(input, record_start)
+```
+
+### `std.data.csv.record-field-is-quoted`
+
+```semaprax
+fn csv_record_field_is_quoted(input: borrow Slice<u8>, record_start: usize, field_start: usize) -> bool
+    requires csv_record_field_present(input, record_start, field_start)
+```
+
+### `std.data.csv.record-field-decoded-len`
+
+```semaprax
+fn csv_record_field_decoded_len(input: borrow Slice<u8>, record_start: usize, field_start: usize) -> usize
+    requires csv_record_field_present(input, record_start, field_start)
+```
+
+## `std.data.csv.decode`
+
+Package `std/data-csv`, tier `portable`, status partial. Required project profile: `useful-data.v2`. Dependency: `std.data.csv = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.data.csv.record-field-into`
+
+```semaprax
+fn csv_record_field_into(input: borrow Slice<u8>, record_start: usize, field_start: usize, output: own Writer) -> Writer
+    requires csv_record_field_present(input, record_start, field_start)
+    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && csv_record_field_decoded_len(input, record_start, field_start) <= byte_len(bytes_as_slice(data)) - position, }
 ```
 
 ## `std.data.json`
@@ -2757,6 +2873,61 @@ fn byte_at_or_zero(view: borrow Slice<u8>, index: usize) -> i64
 fn base64_byte(view: borrow Slice<u8>, index: usize) -> i64
     requires index < base64_len(byte_len(view))
     ensures result >= 43 && result <= 122
+```
+
+### `std.encoding.base64.decode-check`
+
+Strict RFC 4648 padded decoding. Error kinds are stable scalars: 0 is
+success, 1 is an impossible input length, 2 is a non-alphabet byte, 3 is
+misplaced padding, and 4 is a nonzero unused pad bit. The paired offset is
+the first offending byte, or the input length for an impossible remainder.
+
+```semaprax
+fn base64_decode_check(input: borrow Slice<u8>, report_kind: bool) -> usize
+```
+
+### `std.encoding.base64.decode-error-kind`
+
+```semaprax
+fn base64_decode_error_kind(input: borrow Slice<u8>) -> usize
+    ensures result <= 4usize
+```
+
+### `std.encoding.base64.decode-error-offset`
+
+```semaprax
+fn base64_decode_error_offset(input: borrow Slice<u8>) -> usize
+    ensures result <= byte_len(input)
+```
+
+### `std.encoding.base64.decoded-len`
+
+```semaprax
+fn base64_decoded_len(input: borrow Slice<u8>) -> usize
+    ensures result <= byte_len(input) / 4usize * 3usize
+```
+
+### `std.encoding.base64.code-byte`
+
+```semaprax
+fn base64_code_byte(value: i64) -> u8
+    requires value >= 0 && value <= 255
+```
+
+### `std.encoding.base64.decoded-byte`
+
+```semaprax
+fn base64_decoded_byte(input: borrow Slice<u8>, index: usize) -> u8
+    requires base64_decode_error_kind(input) == 0usize
+    requires index < base64_decoded_len(input)
+```
+
+### `std.encoding.base64.decode-into`
+
+```semaprax
+fn base64_decode_into(input: borrow Slice<u8>, output: own Writer) -> Writer
+    requires base64_decode_error_kind(input) == 0usize
+    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && base64_decoded_len(input) <= byte_len(bytes_as_slice(data)) - position, }
 ```
 
 ## `std.env`

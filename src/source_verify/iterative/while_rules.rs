@@ -115,6 +115,22 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         while let Some(frame) = frames.pop() {
             let expression = match frame {
                 Frame::Statement(statement) => match statement {
+                    Statement::Assign {
+                        name,
+                        field: None,
+                        value,
+                        ..
+                    } if self.admits_record_owner_renewal(name, value) => {
+                        let ExprKind::Call { args, .. } = &value.kind else {
+                            unreachable!("record renewal admission requires a call")
+                        };
+                        // The outer call's owning result is the authenticated
+                        // renewal operation. Its arguments remain ordinary loop
+                        // expressions: skipping them would let a pure renewal
+                        // wrapper hide a disallowed nested/effectful call.
+                        frames.push(Frame::CallNext { args, next: 0 });
+                        continue;
+                    }
                     Statement::Let { value, .. } | Statement::Assign { value, .. } => value,
                     Statement::Unsafe { span, .. } => {
                         self.diagnostics.push(error(
@@ -365,7 +381,12 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             && crate::loop_calls::ast_result_admitted(self.program, &declared.return_type)
                             && declared.params.iter().zip(args).all(|(param, argument)| {
                                 crate::loop_calls::ast_param_admitted(self.program, param.mode, &param.ty)
-                                    || (param.mode == ParamMode::Own && param.ty == Type::Bytes
+                                    || (param.mode == ParamMode::Borrow
+                                        && crate::source_verify::declared_type::owned_record_collection::is_owner_renewal_record(self.types, &param.ty))
+                                    || (param.mode == ParamMode::Own
+                                        && (param.ty == Type::Bytes
+                                            || crate::source_verify::declared_type::owned_record_collection::
+                                                is_admitted_owned_record_collection_element(self.types, &param.ty))
                                         && owned_item.is_some_and(|item| matches!(&argument.kind, ExprKind::Var(name) if name == item)))
                             }));
                         if !scalar_signature {
@@ -476,5 +497,53 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             }
         }
         results.pop().unwrap_or(Err(()))
+    }
+
+    pub(super) fn admits_record_owner_renewal(&self, binding: &str, value: &Expr) -> bool {
+        let ExprKind::Call {
+            name,
+            type_arguments,
+            args,
+            ..
+        } = &value.kind
+        else {
+            return false;
+        };
+        let Some(target) = self.functions.get(name.as_str()) else {
+            return false;
+        };
+        type_arguments.is_empty()
+            && target.effects.is_empty()
+            && crate::source_verify::declared_type::owned_record_collection::is_owner_renewal_record(
+                self.types,
+                &target.return_type,
+            )
+            && target.params.len() == args.len()
+            && target
+                .params
+                .iter()
+                .zip(args)
+                .filter(|(parameter, argument)| {
+                    parameter.mode == ParamMode::Own
+                        && parameter.ty == target.return_type
+                        && matches!(&argument.kind, ExprKind::Var(name) if name == binding)
+                })
+                .count()
+                == 1
+            && target.params.iter().zip(args).all(|(parameter, argument)| {
+                match parameter.mode {
+                    ParamMode::Own => {
+                        parameter.ty == target.return_type
+                            && matches!(&argument.kind, ExprKind::Var(name) if name == binding)
+                    }
+                    ParamMode::Borrow => {
+                        crate::source_verify::declared_type::owned_record_collection::
+                            is_owner_renewal_record(self.types, &parameter.ty)
+                            && matches!(argument.kind, ExprKind::Var(_))
+                    }
+                    ParamMode::Value => true,
+                    ParamMode::Shared => false,
+                }
+            })
     }
 }

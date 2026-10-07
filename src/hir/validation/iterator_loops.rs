@@ -13,6 +13,23 @@ impl HirValidator<'_> {
     ) -> Result<(), Diagnostic> {
         self.validate_iterator_body(expression, None)
     }
+    fn is_owned_iterator_record_item(
+        &self,
+        expression: &ResolvedExpr,
+        owned_item: Option<&ResolvedBinding>,
+    ) -> bool {
+        owned_item.is_some_and(|item| {
+            item.ownership == OwnershipMode::Own
+                && expression.ownership == OwnershipMode::Own
+                && expression.ty == item.ty
+                && crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
+                    &self.program.declarations,
+                    &item.ty,
+                )
+                && matches!(&expression.kind, ResolvedExprKind::Place(place)
+                    if place.root == item.id && place.projections.is_empty())
+        })
+    }
     fn validate_iterator_body(
         &self,
         expression: &ResolvedExpr,
@@ -57,8 +74,16 @@ impl HirValidator<'_> {
                     let named_str = expression.ty == ResolvedType::Str
                         && expression.ownership == OwnershipMode::Borrow
                         && place.projections.is_empty();
+                    let cursor_borrow = expression.ownership == OwnershipMode::Borrow
+                        && place.projections.is_empty()
+                        && crate::hir::iterator_loop::is_owner_renewal_record(
+                            &self.program.declarations,
+                            &expression.ty,
+                        );
                     if !whole_string
                         && !named_str
+                        && !cursor_borrow
+                        && !self.is_owned_iterator_record_item(expression, owned_item)
                         && (!crate::hir::is_scalar_resolved_type(&expression.ty)
                             || expression.ownership != OwnershipMode::Value)
                     {
@@ -136,6 +161,43 @@ impl HirValidator<'_> {
                 ResolvedExprKind::Block { statements, tail } => {
                     pending.push(tail);
                     for statement in statements.iter().rev() {
+                        let renewal = if let ResolvedStatement::Assign {
+                            binding,
+                            field: None,
+                            value,
+                            ..
+                        } = statement
+                        {
+                            crate::hir::iterator_loop::is_record_owner_renewal(
+                                self.program,
+                                binding,
+                                value,
+                            )
+                            .then_some(value)
+                        } else {
+                            None
+                        };
+                        if let Some(value) = renewal {
+                            let ResolvedExprKind::Call { callee, args, .. } = &value.kind else {
+                                unreachable!("record renewal admission requires a call")
+                            };
+                            let target = self
+                                .program
+                                .resolve_call_target(callee, None)
+                                .ok_or_else(|| hir_error("record renewal target disappeared"))?;
+                            // The consumed owner and exact whole-record borrows
+                            // were authenticated by `is_record_owner_renewal`.
+                            // Copy arguments remain ordinary loop expressions;
+                            // replay them so a pure renewal wrapper cannot hide
+                            // a disallowed nested/effectful computation.
+                            pending.extend(target.params.iter().zip(args).rev().filter_map(
+                                |(parameter, argument)| {
+                                    (parameter.ownership == OwnershipMode::Value)
+                                        .then_some(argument)
+                                },
+                            ));
+                            continue;
+                        }
                         for index in (0..statement.child_count()).rev() {
                             let child = statement
                                 .child(index)
@@ -294,9 +356,17 @@ impl HirValidator<'_> {
                         && crate::loop_calls::resolved_result_admitted(&self.program.declarations, &target.return_type)
                         && target.params.iter().zip(args).all(|(param, argument)| {
                             crate::loop_calls::resolved_param_admitted(&self.program.declarations, param.ownership, &param.ty)
-                                || (param.ownership == OwnershipMode::Own && param.ty == ResolvedType::Bytes
-                                    && argument.ownership == OwnershipMode::Own && argument.ty == ResolvedType::Bytes
-                                    && owned_item.is_some_and(|item| matches!(&argument.kind, ResolvedExprKind::Place(place) if place.root == item.id && place.projections.is_empty())))
+                                || (param.ownership == OwnershipMode::Borrow
+                                    && crate::hir::iterator_loop::is_owner_renewal_record(
+                                        &self.program.declarations,
+                                        &param.ty,
+                                    ))
+                                || (param.ownership == OwnershipMode::Own
+                                    && argument.ownership == OwnershipMode::Own
+                                    && param.ty == argument.ty
+                                    && owned_item.is_some_and(|item| item.ty == param.ty
+                                        && matches!(&argument.kind, ResolvedExprKind::Place(place)
+                                            if place.root == item.id && place.projections.is_empty())))
                         });
                     if !scalar_signature {
                         return Err(hir_error(format!(
@@ -323,6 +393,21 @@ impl HirValidator<'_> {
                                         "while loop bounded-read call slice `{}` lacks authenticated provenance",
                                         place.root
                                     ),
+                                ));
+                            }
+                        } else if parameter.ownership == OwnershipMode::Borrow
+                            && crate::hir::iterator_loop::is_owner_renewal_record(
+                                &self.program.declarations,
+                                &parameter.ty,
+                            )
+                        {
+                            if !matches!(&argument.kind, ResolvedExprKind::Place(place)
+                                if place.projections.is_empty()
+                                    && matches!(argument.ownership,
+                                        OwnershipMode::Own | OwnershipMode::Borrow))
+                            {
+                                return Err(hir_error(
+                                    "while loop owner observer requires a whole named cursor",
                                 ));
                             }
                         } else if parameter.ownership != OwnershipMode::Own
@@ -369,16 +454,27 @@ impl HirValidator<'_> {
                 // Copy-payload variant binds only Copy values, so it is
                 // cleanup-inert; its arms may yield a `string`, which joins
                 // like any branch result in the body region.
+                // Consuming record traversal also admits `match own` on the
+                // exact protocol item. Ordinary replay transfers its Bytes
+                // leaves into the selected arm and settles them in that region.
                 ResolvedExprKind::Match {
-                    scrutinee, arms, ..
+                    mode,
+                    scrutinee,
+                    arms,
+                    ..
                 } => {
-                    if !crate::loop_calls::resolved_match_scrutinee_admitted(
-                        &self.program.declarations,
-                        &scrutinee.ty,
-                    ) || !crate::loop_calls::resolved_result_admitted(
-                        &self.program.declarations,
-                        &expression.ty,
-                    ) {
+                    let owned_record = *mode == ResolvedMatchMode::Own
+                        && self.is_owned_iterator_record_item(scrutinee, owned_item);
+                    if !(owned_record
+                        || crate::loop_calls::resolved_match_scrutinee_admitted(
+                            &self.program.declarations,
+                            &scrutinee.ty,
+                        ))
+                        || !crate::loop_calls::resolved_result_admitted(
+                            &self.program.declarations,
+                            &expression.ty,
+                        )
+                    {
                         return Err(hir_error(
                             "while loop match is outside the Copy-scrutinee profile",
                         ));

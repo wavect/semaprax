@@ -37,6 +37,7 @@ mod network_io;
 mod owned_buffer;
 mod owned_stack;
 mod owned_strings;
+mod owned_try;
 mod post_transitions;
 mod process_io;
 mod provider_lowering;
@@ -52,6 +53,8 @@ pub(crate) fn owned_arena_capacity(
     let layouts = VariantLayoutCache::build(program, crate::variant_layout::VariantTarget::Wasm32)?;
     owned_stack::arena_capacity(program, &layouts, roots)
 }
+mod numeric_conversions;
+
 use super::{
     function_import, intern_type, section, write_bytes, write_i64, write_name, write_u32,
     Signature, F32, F64, I32, I64, SCALAR_IMPORT_COUNT,
@@ -1179,6 +1182,15 @@ fn aggregate_size_align(
         return Ok((16, 8));
     }
     if crate::iterator_ops::is_step(ty) {
+        if crate::iterator_ops::element(ty).is_some_and(|element| {
+            crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
+                &program.declarations,
+                element,
+            )
+        }) {
+            let layout = variant_layout(variant_layouts, ty)?;
+            return Ok((layout.size, layout.align));
+        }
         return Ok((32, 8));
     }
     if is_record(program, ty)? {
@@ -2250,8 +2262,10 @@ fn emit_profile_with_scalar_exports(
 ) -> Result<Vec<u8>, Diagnostic> {
     string_runtime::refuse_unimplemented_collections(program)?;
     let uses_string_runtime = string_runtime::program_uses_runtime(program);
-    let uses_byte_data =
-        super::program_uses_byte_data(program) || super::program_uses_strings(program);
+    let uses_record_iterator = crate::iterator_ops::resolved_program_uses_record_iterator(program);
+    let uses_byte_data = super::program_uses_byte_data(program)
+        || super::program_uses_strings(program)
+        || uses_record_iterator;
     let uses_owned_buffer = program_uses_owned_buffer(program);
     let uses_vec = super::program_uses_vec(program);
     let uses_extended_vec = super::vec_ops::program_uses_extended_vec(program);
@@ -2427,36 +2441,12 @@ fn emit_profile_with_scalar_exports(
             &mut type_indexes,
         )
     });
-    let iter_into = uses_owned_iterator.then(|| {
-        intern_type(
-            Signature {
-                params: vec![I64, I32],
-                results: vec![I32],
-            },
-            &mut types,
-            &mut type_indexes,
-        )
-    });
-    let iter_next = uses_owned_iterator.then(|| {
-        intern_type(
-            Signature {
-                params: vec![I64, I64, I32],
-                results: vec![I32],
-            },
-            &mut types,
-            &mut type_indexes,
-        )
-    });
-    let iter_drop = uses_owned_iterator.then(|| {
-        intern_type(
-            Signature {
-                params: vec![I64, I64],
-                results: Vec::new(),
-            },
-            &mut types,
-            &mut type_indexes,
-        )
-    });
+    let (iter_into, iter_next, iter_drop, record_iter_next) = iterator_ops::intern_import_types(
+        uses_owned_iterator,
+        uses_record_iterator,
+        &mut types,
+        &mut type_indexes,
+    );
     let box_new = uses_box.then(|| {
         intern_type(
             Signature {
@@ -2584,6 +2574,7 @@ fn emit_profile_with_scalar_exports(
                     } else {
                         0
                     }
+                    + iterator_ops::record_import_count(uses_record_iterator)
                     + if uses_box { BOX_IMPORT_COUNT } else { 0 }
                     + if uses_string_runtime {
                         string_runtime::import_count(program)
@@ -2632,6 +2623,7 @@ fn emit_profile_with_scalar_exports(
             } else {
                 0
             }
+            + iterator_ops::record_import_count(uses_record_iterator)
             + if uses_box { BOX_IMPORT_COUNT } else { 0 }
             + if uses_string_runtime {
                 string_runtime::import_count(program)
@@ -2689,6 +2681,12 @@ fn emit_profile_with_scalar_exports(
         function_import(&mut imports, "env", names[1], iter_next.unwrap());
         function_import(&mut imports, "env", names[2], iter_drop.unwrap());
     }
+    if uses_record_iterator {
+        let names = iterator_ops::record_import_names();
+        function_import(&mut imports, "env", names[0], iter_into.unwrap());
+        function_import(&mut imports, "env", names[1], record_iter_next.unwrap());
+        function_import(&mut imports, "env", names[2], iter_drop.unwrap());
+    }
     if uses_box {
         let names = box_ops::import_names(program);
         function_import(&mut imports, "env", names[0], box_new.unwrap());
@@ -2737,6 +2735,7 @@ fn emit_profile_with_scalar_exports(
             } else {
                 0
             }
+            + iterator_ops::record_import_count(uses_record_iterator)
             + if uses_box { BOX_IMPORT_COUNT } else { 0 };
         string_runtime::insert_function_indexes(
             &mut function_indexes,
@@ -2891,6 +2890,9 @@ fn emit_profile_with_scalar_exports(
             } else {
                 0
             })
+        })
+        .and_then(|value| {
+            value.checked_add(iterator_ops::record_import_count(uses_record_iterator))
         })
         .and_then(|value| value.checked_add(if uses_box { BOX_IMPORT_COUNT } else { 0 }))
         .and_then(|value| {
@@ -3495,20 +3497,7 @@ impl Emitter<'_> {
                 result,
                 residual_type,
                 ..
-            } if operand.ownership == crate::hir::OwnershipMode::Own
-                && operand.ty == *residual_type
-                && result.as_str() == crate::prelude::RESULT_ID
-                && matches!(
-                    &operand.ty,
-                    ResolvedType::Nominal {
-                        declaration,
-                        arguments,
-                    } if declaration == result
-                        && crate::hir::admitted_owned_byte_prelude_instance(
-                            declaration,
-                            arguments,
-                        )
-                )
+            } if owned_try::is_admitted_owned_result_try(operand, residual_type, result)
         );
         if !owned_match {
             if !owned_try {
@@ -3771,7 +3760,7 @@ impl Emitter<'_> {
                     }
                 }
             };
-        if place.projections.len() == 2 && is_variant(self.program, value_type(&value))? {
+        if place.projections.len() >= 2 && is_variant(self.program, value_type(&value))? {
             let Value::Aggregate { pointer, ty } = value else {
                 return Err(error("variant cleanup leaf base is not aggregate storage"));
             };
@@ -3782,7 +3771,7 @@ impl Emitter<'_> {
             let field = case
                 .field(&place.projections[1])
                 .ok_or_else(|| error("variant cleanup leaf field is absent"))?;
-            return value_at(
+            value = value_at(
                 Pointer {
                     local: pointer.local,
                     offset: pointer
@@ -3793,7 +3782,11 @@ impl Emitter<'_> {
                 },
                 field.ty.clone(),
                 self.program,
-            );
+            )?;
+            for projection in &place.projections[2..] {
+                value = self.project_value(&value, projection)?;
+            }
+            return Ok(value);
         }
         for projection in &place.projections {
             value = self.project_value(&value, projection)?;
@@ -3883,7 +3876,7 @@ impl Emitter<'_> {
             .plan
             .cleanup_place_flags
             .iter()
-            .filter(|(leaf, _)| leaf.storage == place.storage && leaf.projections.len() == 2)
+            .filter(|(leaf, _)| leaf.storage == place.storage && leaf.projections.len() >= 2)
             .map(|(leaf, flag)| (leaf.clone(), *flag))
             .collect::<Vec<_>>();
         if leaves.is_empty() {
@@ -3944,7 +3937,7 @@ impl Emitter<'_> {
             .filter(|(leaf, _)| {
                 leaf.storage == place.storage
                     && leaf.projections.starts_with(&place.projections)
-                    && leaf.projections.len() == place.projections.len() + 2
+                    && leaf.projections.len() >= place.projections.len() + 2
             })
             .map(|(leaf, flag)| (leaf.clone(), *flag))
             .collect::<Vec<_>>();
@@ -4033,7 +4026,7 @@ impl Emitter<'_> {
             .filter(|(leaf, _)| {
                 leaf.storage == place.storage
                     && leaf.projections.starts_with(&place.projections)
-                    && leaf.projections.len() == place.projections.len() + 2
+                    && leaf.projections.len() >= place.projections.len() + 2
             })
             .map(|(leaf, flag)| (leaf.clone(), *flag))
             .collect::<Vec<_>>();
@@ -4263,7 +4256,7 @@ impl Emitter<'_> {
             .filter(|leaf| {
                 leaf.storage == sources[0].storage
                     && leaf.projections.starts_with(&sources[0].projections)
-                    && leaf.projections.len() == sources[0].projections.len() + 2
+                    && leaf.projections.len() >= sources[0].projections.len() + 2
             })
             .cloned()
             .collect::<Vec<_>>();
@@ -4427,11 +4420,23 @@ impl Emitter<'_> {
         expression: &ExpressionId,
         selected: &DeclarationId,
     ) -> Result<(), Diagnostic> {
-        let transitions = self
-            .cleanup_plan
-            .blocks
+        let mut blocks = self.cleanup_plan.blocks.iter().filter(|block| {
+            block.transitions.iter().any(|transition| {
+                matches!(transition,
+                        crate::cleanup_plan::CleanupTransition::AuthenticateVariantCase {
+                            at, case, ..
+                        } if at == expression && case == selected)
+            })
+        });
+        let block = blocks
+            .next()
+            .ok_or_else(|| error("owned Try success has no authenticated cleanup block"))?;
+        if blocks.next().is_some() {
+            return Err(error("owned Try success cleanup block is ambiguous"));
+        }
+        let transitions = block
+            .transitions
             .iter()
-            .flat_map(|block| &block.transitions)
             .filter(|transition| match transition {
                 crate::cleanup_plan::CleanupTransition::Initialize { at, .. }
                 | crate::cleanup_plan::CleanupTransition::Transfer { at, .. }
@@ -5026,20 +5031,8 @@ impl Emitter<'_> {
                     "copy-result Err payload",
                 )?;
 
-                let owned_bytes = operand.ownership == crate::hir::OwnershipMode::Own
-                    && operand.ty == *residual_type
-                    && result.as_str() == crate::prelude::RESULT_ID
-                    && matches!(
-                        &operand.ty,
-                        ResolvedType::Nominal {
-                            declaration,
-                            arguments,
-                        } if declaration == result
-                            && crate::hir::admitted_owned_byte_prelude_instance(
-                                declaration,
-                                arguments,
-                            )
-                    );
+                let owned_bytes =
+                    owned_try::is_admitted_owned_result_try(operand, residual_type, result);
 
                 let operand_value = self.emit_expr(operand)?;
                 let Value::Aggregate {
@@ -5084,9 +5077,28 @@ impl Emitter<'_> {
                         &expr.id,
                         err_case,
                         &operand_value,
-                        true,
+                        operand.ty == *residual_type,
                     )?;
-                    self.copy_value(&residual, &operand_value, "owned Result residual move")?;
+                    if operand.ty == *residual_type {
+                        self.copy_value(&residual, &operand_value, "owned Result residual move")?;
+                    } else {
+                        let Value::Aggregate {
+                            pointer: residual_pointer,
+                            ..
+                        } = &residual
+                        else {
+                            unreachable!("owned Result residual is aggregate storage")
+                        };
+                        self.reconstruct_owned_result_error(
+                            (operand_pointer, &operand_layout, operand_err.1),
+                            (
+                                *residual_pointer,
+                                &residual_layout,
+                                residual_err.0,
+                                residual_err.1,
+                            ),
+                        )?;
+                    }
                     let result_staged = self.plan.result_staged.ok_or_else(|| {
                         error("owned Result propagation has no result-state local")
                     })?;
@@ -6000,6 +6012,13 @@ impl Emitter<'_> {
         type_arguments: &[ResolvedType],
         args: &[ResolvedExpr],
     ) -> Result<Value, Diagnostic> {
+        if instance.is_none() {
+            if let Some(op) =
+                crate::string_ops::by_id(callee.as_str()).filter(|op| op.is_integer_conversion())
+            {
+                return self.emit_integer_conversion(expr, op, args);
+            }
+        }
         if self.standalone_strings && instance.is_none() {
             if let Some(operation) = crate::string_ops::by_id(callee.as_str()) {
                 return self.emit_internal_string_operation(expr, operation, args);
@@ -7687,12 +7706,8 @@ impl Emitter<'_> {
         )?;
         self.get_scalar(right);
         self.output.push(0x45);
-        self.fail_if(if remainder {
-            STATUS_REM_ZERO
-        } else {
-            STATUS_DIV_ZERO
-        })?;
-        if !remainder {
+        self.fail_if(numeric_conversions::division_status(remainder, true))?;
+        {
             self.get_scalar(right);
             self.output.push(0x41);
             write_i64(self.output, -1);
@@ -7702,7 +7717,7 @@ impl Emitter<'_> {
             write_i64(self.output, i32::MIN as i64);
             self.output.push(0x46);
             self.output.push(0x71);
-            self.fail_if(STATUS_DIV_OVERFLOW)?;
+            self.fail_if(numeric_conversions::division_status(remainder, false))?;
         }
         self.get_scalar(left);
         self.get_scalar(right);

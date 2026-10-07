@@ -90,7 +90,14 @@ impl Emitter<'_> {
                     };
                     self.emit_pointer(*pointer);
                     self.load_scalar(&ResolvedType::I64);
-                    if *ty == crate::iterator_ops::resolved_iter(ResolvedType::Bytes) {
+                    if crate::iterator_ops::element(ty).is_some_and(|element| {
+                        *element == ResolvedType::Bytes
+                            || crate::hir::owned_record_collection::
+                                is_admitted_owned_record_collection_element(
+                                    &self.program.declarations,
+                                    element,
+                                )
+                    }) {
                         self.emit_pointer(Pointer {
                             offset: pointer.offset + iterator_ops::ITER_CURSOR_OFFSET,
                             ..*pointer
@@ -104,6 +111,16 @@ impl Emitter<'_> {
                 write_u32(
                     self.output,
                     if iter_leaf
+                        && crate::iterator_ops::element(value_type(&value)).is_some_and(|element| {
+                            crate::hir::owned_record_collection::
+                                is_admitted_owned_record_collection_element(
+                                    &self.program.declarations,
+                                    element,
+                                )
+                        })
+                    {
+                        iterator_ops::record_import_base(self.program) + 2
+                    } else if iter_leaf
                         && *value_type(&value)
                             == crate::iterator_ops::resolved_iter(ResolvedType::Bytes)
                     {

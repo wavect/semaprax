@@ -1,7 +1,7 @@
 # Whole String Replacement v1
 
 Status: authored additive profile; executable verification pending. This page
-owns whole mutable String replacement, CleanupPlan v16 and Graph v67. It does
+owns whole mutable String replacement, CleanupPlan v16 and Graph v68. It does
 not promote Text Toolkit operations to Core Wasm or widen public String ABIs.
 
 ## Source and ownership
@@ -70,7 +70,7 @@ unchanged. No runtime finalizer is authorized by an unauthenticated plan.
 
 ## Projection and backends
 
-A program requiring this profile selects `semaprax.graph.v67`, composes all
+A program requiring this profile selects `semaprax.graph.v68`, composes all
 preceding supported facts and adds `string_replacement` with schema
 `semaprax.string-replacement.v1`. Its `updates` vector contains the exact
 function, RHS expression identity and target binding identity in deterministic

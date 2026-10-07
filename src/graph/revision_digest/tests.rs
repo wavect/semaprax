@@ -70,12 +70,16 @@ fn streaming_revision_matches_materialized_bytes_for_every_prelude() {
         ),
         (
             crate::prelude::SCHEMA_V11,
+            "@id(\"revision.Row\") record Row{@id(\"revision.Row.left\") left:Bytes,@id(\"revision.Row.right\") right:Bytes,@id(\"revision.Row.count\") count:i64} fn rows(values:own Iter<Row>)->Iter<Row>{values}",
+        ),
+        (
+            crate::prelude::SCHEMA_V12,
             "fn sorted(values:own Vec<i64>)->Vec<i64>{vec_sort<i64>(values)}",
         ),
     ] {
         assert_oracle(&format!("module revision.prelude; {declarations}"), schema);
     }
-    assert_oracle("module revision.sort; use function @id(\"std.collections.vec.sort\") from std.collections as sorted; fn run(values:own Vec<i64>)->Vec<i64>{sorted<i64>(values)}", crate::prelude::SCHEMA_V11);
+    assert_oracle("module revision.sort; use function @id(\"std.collections.vec.sort\") from std.collections as sorted; fn run(values:own Vec<i64>)->Vec<i64>{sorted<i64>(values)}", crate::prelude::SCHEMA_V12);
     for (schema, owner) in [
         (crate::prelude::SCHEMA_V3, "std.collections"),
         (crate::prelude::SCHEMA_V2, "user.collections"),

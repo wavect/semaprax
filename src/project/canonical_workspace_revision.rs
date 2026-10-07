@@ -214,12 +214,26 @@ impl SemanticWorkspaceRevision {
             let (program, _) =
                 crate::parse_with_comments(source.source(), Path::new(source.path()))
                     .map_err(|error| vec![error])?;
-            let (schema, _, _) = crate::prelude::selected_for_program(&program);
-            if schema == crate::prelude::SCHEMA_V9
+            let (source_schema, _, _) = crate::prelude::selected_for_program(&program);
+            let schema = match source.source_graph_schema() {
+                "semaprax.graph.v67" => crate::prelude::SCHEMA_V11,
+                "semaprax.graph.v65" => crate::prelude::SCHEMA_V10,
+                _ => source_schema,
+            };
+            if schema == crate::prelude::SCHEMA_V11
+                || (selected_prelude != crate::prelude::SCHEMA_V11
+                    && schema == crate::prelude::SCHEMA_V10)
+                || (selected_prelude != crate::prelude::SCHEMA_V10
+                    && selected_prelude != crate::prelude::SCHEMA_V11
+                    && schema == crate::prelude::SCHEMA_V9)
                 || (selected_prelude != crate::prelude::SCHEMA_V9
+                    && selected_prelude != crate::prelude::SCHEMA_V10
+                    && selected_prelude != crate::prelude::SCHEMA_V11
                     && schema == crate::prelude::SCHEMA_V8)
                 || (selected_prelude != crate::prelude::SCHEMA_V8
                     && selected_prelude != crate::prelude::SCHEMA_V9
+                    && selected_prelude != crate::prelude::SCHEMA_V10
+                    && selected_prelude != crate::prelude::SCHEMA_V11
                     && (schema == crate::prelude::SCHEMA_V7
                         || (schema == crate::prelude::SCHEMA_V6
                             && selected_prelude != crate::prelude::SCHEMA_V7)
@@ -250,6 +264,8 @@ impl SemanticWorkspaceRevision {
             }));
         }
         let prelude_contract = match selected_prelude {
+            crate::prelude::SCHEMA_V11 => crate::prelude::contract_bytes_v11(),
+            crate::prelude::SCHEMA_V10 => crate::prelude::contract_bytes_v10(),
             crate::prelude::SCHEMA_V9 => crate::prelude::contract_bytes_v9(),
             crate::prelude::SCHEMA_V8 => crate::prelude::contract_bytes_v8(),
             crate::prelude::SCHEMA_V7 => crate::prelude::contract_bytes_v7(),

@@ -71,6 +71,14 @@ pub(super) struct TypeTable<'a> {
 }
 
 impl<'a> TypeTable<'a> {
+    pub(super) fn is_admitted_iterator(&self, ty: &Type) -> bool {
+        crate::iterator_ops::ast_is_iterator(ty)
+            || matches!(ty, Type::Named { name, arguments }
+            if matches!(name.as_str(), "Iter" | "IterStep")
+            && matches!(arguments.as_slice(), [element]
+                if super::declared_type::owned_record_collection::
+                    is_admitted_owned_record_collection_element(self, element)))
+    }
     pub(super) fn new(program: &'a Program) -> Self {
         let declarations: HashMap<&'a str, &'a TypeDeclaration> = program
             .types
@@ -463,7 +471,7 @@ impl<'a> TypeTable<'a> {
                         }) {
                             return true;
                         }
-                        if crate::iterator_ops::ast_is_iterator(&Type::Named {
+                        if self.is_admitted_iterator(&Type::Named {
                             name: name.clone(),
                             arguments: arguments.clone(),
                         }) {
@@ -696,9 +704,7 @@ impl<'a> TypeTable<'a> {
     /// two cases that both contain owned bytes. Compiler-owned prelude
     /// identities retain their separate closed admission.
     pub(super) fn is_flat_owned_byte_variant(&self, ty: &Type) -> bool {
-        if matches!(ty,Type::Named{name,..} if name=="IterStep")
-            && crate::iterator_ops::ast_is_iterator(ty)
-        {
+        if matches!(ty,Type::Named{name,..} if name=="IterStep") && self.is_admitted_iterator(ty) {
             return true;
         }
         let Type::Named { name, arguments } = ty else {

@@ -110,6 +110,53 @@ fn source_hir_graph_and_renewal_keep_exact_streaming_facts() {
     assert_eq!(document["stdin_stream"]["open_prefills"], true);
     assert_eq!(document["stdin_stream"]["failure"]["code"], 3);
 }
+
+#[test]
+fn record_iteration_and_streaming_bind_the_complete_v11_v67_facts() {
+    let source = r#"module test.record_stream;
+permit { process.stdin.read }
+@id("record-stream.item") record Item {
+  @id("record-stream.item.left") left: Bytes,
+  @id("record-stream.item.right") right: Bytes,
+  @id("record-stream.item.marker") marker: i64,
+}
+@id("record-stream.consume") fn consume(values: own Vec<Item>) -> i64 {
+  let mut total = 0;
+  for own item in vec_into_iter<Item>(values) {
+    match own item { Item {left,right,marker} => { total = total + marker; 0 }, }
+  }
+  total
+}
+@id("record-stream.read") fn read() -> bool uses { process.stdin.read } {
+  let reader = stdin_stream_open(); stdin_stream_eof(reader)
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let parsed = ast(source);
+    let diagnostics = verify::verify(&parsed);
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    let resolved = hir::resolve(&parsed).unwrap();
+    hir::validate(&resolved).unwrap();
+    assert_eq!(
+        crate::prelude::selected_for_program(&parsed).0,
+        crate::prelude::SCHEMA_V11
+    );
+    let contract = String::from_utf8(crate::prelude::contract_bytes_v11()).unwrap();
+    assert!(contract.contains("opaque core.stdin-stream.reader StdinReader"));
+    assert!(contract.contains("profile core.iter.owned-record.v3"));
+    let document: serde_json::Value =
+        serde_json::from_str(&graph::to_json(&parsed).unwrap()).unwrap();
+    assert_eq!(document["schema"], "semaprax.graph.v67");
+    assert_eq!(document["prelude"]["schema"], crate::prelude::SCHEMA_V11);
+    assert_eq!(
+        document["owned_iterator_payloads"]["schema"],
+        "semaprax.owned-record-iterator.v3"
+    );
+    assert_eq!(
+        document["stdin_stream"]["schema"],
+        "semaprax.stdin-stream.v1"
+    );
+}
 #[test]
 fn direct_reader_refill_retains_same_owner_and_replayed_cleanup() {
     let parsed = ast(&SOURCE.replace(

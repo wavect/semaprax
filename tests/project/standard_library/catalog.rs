@@ -12,11 +12,12 @@ pub(super) fn render_catalogs() -> (String, String) {
     );
     let mut modules = Vec::new();
     for package in packages() {
-        let (library, _, _) = package_sources(&package);
+        let (libraries, _, _) = package_libraries(&package);
         let profile = required_consumer_profile(&package);
-        human.push_str(&format!(
+        for library in libraries {
+            human.push_str(&format!(
             "\n## `{}`\n\nPackage `std/{}`, tier `{}`, status {}. Required project profile: `{profile}`. Dependency: `{} = \"^0.1.0\"`. Targets: {}.\n",
-            package.module,
+            library.program.module,
             package.directory,
             package.tier,
             package.status,
@@ -28,67 +29,68 @@ pub(super) fn render_catalogs() -> (String, String) {
                 .collect::<Vec<_>>()
                 .join(", ")
         ));
-        // The catalog is a projection of the same documentation model that
-        // `semaprax doc` renders, so the bundled skill cannot drift from the
-        // graph; the source-text slice below cross-checks every signature.
-        let (program, comments) =
-            semaprax::parse_with_comments(&library.source, &library.path).unwrap();
-        let document = semaprax::doc::document(&program, &comments);
-        let mut declarations = Vec::new();
-        for entry in document
-            .entries
-            .iter()
-            .filter(|entry| matches!(entry.kind, "function" | "record" | "variant"))
-        {
-            let head: Vec<String> = entry
-                .signature
-                .lines()
-                .filter(|line| !line.trim_start().starts_with("@id("))
-                .map(str::to_owned)
-                .collect();
-            if entry.kind == "function" {
-                assert_eq!(
-                    head,
-                    declaration_head(&library.source, &entry.id),
-                    "{}: the documentation signature must equal the source text",
-                    entry.id
-                );
-            }
-            let function = library
-                .program
-                .functions
+            // The catalog is a projection of the same documentation model that
+            // `semaprax doc` renders, so the bundled skill cannot drift from the
+            // graph; the source-text slice below cross-checks every signature.
+            let (program, comments) =
+                semaprax::parse_with_comments(&library.source, &library.path).unwrap();
+            let document = semaprax::doc::document(&program, &comments);
+            let mut declarations = Vec::new();
+            for entry in document
+                .entries
                 .iter()
-                .find(|function| function.stable_id == entry.id);
-            human.push_str(&format!("\n### `{}`\n\n", entry.id));
-            for line in &entry.description {
-                human.push_str(line);
-                human.push('\n');
+                .filter(|entry| matches!(entry.kind, "function" | "record" | "variant"))
+            {
+                let head: Vec<String> = entry
+                    .signature
+                    .lines()
+                    .filter(|line| !line.trim_start().starts_with("@id("))
+                    .map(str::to_owned)
+                    .collect();
+                if entry.kind == "function" {
+                    assert_eq!(
+                        head,
+                        declaration_head(&library.source, &entry.id),
+                        "{}: the documentation signature must equal the source text",
+                        entry.id
+                    );
+                }
+                let function = library
+                    .program
+                    .functions
+                    .iter()
+                    .find(|function| function.stable_id == entry.id);
+                human.push_str(&format!("\n### `{}`\n\n", entry.id));
+                for line in &entry.description {
+                    human.push_str(line);
+                    human.push('\n');
+                }
+                if !entry.description.is_empty() {
+                    human.push('\n');
+                }
+                human.push_str(&format!("```semaprax\n{}\n```\n", head.join("\n")));
+                declarations.push(serde_json::json!({
+                    "id": entry.id,
+                    "kind": entry.kind,
+                    "name": entry.name,
+                    "description": entry.description,
+                    "head": head,
+                    "effects": function.map(|f| f.effects.clone()).unwrap_or_default(),
+                    "requires": function.map_or(0, |f| f.requires.len()),
+                    "ensures": function.map_or(0, |f| f.ensures.len()),
+                }));
             }
-            if !entry.description.is_empty() {
-                human.push('\n');
-            }
-            human.push_str(&format!("```semaprax\n{}\n```\n", head.join("\n")));
-            declarations.push(serde_json::json!({
-                "id": entry.id,
-                "kind": entry.kind,
-                "name": entry.name,
-                "description": entry.description,
-                "head": head,
-                "effects": function.map(|f| f.effects.clone()).unwrap_or_default(),
-                "requires": function.map_or(0, |f| f.requires.len()),
-                "ensures": function.map_or(0, |f| f.ensures.len()),
+            modules.push(serde_json::json!({
+                "module": library.program.module,
+                "package": format!("std/{}", package.directory),
+                "dependency": format!("{} = \"^0.1.0\"", package.module),
+                "required_profile": profile,
+                "tier": package.tier,
+                "targets": package.targets,
+                "status": package.status,
+                "declarations": declarations,
             }));
         }
-        modules.push(serde_json::json!({
-            "module": package.module,
-            "package": format!("std/{}", package.directory),
-            "dependency": format!("{} = \"^0.1.0\"", package.module),
-            "required_profile": profile,
-            "tier": package.tier,
-            "targets": package.targets,
-            "status": package.status,
-            "declarations": declarations,
-        }));
     }
     let agent = serde_json::json!({
         "schema": CATALOG_SCHEMA,

@@ -44,6 +44,17 @@ pub(super) fn check_record_invariants(
             );
             continue;
         }
+        // Only direct string owners retain the graph/webapp-only exception.
+        // Executable owners cannot carry a clause without a production check.
+        if fields
+            .iter()
+            .any(|field| field.ty != Type::String && types.needs_drop(&field.ty))
+        {
+            diagnostics.push(error(program, "SPX-C104",
+                format!("invariants on owned record `{}` have no ownership-preserving executable check", declaration.name),
+                first.span).with_help("use a Copy record for executable invariants, or check scalar observations in a function"));
+            continue;
+        }
         // The clauses check as preconditions of a function whose parameters
         // are the fields; this context is never resolved or emitted.
         let context = Function {

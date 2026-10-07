@@ -3,6 +3,7 @@
 //! accessor over a borrowed view, with no buffer and no allocation.
 
 use std::path::PathBuf;
+use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use semaprax::interpreter::{self, InterpreterOptions};
@@ -11,18 +12,24 @@ use semaprax::{format, graph, hir, parse, verify};
 static NEXT_ID: AtomicU64 = AtomicU64::new(0);
 
 const ENCODING: &str = include_str!("../../../std/encoding/src/encoding.spx");
+const CURSORS: &str = include_str!("../../../std/io/src/io.spx");
 const BASE64: &str = include_str!("../../../std/encoding-base64/src/base64.spx");
 
 /// One checked module holds both libraries: the digit table the package
 /// imports across its dependency, and the padded encoder itself.
 fn source(main: &str) -> String {
     let table = ENCODING.replacen("module std.encoding;", "module app;", 1);
+    let cursors: String = CURSORS
+        .lines()
+        .filter(|line| !line.starts_with("module "))
+        .collect::<Vec<_>>()
+        .join("\n");
     let encoder: String = BASE64
         .lines()
         .filter(|line| !line.starts_with("module ") && !line.starts_with("use "))
         .collect::<Vec<_>>()
         .join("\n");
-    format!("{table}\n{encoder}\n{main}\n")
+    format!("{table}\n{cursors}\n{encoder}\n{main}\n")
 }
 
 fn canonical_checked(main: &str) -> String {
@@ -139,6 +146,139 @@ fn main() -> i64
 "#,
     ] {
         fails(main);
+    }
+}
+
+#[test]
+fn base64_decoder_reports_strict_faults_and_preflights_capacity() {
+    returns(
+        r#"
+@id("app.main")
+fn main() -> i64
+{
+    let nonzero_two_pad = [90u8, 104u8, 61u8, 61u8];
+    let nonzero_one_pad = [90u8, 109u8, 57u8, 61u8];
+    let whitespace = [90u8, 103u8, 10u8, 61u8];
+    let interior = [90u8, 103u8, 61u8, 61u8, 65u8, 65u8, 65u8, 65u8];
+    let strict = base64_decode_error_kind(array_as_slice(nonzero_two_pad)) == 4usize && base64_decode_error_offset(array_as_slice(nonzero_two_pad)) == 1usize && base64_decode_error_kind(array_as_slice(nonzero_one_pad)) == 4usize && base64_decode_error_offset(array_as_slice(nonzero_one_pad)) == 2usize;
+    let syntax = base64_decode_error_kind(array_as_slice(whitespace)) == 2usize && base64_decode_error_offset(array_as_slice(whitespace)) == 2usize && base64_decode_error_kind(array_as_slice(interior)) == 3usize && base64_decode_error_offset(array_as_slice(interior)) == 4usize;
+    if strict && syntax { 0 } else { 1 }
+}
+"#,
+        "0",
+    );
+    for main in [
+        r#"
+@id("app.main")
+fn main() -> i64
+{
+    let invalid = [90u8, 104u8, 61u8, 61u8];
+    let written = base64_decode_into(array_as_slice(invalid), writer_from_bytes(bytes_zeroed(1usize)));
+    if writer_position(written) == 1usize { 0 } else { 1 }
+}
+"#,
+        r#"
+@id("app.main")
+fn main() -> i64
+{
+    let encoded = [90u8, 109u8, 57u8, 118u8];
+    let written = base64_decode_into(array_as_slice(encoded), Writer { data: bytes_zeroed(3usize), position: 1usize });
+    if writer_position(written) == 4usize { 0 } else { 1 }
+}
+"#,
+    ] {
+        fails(main);
+    }
+}
+
+#[test]
+fn base64_decoder_matches_node_buffer_for_the_complete_corpus_and_all_bytes() {
+    let mut corpus = vec![
+        Vec::new(),
+        b"f".to_vec(),
+        b"fo".to_vec(),
+        b"foo".to_vec(),
+        b"foob".to_vec(),
+        b"fooba".to_vec(),
+        b"foobar".to_vec(),
+        vec![0, 255, 16],
+        b"Man".to_vec(),
+    ];
+    for start in [0u8, 64u8, 128u8, 192u8] {
+        corpus.push((start..=start.saturating_add(63)).collect());
+    }
+    let hex = corpus
+        .iter()
+        .map(|bytes| {
+            bytes
+                .iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect::<String>()
+        })
+        .collect::<Vec<_>>();
+    let output = Command::new("node")
+        .arg("-e")
+        .arg(
+            "const values=JSON.parse(process.argv[1]);process.stdout.write(JSON.stringify(values.map(value=>Buffer.from(value,'hex').toString('base64'))));",
+        )
+        .arg(serde_json::to_string(&hex).unwrap())
+        .output()
+        .expect("Node must provide the independent Base64 oracle");
+    assert!(
+        output.status.success(),
+        "Node Base64 oracle failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let encoded: Vec<String> = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(encoded.len(), corpus.len());
+    let array = |bytes: &[u8]| {
+        if bytes.is_empty() {
+            "[0u8; 0]".to_owned()
+        } else {
+            format!(
+                "[{}]",
+                bytes
+                    .iter()
+                    .map(|byte| format!("{byte}u8"))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
+        }
+    };
+    for (case, (expected, encoded)) in corpus.iter().zip(encoded).enumerate() {
+        let failure = case + 1;
+        let capacity = expected.len();
+        let encoded = array(encoded.as_bytes());
+        let expected = array(expected);
+        returns(
+            &format!(
+                r#"
+@id("app.main")
+fn main() -> i64
+{{
+    let encoded = {encoded};
+    let expected = {expected};
+    let view = array_as_slice(encoded);
+    let expected_view = array_as_slice(expected);
+    let written = base64_decode_into(view, writer_from_bytes(bytes_zeroed({capacity}usize)));
+    let cursor = writer_position(written);
+    let decoded = writer_finish(written);
+    let decoded_view = bytes_as_slice(decoded);
+    let mut index = 0usize;
+    let mut same = base64_decoded_len(view) == byte_len(expected_view) && cursor == byte_len(expected_view);
+    while same && index < byte_len(expected_view) {{
+        let actual = match byte_get(decoded_view, index) {{ Option::Some {{ value }} => value, Option::None {{}} => 0u8, }};
+        let wanted = match byte_get(expected_view, index) {{ Option::Some {{ value }} => value, Option::None {{}} => 0u8, }};
+        same = actual == wanted;
+        index = index + 1usize;
+        same && index < byte_len(expected_view)
+    }}
+    if same {{ 0 }} else {{ {failure} }}
+}}
+"#
+            ),
+            "0",
+        );
     }
 }
 

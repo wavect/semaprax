@@ -86,6 +86,59 @@ fn main() -> i64
 }
 "#;
 
+const RENEWAL_MANIFEST: &str = r#"schema = "semaprax.manifest.v1"
+
+[package]
+name = "owned-renewal-failure"
+version = "0.1.0"
+profile = "owned-data-api.v1"
+
+[modules]
+entry = "consumer.app"
+sources = ["src/app.spx", "src/tests.spx"]
+tests = ["consumer.tests"]
+
+[exports]
+web = []
+
+[dependencies]
+std.io.lines = "=0.1.0"
+"#;
+
+const RENEWAL_APP: &str = r#"module consumer.app;
+use type @id("std.io.reader") from std.io as Reader;
+use type @id("std.io.writer") from std.io as Writer;
+use function @id("std.io.reader.finish") from std.io as reader_finish;
+use function @id("std.io.reader.from-bytes") from std.io as reader_from_bytes;
+use function @id("std.io.reader.remaining") from std.io as reader_remaining;
+use function @id("std.io.writer.finish") from std.io as writer_finish;
+use function @id("std.io.writer.from-bytes") from std.io as writer_from_bytes;
+use function @id("std.io.lines.reader.line-into") from std.io.lines as reader_line_into;
+use function @id("std.io.lines.reader.next-line") from std.io.lines as reader_next_line;
+
+@id("consumer.pipeline")
+fn run_pipeline() -> i64
+{
+    let input = [97u8, 10u8, 98u8, 10u8, 99u8, 10u8];
+    let mut reader = reader_from_bytes(bytes_copy(array_as_slice(input)));
+    let mut writer = writer_from_bytes(bytes_zeroed(2usize));
+    while reader_remaining(reader) > 0usize {
+        writer = reader_line_into(reader, writer);
+        reader = reader_next_line(reader);
+        reader_remaining(reader) > 0usize
+    }
+    let retained = reader_finish(reader);
+    let output = writer_finish(writer);
+    if byte_len(bytes_as_slice(retained)) == 6usize && byte_len(bytes_as_slice(output)) == 2usize { 0 } else { 1 }
+}
+
+@id("consumer.main")
+fn main() -> i64
+{
+    run_pipeline()
+}
+"#;
+
 fn canonical_source(source: &str, path: &str) -> String {
     let program = parse(source, path).unwrap_or_else(|error| panic!("{path}: {error}"));
     format::canonical(&program)
@@ -172,6 +225,50 @@ fn owned_cursor_chain_settles_before_sticky_contract_failure_on_project_backends
             String::from_utf8_lossy(&perturbed.stderr).contains("settlement order"),
             "{}",
             String::from_utf8_lossy(&perturbed.stderr)
+        );
+        Ok(())
+    })
+    .unwrap();
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+#[cfg_attr(windows, ignore = "native C11 command-line fixture is Unix-only")]
+fn repeated_reader_writer_renewal_settles_before_sticky_contract_failure() {
+    let root = temporary("owned-renewal-failure");
+    std::fs::create_dir_all(root.join("src")).unwrap();
+    std::fs::write(root.join("semaprax.toml"), RENEWAL_MANIFEST).unwrap();
+    std::fs::write(
+        root.join("src/app.spx"),
+        canonical_source(RENEWAL_APP, "owned-renewal-failure-app.spx"),
+    )
+    .unwrap();
+    std::fs::write(
+        root.join("src/tests.spx"),
+        canonical_source(TESTS, "owned-renewal-failure-tests.spx"),
+    )
+    .unwrap();
+
+    project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
+        snapshot.check()?;
+        let options = project::ProjectExecutionOptions::default();
+        for _ in 0..2 {
+            assert_contract(snapshot.execute_entry(&options)?.outcome());
+            assert_contract(snapshot.execute_test(&options)?.outcome());
+        }
+        let c = codegen::emit_hir_c(snapshot.entry_program()).map_err(|error| vec![error])?;
+        for optimization in ["-O0", "-O2"] {
+            compile_contract_failure(&c, &root, optimization);
+        }
+        let wasm =
+            wasm::emit_resolved_module(snapshot.entry_program()).map_err(|error| vec![error])?;
+        let wasm_path = root.join("owned-renewal-failure.wasm");
+        std::fs::write(&wasm_path, wasm).unwrap();
+        let output = run_wasm_settlement_oracle(&root, &wasm_path, "[2, 1, 4, 3]");
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
         );
         Ok(())
     })

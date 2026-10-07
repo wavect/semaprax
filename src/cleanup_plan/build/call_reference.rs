@@ -45,7 +45,14 @@ impl PlanBuilder<'_> {
                 }
                 op.resolved_params()
             } else if let Some(op) = crate::iterator_ops::by_id(callee.as_str()) {
-                iterator::resolved_params(op, false, args.len(), type_arguments, &expression.id)?
+                iterator::resolved_params(
+                    &self.program.declarations,
+                    op,
+                    false,
+                    args.len(),
+                    type_arguments,
+                    &expression.id,
+                )?
             } else if let Some(op) = crate::vec_ops::by_id(callee.as_str()) {
                 let [element] = type_arguments else {
                     return Err(plan_error(

@@ -91,7 +91,8 @@ pub(super) fn is_type(
         || (matches!(
             declaration.as_str(),
             crate::iterator_ops::ITER_ID | crate::iterator_ops::STEP_ID
-        ) && matches!(arguments,[element] if crate::iterator_ops::resolved_element_is_admitted(element)))
+        ) && matches!(arguments,[element]
+            if crate::iterator_ops::resolved_element_is_admitted_in(declarations, element)))
         || super::vec_intrinsic::is_type(declarations, declaration, arguments)
         || (declaration.as_str() == crate::prelude::BOX_ID
             && matches!(arguments, [element] if crate::box_ops::resolved_box_element_is_admitted(element)))
@@ -146,7 +147,8 @@ pub(super) fn signature(
     }
     if let Some(op) = crate::iterator_ops::by_id(callee.as_str()) {
         if instance.is_some()
-            || !matches!(type_arguments,[element] if crate::iterator_ops::resolved_element_is_admitted(element))
+            || !matches!(type_arguments,[element]
+                if crate::iterator_ops::resolved_element_is_admitted_in(declarations, element))
             || args.len() != 1
         {
             return Err(hir_error("invalid iterator operation call shape"));

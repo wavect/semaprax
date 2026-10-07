@@ -309,7 +309,7 @@ fn start(cx: &mut Ctx, journal: &mut Journal, r: &mut Report) -> HarnessResult<S
     // The session's token bound admits each next dispatch, not only the next turn (TC-03).
     cx.ledger.spend.limits.session_tokens = bounds.max_tokens;
     let baseline = read_baseline(&cfg.snapshot)?;
-    let oracle = repair::oracle_files(&baseline);
+    let oracle = repair::oracle_files(&baseline)?;
     let work = cfg.cache_dir.join(format!("work-{}", cx.lineage.id));
     attempt::copy_project(&cfg.snapshot.root, &work)?;
     let work = work
@@ -813,6 +813,11 @@ pub fn apply_result(
             format!("source drift rejects final application: {}", e.message),
         )
     })?;
+    require_ordinary_directory(result_dir, "result directory")?;
+    for path in snapshot.files.keys() {
+        require_ordinary_relative(result_dir, path, "result source")?;
+        require_ordinary_relative(&snapshot.root, path, "project source")?;
+    }
     let check = compiler.check(result_dir)?;
     if !check.ok || check.revision.as_deref() != Some(expected_revision) {
         return Err(d(
@@ -823,23 +828,99 @@ pub fn apply_result(
     if !compiler.test(result_dir)?.passed {
         return Err(d("SPX-HPD115", "the scratch result's tests do not pass"));
     }
-    let mut staged = Vec::new();
+    let mut changed = Vec::new();
     for (path, digest) in &snapshot.files {
-        let new = std::fs::read(result_dir.join(path))
-            .map_err(|e| d("SPX-HPD115", format!("result {path}: {e}")))?;
+        let source = require_ordinary_relative(result_dir, path, "result source")?;
+        let target = require_ordinary_relative(&snapshot.root, path, "project source")?;
+        let new =
+            std::fs::read(&source).map_err(|e| d("SPX-HPD115", format!("result {path}: {e}")))?;
         if &sha256_plain(&new) != digest {
-            let target = snapshot.root.join(path);
-            let tmp = target.with_extension("spx.harness-tmp");
-            std::fs::write(&tmp, &new)
-                .map_err(|e| d("SPX-HPD070", format!("stage {path}: {e}")))?;
-            staged.push((path.clone(), tmp, target));
+            changed.push((path.clone(), new, target));
         }
+    }
+    let mut staged = Vec::new();
+    for (path, bytes, target) in changed {
+        let tmp = target.with_extension("spx.harness-tmp");
+        let result = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&tmp)
+            .and_then(|stage| write_stage(stage, &bytes));
+        if let Err(error) = result {
+            let _ = std::fs::remove_file(&tmp);
+            for (_, staged_tmp, _) in &staged {
+                let _ = std::fs::remove_file(staged_tmp);
+            }
+            return Err(d("SPX-HPD070", format!("stage {path}: {error}")));
+        }
+        staged.push((path, tmp, target));
     }
     let mut applied = Vec::new();
     for (path, tmp, target) in staged {
+        require_ordinary_relative(&snapshot.root, &path, "project source")?;
         std::fs::rename(&tmp, &target)
             .map_err(|e| d("SPX-HPD070", format!("apply {path}: {e}")))?;
         applied.push(path);
     }
     Ok(applied)
+}
+
+fn write_stage(mut file: std::fs::File, bytes: &[u8]) -> std::io::Result<()> {
+    use std::io::Write;
+    file.write_all(bytes)?;
+    file.sync_all()
+}
+
+fn require_ordinary_directory(path: &Path, what: &str) -> HarnessResult<()> {
+    let metadata = std::fs::symlink_metadata(path)
+        .map_err(|error| d("SPX-HPD115", format!("{what}: {error}")))?;
+    if !metadata.is_dir() || metadata.file_type().is_symlink() {
+        return Err(d(
+            "SPX-HPD115",
+            format!("{what} must be an ordinary directory"),
+        ));
+    }
+    Ok(())
+}
+
+fn require_ordinary_relative(root: &Path, relative: &str, what: &str) -> HarnessResult<PathBuf> {
+    require_ordinary_directory(root, "apply root")?;
+    let relative = Path::new(relative);
+    if relative.is_absolute()
+        || relative
+            .components()
+            .any(|component| !matches!(component, std::path::Component::Normal(_)))
+    {
+        return Err(d(
+            "SPX-HPD115",
+            format!(
+                "{what} path `{}` is not a contained relative path",
+                relative.display()
+            ),
+        ));
+    }
+    let mut current = root.to_path_buf();
+    let count = relative.components().count();
+    for (index, component) in relative.components().enumerate() {
+        current.push(component.as_os_str());
+        let metadata = std::fs::symlink_metadata(&current).map_err(|error| {
+            d(
+                "SPX-HPD115",
+                format!("{what} `{}`: {error}", relative.display()),
+            )
+        })?;
+        if metadata.file_type().is_symlink()
+            || index + 1 == count && !metadata.is_file()
+            || index + 1 != count && !metadata.is_dir()
+        {
+            return Err(d(
+                "SPX-HPD115",
+                format!(
+                    "{what} `{}` is not an ordinary contained file",
+                    relative.display()
+                ),
+            ));
+        }
+    }
+    Ok(current)
 }

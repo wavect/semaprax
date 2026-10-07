@@ -28,6 +28,11 @@ front-end admission tranche. Statements there about "no call site exists",
 the state before the tranche recorded at the end of this document, not the
 current tree.
 
+Consuming `vec_into_iter`, `iter_next`, and `for own` traversal of this exact
+element is the additive [Owned Record Iterator v3](OWNED-RECORD-ITERATOR-V3.md)
+profile. It preserves this document's bounded Vec surface and field-shape
+classifier.
+
 ## Purpose and non-goals
 
 [SPX-AI-018](CATALOG-NORMALIZER-ORACLE-V1.md) fixes the catalog-normalizer

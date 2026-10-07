@@ -221,16 +221,21 @@ bounded `{"source_patch": {"edits": [{"path","find","replace"}]}}` (at most 16 e
 files only) is applied in scratch, and the compiler alone judges it. Operations start only after the scratch candidate is a
 verified base. The acceptance oracle (the manifest and the modules listed under `tests`) cannot be patched
 (`SPX-HPD114`) or targeted by a semantic proposal; compiler caller migrations (rename, signature, move, record field) may
-touch it. Laws and effects cannot be removed or widened (`SPX-HPD042/043`), requirements stay host-fixed, and proposal
-claims are ignored.
+touch it. The oracle inventory comes from the canonical `ProjectManifest` parser and each source's parsed module identity;
+a broken implementation body may use only the bounded module-header recovery, and an ambiguous test identity fails closed.
+Source-patch repair compares canonical compiler-parsed `requires`, `ensures`, record invariants and per-declaration effect
+sets with the original authenticated baseline. Whitespace, comments, multiline clauses and moving an effect between
+declarations do not change that comparison (`SPX-HPD042/043`). Requirements stay host-fixed, and proposal claims are
+ignored.
 
 Journal: `session` records task, lock, toolchain, baseline, skill and bounds digests; each attempt records proposal and
 diagnostic digests; generation `gen-<n>`/`repair-<n>` that began without a result is never replayed (`SPX-HPD072`);
 completed generations are reused. Final application is a separate authority: `workflow::apply_result(snapshot,
-result_dir, expected_revision, compiler)` re-verifies the result and rejects source drift (`SPX-HPD115`) before an
-all-staged-then-rename write. A single admitted step against the project baseline has an ordinary capsule and publishes
+result_dir, expected_revision, compiler)` authenticates the snapshot's complete revision/file map against a new live
+capture, rejects non-contained or symlinked source/result paths, re-verifies the result and rejects source drift
+(`SPX-HPD115`) before an all-staged-then-rename write. A single admitted step against the project baseline has an ordinary capsule and publishes
 only under the existing apply policy; multi-step and scratch-repair results are not one capsule and are applied only
-through `apply_result` (no CLI verb yet; known gap).
+through the separately authorized `apply_result` / `harness apply` route.
 
 Diagnostics added: 092 unsupported goal, 100 request cannot fit any model, 101 task budget exhausted, 111 session bound,
 112 no progress, 113 cancelled, 114 oracle edit, 115 apply refused (drift), 116 acceptance/done unmet, 117 invalid
@@ -240,8 +245,10 @@ scratch patch.
 
 `semaprax harness apply <project> --session <result-dir|report.json> --expected-revision <digest> [--compiler p] [--json]`
 re-verifies the session result with the compiler, requires the project still to equal the session's captured baseline
-(`semaprax.harness-session.json` in the result directory) and writes the changed files. Drift, a wrong expected revision or
-an unverifiable result is `SPX-HPD115`; it never publishes (publication stays `run --apply-policy` or the compiler's own
+(`semaprax.harness-session.json` in the result directory) and writes the changed files. The session record is bounded,
+duplicate-key-refusing JSON with an exact schema; its baseline revision and complete file/digest map must equal the live
+capture and never replace that capture as the write inventory. Drift, a wrong expected revision or an unverifiable result
+is `SPX-HPD115`; it never publishes (publication stays `run --apply-policy` or the compiler's own
 route). `run --cancel-file <path>` cancels a session once the file exists (checked at start, polled every 50 ms, acted on
 between steps: `SPX-HPD113`, status `cancelled`, journal `cancelled`); an in-flight side-effecting generation is recorded
 `uncertain` and not replayed. SIGINT is not handled: it needs `unsafe`, which this crate forbids.

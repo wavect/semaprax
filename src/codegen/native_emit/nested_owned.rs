@@ -231,6 +231,7 @@ pub(super) fn emit_owned_record_shell(
 pub(super) fn emit_owned_variant_shell(
     output: &mut impl COutput,
     program: &ResolvedProgram,
+    record_layouts: &AggregateLayoutCache,
     layout: &VariantLayout,
     destination: &str,
     source: &str,
@@ -265,6 +266,18 @@ pub(super) fn emit_owned_variant_shell(
             }
             let case_symbol = c_case_symbol(&case.case);
             let field_symbol = c_field_symbol(&field.field);
+            if field.value_kind == VariantFieldValueKind::OwnedRecord {
+                emit_owned_record_shell(
+                    output,
+                    program,
+                    record_layouts,
+                    &format!("({destination}).spx_payload.{case_symbol}.{field_symbol}"),
+                    &format!("({source}).spx_payload.{case_symbol}.{field_symbol}"),
+                    &field.ty,
+                    &mut BTreeSet::new(),
+                )?;
+                continue;
+            }
             writeln!(
                 output,
                 "        ({destination}).spx_payload.{case_symbol}.{field_symbol} = ({source}).spx_payload.{case_symbol}.{field_symbol};"

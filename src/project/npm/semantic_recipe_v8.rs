@@ -1024,3 +1024,17 @@ module recipe.names;
 
 #[cfg(test)]
 mod source_literals_tests;
+
+/// Intrinsic names admitted by the function-only recipe. Keep the existing
+/// byte/text/host readers and extend only the checked integer profile.
+pub(super) fn legacy_intrinsic_recipe_name(callee: &str) -> Option<String> {
+    crate::str_ops::by_id(callee)
+        .map(|operation| operation.name().to_owned())
+        .or_else(|| crate::byte_ops::by_id(callee).map(|operation| operation.name().to_owned()))
+        .or_else(|| crate::host_io_ops::by_id(callee).map(|operation| operation.name().to_owned()))
+        .or_else(|| {
+            crate::string_ops::by_id(callee)
+                .filter(|operation| operation.is_integer_conversion())
+                .map(|operation| operation.name().to_owned())
+        })
+}

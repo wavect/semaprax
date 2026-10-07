@@ -568,4 +568,19 @@ fn unknown_function_hint_names_the_exact_import_line() {
         "{}",
         stderr(&output)
     );
+
+    let standard_library_call =
+        without_import.replace("divide(4, 2)", "csv_record_field_into(4, 2)");
+    std::fs::write(&app, standard_library_call).unwrap();
+    let output = cli(&fixture.root, &["check", "."]);
+    assert_eq!(output.status.code(), Some(1));
+    let help = stderr(&output);
+    assert!(
+        help.contains("add `[dependencies] std.data.csv = \"^0.1.0\"`"),
+        "{help}"
+    );
+    assert!(
+        help.contains("from std.data.csv.decode as csv_record_field_into;"),
+        "{help}"
+    );
 }

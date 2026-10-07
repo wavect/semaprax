@@ -1,6 +1,8 @@
 module std.encoding.base64;
 use function @id("std.encoding.encode_base64_digit") from std.encoding as encode_base64_digit;
 use function @id("std.encoding.byte_value") from std.encoding as byte_value;
+use function @id("std.encoding.base64_value") from std.encoding as base64_value;
+use type @id("std.io.writer") from std.io as Writer;
 
 // Padded standard Base64 encoding over a borrowed byte view.  There is no
 // buffer and no allocation: `base64_byte` is a pull-based digit accessor, so a
@@ -34,4 +36,134 @@ fn base64_byte(view: borrow Slice<u8>, index: usize) -> i64
     let has_second = base + 1usize < length;
     let has_third = base + 2usize < length;
     if slot == 0usize { encode_base64_digit(first / 4) } else { if slot == 1usize { encode_base64_digit(first % 4 * 16 + second / 16) } else { if slot == 2usize { if has_second { encode_base64_digit(second % 16 * 4 + third / 64) } else { 61 } } else { if has_third { encode_base64_digit(third % 64) } else { 61 } } } }
+}
+
+// Strict RFC 4648 padded decoding. Error kinds are stable scalars: 0 is
+// success, 1 is an impossible input length, 2 is a non-alphabet byte, 3 is
+// misplaced padding, and 4 is a nonzero unused pad bit. The paired offset is
+// the first offending byte, or the input length for an impossible remainder.
+@id("std.encoding.base64.decode-check")
+fn base64_decode_check(input: borrow Slice<u8>, report_kind: bool) -> usize
+{
+    let length = byte_len(input);
+    let mut index = 0usize;
+    let mut kind = 0usize;
+    let mut fault = length;
+    let mut scanning = length - index >= 4usize;
+    while scanning {
+        let first = match byte_get(input, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let second = match byte_get(input, index + 1usize) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let third = match byte_get(input, index + 2usize) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let fourth = match byte_get(input, index + 3usize) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let a = base64_value(first);
+        let b = base64_value(second);
+        let c = base64_value(third);
+        let d = base64_value(fourth);
+        let last = index + 4usize == length;
+        let bad_first = a < 0;
+        fault = if bad_first { index } else { fault };
+        kind = if bad_first { if first == 61u8 { 3usize } else { 2usize } } else { kind };
+        let bad_second = kind == 0usize && b < 0;
+        fault = if bad_second { index + 1usize } else { fault };
+        kind = if bad_second { if second == 61u8 { 3usize } else { 2usize } } else { kind };
+        let two_pad = kind == 0usize && third == 61u8;
+        let bad_two_pad_tail = two_pad && fourth != 61u8;
+        let bad_two_pad_bits = two_pad && !bad_two_pad_tail && b % 16 != 0;
+        let early_two_pad = two_pad && !bad_two_pad_tail && !bad_two_pad_bits && !last;
+        fault = if bad_two_pad_tail { index + 2usize } else { if bad_two_pad_bits { index + 1usize } else { if early_two_pad { index + 4usize } else { fault } } };
+        kind = if bad_two_pad_tail { 3usize } else { if bad_two_pad_bits { 4usize } else { if early_two_pad { 3usize } else { kind } } };
+        let bad_third = kind == 0usize && third != 61u8 && c < 0;
+        fault = if bad_third { index + 2usize } else { fault };
+        kind = if bad_third { 2usize } else { kind };
+        let one_pad = kind == 0usize && third != 61u8 && fourth == 61u8;
+        let bad_one_pad_bits = one_pad && c % 4 != 0;
+        let early_one_pad = one_pad && !bad_one_pad_bits && !last;
+        fault = if bad_one_pad_bits { index + 2usize } else { if early_one_pad { index + 4usize } else { fault } };
+        kind = if bad_one_pad_bits { 4usize } else { if early_one_pad { 3usize } else { kind } };
+        let bad_fourth = kind == 0usize && fourth != 61u8 && d < 0;
+        fault = if bad_fourth { index + 3usize } else { fault };
+        kind = if bad_fourth { 2usize } else { kind };
+        index = index + 4usize;
+        scanning = kind == 0usize && length - index >= 4usize;
+        scanning
+    }
+    let mut remainder = index;
+    let mut checking_remainder = kind == 0usize && remainder < length;
+    while checking_remainder {
+        let byte = match byte_get(input, remainder) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let padding = byte == 61u8;
+        let invalid = !padding && base64_value(byte) < 0;
+        fault = if padding || invalid { remainder } else { fault };
+        kind = if padding { 3usize } else { if invalid { 2usize } else { kind } };
+        remainder = remainder + 1usize;
+        checking_remainder = kind == 0usize && remainder < length;
+        checking_remainder
+    }
+    let incomplete = kind == 0usize && index < length;
+    kind = if incomplete { 1usize } else { kind };
+    fault = if incomplete { length } else { fault };
+    if report_kind { kind } else { fault }
+}
+
+@id("std.encoding.base64.decode-error-kind")
+fn base64_decode_error_kind(input: borrow Slice<u8>) -> usize
+    ensures result <= 4usize
+{
+    base64_decode_check(input, true)
+}
+
+@id("std.encoding.base64.decode-error-offset")
+fn base64_decode_error_offset(input: borrow Slice<u8>) -> usize
+    ensures result <= byte_len(input)
+{
+    base64_decode_check(input, false)
+}
+
+@id("std.encoding.base64.decoded-len")
+fn base64_decoded_len(input: borrow Slice<u8>) -> usize
+    ensures result <= byte_len(input) / 4usize * 3usize
+{
+    let length = byte_len(input);
+    let valid = base64_decode_error_kind(input) == 0usize;
+    let last = if length == 0usize { 0u8 } else { match byte_get(input, length - 1usize) { Option::Some { value } => value, Option::None {} => 0u8, } };
+    let prior = if length < 2usize { 0u8 } else { match byte_get(input, length - 2usize) { Option::Some { value } => value, Option::None {} => 0u8, } };
+    let padding = if last == 61u8 { if prior == 61u8 { 2usize } else { 1usize } } else { 0usize };
+    if valid { length / 4usize * 3usize - padding } else { 0usize }
+}
+
+@id("std.encoding.base64.code-byte")
+fn base64_code_byte(value: i64) -> u8
+    requires value >= 0 && value <= 255
+{
+    let mut byte = 0u8;
+    let mut step = 0;
+    while step < value {
+        byte = byte + 1u8;
+        step = step + 1;
+        step < value
+    }
+    byte
+}
+
+@id("std.encoding.base64.decoded-byte")
+fn base64_decoded_byte(input: borrow Slice<u8>, index: usize) -> u8
+    requires base64_decode_error_kind(input) == 0usize
+    requires index < base64_decoded_len(input)
+{
+    let base = index / 3usize * 4usize;
+    let slot = index % 3usize;
+    let first = match byte_get(input, base) { Option::Some { value } => base64_value(value), Option::None {} => 0, };
+    let second = match byte_get(input, base + 1usize) { Option::Some { value } => base64_value(value), Option::None {} => 0, };
+    let third = match byte_get(input, base + 2usize) { Option::Some { value } => base64_value(value), Option::None {} => 0, };
+    let fourth = match byte_get(input, base + 3usize) { Option::Some { value } => base64_value(value), Option::None {} => 0, };
+    let value = if slot == 0usize { first * 4 + second / 16 } else { if slot == 1usize { second % 16 * 16 + third / 4 } else { third % 4 * 64 + fourth } };
+    base64_code_byte(value)
+}
+
+@id("std.encoding.base64.decode-into")
+fn base64_decode_into(input: borrow Slice<u8>, output: own Writer) -> Writer
+    requires base64_decode_error_kind(input) == 0usize
+    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && base64_decoded_len(input) <= byte_len(bytes_as_slice(data)) - position, }
+{
+    match own output { Writer { data, position } => { let total = base64_decoded_len(input); let mut next = data; let mut count = 0usize; let mut running = count < total; while running { let base = count / 3usize * 4usize; let slot = count % 3usize; let first = match byte_get(input, base) { Option::Some { value } => base64_value(value), Option::None {} => 0, }; let second = match byte_get(input, base + 1usize) { Option::Some { value } => base64_value(value), Option::None {} => 0, }; let third = match byte_get(input, base + 2usize) { Option::Some { value } => base64_value(value), Option::None {} => 0, }; let fourth = match byte_get(input, base + 3usize) { Option::Some { value } => base64_value(value), Option::None {} => 0, }; let value = if slot == 0usize { first * 4 + second / 16 } else { if slot == 1usize { second % 16 * 16 + third / 4 } else { third % 4 * 64 + fourth } }; next = bytes_set(next, position + count, base64_code_byte(value)); count = count + 1usize; running = count < total; running } Writer { data: next, position: position + total } }, }
 }

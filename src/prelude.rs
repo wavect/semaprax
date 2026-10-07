@@ -26,9 +26,10 @@ pub(crate) const SCHEMA_V8: &str = "semaprax.prelude.v8";
 pub(crate) const SCHEMA_V9: &str = "semaprax.prelude.v9";
 pub(crate) const SCHEMA_V10: &str = "semaprax.prelude.v10";
 pub(crate) const SCHEMA_V11: &str = "semaprax.prelude.v11";
+pub(crate) const SCHEMA_V12: &str = "semaprax.prelude.v12";
 #[path = "prelude_sort.rs"]
 mod sorting;
-pub(crate) use sorting::{contract_bytes_v11, digest_text_v11};
+pub(crate) use sorting::{contract_bytes_v12, digest_text_v12};
 
 pub(crate) const OPTION_ID: &str = "core.option";
 pub(crate) const OPTION_NONE_ID: &str = "core.option.none";
@@ -63,7 +64,9 @@ pub(crate) fn declarations() -> &'static [TypeDeclaration] {
 pub(crate) fn declarations_for_program(
     program: &crate::ast::Program,
 ) -> &'static [TypeDeclaration] {
-    if crate::stdin_stream_ops::program_uses(program) {
+    if crate::stdin_stream_ops::program_uses(program)
+        || crate::source_verify::program_uses_record_iterator(program)
+    {
         declarations()
     } else if crate::list_ops::program_uses_list(program) {
         &declarations()[..8]
@@ -331,6 +334,24 @@ pub(crate) fn contract_bytes_v9() -> Vec<u8> {
     let mut output = legacy.replacen(SCHEMA_V8, SCHEMA_V9, 1).into_bytes();
     output.extend_from_slice(b"record core.list List<i64>\nrepresentation core.list immutable Nil|Cons(head:i64,tail:List<i64>)\nvariant core.list-step ListStep<i64>\n0 core.list-step.nil Nil\n1 core.list-step.cons Cons core.list-step.cons.head:head:i64 core.list-step.cons.tail:tail:List<i64>\noperation core.list.nil list_nil ()->List<i64>\noperation core.list.cons list_cons (head:i64,tail:List<i64>)->List<i64>\noperation core.list.uncons list_uncons (list:List<i64>)->ListStep<i64>\nlimit max_length:8192\nrule constructor_failure_leaves_input_unchanged\nrule uncons_shares_immutable_tail\n");
     output
+}
+pub(crate) fn contract_bytes_v10() -> Vec<u8> {
+    crate::stdin_stream_ops::contract_bytes()
+}
+pub(crate) fn contract_bytes_v11() -> Vec<u8> {
+    let legacy = String::from_utf8(contract_bytes_v10()).expect("prelude contract is UTF-8");
+    let mut output = legacy.replacen(SCHEMA_V10, SCHEMA_V11, 1).into_bytes();
+    output.extend_from_slice(b"profile core.iter.owned-record.v3 element:explicit-record(two:Bytes,one:CopyScalar)\noperation core.vec.into-iter vec_into_iter <Record>(own:Vec<Record>)->own:Iter<Record>\noperation core.iter.next iter_next <Record>(own:Iter<Record>)->own:IterStep<Record>\nrule owned_record_iter nominal_and_field_id_authentication\nrule owned_record_iter_next atomic_whole_record_and_remainder_transfer\nrule owned_record_iter_drop suffix_leaf_order_then_backing\nwasm_import env.spx_iter_record_into_v3 (i64,i32)->i32\nwasm_import env.spx_iter_record_next_v3 (i64,i64,i32,i32,i32,i32,i32)->i32\nwasm_import env.spx_iter_record_drop_v3 (i64,i64)->void\n");
+    output
+}
+pub(crate) fn digest_text_v11() -> String {
+    format!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(Sha256::digest(contract_bytes_v11()))
+    )
+}
+pub(crate) fn digest_text_v10() -> String {
+    crate::stdin_stream_ops::digest_text()
 }
 pub(crate) fn digest_text_v9() -> String {
     format!(
@@ -643,13 +664,11 @@ pub(crate) fn selected_for_program(
     program: &crate::ast::Program,
 ) -> (&'static str, Vec<u8>, String) {
     if crate::vec_ops::program_uses_sort(program) {
+        (SCHEMA_V12, contract_bytes_v12(), digest_text_v12())
+    } else if crate::source_verify::program_uses_record_iterator(program) {
         (SCHEMA_V11, contract_bytes_v11(), digest_text_v11())
     } else if crate::stdin_stream_ops::program_uses(program) {
-        (
-            SCHEMA_V10,
-            crate::stdin_stream_ops::contract_bytes(),
-            crate::stdin_stream_ops::digest_text(),
-        )
+        (SCHEMA_V10, contract_bytes_v10(), digest_text_v10())
     } else if crate::list_ops::program_uses_list(program) {
         (SCHEMA_V9, contract_bytes_v9(), digest_text_v9())
     } else if crate::iterator_ops::program_uses_owned_iterator(program) {

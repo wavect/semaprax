@@ -27,6 +27,12 @@ pub(super) fn run_native(
         generated.contains("spx_vec_record_with_capacity"),
         "the record carrier runtime must be emitted"
     );
+    if source.contains("iter_next<Line>") {
+        assert!(
+            generated.contains("spx_iter_record_next"),
+            "record traversal must use the authenticated record iterator runtime"
+        );
+    }
     // The profile admits no `get`, so no element is ever copied back out.
     assert!(
         !generated.contains("spx_vec_get(spx_ctx, &"),

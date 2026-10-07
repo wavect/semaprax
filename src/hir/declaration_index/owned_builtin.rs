@@ -8,7 +8,7 @@ pub(super) fn owned_builtin_facts(
     if let Some(facts) = crate::stdin_stream_ops::type_facts(declaration, arguments) {
         return Some(facts);
     }
-    if let Some(facts) = crate::iterator_ops::type_facts(declaration, arguments) {
+    if let Some(facts) = crate::iterator_ops::type_facts(declarations, declaration, arguments) {
         return Some(facts);
     }
     let [element] = arguments else {

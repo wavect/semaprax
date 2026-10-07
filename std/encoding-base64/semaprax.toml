@@ -15,3 +15,4 @@ web = []
 
 [dependencies]
 std.encoding = "=0.1.0"
+std.io = "=0.1.0"

@@ -6,7 +6,7 @@
 use super::attempt::{self, PromptCtx};
 use super::journal::Journal;
 use super::pipeline::{step, Ctx, Stages};
-use super::policy::{effect_tokens, law_lines};
+use super::policy::protected_source_facts;
 use super::report::Report;
 use super::session::{finish, loop_steps, Baseline, State};
 use super::stages::*;
@@ -22,41 +22,64 @@ fn d(code: &'static str, msg: impl Into<String>) -> HarnessDiagnostic {
 const MAX_EDITS: usize = 16;
 const MAX_EDIT_BYTES: usize = 64 * 1024;
 
-fn module_of(src: &str) -> Option<String> {
-    src.lines().map(str::trim).find_map(|l| {
-        l.strip_prefix("module ")
-            .map(|m| m.trim_end_matches(';').trim().to_string())
-    })
+fn module_of(src: &str, path: &str) -> Option<String> {
+    if let Ok(program) = semaprax::parse(src, path) {
+        return Some(program.module.clone());
+    }
+    let rest = src.trim_start().strip_prefix("module")?;
+    if !rest.starts_with(char::is_whitespace) {
+        return None;
+    }
+    let module = rest.split_once(';')?.0.trim();
+    if module.is_empty()
+        || module.split('.').any(|part| part.is_empty())
+        || module
+            .bytes()
+            .any(|byte| !(byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'.'))
+    {
+        return None;
+    }
+    Some(module.to_string())
 }
 
 /// The independent acceptance oracle: the manifest and every file declaring a
 /// module the manifest lists under `tests`.
-pub(super) fn oracle_files(baseline: &Baseline) -> BTreeSet<String> {
+pub(super) fn oracle_files(baseline: &Baseline) -> HarnessResult<BTreeSet<String>> {
     let mut out = BTreeSet::from(["semaprax.toml".to_string()]);
-    let manifest = baseline
+    let manifest_bytes = baseline
         .get("semaprax.toml")
-        .map(|b| String::from_utf8_lossy(b).into_owned())
-        .unwrap_or_default();
-    let mut tests: Vec<String> = Vec::new();
-    if let Some(i) = manifest.find("tests") {
-        if let Some(rest) = manifest[i..].split_once('[') {
-            if let Some((inner, _)) = rest.1.split_once(']') {
-                tests = inner
-                    .split(',')
-                    .map(|t| t.trim().trim_matches('"').to_string())
-                    .filter(|t| !t.is_empty())
-                    .collect();
-            }
+        .ok_or_else(|| d("SPX-HPD114", "the baseline has no semaprax.toml"))?;
+    let manifest_source = std::str::from_utf8(manifest_bytes)
+        .map_err(|_| d("SPX-HPD114", "the baseline manifest is not UTF-8"))?;
+    let manifest = semaprax::project::ProjectManifest::parse(manifest_source)
+        .map_err(|_| d("SPX-HPD114", "the baseline manifest is not canonical"))?;
+    let test_module = manifest.test_module();
+    let mut found = false;
+    for path in manifest.sources() {
+        let bytes = baseline.get(path).ok_or_else(|| {
+            d(
+                "SPX-HPD114",
+                format!("manifest source `{path}` is absent from the authenticated baseline"),
+            )
+        })?;
+        let source = std::str::from_utf8(bytes).map_err(|_| {
+            d(
+                "SPX-HPD114",
+                format!("manifest source `{path}` is not UTF-8"),
+            )
+        })?;
+        if module_of(source, path).as_deref() == Some(test_module) {
+            out.insert(path.clone());
+            found = true;
         }
     }
-    for (path, bytes) in baseline {
-        if let Some(m) = module_of(&String::from_utf8_lossy(bytes)) {
-            if tests.contains(&m) {
-                out.insert(path.clone());
-            }
-        }
+    if !found {
+        return Err(d(
+            "SPX-HPD114",
+            format!("manifest test module `{test_module}` has no unambiguous source identity"),
+        ));
     }
-    out
+    Ok(out)
 }
 
 fn declaring_file(baseline: &Baseline, id: &str) -> Option<String> {
@@ -86,14 +109,6 @@ pub(super) fn oracle_intent_violation(
         }
     }
     None
-}
-
-fn count_map(lines: Vec<String>) -> BTreeMap<String, usize> {
-    let mut m = BTreeMap::new();
-    for l in lines {
-        *m.entry(l).or_default() += 1;
-    }
-    m
 }
 
 /// Validate and apply a `source_patch` to the scratch tree. Everything is
@@ -163,27 +178,24 @@ pub(super) fn apply_patch(s: &State, patch: &Value) -> HarnessResult<Vec<String>
         *text = text.replacen(find, replace, 1);
     }
     // Protected facts relative to the exact baseline bytes.
-    let mut base_effects = BTreeSet::new();
-    let mut new_effects = BTreeSet::new();
     for (path, new) in &texts {
         let base = String::from_utf8_lossy(&s.baseline[path]).into_owned();
-        let (bl, nl) = (count_map(law_lines(&base)), count_map(law_lines(new)));
-        if bl.iter().any(|(l, c)| nl.get(l).copied().unwrap_or(0) < *c) {
+        let baseline_facts = protected_source_facts(&base, path)?;
+        let candidate_facts = protected_source_facts(new, path)?;
+        if !baseline_facts.same_laws(&candidate_facts) {
             return Err(d(
                 "SPX-HPD042",
                 format!(
-                    "the patch deletes or weakens a law (requires/ensures/invariant) in `{path}`"
+                    "the patch changes a protected requires/ensures/invariant clause in `{path}`"
                 ),
             ));
         }
-        base_effects.extend(effect_tokens(&base));
-        new_effects.extend(effect_tokens(new));
-    }
-    if let Some(x) = new_effects.difference(&base_effects).next() {
-        return Err(d(
-            "SPX-HPD043",
-            format!("the patch widens declared effects (`{x}`)"),
-        ));
+        if !baseline_facts.same_effects(&candidate_facts) {
+            return Err(d(
+                "SPX-HPD043",
+                format!("the patch changes a per-declaration effect set in `{path}`"),
+            ));
+        }
     }
     for (path, new) in &texts {
         std::fs::write(s.work.join(path), new)

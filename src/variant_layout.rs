@@ -47,6 +47,7 @@ pub(crate) enum VariantFieldValueKind {
     OwnedBytes,
     OwnedString,
     OwnedIterator,
+    OwnedRecord,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -404,6 +405,21 @@ fn layout_case(
             // IterStep reserves one canonical eight-byte item-bits slot for
             // every admitted scalar, independent of the scalar's load width.
             (8, 8, VariantFieldValueKind::Copy)
+        } else if compiler_iterator_item
+            && crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
+                &program.declarations,
+                &concrete_ty,
+            )
+        {
+            let nested =
+                AggregateLayout::for_type(program, target, &concrete_ty).map_err(|_| {
+                    layout_error("iterator record item has an invalid aggregate layout")
+                })?;
+            (
+                nested.size,
+                nested.align,
+                VariantFieldValueKind::OwnedRecord,
+            )
         } else if matches!(concrete_ty, ResolvedType::Nominal { ref arguments, .. } if arguments.is_empty())
             && crate::hir::is_admitted_copy_aggregate_variant_field(
                 &program.declarations,

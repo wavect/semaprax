@@ -1,12 +1,247 @@
 //! Synthetic and authored call-parameter lookup for cleanup replay.
 
+use std::collections::BTreeSet;
+
+use crate::cleanup_plan::{CleanupPlace, StorageId};
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
-    DeclarationId, FunctionInstanceId, ResolvedFunction, ResolvedParam, ResolvedProgram,
-    ResolvedType,
+    DeclarationId, ExpressionId, FunctionInstanceId, IdentityOrigin, ResolvedExprKind,
+    ResolvedFunction, ResolvedParam, ResolvedProgram, ResolvedType,
 };
 
-use super::replay_error;
+use super::{
+    find_resolved_expression, replay_error, validate_place, Leaves, PathState,
+    ReplayConditionalVariant,
+};
+
+pub(super) fn exact_owned_try(source: &[ResolvedType], target: &[ResolvedType]) -> bool {
+    let admitted_source = matches!(source, [ResolvedType::Bytes, error]
+        if *error == ResolvedType::Bytes || crate::hir::is_scalar_resolved_type(error))
+        || matches!(source, [success, ResolvedType::Bytes]
+            if crate::hir::is_scalar_resolved_type(success));
+    let admitted_target = matches!(target, [ResolvedType::Bytes, _])
+        || matches!(target, [success, ResolvedType::Bytes]
+            if crate::hir::is_scalar_resolved_type(success));
+    admitted_source
+        && source.get(1) == target.get(1)
+        && (source == target || (source.get(1) == Some(&ResolvedType::Bytes) && admitted_target))
+}
+
+pub(super) fn owned_try_residual_places(
+    function: &ResolvedFunction,
+    expression: &crate::hir::ResolvedExpr,
+    mut source: CleanupPlace,
+    work: &mut super::SkeletonWork<'_, '_>,
+) -> Result<(CleanupPlace, CleanupPlace), Diagnostic> {
+    let ResolvedExprKind::Try {
+        operand,
+        err_case,
+        err_field,
+        residual_type,
+        ..
+    } = &expression.kind
+    else {
+        return Err(replay_error(
+            function,
+            "owned Result residual projection does not name a Try expression",
+        ));
+    };
+    let mut destination = CleanupPlace::whole(StorageId::ProvisionalResult);
+    if operand.ty != *residual_type {
+        source
+            .projections
+            .push(work.clone_owned(err_case, "changed-success residual source case projection")?);
+        source.projections.push(work.clone_owned(
+            err_field,
+            "changed-success residual source field projection",
+        )?);
+        destination.projections.push(work.clone_owned(
+            err_case,
+            "changed-success residual destination case projection",
+        )?);
+        destination.projections.push(work.clone_owned(
+            err_field,
+            "changed-success residual destination field projection",
+        )?);
+    }
+    Ok((source, destination))
+}
+
+pub(super) fn seal_changed_success_try_residual(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    at: &ExpressionId,
+    destination: &CleanupPlace,
+    state: &mut PathState,
+    storage: &BTreeSet<StorageId>,
+    leaves: &Leaves,
+) -> Result<(), Diagnostic> {
+    let Some(expression) = find_resolved_expression(function, at) else {
+        return Ok(());
+    };
+    let Some(result) =
+        authenticated_changed_success_result(program, function, expression, destination)?
+    else {
+        return Ok(());
+    };
+    let root = CleanupPlace::whole(StorageId::ProvisionalResult);
+    let flags = validate_place(function, &root, storage, leaves)?;
+    let selected = flags
+        .iter()
+        .filter(|flag| {
+            leaves[flag]
+                .place
+                .projections
+                .starts_with(&destination.projections[..1])
+        })
+        .copied()
+        .collect::<Vec<_>>();
+    if selected.is_empty()
+        || selected.iter().any(|flag| !state.live_order.contains(flag))
+        || flags
+            .iter()
+            .any(|flag| state.live_order.contains(flag) && !selected.contains(flag))
+        || state
+            .conditional_variants
+            .iter()
+            .any(|variant| variant.root == root)
+    {
+        return Err(replay_error(
+            function,
+            "changed-success Try residual has inconsistent provisional liveness",
+        ));
+    }
+    let selected_set = selected.iter().copied().collect::<BTreeSet<_>>();
+    state.live_order.retain(|flag| !selected_set.contains(flag));
+    state.conditional_variants.push(ReplayConditionalVariant {
+        root,
+        variant: result.clone(),
+        cases: program
+            .declarations
+            .variant_cases(result)
+            .ok_or_else(|| replay_error(function, "changed-success Result has no case domain"))?
+            .iter()
+            .map(|case| {
+                (
+                    case.id.clone(),
+                    flags
+                        .iter()
+                        .filter(|flag| {
+                            leaves[flag]
+                                .place
+                                .projections
+                                .starts_with(&[case.id.clone()])
+                        })
+                        .copied()
+                        .collect(),
+                )
+            })
+            .collect(),
+    });
+    Ok(())
+}
+
+fn authenticated_changed_success_result<'a>(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    expression: &'a crate::hir::ResolvedExpr,
+    destination: &CleanupPlace,
+) -> Result<Option<&'a DeclarationId>, Diagnostic> {
+    let ResolvedExprKind::Try {
+        operand,
+        result,
+        ok_case,
+        ok_field,
+        err_case,
+        err_field,
+        residual_type,
+        ..
+    } = &expression.kind
+    else {
+        return Ok(None);
+    };
+    if operand.ty == *residual_type
+        || destination.storage != StorageId::ProvisionalResult
+        || destination.projections.as_slice() != [err_case.clone(), err_field.clone()]
+    {
+        return Ok(None);
+    }
+    let (
+        ResolvedType::Nominal {
+            declaration: source,
+            arguments: source_arguments,
+        },
+        ResolvedType::Nominal {
+            declaration: target,
+            arguments: target_arguments,
+        },
+    ) = (&operand.ty, residual_type)
+    else {
+        return Err(replay_error(
+            function,
+            "changed-success Try residual has non-nominal carrier metadata",
+        ));
+    };
+    if result.as_str() != crate::prelude::RESULT_ID
+        || ok_case.as_str() != crate::prelude::RESULT_OK_ID
+        || ok_field.as_str() != crate::prelude::RESULT_OK_VALUE_ID
+        || err_case.as_str() != crate::prelude::RESULT_ERR_ID
+        || err_field.as_str() != crate::prelude::RESULT_ERR_ERROR_ID
+        || [result, ok_case, ok_field, err_case, err_field]
+            .iter()
+            .any(|id| {
+                program
+                    .declarations
+                    .declaration(id)
+                    .is_none_or(|item| item.identity_origin != IdentityOrigin::CompilerOwned)
+            })
+        || program
+            .declarations
+            .variant_cases(result)
+            .is_none_or(|cases| {
+                cases.len() != 2
+                    || !cases
+                        .iter()
+                        .any(|case| case.id == *ok_case && case.id != *err_case)
+                    || !cases.iter().any(|case| case.id == *err_case)
+            })
+        || program
+            .declarations
+            .case_fields(ok_case)
+            .is_none_or(|fields| !matches!(fields, [field] if field.id == *ok_field))
+        || program
+            .declarations
+            .case_fields(err_case)
+            .is_none_or(|fields| !matches!(fields, [field] if field.id == *err_field))
+        || source != result
+        || target != result
+        || !exact_owned_try(source_arguments, target_arguments)
+    {
+        return Err(replay_error(
+            function,
+            "changed-success Try residual has unauthenticated Result types",
+        ));
+    }
+    Ok(Some(result))
+}
+
+pub(super) fn owned_try_residual_result_place(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    expression: &crate::hir::ResolvedExpr,
+    destination: &CleanupPlace,
+) -> Result<CleanupPlace, Diagnostic> {
+    if destination.projections.is_empty() {
+        return Ok(destination.clone());
+    }
+    if authenticated_changed_success_result(program, function, expression, destination)?.is_none() {
+        return Err(replay_error(
+            function,
+            "owned Result residual has unauthenticated projected staging",
+        ));
+    }
+    Ok(CleanupPlace::whole(StorageId::ProvisionalResult))
+}
 
 /// Resolve one call's parameters for replay: compiler-owned operations carry
 /// their reserved identity instead of an authored declaration and use their
@@ -95,7 +330,8 @@ pub(super) fn resolved_call_params(
                     "iterator call has incorrect type arity",
                 ));
             };
-            if !crate::iterator_ops::resolved_element_is_admitted(element) {
+            if !crate::iterator_ops::resolved_element_is_admitted_in(&program.declarations, element)
+            {
                 return Err(replay_error(
                     function,
                     "iterator call has unsupported element",

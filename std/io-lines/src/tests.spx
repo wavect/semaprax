@@ -37,8 +37,37 @@ fn lines() -> bool
     ends && first && copied && second && exhausted && byte_len(bytes_as_slice(retained)) == 4usize && byte_len(bytes_as_slice(output)) == 1usize
 }
 
+@id("std.io.lines.tests.bare-cr-eof")
+fn bare_cr_eof() -> bool
+{
+    let source = [97u8, 13u8];
+    let input = bytes_copy(array_as_slice(source));
+    let reader = reader_from_bytes(input);
+    let output = reader_line_into(reader, writer_from_bytes(bytes_zeroed(2usize)));
+    let position = writer_position(output);
+    let copied = writer_finish(output);
+    let first = match byte_get(bytes_as_slice(copied), 0usize) { Option::Some { value } => value, Option::None {} => 0u8, };
+    let second = match byte_get(bytes_as_slice(copied), 1usize) { Option::Some { value } => value, Option::None {} => 0u8, };
+    line_content_len(array_as_slice(source), 0usize) == 2usize && reader_line_len(reader) == 2usize && position == 2usize && first == 97u8 && second == 13u8
+}
+
+@id("std.io.lines.tests.bare-cr-boundaries")
+fn bare_cr_boundaries() -> bool
+{
+    let lone = [13u8];
+    let doubled = [97u8, 13u8, 13u8];
+    let offset = [10u8, 97u8, 13u8];
+    let reader0 = reader_from_bytes(bytes_copy(array_as_slice(offset)));
+    let reader1 = reader_next_line(reader0);
+    line_content_len(array_as_slice(lone), 0usize) == 1usize && line_content_len(array_as_slice(doubled), 0usize) == 3usize && reader_position(reader1) == 1usize && reader_line_len(reader1) == 2usize
+}
+
 @id("std.io.lines.tests.main")
 fn main() -> i64
 {
-    if lines() { 0 } else { 1 }
+    let mut failed = 0;
+    failed = failed + if lines() { 0 } else { 1 };
+    failed = failed + if bare_cr_eof() { 0 } else { 2 };
+    failed = failed + if bare_cr_boundaries() { 0 } else { 4 };
+    failed
 }

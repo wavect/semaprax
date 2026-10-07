@@ -1,0 +1,5 @@
+[
+  ["name", "note", "tail"],
+  ["alpha", "line one\r\nline two", "x"],
+  ["beta", "say \"hi\"", ""]
+]

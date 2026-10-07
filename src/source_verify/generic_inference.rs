@@ -221,7 +221,9 @@ fn evidence(
                 BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div if numeric(&left) => {
                     left
                 }
-                BinaryOp::Rem if left == Type::I64 => Type::I64,
+                BinaryOp::Rem if matches!(left, Type::I64 | Type::I32 | Type::U8 | Type::Usize) => {
+                    left
+                }
                 BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge if ordered(&left) => {
                     Type::Bool
                 }

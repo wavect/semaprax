@@ -19,7 +19,7 @@ mod generic_record;
 mod iterator;
 #[cfg(test)]
 mod owned_capacity;
-pub(crate) use iterator::{primitive_leaf_lifecycle, variant_leaf_lifecycle};
+pub(crate) use iterator::{primitive_leaf_lifecycle, variant_leaf_lifecycle, variant_record_field};
 #[cfg(test)]
 use owned_capacity::resolved_type_owned_capacity;
 pub const ITER_DROP_LIFECYCLE_ID: &str = "core.iter.drop";
@@ -477,7 +477,11 @@ pub(crate) fn type_needs_resource_cleanup(
                 arguments,
             } => {
                 if declaration.as_str() == crate::iterator_ops::ITER_ID
-                    && matches!(arguments.as_slice(), [element] if crate::iterator_ops::resolved_element_is_admitted(element))
+                    && matches!(arguments.as_slice(), [element]
+                    if crate::iterator_ops::resolved_element_is_admitted_in(
+                        &program.declarations,
+                        element,
+                    ))
                 {
                     return Ok(true);
                 }
@@ -963,7 +967,20 @@ impl InventoryBuilder<'_> {
                                         declaration,
                                         arguments,
                                     )?;
-                                    let shape = if self.needs_drop(&field_ty)? {
+                                    let shape = if variant_record_field(
+                                        self.program,
+                                        ty,
+                                        &case.id,
+                                        &field.id,
+                                        &field_ty,
+                                    ) {
+                                        let mut nested = projections.clone();
+                                        nested.push(case.id.clone());
+                                        nested.push(field.id.clone());
+                                        self.shape_for_concrete_generic_record(
+                                            &field_ty, storage, &nested,
+                                        )?
+                                    } else if self.needs_drop(&field_ty)? {
                                         let leaf_lifecycle = variant_leaf_lifecycle(self.program, ty, &case.id, &field.id, &field_ty)
                                             .ok_or_else(|| cleanup_error("droppable variant field is outside its admitted cleanup profile"))?;
                                         let flag_index =

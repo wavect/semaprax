@@ -4,7 +4,11 @@ pub(crate) fn graph_schema(program: &ResolvedProgram) -> Result<&'static str, Di
     let previous = super::affine::graph_schema(program)?;
     if crate::stdin_stream_ops::resolved_program_uses(program) {
         crate::stdin_stream_ops::analysis::derive(program)?;
-        Ok("semaprax.graph.v65")
+        Ok(if previous == "semaprax.graph.v67" {
+            previous
+        } else {
+            "semaprax.graph.v65"
+        })
     } else {
         Ok(previous)
     }
@@ -25,7 +29,11 @@ pub(crate) fn graph_schema_from_parts_and_instances(
             .chain(instances.iter().map(|instance| &instance.function))
             .any(crate::stdin_stream_ops::resolved_function_uses)
         {
-            "semaprax.graph.v65"
+            if previous == "semaprax.graph.v67" {
+                previous
+            } else {
+                "semaprax.graph.v65"
+            }
         } else {
             previous
         },
@@ -52,7 +60,14 @@ pub(super) fn graph_json(
     if !graph.starts_with(&prefix) || !graph.ends_with('}') {
         return Err(Diagnostic::io("SPX-G411", "noncanonical checked graph"));
     }
-    graph.replace_range(..prefix.len(), "{\"schema\":\"semaprax.graph.v65\"");
+    graph.replace_range(
+        ..prefix.len(),
+        if previous == "semaprax.graph.v67" {
+            "{\"schema\":\"semaprax.graph.v67\""
+        } else {
+            "{\"schema\":\"semaprax.graph.v65\""
+        },
+    );
     let list = |values: &[hir::ExpressionId]| {
         values
             .iter()

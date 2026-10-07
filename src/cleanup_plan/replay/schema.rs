@@ -21,9 +21,13 @@ pub(crate) fn selected_schema(
         CLEANUP_PLAN_SCHEMA_V15
     } else if function_has_owner_admission(program, function)? {
         CLEANUP_PLAN_SCHEMA_V14
-    } else if crate::iterator_ops::function_uses_owned_iterator(function) {
+    } else if crate::iterator_ops::function_uses_owned_iterator(function)
+        || crate::iterator_ops::function_uses_record_iterator_in(&program.declarations, function)
+    {
         CLEANUP_PLAN_SCHEMA_V13
-    } else if crate::hir::iterator_loop::function_requires_renewal(function) {
+    } else if crate::hir::iterator_loop::function_requires_renewal(function)
+        || crate::hir::iterator_loop::function_requires_record_renewal(program, function)
+    {
         CLEANUP_PLAN_SCHEMA_V12
     } else if crate::hir::iterator_loop::function_contains(function) {
         CLEANUP_PLAN_SCHEMA_V11

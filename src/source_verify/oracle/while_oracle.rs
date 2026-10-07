@@ -272,8 +272,19 @@ pub(super) fn reject_while_disallowed_oracle(
                 let scalar_signature = crate::stdin_stream_ops::ast_forward_signature(declared)
                     || (crate::loop_calls::effects_admitted(&declared.effects)
                         && crate::loop_calls::ast_result_admitted(program, &declared.return_type)
-                        && declared.params.iter().all(|param| {
+                        && declared.params.iter().zip(args).all(|(param, argument)| {
                             crate::loop_calls::ast_param_admitted(program, param.mode, &param.ty)
+                                || (param.mode == crate::ast::ParamMode::Borrow
+                                    && crate::source_verify::declared_type::owned_record_collection::is_owner_renewal_record(
+                                        types,
+                                        &param.ty,
+                                    ))
+                                || (param.mode == crate::ast::ParamMode::Own
+                                    && matches!(&argument.kind, ExprKind::Var(argument_name)
+                                    if super::matching::is_owned_iterator_item(
+                                        argument_name,
+                                        &param.ty,
+                                    )))
                         }));
                 if !scalar_signature {
                     diagnostics.push(error(
@@ -430,6 +441,28 @@ pub(super) fn reject_while_disallowed_statement_oracle(
     diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<(), ()> {
     match statement {
+        Statement::Assign {
+            name,
+            field: None,
+            value,
+            ..
+        } if source_record_owner_renewal(program, functions, name, value) => {
+            let ExprKind::Call { args, .. } = &value.kind else {
+                unreachable!("record renewal admission requires a call")
+            };
+            let mut result = Ok(());
+            for argument in args {
+                result = reject_while_disallowed_oracle(
+                    program,
+                    argument,
+                    functions,
+                    types,
+                    diagnostics,
+                );
+                result?;
+            }
+            result
+        }
         Statement::Let { value, .. } | Statement::Assign { value, .. } => {
             reject_while_disallowed_oracle(program, value, functions, types, diagnostics)
         }
@@ -460,4 +493,59 @@ pub(super) fn reject_while_disallowed_statement_oracle(
             Err(())
         }
     }
+}
+
+#[cfg(test)]
+fn source_record_owner_renewal(
+    program: &Program,
+    functions: &HashMap<&str, &Function>,
+    binding: &str,
+    value: &Expr,
+) -> bool {
+    let ExprKind::Call {
+        name,
+        type_arguments,
+        args,
+        ..
+    } = &value.kind
+    else {
+        return false;
+    };
+    let Some(target) = functions.get(name.as_str()) else {
+        return false;
+    };
+    let types = TypeTable::new(program);
+    type_arguments.is_empty()
+        && target.effects.is_empty()
+        && crate::source_verify::declared_type::owned_record_collection::is_owner_renewal_record(
+            &types,
+            &target.return_type,
+        )
+        && target.params.len() == args.len()
+        && target
+            .params
+            .iter()
+            .zip(args)
+            .filter(|(parameter, argument)| {
+                parameter.mode == crate::ast::ParamMode::Own
+                    && parameter.ty == target.return_type
+                    && matches!(&argument.kind, ExprKind::Var(name) if name == binding)
+            })
+            .count()
+            == 1
+        && target.params.iter().zip(args).all(|(parameter, argument)| {
+            match parameter.mode {
+                crate::ast::ParamMode::Own => {
+                    parameter.ty == target.return_type
+                        && matches!(&argument.kind, ExprKind::Var(name) if name == binding)
+                }
+                crate::ast::ParamMode::Borrow => {
+                    crate::source_verify::declared_type::owned_record_collection::
+                        is_owner_renewal_record(&types, &parameter.ty)
+                        && matches!(argument.kind, ExprKind::Var(_))
+                }
+                crate::ast::ParamMode::Value => true,
+                crate::ast::ParamMode::Shared => false,
+            }
+        })
 }

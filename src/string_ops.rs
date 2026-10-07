@@ -80,10 +80,6 @@
 //! A value the target type cannot hold selects the checked
 //! `semaprax.convert.v1` status: code 1 for out of range, code 2 for NaN.
 
-//! Byte Widening v1 (`docs/BYTE-WIDENING-V1.md`) independently adds exact
-//! `i64_from_u8(value: u8) -> i64`; the frozen Conversions v1 catalog stays
-//! unchanged, and this scalar operation lowers inline on Core Wasm too.
-
 pub(crate) mod conditions;
 
 pub(crate) mod replacement;
@@ -121,7 +117,6 @@ pub(crate) const F64_FROM_I64_NAME: &str = "f64_from_i64";
 pub(crate) const I64_FROM_F64_NAME: &str = "i64_from_f64";
 pub(crate) const USIZE_FROM_I64_NAME: &str = "usize_from_i64";
 pub(crate) const I64_FROM_USIZE_NAME: &str = "i64_from_usize";
-pub(crate) const I64_FROM_U8_NAME: &str = "i64_from_u8";
 
 pub(crate) const LEN_ID: &str = "core.string.len";
 pub(crate) const CONCAT_ID: &str = "core.string.concat";
@@ -152,7 +147,15 @@ pub(crate) const F64_FROM_I64_ID: &str = "core.num.f64_from_i64";
 pub(crate) const I64_FROM_F64_ID: &str = "core.num.i64_from_f64";
 pub(crate) const USIZE_FROM_I64_ID: &str = "core.num.usize_from_i64";
 pub(crate) const I64_FROM_USIZE_ID: &str = "core.num.i64_from_usize";
+
+pub(crate) const I64_FROM_U8_NAME: &str = "i64_from_u8";
 pub(crate) const I64_FROM_U8_ID: &str = "core.num.i64_from_u8";
+
+pub(crate) const I64_FROM_I32_NAME: &str = "i64_from_i32";
+pub(crate) const I64_FROM_I32_ID: &str = "core.num.i64_from_i32";
+
+pub(crate) const USIZE_FROM_U8_NAME: &str = "usize_from_u8";
+pub(crate) const USIZE_FROM_U8_ID: &str = "core.num.usize_from_u8";
 
 /// The checked status domain of Conversions v1.
 pub(crate) const CONVERT_STATUS_DOMAIN: &str = "semaprax.convert.v1";
@@ -254,6 +257,10 @@ pub(crate) enum StringOp {
     I64FromUsize,
     /// Exact infallible unsigned byte widening (Byte Widening v1).
     I64FromU8,
+    /// Exact sign extension from a narrow signed integer.
+    I64FromI32,
+    /// Exact zero extension to portable u64 size.
+    UsizeFromU8,
 }
 
 impl StringOp {
@@ -335,8 +342,10 @@ impl StringOp {
             StringOp::F64FromI64 => F64_FROM_I64_NAME,
             StringOp::I64FromF64 => I64_FROM_F64_NAME,
             StringOp::UsizeFromI64 => USIZE_FROM_I64_NAME,
-            StringOp::I64FromUsize => I64_FROM_USIZE_NAME,
             StringOp::I64FromU8 => I64_FROM_U8_NAME,
+            StringOp::I64FromI32 => I64_FROM_I32_NAME,
+            StringOp::UsizeFromU8 => USIZE_FROM_U8_NAME,
+            StringOp::I64FromUsize => I64_FROM_USIZE_NAME,
         }
     }
 
@@ -370,8 +379,10 @@ impl StringOp {
             StringOp::F64FromI64 => F64_FROM_I64_ID,
             StringOp::I64FromF64 => I64_FROM_F64_ID,
             StringOp::UsizeFromI64 => USIZE_FROM_I64_ID,
-            StringOp::I64FromUsize => I64_FROM_USIZE_ID,
             StringOp::I64FromU8 => I64_FROM_U8_ID,
+            StringOp::I64FromI32 => I64_FROM_I32_ID,
+            StringOp::UsizeFromU8 => USIZE_FROM_U8_ID,
+            StringOp::I64FromUsize => I64_FROM_USIZE_ID,
         }
     }
 
@@ -406,8 +417,10 @@ impl StringOp {
             StringOp::F64FromI64
             | StringOp::I64FromF64
             | StringOp::UsizeFromI64
-            | StringOp::I64FromUsize
-            | StringOp::I64FromU8 => &["value"],
+            | StringOp::I64FromU8
+            | StringOp::I64FromI32
+            | StringOp::UsizeFromU8
+            | StringOp::I64FromUsize => &["value"],
         }
     }
 
@@ -446,8 +459,10 @@ impl StringOp {
             StringOp::FromStr => &[ResolvedType::Str],
             StringOp::F64FromI64 | StringOp::UsizeFromI64 => &[ResolvedType::I64],
             StringOp::I64FromF64 => &[ResolvedType::F64],
-            StringOp::I64FromUsize => &[ResolvedType::Usize],
             StringOp::I64FromU8 => &[ResolvedType::U8],
+            StringOp::I64FromI32 => &[ResolvedType::I32],
+            StringOp::UsizeFromU8 => &[ResolvedType::U8],
+            StringOp::I64FromUsize => &[ResolvedType::Usize],
         }
     }
 
@@ -466,9 +481,10 @@ impl StringOp {
             Some(
                 ResolvedType::Char
                 | ResolvedType::I64
+                | ResolvedType::I32
+                | ResolvedType::U8
                 | ResolvedType::Usize
-                | ResolvedType::F64
-                | ResolvedType::U8,
+                | ResolvedType::F64,
             ) => OwnershipMode::Value,
             _ if self.consumes_arguments() => OwnershipMode::Own,
             _ if index == 0 && self.reopens_map() => OwnershipMode::Own,
@@ -489,7 +505,19 @@ impl StringOp {
 
     /// Conversions v1 forms a sixth optional backend group.
     pub(crate) fn is_conversion(self) -> bool {
-        Self::CONVERSIONS.contains(&self)
+        Self::CONVERSIONS.contains(&self) || self.is_integer_conversion()
+    }
+
+    /// Additive integer conversion profile, with direct extension and checked ranges.
+    pub(crate) fn is_integer_conversion(self) -> bool {
+        matches!(
+            self,
+            Self::I64FromU8
+                | Self::I64FromI32
+                | Self::UsizeFromU8
+                | Self::I64FromUsize
+                | Self::UsizeFromI64
+        )
     }
 
     /// Whether the operation reads or produces a String value. The numeric
@@ -500,15 +528,19 @@ impl StringOp {
             StringOp::F64FromI64
                 | StringOp::I64FromF64
                 | StringOp::UsizeFromI64
-                | StringOp::I64FromUsize
                 | StringOp::I64FromU8
+                | StringOp::I64FromI32
+                | StringOp::UsizeFromU8
+                | StringOp::I64FromUsize
         )
     }
 
     /// Operations no Core Wasm lane lowers: Text Toolkit v1, String
     /// Collections v1, and Conversions v1.
     pub(crate) fn is_wasm_refused(self) -> bool {
-        self.is_text_toolkit() || self.is_collection() || self.is_conversion()
+        self.is_text_toolkit()
+            || self.is_collection()
+            || (self.is_conversion() && !self.is_integer_conversion())
     }
 
     /// Whether the operation belongs to the breadth-v2 wave. Its native
@@ -547,8 +579,10 @@ impl StringOp {
             | StringOp::MapGetOr
             | StringOp::MapValueAt
             | StringOp::I64FromF64
-            | StringOp::I64FromUsize
-            | StringOp::I64FromU8 => ResolvedType::I64,
+            | StringOp::I64FromUsize => ResolvedType::I64,
+            StringOp::I64FromU8 => ResolvedType::I64,
+            StringOp::I64FromI32 => ResolvedType::I64,
+            StringOp::UsizeFromU8 => ResolvedType::Usize,
             StringOp::F64FromI64 => ResolvedType::F64,
             StringOp::UsizeFromI64 => ResolvedType::Usize,
             StringOp::MapNew | StringOp::MapAdd | StringOp::MapSet => ResolvedType::StringMap,
@@ -578,8 +612,10 @@ impl StringOp {
             | StringOp::MapGetOr
             | StringOp::MapValueAt
             | StringOp::I64FromF64
-            | StringOp::I64FromUsize
-            | StringOp::I64FromU8 => Type::I64,
+            | StringOp::I64FromUsize => Type::I64,
+            StringOp::I64FromU8 => Type::I64,
+            StringOp::I64FromI32 => Type::I64,
+            StringOp::UsizeFromU8 => Type::Usize,
             StringOp::F64FromI64 => Type::F64,
             StringOp::UsizeFromI64 => Type::Usize,
             StringOp::MapNew | StringOp::MapAdd | StringOp::MapSet => Type::StringMap,
@@ -656,8 +692,10 @@ pub(crate) fn by_name(name: &str) -> Option<StringOp> {
         F64_FROM_I64_NAME => Some(StringOp::F64FromI64),
         I64_FROM_F64_NAME => Some(StringOp::I64FromF64),
         USIZE_FROM_I64_NAME => Some(StringOp::UsizeFromI64),
-        I64_FROM_USIZE_NAME => Some(StringOp::I64FromUsize),
         I64_FROM_U8_NAME => Some(StringOp::I64FromU8),
+        I64_FROM_I32_NAME => Some(StringOp::I64FromI32),
+        USIZE_FROM_U8_NAME => Some(StringOp::UsizeFromU8),
+        I64_FROM_USIZE_NAME => Some(StringOp::I64FromUsize),
         _ => None,
     }
 }
@@ -693,8 +731,10 @@ pub(crate) fn by_id(id: &str) -> Option<StringOp> {
         F64_FROM_I64_ID => Some(StringOp::F64FromI64),
         I64_FROM_F64_ID => Some(StringOp::I64FromF64),
         USIZE_FROM_I64_ID => Some(StringOp::UsizeFromI64),
-        I64_FROM_USIZE_ID => Some(StringOp::I64FromUsize),
         I64_FROM_U8_ID => Some(StringOp::I64FromU8),
+        I64_FROM_I32_ID => Some(StringOp::I64FromI32),
+        USIZE_FROM_U8_ID => Some(StringOp::UsizeFromU8),
+        I64_FROM_USIZE_ID => Some(StringOp::I64FromUsize),
         _ => None,
     }
 }
@@ -737,8 +777,9 @@ pub(crate) fn ast_params(op: StringOp) -> Vec<Param> {
             },
             ty: match ty {
                 ResolvedType::Char => Type::Char,
-                ResolvedType::U8 => Type::U8,
                 ResolvedType::I64 => Type::I64,
+                ResolvedType::I32 => Type::I32,
+                ResolvedType::U8 => Type::U8,
                 ResolvedType::Usize => Type::Usize,
                 ResolvedType::F64 => Type::F64,
                 ResolvedType::Str => Type::Str,
@@ -932,9 +973,9 @@ pub(crate) fn refuse_collections_for_wasm(
     pending.reverse();
     while let Some(expression) = pending.pop() {
         if let crate::hir::ResolvedExprKind::Call { callee, .. } = &expression.kind {
-            if let Some(op) =
-                by_id(callee.as_str()).filter(|op| op.is_collection() || op.is_conversion())
-            {
+            if let Some(op) = by_id(callee.as_str()).filter(|op| {
+                op.is_collection() || (op.is_conversion() && !op.is_integer_conversion())
+            }) {
                 return Err(text_toolkit_wasm_refusal(op));
             }
         }

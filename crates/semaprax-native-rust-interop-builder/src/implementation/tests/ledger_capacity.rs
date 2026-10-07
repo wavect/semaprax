@@ -178,6 +178,7 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
         include_str!("../../../../../src/hir/cache_codec.rs"),
         include_str!("../../../../../src/hir/declaration_index.rs"),
         include_str!("../../../../../src/hir/owned_record_collection.rs"),
+        include_str!("../../../../../src/hir/vec_loop_renewal.rs"),
         include_str!("../../../../../src/hir/generic_mapping.rs"),
         include_str!("../../../../../src/hir/nodes.rs"),
         include_str!("../../../../../src/hir/declaration_index/linked_owned_data.rs"),
@@ -185,9 +186,11 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
         include_str!("../../../../../src/hir/declaration_index/projection.rs"),
         include_str!("../../../../../src/hir/type_reachability/nested_generic_function.rs"),
         include_str!("../../../../../src/hir/workspace_link/compiler_prelude.rs"),
+        include_str!("../../../../../src/hir/workspace_link/profile_diagnostics.rs"),
     );
     let hir_validator = concat!(
         include_str!("../../../../../src/hir/validation.rs"),
+        include_str!("../../../../../src/hir/validation/borrowed_argument.rs"),
         include_str!("../../../../../src/hir/validation/borrowed_bytes_call_tests.rs"),
         include_str!("../../../../../src/hir/validation/iterator_loops.rs"),
         include_str!("../../../../../src/hir/validation/callable_types.rs"),
@@ -202,6 +205,7 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
         include_str!("../../../../../src/hir/validation/host_command.rs"),
         include_str!("../../../../../src/hir/validation/owned_buffer.rs"),
         include_str!("../../../../../src/hir/validation/owned_result_try.rs"),
+        include_str!("../../../../../src/hir/validation/owner_renewal.rs"),
         include_str!("../../../../../src/hir/validation/type_profiles.rs"),
         include_str!("../../../../../src/hir/validation/unsafe_scan.rs"),
         include_str!("../../../../../src/hir/validation/generic_record_composition.rs"),

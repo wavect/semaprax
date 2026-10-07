@@ -2,6 +2,7 @@
 use crate::diagnostic::Diagnostic;
 use crate::hir::{ExpressionId, ResolvedParam, ResolvedType};
 pub(super) fn resolved_params(
+    declarations: &crate::hir::DeclarationIndex,
     op: crate::iterator_ops::IteratorOp,
     has_instance: bool,
     argument_count: usize,
@@ -10,7 +11,8 @@ pub(super) fn resolved_params(
 ) -> Result<Vec<ResolvedParam>, Diagnostic> {
     if has_instance
         || argument_count != 1
-        || !matches!(type_arguments, [element] if crate::iterator_ops::resolved_element_is_admitted(element))
+        || !matches!(type_arguments, [element]
+            if crate::iterator_ops::resolved_element_is_admitted_in(declarations, element))
     {
         return Err(super::plan_error(format!(
             "cleanup iterator call `{expression}` has inconsistent shape"

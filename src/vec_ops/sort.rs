@@ -92,11 +92,11 @@ mod tests {
         );
         assert_eq!(
             crate::prelude::selected_for_program(&new).0,
-            crate::prelude::SCHEMA_V11
+            crate::prelude::SCHEMA_V12
         );
-        let old = String::from_utf8(crate::stdin_stream_ops::contract_bytes()).unwrap();
-        let expected = old.replacen(crate::prelude::SCHEMA_V10, crate::prelude::SCHEMA_V11, 1);
-        let new = String::from_utf8(crate::prelude::contract_bytes_v11()).unwrap();
+        let old = String::from_utf8(crate::prelude::contract_bytes_v11()).unwrap();
+        let expected = old.replacen(crate::prelude::SCHEMA_V11, crate::prelude::SCHEMA_V12, 1);
+        let new = String::from_utf8(crate::prelude::contract_bytes_v12()).unwrap();
         assert!(new.starts_with(&expected));
         assert!(new.ends_with("rule sort Copy_scalars_only ascending numeric_char_bool floating_IEEE_total_order no_payload_clones no_capacity_change generation=next\n"));
     }

@@ -20,7 +20,7 @@
   settlement before selection/fallthrough, independent replay and an explicit
   private Wasm selector. Focused all-engine/hostile verification is pending.
 
-- Author Whole String Replacement v1 with CleanupPlan v16/Graph v67, independently
+- Author Whole String Replacement v1 with CleanupPlan v16/Graph v68, independently
   replayed guarded old-owner release, consuming RHS calls and branch results,
   an explicit private Wasm selector and focused settlement/refusal regressions.
   Consolidated executable verification is pending.
@@ -28,7 +28,7 @@
   retaining ordinary identity/type/ownership checks and canonical cleanup.
   Author interpreter/native/Wasm settlement and refusal controls for repeated
   construction, nested String results, operand/guard failure and Vec traversal.
-- Author Whole String Replacement v1 with CleanupPlan v16/Graph v67, independently
+- Author Whole String Replacement v1 with CleanupPlan v16/Graph v68, independently
   replayed guarded old-owner release, consuming RHS calls and branch results,
   an explicit private Wasm selector and focused settlement/refusal regressions.
   Consolidated executable verification is pending.
@@ -38,6 +38,19 @@
   and aggregate Wasm. Independent source/HIR classifiers, hostile layout/HIR
   controls, source/graph round trips and allocator parity gates are authored;
   verification remains pending for the combined OPT implementation batch.
+- GAP integer and data corrections: exact named `u8`/`i32` widening and checked
+  integer conversions execute on the interpreter, C11 and Core Wasm; byte helpers
+  use constant work, and equal-width `i32`/`u8` remainder preserves normalized
+  failures. Typed Err reconstruction permits changing an owned Result’s success
+  type, and exact Reader/Writer owners may renew through checked loop calls.
+  The existing two-Bytes-plus-Copy record vector gains consuming iteration,
+  with additive Prelude v11/Graph v67 and a distinct checked Wasm host protocol.
+  Executable invariants over unsupported owned record fields fail
+  before backend admission. Bundled dependency registration, bare-CR EOF line
+  framing, strict padded Base64 decoding and multiline CSV record decoding gain
+  focused regressions. Harness snapshots authenticate complete oracle inventory;
+  repair preserves parsed contracts/effects, and context facets bind full bounded
+  work and canonical digest inputs. These additions carry local evidence only.
 
 - Complete Project v25 owned-String helper execution in ordinary, named,
   cancellable and prepared tests; add the canonical stdin-stream-text scaffold

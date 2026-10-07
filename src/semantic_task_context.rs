@@ -221,6 +221,10 @@ pub const MIN_MAX_TOKENS: usize = 1;
 pub const MAX_MAX_TOKENS: usize = 64 * 1024 * 1024;
 
 const DIGEST_DOMAIN: &[u8] = b"semaprax.semantic-task-context.goal-digest.v1\0";
+const FACET_DIGEST_DOMAIN: &[u8] = b"semaprax.semantic-task-context.goal-digest.facets.v1\0";
+const MAX_FACET_IDENTIFIER_BYTES: usize = 4 * 1024;
+const MAX_DECLARATION_FACET_BYTES: usize = 1024 * 1024;
+const MAX_DECLARATION_FACET_ENTRIES: usize = 65_536;
 /// Domain separator for [`cache_key`]'s input-only digest. Distinct from
 /// [`DIGEST_DOMAIN`] on purpose: the two digests are never comparable, and a
 /// value produced under one must never be mistaken for the other.
@@ -548,6 +552,11 @@ pub fn compile(
 /// index, or a [`crate::patch`]-computed diff) supplies it as
 /// [`DeclarationFacets`], keyed by the exact declaration ids the facets
 /// name; nothing here interprets free text.
+///
+/// The facet-bearing route counts each seed's compact context and selected
+/// canonical facet array as one semantic payload, and binds the rendered seed
+/// entries to a distinct facet-aware goal-digest domain. Facet inputs are
+/// bounded before any seed context is compiled.
 pub fn compile_with_declaration_facets(
     program: &Program,
     goal: &CompilationGoal,
@@ -555,6 +564,7 @@ pub fn compile_with_declaration_facets(
     budget: CompilationBudget,
     facets: &DeclarationFacets,
 ) -> Result<String, Vec<Diagnostic>> {
+    facets.validate().map_err(|diagnostic| vec![diagnostic])?;
     compile_inner(program, goal, per_seed_options, budget, Some(facets))
 }
 
@@ -589,7 +599,17 @@ fn compile_inner(
     let mut entries = Vec::with_capacity(compiled.len());
     for item in &compiled {
         let dedup = dedup_seed_json(&item.json, &item.seed.id, &seen_fact_ids, &owner_of_fact);
-        let tokens = budget.tokenizer.count(&dedup.rewritten_json);
+        let facet_entries = facets.map(|facets| facets.render_for(&dedup.all_ids));
+        let semantic_payload = facet_entries.as_ref().map_or_else(
+            || dedup.rewritten_json.clone(),
+            |facet_entries| {
+                format!(
+                    "{{\"context\":{},\"declaration_facets\":{facet_entries}}}",
+                    dedup.rewritten_json
+                )
+            },
+        );
+        let tokens = budget.tokenizer.count(&semantic_payload);
         let included = used_tokens.saturating_add(tokens) <= budget.max_tokens;
         if included {
             used_tokens += tokens;
@@ -605,12 +625,15 @@ fn compile_inner(
             included,
             tokens,
             &dedup.rewritten_json,
-            &dedup.all_ids,
-            facets,
+            facet_entries.as_deref(),
         ));
     }
 
-    let goal_digest = digest(&source_revision, budget, &compiled);
+    let goal_digest = if facets.is_some() {
+        facet_digest(&source_revision, budget, &entries)
+    } else {
+        digest(&source_revision, budget, &compiled)
+    };
 
     Ok(format!(
         "{{\"schema\":{schema},\"source_revision\":{revision},\"goal_digest\":{digest},\
@@ -639,8 +662,7 @@ fn render_entry(
     included: bool,
     tokens: usize,
     rewritten_json: &str,
-    all_ids: &[String],
-    facets: Option<&DeclarationFacets>,
+    facet_entries: Option<&str>,
 ) -> String {
     if !included {
         return format!(
@@ -661,21 +683,26 @@ fn render_entry(
         tokens = tokens,
         context = rewritten_json,
     );
-    if let Some(facets) = facets {
-        let facet_entries: Vec<String> = all_ids
-            .iter()
-            .filter_map(|id| {
-                facets
-                    .facet_fields_for(id)
-                    .map(|fields| format!("{{\"id\":{},{}}}", quote_json(id), fields))
-            })
-            .collect();
-        out.push_str(",\"declaration_facets\":[");
-        out.push_str(&facet_entries.join(","));
-        out.push(']');
+    if let Some(facet_entries) = facet_entries {
+        out.push_str(",\"declaration_facets\":");
+        out.push_str(facet_entries);
     }
     out.push('}');
     out
+}
+
+fn facet_digest(source_revision: &str, budget: CompilationBudget, entries: &[String]) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(FACET_DIGEST_DOMAIN);
+    update_field(&mut hasher, SCHEMA.as_bytes());
+    update_field(&mut hasher, source_revision.as_bytes());
+    update_field(&mut hasher, budget.tokenizer.name().as_bytes());
+    update_field(&mut hasher, budget.tokenizer.algorithm_digest().as_bytes());
+    update_field(&mut hasher, &budget.max_tokens.to_le_bytes());
+    for entry in entries {
+        update_field(&mut hasher, entry.as_bytes());
+    }
+    format!("sha256:{:x}", LowerHex(hasher.finalize()))
 }
 
 /// A digest sensitive to every field that determines `compile`'s exact
@@ -941,7 +968,9 @@ impl DeclarationFacets {
 
     /// Record that requirement `requirement_id` names `declaration_id` as
     /// one of its assurance subjects. Both are opaque, caller-declared
-    /// identifiers this module never interprets beyond exact matching.
+    /// identifiers this module never interprets beyond exact matching. Their
+    /// byte and inventory bounds are enforced by
+    /// [`compile_with_declaration_facets`].
     #[must_use]
     pub fn with_requirement(
         mut self,
@@ -1008,6 +1037,58 @@ impl DeclarationFacets {
             "\"requirements\":[{requirements_json}],\"tests\":[{tests_json}],\
              \"candidate_diff\":{in_diff}"
         ))
+    }
+
+    fn render_for(&self, declaration_ids: &[String]) -> String {
+        let entries = declaration_ids
+            .iter()
+            .filter_map(|id| {
+                self.facet_fields_for(id)
+                    .map(|fields| format!("{{\"id\":{},{fields}}}", quote_json(id)))
+            })
+            .collect::<Vec<_>>();
+        format!("[{}]", entries.join(","))
+    }
+
+    fn validate(&self) -> Result<(), Diagnostic> {
+        let mut bytes = 0usize;
+        let mut entries = 0usize;
+        let mut add = |value: &str| -> Result<(), Diagnostic> {
+            if value.len() > MAX_FACET_IDENTIFIER_BYTES {
+                return Err(option_error(format!(
+                    "declaration facet identifier exceeds {MAX_FACET_IDENTIFIER_BYTES} bytes"
+                )));
+            }
+            bytes = bytes.checked_add(value.len()).ok_or_else(|| {
+                option_error("declaration facet byte accounting overflowed".to_string())
+            })?;
+            entries = entries.checked_add(1).ok_or_else(|| {
+                option_error("declaration facet entry accounting overflowed".to_string())
+            })?;
+            if bytes > MAX_DECLARATION_FACET_BYTES || entries > MAX_DECLARATION_FACET_ENTRIES {
+                return Err(option_error(format!(
+                    "declaration facets exceed {MAX_DECLARATION_FACET_BYTES} bytes or \
+                     {MAX_DECLARATION_FACET_ENTRIES} entries"
+                )));
+            }
+            Ok(())
+        };
+        for (declaration, requirements) in &self.requirements {
+            add(declaration)?;
+            for requirement in requirements {
+                add(requirement)?;
+            }
+        }
+        for (declaration, tests) in &self.tests {
+            add(declaration)?;
+            for test in tests {
+                add(test)?;
+            }
+        }
+        for declaration in &self.candidate_diff {
+            add(declaration)?;
+        }
+        Ok(())
     }
 }
 

@@ -342,9 +342,7 @@ pub(super) fn check_expr(
                 .filter(|ty| matches!(ty, Type::I32));
             if !native_unit_operand
                 && matches!(op, BinaryOp::Rem)
-                && (left_numeric.is_some()
-                    || left_integer.is_some()
-                    || left_narrow.is_some())
+                && left_numeric.is_some()
             {
                 diagnostics.push(error(
                     program,
@@ -1214,11 +1212,14 @@ pub(super) fn check_expr(
                         let element = actual.as_ref().and_then(|actual| match &actual.ty {
                             Type::Named { name, arguments } if name == "Iter" && actual.mode == ParamMode::Own
                                 && matches!(arguments.as_slice(), [ty] if crate::vec_ops::ast_element_is_admitted(ty)
+                                    || *ty == Type::Bytes
+                                    || crate::source_verify::declared_type::owned_record_collection::
+                                        is_admitted_owned_record_collection_element(types, ty)
                                     || crate::source_verify::declared_type::generic_collection::slot(current, &actual.ty)) => Some(arguments[0].clone()),
                             _ => None,
                         });
                         if element.is_none() {
-                            diagnostics.push(error(program, "SPX-T284", "for own traversal requires an owned Iter<T> for a Copy scalar T", values.span));
+                            diagnostics.push(error(program, "SPX-T284", "for own traversal requires an owned Iter<T> for an admitted scalar, Bytes, or owned-record T", values.span));
                         }
                         if !allow_moves {
                             diagnostics.push(error(program, "SPX-T253", "for own statements are not allowed in contract expressions", values.span));
@@ -1226,16 +1227,38 @@ pub(super) fn check_expr(
                             mark_value_sources_moved(program, values, &mut scope, types, diagnostics);
                         }
                         let baseline = scope.clone();
-                        let _ = reject_while_disallowed_oracle(program, body, functions, types, diagnostics);
                         let item_inserted = !scope.contains_key(item);
+                        if let Some(element) = element.as_ref().filter(|element| item_inserted && {
+                            **element == Type::Bytes
+                                || crate::source_verify::declared_type::owned_record_collection::
+                                    is_admitted_owned_record_collection_element(types, element)
+                        }) {
+                            let _ = matching::with_owned_iterator_item(item, element, || {
+                                reject_while_disallowed_oracle(program, body, functions, types, diagnostics)
+                            });
+                        } else {
+                            let _ = reject_while_disallowed_oracle(program, body, functions, types, diagnostics);
+                        }
                         if !item_inserted {
                             diagnostics.push(error(program, "SPX-T209", format!("loop item `{item}` shadows an existing value"), *item_span));
-                        } else if let Some(element) = element {
-                            scope.insert(item.clone(), Binding { ty:element, mode:ParamMode::Value,
+                        } else if let Some(element) = element.as_ref() {
+                            let owned = *element == Type::Bytes
+                                || crate::source_verify::declared_type::owned_record_collection::
+                                    is_admitted_owned_record_collection_element(types, element);
+                            scope.insert(item.clone(), Binding { ty:element.clone(), mode:if owned { ParamMode::Own } else { ParamMode::Value },
                                 availability:Availability::Available, moved_places:HashMap::new(), definitely_partial:HashSet::new(),
                                 native_unit_discard:false, mutable:false, active_loans:BTreeSet::new(), borrow_origin:None });
                         }
-                        let _ = matching::in_loop(|| check_expr(program, current, body, &mut scope, functions, types, result_type, allow_moves, diagnostics));
+                        let checked_body = || check_expr(program, current, body, &mut scope, functions, types, result_type, allow_moves, diagnostics);
+                        let _ = if let Some(element) = element.as_ref().filter(|element| item_inserted && {
+                            **element == Type::Bytes
+                                || crate::source_verify::declared_type::owned_record_collection::
+                                    is_admitted_owned_record_collection_element(types, element)
+                        }) {
+                            matching::in_owned_iterator_loop(item, element, checked_body)
+                        } else {
+                            matching::in_loop(checked_body)
+                        };
                         if item_inserted { scope.remove(item); }
                         let mut names = baseline.keys().collect::<Vec<_>>();
                         names.sort();

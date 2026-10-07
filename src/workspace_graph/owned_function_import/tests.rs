@@ -364,3 +364,81 @@ use function @id("reader.inspect-outcome") from reader.provider as inspect_outco
         .expect("payload variant result stays outside owned-record import lane");
     assert!(errors.iter().any(|error| error.code == "SPX-G172"));
 }
+
+#[test]
+fn borrowed_byte_view_and_owned_record_import_compose_without_public_abi_widening() {
+    let provider = PROVIDER
+        .replace(
+            "fn advance(value:own Reader)",
+            "fn advance(value:own Reader, view:borrow Slice<u8>)",
+        )
+        .replace("cursor:cursor+1usize", "cursor:cursor+byte_len(view)");
+    let app = APP.replace("advance(reader)", "advance(reader, array_as_slice(input))");
+    let built = build_owned(sources(&app, &provider)).expect("byte view plus exact record import");
+    let linked = built
+        .linked_owned_data_api_program_with_roots("reader.app", &[])
+        .unwrap();
+    hir::validate(&linked).unwrap();
+    let value =
+        crate::interpreter::evaluate_resolved_zero_arg_i64(&linked, "app.main", 100_000).unwrap();
+    assert!(matches!(
+        value.outcome,
+        crate::interpreter::ResolvedEvaluationOutcome::ReturnedI64(1)
+    ));
+    assert!(built.linked_scalar_program("reader.app").is_err());
+    let missing = app.replace(
+        "use type @id(\"reader.type\") from reader.provider as Reader;",
+        "",
+    );
+    assert!(build_owned(sources(&missing, &provider)).is_err());
+}
+
+#[test]
+fn imported_cursor_renewal_uses_allocation_free_prototypes_and_replays_provider_capacity() {
+    let app = r#"
+module reader.app;
+use type @id("reader.type") from reader.provider as Reader;
+use function @id("reader.new") from reader.provider as create;
+use function @id("reader.advance") from reader.provider as advance;
+use function @id("reader.position") from reader.provider as position;
+use function @id("reader.finish") from reader.provider as finish;
+@id("app.main") fn main()->i64 {
+    let mut reader=create(bytes_zeroed(1usize));
+    let mut count=0usize;
+    while count<3usize {
+        reader=advance(reader);
+        count=count+1usize;
+        0
+    }
+    let position=position(reader);
+    let data=finish(reader);
+    if position==3usize && byte_len(bytes_as_slice(data))==1usize {1}else{0}
+}
+"#;
+    let built = build_owned(sources(app, PROVIDER)).expect("renewal prototype does not allocate");
+    let linked = built
+        .linked_owned_data_api_program_with_roots("reader.app", &[])
+        .expect("actual allocation-free provider links");
+    hir::validate(&linked).expect("exact retained renewal and cleanup replay");
+    let observation =
+        crate::interpreter::evaluate_resolved_zero_arg_i64(&linked, "app.main", 100_000).unwrap();
+    assert!(matches!(
+        observation.outcome,
+        crate::interpreter::ResolvedEvaluationOutcome::ReturnedI64(1)
+    ));
+    let allocating = PROVIDER.replace(
+        "Reader { data, cursor:cursor+1usize }",
+        "Reader { data:bytes_zeroed(1usize), cursor:cursor+1usize }",
+    );
+    let built = build_owned(sources(app, &allocating)).expect("prototype keeps exact signature");
+    let refused = built
+        .linked_owned_data_api_program_with_roots("reader.app", &[])
+        .err()
+        .expect("real provider allocation remains forbidden under a caller loop");
+    assert!(
+        refused
+            .iter()
+            .any(|diagnostic| diagnostic.code == "SPX-T267"),
+        "{refused:?}"
+    );
+}

@@ -2,11 +2,75 @@
 mod owned;
 use super::*;
 pub(super) const OWNED_IMPORT_COUNT: u32 = owned::IMPORT_COUNT;
+pub(super) const RECORD_IMPORT_COUNT: u32 = owned::RECORD_IMPORT_COUNT;
+pub(super) fn record_import_count(enabled: bool) -> u32 {
+    if enabled {
+        RECORD_IMPORT_COUNT
+    } else {
+        0
+    }
+}
 pub(super) fn owned_import_names() -> [&'static str; OWNED_IMPORT_COUNT as usize] {
     owned::import_names()
 }
 pub(super) fn owned_import_base(program: &ResolvedProgram) -> u32 {
     owned::import_base(program)
+}
+pub(super) fn record_import_names() -> [&'static str; RECORD_IMPORT_COUNT as usize] {
+    owned::record_import_names()
+}
+pub(super) fn record_import_base(program: &ResolvedProgram) -> u32 {
+    owned::record_import_base(program)
+}
+
+pub(super) fn intern_import_types(
+    owned: bool,
+    record: bool,
+    types: &mut Vec<Signature>,
+    indexes: &mut HashMap<Signature, u32>,
+) -> (Option<u32>, Option<u32>, Option<u32>, Option<u32>) {
+    let any = owned || record;
+    let into = any.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64, I32],
+                results: vec![I32],
+            },
+            types,
+            indexes,
+        )
+    });
+    let next = any.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64, I64, I32],
+                results: vec![I32],
+            },
+            types,
+            indexes,
+        )
+    });
+    let drop = any.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64, I64],
+                results: Vec::new(),
+            },
+            types,
+            indexes,
+        )
+    });
+    let record_next = record.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64, I64, I32, I32, I32, I32, I32],
+                results: vec![I32],
+            },
+            types,
+            indexes,
+        )
+    });
+    (into, next, drop, record_next)
 }
 
 const ITER_HANDLE_OFFSET: u32 = 0;
@@ -48,12 +112,21 @@ impl Emitter<'_> {
                     .ok_or_else(|| error("match payload pointer overflows u32"))?,
             };
             let source = value_at(pointer, field.ty.clone(), self.program)?;
+            let borrowed_record_item = mode == crate::hir::ResolvedMatchMode::Borrow
+                && pattern_field.binding.ownership == crate::hir::OwnershipMode::Borrow
+                && case_layout.case.as_str() == crate::iterator_ops::YIELD_ID
+                && pattern_field.field.as_str() == crate::iterator_ops::ITEM_ID
+                && crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
+                    &self.program.declarations,
+                    &field.ty,
+                );
             if mode == crate::hir::ResolvedMatchMode::Borrow
-                && crate::iterator_ops::is_iter(&field.ty)
+                && (crate::iterator_ops::is_iter(&field.ty) || borrowed_record_item)
             {
-                // A borrowed iterator field is an alias into the authenticated
-                // active Step payload. It must not pass through the consuming
-                // iterator move path or clear the loop-carried remainder.
+                // A borrowed iterator field or admitted record item is an alias
+                // into the authenticated active Step payload. It must not pass
+                // through either consuming move path or clear the loop-carried
+                // remainder/item before the owning body match commits it.
                 self.bindings
                     .insert(pattern_field.binding.id.clone(), source);
                 continue;
@@ -146,6 +219,29 @@ impl Emitter<'_> {
         if !crate::iterator_ops::is_step(ty) {
             return Ok(false);
         }
+        if crate::iterator_ops::element(ty).is_some_and(|element| {
+            crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
+                &self.program.declarations,
+                element,
+            )
+        }) {
+            let layout = variant_layout(self.variant_layouts, ty)?;
+            self.emit_pointer(source);
+            self.output.extend([0x28, 0x02, 0x00, 0x41, 0x02, 0x4f]);
+            self.trap_if();
+            self.emit_pointer(destination);
+            self.emit_pointer(source);
+            self.output.push(0x41);
+            write_i64(self.output, i64::from(layout.size));
+            self.output.extend([0xfc, 0x0a, 0x00, 0x00]);
+            self.emit_pointer(source);
+            self.output.push(0x41);
+            write_i64(self.output, 0);
+            self.output.push(0x41);
+            write_i64(self.output, i64::from(layout.size));
+            self.output.extend([0xfc, 0x0b, 0x00]);
+            return Ok(true);
+        }
         // Authenticate the discriminant before reading the conditional owner.
         self.emit_pointer(source);
         self.output.extend([0x28, 0x02, 0x00, 0x41, 0x02, 0x4f]);
@@ -187,7 +283,11 @@ impl Emitter<'_> {
         let [element] = type_arguments else {
             return Err(error("iterator operation requires one exact type argument"));
         };
-        if !crate::iterator_ops::resolved_element_is_admitted(element) || args.len() != 1 {
+        if !crate::iterator_ops::resolved_element_is_admitted_in(
+            &self.program.declarations,
+            element,
+        ) || args.len() != 1
+        {
             return Err(error(
                 "iterator operation disagrees with its scalar profile",
             ));
@@ -208,6 +308,19 @@ impl Emitter<'_> {
                     self.emit_owned_vec_into_iter(expr, args)
                 }
                 crate::iterator_ops::IteratorOp::Next => self.emit_owned_iter_next(expr, args),
+            };
+        }
+        if crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
+            &self.program.declarations,
+            element,
+        ) {
+            return match op {
+                crate::iterator_ops::IteratorOp::VecIntoIter => {
+                    self.emit_record_vec_into_iter(expr, element, args)
+                }
+                crate::iterator_ops::IteratorOp::Next => {
+                    self.emit_record_iter_next(expr, element, args)
+                }
             };
         }
         match op {

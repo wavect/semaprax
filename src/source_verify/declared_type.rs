@@ -239,7 +239,7 @@ pub(super) fn check_declared_type(
             continue;
         }
         if crate::list_ops::ast_is_list(&instance)
-            || crate::iterator_ops::ast_is_iterator(&instance)
+            || types.is_admitted_iterator(&instance)
             || (matches!(
                 (name.as_str(), declaration.stable_id.as_str()),
                 ("Iter", crate::iterator_ops::ITER_ID) | ("IterStep", crate::iterator_ops::STEP_ID)
@@ -261,6 +261,10 @@ pub(super) fn check_declared_type(
         let admitted_vec = name == "Vec"
             && arguments.len() == 1
             && (crate::vec_ops::ast_vec_element_is_admitted(&arguments[0])
+                || owned_record_collection::is_admitted_owned_record_collection_element(
+                    types,
+                    &arguments[0],
+                )
                 || matches!(&arguments[0], Type::Named { name, arguments }
                     if arguments.is_empty() && parameters.contains(name.as_str())));
         let admitted_box = declaration.stable_id == crate::prelude::BOX_ID
@@ -1079,7 +1083,7 @@ pub(super) fn check_ownership_mode(
     }
     let requires_explicit_mode = string_record::admitted(&param.ty, types)
         || crate::stdin_stream_ops::ast_is_reader(&param.ty)
-        || crate::iterator_ops::ast_is_iterator(&param.ty)
+        || types.is_admitted_iterator(&param.ty)
         || types.contains_resource(&param.ty)
         || types.contains_owned_bytes(&param.ty)
         || matches!(&param.ty, Type::Named { name, arguments } if arguments.len() == 1 && types.declaration(name).is_some_and(|d| matches!(d.stable_id.as_str(), crate::prelude::BOX_ID | crate::prelude::VEC_ID)));

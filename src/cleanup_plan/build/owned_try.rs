@@ -3,18 +3,52 @@
 use super::*;
 
 impl PlanBuilder<'_> {
+    pub(super) fn finish_try_normal_path(
+        &mut self,
+        current: BlockId,
+        state: &mut FlowState,
+        residuals: &[PendingTryResidual],
+        owned_result: bool,
+        root: CleanupRegionId,
+    ) -> Result<BlockId, Diagnostic> {
+        if owned_result {
+            self.merge_owned_try_residual_states(state, residuals)?;
+        } else {
+            if !self.slots.is_empty()
+                || !state.live_order.is_empty()
+                || !state.conditional_variants.is_empty()
+            {
+                return Err(plan_error(
+                    "postfix `?` reached cleanup planning with resource leaves",
+                ));
+            }
+            self.push_transition(
+                current,
+                CleanupTransition::StageCopyResult {
+                    source: StagedCopyResultSource::Body {
+                        expression: self.function.body.id.clone(),
+                        instance: self.function.return_type.clone(),
+                    },
+                },
+            );
+        }
+        let epilogue = self.new_block(root)?;
+        let normal_edge = self.new_edge(current, epilogue, EdgeCondition::Always)?;
+        self.terminate(current, CleanupTerminator::Goto(normal_edge))?;
+        Ok(epilogue)
+    }
+
     pub(super) fn merge_owned_try_residual_states(
         &self,
         state: &mut FlowState,
         residuals: &[PendingTryResidual],
     ) -> Result<(), Diagnostic> {
-        if !state.live_order.is_empty()
-            || state.conditional_variants.len() != 1
+        if state.conditional_variants.len() != 1
             || state.conditional_variants[0].root
                 != CleanupPlace::whole(StorageId::ProvisionalResult)
         {
             return Err(plan_error(
-                "owned postfix `?` normal path retains unrelated live owners",
+                "owned postfix `?` normal path lacks the exact provisional result",
             ));
         }
         for residual in residuals {
@@ -40,6 +74,9 @@ impl PlanBuilder<'_> {
         result: &DeclarationId,
         ok_case: &DeclarationId,
         ok_field: &DeclarationId,
+        err_case: &DeclarationId,
+        err_field: &DeclarationId,
+        residual_type: &ResolvedType,
         evaluated: EvalResult,
         region: CleanupRegionId,
     ) -> Result<EvalResult, Diagnostic> {
@@ -101,14 +138,39 @@ impl PlanBuilder<'_> {
         };
 
         let mut residual_state = evaluated.state;
-        self.transfer(
-            residual,
-            expression.id.clone(),
-            source,
-            CleanupPlace::whole(StorageId::ProvisionalResult),
-            &mut residual_state,
-            true,
-        )?;
+        let provisional = CleanupPlace::whole(StorageId::ProvisionalResult);
+        if operand.ty == *residual_type {
+            self.transfer(
+                residual,
+                expression.id.clone(),
+                source,
+                provisional,
+                &mut residual_state,
+                true,
+            )?;
+        } else {
+            self.authenticate_variant_case(
+                residual,
+                expression.id.clone(),
+                &source,
+                result,
+                err_case,
+                &mut residual_state,
+            )?;
+            self.transfer(
+                residual,
+                expression.id.clone(),
+                source
+                    .projected(err_case.clone())
+                    .projected(err_field.clone()),
+                provisional
+                    .projected(err_case.clone())
+                    .projected(err_field.clone()),
+                &mut residual_state,
+                false,
+            )?;
+            self.seal_constructed_variant(&provisional, result, err_case, &mut residual_state)?;
+        }
         self.pending_try_residuals.push(PendingTryResidual {
             block: residual,
             state: residual_state,
@@ -159,7 +221,7 @@ impl PlanBuilder<'_> {
         }
         let source_arguments = result_arguments(&operand.ty, result)?;
         let target_arguments = result_arguments(residual_type, result)?;
-        let exact_owned = matches!(
+        let admitted_source = matches!(
             source_arguments,
             [
                 ResolvedType::Bytes,
@@ -173,10 +235,15 @@ impl PlanBuilder<'_> {
                     | ResolvedType::F64
                     | ResolvedType::Bool
             ]
-        ) && source_arguments == target_arguments
-            || matches!(source_arguments, [success, ResolvedType::Bytes]
-                if crate::hir::is_scalar_resolved_type(success))
-                && source_arguments == target_arguments;
+        ) || matches!(source_arguments, [success, ResolvedType::Bytes]
+                if crate::hir::is_scalar_resolved_type(success));
+        let admitted_target = matches!(target_arguments, [ResolvedType::Bytes, _])
+            || matches!(target_arguments, [success, ResolvedType::Bytes]
+                if crate::hir::is_scalar_resolved_type(success));
+        let exact_owned = admitted_source
+            && source_arguments.get(1) == target_arguments.get(1)
+            && (source_arguments == target_arguments
+                || (source_arguments.get(1) == Some(&ResolvedType::Bytes) && admitted_target));
         if source_arguments.len() != 2
             || target_arguments.len() != 2
             || (!exact_owned

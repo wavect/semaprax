@@ -2,20 +2,30 @@
 //! bounded-Vec runtime and never allocate an iterator wrapper.
 
 mod owned;
+
+pub(super) fn program_uses_owned_runtime(program: &crate::hir::ResolvedProgram) -> bool {
+    crate::iterator_ops::resolved_program_uses_owned_iterator(program)
+        || crate::iterator_ops::resolved_program_uses_record_iterator(program)
+}
+
 pub(super) fn emit_runtime(
     output: &mut impl super::COutput,
     program: &crate::hir::ResolvedProgram,
 ) {
     use super::native_emit::{c_case_symbol, c_field_symbol};
     use crate::hir::DeclarationId;
-    let owned = crate::iterator_ops::resolved_program_uses_owned_iterator(program);
-    let runtime = if owned {
-        RUNTIME_C
+    let record = crate::iterator_ops::resolved_program_uses_record_iterator(program);
+    let mut scalar_runtime = RUNTIME_C.to_owned();
+    if record && !program_uses_scalar_iterator(program) {
+        omit_scalar_next(&mut scalar_runtime);
+    }
+    let runtime = if program_uses_owned_runtime(program) {
+        scalar_runtime
             .replace("spx_iter_move(", "spx_iter_scalar_move(")
             .replace("spx_iter_drop(", "spx_iter_scalar_drop(")
             + owned::RUNTIME
     } else {
-        RUNTIME_C.to_owned()
+        scalar_runtime
     };
     output.push_str(
         &runtime
@@ -32,6 +42,50 @@ pub(super) fn emit_runtime(
                 &c_field_symbol(&DeclarationId::new(crate::iterator_ops::REST_ID)),
             ),
     );
+}
+
+fn program_uses_scalar_iterator(program: &crate::hir::ResolvedProgram) -> bool {
+    let scalar = |ty: &crate::hir::ResolvedType| {
+        crate::iterator_ops::element(ty).is_some_and(crate::vec_ops::resolved_element_is_admitted)
+    };
+    program
+        .functions
+        .iter()
+        .chain(program.function_instances.iter().map(|i| &i.function))
+        .any(|function| {
+            if scalar(&function.return_type) || function.params.iter().any(|p| scalar(&p.ty)) {
+                return true;
+            }
+            let mut pending = function
+                .requires
+                .iter()
+                .chain(std::iter::once(&function.body))
+                .chain(&function.ensures)
+                .collect::<Vec<_>>();
+            while let Some(expression) = pending.pop() {
+                if scalar(&expression.ty) {
+                    return true;
+                }
+                crate::hir::push_resolved_expression_children_in_authored_order(
+                    expression,
+                    &mut pending,
+                );
+            }
+            false
+        })
+}
+
+fn omit_scalar_next(runtime: &mut String) {
+    const START: &str =
+        "static __attribute__((unused)) uint32_t spx_iter_next(struct spx_context *spx_ctx";
+    const END: &str =
+        "static __attribute__((unused)) spx_iter_v1 spx_iter_move(struct spx_context *spx_ctx";
+    let start = runtime.find(START).expect("scalar iterator next marker");
+    let end = start
+        + runtime[start..]
+            .find(END)
+            .expect("scalar iterator move marker");
+    runtime.replace_range(start..end, "");
 }
 
 pub(super) fn program_uses_iterator(program: &crate::hir::ResolvedProgram) -> bool {
@@ -68,13 +122,13 @@ pub(super) fn c_type(ty: &crate::hir::ResolvedType) -> Option<&'static str> {
     if crate::iterator_ops::is_iter(ty) {
         Some("spx_iter_v1")
     } else if crate::iterator_ops::is_step(ty) {
-        Some(
-            if crate::iterator_ops::element(ty) == Some(&crate::hir::ResolvedType::Bytes) {
-                "spx_iter_bytes_step_v2"
-            } else {
-                "spx_iter_step_v1"
-            },
-        )
+        match crate::iterator_ops::element(ty) {
+            Some(crate::hir::ResolvedType::Bytes) => Some("spx_iter_bytes_step_v2"),
+            Some(element) if crate::iterator_ops::resolved_element_is_admitted(element) => {
+                Some("spx_iter_step_v1")
+            }
+            _ => None,
+        }
     } else {
         None
     }
@@ -143,5 +197,19 @@ pub(super) fn item_bits(code: &str, ty: &crate::hir::ResolvedType) -> String {
         crate::hir::ResolvedType::F32 => format!("spx_vec_f32_bits({code})"),
         crate::hir::ResolvedType::F64 => format!("spx_vec_f64_bits({code})"),
         _ => format!("((uint64_t)({code}))"),
+    }
+}
+
+pub(super) fn item_from_bits(code: &str, ty: &crate::hir::ResolvedType) -> String {
+    match ty {
+        crate::hir::ResolvedType::I64 => format!("((int64_t)({code}))"),
+        crate::hir::ResolvedType::I32 => format!("((int32_t)({code}))"),
+        crate::hir::ResolvedType::U8 => format!("((uint8_t)({code}))"),
+        crate::hir::ResolvedType::Usize => code.to_owned(),
+        crate::hir::ResolvedType::Char => format!("((uint32_t)({code}))"),
+        crate::hir::ResolvedType::F32 => format!("spx_vec_bits_f32({code})"),
+        crate::hir::ResolvedType::F64 => format!("spx_vec_bits_f64({code})"),
+        crate::hir::ResolvedType::Bool => format!("((bool)({code}))"),
+        _ => code.to_owned(),
     }
 }

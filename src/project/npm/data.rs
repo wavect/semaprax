@@ -85,7 +85,12 @@ pub(super) fn prepare(
     let wasm =
         crate::wasm::emit_resolved_module_with_byte_exports(program, manifest.web_exports())?;
     let recipe = super::render_semantic_recipe(program)?;
-    let artifacts = render_package(manifest, &wasm, &exports)?;
+    let artifacts = render_package(
+        manifest,
+        &wasm,
+        &exports,
+        crate::wasm::numeric_conversions::used(program),
+    )?;
     let artifact_bytes = artifacts.iter().try_fold(0_usize, |total, item| {
         total
             .checked_add(item.bytes.len())
@@ -229,6 +234,7 @@ fn render_package(
     manifest: &ProjectManifest,
     wasm: &[u8],
     exports: &[DataExport],
+    integer_conversions: bool,
 ) -> Result<[NpmArtifact; 6], Diagnostic> {
     let version = require_profile(manifest)?;
     if wasm.is_empty() || wasm.len() > MAX_WASM_BYTES {
@@ -239,7 +245,7 @@ fn render_package(
     validate_exports(exports)?;
     let digest = hex_sha256(wasm);
     let runtime = render_runtime(&digest);
-    let bindings = render_bindings(exports, &digest);
+    let bindings = render_bindings(exports, &digest, integer_conversions);
     let declarations = render_declarations(exports);
     let metadata = render_metadata(manifest.name(), version, &digest, exports);
     let package = render_package_json(manifest.name(), version);
@@ -349,7 +355,11 @@ export async function instantiateCore(input) {{
     )
 }
 
-pub(super) fn render_bindings(exports: &[DataExport], wasm_sha256: &str) -> String {
+pub(super) fn render_bindings(
+    exports: &[DataExport],
+    wasm_sha256: &str,
+    integer_conversions: bool,
+) -> String {
     let facts = exports
         .iter()
         .map(|export| {
@@ -368,6 +378,11 @@ pub(super) fn render_bindings(exports: &[DataExport], wasm_sha256: &str) -> Stri
         })
         .collect::<Vec<_>>()
         .join(",");
+    let conversion_status = if integer_conversions {
+        "  if (status === 21) return new SemapraxDataError(1, \"semaprax.convert.v1\");\n"
+    } else {
+        ""
+    };
     format!(
         r#"import {{ instantiateCore, SemapraxDataError }} from "./semaprax.js";
 const EXPECTED_WASM_SHA256 = "{wasm_sha256}";
@@ -385,7 +400,7 @@ function scalarResult(value, type) {{
 function aggregateStatus(status) {{
   if (status >= 1 && status <= 8) return new SemapraxDataError(status, "semaprax.arithmetic.v1");
   if (status >= 9 && status <= 10) return new SemapraxDataError(status, "semaprax.contract.v1");
-  throw new Error(`invalid SEMAPRAX aggregate status ${{status}}`);
+{conversion_status}  throw new Error(`invalid SEMAPRAX aggregate status ${{status}}`);
 }}
 function facade(linked) {{
   const e = linked.instance.exports;
@@ -604,8 +619,13 @@ pub(super) fn validate_replayed(
             "npm data app.wasm disagrees with semantic replay",
         ));
     }
-    let expected =
-        render_package_from_identity(identity.package, identity.version, wasm, &exports)?;
+    let expected = render_package_from_identity(
+        identity.package,
+        identity.version,
+        wasm,
+        &exports,
+        crate::wasm::numeric_conversions::used(&replayed),
+    )?;
     if artifacts != &expected {
         return Err(package_error(
             "npm data generated artifacts disagree with semantic replay",
@@ -619,10 +639,11 @@ fn render_package_from_identity(
     version: &str,
     wasm: &[u8],
     exports: &[DataExport],
+    integer_conversions: bool,
 ) -> Result<[NpmArtifact; 6], Diagnostic> {
     let digest = hex_sha256(wasm);
     let runtime = render_runtime(&digest);
-    let bindings = render_bindings(exports, &digest);
+    let bindings = render_bindings(exports, &digest, integer_conversions);
     let declarations = render_declarations(exports);
     let metadata = render_metadata(name, version, &digest, exports);
     let package = render_package_json(name, version);
@@ -759,6 +780,38 @@ mod tests {
     }
 
     #[test]
+    fn conversion_status_mapping_is_selected_without_widening_legacy_facades() {
+        let legacy = crate::parse(
+            "module data.legacy; @id(\"data.len\") fn len(value: borrow Slice<u8>) -> usize { byte_len(value) } @id(\"main\") fn main() -> i64 { 0 }",
+            Path::new("data-legacy.spx"),
+        )
+        .unwrap();
+        let selected = crate::parse(
+            "module data.convert; @id(\"data.checked\") fn checked(value: borrow Slice<u8>) -> usize { byte_len(value) + usize_from_i64(-1) } @id(\"main\") fn main() -> i64 { 0 }",
+            Path::new("data-convert.spx"),
+        )
+        .unwrap();
+        let legacy = crate::hir::resolve(&legacy).unwrap();
+        let selected = crate::hir::resolve(&selected).unwrap();
+        assert!(!crate::wasm::numeric_conversions::used(&legacy));
+        assert!(crate::wasm::numeric_conversions::used(&selected));
+
+        let exports = [DataExport {
+            stable_id: "data.checked".to_owned(),
+            wasm_export: "spx_data_checked".to_owned(),
+            parameters: vec![DataType::SliceU8],
+            result: DataType::Usize,
+        }];
+        let legacy = render_bindings(&exports, "00", false);
+        let selected = render_bindings(&exports, "00", true);
+        let mapping =
+            "if (status === 21) return new SemapraxDataError(1, \"semaprax.convert.v1\");";
+        assert!(!legacy.contains(mapping));
+        assert!(selected.contains(mapping));
+        assert!(legacy.contains("invalid SEMAPRAX aggregate status ${status}"));
+    }
+
+    #[test]
     fn v2_replay_rejects_resigned_artifact_and_cross_label_substitution() {
         let source = crate::parse(
             "module data.app;\n@id(\"data.len\") fn len(value: borrow Slice<u8>) -> usize { byte_len(value) }\n@id(\"main\") fn main() -> i64 { 0 }\n",
@@ -775,7 +828,13 @@ mod tests {
             crate::wasm::emit_resolved_module_with_byte_exports(&program, manifest.web_exports())
                 .unwrap();
         let recipe = super::super::render_semantic_recipe(&program).unwrap();
-        let artifacts = render_package(&manifest, &wasm, &exports).unwrap();
+        let artifacts = render_package(
+            &manifest,
+            &wasm,
+            &exports,
+            crate::wasm::numeric_conversions::used(&program),
+        )
+        .unwrap();
         let resign = |identity, artifacts: &[NpmArtifact; 6]| {
             let total = artifacts.iter().map(|artifact| artifact.bytes.len()).sum();
             let digest = payload_digest_artifacts_v2(identity, artifacts);

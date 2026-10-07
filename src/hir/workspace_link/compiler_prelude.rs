@@ -10,6 +10,113 @@
 use super::link_error;
 use crate::hir::*;
 
+pub(super) fn selected_for_scalar(
+    functions: &[ResolvedFunction],
+    parts: Option<&super::LinkedScalarProjectParts>,
+    uses_owned_result: bool,
+) -> Result<(DeclarationIndex, Vec<ResolvedTypeDeclaration>), Diagnostic> {
+    let instances = || {
+        parts
+            .into_iter()
+            .flat_map(|parts| &parts.function_instances)
+            .map(|instance| &instance.function)
+    };
+    let uses_vec = functions.iter().chain(instances()).any(|function| {
+        std::iter::once(&function.body)
+            .chain(function.requires.iter())
+            .chain(function.ensures.iter())
+            .any(|expression| {
+                let mut found = false;
+                visit_resolved_calls(expression, &mut |callee, instance, arguments| {
+                    found |= instance.is_none()
+                        && arguments.len() == 1
+                        && crate::vec_ops::by_id(callee.as_str()).is_some();
+                });
+                found
+            })
+    });
+    let uses_box = functions
+        .iter()
+        .chain(instances())
+        .any(super::resolved_function_uses_box);
+    let uses_iterator = functions
+        .iter()
+        .chain(instances())
+        .any(super::resolved_function_uses_iterator);
+    let uses_list = functions
+        .iter()
+        .chain(instances())
+        .any(super::resolved_function_uses_list);
+    let uses_record_iterator = functions
+        .iter()
+        .chain(instances())
+        .any(crate::iterator_ops::function_uses_record_iterator)
+        || parts
+            .into_iter()
+            .flat_map(|parts| &parts.function_templates)
+            .any(crate::iterator_ops::template_uses_record_iterator);
+    if uses_vec
+        || uses_box
+        || uses_iterator
+        || uses_list
+        || uses_record_iterator
+        || uses_owned_result
+    {
+        workspace_compiler_prelude_for(
+            uses_vec,
+            uses_box,
+            uses_iterator,
+            uses_list,
+            uses_record_iterator,
+        )
+    } else {
+        Ok((DeclarationIndex::default(), Vec::new()))
+    }
+}
+
+pub(super) fn selected_for_owned_data(
+    functions: &[ResolvedFunction],
+    parts: &LinkedOwnedDataParts,
+) -> Result<(DeclarationIndex, Vec<ResolvedTypeDeclaration>), Diagnostic> {
+    let instances = || {
+        parts
+            .function_instances
+            .iter()
+            .map(|instance| &instance.function)
+    };
+    let uses_vec = functions
+        .iter()
+        .chain(instances())
+        .any(super::resolved_function_uses_vec);
+    let uses_box = functions
+        .iter()
+        .chain(instances())
+        .any(super::resolved_function_uses_box);
+    let uses_iterator = functions
+        .iter()
+        .chain(instances())
+        .any(super::resolved_function_uses_iterator);
+    let uses_list = functions
+        .iter()
+        .chain(instances())
+        .any(super::resolved_function_uses_list);
+    let uses_record_iterator = functions
+        .iter()
+        .chain(instances())
+        .any(crate::iterator_ops::function_uses_record_iterator)
+        || parts
+            .function_templates
+            .iter()
+            .any(crate::iterator_ops::template_uses_record_iterator);
+    workspace_compiler_prelude_for(
+        uses_vec,
+        uses_box,
+        uses_iterator,
+        uses_list,
+        uses_record_iterator,
+    )
+}
+
 pub(super) fn workspace_linker_prelude_program() -> Program {
     Program {
         path: "<workspace-linker>".to_owned(),
@@ -90,7 +197,7 @@ pub(super) fn workspace_compiler_prelude(
 pub(super) fn workspace_compiler_prelude_for_vec(
     include_vec: bool,
 ) -> Result<(DeclarationIndex, Vec<ResolvedTypeDeclaration>), Diagnostic> {
-    workspace_compiler_prelude_for(include_vec, false, false, false)
+    workspace_compiler_prelude_for(include_vec, false, false, false, false)
 }
 
 pub(super) fn workspace_compiler_prelude_for(
@@ -98,6 +205,7 @@ pub(super) fn workspace_compiler_prelude_for(
     include_box: bool,
     include_iterator: bool,
     include_list: bool,
+    include_record_iterator: bool,
 ) -> Result<(DeclarationIndex, Vec<ResolvedTypeDeclaration>), Diagnostic> {
     workspace_compiler_prelude_selected(
         include_vec,
@@ -105,11 +213,12 @@ pub(super) fn workspace_compiler_prelude_for(
         include_iterator,
         include_list,
         false,
+        include_record_iterator,
     )
 }
 pub(super) fn workspace_compiler_prelude_for_stream(
 ) -> Result<(DeclarationIndex, Vec<ResolvedTypeDeclaration>), Diagnostic> {
-    workspace_compiler_prelude_selected(false, false, false, false, true)
+    workspace_compiler_prelude_selected(false, false, false, false, true, false)
 }
 fn workspace_compiler_prelude_selected(
     include_vec: bool,
@@ -117,9 +226,10 @@ fn workspace_compiler_prelude_selected(
     include_iterator: bool,
     include_list: bool,
     include_stream: bool,
+    include_record_iterator: bool,
 ) -> Result<(DeclarationIndex, Vec<ResolvedTypeDeclaration>), Diagnostic> {
     let prelude_program = workspace_linker_prelude_program();
-    let compiler_declarations = if include_stream {
+    let compiler_declarations = if include_stream || include_record_iterator {
         crate::prelude::declarations()
     } else if include_list {
         &crate::prelude::declarations()[..8]
@@ -132,11 +242,12 @@ fn workspace_compiler_prelude_selected(
     } else {
         crate::prelude::declarations_for_program(&prelude_program)
     };
-    let declarations = if include_stream || include_iterator || include_list {
-        DeclarationIndex::from_verified_with_prelude(&prelude_program, compiler_declarations)?
-    } else {
-        compiler_prelude_declarations_for(include_vec, include_box)?
-    };
+    let declarations =
+        if include_stream || include_record_iterator || include_iterator || include_list {
+            DeclarationIndex::from_verified_with_prelude(&prelude_program, compiler_declarations)?
+        } else {
+            compiler_prelude_declarations_for(include_vec, include_box)?
+        };
     let compiler_types = compiler_declarations
         .iter()
         .map(|declaration| {

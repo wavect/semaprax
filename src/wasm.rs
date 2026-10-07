@@ -35,6 +35,7 @@ mod line_command_io;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod nested_record_component_v6;
 mod network_io;
+pub(crate) mod numeric_conversions;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod option_propagation_component_v10;
 mod owned;
@@ -50,6 +51,7 @@ mod result_component_v3;
 mod scalar_algebra_component_v5;
 mod scalar_exports;
 mod string_ops_v2_use;
+use string_ops_v2_use::program_uses_numeric_text;
 use string_ops_v2_use::program_uses_string_ops_v2;
 /// Call-depth admission for the legacy scalar-core emitter (#293 P2-2).
 mod scalar_call_admission;
@@ -509,26 +511,6 @@ fn program_uses_string_ops(program: &ResolvedProgram) -> bool {
             | ResolvedExprKind::BorrowPlace { .. }
             | ResolvedExprKind::FunctionReference { .. } => {}
         }
-    }
-    false
-}
-
-/// Whether a program reaches either canonical integer-to-decimal operation.
-fn program_uses_numeric_text(program: &ResolvedProgram) -> bool {
-    let mut pending: Vec<&ResolvedExpr> = Vec::new();
-    for function in &program.functions {
-        pending.push(&function.body);
-        pending.extend(function.requires.iter().chain(&function.ensures));
-    }
-    while let Some(expression) = pending.pop() {
-        if let ResolvedExprKind::Call { callee, .. } = &expression.kind {
-            if crate::string_ops::by_id(callee.as_str())
-                .is_some_and(crate::string_ops::StringOp::is_numeric_text)
-            {
-                return true;
-            }
-        }
-        crate::hir::push_resolved_expression_children_in_authored_order(expression, &mut pending);
     }
     false
 }
@@ -1963,7 +1945,7 @@ pub fn build_web(program: &Program, output: &Path) -> Result<(), Diagnostic> {
         .map(owned::OwnedPlan::runtime_json)
         .collect::<Vec<_>>()
         .join(",");
-    let runtime = browser_runtime()
+    let runtime = numeric_conversions::runtime(&resolved)
         .replace(
             "__SEMAPRAX_OWNED_EXPORTS__",
             &format!("Object.freeze({{{runtime_exports}}})"),
@@ -2031,9 +2013,9 @@ pub fn build_web_with_scalar_exports(
         "{:x}",
         crate::digest_hex::LowerHex(Sha256::digest(&wasm_bytes))
     );
-    let runtime = scalar_profile_runtime(&wasm_sha256);
+    let runtime = scalar_profile_runtime(&wasm_sha256, &resolved);
     let bindings = scalar_bindings(&plans, &wasm_sha256);
-    let declarations = scalar_declarations(&plans);
+    let declarations = numeric_conversions::declarations(scalar_declarations(&plans), &resolved);
     let package = "{\"private\":true,\"type\":\"module\",\"exports\":\"./semaprax.bindings.js\",\"types\":\"./semaprax.bindings.d.ts\"}\n";
     let index = scalar_browser_html();
     let manifest_artifacts: [(&str, &[u8]); 5] = [
@@ -2842,9 +2824,9 @@ pub(crate) fn prepare_project_web_with_scalar_exports(
         "{:x}",
         crate::digest_hex::LowerHex(Sha256::digest(&wasm_bytes))
     );
-    let runtime = scalar_profile_runtime(&wasm_sha256);
+    let runtime = scalar_profile_runtime(&wasm_sha256, program);
     let bindings = scalar_bindings(&plans, &wasm_sha256);
-    let declarations = scalar_declarations(&plans);
+    let declarations = numeric_conversions::declarations(scalar_declarations(&plans), program);
     let package = "{\"private\":true,\"type\":\"module\",\"exports\":\"./semaprax.bindings.js\",\"types\":\"./semaprax.bindings.d.ts\"}\n";
     let index = scalar_browser_html();
     let manifest_artifacts: [(&str, &[u8]); 5] = [
@@ -3221,8 +3203,8 @@ fn cleanup_scalar_package(
     let _ = fs::remove_dir(output);
 }
 
-fn scalar_profile_runtime(wasm_sha256: &str) -> String {
-    browser_runtime()
+fn scalar_profile_runtime(wasm_sha256: &str, program: &ResolvedProgram) -> String {
+    numeric_conversions::runtime(program)
         .replace("__SEMAPRAX_OWNED_EXPORTS__", "Object.freeze({})")
         .replace("__SEMAPRAX_WASM_SHA256__", wasm_sha256)
         .replace(
@@ -3613,6 +3595,17 @@ fn emit_expr(
                     return Ok(());
                 }
                 if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
+                    if op.is_integer_conversion() {
+                        emit_expr(
+                            output,
+                            &args[0],
+                            value_indexes,
+                            function_indexes,
+                            layout,
+                            result,
+                        )?;
+                        return numeric_conversions::emit_scalar(output, op, layout);
+                    }
                     if op.is_wasm_refused() {
                         return Err(crate::string_ops::text_toolkit_wasm_refusal(op));
                     }
@@ -3859,7 +3852,7 @@ fn emit_expr(
             if matches!(left.ty, ResolvedType::U8)
                 && matches!(
                     op,
-                    BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div
+                    BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
                 )
             {
                 // Checked u8 arithmetic without new host imports: bounded
@@ -3883,7 +3876,14 @@ fn emit_expr(
                     output.push(0x20);
                     write_u32(output, right_scratch);
                     output.push(0x45);
-                    emit_arithmetic_failure_if(output, aggregate::STATUS_DIV_ZERO);
+                    emit_arithmetic_failure_if(
+                        output,
+                        if *op == BinaryOp::Rem {
+                            aggregate::STATUS_REM_ZERO
+                        } else {
+                            aggregate::STATUS_DIV_ZERO
+                        },
+                    );
                     output.push(0x20);
                     write_u32(output, left_scratch);
                     output.push(0x20);
@@ -3919,12 +3919,6 @@ fn emit_expr(
                 output.push(0x20);
                 write_u32(output, left_scratch);
                 return Ok(());
-            }
-            if matches!(left.ty, ResolvedType::U8) && matches!(op, BinaryOp::Rem) {
-                return Err(Diagnostic::io(
-                    "SPX-W102",
-                    "u8 remainder has no admitted Wasm lowering",
-                ));
             }
             if matches!(left.ty, ResolvedType::Usize)
                 && matches!(

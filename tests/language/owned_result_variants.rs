@@ -523,6 +523,7 @@ fn propagate(value: Result<i64, bool>) -> Result<i64, bool> {
     let payload = value?;
     Result<i64, bool>::Ok { value: payload }
 }
+
 @id("app.main") fn main() -> i64 { 0 }
 "#,
             Path::new("owned-result-try-hir-closed.spx"),
@@ -549,4 +550,116 @@ fn propagate(value: Result<i64, bool>) -> Result<i64, bool> {
         arguments: vec![ResolvedType::Bytes, ResolvedType::Bytes],
     };
     assert_eq!(hir::validate(&hostile).unwrap_err().code, "SPX-H006");
+}
+
+#[test]
+fn owned_result_try_reconstructs_identical_error_with_changed_success_type() {
+    let source = r#"
+module test.owned_result_changed_success;
+@id("test.convert")
+fn convert(value: own Result<Bytes, Bytes>) -> Result<bool, Bytes> {
+    let payload = value?;
+    let empty = byte_len(bytes_as_slice(payload)) == 0usize;
+    Result<bool, Bytes>::Ok { value: empty }
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let parsed = semaprax::check(source, "owned-result-changed-success.spx").unwrap();
+    let canonical = format::canonical(&parsed);
+    let checked = semaprax::check(&canonical, "owned-result-changed-success.spx").unwrap();
+    assert_eq!(canonical, format::canonical(&checked));
+    let graph = graph::to_json(&parsed).unwrap();
+    graph::verify_json(&parsed, &graph).unwrap();
+    let resolved = hir::resolve(&parsed).unwrap();
+    hir::validate(&resolved).unwrap();
+    let function = resolved
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "test.convert")
+        .unwrap();
+    assert!(function.cleanup_plan.blocks.iter().flat_map(|block| &block.transitions).any(|transition|
+        matches!(transition, CleanupTransition::Transfer { source, destination, .. }
+            if source.projections.iter().any(|id| id.as_str() == "core.result.err")
+                && destination.storage == StorageId::ProvisionalResult)));
+    let mismatch = source.replace("Result<bool, Bytes>", "Result<bool, i64>");
+    assert!(error_codes(&mismatch).contains(&"SPX-T219"));
+
+    let assert_rejected = |hostile: &hir::ResolvedProgram| {
+        assert_eq!(hir::validate(hostile).unwrap_err().code, "SPX-H006");
+        assert_eq!(
+            semaprax::interpreter::evaluate_resolved_owned_data(hostile, "app.main", &[], 10_000,)
+                .unwrap_err()[0]
+                .code,
+            "SPX-H006",
+        );
+        assert_eq!(
+            semaprax::codegen::emit_hir_c(hostile).unwrap_err().code,
+            "SPX-H006"
+        );
+        assert_eq!(
+            semaprax::wasm::emit_resolved_module(hostile)
+                .unwrap_err()
+                .code,
+            "SPX-H006"
+        );
+    };
+
+    let mut forged_residual = resolved.clone();
+    let convert = forged_residual
+        .functions
+        .iter_mut()
+        .find(|function| function.id.as_str() == "test.convert")
+        .unwrap();
+    let ResolvedExprKind::Block { statements, .. } = &mut convert.body.kind else {
+        panic!("changed-success Result witness must remain a block")
+    };
+    let try_expression = statements
+        .iter_mut()
+        .find_map(|statement| match statement {
+            hir::ResolvedStatement::Let { value, .. }
+                if matches!(value.kind, ResolvedExprKind::Try { .. }) =>
+            {
+                Some(value)
+            }
+            _ => None,
+        })
+        .expect("changed-success Result witness keeps its Try node");
+    let ResolvedExprKind::Try { residual_type, .. } = &mut try_expression.kind else {
+        unreachable!()
+    };
+    *residual_type = ResolvedType::Nominal {
+        declaration: DeclarationId::new("core.result"),
+        arguments: vec![ResolvedType::Bool, ResolvedType::I64],
+    };
+    assert_rejected(&forged_residual);
+
+    let mut malformed_cleanup = resolved;
+    let convert = malformed_cleanup
+        .functions
+        .iter_mut()
+        .find(|function| function.id.as_str() == "test.convert")
+        .unwrap();
+    let block = convert
+        .cleanup_plan
+        .blocks
+        .iter_mut()
+        .find(|block| {
+            block.transitions.iter().any(|transition| {
+                matches!(transition, CleanupTransition::Transfer { source, destination, .. }
+                    if source.projections.iter().any(|id| id.as_str() == "core.result.err.error")
+                        && destination.storage == StorageId::ProvisionalResult)
+            })
+        })
+        .expect("changed-success Err reconstruction transfer");
+    let index = block
+        .transitions
+        .iter()
+        .position(|transition| {
+            matches!(transition, CleanupTransition::Transfer { source, destination, .. }
+                if source.projections.iter().any(|id| id.as_str() == "core.result.err.error")
+                    && destination.storage == StorageId::ProvisionalResult)
+        })
+        .unwrap();
+    block.transitions.remove(index);
+    assert_rejected(&malformed_cleanup);
 }

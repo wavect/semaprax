@@ -38,7 +38,7 @@ fn line_content_len(view: borrow Slice<u8>, start: usize) -> usize
 {
     let end = line_end(view, start);
     let prior = if end > start { match byte_get(view, end - 1usize) { Option::Some { value } => value, Option::None {} => 0u8, } } else { 0u8 };
-    if prior == 13u8 { end - start - 1usize } else { end - start }
+    if end < byte_len(view) && prior == 13u8 { end - start - 1usize } else { end - start }
 }
 
 @id("std.io.lines.reader.line-len")

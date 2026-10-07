@@ -35,6 +35,53 @@ pub(in crate::source_verify) fn is_admitted_owned_record_collection_element(
     admits_field_shape(fields)
 }
 
+pub(in crate::source_verify) fn is_admitted_authored_record_collection_element(
+    program: &Program,
+    ty: &Type,
+) -> bool {
+    let Type::Named { name, arguments } = ty else {
+        return false;
+    };
+    if !arguments.is_empty() {
+        return false;
+    }
+    program.types.iter().any(|declaration| {
+        declaration.name == *name
+            && declaration.type_parameters.is_empty()
+            && matches!(&declaration.kind, TypeDeclarationKind::Record { fields } if admits_field_shape(fields))
+    })
+}
+
+pub(in crate::source_verify) fn is_owner_renewal_record(types: &TypeTable<'_>, ty: &Type) -> bool {
+    let Type::Named { name, arguments } = ty else {
+        return false;
+    };
+    let Some(declaration) = arguments
+        .is_empty()
+        .then(|| types.declaration(name))
+        .flatten()
+    else {
+        return false;
+    };
+    let TypeDeclarationKind::Record { fields } = &declaration.kind else {
+        return false;
+    };
+    declaration.explicit_id
+        && declaration.type_parameters.is_empty()
+        && fields.len() == 2
+        && fields.iter().all(|field| field.explicit_id)
+        && fields
+            .iter()
+            .filter(|field| field.ty == Type::Bytes)
+            .count()
+            == 1
+        && fields
+            .iter()
+            .filter(|field| field.ty == Type::Usize)
+            .count()
+            == 1
+}
+
 /// The exact structural rule shared by the source and resolved classifiers:
 /// exactly two `Bytes` fields and exactly one admitted Copy-scalar field, and
 /// nothing else.

@@ -443,3 +443,44 @@ fn main() -> i64
         "invariants on generic record `Pair` are outside Record Invariants v1"
     );
 }
+
+#[test]
+fn executable_owned_invariants_refuse_before_backend_admission() {
+    let source = r#"module test.owned_invariant;
+@id("packet") record Packet {
+    @id("packet.bytes") payload: Bytes,
+    @id("packet.quantity") quantity: i64,
+} requires quantity > 0
+@id("app.main") fn main() -> i64 {
+    let packet = Packet { payload: bytes_zeroed(1usize), quantity: 0 };
+    match own packet { Packet { payload, quantity } => quantity, }
+}
+"#;
+    for source in [
+        source.to_owned(),
+        source.replace("quantity: 0", "quantity: 1"),
+        source.replace(
+            "match own packet",
+            "let changed = packet with { quantity: 0 }; match own changed",
+        ),
+    ] {
+        let program = parse(&source, Path::new("owned-invariant.spx")).unwrap();
+        let errors = verify::verify(&program);
+        assert!(
+            errors.iter().any(|error| error.code == "SPX-C104"),
+            "{errors:?}"
+        );
+        assert!(semaprax::hir::resolve(&program)
+            .unwrap_err()
+            .iter()
+            .any(|error| error.code == "SPX-C104"));
+        assert_eq!(
+            semaprax::codegen::emit_c(&program).unwrap_err().code,
+            "SPX-C104"
+        );
+        assert_eq!(
+            semaprax::wasm::emit_module(&program).unwrap_err().code,
+            "SPX-C104"
+        );
+    }
+}

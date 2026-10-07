@@ -2,12 +2,36 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::cleanup_plan::{CleanupTransition, StorageId};
+use super::error;
+use crate::cleanup_plan::{CleanupPlace, CleanupTransition, StorageId};
 use crate::diagnostic::Diagnostic;
 use crate::hir::{DeclarationId, ExpressionId};
-use crate::variant_layout::VariantLayout;
+use crate::variant_layout::{VariantCaseLayout, VariantFieldValueKind, VariantLayout};
 
-use crate::codegen::native_emit::{c_case_symbol, c_field_symbol};
+use crate::codegen::native_emit::c_case_symbol;
+
+pub(super) fn transition_at(transition: &CleanupTransition) -> Option<&ExpressionId> {
+    match transition {
+        CleanupTransition::Initialize { at, .. }
+        | CleanupTransition::InitializeVariant { at, .. }
+        | CleanupTransition::Transfer { at, .. }
+        | CleanupTransition::Renew { at, .. }
+        | CleanupTransition::ReserveRenewal { at, .. }
+        | CleanupTransition::TransferVariant { at, .. }
+        | CleanupTransition::AuthenticateVariantCase { at, .. } => Some(at),
+        CleanupTransition::CallCommit { call, .. } => Some(call),
+        CleanupTransition::SelectFailure { .. } | CleanupTransition::StageCopyResult { .. } => None,
+    }
+}
+
+pub(super) fn transition_destination(transition: &CleanupTransition) -> Option<&CleanupPlace> {
+    match transition {
+        CleanupTransition::Initialize { destination, .. }
+        | CleanupTransition::Transfer { destination, .. }
+        | CleanupTransition::Renew { destination, .. } => Some(destination),
+        _ => None,
+    }
+}
 
 pub(super) fn c_field_path(path: &[DeclarationId]) -> Result<String, Diagnostic> {
     if path.is_empty() {
@@ -42,7 +66,7 @@ pub(super) fn materialize_variant_borrow_view(
             .iter()
             .filter(|place| place.projections.first() == Some(&case.case))
         {
-            let [case_id, field_id] = place.projections.as_slice() else {
+            let [case_id, field_id, ..] = place.projections.as_slice() else {
                 return Err(super::error(
                     "owned variant borrow-view Bytes leaf is not case-qualified",
                 ));
@@ -58,7 +82,7 @@ pub(super) fn materialize_variant_borrow_view(
                 case.tag,
                 slot.flag,
                 c_case_symbol(case_id),
-                c_field_symbol(field_id),
+                variant_field_path(case, &place.projections[1..])?,
                 slot.value,
                 slot.flag,
             ));
@@ -289,4 +313,80 @@ impl super::NativeBytesPlan {
                 .filter(|transition| record_match_entry(transition, bindings) == entering),
         )
     }
+}
+
+impl super::NativeBytesPlan {
+    pub(in crate::codegen) fn initialize_variant_result_at(
+        &self,
+        at: &ExpressionId,
+        carrier: &str,
+        layout: &VariantLayout,
+    ) -> Result<String, Diagnostic> {
+        let mut destinations = self.transitions.get(at).into_iter().flatten().filter_map(
+            |transition| match transition {
+                CleanupTransition::InitializeVariant {
+                    destination,
+                    variant,
+                    ..
+                } if destination.projections.is_empty()
+                    && self.has_variant_leaves(&destination.storage)
+                    && variant == &layout.variant =>
+                {
+                    Some(destination)
+                }
+                _ => None,
+            },
+        );
+        let destination = destinations
+            .next()
+            .ok_or_else(|| error("owned variant result has no canonical initialization"))?;
+        if destinations.next().is_some() {
+            return Err(error("owned variant result initialization is ambiguous"));
+        }
+        let mut output = format!(
+            "if (({carrier}).spx_tag >= UINT32_C({})) spx_runtime_invariant_failure(\"invalid owned variant result tag\");\n",
+            layout.cases.len()
+        );
+        for place in self.leaves_under(destination)? {
+            let [case_id, field_id, ..] = place.projections.as_slice() else {
+                return Err(error(
+                    "owned variant result Bytes leaf is not case-qualified",
+                ));
+            };
+            let case = layout
+                .case(case_id)
+                .ok_or_else(|| error("owned variant result case disagrees with layout"))?;
+            if case.field(field_id).is_none() {
+                return Err(error("owned variant result field disagrees with layout"));
+            }
+            let slot = &self.slots[place];
+            output.push_str(&format!(
+                "if (({carrier}).spx_tag == UINT32_C({})) {{\n    if ({}) spx_runtime_invariant_failure(\"owned variant result leaf already live\");\n    {} = {};\n    {} = true;\n}} else if ({}) spx_runtime_invariant_failure(\"inactive owned variant result leaf is live\");\n",
+                case.tag,
+                slot.flag,
+                slot.value,
+                slot.kind.move_call(&format!("(({carrier}).spx_payload.{}.{})",c_case_symbol(case_id),variant_field_path(case, &place.projections[1..])?)),
+                slot.flag,
+                slot.flag,
+            ));
+        }
+        Ok(output)
+    }
+}
+
+/// Project only replay-authenticated record leaves inside a layout-owned case.
+pub(super) fn variant_field_path(
+    case: &VariantCaseLayout,
+    fields: &[DeclarationId],
+) -> Result<String, Diagnostic> {
+    let field = fields
+        .first()
+        .and_then(|field| case.field(field))
+        .ok_or_else(|| super::error("owned variant leaf disagrees with layout"))?;
+    if fields.len() > 1 && field.value_kind != VariantFieldValueKind::OwnedRecord {
+        return Err(super::error(
+            "owned variant leaf nests below a non-record field",
+        ));
+    }
+    c_field_path(fields)
 }

@@ -25,6 +25,7 @@ mod owned_buffer;
 mod owned_try;
 mod owned_values;
 mod places;
+mod record_iterator_item;
 mod stdin_stream;
 mod unary;
 mod variant_equality;
@@ -1908,6 +1909,13 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                     &field.ty,
                                     "match payload binding",
                                 )?;
+                                let record_iterator_item = record_iterator_item::is_exact(
+                                    self.program,
+                                    &scrutinee.ty,
+                                    case,
+                                    &field.field,
+                                    &field.ty,
+                                );
                                 let name = if is_direct_plan_owned(self.program, &field.ty)
                                     || crate::iterator_ops::is_iter(&field.ty)
                                 {
@@ -1961,6 +1969,17 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                             ));
                                         }
                                     }
+                                } else if record_iterator_item {
+                                    record_iterator_item::bind(
+                                        self,
+                                        &staged,
+                                        case,
+                                        &field.field,
+                                        &field.ty,
+                                        &pattern_field.binding,
+                                        *mode,
+                                        source_storage.as_ref(),
+                                    )?
                                 } else if pattern_field.binding.ownership
                                     == hir::OwnershipMode::Value
                                     && crate::iterator_ops::is_step(&scrutinee.ty)
@@ -2057,9 +2076,18 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     }
                     if *mode == hir::ResolvedMatchMode::Own {
                         let anchors = match &arm.pattern {
-                            hir::ResolvedMatchPattern::Variant { fields, .. } => fields
+                            hir::ResolvedMatchPattern::Variant { case, fields, .. } => fields
                                 .iter()
-                                .filter(|own| is_direct_plan_owned(self.program, &own.binding.ty))
+                                .filter(|own| {
+                                    is_direct_plan_owned(self.program, &own.binding.ty)
+                                        || record_iterator_item::is_exact(
+                                            self.program,
+                                            &scrutinee.ty,
+                                            case,
+                                            &own.field,
+                                            &own.binding.ty,
+                                        )
+                                })
                                 .map(|field| {
                                     crate::cleanup_plan::StorageId::Value(field.binding.id.clone())
                                 })
@@ -2480,11 +2508,6 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 "floating-point remainder has no admitted native lowering",
             ));
         }
-        if narrow_operand && op == BinaryOp::Rem {
-            return Err(backend_error(
-                "u8 remainder has no admitted native lowering",
-            ));
-        }
         if char_operand
             && matches!(
                 op,
@@ -2516,7 +2539,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         } else if narrow_operand
             && matches!(
                 op,
-                BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div
+                BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
             )
         {
             // Checked u8 arithmetic computes in int64_t and range-checks the
@@ -2526,6 +2549,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 BinaryOp::Sub => "spx_rt_u8_sub",
                 BinaryOp::Mul => "spx_rt_u8_mul",
                 BinaryOp::Div => "spx_rt_u8_div",
+                BinaryOp::Rem => "spx_rt_u8_rem",
                 _ => unreachable!("u8 arithmetic operation was matched above"),
             };
             self.line(&format!(

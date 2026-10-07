@@ -15,10 +15,21 @@ pub(super) fn is_exact_owned_instance(operand: &ResolvedType, residual: &Resolve
             || crate::hir::is_scalar_resolved_type(ty)
             || matches!(ty, ResolvedType::TypeParameter { .. })
     };
+    let ResolvedType::Nominal {
+        declaration: residual_declaration,
+        arguments: residual_arguments,
+    } = residual
+    else {
+        return false;
+    };
     declaration.as_str() == crate::prelude::RESULT_ID
-        && operand == residual
-        && matches!(arguments.as_slice(), [ok, error]
-            if (*ok == ResolvedType::Bytes || *error == ResolvedType::Bytes) && payload(ok) && payload(error))
+        && residual_declaration == declaration
+        && matches!((arguments.as_slice(), residual_arguments.as_slice()),
+            ([ok, error], [residual_ok, residual_error])
+                if error == residual_error
+                    && (*ok == ResolvedType::Bytes || *error == ResolvedType::Bytes)
+                    && (*residual_ok == ResolvedType::Bytes || *residual_error == ResolvedType::Bytes)
+                    && payload(ok) && payload(error) && payload(residual_ok))
 }
 
 pub(super) fn ownership_for(operand: &ResolvedType, residual: &ResolvedType) -> OwnershipMode {

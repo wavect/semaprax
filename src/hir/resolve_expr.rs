@@ -1164,9 +1164,13 @@ impl Resolver<'_> {
                     let right = children.next().expect("binary right result retained");
                     let ty = match (&op, &left.ty) {
                         (
-                            BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div,
-                            ResolvedType::I32,
-                        ) => ResolvedType::I32,
+                            BinaryOp::Add
+                            | BinaryOp::Sub
+                            | BinaryOp::Mul
+                            | BinaryOp::Div
+                            | BinaryOp::Rem,
+                            ResolvedType::I32 | ResolvedType::U8 | ResolvedType::Usize,
+                        ) => left.ty.clone(),
                         (
                             BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div,
                             ResolvedType::F32,
@@ -1175,18 +1179,6 @@ impl Resolver<'_> {
                             BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div,
                             ResolvedType::F64,
                         ) => ResolvedType::F64,
-                        (
-                            BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div,
-                            ResolvedType::U8,
-                        ) => ResolvedType::U8,
-                        (
-                            BinaryOp::Add
-                            | BinaryOp::Sub
-                            | BinaryOp::Mul
-                            | BinaryOp::Div
-                            | BinaryOp::Rem,
-                            ResolvedType::Usize,
-                        ) => ResolvedType::Usize,
                         (
                             BinaryOp::Add
                             | BinaryOp::Sub

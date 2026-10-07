@@ -1,5 +1,7 @@
 # Project Scaffold Capsule v4
 
+Audience: CLI users and scaffold contributors.
+
 Status: additive authority-free scaffold descriptor for the Project v25 native
 stream-text starter.
 

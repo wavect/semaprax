@@ -20,7 +20,7 @@ payload elements remain outside this sorting operation; source admission and
 independent HIR validation reject them.
 
 The operation identity is `core.vec.sort`. Programs reaching the operation
-select `semaprax.prelude.v11`; contracts v1–v10 remain byte-for-byte frozen.
+select `semaprax.prelude.v12`; contracts v1–v10 remain byte-for-byte frozen.
 Interpreter sorting and native in-place heapsort use the same ordering. The
 aggregate Wasm lane appends an optional `env.spx_vec_sort_v3` import after the
 existing Vec imports, before iterator, Box and String imports. Its signature

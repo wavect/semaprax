@@ -98,7 +98,7 @@ fn string_replacement_source_graph_and_roundtrip() {
     let reparsed = parse(&canonical, Path::new("string-replacement.spx")).unwrap();
     assert_eq!(canonical, format::canonical(&reparsed));
     let document: Value = serde_json::from_str(&graph::to_json(&reparsed).unwrap()).unwrap();
-    assert_eq!(document["schema"], "semaprax.graph.v67");
+    assert_eq!(document["schema"], "semaprax.graph.v68");
     assert_eq!(
         document["string_replacement"]["schema"],
         "semaprax.string-replacement.v1"

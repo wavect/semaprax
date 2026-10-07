@@ -1,6 +1,6 @@
-//! Graph v67 composes whole String replacement with all previous facts.
+//! Graph v68 composes whole String replacement with all previous facts.
 use super::*;
-const SCHEMA: &str = "semaprax.graph.v67";
+const SCHEMA: &str = "semaprax.graph.v68";
 fn requires(function: &ResolvedFunction) -> bool {
     crate::string_ops::replacement::requires(function)
 }
@@ -60,7 +60,7 @@ pub(super) fn graph_json(
     if !graph.starts_with(&prefix) || !graph.ends_with('}') {
         return Err(Diagnostic::io("SPX-G411", "noncanonical checked graph"));
     }
-    graph.replace_range(..prefix.len(), "{\"schema\":\"semaprax.graph.v67\"");
+    graph.replace_range(..prefix.len(), "{\"schema\":\"semaprax.graph.v68\"");
     let mut updates = Vec::new();
     for function in program
         .functions

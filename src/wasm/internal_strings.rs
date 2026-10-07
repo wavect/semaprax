@@ -199,7 +199,24 @@ fn emit_selected(
         .expect("writing to String cannot fail");
     }
     descriptor.push_str("]}");
-    let runtime = runtime::render(&descriptor, &wasm_sha256, wasm.len());
+    let uses_integer_conversion = resolved
+        .functions
+        .iter()
+        .filter(|function| closure.contains(&function.id))
+        .flat_map(|function| {
+            function
+                .requires
+                .iter()
+                .chain(&function.ensures)
+                .chain(std::iter::once(&function.body))
+        })
+        .any(crate::wasm::numeric_conversions::expression_uses_integer_conversion);
+    let runtime = runtime::render(
+        &descriptor,
+        &wasm_sha256,
+        wasm.len(),
+        uses_integer_conversion,
+    );
     Ok(InternalStringModule {
         wasm,
         descriptor,

@@ -61,6 +61,84 @@ use type_table::{resolve_class_method, TypeTable};
 pub(crate) use declaration::verify;
 pub(crate) use diagnostics::is_scalar_source_type;
 
+pub(crate) fn program_uses_record_iterator(program: &Program) -> bool {
+    fn type_uses(program: &Program, ty: &Type) -> bool {
+        match ty {
+            Type::Named { name, arguments } => {
+                (matches!(name.as_str(), "Iter" | "IterStep")
+                    && matches!(arguments.as_slice(), [element]
+                        if declared_type::owned_record_collection::
+                            is_admitted_authored_record_collection_element(program, element)))
+                    || arguments
+                        .iter()
+                        .any(|argument| type_uses(program, argument))
+            }
+            Type::Function { parameters, result } => {
+                parameters
+                    .iter()
+                    .any(|parameter| type_uses(program, parameter))
+                    || type_uses(program, result)
+            }
+            _ => false,
+        }
+    }
+    let record_element = |ty: &Type| {
+        declared_type::owned_record_collection::is_admitted_authored_record_collection_element(
+            program, ty,
+        )
+    };
+    let function_uses = |function: &Function| {
+        if type_uses(program, &function.return_type)
+            || function.params.iter().any(|p| type_uses(program, &p.ty))
+        {
+            return true;
+        }
+        let mut pending = function
+            .requires
+            .iter()
+            .chain(std::iter::once(&function.body))
+            .chain(&function.ensures)
+            .collect::<Vec<_>>();
+        while let Some(expression) = pending.pop() {
+            if let ExprKind::Call {
+                name,
+                type_arguments,
+                ..
+            } = &expression.kind
+            {
+                if crate::iterator_ops::by_name(name).is_some()
+                    && matches!(type_arguments.as_slice(), [element] if record_element(element))
+                {
+                    return true;
+                }
+            }
+            if let ExprKind::ConstructVariant {
+                type_name,
+                type_arguments,
+                ..
+            } = &expression.kind
+            {
+                if type_name == "IterStep"
+                    && matches!(type_arguments.as_slice(), [element] if record_element(element))
+                {
+                    return true;
+                }
+            }
+            let mut index = 0;
+            while let Some(child) = expression.child(index) {
+                pending.push(child);
+                index += 1;
+            }
+        }
+        false
+    };
+    program.functions.iter().any(function_uses)
+        || program.types.iter().any(|declaration| {
+            matches!(&declaration.kind, TypeDeclarationKind::Class { methods, .. }
+                if methods.iter().any(function_uses))
+        })
+}
+
 #[cfg(test)]
 use binding::Availability;
 #[cfg(test)]
@@ -101,6 +179,9 @@ struct IterativeVerifier<'a, 'p> {
     /// How many `while`/`for` conditions or bodies enclose the frame being
     /// checked; Owned String Loops v2 narrows `match` scrutinees there.
     loop_depth: usize,
+    /// Exact owned `for own` item bindings whose record payload may be matched
+    /// inside the active loop body.
+    owned_iterator_items: Vec<String>,
 }
 
 /// Declared in the module root, rather than beside the frame loop, because the
@@ -140,6 +221,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             values: Vec::new(),
             buffer_reopen_sites: std::collections::BTreeSet::new(),
             loop_depth: 0,
+            owned_iterator_items: Vec::new(),
         }
     }
 

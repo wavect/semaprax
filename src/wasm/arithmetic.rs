@@ -32,7 +32,14 @@ pub(super) fn needs_i32_wide_scratch(expression: &ResolvedExpr) -> bool {
             ResolvedExprKind::Closure { captures, .. } => {
                 pending.extend(captures.iter().map(|capture| &capture.value))
             }
-            ResolvedExprKind::Call { args, .. } => pending.extend(args.iter()),
+            ResolvedExprKind::Call { callee, args, .. } => {
+                if crate::string_ops::by_id(callee.as_str())
+                    .is_some_and(|op| op.is_integer_conversion())
+                {
+                    return true;
+                }
+                pending.extend(args.iter());
+            }
             ResolvedExprKind::Invoke { callable, args } => {
                 pending.push(callable);
                 pending.extend(args.iter());

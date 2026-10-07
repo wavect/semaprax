@@ -4,10 +4,11 @@ Audience: language users, agent authors, and compiler contributors.
 
 Status: Partial. Statement `if` is parse-level sugar and runs wherever a
 value `if` runs: the reference interpreter, native C11, and Core Wasm.
-Conversions v1 (numeric conversions and `string_from_str`) runs on the
-reference interpreter and native C11 (`run`, `run --native`,
-`build --target native`); every Core Wasm lane refuses it with one stable
-diagnostic (`SPX-W116`).
+Conversions v1 runs on the reference interpreter and native C11 (`run`,
+`run --native`, `build --target native`). The additive
+[Integer Numeric Profile v2](INTEGER-NUMERIC-PROFILE-V2.md) supplies exact
+widening and Core Wasm integer conversion/remainder support. Float conversions
+and `string_from_str` retain the stable Core Wasm refusal (`SPX-W116`).
 
 ## Objective
 
@@ -171,7 +172,7 @@ is not consumed.
 
 The reference interpreter and native C11 implement the family; native C
 inlines each numeric conversion and its range checks without a runtime
-helper. Every Core Wasm lane refuses the family up front with
+helper. Core Wasm refuses the float and string members up front with
 `SPX-W116`: "Conversions v1 operation `f64_from_i64` is not lowered to Core
 Wasm; run it on the reference interpreter or native C11".
 

@@ -20,7 +20,7 @@ pub(super) fn schedule<'expr>(
         ));
     }
     let element = resolve_element(resolver, function, &type_arguments[0], span)?;
-    if !crate::iterator_ops::resolved_element_is_admitted(&element)
+    if !crate::iterator_ops::resolved_element_is_admitted_in(&resolver.declarations, &element)
         && !super::super::generic_collection::source_parameter(resolver.program, function, &element)
     {
         return Err(resolver.error(
@@ -85,7 +85,7 @@ pub(super) fn reference(
         return Err(Diagnostic::io("SPX-H006", "invalid iterator call shape"));
     }
     let element = resolve_element(resolver, function, &call.type_arguments[0], call.span)?;
-    if !crate::iterator_ops::resolved_element_is_admitted(&element)
+    if !crate::iterator_ops::resolved_element_is_admitted_in(&resolver.declarations, &element)
         && !super::super::generic_collection::source_parameter(resolver.program, function, &element)
     {
         return Err(Diagnostic::io("SPX-H006", "invalid iterator element"));

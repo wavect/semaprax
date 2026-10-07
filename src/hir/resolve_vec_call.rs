@@ -76,6 +76,7 @@ pub(super) fn validate_whole_assignment(
         )
         && !crate::byte_ops::is_same_owner_set_hir(value, &target.id)
         && !crate::string_ops::is_same_owner_concat_hir(value, &target.id)
+        && !record_owner_renewal(resolver, target, value)
         && !crate::stdin_stream_ops::hir_reopen(value, &target.id)
     {
         return Err(resolver.error(
@@ -85,6 +86,83 @@ pub(super) fn validate_whole_assignment(
         ));
     }
     Ok(())
+}
+
+fn record_owner_renewal(
+    resolver: &Resolver<'_>,
+    binding: &ResolvedBinding,
+    value: &ResolvedExpr,
+) -> bool {
+    if binding.ownership != OwnershipMode::Own
+        || value.ownership != OwnershipMode::Own
+        || binding.ty != value.ty
+        || !crate::hir::iterator_loop::is_owner_renewal_record(&resolver.declarations, &binding.ty)
+    {
+        return false;
+    }
+    let ResolvedExprKind::Call {
+        callee,
+        type_arguments,
+        instance: None,
+        args,
+    } = &value.kind
+    else {
+        return false;
+    };
+    let Some(target) = resolver
+        .program
+        .functions
+        .iter()
+        .find(|function| function.stable_id == callee.as_str())
+    else {
+        return false;
+    };
+    target.effects.is_empty()
+        && type_arguments.is_empty()
+        && resolver
+            .resolve_type(&target.return_type, value.span)
+            .is_ok_and(|ty| ty == binding.ty)
+        && target.params.len() == args.len()
+        && target
+            .params
+            .iter()
+            .zip(args)
+            .filter(|(parameter, argument)| {
+                parameter.mode == crate::ast::ParamMode::Own
+                    && resolver
+                        .resolve_type(&parameter.ty, argument.span)
+                        .is_ok_and(|ty| ty == binding.ty)
+                    && matches!(&argument.kind, ResolvedExprKind::Place(place)
+                        if place.root == binding.id && place.projections.is_empty())
+            })
+            .count()
+            == 1
+        && target.params.iter().zip(args).all(|(parameter, argument)| {
+            resolver
+                .resolve_type(&parameter.ty, argument.span)
+                .is_ok_and(|ty| ty == argument.ty)
+                && match parameter.mode {
+                    crate::ast::ParamMode::Own => {
+                        argument.ownership == OwnershipMode::Own
+                            && argument.ty == binding.ty
+                            && matches!(&argument.kind, ResolvedExprKind::Place(place)
+                                if place.root == binding.id && place.projections.is_empty())
+                    }
+                    crate::ast::ParamMode::Borrow => {
+                        matches!(
+                            argument.ownership,
+                            OwnershipMode::Own | OwnershipMode::Borrow
+                        ) && matches!(&argument.kind, ResolvedExprKind::Place(place)
+                                if place.projections.is_empty())
+                            && crate::hir::iterator_loop::is_owner_renewal_record(
+                                &resolver.declarations,
+                                &argument.ty,
+                            )
+                    }
+                    crate::ast::ParamMode::Value => argument.ownership == OwnershipMode::Value,
+                    crate::ast::ParamMode::Shared => false,
+                }
+        })
 }
 
 pub(super) fn schedule<'expr>(

@@ -7,7 +7,7 @@ use semaprax_harness::decision::{Destination, ModelPlan};
 use semaprax_harness::observe::Tokenizer;
 use semaprax_harness::workflow::budget::{BudgetPolicy, ModelTokenizerMap, TokenizerSet};
 
-const CHANGED: &str = "module t.lib;\n@id(\"t.f\")\nfn f(x: i64) -> i64\n    requires x >= 0\n    ensures result == x\n    uses { clock.read }\n{\n    x + 0\n}\n";
+const CHANGED: &str = "module t.lib;\n@id(\"t.f\")\nfn f(x: i64) -> i64\n    uses { clock.read }\n    requires x >= 0\n    ensures result == x\n{\n    x + 0\n}\n";
 
 /// Records every request; yields scripted proposals in order (the last repeats).
 struct Seq {
@@ -932,18 +932,7 @@ fn hp_hn02_cancellation_and_uncertain_generation_are_recorded_and_never_replayed
 }
 
 fn setup_with_oracle() -> Env {
-    let e = setup(FIXED);
-    write(
-        &e.project,
-        "semaprax.toml",
-        "schema = \"semaprax.manifest.v1\"\n[modules]\ntests = [\"t.tests\"]\n",
-    );
-    write(
-        &e.project,
-        "src/tests.spx",
-        "module t.tests;\n@id(\"t.tests.main\")\nfn main() -> i64\n{\n    0\n}\n",
-    );
-    e
+    setup(FIXED)
 }
 
 #[test]
@@ -1005,6 +994,73 @@ fn hp_hn02_malicious_proposals_cannot_edit_the_oracle_remove_laws_expand_grants_
         r.candidate["candidate_revision"].is_string()
             && r.session["steps"].as_array().unwrap().is_empty()
     );
+}
+
+#[test]
+fn hp_hn02_oracle_inventory_uses_the_canonical_manifest_and_parsed_module_identity() {
+    for mutation in ["package-name", "module-comment"] {
+        let e = setup_with_oracle();
+        if mutation == "package-name" {
+            let manifest = std::fs::read_to_string(e.project.join("semaprax.toml"))
+                .unwrap()
+                .replace("name = \"fixture\"", "name = \"testsfixture\"");
+            write(&e.project, "semaprax.toml", &manifest);
+        } else {
+            let tests = std::fs::read_to_string(e.project.join("src/tests.spx"))
+                .unwrap()
+                .replace("module t.tests;", "module t.tests; // acceptance oracle");
+            write(&e.project, "src/tests.spx", &tests);
+        }
+        let proposal = json!({"schema": "semaprax.harness-proposal.v1", "intent": {
+            "kind": "replace_function_body", "target": "t.tests.main",
+            "body": {"kind": "i64", "value": 1}
+        }});
+        let report = once(
+            &session(&e, |task| {
+                task.session.as_mut().unwrap().max_attempts = 1;
+            }),
+            &Fake::new(CHANGED),
+            &Seq::new(vec![proposal]),
+        );
+        assert_eq!(report.session["attempts"][0]["code"], "SPX-HPD114");
+    }
+
+    let e = setup_with_oracle();
+    let manifest = std::fs::read_to_string(e.project.join("semaprax.toml")).unwrap();
+    write(
+        &e.project,
+        "semaprax.toml",
+        &format!("# not canonical Semaprax manifest syntax\n{manifest}"),
+    );
+    let report = once(
+        &session(&e, |task| {
+            task.session.as_mut().unwrap().max_attempts = 1;
+        }),
+        &Fake::new(CHANGED),
+        &Seq::new(vec![ok_body()]),
+    );
+    assert!(
+        codes(&report).contains(&"SPX-HPD114"),
+        "a refused noncanonical manifest must not become an empty oracle: {:?}",
+        report.refusals
+    );
+
+    let e = setup_with_oracle();
+    write(
+        &e.project,
+        "src/lib.spx",
+        &FIXED.replace("    x\n}", "    SYNTAXERR\n}"),
+    );
+    let report = once(
+        &session(&e, |task| {
+            task.mode = TaskMode::Repair;
+            task.goal = "repair the implementation".into();
+            task.session.as_mut().unwrap().max_attempts = 1;
+        }),
+        &Fake::new(CHANGED),
+        &Seq::new(vec![patch("src/tests.spx", "0", "1")]),
+    );
+    assert_eq!(report.session["attempts"][0]["code"], "SPX-HPD114");
 }
 
 fn patch(path: &str, find: &str, replace: &str) -> Value {
@@ -1101,6 +1157,228 @@ fn hp_hn02_unverified_baseline_is_repaired_in_scratch_and_the_original_is_untouc
         std::fs::read_to_string(e.project.join("src/lib.spx")).unwrap(),
         FIXED
     );
+}
+
+#[test]
+fn hp_hn02_apply_authenticates_the_complete_inventory_before_staging() {
+    let e = setup_with_oracle();
+    let snapshot = Snapshot::capture(&e.project).unwrap();
+    let result = e.root.join("apply-result");
+    write(
+        &result,
+        "semaprax.toml",
+        &std::fs::read_to_string(e.project.join("semaprax.toml")).unwrap(),
+    );
+    write(&result, "src/lib.spx", CHANGED);
+    write(
+        &result,
+        "src/tests.spx",
+        &std::fs::read_to_string(e.project.join("src/tests.spx")).unwrap(),
+    );
+    let expected = rev_of(CHANGED);
+    let fake = Fake::new(CHANGED);
+    let victim = e.root.join("victim.txt");
+    std::fs::write(&victim, "KEEP THIS").unwrap();
+
+    let mut forged = snapshot.clone();
+    forged
+        .files
+        .insert("../victim.txt".into(), sha256_plain(b"KEEP THIS"));
+    assert_eq!(
+        apply_result(&forged, &result, &expected, &fake)
+            .unwrap_err()
+            .code,
+        "SPX-HPD115"
+    );
+    let mut missing = snapshot.clone();
+    missing.files.remove("src/tests.spx");
+    assert_eq!(
+        apply_result(&missing, &result, &expected, &fake)
+            .unwrap_err()
+            .code,
+        "SPX-HPD115"
+    );
+    let mut changed_digest = snapshot.clone();
+    changed_digest
+        .files
+        .insert("src/lib.spx".into(), sha256_plain(b"forged"));
+    assert_eq!(
+        apply_result(&changed_digest, &result, &expected, &fake)
+            .unwrap_err()
+            .code,
+        "SPX-HPD115"
+    );
+    assert_eq!(std::fs::read_to_string(&victim).unwrap(), "KEEP THIS");
+    assert!(!e.root.join("victim.spx.harness-tmp").exists());
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::symlink;
+        let result_tests = result.join("src/tests.spx");
+        std::fs::remove_file(&result_tests).unwrap();
+        symlink(&victim, &result_tests).unwrap();
+        assert_eq!(
+            apply_result(&snapshot, &result, &expected, &fake)
+                .unwrap_err()
+                .code,
+            "SPX-HPD115"
+        );
+        std::fs::remove_file(&result_tests).unwrap();
+        write(
+            &result,
+            "src/tests.spx",
+            &std::fs::read_to_string(e.project.join("src/tests.spx")).unwrap(),
+        );
+
+        let result_link = e.root.join("apply-result-link");
+        symlink(&result, &result_link).unwrap();
+        assert_eq!(
+            apply_result(&snapshot, &result_link, &expected, &fake)
+                .unwrap_err()
+                .code,
+            "SPX-HPD115"
+        );
+        std::fs::remove_file(result_link).unwrap();
+
+        let project_tests = e.project.join("src/tests.spx");
+        let project_tests_source = std::fs::read_to_string(&project_tests).unwrap();
+        std::fs::remove_file(&project_tests).unwrap();
+        symlink(&victim, &project_tests).unwrap();
+        assert_eq!(
+            apply_result(&snapshot, &result, &expected, &fake)
+                .unwrap_err()
+                .code,
+            "SPX-HPD115"
+        );
+        assert_eq!(std::fs::read_to_string(&victim).unwrap(), "KEEP THIS");
+        std::fs::remove_file(&project_tests).unwrap();
+        std::fs::write(project_tests, project_tests_source).unwrap();
+    }
+
+    assert_eq!(
+        apply_result(&snapshot, &result, &expected, &fake).unwrap(),
+        ["src/lib.spx"]
+    );
+    assert_eq!(
+        std::fs::read_to_string(e.project.join("src/lib.spx")).unwrap(),
+        CHANGED
+    );
+}
+
+#[test]
+fn hp_hn02_source_repair_preserves_multiline_contracts_per_declaration_effects_and_record_invariants(
+) {
+    let cases = [
+        (
+            "module t.lib;\n@id(\"t.f\")\nfn f(x: i64) -> i64\n    ensures\n        result == x\n{\n    SYNTAXERR\n}\n",
+            patch(
+                "src/lib.spx",
+                "        result == x\n{\n    SYNTAXERR",
+                "        true\n{\n    x",
+            ),
+            "SPX-HPD042",
+        ),
+        (
+            "module t.lib;\npermit { clock.read }\n@id(\"t.f\")\nfn f(x: i64) -> i64\n    uses {\n    }\n{\n    SYNTAXERR\n}\n",
+            patch(
+                "src/lib.spx",
+                "    uses {\n    }\n{\n    SYNTAXERR",
+                "    uses {\n        clock.read\n    }\n{\n    x",
+            ),
+            "SPX-HPD043",
+        ),
+        (
+            "module t.lib;\n@id(\"t.record\")\nrecord Item { @id(\"t.record.value\") value: i64, }\n    requires\n        value >= 0\n@id(\"t.f\")\nfn f(x: i64) -> i64 { SYNTAXERR }\n",
+            patch(
+                "src/lib.spx",
+                "        value >= 0\n@id(\"t.f\")\nfn f(x: i64) -> i64 { SYNTAXERR",
+                "        true\n@id(\"t.f\")\nfn f(x: i64) -> i64 { x",
+            ),
+            "SPX-HPD042",
+        ),
+        (
+            "module t.lib;\npermit { clock.read }\n@id(\"t.f\")\nfn f(x: i64) -> i64 uses {} { SYNTAXERR }\n",
+            patch(
+                "src/lib.spx",
+                "uses {} { SYNTAXERR",
+                "uses { clock.read } { x",
+            ),
+            "SPX-HPD043",
+        ),
+        (
+            "module t.lib;\n@id(\"t.first\")\nfn first(x: i64) -> i64\n    ensures\t\n        result >= 0\n{\n    x\n}\n// ensures true is only a comment\n@id(\"t.second\")\nfn second(x: i64) -> i64\n    ensures\n        result >= 0\n{\n    SYNTAXERR\n}\n",
+            patch(
+                "src/lib.spx",
+                "        result >= 0\n{\n    SYNTAXERR",
+                "        true\n{\n    x",
+            ),
+            "SPX-HPD042",
+        ),
+    ];
+
+    for (source, hostile, expected) in cases {
+        let e = setup_with_oracle();
+        write(&e.project, "src/lib.spx", source);
+        let repair = |task: &mut Task| {
+            task.mode = TaskMode::Repair;
+            task.goal = "repair the implementation only".into();
+        };
+        let honest = patch("src/lib.spx", "SYNTAXERR", "x");
+        let sequence = Seq::new(vec![hostile, honest]);
+        let report = once(&session(&e, repair), &Fake::new(CHANGED), &sequence);
+        assert_eq!(report.session["attempts"][0]["code"], expected, "{source}");
+        assert_eq!(report.status, "candidate-ready", "{:?}", report.refusals);
+        assert_eq!(
+            std::fs::read_to_string(e.project.join("src/lib.spx")).unwrap(),
+            source,
+            "the authenticated project remains unchanged"
+        );
+    }
+
+    let source = "module t.lib;\npermit { clock.read }\n@id(\"t.first\")\nfn first(x: i64) -> i64 uses { clock.read } { x }\n@id(\"t.second\")\nfn second(x: i64) -> i64 uses {} { SYNTAXERR }\n";
+    let moved_effect = json!({"schema": "semaprax.harness-proposal.v1", "source_patch": {
+        "edits": [
+            {"path": "src/lib.spx", "find": "first(x: i64) -> i64 uses { clock.read }", "replace": "first(x: i64) -> i64 uses {}"},
+            {"path": "src/lib.spx", "find": "second(x: i64) -> i64 uses {} { SYNTAXERR", "replace": "second(x: i64) -> i64 uses { clock.read } { x"}
+        ]
+    }});
+    let e = setup_with_oracle();
+    write(&e.project, "src/lib.spx", source);
+    let report = once(
+        &session(&e, |task| {
+            task.mode = TaskMode::Repair;
+            task.goal = "repair the implementation only".into();
+            task.session.as_mut().unwrap().max_attempts = 1;
+        }),
+        &Fake::new(CHANGED),
+        &Seq::new(vec![moved_effect]),
+    );
+    assert_eq!(report.session["attempts"][0]["code"], "SPX-HPD043");
+
+    let source = "module t.lib;\n@id(\"t.f\")\nfn f(x: i64) -> i64\n    ensures result == x\n{\n    SYNTAXERR_A + SYNTAXERR_B\n}\n";
+    let e = setup_with_oracle();
+    write(&e.project, "src/lib.spx", source);
+    let weaken_after_first_edit = json!({"schema": "semaprax.harness-proposal.v1", "source_patch": {
+        "edits": [
+            {"path": "src/lib.spx", "find": "ensures result == x", "replace": "ensures true"},
+            {"path": "src/lib.spx", "find": "SYNTAXERR_B", "replace": "x"}
+        ]
+    }});
+    let report = once(
+        &session(&e, |task| {
+            task.mode = TaskMode::Repair;
+            task.goal = "repair the implementation only".into();
+        }),
+        &Fake::new(CHANGED),
+        &Seq::new(vec![
+            patch("src/lib.spx", "SYNTAXERR_A", "x"),
+            weaken_after_first_edit,
+            patch("src/lib.spx", "SYNTAXERR_B", "x"),
+        ]),
+    );
+    assert_eq!(report.session["attempts"][0]["code"], "SPX-HPD050");
+    assert_eq!(report.session["attempts"][1]["code"], "SPX-HPD042");
+    assert_eq!(report.status, "candidate-ready", "{:?}", report.refusals);
 }
 
 #[path = "workflow_feedback.rs"]

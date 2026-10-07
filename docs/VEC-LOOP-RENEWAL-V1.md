@@ -1,5 +1,7 @@
 # Ordinary Vec Loop Renewal v1
 
+Audience: language, ownership, cleanup, and backend contributors.
+
 Status: implemented additive private profile with focused local interpreter, native O0/O2, Core Wasm and hostile-replay evidence.
 
 This profile admits same-cell renewal of a mutable concrete scalar `Vec<T>`

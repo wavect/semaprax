@@ -15,18 +15,63 @@ const SOURCE: &str = r#"module fixture.app;
 @id("fixture.public") fn published() -> i64 { 0 }
 "#;
 
+const RECORD_SOURCE: &str = r#"module fixture.app;
+@id("fixture.item") record Item {
+ @id("fixture.item.left") left:Bytes,
+ @id("fixture.item.right") right:Bytes,
+ @id("fixture.item.marker") marker:i64,
+}
+@id("fixture.consume") fn consume(value:own Item)->i64 {
+ match own value {Item{left,right,marker}=>marker,}
+}
+@id("fixture.main") fn main()->i64 {
+ let values=vec_push<Item>(vec_with_capacity<Item>(1usize),Item{left:bytes_zeroed(1usize),right:bytes_zeroed(2usize),marker:7});
+ let mut total=0;
+ for own item in vec_into_iter<Item>(values){total=total+consume(item);0}
+ if total==7 {0}else{1}
+}
+@id("fixture.public") fn published()->i64 {0}
+"#;
+
+const IMPORTED_RECORD_SOURCE: &str = r#"module fixture.app;
+use type @id("fixture.line") from fixture.types as Line;
+@id("fixture.consume") fn consume(values:own Vec<Line>)->i64 {
+ let mut total=0;
+ for own line in vec_into_iter<Line>(values){
+  match own line {Line{left,right,marker}=>{total=total+marker;0},}
+ }
+ total
+}
+@id("fixture.main") fn main()->i64 {
+ let values=vec_push<Line>(vec_with_capacity<Line>(1usize),Line{left:bytes_zeroed(1usize),right:bytes_zeroed(2usize),marker:7});
+ if consume(values)==7 {0}else{1}
+}
+@id("fixture.public") fn published()->i64 {0}
+"#;
+
+const IMPORTED_RECORD_PROVIDER: &str = r#"module fixture.types;
+@id("fixture.line") record Line {
+ @id("fixture.line.left") left:Bytes,
+ @id("fixture.line.right") right:Bytes,
+ @id("fixture.line.marker") marker:i64,
+}
+@id("fixture.types.marker") fn marker(value:i64)->i64 {value}
+"#;
+
 fn fixture(label: &str, source: &str) -> Fixture {
     let fixture = Fixture::owned_vec(label, false);
     if source.contains("fixture.consume") {
         let manifest = std::fs::read_to_string(fixture.manifest()).unwrap();
-        std::fs::write(
-            fixture.manifest(),
-            manifest.replace(
-                "version = \"0.1.0\"",
-                "version = \"0.1.0\"\nprofile = \"owned-data-api.v1\"",
-            ),
-        )
-        .unwrap();
+        let manifest = manifest.replace(
+            "version = \"0.1.0\"",
+            "version = \"0.1.0\"\nprofile = \"owned-data-api.v1\"",
+        );
+        let manifest = if source == RECORD_SOURCE || source == IMPORTED_RECORD_SOURCE {
+            manifest.replace("web = [\"fixture.public\"]", "web = []")
+        } else {
+            manifest
+        };
+        std::fs::write(fixture.manifest(), manifest).unwrap();
     }
     let path = fixture.0.join("src/app.spx");
     let parsed = semaprax::parse(source, &path).unwrap();
@@ -39,8 +84,26 @@ fn fixture(label: &str, source: &str) -> Fixture {
     fixture
 }
 
+fn imported_record_fixture() -> Fixture {
+    let fixture = fixture("imported-record-iterator-root", IMPORTED_RECORD_SOURCE);
+    let path = fixture.0.join("src/types.spx");
+    let parsed = semaprax::parse(IMPORTED_RECORD_PROVIDER, &path).unwrap();
+    std::fs::write(&path, semaprax::format::canonical(&parsed)).unwrap();
+    let manifest = std::fs::read_to_string(fixture.manifest()).unwrap();
+    std::fs::write(
+        fixture.manifest(),
+        manifest.replace(
+            "sources = [\"src/app.spx\", \"src/tests.spx\"]",
+            "sources = [\"src/app.spx\", \"src/tests.spx\", \"src/types.spx\"]",
+        ),
+    )
+    .unwrap();
+    fixture
+}
+
 fn verify_root(
     fixture: &Fixture,
+    prelude_contract: &[u8],
 ) -> (Arc<ProjectRevision>, SemanticWorkspaceRevision, ProgramRoot) {
     let revision = fixture.revision();
     let workspace = revision.canonical_workspace_revision().unwrap();
@@ -49,7 +112,7 @@ fn verify_root(
         semantic["payload"]["prelude_digest"],
         framed(
             b"semaprax.semantic-workspace-revision.prelude.digest.v1\0",
-            include_bytes!("../../fixtures/prelude-v8.contract"),
+            prelude_contract,
         )
     );
     let root = workspace.program_root().unwrap();
@@ -79,7 +142,10 @@ fn owned_iterator_workspace_binds_payload_cleanup_and_rejects_source_drift() {
         graph["owned_iterator_payloads"]["cleanup_schema"],
         "semaprax.cleanup-plan.v13"
     );
-    let (_, before, root) = verify_root(&fixture);
+    let (_, before, root) = verify_root(
+        &fixture,
+        include_bytes!("../../fixtures/prelude-v8.contract"),
+    );
     let changed = SOURCE.replace("[1u8]", "[2u8]");
     let path = fixture.0.join("src/app.spx");
     std::fs::write(
@@ -87,7 +153,10 @@ fn owned_iterator_workspace_binds_payload_cleanup_and_rejects_source_drift() {
         semaprax::format::canonical(&semaprax::parse(&changed, &path).unwrap()),
     )
     .unwrap();
-    let (_, after, next_root) = verify_root(&fixture);
+    let (_, after, next_root) = verify_root(
+        &fixture,
+        include_bytes!("../../fixtures/prelude-v8.contract"),
+    );
     assert_ne!(
         before.semantic_program().digest(),
         after.semantic_program().digest()
@@ -115,5 +184,76 @@ fn owned_iterator_local_done_retains_payload_prelude_without_vec_operations() {
 }
 @id("fixture.public") fn published() -> i64 { 0 }
 "#;
-    verify_root(&fixture("owned-iterator-done-root", source));
+    verify_root(
+        &fixture("owned-iterator-done-root", source),
+        include_bytes!("../../fixtures/prelude-v8.contract"),
+    );
+}
+
+#[test]
+fn record_iterator_workspace_and_program_root_replay_prelude_v11() {
+    let fixture = fixture("owned-record-iterator-root", RECORD_SOURCE);
+    let source = semaprax::parse(RECORD_SOURCE, fixture.0.join("src/app.spx")).unwrap();
+    let graph: Value = serde_json::from_str(&semaprax::graph::to_json(&source).unwrap()).unwrap();
+    assert_eq!(graph["schema"], "semaprax.graph.v67");
+    assert_eq!(
+        graph["owned_iterator_payloads"]["schema"],
+        "semaprax.owned-record-iterator.v3"
+    );
+    assert_eq!(
+        graph["owned_iterator_payloads"]["cleanup_schema"],
+        "semaprax.cleanup-plan.v13"
+    );
+    verify_root(
+        &fixture,
+        include_bytes!("../../fixtures/prelude-v11.contract"),
+    );
+}
+
+#[test]
+fn record_iterator_and_scalar_vec_renewal_compose_as_graph_v67() {
+    let source = RECORD_SOURCE.replace(
+        "@id(\"fixture.main\")",
+        r#"@id("fixture.renew") fn renew()->i64 {
+ let mut values=vec_with_capacity<i64>(1usize);
+ let mut i=0;
+ while i<1 {values=vec_push<i64>(values,i);i=i+1;0}
+ if vec_len<i64>(values)==1usize {0}else{1}
+}
+@id("fixture.main")"#,
+    );
+    let parsed = semaprax::check(&source, "record-iterator-vec-renewal.spx").unwrap();
+    let graph: Value = serde_json::from_str(&semaprax::graph::to_json(&parsed).unwrap()).unwrap();
+    assert_eq!(graph["schema"], "semaprax.graph.v67");
+    assert_eq!(
+        graph["owned_iterator_payloads"]["schema"],
+        "semaprax.owned-record-iterator.v3"
+    );
+    assert_eq!(
+        graph["vec_loop_renewal"]["schema"],
+        "semaprax.vec-loop-renewal.v1"
+    );
+    assert_eq!(
+        graph["vec_loop_renewal"]["updates"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+}
+
+#[test]
+fn imported_record_iterator_workspace_and_program_root_bind_v11_v67() {
+    let fixture = imported_record_fixture();
+    let revision = fixture.revision();
+    let caller = revision
+        .sources()
+        .iter()
+        .find(|source| source.path() == "src/app.spx")
+        .unwrap();
+    assert_eq!(caller.source_graph_schema(), "semaprax.graph.v67");
+    verify_root(
+        &fixture,
+        include_bytes!("../../fixtures/prelude-v11.contract"),
+    );
 }

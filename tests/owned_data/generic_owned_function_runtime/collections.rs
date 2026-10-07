@@ -192,18 +192,22 @@ pub(super) fn run_backend_output_allocation_refusal(source: &str) {
     std::fs::write(&wasm_path, wasm::emit_module(&parsed).unwrap()).unwrap();
     let script = r#"
 const fs=require('fs'),bytes=fs.readFileSync(process.argv[1]);
-let next=1n,capacityCalls=0;const entries=new Map(),key=v=>{if(typeof v!=='bigint'||v===0n)throw Error('carrier');return v.toString()};
+let instance=null,next=1n,capacityCalls=0,byteNext=1n;const entries=new Map(),byteEntries=new Map(),key=v=>{if(typeof v!=='bigint'||v===0n)throw Error('carrier');return v.toString()};
 const read=(v,t)=>{const e=entries.get(key(v));if(!e||e.tag!==t)throw Error('stale-or-type');return e};
 const alloc=(tag,capacity,values=[])=>{const token=next++;entries.set(key(token),{tag,capacity,values});return token};
+const byteDecode=v=>{const word=BigInt.asUintN(64,v),length=Number(word&0xffffffffn),root=Number((word>>32n)&0xffffffffn);return{length,root,token:root&0x7fffffff}};
+const byteRead=v=>{const d=byteDecode(v);if((d.root&0x80000000)!==0){const value=byteEntries.get(d.token);if(!(value instanceof Uint8Array)||value.length!==d.length)throw Error('stale-byte');return value}const memory=instance?.exports.__spx_byte_memory;if(!(memory instanceof WebAssembly.Memory)||d.root>memory.buffer.byteLength-d.length)throw Error('byte-range');return new Uint8Array(memory.buffer,d.root,d.length)};
+const byteAlloc=v=>{const token=byteNext++,value=new Uint8Array(byteRead(v));byteEntries.set(Number(token),value);return BigInt.asIntN(64,((0x80000000n|token)<<32n)|BigInt(value.length))};
 const env={spx_add:(a,b)=>a+b,spx_sub:(a,b)=>a-b,spx_mul:(a,b)=>a*b,spx_div:(a,b)=>a/b,spx_rem:(a,b)=>a%b,spx_neg:a=>-a,
 spx_contract_fail:s=>{throw Object.assign(new Error(`status:${s}`),{status:Number(s)})},
+spx_bytes_copy:byteAlloc,spx_bytes_get:(v,i)=>{const value=byteRead(v);return typeof i!=='bigint'||i<0n||i>=BigInt(value.length)?-1:value[Number(i)]},spx_bytes_as_slice:v=>{byteRead(v);return v},spx_bytes_drop:v=>{const d=byteDecode(v);if((d.root&0x80000000)===0||d.token===0||!byteEntries.delete(d.token))throw Error('double-byte-drop')},
 spx_vec_with_capacity:(tag,capacity)=>{const n=Number(capacity);if(!Number.isSafeInteger(n)||n!==1)throw Error(`unexpected-capacity:${n}`);capacityCalls+=1;if(capacityCalls===2)return 0n;return alloc(tag,n)},
 spx_vec_push:(source,tag,bits)=>{const old=read(source,tag);if(old.values.length>=old.capacity)return 0n;entries.delete(key(source));return alloc(tag,old.capacity,old.values.concat([bits]))},
 spx_vec_len:(source,tag)=>BigInt(read(source,tag).values.length),
 spx_vec_capacity:(source,tag)=>BigInt(read(source,tag).capacity),
 spx_vec_get:(source,tag,index)=>{const entry=read(source,tag),n=Number(index);if(!Number.isSafeInteger(n)||n<0||n>=entry.values.length)throw Error('oob');return entry.values[n]},
 spx_vec_drop:source=>{if(!entries.delete(key(source)))throw Error('double-drop')}};
-WebAssembly.instantiate(bytes,{env}).then(({instance})=>{for(let i=0;i<4;i+=1){capacityCalls=0;let caught=null;try{instance.exports.semaprax_main()}catch(error){caught=error}if(!caught||caught.status!==15)throw Error(`semantic:${caught}`);if(entries.size!==0)throw Error(`settlement:${entries.size}`)}}).catch(error=>{console.error(error);process.exit(2)});
+WebAssembly.instantiate(bytes,{env}).then(linked=>{instance=linked.instance;for(let i=0;i<4;i+=1){capacityCalls=0;let caught=null;try{instance.exports.semaprax_main()}catch(error){caught=error}if(!caught||caught.status!==15)throw Error(`semantic:${caught}`);if(entries.size!==0||byteEntries.size!==0)throw Error(`settlement:${entries.size}:${byteEntries.size}`)}}).catch(error=>{console.error(error);process.exit(2)});
 "#;
     let output = Command::new("node")
         .arg("-e")
@@ -230,6 +234,11 @@ fn run_native_collections(
     let admitted = "memcpy(entry->domain_storage, status.domain_id, domain_size);";
     assert_eq!(ownership_surface.matches(admitted).count(), 1);
     ownership_surface = ownership_surface.replacen(admitted, "", 1);
+    let byte_copy = "memcpy(payload, value.ptr, (size_t)value.len);";
+    if ownership_surface.contains(byte_copy) {
+        assert_eq!(ownership_surface.matches(byte_copy).count(), 1);
+        ownership_surface = ownership_surface.replacen(byte_copy, "", 1);
+    }
     if hir::closure::requires_closures(&hir::resolve(parsed).unwrap()) {
         // The new Copy-only closure profile uses exact scalar bit codecs.
         // Match their entire definitions so no aggregate/owner memcpy can be

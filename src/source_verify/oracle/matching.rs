@@ -1,7 +1,7 @@
 //! Test-only recursive checking of `match` expressions: exhaustiveness,
 //! per-arm binding state, and the joins that produce the match's value.
 
-use crate::ast::{Expr, Function, MatchMode, MatchPattern, ParamMode, Program, Type};
+use crate::ast::{Expr, ExprKind, Function, MatchMode, MatchPattern, ParamMode, Program, Type};
 use crate::diagnostic::Diagnostic;
 use crate::source_verify::binding::{Availability, Binding, CheckedValue};
 use crate::source_verify::declared_type::{
@@ -24,6 +24,11 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 std::thread_local! {
     /// The recursive twin of `IterativeVerifier::loop_depth`.
     static LOOP_DEPTH: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+    /// The exact consuming-loop item whose owned Bytes/record payload may be
+    /// passed to its declared consumer or matched in that loop body.
+    static OWNED_ITERATOR_ITEMS: std::cell::RefCell<Vec<(String, Type)>> = const {
+        std::cell::RefCell::new(Vec::new())
+    };
 }
 
 /// Check `inner` as part of a `while`/`for` condition or body.
@@ -32,6 +37,28 @@ pub(super) fn in_loop<T>(inner: impl FnOnce() -> T) -> T {
     let result = inner();
     LOOP_DEPTH.with(|depth| depth.set(depth.get().saturating_sub(1)));
     result
+}
+
+pub(super) fn with_owned_iterator_item<T>(item: &str, ty: &Type, inner: impl FnOnce() -> T) -> T {
+    OWNED_ITERATOR_ITEMS.with(|items| items.borrow_mut().push((item.to_owned(), ty.clone())));
+    let result = inner();
+    OWNED_ITERATOR_ITEMS.with(|items| {
+        items.borrow_mut().pop();
+    });
+    result
+}
+
+pub(super) fn in_owned_iterator_loop<T>(item: &str, ty: &Type, inner: impl FnOnce() -> T) -> T {
+    with_owned_iterator_item(item, ty, || in_loop(inner))
+}
+
+pub(super) fn is_owned_iterator_item(name: &str, ty: &Type) -> bool {
+    OWNED_ITERATOR_ITEMS.with(|items| {
+        items
+            .borrow()
+            .last()
+            .is_some_and(|(item, item_ty)| item == name && item_ty == ty)
+    })
 }
 
 #[allow(clippy::too_many_arguments, clippy::borrowed_box)]
@@ -62,7 +89,12 @@ pub(super) fn oracle_match(
     );
     if let Some(value) = &scrutinee_value {
         reject_native_unit_value(program, scrutinee, value, diagnostics);
-        if LOOP_DEPTH.with(std::cell::Cell::get) != 0 {
+        let exact_owned_record_item = value.mode == ParamMode::Own
+            && crate::source_verify::declared_type::owned_record_collection::
+                is_admitted_owned_record_collection_element(types, &value.ty)
+            && matches!(&scrutinee.kind, ExprKind::Var(name)
+                if is_owned_iterator_item(name, &value.ty));
+        if LOOP_DEPTH.with(std::cell::Cell::get) != 0 && !exact_owned_record_item {
             reject_loop_match_scrutinee(program, types, scrutinee, value, diagnostics);
         }
     }

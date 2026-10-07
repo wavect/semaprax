@@ -187,3 +187,60 @@ fn main() -> i64
     assert_ne!(format::canonical(&drifted), canonical);
     assert!(graph::verify_json(&drifted, &json).is_err());
 }
+
+#[test]
+fn byte_and_position_conversion_work_is_constant_and_preserves_results() {
+    let steps = |library: &str, expression: &str| {
+        let source = format!(
+            "{}\n@id(\"app.main\") fn main() -> i64 {{ {expression} }}\n",
+            library.replacen("module std.bytes;", "module app;", 1)
+        );
+        let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
+        let path = std::env::temp_dir().join(format!(
+            "semaprax-std-byte-conversion-{}-{id}.spx",
+            std::process::id()
+        ));
+        std::fs::write(&path, &source).unwrap();
+        let result =
+            interpreter::interpret(&path, "app.main", &[], &InterpreterOptions::default()).unwrap();
+        std::fs::remove_file(path).unwrap();
+        let document: serde_json::Value = serde_json::from_str(&result.envelope).unwrap();
+        assert!(result.returned, "{}", result.envelope);
+        (
+            document["payload"]["outcome"]["value"]
+                .as_str()
+                .unwrap()
+                .to_owned(),
+            document["payload"]["fuel"]["steps_used"].as_u64().unwrap(),
+        )
+    };
+    let (zero, zero_steps) = steps(LIBRARY, "byte_to_i64(0u8)");
+    let (max, max_steps) = steps(LIBRARY, "byte_to_i64(255u8)");
+    assert_eq!(zero, "0");
+    assert_eq!(max, "255");
+    assert_eq!(zero_steps, max_steps);
+    let (first, first_steps) = steps(LIBRARY, "position_of(1usize)");
+    let (large, large_steps) = steps(LIBRARY, "position_of(65537usize)");
+    assert_eq!(first, "0");
+    assert_eq!(large, "65536");
+    assert_eq!(first_steps, large_steps);
+    // Independent pre-fix semantics: the old conversion counted each byte unit.
+    let legacy = LIBRARY.replace("    i64_from_u8(byte)", "    let mut value = 0;\n    let mut probe = 0u8;\n    while probe != byte { value = value + 1; probe = probe + 1u8; probe != byte }\n    value");
+    let (old_result, old_steps) = steps(&legacy, "byte_to_i64(255u8)");
+    assert_eq!(old_result, max);
+    assert!(
+        old_steps > max_steps * 100,
+        "old={old_steps}, new={max_steps}"
+    );
+    // Compare an unchanged representative buffer on the same default budget.
+    let comparison = "let data = [255u8; 64]; equals(array_as_slice(data), array_as_slice(data))";
+    let expression = format!("if {{ {comparison} }} {{ 1 }} else {{ 0 }}");
+    let (old_value, old_compare_steps) = steps(&legacy, &expression);
+    let (new_value, new_compare_steps) = steps(LIBRARY, &expression);
+    assert_eq!(old_value, new_value);
+    assert!(
+        old_compare_steps > new_compare_steps * 10,
+        "old={old_compare_steps}, new={new_compare_steps}"
+    );
+    println!("byte 255: {old_steps} -> {max_steps} steps; position 65536: {large_steps} steps; 64-byte comparison: {old_compare_steps} -> {new_compare_steps}");
+}

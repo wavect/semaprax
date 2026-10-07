@@ -50,7 +50,7 @@ fn all_copy_scalar_sorts_preserve_owners_and_agree_across_engines() {
     let resolved = hir::resolve(&ast).unwrap();
     hir::validate(&resolved).unwrap();
     let meaning = graph::to_json(&ast).unwrap();
-    assert!(meaning.contains("semaprax.prelude.v11"));
+    assert!(meaning.contains("semaprax.prelude.v12"));
     assert!(meaning.contains("core.vec.sort"));
     let root = std::env::temp_dir().join(format!("semaprax-vec-sort-{}", std::process::id()));
     std::fs::create_dir_all(&root).unwrap();

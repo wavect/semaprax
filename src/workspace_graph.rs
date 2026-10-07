@@ -4169,7 +4169,7 @@ fn build_owned_inner(
         } else {
             (None, None, 0, 0)
         };
-    let shared_prelude_ids = prelude_binding::ids(&programs);
+    let shared_prelude_ids = prelude_binding::ids_from_facts(&programs, &declaration_facts);
     let build = WorkspaceGraphBuild {
         hir: ValidatedWorkspaceHir {
             modules,
@@ -5628,19 +5628,17 @@ fn reconstruct_workspace_declaration_facts(
     programs: &[Program],
 ) -> Result<BTreeMap<String, WorkspaceDeclarationFact>, Vec<Diagnostic>> {
     let expected = expected_declaration_facts(programs)?;
-    let uses_vec = prelude_binding::uses_vec(programs);
-    let uses_box = prelude_binding::uses_box(programs);
-    let uses_iterator = prelude_binding::uses_iterator(programs);
-    let uses_list = prelude_binding::uses_list(programs);
-    let expected_compiler = prelude_binding::expected_declaration_facts_for(
-        uses_vec,
-        uses_box,
-        uses_iterator,
-        uses_list,
-        prelude_binding::uses_stream(programs),
+    let resolved_record_iterator = modules
+        .iter()
+        .any(|(_, program)| crate::iterator_ops::resolved_program_uses_record_iterator(program));
+    let expected_compiler = prelude_binding::expected_declaration_facts_for_programs(
+        programs,
+        resolved_record_iterator,
     )?;
     let mut actual = BTreeMap::new();
     for (module, resolved) in modules {
+        let module_uses_record_iterator =
+            crate::iterator_ops::resolved_program_uses_record_iterator(resolved);
         let source = programs
             .iter()
             .find(|program| program.module == *module)
@@ -5653,6 +5651,7 @@ fn reconstruct_workspace_declaration_facts(
             crate::iterator_ops::program_uses_iterator(source),
             crate::list_ops::program_uses_list(source),
             prelude_binding::module_uses_stream(source, programs),
+            module_uses_record_iterator,
         )?;
         let direct_targets = source
             .module_uses
@@ -5780,7 +5779,7 @@ fn reconstruct_workspace_declaration_facts(
         .keys()
         .map(String::as_str)
         .collect::<BTreeSet<_>>();
-    let expected_compiler_ids = prelude_binding::ids(programs);
+    let expected_compiler_ids = prelude_binding::ids(programs, resolved_record_iterator);
     if compiler_ids != expected_compiler_ids {
         return Err(vec![graph_error(
             "SPX-G173",

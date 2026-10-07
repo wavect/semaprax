@@ -67,6 +67,28 @@ The complementary runtime matrix covers eight success types and five
 settlement profiles on interpreter, native O0/O2 and Core-Wasm. Hostile
 invented Ok flags and missing residual transitions reject before execution.
 
+## Changed success type with an identical error
+
+A bounded local extension admits owned `Result<T, E>` propagation into
+`Result<U, E>` when both carriers belong to the existing scalar/Bytes profile
+and retain the exact same error type and compiler-owned case/field identities.
+The normal expression has type T; the residual constructs the enclosing
+Result's Err case with the moved E payload. It does not reinterpret the entire
+operand carrier as the destination carrier. Error-type changes remain refused.
+
+For example, an owned `Result<Bytes, Bytes>` may return
+`Result<bool, Bytes>` after observing and settling the extracted success Bytes.
+Unrelated normal-path owners settle in canonical order before joining the
+residual epilogue. Err bypasses every later normal expression. Postconditions
+and non-result cleanup precede result publication, and the selected failure
+remains sticky. Typed residual reconstruction is independently replayed by HIR
+and cleanup validation and implemented by interpreter, native C11 and Core Wasm.
+
+The extension changes no public generic ABI and does not promote prior hosted
+support. Its focused local gates are
+`language::owned_result_variants::owned_result_try_reconstructs_identical_error_with_changed_success_type`
+and `owned_data::generic_owned_function_runtime::changed_success_result`.
+
 ## Independent validation
 
 Source admission authenticates the prelude Result identity and the parameter

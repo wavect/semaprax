@@ -734,9 +734,16 @@ impl<'a> PlanBuilder<'a> {
                 super::CLEANUP_PLAN_SCHEMA_V16
             } else if crate::hir::vec_loop_renewal::requires(function) {
                 super::CLEANUP_PLAN_SCHEMA_V15
-            } else if crate::iterator_ops::function_uses_owned_iterator(function) {
+            } else if crate::iterator_ops::function_uses_owned_iterator(function)
+                || crate::iterator_ops::function_uses_record_iterator_in(
+                    &program.declarations,
+                    function,
+                )
+            {
                 super::CLEANUP_PLAN_SCHEMA_V13
-            } else if crate::hir::iterator_loop::function_requires_renewal(function) {
+            } else if crate::hir::iterator_loop::function_requires_renewal(function)
+                || crate::hir::iterator_loop::function_requires_record_renewal(program, function)
+            {
                 super::CLEANUP_PLAN_SCHEMA_V12
             } else if crate::hir::iterator_loop::function_contains(function) {
                 super::CLEANUP_PLAN_SCHEMA_V11
@@ -859,30 +866,8 @@ impl<'a> PlanBuilder<'a> {
         if !self.pending_try_residuals.is_empty() {
             let owned_result = self.result_needs_drop()?;
             let residuals = std::mem::take(&mut self.pending_try_residuals);
-            if owned_result {
-                self.merge_owned_try_residual_states(&mut state, &residuals)?;
-            } else {
-                if !self.slots.is_empty()
-                    || !state.live_order.is_empty()
-                    || !state.conditional_variants.is_empty()
-                {
-                    return Err(plan_error(
-                        "postfix `?` reached cleanup planning with resource leaves",
-                    ));
-                }
-                self.push_transition(
-                    current,
-                    CleanupTransition::StageCopyResult {
-                        source: StagedCopyResultSource::Body {
-                            expression: self.function.body.id.clone(),
-                            instance: self.function.return_type.clone(),
-                        },
-                    },
-                );
-            }
-            let epilogue = self.new_block(root)?;
-            let normal_edge = self.new_edge(current, epilogue, EdgeCondition::Always)?;
-            self.terminate(current, CleanupTerminator::Goto(normal_edge))?;
+            let epilogue =
+                self.finish_try_normal_path(current, &mut state, &residuals, owned_result, root)?;
 
             for residual in residuals {
                 if !owned_result
@@ -2577,6 +2562,7 @@ impl<'a> PlanBuilder<'a> {
                             op.resolved_params()
                         } else if let Some(op) = crate::iterator_ops::by_id(callee.as_str()) {
                             iterator::resolved_params(
+                                &self.program.declarations,
                                 op,
                                 instance.is_some(),
                                 args.len(),
@@ -5170,10 +5156,19 @@ impl<'a> PlanBuilder<'a> {
         evaluated: EvalResult,
         region: CleanupRegionId,
     ) -> Result<EvalResult, Diagnostic> {
-        let exact_owned = self.needs_drop(&operand.ty)? && operand.ty == *residual_type;
+        let exact_owned = self.needs_drop(&operand.ty)? && self.needs_drop(residual_type)?;
         if exact_owned {
             return self.finish_owned_try(
-                expression, operand, result, ok_case, ok_field, evaluated, region,
+                expression,
+                operand,
+                result,
+                ok_case,
+                ok_field,
+                err_case,
+                err_field,
+                residual_type,
+                evaluated,
+                region,
             );
         }
         if evaluated.owned_source.is_some() {

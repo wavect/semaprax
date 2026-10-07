@@ -719,16 +719,7 @@ fn render_recipe_expr(
             instance,
             args,
         } if type_arguments.is_empty() && instance.is_none() => {
-            let name = crate::str_ops::by_id(callee.as_str())
-                .map(|operation| operation.name().to_owned())
-                .or_else(|| {
-                    crate::byte_ops::by_id(callee.as_str())
-                        .map(|operation| operation.name().to_owned())
-                })
-                .or_else(|| {
-                    crate::host_io_ops::by_id(callee.as_str())
-                        .map(|operation| operation.name().to_owned())
-                })
+            let name = semantic_recipe_v8::legacy_intrinsic_recipe_name(callee.as_str())
                 .or_else(|| functions.get(callee.as_str()).cloned())
                 .ok_or_else(|| package_error("npm semantic recipe callee is unavailable"))?;
             let args = args

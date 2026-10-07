@@ -480,3 +480,18 @@ module test.partial_owned_record;
     exit.finalize_in_order.swap(0, 1);
     assert_eq!(hir::validate(&forged).unwrap_err().code, "SPX-H006");
 }
+
+#[test]
+fn owned_byte_record_invariant_is_not_silently_dropped() {
+    let source = BASE_SOURCE.replace("marker: i64,\n}", "marker: i64,\n} requires marker > 0");
+    assert!(error_codes(&source).contains(&"SPX-C104"));
+    // The existing profile, without a clause, remains admitted and drop-aware.
+    let program = resolved(BASE_SOURCE);
+    assert!(
+        program
+            .declarations
+            .type_facts(&nominal("owned.outer"))
+            .unwrap()
+            .needs_drop
+    );
+}

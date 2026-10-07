@@ -1,5 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+use super::super::WorkspaceResolvedModule;
 use crate::diagnostic::Diagnostic;
 use crate::hir;
 
@@ -57,4 +58,26 @@ pub(in crate::workspace_graph) fn retain_legacy_useful_data_dependency_closure(
             })
         })
         .collect()
+}
+
+/// A bundled dependency may carry newer declarations beside its legacy scalar
+/// surface.  A v1 consumer retains that newer surface only when an otherwise
+/// admitted declaration calls it; authored modules never use this exception.
+pub(in crate::workspace_graph) fn useful_data_v1_dependency_fallback(
+    module: &WorkspaceResolvedModule,
+) -> bool {
+    module.path.starts_with("dependencies/")
+        && (!module.types.is_empty()
+            || !module.interfaces.is_empty()
+            || !module.function_templates.is_empty()
+            || !module.function_instances.is_empty()
+            || module.functions.iter().any(|function| {
+                !hir::useful_data_workspace_return_admitted(&function.return_type)
+                    || function.params.iter().any(|parameter| {
+                        !hir::useful_data_workspace_parameter_admitted(
+                            &parameter.ty,
+                            parameter.ownership,
+                        )
+                    })
+            }))
 }

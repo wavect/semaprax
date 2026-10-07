@@ -13,9 +13,10 @@ impl PlanBuilder<'_> {
         self.reserve_string_append(&at, &source, state)?;
         let renewal = state.renewals.get(&at).cloned().filter(|_| {
             matches!(&destination.storage, StorageId::Value(_))
-                && crate::cleanup_plan::renewal_binding(self.function, &at).is_some_and(|binding| {
-                    destination == CleanupPlace::whole(StorageId::Value(binding.id.clone()))
-                })
+                && crate::cleanup_plan::renewal_binding(self.program, self.function, &at)
+                    .is_some_and(|binding| {
+                        destination == CleanupPlace::whole(StorageId::Value(binding.id.clone()))
+                    })
         });
         let source_flags = self.flags_under(&source);
         let destination_flags = self.flags_under(&destination);

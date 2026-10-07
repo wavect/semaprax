@@ -260,12 +260,79 @@ pub(crate) fn program_uses_list(program: &crate::ast::Program) -> bool {
 }
 
 pub(crate) fn resolved_program_uses_list(program: &crate::hir::ResolvedProgram) -> bool {
-    let id = DeclarationId::new(LIST_ID);
-    program.types.iter().any(|declaration| declaration.id == id)
-        && program
-            .declarations
-            .declaration(&id)
-            .is_some_and(|indexed| {
-                indexed.identity_origin == crate::hir::IdentityOrigin::CompilerOwned
-            })
+    fn type_uses(ty: &ResolvedType) -> bool {
+        let mut pending = vec![ty];
+        while let Some(ty) = pending.pop() {
+            match ty {
+                ResolvedType::Nominal {
+                    declaration,
+                    arguments,
+                } => {
+                    if matches!(declaration.as_str(), LIST_ID | STEP_ID) {
+                        return true;
+                    }
+                    pending.extend(arguments);
+                }
+                ResolvedType::Function { parameters, result } => {
+                    pending.push(result);
+                    pending.extend(parameters);
+                }
+                _ => {}
+            }
+        }
+        false
+    }
+    fn expression_uses(expression: &crate::hir::ResolvedExpr) -> bool {
+        let mut pending = vec![expression];
+        while let Some(expression) = pending.pop() {
+            if type_uses(&expression.ty) {
+                return true;
+            }
+            match &expression.kind {
+                crate::hir::ResolvedExprKind::Call {
+                    callee,
+                    type_arguments,
+                    ..
+                } if by_id(callee.as_str()).is_some() || type_arguments.iter().any(type_uses) => {
+                    return true;
+                }
+                crate::hir::ResolvedExprKind::ConstructRecord { record, .. }
+                    if record.as_str() == LIST_ID =>
+                {
+                    return true;
+                }
+                crate::hir::ResolvedExprKind::ConstructVariant { variant, .. }
+                    if variant.as_str() == STEP_ID =>
+                {
+                    return true;
+                }
+                _ => {}
+            }
+            crate::hir::push_resolved_expression_children_in_authored_order(
+                expression,
+                &mut pending,
+            );
+        }
+        false
+    }
+    fn function_uses(function: &crate::hir::ResolvedFunction) -> bool {
+        type_uses(&function.return_type)
+            || function.params.iter().any(|param| type_uses(&param.ty))
+            || function
+                .requires
+                .iter()
+                .chain(std::iter::once(&function.body))
+                .chain(&function.ensures)
+                .any(expression_uses)
+    }
+    program
+        .functions
+        .iter()
+        .chain(
+            program
+                .function_instances
+                .iter()
+                .map(|instance| &instance.function),
+        )
+        .any(function_uses)
 }

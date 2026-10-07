@@ -46,7 +46,8 @@ pub(super) fn admitted(
         && function.params.iter().all(|parameter| {
             (parameter.mode == ParamMode::Value && scalar(&parameter.ty))
                 || (parameter.mode == ParamMode::Own && parameter.ty == Type::Bytes)
-                || (parameter.mode == ParamMode::Borrow && parameter.ty == Type::Str)
+                || (parameter.mode == ParamMode::Borrow
+                    && matches!(parameter.ty, Type::Str | Type::SliceU8))
                 || (matches!(parameter.mode, ParamMode::Own | ParamMode::Borrow)
                     && record(&parameter.ty))
         })

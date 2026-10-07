@@ -13,7 +13,11 @@ pub(crate) fn graph_schema(program: &ResolvedProgram) -> Result<&'static str, Di
             .chain(program.function_instances.iter().map(|i| &i.function))
             .any(requires)
         {
-            SCHEMA
+            if previous == "semaprax.graph.v67" {
+                previous
+            } else {
+                SCHEMA
+            }
         } else {
             previous
         },
@@ -29,7 +33,11 @@ pub(crate) fn graph_schema_from_parts_and_instances(
     let previous = super::stdin_stream::graph_schema_from_parts_and_instances(i, t, f, x, n)?;
     Ok(
         if f.iter().chain(n.iter().map(|i| &i.function)).any(requires) {
-            SCHEMA
+            if previous == "semaprax.graph.v67" {
+                previous
+            } else {
+                SCHEMA
+            }
         } else {
             previous
         },
@@ -60,7 +68,14 @@ pub(super) fn graph_json(
     if !graph.starts_with(&prefix) || !graph.ends_with('}') {
         return Err(Diagnostic::io("SPX-G411", "noncanonical checked graph"));
     }
-    graph.replace_range(..prefix.len(), "{\"schema\":\"semaprax.graph.v66\"");
+    graph.replace_range(
+        ..prefix.len(),
+        if previous == "semaprax.graph.v67" {
+            "{\"schema\":\"semaprax.graph.v67\""
+        } else {
+            "{\"schema\":\"semaprax.graph.v66\""
+        },
+    );
     let mut updates = Vec::new();
     for function in program
         .functions

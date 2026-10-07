@@ -3,12 +3,21 @@ use super::super::{EXTENDED_VEC_IMPORT_COUNT, RECORD_VEC_IMPORT_COUNT, VEC_IMPOR
 use super::*;
 
 pub(super) const IMPORT_COUNT: u32 = 3;
+pub(super) const RECORD_IMPORT_COUNT: u32 = 3;
 
 pub(super) const fn import_names() -> [&'static str; IMPORT_COUNT as usize] {
     [
         "spx_iter_bytes_into_v2",
         "spx_iter_bytes_next_v2",
         "spx_iter_bytes_drop_v2",
+    ]
+}
+
+pub(super) const fn record_import_names() -> [&'static str; RECORD_IMPORT_COUNT as usize] {
+    [
+        "spx_iter_record_into_v3",
+        "spx_iter_record_next_v3",
+        "spx_iter_record_drop_v3",
     ]
 }
 
@@ -28,7 +37,155 @@ pub(super) fn import_base(program: &ResolvedProgram) -> u32 {
         + u32::from(crate::vec_ops::resolved_program_uses_sort(program))
 }
 
+pub(super) fn record_import_base(program: &ResolvedProgram) -> u32 {
+    import_base(program)
+        + if crate::iterator_ops::resolved_program_uses_owned_iterator(program) {
+            IMPORT_COUNT
+        } else {
+            0
+        }
+}
+
 impl Emitter<'_> {
+    pub(super) fn emit_record_vec_into_iter(
+        &mut self,
+        expr: &ResolvedExpr,
+        element: &ResolvedType,
+        args: &[ResolvedExpr],
+    ) -> Result<Value, Diagnostic> {
+        let _ = self.emit_expr(&args[0])?;
+        let epoch = crate::cleanup_plan::StorageId::CallArgument {
+            call: expr.id.clone(),
+            parameter_index: 0,
+            value_expression: args[0].id.clone(),
+        };
+        let source = Value::Scalar {
+            local: self
+                .plan
+                .cleanup_call_argument_carriers
+                .get(&epoch)
+                .copied()
+                .ok_or_else(|| error("record iterator has no staged Vec carrier"))?,
+            ty: crate::vec_ops::resolved_vec(element.clone()),
+        };
+        let result = Value::Aggregate {
+            pointer: self.plan.expr_pointer(expr)?,
+            ty: expr.ty.clone(),
+        };
+        let Value::Aggregate { pointer, .. } = result else {
+            unreachable!()
+        };
+        self.poison_iterator_frame(pointer);
+        self.get_scalar(&source);
+        self.emit_pointer(pointer);
+        self.output.push(0x10);
+        write_u32(self.output, record_import_base(self.program));
+        self.emit_owned_iterator_status(expr)?;
+        self.validate_iterator_frame(pointer);
+        self.apply_call_commit(&expr.id)?;
+        self.clear_scalar(&source)?;
+        Ok(Value::Aggregate {
+            pointer,
+            ty: expr.ty.clone(),
+        })
+    }
+
+    pub(super) fn emit_record_iter_next(
+        &mut self,
+        expr: &ResolvedExpr,
+        element: &ResolvedType,
+        args: &[ResolvedExpr],
+    ) -> Result<Value, Diagnostic> {
+        let source = self.iterator_argument(expr, element, args)?;
+        let Value::Aggregate {
+            pointer: source, ..
+        } = source
+        else {
+            return Err(error("record iter_next argument is not aggregate storage"));
+        };
+        let result_pointer = self.plan.expr_pointer(expr)?;
+        let variant = variant_layout(self.variant_layouts, &expr.ty)?;
+        let yielded = variant
+            .cases
+            .iter()
+            .find(|case| case.case.as_str() == crate::iterator_ops::YIELD_ID)
+            .ok_or_else(|| error("record iterator Yield layout is missing"))?;
+        let item = yielded
+            .field(&DeclarationId::new(crate::iterator_ops::ITEM_ID))
+            .ok_or_else(|| error("record iterator item layout is missing"))?;
+        let rest = yielded
+            .field(&DeclarationId::new(crate::iterator_ops::REST_ID))
+            .ok_or_else(|| error("record iterator rest layout is missing"))?;
+        let record = layout(self.program, element)?;
+        let fields = crate::hir::owned_record_collection::owned_record_element_fields(
+            &self.program.declarations,
+            element,
+        )
+        .ok_or_else(|| error("record iterator element shape changed"))?;
+        let field_offset = |id: &DeclarationId| {
+            record
+                .fields
+                .iter()
+                .find(|field| &field.field == id)
+                .map(|field| field.offset)
+                .ok_or_else(|| error("record iterator field layout is missing"))
+        };
+        let item_base = variant
+            .payload_offset
+            .checked_add(item.offset)
+            .ok_or_else(|| error("record iterator item offset overflows"))?;
+        let byte0 = item_base
+            .checked_add(field_offset(&fields.owned[0].id)?)
+            .ok_or_else(|| error("record iterator field offset overflows"))?;
+        let byte1 = item_base
+            .checked_add(field_offset(&fields.owned[1].id)?)
+            .ok_or_else(|| error("record iterator field offset overflows"))?;
+        let scalar = item_base
+            .checked_add(field_offset(&fields.scalar.id)?)
+            .ok_or_else(|| error("record iterator scalar offset overflows"))?;
+        let rest = variant
+            .payload_offset
+            .checked_add(rest.offset)
+            .ok_or_else(|| error("record iterator rest offset overflows"))?;
+        self.poison_frame(result_pointer, i64::from(variant.size));
+        self.emit_pointer(Pointer {
+            offset: source.offset + ITER_HANDLE_OFFSET,
+            ..source
+        });
+        self.load_scalar(&ResolvedType::I64);
+        self.emit_pointer(Pointer {
+            offset: source.offset + ITER_CURSOR_OFFSET,
+            ..source
+        });
+        self.load_scalar(&ResolvedType::Usize);
+        self.emit_pointer(result_pointer);
+        for offset in [byte0, byte1, scalar, rest] {
+            self.output.push(0x41);
+            write_i64(self.output, i64::from(offset));
+        }
+        self.output.push(0x10);
+        write_u32(self.output, record_import_base(self.program) + 1);
+        self.emit_owned_iterator_status(expr)?;
+        self.validate_record_step_frame(
+            result_pointer,
+            source,
+            byte0,
+            byte1,
+            scalar,
+            &fields.scalar.ty,
+            rest,
+        )?;
+        self.apply_call_commit(&expr.id)?;
+        self.clear_iterator(&Value::Aggregate {
+            pointer: source,
+            ty: crate::iterator_ops::resolved_iter(element.clone()),
+        })?;
+        Ok(Value::Aggregate {
+            pointer: result_pointer,
+            ty: expr.ty.clone(),
+        })
+    }
+
     pub(super) fn emit_owned_vec_into_iter(
         &mut self,
         expr: &ResolvedExpr,
@@ -263,6 +420,170 @@ impl Emitter<'_> {
         self.output.push(0x0b); // nonempty byte check
         self.output.push(0x0b); // nonzero carrier branch
         self.output.push(0x0b); // Done/Yield frame branch
+    }
+
+    fn validate_record_step_frame(
+        &mut self,
+        pointer: Pointer,
+        source: Pointer,
+        byte0: u32,
+        byte1: u32,
+        scalar: u32,
+        scalar_type: &ResolvedType,
+        rest: u32,
+    ) -> Result<(), Diagnostic> {
+        let tag = Pointer {
+            offset: pointer.offset + STEP_TAG_OFFSET,
+            ..pointer
+        };
+        self.emit_pointer(tag);
+        self.output.extend([0x28, 0x02, 0x00, 0x41, 0x01, 0x4b]);
+        self.trap_if();
+        self.emit_pointer(tag);
+        self.output.extend([0x28, 0x02, 0x00, 0x45, 0x04, 0x40]);
+        for offset in [byte0, byte1, scalar, rest, rest + ITER_CURSOR_OFFSET] {
+            self.trap_if_i64_nonzero_at(Pointer {
+                offset: pointer.offset + offset,
+                ..pointer
+            });
+        }
+        self.output.push(0x05);
+        for offset in [byte0, byte1] {
+            let item = Pointer {
+                offset: pointer.offset + offset,
+                ..pointer
+            };
+            self.emit_pointer(item);
+            self.load_scalar(&ResolvedType::Bytes);
+            self.output.extend([0x50, 0x04, 0x40, 0x05]);
+            self.emit_pointer(item);
+            self.load_scalar(&ResolvedType::Bytes);
+            self.output.push(0x42);
+            write_i64(self.output, i64::MIN);
+            self.output.extend([0x83, 0x50]);
+            self.trap_if();
+            self.emit_pointer(item);
+            self.load_scalar(&ResolvedType::Bytes);
+            self.output.push(0x10);
+            write_u32(self.output, BYTE_AS_SLICE_IMPORT);
+            self.output.push(0x1a);
+            self.output.push(0x0b);
+        }
+        self.emit_pointer(Pointer {
+            offset: pointer.offset + byte0,
+            ..pointer
+        });
+        self.load_scalar(&ResolvedType::Bytes);
+        self.output.push(0x50);
+        self.output.push(0x45);
+        self.emit_pointer(Pointer {
+            offset: pointer.offset + byte0,
+            ..pointer
+        });
+        self.load_scalar(&ResolvedType::Bytes);
+        self.emit_pointer(Pointer {
+            offset: pointer.offset + byte1,
+            ..pointer
+        });
+        self.load_scalar(&ResolvedType::Bytes);
+        self.output.extend([0x51, 0x71]);
+        self.trap_if();
+        self.validate_record_scalar_bits(
+            Pointer {
+                offset: pointer.offset + scalar,
+                ..pointer
+            },
+            scalar_type,
+        )?;
+        let rest_handle = Pointer {
+            offset: pointer.offset + rest,
+            ..pointer
+        };
+        self.emit_pointer(rest_handle);
+        self.load_scalar(&ResolvedType::I64);
+        self.output.push(0x50);
+        self.trap_if();
+        // The v3 host remints the successor authority. Reusing the consumed
+        // handle with an incremented cursor would publish a stale pair after
+        // commit even though the cursor relation alone looks well formed.
+        self.emit_pointer(rest_handle);
+        self.load_scalar(&ResolvedType::I64);
+        self.emit_pointer(Pointer {
+            offset: source.offset + ITER_HANDLE_OFFSET,
+            ..source
+        });
+        self.load_scalar(&ResolvedType::I64);
+        self.output.push(0x51); // successor handle == consumed handle
+        self.trap_if();
+        self.emit_pointer(Pointer {
+            offset: pointer.offset + rest + ITER_CURSOR_OFFSET,
+            ..pointer
+        });
+        self.load_scalar(&ResolvedType::Usize);
+        self.emit_pointer(Pointer {
+            offset: source.offset + ITER_CURSOR_OFFSET,
+            ..source
+        });
+        self.load_scalar(&ResolvedType::Usize);
+        self.output.extend([0x42, 0x01, 0x7c, 0x52]);
+        self.trap_if();
+        self.output.push(0x0b);
+        Ok(())
+    }
+
+    fn validate_record_scalar_bits(
+        &mut self,
+        pointer: Pointer,
+        ty: &ResolvedType,
+    ) -> Result<(), Diagnostic> {
+        match ty {
+            ResolvedType::I64 | ResolvedType::Usize | ResolvedType::F64 => {}
+            ResolvedType::I32 => {
+                self.emit_pointer(pointer);
+                self.load_scalar(&ResolvedType::I64);
+                self.output.extend([0xa7, 0xac]); // wrap then sign-extend
+                self.emit_pointer(pointer);
+                self.load_scalar(&ResolvedType::I64);
+                self.output.push(0x52); // noncanonical sign extension
+                self.trap_if();
+            }
+            ResolvedType::U8 | ResolvedType::Bool => {
+                self.emit_pointer(pointer);
+                self.load_scalar(&ResolvedType::I64);
+                self.output.push(0x42);
+                write_i64(self.output, if *ty == ResolvedType::Bool { 1 } else { 255 });
+                self.output.push(0x56); // i64.gt_u
+                self.trap_if();
+            }
+            ResolvedType::Char => {
+                self.emit_pointer(pointer);
+                self.load_scalar(&ResolvedType::I64);
+                self.output.push(0x42);
+                write_i64(self.output, 0x10ffff);
+                self.output.push(0x56); // above Unicode range
+                self.trap_if();
+                self.emit_pointer(pointer);
+                self.load_scalar(&ResolvedType::I64);
+                self.output.push(0x42);
+                write_i64(self.output, 0xd800);
+                self.output.push(0x5a); // >= surrogate start
+                self.emit_pointer(pointer);
+                self.load_scalar(&ResolvedType::I64);
+                self.output.push(0x42);
+                write_i64(self.output, 0xdfff);
+                self.output.push(0x58); // <= surrogate end
+                self.output.push(0x71); // inside surrogate range
+                self.trap_if();
+            }
+            ResolvedType::F32 => {
+                self.emit_pointer(pointer);
+                self.load_scalar(&ResolvedType::I64);
+                self.output.extend([0x42, 0x20, 0x88, 0x50, 0x45]); // high 32 != 0
+                self.trap_if();
+            }
+            _ => return Err(error("record iterator scalar type changed")),
+        }
+        Ok(())
     }
 
     fn emit_owned_iterator_status(&mut self, expression: &ResolvedExpr) -> Result<(), Diagnostic> {

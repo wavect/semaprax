@@ -2326,6 +2326,7 @@ fn variant_pattern_is_admitted(
     arms: &[hir::ResolvedMatchArm],
 ) -> bool {
     let list_step = crate::list_ops::step_shape(declarations, ty);
+    let record_iterator_step = crate::iterator_ops::step_shape(declarations, ty);
     if !(is_admitted_owned_variant(declarations, ty)
         || variant_admission::is_admitted_copy_scalar_variant(declarations, ty)
         || list_step)
@@ -2409,6 +2410,11 @@ fn variant_pattern_is_admitted(
                 let expected_ownership = if *declared_ty == ResolvedType::Bytes
                     || *declared_ty == ResolvedType::String
                     || crate::iterator_ops::is_iter(declared_ty)
+                    || (record_iterator_step
+                        && hir::owned_record_collection::is_admitted_owned_record_collection_element(
+                            declarations,
+                            declared_ty,
+                        ))
                 {
                     match mode {
                         hir::ResolvedMatchMode::Own => hir::OwnershipMode::Own,
@@ -2634,7 +2640,6 @@ fn scan_closure(
                     (*op, &expression.ty),
                     (BinaryOp::Rem, ResolvedType::F32)
                         | (BinaryOp::Rem, ResolvedType::F64)
-                        | (BinaryOp::Rem, ResolvedType::U8)
                         | (BinaryOp::Add, ResolvedType::Char)
                         | (BinaryOp::Sub, ResolvedType::Char)
                         | (BinaryOp::Mul, ResolvedType::Char)

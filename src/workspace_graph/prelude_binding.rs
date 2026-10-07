@@ -16,6 +16,11 @@ pub(super) fn uses_iterator(programs: &[Program]) -> bool {
 pub(super) fn uses_list(programs: &[Program]) -> bool {
     programs.iter().any(crate::list_ops::program_uses_list)
 }
+pub(super) fn uses_record_iterator(programs: &[Program]) -> bool {
+    programs
+        .iter()
+        .any(crate::source_verify::program_uses_record_iterator)
+}
 
 pub(super) fn uses_stream(programs: &[Program]) -> bool {
     programs.iter().any(crate::stdin_stream_ops::program_uses)
@@ -42,8 +47,8 @@ pub(super) fn module_uses_stream(source: &Program, programs: &[Program]) -> bool
         })
 }
 
-pub(super) fn ids(programs: &[Program]) -> BTreeSet<&'static str> {
-    if uses_stream(programs) {
+pub(super) fn ids(programs: &[Program], resolved_record_iterator: bool) -> BTreeSet<&'static str> {
+    if resolved_record_iterator || uses_record_iterator(programs) || uses_stream(programs) {
         let mut ids = prelude::all_type_ids_v9()
             .into_iter()
             .collect::<BTreeSet<_>>();
@@ -61,6 +66,30 @@ pub(super) fn ids(programs: &[Program]) -> BTreeSet<&'static str> {
     } else {
         prelude::all_ids_v1().into_iter().collect()
     }
+}
+
+pub(super) fn ids_from_facts(
+    programs: &[Program],
+    facts: &BTreeMap<String, WorkspaceDeclarationFact>,
+) -> BTreeSet<&'static str> {
+    ids(
+        programs,
+        facts.contains_key(crate::stdin_stream_ops::READER_ID),
+    )
+}
+
+pub(super) fn expected_declaration_facts_for_programs(
+    programs: &[Program],
+    resolved_record_iterator: bool,
+) -> Result<BTreeMap<String, WorkspaceDeclarationFact>, Vec<Diagnostic>> {
+    expected_declaration_facts_for(
+        uses_vec(programs),
+        uses_box(programs),
+        uses_iterator(programs),
+        uses_list(programs),
+        uses_stream(programs),
+        resolved_record_iterator,
+    )
 }
 
 pub(super) fn expected_declaration_facts(
@@ -137,12 +166,15 @@ pub(super) fn expected_declaration_facts_for(
     include_iterator: bool,
     include_list: bool,
     include_stream: bool,
+    include_record_iterator: bool,
 ) -> Result<BTreeMap<String, WorkspaceDeclarationFact>, Vec<Diagnostic>> {
-    // Stream v10 retains the complete v9 predecessor inventory.
-    let include_vec = include_vec || include_stream;
-    let include_box = include_box || include_stream;
-    let include_iterator = include_iterator || include_stream;
-    let include_list = include_list || include_stream;
+    // Stream v10 retains v9; record-iterator v11 retains the complete v10
+    // inventory, including the independently versioned Reader declaration.
+    let complete_v10 = include_stream || include_record_iterator;
+    let include_vec = include_vec || complete_v10;
+    let include_box = include_box || complete_v10;
+    let include_iterator = include_iterator || complete_v10;
+    let include_list = include_list || complete_v10;
     // Prelude v4 is additive over the Vec-bearing v2/v3 predecessors, so a
     // Box-selected module retains the exact Vec declaration as well.
     let mut facts = expected_declaration_facts(
@@ -162,7 +194,7 @@ pub(super) fn expected_declaration_facts_for(
             None,
         )?;
     }
-    if include_stream {
+    if complete_v10 {
         insert_expected_compiler_declaration(
             &mut facts,
             crate::stdin_stream_ops::READER_ID,
@@ -187,13 +219,15 @@ mod tests {
 
     #[test]
     fn independent_stream_prelude_keeps_exact_v10_and_legacy_facts() {
-        let legacy = expected_declaration_facts_for(false, false, false, false, false).unwrap();
+        let legacy =
+            expected_declaration_facts_for(false, false, false, false, false, false).unwrap();
         assert_eq!(
             legacy.keys().map(String::as_str).collect::<BTreeSet<_>>(),
             prelude::all_ids_v1().into_iter().collect()
         );
         assert!(!legacy.contains_key(crate::stdin_stream_ops::READER_ID));
-        let expected = expected_declaration_facts_for(false, false, false, false, true).unwrap();
+        let expected =
+            expected_declaration_facts_for(false, false, false, false, true, false).unwrap();
         let mut ids = prelude::all_type_ids_v9()
             .into_iter()
             .collect::<BTreeSet<_>>();
@@ -218,6 +252,92 @@ mod tests {
             .unwrap()
             .owner = Some(prelude::BOX_ID.to_owned());
         assert_ne!(hostile, expected);
+    }
+
+    #[test]
+    fn record_iterator_v11_retains_stream_v10_and_iterator_facts() {
+        let expected =
+            expected_declaration_facts_for(false, false, false, false, false, true).unwrap();
+        let mut ids = prelude::all_type_ids_v9()
+            .into_iter()
+            .collect::<BTreeSet<_>>();
+        ids.insert(crate::stdin_stream_ops::READER_ID);
+        assert_eq!(
+            expected.keys().map(String::as_str).collect::<BTreeSet<_>>(),
+            ids
+        );
+        assert!(expected.contains_key(crate::iterator_ops::ITER_ID));
+        assert!(expected.contains_key(crate::stdin_stream_ops::READER_ID));
+    }
+
+    #[test]
+    fn imported_record_iterator_selects_complete_v11_shared_facts() {
+        let build = build_owned(vec![
+            source(
+                "app.spx",
+                r#"module record.app;
+use type @id("record.line") from record.types as Line;
+@id("record.consume") fn consume(values:own Vec<Line>)->i64 {
+ let mut total=0;
+ for own line in vec_into_iter<Line>(values){match own line {Line{left,right,marker}=>{total=total+marker;0},}}
+ total
+}
+@id("app.main") fn main()->i64 {consume(vec_with_capacity<Line>(0usize))}
+"#,
+            ),
+            source(
+                "types.spx",
+                r#"module record.types;
+@id("record.line") record Line {
+ @id("record.line.left") left:Bytes,
+ @id("record.line.right") right:Bytes,
+ @id("record.line.marker") marker:i64,
+}
+@id("types.main") fn main()->i64 {0}
+"#,
+            ),
+        ])
+        .unwrap();
+        let references = build
+            .edges
+            .iter()
+            .filter(|edge| edge.kind == "type_reference" && edge.target == "record.line")
+            .map(|edge| {
+                (
+                    edge.caller.as_str(),
+                    edge.ast_path.as_str(),
+                    edge.alias.as_str(),
+                )
+            })
+            .collect::<BTreeSet<_>>();
+        assert_eq!(
+            references,
+            BTreeSet::from([
+                (
+                    "record.consume",
+                    "function.record.consume.param.0.argument.0",
+                    "Line",
+                ),
+                (
+                    "record.consume",
+                    "body.s1.value.s0.value.arg.0.type_argument.0",
+                    "Line",
+                ),
+                (
+                    "record.consume",
+                    "body.s1.value.s1.body.s0.value.arm.1.value.s0.value.tail.arm.0.pattern",
+                    "Line",
+                ),
+                ("app.main", "body.tail.arg.0.type_argument.0", "Line",),
+            ])
+        );
+        for id in [
+            crate::iterator_ops::ITER_ID,
+            crate::list_ops::LIST_ID,
+            crate::stdin_stream_ops::READER_ID,
+        ] {
+            assert!(build.hir.shared_prelude_ids.contains(id), "missing {id}");
+        }
     }
 
     #[test]

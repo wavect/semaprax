@@ -19,6 +19,7 @@ mod host_command;
 mod native_borrow;
 mod owned_buffer;
 mod owned_result_try;
+mod owner_renewal;
 mod proof_return;
 mod stdin_stream;
 mod type_profiles;
@@ -1619,6 +1620,7 @@ impl<'a> HirValidator<'a> {
         execution: &FunctionExecutionId,
     ) -> Result<(), Diagnostic> {
         crate::hir::iterator_loop::validate_function(function)?;
+        owner_renewal::validate_function(self.program, function)?;
         super::yield_aggregate::check_bytes_request_site_count(
             &self.program.declarations,
             function,
@@ -3971,7 +3973,13 @@ impl<'a> HirValidator<'a> {
                                     | ResolvedType::F32
                                     | ResolvedType::F64
                             ) || (matches!(op, BinaryOp::Rem)
-                                && !matches!(left.ty, ResolvedType::I64 | ResolvedType::Usize))
+                                && !matches!(
+                                    left.ty,
+                                    ResolvedType::I64
+                                        | ResolvedType::I32
+                                        | ResolvedType::U8
+                                        | ResolvedType::Usize
+                                ))
                             {
                                 return Err(hir_error(
                                     "binary operand has inconsistent resolved types",
@@ -4562,20 +4570,10 @@ impl<'a> HirValidator<'a> {
                             if (target.ownership != OwnershipMode::Value
                                 || !crate::hir::is_scalar_resolved_type(&target.ty))
                                 && !crate::string_ops::replacement::admitted(binding, assigned)
-                                && !crate::vec_ops::is_same_owner_reassignment_hir(
+                                && !owner_renewal::assignment_is_admitted(
                                     self.program,
+                                    binding,
                                     assigned,
-                                    &binding.id,
-                                )
-                                && !crate::stdin_stream_ops::hir_reopen(assigned, &binding.id)
-                                && !crate::byte_ops::is_same_owner_set_hir(assigned, &binding.id)
-                                && !crate::string_ops::is_same_owner_concat_hir(
-                                    assigned,
-                                    &binding.id,
-                                )
-                                && !crate::hir::iterator_loop::is_step_reassignment(
-                                    assigned,
-                                    &binding.id,
                                 )
                             {
                                 return Err(hir_error(
@@ -6909,26 +6907,10 @@ impl<'a> HirValidator<'a> {
                                         && !crate::string_ops::replacement::admitted(
                                             binding, assigned,
                                         )
-                                        && !crate::vec_ops::is_same_owner_reassignment_hir(
+                                        && !owner_renewal::assignment_is_admitted(
                                             self.program,
+                                            binding,
                                             assigned,
-                                            &binding.id,
-                                        )
-                                        && !crate::stdin_stream_ops::hir_reopen(
-                                            assigned,
-                                            &binding.id,
-                                        )
-                                        && !crate::byte_ops::is_same_owner_set_hir(
-                                            assigned,
-                                            &binding.id,
-                                        )
-                                        && !crate::string_ops::is_same_owner_concat_hir(
-                                            assigned,
-                                            &binding.id,
-                                        )
-                                        && !crate::hir::iterator_loop::is_step_reassignment(
-                                            assigned,
-                                            &binding.id,
                                         )
                                     {
                                         return Err(hir_error(

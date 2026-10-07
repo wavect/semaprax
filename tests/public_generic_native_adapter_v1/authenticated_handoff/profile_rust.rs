@@ -437,7 +437,7 @@ fn generated_rust_moves_allocating_and_nested_moves_callers_admit_before_physica
         library: "spx_pg_private_authenticated_moves_rust_v1",
         // The selected branch swaps the distinct, non-palindromic leaves.
         expected: ["[2, 11, 17, 23]", "[1, 7, 13]"],
-        pin: "e8dc3dc2eb542816beb3b30b5a1732bccd34a907ccd2af41b441ff81aca89a40",
+        pin: "b441b0d08a2f8edf6218c8ac9058ec617f9c31990aaa0179c49902d72094a12a",
     };
     let mut processes = run_profile(
         &root,
@@ -479,7 +479,7 @@ fn generated_rust_moves_allocating_and_nested_moves_callers_admit_before_physica
         library: "spx_pg_private_authenticated_allocating_rust_v1",
         // Left is a fresh copy; right is remade by the allocating callee.
         expected: ["[1, 7, 13]", "[9, 0, 0]"],
-        pin: "5923aa3c87808c0f499a2c08fa367817ec93c2d79f52337c9da155727b2d5dd6",
+        pin: "24523f13a41d7f9c92a31588b005dc7248e7ac96ab1ad72a689e428b904f09d6",
     };
     processes += run_profile(
         &root,
@@ -534,7 +534,7 @@ fn generated_rust_moves_allocating_and_nested_moves_callers_admit_before_physica
         library: "spx_pg_private_authenticated_moves_nested_rust_v1",
         // `Leaf { a, b }` is swapped exactly like `Pair { left, right }` above.
         expected: ["[2, 11, 17, 23]", "[1, 7, 13]"],
-        pin: "fd6330759ffd33e867ed71b646180ca7b33a21b55a7fe7315245cf0fe4750c93",
+        pin: "daeb042ea36bd6ab5925bbb87848cdebc1ab7f3b21a272057ed8916533079fe8",
     };
     processes += run_profile(
         &root,

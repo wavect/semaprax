@@ -12,6 +12,10 @@ impl PlanBuilder<'_> {
         flow: (BlockId, FlowState, CleanupRegionId),
     ) -> Result<EvalResult, Diagnostic> {
         let (block, state, region) = flow;
+        if matches!(&expression.kind, ResolvedExprKind::HostCommandCall(call) if call.operation == crate::hir::ResolvedHostCommandOperation::StdinStreamNext)
+        {
+            super::finish_call::stream_next_signature(expression)?;
+        }
         let type_arguments = bounded_vec::type_arguments(expression)?;
         let params = if matches!(
             expression.kind,
@@ -95,6 +99,13 @@ impl PlanBuilder<'_> {
             } else {
                 self.lower_expr_recursive_reference(argument, current, current_state, region)?
             };
+            if matches!(&expression.kind, ResolvedExprKind::HostCommandCall(call) if call.operation != crate::hir::ResolvedHostCommandOperation::StdinStreamNext)
+                && evaluated.owned_source.is_some()
+            {
+                return Err(plan_error(
+                    "host-command operation received an owned argument",
+                ));
+            }
             current = evaluated.block;
             current_state = evaluated.state;
             if parameter.ownership == OwnershipMode::Own && self.needs_drop(&parameter.ty)? {

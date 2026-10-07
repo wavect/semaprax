@@ -2639,6 +2639,25 @@ impl<'a> PlanBuilder<'a> {
                             },
                         })
                     }
+                    ResolvedExprKind::HostCommandCall(call)
+                        if call.operation
+                            == crate::hir::ResolvedHostCommandOperation::StdinStreamNext =>
+                    {
+                        let (callee, params) = finish_call::stream_next_signature(expression)?;
+                        frames.push(Frame::CallNext {
+                            expression,
+                            callee,
+                            args: &call.args,
+                            params,
+                            index: 0,
+                            flow: EvalResult {
+                                block,
+                                state,
+                                owned_source: None,
+                            },
+                            commits: Vec::new(),
+                        });
+                    }
                     ResolvedExprKind::HostCommandCall(call) => {
                         frames.push(Frame::HostCommandNext {
                             expression,
@@ -3281,40 +3300,12 @@ impl<'a> PlanBuilder<'a> {
                         });
                         continue;
                     }
-                    self.push_transition(
-                        flow.block,
-                        CleanupTransition::CallCommit {
-                            call: expression.id.clone(),
-                            arguments: Vec::new(),
-                        },
-                    );
-                    let state = flow.state;
-                    let (block, mut state) = if crate::command_io_ops::failure(operation)
-                        == crate::command_io_ops::CommandIoFailure::Status
-                    {
-                        let source = StatusSourceId {
-                            expression: expression.id.clone(),
-                            lane: StatusLane::OperationFailure,
-                        };
-                        self.add_status_source(
-                            source.clone(),
-                            StatusProducer::PropagatedCall {
-                                callee: DeclarationId::new(crate::command_io_ops::id(operation)),
-                            },
-                        )?;
-                        self.split_status(flow.block, state, active_region, source)?
-                    } else {
-                        (flow.block, state)
-                    };
-                    let destination = self.expression_slot(expression, active_region)?;
-                    if let Some(destination) = destination.clone() {
-                        self.initialize(block, expression.id.clone(), destination, &mut state)?;
-                    }
-                    results.push(EvalResult {
-                        block,
-                        state,
-                        owned_source: destination,
-                    });
+                    results.push(self.finish_host_command(
+                        expression,
+                        operation,
+                        flow,
+                        active_region,
+                    )?);
                 }
                 Frame::HostCommandAfterArg {
                     expression,

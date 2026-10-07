@@ -144,6 +144,11 @@ pub(super) fn resolved_call_params(
 
 // Independently replay the exact failure-before-transfer operation profile.
 pub(super) fn defers_owner_commit(expression: &crate::hir::ResolvedExpr) -> bool {
+    if matches!(&expression.kind, crate::hir::ResolvedExprKind::HostCommandCall(call)
+        if call.operation == crate::hir::ResolvedHostCommandOperation::StdinStreamNext)
+    {
+        return true;
+    }
     matches!(
         &expression.kind,
         crate::hir::ResolvedExprKind::Call {

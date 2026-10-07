@@ -13,11 +13,13 @@ pub(crate) const LEN_BYTES_NAME: &str = "str_len_bytes";
 pub(crate) const IS_EMPTY_NAME: &str = "str_is_empty";
 pub(crate) const STARTS_WITH_NAME: &str = "str_starts_with";
 pub(crate) const CONTAINS_NAME: &str = "str_contains";
+pub(crate) const BYTE_AT_NAME: &str = "str_byte_at";
 
 pub(crate) const LEN_BYTES_ID: &str = "core.str.len_bytes";
 pub(crate) const IS_EMPTY_ID: &str = "core.str.is_empty";
 pub(crate) const STARTS_WITH_ID: &str = "core.str.starts_with";
 pub(crate) const CONTAINS_ID: &str = "core.str.contains";
+pub(crate) const BYTE_AT_ID: &str = "core.str.byte-at";
 
 /// Per-root length bound for borrowed UTF-8 input. The invocation boundary
 /// combines text and arbitrary-byte roots under the shared Useful Data
@@ -74,6 +76,8 @@ pub(crate) enum StrOp {
     IsEmpty,
     StartsWith,
     Contains,
+    /// Total UTF-8 byte read without allocating a view or owned String.
+    ByteAt,
 }
 
 impl StrOp {
@@ -83,6 +87,7 @@ impl StrOp {
             Self::IsEmpty => IS_EMPTY_NAME,
             Self::StartsWith => STARTS_WITH_NAME,
             Self::Contains => CONTAINS_NAME,
+            Self::ByteAt => BYTE_AT_NAME,
         }
     }
 
@@ -92,13 +97,14 @@ impl StrOp {
             Self::IsEmpty => IS_EMPTY_ID,
             Self::StartsWith => STARTS_WITH_ID,
             Self::Contains => CONTAINS_ID,
+            Self::ByteAt => BYTE_AT_ID,
         }
     }
 
     pub(crate) const fn arity(self) -> usize {
         match self {
             Self::LenBytes | Self::IsEmpty => 1,
-            Self::StartsWith | Self::Contains => 2,
+            Self::StartsWith | Self::Contains | Self::ByteAt => 2,
         }
     }
 
@@ -107,6 +113,7 @@ impl StrOp {
             Self::LenBytes | Self::IsEmpty => &["value"],
             Self::StartsWith => &["value", "prefix"],
             Self::Contains => &["value", "needle"],
+            Self::ByteAt => &["value", "index"],
         }
     }
 
@@ -114,12 +121,14 @@ impl StrOp {
         match self {
             Self::LenBytes | Self::IsEmpty => &[ResolvedType::Str],
             Self::StartsWith | Self::Contains => &[ResolvedType::Str, ResolvedType::Str],
+            Self::ByteAt => &[ResolvedType::Str, ResolvedType::Usize],
         }
     }
 
     pub(crate) fn return_type(self) -> ResolvedType {
         match self {
             Self::LenBytes => ResolvedType::I64,
+            Self::ByteAt => crate::byte_ops::ByteOp::Get.return_type(),
             Self::IsEmpty | Self::StartsWith | Self::Contains => ResolvedType::Bool,
         }
     }
@@ -127,6 +136,7 @@ impl StrOp {
     pub(crate) fn ast_return_type(self) -> Type {
         match self {
             Self::LenBytes => Type::I64,
+            Self::ByteAt => crate::byte_ops::ByteOp::Get.ast_return_type(),
             Self::IsEmpty | Self::StartsWith | Self::Contains => Type::Bool,
         }
     }
@@ -138,6 +148,7 @@ pub(crate) fn by_name(name: &str) -> Option<StrOp> {
         IS_EMPTY_NAME => Some(StrOp::IsEmpty),
         STARTS_WITH_NAME => Some(StrOp::StartsWith),
         CONTAINS_NAME => Some(StrOp::Contains),
+        BYTE_AT_NAME => Some(StrOp::ByteAt),
         _ => None,
     }
 }
@@ -148,6 +159,7 @@ pub(crate) fn by_id(id: &str) -> Option<StrOp> {
         IS_EMPTY_ID => Some(StrOp::IsEmpty),
         STARTS_WITH_ID => Some(StrOp::StartsWith),
         CONTAINS_ID => Some(StrOp::Contains),
+        BYTE_AT_ID => Some(StrOp::ByteAt),
         _ => None,
     }
 }
@@ -155,12 +167,17 @@ pub(crate) fn by_id(id: &str) -> Option<StrOp> {
 pub(crate) fn resolved_params(op: StrOp) -> Vec<ResolvedParam> {
     op.param_names()
         .iter()
+        .zip(op.param_types())
         .enumerate()
-        .map(|(index, name)| ResolvedParam {
+        .map(|(index, (name, ty))| ResolvedParam {
             id: ValueId::intrinsic_parameter(op.id(), index),
             name: (*name).to_owned(),
-            ownership: OwnershipMode::Borrow,
-            ty: ResolvedType::Str,
+            ownership: if *ty == ResolvedType::Str {
+                OwnershipMode::Borrow
+            } else {
+                OwnershipMode::Value
+            },
+            ty: ty.clone(),
             span: Span::default(),
         })
         .collect()
@@ -169,10 +186,19 @@ pub(crate) fn resolved_params(op: StrOp) -> Vec<ResolvedParam> {
 pub(crate) fn ast_params(op: StrOp) -> Vec<Param> {
     op.param_names()
         .iter()
-        .map(|name| Param {
+        .zip(op.param_types())
+        .map(|(name, ty)| Param {
             name: (*name).to_owned(),
-            mode: ParamMode::Borrow,
-            ty: Type::Str,
+            mode: if *ty == ResolvedType::Str {
+                ParamMode::Borrow
+            } else {
+                ParamMode::Value
+            },
+            ty: if *ty == ResolvedType::Str {
+                Type::Str
+            } else {
+                Type::Usize
+            },
             span: Span::default(),
         })
         .collect()

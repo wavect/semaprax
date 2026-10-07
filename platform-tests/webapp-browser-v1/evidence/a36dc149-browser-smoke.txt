@@ -1,0 +1,35 @@
+SEMAPRAX Webapp Browser v1 local smoke evidence
+Date: 2026-10-07 17:04 UTC
+
+Compiler source revision: a36dc1492479e2da021c6d99309e2da0cf587063
+Compiler executable: /Users/kevin/.codex/benchmark-binaries/semaprax-a36dc1492
+Compiler SHA-256: 82e2a830b755cbfa92c9631a4356a92202761626caa7388ab1fe8835cbe50b4e
+Browser: Playwright 1.62.0, Chromium 151.0.7922.34
+Node: v24.3.0
+Source fixture: benchmarks/webapp-tokens-v2/semaprax/teamdesk.spx
+Fixture SHA-256: 93b7c95f058b12d09b4799c15a36a1ebfe1cab38a5a595a2381618c112da4bc9
+Generated app.js SHA-256: 566bafc900bd9b8761beea4e088ae0e214614e17350685ad8b9e719b8ff0419e
+
+Generation command:
+  /Users/kevin/.codex/benchmark-binaries/semaprax-a36dc1492 webapp \
+    benchmarks/webapp-tokens-v2/semaprax/teamdesk.spx \
+    -o /tmp/semaprax-webapp-browser-smoke-final-a36dc1492/app
+
+Browser test command (run from platform-tests/webapp-browser-v1):
+  SEMAPRAX_WEBAPP_ROOT=/tmp/semaprax-webapp-browser-smoke-final-a36dc1492/app npm test
+Generated bundle module syntax check:
+  node --input-type=module --check < /tmp/semaprax-webapp-browser-smoke-final-a36dc1492/app/app.js
+
+The generated directory was not patched. The smoke exercised account setup and
+sign-in, task creation, Todo-to-Doing transition, filtered list display, and
+CSV download in local Chromium.
+
+Raw Playwright output:
+
+  > semaprax-webapp-browser-v1@0.0.0 test
+  > playwright test
+
+  Running 1 test using 1 worker
+  (node:43828) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+  ✓ tests/webapp.spec.mjs:60:1 › sign in, create and advance a task, filter its list, and export CSV (856ms)
+  1 passed (4.7s)

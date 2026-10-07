@@ -21,6 +21,10 @@
 //! `mod` in a test crate root resolves against `tests/`, so each module names
 //! its file explicitly.
 
+#[path = "language/borrowed_text_byte_at.rs"]
+mod borrowed_text_byte_at;
+#[path = "language/byte_widening.rs"]
+mod byte_widening;
 #[path = "language/character_scalars.rs"]
 mod character_scalars;
 #[path = "language/class_declarations.rs"]
@@ -171,3 +175,6 @@ mod function_values_runtime;
 
 #[path = "language/function_values_generic.rs"]
 mod function_values_generic;
+
+#[path = "language/stream_text_command.rs"]
+mod stream_text_command;

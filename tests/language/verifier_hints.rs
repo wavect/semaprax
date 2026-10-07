@@ -155,16 +155,18 @@ fn foreign_conversion_and_assert_names_point_at_the_admitted_route() {
 }
 
 #[test]
-fn foreign_byte_conversion_names_the_bounded_library_lookup() {
+fn byte_conversion_is_compiler_owned_and_typo_names_intrinsic() {
+    let ast = parse(
+        "module habit.byte; @id(\"app.main\") fn main()->i64 { i64_from_u8(65u8) }",
+        Path::new("byte.spx"),
+    )
+    .unwrap();
+    assert!(verify::verify(&ast).is_empty());
     let diagnostic = only(
-        "module habit.byte;\n@id(\"app.main\")\nfn main() -> i64\n{\n    i64_from_u8(65u8)\n}\n",
+        "module habit.byte; @id(\"app.main\") fn main()->i64 { i64_from_u7(65u8) }",
         "SPX-T203",
     );
-    assert_eq!(diagnostic.message, "unknown function `i64_from_u8`");
-    assert!(help(&diagnostic).contains("semaprax help library std.bytes.byte_to_i64"));
-    assert!(help(&diagnostic).contains("useful-data.v1"));
-    assert!(help(&diagnostic).contains("single file"));
-    assert!(help(&diagnostic).len() <= 256);
+    assert!(help(&diagnostic).contains("i64_from_u8"));
 }
 
 #[test]

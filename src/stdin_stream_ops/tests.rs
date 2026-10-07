@@ -303,7 +303,8 @@ fn native_open_eof_without_chunk_retains_stream_epoch_carrier() {
     let parsed = ast(r#"module test.stream_empty;
 permit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
 @id("stream.run") fn run() -> bool uses { process.stdin.read } {
-    let reader = stdin_stream_open();
+    let mut reader = stdin_stream_open();
+    reader = stdin_stream_next(reader);
     stdin_stream_eof(reader)
 }
 @id("app.main") fn main() -> i64 { 0 }
@@ -368,6 +369,10 @@ permit { process.args.read, process.stderr.write, process.stdin.read, process.st
         .map(|end| run_body + end)
         .expect("stream.run must have a closed C body");
     let run_c = &emitted[run_body..run_end];
+    assert!(run_c.contains("spx_host_stdin_stream_open_v1"));
+    assert!(run_c.contains("spx_host_stdin_stream_next_v1"));
+    assert!(!run_c.contains("spx_stdin_stream_chunk_v1"));
+    assert!(emitted.contains("(void)&spx_stdin_stream_chunk_v1;"));
     let reader_drop = format!(
         "spx_stdin_stream_drop_v1(spx_ctx, spx_bytes_slot_{});",
         reader_slot.id.0

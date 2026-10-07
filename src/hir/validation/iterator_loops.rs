@@ -251,17 +251,22 @@ impl HirValidator<'_> {
                         if args.len() != operation.arity()
                             || expression.ty != operation.return_type()
                             || expression.ownership != OwnershipMode::Value
-                            || args.iter().any(|argument| {
-                                argument.ty != ResolvedType::Str
-                                    || argument.ownership != OwnershipMode::Borrow
+                            || args.iter().zip(operation.param_types()).any(|(argument, ty)| {
+                                argument.ty != *ty || if *ty == ResolvedType::Str {
+                                    argument.ownership != OwnershipMode::Borrow
                                     || !matches!(&argument.kind, ResolvedExprKind::Place(place) if place.projections.is_empty())
+                                } else { argument.ownership != OwnershipMode::Value }
                             })
                         {
                             return Err(hir_error("loop text reads require exact immutable named borrowed-str inputs"));
                         }
                         // Full expression replay authenticates each binding and
                         // immutable borrowed-str origin; these closed readers
-                        // return only a scalar and cannot retain their inputs.
+                        // return only Copy data and cannot retain their inputs.
+                        pending.extend(
+                            args.iter()
+                                .filter(|argument| argument.ty != ResolvedType::Str),
+                        );
                         continue;
                     }
                     if let Some(operation) = crate::string_ops::by_id(callee.as_str()) {

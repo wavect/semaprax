@@ -786,6 +786,63 @@ module fixture.app;
 }
 
 #[test]
+fn changed_success_result_program_root_replays_typed_residual_reconstruction() {
+    let fixture = Fixture::owned_vec("changed-success-result-root", false);
+    let source = r#"module fixture.app;
+@id("fixture.convert") fn convert(value:own Result<Bytes,Bytes>)->Result<bool,Bytes> {
+ let payload=value?;
+ Result<bool,Bytes>::Ok{value:byte_len(bytes_as_slice(payload))==1usize}
+}
+@id("fixture.consume") fn consume(value:own Result<bool,Bytes>)->i64 {
+ match own value {Result::Ok{value}=>if value{0}else{1},Result::Err{error}=>2,}
+}
+@id("fixture.main") fn main()->i64 {
+ let input=[1u8];
+ consume(convert(Result<Bytes,Bytes>::Ok{value:bytes_copy(array_as_slice(input))}))
+}
+@id("fixture.public") fn published()->i64 {0}
+"#;
+    let path = fixture.0.join("src/app.spx");
+    let parsed = semaprax::parse(source, &path).unwrap();
+    std::fs::write(&path, semaprax::format::canonical(&parsed)).unwrap();
+    let revision = fixture.revision();
+    let workspace = revision.canonical_workspace_revision().unwrap();
+    let root = workspace.program_root().unwrap();
+    assert_eq!(
+        ProgramRoot::replay(
+            &workspace,
+            root.program_root_digest(),
+            root.to_json().as_bytes()
+        )
+        .unwrap(),
+        root
+    );
+
+    let changed = source.replace("let input=[1u8]", "let input=[2u8]");
+    let changed = semaprax::parse(&changed, &path).unwrap();
+    std::fs::write(&path, semaprax::format::canonical(&changed)).unwrap();
+    let changed_revision = fixture.revision();
+    let changed_workspace = changed_revision.canonical_workspace_revision().unwrap();
+    let changed_root = changed_workspace.program_root().unwrap();
+    assert_ne!(
+        workspace.semantic_program().digest(),
+        changed_workspace.semantic_program().digest()
+    );
+    assert!(ProgramRoot::replay(
+        &changed_workspace,
+        root.program_root_digest(),
+        root.to_json().as_bytes()
+    )
+    .is_err());
+    assert!(ProgramRoot::replay(
+        &workspace,
+        changed_root.program_root_digest(),
+        changed_root.to_json().as_bytes()
+    )
+    .is_err());
+}
+
+#[test]
 fn explicit_forwarding_program_root_binds_v35_symbolic_mapping() {
     let fixture = Fixture::owned_vec("explicit-forwarding-root", false);
     let text = r#"module fixture.app;

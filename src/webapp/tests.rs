@@ -253,6 +253,40 @@ fn the_generated_benchmark_app_passes_its_own_self_test() {
 }
 
 #[test]
+fn generated_benchmark_app_is_valid_as_an_es_module() {
+    if std::process::Command::new("node")
+        .arg("--version")
+        .output()
+        .is_err()
+    {
+        eprintln!("node is not installed; generated module syntax is not checked");
+        return;
+    }
+    let source = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("benchmarks/webapp-tokens-v2/semaprax/teamdesk.spx");
+    let projection = generate(&source).unwrap();
+    let out = write_temp("module-syntax-v2", "").with_file_name("out");
+    let _ = std::fs::remove_dir_all(&out);
+    write(&out, &projection).unwrap();
+    let app = std::fs::read(out.join("app.js")).unwrap();
+    let mut check = std::process::Command::new("node")
+        .args(["--input-type=module", "--check"])
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
+    use std::io::Write as _;
+    check.stdin.take().unwrap().write_all(&app).unwrap();
+    let result = check.wait_with_output().unwrap();
+    assert!(
+        result.status.success(),
+        "{}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+}
+
+#[test]
 fn v2_self_test_reports_owned_and_foreign_row_permissions() {
     if std::process::Command::new("node")
         .arg("--version")

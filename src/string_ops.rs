@@ -254,7 +254,7 @@ pub(crate) enum StringOp {
     UsizeFromI64,
     /// Checked `usize` to `i64`.
     I64FromUsize,
-    /// Exact zero extension from a byte.
+    /// Exact infallible unsigned byte widening (Byte Widening v1).
     I64FromU8,
     /// Exact sign extension from a narrow signed integer.
     I64FromI32,

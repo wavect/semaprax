@@ -45,7 +45,35 @@ fn every_issue_619_package_resolves_for_an_ordinary_dependency_consumer() {
             directory: "io-lines",
             dependency: "std.io.lines",
             profile: "owned-data-api.v1",
-            source: "module consumer.app;\nuse function @id(\"std.io.lines.line-content-len\") from std.io.lines as line_content_len;\n\n@id(\"consumer.main\")\nfn main() -> i64\n{\n    let line = [97u8, 13u8];\n    if line_content_len(array_as_slice(line), 0usize) == 2usize { 0 } else { 1 }\n}\n",
+            source: r#"module consumer.app;
+use type @id("std.io.reader") from std.io as Reader;
+use type @id("std.io.writer") from std.io as Writer;
+use function @id("std.io.reader.finish") from std.io as reader_finish;
+use function @id("std.io.reader.from-bytes") from std.io as reader_from_bytes;
+use function @id("std.io.reader.remaining") from std.io as reader_remaining;
+use function @id("std.io.writer.finish") from std.io as writer_finish;
+use function @id("std.io.writer.from-bytes") from std.io as writer_from_bytes;
+use function @id("std.io.lines.reader.line-into") from std.io.lines as reader_line_into;
+use function @id("std.io.lines.reader.next-line") from std.io.lines as reader_next_line;
+
+@id("consumer.main")
+fn main() -> i64
+{
+    let input = [97u8, 10u8, 98u8];
+    let mut reader = reader_from_bytes(bytes_copy(array_as_slice(input)));
+    let mut writer = writer_from_bytes(bytes_zeroed(2usize));
+    let mut lines = 0usize;
+    while reader_remaining(reader) > 0usize {
+        writer = reader_line_into(reader, writer);
+        reader = reader_next_line(reader);
+        lines = lines + 1usize;
+        reader_remaining(reader) > 0usize
+    }
+    let retained = reader_finish(reader);
+    let output = writer_finish(writer);
+    if lines == 2usize && byte_len(bytes_as_slice(retained)) == 3usize && byte_len(bytes_as_slice(output)) == 2usize { 0 } else { 1 }
+}
+"#,
             transitive: &["std.io"],
         },
         Case {

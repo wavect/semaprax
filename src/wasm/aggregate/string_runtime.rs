@@ -216,6 +216,10 @@ impl Emitter<'_> {
             // Aggregate String carriers use the existing Bytes runtime's
             // pointer-high/byte-length-low representation. These borrowed
             // operations therefore require no second owner runtime.
+            StringOp::I64FromU8 => {
+                self.get_scalar(&values[0]);
+                self.output.push(0xad); // i64.extend_i32_u
+            }
             StringOp::Len => {
                 self.get_scalar(&values[0]);
                 self.output.extend([0xa7, 0xad]); // i32.wrap_i64; i64.extend_i32_u

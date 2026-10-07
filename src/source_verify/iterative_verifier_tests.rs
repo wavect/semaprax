@@ -787,3 +787,27 @@ fn streaming_inspection_calls_match_recursive_oracle() {
     compare_scalar_body("module test.stream_oracle; @id(\"stream.inspect\") fn main(reader: borrow StdinReader) -> usize { byte_len(stdin_stream_chunk(reader)) }");
     compare_scalar_body("module test.stream_oracle; @id(\"stream.inspect\") fn main(reader: borrow StdinReader) -> usize { byte_len(1) }");
 }
+
+#[test]
+fn byte_widening_matches_recursive_oracle() {
+    for source in [
+        "module t; fn main(byte:u8)->i64 { i64_from_u8(byte) }",
+        "module t; fn main()->i64 { i64_from_u8(255u8) + i64_from_u8(0u8) }",
+        "module t; fn main()->i64 { i64_from_u8(255) }",
+        "module t; fn main()->i64 { i64_from_u8(1u8, 2u8) }",
+        "module t; fn main()->i64 { i64_from_u8<u8>(1u8) }",
+    ] {
+        compare_scalar_body(source);
+    }
+}
+
+#[test]
+fn borrowed_text_byte_at_matches_recursive_oracle() {
+    for source in [
+        "module t; fn main(text:borrow str,index:usize)->Option<u8> { str_byte_at(text,index) }",
+        "module t; fn main(text:borrow str)->Option<u8> { str_byte_at(text,18446744073709551615usize) }",
+        "module t; fn main(text:borrow str)->Option<u8> { str_byte_at(text,1) }",
+        "module t; fn main(text:borrow str)->Option<u8> { str_byte_at(text) }",
+        "module t; fn main(text:borrow str)->Option<u8> { str_byte_at<u8>(text,0usize) }",
+    ] { compare_scalar_body(source); }
+}

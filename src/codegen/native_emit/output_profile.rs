@@ -25,6 +25,7 @@ pub(crate) enum NativeOutputProfile {
     LanguageCommandIo,
     StdinStreamCommandIo,
     StdinStreamExitCommandIo,
+    StdinStreamTextCommandIo,
     LineCommandIo,
     /// Bounded Language Network I/O v1: the line-command input/output
     /// machinery plus the closed TCP operation family and its settlement.
@@ -122,6 +123,13 @@ impl NativeOutputProfile {
                 stream_epochs: false,
                 command_carriers: false,
             },
+            Self::StdinStreamTextCommandIo => StringRuntimeSelection {
+                length_delimited: true,
+                include_instances: true,
+                stream_epochs: true,
+                command_carriers: true,
+                ..StringRuntimeSelection::FROZEN
+            },
             Self::StdinStreamCommandIo | Self::StdinStreamExitCommandIo => StringRuntimeSelection {
                 stream_epochs: true,
                 command_carriers: true,
@@ -143,14 +151,20 @@ impl NativeOutputProfile {
     pub(super) const fn is_stdin_stream(self) -> bool {
         matches!(
             self,
-            Self::StdinStreamCommandIo | Self::StdinStreamExitCommandIo
+            Self::StdinStreamCommandIo
+                | Self::StdinStreamExitCommandIo
+                | Self::StdinStreamTextCommandIo
         )
     }
 
     pub(super) const fn tracks_present_strings(self) -> bool {
         matches!(
             self,
-            Self::Legacy | Self::StdoutTranscript | Self::SourceCommand | Self::OwnedDataProvider
+            Self::Legacy
+                | Self::StdoutTranscript
+                | Self::SourceCommand
+                | Self::OwnedDataProvider
+                | Self::StdinStreamTextCommandIo
         )
     }
 
@@ -168,6 +182,7 @@ impl NativeOutputProfile {
                 | Self::LanguageCommandIo
                 | Self::StdinStreamCommandIo
                 | Self::StdinStreamExitCommandIo
+                | Self::StdinStreamTextCommandIo
                 | Self::LineCommandIo
                 | Self::NetworkCommandIo
                 | Self::HttpsCommandIo
@@ -185,6 +200,7 @@ impl NativeOutputProfile {
                 | Self::LanguageCommandIo
                 | Self::StdinStreamCommandIo
                 | Self::StdinStreamExitCommandIo
+                | Self::StdinStreamTextCommandIo
                 | Self::LineCommandIo
                 | Self::NetworkCommandIo
                 | Self::HttpsCommandIo
@@ -204,6 +220,7 @@ impl NativeOutputProfile {
             Self::LanguageCommandIo
                 | Self::StdinStreamCommandIo
                 | Self::StdinStreamExitCommandIo
+                | Self::StdinStreamTextCommandIo
                 | Self::LineCommandIo
                 | Self::NetworkCommandIo
                 | Self::HttpsCommandIo
@@ -211,5 +228,43 @@ impl NativeOutputProfile {
                 | Self::ProcessCommandIo
                 | Self::SourceCommand
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn stream_text_selection_is_additive_and_old_string_runtime_is_frozen() {
+        for profile in [
+            NativeOutputProfile::StdinStreamCommandIo,
+            NativeOutputProfile::StdinStreamExitCommandIo,
+        ] {
+            assert_eq!(
+                profile.string_runtime(),
+                StringRuntimeSelection {
+                    stream_epochs: true,
+                    command_carriers: true,
+                    ..StringRuntimeSelection::FROZEN
+                }
+            );
+            assert!(!profile.tracks_present_strings());
+        }
+        let selected = NativeOutputProfile::StdinStreamTextCommandIo;
+        assert_eq!(
+            selected.string_runtime(),
+            StringRuntimeSelection {
+                length_delimited: true,
+                include_instances: true,
+                stream_epochs: true,
+                command_carriers: true,
+                ..StringRuntimeSelection::FROZEN
+            }
+        );
+        assert!(
+            selected.tracks_present_strings()
+                && selected.is_command()
+                && selected.is_stdin_stream()
+        );
     }
 }

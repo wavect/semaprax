@@ -182,3 +182,9 @@ JSON, and Core Wasm bytes, and runs it on the reference interpreter, native C
 through `semaprax run --native`, and Core Wasm in Node. A `for` body corpus
 runs on the interpreter and native C. Diagnostic regressions pin the refusals
 above.
+
+## Additive byte widening
+
+[Byte Widening v1](BYTE-WIDENING-V1.md) separately admits exact
+`i64_from_u8(value: u8) -> i64`, including inline Core Wasm lowering. It is
+outside the frozen Conversions v1 catalog and does not change its refusals.

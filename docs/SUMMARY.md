@@ -151,6 +151,8 @@ Audience: all documentation readers.
 - [Field mutation](FIELD-MUTATION-V1.md)
 - [While loops](WHILE-LOOPS-V1.md)
 - [Language ergonomics (statement `if`)](LANGUAGE-ERGONOMICS-V1.md)
+- [Byte Widening v1](BYTE-WIDENING-V1.md)
+- [Borrowed Text Byte Access v1](BORROWED-TEXT-BYTE-ACCESS-V1.md)
 - [Record invariants](RECORD-INVARIANTS-V1.md)
 - [Refutable match](REFUTABLE-MATCH-V1.md)
 - [Copy variant guards](COPY-VARIANT-GUARDS-V1.md)
@@ -671,3 +673,5 @@ Audience: all documentation readers.
 - [ADR 0006: Bootstrap rich Rust interop through generated C-compatible shims](decisions/0006-rust-rich-interop-bootstrap-boundary.md)
 - [ADR 0008: Hold RI-14 stable Rust-source lowering at an executable evidence gate](decisions/0008-ri-14-stable-rust-source-evidence.md)
 - [Kernel-0 accepted-profile receipts, 2 October 2026](evidence/kernel-zero-f99c76dc2/README.md)
+
+- [Stream Text Command v1](STREAM-TEXT-COMMAND-V1.md)

@@ -110,11 +110,6 @@ struct StandardFunction {
 /// Foreign spellings of an operation the language provides under another name.
 fn foreign_function_help(name: &str) -> Option<&'static str> {
     match name {
-        "i64_from_u8" => Some(
-            "`u8` conversion is `std.bytes.byte_to_i64`, not a compiler builtin; inspect it with \
-             `semaprax help library std.bytes.byte_to_i64` and import it in a `useful-data.v1` \
-             project, or declare a byte conversion helper in a single file",
-        ),
         "to_string" | "toString" | "str" | "itoa" | "string" | "String" => Some(
             "render an integer with the compiler-owned `string_from_i64(value)` or \
              `string_from_usize(value)`",
@@ -190,10 +185,12 @@ fn nearest_function_name(name: &str, functions: &HashMap<&str, &Function>) -> Op
     );
     candidates.extend(
         [
+            crate::string_ops::I64_FROM_U8_NAME,
             crate::str_ops::LEN_BYTES_NAME,
             crate::str_ops::IS_EMPTY_NAME,
             crate::str_ops::STARTS_WITH_NAME,
             crate::str_ops::CONTAINS_NAME,
+            crate::str_ops::BYTE_AT_NAME,
             crate::host_io_ops::STDOUT_WRITE_NAME,
             crate::command_io_ops::ARGS_LEN_NAME,
             crate::command_io_ops::ARG_UTF8_NAME,

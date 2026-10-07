@@ -313,6 +313,9 @@ fn program_uses_byte_data(program: &ResolvedProgram) -> bool {
         pending.extend(function.requires.iter().chain(&function.ensures));
     }
     while let Some(expression) = pending.pop() {
+        // A record or variant value with a direct `Bytes` leaf needs the byte
+        // runtime for its cleanup even when no expression is itself `Bytes`:
+        // scope exit drops the payload through the `spx_bytes_drop` import.
         if matches!(
             expression.ty,
             ResolvedType::SliceU8 | ResolvedType::Bytes | ResolvedType::ArrayU8(_)
@@ -321,11 +324,14 @@ fn program_uses_byte_data(program: &ResolvedProgram) -> bool {
             ResolvedExprKind::ArrayU8(_)
                 | ResolvedExprKind::RepeatArrayU8 { .. }
                 | ResolvedExprKind::BorrowPlace { .. }
-        ) {
+        ) || crate::hir::yield_aggregate::has_bytes_leaf(&program.declarations, &expression.ty)
+        {
             return true;
         }
         if let ResolvedExprKind::Call { callee, .. } = &expression.kind {
-            if crate::byte_ops::by_id(callee.as_str()).is_some() {
+            if crate::byte_ops::by_id(callee.as_str()).is_some()
+                || callee.as_str() == crate::str_ops::BYTE_AT_ID
+            {
                 return true;
             }
         }
@@ -420,7 +426,9 @@ fn program_uses_string_ops(program: &ResolvedProgram) -> bool {
     }
     while let Some(expression) = pending.pop() {
         if let ResolvedExprKind::Call { callee, .. } = &expression.kind {
-            if crate::string_ops::by_id(callee.as_str()).is_some_and(|op| op.touches_string()) {
+            if crate::string_ops::by_id(callee.as_str())
+                .is_some_and(crate::string_ops::StringOp::touches_string)
+            {
                 return true;
             }
         }
@@ -3573,6 +3581,12 @@ fn emit_expr(
                         emit_expr(output, arg, value_indexes, function_indexes, layout, result)?;
                     }
                     match op {
+                        crate::str_ops::StrOp::ByteAt => {
+                            return Err(Diagnostic::io(
+                                "SPX-W119",
+                                "borrowed byte indexing requires the aggregate Wasm lane",
+                            ))
+                        }
                         crate::str_ops::StrOp::LenBytes => {
                             output.push(0x42); // i64.const 32
                             write_i64(output, 32);
@@ -3618,6 +3632,7 @@ fn emit_expr(
                         emit_expr(output, arg, value_indexes, function_indexes, layout, result)?;
                     }
                     match op {
+                        crate::string_ops::StringOp::I64FromU8 => output.push(0xad), // i64.extend_i32_u
                         crate::string_ops::StringOp::Len => {
                             call_import(output, STRING_OPS_IMPORT_BASE_LEN);
                         }

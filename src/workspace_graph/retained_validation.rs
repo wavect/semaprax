@@ -16,35 +16,19 @@ mod scalar_link;
 mod stream_admission;
 mod type_reference;
 pub(super) use profile_names::project_linker_name;
-pub(super) use stream_admission::{stream_parameter_admitted, stream_return_admitted};
+pub(super) use stream_admission::{
+    command_link, entry_link, stream_parameter_admitted, stream_return_admitted,
+};
 
-pub(super) use dependency_closure::retain_legacy_useful_data_dependency_closure;
+pub(super) use dependency_closure::{
+    retain_legacy_useful_data_dependency_closure, useful_data_v1_dependency_fallback,
+};
 
 use super::{
     budgeted_edge_clone, graph_error, limit_error, push_edge, reserve_builder_structure,
     visit_ast_call_sites, CallOccurrenceKey, WorkspaceDeclarationFact, WorkspaceEdge,
     WorkspaceResolvedModule, MAX_CALLS,
 };
-
-/// A bundled dependency may carry newer declarations beside its legacy scalar
-/// surface.  A v1 consumer retains that newer surface only when an otherwise
-/// admitted declaration calls it; authored modules never use this exception.
-pub(super) fn useful_data_v1_dependency_fallback(module: &WorkspaceResolvedModule) -> bool {
-    module.path.starts_with("dependencies/")
-        && (!module.types.is_empty()
-            || !module.interfaces.is_empty()
-            || !module.function_templates.is_empty()
-            || !module.function_instances.is_empty()
-            || module.functions.iter().any(|function| {
-                !hir::useful_data_workspace_return_admitted(&function.return_type)
-                    || function.params.iter().any(|parameter| {
-                        !hir::useful_data_workspace_parameter_admitted(
-                            &parameter.ty,
-                            parameter.ownership,
-                        )
-                    })
-            }))
-}
 
 pub(super) fn validate_retained_facts(
     programs: &[Program],
@@ -1324,6 +1308,7 @@ pub(super) fn project_effects_admitted(
             crate::project::ProjectProfile::LanguageCommandIoV1
                 | crate::project::ProjectProfile::StdinStreamCommandIoV1
                 | crate::project::ProjectProfile::StdinStreamCommandIoV2
+                | crate::project::ProjectProfile::StdinStreamTextCommandIoV1
                 | crate::project::ProjectProfile::LineCommandIoV1
         ) && effects.iter().all(|effect| {
             matches!(
@@ -1383,6 +1368,7 @@ pub(super) fn permits_admitted(
             crate::project::ProjectProfile::LanguageCommandIoV1
                 | crate::project::ProjectProfile::StdinStreamCommandIoV1
                 | crate::project::ProjectProfile::StdinStreamCommandIoV2
+                | crate::project::ProjectProfile::StdinStreamTextCommandIoV1
                 | crate::project::ProjectProfile::LineCommandIoV1
         ) && module.module == entry_module
             && module.permits

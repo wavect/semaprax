@@ -3563,3 +3563,14 @@ authority. General semantic shutdown and other recovered phases remain
 separate work. The exact public first-Prepared process-relaunch gate passed
 locally on macOS with 2 MiB workers at `46d99ddfb`; this does not admit other
 recovered phases.
+
+The native emitter `native_emit/indexed_reads.rs` and aggregate Wasm
+`aggregate/indexed_reads.rs` share total byte-result lowering between
+`byte_get` and [Borrowed Text Byte Access v1](BORROWED-TEXT-BYTE-ACCESS-V1.md).
+Both consume only previously authenticated arguments and preserve canonical
+Option layouts and existing cleanup ordering.
+
+The explicit [Stream Text Command v1](STREAM-TEXT-COMMAND-V1.md) selector is
+owned by Project profile/manifest admission, `workspace_link/stdin_stream`, and
+`native_emit/output_profile`. Retained workspace stream admission selects the
+exact pure-entry and command linker; neither changes capability authority.

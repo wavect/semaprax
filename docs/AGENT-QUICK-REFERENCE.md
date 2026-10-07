@@ -92,10 +92,12 @@ with `string_concat`. No `as`; use `f64_from_i64`, `i64_from_f64` (truncates),
 
 ## Control flow, mutation, contracts, effects
 
-Scalar conversions fail out of range or on NaN with `semaprax.convert.v1`;
-Integer conversions run on Core Wasm; float conversions and `string_from_str`
-retain `SPX-W116`. Integer `%` supports i64, i32, u8, and usize: zero divisors
-fail; signed MIN % -1 fails with remainder overflow.
+Scalar conversions fail out of range or on NaN with `semaprax.convert.v1`.
+Exact integer widening and checked integer conversions run on the interpreter,
+native, and Core Wasm; float conversions and `string_from_str` retain
+`SPX-W116`. `i64_from_u8(byte)` is allocation-free and infallible. Integer `%`
+supports i64, i32, u8, and usize: zero divisors fail; signed MIN % -1 fails
+with remainder overflow.
 
 ```semaprax
 module app.convert;
@@ -578,6 +580,7 @@ fn main() -> i64
 | `str_as_bytes` | `(s: borrow str) -> Slice<u8>` |
 | `byte_len` | `(v: borrow Slice<u8>) -> usize` |
 | `byte_get` | `(v: borrow Slice<u8>, i: usize) -> Option<u8>` |
+| `str_byte_at` | `(s: borrow str, i: usize) -> Option<u8>` |
 | `byte_range` | `(v: borrow Slice<u8>, start: usize, end: usize) -> Slice<u8>` |
 | `bytes_copy` | `(v: borrow Slice<u8>) -> Bytes` |
 | `bytes_zeroed` | `(count: usize) -> Bytes` literal capacity |
@@ -1149,9 +1152,10 @@ fn order_status(paid: bool) -> string
 
 ## Projects
 
-Convert `u8` in `useful-data.v1` with `std.bytes.byte_to_i64`:
-`semaprax help library std.bytes.byte_to_i64`. Single files need their own
-helper; `i64_from_u8` is unknown (`SPX-T203`).
+`str_byte_at(text, 0usize)` reads borrowed UTF-8 bytes without an owned copy;
+match its `Option<u8>` and use `i64_from_u8(byte)` to widen `Some` exactly.
+`std.bytes.get_or` is also available in `useful-data.v1`:
+`semaprax help library std.bytes.get_or`.
 
 A project puts `semaprax.toml` beside `src/`. Use the extensible table layout
 below. The committed examples' frozen, one-line-per-key
@@ -1247,6 +1251,11 @@ that binary. Out-of-range results or checked execution failures discard staged
 output and produce the generic adapter diagnostic with status 2. Project v23
 keeps its Bool status 0/1 mapping. [Streaming command exit status
 v1](BOUNDED-STDIN-COMMAND-EXIT-V1.md) owns selection and the verification boundary.
+
+For owned String helpers and `string_slice`/`string_trim` in a streaming native
+project, select Project v25 `language-command-io.stream-text.v1` with the same
+input and i64 command. [Stream Text Command v1](STREAM-TEXT-COMMAND-V1.md) owns
+its limits; v23/v24 retain their older text/helper refusals.
 
 - [RFC 0001](RFC-0001.md): language and toolchain contract.
 - [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md): records, variants, generics,

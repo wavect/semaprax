@@ -23,6 +23,16 @@
   contextual owned variant matches through canonical formatting. Attach source
   spans to record-update, field-assignment, record-pattern and Useful Data
   function-body profile diagnostics.
+- Borrowed Text Byte Access v1: add direct `str_byte_at(borrow str, usize)`
+  with the existing total `Option<u8>` byte-read contract. Native and aggregate
+  Wasm share byte-result lowering; borrowed input and full-width bounds remain
+  checked. Focused local backend and independent verifier gates pass.
+
+- Byte Widening v1: add exact, allocation-free `i64_from_u8` through the shared
+  intrinsic signature and interpreter/native/Core Wasm lowering. The frozen
+  Conversions v1 catalog remains separate; focused regressions cover all byte
+  values and direct/byte-view borrowed-text reads. Focused local backend and
+  independent verifier gates pass.
 
 - Copy variant guard execution: evaluate nominal guards on the reference
   interpreter before selecting an arm, and provide the explicit additive
@@ -98,6 +108,13 @@ format: `Unreleased` then release buckets, grouped by impact.
 > [docs/CHANGELOG-ARCHIVE.md](docs/CHANGELOG-ARCHIVE.md).
 
 ## Unreleased
+
+- Add Project v25 `language-command-io.stream-text.v1`: existing streaming
+  input and i64 process result with length-delimited native text/local maps and
+  private owned String helper boundaries. Focused native O0/O2, manifest,
+  boundary/refusal, allocation and provider-settlement checks pass locally.
+  Anchor optional native stream helpers so valid operation subsets build under
+  `-Werror`.
 
 - Admit `string_len(namedString)` in while conditions without cloning the owner, preserving fuel and cleanup across interpreter, native C11, and admitted Core Wasm profiles. Allocating String conditions remain outside this narrow profile.
 

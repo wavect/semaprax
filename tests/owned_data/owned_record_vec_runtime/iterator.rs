@@ -121,6 +121,23 @@ fn stale_iterator_and_double_item_consumption_are_source_errors() {
 }
 
 #[test]
+fn retained_hir_rejects_a_reminted_record_iterator_declaration() {
+    let parsed = semaprax::check(&source(MANUAL_AND_LOOP), "owned-record-iterator-id.spx")
+        .expect("record traversal source checks");
+    let mut resolved = semaprax::hir::resolve(&parsed).expect("record traversal resolves");
+    let item = resolved
+        .types
+        .iter_mut()
+        .find(|declaration| declaration.id.as_str() == "app.catalog.line")
+        .expect("record iterator item declaration");
+    item.id = semaprax::hir::DeclarationId::new("foreign.catalog.line");
+    assert_eq!(
+        semaprax::hir::validate(&resolved).unwrap_err().code,
+        "SPX-H006"
+    );
+}
+
+#[test]
 fn wasm_rejects_hostile_record_step_frames_before_owner_commit() {
     let program = source(MANUAL_AND_LOOP);
     for refusal in [

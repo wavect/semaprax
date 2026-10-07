@@ -37,6 +37,7 @@ mod generic_record;
 mod generic_variant;
 mod guarded_variant;
 mod http_io;
+mod indexed_reads;
 mod literals;
 mod narrow_remainder;
 mod native_list;
@@ -269,7 +270,11 @@ fn emit_hir_c_with_options(
         } else if output_profile == NativeOutputProfile::EnvironmentCommandIo {
             environment_io::emit_runner(&mut output, symbol);
         } else if output_profile.is_stdin_stream() {
-            if output_profile == NativeOutputProfile::StdinStreamExitCommandIo {
+            if matches!(
+                output_profile,
+                NativeOutputProfile::StdinStreamExitCommandIo
+                    | NativeOutputProfile::StdinStreamTextCommandIo
+            ) {
                 super::native_stdin_stream::exit_status::emit_runner(&mut output, symbol);
                 super::native_stdin_stream::exit_status::emit_process_adapter(&mut output);
             } else {

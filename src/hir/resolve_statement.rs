@@ -300,17 +300,15 @@ impl Resolver<'_> {
                         .find(|function| function.name == *name);
                     if let Some(declared) = declared {
                         let scalar_signature = declared.effects.is_empty()
-                            && is_scalar_source_type(&declared.return_type)
+                            && crate::loop_calls::ast_result_admitted(&declared.return_type)
                             && declared.params.iter().all(|param| {
-                                (param.mode == ParamMode::Value && is_scalar_source_type(&param.ty))
-                                    || (param.mode == ParamMode::Borrow
-                                        && param.ty == Type::SliceU8)
+                                crate::loop_calls::ast_param_admitted(param.mode, &param.ty)
                             });
                         if !scalar_signature {
                             return Err(self.error(
                                 "SPX-T252",
                                 format!(
-                                    "call `{name}` is not admitted in while bodies; only scalar functions qualify"
+                                    "call `{name}` is not admitted in while bodies; only functions over scalars, byte slices and strings qualify"
                                 ),
                                 expression.span,
                             ));
@@ -360,18 +358,18 @@ impl Resolver<'_> {
                         expression.span,
                     ));
                 }
+                // Owned String Loops v2: HIR validation narrows the
+                // scrutinee to Copy scalars and Copy-payload variants.
                 ExprKind::Match {
                     scrutinee, arms, ..
-                } if crate::byte_ops::is_indexed_byte_option_match_source(expression) => {
-                    pending.extend(arms.iter().rev().map(|arm| Item::Expression(&arm.value)));
+                } => {
+                    for arm in arms.iter().rev() {
+                        pending.push(Item::Expression(&arm.value));
+                        if let Some(guard) = &arm.guard {
+                            pending.push(Item::Expression(guard));
+                        }
+                    }
                     pending.push(Item::Expression(scrutinee));
-                }
-                ExprKind::Match { .. } => {
-                    return Err(self.error(
-                        "SPX-T252",
-                        &crate::byte_ops::while_body_match_refusal(expression),
-                        expression.span,
-                    ));
                 }
                 ExprKind::Try { .. } => {
                     return Err(self.error(

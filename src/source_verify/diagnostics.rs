@@ -56,6 +56,43 @@ pub(super) fn reject_aggregate_match_result(
     }
 }
 
+/// Owned String Loops v2: a `match` inside a loop condition or body admits a
+/// Copy scalar scrutinee or a variant whose every payload is a Copy scalar.
+/// HIR validation re-checks the same rule on resolved types.
+pub(super) fn reject_loop_match_scrutinee(
+    program: &Program,
+    types: &TypeTable<'_>,
+    scrutinee: &Expr,
+    value: &CheckedValue,
+    diagnostics: &mut Vec<Diagnostic>,
+) {
+    if value.native_unit || is_scalar_source_type(&value.ty) {
+        return;
+    }
+    if let (Type::Named { name, arguments }, Some(cases)) =
+        (&value.ty, types.variant_cases(&value.ty))
+    {
+        let declaration = types.declaration(name);
+        if cases.iter().all(|case| {
+            case.fields.iter().all(|field| {
+                declaration
+                    .and_then(|declaration| {
+                        TypeTable::substitute_variant_type(declaration, arguments, &field.ty)
+                    })
+                    .is_some_and(|ty| is_scalar_source_type(&ty))
+            })
+        }) {
+            return;
+        }
+    }
+    diagnostics.push(error(
+        program,
+        "SPX-T252",
+        crate::loop_calls::match_scrutinee_refusal(&value.ty.to_string()),
+        scrutinee.span,
+    ));
+}
+
 pub(super) fn reject_aggregate_equality(
     program: &Program,
     types: &TypeTable<'_>,

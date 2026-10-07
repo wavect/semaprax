@@ -499,6 +499,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         // as it was on entry; any drift means a move happened
         // inside the loop and is rejected fail-closed.
         let _ = self.values.pop();
+        self.loop_depth = self.loop_depth.saturating_sub(1);
         for name in &baseline_names {
             let drifted = match (
                 self.scopes[block_scope].bindings.get(name),
@@ -661,6 +662,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 source,
                 baseline,
             });
+        self.loop_depth += 1;
         self.frames
             .push(crate::source_verify::scope::VerifierFrame::Enter {
                 expression: body,
@@ -685,6 +687,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         baseline: Option<HashMap<String, Binding>>,
     ) -> Result<(), Diagnostic> {
         let _ = self.values.pop();
+        self.loop_depth = self.loop_depth.saturating_sub(1);
         if item_inserted {
             self.scopes[block_scope].bindings.remove(item);
         }

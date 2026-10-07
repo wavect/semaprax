@@ -73,6 +73,8 @@ mod owned_byte_buffer_v1;
 mod owned_result_variants;
 #[path = "language/owned_string_loops_v1.rs"]
 mod owned_string_loops_v1;
+#[path = "language/owned_string_loops_v2.rs"]
+mod owned_string_loops_v2;
 #[path = "language/ownership.rs"]
 mod ownership;
 #[path = "language/ownership_control_flow.rs"]

@@ -4,7 +4,9 @@
 use crate::ast::{Expr, ExprKind, MatchMode, MatchPattern, ParamMode, Type};
 use crate::diagnostic::Diagnostic;
 use crate::source_verify::declared_type::check_record_pattern;
-use crate::source_verify::diagnostics::{error, reject_native_unit_value};
+use crate::source_verify::diagnostics::{
+    error, reject_loop_match_scrutinee, reject_native_unit_value,
+};
 use crate::source_verify::loans::{activate_match_loan, mark_value_sources_moved};
 use crate::source_verify::place::source_place;
 use crate::source_verify::scope::{
@@ -29,6 +31,15 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         let scrutinee_value = self.values.pop().unwrap_or(None);
         if let Some(value) = &scrutinee_value {
             reject_native_unit_value(self.program, scrutinee, value, self.diagnostics);
+            if self.loop_depth != 0 {
+                reject_loop_match_scrutinee(
+                    self.program,
+                    self.types,
+                    scrutinee,
+                    value,
+                    self.diagnostics,
+                );
+            }
         }
         // Refutable Match v1: Copy-scalar scrutinees take the
         // literal/guard decision chain; every other type keeps

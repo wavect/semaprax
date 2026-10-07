@@ -96,6 +96,9 @@ struct IterativeVerifier<'a, 'p> {
     /// right-hand side is entered, so the call's own admission rule reads it in
     /// the ordinary order.
     buffer_reopen_sites: std::collections::BTreeSet<(usize, usize)>,
+    /// How many `while`/`for` conditions or bodies enclose the frame being
+    /// checked; Owned String Loops v2 narrows `match` scrutinees there.
+    loop_depth: usize,
 }
 
 /// Declared in the module root, rather than beside the frame loop, because the
@@ -134,6 +137,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             frames: Vec::new(),
             values: Vec::new(),
             buffer_reopen_sites: std::collections::BTreeSet::new(),
+            loop_depth: 0,
         }
     }
 

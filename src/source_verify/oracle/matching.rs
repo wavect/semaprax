@@ -8,7 +8,8 @@ use crate::source_verify::declared_type::{
     check_record_pattern, generic_function_has_owned_record_composition,
 };
 use crate::source_verify::diagnostics::{
-    error, reject_aggregate_match_result, reject_native_unit_value, source_identifier,
+    error, reject_aggregate_match_result, reject_loop_match_scrutinee, reject_native_unit_value,
+    source_identifier,
 };
 use crate::source_verify::loans::{activate_match_loan, mark_value_sources_moved, merge_moved};
 use crate::source_verify::oracle::check_expr;
@@ -19,6 +20,19 @@ use crate::source_verify::variant_or::{
     check_variant_or_pattern, VariantOrContext, AGGREGATE_REFUTABLE_HELP,
 };
 use std::collections::{BTreeSet, HashMap, HashSet};
+
+std::thread_local! {
+    /// The recursive twin of `IterativeVerifier::loop_depth`.
+    static LOOP_DEPTH: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+/// Check `inner` as part of a `while`/`for` condition or body.
+pub(super) fn in_loop<T>(inner: impl FnOnce() -> T) -> T {
+    LOOP_DEPTH.with(|depth| depth.set(depth.get() + 1));
+    let result = inner();
+    LOOP_DEPTH.with(|depth| depth.set(depth.get().saturating_sub(1)));
+    result
+}
 
 #[allow(clippy::too_many_arguments, clippy::borrowed_box)]
 pub(super) fn oracle_match(
@@ -48,6 +62,9 @@ pub(super) fn oracle_match(
     );
     if let Some(value) = &scrutinee_value {
         reject_native_unit_value(program, scrutinee, value, diagnostics);
+        if LOOP_DEPTH.with(std::cell::Cell::get) != 0 {
+            reject_loop_match_scrutinee(program, types, scrutinee, value, diagnostics);
+        }
     }
     // Refutable Match v1: Copy-scalar decision chain in the
     // recursive oracle twin.

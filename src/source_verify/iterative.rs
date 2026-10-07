@@ -188,6 +188,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             ));
         }
         self.reject_owned_string_condition(condition);
+        self.loop_depth += 1;
         let _ = self.reject_while_disallowed(condition);
         let _ = self.reject_while_disallowed(body);
         let baseline_names = self.scopes[block_scope]
@@ -207,6 +208,13 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             statement_span: condition.span.merge(body.span),
             baseline_names,
             baseline_bindings,
+        });
+        // The body is an ordinary block in the loop's scope: it verifies
+        // with its own child scope after the condition, and
+        // ResumeWhileBody discards its value and checks ownership drift.
+        self.frames.push(VerifierFrame::Enter {
+            expression: body,
+            scope: block_scope,
         });
         self.frames
             .push(VerifierFrame::ResumeWhileCondition { condition });

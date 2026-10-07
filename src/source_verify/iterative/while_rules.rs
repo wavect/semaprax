@@ -2,7 +2,7 @@
 //! rejection of expression forms that are not yet admitted inside a loop.
 
 use crate::ast::{Expr, ExprKind, ParamMode, Statement, Type};
-use crate::source_verify::diagnostics::{error, is_scalar_source_type};
+use crate::source_verify::diagnostics::error;
 use crate::source_verify::IterativeVerifier;
 
 impl<'a, 'p> IterativeVerifier<'a, 'p> {
@@ -218,7 +218,13 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             arms,
                             next: next + 1,
                         });
-                        frames.push(Frame::Expression(&arm.value));
+                        if let Some(guard) = &arm.guard {
+                            frames.push(Frame::JoinAll(2));
+                            frames.push(Frame::Expression(&arm.value));
+                            frames.push(Frame::Expression(guard));
+                        } else {
+                            frames.push(Frame::Expression(&arm.value));
+                        }
                     } else {
                         results.push(Ok(()));
                     }
@@ -352,11 +358,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     // established unresolved-value diagnostic fires instead.
                     if let Some(declared) = self.functions.get(name.as_str()) {
                         let scalar_signature = declared.effects.is_empty()
-                            && is_scalar_source_type(&declared.return_type)
+                            && crate::loop_calls::ast_result_admitted(&declared.return_type)
                             && declared.params.iter().zip(args).all(|(param, argument)| {
-                                (param.mode == ParamMode::Value && is_scalar_source_type(&param.ty))
-                                    || (param.mode == ParamMode::Borrow
-                                        && param.ty == Type::SliceU8)
+                                crate::loop_calls::ast_param_admitted(param.mode, &param.ty)
                                     || (param.mode == ParamMode::Own && param.ty == Type::Bytes
                                         && owned_item.is_some_and(|item| matches!(&argument.kind, ExprKind::Var(name) if name == item)))
                             });
@@ -365,7 +369,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             self.program,
                             "SPX-T252",
                             format!(
-                                "call `{name}` is not admitted in while bodies; only scalar functions qualify"
+                                "call `{name}` is not admitted in while bodies; only functions over scalars, byte slices and strings qualify"
                             ),
                             expression.span,
                         ));
@@ -429,20 +433,15 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     ));
                     results.push(Err(()));
                 }
+                // Owned String Loops v2: a match is scanned like any
+                // branch; the verifier's typed scrutinee rule and HIR
+                // validation narrow it to Copy scalars and Copy-payload
+                // variants.
                 ExprKind::Match {
                     scrutinee, arms, ..
-                } if crate::byte_ops::is_indexed_byte_option_match_source(expression) => {
+                } => {
                     frames.push(Frame::MatchNext { arms, next: 0 });
                     frames.push(Frame::Expression(scrutinee));
-                }
-                ExprKind::Match { .. } => {
-                    self.diagnostics.push(error(
-                        self.program,
-                        "SPX-T252",
-                        &crate::byte_ops::while_body_match_refusal(expression),
-                        expression.span,
-                    ));
-                    results.push(Err(()));
                 }
                 ExprKind::Try { .. } => {
                     self.diagnostics.push(error(

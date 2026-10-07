@@ -53,17 +53,20 @@ pub(super) fn check_while_statement(
     let _ = reject_while_disallowed_oracle(program, condition, functions, diagnostics);
     let _ = reject_while_disallowed_oracle(program, body, functions, diagnostics);
     let baseline = variables.clone();
-    if let Some(value) = check_expr(
-        program,
-        current,
-        condition,
-        variables,
-        functions,
-        types,
-        result_type,
-        allow_moves,
-        diagnostics,
-    ) {
+    let condition_value = super::matching::in_loop(|| {
+        check_expr(
+            program,
+            current,
+            condition,
+            variables,
+            functions,
+            types,
+            result_type,
+            allow_moves,
+            diagnostics,
+        )
+    });
+    if let Some(value) = condition_value {
         if value.native_unit {
             reject_native_unit_value(program, condition, &value, diagnostics);
         } else if value.ty != Type::Bool {
@@ -75,17 +78,19 @@ pub(super) fn check_while_statement(
             ));
         }
     }
-    let _ = check_expr(
-        program,
-        current,
-        body,
-        variables,
-        functions,
-        types,
-        result_type,
-        allow_moves,
-        diagnostics,
-    );
+    let _ = super::matching::in_loop(|| {
+        check_expr(
+            program,
+            current,
+            body,
+            variables,
+            functions,
+            types,
+            result_type,
+            allow_moves,
+            diagnostics,
+        )
+    });
     for (name, before) in &baseline {
         let drifted = match variables.get(name) {
             Some(now) => {
@@ -256,17 +261,17 @@ pub(super) fn reject_while_disallowed_oracle(
             }
             if let Some(declared) = functions.get(name.as_str()) {
                 let scalar_signature = declared.effects.is_empty()
-                    && is_scalar_source_type(&declared.return_type)
-                    && declared.params.iter().all(|param| {
-                        (param.mode == ParamMode::Value && is_scalar_source_type(&param.ty))
-                            || (param.mode == ParamMode::Borrow && param.ty == Type::SliceU8)
-                    });
+                    && crate::loop_calls::ast_result_admitted(&declared.return_type)
+                    && declared
+                        .params
+                        .iter()
+                        .all(|param| crate::loop_calls::ast_param_admitted(param.mode, &param.ty));
                 if !scalar_signature {
                     diagnostics.push(error(
                         program,
                         "SPX-T252",
                         format!(
-                            "call `{name}` is not admitted in while bodies; only scalar functions qualify"
+                            "call `{name}` is not admitted in while bodies; only functions over scalars, byte slices and strings qualify"
                         ),
                         expression.span,
                     ));
@@ -325,26 +330,33 @@ pub(super) fn reject_while_disallowed_oracle(
             ));
             Err(())
         }
+        // Owned String Loops v2: the typed scrutinee rule lives in the
+        // match checker; the admission scan visits every operand.
         ExprKind::Match {
             scrutinee, arms, ..
-        } if crate::byte_ops::is_indexed_byte_option_match_source(expression) => {
+        } => {
             reject_while_disallowed_oracle(program, scrutinee, functions, diagnostics)?;
             let mut result = Ok(());
             for arm in arms {
-                result =
-                    reject_while_disallowed_oracle(program, &arm.value, functions, diagnostics);
+                result = match &arm.guard {
+                    Some(guard) => {
+                        let guard =
+                            reject_while_disallowed_oracle(program, guard, functions, diagnostics);
+                        let value = reject_while_disallowed_oracle(
+                            program,
+                            &arm.value,
+                            functions,
+                            diagnostics,
+                        );
+                        guard.and(value)
+                    }
+                    None => {
+                        reject_while_disallowed_oracle(program, &arm.value, functions, diagnostics)
+                    }
+                };
                 result?;
             }
             result
-        }
-        ExprKind::Match { .. } => {
-            diagnostics.push(error(
-                program,
-                "SPX-T252",
-                &crate::byte_ops::while_body_match_refusal(expression),
-                expression.span,
-            ));
-            Err(())
         }
         ExprKind::Try { .. } => {
             diagnostics.push(error(

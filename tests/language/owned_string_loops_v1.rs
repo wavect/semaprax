@@ -343,17 +343,16 @@ fn shapes_outside_owned_string_loops_v1_stay_refused() {
         );
     }
     // Consuming an outer String inside the body changes loop-carried
-    // ownership and fails closed at the HIR trust boundary, before any
-    // cleanup plan or backend exists.
-    let source = "module test.refused;\n\n@id(\"app.main\")\nfn main() -> i64\n{\n    let text = \"x\";\n    let mut i = 0;\n    while i < 2 {\n        let moved = string_concat(text, \"y\");\n        i = i + string_len(moved);\n        0\n    }\n    i\n}\n";
-    let program = parse(source, Path::new("refused.spx")).unwrap();
-    let refused = hir::resolve(&program)
-        .map_err(|mut diagnostics| diagnostics.remove(0))
-        .and_then(|resolved| hir::validate(&resolved))
-        .unwrap_err();
-    assert_eq!(refused.code, "SPX-H006");
+    // ownership. The source verifier checks every while body as an ordinary
+    // block and reports the drift at the loop, before HIR, any cleanup plan,
+    // or any backend exists.
+    let found = diagnostics(
+        "    let text = \"x\";\n    let mut i = 0;\n    while i < 2 {\n        let moved = string_concat(text, \"y\");\n        i = i + string_len(moved);\n        0\n    }\n    i",
+    );
+    assert_eq!(found.len(), 1, "{found:?}");
+    assert_eq!(found[0].code, "SPX-T252");
     assert_eq!(
-        refused.message,
-        "while loop body changes ownership liveness"
+        found[0].message,
+        "ownership of `text` changes inside a while loop, which is not yet admitted"
     );
 }

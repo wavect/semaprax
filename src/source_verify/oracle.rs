@@ -1232,7 +1232,7 @@ pub(super) fn check_expr(
                                 availability:Availability::Available, moved_places:HashMap::new(), definitely_partial:HashSet::new(),
                                 native_unit_discard:false, mutable:false, active_loans:BTreeSet::new(), borrow_origin:None });
                         }
-                        let _ = check_expr(program, current, body, &mut scope, functions, types, result_type, allow_moves, diagnostics);
+                        let _ = matching::in_loop(|| check_expr(program, current, body, &mut scope, functions, types, result_type, allow_moves, diagnostics));
                         if item_inserted { scope.remove(item); }
                         let mut names = baseline.keys().collect::<Vec<_>>();
                         names.sort();
@@ -1294,10 +1294,12 @@ pub(super) fn check_expr(
                             });
                             }
                         }
-                        let _ = check_expr(
-                            program, current, body, &mut scope, functions, types,
-                            result_type, allow_moves, diagnostics,
-                        );
+                        let _ = matching::in_loop(|| {
+                            check_expr(
+                                program, current, body, &mut scope, functions, types,
+                                result_type, allow_moves, diagnostics,
+                            )
+                        });
                         if item_inserted {
                             scope.remove(item);
                         }

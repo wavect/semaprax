@@ -1270,9 +1270,7 @@ fn expression_path_counts(
                         };
                     }
                 }
-                ResolvedExprKind::Match { arms, .. }
-                    if guarded_variant::selected(frame.expression) =>
-                {
+                ResolvedExprKind::Match { .. } if guarded_variant::selected(frame.expression) => {
                     frame.accumulator = sequence_path_counts(frame.accumulator, result)
                 }
                 ResolvedExprKind::Match { .. } => {

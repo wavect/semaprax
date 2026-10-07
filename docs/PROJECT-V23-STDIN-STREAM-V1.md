@@ -16,7 +16,7 @@ algorithm. The host supplies bounded chunks and EOF or a normalized read
 failure.
 
 The source-level reader and chunk lifetime are defined by the streaming stdin
-contract under review in [Draft: Bounded Streaming Standard Input](DRAFT-STDIN-STREAM-V1.md).
+contract in [Bounded Stdin Stream v1](BOUNDED-STDIN-STREAM-V1.md).
 This Project profile does not change that contract's application semantics or
 relax any source-language ownership, effect, or capacity rule.
 

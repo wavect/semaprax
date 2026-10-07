@@ -356,3 +356,30 @@ fn shapes_outside_owned_string_loops_v1_stay_refused() {
         "ownership of `text` changes inside a while loop, which is not yet admitted"
     );
 }
+
+#[test]
+fn outer_string_loop_ownership_mutation_reports_exact_source_location() {
+    let source = "module test.outer_string_loop_mutation;\n\n@id(\"app.main\")\nfn main() -> i64\n{\n    let text = \"x\";\n    let mut i = 0;\n    while i < 2 {\n        let moved = string_concat(text, \"y\");\n        i = i + string_len(moved);\n        0\n    }\n    i\n}\n";
+    let path = Path::new("outer-string-loop-mutation.spx");
+    let program = parse(source, path).unwrap();
+    let found = verify::verify(&program);
+    assert_eq!(found.len(), 1, "{found:?}");
+    let diagnostic = &found[0];
+    assert_eq!(diagnostic.code, "SPX-T252");
+    assert_eq!(
+        diagnostic.message,
+        "ownership of `text` changes inside a while loop, which is not yet admitted"
+    );
+    assert_eq!(diagnostic.path.as_deref(), path.to_str());
+    // Ownership drift belongs to the complete loop, rather than just the
+    // consuming call or the declaration of its outer owner.
+    assert_eq!(
+        diagnostic.span,
+        Some(semaprax::ast::Span {
+            start: source.find("while i < 2").unwrap(),
+            end: source.find("\n    i\n}").unwrap(),
+            line: 8,
+            column: 5,
+        })
+    );
+}

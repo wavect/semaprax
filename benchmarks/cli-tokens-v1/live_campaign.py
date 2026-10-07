@@ -61,6 +61,23 @@ SEED_FILES = (
     "/benchmarks/cli-tokens-v1/SPEC.md",
     "/benchmarks/cli-tokens-v1/sample.log",
 )
+ROUND_SEED_SHA256 = {
+    3: {
+        "benchmarks/cli-tokens-v1/SPEC.md": "f4bdeec94d85a554c1c0fa536091b4f50120fa76059d81b61abc523b0146a5d3",
+        "benchmarks/cli-tokens-v1/sample.log": "b4574c3e627aff7760a934ec5dc10c45abf76ade1f6ae0c20518c56cc6660598",
+    },
+    4: {
+        "benchmarks/cli-tokens-v1/SPEC.md": "51bf564cb9f7eadd4b3bd12fac53b7857befa09b3ef757d9c34400a8509fdeae",
+        "benchmarks/cli-tokens-v1/sample.log": "b4574c3e627aff7760a934ec5dc10c45abf76ade1f6ae0c20518c56cc6660598",
+    },
+}
+NEWLINE_CHECKS = {
+    "crlf-line-endings-text",
+    "crlf-line-endings-json",
+    "cr-line-endings-text",
+    "cr-line-endings-json",
+}
+ADDITIONAL_ROBUSTNESS_CHECKS = {"options-json-before-top"}
 USAGE_FIELDS = (
     "input_tokens",
     "cache_creation_input_tokens",
@@ -114,6 +131,32 @@ def resolve_commit(repo: Path, ref: str) -> str:
     return result.stdout.strip()
 
 
+def pinned_seed_hashes(repo: Path, commit: str) -> dict[str, str]:
+    """Hash the public benchmark inputs exactly as stored in a source commit."""
+    hashes: dict[str, str] = {}
+    for raw_path in SEED_FILES:
+        relative = raw_path.lstrip("/")
+        result = subprocess.run(
+            ["git", "show", f"{commit}:{relative}"], cwd=repo,
+            capture_output=True, check=False,
+        )
+        if result.returncode:
+            raise ValueError(f"pinned commit does not contain required benchmark file: {relative}")
+        hashes[relative] = hashlib.sha256(result.stdout).hexdigest()
+    return hashes
+
+
+def validate_round_identity(round_number: int, seed_hashes: Any) -> None:
+    expected = ROUND_SEED_SHA256.get(round_number)
+    if expected is None:
+        raise ValueError(f"unsupported benchmark round: {round_number}")
+    if seed_hashes != expected:
+        raise ValueError(
+            f"round {round_number} requires its frozen SPEC/sample identity; "
+            "the pinned input hashes do not match"
+        )
+
+
 def create_seed_repository(source_repo: Path, source_commit: str, seed_repo: Path) -> dict[str, Any]:
     return shared.create_seed_repository(source_repo, source_commit, seed_repo, SEED_FILES)
 
@@ -152,6 +195,11 @@ by stating which files you wrote and whether the program is complete.
 def plan(args: argparse.Namespace) -> dict[str, Any]:
     repo = Path(args.repo).resolve(strict=True)
     commit = resolve_commit(repo, args.base_ref)
+    round_number = getattr(args, "round", 3)
+    if round_number not in ROUND_SEED_SHA256:
+        raise ValueError(f"unsupported benchmark round: {round_number}")
+    seed_hashes = pinned_seed_hashes(repo, commit)
+    validate_round_identity(round_number, seed_hashes)
     artifacts = Path(args.artifacts).expanduser().resolve()
     try:
         artifacts.relative_to(repo)
@@ -176,8 +224,9 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
         "schema": "semaprax.cli-tokens.campaign.v1",
         "created_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "benchmark": "cli-tokens-v1",
-        "round": 3,
+        "round": round_number,
         "repository_commit": commit,
+        "seed_files_sha256": seed_hashes,
         "artifacts": str(artifacts),
         "model": args.model,
         "effort": args.effort,
@@ -975,25 +1024,36 @@ def _recount_usage_row(row: dict[str, Any], transcript: Path | None, label: str)
     row["accounting_transcript"] = label
 
 
-ROBUSTNESS_ONLY_CHECKS = {
-    "crlf-line-endings-text",
-    "crlf-line-endings-json",
-    "cr-line-endings-text",
-    "cr-line-endings-json",
-    "options-json-before-top",
-}
+ROBUSTNESS_ONLY_CHECKS = NEWLINE_CHECKS | ADDITIONAL_ROBUSTNESS_CHECKS
 
 
-def acceptance_scope_assessment(row: dict[str, Any]) -> dict[str, Any]:
+def acceptance_scope_assessment(
+    row: dict[str, Any], round_number: int = 3, seed_hashes: Any = None,
+) -> dict[str, Any]:
     """Report a post-run SPEC-scope view without changing full-corpus scoring."""
+    known_identity = ROUND_SEED_SHA256.get(round_number)
+    if seed_hashes is None and round_number == 3:
+        # Older round-three artifacts predate explicit input hashes.
+        seed_hashes = known_identity
+    identity_matches = seed_hashes == known_identity
     acceptance = row.get("acceptance")
     checks = acceptance.get("checks", []) if isinstance(acceptance, dict) else []
     if not isinstance(checks, list):
         checks = []
+    explicit_robustness = ADDITIONAL_ROBUSTNESS_CHECKS
+    if round_number == 3 and identity_matches:
+        explicit_robustness = ROBUSTNESS_ONLY_CHECKS
+    elif round_number == 4 and identity_matches:
+        explicit_robustness = ADDITIONAL_ROBUSTNESS_CHECKS
+    else:
+        explicit_robustness = set()
     spec_checks = [check for check in checks if isinstance(check, dict)
-                   and check.get("name") not in ROBUSTNESS_ONLY_CHECKS]
+                   and check.get("name") not in explicit_robustness
+                   and (identity_matches or check.get("name") not in NEWLINE_CHECKS)]
     robustness_checks = [check for check in checks if isinstance(check, dict)
-                         and check.get("name") in ROBUSTNESS_ONLY_CHECKS]
+                         and check.get("name") in explicit_robustness]
+    unclassified_checks = [check for check in checks if isinstance(check, dict)
+                           and check.get("name") in NEWLINE_CHECKS and not identity_matches]
 
     def status(rows: list[dict[str, Any]], absent: str) -> str:
         if not rows:
@@ -1012,10 +1072,14 @@ def acceptance_scope_assessment(row: dict[str, Any]) -> dict[str, Any]:
             "passed": sum(check.get("status") == "passed" for check in robustness_checks),
             "failed": [check.get("name") for check in robustness_checks if check.get("status") != "passed"],
         },
+        "unclassified_checks": {
+            "status": status(unclassified_checks, "not_applicable"),
+            "names": [check.get("name") for check in unclassified_checks],
+        },
     }
 
 
-def recount_results(artifacts: Path) -> Path:
+def recount_results(artifacts: Path, expected_round: int | None = None) -> Path:
     """Recompute usage and cost from saved provider JSONL without rerunning trials."""
     artifacts = artifacts.expanduser().resolve(strict=True)
     source_path = artifacts / "results.json"
@@ -1024,6 +1088,17 @@ def recount_results(artifacts: Path) -> Path:
         raise ValueError("recount requires existing results.json and calibration.json")
     source_results = json.loads(source_path.read_text(encoding="utf-8"))
     calibration = json.loads(calibration_path.read_text(encoding="utf-8"))
+    campaign_meta = source_results.get("campaign")
+    campaign_meta = campaign_meta if isinstance(campaign_meta, dict) else {}
+    round_number = campaign_meta.get("round", 3)
+    if not isinstance(round_number, int):
+        raise ValueError("campaign round metadata must be an integer")
+    if expected_round is not None and expected_round != round_number:
+        raise ValueError(f"requested round {expected_round} does not match campaign round {round_number}")
+    hashes = campaign_meta.get("seed_files_sha256")
+    if hashes is None and round_number == 3:
+        hashes = ROUND_SEED_SHA256[3]
+    validate_round_identity(round_number, hashes)
     trials = source_results.get("trials")
     if not isinstance(trials, list) or not isinstance(calibration, dict):
         raise ValueError("campaign results or calibration file has an invalid shape")
@@ -1068,7 +1143,9 @@ def recount_results(artifacts: Path) -> Path:
         fallback = f"transcripts/{row.get('arm', 'unknown')}-{int(row.get('number', index + 1)):02d}.jsonl"
         transcript, label = transcript_for(row.get("transcript"), fallback)
         _recount_usage_row(row, transcript, label)
-        row["post_run_acceptance_scope_assessment"] = acceptance_scope_assessment(row)
+        row["post_run_acceptance_scope_assessment"] = acceptance_scope_assessment(
+            row, round_number, hashes
+        )
         scope_assessments.append({
             "arm": row.get("arm"), "number": row.get("number"),
             **row["post_run_acceptance_scope_assessment"],
@@ -1119,7 +1196,10 @@ def recount_results(artifacts: Path) -> Path:
                                       for item in scope_assessments),
         },
         "additional_robustness_checks": {
-            "not_specified_by_frozen_spec": sorted(ROBUSTNESS_ONLY_CHECKS),
+            "not_specified_by_frozen_spec": sorted(
+                ADDITIONAL_ROBUSTNESS_CHECKS
+                | (NEWLINE_CHECKS if round_number == 3 else set())
+            ),
             "failed_cases": robustness_failed,
             "trial_assessments": sum(item["additional_robustness_checks"]["status"] != "not_tested"
                                       for item in scope_assessments),
@@ -1150,6 +1230,8 @@ def recount_results(artifacts: Path) -> Path:
 def add_common_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--repo", default=str(REPO))
     parser.add_argument("--base-ref", required=True, help="verified compiler commit used for every isolated trial")
+    parser.add_argument("--round", type=int, choices=sorted(ROUND_SEED_SHA256), default=3,
+                        help="frozen benchmark round matching the SPEC/sample inputs (default: legacy round 3)")
     parser.add_argument("--artifacts", required=True, help="new absolute or relative directory for this campaign")
     parser.add_argument("--trials-per-arm", type=int, default=MIN_TRIALS_PER_ARM)
     parser.add_argument("--model", default=MODEL)
@@ -1168,6 +1250,8 @@ def main() -> int:
     subparsers = parser.add_subparsers(dest="action", required=True)
     recount_parser = subparsers.add_parser("recount", help="recompute accounting from saved campaign transcripts")
     recount_parser.add_argument("--artifacts", required=True, help="completed campaign artifact directory")
+    recount_parser.add_argument("--round", type=int, choices=sorted(ROUND_SEED_SHA256), default=None,
+                                help="require this round to match the recorded campaign metadata")
     for action in ("plan", "run"):
         sub = subparsers.add_parser(action)
         add_common_arguments(sub)
@@ -1176,7 +1260,7 @@ def main() -> int:
     args = parser.parse_args()
     try:
         if args.action == "recount":
-            print(recount_results(Path(args.artifacts)))
+            print(recount_results(Path(args.artifacts), args.round))
             return 0
         settings = plan(args)
         if args.action == "plan":
@@ -1193,6 +1277,9 @@ def main() -> int:
             settings["repository_commit"],
             seed_repo,
         )
+        validate_round_identity(settings["round"], seed_info.get("seed_files_sha256"))
+        if seed_info.get("seed_files_sha256") != settings.get("seed_files_sha256"):
+            raise ValueError("seed repository inputs differ from the immutable campaign plan")
         settings.update(seed_info)
         settings["trial_checkout"]["seed_repository_commit"] = seed_info["seed_repository_commit"]
         settings["trial_checkout"]["source_files_sha256"] = seed_info["source_files_sha256"]

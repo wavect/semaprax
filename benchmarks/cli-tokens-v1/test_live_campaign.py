@@ -508,6 +508,9 @@ class LiveCampaignTests(unittest.TestCase):
             source_path.write_text(json.dumps(source))
             original_bytes = source_path.read_bytes()
 
+            with self.assertRaisesRegex(ValueError, "does not match campaign round"):
+                live_campaign.recount_results(artifacts, expected_round=4)
+
             output = live_campaign.recount_results(artifacts)
             report = json.loads(output.read_text())
             self.assertEqual(source_path.read_bytes(), original_bytes)
@@ -549,12 +552,81 @@ class LiveCampaignTests(unittest.TestCase):
             max_budget_usd=None,
             model=live_campaign.MODEL,
             effort=live_campaign.EFFORT,
+            round=4,
         )
         with self.assertRaisesRegex(ValueError, "outside the repository"):
             live_campaign.plan(args)
         args.artifacts = "/tmp/loglens-campaign-plan-test"
         with self.assertRaisesRegex(ValueError, "at least 5 trials"):
             live_campaign.plan(args)
+
+    def test_plan_persists_explicit_round_and_rejects_wrong_frozen_inputs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            args = Namespace(
+                repo=str(live_campaign.REPO),
+                base_ref="HEAD",
+                artifacts=str(Path(directory) / "round4"),
+                trials_per_arm=5,
+                timeout_seconds=1800,
+                max_budget_usd=None,
+                model=live_campaign.MODEL,
+                effort=live_campaign.EFFORT,
+                round=4,
+            )
+            settings = live_campaign.plan(args)
+            self.assertEqual(settings["round"], 4)
+            self.assertEqual(settings["seed_files_sha256"], live_campaign.ROUND_SEED_SHA256[4])
+            args.round = 3
+            args.artifacts = str(Path(directory) / "round3")
+            with self.assertRaisesRegex(ValueError, "round 3 requires its frozen SPEC/sample identity"):
+                live_campaign.plan(args)
+
+    def test_newline_scope_tracks_frozen_round_identity(self):
+        checks = [{"name": name, "status": "failed"}
+                  for name in sorted(live_campaign.NEWLINE_CHECKS)]
+        checks.append({"name": "spec-sample-top3-json", "status": "passed"})
+        checks.append({"name": "options-json-before-top", "status": "passed"})
+        row = {"acceptance": {"accepted": False, "checks": checks}}
+        round3 = live_campaign.acceptance_scope_assessment(row)
+        self.assertEqual(len(round3["additional_robustness_checks"]["failed"]), 4)
+        self.assertEqual(round3["explicit_spec_checks"]["status"], "passed")
+        round4 = live_campaign.acceptance_scope_assessment(
+            row, 4, live_campaign.ROUND_SEED_SHA256[4]
+        )
+        self.assertEqual(round4["additional_robustness_checks"]["failed"], [])
+        self.assertEqual(round4["explicit_spec_checks"]["status"], "failed")
+        self.assertEqual(len(round4["explicit_spec_checks"]["failed"]), 4)
+        self.assertEqual(round4["unclassified_checks"]["names"], [])
+
+    def test_recount_requires_matching_round_four_input_hashes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            artifacts = Path(directory)
+            (artifacts / "calibration.json").write_text(json.dumps({"status": "ready"}))
+            source = {
+                "campaign": {
+                    "round": 4,
+                    "seed_files_sha256": live_campaign.ROUND_SEED_SHA256[4],
+                    "attempt_denominator": 1,
+                },
+                "calibration": {},
+                "trials": [{"arm": "semaprax", "number": 1, "status": "not_accepted",
+                            "acceptance": {"accepted": False, "checks": [
+                                {"name": name, "status": "failed"}
+                                for name in sorted(live_campaign.NEWLINE_CHECKS)
+                            ]}}],
+            }
+            results_path = artifacts / "results.json"
+            results_path.write_text(json.dumps(source))
+            output = live_campaign.recount_results(artifacts, expected_round=4)
+            report = json.loads(output.read_text())
+            scope = report["trials"][0]["post_run_acceptance_scope_assessment"]
+            self.assertEqual(len(scope["explicit_spec_checks"]["failed"]), 4)
+            self.assertEqual(scope["additional_robustness_checks"]["status"], "not_tested")
+
+            source["campaign"]["seed_files_sha256"] = live_campaign.ROUND_SEED_SHA256[3]
+            results_path.write_text(json.dumps(source))
+            with self.assertRaisesRegex(ValueError, "round 4 requires its frozen SPEC/sample identity"):
+                live_campaign.recount_results(artifacts, expected_round=4)
 
     def test_independent_acceptance_uses_relative_in_cwd_fixtures_and_covers_spec_edges(self):
         with tempfile.TemporaryDirectory() as directory:

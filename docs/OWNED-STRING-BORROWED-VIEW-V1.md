@@ -31,6 +31,11 @@ recharge roots. Checked-HIR validation authenticates exactly the three
 owning-String view, and the command-argument view — and rejects every other
 value shape.
 
+[Owned String Loops v2](OWNED-STRING-LOOPS-V2.md#immutable-input-and-borrowed-views-590)
+additively admits these exact named views in loop bodies. Each iteration
+retains ordinary root provenance, shared loans, and owner cleanup; constructing
+a view does not release or transfer the owner.
+
 Native lowering forms the existing length-aware `spx_str_v1` carrier over the
 owner allocation. Frozen terminated-string profiles use their existing
 terminated representation; length-delimited profiles use the authenticated

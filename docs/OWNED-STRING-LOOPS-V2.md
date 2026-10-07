@@ -8,9 +8,12 @@ own local evidence; they do not establish hosted or public ABI support.
 
 ## User calls in loop bodies
 
-A `while` or `for` body may call a monomorphic, effect-free user function
+A `while` or `for` body may call a monomorphic user function
 whose result is a Copy scalar or `string`, and whose parameters are Copy
-scalars, borrowed byte slices, or consumed strings. Body-local Strings stage
+scalars, named borrowed byte slices or `str` views, or consumed strings. The
+closed read-only effects `process.args.read`, `fs.read`, and
+`process.environment.read` are admitted when ordinarily declared and permitted;
+other effectful user calls stay refused. Body-local Strings stage
 left to right and transfer together at the call's commit boundary. Unused
 results settle with the iteration. Consuming an outer String without a
 recognized same-owner reopen changes loop-entry ownership and is refused
@@ -53,7 +56,7 @@ Guards over variant scrutinees retain `SPX-T254`; guards are admitted only
 for the existing Copy-scalar match profile. Owned or borrowed non-Copy
 scrutinees, including `Option<string>`, remain
 `SPX-T252`. Variant construction inside an iteration, records, postfix `?`,
-generic calls outside an existing admitted intrinsic, and effectful user calls
+generic calls outside an existing admitted intrinsic, and write-effect user calls
 retain their refusals. This widening changes no graph or CleanupPlan schema:
 ordinary match decisions and per-iteration cleanup facts retain their existing
 meaning. Loop-entry ownership must still equal successful body-exit ownership.
@@ -73,3 +76,27 @@ guarded-variant and malformed patterns, effect/allocation refusals, and hostile
 HIR identity, field, type, and ownership controls. Wrong fields in this corpus
 and `tests/language/text_toolkit_v1.rs` use the ordinary `SPX-M104` pattern
 diagnostic instead of the former exact-shape admission message.
+
+## Immutable input and borrowed views (#590)
+
+Loop bodies admit repeated `args_len()` and dynamic `arg_utf8(index)` lookups
+through the existing immutable invocation snapshot. The caller still declares
+and receives `process.args.read`; out-of-range lookups select the existing
+`semaprax.command-input.v1` failure, and reads do not mint or recharge roots.
+
+Named borrowed `str` parameters and aliases may be passed to read-only user
+helpers. `string_as_str(owner)` and `str_as_bytes(view)` may create local loop
+views over exact unprojected named places; ordinary root provenance and loan
+replay reject moved owners, temporary borrows, forged operations, and views
+used after ownership changes. `file_read_text` and helpers declaring `fs.read`
+retain the existing per-invocation file operation and cumulative byte budgets.
+No new filesystem or process authority is granted, and `stdin_read` remains
+outside loops. Existing single-write restrictions remain unchanged.
+
+`tests/language/loop_command_input_v1.rs` owns canonical/graph and HIR replay,
+interpreter command execution with explicit arguments and files, exact native
+C11 `-O0`/`-O2` allocation settlement after two successful iterations and late
+argument/file failures, source effect/ownership controls, and hostile HIR view
+identity/projection/ownership controls. These additions do not establish
+ordinary Core Wasm filesystem support or broaden the opaque internal-String
+profile's borrowed-carrier support.

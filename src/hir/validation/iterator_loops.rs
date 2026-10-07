@@ -54,7 +54,11 @@ impl HirValidator<'_> {
                                 &expression.ty,
                             )))
                             && place.projections.is_empty();
+                    let named_str = expression.ty == ResolvedType::Str
+                        && expression.ownership == OwnershipMode::Borrow
+                        && place.projections.is_empty();
                     if !whole_string
+                        && !named_str
                         && (!crate::hir::is_scalar_resolved_type(&expression.ty)
                             || expression.ownership != OwnershipMode::Value)
                     {
@@ -69,8 +73,19 @@ impl HirValidator<'_> {
                 ResolvedExprKind::ArrayU8(_) | ResolvedExprKind::RepeatArrayU8 { .. } => {
                     return Err(hir_error("while loops cannot contain fixed-array literals"));
                 }
-                ResolvedExprKind::BorrowPlace { .. } => {
-                    return Err(hir_error("while loops cannot construct byte views"));
+                ResolvedExprKind::BorrowPlace { operation, place } => {
+                    // Ordinary expression replay independently authenticates
+                    // the live String owner and its canonical shared loan.
+                    let exact_view = (operation.as_str() == crate::byte_ops::STRING_AS_STR_ID
+                        && expression.ty == ResolvedType::Str)
+                        || (operation.as_str() == crate::byte_ops::STR_AS_BYTES_ID
+                            && expression.ty == ResolvedType::SliceU8);
+                    if !exact_view
+                        || expression.ownership != OwnershipMode::Borrow
+                        || !place.projections.is_empty()
+                    {
+                        return Err(hir_error("while loops cannot construct byte views"));
+                    }
                 }
                 ResolvedExprKind::ByteRange {
                     source, start, end, ..
@@ -159,8 +174,7 @@ impl HirValidator<'_> {
                         continue;
                     }
                     if let Some(operation) = crate::str_ops::by_id(callee.as_str()) {
-                        if !crate::environment_ops::program_uses_environment(self.program)
-                            || args.len() != operation.arity()
+                        if args.len() != operation.arity()
                             || expression.ty != operation.return_type()
                             || expression.ownership != OwnershipMode::Value
                             || args.iter().any(|argument| {
@@ -169,7 +183,7 @@ impl HirValidator<'_> {
                                     || !matches!(&argument.kind, ResolvedExprKind::Place(place) if place.projections.is_empty())
                             })
                         {
-                            return Err(hir_error("environment loop text reads require exact immutable named borrowed-str inputs"));
+                            return Err(hir_error("loop text reads require exact immutable named borrowed-str inputs"));
                         }
                         // Full expression replay authenticates each binding and
                         // immutable borrowed-str origin; these closed readers
@@ -238,7 +252,7 @@ impl HirValidator<'_> {
                     // borrowed slice cannot escape because the result remains
                     // scalar; transitive allocation/call cycles are still
                     // rejected by the byte-capacity analysis after HIR replay.
-                    let scalar_signature = target.effects.is_empty()
+                    let scalar_signature = crate::loop_calls::effects_admitted(&target.effects)
                         && crate::loop_calls::resolved_result_admitted(&target.return_type)
                         && target.params.iter().zip(args).all(|(param, argument)| {
                             crate::loop_calls::resolved_param_admitted(param.ownership, &param.ty)

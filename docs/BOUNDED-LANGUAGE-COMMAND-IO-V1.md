@@ -56,6 +56,11 @@ dynamic reads do not mint or recharge roots. The view can be forwarded and
 projected through `str_as_bytes`, but cannot escape, be stored, enter an
 aggregate, cross an import/callback/async boundary, or outlive settlement.
 
+[Owned String Loops v2](OWNED-STRING-LOOPS-V2.md#immutable-input-and-borrowed-views-590)
+additively admits repeated `args_len` and `arg_utf8` in bounded loop bodies
+with named non-escaping views. The immutable snapshot, capability checks,
+capacity budget, and existing failure domain remain authoritative.
+
 Each successful `stdin_read` creates a fresh ordinary owned `Bytes` value.
 The admitted v1 closure executes at most one read on a path and does not reach
 it from a loop or call cycle. Its allocation is governed by the existing

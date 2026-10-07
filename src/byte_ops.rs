@@ -328,7 +328,9 @@ impl ByteOp {
     pub(crate) const fn admitted_in_while(self) -> bool {
         matches!(
             self,
-            Self::Len
+            Self::StringAsStr
+                | Self::StrAsBytes
+                | Self::Len
                 | Self::Get
                 | Self::Range
                 | Self::Set

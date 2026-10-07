@@ -91,25 +91,3 @@ pub(crate) fn ast_params(op: Op) -> Vec<Param> {
         vec![]
     }
 }
-
-/// Actual checked operations select the additive semantics, never a permit alone.
-pub(crate) fn program_uses_environment(program: &crate::hir::ResolvedProgram) -> bool {
-    program
-        .functions
-        .iter()
-        .chain(
-            program
-                .function_instances
-                .iter()
-                .map(|instance| &instance.function),
-        )
-        .any(|function| {
-            let mut found = false;
-            crate::hir::function_value::walk(function, |expression| {
-                if let crate::hir::ResolvedExprKind::HostCommandCall(call) = &expression.kind {
-                    found |= is_environment(call.operation);
-                }
-            });
-            found
-        })
-}

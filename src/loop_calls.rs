@@ -7,7 +7,8 @@
 //! that consumes a body-local `string`, or returns a new `string`, settles
 //! like any other owned call in that region: its staged arguments transfer
 //! at the call's commit boundary and an unconsumed result is released when
-//! the iteration ends. A consumed outer binding still changes ownership
+//! the iteration ends. Declared read-only input effects are allowed. A consumed
+//! outer binding still changes ownership
 //! liveness inside the loop and keeps its existing diagnostic.
 
 use crate::ast::{ParamMode, Type};
@@ -15,14 +16,28 @@ use crate::hir::{OwnershipMode, ResolvedType};
 use crate::source_verify::is_scalar_source_type;
 
 /// One source parameter a loop-body call admits: a Copy scalar, a borrowed
-/// byte slice, or an owned `string` the call consumes.
+/// byte slice or named `str`, or an owned `string` the call consumes.
 pub(crate) fn ast_param_admitted(mode: ParamMode, ty: &Type) -> bool {
     match mode {
         ParamMode::Value => is_scalar_source_type(ty) || *ty == Type::String,
         ParamMode::Own => *ty == Type::String,
-        ParamMode::Borrow => *ty == Type::SliceU8,
+        ParamMode::Borrow => matches!(ty, Type::SliceU8 | Type::Str),
         ParamMode::Shared => false,
     }
+}
+
+/// User loop calls may repeat only these already-declared read authorities.
+/// The normal effect checker still requires the caller and module to grant
+/// each effect; this predicate does not confer authority.
+pub(crate) fn effects_admitted(effects: &[String]) -> bool {
+    effects.iter().all(|effect| {
+        matches!(
+            effect.as_str(),
+            crate::command_io_ops::ARGS_READ_EFFECT
+                | crate::filesystem_ops::READ_EFFECT
+                | crate::environment_ops::EFFECT
+        )
+    })
 }
 
 /// One source result a loop-body call admits: a Copy scalar or a new `string`.
@@ -37,7 +52,7 @@ pub(crate) fn resolved_param_admitted(ownership: OwnershipMode, ty: &ResolvedTyp
             crate::hir::is_scalar_resolved_type(ty) || *ty == ResolvedType::String
         }
         OwnershipMode::Own => *ty == ResolvedType::String,
-        OwnershipMode::Borrow => *ty == ResolvedType::SliceU8,
+        OwnershipMode::Borrow => matches!(ty, ResolvedType::SliceU8 | ResolvedType::Str),
         OwnershipMode::Shared => false,
     }
 }

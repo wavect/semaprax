@@ -541,8 +541,9 @@ pub(crate) fn required_effects(
 
 /// The single while-body admission rule shared by the source verifier, the
 /// admission oracle, and HIR validation, so the three cannot disagree: the
-/// runtime-bounded appends plus every Copy-scalar network operation. Owned
-/// results (`stdin_read`, `net_recv`) and the legacy single writes stay out.
+/// runtime-bounded appends, immutable argument views, and Copy-scalar network
+/// operations. Owned results (`stdin_read`, `net_recv`) and the legacy
+/// single writes stay out.
 pub(crate) const fn admitted_in_while(op: ResolvedHostCommandOperation) -> bool {
     match op {
         ResolvedHostCommandOperation::ProcessRun => false,
@@ -550,10 +551,10 @@ pub(crate) const fn admitted_in_while(op: ResolvedHostCommandOperation) -> bool 
         ResolvedHostCommandOperation::StdoutAppend | ResolvedHostCommandOperation::StderrAppend => {
             true
         }
-        ResolvedHostCommandOperation::ArgsLen
-        | ResolvedHostCommandOperation::ArgUtf8
-        | ResolvedHostCommandOperation::StdinRead
-        | ResolvedHostCommandOperation::StderrWrite => false,
+        ResolvedHostCommandOperation::ArgsLen | ResolvedHostCommandOperation::ArgUtf8 => true,
+        ResolvedHostCommandOperation::StdinRead | ResolvedHostCommandOperation::StderrWrite => {
+            false
+        }
         ResolvedHostCommandOperation::FileRead | ResolvedHostCommandOperation::FileList => false,
         ResolvedHostCommandOperation::FileWriteNew
         | ResolvedHostCommandOperation::FileStat
@@ -852,6 +853,11 @@ fn legacy() -> bool uses { network.connect, process.stdout.write } {
         for op in [
             ResolvedHostCommandOperation::ArgsLen,
             ResolvedHostCommandOperation::ArgUtf8,
+        ] {
+            assert!(admitted_in_while(op), "{op:?}");
+            assert_eq!(required_effects(op).count(), 1, "{op:?}");
+        }
+        for op in [
             ResolvedHostCommandOperation::StdinRead,
             ResolvedHostCommandOperation::StderrWrite,
         ] {

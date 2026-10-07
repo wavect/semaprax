@@ -357,7 +357,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     // loop cleanup-edge-free; unknown names keep flowing so the
                     // established unresolved-value diagnostic fires instead.
                     if let Some(declared) = self.functions.get(name.as_str()) {
-                        let scalar_signature = declared.effects.is_empty()
+                        let scalar_signature = crate::loop_calls::effects_admitted(&declared.effects)
                             && crate::loop_calls::ast_result_admitted(&declared.return_type)
                             && declared.params.iter().zip(args).all(|(param, argument)| {
                                 crate::loop_calls::ast_param_admitted(param.mode, &param.ty)

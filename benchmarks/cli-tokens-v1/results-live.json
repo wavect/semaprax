@@ -65,6 +65,324 @@
         "SPX-O101/O107: string parameters consume their argument",
         "no str to string conversion; project function signatures are scalar-only"
       ]
+    },
+    {
+      "round": 3,
+      "status": "descriptive; no qualified winner",
+      "compiler_source_commit": "225f35ce1555e3f03ce200800612d2e3c2b6b43f",
+      "compiler_binary_build_label": "02776ce87",
+      "compiler_binary_sha256": "5ed55c5b14ba4972652e148b0a5d844995a131e24e434107d9b3135411ccd756",
+      "frozen_spec_sha256": "f4bdeec94d85a554c1c0fa536091b4f50120fa76059d81b61abc523b0146a5d3",
+      "model_requested": "claude-sonnet-5-5",
+      "observed_model_ids": [
+        "claude-sonnet-5-5"
+      ],
+      "effort": "medium",
+      "trials_per_arm": 5,
+      "original_full_corpus_acceptance": "0/5 per arm; accepted-task cost is null",
+      "post_run_spec_scope": "28 checks classified SPEC-aligned passed all 5/arm; separate from original acceptance",
+      "additional_robustness": "reverse flag order passed all trials; four CR/CRLF probes failed all trials and are not specified by frozen SPEC",
+      "calibration": {
+        "observed_model_id": "claude-sonnet-5-5",
+        "first_turn_input_plus_cache_tokens": 6723,
+        "legacy_prompt_proxy_tokens": 21,
+        "one_turn_context_proxy_tokens": 6702,
+        "meaning": "separate diagnostic; includes calibration harness context; not subtracted from trial usage"
+      },
+      "pricing": {
+        "date": "2026-10-07",
+        "source_url": "https://platform.claude.com/docs/en/models/sonnet-5-5/overview",
+        "claim": "list-price estimate, not receipt; provider API-equivalent total is separate metadata"
+      },
+      "evidence_file": "round3-accounted-evidence.json",
+      "accounting": {
+        "raw_input_cache_output": "provider usage buckets; raw input, cache-write (TTL split), cache-read, and output reported separately",
+        "legacy_net_input": "historical convention retained for comparison; subtracts first-turn input+cache including task prompt/harness once per turn; not task-only input",
+        "authored_tokens": "final-source-only legacy Claude tokenizer proxy; not cumulative edits, provider output, current-model tokenization, or billing",
+        "provider_cost": "API-equivalent reported metadata; no receipt"
+      },
+      "semaprax": {
+        "original_accepted": 0,
+        "cost_per_accepted_task_usd": null,
+        "provider_num_turns_total": 163,
+        "deduplicated_assistant_messages_with_usage_total": 161,
+        "raw_usage_buckets": {
+          "input_tokens": 322,
+          "cache_creation_input_tokens": 338843,
+          "cache_creation_ephemeral_5m_input_tokens": 0,
+          "cache_creation_ephemeral_1h_input_tokens": 338843,
+          "cache_read_input_tokens": 8143308,
+          "output_tokens": 168000
+        },
+        "raw_input_plus_cache_total": 8482473,
+        "legacy_net_input_tokens_total": 7324722,
+        "provider_output_tokens_total": 168000,
+        "provider_thinking_tokens_detail_total": 60864,
+        "list_price_estimate_total_usd": 4.664678,
+        "provider_api_equivalent_cost_total_usd": 4.664678,
+        "model_session_wall_seconds_total": 1564.087,
+        "model_session_wall_seconds_median": 235.649,
+        "final_authored_source_proxy_tokens_total": 31725,
+        "final_authored_source_proxy_tokens_median": 6439,
+        "trials": [
+          {
+            "trial": 1,
+            "original_full_corpus_status": "not_accepted",
+            "provider_num_turns": 27,
+            "deduplicated_assistant_messages_with_usage": 27,
+            "raw_usage_buckets": {
+              "input_tokens": 54,
+              "cache_creation_input_tokens": 52062,
+              "cache_creation_ephemeral_5m_input_tokens": 0,
+              "cache_creation_ephemeral_1h_input_tokens": 52062,
+              "cache_read_input_tokens": 1032699,
+              "output_tokens": 24331
+            },
+            "raw_input_plus_cache_tokens": 1084815,
+            "legacy_net_input_tokens": 890658,
+            "provider_output_tokens": 24331,
+            "list_price_estimate_usd": 0.658206,
+            "provider_api_equivalent_cost_usd": 0.6582058000000002,
+            "provider_receipt_actual_usd": null,
+            "model_session_wall_seconds": 216.449,
+            "final_authored_source_proxy_tokens": 6572,
+            "transcript_sha256": "915af10a093ffd816c0923ba7be1d09ffafa8a64a97ac10750dc1c9d215efca9"
+          },
+          {
+            "trial": 2,
+            "original_full_corpus_status": "not_accepted",
+            "provider_num_turns": 66,
+            "deduplicated_assistant_messages_with_usage": 66,
+            "raw_usage_buckets": {
+              "input_tokens": 132,
+              "cache_creation_input_tokens": 101762,
+              "cache_creation_ephemeral_5m_input_tokens": 0,
+              "cache_creation_ephemeral_1h_input_tokens": 101762,
+              "cache_read_input_tokens": 4087258,
+              "output_tokens": 60816
+            },
+            "raw_input_plus_cache_tokens": 4189152,
+            "legacy_net_input_tokens": 3714546,
+            "provider_output_tokens": 60816,
+            "list_price_estimate_usd": 1.832924,
+            "provider_api_equivalent_cost_usd": 1.8329235999999998,
+            "provider_receipt_actual_usd": null,
+            "model_session_wall_seconds": 648.886,
+            "final_authored_source_proxy_tokens": 6527,
+            "transcript_sha256": "a5f8ac93b72f277b2ac7a979126e074e9f52fef4c0e2ea7caba9eccbf21a4405"
+          },
+          {
+            "trial": 3,
+            "original_full_corpus_status": "not_accepted",
+            "provider_num_turns": 25,
+            "deduplicated_assistant_messages_with_usage": 24,
+            "raw_usage_buckets": {
+              "input_tokens": 48,
+              "cache_creation_input_tokens": 58743,
+              "cache_creation_ephemeral_5m_input_tokens": 0,
+              "cache_creation_ephemeral_1h_input_tokens": 58743,
+              "cache_read_input_tokens": 997220,
+              "output_tokens": 26565
+            },
+            "raw_input_plus_cache_tokens": 1056011,
+            "legacy_net_input_tokens": 883427,
+            "provider_output_tokens": 26565,
+            "list_price_estimate_usd": 0.700162,
+            "provider_api_equivalent_cost_usd": 0.7001620000000001,
+            "provider_receipt_actual_usd": null,
+            "model_session_wall_seconds": 235.649,
+            "final_authored_source_proxy_tokens": 6252,
+            "transcript_sha256": "c9ab5cf7dc32bb74ad6565affc8e0efdd0ffce38b5b623b2217efe139e7dd02d"
+          },
+          {
+            "trial": 4,
+            "original_full_corpus_status": "not_accepted",
+            "provider_num_turns": 25,
+            "deduplicated_assistant_messages_with_usage": 25,
+            "raw_usage_buckets": {
+              "input_tokens": 50,
+              "cache_creation_input_tokens": 63776,
+              "cache_creation_ephemeral_5m_input_tokens": 0,
+              "cache_creation_ephemeral_1h_input_tokens": 63776,
+              "cache_read_input_tokens": 1147540,
+              "output_tokens": 28657
+            },
+            "raw_input_plus_cache_tokens": 1211366,
+            "legacy_net_input_tokens": 1031591,
+            "provider_output_tokens": 28657,
+            "list_price_estimate_usd": 0.771282,
+            "provider_api_equivalent_cost_usd": 0.7712820000000002,
+            "provider_receipt_actual_usd": null,
+            "model_session_wall_seconds": 239.68,
+            "final_authored_source_proxy_tokens": 5935,
+            "transcript_sha256": "413280bc99a9351185ae71730a912d0fd3603a3bc8f501b263ac2b19b29083c8"
+          },
+          {
+            "trial": 5,
+            "original_full_corpus_status": "not_accepted",
+            "provider_num_turns": 20,
+            "deduplicated_assistant_messages_with_usage": 19,
+            "raw_usage_buckets": {
+              "input_tokens": 38,
+              "cache_creation_input_tokens": 62500,
+              "cache_creation_ephemeral_5m_input_tokens": 0,
+              "cache_creation_ephemeral_1h_input_tokens": 62500,
+              "cache_read_input_tokens": 878591,
+              "output_tokens": 27631
+            },
+            "raw_input_plus_cache_tokens": 941129,
+            "legacy_net_input_tokens": 804500,
+            "provider_output_tokens": 27631,
+            "list_price_estimate_usd": 0.702104,
+            "provider_api_equivalent_cost_usd": 0.7021041999999997,
+            "provider_receipt_actual_usd": null,
+            "model_session_wall_seconds": 223.423,
+            "final_authored_source_proxy_tokens": 6439,
+            "transcript_sha256": "95efdf80b6c40c7a3c4588d63c8a72ec5e48a8688de5a8e115e2698dabcf52a2"
+          }
+        ]
+      },
+      "typescript": {
+        "original_accepted": 0,
+        "cost_per_accepted_task_usd": null,
+        "provider_num_turns_total": 32,
+        "deduplicated_assistant_messages_with_usage_total": 30,
+        "raw_usage_buckets": {
+          "input_tokens": 60,
+          "cache_creation_input_tokens": 89135,
+          "cache_creation_ephemeral_5m_input_tokens": 0,
+          "cache_creation_ephemeral_1h_input_tokens": 89135,
+          "cache_read_input_tokens": 475906,
+          "output_tokens": 37727
+        },
+        "raw_input_plus_cache_total": 565101,
+        "legacy_net_input_tokens_total": 349371,
+        "provider_output_tokens_total": 37727,
+        "provider_thinking_tokens_detail_total": 6924,
+        "list_price_estimate_total_usd": 0.829111,
+        "provider_api_equivalent_cost_total_usd": 0.829111,
+        "model_session_wall_seconds_total": 283.028,
+        "model_session_wall_seconds_median": 51.346,
+        "final_authored_source_proxy_tokens_total": 15969,
+        "final_authored_source_proxy_tokens_median": 3202,
+        "trials": [
+          {
+            "trial": 1,
+            "original_full_corpus_status": "not_accepted",
+            "provider_num_turns": 7,
+            "deduplicated_assistant_messages_with_usage": 6,
+            "raw_usage_buckets": {
+              "input_tokens": 12,
+              "cache_creation_input_tokens": 24344,
+              "cache_creation_ephemeral_5m_input_tokens": 0,
+              "cache_creation_ephemeral_1h_input_tokens": 24344,
+              "cache_read_input_tokens": 121003,
+              "output_tokens": 7203
+            },
+            "raw_input_plus_cache_tokens": 145359,
+            "legacy_net_input_tokens": 102213,
+            "provider_output_tokens": 7203,
+            "list_price_estimate_usd": 0.193631,
+            "provider_api_equivalent_cost_usd": 0.19363059999999999,
+            "provider_receipt_actual_usd": null,
+            "model_session_wall_seconds": 53.996,
+            "final_authored_source_proxy_tokens": 3317,
+            "transcript_sha256": "f8cee452a3809f1111c7cddc4ea6861d1763fd65fb86caf5d693c35febae218c"
+          },
+          {
+            "trial": 2,
+            "original_full_corpus_status": "not_accepted",
+            "provider_num_turns": 8,
+            "deduplicated_assistant_messages_with_usage": 7,
+            "raw_usage_buckets": {
+              "input_tokens": 14,
+              "cache_creation_input_tokens": 27679,
+              "cache_creation_ephemeral_5m_input_tokens": 0,
+              "cache_creation_ephemeral_1h_input_tokens": 27679,
+              "cache_read_input_tokens": 154870,
+              "output_tokens": 10122
+            },
+            "raw_input_plus_cache_tokens": 182563,
+            "legacy_net_input_tokens": 132226,
+            "provider_output_tokens": 10122,
+            "list_price_estimate_usd": 0.242938,
+            "provider_api_equivalent_cost_usd": 0.242938,
+            "provider_receipt_actual_usd": null,
+            "model_session_wall_seconds": 77.949,
+            "final_authored_source_proxy_tokens": 3854,
+            "transcript_sha256": "a2ef5550069c51d0274419c483b5f443bdf680a2323958a60270519d388bf009"
+          },
+          {
+            "trial": 3,
+            "original_full_corpus_status": "not_accepted",
+            "provider_num_turns": 5,
+            "deduplicated_assistant_messages_with_usage": 5,
+            "raw_usage_buckets": {
+              "input_tokens": 10,
+              "cache_creation_input_tokens": 10366,
+              "cache_creation_ephemeral_5m_input_tokens": 0,
+              "cache_creation_ephemeral_1h_input_tokens": 10366,
+              "cache_read_input_tokens": 50335,
+              "output_tokens": 6545
+            },
+            "raw_input_plus_cache_tokens": 60711,
+            "legacy_net_input_tokens": 24756,
+            "provider_output_tokens": 6545,
+            "list_price_estimate_usd": 0.117001,
+            "provider_api_equivalent_cost_usd": 0.117001,
+            "provider_receipt_actual_usd": null,
+            "model_session_wall_seconds": 48.973,
+            "final_authored_source_proxy_tokens": 2855,
+            "transcript_sha256": "9c96e50813e533283ec09bd7c01e3ca56c9c8e3758c0e3b7186016d7c68f75ca"
+          },
+          {
+            "trial": 4,
+            "original_full_corpus_status": "not_accepted",
+            "provider_num_turns": 6,
+            "deduplicated_assistant_messages_with_usage": 6,
+            "raw_usage_buckets": {
+              "input_tokens": 12,
+              "cache_creation_input_tokens": 12855,
+              "cache_creation_ephemeral_5m_input_tokens": 0,
+              "cache_creation_ephemeral_1h_input_tokens": 12855,
+              "cache_read_input_tokens": 72617,
+              "output_tokens": 6998
+            },
+            "raw_input_plus_cache_tokens": 85484,
+            "legacy_net_input_tokens": 42338,
+            "provider_output_tokens": 6998,
+            "list_price_estimate_usd": 0.135947,
+            "provider_api_equivalent_cost_usd": 0.1359474,
+            "provider_receipt_actual_usd": null,
+            "model_session_wall_seconds": 51.346,
+            "final_authored_source_proxy_tokens": 3202,
+            "transcript_sha256": "19fce0a740ffb58d289af8ea19504e4efb2af9731f22578369c23a9102dd749f"
+          },
+          {
+            "trial": 5,
+            "original_full_corpus_status": "not_accepted",
+            "provider_num_turns": 6,
+            "deduplicated_assistant_messages_with_usage": 6,
+            "raw_usage_buckets": {
+              "input_tokens": 12,
+              "cache_creation_input_tokens": 13891,
+              "cache_creation_ephemeral_5m_input_tokens": 0,
+              "cache_creation_ephemeral_1h_input_tokens": 13891,
+              "cache_read_input_tokens": 77081,
+              "output_tokens": 6859
+            },
+            "raw_input_plus_cache_tokens": 90984,
+            "legacy_net_input_tokens": 47838,
+            "provider_output_tokens": 6859,
+            "list_price_estimate_usd": 0.139594,
+            "provider_api_equivalent_cost_usd": 0.1395942,
+            "provider_receipt_actual_usd": null,
+            "model_session_wall_seconds": 50.764,
+            "final_authored_source_proxy_tokens": 2741,
+            "transcript_sha256": "35318f336ac87696a0a476d475fe6c30035a733eba5997c1758a1942ba143ce7"
+          }
+        ]
+      }
     }
   ]
 }

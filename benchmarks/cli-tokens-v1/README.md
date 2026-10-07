@@ -14,6 +14,31 @@ includes the task prompt as well as harness context. These values are not
 task-only model input or an upper bound; the live campaign labels this metric
 `legacy_net_input_tokens` and reports raw provider usage separately.
 
+## Round 3: matched live campaign, no qualified winner
+
+The original full-corpus acceptance result was **0/5 for both SEMAPRAX and
+TypeScript**, so cost per accepted task is undefined for both. The retrospective
+scope split found 28 SPEC-aligned checks passing all five candidates per arm;
+four extra CR/CRLF probes failed every candidate, although the frozen SPEC did
+not define those line endings. The split does not replace the original result.
+
+The same pinned model and effort were used for both arms. SEMAPRAX used more
+measured input/cache usage (8,482,473 raw tokens vs. 565,101), provider output
+(168,000 vs. 37,727), and list-price estimate ($4.664678 vs. $0.829111). These
+are descriptive differences from this campaign, not a qualified win or a
+causal language comparison. The final-source-only authored-token proxy was
+31,725 vs. 15,969 and is reported separately from provider output and the
+historical `legacy_net_input_tokens` convention.
+
+See the [round-three report](ROUND-3-REPORT.md) for per-trial usage, wall time,
+acceptance scope, transcript-backed retry evidence, and accounting caveats.
+The additive round-three entry in [results-live.json](results-live.json) keeps
+the round-one and round-two records intact; its compact hash and campaign
+metadata are in [round3-accounted-evidence.json](round3-accounted-evidence.json).
+Any changed guard-condition or other implementation should be measured as a
+new rerun against this frozen baseline; [issue #612](https://github.com/wavect/semaprax/issues/612)
+tracks that fair comparison.
+
 ## Round 1 (baseline, `f106fcebe`)
 
 | | TypeScript (Node, no deps) | SEMAPRAX |
@@ -40,8 +65,9 @@ Here it is the whole task, and the core language cannot yet:
 Each of these is now an improvement target. The next rounds re-run the same
 spec as they land; see [results-live.json](results-live.json).
 
-Round 3's matched live campaign uses the pinned-model launcher and independent
-acceptance collector in [LIVE-CAMPAIGN.md](LIVE-CAMPAIGN.md).
+Round 3 used the pinned-model launcher and independent acceptance collector in
+[LIVE-CAMPAIGN.md](LIVE-CAMPAIGN.md); its results are reported above and in the
+linked round-three report.
 
 ## Round 2 (Owned String Loops, Text Toolkit, String Collections, factored replay)
 

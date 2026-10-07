@@ -1,7 +1,8 @@
 use std::path::Path;
 
 use semaprax::hir;
-use semaprax::loan_plan::{LoanId, LoanPointPhase, LoanProgramPoint};
+use semaprax::hir::{ResolvedExprKind, ResolvedStatement};
+use semaprax::loan_plan::{build_plan, LoanId, LoanPointPhase, LoanProgramPoint};
 use semaprax::{parse, verify};
 
 const CFG_SOURCE: &str = r#"
@@ -82,6 +83,157 @@ fn reject_mutation(name: &str, mutate: impl FnOnce(&mut hir::ResolvedFunction)) 
     assert_eq!(
         diagnostic.code, "SPX-H006",
         "mutation {name}: {diagnostic:?}"
+    );
+}
+
+fn source_line_column(source: &str, offset: usize) -> (usize, usize) {
+    let prefix = &source[..offset];
+    let line = prefix.bytes().filter(|byte| *byte == b'\n').count() + 1;
+    let column = prefix
+        .rfind('\n')
+        .map_or(offset + 1, |newline| offset - newline);
+    (line, column)
+}
+
+fn swap_let_statements(function: &mut hir::ResolvedFunction, first: &str, second: &str) {
+    let ResolvedExprKind::Block { statements, .. } = &mut function.body.kind else {
+        panic!("function body must be a block");
+    };
+    let position = |name: &str| {
+        statements
+            .iter()
+            .position(|statement| matches!(statement,
+                ResolvedStatement::Let { binding, .. } if binding.name == name))
+            .unwrap_or_else(|| panic!("missing let binding {name}"))
+    };
+    let first = position(first);
+    let second = position(second);
+    statements.swap(first, second);
+}
+
+fn move_assignment_before_let(function: &mut hir::ResolvedFunction, let_name: &str) {
+    let ResolvedExprKind::Block { statements, .. } = &mut function.body.kind else {
+        panic!("function body must be a block");
+    };
+    let let_index = statements
+        .iter()
+        .position(|statement| matches!(statement,
+            ResolvedStatement::Let { binding, .. } if binding.name == let_name))
+        .unwrap_or_else(|| panic!("missing let binding {let_name}"));
+    let assign_index = statements
+        .iter()
+        .position(|statement| matches!(statement, ResolvedStatement::Assign { .. }))
+        .expect("fixture must contain the owner assignment");
+    statements.swap(let_index, assign_index);
+}
+
+fn move_assignment_before_let_without_span(
+    function: &mut hir::ResolvedFunction,
+    let_name: &str,
+) {
+    move_assignment_before_let(function, let_name);
+    let ResolvedExprKind::Block { statements, .. } = &mut function.body.kind else {
+        unreachable!("function body remains a block");
+    };
+    let Some(ResolvedStatement::Assign { span, .. }) = statements
+        .iter_mut()
+        .find(|statement| matches!(statement, ResolvedStatement::Assign { .. }))
+    else {
+        unreachable!("fixture assignment remains after swapping");
+    };
+    *span = Default::default();
+}
+
+fn assert_overlap_span(
+    source: &str,
+    function_id: &str,
+    operation_span: Option<(usize, usize)>,
+    reorder: impl FnOnce(&mut hir::ResolvedFunction),
+) {
+    let parsed = parse(source, Path::new("shared-loan-overlap-span.spx")).unwrap();
+    let source_diagnostics = verify::verify(&parsed);
+    assert!(
+        source_diagnostics.iter().all(|diagnostic| !diagnostic.severity.is_error()),
+        "fixture source must be valid before hostile HIR reorder: {source_diagnostics:?}"
+    );
+    let mut program = hir::resolve(&parsed).unwrap();
+    let function_index = program
+        .functions
+        .iter()
+        .position(|function| function.id.as_str() == function_id)
+        .unwrap();
+    reorder(&mut program.functions[function_index]);
+
+    let function = &program.functions[function_index];
+    let diagnostic = build_plan(&program, function).unwrap_err();
+    assert_eq!(diagnostic.code, "SPX-H006");
+    assert_eq!(
+        diagnostic.message,
+        "move, mutation, or transfer overlaps an active shared loan"
+    );
+    if let Some((operation_start, operation_end)) = operation_span {
+        let span = diagnostic.span.expect("overlap points to the source operation");
+        let (line, column) = source_line_column(source, operation_start);
+        assert_eq!(span.start, operation_start);
+        assert_eq!(span.end, operation_end);
+        assert_eq!((span.line, span.column), (line, column));
+    } else {
+        assert_eq!(diagnostic.span, None, "missing HIR span stays locationless");
+    }
+
+    let hostile = hir::validate(&program).expect_err("overlapping hostile HIR must remain rejected");
+    assert_eq!(hostile.code, "SPX-H006");
+}
+
+#[test]
+fn overlapping_shared_loan_replay_uses_existing_move_and_assignment_spans() {
+    let move_source = r#"
+module test.shared_loan_move_span;
+@id("bytes.take") fn take(value: own Bytes) -> i64 { 1 }
+@id("loan.invalid") fn invalid(input: borrow Slice<u8>) -> usize {
+    let owned = bytes_copy(input);
+    let view = bytes_as_slice(owned);
+    let observed = byte_len(view);
+    let conflict = take(owned);
+    observed
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let move_start = move_source.find("take(owned)").unwrap() + "take(".len();
+    assert_overlap_span(
+        move_source,
+        "loan.invalid",
+        Some((move_start, move_start + "owned".len())),
+        |function| swap_let_statements(function, "observed", "conflict"),
+    );
+
+    let assignment_source = r#"
+module test.shared_loan_assignment_span;
+@id("loan.invalid") fn invalid(input: borrow Slice<u8>) -> usize {
+    let mut owned = bytes_copy(input);
+    let view = bytes_as_slice(owned);
+    let observed = byte_len(view);
+    owned = bytes_copy(input);
+    observed
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let assignment_start = assignment_source
+        .find("owned = bytes_copy(input);")
+        .unwrap();
+    let assignment_end = assignment_start + "owned = bytes_copy(input);".len();
+    assert_overlap_span(
+        assignment_source,
+        "loan.invalid",
+        Some((assignment_start, assignment_end)),
+        |function| move_assignment_before_let(function, "observed"),
+    );
+
+    assert_overlap_span(
+        assignment_source,
+        "loan.invalid",
+        None,
+        |function| move_assignment_before_let_without_span(function, "observed"),
     );
 }
 

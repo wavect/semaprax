@@ -2,7 +2,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::ast::BinaryOp;
+use crate::ast::{BinaryOp, Span};
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
     ExpressionId, OwnershipMode, Place, PlaceProjection, ResolvedExpr, ResolvedExprKind,
@@ -1052,6 +1052,7 @@ fn reject_cfg_overlaps(
                     &place,
                     drafts,
                     live,
+                    expression.span,
                 )?;
             }
         }
@@ -1061,7 +1062,7 @@ fn reject_cfg_overlaps(
                     binding,
                     field,
                     value,
-                    ..
+                    span,
                 } = statement
                 {
                     let mut projections = Vec::new();
@@ -1081,6 +1082,7 @@ fn reject_cfg_overlaps(
                         &place,
                         drafts,
                         live,
+                        *span,
                     )?;
                 }
             }
@@ -1094,6 +1096,7 @@ fn reject_overlap_at(
     place: &Place,
     drafts: &[CfgDraft],
     live: &[BTreeSet<u16>],
+    span: Span,
 ) -> Result<(), Diagnostic> {
     if drafts.iter().zip(live).any(|(loan, live)| {
         live.contains(&node)
@@ -1101,9 +1104,17 @@ fn reject_overlap_at(
             && (place.projections.starts_with(&loan.origin.projections)
                 || loan.origin.projections.starts_with(&place.projections))
     }) {
-        Err(error(
-            "move, mutation, or transfer overlaps an active shared loan",
-        ))
+        let message = "move, mutation, or transfer overlaps an active shared loan";
+        // Carry only an existing HIR span from the operation that conflicts.
+        // Hand-built/hostile HIR may have no source provenance, represented by
+        // the default span; keep that diagnostic locationless rather than
+        // fabricating a location.
+        let diagnostic = if span.start < span.end && span.line > 0 && span.column > 0 {
+            Diagnostic::error("SPX-H006", message, span)
+        } else {
+            error(message)
+        };
+        Err(diagnostic)
     } else {
         Ok(())
     }

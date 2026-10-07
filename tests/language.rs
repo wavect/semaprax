@@ -57,6 +57,8 @@ mod indexed_byte_loops_v2;
 mod interop_scalar_widen;
 #[path = "language/interpreter_scalar_widen.rs"]
 mod interpreter_scalar_widen;
+#[path = "language/loop_command_input_v1.rs"]
+mod loop_command_input_v1;
 #[path = "language/match_mode_graph_v21.rs"]
 mod match_mode_graph_v21;
 #[path = "language/match_modes_syntax.rs"]
@@ -73,8 +75,6 @@ mod owned_byte_buffer_v1;
 mod owned_result_variants;
 #[path = "language/owned_string_loops_v1.rs"]
 mod owned_string_loops_v1;
-#[path = "language/loop_command_input_v1.rs"]
-mod loop_command_input_v1;
 #[path = "language/owned_string_loops_v2.rs"]
 mod owned_string_loops_v2;
 #[path = "language/ownership.rs"]

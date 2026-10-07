@@ -69,7 +69,7 @@ pub(crate) fn evaluate_resolved_source_command(
                     declaration.identity_origin == hir::IdentityOrigin::Explicit
                 })
         })
-        .filter(|function| resolved_data_signature_is_admitted(function, &program.declarations))
+        .filter(|function| internal_strings::signature_is_admitted(function, &program.declarations))
         .map(|function| (function.id.as_str(), function))
         .collect::<BTreeMap<_, _>>();
     let entry = admitted.get(entry_id).copied().ok_or_else(|| {

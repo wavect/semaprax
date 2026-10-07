@@ -139,6 +139,12 @@ the byte-oriented `file_read`, is `SPX-T273`. `--json` on the interpreter
 route prints a `semaprax.single-file-command.v1` envelope with `fuel`,
 `outcome`, `stdout`, and `stderr`.
 
+The single-file command interpreter also admits helpers taking owned `string`
+or named `borrow str` and returning `string`, in addition to its existing data
+signatures. The same closure-wide authority check precedes evaluation; this
+adds no host operation, selected-entry signature or ambient authority.
+Loop helper evidence is in `tests/language/loop_command_input_v1.rs`.
+
 The interpreter reports a failure as
 `single-file execution failed with language status {…} (meaning)`; native C
 prints `SEMAPRAX operation failure: <domain>/<code>`. Both exit with 1.

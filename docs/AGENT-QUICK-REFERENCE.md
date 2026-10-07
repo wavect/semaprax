@@ -160,8 +160,9 @@ fn main() -> i64
 - A `while` condition must be `bool` and is checked before every iteration.
   Its body still needs a final expression, but that value is discarded; the
   condition controls repetition. While bodies admit
-  Copy-scalar operations, effect-free user calls taking Copy scalars, borrowed
-  byte slices or strings and returning a scalar or string, matches over Copy
+  Copy-scalar operations, user calls with declared read-only input effects
+  taking Copy scalars, borrowed byte slices or named `str` views, or consumed
+  strings and returning a scalar or string, matches over Copy
   scalars or variants with only Copy scalar payloads (scalar guards are allowed),
   and string literals and `string_*` calls (each iteration releases its own
   strings). Match arms may yield strings; record/variant

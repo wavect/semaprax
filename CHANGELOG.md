@@ -1,5 +1,12 @@
 # Changelog
 
+- Loop input: repeated `args_len`/`arg_utf8`, named immutable String/`str`
+  views and user helpers with declared argument, filesystem or environment
+  read effects are admitted in loop bodies. Existing capability checks,
+  borrowed-owner liveness and the one-read stdin restriction remain in force.
+  Focused source/HIR and native allocation-settlement evidence is owned by
+  `tests/language/loop_command_input_v1.rs`.
+
 - Repair the unbuilt conversion and loop-body changes with focused interpreter,
   native C allocation-accounting, and Wasm evidence. Loop bodies admit user
   String calls and Copy scalar or Copy-payload variant matches; scalar guards

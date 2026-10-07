@@ -99,4 +99,5 @@ C11 `-O0`/`-O2` allocation settlement after two successful iterations and late
 argument/file failures, source effect/ownership controls, and hostile HIR view
 identity/projection/ownership controls. These additions do not establish
 ordinary Core Wasm filesystem support or broaden the opaque internal-String
-profile's borrowed-carrier support.
+profile's borrowed-carrier support; that profile retains the exact `SPX-W111`
+closed-signature refusal for the effectful helper corpus.

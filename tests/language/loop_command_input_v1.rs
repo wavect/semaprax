@@ -95,6 +95,13 @@ fn loop_input_executes_with_explicit_arguments_and_files() {
         .args(["run", "source.spx", "--", "one.txt", "two.txt"])
         .output()
         .unwrap();
+    if cfg!(windows) {
+        assert_eq!(output.status.code(), Some(1));
+        assert!(output.stdout.is_empty());
+        assert!(String::from_utf8_lossy(&output.stderr).contains("file access denied"));
+        fixture.cleanup();
+        return;
+    }
     assert_eq!(
         output.status.code(),
         Some(0),
@@ -107,6 +114,22 @@ fn loop_input_executes_with_explicit_arguments_and_files() {
 }
 
 #[test]
+fn core_wasm_refuses_loop_file_helpers_with_its_stable_profile_diagnostic() {
+    let program = parse(SOURCE, Path::new("loop-command-input-wasm.spx")).unwrap();
+    let error = semaprax::wasm::internal_strings::emit_module(
+        &program,
+        &["loop.read_all".to_owned()],
+        semaprax::wasm::internal_strings::InternalStringOptions::default(),
+    )
+    .unwrap_err();
+    assert_eq!(error.code, "SPX-W111");
+    assert_eq!(
+        error.message,
+        "standalone String internal signature is outside the closed profile"
+    );
+}
+
+#[test]
 fn native_loop_input_settles_on_success_and_late_read_failure() {
     if cfg!(windows) || Command::new("clang").arg("--version").output().is_err() {
         return;
@@ -114,7 +137,7 @@ fn native_loop_input_settles_on_success_and_late_read_failure() {
     let program = parse(SOURCE, Path::new("loop-command-input-native.spx")).unwrap();
     let generated = semaprax::codegen::emit_c_with_source_command(&program).unwrap();
     let mut probe = format!(
-        "#define _POSIX_C_SOURCE 200809L\n{}\n{}\n{generated}\n#undef malloc\n#undef free\nint main(void) {{\nREQUIRE(fixture_binary_stdout());\nstruct spx_language_command_input_v1 input={{0}};\ninput.argument_count=2;\ninput.arguments[0]=(spx_str_v1){{.data=(const uint8_t*)\"one.txt\",.len=7}};\ninput.arguments[1]=(spx_str_v1){{.data=(const uint8_t*)\"two.txt\",.len=7}};\nREQUIRE(spx_language_command_input_is_valid_v1(&input));\nstruct spx_source_command_state_v1 state={{0}};\nstate.command.input=&input;\nstate.file_root=open(\".\",O_RDONLY|O_DIRECTORY|O_CLOEXEC);\nREQUIRE(state.file_root>=0);\nstruct spx_status_entry entries[32];\nstruct spx_context context={{0}};\nREQUIRE(spx_context_init(&context,19,entries,32,NULL,NULL,&state));\n",
+        "#define _DARWIN_C_SOURCE 1\n#define _POSIX_C_SOURCE 200809L\n{}\n{}\n{generated}\n#undef malloc\n#undef free\nint main(void) {{\n(void)spx_source_command_usage_v1; (void)spx_source_command_flush_v1;\nREQUIRE(fixture_binary_stdout());\nstruct spx_language_command_input_v1 input={{0}};\ninput.argument_count=2;\ninput.arguments[0]=(spx_str_v1){{.data=(const uint8_t*)\"one.txt\",.len=7}};\ninput.arguments[1]=(spx_str_v1){{.data=(const uint8_t*)\"two.txt\",.len=7}};\nREQUIRE(spx_language_command_input_is_valid_v1(&input));\nstruct spx_source_command_state_v1 state={{0}};\nstate.command.input=&input;\nstate.file_root=open(\".\",O_RDONLY|O_DIRECTORY|O_CLOEXEC);\nREQUIRE(state.file_root>=0);\nstruct spx_status_entry entries[32];\nstruct spx_context context={{0}};\nREQUIRE(spx_context_init(&context,19,entries,32,NULL,NULL,&state));\n",
         include_str!("../support/native_fixture_stdio.c"),
         include_str!("../native_owned_utf8_settlement_v1/allocations.c")
     );

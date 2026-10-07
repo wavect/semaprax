@@ -598,24 +598,34 @@ fn tables_layout_derives_a_v3_capsule_and_replays_only_as_itself() {
 
 #[test]
 fn stdin_stream_text_template_selects_one_native_v25_command() {
-    let frozen = derive_project_scaffold_v1_with_layout(
-        NAME,
-        "stdin-stream-text",
-        ScaffoldLayout::Frozen,
-    )
-    .unwrap_err();
-    assert_eq!(frozen[0].code, "SPX-J115");
-
-    let derived = derive_project_scaffold_v1_with_layout(
-        NAME,
+    let long_name = "a".repeat(64);
+    let long = derive_project_scaffold_v1_with_layout(
+        &long_name,
         "stdin-stream-text",
         ScaffoldLayout::Tables,
     )
     .unwrap();
+    let replayed_long = replay_project_scaffold_v1(
+        &long_name,
+        "stdin-stream-text",
+        &long.canonical_bytes(),
+        long.digest(),
+    )
+    .unwrap();
+    assert_eq!(replayed_long.canonical_bytes(), long.canonical_bytes());
+    let manifest: toml::Value = toml::from_str(long.files()[2].utf8()).unwrap();
+    assert!(manifest["command"]["function"].as_str().unwrap().len() <= 32);
+    let frozen =
+        derive_project_scaffold_v1_with_layout(NAME, "stdin-stream-text", ScaffoldLayout::Frozen)
+            .unwrap_err();
+    assert_eq!(frozen[0].code, "SPX-J115");
+
+    let derived =
+        derive_project_scaffold_v1_with_layout(NAME, "stdin-stream-text", ScaffoldLayout::Tables)
+            .unwrap();
     assert_eq!(derived.schema(), "semaprax.project-scaffold.v4");
     assert_eq!(derived.project_schema(), "semaprax.project.v25");
-    let descriptor: serde_json::Value =
-        serde_json::from_slice(&derived.canonical_bytes()).unwrap();
+    let descriptor: serde_json::Value = serde_json::from_slice(&derived.canonical_bytes()).unwrap();
     assert_eq!(descriptor["schema"], "semaprax.project-scaffold.v4");
     assert_eq!(descriptor["project_schema"], "semaprax.project.v25");
     assert_eq!(

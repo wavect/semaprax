@@ -104,7 +104,10 @@ mod tests {
             let arguments = argv(&["--name", "demo", "--template", template]);
             assert_eq!(parse(&arguments).unwrap().1, template);
             if template == project::PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_TEXT {
-                assert_eq!(parse(&arguments).unwrap().2, project::ScaffoldLayout::Tables);
+                assert_eq!(
+                    parse(&arguments).unwrap().2,
+                    project::ScaffoldLayout::Tables
+                );
             }
         }
         for (spelling, expected) in [

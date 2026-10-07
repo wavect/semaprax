@@ -327,7 +327,10 @@ fn standalone_new_creates_the_stream_text_template_and_tests_owned_string_helper
         &["new", "text-command", "--template", "stdin-stream-text"],
     );
     assert!(created.status.success(), "{}", stderr(&created));
-    assert_eq!(stdout(&created), "created stdin-stream-text project text-command\n");
+    assert_eq!(
+        stdout(&created),
+        "created stdin-stream-text project text-command\n"
+    );
     let project = fixture.root.join("text-command");
     assert_eq!(
         read_tree(&project),

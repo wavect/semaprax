@@ -186,8 +186,12 @@ pub(super) fn execute(
         ))]);
     }
     let entry_id = program.entrypoint.as_str();
-    let evaluated =
-        interpreter::evaluate_resolved_zero_arg_i64(program, entry_id, options.max_steps)?;
+    let evaluated = interpreter::evaluate_resolved_profile_i64_entry(
+        program,
+        entry_id,
+        options.max_steps,
+        interpreter::ResolvedFunctionProfile::for_project(snapshot.manifest.project_profile()),
+    )?;
     let cases = match role {
         ProjectExecutionRole::Entry => Vec::new(),
         ProjectExecutionRole::Test => {
@@ -251,7 +255,11 @@ pub(super) fn execute_cancellable(
         ))]);
     }
     let entry_id = program.entrypoint.as_str();
-    let prepared = interpreter::prepare_resolved_zero_arg_i64(program, entry_id)?;
+    let prepared = interpreter::prepare_resolved_i64_with_profile(
+        program,
+        entry_id,
+        interpreter::ResolvedFunctionProfile::for_project(snapshot.manifest.project_profile()),
+    )?;
     let evaluated = std::thread::scope(|scope| {
         let worker = std::thread::Builder::new()
             .name("semaprax-resolved-cancellable".to_owned())

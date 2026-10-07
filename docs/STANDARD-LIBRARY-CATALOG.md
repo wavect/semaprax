@@ -1680,6 +1680,86 @@ fn unique_end(input: borrow Slice<u8>, depth_limit: usize) -> usize
 fn is_unique(input: borrow Slice<u8>) -> bool
 ```
 
+## `std.data.json.query`
+
+Package `std/data-json-query`, tier `portable`, status partial. Required project profile: `useful-data.v1`. Dependency: `std.data.json.query = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.data.json.query.byte_code`
+
+Pure borrowed-slice projection of the decoder pull loop. The scalar escape
+and UTF-8 rules intentionally mirror std.data.json.dec; Reader/Writer
+adapters stay in that package's owned-data-api profile.
+
+```semaprax
+fn byte_code(byte: u8) -> i64
+    ensures result >= 0 && result <= 255
+```
+
+### `std.data.json.query.scalar_at`
+
+```semaprax
+fn scalar_at(input: borrow Slice<u8>, start: usize) -> i64
+    ensures result >= -1 && result <= 1114111
+```
+
+### `std.data.json.query.utf8_len`
+
+```semaprax
+fn utf8_len(scalar: i64) -> usize
+    ensures result <= 4usize
+```
+
+### `std.data.json.query.utf8_at`
+
+```semaprax
+fn utf8_at(scalar: i64, index: usize) -> i64
+    ensures result >= -1 && result <= 255
+```
+
+### `std.data.json.query.emit_len`
+
+```semaprax
+fn emit_len(input: borrow Slice<u8>, index: usize) -> usize
+    ensures result <= 4usize
+```
+
+### `std.data.json.query.emit_at`
+
+```semaprax
+fn emit_at(input: borrow Slice<u8>, index: usize, offset: usize) -> i64
+    ensures result >= -1 && result <= 255
+```
+
+### `std.data.json.query.token_end`
+
+```semaprax
+fn token_end(input: borrow Slice<u8>, index: usize) -> usize
+```
+
+### `std.data.json.query.scan_string`
+
+```semaprax
+fn scan_string(input: borrow Slice<u8>, start: usize, measure: bool) -> usize
+```
+
+### `std.data.json.query.decoded_len`
+
+```semaprax
+fn decoded_len(input: borrow Slice<u8>, start: usize) -> usize
+```
+
+### `std.data.json.query.decoded_token_eq`
+
+```semaprax
+fn decoded_token_eq(input: borrow Slice<u8>, left: usize, right: usize) -> bool
+```
+
+### `std.data.json.query.is_string`
+
+```semaprax
+fn is_string(input: borrow Slice<u8>) -> bool
+```
+
 ## `std.data.json.token`
 
 Package `std/data-json-token`, tier `portable`, status partial. Required project profile: `useful-data.v1`. Dependency: `std.data.json.token = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.

@@ -11,7 +11,7 @@ sources = ["src/examples.spx", "src/query.spx", "src/tests.spx"]
 tests = ["std.data.json.query.tests"]
 
 [exports]
-web = ["std.data.json.query.decoded_len", "std.data.json.query.decoded_token_eq"]
+web = ["std.data.json.query.is_string"]
 
 [dependencies]
 std.data.json = "=0.1.0"

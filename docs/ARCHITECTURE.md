@@ -92,6 +92,13 @@ canonical .spx source or held Project inputs
 Every backend passes source verification and validated HIR. Cleanup-plan vectors
 are canonical runtime order; projections and backends must never sort or repair them.
 
+Project execution selects interpreter closure admission from the retained manifest
+profile in `interpreter/resolved_case.rs`. Only Project v25 stream-text admits
+pure, explicit-ID owned-String helpers with its checked parameter/result shapes.
+Entry, ordinary/named tests, cancellable execution and prepared-origin closure
+maps use that same selector. Legacy interpreter and Project profiles retain
+their existing closed maps; this selection grants no host effects or authority.
+
 `ast/type_properties.rs` owns primitive type formatting and classification.
 The reserved mutable callable type has independent source and retained-HIR
 admission guards in `source_verify/declared_type.rs`, `source_verify/closure.rs`

@@ -119,3 +119,9 @@ checks and both owning native integration checks passed locally. The native
 helper table anchors optional stream operations so Open/EOF-only and
 Open/Next/EOF-without-Chunk programs compile under `-Werror`. This is local
 evidence, not hosted or production promotion.
+
+Focused local test-call evidence covers cross-module owned-String helpers in
+entry and test modules, named cases, cancellable execution and prepared traced
+tests. Legacy interpreter APIs still refuse the same helper closure. Exact Own
+modes and pure effects remain required, and a selected Text failure survives
+owned-argument cleanup (`interpreter::resolved_case::tests::stream_text_owned_`).

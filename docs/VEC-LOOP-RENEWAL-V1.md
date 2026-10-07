@@ -1,6 +1,6 @@
 # Ordinary Vec Loop Renewal v1
 
-Status: authored additive private profile; executable verification pending.
+Status: implemented additive private profile with focused local interpreter, native O0/O2, Core Wasm and hostile-replay evidence.
 
 This profile admits same-cell renewal of a mutable concrete scalar `Vec<T>`
 inside an ordinary `while` body, including updates inside its `if` branches.
@@ -82,5 +82,4 @@ gates are `owned_data::vec_loop_renewal` (source/canonical graph, interpreter,
 native O0/O2 and repeated Wasm settlement) and library
 `cleanup_plan::replay::renewal::tests` (v15 hostile proofs and frozen v12 control).
 They cover untouched versus updated secondary owners, conditional and skipped
-updates, all four operations and failure settlement. Implementation status
-requires those gates; this document does not claim their pending results.
+updates, all four operations and failure settlement. Those focused gates pass locally; this evidence does not claim hosted cross-target execution.

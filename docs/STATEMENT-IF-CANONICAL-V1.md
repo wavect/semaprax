@@ -1,6 +1,6 @@
 # Statement If Canonical Source v1
 
-Status: authored source projection; focused executable verification pending.
+Status: implemented source projection with focused local source/graph, interpreter, native, Core Wasm and formatter/cache accounting evidence.
 
 Canonical formatting preserves an authored statement `if`, its `else if`
 chain, its explicit `else`, and its original branch values. It does not print

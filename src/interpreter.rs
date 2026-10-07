@@ -101,7 +101,11 @@ use api_admission::{
 use expression_children::child_expressions;
 pub use failure_detail::{ContractArgument, ContractFailureDetail};
 use hir::ResolvedHostCommandOperation as Operation;
-pub(crate) use resolved_case::evaluate_resolved_zero_arg_i64_function;
+pub(crate) use prepared::prepare_resolved_i64_with_profile;
+pub(crate) use resolved_case::{
+    evaluate_resolved_i64_function_with_profile, evaluate_resolved_profile_i64_entry,
+    evaluate_resolved_zero_arg_i64_function, ResolvedFunctionProfile,
+};
 use scalar_profile::{is_admitted_resolved_scalar, pattern_value_matches};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::{path::Path, sync::Arc};

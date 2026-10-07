@@ -118,6 +118,38 @@ fn v25_stream_text_links_owned_string_helpers_and_refuses_web_npm() {
     let _ = std::fs::remove_dir_all(root);
 }
 #[test]
+fn v25_stream_text_executes_entry_test_and_named_owned_string_helpers() {
+    let root = text_fixture();
+    std::fs::write(
+        root.join("c/tests.spx"),
+        canonical_source(
+            "c/tests.spx",
+            r#"module stream.tests;
+use function @id("text.cut") from stream.input as cut;
+@id("stream.tests.main") fn main()->i64 { let text=cut("abc"); string_len(text)-3 }
+@id("stream.tests.owned") fn test_owned()->i64 { let text=cut("abc"); string_len(text)-3 }
+"#,
+        ),
+    )
+    .unwrap();
+    with_authenticated_project(&root.join(MANIFEST_FILE), |snapshot| {
+        let options = ProjectExecutionOptions::default();
+        assert!(snapshot.execute_entry(&options)?.command_succeeded());
+        let test = snapshot.execute_test(&options)?;
+        assert!(test.command_succeeded());
+        assert_eq!(test.cases().len(), 1);
+        let revision = snapshot.retain_revision();
+        let cancelled = revision.execute_test_cancellable(&options, &ProjectExecutionCancellation::new())?;
+        assert!(matches!(cancelled, super::super::super::execution::CancellableProjectExecution::Completed(test) if test.command_succeeded()));
+        let prepared = revision.prepare_interpreter(PreparedProjectInterpreterOptions::default())?;
+        let result = prepared.execute_test(&PreparedProjectExecutionOptions::default(), &ProjectExecutionCancellation::new())?;
+        assert_eq!(result.outcome(), &ProjectPreparedExecutionOutcome::Returned(0));
+        Ok(())
+    }).unwrap();
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
 fn v25_stream_text_native_project_keeps_unicode_and_nul() {
     let root = text_fixture();
     let output = root.with_extension("stream-v25-native");

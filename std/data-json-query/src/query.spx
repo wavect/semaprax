@@ -134,3 +134,10 @@ fn decoded_token_eq(input: borrow Slice<u8>, left: usize, right: usize) -> bool
     }
     equal
 }
+
+@id("std.data.json.query.is_string")
+fn is_string(input: borrow Slice<u8>) -> bool
+{
+    let end = scan_string(input, 0usize, false);
+    !is_failure(input, end) && end == byte_len(input)
+}

@@ -23,14 +23,16 @@ pub(super) struct PreparedClosures {
 pub(super) fn prepare_closures(
     revision: &ProjectRevision,
 ) -> Result<PreparedClosures, Vec<Diagnostic>> {
-    let entry = interpreter::prepare_resolved_zero_arg_i64(
+    let entry = interpreter::prepare_resolved_i64_with_profile(
         revision.entry_program(),
         revision.entry_program().entrypoint.as_str(),
+        interpreter::ResolvedFunctionProfile::for_project(revision.manifest().project_profile()),
     )
     .map_err(preparation_diagnostics)?;
-    let test = interpreter::prepare_resolved_zero_arg_i64(
+    let test = interpreter::prepare_resolved_i64_with_profile(
         revision.test_program(),
         revision.test_program().entrypoint.as_str(),
+        interpreter::ResolvedFunctionProfile::for_project(revision.manifest().project_profile()),
     )
     .map_err(preparation_diagnostics)?;
     let nodes = entry

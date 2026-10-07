@@ -1,5 +1,5 @@
 //! Source syntax provenance; semantic visitors use the normalized Let value.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub enum LetSyntax {
     #[default]
     Authored,
@@ -9,12 +9,12 @@ pub enum LetSyntax {
 }
 
 /// Only the parser mints this marker. It carries no alternate expression tree.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct StatementIfSyntax {
     pub(crate) branches: Vec<BranchTail>,
     pub(crate) alternative: Option<BranchTail>,
 }
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BranchTail {
     Absent,
     Retained,

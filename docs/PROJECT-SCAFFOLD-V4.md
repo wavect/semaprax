@@ -50,3 +50,7 @@ hash, and independently rederives the same descriptor. A v3 capsule cannot
 claim the v25 project schema, and v4 cannot replay as a v1 template. The
 capsule carries no filesystem, process, target-emission, or publication
 authority.
+
+Command IDs are `<name>.command` for names up to 24 bytes. Longer valid package
+names use `p` plus the first 20 lowercase SHA-256 hex digits of the package name
+plus `.command`, keeping the selected identity within the 32-byte command bound.

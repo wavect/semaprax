@@ -275,7 +275,7 @@ const SERVICE_CONFIG_FIXTURE: &str =
     include_str!("../../examples/task-service-project/service.config.json");
 const SERVICE_ADAPTER_REQUEST_FIXTURE: &str =
     include_str!("../../examples/task-service-project/service-host-adapter-request.json");
-const STDIN_STREAM_TEXT_GUIDE: &str = "\n## Streaming command\n\nThis project uses Project v25 profile `language-command-io.stream-text.v1` and\ninput `argv-utf8+stdin-stream.v1`. The manifest selects exactly one stable\n`command` export. Build it with `semaprax build --manifest-path semaprax.toml\n--target native --output app`, then run `./app`. `semaprax doctor --profile`\nreports compiler support; it does not select a Project command. `semaprax run .`\nruns the separate `main` entry. Web, Wasm, and npm targets are not admitted.\n\n`input.spx` opens one reusable 4096-byte reader. Process each borrowed chunk\ninside its block before calling `stdin_stream_next`; a short positive read is a\nchunk, and only a zero-length read is EOF. Its `normalize` helper demonstrates\na private owned-String call across modules.\n";
+const STDIN_STREAM_TEXT_GUIDE: &str = "\n## Streaming command\n\nThis project uses Project v25 profile `language-command-io.stream-text.v1` and\ninput `argv-utf8+stdin-stream.v1`. The manifest selects exactly one stable\n`command` export. Build it with `semaprax build --manifest-path semaprax.toml\n--target native --output app`, then run `./app`. `semaprax doctor --profile` reports compiler support; it does not select a Project command. `semaprax run .`\nruns the separate `main` entry. Web, Wasm, and npm targets are not admitted.\n\n`input.spx` opens one reusable 4096-byte reader. Process each borrowed chunk\ninside its block before calling `stdin_stream_next`; a short positive read is a\nchunk, and only a zero-length read is EOF. Its `normalize` helper demonstrates\na private owned-String call across modules.\n";
 const STDIN_STREAM_TEXT_README: &str = "# {{name}}\n\nA native command project that reads standard input incrementally.\n\n```sh\nsemaprax check .\nsemaprax test .\nsemaprax run .\nsemaprax build --manifest-path semaprax.toml --target native --output app\n```\n\nThe generated `command` is selected by the Project manifest. `semaprax run .`\nexecutes the ordinary `main`; run `./app` to execute the streaming command.\nWeb, Wasm, and npm targets are refused for this profile. Read `AGENTS.md` before\nediting the source.\n";
 const STDIN_STREAM_TEXT_MANIFEST: &str = "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"{{name}}\"\nversion = \"0.1.0\"\nprofile = \"language-command-io.stream-text.v1\"\n\n[modules]\nentry = \"{{module}}.app\"\nsources = [\"src/app.spx\", \"src/input.spx\", \"src/tests.spx\"]\ntests = [\"{{module}}.tests\"]\n\n[exports]\nweb = [\"{{command}}\"]\n\n[command]\nfunction = \"{{command}}\"\ninput = \"argv-utf8+stdin-stream.v1\"\n\n[capabilities]\nrequired = [\"process.args.read\", \"process.stderr.write\", \"process.stdin.read\", \"process.stdout.write\"]\n";
 const STDIN_STREAM_TEXT_APP: &str = "module {{module}}.app;\nuse function @id(\"{{name}}.read_stream\") from {{module}}.input as read_stream;\nuse function @id(\"{{name}}.normalize\") from {{module}}.input as normalize;\n\npermit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }\n\n@id(\"{{command}}\")\nfn command() -> i64\n    uses { process.stdin.read }\n{\n    let saw_chunk = read_stream();\n    let marker = normalize(\" ready \");\n    if string_len(marker) == 5 { if saw_chunk { 0 } else { 1 } } else { 1 }\n}\n\n@id(\"{{name}}.app.main\")\nfn main() -> i64\n{\n    let marker = normalize(\" ready \");\n    if string_len(marker) == 5 { 0 } else { 1 }\n}\n";
@@ -491,6 +491,19 @@ pub fn derive_project_scaffold_v1_with_layout(
                 combined.push_str(SERVICE_DEPENDENCY_GUIDE);
             }
             if *path == "AGENTS.md" && is_stdin_stream_text {
+                combined = combined
+                    .replace(
+                        "- `semaprax build . --target web -o dist/web` emits a browser package.",
+                        "- `semaprax build --manifest-path semaprax.toml --target native --output app` builds the command.",
+                    )
+                    .replace(
+                        "is no `return`, `break`, range `for`, `else if`, cast, tuple, or unit value.",
+                        "is no `return`, `break`, range `for`, cast, tuple, or unit value.",
+                    )
+                    .replace(
+                        "- `if` always has `else`; a `while` body ends with the bool that decides\n  whether to loop again.",
+                        "- Value `if` requires `else`; statement `if` permits an omitted `else` and `else if`.\n  A `while` condition decides whether to loop; its body ends with a tail expression.",
+                    );
                 combined.push_str(STDIN_STREAM_TEXT_GUIDE);
             }
             if *path == "README.md" && is_service {

@@ -17,12 +17,15 @@ The package requires `useful-data.v1` and depends on the exact bundled
 `std.data.json.query`:
 
 ```semaprax
+fn is_string(input: borrow Slice<u8>) -> bool
 fn decoded_len(input: borrow Slice<u8>, start: usize) -> usize
 fn scalar_at(input: borrow Slice<u8>, start: usize) -> i64
 fn emit_len(input: borrow Slice<u8>, index: usize) -> usize
 fn emit_at(input: borrow Slice<u8>, index: usize, offset: usize) -> i64
 fn decoded_token_eq(input: borrow Slice<u8>, left: usize, right: usize) -> bool
 ```
+
+`is_string` is the public borrowed-slice export and validates a quoted token at offset zero. The offset-taking helpers are private dependency functions.
 
 `decoded_len` accepts the start offset of one quoted JSON string token and
 returns its decoded UTF-8 byte length. It uses the shared scanner result

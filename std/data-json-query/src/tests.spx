@@ -1,4 +1,5 @@
 module std.data.json.query.tests;
+use function @id("std.data.json.query.is_string") from std.data.json.query as is_string;
 use function @id("std.data.json.query.byte_code") from std.data.json.query as byte_code;
 use function @id("std.data.json.query.decoded_len") from std.data.json.query as decoded_len;
 use function @id("std.data.json.query.decoded_token_eq") from std.data.json.query as decoded_token_eq;
@@ -59,5 +60,8 @@ fn invalid_escapes() -> bool
 @id("std.data.json.query.tests.main")
 fn main() -> i64
 {
-    if escaped_names() && unicode_decode() && scalar_pull() && invalid_escapes() && scan_string(array_as_slice([34u8, 97u8, 34u8]), 0usize, false) == 3usize && token_end(array_as_slice([92u8, 110u8]), 0usize) == 2usize { 0 } else { 1 }
+    let quoted = [34u8, 97u8, 34u8];
+    let escaped = [92u8, 110u8];
+    let trailing = [34u8, 97u8, 34u8, 120u8];
+    if is_string(array_as_slice(quoted)) && !is_string(array_as_slice(trailing)) && escaped_names() && unicode_decode() && scalar_pull() && invalid_escapes() && scan_string(array_as_slice(quoted), 0usize, false) == 3usize && token_end(array_as_slice(escaped), 0usize) == 2usize { 0 } else { 1 }
 }

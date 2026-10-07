@@ -291,8 +291,16 @@ mod ast {
         span
     });
     codec_struct!(FieldTarget { name, span });
+    codec_enum!(LetSyntax {
+        0 => Authored, 1 => StatementIf(syntax), 2 => BranchTail
+    });
+    codec_struct!(StatementIfSyntax {
+        branches,
+        alternative
+    });
+    codec_enum!(BranchTail { 0 => Absent, 1 => Retained, 2 => Discarded });
     codec_enum!(Statement {
-        0 => Let { name, name_span, mutable, declared, value, span },
+        0 => Let { name, name_span, mutable, declared, value, span, syntax },
         1 => Assign { name, name_span, field, value, span },
         2 => Unsafe { audit, audit_span, body, span },
         3 => While { condition, body, span },
@@ -533,6 +541,47 @@ mod tests {
         assert_eq!(&restored, value);
         assert_eq!(encode(&restored).unwrap(), bytes);
         assert!(decode::<T>(&bytes[..bytes.len() - 1]).is_err());
+    }
+
+    #[test]
+    fn statement_if_syntax_roundtrip_preserves_authored_and_normalized_branches() {
+        use crate::ast::{BranchTail, LetSyntax, StatementIfSyntax};
+        roundtrip(&LetSyntax::Authored);
+        roundtrip(&LetSyntax::BranchTail);
+        roundtrip(&LetSyntax::StatementIf(StatementIfSyntax {
+            branches: vec![
+                BranchTail::Absent,
+                BranchTail::Retained,
+                BranchTail::Discarded,
+            ],
+            alternative: Some(BranchTail::Absent),
+        }));
+        roundtrip(&LetSyntax::StatementIf(StatementIfSyntax {
+            branches: vec![BranchTail::Absent],
+            alternative: None,
+        }));
+        let program = crate::parse(
+            r#"module codec.syntax;
+@id("codec.syntax.main") fn main() -> i64 {
+    let _if1 = if true { 0 } else { 0 };
+    if true { true } else if false { 0 } else { }
+    if false { }
+    7
+}
+"#,
+            "codec-syntax.spx",
+        )
+        .unwrap();
+        let bytes = encode(&program).unwrap();
+        let restored: crate::ast::Program = decode(&bytes).unwrap();
+        assert_eq!(restored.functions, program.functions);
+        assert_eq!(
+            crate::format::canonical(&restored),
+            crate::format::canonical(&program)
+        );
+        assert_eq!(encode(&restored).unwrap(), bytes);
+        assert!(decode::<LetSyntax>(&u16::MAX.to_le_bytes()).is_err());
+        assert!(decode::<BranchTail>(&u16::MAX.to_le_bytes()).is_err());
     }
 
     #[test]

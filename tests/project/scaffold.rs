@@ -613,8 +613,17 @@ fn stdin_stream_text_template_selects_one_native_v25_command() {
     )
     .unwrap();
     assert_eq!(replayed_long.canonical_bytes(), long.canonical_bytes());
-    let manifest: toml::Value = toml::from_str(long.files()[2].utf8()).unwrap();
-    assert!(manifest["command"]["function"].as_str().unwrap().len() <= 32);
+    let command_line = long.files()[2]
+        .utf8()
+        .lines()
+        .find(|line| line.starts_with("function = "))
+        .unwrap();
+    let command_id = command_line
+        .strip_prefix("function = \"")
+        .unwrap()
+        .strip_suffix('"')
+        .unwrap();
+    assert!(command_id.len() <= 32);
     let frozen =
         derive_project_scaffold_v1_with_layout(NAME, "stdin-stream-text", ScaffoldLayout::Frozen)
             .unwrap_err();
@@ -673,6 +682,9 @@ fn stdin_stream_text_template_selects_one_native_v25_command() {
     let guide = derived.files()[1].utf8();
     assert!(guide.contains("doctor --profile` reports compiler support"));
     assert!(guide.contains("Process each borrowed chunk"));
+    assert!(!guide.contains("--target web"));
+    assert!(!guide.contains("`if` always has `else`"));
+    assert!(!guide.contains("body ends with the bool"));
     let tests = derived.files()[5].utf8();
     assert!(tests.contains("demo-project.tests.main"));
     assert!(tests.contains("from demo_project.input as normalize;"));

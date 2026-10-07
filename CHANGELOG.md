@@ -1,5 +1,11 @@
 # Changelog
 
+- Copy variant guards: exact cases with scalar payloads admit ownership-neutral
+  scalar-operator guards. Guards evaluate after case binding, false guards fall
+  through, and exhaustive unguarded coverage remains required. The focused
+  interpreter/native/Wasm settlement and hostile-HIR gate is
+  `tests/language/guarded_copy_variants.rs`; broader #589 guard work stays open.
+
 - Source checking: avoid environment copies and identity ownership joins for
   empty `if` branches containing integer or boolean literals. Condition and
   both branch values still receive ordinary type checks; statementful and

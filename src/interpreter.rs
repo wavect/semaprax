@@ -2347,8 +2347,12 @@ fn variant_pattern_is_admitted(
     let mut seen_bindings = BTreeSet::new();
     let mut wildcard = false;
     for (index, arm) in arms.iter().enumerate() {
-        if arm.guard.is_some() {
-            return false;
+        if let Some(guard) = &arm.guard {
+            if !crate::variant_guards::admitted(declarations, ty, mode, &arm.pattern, guard)
+                || guard.ty != ResolvedType::Bool
+            {
+                return false;
+            }
         }
         // A Value-mode match may end in one `_` arm covering the remaining
         // cases; it binds nothing, so no owned payload can hide behind it.
@@ -2371,7 +2375,10 @@ fn variant_pattern_is_admitted(
             else {
                 return false;
             };
-            if variant != expected_variant || !seen_cases.insert(case.clone()) {
+            if variant != expected_variant
+                || seen_cases.contains(case)
+                || (arm.guard.is_none() && !seen_cases.insert(case.clone()))
+            {
                 return false;
             }
             let Some(declared_fields) = concrete_variant_case_fields(declarations, ty, case) else {

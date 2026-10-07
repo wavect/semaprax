@@ -2030,6 +2030,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             ));
                         }
                     }
+                    self.open_variant_guard(arm.guard.as_deref(), &matched)?;
                     let value = self.emit_expr(&arm.value)?;
                     self.require_type(&value.ty, &expr.ty, "match arm result")?;
                     if is_direct_plan_owned(self.program, &expr.ty) {
@@ -2096,6 +2097,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             self.line(line);
                         }
                     }
+                    self.close_variant_guard(arm.guard.is_some());
                     self.variables = saved;
                     self.indent -= 1;
                     self.line("}");

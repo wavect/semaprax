@@ -766,3 +766,15 @@ fn named_string_length_conditions_match_recursive_oracle() {
         compare_scalar_body(&format!("module t; @id(\"t.main\") fn main()->i64{{{body}}}"));
     }
 }
+
+#[test]
+fn copy_variant_guards_match_recursive_oracle() {
+    for arms in [
+        "Option::Some { value: n } if n>0 => n, Option::Some { value: n } => 0, Option::None {} => 0,",
+        "Option::Some { value: n } if n>0 => n, Option::None {} => 0,",
+        "Option::Some { value: n } if n => n, Option::Some { value: n } => 0, Option::None {} => 0,",
+        "Option::Some { value: n } if string_len(\"temp\")>0 => n, Option::Some { value: n } => 0, Option::None {} => 0,",
+    ] {
+        compare_scalar_body(&format!("module t; @id(\"t.main\") fn main()->i64 {{ let x=Option<i64>::Some {{ value: 7 }}; match x {{ {arms} }} }}"));
+    }
+}

@@ -14,8 +14,9 @@ fn private_native_ui_is_platform_real_feature_gated_and_source_locked() {
     let lock = read(root, "platform-tests/desktop-native/toolchain.lock");
     let workflow = read(root, ".github/workflows/ci.yml");
     let diagnostics = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
         read(root, "src/codegen.rs"),
+        read(root, "src/codegen/native_emit/guarded_variant.rs"),
         read(root, "src/codegen/native_source_command.rs"),
         read(root, "src/codegen/native_box.rs"),
         read(root, "src/codegen/native_box/owned_payload.rs"),

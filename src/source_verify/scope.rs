@@ -306,6 +306,7 @@ pub(super) struct VariantMatchState<'a> {
     pub(super) variant_name: Option<String>,
     pub(super) variant_arguments: Vec<Type>,
     pub(super) declared_cases: Option<&'a [VariantCaseDeclaration]>,
+    pub(super) guard_pending: bool,
     pub(super) mode: MatchMode,
     pub(super) needs_drop: bool,
 }

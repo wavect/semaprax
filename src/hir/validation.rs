@@ -5318,7 +5318,8 @@ impl<'a> HirValidator<'a> {
                             } => {
                                 if wildcard_seen
                                     || pattern_variant != &variant
-                                    || !covered.insert(case.clone())
+                                    || covered.contains(case)
+                                    || (arm.guard.is_none() && !covered.insert(case.clone()))
                                 {
                                     return Err(hir_error(
                                         "resolved match has an unreachable or foreign case pattern",
@@ -5422,6 +5423,28 @@ impl<'a> HirValidator<'a> {
                                     "resolved refutable pattern has an aggregate variant \
                                      scrutinee",
                                 ));
+                            }
+                        }
+                        if let Some(guard) = &arm.guard {
+                            if !crate::variant_guards::admitted(
+                                &self.program.declarations,
+                                &scrutinee.ty,
+                                *mode,
+                                &arm.pattern,
+                                guard,
+                            ) {
+                                return Err(hir_error("resolved Copy variant guard is outside its scalar operator profile"));
+                            }
+                            self.validate_expr_iterative(
+                                function,
+                                guard,
+                                &mut arm_scope,
+                                &format!("{path}.arm.{index}.guard"),
+                                allow_moves,
+                                allowed_effects,
+                            )?;
+                            if guard.ty != ResolvedType::Bool {
+                                return Err(hir_error("resolved match guard is not bool"));
                             }
                         }
                         frames.push(Frame::VariantMatchAfterArm {
@@ -7562,7 +7585,8 @@ impl<'a> HirValidator<'a> {
                         } => {
                             if wildcard_seen
                                 || pattern_variant != variant
-                                || !covered.insert(case.clone())
+                                || covered.contains(case)
+                                || (arm.guard.is_none() && !covered.insert(case.clone()))
                             {
                                 return Err(hir_error(
                                     "resolved match has an unreachable or foreign case pattern",
@@ -7665,6 +7689,28 @@ impl<'a> HirValidator<'a> {
                             return Err(hir_error(
                                 "resolved refutable pattern has an aggregate variant scrutinee",
                             ));
+                        }
+                    }
+                    if let Some(guard) = &arm.guard {
+                        if !crate::variant_guards::admitted(
+                            &self.program.declarations,
+                            &scrutinee.ty,
+                            *mode,
+                            &arm.pattern,
+                            guard,
+                        ) {
+                            return Err(hir_error("resolved Copy variant guard is outside its scalar operator profile"));
+                        }
+                        self.validate_expr_recursive_reference(
+                            function,
+                            guard,
+                            &mut arm_scope,
+                            &format!("{path}.arm.{arm_index}.guard"),
+                            allow_moves,
+                            allowed_effects,
+                        )?;
+                        if guard.ty != ResolvedType::Bool {
+                            return Err(hir_error("resolved match guard is not bool"));
                         }
                     }
                     self.validate_expr_recursive_reference(

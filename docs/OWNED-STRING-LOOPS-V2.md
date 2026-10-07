@@ -52,8 +52,10 @@ while i < 4 {
 }
 ```
 
-Guards over variant scrutinees retain `SPX-T254`; guards are admitted only
-for the existing Copy-scalar match profile. Owned or borrowed non-Copy
+[Copy Variant Guards v1](COPY-VARIANT-GUARDS-V1.md) adds scalar-operator guards
+on exact cases of these Copy-payload variants. Guarded cases contribute no
+coverage: exhaustive unguarded fallback remains required (`SPX-M101`). Calls,
+blocks, guarded wildcards/or-patterns and owned payload guards retain `SPX-T254`. Owned or borrowed non-Copy
 scrutinees, including `Option<string>`, remain
 `SPX-T252`. Variant construction inside an iteration, records, postfix `?`,
 generic calls outside an existing admitted intrinsic, and write-effect user calls
@@ -72,7 +74,8 @@ Wasm profile with repeated calls. Numeric text and nominal variants retain
 their backend-specific profiles.
 
 `tests/language/indexed_byte_loops_v2.rs` retains the exact byte-read corpus,
-guarded-variant and malformed patterns, effect/allocation refusals, and hostile
+guard-only nonexhaustive variants and malformed patterns, effect/allocation
+refusals, and hostile
 HIR identity, field, type, and ownership controls. Wrong fields in this corpus
 and `tests/language/text_toolkit_v1.rs` use the ordinary `SPX-M104` pattern
 diagnostic instead of the former exact-shape admission message.

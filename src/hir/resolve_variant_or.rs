@@ -18,9 +18,10 @@ use super::Resolver;
 /// Whether an aggregate match uses a construct only Copy-scalar scrutinees
 /// admit: a guard, a literal or binding pattern, or an or-pattern that is not
 /// a variant-case or-pattern.
-pub(super) fn has_scalar_only_syntax(arms: &[MatchArm]) -> bool {
+pub(super) fn has_scalar_only_syntax(arms: &[MatchArm], copy_variant_guards: bool) -> bool {
     arms.iter().any(|arm| {
-        arm.guard.is_some()
+        (arm.guard.is_some()
+            && !(copy_variant_guards && matches!(arm.pattern, MatchPattern::Variant { .. })))
             || matches!(
                 &arm.pattern,
                 MatchPattern::Literal { .. } | MatchPattern::Binding { .. }
@@ -30,6 +31,22 @@ pub(super) fn has_scalar_only_syntax(arms: &[MatchArm]) -> bool {
 }
 
 impl Resolver<'_> {
+    #[cfg(test)]
+    pub(super) fn resolve_variant_guard_reference(
+        &self,
+        function: &super::ids::FunctionExecutionId,
+        guard: Option<&crate::ast::Expr>,
+        bindings: &std::collections::BTreeMap<String, super::Binding>,
+        path: &str,
+    ) -> Result<Option<Box<super::expr_nodes::ResolvedExpr>>, Diagnostic> {
+        guard
+            .map(|guard| {
+                self.resolve_expr_recursive_reference(function, guard, bindings, path)
+                    .map(Box::new)
+            })
+            .transpose()
+    }
+
     pub(super) fn resolve_variant_or_pattern(
         &self,
         matched_type: &DeclarationId,

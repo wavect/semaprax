@@ -163,7 +163,9 @@ fn main() -> i64
   Copy-scalar operations, user calls with declared read-only input effects
   taking Copy scalars, borrowed byte slices or named `str` views, or consumed
   strings and returning a scalar or string, matches over Copy
-  scalars or variants with only Copy scalar payloads (scalar guards are allowed),
+  scalars or variants with only Copy scalar payloads. Exact variant-case guards
+  admit scalar literals/bindings/operators and require exhaustive unguarded
+  fallback coverage ([guard profile](COPY-VARIANT-GUARDS-V1.md));
   and string literals and `string_*` calls (each iteration releases its own
   strings). Match arms may yield strings; record/variant
   construction, other aggregate-returning calls, and any string value in the

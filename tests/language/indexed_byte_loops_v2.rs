@@ -158,7 +158,7 @@ fn malformed_or_effectful_loop_matches_keep_their_semantic_diagnostics() {
             "Option::Some { value: byte } =>",
             "Option::Some { value: byte } if byte == 255u8 =>",
         ),
-        "SPX-T254",
+        "SPX-M101",
     );
     assert_rejected(
         &VALID.replace("match byte_get(bytes, index)", "match Option<u8>::None {}"),

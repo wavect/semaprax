@@ -199,7 +199,10 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             None => diagnostic,
                         },
                     );
-                } else if state.wildcard_seen || !state.covered.insert(case_name.clone()) {
+                } else if state.wildcard_seen
+                    || state.covered.contains(case_name)
+                    || (arm.guard.is_none() && !state.covered.insert(case_name.clone()))
+                {
                     self.diagnostics.push(error(
                         self.program,
                         "SPX-M102",
@@ -315,10 +318,27 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 );
             }
         }
+        let next = if let Some(guard) = &arm.guard {
+            if !crate::source_verify::variant_guards::guard_shape(
+                guard,
+                &self.scopes[arm_scope].bindings,
+            ) {
+                self.diagnostics.push(error(
+                    self.program,
+                    "SPX-T254",
+                    "Copy variant guards require scalar literals, bindings, and operators",
+                    guard.span,
+                ));
+            }
+            state.guard_pending = true;
+            guard.as_ref()
+        } else {
+            &arm.value
+        };
         self.frames
             .push(VerifierFrame::ResumeVariantMatchArm { state, arm_scope });
         self.frames.push(VerifierFrame::Enter {
-            expression: &arm.value,
+            expression: next,
             scope: arm_scope,
         });
         Ok(())
@@ -336,6 +356,27 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             ));
         }
         let arm = &state.arms[state.index];
+        if state.guard_pending {
+            let guard_value = self.values.pop().unwrap_or(None);
+            if let Some(value) = guard_value {
+                if value.ty != Type::Bool || value.mode != ParamMode::Value {
+                    self.diagnostics.push(error(
+                        self.program,
+                        "SPX-T256",
+                        format!("match guard must be bool; received {}", value.ty),
+                        arm.guard.as_ref().expect("guard retained").span,
+                    ));
+                }
+            }
+            state.guard_pending = false;
+            self.frames
+                .push(VerifierFrame::ResumeVariantMatchArm { state, arm_scope });
+            self.frames.push(VerifierFrame::Enter {
+                expression: &arm.value,
+                scope: arm_scope,
+            });
+            return Ok(());
+        }
         let arm_value = self.values.pop().unwrap_or(None);
         if let Some(value) = &arm_value {
             reject_native_unit_value(self.program, &arm.value, value, self.diagnostics);

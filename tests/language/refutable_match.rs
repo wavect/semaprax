@@ -490,7 +490,7 @@ fn main(x: i64) -> i64 {
 }
 
 #[test]
-fn refutable_constructs_on_aggregate_scrutinees_are_spx_t254() {
+fn aggregate_refutable_near_misses_keep_source_diagnostics() {
     let sources = [
         (
             "literal against variant",
@@ -534,10 +534,14 @@ fn main(s: string) -> i64 { match s { _ => 0, } }
     ];
     for (index, (label, source)) in sources.iter().enumerate() {
         let report = verify_diagnostics(source);
-        // The string-scrutinee entry keeps its pre-feature M103 rejection;
-        // every other entry must select SPX-T254.
-        let admitted = report.iter().any(|item| item.code == "SPX-T254")
-            || (index == 2 && report.iter().any(|item| item.code == "SPX-M103"));
+        // The guarded case still lacks an unguarded A fallback. Guards
+        // contribute no variant coverage; other aggregate refusals stay intact.
+        let code = match index {
+            0 => "SPX-T254",
+            1 => "SPX-M101",
+            _ => "SPX-M103",
+        };
+        let admitted = report.iter().any(|item| item.code == code);
         assert!(
             admitted,
             "{label} stays outside the Copy-scalar surface: {report:?}"

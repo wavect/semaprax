@@ -95,7 +95,10 @@ arm-value statements) is admitted and evidenced.
 The later [Owned String Loops v2](OWNED-STRING-LOOPS-V2.md) widens that loop
 admission: Copy-scalar matches (including their scalar guards) may appear in
 conditions and bodies, and Copy-payload variant matches may appear in bodies.
-The v1 restriction against guards on variant scrutinees remains unchanged.
+The later [Copy Variant Guards v1](COPY-VARIANT-GUARDS-V1.md) additionally
+admits scalar-operator guards on exact cases of concrete Copy-payload variants,
+with exhaustive unguarded fallback coverage. Other variant guards retain their
+refusal.
 
 ## Cleanup-plan contract
 

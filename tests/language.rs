@@ -49,6 +49,8 @@ mod generic_functions;
 mod generic_records;
 #[path = "language/generic_variants.rs"]
 mod generic_variants;
+#[path = "language/guarded_copy_variants.rs"]
+mod guarded_copy_variants;
 #[path = "language/i32_scalars.rs"]
 mod i32_scalars;
 #[path = "language/indexed_byte_loops_v2.rs"]

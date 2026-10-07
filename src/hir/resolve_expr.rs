@@ -2017,7 +2017,14 @@ impl Resolver<'_> {
                         });
                         continue;
                     }
-                    let refutable_syntax = super::resolve_variant_or::has_scalar_only_syntax(arms);
+                    let refutable_syntax = super::resolve_variant_or::has_scalar_only_syntax(
+                        arms,
+                        mode == ResolvedMatchMode::Value
+                            && crate::variant_guards::copy_variant(
+                                &self.declarations,
+                                &scrutinee.ty,
+                            ),
+                    );
                     if refutable_syntax {
                         return Err(self.error(
                             "SPX-T254",
@@ -2279,9 +2286,16 @@ impl Resolver<'_> {
                         });
                         frames.push(Frame::Enter {
                             expr: &arm.value,
-                            bindings: arm_bindings,
+                            bindings: arm_bindings.clone(),
                             path: format!("{path}.arm.{index}.value"),
                         });
+                        if let Some(guard) = &arm.guard {
+                            frames.push(Frame::Enter {
+                                expr: guard,
+                                bindings: arm_bindings,
+                                path: format!("{path}.arm.{index}.guard"),
+                            });
+                        }
                     }
                 }
                 Frame::MatchAfterArm {
@@ -2299,11 +2313,13 @@ impl Resolver<'_> {
                     pattern,
                 } => {
                     let value = results.pop().expect("match arm value retained");
-                    // Aggregate matches reject guards with SPX-T254 before
-                    // any arm resolves, so pre-feature arms carry no guard.
+                    let guard = arms[index]
+                        .guard
+                        .as_ref()
+                        .map(|_| Box::new(results.pop().expect("match guard retained")));
                     resolved.push(ResolvedMatchArm {
                         pattern,
-                        guard: None,
+                        guard,
                         value,
                         span: arms[index].span,
                     });
@@ -2943,10 +2959,8 @@ impl Resolver<'_> {
                     let mut all = take_results(&mut results, args_len + 1);
                     let receiver = all.remove(0);
                     let args = all;
-                    // The inherited receiver is the enclosing override's own
-                    // `self`, upcast to the declaring ancestor exactly like a
-                    // declared-type binding. The source place is synthesized
-                    // here, so both identities are canonical by construction.
+                    // The inherited receiver is the enclosing override's own `self`, upcast to the declaring ancestor exactly like a declared-type binding.
+                    // The source place is synthesized here, so both identities are canonical by construction.
                     let ResolvedType::Nominal {
                         declaration: self_class,
                         ..
@@ -3072,9 +3086,8 @@ impl Resolver<'_> {
                     span,
                     resume,
                 } => {
-                    // Re-resolve the consumed expression at the canonical
-                    // `.source` identity below its occupied slot, then wrap
-                    // and resume the interrupted continuation.
+                    // Re-resolve the consumed expression at the canonical `.source` identity below its occupied slot, then wrap and resume the interrupted
+                    // continuation.
                     frames.push(*resume);
                     frames.push(Frame::FinishUpcast {
                         slot_path: slot_path.clone(),

@@ -264,6 +264,20 @@ pub(super) fn oracle_match(
         }
         return result;
     }
+    if arms.iter().any(|arm| {
+        arm.guard.is_some()
+            && !scrutinee_value.as_ref().is_some_and(|value| {
+                value.mode == ParamMode::Value
+                    && crate::source_verify::variant_guards::admission(
+                        types,
+                        &value.ty,
+                        *mode,
+                        &arm.pattern,
+                    )
+            })
+    }) {
+        diagnostics.push(error(program, "SPX-T254", "guards and literal/or/binding patterns require a Copy-scalar scrutinee (i64/i32/u8/char/bool)", scrutinee.span).with_help(AGGREGATE_REFUTABLE_HELP));
+    }
     if scrutinee_value
         .as_ref()
         .is_some_and(|value| types.record_fields(&value.ty).is_some())
@@ -619,7 +633,10 @@ pub(super) fn oracle_match(
                             None => diagnostic,
                         },
                     );
-                } else if wildcard_seen || !covered.insert(case_name.as_str()) {
+                } else if wildcard_seen
+                    || covered.contains(case_name.as_str())
+                    || (arm.guard.is_none() && !covered.insert(case_name.as_str()))
+                {
                     diagnostics.push(error(
                         program,
                         "SPX-M102",
@@ -747,6 +764,36 @@ pub(super) fn oracle_match(
                     )
                     .with_help(AGGREGATE_REFUTABLE_HELP),
                 );
+            }
+        }
+        if let Some(guard) = &arm.guard {
+            if !crate::source_verify::variant_guards::guard_shape(guard, &arm_variables) {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T254",
+                    "Copy variant guards require scalar literals, bindings, and operators",
+                    guard.span,
+                ));
+            }
+            if let Some(value) = check_expr(
+                program,
+                current,
+                guard,
+                &mut arm_variables,
+                functions,
+                types,
+                result_type,
+                allow_moves,
+                diagnostics,
+            ) {
+                if value.ty != Type::Bool || value.mode != ParamMode::Value {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T256",
+                        format!("match guard must be bool; received {}", value.ty),
+                        guard.span,
+                    ));
+                }
             }
         }
         let arm_value = check_expr(

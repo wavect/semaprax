@@ -35,6 +35,7 @@ mod bounded_vec;
 mod call_reference;
 mod finish_call;
 mod generic_variant;
+mod guarded_variant;
 #[cfg(test)]
 mod hostile_tests;
 mod iterator;
@@ -4044,7 +4045,7 @@ impl<'a> PlanBuilder<'a> {
                         } else {
                             Some(self.new_region(active_region)?)
                         };
-                        let arm_entry = self.new_block(arm_region.unwrap_or(active_region))?;
+                        let mut arm_entry = self.new_block(arm_region.unwrap_or(active_region))?;
                         if final_arm {
                             let condition = if mode == ResolvedMatchMode::Value {
                                 EdgeCondition::Always
@@ -4109,6 +4110,21 @@ impl<'a> PlanBuilder<'a> {
                         } else {
                             branch_state.clone()
                         };
+                        if let Some(guard) = &arm.guard {
+                            let lowered = self.lower_expr_iterative(
+                                guard,
+                                arm_entry,
+                                arm_state.clone(),
+                                active_region,
+                            )?;
+                            arm_entry = self.finish_variant_guard(
+                                guard,
+                                lowered,
+                                &branch_state,
+                                decision,
+                                active_region,
+                            )?;
+                        }
                         frames.push(Frame::MatchAfterArm {
                             expression,
                             mode,
@@ -4228,10 +4244,8 @@ impl<'a> PlanBuilder<'a> {
                         let arm = &arms[index];
                         let final_arm = index + 1 == arms.len();
                         let arm_entry = self.new_block(active_region)?;
-                        // A single unconditional arm has no authenticated
-                        // selection boundary. Keep it in the parent region;
-                        // otherwise the backend cannot distinguish that
-                        // synthetic region from a lexical child block.
+                        // A single unconditional arm has no authenticated selection boundary. Keep it in the parent region; otherwise the backend cannot
+                        // distinguish that synthetic region from a lexical child block.
                         let direct_single_catchall = arms.len() == 1 && arm.guard.is_none();
                         let (value_region, value_entry) = if direct_single_catchall {
                             (None, arm_entry)
@@ -4241,15 +4255,11 @@ impl<'a> PlanBuilder<'a> {
                             (Some(value_region), value_entry)
                         };
                         if final_arm {
-                            // The resolver guarantees one trailing
-                            // irrefutable guard-free catch-all, so the final
-                            // decision falls through unconditionally.
+                            // The resolver guarantees one trailing irrefutable guard-free catch-all, so the final decision falls through unconditionally.
                             let edge = self.new_edge(decision, arm_entry, EdgeCondition::Always)?;
                             self.terminate(decision, CleanupTerminator::Goto(edge))?;
                         } else {
-                            // Every earlier arm — including irrefutable
-                            // bindings — authenticates as one conditional
-                            // decision so the plan stays total.
+                            // Every earlier arm — including irrefutable bindings — authenticates as one conditional decision so the plan stays total.
                             let next_decision = self.new_block(active_region)?;
                             let selected = self.new_edge(
                                 decision,
@@ -4278,11 +4288,8 @@ impl<'a> PlanBuilder<'a> {
                             decision = next_decision;
                         }
                         if let Some(guard) = &arm.guard {
-                            // The guard's result is Copy, but evaluating it
-                            // may create owned String temporaries. Its region
-                            // must end before either Boolean edge so neither
-                            // the selected arm nor the fallthrough inherits
-                            // guard-local liveness.
+                            // The guard's result is Copy, but evaluating it may create owned String temporaries. Its region must end before either Boolean
+                            // edge so neither the selected arm nor the fallthrough inherits guard-local liveness.
                             let guard_region = self.new_region(active_region)?;
                             let guard_entry = self.new_block(guard_region)?;
                             let guard_edge =
@@ -4349,9 +4356,8 @@ impl<'a> PlanBuilder<'a> {
                     value_entry,
                     parent_region,
                 } => {
-                    // The guard is an ordinary bool expression evaluated once
-                    // after the pattern matched; its Boolean join routes to
-                    // this arm's value or falls through to the next decision.
+                    // The guard is an ordinary bool expression evaluated once after the pattern matched; its Boolean join routes to this arm's value or
+                    // falls through to the next decision.
                     let guard = results.pop().expect("scalar match guard retained");
                     if guard.owned_source.is_some() {
                         return Err(plan_error(
@@ -4982,13 +4988,11 @@ impl<'a> PlanBuilder<'a> {
                     owned_source: destination,
                 })
             }
-            // Class Inheritance v1: the upcast itself is transparent; its
-            // consumed source remains the surrounding transfer's source.
+            // Class Inheritance v1: the upcast itself is transparent; its consumed source remains the surrounding transfer's source.
             ResolvedExprKind::Upcast { source } => {
                 self.lower_expr_recursive_reference(source, block, state, region)
             }
-            // Resumable Effects v1 (issue #204): transparent, matching the
-            // iterative lowering path above.
+            // Resumable Effects v1 (issue #204): transparent, matching the iterative lowering path above.
             ResolvedExprKind::Yield { request } => {
                 self.lower_expr_recursive_reference(request, block, state, region)
             }
@@ -5055,8 +5059,7 @@ impl<'a> PlanBuilder<'a> {
         state: FlowState,
         parent: CleanupRegionId,
     ) -> Result<EvalResult, Diagnostic> {
-        // The block expression's completed value belongs to the surrounding
-        // region; locals and intermediate temporaries belong to the child.
+        // The block expression's completed value belongs to the surrounding region; locals and intermediate temporaries belong to the child.
         let destination = self.expression_slot(expression, parent)?;
         let region = self.new_region(parent)?;
         let entry = self.new_block(region)?;
@@ -5066,8 +5069,7 @@ impl<'a> PlanBuilder<'a> {
         let mut current = entry;
         let mut current_state = state;
         for statement in statements {
-            // Field Mutation v1 stores lower their RHS like an initializer
-            // and never transfer into a binding slot.
+            // Field Mutation v1 stores lower their RHS like an initializer and never transfer into a binding slot.
             if let ResolvedStatement::Assign {
                 field: Some(_),
                 value,
@@ -5083,8 +5085,7 @@ impl<'a> PlanBuilder<'a> {
             let (binding, value) = match statement {
                 ResolvedStatement::Let { binding, value, .. }
                 | ResolvedStatement::Assign { binding, value, .. } => (binding, value),
-                // Unsafe boundaries bind nothing: their ordinary block body lowers
-                // like any nested block expression.
+                // Unsafe boundaries bind nothing: their ordinary block body lowers like any nested block expression.
                 ResolvedStatement::Unsafe { body, .. } => {
                     let evaluated =
                         self.lower_expr_recursive_reference(body, current, current_state, region)?;
@@ -5277,10 +5278,8 @@ impl<'a> PlanBuilder<'a> {
             }
         }
 
-        // While construction is partial, `live_order` is actual initializer
-        // completion order and failure reverses it.  At the successful
-        // whole-aggregate boundary, history is intentionally normalized to
-        // recursive declaration order as specified by cleanup-plan v1.
+        // While construction is partial, `live_order` is actual initializer completion order and failure reverses it.  At the successful whole-aggregate
+        // boundary, history is intentionally normalized to recursive declaration order as specified by cleanup-plan v1.
         if let Some(destination) = &destination {
             self.canonicalize_complete_aggregate(destination, &mut current_state)?;
         }
@@ -6069,8 +6068,7 @@ impl<'a> PlanBuilder<'a> {
                 "droppable match scrutinee reached the copy-only cleanup slice",
             ));
         }
-        // Refutable Match v1: recursive-reference twin of the scalar
-        // decision chain.
+        // Refutable Match v1: recursive-reference twin of the scalar decision chain.
         if crate::hir::is_refutable_match_scalar(&scrutinee.ty) {
             let destination = self.expression_slot(expression, region)?;
             return self.lower_scalar_match(
@@ -6168,7 +6166,7 @@ impl<'a> PlanBuilder<'a> {
             let arm_region = (*mode != ResolvedMatchMode::Value)
                 .then(|| self.new_region(region))
                 .transpose()?;
-            let arm_entry = self.new_block(arm_region.unwrap_or(region))?;
+            let mut arm_entry = self.new_block(arm_region.unwrap_or(region))?;
             if final_arm {
                 let condition = if *mode == ResolvedMatchMode::Value {
                     EdgeCondition::Always
@@ -6233,6 +6231,16 @@ impl<'a> PlanBuilder<'a> {
             } else {
                 branch_state.clone()
             };
+            if let Some(guard) = &arm.guard {
+                let lowered = self.lower_expr_recursive_reference(
+                    guard,
+                    arm_entry,
+                    arm_state.clone(),
+                    region,
+                )?;
+                arm_entry =
+                    self.finish_variant_guard(guard, lowered, &branch_state, decision, region)?;
+            }
             let mut result = self.lower_expr_recursive_reference(
                 &arm.value,
                 arm_entry,
@@ -6284,9 +6292,8 @@ impl<'a> PlanBuilder<'a> {
         record_destructure::update::authenticate(self, expression)?;
         let destination = self.expression_slot(expression, region)?;
 
-        // A record without droppable leaves has no cleanup state. Evaluation
-        // order still matters, so walk base then replacements in their authored
-        // order and leave physical value movement to the backend layout lane.
+        // A record without droppable leaves has no cleanup state. Evaluation order still matters, so walk base then replacements in their authored order
+        // and leave physical value movement to the backend layout lane.
         let Some(destination) = destination else {
             let mut evaluated = self.lower_expr_recursive_reference(base, block, state, region)?;
             for initializer in fields {
@@ -6304,10 +6311,8 @@ impl<'a> PlanBuilder<'a> {
             });
         };
 
-        // The base epoch is isolated so the same reverse cleanup handles both
-        // failure and successful disposal of displaced values.  The completed
-        // destination belongs to the parent region and therefore survives the
-        // child region's normal exit.
+        // The base epoch is isolated so the same reverse cleanup handles both failure and successful disposal of displaced values.  The completed
+        // destination belongs to the parent region and therefore survives the child region's normal exit.
         let update_region = self.new_region(region)?;
         let entry = self.new_block(update_region)?;
         let edge = self.new_edge(block, entry, EdgeCondition::Always)?;
@@ -6517,11 +6522,9 @@ fn window_len(value: borrow Slice<u8>, start: usize, end: usize) -> usize {
 
     #[test]
     fn usize_scalar_match_lowers_through_the_iterative_scalar_chain() {
-        // Regression: the iterative lowering's scalar-match dispatch omitted
-        // `Usize` while the recursive reference admitted it, so a `usize`
-        // literal match fell through to variant-arm lowering and refused with
-        // "wildcard match arm must be the final exhaustive arm" — a message
-        // about arm order, for a program whose wildcard already was final.
+        // Regression: the iterative lowering's scalar-match dispatch omitted `Usize` while the recursive reference admitted it, so a `usize` literal match
+        // fell through to variant-arm lowering and refused with "wildcard match arm must be the final exhaustive arm" — a message about arm order, for a
+        // program whose wildcard already was final.
         let source = r#"
 module test.cleanup_usize_match;
 @id("pick") fn pick(index: usize) -> i64 {

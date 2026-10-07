@@ -955,6 +955,14 @@ This is a development/conformance lane, not a target backend or proof engine.
 classifier with `src/loop_calls.rs`; constructor and pattern replay still
 authenticate identities, inventories and ownership independently.
 
+`src/source_verify/variant_guards.rs` and `src/variant_guards.rs` classify the
+ownership-neutral Copy-variant guard profile. Resolver and HIR validation still
+authenticate every guard and binding. `cleanup_plan/build/guarded_variant.rs`
+derives Boolean guard edges; `cleanup_plan/replay/guarded_variant.rs` independently
+derives case/Boolean observations and bounded census work. Native and aggregate
+Wasm guard helpers own target selection after binding, including linear Wasm
+fallthrough. [Copy Variant Guards v1](COPY-VARIANT-GUARDS-V1.md) owns this addition.
+
 `src/string_ops/conditions.rs` derives the narrow named String length inspection
 set from typed while conditions for cleanup construction, independent replay,
 and target emission. `src/interpreter/string_conditions.rs` owns while

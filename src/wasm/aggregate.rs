@@ -23,6 +23,7 @@ mod filesystem_ops;
 mod filesystem_v2;
 mod generic_record;
 mod generic_variant;
+mod guarded_variant;
 mod host_command;
 mod http_io;
 pub(super) mod internal_strings;
@@ -4948,7 +4949,11 @@ impl Emitter<'_> {
                     mode: *mode,
                     expression: &expr.id,
                 };
-                self.emit_match_arms(&emission, 0)?;
+                if arms.iter().any(|arm| arm.guard.is_some()) {
+                    self.emit_guarded_variant_match(&emission)?;
+                } else {
+                    self.emit_match_arms(&emission, 0)?;
+                }
                 if aggregate_result {
                     self.apply_variant_match_continuation(expr, &destination)?;
                 }
@@ -7168,8 +7173,7 @@ impl Emitter<'_> {
         self.output.extend([0x29, 0x03, 0x18, 0x21]);
         write_u32(self.output, scratch.length);
 
-        // The carrier selects one private, non-exported binding. Descriptor
-        // memory must equal that authoritative tuple on every access.
+        // The carrier selects one private, non-exported binding. Descriptor memory must equal that authoritative tuple on every access.
         self.output.push(0x20);
         write_u32(self.output, scratch.high_word);
         self.output.extend([0x41, 0x10, 0x76, 0x41]);
@@ -7210,9 +7214,8 @@ impl Emitter<'_> {
         write_u32(self.output, scratch.binding);
         self.output.extend([0x45, 0x45, 0x04, 0x40, 0x00, 0x0b]);
 
-        // Descriptor length must equal carrier length and fit within the
-        // ultimate carrier after the absolute offset. Nested descriptors are
-        // forbidden because creation always flattens them.
+        // Descriptor length must equal carrier length and fit within the ultimate carrier after the absolute offset. Nested descriptors are forbidden
+        // because creation always flattens them.
         self.output.push(0x20);
         write_u32(self.output, scratch.length);
         self.get_scalar(value);
@@ -7235,10 +7238,8 @@ impl Emitter<'_> {
         self.output
             .extend([0x7d, 0x56, 0x72, 0x04, 0x40, 0x00, 0x0b]);
 
-        // Untagged ultimate roots are guest-memory ranges and are rechecked
-        // against the current memory size on every descriptor access. Tagged
-        // owned roots are authenticated by the byte provider on the ensuing
-        // operation, exactly as for legacy carriers.
+        // Untagged ultimate roots are guest-memory ranges and are rechecked against the current memory size on every descriptor access. Tagged owned roots
+        // are authenticated by the byte provider on the ensuing operation, exactly as for legacy carriers.
         self.output.push(0x20);
         write_u32(self.output, scratch.ultimate);
         self.output.extend([0x42, 0x20, 0x88, 0xa7, 0x41]);
@@ -7268,8 +7269,7 @@ impl Emitter<'_> {
                 .expect("range validation scratch is present");
             self.output.push(0x05);
         }
-        // Every internal slice may view an owned 128 KiB Bytes result. Entry
-        // roots retain their independent 64 KiB limit in `emit_root_admission`.
+        // Every internal slice may view an owned 128 KiB Bytes result. Entry roots retain their independent 64 KiB limit in `emit_root_admission`.
         self.get_scalar(value);
         self.output.extend([0xa7, 0xad, 0x42]);
         write_i64(

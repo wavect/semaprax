@@ -182,7 +182,16 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             return Ok(());
         }
         let refutable_syntax = arms.iter().any(|arm| {
-            arm.guard.is_some()
+            (arm.guard.is_some()
+                && !scrutinee_value.as_ref().is_some_and(|value| {
+                    value.mode == ParamMode::Value
+                        && crate::source_verify::variant_guards::admission(
+                            self.types,
+                            &value.ty,
+                            match_mode,
+                            &arm.pattern,
+                        )
+                }))
                 || (matches!(
                     &arm.pattern,
                     MatchPattern::Literal { .. }
@@ -519,6 +528,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             declared_cases,
             mode: match_mode,
             needs_drop: variant_needs_drop,
+            guard_pending: false,
         };
         self.frames
             .push(VerifierFrame::PrepareVariantMatchArm(state));

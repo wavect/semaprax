@@ -207,6 +207,7 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
     );
     let verifier = concat!(
         include_str!("../../../../../src/source_verify.rs"),
+        include_str!("../../../../../src/source_verify/variant_guards.rs"),
         include_str!("../../../../../src/source_verify/generic_inference.rs"),
         include_str!("../../../../../src/source_verify/closure.rs"),
         include_str!("../../../../../src/source_verify/mutable_closure.rs"),

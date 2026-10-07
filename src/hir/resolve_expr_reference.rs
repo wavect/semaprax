@@ -1,7 +1,6 @@
 //! Test-only recursive expression resolver.
 //!
-//! Kept as the differential reference the iterative resolver is
-//! checked against; never used by a production build.
+//! Differential reference for the iterative resolver; never used in production.
 
 use super::expr_nodes::{
     PatternValue, ResolvedExpr, ResolvedExprKind, ResolvedFieldInitializer, ResolvedMatchArm,
@@ -205,8 +204,7 @@ impl Resolver<'_> {
                     });
                 }
                 if let Some(op) = crate::string_ops::by_name(name) {
-                    // Oracle parity: the recursive-reference resolver admits
-                    // string operations exactly like the iterative resolver.
+                    // Oracle parity: the recursive-reference resolver admits string operations exactly like the iterative resolver.
                     if !type_arguments.is_empty() {
                         return Err(self.error(
                             "SPX-H006",
@@ -1354,7 +1352,11 @@ impl Resolver<'_> {
                         span: expr.span,
                     });
                 }
-                let refutable_syntax = super::resolve_variant_or::has_scalar_only_syntax(arms);
+                let refutable_syntax = super::resolve_variant_or::has_scalar_only_syntax(
+                    arms,
+                    mode == ResolvedMatchMode::Value
+                        && crate::variant_guards::copy_variant(&self.declarations, &scrutinee.ty),
+                );
                 if refutable_syntax {
                     return Err(self.error(
                         "SPX-T254",
@@ -1604,6 +1606,12 @@ impl Resolver<'_> {
                             ));
                         }
                     };
+                    let guard = self.resolve_variant_guard_reference(
+                        function,
+                        arm.guard.as_deref(),
+                        &arm_bindings,
+                        &format!("{path}.arm.{arm_index}.guard"),
+                    )?;
                     let value = self.resolve_expr_recursive_reference(
                         function,
                         &arm.value,
@@ -1612,9 +1620,7 @@ impl Resolver<'_> {
                     )?;
                     resolved_arms.push(ResolvedMatchArm {
                         pattern,
-                        // Aggregate matches reject guards with SPX-T254
-                        // before any arm resolves.
-                        guard: None,
+                        guard,
                         value,
                         span: arm.span,
                     });
@@ -1679,12 +1685,9 @@ impl Resolver<'_> {
                     }
                 }
             }
-            // Resumable Effects (issues #204, #296): mirrors
-            // `Frame::FinishYield` in the iterative resolver -- `ty` is the
-            // enclosing function's declared response type read from its AST
-            // `yields` clause (request type if none resolves), and
-            // `hir::resolve_yield` still checks and retags every site once
-            // resolution finishes.
+            // Resumable Effects (issues #204, #296): mirrors `Frame::FinishYield` in the iterative resolver -- `ty` is the enclosing function's declared
+            // response type read from its AST `yields` clause (request type if none resolves), and `hir::resolve_yield` still checks and retags every site
+            // once resolution finishes.
             ExprKind::Yield { request } => {
                 let request = self.resolve_expr_recursive_reference(
                     function,
@@ -1767,8 +1770,7 @@ impl Resolver<'_> {
                     ownership,
                 )
             }
-            // The test-only reference resolver never walks class-method
-            // bodies; `super` resolution is owned by the iterative resolver.
+            // The test-only reference resolver never walks class-method bodies; `super` resolution is owned by the iterative resolver.
             ExprKind::SuperMethod { method_span, .. } => {
                 return Err(self.error(
                     "SPX-T231",

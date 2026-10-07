@@ -46,6 +46,7 @@ use skeleton_work::{empty_expr_path, Observations, SkeletonWork};
 
 #[cfg(test)]
 mod copy_success_result_tests;
+mod guarded_variant;
 #[cfg(test)]
 mod mixed_result_tests;
 mod nested_shape;
@@ -682,15 +683,7 @@ fn expression_path_counts_with_while(
             ]
             .get(index)
             .copied(),
-            ResolvedExprKind::Match {
-                scrutinee, arms, ..
-            } => {
-                if index == 0 {
-                    Some(scrutinee)
-                } else {
-                    arms.get(index - 1).map(|arm| &arm.value)
-                }
-            }
+            ResolvedExprKind::Match { .. } => replay_expression_child(expression, index),
             ResolvedExprKind::UpdateRecord { base, fields, .. } => {
                 if index == 0 {
                     Some(base)
@@ -883,6 +876,11 @@ fn expression_path_counts_with_while(
                                 ),
                             ),
                         }
+                    }
+                    ResolvedExprKind::Match { arms, .. }
+                        if guarded_variant::selected(expression) =>
+                    {
+                        guarded_variant::census(arms, sequence(children))
                     }
                     ResolvedExprKind::Match { .. } => {
                         let scrutinee = children[0];
@@ -1138,7 +1136,13 @@ fn expression_skeleton_work_upper(
                 ResolvedExprKind::Match { arms, .. } => {
                     // Guards recurse as separate sub-skeletons, so each arm
                     // carries extra headroom over the aggregate baseline.
-                    arms.len().saturating_mul(16).saturating_add(8)
+                    arms.len()
+                        .saturating_mul(if guarded_variant::selected(expression) {
+                            32
+                        } else {
+                            16
+                        })
+                        .saturating_add(8)
                 }
             };
             let paths = expression_path_counts(function, expression)?.total().max(1);
@@ -1266,6 +1270,11 @@ fn expression_path_counts(
                         };
                     }
                 }
+                ResolvedExprKind::Match { arms, .. }
+                    if guarded_variant::selected(frame.expression) =>
+                {
+                    frame.accumulator = sequence_path_counts(frame.accumulator, result)
+                }
                 ResolvedExprKind::Match { .. } => {
                     if child_index == 0 {
                         frame.first = result;
@@ -1347,6 +1356,9 @@ fn expression_path_counts(
                 op: BinaryOp::And | BinaryOp::Or,
                 ..
             } => frame.accumulator,
+            ResolvedExprKind::Match { arms, .. } if guarded_variant::selected(frame.expression) => {
+                guarded_variant::census(arms, frame.accumulator)
+            }
             ResolvedExprKind::Match { .. } => HirPathCounts {
                 normal: frame.first.normal.saturating_mul(frame.accumulator.normal),
                 failed: frame
@@ -3943,9 +3955,7 @@ fn expression_skeleton(
                 let mut paths = sequence_skeleton_paths(paths, &suffixes, work)?;
                 match &statements[index] {
                     ResolvedStatement::Unsafe { .. } => {
-                        // Unsafe boundaries bind and own nothing here: their
-                        // ordinary block body was evaluated as this
-                        // statement's value expression.
+                        // Unsafe boundaries bind and own nothing here: their ordinary block body was evaluated as this statement's value expression.
                         if let Some(settled) = advance_block_value(
                             function,
                             &mut frames,
@@ -4033,8 +4043,7 @@ fn expression_skeleton(
             } => {
                 let body_paths = produced.take().expect("while body path retained");
                 let joined = sequence_skeleton_paths(true_prefixes, &body_paths, work)?;
-                // The skip branch joins the body branch at the loop
-                // continuation without further observations.
+                // The skip branch joins the body branch at the loop continuation without further observations.
                 for path in joined.into_iter().chain(false_prefixes) {
                     work.push_expr_path(&mut results, path, "while join path")?;
                 }
@@ -4457,6 +4466,18 @@ fn expression_skeleton(
                     )?);
                     continue;
                 }
+                if arms.iter().any(|arm| arm.guard.is_some()) {
+                    produced = Some(guarded_variant::finish(
+                        program,
+                        function,
+                        expression,
+                        scrutinee,
+                        arms,
+                        scrutinee_paths,
+                        work,
+                    )?);
+                    continue;
+                }
                 let is_record =
                     validate_match_skeleton_shape(program, function, expression, scrutinee, arms)?;
                 if is_record {
@@ -4557,10 +4578,8 @@ fn expression_skeleton(
                                     );
                                 }
                             } else {
-                                // A borrowed match observes a named owned or borrowed
-                                // place without moving any cleanup epoch. The match
-                                // expression itself cannot forward that place as an
-                                // owned result.
+                                // A borrowed match observes a named owned or borrowed place without moving any cleanup epoch. The match expression itself
+                                // cannot forward that place as an owned result.
                                 path.owned_source = None;
                             }
                         }
@@ -5391,8 +5410,7 @@ fn finish_scalar_match_skeleton(
             let guard_paths = expression_skeleton(program, function, guard.as_ref(), work)?;
             let (terminal, when_true, when_false) =
                 split_boolean_prefixes_at(guard_paths, &guard.id, work)?;
-            // The true continuation consumes the shared prefixes; false and
-            // terminal continuations clone them.
+            // The true continuation consumes the shared prefixes; false and terminal continuations clone them.
             let mut with_false = Vec::new();
             for prefix in &selected_paths {
                 let cloned = clone_expr_path_shallow(prefix, work)?;
@@ -5960,10 +5978,8 @@ fn finish_call_states(
 ) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
     let infallible_compiler_operation =
         super::deferred_commit::expression_is_infallible_compiler_operation(expression);
-    // `vec_push` and the one fallible byte operation both check their bound
-    // before the owner transfer commits, so their status observation precedes
-    // the call-commit and a failed call leaves the owner in its call-argument
-    // slot for the ordinary region cleanup.
+    // `vec_push` and the one fallible byte operation both check their bound before the owner transfer commits, so their status observation precedes the
+    // call-commit and a failed call leaves the owner in its call-argument slot for the ordinary region cleanup.
     let defer_commit = resolved_call::defers_owner_commit(expression);
     let infallible_compiler_operation = infallible_compiler_operation
         || matches!(
@@ -6263,11 +6279,9 @@ fn plan_skeleton_paths(
     let mut paths = Vec::new();
     while let Some((block, mut observations)) = queue.pop_front() {
         let block = &plan.blocks[block.0 as usize];
-        // Charge only work performed at this block. The previous charge used
-        // the entire accumulated observation length on every linear block,
-        // turning a depth-D skewed conditional into artificial O(D^3) work.
-        // Observation history is copied only at a real branch, charged below
-        // immediately before each clone.
+        // Charge only work performed at this block. The previous charge used the entire accumulated observation length on every linear block, turning a
+        // depth-D skewed conditional into artificial O(D^3) work. Observation history is copied only at a real branch, charged below immediately before
+        // each clone.
         budget.charge_skeleton(
             function,
             block.transitions.len().saturating_add(1),
@@ -6777,9 +6791,8 @@ fn execute_replay_transition(
                     .ok_or_else(|| {
                         replay_error(function, "conditional state omits authenticated case")
                     })?;
-                // A valid selected case may carry only Copy fields. Its
-                // authenticated case state is consumed even though there are
-                // no cleanup flags to materialize.
+                // A valid selected case may carry only Copy fields. Its authenticated case state is consumed even though there are no cleanup flags to
+                // materialize.
                 if !flags.is_empty() {
                     append_dead_flags(function, state, flags, "variant authentication")?;
                 }
@@ -6961,10 +6974,8 @@ fn replay_transfer(
     }
 
     let mapping = transfer_mapping(function, source, destination, leaves)?;
-    // A whole-source transfer is a completed aggregate boundary, authenticated
-    // by the typed control skeleton. Filling every owned destination field is
-    // not: later Copy initializers can still fail, so preserve their preceding
-    // field-initialization history until the constructor actually completes.
+    // A whole-source transfer is a completed aggregate boundary, authenticated by the typed control skeleton. Filling every owned destination field is not:
+    // later Copy initializers can still fail, so preserve their preceding field-initialization history until the constructor actually completes.
     let source_history = if source.projections.is_empty() {
         source_flags
     } else {
@@ -7057,8 +7068,7 @@ fn materialize_constructed_variant(
         root: source.clone(),
         variant: variant.clone(),
         cases: if strings::needs_complete_case_domain(program, variant) {
-            // Independently retain every guarded case after authenticating
-            // the constructed payload; inactive runtime flags remain dead.
+            // Independently retain every guarded case after authenticating the constructed payload; inactive runtime flags remain dead.
             program
                 .declarations
                 .variant_cases(variant)
@@ -7817,10 +7827,8 @@ fn collect_expression_facts(
     expression: &ResolvedExpr,
     facts: &mut BTreeMap<ExpressionId, Option<CallFact>>,
 ) -> Result<(), Diagnostic> {
-    // The private replay entry admits at most 512 semantic expression levels.
-    // Keep one indexed continuation per ancestor so wide calls, records, blocks,
-    // and matches never create a width-sized frontier and callback order stays
-    // identical to the former recursive pre-order walk.
+    // The private replay entry admits at most 512 semantic expression levels. Keep one indexed continuation per ancestor so wide calls, records, blocks,
+    // and matches never create a width-sized frontier and callback order stays identical to the former recursive pre-order walk.
     let mut stack = [None; 514];
     stack[0] = Some((expression, 0usize));
     let mut len = 1usize;

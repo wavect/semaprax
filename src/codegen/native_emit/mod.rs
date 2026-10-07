@@ -35,6 +35,7 @@ mod filesystem_io_v3;
 mod function_value;
 mod generic_record;
 mod generic_variant;
+mod guarded_variant;
 mod http_io;
 mod literals;
 mod native_list;
@@ -2103,9 +2104,8 @@ fn emit_function(
         output.push_str("    if (spx_ctx->borrowed_str_depth == UINT32_C(0)) spx_runtime_invariant_failure(\"borrowed str call depth underflow\");\n");
         output.push_str("    --spx_ctx->borrowed_str_depth;\n");
     }
-    // Callee-owned parameters free their storage on every exit path; a moved
-    // Bytes carrier is normalized by `spx_bytes_move`, making this exact-once.
-    // the staged result is handed to the caller instead.
+    // Callee-owned parameters free their storage on every exit path; a moved Bytes carrier is normalized by `spx_bytes_move`, making this exact-once. the
+    // staged result is handed to the caller instead.
     if let Some(cells) = &string_cells {
         for name in cells.names() {
             let guard = if name == "spx_result" {

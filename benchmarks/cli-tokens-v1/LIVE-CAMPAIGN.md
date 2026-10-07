@@ -2,9 +2,13 @@
 
 `live_campaign.py` is the launch and collection path for matched LogLens trials.
 It defaults to five trials per arm and pins Claude Code to `claude-sonnet-5-5`
-at medium effort. Each trial uses a non-cone sparse detached worktree that
-contains only `SPEC.md` and `sample.log`; the oracle, goldens, other candidates,
-and repository instructions are absent from the trial filesystem. The runner
+at medium effort. Each trial uses a detached worktree from a fresh one-commit
+seed Git repository containing only `SPEC.md` and `sample.log`, exported from
+the pinned compiler commit's exact file bytes.
+The seed records the source commit, file hashes, and fresh seed commit, and has
+no original repository objects. The oracle, goldens, other candidates, and
+repository instructions are absent from both the trial filesystem and its Git
+history. The runner
 copies candidate source and generated outputs to the external artifact folder,
 records their hashes, then removes the disposable worktree if every change was
 inside `candidate/`. A worktree with unexpected changes is retained for review.
@@ -52,7 +56,7 @@ Claude Code must already be authenticated for the selected account, and that
 account must be entitled to the pinned model.
 
 Before the ten benchmark sessions, `run` makes one matched calibration session
-with the same model, effort, tool set, restricted mode, and sparse checkout. Its
+with the same model, effort, tool set, restricted mode, and minimal seed checkout. Its
 fixed prompt asks for `READY` without reading files or using tools. Calibration
 usage and its list-price estimate are recorded separately and included in the
 combined campaign cost. Its first-turn provider input-plus-cache total, fixed

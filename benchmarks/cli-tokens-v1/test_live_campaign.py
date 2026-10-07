@@ -171,13 +171,57 @@ class LiveCampaignTests(unittest.TestCase):
         self.assertFalse(live_campaign.observed_model_matches(result["models_observed"], "claude-sonnet-4-5"))
         self.assertFalse(live_campaign.observed_model_matches([dated_model, "other"], dated_model))
 
-    def test_calibration_runner_uses_sparse_checkout_and_removes_clean_worktree(self):
-        repo = live_campaign.REPO
-        commit = subprocess.run(
-            ["git", "rev-parse", "HEAD"], cwd=repo, text=True, capture_output=True, check=True
+    def test_seed_repository_and_worktree_reveal_only_pinned_public_inputs(self):
+        source_repo = live_campaign.REPO
+        source_commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=source_repo, text=True, capture_output=True, check=True
         ).stdout.strip()
         with tempfile.TemporaryDirectory() as directory:
             artifacts = Path(directory) / "artifacts"
+            artifacts.mkdir()
+            seed_repo = artifacts / "seed-repository"
+            seed_info = live_campaign.create_seed_repository(source_repo, source_commit, seed_repo)
+            seed_commit = seed_info["seed_repository_commit"]
+            workspace = artifacts / "worktrees" / "inventory-test"
+            error = live_campaign.add_seed_worktree(seed_repo, workspace, seed_commit)
+            self.assertIsNone(error, error)
+            expected_files = sorted(path.lstrip("/") for path in live_campaign.SEED_FILES)
+
+            def git(*arguments):
+                return subprocess.run(
+                    ["git", *arguments], cwd=workspace, text=True, capture_output=True, check=False
+                )
+
+            self.assertEqual(git("ls-tree", "-r", "--name-only", "HEAD").stdout.splitlines(), expected_files)
+            self.assertEqual(git("read-tree", "HEAD").returncode, 0)
+            self.assertEqual(git("ls-files").stdout.splitlines(), expected_files)
+            self.assertEqual(git("rev-list", "--count", "HEAD").stdout.strip(), "1")
+            self.assertEqual(git("log", "--all", "--format=%H").stdout.splitlines(), [seed_commit])
+            self.assertNotEqual(git("cat-file", "-e", source_commit).returncode, 0)
+            self.assertNotEqual(git("show", "HEAD:benchmarks/cli-tokens-v1/oracle.py").returncode, 0)
+            self.assertNotEqual(git("show", "HEAD:benchmarks/webapp-tokens-v2/README.md").returncode, 0)
+            self.assertNotEqual(git(
+                "show", f"{source_commit}:benchmarks/cli-tokens-v1/oracle.py"
+            ).returncode, 0)
+            self.assertNotEqual(git(
+                "show", f"{source_commit}:benchmarks/cli-tokens-v1/candidate/run.sh"
+            ).returncode, 0)
+            self.assertEqual(seed_info["source_repository_commit"], source_commit)
+            self.assertEqual(seed_info["source_files_sha256"], seed_info["seed_files_sha256"])
+            subprocess.run(["git", "worktree", "remove", "--force", str(workspace)],
+                           cwd=seed_repo, check=True, capture_output=True)
+
+    def test_calibration_runner_uses_minimal_seed_checkout_and_removes_clean_worktree(self):
+        source_repo = live_campaign.REPO
+        source_commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=source_repo, text=True, capture_output=True, check=True
+        ).stdout.strip()
+        with tempfile.TemporaryDirectory() as directory:
+            artifacts = Path(directory) / "artifacts"
+            artifacts.mkdir()
+            seed_repo = artifacts / "seed-repository"
+            seed_info = live_campaign.create_seed_repository(source_repo, source_commit, seed_repo)
+            seed_commit = seed_info["seed_repository_commit"]
             workspace = artifacts / "worktrees" / "calibration"
             settings = {
                 "model": live_campaign.MODEL,
@@ -191,7 +235,10 @@ class LiveCampaignTests(unittest.TestCase):
                 self.assertEqual(sorted(
                     str(path.relative_to(cwd)) for path in cwd.rglob("*")
                     if path.is_file() and ".git" not in path.parts
-                ), [path.lstrip("/") for path in live_campaign.SPARSE_FILES])
+                ), sorted(path.lstrip("/") for path in live_campaign.SEED_FILES))
+                self.assertEqual(subprocess.run(
+                    ["git", "ls-files"], cwd=cwd, text=True, capture_output=True, check=True
+                ).stdout.splitlines(), sorted(path.lstrip("/") for path in live_campaign.SEED_FILES))
                 events = [
                     {"type": "assistant", "message": {
                         "id": "calibration-turn", "model": live_campaign.MODEL,
@@ -208,7 +255,7 @@ class LiveCampaignTests(unittest.TestCase):
             try:
                 with patch.object(live_campaign, "run_claude", side_effect=fake_cli):
                     row = live_campaign.launch_calibration(
-                        repo, artifacts, commit, settings, Path("/bin/true")
+                        seed_repo, artifacts, seed_commit, settings, Path("/bin/true")
                     )
                 self.assertEqual(row["status"], "ready")
                 self.assertEqual(row["first_turn_provider_input_plus_cache_tokens"], 150)
@@ -220,7 +267,7 @@ class LiveCampaignTests(unittest.TestCase):
                 if workspace.exists():
                     subprocess.run(
                         ["git", "worktree", "remove", "--force", str(workspace)],
-                        cwd=repo, text=True, capture_output=True, check=False,
+                        cwd=seed_repo, text=True, capture_output=True, check=False,
                     )
 
     def test_authored_source_token_proxy_has_pinned_identity_and_excludes_generated_outputs(self):
@@ -388,14 +435,40 @@ sys.stdout.write(json_line(report) if as_json else text(report))
             (candidate / "run.sh").write_text(
                 'exec python3 "$(dirname "$0")/run.py" "$@"\n', encoding="utf-8"
             )
+            (candidate / "test.sh").write_text(
+                "#!/bin/sh\nprintf 'goldens and status tests passed\\n'\n", encoding="utf-8"
+            )
             result = live_campaign.check_program(
                 candidate,
                 5,
                 {**os.environ, "PYTHONPATH": str(live_campaign.BENCHMARK)},
             )
         self.assertTrue(result["accepted"], result)
-        self.assertEqual(len(result["checks"]), 32)
+        self.assertEqual(result["candidate_tests"]["status"], "passed")
+        self.assertIn("goldens and status tests passed", result["candidate_tests"]["stdout"])
+        self.assertEqual(len(result["checks"]), 33)
         self.assertTrue(all(row["status"] == "passed" for row in result["checks"]))
+
+    def test_candidate_acceptance_requires_test_script_and_retains_failure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            candidate = Path(directory)
+            (candidate / "build.sh").write_text("exit 0\n", encoding="utf-8")
+            (candidate / "run.sh").write_text("exit 0\n", encoding="utf-8")
+            missing = live_campaign.check_program(candidate, 5, os.environ.copy())
+            self.assertFalse(missing["accepted"])
+            self.assertEqual(missing["candidate_tests"]["status"], "missing")
+            self.assertEqual(missing["checks"], [])
+
+            (candidate / "test.sh").write_text(
+                "#!/bin/sh\nprintf 'self test failed\\n' >&2\nexit 7\n",
+                encoding="utf-8",
+            )
+            failed = live_campaign.check_program(candidate, 5, os.environ.copy())
+        self.assertFalse(failed["accepted"])
+        self.assertEqual(failed["candidate_tests"]["status"], "failed")
+        self.assertEqual(failed["candidate_tests"]["exit_code"], 7)
+        self.assertIn("self test failed", failed["candidate_tests"]["stderr"])
+        self.assertEqual(failed["checks"], [])
 
     def test_candidate_archive_excludes_only_known_caches_and_hashes_preserved_files(self):
         with tempfile.TemporaryDirectory() as directory:

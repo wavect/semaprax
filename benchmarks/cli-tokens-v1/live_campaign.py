@@ -54,7 +54,7 @@ AUTHORED_EXCLUDED_DIRS = {
 ARCHIVE_EXCLUDED_DIRS = {
     "node_modules", ".cache", "__pycache__", ".pytest_cache",
 }
-SPARSE_FILES = (
+SEED_FILES = (
     "/benchmarks/cli-tokens-v1/SPEC.md",
     "/benchmarks/cli-tokens-v1/sample.log",
 )
@@ -239,21 +239,78 @@ def resolve_commit(repo: Path, ref: str) -> str:
     return result.stdout.strip()
 
 
+def create_seed_repository(
+    source_repo: Path, source_commit: str, seed_repo: Path,
+) -> dict[str, Any]:
+    """Export only the two benchmark inputs into a new repository with no shared objects."""
+    expected = [path.lstrip("/") for path in SEED_FILES]
+    seed_repo.mkdir(parents=True)
+    source_bytes: dict[str, bytes] = {}
+    for relative in expected:
+        exported = subprocess.run(
+            ["git", "show", f"{source_commit}:{relative}"],
+            cwd=source_repo, capture_output=True, check=False,
+        )
+        if exported.returncode:
+            raise ValueError(f"pinned commit does not contain required benchmark file: {relative}")
+        source_bytes[relative] = exported.stdout
+
+    def git(*arguments: str) -> str:
+        result = subprocess.run(
+            ["git", *arguments], cwd=seed_repo, text=True, capture_output=True, check=False,
+        )
+        if result.returncode:
+            raise RuntimeError(f"seed repository git {arguments[0]} failed: {bounded_text(result.stderr)}")
+        return result.stdout.strip()
+
+    git("init", "--quiet", "--template=")
+    source_hashes = {}
+    for relative, content in source_bytes.items():
+        path = seed_repo / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(content)
+        source_hashes[relative] = hashlib.sha256(content).hexdigest()
+    git("add", "--", *expected)
+    commit_result = subprocess.run(
+        ["git", "-c", "user.name=SEMAPRAX Benchmark", "-c", "user.email=benchmark@example.invalid",
+         "-c", "commit.gpgsign=false", "commit", "--quiet", "-m", "Pinned public benchmark inputs"],
+        cwd=seed_repo, text=True, capture_output=True, check=False,
+    )
+    if commit_result.returncode:
+        raise RuntimeError(f"seed repository commit failed: {bounded_text(commit_result.stderr)}")
+    seed_commit = git("rev-parse", "HEAD")
+    tree_files = git("ls-tree", "-r", "--name-only", "HEAD").splitlines()
+    parents = git("rev-list", "--parents", "-n", "1", "HEAD").split()
+    if tree_files != expected or parents != [seed_commit]:
+        raise RuntimeError("fresh seed repository contains unexpected files or commit history")
+    return {
+        "source_repository_commit": source_commit,
+        "source_files_sha256": source_hashes,
+        "seed_repository_commit": seed_commit,
+        "seed_files_sha256": source_hashes,
+        "seed_repository": str(seed_repo),
+    }
+
+
 def sha_text(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
 def prompt_for(arm: str, candidate: Path, semaprax_bin: Path) -> str:
     language = "SEMAPRAX" if arm == "semaprax" else "TypeScript with Node.js"
-    return f"""Implement the LogLens command-line application specified in
+    return f"""Implement an idiomatic, complete LogLens command-line application specified in
 `benchmarks/cli-tokens-v1/SPEC.md` using {language}. The entire implementation
 must live under `{candidate}`. Do not change compiler or harness files.
 
-Provide executable `candidate/build.sh` and `candidate/run.sh` files. The
-build script must compile or validate the implementation. The run script
-must implement `loglens <file> [--top N] [--json]`. For SEMAPRAX, use the
-verified compiler executable at `{semaprax_bin}` (also available as
-`$SEMAPRAX_BIN`). For TypeScript, use Node from `PATH`.
+Provide executable `candidate/build.sh`, `candidate/run.sh`, and
+`candidate/test.sh` files. The build script must compile or validate the
+implementation. The run script must implement
+`loglens <file> [--top N] [--json]`. The test script must run your automated
+tests, including the two exact sample golden cases in the specification and
+checks for exit statuses 0, 1, and 2; it must exit nonzero if any test fails.
+Use the public sample input at `../sample.log` from the candidate directory.
+For SEMAPRAX, use the verified compiler executable at `{semaprax_bin}` (also
+available as `$SEMAPRAX_BIN`). For TypeScript, use Node from `PATH`.
 
 Read the specification and public sample input. The trial checkout contains
 only those two benchmark files; the independent acceptance corpus and oracle
@@ -290,7 +347,6 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
         "created_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "benchmark": "cli-tokens-v1",
         "round": 3,
-        "repository": str(repo),
         "repository_commit": commit,
         "artifacts": str(artifacts),
         "model": args.model,
@@ -330,10 +386,10 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
         ],
         "turn_limit": None,
         "trial_checkout": {
-            "mode": "non-cone sparse checkout",
-            "included_files": list(SPARSE_FILES),
+            "mode": "fresh minimal seed Git repository created from pinned source commit; one parentless commit",
+            "included_files": list(SEED_FILES),
             "candidate_path": "benchmarks/cli-tokens-v1/candidate/",
-            "excluded": "all other repository paths",
+            "excluded": "all other repository files and all original repository history/objects",
         },
     }
 
@@ -623,36 +679,29 @@ def trial_environment(semaprax_bin: Path) -> dict[str, str]:
     return env
 
 
-def add_sparse_worktree(repo: Path, workspace: Path, commit: str) -> str | None:
+def add_seed_worktree(seed_repo: Path, workspace: Path, seed_commit: str) -> str | None:
     added = subprocess.run(
-        ["git", "worktree", "add", "--detach", "--no-checkout", str(workspace), commit],
-        cwd=repo, text=True, capture_output=True, check=False,
+        ["git", "worktree", "add", "--detach", str(workspace), seed_commit],
+        cwd=seed_repo, text=True, capture_output=True, check=False,
     )
     if added.returncode:
         return f"worktree creation failed: {bounded_text(added.stderr)}"
-    sparse = subprocess.run(
-        ["git", "sparse-checkout", "init", "--no-cone"], cwd=workspace,
+    tracked = subprocess.run(
+        ["git", "ls-files"], cwd=workspace,
         text=True, capture_output=True, check=False,
     )
-    if sparse.returncode == 0:
-        sparse = subprocess.run(
-            ["git", "sparse-checkout", "set", "--no-cone", *SPARSE_FILES], cwd=workspace,
-            text=True, capture_output=True, check=False,
-        )
-    if sparse.returncode == 0:
-        sparse = subprocess.run(
-            ["git", "read-tree", "-mu", "HEAD"], cwd=workspace,
-            text=True, capture_output=True, check=False,
-        )
-    if sparse.returncode:
-        return f"sparse trial checkout failed: {bounded_text(sparse.stderr)}"
+    if tracked.returncode:
+        return f"minimal seed inventory check failed: {bounded_text(tracked.stderr)}"
     visible = sorted(
         str(path.relative_to(workspace))
         for path in workspace.rglob("*")
         if path.is_file() and ".git" not in path.parts
     )
-    expected = [path.lstrip("/") for path in SPARSE_FILES]
-    return None if visible == expected else f"sparse checkout exposed unexpected files: {visible}"
+    expected = sorted(path.lstrip("/") for path in SEED_FILES)
+    tracked_paths = sorted(tracked.stdout.splitlines())
+    return None if visible == expected and tracked_paths == expected else (
+        f"minimal seed checkout exposed unexpected files: visible={visible}, tracked={tracked_paths}"
+    )
 
 
 def run_claude(
@@ -696,7 +745,7 @@ def launch_calibration(
     workspace = artifacts / "worktrees" / "calibration"
     workspace.parent.mkdir(parents=True, exist_ok=True)
     row: dict[str, Any] = {"name": "matched-empty-task-context", "workspace": str(workspace)}
-    error = add_sparse_worktree(repo, workspace, commit)
+    error = add_seed_worktree(repo, workspace, commit)
     if error:
         row.update({"status": "failed", "failure": error, "workspace_retained_for_review": True})
         return row
@@ -800,6 +849,7 @@ def check_program(
     program = candidate / "run.sh"
     result: dict[str, Any] = {
         "build": {"status": "missing"},
+        "candidate_tests": {"status": "not_run"},
         "checks": [],
         "accepted": False,
     }
@@ -832,6 +882,40 @@ def check_program(
         "stderr": bounded_text(compiled.stderr),
     }
     if compiled.returncode:
+        result["candidate_tests"] = {"status": "not_run", "reason": "build failed"}
+        return result
+
+    candidate_test = candidate / "test.sh"
+    if not candidate_test.is_file():
+        result["candidate_tests"] = {"status": "missing", "path": str(candidate_test)}
+        return result
+    started = time.monotonic()
+    try:
+        tested = subprocess.run(
+            ["/bin/sh", str(candidate_test)],
+            cwd=candidate,
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=timeout,
+            env=env,
+        )
+    except subprocess.TimeoutExpired as error:
+        result["candidate_tests"] = {
+            "status": "timeout",
+            "seconds": round(time.monotonic() - started, 3),
+            "stdout": bounded_text(error.stdout or b""),
+            "stderr": bounded_text(error.stderr or b""),
+        }
+        return result
+    result["candidate_tests"] = {
+        "status": "passed" if tested.returncode == 0 else "failed",
+        "exit_code": tested.returncode,
+        "seconds": round(time.monotonic() - started, 3),
+        "stdout": bounded_text(tested.stdout),
+        "stderr": bounded_text(tested.stderr),
+    }
+    if tested.returncode:
         return result
 
     fixtures = candidate / "acceptance-fixtures"
@@ -882,6 +966,7 @@ def check_program(
     cases.extend([
         ("options-json-before-top", [ties_rel, "--json", "--top", "1"], 0, expected(ties_rel, 1, True), False),
         ("options-top-before-json", [ties_rel, "--top", "1", "--json"], 0, expected(ties_rel, 1, True), False),
+        ("spec-sample-top3-json", [sample_rel, "--top", "3", "--json"], 0, expected(sample_rel, 3, True), False),
         ("missing-file", ["missing-loglens-input.log"], 1, b"", True),
         ("missing-file-argument", [], 2, b"", True),
         ("unknown-flag", [sample_rel, "--unknown"], 2, b"", True),
@@ -936,7 +1021,7 @@ def launch_trial(
     workspace = artifacts / "worktrees" / label
     workspace.parent.mkdir(parents=True, exist_ok=True)
     row: dict[str, Any] = {**trial, "workspace": str(workspace), "status": "failed", "failure": None}
-    checkout_error = add_sparse_worktree(repo, workspace, commit)
+    checkout_error = add_seed_worktree(repo, workspace, commit)
     if checkout_error:
         row["failure"] = checkout_error
         row["workspace_retained_for_review"] = True
@@ -1009,7 +1094,7 @@ def launch_trial(
         "and task/tool history; the separate one-turn calibration diagnostic is not subtracted."
     )
     # Archive candidate files, excluding only known dependency and cache dirs,
-    # before deleting the disposable sparse checkout. Any write outside the
+    # before deleting the disposable isolated checkout. Any write outside the
     # advertised candidate directory keeps the checkout for inspection.
     status = subprocess.run(
         ["git", "status", "--porcelain", "--untracked-files=all"],
@@ -1214,6 +1299,15 @@ def main() -> int:
             raise ValueError("semaprax-bin must be a regular executable file")
         artifacts = Path(settings["artifacts"])
         artifacts.mkdir(parents=True)
+        seed_repo = artifacts / "seed-repository"
+        seed_info = create_seed_repository(
+            Path(args.repo).expanduser().resolve(strict=True),
+            settings["repository_commit"],
+            seed_repo,
+        )
+        settings.update(seed_info)
+        settings["trial_checkout"]["seed_repository_commit"] = seed_info["seed_repository_commit"]
+        settings["trial_checkout"]["source_files_sha256"] = seed_info["source_files_sha256"]
         settings["semaprax_binary"] = str(semaprax_bin)
         settings["semaprax_binary_sha256"] = digest(semaprax_bin)
         settings["claude_version"] = subprocess.run(
@@ -1227,7 +1321,7 @@ def main() -> int:
         save_json(artifacts / "campaign.json", settings)
         campaign_started = time.monotonic()
         calibration_result = launch_calibration(
-            Path(settings["repository"]), artifacts, settings["repository_commit"],
+            seed_repo, artifacts, settings["seed_repository_commit"],
             settings, semaprax_bin,
         )
         settings["calibration_result"] = {
@@ -1256,9 +1350,9 @@ def main() -> int:
         for arm in settings["trial_order"]:
             trial_number[arm] += 1
             row = launch_trial(
-                Path(settings["repository"]),
+                seed_repo,
                 artifacts,
-                settings["repository_commit"],
+                settings["seed_repository_commit"],
                 {"arm": arm, "number": trial_number[arm]},
                 settings,
                 semaprax_bin,

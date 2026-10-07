@@ -52,6 +52,25 @@ scripts and lockfiles are retained. Dependencies and build outputs must be
 reinstalled or regenerated as needed before using an archive; it is not
 guaranteed runnable as archived.
 The runner does not inspect or serialize credentials.
+
+Recompute accounting later from the saved transcripts without invoking Claude,
+the compiler, or candidate acceptance:
+
+```sh
+python3 benchmarks/cli-tokens-v1/live_campaign.py recount \
+  --artifacts /absolute/path/to/loglens-round3
+```
+
+This writes `accounted-results.json` alongside the original results. It records
+the accounting code revision and transcript hashes, refreshes provider usage,
+TTL-aware rate-card estimates, and the aggregate summary, and preserves trial
+acceptance, wall time, and candidate archive fields. The source `results.json`
+is left unchanged. It also adds a post-run diagnostic separating the checks
+defined by the frozen specification from additional robustness checks. The
+original full-corpus acceptance result remains unchanged; this diagnostic is
+not used to claim a comparative win. CR and CRLF input support should become an
+explicit specification requirement before it is scored in a future matched
+campaign.
 Claude Code must already be authenticated for the selected account, and that
 account must be entitled to the pinned model.
 

@@ -434,6 +434,101 @@ class LiveCampaignTests(unittest.TestCase):
         self.assertEqual(summary["estimated_cost_per_accepted_task_usd"], 0.3)
         self.assertTrue(summary["list_price_estimate_complete"])
 
+    def test_offline_recount_refreshes_only_accounting_from_saved_transcripts(self):
+        with tempfile.TemporaryDirectory() as directory:
+            artifacts = Path(directory)
+            transcripts = artifacts / "transcripts"
+            transcripts.mkdir()
+            event = {
+                "type": "result",
+                "usage": {
+                    "input_tokens": 2,
+                    "cache_creation_input_tokens": 1948,
+                    "cache_creation": {
+                        "ephemeral_5m_input_tokens": 0,
+                        "ephemeral_1h_input_tokens": 1948,
+                    },
+                    "cache_read_input_tokens": 4773,
+                    "output_tokens": 4,
+                },
+                "modelUsage": {live_campaign.MODEL: {
+                    "inputTokens": 2,
+                    "cacheCreationInputTokens": 1948,
+                    "cacheReadInputTokens": 4773,
+                    "outputTokens": 4,
+                }},
+                "total_cost_usd": 0.0087906,
+            }
+            (transcripts / "calibration.jsonl").write_text(json.dumps(event) + "\n")
+            (transcripts / "semaprax-01.jsonl").write_text(json.dumps(event) + "\n")
+            (artifacts / "calibration.json").write_text(json.dumps({
+                "status": "ready",
+                "transcript": "transcripts/calibration.jsonl",
+                "calibration_prompt_tokens_legacy_proxy": 10,
+                "observed": {"usage": {"cache_creation_ephemeral_1h_input_tokens": None}},
+                "list_price_estimate_usd": 0.005869,
+            }))
+            trials = [{
+                "arm": "semaprax", "number": 1, "status": "not_accepted",
+                "elapsed_seconds": 42.5, "transcript": "transcripts/semaprax-01.jsonl",
+                "acceptance": {"accepted": False, "checks": [
+                    {"name": "checked-in-sample-text", "status": "passed"},
+                    {"name": "spec-sample-top3-json", "status": "passed"},
+                    {"name": "options-json-before-top", "status": "passed"},
+                    {"name": "crlf-line-endings-text", "status": "failed"},
+                    {"name": "crlf-line-endings-json", "status": "failed"},
+                    {"name": "cr-line-endings-text", "status": "failed"},
+                    {"name": "cr-line-endings-json", "status": "failed"},
+                ]},
+                "candidate_archive": "/campaign/candidates/semaprax-01",
+                "list_price_estimate_usd": 0.005869,
+            }, {
+                "arm": "typescript", "number": 1, "status": "failed",
+                "elapsed_seconds": 3.0, "failure": "checkout failed",
+            }]
+            source = {
+                "campaign": {
+                    "attempt_denominator": 10,
+                    "calibration_result": {"list_price_estimate_usd": 0.005869},
+                },
+                "calibration": {}, "trials": trials,
+                "summary": {"stale": True}, "campaign_elapsed_wall_seconds": 50.0,
+            }
+            source_path = artifacts / "results.json"
+            source_path.write_text(json.dumps(source))
+            original_bytes = source_path.read_bytes()
+
+            output = live_campaign.recount_results(artifacts)
+            report = json.loads(output.read_text())
+            self.assertEqual(source_path.read_bytes(), original_bytes)
+
+        self.assertEqual(report["accounting"]["schema"], "semaprax.cli-tokens.accounting.v1")
+        self.assertEqual(report["accounting"]["usage_source"], "saved Claude Code stream-json transcripts")
+        self.assertEqual(report["calibration"]["observed"]["usage"]["cache_creation_ephemeral_1h_input_tokens"], 1948)
+        self.assertEqual(report["calibration"]["list_price_estimate_usd"], 0.008791)
+        accepted, missing = report["trials"]
+        self.assertEqual(accepted["list_price_estimate_usd"], 0.008791)
+        self.assertEqual(accepted["acceptance"], trials[0]["acceptance"])
+        self.assertEqual(accepted["elapsed_seconds"], 42.5)
+        self.assertEqual(accepted["candidate_archive"], "/campaign/candidates/semaprax-01")
+        self.assertEqual(accepted["status"], "not_accepted")
+        assessment = accepted["post_run_acceptance_scope_assessment"]
+        self.assertFalse(assessment["original_full_corpus_accepted"])
+        self.assertEqual(assessment["explicit_spec_checks"]["status"], "passed")
+        self.assertEqual(assessment["additional_robustness_checks"]["status"], "failed")
+        self.assertEqual(len(assessment["additional_robustness_checks"]["failed"]), 4)
+        self.assertEqual(missing["accounting_status"], "transcript_missing")
+        self.assertIsNone(missing["list_price_estimate_usd"])
+        self.assertEqual(report["campaign_elapsed_wall_seconds"], 50.0)
+        self.assertEqual(report["summary"]["attempt_denominator"], 2)
+        self.assertEqual(report["accounting"]["planned_attempt_denominator"], 10)
+        self.assertFalse(report["accounting"]["campaign_complete"])
+        self.assertEqual(
+            len(report["acceptance_scope_assessment"]["additional_robustness_checks"]["failed_cases"]),
+            4,
+        )
+        self.assertFalse(report["summary"]["arms"][1]["list_price_estimate_complete"])
+
     def test_campaign_plan_requires_five_trials_and_external_artifacts(self):
         args = Namespace(
             repo=str(live_campaign.REPO),

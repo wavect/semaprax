@@ -1279,6 +1279,216 @@ def summarize(
     }
 
 
+def _recount_usage_row(row: dict[str, Any], transcript: Path | None, label: str) -> None:
+    if transcript is None:
+        observed = {
+            "models_observed": [], "turns_with_usage": 0,
+            "usage": {name: None for name in ALL_USAGE_FIELDS},
+            "first_turn_usage": {name: None for name in ALL_USAGE_FIELDS},
+            "legacy_net_input": {
+                "first_turn_input_plus_cache_tokens": None,
+                "per_turn_input_plus_cache_tokens_sum": None,
+                "baseline_tokens_subtracted": None,
+                "net_input_tokens": None,
+            },
+            "provider_reported_api_equivalent_total_cost_usd": None,
+            "provider_output_tokens": None,
+        }
+        row["accounting_status"] = "transcript_missing"
+    else:
+        observed = stream_usage(transcript)
+        row["accounting_status"] = "recounted"
+    estimate = rate_card_estimate_details(observed["usage"])
+    row["observed"] = observed
+    row["list_price_estimate_usd"] = estimate["usd"]
+    row["list_price_cache_write_pricing"] = estimate["cache_write_pricing"]
+    row["provider_reported_api_equivalent_total_cost_usd"] = observed.get(
+        "provider_reported_api_equivalent_total_cost_usd"
+    )
+    row["provider_receipt_actual_usd"] = None
+    row["provider_output_tokens"] = observed.get("provider_output_tokens")
+    row["provider_input_plus_cache_tokens_raw"] = input_tokens_total(observed.get("usage", {}))
+    legacy_net = observed.get("legacy_net_input", {})
+    row["legacy_net_input_tokens"] = legacy_net.get("net_input_tokens")
+    row["legacy_net_first_turn_input_plus_cache_tokens"] = legacy_net.get(
+        "first_turn_input_plus_cache_tokens"
+    )
+    row["legacy_net_baseline_tokens_subtracted"] = legacy_net.get("baseline_tokens_subtracted")
+    row["accounting_transcript"] = label
+
+
+ROBUSTNESS_ONLY_CHECKS = {
+    "crlf-line-endings-text",
+    "crlf-line-endings-json",
+    "cr-line-endings-text",
+    "cr-line-endings-json",
+    "options-json-before-top",
+}
+
+
+def acceptance_scope_assessment(row: dict[str, Any]) -> dict[str, Any]:
+    """Report a post-run SPEC-scope view without changing full-corpus scoring."""
+    acceptance = row.get("acceptance")
+    checks = acceptance.get("checks", []) if isinstance(acceptance, dict) else []
+    if not isinstance(checks, list):
+        checks = []
+    spec_checks = [check for check in checks if isinstance(check, dict)
+                   and check.get("name") not in ROBUSTNESS_ONLY_CHECKS]
+    robustness_checks = [check for check in checks if isinstance(check, dict)
+                         and check.get("name") in ROBUSTNESS_ONLY_CHECKS]
+
+    def status(rows: list[dict[str, Any]], absent: str) -> str:
+        if not rows:
+            return absent
+        return "passed" if all(check.get("status") == "passed" for check in rows) else "failed"
+
+    return {
+        "original_full_corpus_accepted": acceptance.get("accepted") if isinstance(acceptance, dict) else None,
+        "explicit_spec_checks": {
+            "status": status(spec_checks, "not_assessed"),
+            "passed": sum(check.get("status") == "passed" for check in spec_checks),
+            "failed": [check.get("name") for check in spec_checks if check.get("status") != "passed"],
+        },
+        "additional_robustness_checks": {
+            "status": status(robustness_checks, "not_tested"),
+            "passed": sum(check.get("status") == "passed" for check in robustness_checks),
+            "failed": [check.get("name") for check in robustness_checks if check.get("status") != "passed"],
+        },
+    }
+
+
+def recount_results(artifacts: Path) -> Path:
+    """Recompute usage and cost from saved provider JSONL without rerunning trials."""
+    artifacts = artifacts.expanduser().resolve(strict=True)
+    source_path = artifacts / "results.json"
+    calibration_path = artifacts / "calibration.json"
+    if not source_path.is_file() or not calibration_path.is_file():
+        raise ValueError("recount requires existing results.json and calibration.json")
+    source_results = json.loads(source_path.read_text(encoding="utf-8"))
+    calibration = json.loads(calibration_path.read_text(encoding="utf-8"))
+    trials = source_results.get("trials")
+    if not isinstance(trials, list) or not isinstance(calibration, dict):
+        raise ValueError("campaign results or calibration file has an invalid shape")
+
+    def transcript_for(value: Any, fallback: str) -> tuple[Path | None, str]:
+        raw = value if isinstance(value, str) and value else fallback
+        path = Path(raw)
+        if not path.is_absolute():
+            path = artifacts / path
+        path = path.resolve()
+        try:
+            label = str(path.relative_to(artifacts))
+        except ValueError as error:
+            raise ValueError(f"transcript is outside artifact directory: {path}") from error
+        if not path.exists():
+            return None, label
+        if not path.is_file():
+            raise ValueError(f"transcript is not a regular file: {path}")
+        return path, label
+
+    report = json.loads(json.dumps(source_results))
+    report_calibration = report["calibration"] = calibration
+    calibration_stream, calibration_label = transcript_for(
+        calibration.get("transcript"), "transcripts/calibration.jsonl"
+    )
+    _recount_usage_row(report_calibration, calibration_stream, calibration_label)
+    first = report_calibration["observed"].get("first_turn_usage", {})
+    report_calibration["first_turn_provider_input_plus_cache_tokens"] = input_tokens_total(first)
+    prompt_proxy = report_calibration.get("calibration_prompt_tokens_legacy_proxy")
+    report_calibration["one_turn_context_input_tokens_proxy"] = one_turn_context_proxy(first, prompt_proxy)
+
+    report_trials = report["trials"]
+    scope_assessments = []
+    transcript_records = [{
+        "path": calibration_label,
+        "sha256": digest(calibration_stream) if calibration_stream else None,
+        "status": "recounted" if calibration_stream else "transcript_missing",
+    }]
+    for index, row in enumerate(report_trials):
+        if not isinstance(row, dict):
+            raise ValueError(f"trial row {index} is not an object")
+        fallback = f"transcripts/{row.get('arm', 'unknown')}-{int(row.get('number', index + 1)):02d}.jsonl"
+        transcript, label = transcript_for(row.get("transcript"), fallback)
+        _recount_usage_row(row, transcript, label)
+        row["post_run_acceptance_scope_assessment"] = acceptance_scope_assessment(row)
+        scope_assessments.append({
+            "arm": row.get("arm"), "number": row.get("number"),
+            **row["post_run_acceptance_scope_assessment"],
+        })
+        transcript_records.append({
+            "path": label,
+            "sha256": digest(transcript) if transcript else None,
+            "status": "recounted" if transcript else "transcript_missing",
+        })
+
+    campaign = report.get("campaign")
+    if isinstance(campaign, dict) and isinstance(campaign.get("calibration_result"), dict):
+        campaign_calibration = campaign["calibration_result"]
+        campaign_calibration["list_price_estimate_usd"] = report_calibration.get("list_price_estimate_usd")
+        campaign_calibration["observed_usage"] = report_calibration.get("observed", {}).get("usage")
+        campaign_calibration["provider_reported_api_equivalent_total_cost_usd"] = report_calibration.get(
+            "provider_reported_api_equivalent_total_cost_usd"
+        )
+
+    try:
+        revision = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=REPO, text=True, capture_output=True, check=True
+        ).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        revision = None
+    report["summary"] = summarize(report_trials, report_calibration)
+    campaign_settings = report.get("campaign") if isinstance(report.get("campaign"), dict) else {}
+    planned_attempts = campaign_settings.get("attempt_denominator")
+    robustness_failed = [
+        {"arm": item["arm"], "number": item["number"], "check": name}
+        for item in scope_assessments
+        for name in item["additional_robustness_checks"]["failed"]
+    ]
+    spec_failed = [
+        {"arm": item["arm"], "number": item["number"], "check": name}
+        for item in scope_assessments
+        for name in item["explicit_spec_checks"]["failed"]
+    ]
+    report["acceptance_scope_assessment"] = {
+        "classification_timing": "post-run diagnostic; does not alter original scoring",
+        "frozen_spec_sha256": campaign_settings.get("seed_files_sha256", {}).get(
+            "benchmarks/cli-tokens-v1/SPEC.md"
+        ),
+        "full_corpus_acceptance": "original results and per-trial status remain authoritative",
+        "explicit_spec_checks": {
+            "failed_cases": spec_failed,
+            "trial_assessments": sum(item["explicit_spec_checks"]["status"] != "not_assessed"
+                                      for item in scope_assessments),
+        },
+        "additional_robustness_checks": {
+            "not_specified_by_frozen_spec": sorted(ROBUSTNESS_ONLY_CHECKS),
+            "failed_cases": robustness_failed,
+            "trial_assessments": sum(item["additional_robustness_checks"]["status"] != "not_tested"
+                                      for item in scope_assessments),
+        },
+        "per_trial": scope_assessments,
+    }
+    report["accounting"] = {
+        "schema": "semaprax.cli-tokens.accounting.v1",
+        "accounting_revision": revision,
+        "parser_source_sha256": digest(Path(__file__).resolve()),
+        "source_results_sha256": digest(source_path),
+        "recounted_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "usage_source": "saved Claude Code stream-json transcripts",
+        "provider_receipt_actual_usd": None,
+        "transcripts": transcript_records,
+        "original_results_path": str(source_path),
+        "recorded_attempts": len(report_trials),
+        "planned_attempt_denominator": planned_attempts,
+        "campaign_complete": isinstance(planned_attempts, int) and len(report_trials) == planned_attempts,
+        "scope_assessment_is_post_run_and_not_original_scoring": True,
+        "recount_does_not_rerun_models_builds_or_acceptance": True,
+    }
+    output = artifacts / "accounted-results.json"
+    save_json(output, report)
+    return output
+
+
 def add_common_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--repo", default=str(REPO))
     parser.add_argument("--base-ref", required=True, help="verified compiler commit used for every isolated trial")
@@ -1298,6 +1508,8 @@ def add_common_arguments(parser: argparse.ArgumentParser) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="action", required=True)
+    recount_parser = subparsers.add_parser("recount", help="recompute accounting from saved campaign transcripts")
+    recount_parser.add_argument("--artifacts", required=True, help="completed campaign artifact directory")
     for action in ("plan", "run"):
         sub = subparsers.add_parser(action)
         add_common_arguments(sub)
@@ -1305,6 +1517,9 @@ def main() -> int:
             sub.add_argument("--semaprax-bin", required=True, help="verified compiler executable shared across trials")
     args = parser.parse_args()
     try:
+        if args.action == "recount":
+            print(recount_results(Path(args.artifacts)))
+            return 0
         settings = plan(args)
         if args.action == "plan":
             print(json.dumps(settings, indent=2))

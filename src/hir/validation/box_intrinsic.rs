@@ -6,7 +6,7 @@ pub(super) fn reject_reserved_identities(program: &ResolvedProgram) -> Result<()
     crate::list_ops::validate_declarations(program)?;
     crate::map_ops::validate_declarations(program)?;
     for declaration in program.declarations.declarations() {
-        if crate::map_ops::by_id(declaration.id.as_str()).is_some()
+        if crate::map_ops::is_reserved_operation_id(declaration.id.as_str())
             || crate::map_ops::by_name(&declaration.name).is_some()
             || crate::list_ops::by_id(declaration.id.as_str()).is_some()
             || crate::list_ops::by_name(&declaration.name).is_some()
@@ -25,7 +25,7 @@ pub(super) fn reject_reserved_identities(program: &ResolvedProgram) -> Result<()
         reject_function(function)?;
     }
     for template in &program.function_templates {
-        if crate::map_ops::by_id(template.id.as_str()).is_some()
+        if crate::map_ops::is_reserved_operation_id(template.id.as_str())
             || crate::map_ops::by_name(&template.name).is_some()
             || crate::list_ops::by_id(template.id.as_str()).is_some()
             || crate::list_ops::by_name(&template.name).is_some()
@@ -55,7 +55,7 @@ pub(super) fn authenticate_owned_wrapper(
     )
 }
 fn reject_function(function: &ResolvedFunction) -> Result<(), Diagnostic> {
-    if crate::map_ops::by_id(function.id.as_str()).is_some()
+    if crate::map_ops::is_reserved_operation_id(function.id.as_str())
         || crate::map_ops::by_name(&function.name).is_some()
         || crate::list_ops::by_id(function.id.as_str()).is_some()
         || crate::list_ops::by_name(&function.name).is_some()

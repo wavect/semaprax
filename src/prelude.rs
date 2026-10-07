@@ -217,8 +217,9 @@ pub(crate) fn all_type_ids_v9() -> [&'static str; 23] {
     ids
 }
 
-pub(crate) fn all_reserved_ids() -> [&'static str; 46] {
-    [
+pub(crate) fn all_reserved_ids() -> [&'static str; 66] {
+    let mut ids=["";66];
+    ids[..46].copy_from_slice(&[
         OPTION_ID,
         OPTION_NONE_ID,
         OPTION_SOME_ID,
@@ -265,7 +266,9 @@ pub(crate) fn all_reserved_ids() -> [&'static str; 46] {
         crate::stdin_stream_ops::NEXT_ID,
         crate::stdin_stream_ops::CHUNK_ID,
         crate::stdin_stream_ops::EOF_ID,
-    ]
+    ]);
+    ids[46..].copy_from_slice(&crate::map_ops::reserved_ids());
+    ids
 }
 
 pub(crate) fn all_ids() -> [&'static str; 9] {

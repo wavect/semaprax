@@ -48,3 +48,15 @@ fn canonical_cleanup_leaf_cannot_be_replayed_as_a_string_or_legacy_map() {
         assert!(crate::hir::validate(&program).is_err());
     }
 }
+
+#[test]
+fn authored_declarations_cannot_reuse_collection_operation_or_lifecycle_ids() {
+    for id in reserved_ids() {
+        let source=format!("module test.map_reserved; @id({id:?}) fn main()->i64 {{0}}");
+        assert!(crate::check(&source,"map-reserved.spx").is_err(),"reserved identity {id}");
+    }
+    for id in [MapOp::Set.id(),DROP_ID,"core.collection.wasm.checked.v2"] {
+        let mut program=resolved();program.functions.iter_mut().find(|f|f.name=="main").unwrap().id=DeclarationId::new(id);
+        assert!(crate::hir::validate(&program).is_err());
+    }
+}

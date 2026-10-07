@@ -108,6 +108,11 @@ impl MapOp {
 fn param(name:&str,ty:Type,mode:ParamMode)->Param {Param{name:name.into(),ty,mode,span:Span::default()}}
 pub(crate) fn by_name(name:&str)->Option<MapOp>{MapOp::ALL.into_iter().find(|op|op.name()==name)}
 pub(crate) fn by_id(id:&str)->Option<MapOp>{MapOp::ALL.into_iter().find(|op|op.id()==id)}
+pub(crate) fn is_reserved_operation_id(id:&str)->bool {by_id(id).is_some() || matches!(id,DROP_ID|"core.collection.wasm.checked.v2"|"core.collection.wasm.drop.v2")}
+pub(crate) fn reserved_ids()->[&'static str;20] {
+    let mut ids=[MAP_ID,SET_ID,DROP_ID,"core.collection.wasm.checked.v2","core.collection.wasm.drop.v2","","","","","","","","","","","","","","",""];
+    for (slot,op) in ids[5..].iter_mut().zip(MapOp::ALL){*slot=op.id();}ids
+}
 pub(crate) fn by_generic_name(name:&str, arguments:&[Type])->Option<MapOp>{by_name(name).filter(|op|op.is_set()||!arguments.is_empty())}
 pub(crate) fn ast_key(ty:&Type)->bool{matches!(ty,Type::String|Type::I64|Type::Bool)}
 pub(crate) fn ast_value(ty:&Type)->bool{matches!(ty,Type::String|Type::I64|Type::I32|Type::U8|Type::Usize|Type::Char|Type::F32|Type::F64|Type::Bool)}

@@ -17,7 +17,9 @@ pub(super) const CONTAINS: u32 = 6;
 pub(super) const COMPARE: u32 = 7;
 
 pub(super) fn import_count(program: &ResolvedProgram) -> u32 {
-    IMPORT_COUNT + u32::from(program_uses_ordering(program))
+    IMPORT_COUNT
+        + u32::from(program_uses_ordering(program))
+        + text_toolkit::selected(program).len() as u32
 }
 
 pub(super) fn program_uses_ordering(program: &ResolvedProgram) -> bool {
@@ -63,7 +65,9 @@ pub(in crate::wasm) fn refuse_unimplemented_collections(
         if let ResolvedExprKind::Call { callee, .. } = &expression.kind {
             if let Some(operation) = crate::string_ops::by_id(callee.as_str()).filter(|operation| {
                 (operation.is_collection() && *operation != crate::string_ops::StringOp::Compare)
-                    || (operation.is_conversion() && !conversions::admitted(*operation))
+                    || (operation.is_conversion()
+                        && !conversions::admitted(*operation)
+                        && !text_toolkit::admitted(*operation))
             }) {
                 return Err(crate::string_ops::text_toolkit_wasm_refusal(operation));
             }
@@ -79,17 +83,18 @@ pub(in crate::wasm) fn refuse_unimplemented_collections(
 }
 
 pub(super) fn requires_runtime(operation: crate::string_ops::StringOp) -> bool {
-    matches!(
-        operation,
-        crate::string_ops::StringOp::Concat
-            | crate::string_ops::StringOp::FromChar
-            | crate::string_ops::StringOp::LenChars
-            | crate::string_ops::StringOp::FromI64
-            | crate::string_ops::StringOp::FromUsize
-            | crate::string_ops::StringOp::StartsWith
-            | crate::string_ops::StringOp::Contains
-            | crate::string_ops::StringOp::Compare
-    )
+    text_toolkit::admitted(operation)
+        || matches!(
+            operation,
+            crate::string_ops::StringOp::Concat
+                | crate::string_ops::StringOp::FromChar
+                | crate::string_ops::StringOp::LenChars
+                | crate::string_ops::StringOp::FromI64
+                | crate::string_ops::StringOp::FromUsize
+                | crate::string_ops::StringOp::StartsWith
+                | crate::string_ops::StringOp::Contains
+                | crate::string_ops::StringOp::Compare
+        )
 }
 
 pub(super) fn program_uses_runtime(program: &ResolvedProgram) -> bool {
@@ -298,6 +303,9 @@ impl Emitter<'_> {
         args: &[ResolvedExpr],
     ) -> Result<Value, Diagnostic> {
         use crate::string_ops::StringOp;
+        if text_toolkit::admitted(operation) {
+            return self.emit_checked_text_operation(expr, operation, args);
+        }
         if conversions::admitted(operation) {
             return self.emit_scalar_conversion(expr, operation, args);
         }

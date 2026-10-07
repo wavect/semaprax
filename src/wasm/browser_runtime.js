@@ -219,6 +219,50 @@ function createByteDataRuntime(options = {}) {
     }
     return 0;
   };
+  // Checked toolkit imports return selected status; they never throw a
+  // recoverable semantic failure past the compiler's cleanup transitions.
+  const toolkitOutput = (offset, size = 8) => {
+    const bytes = memory();
+    if (!Number.isInteger(offset) || offset < 0 || offset % 8 !== 0 || offset > 65536 - size) {
+      throw new Error("SEMAPRAX checked text output slot invariant");
+    }
+    return new DataView(bytes.buffer, offset, size);
+  };
+  const textBoundary = (bytes, index) => index === bytes.length || (bytes[index] & 192) !== 128;
+  const textRange = (value, length) => typeof value === "bigint" && value >= 0n && value <= BigInt(length);
+  const textWhitespace = byte => byte === 32 || (byte >= 9 && byte <= 13);
+  let fileOperations = 0, fileReservedBytes = 0;
+  const fileReadText = (carrier, offset) => {
+    const output = toolkitOutput(offset);
+    const path = read(decode(carrier));
+    // Absence of authority precedes path/budget validation, as on native and interpreter.
+    const provider = options.fileReadText;
+    if (provider === undefined) return 70;
+    if (provider === null || typeof provider.read !== "function") throw new TypeError("SEMAPRAX file text provider invariant");
+    if (fileOperations >= 64 || fileReservedBytes > 1048576 - 65536) return 68;
+    fileOperations++; fileReservedBytes += 65536;
+    if (path.length === 0 || path.length > 4096 || path.includes(0) || path.includes(92) || path.includes(58)) return 65;
+    let start = 0;
+    for (let index = 0; index <= path.length; index++) {
+      if (index === path.length || path[index] === 47) {
+        const length = index - start;
+        if (length === 0 || (length === 1 && path[start] === 46) || (length === 2 && path[start] === 46 && path[start + 1] === 46)) return 65;
+        start = index + 1;
+      }
+    }
+    // A copied path grants only this declared call; no Node/browser filesystem is consulted.
+    const result = provider.read(path.slice(), 65536);
+    if (result === null || typeof result !== "object" || typeof result.ok !== "boolean") throw new TypeError("SEMAPRAX file text provider result invariant");
+    if (!result.ok) {
+      if (!Number.isInteger(result.code) || result.code < 1 || result.code > 7) throw new TypeError("SEMAPRAX file text provider status invariant");
+      return 64 + result.code;
+    }
+    if (!(result.bytes instanceof Uint8Array)) throw new TypeError("SEMAPRAX file text provider bytes invariant");
+    if (result.bytes.length > 65536) return 68;
+    if (!validUtf8(result.bytes)) return 25;
+    output.setBigInt64(0, allocate(result.bytes), true);
+    return 0;
+  };
   const byteImports = Object.freeze({
     spx_bytes_copy: carrier => allocate(read(decode(carrier))),
     spx_bytes_zeroed: count => {
@@ -329,6 +373,56 @@ function createByteDataRuntime(options = {}) {
     // String import inputs are authenticated carrier values. Every operation
     // validates UTF-8 before inspection or publication; concat leaves its
     // committed inputs intact for the canonical emitted drop transitions.
+    spx_string_slice_v2: (carrier, start, end, offset) => {
+      const bytes = stringBytes(carrier), output = toolkitOutput(offset);
+      if (!textRange(start, bytes.length) || !textRange(end, bytes.length) || start > end) return 23;
+      if (!textBoundary(bytes, Number(start)) || !textBoundary(bytes, Number(end))) return 24;
+      output.setBigInt64(0, allocate(bytes.subarray(Number(start), Number(end))), true);
+      return 0;
+    },
+    spx_string_find_v2: (carrier, needleCarrier, from, offset) => {
+      const bytes = stringBytes(carrier), needle = stringBytes(needleCarrier), output = toolkitOutput(offset);
+      if (!textRange(from, bytes.length)) return 23;
+      let found = -1n;
+      outer: for (let index = Number(from); index <= bytes.length - needle.length; index++) {
+        for (let at = 0; at < needle.length; at++) if (bytes[index + at] !== needle[at]) continue outer;
+        found = BigInt(index); break;
+      }
+      output.setBigInt64(0, found, true); return 0;
+    },
+    spx_string_to_i64_v2: (carrier, offset) => {
+      const bytes = stringBytes(carrier), output = toolkitOutput(offset, 16);
+      let index = 0, negative = false, valid = true, value = 0n;
+      if (bytes[0] === 45) { negative = true; index++; }
+      if (index === bytes.length) valid = false;
+      for (; valid && index < bytes.length; index++) {
+        const digit = bytes[index];
+        if (digit < 48 || digit > 57) { valid = false; break; }
+        value = value * 10n + BigInt(digit - 48);
+        if (value > (negative ? 9223372036854775808n : 9223372036854775807n)) valid = false;
+      }
+      output.setBigInt64(0, valid ? 1n : 0n, true);
+      output.setBigInt64(8, valid ? (negative ? -value : value) : 0n, true);
+      return 0;
+    },
+    spx_string_trim_v2: (carrier, offset) => {
+      const bytes = stringBytes(carrier), output = toolkitOutput(offset);
+      let start = 0, end = bytes.length;
+      while (start < end && textWhitespace(bytes[start])) start++;
+      while (end > start && textWhitespace(bytes[end - 1])) end--;
+      output.setBigInt64(0, allocate(bytes.subarray(start, end)), true); return 0;
+    },
+    spx_string_byte_at_v2: (carrier, index, offset) => {
+      const bytes = stringBytes(carrier), output = toolkitOutput(offset);
+      if (!textRange(index, bytes.length) || index === BigInt(bytes.length)) return 23;
+      output.setBigInt64(0, BigInt(bytes[Number(index)]), true); return 0;
+    },
+    spx_string_from_str_v2: (carrier, offset) => {
+      const bytes = read(decode(carrier)), output = toolkitOutput(offset);
+      if (!validUtf8(bytes)) return 25;
+      output.setBigInt64(0, allocate(bytes), true); return 0;
+    },
+    spx_file_read_text_v2: fileReadText,
     spx_string_concat_v1: (left, right) => {
       const leftBytes = stringBytes(left);
       const rightBytes = stringBytes(right);
@@ -402,6 +496,8 @@ export const imports = {
       if (code === 11) throw new SpxSemanticFailure("semaprax.byte-range.v1", 1, "SEMAPRAX byte range failure");
       if (code === 12) throw new SpxSemanticFailure("semaprax.byte-range.v1", 2, "SEMAPRAX byte range failure");
       if (code === 16) throw new SpxSemanticFailure("semaprax.byte-buffer.v1", 1, "SEMAPRAX owned byte buffer failure");
+      if (code >= 23 && code <= 25) throw new SpxSemanticFailure("semaprax.text.v1", code - 22, "SEMAPRAX checked text failure");
+      if (code >= 65 && code <= 71) throw new SpxSemanticFailure("semaprax.filesystem.v1", code - 64, "SEMAPRAX explicit file text failure");
       if (code === 21 || code === 22) throw new SpxSemanticFailure("semaprax.convert.v1", code - 20, "SEMAPRAX scalar conversion failure");
       throw new SpxSemanticFailure("semaprax.contract.v1", code, "SEMAPRAX contract failure");
     },

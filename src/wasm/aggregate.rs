@@ -19,6 +19,7 @@ pub(in crate::wasm) use function_value::{
 };
 use function_value::{executable_functions, hex_execution_identity, program_uses_byte_range};
 pub(super) mod conversions;
+pub(super) mod text_toolkit;
 mod filesystem_checked;
 mod filesystem_ops;
 mod filesystem_v2;
@@ -1603,6 +1604,7 @@ fn emit_byte_exports_profile(
         &mut types,
         &mut type_indexes,
     );
+    let toolkit_types = text_toolkit::import_types(program, &mut types, &mut type_indexes);
     let byte_set_types =
         owned_buffer::import_types(uses_owned_buffer, &mut types, &mut type_indexes);
     let text_helper_type = uses_str_ops.then(|| {
@@ -2702,6 +2704,9 @@ fn emit_profile_with_scalar_exports(
             string_text_binary.expect("String runtime text comparison type"),
             string_runtime::program_uses_ordering(program),
         );
+        for (operation, ty) in &toolkit_types {
+            function_import(&mut imports, "env", text_toolkit::import_name(*operation), *ty);
+        }
         let base = SCALAR_IMPORT_COUNT
             + if uses_byte_data { BYTE_IMPORT_COUNT } else { 0 }
             + if uses_owned_buffer {
@@ -2732,6 +2737,10 @@ fn emit_profile_with_scalar_exports(
             base,
             string_runtime::program_uses_ordering(program),
         );
+        for (offset, (operation, _)) in toolkit_types.iter().enumerate() {
+            function_indexes.insert(FunctionExecutionId::Monomorphic(DeclarationId::new(operation.id())),
+                base + string_runtime::IMPORT_COUNT + u32::from(string_runtime::program_uses_ordering(program)) + offset as u32);
+        }
     }
     section(&mut module, 2, imports);
 

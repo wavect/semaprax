@@ -119,3 +119,47 @@ fn wasm_numeric_conversion_failures_keep_their_domain_and_settle_owners() {
         fixture.cleanup();
     }
 }
+
+#[test]
+fn wasm_checked_text_byte_semantics_parse_and_borrowed_copy() {
+    for (body, value) in [
+        (
+            r#"let text = "a\u{0}é😀"; let piece = string_slice(text, 2, 4); string_byte_at(piece, 0) + string_find(text, "😀", 1)"#,
+            "199n",
+        ),
+        (
+            r#"let text = " \t\u{b}é\r\n"; let trimmed = string_trim(text); string_len(trimmed)"#,
+            "2n",
+        ),
+        (
+            r#"let text = "copy\u{0}é"; let view = string_as_str(text); let copy = string_from_str(view); string_len(copy)"#,
+            "7n",
+        ),
+        (
+            r#"match string_to_i64("-9223372036854775808") { Option::Some { value: n } => if n == -9223372036854775808 { 1 } else { 0 }, Option::None {} => 0, }"#,
+            "1n",
+        ),
+        (
+            r#"match string_to_i64("9223372036854775808") { Option::Some { value: n } => 0, Option::None {} => 1, }"#,
+            "1n",
+        ),
+        (r#"string_find("é", "", 1)"#, "1n"),
+    ] {
+        wasm_case(body, &format!("if(instance.exports.semaprax_main()!=={value})throw Error('checked text result changed');"));
+    }
+}
+
+#[test]
+fn wasm_checked_text_failures_settle_borrowed_owners_before_status() {
+    for (body, code) in [
+        (
+            r#"let text = "held"; string_len(string_slice(text, -1, 2))"#,
+            1,
+        ),
+        (r#"let text = "é"; string_len(string_slice(text, 1, 2))"#, 2),
+        (r#"let text = "held"; string_byte_at(text, 4)"#, 1),
+        (r#"let text = "held"; string_find(text, "", 5)"#, 1),
+    ] {
+        wasm_case(body, &format!("let caught=false;try{{instance.exports.semaprax_main();}}catch(error){{const status=semanticStatus(error);if(status===null||status.domain_id!=='semaprax.text.v1'||status.code!=={code})throw error;caught=true;}}if(!caught)throw Error('text failure missing');"));
+    }
+}

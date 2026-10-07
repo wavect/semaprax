@@ -1028,6 +1028,7 @@ fn emit_resolved_module_internal(
         || program_uses_vec(program)
         || program_uses_box(program)
         || aggregate::conversions::program_uses_numeric(program)
+        || aggregate::text_toolkit::program_uses_toolkit(program)
     {
         if has_public_profile {
             if !scalar_exports.is_empty()
@@ -1927,7 +1928,7 @@ pub fn build_web(program: &Program, output: &Path) -> Result<(), Diagnostic> {
             .declaration(&declaration.id)
             .is_some_and(|item| item.identity_origin == IdentityOrigin::CompilerOwned)
     });
-    if uses_strings && !has_authored_aggregate {
+    if uses_strings && !has_authored_aggregate && !aggregate::text_toolkit::program_uses_toolkit(&resolved) {
         return Err(Diagnostic::io(
             "SPX-W116",
             "legacy scalar Web packages do not supply the required String runtime imports",

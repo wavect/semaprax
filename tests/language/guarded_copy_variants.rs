@@ -423,8 +423,9 @@ fn copy_variant_wasm_profile_is_explicit_and_closed() {
     assert_eq!(artifact.runtime_source(), reordered.runtime_source());
     let unselected = r#"
 @id("unselected.owned") fn unselected() -> i64 {
-    let owned = Option<string>::Some { value: "excluded" };
-    match own owned { Option::Some { value: text } => string_len(text), Option::None {} => 0, }
+    // The active None case still has a type with a non-Copy Bytes payload.
+    let owned = Option<Bytes>::None {};
+    0
 }
 "#;
     let extended = parse(

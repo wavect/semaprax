@@ -305,3 +305,64 @@ impl PlanBuilder<'_> {
         })
     }
 }
+
+/// Retained identity payload and the same per-entry collection allowance used
+/// by the builder's other derived maps. This is test-only capacity telemetry;
+/// replay's materialization-operation counter remains a separate contract.
+#[cfg(test)]
+pub(super) fn derived_metadata_capacity(builder: &PlanBuilder<'_>) -> usize {
+    builder.string_appends.len()
+        * (std::mem::size_of::<(ExpressionId, ExpressionId)>()
+            + std::mem::size_of::<BTreeMap<ExpressionId, ExpressionId>>())
+        + builder
+            .string_appends
+            .iter()
+            .map(|(operand, call)| operand.as_str().len() + call.as_str().len())
+            .sum::<usize>()
+        + builder.string_condition_reads.len()
+            * (std::mem::size_of::<ExpressionId>() + std::mem::size_of::<BTreeSet<ExpressionId>>())
+        + builder
+            .string_condition_reads
+            .iter()
+            .map(|id| id.as_str().len())
+            .sum::<usize>()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn builder_capacity_counts_derived_string_metadata() {
+        let source = "module capacity.string; @id(\"app.main\") fn main() -> i64 { let mut text=\"a\"; while string_len(text)<2 { text=string_concat(text, \"b\"); 0 } 0 }";
+        let program =
+            crate::parse(source, std::path::Path::new("string-metadata-capacity.spx")).unwrap();
+        assert!(crate::verify::verify(&program).is_empty());
+        let resolved = crate::hir::resolve(&program).unwrap();
+        let mut builder = PlanBuilder::new(&resolved, &resolved.functions[0]).unwrap();
+        assert_eq!(builder.string_condition_reads.len(), 1);
+        assert_eq!(builder.string_appends.len(), 1);
+        let identity_payload = builder
+            .string_condition_reads
+            .iter()
+            .map(|id| id.as_str().len())
+            .sum::<usize>();
+        let full = builder_nested_capacity(&builder);
+        let reads = std::mem::take(&mut builder.string_condition_reads);
+        let without_reads = builder_nested_capacity(&builder);
+        assert!(full - without_reads > identity_payload);
+        let append_payload = builder
+            .string_appends
+            .iter()
+            .map(|(operand, call)| operand.as_str().len() + call.as_str().len())
+            .sum::<usize>();
+        builder.string_appends.clear();
+        let without_metadata = builder_nested_capacity(&builder);
+        assert!(without_reads - without_metadata > append_payload);
+        builder.string_condition_reads = reads;
+        assert_eq!(
+            builder_nested_capacity(&builder) - without_metadata,
+            full - without_reads
+        );
+    }
+}

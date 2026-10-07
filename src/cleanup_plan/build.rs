@@ -342,6 +342,7 @@ fn builder_nested_capacity(builder: &PlanBuilder<'_>) -> usize {
         + exit_payload
         + status_payload
         + edge_payload
+        + strings::derived_metadata_capacity(builder)
         + flow_state_owned_capacity(&builder.initial_state)
         + builder.pending_try_residuals.capacity() * std::mem::size_of::<PendingTryResidual>()
         + builder

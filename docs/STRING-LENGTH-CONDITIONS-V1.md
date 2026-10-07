@@ -54,6 +54,11 @@ neither clone initialization nor an owned transfer source. The existing
 acyclic one-iteration loop plan remains sufficient; no condition cleanup
 region, back-edge, or schema extension is introduced.
 
+The derived identity sets are metadata, like the existing append index. Replay
+materialization units count path-evidence operations, not these sets' bytes,
+peak heap, or traversal time; they grant no new cleanup authority. Builder
+capacity telemetry includes the retained inspected-read and append identities.
+
 Native C11 and admitted Core Wasm read the existing physical carrier directly.
 The interpreter reads the available environment owner directly while retaining
 the operand expression's fuel and trace charge. UTF-8 materialization limits

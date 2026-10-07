@@ -141,6 +141,7 @@ fn emit_hir_c_with_options(
             &resource_abi,
             program,
             output_profile.is_language_command(),
+            output_profile.string_runtime(),
         );
     } else {
         emit_native_prelude_profile(
@@ -433,6 +434,7 @@ fn emit_native_prelude_without_public_failure(
     resource_abi: &native_resource::NativeResourceAbi,
     program: &ResolvedProgram,
     command_carriers: bool,
+    strings: StringRuntimeSelection,
 ) {
     emit_native_prelude_inner(
         output,
@@ -440,7 +442,7 @@ fn emit_native_prelude_without_public_failure(
         program,
         true,
         command_carriers,
-        StringRuntimeSelection::FROZEN,
+        strings,
     );
 }
 fn emit_native_prelude_inner(

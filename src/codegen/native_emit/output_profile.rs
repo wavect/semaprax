@@ -123,6 +123,7 @@ impl NativeOutputProfile {
             },
             Self::StdinStreamCommandIo => StringRuntimeSelection {
                 stream_epochs: true,
+                command_carriers: true,
                 ..StringRuntimeSelection::FROZEN
             },
             Self::UsefulDataCommand

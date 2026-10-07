@@ -45,7 +45,7 @@ module test.guarded_copy_variants;
         Option::None {} => 1000,
     }
 }
-@id("guards.result") fn result() -> i64 {
+@id("guards.result") fn result_case() -> i64 {
     let selected = Result<i64, bool>::Err { error: true };
     let text = match selected {
         Result::Ok { value: n } if n + 9223372036854775807 > 0 => "wrong",

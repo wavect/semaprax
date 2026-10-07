@@ -101,6 +101,9 @@ impl Emitter<'_> {
             }
         }
         let offset = match op {
+            crate::vec_ops::VecOp::Sort => {
+                return Err(error("owned Vec payload sorting is not admitted"))
+            }
             VecOp::WithCapacity => 0,
             VecOp::Push => 1,
             VecOp::Len => 2,

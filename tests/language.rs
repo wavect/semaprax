@@ -176,3 +176,6 @@ mod function_values_generic;
 
 #[path = "language/stream_text_command.rs"]
 mod stream_text_command;
+
+#[path = "language/string_ordering.rs"]
+mod string_ordering;

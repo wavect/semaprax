@@ -24,6 +24,10 @@ admits a scoped type parameter inside private function templates only after
 independently validating every concrete Copy substitution. It preserves this
 runtime profile and public ABI boundary.
 
+The additive [Copy Scalar Sort v1](COPY-SCALAR-SORT-V1.md) authors
+`vec_sort<T>` over this scalar representation, with separate pending
+verification and an optional Wasm host import.
+
 The compiler-owned operations are:
 
 | Source | Stable identity | Signature |

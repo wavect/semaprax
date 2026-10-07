@@ -280,6 +280,7 @@ fn get_set_and_reserve_exact_stay_refused_with_a_stable_diagnostic() {
                 crate::vec_ops::VecOp::Get
                     | crate::vec_ops::VecOp::Set
                     | crate::vec_ops::VecOp::ReserveExact
+                    | crate::vec_ops::VecOp::Sort
             ),
             "unexpected admission for {}",
             op.name()

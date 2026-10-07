@@ -2409,6 +2409,26 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 ty: ResolvedType::Bool,
             });
         }
+        if matches!(
+            op,
+            BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge
+        ) && left.ty == ResolvedType::String
+        {
+            let right = self.emit_expr(right)?;
+            self.require_type(&right.ty, &ResolvedType::String, "String ordering operand")?;
+            self.require_type(result_type, &ResolvedType::Bool, "String ordering result")?;
+            let temporary = self.temporary(&ResolvedType::Bool)?;
+            self.line(&format!(
+                "{temporary} = spx_string_compare_ordered({}, {}) {} 0;",
+                left.code,
+                right.code,
+                op.text()
+            ));
+            return Ok(CValue {
+                code: temporary,
+                ty: ResolvedType::Bool,
+            });
+        }
         if !matches!(op, BinaryOp::Eq | BinaryOp::Ne) && matches!(left.ty, ResolvedType::String) {
             return Err(backend_error(
                 "string operands only support equality comparison",

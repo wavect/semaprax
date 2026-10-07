@@ -347,6 +347,7 @@ fn ordered(ty: &ResolvedType) -> bool {
             | ResolvedType::Usize
             | ResolvedType::F32
             | ResolvedType::F64
+            | ResolvedType::String
     )
 }
 

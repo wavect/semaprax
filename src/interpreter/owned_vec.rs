@@ -349,6 +349,42 @@ impl Evaluator<'_> {
                     .ok_or(Flow::Guard("bounded Vec generation overflowed"))?;
                 Ok(Value::Vec(Arc::new(vector)))
             }
+            crate::vec_ops::VecOp::Sort => {
+                let Value::Vec(vector) = values
+                    .into_iter()
+                    .next()
+                    .ok_or(Flow::Guard("missing Vec sort owner"))?
+                else {
+                    return Err(Flow::Guard("invalid Vec sort carrier"));
+                };
+                if vector.element != element
+                    || !crate::vec_ops::resolved_element_is_admitted(&element)
+                    || vector
+                        .values
+                        .iter()
+                        .any(|v| !scalar_value_matches_type(v, &element))
+                {
+                    return Err(Flow::Guard("forged Vec sort element type"));
+                }
+                let mut vector =
+                    Arc::try_unwrap(vector).map_err(|_| Flow::Guard("aliased Vec sort owner"))?;
+                vector.values.sort_unstable_by(|a, b| match (a, b) {
+                    (Value::Int(a), Value::Int(b)) => a.cmp(b),
+                    (Value::Int32(a), Value::Int32(b)) => a.cmp(b),
+                    (Value::U8(a), Value::U8(b)) => a.cmp(b),
+                    (Value::Usize(a), Value::Usize(b)) => a.cmp(b),
+                    (Value::Char(a), Value::Char(b)) => a.cmp(b),
+                    (Value::Float32(a), Value::Float32(b)) => a.total_cmp(b),
+                    (Value::Float64(a), Value::Float64(b)) => a.total_cmp(b),
+                    (Value::Bool(a), Value::Bool(b)) => a.cmp(b),
+                    _ => std::cmp::Ordering::Equal, // exact element validation above
+                });
+                vector.generation = vector
+                    .generation
+                    .checked_add(1)
+                    .ok_or(Flow::Guard("Vec sort generation overflowed"))?;
+                Ok(Value::Vec(Arc::new(vector)))
+            }
             crate::vec_ops::VecOp::Clear => {
                 let [Value::Vec(vector)] = values.as_slice() else {
                     return Err(Flow::Guard(

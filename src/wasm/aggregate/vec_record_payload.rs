@@ -82,6 +82,9 @@ impl Emitter<'_> {
         let tag = i64::from(crate::wasm::vec_ops::RECORD_ELEMENT_TAG);
         let base = vec_import_base(self.program);
         match op {
+            crate::vec_ops::VecOp::Sort => {
+                return Err(error("owned Vec payload sorting is not admitted"))
+            }
             VecOp::WithCapacity => {
                 let capacity = self.emit_expr(&args[0])?;
                 self.require_scalar(&capacity, &ResolvedType::Usize, "Vec capacity")?;

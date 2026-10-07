@@ -439,6 +439,7 @@ pub(in crate::wasm) fn box_import_base(program: &ResolvedProgram) -> u32 {
         } else {
             0
         }
+        + u32::from(crate::vec_ops::resolved_program_uses_sort(program))
 }
 
 pub(super) fn executable_functions(

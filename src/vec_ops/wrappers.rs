@@ -43,6 +43,7 @@ pub(crate) fn wrapper_id(op: VecOp) -> &'static str {
         VecOp::ReserveExact => "std.collections.vec.reserve-exact",
         VecOp::Set => "std.collections.vec.set",
         VecOp::Clear => "std.collections.vec.clear",
+        VecOp::Sort => "std.collections.vec.sort",
     }
 }
 
@@ -56,6 +57,7 @@ pub(crate) fn wrapper_name(op: VecOp) -> &'static str {
         VecOp::ReserveExact => "reserve_exact",
         VecOp::Set => "set",
         VecOp::Clear => "clear",
+        VecOp::Sort => "sort",
     }
 }
 
@@ -98,7 +100,7 @@ pub(crate) fn source_wrapper(program: &Program, function: &Function) -> Option<V
         VecOp::Get => &["values", "index"],
         VecOp::ReserveExact => &["values", "additional"],
         VecOp::Set => &["values", "index", "value"],
-        VecOp::Clear => &["values"],
+        VecOp::Clear | VecOp::Sort => &["values"],
     };
     if function.params.len() != expected.len()
         || function
@@ -187,7 +189,7 @@ pub(crate) fn hir_wrapper(template: &ResolvedFunctionTemplate) -> Option<VecOp> 
         VecOp::Get => &["values", "index"],
         VecOp::ReserveExact => &["values", "additional"],
         VecOp::Set => &["values", "index", "value"],
-        VecOp::Clear => &["values"],
+        VecOp::Clear | VecOp::Sort => &["values"],
     };
     if template.params.len() != expected.len()
         || template
@@ -295,9 +297,12 @@ pub(crate) fn template_ownership(
         index: 0,
     }))
         .then_some(match op {
-            VecOp::WithCapacity | VecOp::Push | VecOp::ReserveExact | VecOp::Set | VecOp::Clear => {
-                OwnershipMode::Own
-            }
+            VecOp::WithCapacity
+            | VecOp::Push
+            | VecOp::ReserveExact
+            | VecOp::Set
+            | VecOp::Clear
+            | VecOp::Sort => OwnershipMode::Own,
             VecOp::Len | VecOp::Capacity | VecOp::Get => OwnershipMode::Borrow,
         })
 }

@@ -89,3 +89,6 @@ mod owned_iterator_payloads;
 
 #[path = "owned_data/vec_loop_renewal.rs"]
 mod vec_loop_renewal;
+
+#[path = "owned_data/vec_sort.rs"]
+mod vec_sort;

@@ -170,7 +170,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     ty: return_type,
                 })
             }
-            crate::vec_ops::VecOp::Clear => {
+            crate::vec_ops::VecOp::Clear | crate::vec_ops::VecOp::Sort => {
                 self.require_type(
                     &values[0].ty,
                     &crate::vec_ops::resolved_vec(element.clone()),
@@ -183,9 +183,12 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 let destination = plan
                     .value(&crate::cleanup_plan::StorageId::Temporary(expr.id.clone()))?
                     .to_owned();
-                self.line(&format!(
-                    "spx_status = spx_vec_clear(spx_ctx, UINT32_C({tag}), &{source}, &{destination});"
-                ));
+                let operation = if op == crate::vec_ops::VecOp::Sort {
+                    "spx_vec_sort"
+                } else {
+                    "spx_vec_clear"
+                };
+                self.line(&format!("spx_status = {operation}(spx_ctx, UINT32_C({tag}), &{source}, &{destination});"));
                 self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
                 self.line(&format!("{source_flag} = false;"));
                 for line in plan.apply_at(&expr.id)?.lines() {

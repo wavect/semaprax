@@ -841,11 +841,17 @@ fn main() -> i64
 - A new key beyond the capacity, an index at or past `map_len`, a capacity
   above 65,536, and an overflowing `map_add` fail with `semaprax.map.v1`
   codes 1-4.
-- There is no sort. Rank by repeated scans: entries are in key order, so
-  "ties by key" is "ties by index". `string_compare(a, b)` orders strings.
+- Maps iterate in key order. Rank by repeated scans, so
+  "ties by key" is "ties by index". String `<`, `<=`, `>`, `>=` compare unsigned UTF-8 bytes.
   [String Collections v1](STRING-COLLECTIONS-V1.md) owns the rules.
 
 ## Lists and iterators
+
+`vec_sort<T>(values)` consumes and returns a Copy-scalar vector in ascending
+order; use `values = vec_sort<T>(values)` for a mutable binding. Capacity and
+length stay unchanged. Floats use IEEE total order, including signed zeros and
+NaN encodings. Owned payloads such as Bytes are rejected.
+[Copy Scalar Sort v1](COPY-SCALAR-SORT-V1.md) owns the operation.
 
 A list of Copy scalars is a `Vec<T>`. Every `vec_*` call spells its element
 type. Build with `let mut`, then move the finished vector into an immutable

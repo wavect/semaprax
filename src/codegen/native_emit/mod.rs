@@ -47,6 +47,7 @@ mod owned_strings;
 mod scope_anchors;
 mod string_collections;
 mod string_ops;
+mod string_ordering;
 mod string_views;
 mod symbols;
 mod text_toolkit;
@@ -512,6 +513,7 @@ fn emit_native_prelude_inner(
             NATIVE_STRING_RUNTIME_C
         });
     }
+    string_ordering::emit_runtime(output, program, strings);
     if program_uses_string_ops(program, strings.include_instances) {
         // String operation helpers stay out of programs that cannot reach
         // them, so existing projections keep their exact committed bytes.

@@ -531,7 +531,7 @@ pub(super) fn with_optional_help(diagnostic: Diagnostic, help: Option<String>) -
 
 /// `"a" + "b"`: string concatenation spelled as an operator.
 pub(super) const STRING_OPERATOR_HELP: &str =
-    "join strings with `string_concat(a, b)`, which consumes both; strings compare with `==` and `!=`";
+    "join strings with `string_concat(a, b)`, which consumes both; strings compare with `==`, `!=`, `<`, `<=`, `>`, and `>=` (UTF-8 byte order)";
 /// `let x = …; let x = …;`: shadowing from Rust.
 pub(super) const SHADOW_HELP: &str =
     "there is no shadowing; pick a new name, or declare the first \

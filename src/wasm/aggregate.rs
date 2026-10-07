@@ -2246,6 +2246,7 @@ fn emit_profile_with_scalar_exports(
     let uses_owned_buffer = program_uses_owned_buffer(program);
     let uses_vec = super::program_uses_vec(program);
     let uses_extended_vec = super::vec_ops::program_uses_extended_vec(program);
+    let uses_vec_sort = crate::vec_ops::resolved_program_uses_sort(program);
     let uses_vec_record = super::vec_ops::program_uses_record_vec(program);
     let uses_owned_iterator = crate::iterator_ops::resolved_program_uses_owned_iterator(program);
     let uses_box = super::program_uses_box(program);
@@ -2568,6 +2569,7 @@ fn emit_profile_with_scalar_exports(
                     } else {
                         0
                     }
+                    + u32::from(uses_vec_sort)
                     + if uses_owned_iterator {
                         OWNED_ITER_IMPORT_COUNT
                     } else {
@@ -2615,6 +2617,7 @@ fn emit_profile_with_scalar_exports(
             } else {
                 0
             }
+            + u32::from(uses_vec_sort)
             + if uses_owned_iterator {
                 OWNED_ITER_IMPORT_COUNT
             } else {
@@ -2667,6 +2670,9 @@ fn emit_profile_with_scalar_exports(
                 vec_record_push.unwrap(),
             );
         }
+        if uses_vec_sort {
+            function_import(&mut imports, "env", "spx_vec_sort_v3", vec_read.unwrap());
+        }
     }
     if uses_owned_iterator {
         let names = iterator_ops::owned_import_names();
@@ -2707,6 +2713,7 @@ fn emit_profile_with_scalar_exports(
             } else {
                 0
             }
+            + u32::from(uses_vec_sort)
             + if uses_owned_iterator {
                 OWNED_ITER_IMPORT_COUNT
             } else {
@@ -2840,11 +2847,13 @@ fn emit_profile_with_scalar_exports(
             })
         })
         .and_then(|value| {
-            value.checked_add(if uses_vec_record {
-                RECORD_VEC_IMPORT_COUNT
-            } else {
-                0
-            })
+            value.checked_add(
+                if uses_vec_record {
+                    RECORD_VEC_IMPORT_COUNT
+                } else {
+                    0
+                } + u32::from(uses_vec_sort),
+            )
         })
         .and_then(|value| {
             value.checked_add(if uses_owned_iterator {
@@ -6386,7 +6395,7 @@ impl Emitter<'_> {
                 self.clear_scalar(&source)?;
                 Ok(result)
             }
-            crate::vec_ops::VecOp::Clear => {
+            crate::vec_ops::VecOp::Clear | crate::vec_ops::VecOp::Sort => {
                 let source_value = self.emit_expr(&args[0])?;
                 self.require_scalar(
                     &source_value,
@@ -6417,7 +6426,22 @@ impl Emitter<'_> {
                 self.output.push(0x41);
                 write_i64(self.output, i64::from(tag));
                 self.output.push(0x10);
-                write_u32(self.output, base + VEC_IMPORT_COUNT + 2);
+                let operation = if op == crate::vec_ops::VecOp::Sort {
+                    base + VEC_IMPORT_COUNT
+                        + if super::vec_ops::program_uses_extended_vec(self.program) {
+                            EXTENDED_VEC_IMPORT_COUNT
+                        } else {
+                            0
+                        }
+                        + if super::vec_ops::program_uses_record_vec(self.program) {
+                            RECORD_VEC_IMPORT_COUNT
+                        } else {
+                            0
+                        }
+                } else {
+                    base + VEC_IMPORT_COUNT + 2
+                };
+                write_u32(self.output, operation);
                 self.output.push(0x21);
                 write_u32(self.output, scalar_local(&result)?);
                 self.get_scalar(&result);
@@ -7340,6 +7364,18 @@ impl Emitter<'_> {
         }
 
         let right = self.emit_expr(right)?;
+        if value_type(&left) == &ResolvedType::String
+            && matches!(
+                op,
+                BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge
+            )
+        {
+            self.emit_aggregate_string_ordering(op, &left, &right, destination)?;
+            return Ok(Value::Scalar {
+                local: destination,
+                ty: ResolvedType::Bool,
+            });
+        }
         if self.standalone_strings && value_type(&left) == &ResolvedType::String {
             if !matches!(op, BinaryOp::Eq | BinaryOp::Ne) {
                 return Err(error("standalone String binary operation is not equality"));

@@ -5229,6 +5229,10 @@ fn combine(op: BinaryOp, lhs: Value, rhs: Value) -> Option<Result<Value, Normali
         (Value::String(a), Value::String(b)) => match op {
             BinaryOp::Eq => Some(Ok(Value::Bool(a == b))),
             BinaryOp::Ne => Some(Ok(Value::Bool(a != b))),
+            BinaryOp::Lt => Some(Ok(Value::Bool(a.as_bytes() < b.as_bytes()))),
+            BinaryOp::Le => Some(Ok(Value::Bool(a.as_bytes() <= b.as_bytes()))),
+            BinaryOp::Gt => Some(Ok(Value::Bool(a.as_bytes() > b.as_bytes()))),
+            BinaryOp::Ge => Some(Ok(Value::Bool(a.as_bytes() >= b.as_bytes()))),
             _ => None,
         },
         _ => None,

@@ -455,6 +455,10 @@ impl<'a> Translator<'a> {
             (BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge, Ty::Int | Ty::Float) => {
                 (format!("({l} {} {r})", op.text()), Ty::Bool)
             }
+            (BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge, Ty::Str) => (
+                format!("(rt.compareStrings({l}, {r}) {} 0)", op.text()),
+                Ty::Bool,
+            ),
             (BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge, Ty::Char) => (
                 format!("({l}.codePointAt(0) {} {r}.codePointAt(0))", op.text()),
                 Ty::Bool,

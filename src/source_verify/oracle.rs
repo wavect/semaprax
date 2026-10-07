@@ -321,7 +321,7 @@ pub(super) fn check_expr(
                 .filter(|ty| {
                     matches!(
                         ty,
-                        Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::Usize | Type::F32 | Type::F64
+                        Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::Usize | Type::F32 | Type::F64 | Type::String
                     )
                 });
             let left_narrow = left_ty
@@ -360,7 +360,7 @@ pub(super) fn check_expr(
                     .as_ref()
                     .is_some_and(|value: &CheckedValue| value.ty == Type::String);
             if !native_unit_operand
-                && !matches!(op, BinaryOp::Eq | BinaryOp::Ne)
+                && !matches!(op, BinaryOp::Eq | BinaryOp::Ne | BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge)
                 && string_operands
             {
                 diagnostics.push(error(
@@ -412,7 +412,7 @@ pub(super) fn check_expr(
                 }
             };
             if !native_unit_operand
-                && !string_operands
+                && (!string_operands || matches!(op, BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge))
                 && (left_ty.as_ref().is_some_and(|value| value.ty != expected)
                     || right_ty.as_ref().is_some_and(|value| value.ty != expected))
             {

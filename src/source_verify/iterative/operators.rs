@@ -149,6 +149,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         | Type::Usize
                         | Type::F32
                         | Type::F64
+                        | Type::String
                 )
             });
         let left_narrow = left_value
@@ -184,7 +185,18 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             || right_value
                 .as_ref()
                 .is_some_and(|value| value.ty == Type::String);
-        if !native_unit && !matches!(op, BinaryOp::Eq | BinaryOp::Ne) && string_operands {
+        if !native_unit
+            && !matches!(
+                op,
+                BinaryOp::Eq
+                    | BinaryOp::Ne
+                    | BinaryOp::Lt
+                    | BinaryOp::Le
+                    | BinaryOp::Gt
+                    | BinaryOp::Ge
+            )
+            && string_operands
+        {
             self.diagnostics.push(
                 error(
                     self.program,
@@ -246,7 +258,11 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             }
         };
         if !native_unit
-            && !string_operands
+            && (!string_operands
+                || matches!(
+                    op,
+                    BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge
+                ))
             && (left_value
                 .as_ref()
                 .is_some_and(|value| value.ty != expected)

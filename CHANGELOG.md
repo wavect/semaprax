@@ -1,5 +1,11 @@
 # Changelog
 
+- Author Copy-scalar `vec_sort<T>` with an allocation-free native heapsort,
+  interpreter total ordering and an additive authenticated Wasm host operation;
+  add unsigned UTF-8 String relational operators across source and HIR checking,
+  interpreter, native and web projection. Focused regressions are authored;
+  verification is deferred until the remaining OPT implementations are integrated.
+
 - Add concrete Copy-scalar variant constructors within admitted loop matches,
   retaining ordinary identity/type/ownership checks and canonical cleanup.
   Author interpreter/native/Wasm settlement and refusal controls for repeated

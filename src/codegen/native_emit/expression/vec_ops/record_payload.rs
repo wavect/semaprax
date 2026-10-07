@@ -52,6 +52,9 @@ impl<O: COutput> CEmitter<'_, O> {
             String::new()
         };
         match op {
+            crate::vec_ops::VecOp::Sort => {
+                return Err(backend_error("owned Vec payload sorting is not admitted"))
+            }
             crate::vec_ops::VecOp::WithCapacity => {
                 self.require_type(&values[0].ty, &ResolvedType::Usize, "Vec capacity")?;
                 self.line(&format!(

@@ -6,7 +6,9 @@ use crate::hir::{
     ValueId,
 };
 
+mod sort;
 mod wrappers;
+pub(crate) use sort::{program_uses_sort, resolved_program_uses_sort};
 pub(crate) use wrappers::*;
 #[cfg(test)]
 mod owned_payload_tests;
@@ -19,6 +21,7 @@ pub(crate) const GET_NAME: &str = "vec_get";
 pub(crate) const RESERVE_EXACT_NAME: &str = "vec_reserve_exact";
 pub(crate) const SET_NAME: &str = "vec_set";
 pub(crate) const CLEAR_NAME: &str = "vec_clear";
+pub(crate) const SORT_NAME: &str = "vec_sort";
 pub(crate) const WITH_CAPACITY_ID: &str = "core.vec.with-capacity";
 pub(crate) const PUSH_ID: &str = "core.vec.push";
 pub(crate) const LEN_ID: &str = "core.vec.len";
@@ -27,6 +30,7 @@ pub(crate) const GET_ID: &str = "core.vec.get";
 pub(crate) const RESERVE_EXACT_ID: &str = "core.vec.reserve-exact";
 pub(crate) const SET_ID: &str = "core.vec.set";
 pub(crate) const CLEAR_ID: &str = "core.vec.clear";
+pub(crate) const SORT_ID: &str = "core.vec.sort";
 pub(crate) const MAX_CAPACITY: u64 = 8_192;
 pub(crate) const OWNED_PAYLOAD_BYTES_PER_ELEMENT: u64 = 16;
 pub(crate) const MAX_OWNED_PAYLOAD_BYTES: u64 = 131_072;
@@ -45,9 +49,10 @@ pub(crate) enum VecOp {
     ReserveExact,
     Set,
     Clear,
+    Sort,
 }
 
-pub(crate) const ALL: [VecOp; 8] = [
+pub(crate) const ALL: [VecOp; 9] = [
     VecOp::WithCapacity,
     VecOp::Push,
     VecOp::Len,
@@ -56,20 +61,26 @@ pub(crate) const ALL: [VecOp; 8] = [
     VecOp::ReserveExact,
     VecOp::Set,
     VecOp::Clear,
+    VecOp::Sort,
 ];
 
 impl VecOp {
     pub(crate) const fn reopens_same_owner(self) -> bool {
         matches!(
             self,
-            Self::Push | Self::ReserveExact | Self::Set | Self::Clear
+            Self::Push | Self::ReserveExact | Self::Set | Self::Clear | Self::Sort
         )
     }
 
     pub(crate) const fn returns_owner(self) -> bool {
         matches!(
             self,
-            Self::WithCapacity | Self::Push | Self::ReserveExact | Self::Set | Self::Clear
+            Self::WithCapacity
+                | Self::Push
+                | Self::ReserveExact
+                | Self::Set
+                | Self::Clear
+                | Self::Sort
         )
     }
 
@@ -82,6 +93,7 @@ impl VecOp {
                 | Self::Get
                 | Self::Set
                 | Self::Clear
+                | Self::Sort
                 | Self::ReserveExact
         )
     }
@@ -103,6 +115,7 @@ impl VecOp {
             Self::ReserveExact => RESERVE_EXACT_NAME,
             Self::Set => SET_NAME,
             Self::Clear => CLEAR_NAME,
+            Self::Sort => SORT_NAME,
         }
     }
     pub(crate) const fn id(self) -> &'static str {
@@ -115,6 +128,7 @@ impl VecOp {
             Self::ReserveExact => RESERVE_EXACT_ID,
             Self::Set => SET_ID,
             Self::Clear => CLEAR_ID,
+            Self::Sort => SORT_ID,
         }
     }
     pub(crate) const fn arity(self) -> usize {
@@ -125,12 +139,14 @@ impl VecOp {
             Self::Get => 2,
             Self::ReserveExact => 2,
             Self::Set => 3,
-            Self::Clear => 1,
+            Self::Clear | Self::Sort => 1,
         }
     }
     pub(crate) const fn param_ownership(self, index: usize) -> OwnershipMode {
         match (self, index) {
-            (Self::Push | Self::ReserveExact | Self::Set | Self::Clear, 0) => OwnershipMode::Own,
+            (Self::Push | Self::ReserveExact | Self::Set | Self::Clear | Self::Sort, 0) => {
+                OwnershipMode::Own
+            }
             (Self::Len | Self::Capacity | Self::Get, 0) => OwnershipMode::Borrow,
             _ => OwnershipMode::Value,
         }
@@ -160,18 +176,24 @@ impl VecOp {
     }
     pub(crate) fn resolved_return_type(self, element: &ResolvedType) -> ResolvedType {
         match self {
-            Self::WithCapacity | Self::Push | Self::ReserveExact | Self::Set | Self::Clear => {
-                resolved_vec(element.clone())
-            }
+            Self::WithCapacity
+            | Self::Push
+            | Self::ReserveExact
+            | Self::Set
+            | Self::Clear
+            | Self::Sort => resolved_vec(element.clone()),
             Self::Len | Self::Capacity => ResolvedType::Usize,
             Self::Get => element.clone(),
         }
     }
     pub(crate) fn ast_return_type(self, element: &Type) -> Type {
         match self {
-            Self::WithCapacity | Self::Push | Self::ReserveExact | Self::Set | Self::Clear => {
-                ast_vec(element.clone())
-            }
+            Self::WithCapacity
+            | Self::Push
+            | Self::ReserveExact
+            | Self::Set
+            | Self::Clear
+            | Self::Sort => ast_vec(element.clone()),
             Self::Len | Self::Capacity => Type::Usize,
             Self::Get => element.clone(),
         }
@@ -189,7 +211,7 @@ impl VecOp {
             }
             (Self::Push, 1) => ty == element,
             (Self::Get, 1) => *ty == ResolvedType::Usize,
-            (Self::ReserveExact, 0) | (Self::Set, 0) | (Self::Clear, 0) => {
+            (Self::ReserveExact, 0) | (Self::Set, 0) | (Self::Clear | Self::Sort, 0) => {
                 *ty == resolved_vec(element.clone())
             }
             (Self::ReserveExact, 1) | (Self::Set, 1) => *ty == ResolvedType::Usize,
@@ -209,6 +231,7 @@ pub(crate) fn by_name(name: &str) -> Option<VecOp> {
         RESERVE_EXACT_NAME => Some(VecOp::ReserveExact),
         SET_NAME => Some(VecOp::Set),
         CLEAR_NAME => Some(VecOp::Clear),
+        SORT_NAME => Some(VecOp::Sort),
         _ => None,
     }
 }
@@ -222,6 +245,7 @@ pub(crate) fn by_id(id: &str) -> Option<VecOp> {
         RESERVE_EXACT_ID => Some(VecOp::ReserveExact),
         SET_ID => Some(VecOp::Set),
         CLEAR_ID => Some(VecOp::Clear),
+        SORT_ID => Some(VecOp::Sort),
         _ => None,
     }
 }
@@ -260,10 +284,11 @@ pub(crate) fn resolved_vec_element_is_admitted(ty: &ResolvedType) -> bool {
     resolved_element_is_admitted(ty) || *ty == ResolvedType::Bytes
 }
 pub(crate) fn ast_operation_element_is_admitted(op: VecOp, ty: &Type) -> bool {
-    ast_element_is_admitted(ty) || (*ty == Type::Bytes && op != VecOp::Get)
+    ast_element_is_admitted(ty) || (*ty == Type::Bytes && !matches!(op, VecOp::Get | VecOp::Sort))
 }
 pub(crate) fn resolved_operation_element_is_admitted(op: VecOp, ty: &ResolvedType) -> bool {
-    resolved_element_is_admitted(ty) || (*ty == ResolvedType::Bytes && op != VecOp::Get)
+    resolved_element_is_admitted(ty)
+        || (*ty == ResolvedType::Bytes && !matches!(op, VecOp::Get | VecOp::Sort))
 }
 pub(crate) fn ast_vec(element: Type) -> Type {
     Type::Named {
@@ -300,7 +325,7 @@ pub(crate) fn ast_params_with_owned_element(
         VecOp::Get => vec![ast_vec(element.clone()), Type::Usize],
         VecOp::ReserveExact => vec![ast_vec(element.clone()), Type::Usize],
         VecOp::Set => vec![ast_vec(element.clone()), Type::Usize, element.clone()],
-        VecOp::Clear => vec![ast_vec(element.clone())],
+        VecOp::Clear | VecOp::Sort => vec![ast_vec(element.clone())],
     };
     types
         .into_iter()
@@ -335,7 +360,7 @@ pub(crate) fn resolved_params(op: VecOp, element: &ResolvedType) -> Vec<Resolved
             ResolvedType::Usize,
             element.clone(),
         ],
-        VecOp::Clear => vec![resolved_vec(element.clone())],
+        VecOp::Clear | VecOp::Sort => vec![resolved_vec(element.clone())],
     };
     types
         .into_iter()
@@ -374,7 +399,7 @@ pub(crate) fn program_uses_owned_payload(program: &crate::ast::Program) -> bool 
                 .any(|expr| {
                     let mut found = false;
                     expr.visit_call_instances(&mut |name, arguments, _| {
-                        found |= matches!(by_name(name), Some(op) if op != VecOp::Get)
+                        found |= matches!(by_name(name), Some(op) if !matches!(op, VecOp::Get | VecOp::Sort))
                             && matches!(arguments, [Type::Bytes]);
                     });
                     found
@@ -404,7 +429,7 @@ pub(crate) fn resolved_program_uses_owned_payload(program: &crate::hir::Resolved
                     let mut found = false;
                     crate::hir::visit_resolved_calls(root, &mut |callee, instance, arguments| {
                         found |= instance.is_none()
-                            && matches!(by_id(callee.as_str()), Some(op) if op != VecOp::Get)
+                            && matches!(by_id(callee.as_str()), Some(op) if !matches!(op, VecOp::Get | VecOp::Sort))
                             && matches!(arguments, [ResolvedType::Bytes]);
                     });
                     found

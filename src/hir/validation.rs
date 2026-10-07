@@ -3986,6 +3986,7 @@ impl<'a> HirValidator<'a> {
                                     | ResolvedType::Usize
                                     | ResolvedType::F32
                                     | ResolvedType::F64
+                                    | ResolvedType::String
                             ) {
                                 return Err(hir_error(
                                     "comparison operand has inconsistent resolved types",
@@ -6631,8 +6632,12 @@ impl<'a> HirValidator<'a> {
                         ResolvedType::I64
                     }
                     BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge => {
-                        self.require_type(&left.ty, &ResolvedType::I64, "comparison operand")?;
-                        self.require_type(&right.ty, &ResolvedType::I64, "comparison operand")?;
+                        if !matches!(left.ty, ResolvedType::I64 | ResolvedType::String) {
+                            return Err(hir_error(
+                                "comparison operand has inconsistent resolved types",
+                            ));
+                        }
+                        self.require_type(&left.ty, &right.ty, "comparison operand")?;
                         ResolvedType::Bool
                     }
                     BinaryOp::And | BinaryOp::Or => {

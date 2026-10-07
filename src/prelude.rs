@@ -25,6 +25,10 @@ pub(crate) const SCHEMA_V7: &str = "semaprax.prelude.v7";
 pub(crate) const SCHEMA_V8: &str = "semaprax.prelude.v8";
 pub(crate) const SCHEMA_V9: &str = "semaprax.prelude.v9";
 pub(crate) const SCHEMA_V10: &str = "semaprax.prelude.v10";
+pub(crate) const SCHEMA_V11: &str = "semaprax.prelude.v11";
+#[path = "prelude_sort.rs"]
+mod sorting;
+pub(crate) use sorting::{contract_bytes_v11, digest_text_v11};
 
 pub(crate) const OPTION_ID: &str = "core.option";
 pub(crate) const OPTION_NONE_ID: &str = "core.option.none";
@@ -191,7 +195,7 @@ pub(crate) fn all_type_ids_v9() -> [&'static str; 23] {
     ids
 }
 
-pub(crate) fn all_reserved_ids() -> [&'static str; 45] {
+pub(crate) fn all_reserved_ids() -> [&'static str; 46] {
     [
         OPTION_ID,
         OPTION_NONE_ID,
@@ -211,6 +215,7 @@ pub(crate) fn all_reserved_ids() -> [&'static str; 45] {
         crate::vec_ops::RESERVE_EXACT_ID,
         crate::vec_ops::SET_ID,
         crate::vec_ops::CLEAR_ID,
+        crate::vec_ops::SORT_ID,
         BOX_ID,
         crate::box_ops::NEW_ID,
         crate::box_ops::GET_ID,
@@ -637,7 +642,9 @@ pub(crate) fn selected_for_source(source: &str) -> (&'static str, Vec<u8>, Strin
 pub(crate) fn selected_for_program(
     program: &crate::ast::Program,
 ) -> (&'static str, Vec<u8>, String) {
-    if crate::stdin_stream_ops::program_uses(program) {
+    if crate::vec_ops::program_uses_sort(program) {
+        (SCHEMA_V11, contract_bytes_v11(), digest_text_v11())
+    } else if crate::stdin_stream_ops::program_uses(program) {
         (
             SCHEMA_V10,
             crate::stdin_stream_ops::contract_bytes(),

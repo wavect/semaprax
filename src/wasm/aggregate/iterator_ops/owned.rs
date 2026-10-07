@@ -25,6 +25,7 @@ pub(super) fn import_base(program: &ResolvedProgram) -> u32 {
         } else {
             0
         }
+        + u32::from(crate::vec_ops::resolved_program_uses_sort(program))
 }
 
 impl Emitter<'_> {

@@ -234,3 +234,11 @@ function rollup(u, id, k) {
   }
   return acc;
 }
+
+// Unsigned UTF-8 lexicographic order; JavaScript's UTF-16 order differs for supplementary scalars.
+export function compareStrings(a, b) {
+  const encoder = new TextEncoder(), left = encoder.encode(a), right = encoder.encode(b);
+  const shared = Math.min(left.length, right.length);
+  for (let i = 0; i < shared; i++) if (left[i] !== right[i]) return left[i] < right[i] ? -1 : 1;
+  return left.length < right.length ? -1 : left.length > right.length ? 1 : 0;
+}

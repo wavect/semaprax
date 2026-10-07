@@ -144,7 +144,14 @@ fn numeric(ty: &Type) -> bool {
 fn ordered(ty: &Type) -> bool {
     matches!(
         ty,
-        Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::Usize | Type::F32 | Type::F64
+        Type::I64
+            | Type::I32
+            | Type::Char
+            | Type::U8
+            | Type::Usize
+            | Type::F32
+            | Type::F64
+            | Type::String
     )
 }
 

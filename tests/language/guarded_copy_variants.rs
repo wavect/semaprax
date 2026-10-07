@@ -55,6 +55,23 @@ module test.guarded_copy_variants;
     };
     string_len(text)
 }
+@id("guards.indexed") fn indexed() -> i64 {
+    let array = [0u8, 255u8, 255u8];
+    let bytes = array_as_slice(array);
+    let length = byte_len(bytes);
+    let mut index = 0usize;
+    let mut total = 0usize;
+    while index <= length {
+        total = total + match byte_get(bytes, index) {
+            Option::Some { value: byte } if byte == 255u8 => 1usize,
+            Option::Some { value: byte } => 0usize,
+            Option::None {} => 0usize,
+        };
+        index = index + 1usize;
+        0
+    }
+    if total == 2usize { 2 } else { 0 }
+}
 @id("guards.failure") fn failure() -> i64 {
     let kept = "keep";
     let selected = Option<i64>::Some { value: 7 };
@@ -72,6 +89,7 @@ const CASES: &[(&str, &str)] = &[
     ("guards.skipped", "ok|2"),
     ("guards.lazy", "ok|7"),
     ("guards.result", "ok|5"),
+    ("guards.indexed", "ok|2"),
     ("guards.failure", "semaprax.arithmetic.v1|1"),
 ];
 const WASM_CASES: &[&str] = &[
@@ -79,6 +97,7 @@ const WASM_CASES: &[&str] = &[
     "guards.skipped",
     "guards.lazy",
     "guards.result",
+    "guards.indexed",
     "guards.failure",
 ];
 

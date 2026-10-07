@@ -13,6 +13,7 @@ impl Emitter<'_> {
             mode,
             ..
         } = emission;
+        let scrutinee = *scrutinee;
         if *mode != crate::hir::ResolvedMatchMode::Value {
             return Err(error("guarded variant needs value mode"));
         }

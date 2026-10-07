@@ -333,9 +333,7 @@ fn owned_string_into_a_slice_parameter_names_both_borrowed_views() {
     );
     let hint = help(&diagnostic);
     assert!(
-        hint.contains(
-            "let view = string_as_str(text); let bytes = str_as_bytes(view); f(bytes)"
-        ),
+        hint.contains("let view = string_as_str(text); let bytes = str_as_bytes(view); f(bytes)"),
         "{diagnostic}"
     );
     assert!(hint.len() <= 256, "hint is {} bytes: {hint}", hint.len());

@@ -60,3 +60,15 @@ fn authored_declarations_cannot_reuse_collection_operation_or_lifecycle_ids() {
         assert!(crate::hir::validate(&program).is_err());
     }
 }
+
+#[test]
+fn additive_transport_and_removal_select_the_collection_prelude() {
+    for body in [
+        "@id(\"map.borrow\") fn read(borrow map:Map<string,i64>)->usize {map_len(map)} @id(\"map.main\") fn main()->i64 {0}",
+        "@id(\"map.carrier\") record Carrier {@id(\"map.field\") words:Map<string,i64>,} @id(\"map.main\") fn main()->i64 {0}",
+        "@id(\"map.main\") fn main()->i64 {let mut map=map_new(1usize);map=map_remove(map,\"missing\");0}",
+    ] {
+        let source=format!("module test.map_selection; {body}");let program=crate::check(&source,"map-selection.spx").unwrap();assert!(program_uses(&program));
+    }
+    let old=crate::check("module test.old_map; @id(\"map.main\") fn main()->i64 {let map=map_new(1usize);0}","old-map.spx").unwrap();assert!(!program_uses(&old));
+}

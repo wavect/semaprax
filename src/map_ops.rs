@@ -153,15 +153,15 @@ pub(crate) fn ast_resolved(ty:&Type)->Option<ResolvedType> {
 }
 pub(crate) fn program_uses(program:&crate::ast::Program)->bool {
     program.functions.iter().any(|function| {
-        function.params.iter().any(|param|matches!(&param.ty,Type::Named{..})&&ast_collection(&param.ty))
-            || matches!(&function.return_type,Type::Named{..})&&ast_collection(&function.return_type)
+        function.params.iter().any(|param|ast_collection(&param.ty))
+            || ast_collection(&function.return_type)
             || function.requires.iter().chain(std::iter::once(&function.body)).chain(&function.ensures).any(|expression|{
                 let mut found=false;
-                expression.visit_call_instances(&mut |name,types,_|found|=by_generic_name(name,types).is_some());
+                expression.visit_call_instances(&mut |name,types,_|found|=by_generic_name(name,types).is_some()||name=="map_remove");
                 found
             })
     }) || program.types.iter().any(|decl| match &decl.kind {
-        crate::ast::TypeDeclarationKind::Record{fields}|crate::ast::TypeDeclarationKind::Class{fields,..}=>fields.iter().any(|field|matches!(&field.ty,Type::Named{..})&&ast_collection(&field.ty)),
+        crate::ast::TypeDeclarationKind::Record{fields}|crate::ast::TypeDeclarationKind::Class{fields,..}=>fields.iter().any(|field|ast_collection(&field.ty)),
         _=>false,
     })
 }

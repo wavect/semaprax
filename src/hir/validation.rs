@@ -4481,6 +4481,7 @@ impl<'a> HirValidator<'a> {
                         binding,
                         field,
                         value: assigned,
+                        span: assignment_span,
                         ..
                     } = &statements[index]
                     else {
@@ -4525,7 +4526,12 @@ impl<'a> HirValidator<'a> {
                                     "field assignment base is not a value-owned aggregate",
                                 ));
                             }
-                            self.validate_assign_field(&target.ty, field, assigned)?;
+                            self.validate_assign_field(
+                                &target.ty,
+                                field,
+                                assigned,
+                                *assignment_span,
+                            )?;
                         }
                         None => {
                             self.require_type(&target.ty, &assigned.ty, "assignment")?;
@@ -4833,7 +4839,7 @@ impl<'a> HirValidator<'a> {
                             "record update for `{record}` has an invalid concrete instance"
                         )));
                     }
-                    validate_nested_update_base_shape(self.program, base)?;
+                    validate_nested_update_base_shape(self.program, base, expression.span)?;
                     let ownership = self.expected_ownership(&base.ty, OwnershipMode::Own)?;
                     if base.ownership != ownership {
                         return Err(hir_error(format!(
@@ -5103,16 +5109,20 @@ impl<'a> HirValidator<'a> {
                                 record,
                                 instance,
                                 fields,
-                            } => self.validate_record_match_pattern(
-                                function,
-                                &scrutinee.ty,
-                                record,
-                                instance,
-                                fields,
-                                &mut arm_scope,
-                                &format!("{path}.arm.0.record"),
-                                *mode,
-                            )?,
+                            } => self
+                                .validate_record_match_pattern(
+                                    function,
+                                    &scrutinee.ty,
+                                    record,
+                                    instance,
+                                    fields,
+                                    &mut arm_scope,
+                                    &format!("{path}.arm.0.record"),
+                                    *mode,
+                                )
+                                .map_err(|diagnostic| {
+                                    hir_diagnostic_at_span(diagnostic, expression.span)
+                                })?,
                             ResolvedMatchPattern::Variant { .. } => {
                                 return Err(hir_error(
                                     "resolved variant pattern has a record scrutinee",
@@ -6780,6 +6790,7 @@ impl<'a> HirValidator<'a> {
                             binding,
                             field,
                             value: assigned,
+                            span: assignment_span,
                             ..
                         } => {
                             if crate::byte_ops::is_same_owner_set_hir(assigned, &binding.id) {
@@ -6838,7 +6849,12 @@ impl<'a> HirValidator<'a> {
                                             "field assignment base is not a value-owned aggregate",
                                         ));
                                     }
-                                    self.validate_assign_field(&target.ty, field, assigned)?;
+                                    self.validate_assign_field(
+                                        &target.ty,
+                                        field,
+                                        assigned,
+                                        *assignment_span,
+                                    )?;
                                 }
                                 None => {
                                     self.require_type(&target.ty, &assigned.ty, "assignment")?;
@@ -7430,16 +7446,20 @@ impl<'a> HirValidator<'a> {
                             record,
                             instance,
                             fields,
-                        } => self.validate_record_match_pattern(
-                            function,
-                            &scrutinee.ty,
-                            record,
-                            instance,
-                            fields,
-                            &mut arm_scope,
-                            &format!("{path}.arm.0.record"),
-                            *mode,
-                        )?,
+                        } => self
+                            .validate_record_match_pattern(
+                                function,
+                                &scrutinee.ty,
+                                record,
+                                instance,
+                                fields,
+                                &mut arm_scope,
+                                &format!("{path}.arm.0.record"),
+                                *mode,
+                            )
+                            .map_err(|diagnostic| {
+                                hir_diagnostic_at_span(diagnostic, expression.span)
+                            })?,
                         ResolvedMatchPattern::Variant { .. } => {
                             return Err(hir_error(
                                 "resolved variant pattern has a record scrutinee",
@@ -7997,7 +8017,7 @@ impl<'a> HirValidator<'a> {
                         "record update for `{record}` has an invalid concrete instance"
                     )));
                 }
-                validate_nested_update_base_shape(self.program, base)?;
+                validate_nested_update_base_shape(self.program, base, expression.span)?;
                 self.require_type(&base.ty, &ty, "record update base")?;
                 let ownership = self.expected_ownership(&ty, OwnershipMode::Own)?;
                 if base.ownership != ownership {
@@ -8611,13 +8631,17 @@ impl<'a> HirValidator<'a> {
         target_ty: &ResolvedType,
         field: &DeclarationId,
         assigned: &ResolvedExpr,
+        span: crate::ast::Span,
     ) -> Result<(), Diagnostic> {
         let ResolvedType::Nominal {
             declaration: owner,
             arguments,
         } = target_ty
         else {
-            return Err(hir_error("field assignment base is not a record"));
+            return Err(hir_error_at_span(
+                span,
+                "field assignment base is not a record",
+            ));
         };
         if self
             .program
@@ -8627,7 +8651,10 @@ impl<'a> HirValidator<'a> {
                 !matches!(item.kind, DeclarationKind::Record | DeclarationKind::Class)
             })
         {
-            return Err(hir_error("field assignment base is not a record"));
+            return Err(hir_error_at_span(
+                span,
+                "field assignment base is not a record",
+            ));
         }
         let declared = self
             .program
@@ -8636,19 +8663,23 @@ impl<'a> HirValidator<'a> {
             .and_then(|fields| fields.iter().find(|item| &item.id == field))
             .map(|item| item.ty.clone())
             .ok_or_else(|| {
-                hir_error(format!(
-                    "record `{owner}` has no assignment field `{field}`"
-                ))
+                hir_error_at_span(
+                    span,
+                    format!("record `{owner}` has no assignment field `{field}`"),
+                )
             })?;
         let field_ty =
             crate::hir::substitute_type(&declared, owner, arguments).map_err(|diagnostic| {
-                hir_error(format!(
-                    "assignment field type substitution failed: {diagnostic}"
-                ))
+                hir_error_at_span(
+                    span,
+                    format!("assignment field type substitution failed: {diagnostic}"),
+                )
             })?;
-        self.require_type(&field_ty, &assigned.ty, "field assignment")?;
+        self.require_type(&field_ty, &assigned.ty, "field assignment")
+            .map_err(|diagnostic| hir_diagnostic_at_span(diagnostic, span))?;
         if !crate::hir::is_scalar_resolved_type(&field_ty) {
-            return Err(hir_error(
+            return Err(hir_error_at_span(
+                span,
                 "field mutation v1 supports only direct scalar Copy record fields",
             ));
         }

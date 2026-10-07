@@ -250,8 +250,17 @@ pub(super) fn run_interpreted_source(
         return publish_interpreted_stdout(hosted, &interpreter_options, options.json);
     }
 
-    let interpretation = interpreter::interpret(path, &entry, &[], &interpreter_options)
-        .map_err(|errors| report(&errors, options.json))?;
+    // The canonical profile keeps its pinned closed boundary; a program it
+    // refuses whose closure fits the internal String profile (user functions
+    // that take or return `string`) runs there instead. Refusal by both
+    // reports the canonical profile's diagnostics.
+    let interpretation = match interpreter::interpret(path, &entry, &[], &interpreter_options) {
+        Ok(interpretation) => interpretation,
+        Err(errors) => {
+            interpreter::internal_strings::interpret(path, &entry, &[], &interpreter_options)
+                .map_err(|_| report(&errors, options.json))?
+        }
+    };
     if options.json {
         println!("{}", interpretation.envelope);
         return interpretation.returned.then_some(()).ok_or(1);

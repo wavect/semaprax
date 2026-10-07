@@ -289,7 +289,8 @@ fn single_file_run_falls_back_to_main_under_any_stable_id() {
 #[test]
 fn interpreter_admission_refusal_points_at_the_native_route() {
     let path = write_temp(
-        "module calc.option;\n@id(\"app.main\")\nfn main() -> i64\n{\n    let o = Option<i64>::Some { value: 1 };\n    match o { Option::Some { value } => value, Option::None {} => 0, }\n}\n",
+        // Record update stays outside the bounded interpreter profile.
+        "module calc.update;\n@id(\"calc.point\")\nrecord Point {\n    @id(\"calc.point.x\") x: i64,\n    @id(\"calc.point.y\") y: i64,\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    let point = Point { x: 1, y: 2, };\n    let moved = point with { y: 0, };\n    moved.x + moved.y\n}\n",
     );
     let (code, _, stderr) = cli(&["run", path.to_str().unwrap()]);
     assert_eq!(code, 1);

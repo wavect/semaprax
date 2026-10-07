@@ -23,7 +23,7 @@ fn fixture() -> PathBuf {
         canonical_source(
             "a/app.spx",
             r#"module stream.app;
-permit { process.stdin.read }
+permit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
 use function @id("stream.read") from stream.input as read_stream;
 @id("stream.command")
 fn command() -> bool uses { process.stdin.read } { read_stream() }
@@ -49,6 +49,7 @@ fn read_stream() -> bool uses { process.stdin.read } {
         let chunk_size = { let chunk = stdin_stream_chunk(reader); byte_len(chunk) };
         if chunk_size > 0usize { saw_chunk = true; }
         reader = stdin_stream_next(reader);
+        0
     }
     saw_chunk
 }

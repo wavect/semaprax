@@ -125,8 +125,12 @@ fn emit_hir_c_with_options(
     let functions = function_index(program)?;
     debug_assert!(resource_abi.resources.is_empty());
     let mut output = crate::bounded_output::CappedString::new();
-    if output_profile == NativeOutputProfile::NetworkCommandIo {
-        // Feature-test macros must precede the first system include.
+    // Feature-test macros must precede the first system include. The
+    // `file_read_text` runtime needs `openat` and `O_NOFOLLOW`, which glibc
+    // declares under strict C11 only with POSIX.1-2008 visibility.
+    if output_profile == NativeOutputProfile::NetworkCommandIo
+        || crate::string_ops::program_uses_op(program, crate::string_ops::StringOp::FileReadText)
+    {
         network_io::emit_feature_macros(&mut output);
     }
     if output_profile.is_command() {

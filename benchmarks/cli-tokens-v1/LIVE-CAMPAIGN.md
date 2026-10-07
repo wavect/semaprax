@@ -95,10 +95,16 @@ npm install --prefix /tmp/semaprax-opt-tokenizer --ignore-scripts --no-audit --n
 ```
 
 This is a measurement dependency only; it is not part of either implementation
-or the compiler build. The rate-card amount is a list-price estimate pinned to
-the date and prices in `webapp-tokens-v2/cost.mjs`; it is not provider-billed
-cost. Actual billed cost stays unknown until a matching provider receipt is
-supplied. The summary includes all attempts, failures included, in its
+or the compiler build. The rate-card amount is a list-price estimate from the
+official [Sonnet 5.5 pricing page](https://platform.claude.com/docs/en/models/sonnet-5-5/overview),
+dated 2026-10-07: $2/M input, $2.50/M 5-minute cache writes, $4/M 1-hour cache
+writes, $0.20/M cache reads, and $10/M output. If cache-write TTL buckets are
+absent, the estimate prices all reported cache-creation tokens at the 5-minute
+rate and records that assumption. If TTL buckets are present, the estimator
+uses the split and records its basis. Provider `result.total_cost_usd`, when
+present, is retained as a provider-reported API-equivalent amount; it is not a
+receipt or a confirmed account-billed charge. The summary includes all
+attempts, failures included, in its
 estimated cost per accepted task, reports the shared calibration cost
 separately and in the combined campaign estimate, and reports per-trial and
 aggregate model-session wall time.

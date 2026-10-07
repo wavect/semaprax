@@ -7,6 +7,7 @@ import argparse
 from datetime import datetime, timezone
 import hashlib
 import json
+import math
 import os
 import shutil
 import subprocess
@@ -24,10 +25,12 @@ BENCHMARK = Path(__file__).resolve().parent
 REPO = BENCHMARK.parents[1]
 MODEL = "claude-sonnet-5-5"
 EFFORT = "medium"
-PRICE_BOOK_DATE = "2026-09-25"
+PRICE_BOOK_DATE = "2026-10-07"
+PRICE_BOOK_SOURCE = "https://platform.claude.com/docs/en/models/sonnet-5-5/overview"
 PRICE_USD_PER_MTOK = {
     "input": 2.0,
     "cache_write_5m": 2.5,
+    "cache_write_1h": 4.0,
     "cache_read": 0.2,
     "output": 10.0,
 }
@@ -58,6 +61,11 @@ USAGE_FIELDS = (
     "cache_read_input_tokens",
     "output_tokens",
 )
+CACHE_TTL_USAGE_FIELDS = (
+    "cache_creation_ephemeral_5m_input_tokens",
+    "cache_creation_ephemeral_1h_input_tokens",
+)
+ALL_USAGE_FIELDS = (*USAGE_FIELDS, *CACHE_TTL_USAGE_FIELDS)
 CALIBRATION_PROMPT = (
     "This is a context calibration request. Reply with exactly READY; "
     "do not use tools or read files."
@@ -274,8 +282,10 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
         "price_book": {
             "date": PRICE_BOOK_DATE,
             "currency": "USD",
+            "source_url": PRICE_BOOK_SOURCE,
             "per_million_tokens": PRICE_USD_PER_MTOK,
-            "claim": "list-price estimate only; provider-billed cost requires a receipt",
+            "claim": "list-price estimate only; provider-reported API-equivalent total is separate and is not a billing receipt",
+            "cache_write_fallback": "when provider TTL breakdown is unavailable, price all cache_creation_input_tokens at the 5-minute rate",
         },
         "arms": list(ARMS),
         "trial_order": [
@@ -303,26 +313,42 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
 
 def _usage_values(usage: Any) -> dict[str, int | None]:
     if not isinstance(usage, dict):
-        return {name: None for name in USAGE_FIELDS}
+        return {name: None for name in ALL_USAGE_FIELDS}
     aliases = {
         "input_tokens": ("input_tokens", "inputTokens"),
         "cache_creation_input_tokens": ("cache_creation_input_tokens", "cacheCreationInputTokens"),
         "cache_read_input_tokens": ("cache_read_input_tokens", "cacheReadInputTokens"),
         "output_tokens": ("output_tokens", "outputTokens"),
+        "cache_creation_ephemeral_5m_input_tokens": (
+            "cache_creation_ephemeral_5m_input_tokens", "ephemeral_5m_input_tokens",
+            "ephemeral5mInputTokens",
+        ),
+        "cache_creation_ephemeral_1h_input_tokens": (
+            "cache_creation_ephemeral_1h_input_tokens", "ephemeral_1h_input_tokens",
+            "ephemeral1hInputTokens",
+        ),
     }
     values = {field: next((usage[key] for key in keys if key in usage), None) for field, keys in aliases.items()}
+    cache_creation = usage.get("cache_creation", usage.get("cacheCreation"))
+    if isinstance(cache_creation, dict):
+        for field, key in (
+            ("cache_creation_ephemeral_5m_input_tokens", "ephemeral_5m_input_tokens"),
+            ("cache_creation_ephemeral_1h_input_tokens", "ephemeral_1h_input_tokens"),
+        ):
+            if values[field] is None and key in cache_creation:
+                values[field] = cache_creation[key]
     return {
         name: int(values[name])
         if isinstance(values[name], int) and not isinstance(values[name], bool) and values[name] >= 0
         else None
-        for name in USAGE_FIELDS
+        for name in ALL_USAGE_FIELDS
     }
 
 
 def _sum_usage(rows: list[dict[str, int | None]]) -> dict[str, int | None]:
     result: dict[str, int | None] = {}
-    for name in USAGE_FIELDS:
-        values = [row[name] for row in rows if row.get(name) is not None]
+    for name in ALL_USAGE_FIELDS:
+        values = [row.get(name) for row in rows if row.get(name) is not None]
         result[name] = sum(values) if values else None
     return result
 
@@ -385,7 +411,7 @@ def stream_usage(path: Path) -> dict[str, Any]:
     deduplicated_turn_usage = list(usage_by_id.values())
     totals = _sum_usage(deduplicated_turn_usage)
     legacy_net = legacy_net_input_metrics(deduplicated_turn_usage)
-    first = next(iter(usage_by_id.values()), {name: None for name in USAGE_FIELDS})
+    first = next(iter(usage_by_id.values()), {name: None for name in ALL_USAGE_FIELDS})
     final_usage: dict[str, int | None] | None = None
     if isinstance(observed_result, dict):
         parsed = _usage_values(observed_result.get("usage"))
@@ -401,15 +427,23 @@ def stream_usage(path: Path) -> dict[str, Any]:
                     break
     discrepancies = {}
     if final_usage is not None:
-        for name in USAGE_FIELDS:
+        for name in ALL_USAGE_FIELDS:
             turn_sum = totals[name]
             final_value = final_usage[name]
             if turn_sum is not None and final_value is not None and turn_sum != final_value:
                 discrepancies[name] = {"per_turn_sum": turn_sum, "final_result": final_value}
         totals = {
             name: final_usage[name] if final_usage[name] is not None else totals[name]
-            for name in USAGE_FIELDS
+            for name in ALL_USAGE_FIELDS
         }
+    provider_cost = observed_result.get("total_cost_usd") if isinstance(observed_result, dict) else None
+    if (
+        isinstance(provider_cost, bool)
+        or not isinstance(provider_cost, (int, float))
+        or not math.isfinite(provider_cost)
+        or provider_cost < 0
+    ):
+        provider_cost = None
     return {
         "models_observed": sorted(message_models or model_usage_models),
         "assistant_message_models_observed": sorted(message_models),
@@ -422,6 +456,10 @@ def stream_usage(path: Path) -> dict[str, Any]:
         ),
         "usage": totals,
         "usage_totals_source": "final_result_with_per_turn_fallback" if final_usage else "per_turn_deduplicated",
+        "provider_reported_api_equivalent_total_cost_usd": provider_cost,
+        "provider_reported_api_equivalent_cost_note": (
+            "result.total_cost_usd from the provider stream, when supplied; not a receipt or account-billed amount"
+        ),
         "usage_updates_per_message": updates_per_id,
         "usage_discrepancies": discrepancies,
         "first_turn_usage": first,
@@ -435,16 +473,54 @@ def stream_usage(path: Path) -> dict[str, Any]:
     }
 
 
-def rate_card_estimate(usage: dict[str, int | None]) -> float | None:
-    if not all(usage.get(key) is not None for key in USAGE_FIELDS):
-        return None
+def cache_write_pricing(usage: dict[str, int | None]) -> dict[str, Any]:
+    total = usage.get("cache_creation_input_tokens")
+    five = usage.get("cache_creation_ephemeral_5m_input_tokens")
+    one_hour = usage.get("cache_creation_ephemeral_1h_input_tokens")
+    if total is None and five is not None and one_hour is not None:
+        total = five + one_hour
+    if total is None:
+        return {"basis": "unavailable", "five_minute_tokens": None, "one_hour_tokens": None}
+    if five is not None and one_hour is not None:
+        if five + one_hour != total:
+            return {"basis": "inconsistent_provider_ttl_breakdown", "five_minute_tokens": five,
+                    "one_hour_tokens": one_hour}
+        return {"basis": "provider_ttl_breakdown", "five_minute_tokens": five,
+                "one_hour_tokens": one_hour}
+    if five is not None:
+        if five > total:
+            return {"basis": "inconsistent_provider_ttl_breakdown", "five_minute_tokens": five,
+                    "one_hour_tokens": None}
+        return {"basis": "provider_ttl_breakdown_and_total", "five_minute_tokens": five,
+                "one_hour_tokens": total - five}
+    if one_hour is not None:
+        if one_hour > total:
+            return {"basis": "inconsistent_provider_ttl_breakdown", "five_minute_tokens": None,
+                    "one_hour_tokens": one_hour}
+        return {"basis": "provider_ttl_breakdown_and_total", "five_minute_tokens": total - one_hour,
+                "one_hour_tokens": one_hour}
+    return {"basis": "assumed_all_cache_writes_5m", "five_minute_tokens": total,
+            "one_hour_tokens": 0}
+
+
+def rate_card_estimate_details(usage: dict[str, int | None]) -> dict[str, Any]:
+    cache_write = cache_write_pricing(usage)
+    required = ("input_tokens", "cache_read_input_tokens", "output_tokens")
+    cache_write_known = cache_write["basis"] not in {"unavailable", "inconsistent_provider_ttl_breakdown"}
+    if not all(usage.get(key) is not None for key in required) or not cache_write_known:
+        return {"usd": None, "cache_write_pricing": cache_write}
     amount = (
         usage["input_tokens"] * PRICE_USD_PER_MTOK["input"]
-        + usage["cache_creation_input_tokens"] * PRICE_USD_PER_MTOK["cache_write_5m"]
+        + cache_write["five_minute_tokens"] * PRICE_USD_PER_MTOK["cache_write_5m"]
+        + cache_write["one_hour_tokens"] * PRICE_USD_PER_MTOK["cache_write_1h"]
         + usage["cache_read_input_tokens"] * PRICE_USD_PER_MTOK["cache_read"]
         + usage["output_tokens"] * PRICE_USD_PER_MTOK["output"]
     ) / 1_000_000
-    return round(amount, 6)
+    return {"usd": round(amount, 6), "cache_write_pricing": cache_write}
+
+
+def rate_card_estimate(usage: dict[str, int | None]) -> float | None:
+    return rate_card_estimate_details(usage)["usd"]
 
 
 def save_json(path: Path, value: Any) -> None:
@@ -617,8 +693,8 @@ def launch_calibration(
     row["prompt_sha256"] = sha_text(CALIBRATION_PROMPT)
     observed = stream_usage(stream_path) if stream_path.exists() else {
         "models_observed": [], "turns_with_usage": 0,
-        "usage": {name: None for name in USAGE_FIELDS},
-        "first_turn_usage": {name: None for name in USAGE_FIELDS},
+        "usage": {name: None for name in ALL_USAGE_FIELDS},
+        "first_turn_usage": {name: None for name in ALL_USAGE_FIELDS},
     }
     row["observed"] = observed
     tokenizer = settings.get("authored_source_tokenizer")
@@ -640,7 +716,12 @@ def launch_calibration(
         "One-turn diagnostic only: provider first-turn input plus cache minus this fixed calibration prompt's legacy tokenizer proxy. "
         "It is not task-only or exact net input; trial contexts repeat across turns and grow with task/tool history. No value is subtracted from trial totals."
     )
-    row["list_price_estimate_usd"] = rate_card_estimate(observed.get("usage", {}))
+    estimate = rate_card_estimate_details(observed.get("usage", {}))
+    row["list_price_estimate_usd"] = estimate["usd"]
+    row["list_price_cache_write_pricing"] = estimate["cache_write_pricing"]
+    row["provider_reported_api_equivalent_total_cost_usd"] = observed.get(
+        "provider_reported_api_equivalent_total_cost_usd"
+    )
     row["provider_receipt_actual_usd"] = None
     observed_models = observed.get("models_observed", [])
     model_matches = len(observed_models) == 1
@@ -857,7 +938,12 @@ def launch_trial(
         "visible_output_bytes": 0, "result_event": None, "invalid_stream_lines": 0,
     }
     row["observed"] = usage
-    row["list_price_estimate_usd"] = rate_card_estimate(usage["usage"])
+    estimate = rate_card_estimate_details(usage["usage"])
+    row["list_price_estimate_usd"] = estimate["usd"]
+    row["list_price_cache_write_pricing"] = estimate["cache_write_pricing"]
+    row["provider_reported_api_equivalent_total_cost_usd"] = usage.get(
+        "provider_reported_api_equivalent_total_cost_usd"
+    )
     row["provider_receipt_actual_usd"] = None
     expected_model = settings.get("observed_model_id")
     model_matches = observed_model_matches(usage.get("models_observed"), expected_model)
@@ -945,11 +1031,14 @@ def summarize(
         selected = [row for row in results if row["arm"] == arm]
         accepted = sum(row.get("status") == "accepted" for row in selected)
         per_trial_costs = [row.get("list_price_estimate_usd") for row in selected]
+        cache_write_pricing = [row.get("list_price_cache_write_pricing") for row in selected]
+        provider_costs = [row.get("provider_reported_api_equivalent_total_cost_usd") for row in selected]
+        known_provider_costs = [value for value in provider_costs if value is not None]
         known_costs = [value for value in per_trial_costs if value is not None]
         known_cost = sum(known_costs) if known_costs else None
         usage_totals: dict[str, int | None] = {}
         usage_missing: dict[str, int] = {}
-        for field in USAGE_FIELDS:
+        for field in ALL_USAGE_FIELDS:
             values = [row.get("observed", {}).get("usage", {}).get(field) for row in selected]
             known = [value for value in values if value is not None]
             usage_totals[field] = sum(known) if known else None
@@ -1015,6 +1104,7 @@ def summarize(
             "mean_model_session_wall_seconds": round(mean(elapsed), 3) if elapsed else None,
             "median_model_session_wall_seconds": round(median(elapsed), 3) if elapsed else None,
             "list_price_estimate_per_attempt_usd": per_trial_costs,
+            "list_price_cache_write_pricing_per_attempt": cache_write_pricing,
             "list_price_estimate_known_subtotal_usd": round(known_cost, 6) if known_cost is not None else None,
             "list_price_estimate_complete": complete_cost,
             "list_price_estimate_total_usd": round(known_cost, 6) if complete_cost and known_cost is not None else None,
@@ -1023,6 +1113,10 @@ def summarize(
             ),
             "accepted_task_cost_note": "All attempts, including failed and rejected trials, are included in the numerator.",
             "provider_receipt_actual_usd": None,
+            "provider_reported_api_equivalent_total_cost_usd_per_attempt": provider_costs,
+            "provider_reported_api_equivalent_cost_known_subtotal_usd": (
+                round(sum(known_provider_costs), 6) if known_provider_costs else None
+            ),
             "failures": [
                 {"trial": row["number"], "reason": row.get("failure")}
                 for row in selected if row.get("status") != "accepted"
@@ -1043,6 +1137,10 @@ def summarize(
         "shared_calibration": {
             "list_price_estimate_usd": calibration_cost,
             "provider_receipt_actual_usd": None,
+            "provider_reported_api_equivalent_total_cost_usd": (
+                calibration_result.get("provider_reported_api_equivalent_total_cost_usd")
+                if calibration_result else None
+            ),
             "included_in_combined_campaign_cost": True,
         },
         "campaign_list_price_estimate_complete": campaign_cost_complete,

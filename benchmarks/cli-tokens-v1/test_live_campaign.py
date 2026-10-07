@@ -49,9 +49,13 @@ class LiveCampaignTests(unittest.TestCase):
             {"type": "result", "subtype": "success", "usage": {
                 "input_tokens": 160,
                 "cache_creation_input_tokens": 10,
+                "cache_creation": {
+                    "ephemeral_5m_input_tokens": 6,
+                    "ephemeral_1h_input_tokens": 4,
+                },
                 "cache_read_input_tokens": 30,
                 "output_tokens": 34,
-            }},
+            }, "total_cost_usd": 0.0042},
         ]
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "stream.jsonl"
@@ -61,6 +65,10 @@ class LiveCampaignTests(unittest.TestCase):
         self.assertEqual(result["turns_with_usage"], 2)
         self.assertEqual(result["usage"]["input_tokens"], 160)
         self.assertEqual(result["usage"]["cache_creation_input_tokens"], 10)
+        self.assertEqual(result["usage"]["cache_creation_ephemeral_5m_input_tokens"], 6)
+        self.assertEqual(result["usage"]["cache_creation_ephemeral_1h_input_tokens"], 4)
+        self.assertEqual(result["provider_reported_api_equivalent_total_cost_usd"], 0.0042)
+        self.assertIn("not a receipt", result["provider_reported_api_equivalent_cost_note"])
         self.assertEqual(result["first_turn_usage"]["input_tokens"], 120)
         self.assertEqual(result["result_event"]["subtype"], "success")
         self.assertEqual(result["usage_updates_per_message"]["turn-1"], 2)
@@ -264,14 +272,35 @@ class LiveCampaignTests(unittest.TestCase):
         self.assertEqual(semaprax["failures"][0]["reason"], "timeout")
 
     def test_rate_card_is_labeled_as_an_estimate_and_prices_each_usage_bucket(self):
-        estimate = live_campaign.rate_card_estimate({
+        usage = {
             "input_tokens": 1_000_000,
             "cache_creation_input_tokens": 1_000_000,
             "cache_read_input_tokens": 1_000_000,
             "output_tokens": 1_000_000,
-        })
+        }
+        estimate = live_campaign.rate_card_estimate(usage)
         self.assertEqual(estimate, 14.7)
-        self.assertEqual(live_campaign.PRICE_BOOK_DATE, "2026-09-25")
+        details = live_campaign.rate_card_estimate_details(usage)
+        self.assertEqual(details["cache_write_pricing"]["basis"], "assumed_all_cache_writes_5m")
+        self.assertEqual(live_campaign.PRICE_BOOK_DATE, "2026-10-07")
+        self.assertEqual(live_campaign.PRICE_USD_PER_MTOK["cache_write_1h"], 4.0)
+
+    def test_rate_card_prices_reported_cache_ttls_at_distinct_rates(self):
+        usage = {
+            "input_tokens": 1_000_000,
+            "cache_creation_input_tokens": 1_000_000,
+            "cache_creation_ephemeral_5m_input_tokens": 600_000,
+            "cache_creation_ephemeral_1h_input_tokens": 400_000,
+            "cache_read_input_tokens": 1_000_000,
+            "output_tokens": 1_000_000,
+        }
+        details = live_campaign.rate_card_estimate_details(usage)
+        self.assertEqual(details["usd"], 15.3)
+        self.assertEqual(details["cache_write_pricing"], {
+            "basis": "provider_ttl_breakdown",
+            "five_minute_tokens": 600_000,
+            "one_hour_tokens": 400_000,
+        })
 
     def test_summary_includes_failed_attempt_costs_and_keeps_unknown_usage(self):
         rows = [

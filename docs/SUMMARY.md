@@ -155,6 +155,7 @@ Audience: all documentation readers.
 - [String operations](STRING-OPS-V1.md)
 - [Owned String loops](OWNED-STRING-LOOPS-V1.md)
 - [Text Toolkit and command-line programs](TEXT-TOOLKIT-V1.md)
+- [String Collections (string-keyed maps)](STRING-COLLECTIONS-V1.md)
 - [IO Cursors v1](IO-CURSORS-V1.md)
 - [IO Lines v1](IO-LINES-V1.md)
 - [Base64 v1](BASE64-V1.md)

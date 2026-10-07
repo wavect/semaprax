@@ -531,6 +531,8 @@ fn main() -> i64
 | `string_trim` | `(s: string) -> string` strips ASCII whitespace at both ends |
 | `string_byte_at` | `(s: string, index: i64) -> i64` the byte, `0..=255` |
 | `file_read_text` | `(path: borrow str) -> string` whole UTF-8 file, at most 64 KiB; needs `fs.read` |
+| `string_compare` | `(a: string, b: string) -> i64` `-1`/`0`/`1` in bytewise order |
+| `map_new`, `map_add`, `map_get_or`, … | `Map<string, i64>`; see String-keyed maps below |
 | `string_as_str` | `(binding: string) -> borrow str` |
 | `str_len_bytes` | `(s: borrow str) -> i64` |
 | `str_is_empty` | `(s: borrow str) -> bool` |
@@ -690,6 +692,65 @@ before passing it on. Match `string_to_i64` directly; in a loop the match must
 be exactly `Option::Some { value }` and `Option::None {}`. A function may hold
 many independent `if`s, `&&`/`||` operands, and `match`es. Offsets are byte
 offsets; `string_byte_at(s, i) == 32` tests a space without allocating.
+
+## String-keyed maps
+
+`Map<string, i64>` counts or sums by text key. Create it with `let mut counts
+= map_new(capacity);` and change it only with the same-owner updates `counts
+= map_add(counts, key, delta);` (insert, or add to the value) and `counts =
+map_set(counts, key, value);`, in straight-line code, loop bodies, and `if`
+branches. Entries stay in ascending bytewise key order; visit them by index.
+
+| Function | Signature |
+| --- | --- |
+| `map_new` | `(capacity: usize) -> Map<string, i64>` at most 65,536 entries |
+| `map_add`, `map_set` | `(m: own Map<string, i64>, key: string, n: i64) -> Map<string, i64>` add to / replace |
+| `map_get_or` | `(m: Map<string, i64>, key: string, default: i64) -> i64` |
+| `map_has` | `(m: Map<string, i64>, key: string) -> bool` |
+| `map_len` | `(m: Map<string, i64>) -> usize` |
+| `map_key_at`, `map_value_at` | `(m: Map<string, i64>, i: usize) -> string` / `i64` in key order |
+
+```semaprax
+module app.tally;
+
+@id("app.main")
+fn main() -> i64
+{
+    let text = "b a c a";
+    let size = string_len(text);
+    let mut counts = map_new(16usize);
+    let mut start = 0;
+    while start < size {
+        let found = string_find(text, " ", start);
+        let end = if found < 0 { size } else { found };
+        counts = map_add(counts, string_slice(text, start, end), 1);
+        start = end + 1;
+        0
+    }
+    let mut best = 0usize;
+    let mut index = 0usize;
+    while index < map_len(counts) {
+        best = if map_value_at(counts, index) > map_value_at(counts, best) { index } else { best };
+        index = index + 1usize;
+        0
+    }
+    let top = map_key_at(counts, best);
+    if string_compare(top, "a") == 0 && map_len(counts) == 3usize { map_get_or(counts, "a", 0) } else { -1 }
+}
+```
+
+- A map is a local binding. Pass it only as the first argument of a `map_*`
+  call; a parameter, result, field, copy (`let other = counts;`), branch
+  result, or temporary map is `SPX-T275`. Only `Map<string, i64>` exists
+  (`SPX-T274`); for a set, use the map's keys and `map_len`.
+- Keys are borrowed; the map copies a key when it inserts it. `while index <
+  map_len(counts)` is a valid loop condition.
+- A new key beyond the capacity, an index at or past `map_len`, a capacity
+  above 65,536, and an overflowing `map_add` fail with `semaprax.map.v1`
+  codes 1-4.
+- There is no sort. Rank by repeated scans: entries are in key order, so
+  "ties by key" is "ties by index". `string_compare(a, b)` orders strings.
+  [String Collections v1](STRING-COLLECTIONS-V1.md) owns the rules.
 
 ## Lists and iterators
 
@@ -1087,6 +1148,7 @@ dependencies. See [Project Lock v1](PROJECT-LOCK-V1.md) and
   [refutable match](REFUTABLE-MATCH-V1.md), [string operations](STRING-OPS-V1.md),
   [owned string loops](OWNED-STRING-LOOPS-V1.md),
   [text toolkit and command-line programs](TEXT-TOOLKIT-V1.md),
+  [string-keyed maps](STRING-COLLECTIONS-V1.md),
   [owned string views](OWNED-STRING-BORROWED-VIEW-V1.md),
   [indexed byte data](PORTABLE-INDEXED-BYTE-DATA-V1.md),
   [command I/O](BOUNDED-LANGUAGE-COMMAND-IO-V1.md), and

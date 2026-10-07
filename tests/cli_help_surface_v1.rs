@@ -34,6 +34,7 @@ const LANGUAGE_TOPICS: &str = concat!(
     "  strings         Strings and bytes\n",
     "  builtins        Compiler-owned functions\n",
     "  cli             Command-line programs\n",
+    "  maps            String-keyed maps\n",
     "  lists           Lists and iterators\n",
     "  mistakes-code   Habits from other languages: diagnostic examples\n",
     "  mistakes-index  Habits from other languages: diagnostic index\n",

@@ -72,7 +72,7 @@ Other values are rejected at compile time, not given approximate semantics:
 | `SPX-U102` | Assigned value type does not exactly match the binding type. |
 | `SPX-U103` | `mut` appears outside a local `let` (parameters are immutable). |
 | `SPX-U104` | Duplicate `mut` modifier (`let mut mut x`). |
-| `SPX-U105` | Target or value is outside the v1 slice (non-scalar, non-Copy, or non-value ownership), other than the admitted same-owner reopens (`vec_push`, `bytes_set`, and the [Owned String Loops v1](OWNED-STRING-LOOPS-V1.md) append `text = string_concat(text, more)`). |
+| `SPX-U105` | Target or value is outside the v1 slice (non-scalar, non-Copy, or non-value ownership), other than the admitted same-owner reopens (`vec_push`, `bytes_set`, the [Owned String Loops v1](OWNED-STRING-LOOPS-V1.md) append `text = string_concat(text, more)`, and the [String Collections v1](STRING-COLLECTIONS-V1.md) map updates `counts = map_add(counts, key, n)` / `map_set`). |
 | `SPX-U106` | Assignment statement inside a contract expression (`requires`/`ensures`). |
 
 Unknown assignment names reuse the established unknown-value diagnostic

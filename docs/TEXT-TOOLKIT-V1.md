@@ -162,6 +162,7 @@ exit statuses, usage errors, missing and escaping paths, and invalid UTF-8.
 
 ## Not in v1
 
-String-keyed maps and sets, sorting, `string` comparison other than equality,
-number formatting with padding or decimals, appending output in several
-writes, reading stdin, and the Core Wasm lowering of these operations.
+Sorting, sets, `<` on strings, number formatting with padding or decimals,
+appending output in several writes, reading stdin, and the Core Wasm lowering
+of these operations. [String Collections v1](STRING-COLLECTIONS-V1.md) adds
+`Map<string, i64>` and `string_compare`.

@@ -255,6 +255,23 @@ fn condition() -> i64
     i
 }
 
+@id("coll.for_loop")
+fn for_loop() -> i64
+{
+    let mut building = vec_with_capacity<i64>(4usize);
+    building = vec_push<i64>(building, 3);
+    building = vec_push<i64>(building, 1);
+    building = vec_push<i64>(building, 3);
+    let values = building;
+    let mut counts = map_new(8usize);
+    for item in values {
+        counts = map_add(counts, string_from_i64(item), 1);
+        0
+    }
+    let size = map_len(counts);
+    if size == 2usize { map_get_or(counts, "3", 0) } else { -1 }
+}
+
 @id("app.main")
 fn main() -> i64
 {
@@ -281,6 +298,7 @@ const CASES: &[(&str, &str)] = &[
     ("coll.overflow", "semaprax.map.v1|4"),
     ("coll.underflow", "semaprax.map.v1|4"),
     ("coll.condition", "ok|5"),
+    ("coll.for_loop", "ok|2"),
 ];
 
 fn command_available(command: &str) -> bool {

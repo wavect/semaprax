@@ -309,7 +309,7 @@ impl Resolver<'_> {
                             return Err(self.error(
                                 "SPX-T252",
                                 format!(
-                                    "call `{name}` is not admitted in while bodies; only functions over scalars, byte slices and strings qualify"
+                                    "call `{name}` is not admitted in loop bodies; use scalar/text signatures with read-only input effects. For output, build one string in the loop and write it once afterwards"
                                 ),
                                 expression.span,
                             ));

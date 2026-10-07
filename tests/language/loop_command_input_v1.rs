@@ -232,9 +232,11 @@ permit { process.stdout.write }
 }
 "#;
     let program = parse(effectful, Path::new("loop-write-refused.spx")).unwrap();
-    assert!(verify::verify(&program)
-        .iter()
-        .any(|diagnostic| diagnostic.code == "SPX-T252"));
+    assert!(verify::verify(&program).iter().any(|diagnostic| {
+        diagnostic.code == "SPX-T252"
+            && diagnostic.message.contains("read-only input effects")
+            && diagnostic.message.contains("write it once afterwards")
+    }));
 }
 
 #[test]

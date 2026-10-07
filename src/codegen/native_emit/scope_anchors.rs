@@ -48,6 +48,44 @@ pub(super) fn block_anchors(
     anchors
 }
 
+/// A block's direct storage: its owned `let` bindings and owned statement
+/// values. These always live in the block's own region.
+fn direct_block_anchors(
+    program: &ResolvedProgram,
+    plan: &crate::codegen::native_bytes::NativeBytesPlan,
+    block: &ResolvedExpr,
+) -> BTreeSet<StorageId> {
+    let ResolvedExprKind::Block { statements, tail } = &block.kind else {
+        return BTreeSet::new();
+    };
+    let owned = |storage: &StorageId, ty: &crate::hir::ResolvedType| {
+        is_direct_plan_owned(program, ty) || plan.has_projected_leaves(storage)
+    };
+    let mut anchors = BTreeSet::new();
+    // The block's own result slot belongs to its region too.
+    let result = StorageId::Temporary(tail.id.clone());
+    if plan.is_region_slot(&result) {
+        anchors.insert(result);
+    }
+    for statement in statements {
+        if let ResolvedStatement::Let { binding, .. } = statement {
+            let storage = StorageId::Value(binding.id.clone());
+            if owned(&storage, &binding.ty) {
+                anchors.insert(storage);
+            }
+        }
+        if let ResolvedStatement::Let { value, .. } | ResolvedStatement::Assign { value, .. } =
+            statement
+        {
+            let storage = StorageId::Temporary(value.id.clone());
+            if owned(&storage, &value.ty) {
+                anchors.insert(storage);
+            }
+        }
+    }
+    anchors
+}
+
 /// Finalizable temporaries of `root` and its descendants in the same
 /// lexical region.
 fn nested_temporaries(
@@ -89,7 +127,10 @@ impl<'a, O: super::COutput> super::CEmitter<'a, O> {
         block: &ResolvedExpr,
     ) -> Result<(), crate::diagnostic::Diagnostic> {
         if let Some(plan) = self.bytes_plan {
-            let cleanup = plan.scope_exit(&block_anchors(self.program, plan, block))?;
+            let cleanup = plan.block_scope_exit(
+                &block_anchors(self.program, plan, block),
+                &direct_block_anchors(self.program, plan, block),
+            )?;
             for line in cleanup.lines() {
                 self.line(line);
             }

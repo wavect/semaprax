@@ -172,6 +172,33 @@ impl NativeBytesPlan {
         Ok(self.emit_finalizers(&scope.actions, false))
     }
 
+    /// `scope_exit` for a block whose anchors include nested operand slots.
+    /// When those anchors touch several regions, the block's own region is the
+    /// unique one holding its direct storage (owned `let` bindings and
+    /// statement values); nested slots of other regions settle at their own
+    /// exits. Still ambiguous after that tie-break fails closed as before.
+    pub(in crate::codegen) fn block_scope_exit(
+        &self,
+        anchors: &BTreeSet<StorageId>,
+        direct: &BTreeSet<StorageId>,
+    ) -> Result<String, Diagnostic> {
+        let matching = self
+            .scope_exits
+            .iter()
+            .filter(|scope| scope.storage.iter().any(|slot| anchors.contains(slot)))
+            .collect::<Vec<_>>();
+        if matching.len() <= 1 || direct.is_empty() {
+            return self.scope_exit(anchors);
+        }
+        let mut own = matching
+            .into_iter()
+            .filter(|scope| scope.storage.iter().any(|slot| direct.contains(slot)));
+        match (own.next(), own.next()) {
+            (Some(scope), None) => Ok(self.emit_finalizers(&scope.actions, false)),
+            _ => Err(error("Bytes block maps to multiple CleanupPlan regions")),
+        }
+    }
+
     pub(in crate::codegen) fn scalar_match_guard_scope_exit(
         &self,
         guard: &ExpressionId,

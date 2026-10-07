@@ -3530,17 +3530,29 @@ impl Emitter<'_> {
         if anchors.is_empty() {
             return Ok(());
         }
-        let mut regions = self
+        let matching = self
             .cleanup_plan
             .regions
             .iter()
-            .filter(|region| region.slots.iter().any(|slot| anchors.contains(slot)));
-        let region = regions
-            .next()
-            .ok_or_else(|| error("Bytes block has no authenticated CleanupPlan region"))?;
-        if regions.next().is_some() {
-            return Err(error("Bytes block maps to multiple CleanupPlan regions"));
-        }
+            .filter(|region| region.slots.iter().any(|slot| anchors.contains(slot)))
+            .collect::<Vec<_>>();
+        let region = match matching.as_slice() {
+            [] => return Err(error("Bytes block has no authenticated CleanupPlan region")),
+            [region] => *region,
+            _ => {
+                // Nested operand anchors touched several regions: the block's
+                // own region is the unique one holding its direct storage.
+                let direct =
+                    expressions::block_direct_anchors(&self.plan.cleanup_storage_types, expression);
+                let mut own = matching
+                    .iter()
+                    .filter(|region| region.slots.iter().any(|slot| direct.contains(slot)));
+                match (own.next(), own.next()) {
+                    (Some(region), None) if !direct.is_empty() => *region,
+                    _ => return Err(error("Bytes block maps to multiple CleanupPlan regions")),
+                }
+            }
+        };
         // The function body occupies the root region. Its owned values remain
         // live through postconditions and are finalized by CommitResult or an
         // exact failure exit, never at the syntactic end of the body block.

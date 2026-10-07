@@ -461,7 +461,7 @@ fn shapes_outside_owned_string_loops_v2_stay_refused() {
     assert!(
         found.iter().any(|diagnostic| diagnostic.code == "SPX-T252"
             && diagnostic.message
-                == "call `first` is not admitted in while bodies; only functions over scalars, byte slices and strings qualify"),
+                == "call `first` is not admitted in loop bodies; use scalar/text signatures with read-only input effects. For output, build one string in the loop and write it once afterwards"),
         "{found:?}"
     );
 }

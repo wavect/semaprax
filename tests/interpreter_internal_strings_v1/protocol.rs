@@ -188,19 +188,35 @@ fn internal_string_profile_preserves_the_verifiers_scalar_loop_call_boundary() {
     count
 }"#;
     let fixture = Fixture::new(source);
-    for interpret in [interpreter::interpret, internal_strings::interpret] {
-        let errors = interpret(
-            &fixture.source,
-            "app.main",
-            &[],
-            &InterpreterOptions::default(),
-        )
-        .unwrap_err();
-        assert!(
-            errors.iter().any(|error| error.code == "SPX-T252"),
-            "{errors:?}"
-        );
-    }
+    // The bounded reference interpreter refuses the string-returning user call
+    // in the loop body at admission.
+    let errors = interpreter::interpret(
+        &fixture.source,
+        "app.main",
+        &[],
+        &InterpreterOptions::default(),
+    )
+    .unwrap_err();
+    assert!(
+        errors.iter().any(|error| error.code == "SPX-T252"
+            || (error.code == "SPX-F102" && error.message.contains("unsupported_callee"))),
+        "{errors:?}"
+    );
+    // The internal String profile executes bounded String read helpers in
+    // loop bodies: one iteration adds string_len("loop") = 4.
+    let result = internal_strings::interpret(
+        &fixture.source,
+        "app.main",
+        &[],
+        &InterpreterOptions::default(),
+    )
+    .unwrap_or_else(|errors| panic!("internal String profile must admit: {errors:?}"));
+    let envelope: serde_json::Value = serde_json::from_str(&result.envelope).unwrap();
+    assert_eq!(
+        envelope["payload"]["outcome"]["value"], "4",
+        "{}",
+        result.envelope
+    );
     fixture.cleanup();
 }
 

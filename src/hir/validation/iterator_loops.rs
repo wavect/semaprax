@@ -65,7 +65,7 @@ impl HirValidator<'_> {
                         (matches!(
                             expression.ty,
                             ResolvedType::String | ResolvedType::StringMap
-                        ) || (matches!(expression.ty, ResolvedType::Nominal { .. })
+                        ) || crate::map_ops::is_collection(&expression.ty) || (matches!(expression.ty, ResolvedType::Nominal { .. })
                             && crate::loop_calls::resolved_match_scrutinee_admitted(
                                 &self.program.declarations,
                                 &expression.ty,
@@ -268,6 +268,11 @@ impl HirValidator<'_> {
                                 .filter(|argument| argument.ty != ResolvedType::Str),
                         );
                         continue;
+                    }
+                    if let Some(operation)=crate::map_ops::by_id(callee.as_str()) {
+                        let (params,ty)=operation.resolved_signature(type_arguments).ok_or_else(||hir_error("loop collection signature is invalid"))?;
+                        if args.len()!=params.len()||expression.ty!=ty||args.iter().zip(params).any(|(arg,param)|arg.ty!=param.ty){return Err(hir_error("loop collection operands are invalid"));}
+                        pending.extend(args);continue;
                     }
                     if let Some(operation) = crate::string_ops::by_id(callee.as_str()) {
                         if args.len() != operation.arity()
@@ -531,7 +536,7 @@ pub(super) fn reopen_string(
     if target.availability != Availability::Moved
         || !target.active_loans.is_empty()
         || target.ownership != OwnershipMode::Own
-        || !matches!(target.ty, ResolvedType::String | ResolvedType::StringMap)
+        || !(matches!(target.ty, ResolvedType::String | ResolvedType::StringMap)||crate::map_ops::is_collection(&target.ty))
     {
         return Err(hir_error(
             "string append did not consume its unique String owner",

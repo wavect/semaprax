@@ -11,7 +11,8 @@ mod stdin_stream;
 pub(crate) use stdin_stream::{
     link_stdin_stream_command_workspace, link_stdin_stream_exit_command_workspace,
     link_stdin_stream_text_command_workspace, link_stdin_stream_text_entry_workspace,
-    stream_text_parameter_admitted, stream_text_return_admitted,
+    stream_text_parameter_admitted, stream_text_parameter_with_index, stream_text_return_admitted,
+    stream_text_return_with_index, validate_stream_text_program,
 };
 pub(in crate::hir) mod native_owner;
 
@@ -464,8 +465,33 @@ pub(crate) fn link_owned_data_api_workspace(
         .drain(..)
         .map(|linked| linked.function)
         .collect::<Vec<_>>();
-    let (mut declarations, mut types) =
-        compiler_prelude::selected_for_owned_data(&functions, &parts)?;
+    let uses_private_collections = functions.iter().any(|f| {
+        crate::map_ops::is_collection(&f.return_type)
+            || crate::stdin_stream_ops::is_reader(&f.return_type)
+            || f.params.iter().any(|p| {
+                crate::map_ops::is_collection(&p.ty) || crate::stdin_stream_ops::is_reader(&p.ty)
+            })
+    }) || functions.iter().any(|f| {
+        f.requires
+            .iter()
+            .chain(std::iter::once(&f.body))
+            .chain(&f.ensures)
+            .any(|root| {
+                let mut found = false;
+                crate::hir::visit_resolved_calls(root, &mut |callee, _, _| {
+                    found |= crate::map_ops::by_id(callee.as_str()).is_some()
+                });
+                found
+            })
+    }) || parts
+        .types
+        .iter()
+        .any(|t| crate::map_ops::is_declaration(t.id.as_str()));
+    let (mut declarations, mut types) = if uses_private_collections {
+        compiler_prelude::workspace_compiler_prelude_for_stream()?
+    } else {
+        compiler_prelude::selected_for_owned_data(&functions, &parts)?
+    };
     declarations.extend_linked_owned_data(
         &parts.types,
         &parts.interfaces,

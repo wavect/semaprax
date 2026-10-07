@@ -33,8 +33,7 @@ impl<O:COutput> CEmitter<'_,O> {
             MapOp::Len|MapOp::SetLen=>self.line(&format!("{temporary} = {}->len;",owner())),
             MapOp::Has|MapOp::SetHas=>self.line(&format!("{temporary} = spx_collection_find_v2({}, {}, NULL);",owner(),atom(1)?)),
             MapOp::GetOr|MapOp::KeyAt|MapOp::ValueAt|MapOp::SetKeyAt=> {
-                let out=self.temporary(&ResolvedType::I64)?;
-                let out_atom=format!("{out}_atom");self.line(&format!("spx_map_atom_v2 {out_atom} = {{0}};"));
+                let out_atom=format!("{temporary}_atom");self.line(&format!("spx_map_atom_v2 {out_atom} = {{0}};"));
                 if op==MapOp::GetOr {
                     self.line(&format!("{out_atom} = spx_collection_get_v2({}, {}, {});",owner(),atom(1)?,atom(2)?));
                 }else{

@@ -237,7 +237,7 @@ pub(crate) use workspace_link::{
     link_stdin_stream_text_command_workspace, link_stdin_stream_text_entry_workspace,
     link_useful_data_command_workspace, link_useful_data_workspace, link_useful_text_workspace,
     owned_data_api_workspace_return_admitted, package_scalar_type, stream_text_parameter_admitted,
-    stream_text_return_admitted, useful_data_workspace_parameter_admitted,
+    stream_text_return_admitted,stream_text_parameter_with_index,stream_text_return_with_index,validate_stream_text_program, useful_data_workspace_parameter_admitted,
     useful_data_workspace_return_admitted, LinkedScalarProjectParts, COPY_SCALAR_NAMES,
     PACKAGE_SCALAR_NAME,
 };

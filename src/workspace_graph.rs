@@ -1181,6 +1181,12 @@ impl WorkspaceGraphBuild {
             self.attach_project_agents(&mut linked)?;
             return Ok(linked);
         }
+        if profile == crate::project::ProjectProfile::StdinStreamTextCommandIoV1 {
+            let mut linked=self.linked_owned_data_api_program_with_roots(entry_module,&[])?;
+            hir::validate_stream_text_program(&linked,None).map_err(|e|vec![e])?;
+            self.attach_project_agents(&mut linked)?;
+            return Ok(linked);
+        }
         validate_entry_module(entry_module)?;
         let Some(entry_path) = self.hir.module_paths.get(entry_module).cloned() else {
             return Err(vec![graph_error(
@@ -1533,6 +1539,13 @@ impl WorkspaceGraphBuild {
     ) -> Result<hir::ResolvedProgram, Vec<Diagnostic>> {
         if profile.is_owned_api() {
             return self.linked_owned_data_api_program_with_roots(entry_module, additional_roots);
+        }
+        if profile == crate::project::ProjectProfile::StdinStreamTextCommandIoV1 {
+            if additional_roots.is_empty(){return self.linked_project_program(entry_module,profile,dependency_anchors);}
+            let [command]=additional_roots else{return Err(vec![graph_error("SPX-G172","stream text command must select exactly one explicit command")]);};
+            let linked=self.linked_owned_data_api_program_with_roots(entry_module,additional_roots)?;
+            hir::validate_stream_text_program(&linked,Some(&hir::DeclarationId::new(command))).map_err(|e|vec![e])?;
+            return Ok(linked);
         }
         let base = self.linked_project_program(entry_module, profile, dependency_anchors)?;
         if additional_roots.is_empty() {

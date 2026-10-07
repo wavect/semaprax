@@ -1734,7 +1734,7 @@ fn collect_expression_statuses(
                     continue;
                 }
                 if instance.is_none()
-                    && (crate::string_ops::by_id(callee.as_str()).is_some()
+                    && (crate::map_ops::by_id(callee.as_str()).is_some() || crate::string_ops::by_id(callee.as_str()).is_some()
                         || crate::str_ops::by_id(callee.as_str()).is_some()
                         || crate::vec_ops::by_id(callee.as_str()).is_some()
                         || crate::iterator_ops::by_id(callee.as_str()).is_some()
@@ -3487,7 +3487,9 @@ fn expression_skeleton(
                             .is_none()
                             .then(|| crate::box_ops::by_id(callee.as_str()))
                             .flatten();
-                        let params = if let Some(op) = string_intrinsic {
+                        let params = if instance.is_none() && crate::map_ops::by_id(callee.as_str()).is_some() {
+                            resolved_call_params(program,function,callee,None,type_arguments)?
+                        } else if let Some(op) = string_intrinsic {
                             crate::string_ops::resolved_params(op)
                         } else if let Some(op) = str_intrinsic {
                             crate::str_ops::resolved_params(op)

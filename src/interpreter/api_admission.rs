@@ -359,7 +359,7 @@ pub(super) fn resolved_data_parameter_is_admitted(
         | (ResolvedType::SliceU8, hir::OwnershipMode::Borrow)
         | (ResolvedType::ArrayU8(_), hir::OwnershipMode::Borrow) => true,
         (ty, hir::OwnershipMode::Own | hir::OwnershipMode::Borrow)
-            if owned_vec::is_collection_type(ty)
+            if crate::map_ops::is_collection(ty) || owned_vec::is_collection_type(ty)
                 || is_admitted_owned_byte_record(declarations, ty)
                 || is_admitted_owned_variant(declarations, ty) =>
         {
@@ -384,6 +384,7 @@ pub(super) fn resolved_data_result_is_admitted(
                 | ResolvedType::OnceFunctionI64Pair
                 | ResolvedType::MutFunctionI64
         )
+        || crate::map_ops::is_collection(ty)
         || owned_vec::is_collection_type(ty)
         || is_admitted_owned_byte_record(declarations, ty)
         || is_admitted_owned_variant(declarations, ty)

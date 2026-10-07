@@ -306,7 +306,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     ..
                 } => {
                     let vec_operation = crate::vec_ops::by_name(name);
-                    if !type_arguments.is_empty() && vec_operation.is_none() {
+                    if !type_arguments.is_empty() && vec_operation.is_none() && crate::map_ops::by_generic_name(name,type_arguments).is_none() {
                         self.diagnostics.push(error(
                             self.program,
                             "SPX-T252",

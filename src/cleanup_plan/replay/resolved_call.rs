@@ -290,6 +290,9 @@ pub(super) fn resolved_call_params(
                 })
                 .collect());
         }
+        if let Some(op) = crate::map_ops::by_id(callee.as_str()) {
+            return op.resolved_signature(type_arguments).map(|s|s.0).ok_or_else(||replay_error(function,"invalid typed collection replay signature"));
+        }
         if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
             return Ok(crate::string_ops::resolved_params(op));
         }
@@ -408,6 +411,7 @@ pub(super) fn defers_owner_commit(expression: &crate::hir::ResolvedExpr) -> bool
             || (callee.as_str() == crate::box_ops::NEW_ID
                 && matches!(type_arguments.as_slice(), [crate::hir::ResolvedType::Bytes]))
             // String Collections v1 map reopens fail before taking the map.
+            || crate::map_ops::by_id(callee.as_str()).is_some_and(|op|op.reopens())
             || crate::string_ops::by_id(callee.as_str())
                 .is_some_and(crate::string_ops::StringOp::reopens_map)
     )

@@ -432,6 +432,7 @@ pub(super) fn check_expr(
             fields,
             ..
         } => {
+            if matches!(type_name.as_str(),"Map"|"Set") {diagnostics.push(error(program,"SPX-T274","collections can only be created by map_new/set_new",expr.span));return None;}
             if type_name=="Iter" {diagnostics.push(error(program,"SPX-T290","Iter carriers can only be created by vec_into_iter",expr.span));return None;}
             let declaration = types.declaration(type_name);
             let instance = Type::Named {

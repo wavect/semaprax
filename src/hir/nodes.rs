@@ -207,7 +207,7 @@ impl ResolvedType {
                 | Self::OnceFunctionI64
                 | Self::OnceFunctionI64Pair
                 | Self::MutFunctionI64
-        )
+        ) || crate::map_ops::is_collection(self)
     }
     pub fn is_compiler_byte_option(&self) -> bool {
         matches!(

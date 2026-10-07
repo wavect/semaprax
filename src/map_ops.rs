@@ -176,7 +176,7 @@ pub(crate) fn validate_declarations(program:&crate::hir::ResolvedProgram)->Resul
         if !is_declaration(decl.id.as_str()) {continue}
         let set=decl.id.as_str()==SET_ID;
         let names: &[&str]=if set{&["K"]}else{&["K","V"]};
-        if decl.name!=if set{"Set"}else{"Map"} || decl.type_parameters.len()!=names.len()
+        if program.declarations.declaration(&decl.id).is_none_or(|d|d.identity_origin!=crate::hir::IdentityOrigin::CompilerOwned) || decl.name!=(if set{"Set"}else{"Map"}) || decl.type_parameters.len()!=names.len()
             || decl.type_parameters.iter().zip(names).enumerate().any(|(i,(p,n))|p.name!=*n||p.index!=i as u32)
             || !matches!(&decl.kind,crate::hir::ResolvedTypeDeclarationKind::Record{fields} if fields.is_empty()) {
             return Err(crate::diagnostic::Diagnostic::io("SPX-H006","compiler-owned collection declaration is not canonical"));
@@ -191,3 +191,6 @@ impl MapOp {
         Some(match self {Self::New=>S::MapNew,Self::Add=>S::MapAdd,Self::Set=>S::MapSet,Self::Remove=>S::MapRemove,Self::GetOr=>S::MapGetOr,Self::Has=>S::MapHas,Self::Len=>S::MapLen,Self::KeyAt=>S::MapKeyAt,Self::ValueAt=>S::MapValueAt,_=>return None})
     }
 }
+
+#[cfg(test)]
+mod tests;

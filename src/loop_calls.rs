@@ -22,8 +22,10 @@ pub(crate) fn ast_param_admitted(program: &Program, mode: ParamMode, ty: &Type) 
         ParamMode::Value => {
             ast_copy_variant(program, ty) || is_scalar_source_type(ty) || *ty == Type::String
         }
-        ParamMode::Own => *ty == Type::String,
-        ParamMode::Borrow => matches!(ty, Type::SliceU8 | Type::Str),
+        ParamMode::Own => *ty == Type::String || crate::map_ops::ast_collection(ty),
+        ParamMode::Borrow => {
+            matches!(ty, Type::SliceU8 | Type::Str) || crate::map_ops::ast_collection(ty)
+        }
         ParamMode::Shared => false,
     }
 }
@@ -44,7 +46,10 @@ pub(crate) fn effects_admitted(effects: &[String]) -> bool {
 
 /// One source result a loop-body call admits: a Copy scalar, flat Copy variant or new `string`.
 pub(crate) fn ast_result_admitted(program: &Program, ty: &Type) -> bool {
-    is_scalar_source_type(ty) || *ty == Type::String || ast_copy_variant(program, ty)
+    is_scalar_source_type(ty)
+        || *ty == Type::String
+        || ast_copy_variant(program, ty)
+        || crate::map_ops::ast_collection(ty)
 }
 
 /// The resolved twin of [`ast_param_admitted`].
@@ -59,8 +64,11 @@ pub(crate) fn resolved_param_admitted(
                 || *ty == ResolvedType::String
                 || resolved_match_scrutinee_admitted(declarations, ty)
         }
-        OwnershipMode::Own => *ty == ResolvedType::String,
-        OwnershipMode::Borrow => matches!(ty, ResolvedType::SliceU8 | ResolvedType::Str),
+        OwnershipMode::Own => *ty == ResolvedType::String || crate::map_ops::is_collection(ty),
+        OwnershipMode::Borrow => {
+            matches!(ty, ResolvedType::SliceU8 | ResolvedType::Str)
+                || crate::map_ops::is_collection(ty)
+        }
         OwnershipMode::Shared => false,
     }
 }
@@ -73,6 +81,7 @@ pub(crate) fn resolved_result_admitted(
     crate::hir::is_scalar_resolved_type(ty)
         || *ty == ResolvedType::String
         || resolved_match_scrutinee_admitted(declarations, ty)
+        || crate::map_ops::is_collection(ty)
 }
 
 /// Owned String Loops v2: a `match` in a loop body is cleanup-inert when its

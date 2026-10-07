@@ -25,7 +25,9 @@ impl PlanBuilder<'_> {
         } else if super::super::native_rust::owns(expression) {
             super::super::native_rust::params(self.program, callee)?
         } else if instance.is_none() {
-            if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
+            if let Some(op) = crate::map_ops::by_id(callee.as_str()) {
+                op.resolved_signature(type_arguments).ok_or_else(||plan_error("invalid typed collection cleanup signature"))?.0
+            } else if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
                 crate::string_ops::resolved_params(op)
             } else if let Some(op) = crate::str_ops::by_id(callee.as_str()) {
                 crate::str_ops::resolved_params(op)

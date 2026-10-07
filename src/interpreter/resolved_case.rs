@@ -48,15 +48,15 @@ impl ResolvedFunctionProfile {
                     .iter()
                     .filter(|function| {
                         function.effects.is_empty()
-                            && (function.return_type == ResolvedType::String
-                                || function.params.iter().any(|p| p.ty == ResolvedType::String))
-                            && hir::stream_text_return_admitted(&function.return_type)
+                            && (function.return_type == ResolvedType::String || crate::map_ops::is_collection(&function.return_type) || hir::owned_text_record::admitted(&function.return_type,&program.declarations)
+                                || function.params.iter().any(|p| p.ty == ResolvedType::String || crate::map_ops::is_collection(&p.ty) || hir::owned_text_record::admitted(&p.ty,&program.declarations)))
+                            && hir::stream_text_return_with_index(&function.return_type,&program.declarations)
                             && (!crate::stdin_stream_ops::is_reader(&function.return_type)
                                 || crate::stdin_stream_ops::resolved_forward_signature(function))
                             && function
                                 .params
                                 .iter()
-                                .all(hir::stream_text_parameter_admitted)
+                                .all(|p|hir::stream_text_parameter_with_index(p,&program.declarations))
                             && program
                                 .declarations
                                 .declaration(&function.id)

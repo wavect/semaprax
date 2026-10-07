@@ -8,8 +8,12 @@
       "round": 1,
       "semaprax_compiler": "main at f106fcebe (no text-processing work yet)",
       "semaprax": {
-        "turns": 76, "task_growth": 99661, "summed_input": 7315212, "summed_input_net_of_fixed": 4363904,
-        "usd_lower_bound": 1.9385, "completed": false,
+        "turns": 76,
+        "task_growth": 99661,
+        "summed_input": 7315212,
+        "summed_input_net_of_fixed": 4363904,
+        "usd_lower_bound": 1.9385,
+        "completed": false,
         "blockers": [
           "SPX-U105: a `let mut` binding holds only Copy scalars, so text cannot be accumulated",
           "SPX-T252: string literals and string-producing calls are not admitted in while bodies",
@@ -19,9 +23,48 @@
         ]
       },
       "typescript": {
-        "turns": 6, "task_growth": 22254, "summed_input": 336338, "summed_input_net_of_fixed": 104540,
-        "usd_lower_bound": 0.1988, "authored_tokens": 1540, "completed": true
+        "turns": 6,
+        "task_growth": 22254,
+        "summed_input": 336338,
+        "summed_input_net_of_fixed": 104540,
+        "usd_lower_bound": 0.1988,
+        "authored_tokens": 1540,
+        "completed": true
       }
+    },
+    {
+      "round": 2,
+      "semaprax_compiler": "Owned String Loops v1, Text Toolkit v1, String Collections v1, factored cleanup replay (main 2a7f21070)",
+      "semaprax": [
+        {
+          "turns": 19,
+          "task_growth": 60346,
+          "summed_input": 1577758,
+          "summed_input_net_of_fixed": 839703,
+          "usd_lower_bound": 0.6465,
+          "authored_tokens": 4252,
+          "completed": true,
+          "failed_checks": 4
+        },
+        {
+          "turns": 27,
+          "task_growth": 69064,
+          "summed_input": 2408926,
+          "summed_input_net_of_fixed": 1360111,
+          "usd_lower_bound": 0.8778,
+          "authored_tokens": 4307,
+          "completed": true,
+          "failed_checks": 6
+        }
+      ],
+      "remaining_friction": [
+        "SPX-T252: user functions with string parameters, and match, in while bodies",
+        "SPX-T270: arg_utf8 in while bodies",
+        "SPX-P106: if as a statement; casts",
+        "SPX-U105: string reassignment from a branch",
+        "SPX-O101/O107: string parameters consume their argument",
+        "no str to string conversion; project function signatures are scalar-only"
+      ]
     }
   ]
 }

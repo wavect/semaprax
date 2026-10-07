@@ -32,3 +32,21 @@ Here it is the whole task, and the core language cannot yet:
 
 Each of these is now an improvement target. The next rounds re-run the same
 spec as they land; see [results-live.json](results-live.json).
+
+## Round 2 (Owned String Loops, Text Toolkit, String Collections, factored replay)
+
+| | TypeScript | SEMAPRAX run 1 | SEMAPRAX run 2 |
+| --- | ---: | ---: | ---: |
+| Completed | yes | **yes** | **yes** |
+| Turns | 6 | 19 | 27 |
+| Net task input | 104,540 | 839,703 | 1,360,111 |
+| Estimated cost | $0.20 | $0.65 | $0.88 |
+| Authored tokens | 1,540 | 4,252 | 4,307 |
+
+SEMAPRAX can now write the whole program, and both goldens and every exit
+status pass. It still costs 3–4 times as much as TypeScript. The agents'
+failed checks name the next targets: user functions with string parameters,
+`match`, and `arg_utf8` inside loop bodies (`SPX-T252`, `SPX-T270`); `if`
+as a statement and casts (`SPX-P106`); string reassignment from a branch
+(`SPX-U105`); string parameters that consume their argument; and no `str`
+to `string` conversion.

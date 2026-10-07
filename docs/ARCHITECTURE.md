@@ -3653,3 +3653,7 @@ and its `runtime/toolkit.js` host extension. Checked output/status transport
 reuses canonical cleanup replay; the standalone opaque-token and aggregate
 owned-byte arenas remain separate trust boundaries. The toolkit Web source
 route uses the existing bounded snapshot/recheck/fresh-publication machinery.
+
+Runtime carrier type checking lives in `interpreter/value_types.rs`; it retains
+independent value/declaration checks and does not authorize source or HIR
+admission. Typed collection evaluation stays in `interpreter/map_collections.rs`.

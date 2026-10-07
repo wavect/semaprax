@@ -192,8 +192,16 @@ fn validate_runtime_value(
         | (ResolvedType::Bool, Value::Bool(_))
         | (ResolvedType::Bytes, Value::Bytes(_))
         | (ResolvedType::String, Value::String(_)) => Ok(()),
-        (ResolvedType::StringMap,Value::Map(map)) if !require_unique || Arc::strong_count(map)==1=>Ok(()),
-        (expected,Value::Collection(map)) if &map.ty==expected && (!require_unique || Arc::strong_count(map)==1)=>Ok(()),
+        (ResolvedType::StringMap, Value::Map(map))
+            if !require_unique || Arc::strong_count(map) == 1 =>
+        {
+            Ok(())
+        }
+        (expected, Value::Collection(map))
+            if &map.ty == expected && (!require_unique || Arc::strong_count(map) == 1) =>
+        {
+            Ok(())
+        }
         (ResolvedType::Nominal { .. }, Value::Record(record)) => {
             validate_runtime_record(declarations, expected, record, require_unique)
         }
@@ -500,7 +508,10 @@ fn classify_record(
     let mut profile = RecordProfile { has_bytes: false };
     while let Some(frame) = pending.pop() {
         match frame {
-            Frame::Enter(ty, _) if matches!(ty,ResolvedType::Bytes|ResolvedType::String)||crate::map_ops::is_collection(&ty)=>{
+            Frame::Enter(ty, _)
+                if matches!(ty, ResolvedType::Bytes | ResolvedType::String)
+                    || crate::map_ops::is_collection(&ty) =>
+            {
                 profile.has_bytes = true;
                 owned_leaves = owned_leaves.checked_add(1)?;
                 if owned_leaves > crate::cleanup::MAX_CLEANUP_OWNED_LEAVES {
@@ -647,12 +658,16 @@ fn pattern_is_exact(
             let Ok(declared_ty) = hir::substitute_type(&declared.ty, declaration, arguments) else {
                 return false;
             };
-            let owns = (matches!(declared_ty, ResolvedType::Bytes | ResolvedType::String)||crate::map_ops::is_collection(&declared_ty))
+            let owns = (matches!(declared_ty, ResolvedType::Bytes | ResolvedType::String)
+                || crate::map_ops::is_collection(&declared_ty))
                 || classify_record(declarations, &declared_ty)
                     .is_some_and(|profile| profile.has_bytes);
             match &field.pattern {
                 hir::ResolvedRecordMatchFieldPattern::Binding(binding) => {
-                    if owns && !(matches!(declared_ty, ResolvedType::Bytes | ResolvedType::String)||crate::map_ops::is_collection(&declared_ty)) {
+                    if owns
+                        && !(matches!(declared_ty, ResolvedType::Bytes | ResolvedType::String)
+                            || crate::map_ops::is_collection(&declared_ty))
+                    {
                         return false;
                     }
                     let ownership = if owns {
@@ -678,7 +693,8 @@ fn pattern_is_exact(
                     instance,
                     fields,
                 } => {
-                    if (matches!(declared_ty, ResolvedType::Bytes | ResolvedType::String)||crate::map_ops::is_collection(&declared_ty))
+                    if (matches!(declared_ty, ResolvedType::Bytes | ResolvedType::String)
+                        || crate::map_ops::is_collection(&declared_ty))
                         || classify_record(declarations, &declared_ty).is_none()
                     {
                         return false;
@@ -715,7 +731,9 @@ fn value_needs_drop(value: &Value) -> bool {
     let mut pending = vec![value];
     while let Some(value) = pending.pop() {
         match value {
-            Value::Bytes(_) | Value::String(_) | Value::Map(_) | Value::Collection(_) => return true,
+            Value::Bytes(_) | Value::String(_) | Value::Map(_) | Value::Collection(_) => {
+                return true
+            }
             Value::Record(record) => pending.extend(record.fields.values()),
             _ => {}
         }
@@ -735,8 +753,8 @@ fn borrow_alias(value: &Value) -> Result<Value, Flow> {
         Value::Bool(value) => Value::Bool(*value),
         Value::Bytes(value) => Value::Bytes(value.clone()),
         Value::String(value) => Value::String(value.clone()),
-        Value::Map(value)=>Value::Map(Arc::clone(value)),
-        Value::Collection(value)=>Value::Collection(Arc::clone(value)),
+        Value::Map(value) => Value::Map(Arc::clone(value)),
+        Value::Collection(value) => Value::Collection(Arc::clone(value)),
         Value::Record(value) => Value::Record(Arc::clone(value)),
         _ => {
             return Err(Flow::Guard(

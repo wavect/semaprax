@@ -2,9 +2,9 @@
 use super::*;
 
 const BODY: &str = r#"
-    let labels=make();
-    let labels=roundtrip(labels);
-    let labels=cut(labels);
+    let labels0=make();
+    let labels1=roundtrip(labels0);
+    let labels=cut(labels1);
     let text=read(labels);
     if string_len(text)==3 && map_len<i64,string>(labels)==1usize {0}else{1}
 "#;
@@ -26,9 +26,9 @@ permit {{ process.args.read, process.stderr.write, process.stdin.read, process.s
 @id("stream.command") fn command()->i64 uses {{ process.stdin.read, process.stdout.write }} {{
     let reader=stdin_stream_open();
     let empty=stdin_stream_eof(reader);
-    let labels=make();
-    let labels=roundtrip(labels);
-    let labels=cut(labels);
+    let labels0=make();
+    let labels1=roundtrip(labels0);
+    let labels=cut(labels1);
     let text=read(labels);
     let view=string_as_str(text);
     let written=stdout_write(str_as_bytes(view));
@@ -43,8 +43,8 @@ permit {{ process.args.read, process.stderr.write, process.stdin.read, process.s
     @id("labels.Bag.title") title:string,
 }
 @id("labels.make") fn make()->Map<i64,string> {
-    let labels=map_new<i64,string>(2usize);
-    let labels=map_set<i64,string>(labels,2,"tail");
+    let labels0=map_new<i64,string>(2usize);
+    let labels=map_set<i64,string>(labels0,2,"tail");
     map_set<i64,string>(labels,-1,"é\u{0}")
 }
 @id("labels.cut") fn cut(labels:own Map<i64,string>)->Map<i64,string> {

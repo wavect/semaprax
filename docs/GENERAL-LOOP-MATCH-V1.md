@@ -81,7 +81,7 @@ physical finalizer route. Loop source admission already excludes those trees.
 No parser/HIR node, carrier ABI, graph schema, CleanupPlan schema or effect is
 added. Existing Copy carrier semantics and Boolean/ScopeExit facts suffice.
 Programs composing whole String replacement use its independently
-validated v16/v67 wrapper; older profiles keep their existing meanings.
+validated v16/v68 wrapper; older profiles keep their existing meanings.
 
 ## Explicit standalone Wasm selection
 

@@ -28,10 +28,6 @@
   retaining ordinary identity/type/ownership checks and canonical cleanup.
   Author interpreter/native/Wasm settlement and refusal controls for repeated
   construction, nested String results, operand/guard failure and Vec traversal.
-- Author Whole String Replacement v1 with CleanupPlan v16/Graph v68, independently
-  replayed guarded old-owner release, consuming RHS calls and branch results,
-  an explicit private Wasm selector and focused settlement/refusal regressions.
-  Consolidated executable verification is pending.
 - Author the additive bounded monomorphic owned String record runtime lane:
   exact `own`/`borrow` parameters, results, constructors, immutable updates and
   destructuring reuse canonical String lifecycle leaves on interpreter, C11

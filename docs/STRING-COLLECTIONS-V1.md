@@ -2,6 +2,10 @@
 
 Audience: language users, agent authors, and compiler contributors.
 
+The additive [v2 profile](STRING-COLLECTIONS-V2.md) lifts the transport restriction
+and adds typed maps, sets and removal; its combined verification is pending.
+The historical v1 restrictions below describe its original admission.
+
 Status: Partial — implemented for the reference interpreter and generated C11
 (`run`, `run --native`, `build --target native`). Every Core Wasm lane refuses
 the family with one stable diagnostic (`SPX-W116`). It builds on

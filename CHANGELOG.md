@@ -1,5 +1,10 @@
 # Changelog
 
+- Author typed Map/Set transport, removal and deterministic closed key/value
+  operations, composing private Stream Text helpers and bounded record fields.
+  Prelude v13 extends sorting v12; focused execution and pin regeneration await
+  completion of the full OPT implementation batch.
+
 - Author per-iteration String condition lifetimes: condition-local owners settle
   before both Boolean outcomes, failures keep their ordinary sticky status,
   and source/HIR admission rejects surrounding ownership drift before the body.

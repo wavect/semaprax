@@ -1,5 +1,6 @@
 //! Versioned selection and private String helper admission over two modules.
 use super::*;
+mod collections;
 fn manifest() -> String {
     exit_manifest()
         .replace(PROJECT_SCHEMA_V24, PROJECT_SCHEMA_V25)

@@ -117,6 +117,9 @@ loop, a slice view must already exist, and `bytes_copy`, view construction,
 owned values, general variants, effects, imports, and cleanup-bearing work stay
 rejected. A dynamic index at or beyond the slice length selects `None` through
 the same target-independent semantics as a straight-line read.
+[Owned String Loops v2](OWNED-STRING-LOOPS-V2.md) subsequently widens the
+match surface to Copy scrutinees with ordinary guards and exhaustiveness;
+the byte-operation identity and ownership checks remain unchanged.
 
 `bytes_copy` copies the exact byte sequence, including embedded NUL and bytes
 that are not valid UTF-8. It never aliases its input. `str_as_bytes` preserves

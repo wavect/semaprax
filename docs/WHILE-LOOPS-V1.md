@@ -83,6 +83,9 @@ literals and compiler-owned `string_*` calls in loop bodies and the
 same-owner append `text = string_concat(text, more)`; a string value in a loop
 condition stays `SPX-T252`. The rest of this section describes the v1 scalar
 profile.
+[Owned String Loops v2](OWNED-STRING-LOOPS-V2.md) additionally admits user
+String calls and matches over Copy scalars or variants with only Copy scalar
+payloads, with ordinary exhaustiveness and guard checks.
 
 This restriction means admitted loops contribute **zero** new cleanup slots,
 transitions, or finalizers: the CleanupPlan v2/v3 schema set, the plan
@@ -113,6 +116,11 @@ or plan back-edge. Source resolution and hostile-HIR validation independently
 authenticate the byte-operation identity, exact carrier/member identities,
 field binding type, arm inventory, result type, and recursively admitted arm
 expressions before existing interpreter, native, or Wasm match lowering runs.
+
+The later [Owned String Loops v2](OWNED-STRING-LOOPS-V2.md) widens match
+admission beyond the original exact `byte_get` form. The original byte
+identity, type, ownership, and non-exhaustive hostile controls remain
+independently checked by general HIR validation.
 
 ## Cleanup-plan contract for loops
 

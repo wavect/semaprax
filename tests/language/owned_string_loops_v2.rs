@@ -1,5 +1,6 @@
 //! Owned String Loops v2: user functions with `string` parameters or results
-//! called in `while` and `for` bodies, executed on the reference interpreter,
+//! called in `while` and `for` bodies, plus Copy-scrutinee matches, executed
+//! on the reference interpreter,
 //! generated C11 with an allocation-counting harness, and the
 //! String-settling Core Wasm profile, plus the shapes that stay refused with
 //! stable diagnostics.
@@ -186,6 +187,56 @@ fn literal_contract() -> i64
     string_len(out)
 }
 
+@id("calls.scalar_match")
+fn scalar_match() -> i64
+{
+    let mut i = 0;
+    let mut out = "";
+    while match i { 0 | 1 | 2 => true, _ => false, } {
+        let piece = match i {
+            0 if weight("guard") == 5 => "ab",
+            1 => echo("c"),
+            _ => "def",
+        };
+        out = string_concat(out, piece);
+        i = i + 1;
+        0
+    }
+    string_len(out) * 10 + i
+}
+
+@id("calls.option_match")
+fn option_match() -> i64
+{
+    let selected = Option<i64>::Some { value: 7 };
+    let mut i = 0;
+    let mut total = 0;
+    while i < 4 {
+        total = total + match selected {
+            Option::Some { value: n } if n < 0 => 1000,
+            Option::Some { value: n } => n,
+            Option::None {} => 1000,
+        };
+        i = i + 1;
+        0
+    }
+    total + match selected { Option::Some { value: n } => n, Option::None {} => 1000, }
+}
+
+@id("calls.match_contract")
+fn match_contract() -> i64
+{
+    let mut i = 0;
+    let mut out = "";
+    while i < 10 {
+        let piece = match i { 0 => "kept", _ => wrap("late", i), };
+        out = string_concat(out, piece);
+        i = i + 1;
+        0
+    }
+    string_len(out)
+}
+
 @id("app.main")
 fn main() -> i64
 {
@@ -203,11 +254,18 @@ const CASES: &[(&str, &str)] = &[
     ("calls.traverse", "ok|17"),
     ("calls.literal", "ok|61"),
     ("calls.literal_contract", "semaprax.contract.v1|1"),
+    ("calls.scalar_match", "ok|63"),
+    ("calls.option_match", "ok|35"),
+    ("calls.match_contract", "semaprax.contract.v1|1"),
 ];
 
 /// The literal-only cases the String-settling Wasm profile admits; numeric
 /// text and Vec values stay outside that closed profile.
-const WASM_CASES: &[&str] = &["calls.literal", "calls.literal_contract"];
+const WASM_CASES: &[&str] = &[
+    "calls.literal",
+    "calls.literal_contract",
+    "calls.scalar_match",
+];
 
 fn command_available(command: &str) -> bool {
     Command::new(command).arg("--version").output().is_ok()
@@ -387,6 +445,31 @@ fn shapes_outside_owned_string_loops_v2_stay_refused() {
         found.iter().any(|diagnostic| diagnostic.code == "SPX-T252"
             && diagnostic.message
                 == "call `first` is not admitted in while bodies; only functions over scalars, byte slices and strings qualify"),
+        "{found:?}"
+    );
+}
+
+#[test]
+fn loop_matches_refuse_owned_scrutinees_and_outer_argument_moves() {
+    for mode in ["own", "borrow"] {
+        let source = format!(
+            "module test.loop_match_owned;\n@id(\"app.main\")\nfn main() -> i64\n{{\n    let selected = Option<string>::Some {{ value: \"owned\" }};\n    let mut i = 0;\n    while i < 2 {{\n        i = i + match {mode} selected {{ Option::Some {{ value: text }} => string_len(text), Option::None {{}} => 1, }};\n        0\n    }}\n    i\n}}\n"
+        );
+        let found = diagnostics(&source);
+        assert!(
+            found.iter().any(|diagnostic| diagnostic.code == "SPX-T252"
+                && diagnostic.message == "a match in a loop body needs a Copy scalar or a variant with only Copy scalar payloads; this one matches `Option<string>`, so match it before the loop"),
+            "{mode}: {found:?}"
+        );
+    }
+    let source = format!(
+        "{HELPERS}@id(\"app.main\")\nfn main() -> i64\n{{\n    let text = \"x\";\n    let mut i = 0;\n    while i < 2 {{\n        i = i + match i {{ 0 => weight(text), _ => 1, }};\n        0\n    }}\n    i\n}}\n"
+    );
+    let found = diagnostics(&source);
+    assert!(
+        found.iter().any(|diagnostic| diagnostic.code == "SPX-T252"
+            && diagnostic.message
+                == "ownership of `text` changes inside a while loop, which is not yet admitted"),
         "{found:?}"
     );
 }

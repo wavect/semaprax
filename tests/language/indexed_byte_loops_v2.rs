@@ -1,8 +1,8 @@
 //! Focused evidence for Indexed Byte Loop v2.
 //!
-//! The exact widening is one guard-free `Option<u8>` match over a direct
-//! compiler-owned `byte_get` call inside a bounded loop. Everything else
-//! remains rejected before backend emission.
+//! Preserves the original compiler-owned `byte_get` loop corpus as the
+//! broader Copy-scrutinee match profile is admitted. Malformed patterns,
+//! ownership, identity, and type forgeries remain rejected.
 
 use semaprax::hir::{
     self, DeclarationId, OwnershipMode, ResolvedExpr, ResolvedExprKind, ResolvedMatchPattern,
@@ -152,13 +152,13 @@ fn exact_indexed_byte_loop_is_canonical_graph_v17_and_legacy_bytes_stay_pinned()
 }
 
 #[test]
-fn malformed_general_or_effectful_loop_matches_are_exact_t252() {
+fn malformed_or_effectful_loop_matches_keep_their_semantic_diagnostics() {
     assert_rejected(
         &VALID.replace(
             "Option::Some { value: byte } =>",
             "Option::Some { value: byte } if byte == 255u8 =>",
         ),
-        "SPX-T252",
+        "SPX-M101",
     );
     assert_rejected(
         &VALID.replace("match byte_get(bytes, index)", "match Option<u8>::None {}"),
@@ -195,50 +195,31 @@ fn a_near_miss_indexed_match_says_which_detail_is_wrong() {
     assert_ne!(near_miss, VALID, "the near-miss substitution must apply");
     let program = parse(&near_miss, "indexed-byte-loop-near-miss.spx").unwrap();
 
-    let source_messages: Vec<String> = verify::verify(&program)
-        .into_iter()
-        .filter(|diagnostic| diagnostic.code == "SPX-T252")
-        .map(|diagnostic| diagnostic.message)
-        .collect();
-    let resolved_messages: Vec<String> = hir::resolve(&program)
-        .unwrap_err()
-        .into_iter()
-        .filter(|diagnostic| diagnostic.code == "SPX-T252")
-        .map(|diagnostic| diagnostic.message)
-        .collect();
-
-    // Both the source verifier and the resolver must say it, and say the
-    // same thing: they are differential twins, and a message that improves
-    // on one path only reintroduces the divergence this repository keeps
-    // paying for.
-    for (lane, messages) in [
-        ("source verifier", &source_messages),
-        ("resolver", &resolved_messages),
+    for (lane, diagnostics) in [
+        ("source verifier", verify::verify(&program)),
+        ("resolver", hir::resolve(&program).unwrap_err()),
     ] {
         assert!(
-            messages
+            diagnostics
                 .iter()
-                .any(|message| message.contains("rename the field to `value`")),
-            "{lane} did not name the wrong field: {messages:?}"
+                .any(|diagnostic| diagnostic.code == "SPX-M104"
+                    && diagnostic
+                        .message
+                        .contains("unknown or duplicate pattern field")),
+            "{lane} did not name the wrong field: {diagnostics:?}"
         );
         assert!(
-            !messages
+            diagnostics
                 .iter()
-                .any(|message| message == "match expressions are not yet admitted in while bodies"),
-            "{lane} still answers a near miss with the generic refusal: {messages:?}"
+                .all(|diagnostic| diagnostic.code != "SPX-T252"),
+            "{lane} treated a malformed pattern as loop admission: {diagnostics:?}"
         );
     }
 
-    // A match that is genuinely not the admitted shape still gets the
-    // generic message - the near-miss wording must not leak onto it.
+    // Matching Copy values is admitted, but constructing aggregate values
+    // during an iteration stays outside the bounded loop profile.
     let unrelated = VALID.replace("match byte_get(bytes, index)", "match Option<u8>::None {}");
-    let unrelated = parse(&unrelated, "indexed-byte-loop-unrelated.spx").unwrap();
-    assert!(hir::resolve(&unrelated)
-        .unwrap_err()
-        .into_iter()
-        .filter(|diagnostic| diagnostic.code == "SPX-T252")
-        .any(|diagnostic| diagnostic.message
-            == "match expressions are not yet admitted in while bodies"));
+    assert_rejected(&unrelated, "SPX-T252");
 }
 
 #[test]

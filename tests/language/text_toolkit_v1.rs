@@ -363,15 +363,16 @@ fn text_toolkit_misuse_has_stable_diagnostics() {
                 == "call to `file_read_text` requires effect `fs.read`; add it to `main`"),
         "{found:?}"
     );
-    // A while body admits a `string_to_i64` match only as the exact
-    // `Some { value }` / `None {}` pair; a near miss names the detail.
+    // A wrong payload field gets the ordinary pattern diagnostic inside
+    // a loop, just as it does outside one.
     let found = diagnostics(
         "    let mut i = 0;\n    let mut sum = 0;\n    while i < 2 {\n        sum = sum + match string_to_i64(\"4\") { Option::Some { v } => v, Option::None {} => 0, };\n        i = i + 1;\n        0\n    }\n    sum",
     );
     assert!(
-        found.iter().any(|diagnostic| diagnostic.code == "SPX-T252"
-            && diagnostic.message
-                == "a `string_to_i64` match in a while body must be exactly two unguarded arms, `Option::Some { value }` and `Option::None {}`; this one binds `Option::Some { v }` - rename the field to `value`"),
+        found.iter().any(|diagnostic| diagnostic.code == "SPX-M104"
+            && diagnostic
+                .message
+                .contains("unknown or duplicate pattern field")),
         "{found:?}"
     );
 }

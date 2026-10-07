@@ -89,13 +89,13 @@ The result is the compiler-owned `Option<i64>`. Match it directly:
 let value = match string_to_i64(field) { Option::Some { value: n } => n, Option::None {} => 0, };
 ```
 
-A `while` body admits this match only as the exact pair of unguarded arms
-`Option::Some { value }` and `Option::None {}` whose scrutinee is the
-`string_to_i64` call, the same rule as `byte_get` in Indexed Byte Loop v2
-(`SPX-T252` names the wrong detail of a near miss). The reference interpreter
-admits an `Option<i64>` match only with the call as scrutinee; binding the
-result first (`let o = string_to_i64(s);`) is outside its profile (`SPX-F102`),
-while native C accepts it.
+[Owned String Loops v2](OWNED-STRING-LOOPS-V2.md) admits a match over this
+Copy-payload variant in a loop body, including a named result and guarded
+arms with an exhaustive fallback. Pattern errors use ordinary match
+diagnostics (`SPX-M104` for an unknown payload field). Constructing a variant
+inside a loop remains outside the bounded profile. The ordinary reference
+interpreter profile retains its own carrier limits; admission in source and
+HIR does not widen a backend's declared profile.
 
 Independent matches in one function do not multiply its cleanup-replay cost:
 a field parser may test each field with its own `match` in one function.

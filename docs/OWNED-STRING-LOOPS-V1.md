@@ -6,7 +6,9 @@ Status: Partial — implemented for the reference interpreter, generated C11,
 and the String-settling Core Wasm profile (`--profile internal-strings-v1`).
 It widens [Bounded While-Loops v1](WHILE-LOOPS-V1.md) and
 [Explicit Mutation v1](EXPLICIT-MUTATION-V1.md); every shape outside this
-page keeps its earlier diagnostic.
+page keeps its earlier diagnostic. The additive
+[Owned String Loops v2](OWNED-STRING-LOOPS-V2.md) admits user String calls
+and Copy-scrutinee matches in loop bodies.
 
 ## Objective
 
@@ -100,14 +102,13 @@ while size < 1000 {
 | Whole replacement `text = "other"` | `SPX-U105` |
 | Owner not the first operand, `text = string_concat("p", text)` | `SPX-U105` |
 | A String value in a `while` condition | `SPX-T252` |
-| A user function with a `string` parameter or result called in a loop body | `SPX-T252` |
-| Consuming an outer `string` binding inside a loop body (`let t = outer;`, `string_concat(outer, …)`) | `SPX-H006` at the HIR trust boundary ("while loop body changes ownership liveness") |
+| Consuming an outer `string` binding inside a loop body (`let t = outer;`, `string_concat(outer, …)`) | `SPX-T252` (ownership changes inside a loop); malformed HIR still fails independently with `SPX-H006` |
 | `yield` in a function whose loop carries a `string` | `SPX-T303` |
 
 Whole replacement needs a release at the assignment, which v1 does not lower.
-The source verifier does not yet check `while` bodies for ownership drift, so
-the outer-binding move fails closed at HIR validation rather than with a
-source diagnostic.
+The source verifier checks each `while` body as an ordinary block and refuses
+ownership drift before HIR resolution. HIR validation independently requires
+body-exit liveness to equal loop-entry liveness.
 
 ## Backends
 
@@ -118,9 +119,9 @@ source diagnostic.
 | Core Wasm, `--profile internal-strings-v1` | The operand moves its carrier into the call epoch; the trusted runtime settles its arena after every call, so a leaked or twice-released owner poisons the instance. Numeric text (`string_from_i64`) stays outside this profile (`SPX-W116`), as before. |
 | Legacy scalar Web/Wasm packages | Unchanged; they still refuse String programs (`SPX-W116`). |
 
-Pre-existing limits are unchanged: the reference interpreter refuses user
-functions with `string` signatures (`SPX-F102`), and native C refuses an
-`if` expression that yields a `string` (`SPX-B104`), inside or outside loops.
+The ordinary scalar interpreter profile refuses user functions with `string`
+signatures (`SPX-F102`); `run` can select the internal String profile for
+these programs. Numeric text stays outside the String-settling Wasm profile.
 
 ## Evidence
 

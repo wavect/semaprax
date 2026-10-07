@@ -9,8 +9,11 @@ and TeamDesk browser application.
 `SPEC.md` freezes the behavior. Both language arms receive the same task prompt
 and the same specification. `acceptance/corpus.json` is the shared test corpus;
 `oracle.py` generates its expected reports. It currently contains 11 valid and
-4 invalid cases (15 total). Live results belong in `results-live.json` after
-matched runs are collected.
+4 invalid cases (15 total). The interrupted first live campaign and its
+normalized per-attempt evidence are documented in
+[`round1-report.md`](round1-report.md) and [`results-live.json`](results-live.json).
+That campaign did not complete its matched sample and supports no comparative
+headline.
 
 The campaign defaults to preflight-only reporting. A scored run requires a
 reviewed qualification-evidence JSON file that binds the exact SPEC and

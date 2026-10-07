@@ -17,9 +17,12 @@ from pathlib import Path
 from statistics import mean, median
 from typing import Any
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from oracle import analyse as oracle_analyse
 from oracle import json_line as oracle_json_line
 from oracle import text as oracle_text
+
+import live_campaign_common as shared
 
 BENCHMARK = Path(__file__).resolve().parent
 REPO = BENCHMARK.parents[1]
@@ -76,154 +79,26 @@ CALIBRATION_PROMPT = (
 
 
 def digest(path: Path) -> str:
-    value = hashlib.sha256()
-    with path.open("rb") as source:
-        for chunk in iter(lambda: source.read(1024 * 1024), b""):
-            value.update(chunk)
-    return value.hexdigest()
+    return shared.digest(path)
 
 
 def archive_candidate(candidate: Path, archive: Path) -> tuple[dict[str, str], list[str]]:
-    """Copy a rebuildable candidate while excluding only known dependency/cache dirs."""
-    excluded_paths: list[str] = []
-
-    def ignore(directory: str, names: list[str]) -> set[str]:
-        ignored = set()
-        for name in names:
-            path = Path(directory) / name
-            if name in ARCHIVE_EXCLUDED_DIRS and (path.is_dir() or path.is_symlink()):
-                excluded_paths.append(path.relative_to(candidate).as_posix())
-                ignored.add(name)
-        return ignored
-
-    if candidate.exists():
-        shutil.copytree(candidate, archive, ignore=ignore)
-    else:
-        archive.mkdir(parents=True)
-    files_sha256 = {
-        str(path.relative_to(archive)): digest(path)
-        for path in sorted(archive.rglob("*")) if path.is_file()
-    }
-    return files_sha256, sorted(excluded_paths)
+    return shared.archive_candidate(candidate, archive)
 
 
 def tokenizer_metadata(tokenizer_dir: str | Path | None) -> dict[str, Any] | None:
-    if tokenizer_dir is None:
-        return None
-    root = Path(tokenizer_dir).expanduser().resolve(strict=True)
-    package_root = root / "node_modules" / "@anthropic-ai" / "tokenizer"
-    tiktoken_root = root / "node_modules" / "tiktoken"
-    package_json = package_root / "package.json"
-    tiktoken_json = tiktoken_root / "package.json"
-    if not root.is_dir() or not package_json.is_file() or not tiktoken_json.is_file():
-        raise ValueError("tokenizer-dir must contain @anthropic-ai/tokenizer and its tiktoken dependency")
-    package = json.loads(package_json.read_text(encoding="utf-8"))
-    tiktoken = json.loads(tiktoken_json.read_text(encoding="utf-8"))
-    if package.get("name") != TOKENIZER_PACKAGE or package.get("version") != TOKENIZER_VERSION:
-        raise ValueError(f"tokenizer-dir must contain {TOKENIZER_PACKAGE}@{TOKENIZER_VERSION}")
-    node = shutil.which("node")
-    if not node:
-        raise ValueError("Node.js is required to use tokenizer-dir")
-    node_version = subprocess.run([node, "--version"], text=True, capture_output=True, check=False)
-    fingerprint = hashlib.sha256()
-    for name, directory in (("anthropic-tokenizer", package_root), ("tiktoken", tiktoken_root)):
-        for path in sorted(p for p in directory.rglob("*") if p.is_file() and not p.is_symlink()):
-            relative = f"{name}/{path.relative_to(directory).as_posix()}"
-            fingerprint.update(relative.encode("utf-8") + b"\0")
-            with path.open("rb") as source:
-                for chunk in iter(lambda: source.read(1024 * 1024), b""):
-                    fingerprint.update(chunk)
-    return {
-        "package": TOKENIZER_PACKAGE,
-        "version": package.get("version"),
-        "dependency": "tiktoken",
-        "dependency_version": tiktoken.get("version"),
-        "encoding_identity": TOKENIZER_ENCODING,
-        "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
-        "runtime": "node",
-        "runtime_version": node_version.stdout.strip() if node_version.returncode == 0 else None,
-        "tokenizer_dir": str(root),
-        "fingerprint_sha256": fingerprint.hexdigest(),
-    }
+    return shared.tokenizer_metadata(tokenizer_dir)
 
 
-TOKENIZE_SCRIPT = r"""
-const fs = require('node:fs');
-const path = require('node:path');
-const { createRequire } = require('node:module');
-const root = process.argv[1];
-const fromRoot = createRequire(path.join(root, '__codex_tokenizer__.js'));
-const pkg = fromRoot('@anthropic-ai/tokenizer/package.json');
-const { countTokens } = fromRoot('@anthropic-ai/tokenizer');
-const request = JSON.parse(fs.readFileSync(0, 'utf8'));
-const counts = request.map(file => ({path: file.path, tokens: countTokens(file.content)}));
-process.stdout.write(JSON.stringify({version: pkg.version, counts}) + '\n');
-"""
+TOKENIZE_SCRIPT = shared.TOKENIZE_SCRIPT
 
 
 def tokenize_texts(texts: list[dict[str, str]], metadata: dict[str, Any]) -> list[int]:
-    completed = subprocess.run(
-        [shutil.which("node") or "node", "-e", TOKENIZE_SCRIPT, metadata["tokenizer_dir"]],
-        input=json.dumps(texts, ensure_ascii=False),
-        text=True,
-        capture_output=True,
-        check=False,
-        env={"PATH": os.environ.get("PATH", "")},
-        timeout=60,
-    )
-    if completed.returncode != 0:
-        raise RuntimeError(f"offline tokenizer failed: {bounded_text(completed.stderr)}")
-    response = json.loads(completed.stdout)
-    if response.get("version") != metadata["version"]:
-        raise RuntimeError("tokenizer runtime version differs from pinned metadata")
-    counts = response.get("counts")
-    if not isinstance(counts, list) or len(counts) != len(texts):
-        raise RuntimeError("offline tokenizer returned a malformed count list")
-    values = [item.get("tokens") for item in counts]
-    if not all(isinstance(value, int) and value >= 0 for value in values):
-        raise RuntimeError("offline tokenizer returned invalid token counts")
-    return values
+    return shared.tokenize_texts(texts, metadata)
 
 
 def authored_source_metrics(candidate: Path, metadata: dict[str, Any] | None) -> dict[str, Any]:
-    if metadata is None:
-        return {"status": "unmeasured", "total_tokens": None, "files": [], "tokenizer": None}
-    files = []
-    for path in sorted(candidate.rglob("*")):
-        relative = path.relative_to(candidate)
-        if not path.is_file() or path.is_symlink():
-            continue
-        if any(part in AUTHORED_EXCLUDED_DIRS for part in relative.parts[:-1]):
-            continue
-        if path.suffix.lower() not in AUTHORED_SUFFIXES and path.name not in AUTHORED_SPECIAL_NAMES:
-            continue
-        if path.suffix.lower() in {".c", ".h"}:
-            continue
-        # Exclude transpiled JavaScript beside its TypeScript source; authored
-        # standalone JavaScript tools remain part of the source inventory.
-        if path.suffix.lower() in {".js", ".mjs", ".cjs"} and any(
-            path.with_suffix(suffix).is_file() for suffix in (".ts", ".tsx")
-        ):
-            continue
-        content = path.read_text(encoding="utf-8")
-        files.append({
-            "path": relative.as_posix(),
-            "content": content,
-            "bytes": path.stat().st_size,
-            "sha256": digest(path),
-        })
-    counts = tokenize_texts([{"path": row["path"], "content": row.pop("content")} for row in files], metadata)
-    for row, count in zip(files, counts):
-        row["tokens"] = count
-    return {
-        "status": "measured_proxy",
-        "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
-        "total_tokens": sum(counts),
-        "files": files,
-        "excluded_directories": sorted(AUTHORED_EXCLUDED_DIRS),
-        "excluded_generated_extensions": [".c", ".h", "non-text/binary files"],
-        "tokenizer": metadata,
-    }
+    return shared.authored_source_metrics(candidate, metadata)
 
 
 def resolve_commit(repo: Path, ref: str) -> str:
@@ -239,57 +114,8 @@ def resolve_commit(repo: Path, ref: str) -> str:
     return result.stdout.strip()
 
 
-def create_seed_repository(
-    source_repo: Path, source_commit: str, seed_repo: Path,
-) -> dict[str, Any]:
-    """Export only the two benchmark inputs into a new repository with no shared objects."""
-    expected = [path.lstrip("/") for path in SEED_FILES]
-    seed_repo.mkdir(parents=True)
-    source_bytes: dict[str, bytes] = {}
-    for relative in expected:
-        exported = subprocess.run(
-            ["git", "show", f"{source_commit}:{relative}"],
-            cwd=source_repo, capture_output=True, check=False,
-        )
-        if exported.returncode:
-            raise ValueError(f"pinned commit does not contain required benchmark file: {relative}")
-        source_bytes[relative] = exported.stdout
-
-    def git(*arguments: str) -> str:
-        result = subprocess.run(
-            ["git", *arguments], cwd=seed_repo, text=True, capture_output=True, check=False,
-        )
-        if result.returncode:
-            raise RuntimeError(f"seed repository git {arguments[0]} failed: {bounded_text(result.stderr)}")
-        return result.stdout.strip()
-
-    git("init", "--quiet", "--template=")
-    source_hashes = {}
-    for relative, content in source_bytes.items():
-        path = seed_repo / relative
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(content)
-        source_hashes[relative] = hashlib.sha256(content).hexdigest()
-    git("add", "--", *expected)
-    commit_result = subprocess.run(
-        ["git", "-c", "user.name=SEMAPRAX Benchmark", "-c", "user.email=benchmark@example.invalid",
-         "-c", "commit.gpgsign=false", "commit", "--quiet", "-m", "Pinned public benchmark inputs"],
-        cwd=seed_repo, text=True, capture_output=True, check=False,
-    )
-    if commit_result.returncode:
-        raise RuntimeError(f"seed repository commit failed: {bounded_text(commit_result.stderr)}")
-    seed_commit = git("rev-parse", "HEAD")
-    tree_files = git("ls-tree", "-r", "--name-only", "HEAD").splitlines()
-    parents = git("rev-list", "--parents", "-n", "1", "HEAD").split()
-    if tree_files != expected or parents != [seed_commit]:
-        raise RuntimeError("fresh seed repository contains unexpected files or commit history")
-    return {
-        "source_repository_commit": source_commit,
-        "source_files_sha256": source_hashes,
-        "seed_repository_commit": seed_commit,
-        "seed_files_sha256": source_hashes,
-        "seed_repository": str(seed_repo),
-    }
+def create_seed_repository(source_repo: Path, source_commit: str, seed_repo: Path) -> dict[str, Any]:
+    return shared.create_seed_repository(source_repo, source_commit, seed_repo, SEED_FILES)
 
 
 def sha_text(value: str) -> str:
@@ -395,223 +221,23 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def _usage_values(usage: Any) -> dict[str, int | None]:
-    if not isinstance(usage, dict):
-        return {name: None for name in ALL_USAGE_FIELDS}
-    aliases = {
-        "input_tokens": ("input_tokens", "inputTokens"),
-        "cache_creation_input_tokens": ("cache_creation_input_tokens", "cacheCreationInputTokens"),
-        "cache_read_input_tokens": ("cache_read_input_tokens", "cacheReadInputTokens"),
-        "output_tokens": ("output_tokens", "outputTokens"),
-        "cache_creation_ephemeral_5m_input_tokens": (
-            "cache_creation_ephemeral_5m_input_tokens", "ephemeral_5m_input_tokens",
-            "ephemeral5mInputTokens",
-        ),
-        "cache_creation_ephemeral_1h_input_tokens": (
-            "cache_creation_ephemeral_1h_input_tokens", "ephemeral_1h_input_tokens",
-            "ephemeral1hInputTokens",
-        ),
-    }
-    values = {field: next((usage[key] for key in keys if key in usage), None) for field, keys in aliases.items()}
-    cache_creation = usage.get("cache_creation", usage.get("cacheCreation"))
-    if isinstance(cache_creation, dict):
-        for field, key in (
-            ("cache_creation_ephemeral_5m_input_tokens", "ephemeral_5m_input_tokens"),
-            ("cache_creation_ephemeral_1h_input_tokens", "ephemeral_1h_input_tokens"),
-        ):
-            if values[field] is None and key in cache_creation:
-                values[field] = cache_creation[key]
-    return {
-        name: int(values[name])
-        if isinstance(values[name], int) and not isinstance(values[name], bool) and values[name] >= 0
-        else None
-        for name in ALL_USAGE_FIELDS
-    }
+    return shared._usage_values(usage)
 
 
 def _sum_usage(rows: list[dict[str, int | None]]) -> dict[str, int | None]:
-    result: dict[str, int | None] = {}
-    for name in ALL_USAGE_FIELDS:
-        values = [row.get(name) for row in rows if row.get(name) is not None]
-        result[name] = sum(values) if values else None
-    return result
+    return shared._sum_usage(rows)
 
 
 def stream_usage(path: Path) -> dict[str, Any]:
-    usage_by_id: dict[str, dict[str, int | None]] = {}
-    updates_per_id: dict[str, int] = {}
-    text_by_id: dict[str, str] = {}
-    tool_use_ids: set[str] = set()
-    tool_use_without_id = 0
-    message_models: set[str] = set()
-    model_usage_models: set[str] = set()
-    visible_output = ""
-    observed_result: dict[str, Any] | None = None
-    invalid_lines = 0
-    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
-        try:
-            event = json.loads(line)
-        except json.JSONDecodeError:
-            invalid_lines += 1
-            continue
-        if not isinstance(event, dict):
-            continue
-        if event.get("type") == "assistant":
-            message = event.get("message")
-            if isinstance(message, dict):
-                if isinstance(message.get("model"), str):
-                    message_models.add(message["model"])
-                usage = message.get("usage")
-                identity = message.get("id")
-                if isinstance(usage, dict) and isinstance(identity, str):
-                    parsed = _usage_values(usage)
-                    previous = usage_by_id.get(identity, {name: None for name in USAGE_FIELDS})
-                    usage_by_id[identity] = {
-                        name: parsed[name] if parsed[name] is not None else previous[name]
-                        for name in USAGE_FIELDS
-                    }
-                    updates_per_id[identity] = updates_per_id.get(identity, 0) + 1
-                message_text = ""
-                for block in message.get("content", []):
-                    if isinstance(block, dict):
-                        if block.get("type") == "text":
-                            message_text += str(block.get("text", "")) + "\n"
-                        elif block.get("type") == "tool_use":
-                            block_id = block.get("id")
-                            if isinstance(block_id, str):
-                                tool_use_ids.add(block_id)
-                            else:
-                                tool_use_without_id += 1
-                if isinstance(identity, str):
-                    text_by_id[identity] = message_text
-                else:
-                    visible_output += message_text
-        if event.get("type") == "result":
-            observed_result = event
-            model_usage = event.get("modelUsage")
-            if isinstance(model_usage, dict):
-                model_usage_models.update(str(model) for model in model_usage)
-
-    deduplicated_turn_usage = list(usage_by_id.values())
-    totals = _sum_usage(deduplicated_turn_usage)
-    legacy_net = legacy_net_input_metrics(deduplicated_turn_usage)
-    first = next(iter(usage_by_id.values()), {name: None for name in ALL_USAGE_FIELDS})
-    final_usage: dict[str, int | None] | None = None
-    provider_result_usage: dict[str, int | None] | None = None
-    if isinstance(observed_result, dict):
-        provider_result_usage = _usage_values(observed_result.get("usage"))
-        if any(value is not None for value in provider_result_usage.values()):
-            final_usage = provider_result_usage
-        model_usage = observed_result.get("modelUsage")
-        if isinstance(model_usage, dict):
-            for concrete_model in (MODEL, *sorted(model_usage)):
-                candidate = model_usage.get(concrete_model)
-                parsed = _usage_values(candidate)
-                if any(value is not None for value in parsed.values()):
-                    final_usage = parsed
-                    break
-        if final_usage is not None and provider_result_usage is not None:
-            # Claude's modelUsage summary omits the 5m/1h TTL split. Retain
-            # the provider's detailed top-level buckets after selecting its
-            # model-specific totals; inconsistent totals are rejected by the
-            # cache pricing check instead of silently falling back to 5m.
-            for field in (
-                "cache_creation_ephemeral_5m_input_tokens",
-                "cache_creation_ephemeral_1h_input_tokens",
-            ):
-                if provider_result_usage[field] is not None:
-                    final_usage[field] = provider_result_usage[field]
-    discrepancies = {}
-    if final_usage is not None:
-        for name in ALL_USAGE_FIELDS:
-            turn_sum = totals[name]
-            final_value = final_usage[name]
-            if turn_sum is not None and final_value is not None and turn_sum != final_value:
-                discrepancies[name] = {"per_turn_sum": turn_sum, "final_result": final_value}
-        totals = {
-            name: final_usage[name] if final_usage[name] is not None else totals[name]
-            for name in ALL_USAGE_FIELDS
-        }
-    provider_cost = observed_result.get("total_cost_usd") if isinstance(observed_result, dict) else None
-    if (
-        isinstance(provider_cost, bool)
-        or not isinstance(provider_cost, (int, float))
-        or not math.isfinite(provider_cost)
-        or provider_cost < 0
-    ):
-        provider_cost = None
-    return {
-        "models_observed": sorted(message_models or model_usage_models),
-        "assistant_message_models_observed": sorted(message_models),
-        "model_usage_keys_observed": sorted(model_usage_models),
-        "turns_with_usage": len(usage_by_id),
-        "legacy_net_input": legacy_net,
-        "legacy_net_input_definition": (
-            "sum of deduplicated per-turn input/cache-write/cache-read minus first-turn input/cache total multiplied by turn count; "
-            "reproduces historical operational convention, not task-only model input"
-        ),
-        "usage": totals,
-        "usage_totals_source": "final_result_with_per_turn_fallback" if final_usage else "per_turn_deduplicated",
-        "provider_reported_api_equivalent_total_cost_usd": provider_cost,
-        "provider_reported_api_equivalent_cost_note": (
-            "result.total_cost_usd from the provider stream, when supplied; not a receipt or account-billed amount"
-        ),
-        "usage_updates_per_message": updates_per_id,
-        "usage_discrepancies": discrepancies,
-        "first_turn_usage": first,
-        "fixed_context_tokens_in_this_session": None,
-        "fixed_context_note": "Not isolated within this transcript; the campaign-level matched calibration provides a separate proxy.",
-        "visible_output_bytes": len((visible_output + "".join(text_by_id.values())).encode("utf-8")),
-        "tool_use_events": len(tool_use_ids) + tool_use_without_id,
-        "provider_output_tokens": totals["output_tokens"],
-        "result_event": observed_result,
-        "invalid_stream_lines": invalid_lines,
-    }
+    return shared.stream_usage(path, MODEL)
 
 
 def cache_write_pricing(usage: dict[str, int | None]) -> dict[str, Any]:
-    total = usage.get("cache_creation_input_tokens")
-    five = usage.get("cache_creation_ephemeral_5m_input_tokens")
-    one_hour = usage.get("cache_creation_ephemeral_1h_input_tokens")
-    if total is None and five is not None and one_hour is not None:
-        total = five + one_hour
-    if total is None:
-        return {"basis": "unavailable", "five_minute_tokens": None, "one_hour_tokens": None}
-    if five is not None and one_hour is not None:
-        if five + one_hour != total:
-            return {"basis": "inconsistent_provider_ttl_breakdown", "five_minute_tokens": five,
-                    "one_hour_tokens": one_hour}
-        return {"basis": "provider_ttl_breakdown", "five_minute_tokens": five,
-                "one_hour_tokens": one_hour}
-    if five is not None:
-        if five > total:
-            return {"basis": "inconsistent_provider_ttl_breakdown", "five_minute_tokens": five,
-                    "one_hour_tokens": None}
-        return {"basis": "provider_ttl_breakdown_and_total", "five_minute_tokens": five,
-                "one_hour_tokens": total - five}
-    if one_hour is not None:
-        if one_hour > total:
-            return {"basis": "inconsistent_provider_ttl_breakdown", "five_minute_tokens": None,
-                    "one_hour_tokens": one_hour}
-        return {"basis": "provider_ttl_breakdown_and_total", "five_minute_tokens": total - one_hour,
-                "one_hour_tokens": one_hour}
-    return {"basis": "assumed_all_cache_writes_5m", "five_minute_tokens": total,
-            "one_hour_tokens": 0}
+    return shared.cache_write_pricing(usage)
 
 
 def rate_card_estimate_details(usage: dict[str, int | None]) -> dict[str, Any]:
-    cache_write = cache_write_pricing(usage)
-    required = ("input_tokens", "cache_read_input_tokens", "output_tokens")
-    cache_write_known = cache_write["basis"] not in {"unavailable", "inconsistent_provider_ttl_breakdown"}
-    if not all(usage.get(key) is not None for key in required) or not cache_write_known:
-        return {"usd": None, "cache_write_pricing": cache_write}
-    amount = (
-        usage["input_tokens"] * PRICE_USD_PER_MTOK["input"]
-        + cache_write["five_minute_tokens"] * PRICE_USD_PER_MTOK["cache_write_5m"]
-        + cache_write["one_hour_tokens"] * PRICE_USD_PER_MTOK["cache_write_1h"]
-        + usage["cache_read_input_tokens"] * PRICE_USD_PER_MTOK["cache_read"]
-        + usage["output_tokens"] * PRICE_USD_PER_MTOK["output"]
-    ) / 1_000_000
-    return {"usd": round(amount, 6), "cache_write_pricing": cache_write}
+    return shared.rate_card_estimate_details(usage)
 
 
 def rate_card_estimate(usage: dict[str, int | None]) -> float | None:
@@ -619,45 +245,19 @@ def rate_card_estimate(usage: dict[str, int | None]) -> float | None:
 
 
 def save_json(path: Path, value: Any) -> None:
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(json.dumps(value, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    tmp.replace(path)
+    shared.save_json(path, value)
 
 
 def input_tokens_total(usage: dict[str, int | None]) -> int | None:
-    fields = USAGE_FIELDS[:3]
-    values = [usage.get(field) for field in fields]
-    return sum(values) if all(value is not None for value in values) else None
+    return shared.input_tokens_total(usage)
 
 
 def legacy_net_input_metrics(turn_usage: list[dict[str, int | None]]) -> dict[str, int | None]:
-    """Reproduce prior reports: subtract first-turn input/cache once per turn."""
-    baseline = input_tokens_total(turn_usage[0]) if turn_usage else None
-    required_fields = USAGE_FIELDS[:3]
-    complete = bool(turn_usage) and all(
-        all(turn.get(field) is not None for field in required_fields)
-        for turn in turn_usage
-    )
-    per_turn_sum = (
-        sum(sum(turn[field] for field in required_fields) for turn in turn_usage)
-        if complete else None
-    )
-    baseline_subtotal = baseline * len(turn_usage) if baseline is not None else None
-    net = (
-        per_turn_sum - baseline_subtotal
-        if per_turn_sum is not None and baseline_subtotal is not None else None
-    )
-    return {
-        "first_turn_input_plus_cache_tokens": baseline,
-        "per_turn_input_plus_cache_tokens_sum": per_turn_sum,
-        "baseline_tokens_subtracted": baseline_subtotal,
-        "net_input_tokens": net,
-    }
+    return shared.legacy_net_input_metrics(turn_usage)
 
 
 def observed_model_matches(observed: Any, expected_observed_id: Any) -> bool:
-    """Require one unique message model, matched to calibration's observed id."""
-    return isinstance(expected_observed_id, str) and observed == [expected_observed_id]
+    return shared.observed_model_matches(observed, expected_observed_id)
 
 
 def one_turn_context_proxy(
@@ -670,21 +270,7 @@ def one_turn_context_proxy(
 
 
 def claude_command(settings: dict[str, Any], prompt: str) -> list[str]:
-    command = [
-        "claude", "--print", "--output-format", "stream-json", "--verbose",
-        "--model", settings["model"], "--effort", settings["effort"],
-        "--no-session-persistence", "--permission-mode", "acceptEdits",
-        "--permission-prompts", "none", "--restricted", "--strict-mcp-config",
-        "--tools", "Bash,Read,Edit,Write,Glob,Grep",
-        "--allowedTools", "Bash,Read,Edit,Write,Glob,Grep",
-    ]
-    if settings.get("max_budget_usd") is not None:
-        command.extend(["--max-budget-usd", str(settings["max_budget_usd"])])
-    # --allowedTools accepts a variable-length option list in Claude Code.
-    # End option parsing explicitly so the positional prompt cannot be
-    # consumed as another tool name.
-    command.extend(["--", prompt])
-    return command
+    return shared.claude_command(settings, prompt)
 
 
 def trial_environment(semaprax_bin: Path) -> dict[str, str]:
@@ -695,59 +281,11 @@ def trial_environment(semaprax_bin: Path) -> dict[str, str]:
 
 
 def add_seed_worktree(seed_repo: Path, workspace: Path, seed_commit: str) -> str | None:
-    added = subprocess.run(
-        ["git", "worktree", "add", "--detach", str(workspace), seed_commit],
-        cwd=seed_repo, text=True, capture_output=True, check=False,
-    )
-    if added.returncode:
-        return f"worktree creation failed: {bounded_text(added.stderr)}"
-    tracked = subprocess.run(
-        ["git", "ls-files"], cwd=workspace,
-        text=True, capture_output=True, check=False,
-    )
-    if tracked.returncode:
-        return f"minimal seed inventory check failed: {bounded_text(tracked.stderr)}"
-    visible = sorted(
-        str(path.relative_to(workspace))
-        for path in workspace.rglob("*")
-        if path.is_file() and ".git" not in path.parts
-    )
-    expected = sorted(path.lstrip("/") for path in SEED_FILES)
-    tracked_paths = sorted(tracked.stdout.splitlines())
-    return None if visible == expected and tracked_paths == expected else (
-        f"minimal seed checkout exposed unexpected files: visible={visible}, tracked={tracked_paths}"
-    )
+    return shared.add_seed_worktree(seed_repo, workspace, seed_commit, SEED_FILES)
 
 
-def run_claude(
-    command: list[str], workspace: Path, env: dict[str, str],
-    stream_path: Path, stderr_path: Path, timeout_seconds: int,
-) -> dict[str, Any]:
-    started = time.monotonic()
-    timed_out = False
-    try:
-        with stream_path.open("wb") as output, stderr_path.open("wb") as errors:
-            process = subprocess.Popen(command, cwd=workspace, stdout=output, stderr=errors, env=env)
-            try:
-                exit_code = process.wait(timeout=timeout_seconds)
-            except subprocess.TimeoutExpired:
-                timed_out = True
-                process.terminate()
-                try:
-                    exit_code = process.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    process.kill()
-                    exit_code = process.wait()
-        failure = None
-    except OSError as error:
-        exit_code = None
-        failure = str(error)
-    return {
-        "process_exit_code": exit_code,
-        "timed_out": timed_out,
-        "elapsed_seconds": round(time.monotonic() - started, 3),
-        "failure": failure,
-    }
+def run_claude(command: list[str], workspace: Path, env: dict[str, str], stream_path: Path, stderr_path: Path, timeout_seconds: int) -> dict[str, Any]:
+    return shared.run_claude(command, workspace, env, stream_path, stderr_path, timeout_seconds)
 
 
 def launch_calibration(
@@ -848,11 +386,7 @@ def launch_calibration(
 
 
 def bounded_text(value: bytes | str) -> str:
-    if isinstance(value, bytes):
-        value = value.decode("utf-8", errors="replace")
-    if len(value.encode("utf-8")) > MAX_LOG_BYTES:
-        value = value[:MAX_LOG_BYTES] + "\n[truncated by campaign harness]\n"
-    return value
+    return shared.bounded_text(value)
 
 
 def check_program(

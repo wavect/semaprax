@@ -32,6 +32,7 @@ mod indexed_reads;
 pub(super) mod internal_strings;
 mod iterator_ops;
 pub(in crate::wasm) mod list_ops;
+pub(super) mod map_collections;
 mod nested_owned;
 mod network_io;
 mod owned_buffer;
@@ -420,7 +421,9 @@ impl FunctionPlan {
                 &mut |place, flag, lifecycle| {
                     let string_leaf =
                         lifecycle.as_str() == crate::cleanup::STRING_DROP_LIFECYCLE_ID;
-                    if lifecycle.as_str() != crate::cleanup::BYTES_DROP_LIFECYCLE_ID
+                    if lifecycle.as_str() != crate::map_ops::DROP_ID
+                        && lifecycle.as_str() != crate::string_ops::MAP_DROP_LIFECYCLE_ID
+                        && lifecycle.as_str() != crate::cleanup::BYTES_DROP_LIFECYCLE_ID
                         && !string_leaf
                         && lifecycle.as_str() != crate::cleanup::VEC_DROP_LIFECYCLE_ID
                         && lifecycle.as_str() != crate::cleanup::BOX_DROP_LIFECYCLE_ID
@@ -598,7 +601,12 @@ impl FunctionPlan {
                     | ResolvedExprKind::HostCommandCall(_)
                     | ResolvedExprKind::Invoke { .. }
             ) {
-                let (size, align) = scalar_size_align(program, &expr.ty)?;
+                let (size, align) = if matches!(&expr.kind,ResolvedExprKind::Call{callee,..} if crate::map_ops::by_id(callee.as_str()).is_some() || crate::string_ops::by_id(callee.as_str()).and_then(map_collections::legacy_op).is_some())
+                {
+                    (8, 8)
+                } else {
+                    scalar_size_align(program, &expr.ty)?
+                };
                 self.call_out
                     .insert(expr.id.clone(), frame.allocate(size, align)?);
             }
@@ -1054,7 +1062,7 @@ fn resource_gate() -> Diagnostic {
 }
 
 fn is_record(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic> {
-    if crate::list_ops::is_list(ty) {
+    if crate::map_ops::is_collection(ty) || crate::list_ops::is_list(ty) {
         return Ok(false);
     }
     let ResolvedType::Nominal {
@@ -1136,7 +1144,8 @@ fn is_aggregate(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Di
     {
         return Ok(true);
     }
-    if crate::wasm::vec_ops::is_wasm_owned_vec_type(program, ty)
+    if crate::map_ops::is_collection(ty)
+        || crate::wasm::vec_ops::is_wasm_owned_vec_type(program, ty)
         || crate::cleanup::is_owned_bounded_box_type(ty)
     {
         return Ok(false);
@@ -1617,7 +1626,7 @@ fn emit_byte_exports_profile(
         &mut types,
         &mut type_indexes,
     );
-    let toolkit_types = text_toolkit::import_types(program, &mut types, &mut type_indexes);
+    let map_types = map_collections::import_types(program, &mut types, &mut type_indexes);
     let byte_set_types =
         owned_buffer::import_types(uses_owned_buffer, &mut types, &mut type_indexes);
     let text_helper_type = uses_str_ops.then(|| {
@@ -1779,6 +1788,11 @@ fn emit_byte_exports_profile(
         )
     });
 
+    let map_count = if map_types.is_some() {
+        map_collections::IMPORT_COUNT
+    } else {
+        0
+    };
     let import_count = SCALAR_IMPORT_COUNT
         + BYTE_IMPORT_COUNT
         + command_import_count
@@ -1787,7 +1801,8 @@ fn emit_byte_exports_profile(
             OWNED_BUFFER_IMPORT_COUNT
         } else {
             0
-        };
+        }
+        + map_count;
     let mut function_indexes = executable_functions
         .iter()
         .enumerate()
@@ -1827,6 +1842,9 @@ fn emit_byte_exports_profile(
                 index,
             );
         }
+    }
+    if map_count != 0 {
+        map_collections::insert_indexes(&mut function_indexes, import_count - map_count);
     }
     let mut module = b"\0asm\x01\0\0\0".to_vec();
     let mut type_section = Vec::new();
@@ -1881,6 +1899,9 @@ fn emit_byte_exports_profile(
     }
     if let Some(ty) = owned_utf8_validate {
         function_import(&mut imports, "env", "spx_owned_utf8_validate_v1", ty);
+    }
+    if let Some(types) = map_types {
+        map_collections::emit_imports(&mut imports, types);
     }
     section(&mut module, 2, imports);
 
@@ -2263,9 +2284,11 @@ fn emit_profile_with_scalar_exports(
     string_runtime::refuse_unimplemented_collections(program)?;
     let uses_string_runtime = string_runtime::program_uses_runtime(program);
     let uses_record_iterator = crate::iterator_ops::resolved_program_uses_record_iterator(program);
+    let uses_maps = map_collections::uses(program);
     let uses_byte_data = super::program_uses_byte_data(program)
         || super::program_uses_strings(program)
-        || uses_record_iterator;
+        || uses_record_iterator
+        || uses_maps;
     let uses_owned_buffer = program_uses_owned_buffer(program);
     let uses_vec = super::program_uses_vec(program);
     let uses_extended_vec = super::vec_ops::program_uses_extended_vec(program);
@@ -2531,6 +2554,13 @@ fn emit_profile_with_scalar_exports(
         &mut types,
         &mut type_indexes,
     );
+    let map_types = map_collections::import_types(program, &mut types, &mut type_indexes);
+    let toolkit_types = text_toolkit::import_types(program, &mut types, &mut type_indexes);
+    let map_count = if uses_maps {
+        map_collections::IMPORT_COUNT
+    } else {
+        0
+    };
     let scalar_export_types = scalar_exports
         .iter()
         .map(|plan| {
@@ -2581,6 +2611,7 @@ fn emit_profile_with_scalar_exports(
                     } else {
                         0
                     }
+                    + map_count
                     + u32::try_from(index).unwrap_or(u32::MAX),
             )
         })
@@ -2629,7 +2660,8 @@ fn emit_profile_with_scalar_exports(
                 string_runtime::import_count(program)
             } else {
                 0
-            },
+            }
+            + map_count,
     );
     for name in ["spx_add", "spx_sub", "spx_mul", "spx_div", "spx_rem"] {
         function_import(&mut imports, "env", name, binary_checked);
@@ -2750,6 +2782,41 @@ fn emit_profile_with_scalar_exports(
                     + offset as u32,
             );
         }
+    }
+    if let Some(types) = map_types {
+        let base = SCALAR_IMPORT_COUNT
+            + if uses_byte_data { BYTE_IMPORT_COUNT } else { 0 }
+            + if uses_owned_buffer {
+                OWNED_BUFFER_IMPORT_COUNT
+            } else {
+                0
+            }
+            + if uses_vec { VEC_IMPORT_COUNT } else { 0 }
+            + if uses_extended_vec {
+                EXTENDED_VEC_IMPORT_COUNT
+            } else {
+                0
+            }
+            + if uses_vec_record {
+                RECORD_VEC_IMPORT_COUNT
+            } else {
+                0
+            }
+            + u32::from(uses_vec_sort)
+            + if uses_owned_iterator {
+                OWNED_ITER_IMPORT_COUNT
+            } else {
+                0
+            }
+            + iterator_ops::record_import_count(uses_record_iterator)
+            + if uses_box { BOX_IMPORT_COUNT } else { 0 }
+            + if uses_string_runtime {
+                string_runtime::import_count(program)
+            } else {
+                0
+            };
+        map_collections::emit_imports(&mut imports, types);
+        map_collections::insert_indexes(&mut function_indexes, base);
     }
     section(&mut module, 2, imports);
 
@@ -2902,6 +2969,7 @@ fn emit_profile_with_scalar_exports(
                 0
             })
         })
+        .and_then(|value| value.checked_add(map_count))
         .ok_or_else(|| error("aggregate wrapper import count overflows u32"))?
         .checked_add(
             u32::try_from(executable_functions.len()).map_err(|_| error("too many functions"))?,
@@ -3271,7 +3339,9 @@ fn emit_function_profile(
         emitter.get_scalar(&result);
         emitter.output.push(0x21);
         write_u32(emitter.output, local);
-        if owned_string_profile && function.return_type == ResolvedType::String {
+        if owned_string_profile && function.return_type == ResolvedType::String
+            || crate::map_ops::is_collection(&function.return_type)
+        {
             emitter.clear_scalar(&result)?;
         }
         Value::Scalar {
@@ -3343,7 +3413,8 @@ fn emit_function_profile(
         emitter.output.push(0x20);
         write_u32(emitter.output, source);
         emitter.store_scalar(&ty);
-        if owned_string_profile && ty == ResolvedType::String {
+        if owned_string_profile && ty == ResolvedType::String || crate::map_ops::is_collection(&ty)
+        {
             owned_strings::emit_clear(emitter.output, source);
         }
     }
@@ -3798,7 +3869,8 @@ impl Emitter<'_> {
         if !matches!(
             value_type(value),
             ResolvedType::Bytes | ResolvedType::String
-        ) && !owned_vec(self.program, value_type(value))
+        ) && !crate::map_ops::is_collection(value_type(value))
+            && !owned_vec(self.program, value_type(value))
             && !crate::cleanup::is_owned_bounded_box_type(value_type(value))
         {
             return Err(error(
@@ -6018,6 +6090,26 @@ impl Emitter<'_> {
             {
                 return self.emit_integer_conversion(expr, op, args);
             }
+            if let Some(op) = crate::map_ops::by_id(callee.as_str()) {
+                return self.emit_collection_operation(
+                    expr,
+                    op,
+                    type_arguments,
+                    args,
+                    op.legacy(type_arguments).is_some(),
+                );
+            }
+            if let Some(op) =
+                crate::string_ops::by_id(callee.as_str()).and_then(map_collections::legacy_op)
+            {
+                return self.emit_collection_operation(
+                    expr,
+                    op,
+                    &[ResolvedType::String, ResolvedType::I64],
+                    args,
+                    true,
+                );
+            }
         }
         if self.standalone_strings && instance.is_none() {
             if let Some(operation) = crate::string_ops::by_id(callee.as_str()) {
@@ -8126,7 +8218,8 @@ impl Emitter<'_> {
         if !matches!(
             value_type(source),
             ResolvedType::Bytes | ResolvedType::String
-        ) {
+        ) && !crate::map_ops::is_collection(value_type(source))
+        {
             return Err(error(
                 "borrowed record field alias requires an exact Bytes or String carrier",
             ));
@@ -8186,6 +8279,10 @@ impl Emitter<'_> {
     }
 
     fn load_scalar(&mut self, ty: &ResolvedType) {
+        if crate::map_ops::is_collection(ty) {
+            self.output.extend([0x29, 0x03, 0]);
+            return;
+        }
         match ty {
             ResolvedType::I64
             | ResolvedType::Usize
@@ -8208,6 +8305,10 @@ impl Emitter<'_> {
     }
 
     fn store_scalar(&mut self, ty: &ResolvedType) {
+        if crate::map_ops::is_collection(ty) {
+            self.output.extend([0x37, 0x03, 0]);
+            return;
+        }
         match ty {
             ResolvedType::I64
             | ResolvedType::Usize

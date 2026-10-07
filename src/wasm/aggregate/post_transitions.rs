@@ -88,6 +88,7 @@ impl Emitter<'_> {
                     {
                         if *value_type(value) != ResolvedType::Bytes
                             && *value_type(value) != ResolvedType::String
+                            && !crate::map_ops::is_collection(value_type(value))
                             && !owned_vec(self.program, value_type(value))
                             && !crate::cleanup::is_owned_bounded_box_type(value_type(value))
                         {

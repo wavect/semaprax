@@ -64,7 +64,9 @@ pub(in crate::wasm) fn refuse_unimplemented_collections(
     while let Some(expression) = pending.pop() {
         if let ResolvedExprKind::Call { callee, .. } = &expression.kind {
             if let Some(operation) = crate::string_ops::by_id(callee.as_str()).filter(|operation| {
-                (operation.is_collection() && *operation != crate::string_ops::StringOp::Compare)
+                (operation.is_collection()
+                    && *operation != crate::string_ops::StringOp::Compare
+                    && map_collections::legacy_op(*operation).is_none())
                     || (operation.is_conversion()
                         && !operation.is_integer_conversion()
                         && !conversions::admitted(*operation)
@@ -72,11 +74,6 @@ pub(in crate::wasm) fn refuse_unimplemented_collections(
             }) {
                 return Err(crate::string_ops::text_toolkit_wasm_refusal(operation));
             }
-        }
-        if expression.ty == ResolvedType::StringMap {
-            return Err(crate::string_ops::text_toolkit_wasm_refusal(
-                crate::string_ops::StringOp::MapNew,
-            ));
         }
         crate::hir::push_resolved_expression_children_in_authored_order(expression, &mut pending);
     }

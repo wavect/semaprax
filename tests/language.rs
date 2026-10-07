@@ -194,3 +194,6 @@ mod string_conditions;
 
 #[path = "language/wasm_text_toolkit_v1.rs"]
 mod wasm_text_toolkit_v1;
+
+#[path = "language/wasm_map_collections_v2.rs"]
+mod wasm_map_collections_v2;

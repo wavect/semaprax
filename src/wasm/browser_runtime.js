@@ -269,7 +269,88 @@ function createByteDataRuntime(options = {}) {
     output.setBigInt64(0, allocate(snapshot), true);
     return 0;
   };
+  // Private Map/Set arena: tokens never enter the frozen Bytes drop protocol.
+  const collections = new Map();
+  let collectionTag = null;
+  const maxCollections = boundedLimit(options.maxOwnedCollections, 16, "owned-collection");
+  const maxCollectionBytes = boundedLimit(options.maxOwnedCollectionBytes, 8388608, "owned-collection-byte");
+  let nextCollection = 1n, collectionBytes = 0;
+  const collectionAtom = (tag, word) => {
+    if (typeof word !== "bigint") throw new TypeError("SEMAPRAX collection atom is not i64");
+    if (tag === 1) return stringBytes(word);
+    if (tag === 2) return BigInt.asIntN(64, word);
+    if (tag === 3) { if (word !== 0n && word !== 1n) throw new Error("SEMAPRAX collection bool invariant"); return word; }
+    if (tag === 4) { const v = BigInt.asIntN(32, word); if (v !== word) throw new Error("SEMAPRAX collection i32 invariant"); return v; }
+    if (tag === 5 && (word < 0n || word > 255n)) throw new Error("SEMAPRAX collection u8 invariant");
+    if (tag === 7 && (word < 0n || word > 1114111n || (word >= 55296n && word <= 57343n))) throw new Error("SEMAPRAX collection char invariant");
+    if (tag === 8 && BigInt.asUintN(32, word) !== word) throw new Error("SEMAPRAX collection f32 bits invariant");
+    if (tag < 4 || tag > 9) throw new Error("SEMAPRAX collection atom tag invariant");
+    return BigInt.asUintN(64, word);
+  };
+  const collectionOrder = (tag, a, b) => {
+    if (tag !== 1) return a < b ? -1 : a > b ? 1 : 0;
+    const n = Math.min(a.length, b.length);
+    for (let i = 0; i < n; i++) if (a[i] !== b[i]) return a[i] < b[i] ? -1 : 1;
+    return a.length < b.length ? -1 : a.length > b.length ? 1 : 0;
+  };
+  const collectionFind = (map, key) => {
+    let low = 0, high = map.entries.length;
+    while (low < high) { const mid = low + Math.floor((high - low) / 2), order = collectionOrder(map.keyTag, map.entries[mid][0], key);
+      if (order === 0) return { index: mid, found: true }; if (order < 0) low = mid + 1; else high = mid;
+    }
+    return { index: low, found: false };
+  };
+  const collectionTextSize = entry => (entry[0] instanceof Uint8Array ? entry[0].length : 0) + (entry[1] instanceof Uint8Array ? entry[1].length : 0);
+  const collectionOut = (output, tag, atom) => output.setBigInt64(0, tag === 1 ? allocate(atom) : BigInt.asIntN(64, atom), true);
+  const collectionDrop = token => {
+    const map = collections.get(token); if (!map) throw new Error("SEMAPRAX stale collection token");
+    for (const entry of map.entries) collectionBytes -= collectionTextSize(entry);
+    collections.delete(token);
+  };
+  const collectionOutput = offset => {
+    const bytes = memory();
+    if (!Number.isInteger(offset) || offset < 65536 || offset % 8 !== 0 || offset > 131072 - 8) throw new Error("SEMAPRAX collection output slot invariant");
+    return new DataView(bytes.buffer, offset, 8);
+  };
+  const collectionChecked = (op, kind, token, keyWord, valueWord, offset) => {
+    if (!Number.isInteger(op) || op < 1 || op > 9 || !Number.isInteger(kind) || (kind & ~0x1ffff) !== 0) throw new Error("SEMAPRAX collection operation invariant");
+    const keyTag = kind & 255, valueTag = (kind >>> 8) & 255, legacy = (kind & 65536) !== 0;
+    if (keyTag < 1 || keyTag > 3 || valueTag < 1 || valueTag > 9 || (legacy && (keyTag !== 1 || valueTag !== 2))) throw new Error("SEMAPRAX collection type invariant");
+    const output = collectionOutput(offset), failure = code => (legacy ? 25 : 29) + code;
+    if (op === 1) {
+      if (keyWord < 0n || keyWord > 65536n) return failure(3);
+      if (collections.size >= maxCollections || nextCollection > 0xffffffffn) throw new Error("SEMAPRAX collection arena exhausted");
+      if (collectionTag === null) collectionTag = runtimeTagAllocator().take();
+      const handle = 0x6000000000000000n | (BigInt(collectionTag) << 32n) | nextCollection++;
+      collections.set(handle, { keyTag, valueTag, legacy, capacity: Number(keyWord), entries: [] }); output.setBigInt64(0, handle, true); return 0;
+    }
+    const map = collections.get(token);
+    if (!map || map.keyTag !== keyTag || map.valueTag !== valueTag || map.legacy !== legacy) throw new Error("SEMAPRAX collection token/type invariant");
+    if (op === 7) { output.setBigInt64(0, BigInt(map.entries.length), true); return 0; }
+    if (op === 8 || op === 9) {
+      if (keyWord < 0n || keyWord >= BigInt(map.entries.length)) return failure(2);
+      collectionOut(output, op === 8 ? keyTag : valueTag, map.entries[Number(keyWord)][op === 8 ? 0 : 1]); return 0;
+    }
+    const key = collectionAtom(keyTag, keyWord), position = collectionFind(map, key);
+    if (op === 6) { output.setBigInt64(0, position.found ? 1n : 0n, true); return 0; }
+    if (op === 5) { collectionOut(output, valueTag, position.found ? map.entries[position.index][1] : collectionAtom(valueTag, valueWord)); return 0; }
+    if (op === 4) { if (position.found) collectionBytes -= collectionTextSize(map.entries.splice(position.index, 1)[0]); output.setBigInt64(0, token, true); return 0; }
+    let value = collectionAtom(valueTag, valueWord);
+    if (op === 3) {
+      if (valueTag !== 2) throw new Error("SEMAPRAX collection add requires i64");
+      if (position.found) { value += map.entries[position.index][1]; if (value < SPX_MIN || value > SPX_MAX) return failure(4); }
+    }
+    if (!position.found && map.entries.length === map.capacity) return failure(1);
+    const copiedKey = keyTag === 1 ? new Uint8Array(key) : key, copiedValue = valueTag === 1 ? new Uint8Array(value) : value;
+    const old = position.found ? map.entries[position.index] : null, entry = [position.found ? old[0] : copiedKey, copiedValue];
+    const delta = collectionTextSize(entry) - (old === null ? 0 : collectionTextSize(old));
+    if (collectionBytes + delta > maxCollectionBytes) throw new Error("SEMAPRAX collection byte arena exhausted");
+    if (position.found) map.entries[position.index] = entry; else map.entries.splice(position.index, 0, entry);
+    collectionBytes += delta; output.setBigInt64(0, token, true); return 0;
+  };
   const byteImports = Object.freeze({
+    spx_collection_checked_v2: collectionChecked,
+    spx_collection_drop_v2: collectionDrop,
     spx_bytes_copy: carrier => allocate(read(decode(carrier))),
     spx_bytes_zeroed: count => {
       if (typeof count !== "bigint" || count < 0n || count > 131072n) {
@@ -502,6 +583,8 @@ export const imports = {
       if (code === 11) throw new SpxSemanticFailure("semaprax.byte-range.v1", 1, "SEMAPRAX byte range failure");
       if (code === 12) throw new SpxSemanticFailure("semaprax.byte-range.v1", 2, "SEMAPRAX byte range failure");
       if (code === 16) throw new SpxSemanticFailure("semaprax.byte-buffer.v1", 1, "SEMAPRAX owned byte buffer failure");
+      if (code >= 26 && code <= 29) throw new SpxSemanticFailure("semaprax.map.v1", code - 25, "SEMAPRAX checked map failure");
+      if (code >= 30 && code <= 33) throw new SpxSemanticFailure("semaprax.map.v2", code - 29, "SEMAPRAX checked collection failure");
       if (code >= 23 && code <= 25) throw new SpxSemanticFailure("semaprax.text.v1", code - 22, "SEMAPRAX checked text failure");
       if (code >= 65 && code <= 71) throw new SpxSemanticFailure("semaprax.filesystem.v1", code - 64, "SEMAPRAX explicit file text failure");
       if (code === 21 || code === 22) throw new SpxSemanticFailure("semaprax.convert.v1", code - 20, "SEMAPRAX scalar conversion failure");

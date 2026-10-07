@@ -11,6 +11,9 @@ pub(super) fn scalar_wasm_type(
     program: &ResolvedProgram,
     ty: &ResolvedType,
 ) -> Result<u8, Diagnostic> {
+    if crate::map_ops::is_collection(ty) {
+        return Ok(I64);
+    }
     match ty {
         ResolvedType::I64 => Ok(I64),
         ty if crate::list_ops::is_list(ty) => Ok(I32),
@@ -61,6 +64,9 @@ pub(super) fn scalar_size_align(
     program: &ResolvedProgram,
     ty: &ResolvedType,
 ) -> Result<(u32, u32), Diagnostic> {
+    if crate::map_ops::is_collection(ty) {
+        return Ok((8, 8));
+    }
     match ty {
         ResolvedType::I64 => Ok((8, 8)),
         ty if crate::list_ops::is_list(ty) => Ok((4, 4)),

@@ -17,12 +17,17 @@ impl Emitter<'_> {
                 self.emit_once_cleanup(action)?;
                 continue;
             }
+            let map_leaf = matches!(
+                action.lifecycle_id.as_str(),
+                crate::map_ops::DROP_ID | crate::string_ops::MAP_DROP_LIFECYCLE_ID
+            );
             let string_leaf =
                 action.lifecycle_id.as_str() == crate::cleanup::STRING_DROP_LIFECYCLE_ID;
             let vec_leaf = action.lifecycle_id.as_str() == crate::cleanup::VEC_DROP_LIFECYCLE_ID;
             let box_leaf = action.lifecycle_id.as_str() == crate::cleanup::BOX_DROP_LIFECYCLE_ID;
             let iter_leaf = action.lifecycle_id.as_str() == crate::cleanup::ITER_DROP_LIFECYCLE_ID;
             if action.lifecycle_id.as_str() != crate::cleanup::BYTES_DROP_LIFECYCLE_ID
+                && !map_leaf
                 && !string_leaf
                 && !vec_leaf
                 && !box_leaf
@@ -33,7 +38,11 @@ impl Emitter<'_> {
                 ));
             }
             let value = self.cleanup_value_at(&action.source)?;
-            if string_leaf {
+            if map_leaf {
+                if !crate::map_ops::is_collection(value_type(&value)) {
+                    return Err(error("collection cleanup type disagrees with lifecycle"));
+                }
+            } else if string_leaf {
                 require_type(
                     value_type(&value),
                     &ResolvedType::String,
@@ -110,7 +119,14 @@ impl Emitter<'_> {
                 self.output.push(0x10);
                 write_u32(
                     self.output,
-                    if iter_leaf
+                    if map_leaf {
+                        *self
+                            .function_indexes
+                            .get(&FunctionExecutionId::Monomorphic(DeclarationId::new(
+                                map_collections::DROP_ID,
+                            )))
+                            .ok_or_else(|| error("collection drop import absent"))?
+                    } else if iter_leaf
                         && crate::iterator_ops::element(value_type(&value)).is_some_and(|element| {
                             crate::hir::owned_record_collection::
                                 is_admitted_owned_record_collection_element(

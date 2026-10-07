@@ -13,6 +13,7 @@ fn checked_collection_declarations_cannot_be_relabelled_or_relaid_out() {
         let mut program=baseline.clone();let decl=program.types.iter_mut().find(|d|d.id.as_str()==MAP_ID).unwrap();
         match mutate {0=>decl.name="AuthoredMap".into(),1=>decl.type_parameters[0].index=9,_=>decl.type_parameters.pop().map(|_|()).unwrap()};
         assert!(crate::hir::validate(&program).is_err());
+        assert!(crate::wasm::emit_resolved_module(&program).is_err());
     }
 }
 #[test]
@@ -46,6 +47,7 @@ fn canonical_cleanup_leaf_cannot_be_replayed_as_a_string_or_legacy_map() {
         let crate::cleanup::FieldLivenessShape::Leaf{lifecycle,..}=&mut slot.field_liveness_shape else{panic!("direct map leaf")};
         *lifecycle=DeclarationId::new(forged);
         assert!(crate::hir::validate(&program).is_err());
+        assert!(crate::wasm::emit_resolved_module(&program).is_err());
     }
 }
 
@@ -58,6 +60,7 @@ fn authored_declarations_cannot_reuse_collection_operation_or_lifecycle_ids() {
     for id in [MapOp::Set.id(),DROP_ID,"core.collection.wasm.checked.v2"] {
         let mut program=resolved();program.functions.iter_mut().find(|f|f.name=="main").unwrap().id=DeclarationId::new(id);
         assert!(crate::hir::validate(&program).is_err());
+        assert!(crate::wasm::emit_resolved_module(&program).is_err());
     }
 }
 

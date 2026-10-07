@@ -152,6 +152,7 @@ Audience: all documentation readers.
 - [While loops](WHILE-LOOPS-V1.md)
 - [Language ergonomics (statement `if`)](LANGUAGE-ERGONOMICS-V1.md)
 - [Byte Widening v1](BYTE-WIDENING-V1.md)
+- [Borrowed Text Byte Access v1](BORROWED-TEXT-BYTE-ACCESS-V1.md)
 - [Record invariants](RECORD-INVARIANTS-V1.md)
 - [Refutable match](REFUTABLE-MATCH-V1.md)
 - [Copy variant guards](COPY-VARIANT-GUARDS-V1.md)

@@ -800,3 +800,14 @@ fn byte_widening_matches_recursive_oracle() {
         compare_scalar_body(source);
     }
 }
+
+#[test]
+fn borrowed_text_byte_at_matches_recursive_oracle() {
+    for source in [
+        "module t; fn main(text:borrow str,index:usize)->Option<u8> { str_byte_at(text,index) }",
+        "module t; fn main(text:borrow str)->Option<u8> { str_byte_at(text,18446744073709551615usize) }",
+        "module t; fn main(text:borrow str)->Option<u8> { str_byte_at(text,1) }",
+        "module t; fn main(text:borrow str)->Option<u8> { str_byte_at(text) }",
+        "module t; fn main(text:borrow str)->Option<u8> { str_byte_at<u8>(text,0usize) }",
+    ] { compare_scalar_body(source); }
+}

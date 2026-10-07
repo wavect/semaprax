@@ -182,6 +182,7 @@ fn nearest_function_name(name: &str, functions: &HashMap<&str, &Function>) -> Op
             crate::str_ops::IS_EMPTY_NAME,
             crate::str_ops::STARTS_WITH_NAME,
             crate::str_ops::CONTAINS_NAME,
+            crate::str_ops::BYTE_AT_NAME,
             crate::host_io_ops::STDOUT_WRITE_NAME,
             crate::command_io_ops::ARGS_LEN_NAME,
             crate::command_io_ops::ARG_UTF8_NAME,

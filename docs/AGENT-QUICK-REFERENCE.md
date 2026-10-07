@@ -576,6 +576,7 @@ fn main() -> i64
 | `str_as_bytes` | `(s: borrow str) -> Slice<u8>` |
 | `byte_len` | `(v: borrow Slice<u8>) -> usize` |
 | `byte_get` | `(v: borrow Slice<u8>, i: usize) -> Option<u8>` |
+| `str_byte_at` | `(s: borrow str, i: usize) -> Option<u8>` |
 | `byte_range` | `(v: borrow Slice<u8>, start: usize, end: usize) -> Slice<u8>` |
 | `bytes_copy` | `(v: borrow Slice<u8>) -> Bytes` |
 | `bytes_zeroed` | `(count: usize) -> Bytes` literal capacity |
@@ -1147,11 +1148,10 @@ fn order_status(paid: bool) -> string
 
 ## Projects
 
-`i64_from_u8(byte)` widens a byte exactly.
-For a `borrow str`, use `let view = str_as_bytes(text);` then
-`match byte_get(view, index) { Option::Some { value: byte } => i64_from_u8(byte), Option::None {} => -1, }`.
-This reads bytes without an owned text copy; choose the `None` result explicitly.
-`std.bytes.get_or` is also available in `useful-data.v1`: `semaprax help library std.bytes.get_or`.
+`str_byte_at(text, 0usize)` reads borrowed UTF-8 bytes without an owned copy;
+match its `Option<u8>` and use `i64_from_u8(byte)` to widen `Some` exactly.
+`std.bytes.get_or` is also available in `useful-data.v1`:
+`semaprax help library std.bytes.get_or`.
 
 A project puts `semaprax.toml` beside `src/`. Use the extensible table layout
 below. The committed examples' frozen, one-line-per-key

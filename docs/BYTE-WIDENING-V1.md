@@ -69,8 +69,9 @@ initializes its input owner explicitly. Existing root provenance, view lifetime 
 
 The bundled `std.bytes.get_or` and `std.bytes.byte_to_i64` remain compatible
 library choices in their existing Project profile. Their frozen source and
-catalog are not replaced by this addition. A direct borrowed-text accessor is
-outside this bounded iteration of #615.
+catalog are not replaced by this addition. The additive [Borrowed Text Byte Access v1](BORROWED-TEXT-BYTE-ACCESS-V1.md)
+provides `str_byte_at(text, index)` for the same total read without the view
+binding.
 
 ## Focused executable gates
 

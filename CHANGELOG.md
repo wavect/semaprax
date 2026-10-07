@@ -9,6 +9,11 @@
   contextual owned variant matches through canonical formatting. Attach source
   spans to record-update, field-assignment, record-pattern and Useful Data
   function-body profile diagnostics.
+- Borrowed Text Byte Access v1: add direct `str_byte_at(borrow str, usize)`
+  with the existing total `Option<u8>` byte-read contract. Native and aggregate
+  Wasm share byte-result lowering; borrowed input and full-width bounds remain
+  checked. Central verification is pending.
+
 - Byte Widening v1: add exact, allocation-free `i64_from_u8` through the shared
   intrinsic signature and interpreter/native/Core Wasm lowering. The frozen
   Conversions v1 catalog remains separate; focused regressions cover all byte

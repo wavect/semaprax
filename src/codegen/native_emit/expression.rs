@@ -185,13 +185,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 op.arity()
             )));
         }
-        for argument in args {
+        for (argument, expected) in args.iter().zip(op.param_types()) {
             let value = self.emit_expr(argument)?;
-            self.require_type(
-                &value.ty,
-                &ResolvedType::Str,
-                "borrowed str operation argument",
-            )?;
+            self.require_type(&value.ty, expected, "borrowed str operation argument")?;
             arguments.push(value);
         }
         self.require_type(
@@ -201,6 +197,16 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         )?;
         let temporary = self.temporary(&op.return_type())?;
         match op {
+            crate::str_ops::StrOp::ByteAt => {
+                self.line(&format!("spx_str_require_valid({});", arguments[0].code));
+                self.emit_option_byte_read(
+                    result_type,
+                    &arguments[0].code,
+                    "data",
+                    &arguments[1].code,
+                    &temporary,
+                )?;
+            }
             crate::str_ops::StrOp::LenBytes => self.line(&format!(
                 "{temporary} = spx_str_len_bytes({});",
                 arguments[0].code
@@ -351,38 +357,15 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 ));
             }
             crate::byte_ops::ByteOp::Get => {
-                let layout = self.variant_layout(&return_type)?;
-                let none_id = DeclarationId::new(crate::prelude::OPTION_NONE_ID);
-                let some_id = DeclarationId::new(crate::prelude::OPTION_SOME_ID);
-                let value_id = DeclarationId::new(crate::prelude::OPTION_SOME_VALUE_ID);
-                let none = layout.case(&none_id).ok_or_else(|| {
-                    backend_error("Option<u8> layout has no compiler-owned None case")
-                })?;
-                let some = layout.case(&some_id).ok_or_else(|| {
-                    backend_error("Option<u8> layout has no compiler-owned Some case")
-                })?;
-                let field = some.field(&value_id).ok_or_else(|| {
-                    backend_error("Option<u8> layout has no compiler-owned Some payload")
-                })?;
-                self.require_type(&field.ty, &ResolvedType::U8, "byte_get Some payload")?;
                 let slice = &arguments[0].code;
-                let index = &arguments[1].code;
                 self.line(&format!("spx_slice_u8_require_valid({slice});"));
-                self.line(&format!("memset(&{temporary}, 0, sizeof({temporary}));"));
-                self.line(&format!("if ({index} < ({slice}).len) {{"));
-                self.indent += 1;
-                self.line(&format!(
-                    "{temporary}.spx_payload.{}.{} = ({slice}).ptr[{index}];",
-                    c_case_symbol(&some_id),
-                    c_field_symbol(&value_id)
-                ));
-                self.line(&format!("{temporary}.spx_tag = UINT32_C({});", some.tag));
-                self.indent -= 1;
-                self.line("} else {");
-                self.indent += 1;
-                self.line(&format!("{temporary}.spx_tag = UINT32_C({});", none.tag));
-                self.indent -= 1;
-                self.line("}");
+                self.emit_option_byte_read(
+                    &return_type,
+                    slice,
+                    "ptr",
+                    &arguments[1].code,
+                    &temporary,
+                )?;
             }
             crate::byte_ops::ByteOp::Copy | crate::byte_ops::ByteOp::Zeroed => {
                 let (allocator, context) = self.output_profile.byte_allocator(op);

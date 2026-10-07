@@ -324,7 +324,9 @@ fn program_uses_byte_data(program: &ResolvedProgram) -> bool {
             return true;
         }
         if let ResolvedExprKind::Call { callee, .. } = &expression.kind {
-            if crate::byte_ops::by_id(callee.as_str()).is_some() {
+            if crate::byte_ops::by_id(callee.as_str()).is_some()
+                || callee.as_str() == crate::str_ops::BYTE_AT_ID
+            {
                 return true;
             }
         }
@@ -3574,6 +3576,12 @@ fn emit_expr(
                         emit_expr(output, arg, value_indexes, function_indexes, layout, result)?;
                     }
                     match op {
+                        crate::str_ops::StrOp::ByteAt => {
+                            return Err(Diagnostic::io(
+                                "SPX-W119",
+                                "borrowed byte indexing requires the aggregate Wasm lane",
+                            ))
+                        }
                         crate::str_ops::StrOp::LenBytes => {
                             output.push(0x42); // i64.const 32
                             write_i64(output, 32);

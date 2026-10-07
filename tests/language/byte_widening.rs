@@ -6,7 +6,7 @@ use super::owned_string_loops_v1::support::Fixture;
 use semaprax::interpreter::{self, InterpreterOptions};
 use semaprax::{codegen, format, graph, hir, parse, verify, wasm};
 
-const SCALARS: &str = r#"module test.byte_widening;
+pub(super) const SCALARS: &str = r#"module test.byte_widening;
 
 @id("byte.widen")
 fn widen(value: u8) -> i64
@@ -37,7 +37,7 @@ fn main() -> i64
 // Byte offsets deliberately split a multi-byte scalar: reads preserve the
 // UTF-8 bytes and embedded NUL, not character semantics. Every large index
 // returns None before a physical address/index is narrowed.
-const BORROWED: &str = r#"module test.borrowed_byte_widening;
+pub(super) const BORROWED: &str = r#"module test.borrowed_byte_widening;
 
 @id("byte.read")
 fn read(text: borrow str, index: usize) -> i64
@@ -57,13 +57,13 @@ fn main() -> i64
 }
 "#;
 
-fn available(command: &str) -> bool {
+pub(super) fn available(command: &str) -> bool {
     Command::new(command).arg("--version").output().is_ok()
 }
 
 #[test]
 fn byte_widening_source_graph_and_hostile_hir() {
-    for source in [SCALARS, BORROWED] {
+    for source in [SCALARS, BORROWED, super::borrowed_text_byte_at::DIRECT] {
         let ast = parse(source, Path::new("byte-widening.spx")).unwrap();
         assert!(verify::verify(&ast).is_empty());
         let canonical = format::canonical(&ast);
@@ -139,7 +139,11 @@ fn byte_widening_preserves_exact_source_diagnostics() {
 
 #[test]
 fn byte_widening_interpreter_and_native_all_bytes_and_borrowed_text() {
-    for (source, expected) in [(SCALARS, "32640"), (BORROWED, "360")] {
+    for (source, expected) in [
+        (SCALARS, "32640"),
+        (BORROWED, "360"),
+        (super::borrowed_text_byte_at::DIRECT, "360"),
+    ] {
         let mut fixture = Fixture::new(source);
         let result = interpreter::interpret(
             &fixture.source,
@@ -177,7 +181,11 @@ fn byte_widening_core_wasm_all_bytes_and_borrowed_text() {
     if !available("node") {
         return;
     }
-    for (source, expected) in [(SCALARS, "32640"), (BORROWED, "360")] {
+    for (source, expected) in [
+        (SCALARS, "32640"),
+        (BORROWED, "360"),
+        (super::borrowed_text_byte_at::DIRECT, "360"),
+    ] {
         let ast = parse(source, Path::new("wasm.spx")).unwrap();
         let bytes = wasm::emit_module(&ast).unwrap();
         assert_eq!(bytes, wasm::emit_module(&ast).unwrap());

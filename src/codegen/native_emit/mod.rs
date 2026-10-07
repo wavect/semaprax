@@ -37,6 +37,7 @@ mod generic_record;
 mod generic_variant;
 mod guarded_variant;
 mod http_io;
+mod indexed_reads;
 mod literals;
 mod native_list;
 mod nested_owned;

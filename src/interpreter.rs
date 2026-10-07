@@ -4402,6 +4402,15 @@ impl Evaluator<'_> {
                         values.push(self.evaluate(argument, environment, depth)?);
                     }
                     return match op {
+                        crate::str_ops::StrOp::ByteAt => match values.as_slice() {
+                            [Value::BorrowedStr(text), Value::Usize(index)] => Ok(Value::OptionU8(
+                                usize::try_from(*index)
+                                    .ok()
+                                    .and_then(|index| text.bytes.as_ref().get(index))
+                                    .copied(),
+                            )),
+                            _ => Err(Flow::Guard("ill-typed borrowed string byte read")),
+                        },
                         crate::str_ops::StrOp::LenBytes => borrowed_text(&values[0])
                             .map(|value| Value::Int(value.len() as i64))
                             .ok_or(Flow::Guard("ill-typed borrowed string operand")),

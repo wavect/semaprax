@@ -124,7 +124,7 @@ fn toolkit_collection_selector_authenticates_exact_optional_import_tail() {
     let mut imports = Vec::new();
     for payload in wasmparser::Parser::new(0).parse_all(artifact.wasm_bytes()) {
         if let wasmparser::Payload::ImportSection(section) = payload.unwrap() {
-            for item in section {
+            for item in section.into_imports() {
                 let item = item.unwrap();
                 imports.push((item.module.to_owned(), item.name.to_owned()));
             }

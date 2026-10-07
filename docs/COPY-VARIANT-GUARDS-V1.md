@@ -75,7 +75,8 @@ schema, CleanupPlan schema, capability, public ABI or authority route.
 
 `cargo test --locked -p semaprax --test language guarded_copy_variants::`
 checks canonical/graph round trips, repeated Copy-variant matches, true/false
-fallbacks, wrong-case skipping, lazy operands, checked guard failure, and String
+fallbacks, wrong-case skipping, lazy operands, checked guard failure, empty
+arrays and full-width usize byte indices, and String
 results across the interpreter, C11 at O0/O2 with allocation/free accounting,
 and repeated String-settling Core-Wasm calls through the explicit
 [Copy Variant String Settlement v1](WASM-INTERNAL-STRING-COPY-VARIANTS-V1.md)

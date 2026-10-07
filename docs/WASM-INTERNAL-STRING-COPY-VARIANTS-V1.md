@@ -78,11 +78,12 @@ retain the existing fail-stop behavior.
 ## Focused executable gate
 
 `cargo test --locked -p semaprax --test language guarded_copy_variants::`
-compares all six complete programs on the interpreter, native C11 at O0/O2
+compares the six original guard programs and the index-boundary control on the interpreter, native C11 at O0/O2
 with allocation/free accounting, and this explicit String-settling Wasm entry
 with repeated calls. It covers false/true fallthrough, wrong-case skipped
 failure, lazy operands, Result payloads, fixed-array sentinel lookup including
-one-past-end None, String result reuse, and checked guard failure.
+one-past-end None, empty-array Len/Get, indices above u32 and signed i64,
+maximum usize, String result reuse, and checked guard failure.
 
 The same harness asserts the old entry's exact `SPX-W111` refusal, the new
 profile marker, request-order determinism, unselected owned-declaration

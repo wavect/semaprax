@@ -74,6 +74,20 @@ module test.guarded_copy_variants;
     }
     if total == 2usize { 2 } else { 0 }
 }
+@id("guards.index_bounds") fn index_bounds() -> i64 {
+    let empty = [];
+    let empty_view = array_as_slice(empty);
+    let array = [255u8];
+    let view = array_as_slice(array);
+    let zero = match byte_get(empty_view, 0usize) { Option::Some { value: byte } => 0, Option::None {} => 1, };
+    let empty_high = match byte_get(empty_view, 4294967296usize) { Option::Some { value: byte } => 0, Option::None {} => 1, };
+    let empty_maximum = match byte_get(empty_view, 18446744073709551615usize) { Option::Some { value: byte } => 0, Option::None {} => 1, };
+    let high = match byte_get(view, 4294967296usize) { Option::Some { value: byte } => 0, Option::None {} => 1, };
+    let high_bit = match byte_get(view, 9223372036854775808usize) { Option::Some { value: byte } => 0, Option::None {} => 1, };
+    let maximum = match byte_get(view, 18446744073709551615usize) { Option::Some { value: byte } => 0, Option::None {} => 1, };
+    let length = if byte_len(empty_view) == 0usize { 1 } else { 0 };
+    zero + empty_high + empty_maximum + high + high_bit + maximum + length
+}
 @id("guards.failure") fn failure() -> i64 {
     let kept = "keep";
     let selected = Option<i64>::Some { value: 7 };
@@ -93,6 +107,7 @@ const CASES: &[(&str, &str)] = &[
     ("guards.result", "ok|5"),
     ("guards.indexed", "ok|2"),
     ("guards.failure", "semaprax.arithmetic.v1|1"),
+    ("guards.index_bounds", "ok|7"),
 ];
 const WASM_CASES: &[&str] = &[
     "guards.loop",
@@ -101,6 +116,7 @@ const WASM_CASES: &[&str] = &[
     "guards.result",
     "guards.indexed",
     "guards.failure",
+    "guards.index_bounds",
 ];
 
 fn command_available(command: &str) -> bool {

@@ -571,9 +571,9 @@ fn whole_owned_results_wrap_once_and_local_callers_move_the_exact_field() {
         .unwrap();
         assert_eq!(replay.candidate_digest(), evolved.candidate_digest());
     }
-    // No backend lays out an owned `string` leaf inside a record (SPX-T309),
-    // so the string-bearing record retains no result-wrapper TypeFacts and
-    // wrapping a whole owned `string` result fails closed with SPX-G495,
+    // The signature-change route retains its frozen result-wrapper profile:
+    // internal String-record runtime admission does not widen that transaction.
+    // Wrapping a whole owned `string` result fails closed with SPX-G495,
     // leaving the candidate unchanged.
     for target in ["frame.make-owned-string", "frame.echo-owned-string"] {
         let root = fixture.candidate();

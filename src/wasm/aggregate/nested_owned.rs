@@ -21,7 +21,9 @@ pub(super) fn record_contains_owned_bytes(
     if !is_exact_record(program, root)? {
         return Ok(false);
     }
-    if !crate::hir::resolved_type_contains_owned_bytes(program, root) {
+    if !crate::hir::resolved_type_contains_owned_bytes(program, root)
+        && !crate::hir::owned_text_record::admitted(root, &program.declarations)
+    {
         return Ok(false);
     }
     let mut pending = vec![Frame::Enter(root.clone(), 1)];
@@ -31,7 +33,7 @@ pub(super) fn record_contains_owned_bytes(
     let mut contains = false;
     while let Some(frame) = pending.pop() {
         match frame {
-            Frame::Enter(ResolvedType::Bytes, _) => {
+            Frame::Enter(ResolvedType::Bytes | ResolvedType::String, _) => {
                 contains = true;
                 owned_leaves = owned_leaves
                     .checked_add(1)
@@ -142,7 +144,8 @@ pub(super) fn record_update_uses_owned_plan(
     root: &ResolvedType,
 ) -> Result<bool, Diagnostic> {
     Ok(record_is_nested_owned(program, root)?
-        || is_concrete_generic_flat_owned_record(program, root))
+        || is_concrete_generic_flat_owned_record(program, root)
+        || crate::hir::owned_text_record::admitted(root, &program.declarations))
 }
 
 fn is_concrete_generic_flat_owned_record(program: &ResolvedProgram, root: &ResolvedType) -> bool {
@@ -157,13 +160,26 @@ pub(super) fn emit_update_scope_cleanup(
     let ResolvedExprKind::UpdateRecord { base, .. } = &expression.kind else {
         return Ok(());
     };
-    let nested = record_is_nested_owned(emitter.program, &expression.ty)?;
+    let nested = record_is_nested_owned(emitter.program, &expression.ty)?
+        || crate::hir::owned_text_record::admitted(&expression.ty, &emitter.program.declarations);
     if !nested && !is_concrete_generic_flat_owned_record(emitter.program, &expression.ty) {
         return Ok(());
     }
-    if nested && emitter.cleanup_plan.schema != crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V9 {
+    if nested
+        && !matches!(
+            emitter.cleanup_plan.schema,
+            crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V9
+                | crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V10
+                | crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V11
+                | crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V12
+                | crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V13
+                | crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V14
+                | crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V15
+                | "semaprax.cleanup-plan.v16"
+        )
+    {
         return Err(super::error(
-            "nested record update cleanup requires CleanupPlan v9",
+            "nested record update cleanup requires a validated CleanupPlan v9 composition",
         ));
     }
     let anchor = crate::cleanup_plan::StorageId::Temporary(base.id.clone());
@@ -244,7 +260,7 @@ pub(super) fn owned_record_pattern_anchors(
         }
         match pattern {
             crate::hir::ResolvedRecordMatchFieldPattern::Binding(binding)
-                if binding.ty == ResolvedType::Bytes =>
+                if matches!(binding.ty, ResolvedType::Bytes | ResolvedType::String) =>
             {
                 anchors.insert(crate::cleanup_plan::StorageId::Value(binding.id.clone()));
             }
@@ -334,7 +350,7 @@ pub(super) fn bind_record_match_pattern(
                         "owning nested record binding reached exact destructuring lowering",
                     ));
                 }
-                if binding.ty == ResolvedType::Bytes {
+                if matches!(binding.ty, ResolvedType::Bytes | ResolvedType::String) {
                     if !byte_binding_mode_is_exact(mode, binding.ownership) {
                         return Err(error(
                             "record Bytes binding ownership disagrees with match mode",
@@ -378,7 +394,7 @@ pub(super) fn bind_record_match_pattern(
                         ty: binding.ty.clone(),
                     }
                 };
-                if binding.ty == ResolvedType::Bytes
+                if matches!(binding.ty, ResolvedType::Bytes | ResolvedType::String)
                     && binding.ownership == crate::hir::OwnershipMode::Borrow
                 {
                     emitter.copy_borrowed_scalar_alias(&destination, &projected)?;
@@ -396,7 +412,7 @@ pub(super) fn bind_record_match_pattern(
             crate::hir::ResolvedRecordMatchFieldPattern::Wildcard => {
                 let ty = value_type(&projected);
                 let nested = record_contains_owned_bytes(emitter.program, ty)?;
-                let direct = *ty == ResolvedType::Bytes;
+                let direct = matches!(ty, ResolvedType::Bytes | ResolvedType::String);
                 // The resolver admits a wildcard over a direct droppable leaf
                 // under a borrow and rejects a nested owning subtree in either
                 // mode. Match it exactly, so a program the front end admits is

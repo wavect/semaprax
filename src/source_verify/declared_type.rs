@@ -249,7 +249,8 @@ pub(super) fn check_declared_type(
         {
             continue;
         }
-        let admitted_owned_record = types.is_nested_owned_byte_record(&instance);
+        let admitted_owned_record = (types.is_nested_owned_byte_record(&instance)
+            || crate::source_verify::declared_type::string_record::admitted(&instance, types));
         let admitted_owned_record_template =
             types.is_nested_owned_byte_record_template(&instance, parameters);
         let admitted_owned_variant = (types.is_flat_owned_byte_variant(&instance)
@@ -475,13 +476,20 @@ pub(super) fn generic_function_arguments_are_admitted(
             .filter(|param| param.mode == ParamMode::Own)
             .all(|param| {
                 if nested {
-                    types.is_nested_owned_byte_record(&param.ty)
+                    (types.is_nested_owned_byte_record(&param.ty)
+                        || crate::source_verify::declared_type::string_record::admitted(
+                            &param.ty, types,
+                        ))
                 } else {
                     types.is_flat_owned_byte_record(&param.ty)
                 }
             })
             && if nested {
-                types.is_nested_owned_byte_record(&specialized.return_type)
+                (types.is_nested_owned_byte_record(&specialized.return_type)
+                    || crate::source_verify::declared_type::string_record::admitted(
+                        &specialized.return_type,
+                        types,
+                    ))
             } else {
                 types.is_flat_owned_byte_record(&specialized.return_type)
             }
@@ -1069,7 +1077,8 @@ pub(super) fn check_ownership_mode(
     if string_record::reject(program, &param.ty, "passed", param.span, types, diagnostics) {
         return;
     }
-    let requires_explicit_mode = crate::stdin_stream_ops::ast_is_reader(&param.ty)
+    let requires_explicit_mode = string_record::admitted(&param.ty, types)
+        || crate::stdin_stream_ops::ast_is_reader(&param.ty)
         || crate::iterator_ops::ast_is_iterator(&param.ty)
         || types.contains_resource(&param.ty)
         || types.contains_owned_bytes(&param.ty)
@@ -1137,7 +1146,8 @@ pub(super) fn check_record_pattern(
     mode: MatchMode,
 ) {
     let exact_recursive = mode != MatchMode::Value
-        && types.is_nested_owned_byte_record(expected)
+        && (types.is_nested_owned_byte_record(expected)
+            || string_record::admitted(expected, types))
         && !types.is_flat_owned_byte_record(expected);
     enum Frame<'a, 't> {
         Enter {
@@ -1352,5 +1362,8 @@ pub(super) fn ordinary_record_match_result(
     types: &TypeTable<'_>,
 ) -> bool {
     (mode == ParamMode::Value && super::type_table::owned_byte_record_copy_field_is_admitted(ty))
-        || (mode == ParamMode::Own && (*ty == Type::Bytes || types.is_nested_owned_byte_record(ty)))
+        || (mode == ParamMode::Own
+            && (matches!(ty, Type::Bytes | Type::String)
+                || types.is_nested_owned_byte_record(ty)
+                || string_record::admitted(ty, types)))
 }

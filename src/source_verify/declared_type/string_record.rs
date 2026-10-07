@@ -1,11 +1,5 @@
-//! String-bearing records fail closed at executable use sites.
-//!
-//! A monomorphic authored `record` may declare `string` fields: projects use
-//! such declarations as schemas for generated mirrors, and their invariants
-//! still verify. No backend has an aggregate value layout for an owned
-//! `string` leaf inside a record, and no ownership mode admits one as a
-//! parameter or result, so a signature carrying one is refused here with a
-//! stable diagnostic instead of an internal HIR failure.
+//! Additive bounded String/Bytes record admission for private runtime values.
+//! Schema-only records outside that executable profile retain SPX-T309.
 use super::super::diagnostics::error;
 use super::super::type_table::TypeTable;
 use crate::ast::{Program, Span, Type, TypeDeclarationKind};
@@ -41,6 +35,9 @@ pub(in crate::source_verify) fn reject(
     types: &TypeTable<'_>,
     diagnostics: &mut Vec<Diagnostic>,
 ) -> bool {
+    if admitted(ty, types) {
+        return false;
+    }
     let Some((record, field)) = string_field(ty, types) else {
         return false;
     };
@@ -60,4 +57,78 @@ pub(in crate::source_verify) fn reject(
         )),
     );
     true
+}
+
+/// Additive runtime record admission, independent of the frozen Bytes ABI.
+pub(in crate::source_verify) fn admitted(root: &Type, types: &TypeTable<'_>) -> bool {
+    if !matches!(root, Type::Named { .. }) {
+        return false;
+    }
+    enum Frame {
+        Enter(Type, usize),
+        Leave(String),
+    }
+    let mut pending = vec![Frame::Enter(root.clone(), 1)];
+    let mut active = std::collections::HashSet::new();
+    let mut fields = 0usize;
+    let mut leaves = 0usize;
+    let mut text = false;
+    while let Some(frame) = pending.pop() {
+        match frame {
+            Frame::Enter(Type::String, _) => {
+                text = true;
+                leaves += 1;
+            }
+            Frame::Enter(Type::Bytes, _) => {
+                leaves += 1;
+            }
+            Frame::Enter(
+                Type::I64
+                | Type::I32
+                | Type::U8
+                | Type::Usize
+                | Type::Char
+                | Type::F32
+                | Type::F64
+                | Type::Bool,
+                _,
+            ) => {}
+            Frame::Enter(Type::Named { name, arguments }, depth) => {
+                if depth > crate::cleanup::MAX_CLEANUP_SHAPE_DEPTH {
+                    return false;
+                }
+                let Some(declaration) = types.declaration(&name) else {
+                    return false;
+                };
+                if !arguments.is_empty() || !declaration.type_parameters.is_empty() {
+                    return false;
+                }
+                let TypeDeclarationKind::Record { fields: declared } = &declaration.kind else {
+                    return false;
+                };
+                if !active.insert(name.clone()) {
+                    return false;
+                }
+                fields += declared.len();
+                if fields > crate::cleanup::MAX_CLEANUP_VISITED_FIELDS {
+                    return false;
+                }
+                pending.push(Frame::Leave(name));
+                pending.extend(
+                    declared
+                        .iter()
+                        .rev()
+                        .map(|field| Frame::Enter(field.ty.clone(), depth + 1)),
+                );
+            }
+            Frame::Leave(name) => {
+                active.remove(&name);
+            }
+            Frame::Enter(_, _) => return false,
+        }
+        if leaves > crate::cleanup::MAX_CLEANUP_OWNED_LEAVES {
+            return false;
+        }
+    }
+    text
 }

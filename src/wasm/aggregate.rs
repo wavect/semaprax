@@ -1485,10 +1485,14 @@ fn emit_byte_exports_profile(
             .any(|plan| plan.result == super::owned_data_exports::ResultLayout::Utf8)
         || executable_functions.iter().any(|(function, _)| {
             function.return_type == ResolvedType::String
-                || function
-                    .params
-                    .iter()
-                    .any(|param| param.ty == ResolvedType::String)
+                || crate::hir::owned_text_record::admitted(
+                    &function.return_type,
+                    &program.declarations,
+                )
+                || function.params.iter().any(|param| {
+                    param.ty == ResolvedType::String
+                        || crate::hir::owned_text_record::admitted(&param.ty, &program.declarations)
+                })
         });
     let uses_str_ops = program_uses_str_ops(program);
     let text_helper_count = if uses_str_ops { 2_u32 } else { 0 };

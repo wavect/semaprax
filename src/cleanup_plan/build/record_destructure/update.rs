@@ -100,9 +100,9 @@ fn is_nested_owned_bytes(
                 "nested record update exceeds its depth bound",
             ));
         }
-        if ty == ResolvedType::Bytes {
+        if matches!(ty, ResolvedType::Bytes | ResolvedType::String) {
             leaves += 1;
-            nested |= depth > 1;
+            nested |= depth > 1 || ty == ResolvedType::String;
             if leaves > LEAF_LIMIT {
                 return Err(super::super::plan_error(
                     "nested record update exceeds its owned-leaf bound",

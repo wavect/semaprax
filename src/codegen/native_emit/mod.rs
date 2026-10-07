@@ -660,6 +660,10 @@ fn program_uses_strings(program: &ResolvedProgram, include_instances: bool) -> b
             ResolvedTypeDeclarationKind::Variant { cases }
                 if cases.iter().flat_map(|case| &case.fields)
                     .any(|field| matches!(field.ty, ResolvedType::String))
+        ) || matches!(
+            &declaration.kind,
+            ResolvedTypeDeclarationKind::Record { fields }
+                if fields.iter().any(|field| matches!(field.ty, ResolvedType::String))
         )
     }) || string_runtime_functions(program, include_instances).any(function_uses_strings)
 }
@@ -1132,14 +1136,20 @@ pub(super) fn emit_function_prototypes(
                 write!(output, ", {ty}").expect("writing to a string cannot fail");
             }
             if param.ownership == crate::hir::OwnershipMode::Borrow {
-                for _ in borrowed_aggregate_byte_paths(
+                for path in borrowed_aggregate_byte_paths(
                     program,
                     &record_layouts,
                     &variant_layouts,
                     &param.ty,
                 )? {
-                    write!(output, ", const spx_bytes_v1 *")
-                        .expect("writing to a string cannot fail");
+                    let pointer = nested_owned::borrowed_leaf_pointer_type(
+                        program,
+                        &record_layouts,
+                        &variant_layouts,
+                        &param.ty,
+                        &path,
+                    )?;
+                    write!(output, ", {pointer}").expect("writing to a string cannot fail");
                 }
             }
         }
@@ -1757,11 +1767,15 @@ fn emit_function(
                 &param.ty,
             )? {
                 let suffix = borrowed_aggregate_path_suffix(&path)?;
-                write!(
-                    output,
-                    ", const spx_bytes_v1 *spx_param_{index}_borrow_{suffix}"
-                )
-                .expect("writing to a string cannot fail");
+                let pointer = nested_owned::borrowed_leaf_pointer_type(
+                    program,
+                    emission.record_layouts,
+                    emission.variant_layouts,
+                    &param.ty,
+                    &path,
+                )?;
+                write!(output, ", {pointer}spx_param_{index}_borrow_{suffix}")
+                    .expect("writing to a string cannot fail");
             }
         }
     }

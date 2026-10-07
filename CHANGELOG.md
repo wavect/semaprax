@@ -14,6 +14,12 @@
   replayed guarded old-owner release, consuming RHS calls and branch results,
   an explicit private Wasm selector and focused settlement/refusal regressions.
   Consolidated executable verification is pending.
+- Author the additive bounded monomorphic owned String record runtime lane:
+  exact `own`/`borrow` parameters, results, constructors, immutable updates and
+  destructuring reuse canonical String lifecycle leaves on interpreter, C11
+  and aggregate Wasm. Independent source/HIR classifiers, hostile layout/HIR
+  controls, source/graph round trips and allocator parity gates are authored;
+  verification remains pending for the combined OPT implementation batch.
 
 - Complete Project v25 owned-String helper execution in ordinary, named,
   cancellable and prepared tests; add the canonical stdin-stream-text scaffold

@@ -51,6 +51,7 @@ pub(crate) struct AggregateFieldLayout {
 pub(crate) enum AggregateFieldValueKind {
     Copy,
     OwnedBytes,
+    OwnedString,
     Resource,
     Aggregate,
 }
@@ -228,6 +229,7 @@ struct ValueLayout {
 enum ValueLayoutKind {
     Scalar,
     OwnedBytes,
+    OwnedString,
     Resource,
     Record { fields: Vec<AggregateFieldLayout> },
 }
@@ -237,6 +239,7 @@ impl ValueLayoutKind {
         match self {
             Self::Scalar => AggregateFieldValueKind::Copy,
             Self::OwnedBytes => AggregateFieldValueKind::OwnedBytes,
+            Self::OwnedString => AggregateFieldValueKind::OwnedString,
             Self::Resource => AggregateFieldValueKind::Resource,
             Self::Record { .. } => AggregateFieldValueKind::Aggregate,
         }
@@ -275,9 +278,12 @@ fn layout_type(
             digest: digest_value(target, ty, *length, 1, &[]),
             kind: ValueLayoutKind::Scalar,
         }),
-        ResolvedType::String => Err(layout_error(
-            "owned string values have no aggregate value layout in v1",
-        )),
+        ResolvedType::String => Ok(ValueLayout {
+            size: 8,
+            align: 8,
+            digest: digest_value(target, ty, 8, 8, &[]),
+            kind: ValueLayoutKind::OwnedString,
+        }),
         ResolvedType::Bytes => {
             let (size, align) = owned_bytes_size_align(target);
             Ok(ValueLayout {
@@ -401,6 +407,19 @@ fn layout_nominal(
                 declaration: declaration.clone(),
                 arguments: arguments.to_vec(),
             };
+            if matches!(&item.kind, ResolvedTypeDeclarationKind::Class { .. })
+                && fields.iter().any(|field| {
+                    field.ty == ResolvedType::String
+                        || crate::hir::owned_text_record::contains_string(
+                            &field.ty,
+                            &program.declarations,
+                        )
+                })
+            {
+                return Err(layout_error(
+                    "owned String class fields remain outside the record profile",
+                ));
+            }
             let instance_key = instance.identity_key();
             if !visiting.insert(instance_key.clone()) {
                 return Err(layout_error(format!(

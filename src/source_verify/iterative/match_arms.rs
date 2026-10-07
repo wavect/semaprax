@@ -59,7 +59,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     && (value.mode == ParamMode::Value || owns_record_input)
                     && crate::source_verify::declared_type::ordinary_record_match_result(&value.ty, value.mode, self.types))
                 && !(generic_owned_result
-                    && (((value.ty == self.current.return_type || self.types.is_nested_owned_byte_record(&value.ty)) && value.mode == ParamMode::Own)
+                    && (((value.ty == self.current.return_type || (self.types.is_nested_owned_byte_record(&value.ty) || crate::source_verify::declared_type::string_record::admitted(&value.ty, self.types))) && value.mode == ParamMode::Own)
                         || (value.mode == ParamMode::Value
                             && (crate::source_verify::type_table::owned_byte_record_copy_field_is_admitted(&value.ty)
                                 || matches!(&value.ty, Type::Named { name, arguments }

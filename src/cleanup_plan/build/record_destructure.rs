@@ -237,7 +237,8 @@ pub(super) fn derive(
                             "nested record binding type or ownership is not canonical",
                         ));
                     }
-                    non_byte_owned_terminal |= needs_drop && field_ty != ResolvedType::Bytes;
+                    non_byte_owned_terminal |= needs_drop
+                        && !matches!(field_ty, ResolvedType::Bytes | ResolvedType::String);
                     if needs_drop && mode == ResolvedMatchMode::Own {
                         if owned_bindings.len() >= MAX_OWNED_LEAVES {
                             return Err(super::plan_error(

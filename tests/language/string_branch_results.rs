@@ -4,9 +4,8 @@
 //! user functions. The same corpus runs on the reference interpreter, on
 //! generated C11 under an allocation-counting allocator that rejects
 //! duplicate and foreign frees and requires zero live allocations after every
-//! case, and on the String-settling Core Wasm profile. A signature carrying a
-//! string-bearing record, which no backend lays out, is refused with one
-//! stable diagnostic.
+//! case, and on the String-settling Core Wasm profile. A String-bearing record outside the bounded executable profile retains
+//! its stable signature refusal.
 
 use std::path::Path;
 use std::process::Command;
@@ -404,7 +403,7 @@ record Task {
     @id("task.title")
     title: string,
     @id("task.points")
-    points: i64,
+    points: [u8; 2],
 }
 "#;
 
@@ -415,17 +414,17 @@ fn record_diagnostics(rest: &str) -> Vec<semaprax::diagnostic::Diagnostic> {
 }
 
 #[test]
-fn string_bearing_records_fail_closed_with_one_stable_diagnostic() {
+fn string_record_shapes_outside_owned_text_profile_keep_the_stable_diagnostic() {
     // A declaration alone stays admitted: projects use it as a schema.
     let declared = record_diagnostics("@id(\"app.main\")\nfn main() -> i64\n{\n    0\n}\n");
     assert!(declared.is_empty(), "{declared:?}");
     for (rest, role) in [
         (
-            "@id(\"app.f\")\nfn f(t: Task) -> i64\n{\n    t.points\n}\n\n@id(\"app.main\")\nfn main() -> i64\n{\n    0\n}\n",
+            "@id(\"app.f\")\nfn f(t: Task) -> i64\n{\n    0\n}\n\n@id(\"app.main\")\nfn main() -> i64\n{\n    0\n}\n",
             "passed",
         ),
         (
-            "@id(\"app.make\")\nfn make() -> Task\n{\n    Task { title: \"write\", points: 3 }\n}\n\n@id(\"app.main\")\nfn main() -> i64\n{\n    0\n}\n",
+            "@id(\"app.make\")\nfn make() -> Task\n{\n    Task { title: \"write\", points: [3u8, 4u8] }\n}\n\n@id(\"app.main\")\nfn main() -> i64\n{\n    0\n}\n",
             "returned",
         ),
     ] {

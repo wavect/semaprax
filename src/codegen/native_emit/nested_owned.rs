@@ -95,7 +95,7 @@ fn collect_record_paths(
                 for field in layout.fields.iter().rev() {
                     let mut path = prefix.clone();
                     path.push(field.field.clone());
-                    if field.ty == ResolvedType::Bytes {
+                    if matches!(field.ty, ResolvedType::Bytes | ResolvedType::String) {
                         pending.push(Frame::Bytes(path));
                     } else if is_exact_record(program, &field.ty)? {
                         pending.push(Frame::Record(field.ty.clone(), path, depth + 1));
@@ -134,6 +134,7 @@ pub(super) fn emit_owned_record_shell(
     enum Frame {
         Record(String, String, ResolvedType, usize),
         Bytes(String),
+        String(String),
         Scalar(String, String),
         Leave(String),
     }
@@ -180,7 +181,9 @@ pub(super) fn emit_owned_record_shell(
                     let symbol = c_field_symbol(&field.field);
                     let destination = format!("({destination}).{symbol}");
                     let source = format!("({source}).{symbol}");
-                    if field.ty == ResolvedType::Bytes {
+                    if field.ty == ResolvedType::String {
+                        pending.push(Frame::String(destination));
+                    } else if field.ty == ResolvedType::Bytes {
                         pending.push(Frame::Bytes(destination));
                     } else if is_exact_record(program, &field.ty)? {
                         pending.push(Frame::Record(
@@ -189,10 +192,7 @@ pub(super) fn emit_owned_record_shell(
                             field.ty.clone(),
                             depth + 1,
                         ));
-                    } else if matches!(
-                        field.ty,
-                        ResolvedType::Nominal { .. } | ResolvedType::String
-                    ) {
+                    } else if matches!(field.ty, ResolvedType::Nominal { .. }) {
                         return Err(backend_error(
                             "closed field kind reached nested owned result publication",
                         ));
@@ -200,6 +200,9 @@ pub(super) fn emit_owned_record_shell(
                         pending.push(Frame::Scalar(destination, source));
                     }
                 }
+            }
+            Frame::String(destination) => {
+                writeln!(output, "    {destination} = NULL;").expect("writing to string");
             }
             Frame::Bytes(destination) => {
                 leaves = leaves
@@ -290,4 +293,44 @@ fn is_exact_record(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool,
         .type_parameters(declaration)
         .is_some_and(|parameters| parameters.len() == arguments.len())
         && item.kind == DeclarationKind::Record)
+}
+
+/// Exact pointer type for a borrowed projected owner. The nominal shell has
+/// inert owned fields; these aliases retain the caller's authenticated leaves.
+pub(super) fn borrowed_leaf_pointer_type(
+    program: &ResolvedProgram,
+    layouts: &AggregateLayoutCache,
+    variants: &VariantLayoutCache,
+    root: &ResolvedType,
+    path: &[DeclarationId],
+) -> Result<&'static str, Diagnostic> {
+    let mut ty = root.clone();
+    if variant_declaration_id(program, &ty)?.is_some() {
+        let [case, field] = path else {
+            return Err(backend_error("invalid borrowed variant leaf path"));
+        };
+        ty = variants
+            .layout(root)?
+            .case(case)
+            .and_then(|case| case.field(field))
+            .ok_or_else(|| backend_error("borrowed variant leaf is absent"))?
+            .ty
+            .clone();
+    } else {
+        for field in path {
+            ty = layouts
+                .layout(&ty)?
+                .field(field)
+                .ok_or_else(|| backend_error("borrowed record leaf is absent"))?
+                .ty
+                .clone();
+        }
+    }
+    match ty {
+        ResolvedType::Bytes => Ok("const spx_bytes_v1 *"),
+        ResolvedType::String => Ok("char * const *"),
+        _ => Err(backend_error(
+            "borrowed aggregate path is not an owning leaf",
+        )),
+    }
 }

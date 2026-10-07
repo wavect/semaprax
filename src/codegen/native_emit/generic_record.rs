@@ -42,9 +42,11 @@ pub(super) fn match_result_is_admitted(
         return false;
     };
     let ordinary_shape = ordinary
-        && hir::is_admitted_nested_owned_byte_record(&program.declarations, &scrutinee.ty)
-        && (expression.ty == ResolvedType::Bytes
-            || hir::is_admitted_nested_owned_byte_record(&program.declarations, &expression.ty));
+        && (hir::is_admitted_nested_owned_byte_record(&program.declarations, &scrutinee.ty)
+            || hir::owned_text_record::admitted(&scrutinee.ty, &program.declarations))
+        && (matches!(expression.ty, ResolvedType::Bytes | ResolvedType::String)
+            || (hir::is_admitted_nested_owned_byte_record(&program.declarations, &expression.ty)
+                || hir::owned_text_record::admitted(&expression.ty, &program.declarations)));
     *mode == hir::ResolvedMatchMode::Own
         && expression.ty == arm.value.ty
         && expression.ownership == OwnershipMode::Own
@@ -89,7 +91,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         for line in preflight.lines().chain(transfers.lines()) {
             self.line(line);
         }
-        if expression.ty == ResolvedType::Bytes {
+        if matches!(expression.ty, ResolvedType::Bytes | ResolvedType::String) {
             if let Some(result) = plan.result_at(&expression.id) {
                 value.code = result.to_owned();
             }
@@ -123,7 +125,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         if self.bytes_plan.is_none() {
             return Err(backend_error("owned record match has no cleanup plan"));
         }
-        if expression.ty == ResolvedType::Bytes {
+        if matches!(expression.ty, ResolvedType::Bytes | ResolvedType::String) {
             let plan = self.bytes_plan.expect("owned match plan checked above");
             if matches!(arm_value.kind, ResolvedExprKind::Place(_)) {
                 for line in plan.apply_at(&arm_value.id)?.lines() {

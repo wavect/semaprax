@@ -3,6 +3,7 @@ use super::*;
 
 impl HirValidator<'_> {
     pub(super) fn validate_type(&self, ty: &ResolvedType) -> Result<(), Diagnostic> {
+        crate::hir::owned_text_record::validate_use(ty, &self.program.declarations)?;
         enum Frame<'a> {
             Enter(&'a ResolvedType),
             Finish(&'a ResolvedType),

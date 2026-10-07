@@ -36,7 +36,7 @@ pub(super) fn owned_record_pattern_anchors(
         }
         match pattern {
             crate::hir::ResolvedRecordMatchFieldPattern::Binding(binding)
-                if binding.ty == ResolvedType::Bytes =>
+                if matches!(binding.ty, ResolvedType::Bytes | ResolvedType::String) =>
             {
                 anchors.insert(crate::cleanup_plan::StorageId::Value(binding.id.clone()));
             }
@@ -130,7 +130,8 @@ pub(super) fn bind_record_match_pattern<O: COutput>(
         match &field.pattern {
             hir::ResolvedRecordMatchFieldPattern::Binding(binding) => {
                 emitter.require_type(&binding.ty, &layout_field.ty, "record pattern binding")?;
-                let name = if matches!(layout_field.ty, ResolvedType::Bytes) {
+                let name = if matches!(layout_field.ty, ResolvedType::Bytes | ResolvedType::String)
+                {
                     match frame.binding_mode.mode {
                         hir::ResolvedMatchMode::Own
                             if binding.ownership == hir::OwnershipMode::Own =>
@@ -216,7 +217,7 @@ pub(super) fn bind_record_match_pattern<O: COutput>(
             }
             hir::ResolvedRecordMatchFieldPattern::Wildcard => {
                 let nested = emitter.record_contains_owned_bytes(&layout_field.ty)?;
-                let direct = layout_field.ty == ResolvedType::Bytes;
+                let direct = matches!(layout_field.ty, ResolvedType::Bytes | ResolvedType::String);
                 // The resolver admits a wildcard over a direct droppable leaf
                 // under a borrow and rejects a nested owning subtree in either
                 // mode. Match it exactly, so a program the front end admits is
@@ -375,7 +376,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             }
             let value = self.emit_expr(&replacement.value)?;
             self.require_type(&value.ty, &field.ty, "nested record update field")?;
-            if field.size == 0 || field.ty == ResolvedType::Bytes {
+            if field.size == 0 || matches!(field.ty, ResolvedType::Bytes | ResolvedType::String) {
                 continue;
             }
             let target = format!("{destination}.{}", c_field_symbol(&field.field));
@@ -393,7 +394,10 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             self.line(line);
         }
         for field in &layout.fields {
-            if seen.contains(&field.field) || field.size == 0 || field.ty == ResolvedType::Bytes {
+            if seen.contains(&field.field)
+                || field.size == 0
+                || matches!(field.ty, ResolvedType::Bytes | ResolvedType::String)
+            {
                 continue;
             }
             let source = format!("({}).{}", base.code, c_field_symbol(&field.field));
@@ -433,7 +437,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         if !self.is_exact_record(ty)? {
             return Ok(false);
         }
-        if !crate::hir::resolved_type_contains_owned_bytes(self.program, ty) {
+        if !crate::hir::resolved_type_contains_owned_bytes(self.program, ty)
+            && !crate::hir::owned_text_record::admitted(ty, &self.program.declarations)
+        {
             return Ok(false);
         }
         self.classify_owned_record(ty)
@@ -454,7 +460,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
     fn record_update_uses_owned_plan(&self, ty: &ResolvedType) -> Result<bool, Diagnostic> {
         let generic_flat = matches!(ty, ResolvedType::Nominal { arguments, .. } if !arguments.is_empty())
             && crate::hir::is_flat_owned_byte_record(&self.program.declarations, ty);
-        Ok(self.record_is_nested_owned(ty)? || generic_flat)
+        Ok(self.record_is_nested_owned(ty)?
+            || generic_flat
+            || crate::hir::owned_text_record::admitted(ty, &self.program.declarations))
     }
 
     pub(crate) fn move_owned_record_fields(
@@ -515,7 +523,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         let mut contains = false;
         while let Some(frame) = pending.pop() {
             match frame {
-                Frame::Enter(ResolvedType::Bytes, _) => {
+                Frame::Enter(ResolvedType::Bytes | ResolvedType::String, _) => {
                     contains = true;
                     leaves = leaves
                         .checked_add(1)
@@ -606,7 +614,8 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             };
             let layout = self.record_layout(&ty)?;
             for field in layout.fields.into_iter().rev() {
-                if field.size == 0 || field.ty == ResolvedType::Bytes {
+                if field.size == 0 || matches!(field.ty, ResolvedType::Bytes | ResolvedType::String)
+                {
                     continue;
                 }
                 let symbol = c_field_symbol(&field.field);
@@ -614,10 +623,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 let source_field = format!("({source}).{symbol}");
                 if self.is_exact_record(&field.ty)? {
                     pending.push(Action::Record(target, source_field, field.ty));
-                } else if matches!(
-                    field.ty,
-                    ResolvedType::Nominal { .. } | ResolvedType::String
-                ) {
+                } else if matches!(field.ty, ResolvedType::Nominal { .. }) {
                     return Err(backend_error(
                         "closed field kind reached nested owned native move",
                     ));
@@ -633,11 +639,16 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         enum Action {
             Record(String, ResolvedType),
             Bytes(String),
+            String(String),
         }
         let mut pending = vec![Action::Record(destination.to_owned(), ty.clone())];
         while let Some(action) = pending.pop() {
             let (destination, ty) = match action {
                 Action::Record(destination, ty) => (destination, ty),
+                Action::String(destination) => {
+                    self.line(&format!("{destination} = NULL;"));
+                    continue;
+                }
                 Action::Bytes(destination) => {
                     self.line(&format!("{destination} = (spx_bytes_v1) {{0}};"));
                     continue;
@@ -647,7 +658,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             for field in layout.fields.into_iter().rev() {
                 let symbol = c_field_symbol(&field.field);
                 let target = format!("({destination}).{symbol}");
-                if field.ty == ResolvedType::Bytes {
+                if field.ty == ResolvedType::String {
+                    pending.push(Action::String(target));
+                } else if field.ty == ResolvedType::Bytes {
                     pending.push(Action::Bytes(target));
                 } else if self.is_exact_record(&field.ty)? {
                     pending.push(Action::Record(target, field.ty));

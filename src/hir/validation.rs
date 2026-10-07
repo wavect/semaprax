@@ -599,6 +599,7 @@ impl<'a> HirValidator<'a> {
                             &self.program.declarations,
                             &root,
                         )
+                        && !super::owned_text_record::admitted(&root, &self.program.declarations)
                     {
                         return Err(hir_error(
                             "resolved owned-Bytes record is outside the bounded acyclic nested profile",
@@ -1934,6 +1935,10 @@ impl<'a> HirValidator<'a> {
                         && !super::type_reachability::is_admitted_nested_owned_byte_record(
                             &self.program.declarations,
                             &expected,
+                        )
+                        && !super::owned_text_record::admitted(
+                            &expected,
+                            &self.program.declarations,
                         )
                     {
                         return Err(hir_error(
@@ -8516,13 +8521,23 @@ impl<'a> HirValidator<'a> {
                                 &self.program.declarations,
                                 &param.ty,
                             )
+                            || super::owned_text_record::admitted(
+                                &param.ty,
+                                &self.program.declarations,
+                            )
                             || resolved_type_is_flat_owned_byte_variant(self.program, &param.ty))
                             && matches!(actual, OwnershipMode::Own | OwnershipMode::Borrow)
                             && matches!(
                                 &argument.kind,
                                 ResolvedExprKind::Place(place) if place.projections.is_empty()
                             )
-                    } else if resolved_type_is_flat_owned_string_variant(self.program, &param.ty) {
+                    } else if super::owned_text_record::admitted(
+                        &param.ty,
+                        &self.program.declarations,
+                    ) || resolved_type_is_flat_owned_string_variant(
+                        self.program,
+                        &param.ty,
+                    ) {
                         matches!(actual, OwnershipMode::Own | OwnershipMode::Borrow)
                             && matches!(
                                 &argument.kind,

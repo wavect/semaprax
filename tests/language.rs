@@ -181,3 +181,5 @@ mod stream_text_command;
 
 #[path = "language/string_ordering.rs"]
 mod string_ordering;
+#[path = "language/owned_string_records_v1.rs"]
+mod owned_string_records_v1;

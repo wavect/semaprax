@@ -169,6 +169,14 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     name: type_name.to_owned(),
                     arguments: type_arguments.to_vec(),
                 };
+                crate::source_verify::declared_type::string_record::reject(
+                    self.program,
+                    &instance,
+                    "constructed",
+                    expression.span,
+                    self.types,
+                    self.diagnostics,
+                );
                 self.values.push(Some(CheckedValue::returned(
                     instance.clone(),
                     self.types.needs_drop(&instance),
@@ -357,8 +365,12 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             self.values.push(None);
             return Ok(());
         };
-        let nested_update = self.types.is_nested_owned_byte_record(&base_value.ty)
-            && !self.types.is_flat_owned_byte_record(&base_value.ty);
+        let nested_update = (self.types.is_nested_owned_byte_record(&base_value.ty)
+            && !self.types.is_flat_owned_byte_record(&base_value.ty))
+            || crate::source_verify::declared_type::string_record::admitted(
+                &base_value.ty,
+                self.types,
+            );
         if nested_update
             && source_place(base, &self.scopes[scope].bindings, self.types)
                 .is_none_or(|place| !place.projections.is_empty())

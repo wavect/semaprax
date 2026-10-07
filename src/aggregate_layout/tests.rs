@@ -716,3 +716,49 @@ module test.generic_aggregate_layout;
         ResolvedType::Bool
     );
 }
+
+#[test]
+fn owned_string_record_layout_is_independent_of_frozen_byte_layout() {
+    let parsed = parse(
+        r#"module test.string_record_layout;
+@id("text") record Text { @id("text.value") value: string, @id("text.marker") marker: i64, }
+@id("app.main") fn main() -> i64 { 0 }
+"#,
+        Path::new("string-record-layout.spx"),
+    )
+    .unwrap();
+    let program = hir::resolve(&parsed).unwrap();
+    let ty = ResolvedType::Nominal {
+        declaration: DeclarationId::new("text"),
+        arguments: Vec::new(),
+    };
+    let mut digests = Vec::new();
+    for target in [AggregateTarget::Native64, AggregateTarget::Wasm32] {
+        let layout = AggregateLayout::for_type(&program, target, &ty).unwrap();
+        assert_eq!((layout.size, layout.align), (16, 8));
+        assert_eq!(
+            layout.fields[0].value_kind,
+            AggregateFieldValueKind::OwnedString
+        );
+        assert_eq!(
+            (
+                layout.fields[0].offset,
+                layout.fields[0].size,
+                layout.fields[0].align
+            ),
+            (0, 8, 8)
+        );
+        assert_eq!(layout.fields[1].offset, 8);
+        layout.validate(&program).unwrap();
+        digests.push(layout.digest);
+        let mut forged = layout.clone();
+        forged.fields[0].value_kind = AggregateFieldValueKind::Copy;
+        assert!(forged.validate(&program).is_err());
+        let mut forged = layout;
+        forged.fields[0].value_kind = AggregateFieldValueKind::OwnedBytes;
+        assert!(forged.validate(&program).is_err());
+    }
+    assert_ne!(digests[0], digests[1]);
+    assert_eq!(owned_bytes_size_align(AggregateTarget::Native64), (16, 8));
+    assert_eq!(owned_bytes_size_align(AggregateTarget::Wasm32), (8, 8));
+}

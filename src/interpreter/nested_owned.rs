@@ -56,6 +56,7 @@ pub(super) fn record_update_is_admitted(
     let generic_flat =
         !arguments.is_empty() && hir::is_flat_owned_byte_record(declarations, result);
     if !generic_flat
+        && !hir::owned_text_record::admitted(result, declarations)
         && !declared.iter().any(|field| {
             hir::substitute_type(&field.ty, record, arguments).is_ok_and(|ty| {
                 matches!(&ty, ResolvedType::Nominal { .. })
@@ -189,7 +190,8 @@ fn validate_runtime_value(
         | (ResolvedType::F32, Value::Float32(_))
         | (ResolvedType::F64, Value::Float64(_))
         | (ResolvedType::Bool, Value::Bool(_))
-        | (ResolvedType::Bytes, Value::Bytes(_)) => Ok(()),
+        | (ResolvedType::Bytes, Value::Bytes(_))
+        | (ResolvedType::String, Value::String(_)) => Ok(()),
         (ResolvedType::Nominal { .. }, Value::Record(record)) => {
             validate_runtime_record(declarations, expected, record, require_unique)
         }
@@ -496,7 +498,7 @@ fn classify_record(
     let mut profile = RecordProfile { has_bytes: false };
     while let Some(frame) = pending.pop() {
         match frame {
-            Frame::Enter(ResolvedType::Bytes, _) => {
+            Frame::Enter(ResolvedType::Bytes | ResolvedType::String, _) => {
                 profile.has_bytes = true;
                 owned_leaves = owned_leaves.checked_add(1)?;
                 if owned_leaves > crate::cleanup::MAX_CLEANUP_OWNED_LEAVES {
@@ -643,12 +645,12 @@ fn pattern_is_exact(
             let Ok(declared_ty) = hir::substitute_type(&declared.ty, declaration, arguments) else {
                 return false;
             };
-            let owns = declared_ty == ResolvedType::Bytes
+            let owns = matches!(declared_ty, ResolvedType::Bytes | ResolvedType::String)
                 || classify_record(declarations, &declared_ty)
                     .is_some_and(|profile| profile.has_bytes);
             match &field.pattern {
                 hir::ResolvedRecordMatchFieldPattern::Binding(binding) => {
-                    if owns && declared_ty != ResolvedType::Bytes {
+                    if owns && !matches!(declared_ty, ResolvedType::Bytes | ResolvedType::String) {
                         return false;
                     }
                     let ownership = if owns {
@@ -674,7 +676,7 @@ fn pattern_is_exact(
                     instance,
                     fields,
                 } => {
-                    if declared_ty == ResolvedType::Bytes
+                    if matches!(declared_ty, ResolvedType::Bytes | ResolvedType::String)
                         || classify_record(declarations, &declared_ty).is_none()
                     {
                         return false;
@@ -711,7 +713,7 @@ fn value_needs_drop(value: &Value) -> bool {
     let mut pending = vec![value];
     while let Some(value) = pending.pop() {
         match value {
-            Value::Bytes(_) => return true,
+            Value::Bytes(_) | Value::String(_) => return true,
             Value::Record(record) => pending.extend(record.fields.values()),
             _ => {}
         }
@@ -730,6 +732,7 @@ fn borrow_alias(value: &Value) -> Result<Value, Flow> {
         Value::Float64(value) => Value::Float64(*value),
         Value::Bool(value) => Value::Bool(*value),
         Value::Bytes(value) => Value::Bytes(value.clone()),
+        Value::String(value) => Value::String(value.clone()),
         Value::Record(value) => Value::Record(Arc::clone(value)),
         _ => {
             return Err(Flow::Guard(

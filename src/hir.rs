@@ -76,6 +76,8 @@ fn view() -> usize uses { process.args.read } {
     }
 }
 
+pub(crate) mod owned_text_record;
+
 mod agent_nodes;
 mod agent_validation;
 mod byte_capacity;

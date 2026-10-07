@@ -219,7 +219,11 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             let needs_drop = self.types.needs_drop(&scrutinee_value.ty);
             if match_mode != MatchMode::Value
                 && self.types.contains_owned_bytes(&scrutinee_value.ty)
-                && !self.types.is_nested_owned_byte_record(&scrutinee_value.ty)
+                && !(self.types.is_nested_owned_byte_record(&scrutinee_value.ty)
+                    || crate::source_verify::declared_type::string_record::admitted(
+                        &scrutinee_value.ty,
+                        self.types,
+                    ))
             {
                 self.diagnostics.push(error(
                     self.program,
@@ -241,7 +245,11 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 }
                 MatchMode::Own => {
                     let recursive_profile =
-                        self.types.is_nested_owned_byte_record(&scrutinee_value.ty)
+                        (self.types.is_nested_owned_byte_record(&scrutinee_value.ty)
+                            || crate::source_verify::declared_type::string_record::admitted(
+                                &scrutinee_value.ty,
+                                self.types,
+                            ))
                             && !self.types.is_flat_owned_byte_record(&scrutinee_value.ty);
                     let nested_exact_place = !recursive_profile
                         || source_place(scrutinee, &self.scopes[scope].bindings, self.types)
@@ -383,7 +391,11 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             self.frames.push(VerifierFrame::ResumeRecordMatchArm {
                 owns_record_input: match_mode == MatchMode::Own
                     && scrutinee_value.mode == ParamMode::Own
-                    && self.types.is_nested_owned_byte_record(&scrutinee_value.ty),
+                    && (self.types.is_nested_owned_byte_record(&scrutinee_value.ty)
+                        || crate::source_verify::declared_type::string_record::admitted(
+                            &scrutinee_value.ty,
+                            self.types,
+                        )),
                 arm: first,
                 parent_scope: scope,
                 arm_scope,

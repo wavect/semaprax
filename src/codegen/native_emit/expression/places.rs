@@ -25,7 +25,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 ))
             })?;
             field_path.push(field.field.clone());
-            code = if matches!(field.ty, ResolvedType::Bytes) {
+            code = if matches!(field.ty, ResolvedType::Bytes | ResolvedType::String) {
                 self.generic_projected_bytes_value(&place.root, &storage, &field_path)?
             } else if field.size == 0 {
                 self.emit_erased_record_field_value(&field.ty)?.code

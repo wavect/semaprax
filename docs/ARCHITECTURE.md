@@ -709,6 +709,13 @@ HIR carries resolved identities and typed operations. A backend or report may
 apply a stricter admission profile, but it may not reinterpret unresolved AST
 or silently widen the verified program.
 
+`src/hir/owned_text_record.rs` owns the additive internal monomorphic
+String/Bytes-record classifier. It is independent of the frozen public Bytes
+classifiers; source admission has its own bounded walk. Native borrowed record
+signatures carry typed aliases to canonical owned leaves, and Wasm retains the
+existing owned-byte arena carrier. [Owned String Records v1](OWNED-STRING-RECORDS-V1.md)
+owns the proposed executable profile and its focused gates.
+
 ### Cleanup meaning
 
 `src/cleanup.rs` inventories structurally owned leaves.

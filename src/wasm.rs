@@ -186,6 +186,7 @@ fn program_uses_strings(program: &ResolvedProgram) -> bool {
     // Keep the ordinary raw emitter's existing traversal unchanged. Web
     // publication separately checks materialized generic functions as well.
     functions_use_strings(program.functions.iter())
+        || hir::owned_text_record::program_uses_strings(program)
 }
 
 fn functions_use_strings<'a>(

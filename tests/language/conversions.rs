@@ -43,8 +43,8 @@ fn round_trip() -> i64
 @id("conv.extremes")
 fn extremes() -> i64
 {
-    let low = i64_from_f64(-9223372036854775808.0);
-    let high = i64_from_f64(9223372036854774784.0);
+    let low = i64_from_f64(-9223372036854776000.0);
+    let high = i64_from_f64(9223372036854775000.0);
     if low == -9223372036854775807 - 1 && high == 9223372036854774784 { 1 } else { 0 }
 }
 
@@ -84,7 +84,7 @@ fn size_too_large() -> i64
 @id("conv.float_too_large")
 fn float_too_large() -> i64
 {
-    i64_from_f64(9223372036854775807.0)
+    i64_from_f64(9223372036854776000.0)
 }
 
 @id("conv.float_too_small")
@@ -225,7 +225,11 @@ fn native_conversions_select_the_same_checked_statuses() {
         ));
         expected.push_str(&format!("{id}|{observation}\n"));
     }
-    probe.push_str("return 0; }\n");
+    // Numeric conversions must allocate nothing. Keep the allocator hooks
+    // referenced even though this corpus has no allocating operation.
+    probe.push_str(
+        "(void)fixture_malloc; (void)fixture_free; REQUIRE(fixture_allocations==0); return 0; }\n",
+    );
     let mut fixture = Fixture::new(SOURCE);
     for optimization in ["-O0", "-O2"] {
         assert_eq!(fixture.native(&probe, optimization), expected);

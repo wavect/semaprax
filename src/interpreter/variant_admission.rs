@@ -64,6 +64,17 @@ pub(super) fn is_admitted_owned_variant(
         || is_admitted_copy_aggregate_variant(declarations, ty)
 }
 
+/// Local Copy-scalar variants, including concrete Option/Result instances.
+/// Reuse the loop classifier's concrete payload substitution; full HIR replay
+/// separately authenticates every constructor, field, pattern and ownership.
+pub(super) fn is_admitted_copy_scalar_variant(
+    declarations: &hir::DeclarationIndex,
+    ty: &ResolvedType,
+) -> bool {
+    matches!(ty, ResolvedType::Nominal { .. })
+        && crate::loop_calls::resolved_match_scrutinee_admitted(declarations, ty)
+}
+
 /// Copy Aggregate Variant Payload v1: every case field of a monomorphic
 /// variant is a direct admitted Copy scalar or a further drop-free
 /// Copy-closed nested record (`hir::is_admitted_copy_aggregate_variant_field`).

@@ -320,11 +320,17 @@ static __attribute__((unused)) int spx_public_failure(
         );
         return 73;
     }
+    const char *conversion_help = "";
+    if (strcmp(status->domain_id, "semaprax.convert.v1") == 0) {
+        if (status->code == UINT32_C(1)) conversion_help = " (conversion out of range)";
+        else if (status->code == UINT32_C(2)) conversion_help = " (conversion of NaN)";
+    }
     fprintf(
         stderr,
-        "SEMAPRAX operation failure: %s/%u\n",
+        "SEMAPRAX operation failure: %s/%u%s\n",
         status->domain_id,
-        status->code
+        status->code,
+        conversion_help
     );
     return 73;
 }

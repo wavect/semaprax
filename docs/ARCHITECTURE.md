@@ -951,6 +951,10 @@ publication authority. See [Target Evidence v1](SEMANTIC-TARGET-EVIDENCE-V1.md).
 normalized statuses. `src/hosted_interpreter.rs` adds Project-facing execution.
 This is a development/conformance lane, not a target backend or proof engine.
 
+`src/interpreter/variant_admission.rs` shares the concrete Copy-scalar payload
+classifier with `src/loop_calls.rs`; constructor and pattern replay still
+authenticate identities, inventories and ownership independently.
+
 `src/interpreter/internal_strings.rs` owns the additive `interpret-strings`
 facade and strict report boundary. A private profile selects internal String
 callee admission and a distinct report schema/domain through the existing

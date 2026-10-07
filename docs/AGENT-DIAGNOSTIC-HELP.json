@@ -31,7 +31,7 @@
       "code": "SPX-P003",
       "rows": [
         {
-          "fix": "The signed minimum is one literal: write `-9223372036854775808`, or `-2147483648i32` for `i32`. Whitespace between the sign and the magnitude is trivia; a parenthesis is not. `-MIN` and `MIN / -1` still fail closed on checked overflow",
+          "fix": "Write `-9223372036854775808` or `-2147483648i32` as one literal. Whitespace after the sign is trivia; parentheses separate it. Negating the minimum or dividing it by `-1` overflows",
           "wrote": "`9223372036854775808` or `-(9223372036854775808)`"
         }
       ]
@@ -49,7 +49,7 @@
       "code": "SPX-P105",
       "rows": [
         {
-          "fix": "Every function returns `i64` or `bool`; there is no unit",
+          "fix": "Spell the result type; unit is unsupported",
           "wrote": "`fn f()` or `-> ()`"
         }
       ]
@@ -58,7 +58,7 @@
       "code": "SPX-P106",
       "rows": [
         {
-          "fix": "Use `while` with a `let mut` counter and an ordinary discarded tail",
+          "fix": "Use `while`, a `let mut` counter, and a discarded tail",
           "wrote": "`for i in 0..n { … }`"
         },
         {
@@ -82,11 +82,11 @@
           "wrote": "`break`, `continue`"
         },
         {
-          "fix": "No casts or numeric conversions; keep one integer type and suffix literals",
+          "fix": "Use named conversions (Scalars and literals); range failures are checked. Otherwise keep one integer type and suffix literals",
           "wrote": "`x as i64`"
         },
         {
-          "fix": "Every function returns `i64` or `bool`; there is no unit",
+          "fix": "Spell the result type; unit is unsupported",
           "wrote": "`fn f()` or `-> ()`"
         },
         {
@@ -112,7 +112,7 @@
       "code": "SPX-P203",
       "rows": [
         {
-          "fix": "Add the continuation condition as the body's final expression",
+          "fix": "Add a discarded scalar tail such as `0`",
           "wrote": "a `while` body ending after assignment"
         }
       ]
@@ -121,7 +121,7 @@
       "code": "SPX-T001",
       "rows": [
         {
-          "fix": "`string`, `i64`/`i32`/`u8`/`usize`; in a Project prefer the authenticated `std.collections` aliases, and always spell an admitted Copy scalar plus every wrapper or `vec_*<T>` type argument explicitly",
+          "fix": "Use `string` or scalar types; spell Copy element and wrapper/`vec_*<T>` arguments explicitly. Projects can use authenticated `std.collections` aliases",
           "wrote": "`String`, `int`, or unsupported `Vec` inference/element types"
         }
       ]
@@ -130,7 +130,7 @@
       "code": "SPX-T104",
       "rows": [
         {
-          "fix": "`main` returns `i64`; `0` conventionally means success, and in a command-line program it is the exit status",
+          "fix": "`main` returns `i64`; CLI exit status `0` means success",
           "wrote": "`fn main() -> bool`"
         }
       ]
@@ -156,8 +156,17 @@
           "wrote": "`Some(1)`, `None`"
         },
         {
-          "fix": "`string_len(s)`, likewise `string_trim(s)`, `string_find(s, x, 0)`, `string_slice(s, a, b)`, `string_to_i64(s)`; no type but a `class` has methods",
+          "fix": "Call `string_len(s)`; see Compiler-owned functions for other text operations. Only classes have methods",
           "wrote": "`s.len()` on a `string`"
+        }
+      ]
+    },
+    {
+      "code": "SPX-T204",
+      "rows": [
+        {
+          "fix": "Pass one argument: `f64_from_i64(1)`",
+          "wrote": "`f64_from_i64(1, 2)`"
         }
       ]
     },
@@ -167,6 +176,10 @@
         {
           "fix": "`let s = \"abc\"; f(string_as_str(s))`",
           "wrote": "`f(\"abc\")` or `f(owned)` for `borrow str`"
+        },
+        {
+          "fix": "Match input types: `i64_from_f64(3.0)` or `usize_from_i64(1)`",
+          "wrote": "`i64_from_f64(3)` or `usize_from_i64(1.5)`"
         }
       ]
     },
@@ -265,11 +278,38 @@
       ]
     },
     {
+      "code": "SPX-T274",
+      "rows": [
+        {
+          "fix": "Use `Map<string, i64>`",
+          "wrote": "`Map<i64, i64>` or another map instantiation"
+        }
+      ]
+    },
+    {
+      "code": "SPX-T275",
+      "rows": [
+        {
+          "fix": "Keep the map in a local binding and pass individual keys or values",
+          "wrote": "a map parameter, result, field, or temporary"
+        }
+      ]
+    },
+    {
       "code": "SPX-T281",
       "rows": [
         {
-          "fix": "`string`, `i64`/`i32`/`u8`/`usize`; in a Project prefer the authenticated `std.collections` aliases, and always spell an admitted Copy scalar plus every wrapper or `vec_*<T>` type argument explicitly",
+          "fix": "Use `string` or scalar types; spell Copy element and wrapper/`vec_*<T>` arguments explicitly. Projects can use authenticated `std.collections` aliases",
           "wrote": "`String`, `int`, or unsupported `Vec` inference/element types"
+        }
+      ]
+    },
+    {
+      "code": "SPX-T309",
+      "rows": [
+        {
+          "fix": "Pass strings separately; keep record fields Copy",
+          "wrote": "a function taking or returning a record containing strings"
         }
       ]
     },

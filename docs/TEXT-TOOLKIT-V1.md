@@ -90,8 +90,9 @@ let value = match string_to_i64(field) { Option::Some { value: n } => n, Option:
 ```
 
 [Owned String Loops v2](OWNED-STRING-LOOPS-V2.md) admits a match over this
-Copy-payload variant in a loop body, including a named result and guarded
-arms with an exhaustive fallback. Pattern errors use ordinary match
+Copy-payload variant in a loop body, including a named result reused across
+iterations. Variant guards retain `SPX-T254`; scalar guards remain admitted.
+Pattern errors use ordinary match
 diagnostics (`SPX-M104` for an unknown payload field). Constructing a variant
 inside a loop remains outside the bounded profile. The ordinary reference
 interpreter profile retains its own carrier limits; admission in source and

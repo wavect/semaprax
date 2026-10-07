@@ -92,6 +92,11 @@ conditions/bodies remain rejected exactly as before this tranche, so
 `while { match ... }` nesting is a nonclaim; the reverse nesting (loops as
 arm-value statements) is admitted and evidenced.
 
+The later [Owned String Loops v2](OWNED-STRING-LOOPS-V2.md) widens that loop
+admission: Copy-scalar matches (including their scalar guards) may appear in
+conditions and bodies, and Copy-payload variant matches may appear in bodies.
+The v1 restriction against guards on variant scrutinees remains unchanged.
+
 ## Cleanup-plan contract
 
 The cleanup CFG stays acyclic. An admitted refutable match linearizes one

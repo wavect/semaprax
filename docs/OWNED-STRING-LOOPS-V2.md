@@ -27,7 +27,7 @@ A match scrutinee may be a Copy scalar or a variant whose every payload field
 is a Copy scalar after concrete type substitution. Payload-free variants and
 `Option<i64>` or `Option<u8>` qualify. A preexisting Copy variant binding can
 be matched on every iteration and after the loop. Scrutinees evaluate once;
-guards and arms follow authored order, with the ordinary match exhaustiveness,
+scalar guards and arms follow authored order, with the ordinary match exhaustiveness,
 unreachable-arm, field-type, identity, and ownership checks.
 
 Arms may return a Copy scalar or `string`. A String result joins and settles
@@ -41,7 +41,6 @@ let mut i = 0;
 let mut total = 0;
 while i < 4 {
     total = total + match selected {
-        Option::Some { value: n } if n < 0 => 1000,
         Option::Some { value: n } => n,
         Option::None {} => 1000,
     };
@@ -50,7 +49,9 @@ while i < 4 {
 }
 ```
 
-Owned or borrowed non-Copy scrutinees, including `Option<string>`, remain
+Guards over variant scrutinees retain `SPX-T254`; guards are admitted only
+for the existing Copy-scalar match profile. Owned or borrowed non-Copy
+scrutinees, including `Option<string>`, remain
 `SPX-T252`. Variant construction inside an iteration, records, postfix `?`,
 generic calls outside an existing admitted intrinsic, and effectful user calls
 retain their refusals. This widening changes no graph or CleanupPlan schema:
@@ -68,7 +69,7 @@ Wasm profile with repeated calls. Numeric text and nominal variants retain
 their backend-specific profiles.
 
 `tests/language/indexed_byte_loops_v2.rs` retains the exact byte-read corpus,
-non-exhaustive and malformed patterns, effect/allocation refusals, and hostile
+guarded-variant and malformed patterns, effect/allocation refusals, and hostile
 HIR identity, field, type, and ownership controls. Wrong fields in this corpus
 and `tests/language/text_toolkit_v1.rs` use the ordinary `SPX-M104` pattern
 diagnostic instead of the former exact-shape admission message.

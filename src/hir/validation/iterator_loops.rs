@@ -188,6 +188,19 @@ impl HirValidator<'_> {
                                 "while loop string operation is outside Owned String Loops v1",
                             ));
                         }
+                        if operation == crate::string_ops::StringOp::FromStr {
+                            // The conversion only copies an existing view; full
+                            // expression replay authenticates its immutable loan.
+                            // It cannot retain the borrowed input across iterations.
+                            if args[0].ownership != OwnershipMode::Borrow
+                                || !matches!(&args[0].kind, ResolvedExprKind::Place(place) if place.projections.is_empty())
+                            {
+                                return Err(hir_error(
+                                    "loop string_from_str requires a named borrowed-str input",
+                                ));
+                            }
+                            continue;
+                        }
                         pending.extend(args.iter().rev());
                         continue;
                     }

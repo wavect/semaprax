@@ -860,6 +860,7 @@ pub(super) fn construct_ok(
     expression: &hir::ResolvedExpr,
 ) -> bool {
     super::is_admitted_owned_variant(declarations, &expression.ty)
+        || super::variant_admission::is_admitted_copy_scalar_variant(declarations, &expression.ty)
         || bc_construct(declarations, expression)
 }
 

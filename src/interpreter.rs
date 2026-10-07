@@ -2255,10 +2255,14 @@ fn variant_constructor_is_admitted(
     declarations: &hir::DeclarationIndex,
     expression: &ResolvedExpr,
 ) -> bool {
-    if !is_admitted_owned_variant(declarations, &expression.ty)
+    if !(is_admitted_owned_variant(declarations, &expression.ty)
+        || variant_admission::is_admitted_copy_scalar_variant(declarations, &expression.ty))
         || !(expression.ownership == hir::OwnershipMode::Own
             || (expression.ownership == hir::OwnershipMode::Value
-                && is_admitted_fieldless_variant(declarations, &expression.ty)))
+                && variant_admission::is_admitted_copy_scalar_variant(
+                    declarations,
+                    &expression.ty,
+                )))
     {
         return false;
     }
@@ -2316,12 +2320,14 @@ fn variant_pattern_is_admitted(
     arms: &[hir::ResolvedMatchArm],
 ) -> bool {
     let list_step = crate::list_ops::step_shape(declarations, ty);
-    if !(is_admitted_owned_variant(declarations, ty) || list_step)
+    if !(is_admitted_owned_variant(declarations, ty)
+        || variant_admission::is_admitted_copy_scalar_variant(declarations, ty)
+        || list_step)
         || !(matches!(
             mode,
             hir::ResolvedMatchMode::Own | hir::ResolvedMatchMode::Borrow
         ) || (mode == hir::ResolvedMatchMode::Value
-            && (is_admitted_fieldless_variant(declarations, ty) || list_step)))
+            && (variant_admission::is_admitted_copy_scalar_variant(declarations, ty) || list_step)))
         || arms.is_empty()
     {
         return false;
@@ -4747,6 +4753,10 @@ impl Evaluator<'_> {
                 }
                 if let Value::Variant(variant) = staged {
                     let agg = nested_owned::bc_match(self.declarations, *mode, &scrutinee.ty, arms)
+                        || variant_admission::is_admitted_copy_scalar_variant(
+                            self.declarations,
+                            &scrutinee.ty,
+                        )
                         || crate::list_ops::is_step(&scrutinee.ty);
                     if !nested_owned::variant_ok(self.declarations, *mode, &scrutinee.ty, arms) {
                         return Err(Flow::Guard(

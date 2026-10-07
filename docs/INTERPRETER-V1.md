@@ -83,6 +83,19 @@ profiles), so a record-typed parameter or result is still
 bounded classifier — generic, recursive, over-deep, or holding a leaf the
 classifier does not admit.
 
+### Local Copy-scalar variants
+
+Local variants with only Copy-scalar payloads also admit construction and
+by-value matching, including `Option<i64>`, `Option<bool>` and
+`Result<i64, bool>`. Existing source generic-argument restrictions remain in
+force. Payload types are substituted
+from the authenticated declaration index; ordinary HIR replay checks exact
+case/field inventories and ownership before evaluation. Named values can be
+matched repeatedly in loops and reused afterwards without cleanup leaves.
+`tests/language/owned_string_loops_v2.rs` compares this behavior with native
+C11 and retains non-Copy scrutinee and hostile ownership refusals. The
+selected boundary, envelope schema, and callee-signature profiles are unchanged.
+
 ## Outcome envelope
 
 `interpreter::interpret` returns one canonical compact JSON envelope plus a

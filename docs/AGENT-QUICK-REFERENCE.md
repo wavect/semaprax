@@ -75,22 +75,24 @@ fn main() -> i64
 - `i64`: `42`, `-1`; default integer, checked overflow.
 - `i32`: `42i32`; suffix required, no implicit widening.
 - `u8`: `255u8`; byte value.
-- `usize`: `3usize`; lengths and indices; compare only with `usize`.
+- `usize`: `3usize`; lengths and indices.
 - `f64`, `f32`: `1.5`, `1.5f32`.
 - `bool`: `true`, `false`; `&&`, `||`, `!`.
 - `char`: `'a'`, `'\n'`, `'\u{2603}'`.
-- `string`: `"text"`; owned UTF-8, content equality with `==`.
+- `string`: `"text"`; owned UTF-8; `==` compares content.
 - `str`: no literal; borrowed by `borrow str` or `string_as_str(binding)`.
 - `[u8; N]`: `[97u8, 98u8]`; fixed; `array_as_slice(binding)` gives
   `Slice<u8>`.
 - `Bytes`, `Slice<u8>`: no literal; owned bytes and borrowed byte view.
 
-Operators do not mix types. If `n` is `usize`, `n < 5` fails with `SPX-T208`;
-write `n < 5usize`. Use `string_concat`, not `+`, for strings. There is no
-`as`; convert with `f64_from_i64`, `i64_from_f64` (truncates toward zero),
-`usize_from_i64`, and `i64_from_usize`. A value out of range (or NaN) fails
-with `semaprax.convert.v1` like an overflow. Core Wasm refuses them
-(`SPX-W116`).
+Types must match: `n: usize` needs `n < 5usize` (`SPX-T208`). Join strings
+with `string_concat`. No `as`; use `f64_from_i64`, `i64_from_f64` (truncates),
+`usize_from_i64`, or `i64_from_usize`.
+
+## Control flow, mutation, contracts, effects
+
+Scalar conversions fail out of range or on NaN with `semaprax.convert.v1`;
+Core Wasm refuses conversions (`SPX-W116`).
 
 ```semaprax
 module app.convert;
@@ -106,8 +108,6 @@ fn main() -> i64
 ```
 
 `semaprax run convert.spx` prints `25`.
-
-## Control flow, mutation, contracts, effects
 
 ```semaprax
 module app.flow;
@@ -160,9 +160,11 @@ fn main() -> i64
 - A `while` condition must be `bool` and is checked before every iteration.
   Its body still needs a final expression, but that value is discarded; the
   condition controls repetition. While bodies admit
-  Copy-scalar operations and scalar-returning calls, the exact
-  `byte_get`/`Option<u8>` inspection profile, and string literals and
-  `string_*` calls (each iteration releases its own strings); record/variant
+  Copy-scalar operations, effect-free user calls taking Copy scalars, borrowed
+  byte slices or strings and returning a scalar or string, matches over Copy
+  scalars or variants with only Copy scalar payloads (scalar guards are allowed),
+  and string literals and `string_*` calls (each iteration releases its own
+  strings). Match arms may yield strings; record/variant
   construction, other aggregate-returning calls, and any string value in the
   condition are `SPX-T252`.
 - Bindings are immutable unless `let mut`. Assignment is a statement:
@@ -588,12 +590,11 @@ fn main() -> i64
 | `box_get<T>` | `(value: borrow Box<T>) -> T` synchronous Copy access |
 | `box_into_inner<T>` | `(value: own Box<T>) -> T` consuming extraction |
 
-These names are reserved. Declaring your own `string_len` is `SPX-S113`.
+Reserved names: redefining `string_len` is `SPX-S113`.
 
-The three Box operations select a compiler-owned, uniquely owned allocation.
-An authored `record Box<T>` without them is still an inline record. The bounded
-Box profile has no owned payload, public generic ABI, region, arena, or
-shared-ownership surface; see [Owned Bounded Box v1](OWNED-BOUNDED-BOX-V1.md).
+Box operations allocate uniquely; an authored `record Box<T>` alone stays inline.
+Owned payloads, public generic ABI, regions, arenas and shared ownership remain
+outside [Owned Bounded Box v1](OWNED-BOUNDED-BOX-V1.md).
 
 To print a computed integer from one file, render it, borrow the resulting
 string, and write its bytes:
@@ -885,12 +886,11 @@ fn main() -> i64
 {
     let mut x = 0;
     if x == 0 { x = 1; }
-    x
 }
 ```
 
-Every block yields a value, so a branch that only assigns still ends with an
-expression: `if x == 0 { x = 1; x } else { x }`.
+Statement `if` may omit `else` and branch values. The enclosing function
+still needs its result: add `x` after the `if` as the block's tail expression.
 
 <!-- expect: SPX-P106 -->
 ```semaprax
@@ -963,40 +963,45 @@ Other first-attempt diagnostics and their fixes:
 
 | You wrote | Code | Fix |
 | --- | --- | --- |
-| `for i in 0..n { … }` | `SPX-P106` | Use `while` with a `let mut` counter and an ordinary discarded tail |
-| a `while` body ending after assignment | `SPX-P203` | Add the continuation condition as the body's final expression |
+| `for i in 0..n { … }` | `SPX-P106` | Use `while`, a `let mut` counter, and a discarded tail |
+| a `while` body ending after assignment | `SPX-P203` | Add a discarded scalar tail such as `0` |
 | `f(x);` as a statement | `SPX-P106` | Discard it with `let _ = f(x);` or make it the tail |
 | `let t = (1, 2);` | `SPX-P106` | No tuples; declare a `record` |
 | `Option::Some { value: 1 }` | `SPX-T221` | `Option<i64>::Some { value: 1 }` |
 | `index + 1` when `index: usize` | `SPX-T208` | Integer literals default to `i64`; write `index + 1usize` |
 | `let a: i32 = 5` | `SPX-T232` | Suffix the literal: `let a: i32 = 5i32` |
-| `9223372036854775808` or `-(9223372036854775808)` | `SPX-P003` | The signed minimum is one literal: write `-9223372036854775808`, or `-2147483648i32` for `i32`. Whitespace between the sign and the magnitude is trivia; a parenthesis is not. `-MIN` and `MIN / -1` still fail closed on checked overflow |
+| `9223372036854775808` or `-(9223372036854775808)` | `SPX-P003` | Write `-9223372036854775808` or `-2147483648i32` as one literal. Whitespace after the sign is trivia; parentheses separate it. Negating the minimum or dividing it by `-1` overflows |
 | `"a" + "b"` | `SPX-T250` | `string_concat("a", "b")` |
 | `f("abc")` or `f(owned)` for `borrow str` | `SPX-T205` | `let s = "abc"; f(string_as_str(s))` |
+| `i64_from_f64(3)` or `usize_from_i64(1.5)` | `SPX-T205` | Match input types: `i64_from_f64(3.0)` or `usize_from_i64(1)` |
+| `f64_from_i64(1, 2)` | `SPX-T204` | Pass one argument: `f64_from_i64(1)` |
+| `Map<i64, i64>` or another map instantiation | `SPX-T274` | Use `Map<string, i64>` |
+| a map parameter, result, field, or temporary | `SPX-T275` | Keep the map in a local binding and pass individual keys or values |
+| a function taking or returning a record containing strings | `SPX-T309` | Pass strings separately; keep record fields Copy |
 | `point.get()` on a record | `SPX-T203` | Records have no methods; call `get(point)` or use a `class` |
 | `let x = 1; let x = x + 1;` | `SPX-T209` | No shadowing; pick a new name |
 | assignment to an immutable binding | `SPX-U101` | Declare it with `let mut` before assigning |
-| `fn main() -> bool` | `SPX-T104` | `main` returns `i64`; `0` conventionally means success, and in a command-line program it is the exit status |
+| `fn main() -> bool` | `SPX-T104` | `main` returns `i64`; CLI exit status `0` means success |
 | a second `consume(b)` after `own` | `SPX-O101` | Take `borrow` in the callee or pass a fresh value |
 | `struct`, `enum`, `pub`, `const` | `SPX-P104` | `record`, `variant`, no visibility keyword, a function returning the value |
 | `match x { 0 => 0, _ => 1 }` | `SPX-P106` | Every match arm ends with `,`, including the last; a declaration's last field or case may omit it |
 | `x += 1;` | `SPX-P201` | `x = x + 1;` |
 | `c ? a : b` | `SPX-P106` | `if c { a } else { b }` |
 | `break`, `continue` | `SPX-P106` | Put the exit test in the `while` condition |
-| `x as i64` | `SPX-P106` | `f64_from_i64(x)`, `i64_from_f64(x)` (truncates), `usize_from_i64(x)`, `i64_from_usize(x)`; out of range fails. Otherwise keep one integer type and suffix literals |
+| `x as i64` | `SPX-P106` | Use named conversions (Scalars and literals); range failures are checked. Otherwise keep one integer type and suffix literals |
 | a Rust or JavaScript closure | `SPX-P201` | `fn(x: i64) -> i64 { x + 1 }` |
 | `use std::io;` | `SPX-G170` | Compiler-owned functions need no import; projects import one declaration with `use function @id("…") from module as name;` |
 | `f()?` in `main` | `SPX-T218` | Only a function returning `Result` propagates; `match` the result in `main` |
 | `[1, 2, 3]` | `SPX-T262` | Array literals hold bytes (`[1u8, 2u8]`); use a `Vec<i64>` |
-| `fn f()` or `-> ()` | `SPX-P106`, `SPX-P105` | Every function returns `i64` or `bool`; there is no unit |
+| `fn f()` or `-> ()` | `SPX-P106`, `SPX-P105` | Spell the result type; unit is unsupported |
 | `a[0]` | `SPX-P106` | `byte_get(array_as_slice(a), 0usize)` returns `Option<u8>` |
 | `Some(1)`, `None` | `SPX-T203`, `SPX-T202` | `Option<i64>::Some { value: 1 }`, `Option<i64>::None {}` |
-| `s.len()` on a `string` | `SPX-T203` | `string_len(s)`, likewise `string_trim(s)`, `string_find(s, x, 0)`, `string_slice(s, a, b)`, `string_to_i64(s)`; no type but a `class` has methods |
+| `s.len()` on a `string` | `SPX-T203` | Call `string_len(s)`; see Compiler-owned functions for other text operations. Only classes have methods |
 | `str_as_bytes(text)` or `str_as_bytes(string_as_str(text))` | `SPX-T263`, `SPX-T266` | Bind the view first: `let view = string_as_str(text); str_as_bytes(view)` |
 | `string_as_str("literal")` | `SPX-T266` | Bind the literal, then pass that binding to `string_as_str` |
 | `shape == Shape::Box { width: 1 }` or `option == Option<i64>::None {}` | `SPX-T207` | Only payload-free, non-generic variants compare with `==`; test others with `match shape { Shape::Dot {} => true, _ => false, }` |
 | an or-pattern alternative with a payload, such as `Shape::Box { width: w }` | `SPX-M105` | Or-pattern alternatives are payload-free cases; give a payload case its own arm |
-| `String`, `int`, or unsupported `Vec` inference/element types | `SPX-T001`/`SPX-T281` | `string`, `i64`/`i32`/`u8`/`usize`; in a Project prefer the authenticated `std.collections` aliases, and always spell an admitted Copy scalar plus every wrapper or `vec_*<T>` type argument explicitly |
+| `String`, `int`, or unsupported `Vec` inference/element types | `SPX-T001`/`SPX-T281` | Use `string` or scalar types; spell Copy element and wrapper/`vec_*<T>` arguments explicitly. Projects can use authenticated `std.collections` aliases |
 
 ## Web applications
 

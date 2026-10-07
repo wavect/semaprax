@@ -213,7 +213,6 @@ fn option_match() -> i64
     let mut total = 0;
     while i < 4 {
         total = total + match selected {
-            Option::Some { value: n } if n < 0 => 1000,
             Option::Some { value: n } => n,
             Option::None {} => 1000,
         };
@@ -237,6 +236,22 @@ fn match_contract() -> i64
     string_len(out)
 }
 
+@id("calls.copy_variants")
+fn copy_variants() -> i64
+{
+    let empty = Option<bool>::None {};
+    let failed = Result<i64, bool>::Err { error: true };
+    let mut i = 0;
+    let mut total = 0;
+    while i < 4 {
+        total = total + match empty { Option::Some { value: n } => if n { 1 } else { 0 }, Option::None {} => 2, };
+        total = total + match failed { Result::Ok { value: n } => n, Result::Err { error: e } => if e { 1 } else { 0 }, };
+        i = i + 1;
+        0
+    }
+    total
+}
+
 @id("app.main")
 fn main() -> i64
 {
@@ -254,9 +269,11 @@ const CASES: &[(&str, &str)] = &[
     ("calls.traverse", "ok|17"),
     ("calls.literal", "ok|61"),
     ("calls.literal_contract", "semaprax.contract.v1|1"),
-    ("calls.scalar_match", "ok|63"),
+    // "ab" + echo("c") ("c!") + "def" is seven bytes, plus i == 3.
+    ("calls.scalar_match", "ok|73"),
     ("calls.option_match", "ok|35"),
     ("calls.match_contract", "semaprax.contract.v1|1"),
+    ("calls.copy_variants", "ok|12"),
 ];
 
 /// The literal-only cases the String-settling Wasm profile admits; numeric

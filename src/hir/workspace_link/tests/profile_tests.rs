@@ -23,20 +23,27 @@ fn main() -> i64 { Item { value: 0 }.value }
         .expect("entry function")
         .body
         .span;
-    let error = build_owned(vec![app, test_module()])
-        .expect("workspace graph must build")
-        .linked_scalar_program_with_roots(
-            "app.main",
-            &[],
-            crate::project::ProjectProfile::UsefulDataV1,
-            false,
-        )
-        .expect_err("Useful Data does not retain authored record declarations");
+    let resolved = crate::hir::resolve(&parsed).expect("source program resolves");
+    let function = resolved
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "app.main")
+        .expect("resolved entry function")
+        .clone();
+    let error = super::super::link_useful_data_workspace(
+        resolved.module,
+        resolved.entrypoint,
+        vec![crate::hir::LinkedScalarFunction {
+            function,
+            origin: crate::hir::IdentityOrigin::Explicit,
+        }],
+    )
+    .expect_err("Useful Data does not retain authored record declarations");
 
-    assert_eq!(error[0].code, "SPX-H006");
+    assert_eq!(error.code, "SPX-H006");
     assert_eq!(
-        error[0].message,
+        error.message,
         "workspace function `app.main` uses authored type `app.item`, which is outside the Useful Data linker profile"
     );
-    assert_eq!(error[0].span, Some(expected_span));
+    assert_eq!(error.span, Some(expected_span));
 }

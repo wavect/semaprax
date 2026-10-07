@@ -1,5 +1,15 @@
 # Changelog
 
+- Add native Project v24 streaming commands with explicit `i64` application
+  exit statuses (0–255), staged output rejection for invalid results, and
+  artifact-free Wasm/npm refusal. Project v23 Bool status mapping remains
+  frozen. ShiftSim qualification now selects the explicit v24 route.
+
+- Preserve complete owned byte-variant case domains after construction and
+  contextual owned variant matches through canonical formatting. Attach source
+  spans to record-update, field-assignment, record-pattern and Useful Data
+  function-body profile diagnostics.
+
 - Copy variant guard execution: evaluate nominal guards on the reference
   interpreter before selecting an arm, and provide the explicit additive
   `emit_copy_variant_module` String-settling Wasm profile. The older Wasm entry

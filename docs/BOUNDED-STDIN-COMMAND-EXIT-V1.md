@@ -1,8 +1,8 @@
 # Bounded Stdin Command Exit Status v1
 
-Status: additive native Project profile under executable verification. The
-compiler route and owning regressions are authored; support claims require the
-focused gates below. The Bool-returning streaming profile remains frozen.
+Status: additive native Project profile. Focused Project/native regressions
+cover the executable route; Wasm and npm remain explicitly refused. The
+Bool-returning streaming profile remains frozen.
 
 ## Purpose
 

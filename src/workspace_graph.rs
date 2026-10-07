@@ -1819,13 +1819,16 @@ impl WorkspaceGraphBuild {
                 .declarations
                 .get(command.id.as_str())
                 .is_some_and(|fact| fact.origin == hir::IdentityOrigin::Explicit);
-            if !explicit
-                || !command.params.is_empty()
-                || command.return_type != hir::ResolvedType::Bool
-            {
+            let (return_type, signature) = match web_roots.profile {
+                crate::project::ProjectProfile::StdinStreamCommandIoV2 => {
+                    (hir::ResolvedType::I64, "i64")
+                }
+                _ => (hir::ResolvedType::Bool, "bool"),
+            };
+            if !explicit || !command.params.is_empty() || command.return_type != return_type {
                 return Err(vec![graph_error(
                     "SPX-G172",
-                    "command I/O profile command must have an explicit identity and exact signature fn() -> bool",
+                    format!("command I/O profile command must have an explicit identity and exact signature fn() -> {signature}"),
                 )]);
             }
         }

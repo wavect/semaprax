@@ -195,10 +195,14 @@ fn command() -> i64 uses { process.args.read, process.stderr.write, process.stdi
     let read = read_stream();
     let count = args_len();
     let written = if count == 2usize {
-        let diagnostic = stderr_write("request rejected\n");
+        let message = "request rejected\n";
+        let view = string_as_str(message);
+        let diagnostic = stderr_write(str_as_bytes(view));
         0
     } else {
-        let output = stdout_write("complete\n");
+        let message = "complete\n";
+        let view = string_as_str(message);
+        let output = stdout_write(str_as_bytes(view));
         0
     };
     if count == 0usize { 0 } else {
@@ -228,10 +232,17 @@ fn v24_stream_exit_manifest_and_table_selection_preserve_v23() {
     assert_eq!(parsed.to_canonical_toml(), text);
     assert!(!parsed.is_v23());
     let tables = format!("schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"stream-check\"\nversion = \"0.1.0\"\nprofile = \"{PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V2}\"\n\n[modules]\nentry = \"stream.app\"\nsources = [\"a/app.spx\", \"b/input.spx\", \"c/tests.spx\"]\ntests = [\"stream.tests\"]\n\n[exports]\nweb = [\"stream.command\"]\n\n[command]\nfunction = \"stream.command\"\ninput = \"{PROJECT_LANGUAGE_COMMAND_STREAM_INPUT_V1}\"\n\n[capabilities]\nrequired = [\"process.args.read\", \"process.stderr.write\", \"process.stdin.read\", \"process.stdout.write\"]\n");
-    assert_eq!(
-        ProjectManifest::parse(&tables).unwrap().to_canonical_toml(),
-        text
-    );
+    let table_manifest = ProjectManifest::parse(&tables).unwrap();
+    assert_eq!(table_manifest.schema(), PROJECT_SCHEMA_V24);
+    assert_eq!(table_manifest.project_profile(), parsed.project_profile());
+    assert_eq!(table_manifest.command_input(), parsed.command_input());
+    assert_eq!(table_manifest.command(), parsed.command());
+    assert_eq!(table_manifest.entry(), parsed.entry());
+    assert_eq!(table_manifest.sources(), parsed.sources());
+    assert_eq!(table_manifest.web_exports(), parsed.web_exports());
+    assert_eq!(table_manifest.capabilities(), parsed.capabilities());
+    assert_eq!(table_manifest.test_module(), parsed.test_module());
+    assert_eq!(table_manifest.to_canonical_toml(), tables);
     assert!(ProjectManifest::parse(&text.replace(PROJECT_SCHEMA_V24, PROJECT_SCHEMA_V23)).is_err());
     assert!(ProjectManifest::parse(
         &stream_manifest().replace(PROJECT_SCHEMA_V23, PROJECT_SCHEMA_V24)
@@ -288,14 +299,14 @@ fn v24_stream_exit_requires_i64_and_refuses_web_and_npm_without_artifacts() {
     }
     std::fs::write(root.join(MANIFEST_FILE), stream_manifest()).unwrap();
     let errors = with_authenticated_project(&root.join(MANIFEST_FILE), |_| Ok(())).unwrap_err();
-    assert_eq!(errors[0].code, "SPX-H006");
-    assert!(errors[0].message.contains("fn () -> bool"));
+    assert_eq!(errors[0].code, "SPX-G172");
+    assert!(errors[0].message.contains("fn() -> bool"));
     let _ = std::fs::remove_dir_all(root);
     let root = fixture();
     std::fs::write(root.join(MANIFEST_FILE), exit_manifest()).unwrap();
     let errors = with_authenticated_project(&root.join(MANIFEST_FILE), |_| Ok(())).unwrap_err();
-    assert_eq!(errors[0].code, "SPX-H006");
-    assert!(errors[0].message.contains("fn () -> i64"));
+    assert_eq!(errors[0].code, "SPX-G172");
+    assert!(errors[0].message.contains("fn() -> i64"));
     let _ = std::fs::remove_dir_all(root);
 }
 

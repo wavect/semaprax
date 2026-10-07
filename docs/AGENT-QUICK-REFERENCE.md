@@ -707,15 +707,7 @@ ends first. Exact acyclic `own StdinReader -> StdinReader` forwarding helpers ma
 renew the same owner. See [the streaming contract](BOUNDED-STDIN-STREAM-V1.md) for
 the profile's current executable-gate status and failure/settlement rules.
 
-For an application-defined exit status, select Project v24 profile
-`language-command-io.stream.v2` with the same `argv-utf8+stdin-stream.v1` input
-and an explicit command `fn() -> i64`. Return a status from 0 through 255;
-status 2 may accompany your own stderr diagnostic and empty stdout. Build with
-`semaprax build --manifest-path semaprax.toml --target native --output app` and run
-that binary. Out-of-range results or checked execution failures discard staged
-output and produce the generic adapter diagnostic with status 2. Project v23
-keeps its Bool status 0/1 mapping. [Streaming command exit status
-v1](BOUNDED-STDIN-COMMAND-EXIT-V1.md) owns selection and the verification boundary.
+Exit codes: `semaprax help language specifications`.
 
 On the pure single-file interpreter route, `run` tries the ordinary
 `semaprax.interpret.v1` profile first. On refusal, `run` retries with the
@@ -1241,6 +1233,16 @@ dependencies. See [Project Lock v1](PROJECT-LOCK-V1.md) and
 [Project Dependency Resolution v1](PROJECT-DEPENDENCY-RESOLUTION-V1.md).
 
 ## Where the rules live
+
+For an application-defined exit status, select Project v24 profile
+`language-command-io.stream.v2` with the same `argv-utf8+stdin-stream.v1` input
+and an explicit command `fn() -> i64`. Return a status from 0 through 255;
+status 2 may accompany your own stderr diagnostic and empty stdout. Build with
+`semaprax build --manifest-path semaprax.toml --target native --output app` and run
+that binary. Out-of-range results or checked execution failures discard staged
+output and produce the generic adapter diagnostic with status 2. Project v23
+keeps its Bool status 0/1 mapping. [Streaming command exit status
+v1](BOUNDED-STDIN-COMMAND-EXIT-V1.md) owns selection and the verification boundary.
 
 - [RFC 0001](RFC-0001.md): language and toolchain contract.
 - [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md): records, variants, generics,

@@ -1,8 +1,11 @@
 use crate::diagnostic::Diagnostic;
 
-use super::ResolvedFunction;
+use super::{DeclarationId, ResolvedFunction};
 
-pub(super) fn uses_authored_type(function: &ResolvedFunction, declaration: &str) -> Diagnostic {
+pub(super) fn uses_authored_type(
+    function: &ResolvedFunction,
+    declaration: &DeclarationId,
+) -> Diagnostic {
     let mut diagnostic = super::link_error(format!(
         "workspace function `{}` uses authored type `{declaration}`, which is outside the Useful Data linker profile",
         function.id

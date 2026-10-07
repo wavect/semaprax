@@ -137,7 +137,17 @@ fn prepare_profile(
             || function.params.iter().any(|parameter| {
                 // By-value String source parameters are implicitly Own in
                 // validated HIR; only the internal Copy scalars are Value.
-                let ownership = if parameter.ty == ResolvedType::String {
+                let ownership = if parameter.ty == ResolvedType::String
+                    || toolkit
+                        && (crate::map_ops::is_collection(&parameter.ty)
+                            || hir::is_admitted_owned_string_variant(
+                                &program.declarations,
+                                &parameter.ty,
+                            )
+                            || hir::owned_text_record::admitted(
+                                &parameter.ty,
+                                &program.declarations,
+                            )) {
                     OwnershipMode::Own
                 } else if toolkit && parameter.ty == ResolvedType::Str {
                     OwnershipMode::Borrow
@@ -146,10 +156,15 @@ fn prepare_profile(
                 };
                 !(parameter.ownership == ownership
                     || toolkit
-                        && hir::is_admitted_owned_string_variant(
+                        && (hir::is_admitted_owned_string_variant(
                             &program.declarations,
                             &parameter.ty,
-                        )
+                        ) || parameter.ty == ResolvedType::String
+                            || crate::map_ops::is_collection(&parameter.ty)
+                            || hir::owned_text_record::admitted(
+                                &parameter.ty,
+                                &program.declarations,
+                            ))
                         && matches!(
                             parameter.ownership,
                             OwnershipMode::Own | OwnershipMode::Borrow
@@ -226,7 +241,7 @@ fn prepare_profile(
                 | ResolvedExprKind::ArrayU8(_)
                 | ResolvedExprKind::RepeatArrayU8 { .. }
                     if copy_variants => {}
-                ResolvedExprKind::ConstructRecord { .. } if toolkit && hir::is_admitted_copy_aggregate_variant_field(&program.declarations, &expression.ty) => {}
+                ResolvedExprKind::ConstructRecord { .. } if toolkit && (hir::is_admitted_copy_aggregate_variant_field(&program.declarations, &expression.ty) || hir::owned_text_record::admitted(&expression.ty, &program.declarations)) => {}
                 ResolvedExprKind::ConstructVariant { .. }
                     if copy_variants && (crate::variant_guards::copy_variant(&program.declarations, &expression.ty) || toolkit && hir::is_admitted_owned_string_variant(&program.declarations, &expression.ty)) => {}
                 ResolvedExprKind::BorrowPlace { operation, place }
@@ -247,6 +262,11 @@ fn prepare_profile(
                     }
                 }
                 ResolvedExprKind::Place(place) if place.projections.is_empty() || toolkit && place.projections.iter().all(|projection| matches!(projection, hir::PlaceProjection::Field(_))) => {}
+                ResolvedExprKind::Call { callee, instance, type_arguments, args }
+                    if toolkit && instance.is_none()
+                        && crate::map_ops::by_id(callee.as_str()).and_then(|op| op.resolved_signature(type_arguments))
+                            .is_some_and(|(params, result)| result == expression.ty && params.len() == args.len()
+                                && params.iter().zip(args).all(|(param, arg)| param.ty == arg.ty)) => {}
                 ResolvedExprKind::Call {
                     callee,
                     instance,
@@ -287,7 +307,7 @@ fn prepare_profile(
                         .iter()
                         .all(|arm| arm.pattern_is_literal_or_irrefutable()) => {}
                 ResolvedExprKind::Match { scrutinee, .. }
-                    if toolkit && (hir::is_admitted_owned_string_variant(&program.declarations, &scrutinee.ty) || hir::is_admitted_copy_aggregate_variant_field(&program.declarations, &scrutinee.ty)) => {}
+                    if toolkit && (hir::is_admitted_owned_string_variant(&program.declarations, &scrutinee.ty) || hir::is_admitted_copy_aggregate_variant_field(&program.declarations, &scrutinee.ty) || hir::owned_text_record::admitted(&scrutinee.ty, &program.declarations)) => {}
                 ResolvedExprKind::Match { scrutinee, mode, .. }
                     if copy_variants && *mode == hir::ResolvedMatchMode::Value && crate::variant_guards::copy_variant(&program.declarations, &scrutinee.ty) => {}
                 ResolvedExprKind::Match { scrutinee, .. }
@@ -341,7 +361,9 @@ fn signature_type(
             && (hir::is_scalar_resolved_type(ty)
                 || hir::is_admitted_owned_string_variant(&program.declarations, ty)
                 || crate::variant_guards::copy_variant(&program.declarations, ty)
-                || hir::is_admitted_copy_aggregate_variant_field(&program.declarations, ty))
+                || hir::is_admitted_copy_aggregate_variant_field(&program.declarations, ty)
+                || crate::map_ops::is_collection(ty)
+                || hir::owned_text_record::admitted(ty, &program.declarations))
         || toolkit && matches!(ty, ResolvedType::F64 | ResolvedType::Str)
         || copy_variants && matches!(ty, ResolvedType::U8 | ResolvedType::Usize)
 }

@@ -112,10 +112,11 @@ fn declarations(descriptor: &str) -> Result<String, Diagnostic> {
     }
     text.push_str("}\nexport declare function instantiate(bytes: Uint8Array): Promise<Readonly<StringFacade>>;\n");
     if value["profile"] == "text-toolkit-v1" {
-        text = text.replace("export interface StringFacade", "export type ToolkitFailure = Readonly<{kind: 'failure'; domain: 'semaprax.text.v1'; code: 1|2|3}> | Readonly<{kind: 'failure'; domain: 'semaprax.convert.v1'; code: 1|2}> | Readonly<{kind: 'failure'; domain: 'semaprax.filesystem.v1'; code: 1|2|3|4|5|6|7}>;\nexport interface StringFacade")
+        text = text.replace("cause: 'owners'|", "cause: 'collection_owners'|'collection_bytes'|'collection_tokens'|'owners'|")
+            .replace("export interface StringFacade", "export type ToolkitFailure = Readonly<{kind: 'failure'; domain: 'semaprax.text.v1'; code: 1|2|3}> | Readonly<{kind: 'failure'; domain: 'semaprax.convert.v1'; code: 1|2}> | Readonly<{kind: 'failure'; domain: 'semaprax.filesystem.v1'; code: 1|2|3|4|5|6|7}> | Readonly<{kind: 'failure'; domain: 'semaprax.map.v1'|'semaprax.map.v2'; code: 1|2|3|4}>;\nexport interface StringFacade")
             .replace("StringOutcome<bigint>;", "StringOutcome<bigint> | ToolkitFailure;")
             .replace("StringOutcome<boolean>;", "StringOutcome<boolean> | ToolkitFailure;")
-            .replace("instantiate(bytes: Uint8Array)", "instantiate(bytes: Uint8Array, options?: Readonly<{fileReadText?: Readonly<{read(path: Uint8Array, maximum: number): Readonly<{ok: true; bytes: Uint8Array}> | Readonly<{ok: false; code: 1|2|3|4|5|6|7}>}>}>)");
+            .replace("instantiate(bytes: Uint8Array)", "instantiate(bytes: Uint8Array, options?: Readonly<{maxOwnedCollections?: number; maxOwnedCollectionBytes?: number; fileReadText?: Readonly<{read(path: Uint8Array, maximum: number): Readonly<{ok: true; bytes: Uint8Array}> | Readonly<{ok: false; code: 1|2|3|4|5|6|7}>}>}>)");
     }
     Ok(text)
 }

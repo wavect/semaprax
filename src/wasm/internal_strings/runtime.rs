@@ -52,6 +52,10 @@ pub(super) fn render_toolkit(
         .functions
         .retain(|function| closure.contains(&function.id));
     selected.function_instances.clear();
+    // Import selection is bound to the chosen executable closure. Unused
+    // type declarations cannot add a host arena or widen its import inventory.
+    selected.types.clear();
+    let collections = crate::wasm::aggregate::map_collections::uses(&selected);
     let names = ["from_i64", "from_usize", "compare"]
         .into_iter()
         .chain(
@@ -59,24 +63,52 @@ pub(super) fn render_toolkit(
                 .into_iter()
                 .map(crate::wasm::aggregate::text_toolkit::import_name),
         )
+        .chain(
+            collections
+                .then_some(["spx_collection_checked_v2", "spx_collection_drop_v2"])
+                .into_iter()
+                .flatten(),
+        )
         .map(quote_json)
         .collect::<Vec<_>>()
         .join(",");
-    let input = include_str!("runtime/input.js").replace(
+    let mut input = include_str!("runtime/input.js").replace(
         "\"contains\",\"drop\"]);",
         &format!("\"contains\",\"drop\",{names}]);"),
     );
-    let arena = include_str!("runtime/arena.js")
+    let mut arena = include_str!("runtime/arena.js")
         .replace("function createArena(fail,isPoisoned){", "function createArena(fail,isPoisoned,options){")
         .replace("  const imports=Object.create(null);", "  const toolkit=createToolkitOperations({authenticate,mint,checkedMemory,fail,options});\n  Object.assign(operations,toolkit.operations);\n  const imports=Object.create(null);")
         .replace("cumulative=0;cause=null;active=true", "cumulative=0;cause=null;active=true;toolkit.begin()");
-    let facade = include_str!("runtime/facade.js")
+    let mut facade = include_str!("runtime/facade.js")
         .replace("instantiate(input)", "instantiate(input,options={})")
         .replace("createArena(fail,()=>poisoned)", "createArena(fail,()=>poisoned,options)")
         .replace("status<0||status>11", "!(status>=0&&status<=11||status>=21&&status<=25||status>=65&&status<=71)")
         .replace("domain:status<=8?\"semaprax.arithmetic.v1\":\"semaprax.contract.v1\",code:status<=8?status:status-8", "domain:status<=8?\"semaprax.arithmetic.v1\":status<=10?\"semaprax.contract.v1\":status<=22?\"semaprax.convert.v1\":status<=25?\"semaprax.text.v1\":\"semaprax.filesystem.v1\",code:status<=8?status:status<=10?status-8:status<=22?status-20:status<=25?status-22:status-64");
+    if collections {
+        input = input.replace(
+            "item.module!==\"semaprax.internal-strings.v1\"",
+            "item.module!==(i<IMPORT_NAMES.length-2?\"semaprax.internal-strings.v1\":\"env\")",
+        );
+        arena = arena.replace("  const imports=Object.create(null);", "  function refuseCapacity(reason){requireActive();if(cause!==null)fail();cause=reason;return 11}\n  const collections=createCollectionOperations({authenticate,mint,checkedMemory,requireActive,refuseCapacity,fail,options});\n  Object.assign(operations,collections.operations);\n  const imports=Object.create(null);")
+            .replace("active=true;toolkit.begin()", "active=true;toolkit.begin();collections.begin()")
+            .replace("active=false;return cause", "collections.settle();active=false;return cause");
+        facade = facade.replace("arena.imports}", "arena.imports,env:arena.imports}")
+            .replace("status>=21&&status<=25", "status>=21&&status<=33")
+            .replace("status<=25?\"semaprax.text.v1\":\"semaprax.filesystem.v1\"", "status<=25?\"semaprax.text.v1\":status<=29?\"semaprax.map.v1\":status<=33?\"semaprax.map.v2\":\"semaprax.filesystem.v1\"")
+            .replace("status<=25?status-22:status-64", "status<=25?status-22:status<=29?status-25:status<=33?status-29:status-64");
+    }
+    let operations = if collections {
+        format!(
+            "{}\n{}",
+            include_str!("runtime/toolkit.js"),
+            include_str!("runtime/collections.js")
+        )
+    } else {
+        include_str!("runtime/toolkit.js").to_owned()
+    };
     crate::bounded_output::budgeted_format(format_args!(
-        "// semaprax.wasm-text-toolkit.runtime.v1\nconst DESCRIPTOR={descriptor};\nconst EXPECTED_SHA256={};\nconst EXPECTED_BYTES={wasm_byte_length};\n{input}\n{}\n{arena}\n{facade}",
-        quote_json(wasm_sha256), include_str!("runtime/toolkit.js")
+        "// semaprax.wasm-text-toolkit.runtime.v1\nconst DESCRIPTOR={descriptor};\nconst EXPECTED_SHA256={};\nconst EXPECTED_BYTES={wasm_byte_length};\n{input}\n{operations}\n{arena}\n{facade}",
+        quote_json(wasm_sha256)
     ))
 }

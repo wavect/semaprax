@@ -460,3 +460,202 @@ fn general_loop_match_scalar_helpers_admit_i32_f32_f64_without_widening_frozen_s
     }
     standalone_profile_case(source, &["app.main"], "for(let i=0;i<8;i++){const result=runtime.call('app.main');if(result.kind!=='success'||result.value!==1n)throw Error('general Copy scalar guard changed');}", emit_general_loop_match_module, "semaprax.wasm-internal-strings.v1");
 }
+
+const TOOLKIT_COLLECTIONS: &str = r#"module test.generated_toolkit_collections;
+@id("carrier") record Carrier { @id("carrier.values") values: Map<i64, string>, @id("carrier.label") label: string, }
+@id("carrier.unpack") fn unpack(value: own Carrier) -> Map<i64, string> { match own value { Carrier { values, label: _ } => values, } }
+@id("collection.forward") fn forward(values: own Map<i64, string>) -> Map<i64, string> { values }
+@id("collection.count") fn count(values: borrow Map<i64, string>) -> i64 { i64_from_usize(map_len<i64, string>(values)) }
+@id("app.typed") fn typed() -> i64 {
+ let mut values=map_new<i64, string>(2usize);
+ values=map_set<i64, string>(values,-3,"a\u{0}é");
+ let values=forward(unpack(Carrier { values, label:"discarded" }));
+ let read=map_get_or<i64, string>(values,-3,"");
+ let extended=string_concat(read,"!");
+ let mut values=map_set<i64, string>(values,-3,"z");
+ let output=map_value_at<i64, string>(values,0usize);
+ let size=count(values);
+ values=map_remove<i64, string>(values,-3);
+ if string_len(extended)==5 && output=="z" && size==1 && map_len<i64,string>(values)==0usize { 9 } else { -1 }
+}
+@id("app.legacy") fn legacy() -> i64 {
+ let mut values=map_new(2usize);values=map_add(values,"é",2);values=map_add(values,"é",5);
+ values=map_set(values,"a\u{0}",11);let key=map_key_at(values,0usize);
+ values=map_remove(values,"é");if string_len(key)==2 && map_len(values)==1usize { map_get_or(values,key,0) } else { -1 }
+}
+@id("app.set") fn set() -> i64 {
+ let mut values=set_new<string>(2usize);values=set_insert<string>(values,"é");values=set_insert<string>(values,"a\u{0}");
+ values=set_insert<string>(values,"é");values=set_remove<string>(values,"missing");let key=set_key_at<string>(values,0usize);
+ values=set_remove<string>(values,"é");if string_len(key)==2 && set_has<string>(values,key) && set_len<string>(values)==1usize { 12 } else { -1 }
+}
+@id("app.typed_full") fn typed_full() -> i64 { let values=map_new<i64,i64>(0usize);let rejected=map_set<i64,i64>(values,1,2);0 }
+@id("app.legacy_full") fn legacy_full() -> i64 { let values=map_new(0usize);let rejected=map_set(values,"held",1);0 }
+@id("app.typed_index") fn typed_index() -> i64 { let values=map_new<i64,i64>(0usize);map_value_at<i64,i64>(values,0usize) }
+@id("app.legacy_index") fn legacy_index() -> i64 { let values=map_new(0usize);string_len(map_key_at(values,0usize)) }
+@id("app.typed_capacity") fn typed_capacity() -> i64 { let values=map_new<i64,i64>(65537usize);0 }
+@id("app.legacy_capacity") fn legacy_capacity() -> i64 { let values=map_new(65537usize);0 }
+@id("app.typed_overflow") fn typed_overflow() -> i64 { let values=map_new<i64,i64>(1usize);let values=map_add<i64,i64>(values,1,9223372036854775807);let rejected=map_add<i64,i64>(values,1,1);0 }
+@id("app.legacy_overflow") fn legacy_overflow() -> i64 { let values=map_new(1usize);let values=map_add(values,"x",9223372036854775807);let rejected=map_add(values,"x",1);0 }
+@id("app.text_failure") fn text_failure() -> i64 { let values=set_new<i64>(1usize);let values=set_insert<i64>(values,2);string_len(string_slice("é",1,2)) }
+@id("app.owner_quota") fn owner_quota() -> i64 { let first=map_new<i64,i64>(1usize);let second=set_new<i64>(1usize);i64_from_usize(map_len<i64,i64>(first)) }
+@id("app.byte_quota") fn byte_quota() -> i64 { let values=map_new<i64,string>(1usize);let values=map_set<i64,string>(values,1,"oversized");0 }
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+
+#[test]
+fn generated_toolkit_web_collections_copy_order_remove_and_settle_every_status() {
+    use wasm::internal_strings::{
+        emit_copy_variant_module, emit_general_loop_match_module, emit_module,
+        InternalStringOptions,
+    };
+    let program = parse(
+        TOOLKIT_COLLECTIONS,
+        Path::new("generated-toolkit-collections.spx"),
+    )
+    .unwrap();
+    assert!(verify::verify(&program).is_empty());
+    let selected = [
+        "app.typed",
+        "app.legacy",
+        "app.set",
+        "app.typed_full",
+        "app.legacy_full",
+        "app.typed_index",
+        "app.legacy_index",
+        "app.typed_capacity",
+        "app.legacy_capacity",
+        "app.typed_overflow",
+        "app.legacy_overflow",
+        "app.text_failure",
+        "app.owner_quota",
+        "app.byte_quota",
+    ];
+    let ids = selected
+        .iter()
+        .map(|id| (*id).to_owned())
+        .collect::<Vec<_>>();
+    for emitter in [
+        emit_module,
+        emit_copy_variant_module,
+        emit_general_loop_match_module,
+    ] {
+        assert!(emitter(&program, &ids, InternalStringOptions::default()).is_err());
+    }
+    let fixture = Fixture::new(TOOLKIT_COLLECTIONS);
+    let output = fixture.root.join("web");
+    wasm::internal_strings::build_toolkit_web_from_source(&fixture.source, &output, &ids).unwrap();
+    let declarations = std::fs::read_to_string(output.join("semaprax.d.ts")).unwrap();
+    assert!(declarations.contains("'semaprax.map.v1'|'semaprax.map.v2'"));
+    assert!(declarations.contains("maxOwnedCollections?: number"));
+    let runtime = std::fs::read_to_string(output.join("semaprax.js")).unwrap();
+    assert!(runtime.contains("collections.settle()"));
+    assert!(!runtime.contains("collections.clear("));
+    std::fs::write(output.join("probe.mjs"),r#"import {readFile} from 'node:fs/promises';
+import {webcrypto} from 'node:crypto';if(globalThis.crypto===undefined)Object.defineProperty(globalThis,'crypto',{value:webcrypto});
+import {instantiate} from './semaprax.js';
+const bytes=new Uint8Array(await readFile('./app.wasm'));
+const module=await WebAssembly.compile(bytes),imports=WebAssembly.Module.imports(module);
+const tail=imports.slice(-2);if(tail[0].module!=='env'||tail[0].name!=='spx_collection_checked_v2'||tail[1].module!=='env'||tail[1].name!=='spx_collection_drop_v2')throw Error('collection import tail changed');
+const runtime=await instantiate(bytes,{maxOwnedCollections:1,maxOwnedCollectionBytes:8});
+for(let repeat=0;repeat<8;repeat++){
+ for(const [id,value] of [['app.typed',9n],['app.legacy',11n],['app.set',12n]]){const result=runtime.call(id);if(result.kind!=='success'||result.value!==value)throw Error('collection result '+id)}
+ for(const prefix of ['typed','legacy'])for(const [suffix,code] of [['full',1],['index',2],['capacity',3],['overflow',4]]){
+  const result=runtime.call('app.'+prefix+'_'+suffix);if(result.kind!=='failure'||result.domain!==(prefix==='legacy'?'semaprax.map.v1':'semaprax.map.v2')||result.code!==code)throw Error('collection status '+prefix+' '+suffix);
+ }
+ const text=runtime.call('app.text_failure');if(text.kind!=='failure'||text.domain!=='semaprax.text.v1'||text.code!==2)throw Error('selected Text failure changed');
+ for(const [id,cause] of [['app.owner_quota','collection_owners'],['app.byte_quota','collection_bytes']]){const result=runtime.call(id);if(result.kind!=='capacity'||result.cause!==cause)throw Error('collection quota did not settle '+id)}
+}
+"#).unwrap();
+    let status = Command::new("node")
+        .arg(output.join("probe.mjs"))
+        .current_dir(&output)
+        .output()
+        .unwrap();
+    assert!(
+        status.status.success(),
+        "{}",
+        String::from_utf8_lossy(&status.stderr)
+    );
+    assert!(status.stdout.is_empty());
+    for file in [
+        "app.wasm",
+        "semaprax.js",
+        "semaprax.d.ts",
+        "semaprax.internal-strings.json",
+        "semaprax.manifest.json",
+        "package.json",
+        "index.html",
+        "app.js",
+        "probe.mjs",
+    ] {
+        std::fs::remove_file(output.join(file)).unwrap();
+    }
+    std::fs::remove_dir(output).unwrap();
+    fixture.cleanup();
+}
+
+#[test]
+fn standalone_toolkit_collection_string_quota_refusal_settles_prior_owners() {
+    use wasm::internal_strings::{emit_text_toolkit_module, InternalStringOptions};
+    let source = r#"module test.collection_string_quota;
+@id("app.quota") fn quota() -> i64 { let values=map_new<i64,string>(1usize);let values=map_set<i64,string>(values,1,"text");string_len(map_get_or<i64,string>(values,1,"")) }
+@id("app.scalar") fn scalar() -> i64 { 7 }
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let program = parse(source, Path::new("collection-string-quota.spx")).unwrap();
+    assert!(verify::verify(&program).is_empty());
+    let artifact = emit_text_toolkit_module(
+        &program,
+        &["app.quota".to_owned(), "app.scalar".to_owned()],
+        InternalStringOptions {
+            max_cumulative_bytes: 4,
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    let fixture = Fixture::new(source);
+    std::fs::write(fixture.root.join("app.wasm"), artifact.wasm_bytes()).unwrap();
+    std::fs::write(fixture.root.join("runtime.mjs"), artifact.runtime_source()).unwrap();
+    std::fs::write(fixture.root.join("probe.mjs"),r#"import {readFile} from 'node:fs/promises';import {webcrypto} from 'node:crypto';if(globalThis.crypto===undefined)Object.defineProperty(globalThis,'crypto',{value:webcrypto});import {instantiate} from './runtime.mjs';
+const runtime=await instantiate(new Uint8Array(await readFile('./app.wasm')),{maxOwnedCollections:1});
+for(let i=0;i<8;i++){const result=runtime.call('app.quota');if(result.kind!=='capacity'||result.cause!=='cumulative_bytes')throw Error('String result quota changed');const scalar=runtime.call('app.scalar');if(scalar.kind!=='success'||scalar.value!==7n)throw Error('quota poisoned settled instance')}
+"#).unwrap();
+    let status = Command::new("node")
+        .arg(fixture.root.join("probe.mjs"))
+        .current_dir(&fixture.root)
+        .output()
+        .unwrap();
+    assert!(
+        status.status.success(),
+        "{}",
+        String::from_utf8_lossy(&status.stderr)
+    );
+    for file in ["app.wasm", "runtime.mjs", "probe.mjs"] {
+        std::fs::remove_file(fixture.root.join(file)).unwrap();
+    }
+    fixture.cleanup();
+}
+
+#[test]
+fn standalone_toolkit_collection_atoms_preserve_every_closed_scalar_value() {
+    let mut source = String::from("module test.toolkit_collection_atoms;\n");
+    let atoms = [
+        ("i64", "-9223372036854775808", "0"),
+        ("i32", "-2147483647i32", "0i32"),
+        ("u8", "255u8", "0u8"),
+        ("usize", "18446744073709551615usize", "0usize"),
+        ("char", "'😀'", "'x'"),
+        ("bool", "true", "false"),
+        ("f32", "2.5f32", "0.0f32"),
+        ("f64", "-2.5", "0.0"),
+    ];
+    let mut ids = Vec::new();
+    for (index, (ty, value, fallback)) in atoms.into_iter().enumerate() {
+        let id = format!("app.atom{index}");
+        ids.push(id.clone());
+        source.push_str(&format!("@id(\"{id}\") fn atom{index}() -> i64 {{ let values=map_new<bool,{ty}>(1usize);let values=map_set<bool,{ty}>(values,false,{value});if map_get_or<bool,{ty}>(values,false,{fallback})=={value} && map_value_at<bool,{ty}>(values,0usize)=={value} && !map_key_at<bool,{ty}>(values,0usize) {{ 1 }} else {{ 0 }} }}\n"));
+    }
+    source.push_str("@id(\"app.main\") fn main() -> i64 {0}\n");
+    let selected = ids.iter().map(String::as_str).collect::<Vec<_>>();
+    standalone_case(&source,&selected,"for(let repeat=0;repeat<8;repeat++)for(let i=0;i<8;i++){const result=runtime.call('app.atom'+i);if(result.kind!=='success'||result.value!==1n)throw Error('collection scalar atom changed '+i)}");
+}

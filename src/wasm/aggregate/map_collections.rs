@@ -5,7 +5,17 @@ pub(super) const CHECKED_ID: &str = "core.collection.wasm.checked.v2";
 pub(super) const DROP_ID: &str = "core.collection.wasm.drop.v2";
 pub(super) const IMPORT_COUNT: u32 = 2;
 pub(in crate::wasm) fn uses(program: &ResolvedProgram) -> bool {
-    if crate::map_ops::resolved_program_uses(program) {
+    if program.functions.iter().any(|function| {
+        function.cleanup_plan.exits.iter().any(|exit| {
+            exit.finalize_in_order.iter().any(|action| {
+                matches!(
+                    action.lifecycle_id.as_str(),
+                    crate::map_ops::DROP_ID | crate::string_ops::MAP_DROP_LIFECYCLE_ID
+                )
+            })
+        })
+    }) || crate::map_ops::resolved_program_uses(program)
+    {
         return true;
     }
     executable_functions(program).iter().any(|(f, _)| {
@@ -224,13 +234,21 @@ impl Emitter<'_> {
         self.output.push(0x21);
         write_u32(self.output, self.plan.status);
         let base = if legacy { 25 } else { 29 };
-        let statuses = match op {
+        let mut statuses = match op {
             MapOp::New | MapOp::SetNew => vec![0, base + 3],
             MapOp::Add => vec![0, base + 1, base + 4],
             MapOp::Set | MapOp::SetInsert => vec![0, base + 1],
             MapOp::KeyAt | MapOp::ValueAt | MapOp::SetKeyAt => vec![0, base + 2],
             _ => vec![0],
         };
+        if self.standalone_strings
+            && matches!(
+                op,
+                MapOp::New | MapOp::SetNew | MapOp::Add | MapOp::Set | MapOp::SetInsert
+            )
+        {
+            statuses.push(11);
+        }
         for (i, status) in statuses.into_iter().enumerate() {
             self.output.push(0x20);
             write_u32(self.output, self.plan.status);
@@ -267,6 +285,17 @@ impl Emitter<'_> {
         let local = self.plan.expr_scalar(expression)?;
         self.output.push(0x21);
         write_u32(self.output, local);
+        if self.standalone_strings && result == ResolvedType::String {
+            // Quota refusal mints no result owner. Settle the exact canonical
+            // operation-failure vector before publishing the capacity status.
+            self.output.push(0x20);
+            write_u32(self.output, local);
+            self.output.push(0x50);
+            let previous = self.failure_expression.replace(expression.id.clone());
+            let guarded = self.fail_if(11);
+            self.failure_expression = previous;
+            guarded?;
+        }
         Ok(Value::Scalar { local, ty: result })
     }
 }

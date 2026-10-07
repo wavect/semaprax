@@ -160,6 +160,9 @@ pub(in crate::wasm) fn emit(
         .functions
         .retain(|function| closure.contains(&function.id));
     selected.function_instances.clear();
+    // Import selection is bound to the chosen executable closure. Unused
+    // type declarations cannot add a host arena or widen its import inventory.
+    selected.types.clear();
     let toolkit_types = if toolkit {
         text_toolkit::import_types(&selected, &mut types, &mut type_indexes)
     } else {
@@ -187,12 +190,23 @@ pub(in crate::wasm) fn emit(
     } else {
         Vec::new()
     };
+    let collection_types = if toolkit {
+        map_collections::import_types(&selected, &mut types, &mut type_indexes)
+    } else {
+        None
+    };
+    let collection_import_count = if collection_types.is_some() {
+        map_collections::IMPORT_COUNT
+    } else {
+        0
+    };
     let selected_import_count = IMPORT_COUNT
         + if toolkit {
             3 + toolkit_types.len() as u32
         } else {
             0
-        };
+        }
+        + collection_import_count;
     let mut function_types = Vec::new();
     for function in &functions {
         let mut params = function
@@ -261,6 +275,12 @@ pub(in crate::wasm) fn emit(
             );
         }
     }
+    if collection_types.is_some() {
+        map_collections::insert_indexes(
+            &mut function_indexes,
+            selected_import_count - collection_import_count,
+        );
+    }
     let mut module = b"\0asm\x01\0\0\0".to_vec();
     let mut section_bytes = Vec::new();
     write_u32(&mut section_bytes, types.len() as u32);
@@ -291,6 +311,9 @@ pub(in crate::wasm) fn emit(
                 *ty,
             );
         }
+    }
+    if let Some(types) = collection_types {
+        map_collections::emit_imports(&mut section_bytes, types);
     }
     section(&mut module, 2, section_bytes);
     let mut section_bytes = Vec::new();

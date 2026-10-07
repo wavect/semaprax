@@ -1,5 +1,20 @@
 # Changelog
 
+- Close the SG-01–SG-24 implementation gaps: enforce nested record invariants,
+  snapshot Copy record byte arrays before later argument effects, select the
+  declared source main, compose payload-free variant fields, and update owned
+  byte buffers without whole-buffer copies on unshared writes. Preserve projected
+  webapp postconditions; revalidate mutations after body reads; require one
+  directory writer; publish rows, authentication and audit in one recoverable
+  snapshot; and reject failed keys, route collisions and reserved computed names
+  while preserving prototype-named fields. Retain complete broker omissions,
+  parse foreign exports through their owning manifest, enforce adapter I/O
+  deadlines, bind cache reuse to score thresholds, refresh timeout fallbacks,
+  canonicalize Clef response identities, and discover Rust enum payloads and
+  aliased module glob exports. Validate and freeze imported SDK observations,
+  accept unknown compiler commit provenance in VS Code, and document retained
+  Projects and selected library modules through the CLI and editor.
+
 - Restore private semantic-cache round trips for the admitted CleanupPlan v14
   owner-admission and v15 Vec-renewal profiles, preserving closed static-token
   decoding and rejection of unknown or malformed versions.

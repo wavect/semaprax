@@ -208,10 +208,29 @@ def module_exports(document: dict, crate_name: str) -> dict[str, set[tuple[str, 
             return
         exports[stable_id].add(path)
 
+    def publish_alias(target_id: object, path: tuple[str, ...], stack: frozenset[str]) -> None:
+        target_key = str(target_id)
+        if target_key in stack:
+            return
+        target = index.get(target_key, {})
+        if item_kind(target) == "use":
+            use = target["inner"]["use"]
+            if use.get("is_glob") or use.get("id") is None:
+                raise InputError("named re-export target is not a resolved item")
+            publish_alias(use["id"], path, stack | {target_key})
+            return
+        add_item(target_id, path)
+        if "module" in target.get("inner", {}):
+            visit_contents(target_id, path, stack)
+
     def visit_contents(module_id: object, prefix: tuple[str, ...], stack: frozenset[str]) -> None:
         module_key = str(module_id)
         if module_key in stack or (module_key, prefix) in seen_modules:
             return
+        if len("::".join(prefix).encode()) > MAX_PATH_BYTES:
+            raise InputError("public module expansion exceeds its path bound")
+        if len(seen_modules) >= 65_536:
+            raise InputError("public module expansion exceeds its traversal bound")
         seen_modules.add((module_key, prefix))
         module = index.get(module_key)
         if not module or "module" not in module.get("inner", {}):
@@ -232,10 +251,7 @@ def module_exports(document: dict, crate_name: str) -> dict[str, set[tuple[str, 
                     visit_glob(target_id, prefix, stack | {module_key})
                 elif name and target_id is not None:
                     alias_path = prefix + (name,)
-                    add_item(target_id, alias_path)
-                    target = index.get(str(target_id), {})
-                    if "module" in target.get("inner", {}):
-                        visit_contents(target_id, alias_path, stack | {module_key})
+                    publish_alias(target_id, alias_path, stack | {module_key})
                 continue
             name = child.get("name")
             if not name or not is_public(child):
@@ -246,34 +262,9 @@ def module_exports(document: dict, crate_name: str) -> dict[str, set[tuple[str, 
                 visit_contents(child_id, child_path, stack | {module_key})
 
     def visit_glob(module_id: object, prefix: tuple[str, ...], stack: frozenset[str]) -> None:
-        module_key = str(module_id)
-        if module_key in stack:
-            return
-        module = index.get(module_key)
-        if not module or "module" not in module.get("inner", {}):
-            return
-        for child_id in module["inner"]["module"].get("items", []):
-            child = item_by_id(index, child_id)
-            if not child:
-                continue
-            if item_kind(child) == "use":
-                use = child["inner"]["use"]
-                if not is_public(child):
-                    continue
-                target_id = use.get("id")
-                name = use.get("name")
-                if use.get("is_glob"):
-                    visit_glob(target_id, prefix, stack | {module_key})
-                elif name and target_id is not None:
-                    add_item(target_id, prefix + (name,))
-                continue
-            name = child.get("name")
-            if not name or not is_public(child):
-                continue
-            child_path = prefix + (name,)
-            add_item(child_id, child_path)
-            if item_kind(child) == "module":
-                visit_contents(child_id, child_path, stack | {module_key})
+        # A glob opens the target module in the same public prefix; use the
+        # identical named-alias, visibility and cycle handling as direct exports.
+        visit_contents(module_id, prefix, stack)
 
     visit_contents(root_id, root_path, frozenset())
 
@@ -527,16 +518,18 @@ def path_for_id(item_id: str, document: dict, exports: dict, trait_owner: dict[s
     return path
 
 
-def field_type_ids(field_ids: object, index: dict, references: set[str]) -> None:
+def field_type_ids(field_ids: object, index: dict, references: set[str], *, inherited_public: bool = False) -> None:
     if not isinstance(field_ids, list):
         raise InputError("rustdoc type field list is malformed")
     for field_id in field_ids:
         if field_id is None:
+            if inherited_public:
+                raise InputError("rustdoc enum payload contains a stripped field")
             continue
         field = index.get(str(field_id))
         if field is None or "struct_field" not in field.get("inner", {}):
             raise InputError("rustdoc field reference is missing")
-        if field.get("visibility") == "public":
+        if inherited_public or field.get("visibility") == "public":
             collect_type_ids(field["inner"]["struct_field"], references)
 
 
@@ -583,8 +576,21 @@ def type_record_for_id(
     elif kind == "enum":
         for variant_id in container.get("variants", []):
             variant = index.get(str(variant_id), {})
-            variant_data = variant.get("inner", {}).get("enum_variant", {})
-            field_type_ids(variant_data.get("fields", []), index, references)
+            variant_data = variant.get("inner", {}).get("variant")
+            if not isinstance(variant_data, dict):
+                raise InputError("rustdoc enum variant is malformed")
+            shape = variant_data.get("kind")
+            if shape == "plain":
+                continue
+            if isinstance(shape, dict) and set(shape) == {"tuple"}:
+                fields = shape["tuple"]
+            elif isinstance(shape, dict) and set(shape) == {"struct"} and isinstance(shape["struct"], dict):
+                if shape["struct"].get("has_stripped_fields") is not False:
+                    raise InputError("rustdoc enum payload fields are incomplete")
+                fields = shape["struct"].get("fields")
+            else:
+                raise InputError("rustdoc enum variant kind is unsupported or malformed")
+            field_type_ids(fields, index, references, inherited_public=True)
     elif kind == "union":
         field_type_ids(container.get("fields", []), index, references)
     elif kind == "type_alias":

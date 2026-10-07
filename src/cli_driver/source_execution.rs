@@ -217,21 +217,13 @@ pub(super) fn run_interpreted_source(
     // Preliminary loading and verification publish through the requested
     // diagnostic mode so that `run --json` never falls back to human text.
     let program = checked_for_output(path, options.json)?;
-    // `check` accepts any `@id` on `fn main`, so a file whose entry is not
-    // `app.main` runs its `main` instead of failing selection.
-    let entry = if program
+    // Persistent identities survive renames; default execution follows the
+    // verified declaration named main and then forwards its exact identity.
+    let entry = program
         .functions
         .iter()
-        .any(|function| function.stable_id == "app.main")
-    {
-        "app.main".to_owned()
-    } else {
-        program
-            .functions
-            .iter()
-            .find(|function| function.name == "main")
-            .map_or_else(|| "app.main".to_owned(), |main| main.stable_id.clone())
-    };
+        .find(|function| function.name == "main")
+        .map_or_else(|| "app.main".to_owned(), |main| main.stable_id.clone());
     if semaprax::source_command::selects(&program.permits) {
         let resolved = hir::resolve(&program).map_err(|errors| report(&errors, options.json))?;
         return run_source_command(&resolved, &entry, options, &interpreter_options);
@@ -254,13 +246,16 @@ pub(super) fn run_interpreted_source(
     // refuses whose closure fits the internal String profile (user functions
     // that take or return `string`) runs there instead. Refusal by both
     // reports the canonical profile's diagnostics.
-    let interpretation = match interpreter::interpret(path, &entry, &[], &interpreter_options) {
-        Ok(interpretation) => interpretation,
-        Err(errors) => {
-            interpreter::internal_strings::interpret(path, &entry, &[], &interpreter_options)
-                .map_err(|_| report(&errors, options.json))?
-        }
-    };
+    let interpretation =
+        match interpreter::source_entry::interpret(path, &entry, &interpreter_options) {
+            Ok(interpretation) => interpretation,
+            Err(errors) => interpreter::source_entry::interpret_internal_strings(
+                path,
+                &entry,
+                &interpreter_options,
+            )
+            .map_err(|_| report(&errors, options.json))?,
+        };
     if options.json {
         println!("{}", interpretation.envelope);
         return interpretation.returned.then_some(()).ok_or(1);

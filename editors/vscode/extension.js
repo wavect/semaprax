@@ -390,13 +390,10 @@ function activateChecks(context, testMode, onCompilerUnusable = () => {}) {
   async function showDocumentation() {
     const binary = requireCompiler('render module documentation');
     const doc = activeSource();
-    // `doc` is a module route over one standalone executable module. A module
-    // with `use` imports, and a library module without `fn main`, have no
-    // standalone meaning, so that boundary is named rather than left to the
-    // compiler's own diagnostic. There is no project documentation route yet.
-    let markdown;
-    try { markdown = await runNavigation(binary, navigation.docArguments(doc.uri.fsPath), doc.uri.fsPath); }
-    catch (error) { throw new Error(`${error.message}\nModule documentation is rendered from one standalone executable module; a module with \`use\` imports or without \`fn main\` has none of its own.`); }
+    if (doc.isDirty) throw new Error('Save the source before rendering documentation.');
+    const subject = navigationSubject(doc);
+    const modulePath = subject.project ? path.relative(subject.root, doc.uri.fsPath).split(path.sep).join('/') : null;
+    const markdown = await runNavigation(binary, navigation.docArguments(subject.subject, modulePath), subject.subject);
     const view = await vscode.workspace.openTextDocument({ language: 'markdown', content: markdown });
     await vscode.window.showTextDocument(view, { preview: true, viewColumn: vscode.ViewColumn.Beside, preserveFocus: true });
     return markdown;

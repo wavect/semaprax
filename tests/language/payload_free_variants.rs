@@ -608,3 +608,42 @@ fn main() -> i64
         assert_eq!(stdout.trim(), "2112");
     }
 }
+
+const RECORD_VARIANT: &str = r#"
+module review.record_variant_field;
+@id("review.status")
+variant Status { @id("review.status.ready") Ready, @id("review.status.done") Done, }
+@id("review.row")
+record Row { @id("review.row.status") status: Status, }
+@id("review.pass")
+fn pass(row: Row) -> Row { row }
+@id("review.read")
+fn read(row: Row) -> i64 { match row.status { Status::Ready {} => 1, Status::Done {} => 2, } }
+@id("app.main")
+fn main() -> i64 {
+    let row = Row { status: Status::Ready {} };
+    let copy = pass(row);
+    let updated = copy with { status: Status::Done {} };
+    read(row) + read(copy) * 10 + read(updated) * 100
+}
+"#;
+
+#[test]
+fn sg04_payload_free_variant_fields_compose_with_copy_records() {
+    let parsed = interpret_main(RECORD_VARIANT, "record-variant-interpreter");
+    assert_eq!(parsed["payload"]["outcome"]["value"], "211", "{parsed}");
+    if let Some((success, output, error)) = run_native(RECORD_VARIANT, "record-variant-native") {
+        assert!(success, "{error}");
+        assert_eq!(output, "211");
+    }
+    if let Some(output) = run_wasm(RECORD_VARIANT, "record-variant-wasm") {
+        assert_eq!(output, "211");
+    }
+    let program = parse(RECORD_VARIANT, Path::new("record-variant.spx")).unwrap();
+    let canonical = format::canonical(&program);
+    let reparsed = parse(&canonical, Path::new("record-variant.spx")).unwrap();
+    assert_eq!(canonical, format::canonical(&reparsed));
+    assert!(graph::to_json(&reparsed)
+        .unwrap()
+        .contains("review.row.status"));
+}

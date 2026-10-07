@@ -29,6 +29,7 @@ syntax exists: the projection reads only existing declarations.
   reserved. A field `<entity>_id: i64` whose prefix names another entity's
   snake_case name is a reference. Generic records and other field types are
   `SPX-WA102`.
+- Entity names must have distinct snake_case routes; route collisions are `SPX-WA102`.
 - A function named `<entity>_<suffix>` is an entity function. `<entity>` is
   the snake_case record name or its lowercase spelling, and the longest
   matching prefix wins. Each parameter must be a field of that entity, passed
@@ -61,12 +62,15 @@ The translation keeps SEMAPRAX semantics:
   `div`/`rem`, which trap with `overflow` outside the signed 64-bit range,
   with `division_by_zero`, and on `MIN % -1`. Division truncates toward zero
   and the remainder takes the dividend's sign.
+- Executed functions evaluate their body once, then check every `ensures` in
+  declaration order before returning the provisional result. Body and precondition
+  failures take precedence. `_valid` remains a rule-only convention.
 - `f64` is an IEEE double, as in SEMAPRAX (`1.0 / 0.0` is infinity).
 - `&&` and `||` stay lazy, and evaluation is left to right.
 - `string_len` counts UTF-8 bytes and `string_len_chars` Unicode scalars.
   `char` ordering compares scalar values.
 - A failing rule rejects the row. A computed field that traps or fails a
-  precondition is reported as `{"error": "<code>"}` and never crashes the
+  precondition or postcondition is reported as `{"error": "<code>"}` and never crashes the
   server.
 
 ## Output
@@ -87,8 +91,18 @@ nothing.
 - 400 with `{"errors":[{field, message}]}` for type errors, failed rules, and
   missing reference targets. 404 for unknown rows. 409 when deleting a row
   that another row references.
-- Persistence in `DIR/db.json`, rewritten atomically after each mutation.
-  Ids are monotonic and never reused.
+- Persistence publishes one fsynced atomic `DIR/state.json` snapshot containing
+  rows, auth, and audit, then refreshes the `db.json`, `auth.json`, and
+  `audit.jsonl` mirrors. Startup repairs mirrors from the snapshot. IDs are
+  monotonic and never reused. Before publication, write failure returns 500
+  and preserves the previous state. After publication, a mirror failure returns
+  503 with `committed:true`; restart recovers that mutation and its one audit fact.
+- The canonical data directory has one exclusive `.writer-lock` claim, acquired
+  before loading state. A second writer, including through a symlink alias,
+  fails startup. SIGINT/SIGTERM and normal exit release the claim. A crash keeps
+  it: inspect `owner.json`, confirm its PID is no longer running, and only then
+  remove `.writer-lock` before restarting. Automatic stale-claim takeover is
+  deliberately unsupported.
 - A browser UI with hash routing: a dashboard of row counts per entity and
   per enumeration value; list pages with search, sorting, enumeration
   filters, and 25-row pagination; detail pages with reference links and

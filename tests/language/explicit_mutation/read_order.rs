@@ -372,3 +372,46 @@ fn whole_copy_record_argument_keeps_its_read_fields() {
     native_lane(&program, "record.main", &Expected::Value(1));
     wasm_lane(&program, &Expected::Value(1));
 }
+
+#[test]
+fn sg02_copy_records_with_array_leaves_snapshot_before_later_arguments() {
+    for (length, initializer) in [(0, "[]"), (1, "[7u8]"), (3, "[1u8, 2u8, 3u8]")] {
+        let source = format!(
+            r#"
+module review.record_array_read;
+@id("review.row")
+record Row {{ @id("review.row.bytes") bytes: [u8; {length}], @id("review.row.value") value: i64, }}
+@id("review.read")
+fn read(row: Row, ignored: i64) -> i64 {{ row.value }}
+@id("app.main")
+fn main() -> i64 {{ let mut row = Row {{ bytes: {initializer}, value: 1 }}; read(row, {{ row.value = 99; 0 }}) }}
+"#
+        );
+        let program = checked(&source);
+        native_lane(&program, "app.main", &Expected::Value(1));
+        wasm_lane(&program, &Expected::Value(1));
+    }
+    let source = r#"
+module review.nested_array_read;
+@id("nested.inner") record Inner { @id("nested.inner.bytes") bytes: [u8; 1], }
+@id("nested.outer") record Outer { @id("nested.outer.inner") inner: Inner, @id("nested.outer.value") value: i64, }
+@id("nested.read") fn read(row: Outer, ignored: i64) -> i64 { row.value }
+@id("app.main") fn main() -> i64 { let mut row = Outer { inner: Inner { bytes: [7u8] }, value: 1 }; read(row, { row.value = 99; 0 }) }
+"#;
+    let program = checked(source);
+    native_lane(&program, "app.main", &Expected::Value(1));
+    wasm_lane(&program, &Expected::Value(1));
+}
+
+#[test]
+fn sg02_class_array_carrier_reads_are_struct_snapshots() {
+    let source = r#"
+module review.class_array_read;
+@id("class.row") class Row { @id("class.row.bytes") bytes: [u8; 1], @id("class.row.value") value: i64, }
+@id("class.read") fn read(row: Row, ignored: i64) -> i64 { row.value }
+@id("app.main") fn main() -> i64 { let mut row = Row { bytes: [7u8], value: 1 }; read(row, { row.value = 99; 0 }) }
+"#;
+    let program = checked(source);
+    native_lane(&program, "app.main", &Expected::Value(1));
+    wasm_lane(&program, &Expected::Value(1));
+}

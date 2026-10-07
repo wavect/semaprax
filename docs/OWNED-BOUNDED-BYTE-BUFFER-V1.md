@@ -171,7 +171,11 @@ literal capacity is its payload contribution, and the existing
 `MAX_BYTES_COPY_SITES` site count, `MAX_OWNED_BYTE_PAYLOAD_BYTES` payload sum,
 and loop-reachability rejection all apply unchanged. `bytes_set` allocates
 nothing: it transfers the single live owner in, stores one byte, and hands the
-same owner back.
+same owner back. The interpreter transfers the host carrier into every store
+operation and mutates its backing storage after complete preflight. Unique
+stores retain the backing allocation; a genuinely shared immutable observation
+uses copy-on-write at that sharing boundary. The scalar, five-byte and tagged
+store variants use the same rule.
 
 ## Trust boundary
 

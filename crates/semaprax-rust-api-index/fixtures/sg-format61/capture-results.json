@@ -1,0 +1,114 @@
+[
+  {
+    "name": "stable-compile",
+    "args": [
+      "/workspace/scratch/2e3bdf49a15f/review-tools/cargo/bin/rustup",
+      "run",
+      "stable",
+      "rustc",
+      "--edition=2021",
+      "--test",
+      "/workspace/scratch/2e3bdf49a15f/review-state/rust-index-fixture.rs",
+      "-o",
+      "/workspace/scratch/2e3bdf49a15f/review-state/rustdoc-actual/rust-api-test"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "stable-execute",
+    "args": [
+      "/workspace/scratch/2e3bdf49a15f/review-state/rustdoc-actual/rust-api-test"
+    ],
+    "exit_code": 0,
+    "stdout": "\nrunning 1 test\ntest exported_api_is_callable ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n",
+    "stderr": ""
+  },
+  {
+    "name": "rustdoc",
+    "args": [
+      "/workspace/scratch/2e3bdf49a15f/review-tools/cargo/bin/rustup",
+      "run",
+      "nightly-2026-10-02",
+      "rustdoc",
+      "--edition=2021",
+      "--crate-name",
+      "review_index",
+      "/workspace/scratch/2e3bdf49a15f/review-state/rust-index-fixture.rs",
+      "-Z",
+      "unstable-options",
+      "--output-format",
+      "json",
+      "-o",
+      "/workspace/scratch/2e3bdf49a15f/review-state/rustdoc-actual"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "full",
+    "args": [
+      "python3",
+      "/workspace/scratch/2e3bdf49a15f/semaprax-main/crates/semaprax-rust-api-index/tools/rustdoc_json_to_index.py",
+      "--rustdoc-json",
+      "/workspace/scratch/2e3bdf49a15f/review-state/rustdoc-actual/review_index.json",
+      "--package-name",
+      "review_index",
+      "--package-version",
+      "0.0.0",
+      "--source-sha256",
+      "sha256:0ef503df93bac5e030a03804f9e72658b2089ed31a490c954a14d25b7b77bbaf",
+      "--target",
+      "x86_64-unknown-linux-gnu",
+      "--feature-digest",
+      "sha256:9199dc34a0a0dc80fb6dfcdbc573d1bb3085e3c7f767681f17f29ff0807e09b7",
+      "--stable-rustc-version",
+      "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "--source-root",
+      "/workspace/scratch/2e3bdf49a15f/review-state",
+      "--rustdoc-version",
+      "rustdoc 1.101.0-nightly (c36f14571 2026-10-01)",
+      "--rustdoc-format-version",
+      "61",
+      "--output",
+      "/workspace/scratch/2e3bdf49a15f/review-state/rustdoc-actual/index-envelope.json"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "select-reexport",
+    "args": [
+      "python3",
+      "/workspace/scratch/2e3bdf49a15f/semaprax-main/crates/semaprax-rust-api-index/tools/rustdoc_json_to_index.py",
+      "--rustdoc-json",
+      "/workspace/scratch/2e3bdf49a15f/review-state/rustdoc-actual/review_index.json",
+      "--package-name",
+      "review_index",
+      "--package-version",
+      "0.0.0",
+      "--source-sha256",
+      "sha256:0ef503df93bac5e030a03804f9e72658b2089ed31a490c954a14d25b7b77bbaf",
+      "--target",
+      "x86_64-unknown-linux-gnu",
+      "--feature-digest",
+      "sha256:9199dc34a0a0dc80fb6dfcdbc573d1bb3085e3c7f767681f17f29ff0807e09b7",
+      "--stable-rustc-version",
+      "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "--source-root",
+      "/workspace/scratch/2e3bdf49a15f/review-state",
+      "--rustdoc-version",
+      "rustdoc 1.101.0-nightly (c36f14571 2026-10-01)",
+      "--rustdoc-format-version",
+      "61",
+      "--select",
+      "review_index::public_api::increment"
+    ],
+    "exit_code": 2,
+    "stdout": "",
+    "stderr": "rustdoc-json-to-index: selected paths were not public items in this target/features JSON: review_index::public_api::increment\n"
+  }
+]

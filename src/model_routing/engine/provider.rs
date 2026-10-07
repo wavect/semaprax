@@ -105,15 +105,21 @@ impl ProviderProfile {
     }
 
     /// The adapter/profile/instance scope bound into cache and evidence keys;
-    /// `Null` for a legacy profile, so v1 keys keep their bytes.
+    /// Effective host acceptance settings are part of this scope for v1 and v2.
     pub fn scope_json(&self) -> Value {
-        if self.adapter_version.is_none() && self.model_profile.is_none() && self.instance.is_none()
+        if self.adapter_version.is_none()
+            && self.model_profile.is_none()
+            && self.instance.is_none()
+            && self.min_confidence.is_none()
+            && self.min_option_mass.is_none()
         {
             return Value::Null;
         }
         json!({"adapter": self.adapter_version.as_ref().map(|v| format!("{}@{v}", self.provider_id)),
                "profile": self.model_profile.as_ref().map(ModelProfile::digest),
-               "instance": self.instance.as_ref().map(InstanceConfig::digest)})
+               "instance": self.instance.as_ref().map(InstanceConfig::digest),
+               "min_confidence": self.min_confidence,
+               "min_option_mass": self.min_option_mass})
     }
 
     pub fn scope_digest(&self) -> String {

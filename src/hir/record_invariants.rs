@@ -86,6 +86,11 @@ pub(super) fn desugar(program: &Program, resolved: &ResolvedProgram) -> Option<P
         .collect::<BTreeMap<_, _>>();
     let sites = Sites::collect(resolved, &checked);
     let mut rewritten = program.clone();
+    for (declaration, fields) in &declared {
+        rewritten
+            .functions
+            .push(invariant_function(declaration, fields));
+    }
     let mut roots = Vec::new();
     for function in &mut rewritten.functions {
         roots.push(&mut function.body);
@@ -103,9 +108,6 @@ pub(super) fn desugar(program: &Program, resolved: &ResolvedProgram) -> Option<P
     }
     rewrite(roots, &sites);
     for (declaration, fields) in declared {
-        rewritten
-            .functions
-            .push(invariant_function(declaration, fields));
         if checked.contains_key(declaration.stable_id.as_str()) {
             rewritten
                 .functions
@@ -113,6 +115,29 @@ pub(super) fn desugar(program: &Program, resolved: &ResolvedProgram) -> Option<P
         }
     }
     Some(rewritten)
+}
+
+/// Resolve authored clauses as ordinary synthesized preconditions so their
+/// update sites have the same typed inventory as function contracts.
+pub(super) fn clause_program(program: &Program) -> Option<Program> {
+    if !program
+        .types
+        .iter()
+        .any(|declaration| !declaration.invariants().is_empty())
+    {
+        return None;
+    }
+    let mut augmented = program.clone();
+    for declaration in &program.types {
+        if !declaration.invariants().is_empty() {
+            if let TypeDeclarationKind::Record { fields } = &declaration.kind {
+                augmented
+                    .functions
+                    .push(invariant_function(declaration, fields));
+            }
+        }
+    }
+    (augmented.functions.len() != program.functions.len()).then_some(augmented)
 }
 
 /// Whether `name` is a synthesized invariant function: `#` never occurs in a

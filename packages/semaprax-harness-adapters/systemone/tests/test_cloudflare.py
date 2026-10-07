@@ -82,22 +82,22 @@ class CloudflareContract(unittest.TestCase):
 
     def test_both_variants_route_and_selector(self):
         for route, sel in ROUTES.items():
-            req = fx.v2_request()
-            res, r = self.go("ok", req, model=route)
-            self.assertEqual(res["status"], "complete", res)
-            fx.validate_v2_result(res["payload"], req["payload"])
-            (rec,) = r.requests()
-            self.assertEqual((rec["host"], rec["port"], rec["method"]), ("api.cloudflare.com", 443, "POST"))
-            self.assertEqual(rec["path"], f"/client/v4/accounts/{ACCOUNT}/ai/run/{route}")
-            self.assertEqual(rec["body"]["model"], sel)
-            self.assertEqual(rec["headers"]["Authorization"], "Bearer " + SECRET)
-            self.assertEqual(set(rec["body"]), {"state", "model", "questions"})
-            call = res["payload"]["call"]
-            self.assertEqual((call["requested_model"], call["answering_model"]), (route, sel))
-            self.assertEqual((call["identity_kind"], call["billing"], call["checkpoint"]), ("mutable_service", "api", None))
-            self.assertEqual(call["usage"], {"input_tokens": 212, "output_tokens": 3, "basis": "provider_reported"})
-            self.assertIn("profile=cf-" + sel, res["diagnostics"][0]["message"])
-
+            for mode in ("ok", "prefixed_model"):
+                req = fx.v2_request()
+                res, r = self.go(mode, req, model=route)
+                self.assertEqual(res["status"], "complete", res)
+                fx.validate_v2_result(res["payload"], req["payload"])
+                (rec,) = r.requests()
+                self.assertEqual((rec["host"], rec["port"], rec["method"]), ("api.cloudflare.com", 443, "POST"))
+                self.assertEqual(rec["path"], f"/client/v4/accounts/{ACCOUNT}/ai/run/{route}")
+                self.assertEqual(rec["body"]["model"], sel)
+                self.assertEqual(rec["headers"]["Authorization"], "Bearer " + SECRET)
+                self.assertEqual(set(rec["body"]), {"state", "model", "questions"})
+                call = res["payload"]["call"]
+                self.assertEqual((call["requested_model"], call["answering_model"]), (route, route))
+                self.assertEqual((call["identity_kind"], call["billing"], call["checkpoint"]), ("mutable_service", "api", None))
+                self.assertEqual(call["usage"], {"input_tokens": 212, "output_tokens": 3, "basis": "provider_reported"})
+                self.assertIn("profile=cf-" + sel, res["diagnostics"][0]["message"])
     def test_choice_select_round_trips_only_over_negotiated_v3(self):
         req = fx.choice_request()
         res, r = self.go("ok", req, versions=(1, 2, 3))

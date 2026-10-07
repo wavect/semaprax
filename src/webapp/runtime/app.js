@@ -31,14 +31,14 @@ async function api(method, url, body) {
   if (text) try { data = rt.parseJSON(text); } catch { /* non-JSON body */ }
   return { status: r.status, data };
 }
-let D = {}; // path -> readable rows (with .$c computed values as served)
-let I = {}; // path -> Map(id -> row)
+let D = Object.create(null); // path -> readable rows (with .$c computed values as served)
+let I = Object.create(null); // path -> Map(id -> row)
 let ME = null, SETUP = false; // signed-in account row; setup mode
 const decode = (e, o) => { const { row } = rt.decodeRow(e, enums, o, true); row.$c = rt.decodeComputed(e, enums, o); return row; };
 async function loadAll() {
   const res = await Promise.all(entities.map((e) => api("GET", "/api/" + e.path)));
   if (res.some((r) => r.status === 401)) return false;
-  D = {}; I = {};
+  D = Object.create(null); I = Object.create(null);
   entities.forEach((e, i) => {
     D[e.path] = (Array.isArray(res[i].data) ? res[i].data : []).map((o) => decode(e, o));
     I[e.path] = new Map(D[e.path].map((r) => [r.id, r]));
@@ -82,9 +82,9 @@ function dashboard() {
         enums[f.enum].map((c) => h("p", {}, `${c}: ${D[e.path].filter((r) => r[f.name] === c).length}`))))))));
 }
 
-const LS = {}; // per-entity list state
+const LS = Object.create(null); // per-entity list state
 function listView(e) {
-  const S = (LS[e.path] ||= { q: "", sort: null, dir: 1, filters: {}, page: 0 });
+  const S = (LS[e.path] ||= { q: "", sort: null, dir: 1, filters: Object.create(null), page: 0 });
   const cols = colsOf(e), strs = e.fields.filter((f) => f.type === "string");
   const box = h("div", { class: "wrap" }), csv = h("a", { class: "btn", download: e.path + ".csv" }, "Export CSV");
   const draw = () => {
@@ -157,7 +157,7 @@ function detailView(e, row) {
 }
 
 function formView(e, row) {
-  const ctl = {}, errBox = {}, isAcc = ACC && ACC.entity === e.path;
+  const ctl = Object.create(null), errBox = Object.create(null), isAcc = ACC && ACC.entity === e.path;
   const inputFor = (f) => {
     const v = row ? row[f.name] : undefined, st = (e.steps || []).find((s) => s.field === f.name);
     if (f.type === "bool") return h("input", { type: "checkbox", checked: !!v });
@@ -186,7 +186,7 @@ function formView(e, row) {
   };
   const submit = async (ev) => {
     ev.preventDefault();
-    const raw = {};
+    const raw = Object.create(null);
     for (const f of e.fields) raw[f.name] = f.type === "bool" ? ctl[f.name].checked : ctl[f.name].value;
     const { row: r, errors, bad } = rt.decodeRow(e, enums, raw);
     for (const f of e.fields) if (f.type === "ref" && !bad.has(f.name) && !I[f.ref].has(r[f.name])) errors.push({ field: f.name, message: `${f.name} must reference an existing ${f.ref} row` });

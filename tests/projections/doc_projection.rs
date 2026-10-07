@@ -334,3 +334,87 @@ fn cli_renders_a_declared_session_protocol() {
             && item["id"] == "fixture.session.transaction"));
     std::fs::remove_dir_all(directory).unwrap();
 }
+
+#[test]
+fn sg24_project_documentation_retains_library_contracts_graph_links_and_source_bindings() {
+    let manifest = "examples/calculator-project/semaprax.toml";
+    let output = cli(&[manifest, "--json"]);
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(value["schema"], "semaprax.project-doc.v1");
+    assert_eq!(cli(&[manifest, "--json"]).stdout, output.stdout);
+    let modules = value["modules"].as_array().unwrap();
+    let core = modules
+        .iter()
+        .find(|m| m["path"] == "src/core.spx")
+        .unwrap();
+    assert_eq!(core["document"]["revision"], core["source_revision"]);
+    assert!(core["document"]["declarations"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|d| d["id"] == "calculator.add"));
+    let selected = cli(&[manifest, "--module", "src/core.spx", "--json"]);
+    assert!(selected.status.success());
+    let selected: serde_json::Value = serde_json::from_slice(&selected.stdout).unwrap();
+    assert_eq!(selected["modules"].as_array().unwrap().len(), 1);
+    assert_eq!(selected["graph_digest"], value["graph_digest"]);
+    assert_eq!(selected["relationships"], value["relationships"]);
+    let markdown = cli(&[manifest]);
+    assert!(markdown.status.success());
+    let markdown = String::from_utf8(markdown.stdout).unwrap();
+    assert!(markdown.contains("calculator.add"));
+    assert!(markdown.contains("Resolved imports"));
+    assert!(markdown.contains("#module-"));
+    let refused = cli(&[manifest, "--module", "../outside.spx", "--json"]);
+    assert!(!refused.status.success());
+    assert!(refused.stdout.is_empty());
+}
+
+#[test]
+fn sg24_project_documentation_changes_with_source_and_fails_on_unresolved_import() {
+    let directory = fixture_dir().canonicalize().unwrap();
+    std::fs::create_dir(directory.join("src")).unwrap();
+    for path in [
+        "semaprax.toml",
+        "src/app.spx",
+        "src/core.spx",
+        "src/tests.spx",
+    ] {
+        std::fs::copy(
+            root().join("examples/calculator-project").join(path),
+            directory.join(path),
+        )
+        .unwrap();
+    }
+    let manifest = directory.join("semaprax.toml");
+    let first = cli(&[manifest.to_str().unwrap(), "--json"]);
+    assert!(
+        first.status.success(),
+        "{}",
+        String::from_utf8_lossy(&first.stderr)
+    );
+    let core = directory.join("src/core.spx");
+    let source = std::fs::read_to_string(&core).unwrap();
+    std::fs::write(&core, format!("// Changed description.\n{source}")).unwrap();
+    let changed = cli(&[manifest.to_str().unwrap(), "--json"]);
+    assert!(
+        changed.status.success(),
+        "{}",
+        String::from_utf8_lossy(&changed.stderr)
+    );
+    assert_ne!(first.stdout, changed.stdout);
+    let app = directory.join("src/app.spx");
+    let source = std::fs::read_to_string(&app)
+        .unwrap()
+        .replace("calculator.add", "missing.add");
+    std::fs::write(app, source).unwrap();
+    let refused = cli(&[manifest.to_str().unwrap(), "--json"]);
+    assert!(!refused.status.success());
+    assert!(refused.stdout.is_empty());
+    std::fs::remove_dir_all(directory).unwrap();
+}

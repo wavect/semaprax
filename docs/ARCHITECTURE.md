@@ -2741,11 +2741,19 @@ Read-only commands live in focused modules such as
 `src/package_report.rs`, `src/plugin_manifest.rs`, `src/region_report.rs`,
 `src/simd_report.rs`, and `src/ui_schema.rs`.
 
+`src/webapp/runtime/server.mjs` publishes one atomic `state.json` snapshot
+containing DB rows, authentication state and audit entries; the legacy files
+are recoverable mirrors. A canonical data-directory `.writer-lock` admits one
+writer and leaves crash recovery under explicit operator control.
+
 `src/doc.rs` projects checked declarations and comments—identity, signature,
 ownership, effects, contracts, members, descriptions—to Markdown or one-line
 `semaprax.doc.v1`, both with `graph::revision`. It reuses formatter writers, so
 signatures match canonical formatting. `src/cli/doc.rs` verifies before its
-closed `doc <file> [--json]` render. The harness ensures each documented graph
+closed `doc <file|project> [--module <source-path>] [--json]` render.
+`src/doc/project.rs` derives Project documentation from the retained admitted
+source and graph, binds each module revision, and exposes complete relationship
+inventories. The CLI rechecks held Project inputs before delivering output. The harness ensures each documented graph
 identity is a `semaprax graph` node at that revision. See
 [Documentation Projection v1](DOC-PROJECTION-V1.md).
 

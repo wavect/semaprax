@@ -487,10 +487,16 @@ fn resolve_verified(
     program: &Program,
     reuse: Option<FunctionReuse<'_>>,
 ) -> Result<(ResolvedProgram, FunctionResolutionWork), Diagnostic> {
+    let clause_program = record_invariants::clause_program(program);
+    let inventory_program = clause_program.as_ref().unwrap_or(program);
     let resolved = (Resolver {
-        program,
-        declarations: DeclarationIndex::from_verified(program)?,
-        reuse,
+        program: inventory_program,
+        declarations: DeclarationIndex::from_verified(inventory_program)?,
+        reuse: if clause_program.is_some() {
+            None
+        } else {
+            reuse
+        },
         function_work: FunctionResolutionWork::default(),
     })
     .resolve()?;

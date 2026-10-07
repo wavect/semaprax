@@ -36,7 +36,9 @@ def canned(body):
     probs[opts[-1]] = round(1 - sum(probs.values()), 6)
     ans["probabilities"], ans["choice"] = probs, opts[-1]
     res["answers"][qid] = ans
-    if MODE == "foreign_qid":
+    if MODE == "prefixed_model":
+        res["model"] = "@cf/cloudflare/" + body["model"]
+    elif MODE == "foreign_qid":
         res["answers"] = {"route-0000000000000000": ans}
     elif MODE == "extra_qid":
         res["answers"]["other"] = ans

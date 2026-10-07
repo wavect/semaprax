@@ -42,7 +42,8 @@ pub(super) fn record_update_is_admitted(
         return false;
     };
     if declaration != record
-        || !classify_record(declarations, result).is_some_and(|profile| profile.has_bytes)
+        || !classify_record(declarations, result)
+            .is_some_and(|profile| profile.has_bytes || profile.has_variant)
     {
         return false;
     }
@@ -56,6 +57,7 @@ pub(super) fn record_update_is_admitted(
     let generic_flat =
         !arguments.is_empty() && hir::is_flat_owned_byte_record(declarations, result);
     if !generic_flat
+        && !classify_record(declarations, result).is_some_and(|profile| profile.has_variant)
         && !declared.iter().any(|field| {
             hir::substitute_type(&field.ty, record, arguments).is_ok_and(|ty| {
                 matches!(&ty, ResolvedType::Nominal { .. })
@@ -105,8 +107,22 @@ pub(super) fn update_owned_record(
             .ok_or(Flow::Guard("record update replaces an unknown field"))?;
         validate_runtime_value(declarations, &ty, value, true)?;
     }
-    let mut record = Arc::try_unwrap(record)
-        .map_err(|_| Flow::Guard("record update base still has a live alias"))?;
+    let copy = !classify_record(declarations, expected)
+        .ok_or(Flow::Guard("record update base profile is absent"))?
+        .has_bytes;
+    let mut record = if copy {
+        OwnedRecordValue {
+            record: record.record.clone(),
+            fields: record
+                .fields
+                .iter()
+                .map(|(id, value)| Ok((id.clone(), borrow_alias(value)?)))
+                .collect::<Result<_, Flow>>()?,
+        }
+    } else {
+        Arc::try_unwrap(record)
+            .map_err(|_| Flow::Guard("record update base still has a live alias"))?
+    };
     for (field, value) in replacements {
         let old = record
             .fields
@@ -190,6 +206,20 @@ fn validate_runtime_value(
         | (ResolvedType::F64, Value::Float64(_))
         | (ResolvedType::Bool, Value::Bool(_))
         | (ResolvedType::Bytes, Value::Bytes(_)) => Ok(()),
+        (ResolvedType::Nominal { .. }, Value::Variant(carrier))
+            if super::is_admitted_fieldless_variant(declarations, expected)
+                && &carrier.ty == expected
+                && carrier.fields.is_empty()
+                && declarations
+                    .variant_cases(&carrier.variant)
+                    .is_some_and(|cases| {
+                        cases
+                            .iter()
+                            .any(|case| case.id == carrier.case && case.fields.is_empty())
+                    }) =>
+        {
+            Ok(())
+        }
         (ResolvedType::Nominal { .. }, Value::Record(record)) => {
             validate_runtime_record(declarations, expected, record, require_unique)
         }
@@ -479,6 +509,7 @@ fn validate_runtime_pattern(
 #[derive(Clone, Copy)]
 struct RecordProfile {
     has_bytes: bool,
+    has_variant: bool,
 }
 
 fn classify_record(
@@ -493,7 +524,10 @@ fn classify_record(
     let mut active = BTreeSet::new();
     let mut visited_fields = 0usize;
     let mut owned_leaves = 0usize;
-    let mut profile = RecordProfile { has_bytes: false };
+    let mut profile = RecordProfile {
+        has_bytes: false,
+        has_variant: false,
+    };
     while let Some(frame) = pending.pop() {
         match frame {
             Frame::Enter(ResolvedType::Bytes, _) => {
@@ -504,6 +538,9 @@ fn classify_record(
                 }
             }
             Frame::Enter(ty, _) if super::is_admitted_resolved_scalar(&ty) => {}
+            Frame::Enter(ty, _) if super::is_admitted_fieldless_variant(declarations, &ty) => {
+                profile.has_variant = true;
+            }
             Frame::Enter(ty @ ResolvedType::Nominal { .. }, depth) => {
                 if depth > crate::cleanup::MAX_CLEANUP_SHAPE_DEPTH {
                     return None;
@@ -731,6 +768,7 @@ fn borrow_alias(value: &Value) -> Result<Value, Flow> {
         Value::Bool(value) => Value::Bool(*value),
         Value::Bytes(value) => Value::Bytes(value.clone()),
         Value::Record(value) => Value::Record(Arc::clone(value)),
+        Value::Variant(value) if value.fields.is_empty() => Value::Variant(Arc::clone(value)),
         _ => {
             return Err(Flow::Guard(
                 "borrowed nested record contains a closed value kind",

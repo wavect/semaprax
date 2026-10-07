@@ -68,7 +68,11 @@ pub(super) fn zeroed(
 /// buffer's length selects the single `semaprax.byte-buffer.v1` failure before
 /// any byte is written, which is the same predicate and the same normalized
 /// status the native and Core-Wasm backends select.
-pub(super) fn set(buffer: &OwnedBytesValue, index: u64, byte: u8) -> Result<OwnedBytesValue, Flow> {
+pub(super) fn set(
+    mut buffer: OwnedBytesValue,
+    index: u64,
+    byte: u8,
+) -> Result<OwnedBytesValue, Flow> {
     let Some(slot) = usize::try_from(index)
         .ok()
         .filter(|slot| *slot < buffer.bytes.len())
@@ -77,12 +81,9 @@ pub(super) fn set(buffer: &OwnedBytesValue, index: u64, byte: u8) -> Result<Owne
             crate::byte_ops::SET_INDEX_OUT_OF_BOUNDS_CODE,
         )));
     };
-    let mut filled = buffer.bytes.to_vec();
+    let filled = Arc::make_mut(&mut buffer.bytes);
     filled[slot] = byte;
-    Ok(OwnedBytesValue {
-        allocation: buffer.allocation,
-        bytes: Arc::from(filled.as_slice()),
-    })
+    Ok(buffer)
 }
 
 /// Store five consecutive bytes after one all-or-nothing bounds preflight.
@@ -92,7 +93,7 @@ pub(super) fn set(buffer: &OwnedBytesValue, index: u64, byte: u8) -> Result<Owne
 /// failed store selects the existing operation status without publishing a
 /// partially updated owner.
 pub(super) fn set5(
-    buffer: &OwnedBytesValue,
+    mut buffer: OwnedBytesValue,
     index: u64,
     bytes: [u8; 5],
 ) -> Result<OwnedBytesValue, Flow> {
@@ -107,12 +108,9 @@ pub(super) fn set5(
             crate::byte_ops::SET_INDEX_OUT_OF_BOUNDS_CODE,
         )));
     };
-    let mut filled = buffer.bytes.to_vec();
+    let filled = Arc::make_mut(&mut buffer.bytes);
     filled[slot..slot + 5].copy_from_slice(&bytes);
-    Ok(OwnedBytesValue {
-        allocation: buffer.allocation,
-        bytes: Arc::from(filled.as_slice()),
-    })
+    Ok(buffer)
 }
 
 /// Store either one supplied byte or five ordered bytes read from a borrowed
@@ -120,7 +118,7 @@ pub(super) fn set5(
 /// give the source offset. The wide source read is total: each missing source
 /// position supplies zero after the destination interval has been preflighted.
 pub(super) fn set1_or5(
-    buffer: &OwnedBytesValue,
+    mut buffer: OwnedBytesValue,
     index: u64,
     one: u8,
     source: &[u8],
@@ -140,7 +138,7 @@ pub(super) fn set1_or5(
             crate::byte_ops::SET_INDEX_OUT_OF_BOUNDS_CODE,
         )));
     };
-    let mut filled = buffer.bytes.to_vec();
+    let filled = Arc::make_mut(&mut buffer.bytes);
     if wide {
         let start = usize::try_from(source_start).ok();
         for offset in 0..5 {
@@ -153,16 +151,13 @@ pub(super) fn set1_or5(
     } else {
         filled[slot] = one;
     }
-    Ok(OwnedBytesValue {
-        allocation: buffer.allocation,
-        bytes: Arc::from(filled.as_slice()),
-    })
+    Ok(buffer)
 }
 
 /// Tagged source store. The copy branch preflights its complete six- or
 /// forty-eight-byte destination interval before the owner is moved.
 pub(super) fn set1_or6_or48(
-    buffer: &OwnedBytesValue,
+    mut buffer: OwnedBytesValue,
     index: u64,
     one: u8,
     source: &[u8],
@@ -191,7 +186,7 @@ pub(super) fn set1_or6_or48(
             crate::byte_ops::SET_INDEX_OUT_OF_BOUNDS_CODE,
         )));
     };
-    let mut filled = buffer.bytes.to_vec();
+    let filled = Arc::make_mut(&mut buffer.bytes);
     if copy {
         let start = usize::try_from(source_start).ok();
         for offset in 0..width {
@@ -204,10 +199,7 @@ pub(super) fn set1_or6_or48(
     } else {
         filled[slot] = one;
     }
-    Ok(OwnedBytesValue {
-        allocation: buffer.allocation,
-        bytes: Arc::from(filled.as_slice()),
-    })
+    Ok(buffer)
 }
 
 /// Evaluate one compiler-owned owned-buffer operation after the caller has
@@ -216,9 +208,19 @@ impl Evaluator<'_> {
     pub(super) fn evaluate_owned_buffer_operation(
         &mut self,
         op: crate::byte_ops::ByteOp,
-        values: &[Value],
+        mut values: Vec<Value>,
     ) -> Result<Value, Flow> {
-        match (op, values) {
+        // Remove the transferred owner only after all operands have evaluated.
+        // No extra strong reference is retained on the unique store path.
+        let owner = if op != crate::byte_ops::ByteOp::Zeroed {
+            match values.first_mut() {
+                Some(value @ Value::Bytes(_)) => Some(std::mem::replace(value, Value::Moved)),
+                _ => None,
+            }
+        } else {
+            None
+        };
+        match (op, values.as_slice()) {
             (crate::byte_ops::ByteOp::Zeroed, [Value::Usize(capacity)]) => zeroed(
                 *capacity,
                 &mut self.next_byte_allocation,
@@ -227,21 +229,93 @@ impl Evaluator<'_> {
             .map(Value::Bytes),
             (
                 crate::byte_ops::ByteOp::Set,
-                [Value::Bytes(buffer), Value::Usize(index), Value::Uint8(byte)],
-            ) => set(buffer, *index, *byte).map(Value::Bytes),
+                [Value::Moved, Value::Usize(index), Value::Uint8(byte)],
+            ) => set(take_buffer(owner)?, *index, *byte).map(Value::Bytes),
             (
                 crate::byte_ops::ByteOp::Set5,
-                [Value::Bytes(buffer), Value::Usize(index), Value::Uint8(first), Value::Uint8(second), Value::Uint8(third), Value::Uint8(fourth), Value::Uint8(fifth)],
-            ) => set5(buffer, *index, [*first, *second, *third, *fourth, *fifth]).map(Value::Bytes),
+                [Value::Moved, Value::Usize(index), Value::Uint8(first), Value::Uint8(second), Value::Uint8(third), Value::Uint8(fourth), Value::Uint8(fifth)],
+            ) => set5(
+                take_buffer(owner)?,
+                *index,
+                [*first, *second, *third, *fourth, *fifth],
+            )
+            .map(Value::Bytes),
             (
                 crate::byte_ops::ByteOp::Set1Or5,
-                [Value::Bytes(buffer), Value::Usize(index), Value::Uint8(one), Value::BorrowedSlice(source), Value::Usize(selector)],
-            ) => set1_or5(buffer, *index, *one, source.bytes(), *selector).map(Value::Bytes),
+                [Value::Moved, Value::Usize(index), Value::Uint8(one), Value::BorrowedSlice(source), Value::Usize(selector)],
+            ) => set1_or5(take_buffer(owner)?, *index, *one, source.bytes(), *selector)
+                .map(Value::Bytes),
             (
                 crate::byte_ops::ByteOp::Set1Or6Or48,
-                [Value::Bytes(buffer), Value::Usize(index), Value::Uint8(one), Value::BorrowedSlice(source), Value::Usize(selector)],
-            ) => set1_or6_or48(buffer, *index, *one, source.bytes(), *selector).map(Value::Bytes),
+                [Value::Moved, Value::Usize(index), Value::Uint8(one), Value::BorrowedSlice(source), Value::Usize(selector)],
+            ) => set1_or6_or48(take_buffer(owner)?, *index, *one, source.bytes(), *selector)
+                .map(Value::Bytes),
             _ => Err(Flow::Guard("ill-typed borrowed byte operation operand")),
         }
+    }
+}
+
+fn take_buffer(owner: Option<Value>) -> Result<OwnedBytesValue, Flow> {
+    match owner {
+        Some(Value::Bytes(buffer)) => Ok(buffer),
+        _ => Err(Flow::Guard(
+            "owned buffer operation lost its transferred owner",
+        )),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn buffer(capacity: usize) -> OwnedBytesValue {
+        OwnedBytesValue {
+            allocation: 1,
+            bytes: Arc::from(vec![0; capacity]),
+        }
+    }
+
+    #[test]
+    fn sg05_unique_stores_retain_backing_allocation_at_every_capacity() {
+        for capacity in [1, 4096, 65536, 131072] {
+            let mut owner = buffer(capacity);
+            let pointer = owner.bytes.as_ptr();
+            for byte in 0..64 {
+                owner = set(owner, 0, byte).unwrap();
+                assert_eq!(owner.bytes.as_ptr(), pointer);
+                assert_eq!(owner.allocation, 1);
+            }
+            assert_eq!(owner.bytes[0], 63);
+        }
+        assert!(matches!(set(buffer(0), 0, 1), Err(Flow::Failure(_))));
+        assert!(matches!(set(buffer(1), u64::MAX, 1), Err(Flow::Failure(_))));
+    }
+
+    #[test]
+    fn sg05_wide_and_tagged_stores_preserve_unique_backing_and_shared_snapshots() {
+        let mut owner = buffer(64);
+        let pointer = owner.bytes.as_ptr();
+        owner = set5(owner, 0, [1, 2, 3, 4, 5]).unwrap();
+        owner = set1_or5(owner, 5, 0, &[6; 5], crate::byte_ops::SET1_OR5_WIDE_TAG).unwrap();
+        owner = set1_or6_or48(
+            owner,
+            10,
+            0,
+            &[7; 48],
+            crate::byte_ops::SET1_OR6_OR48_COPY_TAG | crate::byte_ops::SET1_OR6_OR48_WIDE48_TAG,
+        )
+        .unwrap();
+        assert_eq!(owner.bytes.as_ptr(), pointer);
+        assert_eq!(&owner.bytes[..5], &[1, 2, 3, 4, 5]);
+        assert_eq!(&owner.bytes[5..10], &[6; 5]);
+        assert_eq!(&owner.bytes[10..58], &[7; 48]);
+        let snapshot = owner.bytes.clone();
+        owner = set(owner, 0, 99).unwrap();
+        assert_eq!(snapshot[0], 1);
+        assert_eq!(owner.bytes[0], 99);
+        assert_ne!(owner.bytes.as_ptr(), snapshot.as_ptr());
+        let snapshot = owner.bytes.clone();
+        assert!(matches!(set5(owner, 63, [0; 5]), Err(Flow::Failure(_))));
+        assert_eq!(snapshot[63], 0);
     }
 }

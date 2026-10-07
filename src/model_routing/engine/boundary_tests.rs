@@ -208,3 +208,120 @@ fn confidentiality_screen_holds_at_the_boundary() {
     assert_ne!(r.choice(), "dep-remote");
     assert!(r.plan().ordered.iter().all(|s| s.model_id != "dep-remote"));
 }
+
+#[test]
+fn sg17_threshold_changes_invalidate_warm_core_cache() {
+    use super::super::cache::DecisionCache;
+    for option_mass in [false, true] {
+        let mut inv = Counting {
+            calls: 0,
+            answer: json!({"choice": "dep-mid", "scores": {"dep-mid": 0.90}, "abstain": false}),
+        };
+        let i = inputs(TaskFamily::LocalizedDebug);
+        let mut cache = DecisionCache::new(4);
+        let mut p = explicit(&mut inv);
+        if option_mass {
+            p.profile.min_option_mass = Some(0.8);
+        } else {
+            p.profile.min_confidence = Some(0.8);
+        }
+        assert_eq!(
+            recommend(&i, &ctx(), Some(&mut p), Some(&mut cache))
+                .unwrap()
+                .source(),
+            DecisionSource::Provider
+        );
+        assert_eq!(
+            recommend(&i, &ctx(), Some(&mut p), Some(&mut cache))
+                .unwrap()
+                .source(),
+            DecisionSource::Cache
+        );
+        if option_mass {
+            p.profile.min_option_mass = Some(0.95);
+        } else {
+            p.profile.min_confidence = Some(0.95);
+        }
+        let warm = recommend(&i, &ctx(), Some(&mut p), Some(&mut cache)).unwrap();
+        let cold = recommend(&i, &ctx(), Some(&mut p), None).unwrap();
+        assert_eq!(
+            warm.source(),
+            DecisionSource::Fallback(FallbackReason::LowConfidence)
+        );
+        assert_eq!(warm.choice(), cold.choice());
+        assert_eq!(warm.source(), cold.source());
+        assert_eq!(warm.router_calls(), 1);
+        assert_eq!(inv.calls, 3);
+    }
+}
+
+#[test]
+fn sg18_failed_consultation_fallback_uses_live_catalog() {
+    struct Failed(bool);
+    impl DecisionInvoker for Failed {
+        fn evaluate(&mut self, _: &DecisionRequest) -> DecisionCall {
+            if self.0 {
+                DecisionCall::Timeout
+            } else {
+                DecisionCall::Unavailable
+            }
+        }
+    }
+    for timeout in [false, true] {
+        let i = inputs(TaskFamily::LocalizedDebug);
+        let mut current = i.clone();
+        current.request.catalog.retain(|m| m.id == "dep-mid");
+        let mut inv = Failed(timeout);
+        let mut p = ConfiguredProvider {
+            profile: ProviderProfile {
+                provider_id: "fixture-router".into(),
+                model_id: "m".into(),
+                checkpoint: "c1".into(),
+                ..Default::default()
+            },
+            invoker: &mut inv,
+            mode: ProviderMode::Explicit,
+            gate: EnablementGate::not_evaluated("model-route/v1", "fixture-router"),
+        };
+        let r = super::super::router::decide(&i, &ctx(), Some(&mut p), &|| current.clone(), None)
+            .unwrap();
+        assert_eq!(r.choice, "dep-mid");
+        assert_eq!(
+            r.source,
+            DecisionSource::Fallback(if timeout {
+                FallbackReason::Timeout
+            } else {
+                FallbackReason::Unavailable
+            })
+        );
+        current.request.catalog.clear();
+        assert!(
+            super::super::router::decide(&i, &ctx(), Some(&mut p), &|| current.clone(), None)
+                .is_err()
+        );
+    }
+}
+
+#[test]
+fn sg18_invalid_and_abstaining_answers_use_live_policy() {
+    for answer in [
+        json!({"choice": "invented", "scores": {}, "abstain": false}),
+        json!({"choice": null, "scores": null, "abstain": true}),
+    ] {
+        let i = inputs(TaskFamily::LocalizedDebug);
+        let mut current = i.clone();
+        current.request.catalog.retain(|m| m.id == "dep-mid");
+        let mut inv = Counting { calls: 0, answer };
+        let result = super::super::router::decide(
+            &i,
+            &ctx(),
+            Some(&mut explicit(&mut inv)),
+            &|| current.clone(),
+            None,
+        )
+        .unwrap();
+        assert_eq!(result.choice, "dep-mid");
+        assert_eq!(result.router_calls, 1);
+        assert!(result.wire.note.unwrap().contains("current inputs"));
+    }
+}

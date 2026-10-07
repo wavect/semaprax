@@ -67,6 +67,7 @@ pub(crate) fn evaluate_resolved_source_command(
                 .declaration(&function.id)
                 .is_some_and(|declaration| {
                     declaration.identity_origin == hir::IdentityOrigin::Explicit
+                        || super::source_entry::resolved_main(program, function, entry_id)
                 })
         })
         .filter(|function| internal_strings::signature_is_admitted(function, &program.declarations))

@@ -35,7 +35,7 @@ function queryArguments(file, filters = {}) {
   return args;
 }
 
-function docArguments(file) { return ['doc', file]; }
+function docArguments(subject, modulePath = null) { return modulePath === null ? ['doc', subject] : ['doc', subject, '--module', modulePath]; }
 
 // One bounded `context` query for a declaration's ownership, contract, and
 // effect facts: depth one, the three facet filters, and a fixed byte budget.

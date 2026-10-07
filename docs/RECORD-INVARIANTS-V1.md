@@ -46,6 +46,11 @@ enclosing function with the ordinary contract-failure status of a failing
 precondition (`semaprax.contract.v1`, code 1). Copying an existing value checks
 nothing, because every value was checked when it was produced.
 
+Production checks also apply inside another record's clause and inside
+ordinary function contracts. The typed site inventory includes the synthesized
+clause preconditions before rewriting; generated check plumbing is not itself
+rewritten, so a check does not recursively wrap its own input.
+
 Lowering happens once, in HIR resolution. A record `Name` with invariants gets
 the synthesized function `Name#invariant(fields...) -> bool` whose `requires`
 are the clauses, and, for a Copy record, `Name#check(value: Name) -> Name`
@@ -97,3 +102,13 @@ field-less `variant_pattern` alternatives (Graph v16, as for every refutable
 node). The cleanup plan and its independent replay test one `VariantCase`
 decision per alternative, all selecting the arm's single entry block; the
 interpreter, native C, and Wasm test the case tag against each alternative.
+
+## Payload-free variant fields in Copy records
+
+Executable Copy records may contain direct non-generic variants whose cases
+have no payload. Their private target-specific tag carriers reuse the canonical
+variant layout, including nominal case identities in the record's nested digest.
+Projection, copying, by-value calls and ordinary record updates preserve the
+selected case on the interpreter, native C and Core Wasm routes. Payload-bearing
+and generic variant fields remain outside record-layout admission; the refusal
+names the containing field and its source span. This adds no public aggregate ABI.

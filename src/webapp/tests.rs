@@ -563,3 +563,5 @@ fn row_aware_default_policies_cover_matching_entities_most_specific_first() {
         "SPX-WA102"
     );
 }
+
+mod sg_regressions;

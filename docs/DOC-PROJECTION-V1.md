@@ -34,12 +34,42 @@ semaprax doc <file> [--json]
   exit with status one, and nothing is written to stdout.
 - Without `--json`, stdout receives the Markdown projection.
 - With `--json`, stdout receives one `semaprax.doc.v1` document on one line.
-- The grammar is closed: exactly one file, at most one `--json`, no other
-  option. A malformed invocation exits with status two.
+- The standalone grammar is closed: exactly one file and at most one `--json`.
+  The Project route additionally accepts one `--module` operand. A malformed invocation exits with status two.
 
 The command reads a source file and writes stdout. It creates no files,
-resolves no Project and uses no ambient authority. If output is redirected,
+uses the input authority of its selected source or Project route. If output is redirected,
 publication is the caller's action.
+
+## Retained Project projection (SG-24)
+
+The additive route is `semaprax doc <project> [--module <source-path>] [--json]`.
+A Project input is its `semaprax.toml` or directory; `--module` selects an exact
+manifest-declared source path such as `src/core.spx`. Library and importing
+modules are admitted through the ordinary authenticated Project resolver and
+verifier, without standalone execution or synthetic entry points. The final
+held-input recheck runs before stdout receives the rendered result.
+
+Markdown names the Project revision, graph digest, source paths/digests,
+declaration identities, signatures, comments and resolved imports with module
+links. JSON uses the additive `semaprax.project-doc.v1` envelope: `project`,
+`project_revision`, `workspace_revision`, `graph_digest`, `entry_module`,
+`test_module`, `selected_path`, `modules`, and `relationships`. Each selected
+module contains `path`, `source_revision`, `source_digest` and an unchanged
+`semaprax.doc.v1` `document`. Relationships always include the complete retained
+graph's modules, declaration inventory and edges, including when selecting one
+module. The outer source revision binds the retained canonical source including
+comments; the nested document revision preserves its standalone AST identity.
+
+VS Code resolves the active file's owning Project using the same saved-source
+routing as diagnostics, passes its manifest and relative `--module` path, and
+requires a saved buffer. The actual Extension Host integration witness is in
+`editors/vscode/test/extension-host/index.js`, focused through
+`scripts/test-project-doc-editor.py --compiler <binary> --vscode-app <app>`;
+the CLI revision/import/selection
+regressions are in `tests/projections/doc_projection.rs`. Standalone schema and
+renderings remain compatible. This route creates no workspace generation and
+provides no publication authority.
 
 ## The model
 

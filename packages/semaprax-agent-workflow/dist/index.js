@@ -41,9 +41,8 @@ export function aggregateToolPayloadSession(events, dropped = 0) {
     if (!Number.isSafeInteger(dropped) || dropped < 0)
         throw new Error('dropped count must be a nonnegative safe integer');
     const unique = new Map();
-    for (const event of events) {
-        if (event.schema !== 'semaprax.token-observation.v1')
-            throw new Error('token observation schema is unsupported');
+    for (const input of events) {
+        const event = snapshotTokenObservation(input);
         const prior = unique.get(event.eventId);
         if (prior !== undefined && !same(prior, event))
             throw new Error('conflicting token observation event ID');
@@ -80,6 +79,65 @@ export function aggregateToolPayloadSession(events, dropped = 0) {
     const coverage = rendered.reduce((total, group) => ({ observed: checkedAdd(total.observed, group.observed, 'coverage observed'), tokenMeasured: checkedAdd(total.tokenMeasured, group.tokenMeasured, 'coverage token measured'), paired: checkedAdd(total.paired, group.paired, 'coverage paired'), unpaired: checkedAdd(total.unpaired, group.unpaired, 'coverage unpaired'), failed: checkedAdd(total.failed, group.failed, 'coverage failed'), incomplete: checkedAdd(total.incomplete, group.incomplete, 'coverage incomplete') }), { observed: 0, tokenMeasured: 0, paired: 0, unpaired: 0, failed: 0, incomplete: 0 });
     const orderedEvents = [...unique.values()].sort((left, right) => left.sessionId.localeCompare(right.sessionId) || left.deliverySequence - right.deliverySequence || left.eventId.localeCompare(right.eventId));
     return Object.freeze({ schema: 'semaprax.token-session.v1', events: Object.freeze(orderedEvents), groups: Object.freeze(rendered), coverage: Object.freeze({ ...coverage, tokenMeasurement: Object.freeze({ numerator: coverage.tokenMeasured, denominator: coverage.observed }), pairedMeasurement: Object.freeze({ numerator: coverage.paired, denominator: coverage.observed }) }), dropped, partial: dropped !== 0 || coverage.incomplete !== 0 });
+}
+// Imported observations are untrusted metadata, including after JSON decoding.
+function snapshotTokenObservation(input) {
+    const value = record(input, 'token observation');
+    const keys = ['schema', 'eventId', 'sessionId', 'attemptSequence', 'deliverySequence', 'method', 'boundary', 'subjectRevision', 'outcome', 'status', 'bytes', 'digest', 'tokenizer', 'tokenizerFingerprint', 'tokens', 'referenceKind', 'baselineTokens'];
+    if (!same(Object.keys(value).sort(), [...keys].sort()))
+        throw new Error('token observation fields are invalid');
+    // Copy once before validating so the aggregate never retains caller objects.
+    const event = Object.fromEntries(keys.map(key => [key, value[key]]));
+    if (event.schema !== 'semaprax.token-observation.v1')
+        throw new Error('token observation schema is unsupported');
+    const identity = (value, name, maximum) => {
+        const selected = boundedText(value, name, maximum);
+        if (/[\u0000-\u001f\u007f]/.test(selected))
+            throw new Error(`${name} contains control characters`);
+        return selected;
+    };
+    opaqueSession(event.sessionId);
+    identity(event.eventId, 'event ID', 512);
+    identity(event.method, 'method', 256);
+    for (const key of ['attemptSequence', 'deliverySequence']) {
+        if (tokenCount(event[key], key) === 0)
+            throw new Error(`${key} must be positive`);
+    }
+    if (event.eventId !== `${event.sessionId}:${event.attemptSequence}`)
+        throw new Error('event ID disagrees with attempt identity');
+    if (!['mcp_content_0_text', 'direct_v5_response'].includes(event.boundary))
+        throw new Error('invalid observation boundary');
+    if (!['success', 'error', 'malformed', 'timeout', 'incomplete'].includes(event.outcome))
+        throw new Error('invalid observation outcome');
+    if (!['measured', 'tokenizer_unavailable', 'tokenizer_failed', 'baseline_unavailable', 'incomplete'].includes(event.status))
+        throw new Error('invalid observation status');
+    for (const key of ['bytes', 'tokens', 'baselineTokens'])
+        if (event[key] !== null)
+            tokenCount(event[key], key);
+    for (const key of ['digest', 'subjectRevision'])
+        if (event[key] !== null)
+            digest(event[key], key);
+    for (const key of ['tokenizer', 'tokenizerFingerprint'])
+        if (event[key] !== null)
+            identity(event[key], key, 256);
+    if (event.referenceKind !== null && !['same_selected_json', 'caller_context'].includes(event.referenceKind))
+        throw new Error('invalid observation reference kind');
+    if ((event.bytes === null) !== (event.digest === null) ||
+        (event.tokenizer === null) !== (event.tokenizerFingerprint === null) ||
+        (event.tokens !== null && (event.bytes === null || event.tokenizer === null)) ||
+        (event.baselineTokens !== null && event.referenceKind === null))
+        throw new Error('inconsistent observation evidence');
+    if (event.status === 'incomplete' ? (event.bytes !== null || event.tokens !== null || event.baselineTokens !== null || event.referenceKind !== null) : event.bytes === null)
+        throw new Error('inconsistent observation completeness');
+    if (event.status === 'measured' && (event.tokens === null || (event.referenceKind !== null && event.baselineTokens === null)))
+        throw new Error('inconsistent measured observation');
+    if (event.status === 'tokenizer_unavailable' && (event.tokenizer !== null || event.tokens !== null))
+        throw new Error('inconsistent unavailable tokenizer');
+    if (event.status === 'tokenizer_failed' && event.tokenizer === null)
+        throw new Error('inconsistent failed tokenizer');
+    if (event.status === 'baseline_unavailable' && (event.tokens === null || event.referenceKind === null || event.baselineTokens !== null))
+        throw new Error('inconsistent unavailable baseline');
+    return Object.freeze(event);
 }
 /**
  * Bounded, metadata-only collection. Observation work is deliberately detached

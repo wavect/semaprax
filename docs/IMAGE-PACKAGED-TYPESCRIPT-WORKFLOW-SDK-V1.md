@@ -175,3 +175,15 @@ cross-platform support, remote Git publication, physical durability,
 multi-writer atomicity, automatic repair, cancellation, deduplication, retry,
 exactly-once delivery, full quality, programme completion, or support for a
 workflow other than the named scalar signature workflow.
+
+## Imported token observations (SG-22)
+
+`aggregateToolPayloadSession` validates each imported record before deduplication
+or aggregation: exact scalar fields, bounded identities, closed enums, SHA-256
+digests, positive sequence counters, nonnegative safe integer byte/token counts,
+and consistent measurement status. It copies and freezes validated records so
+caller mutation cannot change retained evidence. Identical IDs deduplicate and
+conflicting IDs refuse. Comparable cohorts remain separate; derived signed
+savings may be negative. `scripts/test-agent-workflow-observations.mjs` exercises
+JSON import of observer-produced records, malformed imports, immutable evidence,
+coverage and legitimate growth.

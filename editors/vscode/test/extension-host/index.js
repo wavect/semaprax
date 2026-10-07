@@ -67,6 +67,27 @@ async function waitForHotReload(api, event, accept = () => true) {
 async function run() {
   const compiler = required('SEMAPRAX_VSCODE_COMPILER');
   const manifest = required('SEMAPRAX_VSCODE_MANIFEST');
+  if (process.env.SEMAPRAX_VSCODE_DOC_ONLY === '1') {
+    const extension = vscode.extensions.getExtension('wavect.semaprax');
+    assert.ok(extension);
+    assert.equal(fs.realpathSync(extension.extensionPath), fs.realpathSync(required('SEMAPRAX_VSCODE_EXPECTED_EXTENSION_PATH')));
+    const api = await extension.activate();
+    for (const module of ['core', 'app']) {
+      const file = path.join(path.dirname(manifest), 'src', `${module}.spx`);
+      const document = await vscode.workspace.openTextDocument(vscode.Uri.file(file));
+      await vscode.window.showTextDocument(document, { preview: false });
+      const markdown = await api.execute('showDocumentation');
+      assert.match(markdown, /# Project `calculator`/);
+      assert.match(markdown, new RegExp(`src/${module}\\.spx`));
+      assert.match(markdown, /calculator/);
+      assert.ok(vscode.window.visibleTextEditors.some(editor => editor.document.languageId === 'markdown' && editor.document.getText() === markdown));
+      const direct = spawnSync(compiler, ['doc', manifest, '--module', `src/${module}.spx`], { encoding: 'utf8' });
+      assert.equal(direct.status, 0, direct.stderr);
+      assert.equal(markdown, direct.stdout);
+    }
+    console.log('SEMAPRAX_PROJECT_DOC_HOST_RESULT=' + JSON.stringify({ schema: 'semaprax.project-doc-editor-witness.v1', vscode_version: vscode.version, modules: ['core', 'app'], cli_bytes_match: true }));
+    return;
+  }
   const policy = required('SEMAPRAX_VSCODE_POLICY');
   const source = required('SEMAPRAX_VSCODE_SOURCE');
   const hostPolicy = JSON.parse(fs.readFileSync(policy, 'utf8'));
@@ -432,6 +453,13 @@ process.on('SIGTERM',()=>{if(lastPlan)output({schema:'semaprax.hot-reload-contro
     assert.ok(chosen && path.basename(chosen.file) === 'core.spx');
     assert.equal(path.basename(vscode.window.activeTextEditor.document.uri.fsPath), 'core.spx', 'the selection opens the file the match lives in');
     assert.equal(vscode.window.activeTextEditor.document.getText(vscode.window.activeTextEditor.selection), 'add');
+    // SG24: a real Project-owned library is documented through its manifest.
+    const documentation = await api.execute('showDocumentation');
+    assert.match(documentation, /# Project/);
+    assert.match(documentation, /calculator.add/);
+    assert.match(documentation, /src\/core\.spx/);
+    await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(vscode.Uri.file(app)), { preview: false });
+
 
     // Callers cross files through the project's persistent call index.
     api.enqueuePick('add');

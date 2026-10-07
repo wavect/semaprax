@@ -26,9 +26,33 @@ const SCRYPT = { N: 16384, r: 8, p: 1 };
 function hashPw(pw, salt = crypto.randomBytes(16)) { return salt.toString("hex") + ":" + crypto.scryptSync(pw, salt, 32, SCRYPT).toString("hex"); }
 if (SELF) process.exit(await selfTest());
 const LIMIT = 1 << 20;
-const dir = path.resolve(opt.data), dbFile = path.join(dir, "db.json"), authFile = path.join(dir, "auth.json"), auditFile = path.join(dir, "audit.jsonl");
-fs.mkdirSync(dir, { recursive: true });
-const writeAtomic = (file, text, mode) => { fs.writeFileSync(file + ".tmp", text, { mode }); fs.renameSync(file + ".tmp", file); };
+fs.mkdirSync(path.resolve(opt.data), { recursive: true });
+const dir = fs.realpathSync(path.resolve(opt.data)), dbFile = path.join(dir, "db.json"), authFile = path.join(dir, "auth.json"), auditFile = path.join(dir, "audit.jsonl");
+// One exclusive claim over the canonical directory. A crash leaves a conservative
+// stale claim: the operator may remove it only after confirming its PID is dead.
+const lockDir = path.join(dir, ".writer-lock"), lockOwner = path.join(lockDir, "owner.json");
+const lockToken = crypto.randomBytes(16).toString("hex");
+try { fs.mkdirSync(lockDir); }
+catch (e) { throw new Error(`data directory already has a writer claim (${lockOwner}); after a crash confirm that the recorded PID is dead before removing .writer-lock: ${e.message}`); }
+fs.writeFileSync(lockOwner, JSON.stringify({ pid: process.pid, token: lockToken }), { flag: "wx", mode: 0o600 });
+process.on("exit", () => {
+  try { if (JSON.parse(fs.readFileSync(lockOwner, "utf8")).token === lockToken) { fs.unlinkSync(lockOwner); fs.rmdirSync(lockDir); } } catch { /* retain an uncertain claim */ }
+});
+for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => process.exit(0));
+const syncDir = () => { const fd = fs.openSync(dir, "r"); try { fs.fsyncSync(fd); } finally { fs.closeSync(fd); } };
+const stageFile = (file, text, mode) => {
+  const fd = fs.openSync(file + ".tmp", "w", mode);
+  try { fs.writeFileSync(fd, text); fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
+};
+const writeAtomic = (file, text, mode) => { stageFile(file, text, mode); fs.renameSync(file + ".tmp", file); syncDir(); };
+// state.json is the publication boundary, including all required audit facts.
+// Legacy files remain readable mirrors; a restart repairs them from this snapshot.
+const stateFile = path.join(dir, "state.json");
+if (fs.existsSync(stateFile)) {
+  const state = JSON.parse(fs.readFileSync(stateFile, "utf8"));
+  if (state.version !== 1 || ![state.db, state.auth, state.audit].every((v) => typeof v === "string")) throw new Error("corrupt state snapshot");
+  writeAtomic(dbFile, state.db); writeAtomic(authFile, state.auth, 0o600); writeAtomic(auditFile, state.audit);
+}
 
 // ---- state: path -> {ent, rows: Map<BigInt id,row>, next: BigInt} ----
 const tables = new Map(entities.map((ent) => [ent.path, { ent, rows: new Map(), next: 1n }]));
@@ -48,13 +72,13 @@ function load() {
     if (n > t.next) t.next = n;
   }
 }
-function save() {
+function databaseText() {
   const rows = [], next = [];
   for (const [p, t] of tables) {
     rows.push(JSON.stringify(p) + ":[" + [...t.rows.values()].map((r) => rt.toJSON(t.ent, r, { strInts: true })).join(",") + "]");
     next.push(JSON.stringify(p) + ":" + JSON.stringify(t.next.toString()));
   }
-  writeAtomic(dbFile, `{"version":1,"next":{${next.join(",")}},"rows":{${rows.join(",")}}}\n`);
+  return `{"version":1,"next":{${next.join(",")}},"rows":{${rows.join(",")}}}\n`;
 }
 // auth.json: passwords (account id -> "salt:scrypt" hex) and sessions (sha256(token) -> account id). Never served.
 const auth = { pw: new Map(), sess: new Map() };
@@ -65,8 +89,9 @@ function loadAuth() {
   for (const [k, v] of Object.entries(o.sessions || {})) auth.sess.set(k, v);
 }
 const sorted = (m) => Object.fromEntries([...m].sort((a, b) => (a[0] < b[0] ? -1 : 1)));
-const saveAuth = () => writeAtomic(authFile, JSON.stringify({ version: 1, passwords: sorted(auth.pw), sessions: sorted(auth.sess) }) + "\n", 0o600);
-// audit.jsonl: one JSON entry per line, appended with a single write.
+const authText = () => JSON.stringify({ version: 1, passwords: sorted(auth.pw), sessions: sorted(auth.sess) }) + "\n";
+const saveAuth = () => persistState();
+// audit.jsonl: ordered audit mirror; state.json binds it to the row/auth publication.
 const log = []; let seq = 1;
 function loadAudit() {
   if (!fs.existsSync(auditFile)) return;
@@ -134,8 +159,14 @@ async function session(req, res) {
     return send(res, 200, c.setup ? '{"setup":true}' : out(accT, c.u));
   }
   if (m === "DELETE") {
-    const tok = sid(req);
-    if (tok && auth.sess.delete(sha(tok))) try { saveAuth(); } catch (e) { return fail(res, 500, "could not persist: " + e.message); }
+    const tok = sid(req), key = tok && sha(tok), previous = key && auth.sess.get(key);
+    if (previous !== undefined && key) {
+      auth.sess.delete(key);
+      try { saveAuth(); } catch (e) {
+        if (!e.committed) auth.sess.set(key, previous);
+        return fail(res, e.committed ? 503 : 500, e.committed ? "session change committed; restart repairs persistence mirrors" : "could not persist: " + e.message);
+      }
+    }
     return send(res, 204, "", undefined, { "set-cookie": "sid=; Max-Age=0" + COOKIE });
   }
   if (m !== "POST") return fail(res, 405, "method not allowed");
@@ -149,7 +180,10 @@ async function session(req, res) {
   if (!ok || !row || !allowed(row)) return fail(res, 401, "invalid sign-in");
   const tok = crypto.randomBytes(32).toString("hex");
   auth.sess.set(sha(tok), String(row.id));
-  try { saveAuth(); } catch (e) { auth.sess.delete(sha(tok)); return fail(res, 500, "could not persist: " + e.message); }
+  try { saveAuth(); } catch (e) {
+    if (!e.committed) auth.sess.delete(sha(tok));
+    return fail(res, e.committed ? 503 : 500, e.committed ? "session change committed; restart repairs persistence mirrors" : "could not persist: " + e.message);
+  }
   send(res, 200, out(accT, row), undefined, { "set-cookie": "sid=" + tok + COOKIE });
 }
 
@@ -180,12 +214,32 @@ function referrer(t, id) {
         for (const r of o.rows.values()) if (r[f.name] === id && !(o === t && r.id === id)) return `cannot delete ${t.ent.name} ${id}: referenced by ${o.ent.name} ${r.id} (field ${f.name})`;
   return null;
 }
-// Save rows (and auth when it changed); on failure restore memory and the files.
-function commit(res, undo, withAuth) {
-  try { save(); if (withAuth) saveAuth(); return true; } catch (e) {
-    undo();
-    try { save(); if (withAuth) saveAuth(); } catch { /* reported below */ }
-    fail(res, 500, "could not persist: " + e.message); return false;
+function persistState() {
+  const db = databaseText(), authBytes = authText(), auditBytes = log.map((e) => e.line + "\n").join("");
+  const mirrors = [[dbFile, db], [authFile, authBytes, 0o600], [auditFile, auditBytes]];
+  let committed = false;
+  try {
+    // Check mirror destinations and stage every byte before the publication pivot.
+    for (const [file, text, mode] of mirrors) {
+      if (fs.existsSync(file) && !fs.statSync(file).isFile()) throw new Error(`not a regular file: ${file}`);
+      stageFile(file, text, mode);
+    }
+    stageFile(stateFile, JSON.stringify({ version: 1, db, auth: authBytes, audit: auditBytes }) + "\n", 0o600);
+    fs.renameSync(stateFile + ".tmp", stateFile); committed = true; syncDir();
+    for (const [file] of mirrors) fs.renameSync(file + ".tmp", file);
+    syncDir();
+  } catch (e) { e.committed = committed; throw e; }
+  finally { for (const [file] of [...mirrors, [stateFile]]) { try { fs.unlinkSync(file + ".tmp"); } catch { /* no stage remains */ } } }
+}
+// A failure before publication restores memory. A post-pivot failure is explicit
+// committed uncertainty: restart replays the snapshot, with exactly one audit fact.
+function commit(res, undo, entry) {
+  log.push(entry); seq++;
+  try { persistState(); return true; }
+  catch (e) {
+    if (!e.committed) { log.pop(); seq--; undo(); return fail(res, 500, "could not persist: " + e.message), false; }
+    send(res, 503, JSON.stringify({ error: "mutation committed; persistence mirror recovery required", committed: true }));
+    return false;
   }
 }
 function audit(c, t, id, action, old, now, pwSet) {
@@ -196,7 +250,7 @@ function audit(c, t, id, action, old, now, pwSet) {
   }
   if (pwSet) ch.push('"password":[null,"changed"]');
   const line = `{"seq":${seq},"at":${JSON.stringify(new Date().toISOString())},"by":${c.u ? c.u.id : "null"},"entity":${JSON.stringify(t.ent.path)},"id":${id},"action":"${action}","changes":{${ch.join(",")}}}`;
-  try { fs.appendFileSync(auditFile, line + "\n"); log.push({ p: t.ent.path, id, line }); seq++; } catch (e) { console.error("audit: " + e.message); }
+  return { p: t.ent.path, id, line };
 }
 // A leading = + - @ tab or CR would run as a spreadsheet formula; prefix it.
 const csvCell = (s) => {
@@ -246,8 +300,7 @@ async function api(req, res, parts, c) {
       t.rows.delete(id);
       const isAcc = t === accT && (pw !== undefined || sess.length > 0);
       if (isAcc) { auth.pw.delete(key); sess.forEach(([k]) => auth.sess.delete(k)); }
-      if (!commit(res, () => { t.rows.set(id, cur); if (pw !== undefined) auth.pw.set(key, pw); sess.forEach(([k, v]) => auth.sess.set(k, v)); }, isAcc)) return;
-      audit(c, t, id, "delete", cur, null);
+      if (!commit(res, () => { t.rows.set(id, cur); if (pw !== undefined) auth.pw.set(key, pw); sess.forEach(([k, v]) => auth.sess.set(k, v)); }, audit(c, t, id, "delete", cur, null))) return;
       return send(res, 204);
     }
   }
@@ -255,6 +308,11 @@ async function api(req, res, parts, c) {
   if (text === null) return;
   let input;
   try { input = rt.parseJSON(text); } catch { return verrs(res, [{ field: "", message: "body is not valid JSON" }]); }
+  c = who(req);
+  if (!c) return fail(res, 401, "sign in required");
+  cur = hasId ? t.rows.get(id) : null;
+  if (hasId && (!cur || !canR(c, t, cur))) return fail(res, 404, `${t.ent.name} ${id} not found`);
+  if (hasId && !canW(c, t, cur)) return fail(res, 403, `not allowed to update this ${t.ent.name}`);
   const { row, errors, pw } = validate(t, input, cur, c);
   if (errors.length) return verrs(res, errors);
   row.id = hasId ? id : t.next;
@@ -264,13 +322,11 @@ async function api(req, res, parts, c) {
   const undoPw = () => { if (pw === null) return; if (oldPw === undefined) auth.pw.delete(key); else auth.pw.set(key, oldPw); };
   if (hasId) {
     t.rows.set(id, row);
-    if (!commit(res, () => { t.rows.set(id, cur); undoPw(); }, pw !== null)) return;
-    audit(c, t, id, "update", cur, row, pw !== null);
+    if (!commit(res, () => { t.rows.set(id, cur); undoPw(); }, audit(c, t, id, "update", cur, row, pw !== null))) return;
     return send(res, 200, out(t, row));
   }
   t.next += 1n; t.rows.set(row.id, row);
-  if (!commit(res, () => { t.rows.delete(row.id); t.next = row.id; undoPw(); }, pw !== null)) return;
-  audit(c, t, row.id, "create", null, row, pw !== null);
+  if (!commit(res, () => { t.rows.delete(row.id); t.next = row.id; undoPw(); }, audit(c, t, row.id, "create", null, row, pw !== null))) return;
   send(res, 201, out(t, row), undefined, { location: `/api/${t.ent.path}/${row.id}` });
 }
 async function route(req, res, p) {
@@ -305,7 +361,13 @@ async function selfTest() {
   const given = argv.includes("--data");
   if (given && fs.existsSync(opt.data) && fs.readdirSync(opt.data).length) { console.error(`self-test: refusing non-empty data dir ${opt.data}`); return 1; }
   const dir = given ? path.resolve(opt.data) : fs.mkdtempSync(path.join(os.tmpdir(), "selftest-"));
-  const authFile = path.join(dir, "auth.json");
+  const authFile = path.join(dir, "auth.json"), stateFile = path.join(dir, "state.json");
+  // Offline fixture setup updates the same authoritative snapshot as the server.
+  const fixtureAuth = (text) => {
+    const state = JSON.parse(fs.readFileSync(stateFile, "utf8")); state.auth = text;
+    fs.writeFileSync(stateFile, JSON.stringify(state));
+    fs.writeFileSync(authFile, text);
+  };
   const fails = [], warns = [], short = (v) => { const s = typeof v === "string" ? v : String(v); return s.length > 120 ? s.slice(0, 120) + "..." : s; };
   const check = (ent, what, want, got, ok) => { if (!ok) fails.push(`FAIL ${ent} ${what}: ${want} got ${short(got)}`); return ok; };
   let child = null;
@@ -506,7 +568,7 @@ async function selfTest() {
         await stop();
         const a = JSON.parse(fs.readFileSync(authFile, "utf8"));
         for (const x of extra) a.passwords[String(x.id)] = hashPw(PW);
-        fs.writeFileSync(authFile, JSON.stringify(a));
+        fixtureAuth(JSON.stringify(a));
         base = await start();
         for (const acct of accts) {
           const u = { ...acct.row, id: acct.id }, can = allowRule.test(u), what = `${ACCOUNT.login}=${u[ACCOUNT.login]}`;
@@ -549,7 +611,7 @@ async function selfTest() {
           check(n, "auth", "401 after sign-out", `${r.status} ${r.text}`, r.status === 401);
           if (r.status === 401 && !authNote.includes("sign-out then 401")) authNote.push("sign-out then 401");
         }
-        await stop(); fs.rmSync(authFile); base = await start(); // back to setup mode for the deletes
+        await stop(); fixtureAuth(JSON.stringify({ version: 1, passwords: {}, sessions: {} })); base = await start(); // back to setup mode for the deletes
       }
       for (const { ent, id } of [...[...ownRows].reverse(), ...[...extra].reverse(), ...[...made].reverse()]) {
         const r = await call("DELETE", `${ent.path}/${id}`);

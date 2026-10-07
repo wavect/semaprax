@@ -211,13 +211,37 @@ impl<'a> Translator<'a> {
             let (js, _) = self.expr(clause)?;
             parts.push(format!("rt.precondition({js})"));
         }
-        let (body, _) = self.expr(&function.body)?;
-        parts.push(body);
-        Ok(if parts.len() == 1 {
-            parts.remove(0)
-        } else {
-            format!("({})", parts.join(", "))
-        })
+        let (body, ty) = self.expr(&function.body)?;
+        if function.ensures.is_empty() {
+            parts.push(body);
+            return Ok(if parts.len() == 1 {
+                parts.remove(0)
+            } else {
+                format!("({})", parts.join(", "))
+            });
+        }
+        let result = self.fresh("result");
+        let depth = self.scope.len();
+        self.scope.push(Binding {
+            name: "result".to_owned(),
+            js: result.clone(),
+            ty,
+            param: false,
+        });
+        let mut checks = Vec::new();
+        for clause in &function.ensures {
+            let (js, _) = self.expr(clause)?;
+            checks.push(format!("rt.postcondition({js});"));
+        }
+        self.scope.truncate(depth);
+        let pre = parts
+            .into_iter()
+            .map(|part| format!("{part}; "))
+            .collect::<String>();
+        Ok(format!(
+            "(() => {{ {pre}const {result} = {body}; {} return {result}; }})()",
+            checks.join(" ")
+        ))
     }
 
     fn helper(&mut self, function: &'a Function, call: &Expr) -> Result<Ty, Diagnostic> {

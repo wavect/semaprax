@@ -96,11 +96,12 @@ class CloudflareBackend(Backend):
     def check_response(self, info, cfg):
         want = self.selector(cfg.profile["model"])
         got = info.get("model")
-        if not isinstance(got, str) or got.strip().rsplit("/", 1)[-1] != want:
+        if got not in (want, "@cf/cloudflare/" + want):
             raise CodecError("refused", "SPX-HPK008", "service answered as a different model variant than requested")
 
     def call_identity(self, info, cfg):
-        return info.get("model"), None, "mutable_service"
+        self.check_response(info, cfg)
+        return cfg.profile["model"], None, "mutable_service"
 
 
 def _json(raw):

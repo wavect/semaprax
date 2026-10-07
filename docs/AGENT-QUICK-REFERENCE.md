@@ -1257,3 +1257,7 @@ its limits; v23/v24 retain their older text/helper refusals.
   [command I/O](BOUNDED-LANGUAGE-COMMAND-IO-V1.md), and
   [class inheritance](CLASS-INHERITANCE-V1.md).
 - [Using the SEMAPRAX CLI](CLI-GUIDE.md) for every command's scoped help.
+
+Copy records can contain direct non-generic payload-free variant fields. Variant
+fields with payloads or generic arguments still have no executable record layout;
+use separate scalar observations or keep that variant outside the record.

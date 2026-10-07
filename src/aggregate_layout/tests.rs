@@ -716,3 +716,57 @@ module test.generic_aggregate_layout;
         ResolvedType::Bool
     );
 }
+
+#[test]
+fn sg04_record_variant_leaf_layout_authenticates_cases_fields_and_target() {
+    let source = r#"
+module test.record_variant_layout;
+@id("status") variant Status { @id("ready") Ready, @id("done") Done, }
+@id("row") record Row { @id("row.status") status: Status, @id("row.value") value: i64, }
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let program =
+        hir::resolve(&parse(source, Path::new("record-variant-layout.spx")).unwrap()).unwrap();
+    for target in [AggregateTarget::Native64, AggregateTarget::Wasm32] {
+        let layout =
+            AggregateLayout::for_record(&program, target, &DeclarationId::new("row")).unwrap();
+        assert_eq!(
+            layout,
+            AggregateLayout::for_record(&program, target, &DeclarationId::new("row")).unwrap()
+        );
+        assert_eq!(layout.fields[0].field, DeclarationId::new("row.status"));
+        assert_eq!((layout.fields[0].size, layout.fields[0].align), (8, 4));
+        assert_eq!(
+            layout.fields[0].value_kind,
+            AggregateFieldValueKind::Aggregate
+        );
+        let changed = source.replace("@id(\"done\")", "@id(\"finished\")");
+        let changed =
+            hir::resolve(&parse(&changed, Path::new("record-variant-layout.spx")).unwrap())
+                .unwrap();
+        let changed_layout =
+            AggregateLayout::for_record(&changed, target, &DeclarationId::new("row")).unwrap();
+        assert_ne!(layout.digest, changed_layout.digest);
+        let mut forged = layout.clone();
+        forged.fields[0].field = DeclarationId::new("foreign.field");
+        assert!(forged.validate(&program).is_err());
+        let mut forged = layout;
+        forged.fields[0].nested_digest = [0; 32];
+        assert!(forged.validate(&program).is_err());
+    }
+    let excluded = source.replace(
+        "@id(\"done\") Done,",
+        "@id(\"done\") Done { @id(\"done.value\") value: i64, },",
+    );
+    let excluded =
+        hir::resolve(&parse(&excluded, Path::new("record-variant-layout.spx")).unwrap()).unwrap();
+    let error = AggregateLayout::for_record(
+        &excluded,
+        AggregateTarget::Native64,
+        &DeclarationId::new("row"),
+    )
+    .unwrap_err();
+    assert_eq!(error.code, "SPX-H007");
+    assert!(error.message.contains("row.status"), "{error}");
+    assert!(error.span.is_some());
+}

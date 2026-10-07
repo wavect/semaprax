@@ -7,11 +7,11 @@ scope split shows that all five candidates per arm passed the 28 checks
 classified as SPEC-aligned. That diagnostic does not replace or rewrite the
 original result, and this report makes no scored winner claim.
 
-This report describes the completed campaign at frozen compiler commit
+This report describes the completed campaign at frozen harness/source commit
 `225f35ce1555e3f03ce200800612d2e3c2b6b43f` and frozen SPEC SHA-256
 `f4bdeec94d85a554c1c0fa536091b4f50120fa76059d81b61abc523b0146a5d3`.
 Both arms requested and observed `claude-sonnet-5-5` at medium effort. The
-compiler executable build label was `02776ce87`; its SHA-256 is
+compiler executable was frozen separately at `02776ce87`; its SHA-256 is
 `5ed55c5b14ba4972652e148b0a5d844995a131e24e434107d9b3135411ccd756`.
 The independent recount completed all 10 planned attempts and retained a hash
 for every transcript. The compact evidence file

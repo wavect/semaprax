@@ -140,7 +140,9 @@ available as `$SEMAPRAX_BIN`). For TypeScript, use Node from `PATH`.
 
 Read the specification and public sample input. The trial checkout contains
 only those two benchmark files; the independent acceptance corpus and oracle
-are not present in your filesystem. The golden outputs are included inline in
+are not provided in the trial checkout. Do not inspect other repository
+checkouts, benchmark results, or oracles. The verified compiler executable
+and its embedded help are permitted. The golden outputs are included inline in
 the specification; its linked `expected.txt` and `expected.json` files are not
 provided. Run your own relevant checks and finish
 by stating which files you wrote and whether the program is complete.

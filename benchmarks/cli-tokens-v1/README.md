@@ -22,7 +22,7 @@ scope split found 28 SPEC-aligned checks passing all five candidates per arm;
 four extra CR/CRLF probes failed every candidate, although the frozen SPEC did
 not define those line endings. The split does not replace the original result.
 
-The same pinned model and effort were used for both arms. SEMAPRAX used more
+The same requested and observed model identity and effort were used for both arms. SEMAPRAX used more
 measured input/cache usage (8,482,473 raw tokens vs. 565,101), provider output
 (168,000 vs. 37,727), and list-price estimate ($4.664678 vs. $0.829111). These
 are descriptive differences from this campaign, not a qualified win or a

@@ -93,6 +93,8 @@ fn projects_entities_rules_computed_and_helpers() {
             "schema.js",
             "runtime.js",
             "server.mjs",
+            "security.mjs",
+            "state.mjs",
             "index.html",
             "app.js",
             "style.css"
@@ -562,4 +564,57 @@ fn row_aware_default_policies_cover_matching_entities_most_specific_first() {
         generate(&write_temp("defaults-typo", &typo)).unwrap_err()[0].code,
         "SPX-WA102"
     );
+}
+
+
+#[test]
+fn v3_projects_pairwise_constraints_and_explicit_field_migrations() {
+    let source = "module scheduling;
+record Booking { room: i64, start: i64, end: i64, label: string, }
+fn booking_constraint_overlap(room: i64, start: i64, end: i64, other_booking_room: i64, other_booking_start: i64, other_booking_end: i64) -> bool { room != other_booking_room || end <= other_booking_start || start >= other_booking_end }
+fn booking_migrate_label() -> string { \"untitled\" }
+fn booking_migrate_start(old_begin: i64) -> i64 { old_begin }
+";
+    let projection = generate(&write_temp("v3-constraints", source)).unwrap();
+    let text = schema(&projection);
+    assert!(text.contains("other: \"booking\""), "{text}");
+    assert!(text.contains("test: (r, o) =>"), "{text}");
+    assert!(text.contains("o.start"), "{text}");
+    assert!(text.contains("field: \"label\", inputs: []"), "{text}");
+    assert!(text.contains("name: \"begin\", type: \"int\""), "{text}");
+    assert!(text.contains("value: (o) => o.begin"), "{text}");
+}
+
+#[test]
+fn v3_bad_constraint_and_migration_shapes_fail_closed() {
+    for (name, function) in [
+        ("missing-other", "fn item_constraint(value: i64) -> bool { value > 0 }"),
+        ("wrong-other-type", "fn item_constraint(other_item_value: bool) -> bool { other_item_value }"),
+        ("wrong-destination", "fn item_migrate_missing() -> i64 { 1 }"),
+        ("wrong-return", "fn item_migrate_value() -> bool { true }"),
+        ("wrong-input", "fn item_migrate_value(value: i64) -> i64 { value }"),
+    ] {
+        let source = format!("module v3; record Item {{ value: i64, }} {function}");
+        let errors = generate(&write_temp(name, &source)).err().unwrap();
+        assert!(errors.iter().any(|e| e.code == "SPX-WA102"), "{errors:?}");
+    }
+}
+
+
+#[test]
+fn v3_runtime_security_migration_and_cross_row_contracts() {
+    let dir = std::env::temp_dir().join(format!("semaprax-webapp-v3-runtime-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    for (name, bytes) in RUNTIME_FILES {
+        std::fs::write(dir.join(name), bytes).unwrap();
+    }
+    std::fs::write(dir.join("package.json"), "{\"type\":\"module\"}").unwrap();
+    std::fs::write(dir.join("contracts.mjs"), include_str!("runtime-tests/v3.mjs")).unwrap();
+    std::fs::write(dir.join("http-contracts.mjs"), include_str!("runtime-tests/http-v3.mjs")).unwrap();
+    let output = std::process::Command::new("node").arg(dir.join("contracts.mjs")).output().expect("Node is required for the webapp v3 runtime contract");
+    let http = std::process::Command::new("node").arg(dir.join("http-contracts.mjs")).output().unwrap();
+    std::fs::remove_dir_all(&dir).unwrap();
+    for output in [output, http] {
+        assert!(output.status.success(), "{}\n{}", String::from_utf8_lossy(&output.stdout), String::from_utf8_lossy(&output.stderr));
+    }
 }

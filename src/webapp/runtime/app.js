@@ -25,7 +25,12 @@ const link = (href, text, cls) => h("a", { href, class: cls }, text);
 
 // ---- data ----
 async function api(method, url, body) {
-  const r = await fetch(url, { method, headers: body ? { "content-type": "application/json" } : {}, body });
+  const headers = body ? { "content-type": "application/json" } : {};
+  if (!["GET", "HEAD"].includes(method)) {
+    const csrf = await fetch("/api/session/csrf");
+    headers["x-csrf-token"] = (await csrf.json()).token;
+  }
+  const r = await fetch(url, { method, headers, body });
   const text = await r.text();
   let data = null;
   if (text) try { data = rt.parseJSON(text); } catch { /* non-JSON body */ }

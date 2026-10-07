@@ -370,7 +370,7 @@ fn predicate_read_ids(
             _ => None,
         })
         .unwrap();
-    let hir::ResolvedExprKind::Binary { left, right } = &condition.kind else {
+    let hir::ResolvedExprKind::Binary { left, right, .. } = &condition.kind else {
         panic!()
     };
     let hir::ResolvedExprKind::Binary { right: starts, .. } = &left.kind else {

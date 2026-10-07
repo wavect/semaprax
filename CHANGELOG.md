@@ -115,6 +115,9 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Authored webapp v3 sign-in limits, session-bound CSRF, explicit field migrations
+  and pairwise candidate constraints (#607); focused verification pending.
+
 - Add Project v25 `language-command-io.stream-text.v1`: existing streaming
   input and i64 process result with length-delimited native text/local maps and
   private owned String helper boundaries. Focused native O0/O2, manifest,

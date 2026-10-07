@@ -128,10 +128,10 @@ but loopback.
 
 ## Non-claims
 
-No password reset, email, multi-factor sign-in, rate limiting, CSRF tokens
-beyond SameSite=Strict, cross-row rules other than keys and rollups, schema
-migration, browser-automation evidence, hosted evidence, or production
-claims.
+[v3](WEBAPP-PROJECTION-V3.md) adds sign-in rate limits, explicit CSRF tokens,
+pairwise cross-row constraints, and reviewed field migration. Its implementation
+is authored with focused verification pending. No password reset, email,
+multi-factor sign-in, distributed protection, hosted evidence, or production claims.
 
 ## Evidence
 

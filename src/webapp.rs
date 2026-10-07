@@ -30,9 +30,11 @@ mod translate;
 mod tests;
 
 /// The runtime files every generated application carries verbatim.
-pub const RUNTIME_FILES: [(&str, &str); 5] = [
+pub const RUNTIME_FILES: [(&str, &str); 7] = [
     ("runtime.js", include_str!("webapp/runtime/runtime.js")),
     ("server.mjs", include_str!("webapp/runtime/server.mjs")),
+    ("security.mjs", include_str!("webapp/runtime/security.mjs")),
+    ("state.mjs", include_str!("webapp/runtime/state.mjs")),
     ("index.html", include_str!("webapp/runtime/index.html")),
     ("app.js", include_str!("webapp/runtime/app.js")),
     ("style.css", include_str!("webapp/runtime/style.css")),

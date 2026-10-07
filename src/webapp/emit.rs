@@ -88,6 +88,8 @@ pub(super) fn schema(model: &Model, module: &str, title: &str) -> (String, Count
         list(&mut out, "computed", &entity.computed);
         list(&mut out, "keys", &entity.keys);
         list(&mut out, "steps", &entity.steps);
+        list(&mut out, "constraints", &entity.constraints);
+        list(&mut out, "migrations", &entity.migrations);
         let rollups: Vec<String> = entity
             .rollups
             .iter()

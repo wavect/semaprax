@@ -3587,3 +3587,11 @@ The explicit [Stream Text Command v1](STREAM-TEXT-COMMAND-V1.md) selector is
 owned by Project profile/manifest admission, `workspace_link/stdin_stream`, and
 `native_emit/output_profile`. Retained workspace stream admission selects the
 exact pure-entry and command linker; neither changes capability authority.
+
+
+The additive [webapp v3](WEBAPP-PROJECTION-V3.md) convention binder lives in
+`webapp/model/v3.rs`; the ordinary translator keeps expression semantics.
+The embedded `security.mjs` owns bounded sign-in budgets and session-bound CSRF,
+and `state.mjs` stages migration and pairwise candidate constraints before
+publication. These generated host modules use the existing operator-selected
+server/data authority; they grant no compiler authority. Verification pending.

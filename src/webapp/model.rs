@@ -3,6 +3,8 @@
 
 use std::collections::BTreeMap;
 
+mod v3;
+
 use super::translate::{self, Bound, Translator};
 use super::{shape_error, snake, Ty, FIELD_TYPE_HELP};
 use crate::ast::{Function, ParamMode, Program, Span, Type, TypeDeclarationKind};
@@ -35,6 +37,8 @@ pub(super) struct Entity {
     pub(super) computed: Vec<String>,
     pub(super) keys: Vec<String>,
     pub(super) steps: Vec<String>,
+    pub(super) constraints: Vec<String>,
+    pub(super) migrations: Vec<String>,
     pub(super) rollups: Vec<Rollup>,
     pub(super) can_read: Option<String>,
     pub(super) can_write: Option<String>,
@@ -56,6 +60,8 @@ pub(super) struct Model {
 #[derive(Clone, Debug, PartialEq)]
 enum Kind {
     Valid,
+    Constraint,
+    Migration(String),
     Key,
     Step(String),
     Account,
@@ -124,6 +130,9 @@ fn kind(entity: &Entity, suffix: &str) -> Kind {
         "account" => Kind::Account,
         "can_read" => Kind::CanRead,
         "can_write" => Kind::CanWrite,
+        "constraint" => Kind::Constraint,
+        _ if suffix.starts_with("constraint_") => Kind::Constraint,
+        _ if suffix.starts_with("migrate_") => Kind::Migration(suffix[8..].to_owned()),
         "key" => Kind::Key,
         _ if suffix.starts_with("key_") => Kind::Key,
         _ => match suffix.strip_suffix("_step") {
@@ -305,7 +314,29 @@ pub(super) fn build(program: &Program, source: &str) -> Result<Model, Vec<Diagno
     }
     let mut account = None;
     let mut login_field = None;
+    let mut migration_fields = std::collections::BTreeSet::new();
     for (function, index, suffix, kind) in &classified {
+        if let Kind::Migration(field) = kind {
+            if !migration_fields.insert((*index, field.clone())) {
+                errors.push(shape_error(format!("duplicate migration for `{field}`"), function.name_span, "keep exactly one migration for each destination field"));
+                continue;
+            }
+        }
+        if matches!(kind, Kind::Constraint | Kind::Migration(_)) {
+            match v3::project(function, *index, suffix, kind, &entities, &enums, &mut translator) {
+                Ok((constraint, value)) => {
+                    if constraint {
+                        entities[*index].summary.push(format!("constraint({suffix})"));
+                        entities[*index].constraints.push(value);
+                    } else {
+                        entities[*index].summary.push(format!("{suffix}()"));
+                        entities[*index].migrations.push(value);
+                    }
+                }
+                Err(mut more) => errors.append(&mut more),
+            }
+            continue;
+        }
         let bound = match bind(
             function,
             *index,
@@ -345,6 +376,7 @@ pub(super) fn build(program: &Program, source: &str) -> Result<Model, Vec<Diagno
         };
         let entity = &mut entities[*index];
         let result = match kind {
+            Kind::Constraint | Kind::Migration(_) => unreachable!("v3 conventions handled above"),
             Kind::Valid => translator
                 .rules(function, &bound)
                 .map(|rules| entity.rules.extend(rules)),

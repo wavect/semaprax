@@ -1137,16 +1137,20 @@ fn order_status(paid: bool) -> string
   as `member_id: i64` covers every entity with those fields, the most
   specific default winning. Audit history and CSV export are automatic.
 - Run `semaprax fmt app.spx && semaprax webapp app.spx -o out && node
-  out/server.mjs --self-test` as one command. The self-test exercises every
-  feature for every entity and role, prints the observed evidence, and ends
-  with its own cleanup line, so no hand-written requests or process checks are
-  needed. Fix a diagnostic with a targeted edit at its line, not by rewriting
-  the file; `semaprax webapp app.spx --api` lists the generated API.
+  out/server.mjs --self-test`. It reports checks and cleanup;
+  `semaprax webapp app.spx --api` lists the API.
+- Cross-row rules: `<entity>_constraint[_name](fields, other_<entity>_<field>)
+  -> bool` checks every distinct row pair; incoming changes also recheck it.
+- Migration: `<entity>_migrate_<field>(old_<field>: type) -> type` (no
+  parameters for a default); restart with `--migrate` after reviewing changes.
+  The server validates the whole migrated state and saves the previous bytes.
 - API: `GET`/`POST /api/<entity>`, `GET`/`PUT`/`DELETE /api/<entity>/<id>`,
   `GET /api/<entity>/<id>/history`, `?format=csv`, `GET /api/audit`; with
   accounts `POST /api/session {"login", "password"}` and `DELETE
-  /api/session`. `node out/server.mjs [--port N] [--data DIR] [--setup]`
-  serves until killed, so start it in the background.
+  /api/session`. Before **every mutation**, GET `/api/session/csrf`, retain
+  its cookie and send its JSON `token` as `X-CSRF-Token` (refresh after sign-in).
+  Sign-in is rate limited. `node out/server.mjs [--port N] [--data DIR]
+  [--setup] [--migrate]` serves until killed; start it in the background.
 
 ## Projects
 
@@ -1220,10 +1224,7 @@ owner; the package has no public exports or stable generic ABI.
 For one API, prefer
 `semaprax help library <module|name|stable-id>`: the exact lookup prints only
 the matched stable identity, dependency row, required profile, signature,
-effects, and contracts. It does not do fuzzy or prefix search. The guarded
-`std.core.compare` result is 226 bytes and 68 lexical units, with guarded
-ceilings of 512 bytes and 128 units; both measures are more than 50 times
-smaller than the 22,076-byte, 6,662-unit full catalog.
+effects, and contracts; lookup is exact, with no fuzzy or prefix search.
 [Package Manifest v1](PACKAGE-MANIFEST-V1.md) owns the table layout,
 [Project Manifest v1](PROJECT-MANIFEST-V1.md) the frozen one,
 [examples/calculator-project](../examples/calculator-project/semaprax.toml) is

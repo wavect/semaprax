@@ -1,4 +1,4 @@
-// node server.mjs [--port N] [--host 127.0.0.1] [--data DIR] [--setup]
+// node server.mjs [--port N] [--host 127.0.0.1] [--data DIR] [--setup] [--migrate]
 // node server.mjs --self-test [--data DIR]   (verify the whole app against its schema; exit 0/1)
 // With accounts, --setup admits unauthenticated requests as an unrestricted setup user while no account
 // has a password: create the first account with a password, then sign in. Setup ends with the first password.
@@ -11,21 +11,25 @@ import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import * as S from "./schema.js";
 import * as rt from "./runtime.js";
+import { security } from "./security.mjs";
+import { loadState, stateSchema, constraintErrors } from "./state.mjs";
 
 const { entities, enums, app } = S, ACCOUNT = S.account ?? null;
 const here = path.dirname(fileURLToPath(import.meta.url));
 const opt = { port: "8080", host: "127.0.0.1", data: "./data" };
 const argv = process.argv.slice(2), flag = (n) => { const i = argv.indexOf(n); if (i >= 0) argv.splice(i, 1); return i >= 0; };
-const SELF = flag("--self-test"), SETUP = flag("--setup");
+const SELF = flag("--self-test"), SETUP = flag("--setup"), MIGRATE = flag("--migrate");
 for (let i = 0; i < argv.length; i += 2) {
   const k = argv[i].replace(/^--/, "");
-  if (!(k in opt) || argv[i + 1] === undefined || (SELF && k !== "data")) { console.error("usage: node server.mjs [--port N] [--host H] [--data DIR] [--setup] | --self-test [--data DIR]"); process.exit(2); }
+  if (!(k in opt) || argv[i + 1] === undefined || (SELF && k !== "data")) { console.error("usage: node server.mjs [--port N] [--host H] [--data DIR] [--setup] [--migrate] | --self-test [--data DIR]"); process.exit(2); }
   opt[k] = argv[i + 1];
 }
 const SCRYPT = { N: 16384, r: 8, p: 1 };
 function hashPw(pw, salt = crypto.randomBytes(16)) { return salt.toString("hex") + ":" + crypto.scryptSync(pw, salt, 32, SCRYPT).toString("hex"); }
 if (SELF) process.exit(await selfTest());
 const LIMIT = 1 << 20;
+const protection = security();
+const sha = (s) => crypto.createHash("sha256").update(s).digest("hex");
 const dir = path.resolve(opt.data), dbFile = path.join(dir, "db.json"), authFile = path.join(dir, "auth.json"), auditFile = path.join(dir, "audit.jsonl");
 fs.mkdirSync(dir, { recursive: true });
 const writeAtomic = (file, text, mode) => { fs.writeFileSync(file + ".tmp", text, { mode }); fs.renameSync(file + ".tmp", file); };
@@ -36,25 +40,22 @@ const accT = ACCOUNT && tables.get(ACCOUNT.entity);
 if (ACCOUNT && !accT) throw new Error(`schema: account entity ${ACCOUNT.entity} not found`);
 function load() {
   if (!fs.existsSync(dbFile)) return;
-  const db = rt.parseJSON(fs.readFileSync(dbFile, "utf8"));
-  for (const [p, t] of tables) {
-    for (const o of (db.rows && db.rows[p]) || []) {
-      const { row, errors } = rt.decodeRow(t.ent, enums, o, true);
-      if (errors.length || row.id === undefined) throw new Error(`corrupt ${dbFile}: ${p}: ${JSON.stringify(errors)}`);
-      t.rows.set(row.id, row);
-      if (row.id >= t.next) t.next = row.id + 1n;
-    }
-    const n = db.next && db.next[p] !== undefined ? BigInt(String(db.next[p].source ?? db.next[p])) : 1n;
-    if (n > t.next) t.next = n;
+  const bytes = fs.readFileSync(dbFile, "utf8");
+  const changed = loadState(bytes, tables, enums, ACCOUNT, MIGRATE);
+  if (changed) {
+    const backup = path.join(dir, "db.before-" + sha(bytes) + ".json");
+    if (!fs.existsSync(backup)) fs.writeFileSync(backup, bytes, { flag: "wx", mode: 0o600 });
+    save();
   }
 }
+
 function save() {
   const rows = [], next = [];
   for (const [p, t] of tables) {
     rows.push(JSON.stringify(p) + ":[" + [...t.rows.values()].map((r) => rt.toJSON(t.ent, r, { strInts: true })).join(",") + "]");
     next.push(JSON.stringify(p) + ":" + JSON.stringify(t.next.toString()));
   }
-  writeAtomic(dbFile, `{"version":1,"next":{${next.join(",")}},"rows":{${rows.join(",")}}}\n`);
+  writeAtomic(dbFile, `{"version":2,"schema":${JSON.stringify(stateSchema(entities, enums))},"next":{${next.join(",")}},"rows":{${rows.join(",")}}}\n`);
 }
 // auth.json: passwords (account id -> "salt:scrypt" hex) and sessions (sha256(token) -> account id). Never served.
 const auth = { pw: new Map(), sess: new Map() };
@@ -104,7 +105,7 @@ function readBody(req, res) {
 }
 
 // ---- accounts, sessions, permissions ----
-const sha = (s) => crypto.createHash("sha256").update(s).digest("hex");
+
 const allowed = (r) => { try { return ACCOUNT.allowed(r) === true; } catch { return false; } };
 const pass = (p, r, u) => { try { return p.test(r, u) === true; } catch { return false; } };
 const sid = (req) => (/(?:^|;\s*)sid=([0-9a-f]{64})(?:;|$)/.exec(req.headers.cookie || "") || [])[1];
@@ -134,15 +135,18 @@ async function session(req, res) {
     return send(res, 200, c.setup ? '{"setup":true}' : out(accT, c.u));
   }
   if (m === "DELETE") {
+    if (!protection.valid(req)) return fail(res, 403, "invalid CSRF token");
     const tok = sid(req);
     if (tok && auth.sess.delete(sha(tok))) try { saveAuth(); } catch (e) { return fail(res, 500, "could not persist: " + e.message); }
     return send(res, 204, "", undefined, { "set-cookie": "sid=; Max-Age=0" + COOKIE });
   }
   if (m !== "POST") return fail(res, 405, "method not allowed");
+  if (!protection.valid(req)) return fail(res, 403, "invalid CSRF token");
   const text = await readBody(req, res);
   if (text === null) return;
   let b; try { b = JSON.parse(text); } catch { b = null; }
   const login = b && typeof b === "object" ? b.login : undefined;
+  if (!protection.attempt(req.socket.remoteAddress || "", login)) return send(res, 429, '{"error":"sign-in rate limit"}', undefined, { "retry-after": "60" });
   let row = null;
   if (typeof login === "string") for (const r of accT.rows.values()) if (r[ACCOUNT.login] === login) { row = r; break; }
   const ok = checkPw(b && b.password, row && auth.pw.get(String(row.id)));
@@ -150,7 +154,7 @@ async function session(req, res) {
   const tok = crypto.randomBytes(32).toString("hex");
   auth.sess.set(sha(tok), String(row.id));
   try { saveAuth(); } catch (e) { auth.sess.delete(sha(tok)); return fail(res, 500, "could not persist: " + e.message); }
-  send(res, 200, out(accT, row), undefined, { "set-cookie": "sid=" + tok + COOKIE });
+  send(res, 200, out(accT, row), undefined, { "set-cookie": "sid=" + tok + COOKIE, "x-csrf-token": protection.issue(req, tok).token });
 }
 
 // ---- validation, audit, csv ----
@@ -240,6 +244,8 @@ async function api(req, res, parts, c) {
     if (m === "GET") return send(res, 200, out(t, cur));
     if (!canW(c, t, cur)) return fail(res, 403, `not allowed to ${m === "PUT" ? "update" : "delete"} this ${t.ent.name}`);
     if (m === "DELETE") {
+      const constraints = constraintErrors(tables, { path: t.ent.path, id, row: null });
+      if (constraints.length) return verrs(res, constraints);
       const why = referrer(t, id);
       if (why) return fail(res, 409, why);
       const key = String(id), pw = auth.pw.get(key), sess = [...auth.sess].filter(([, v]) => v === key);
@@ -257,7 +263,10 @@ async function api(req, res, parts, c) {
   try { input = rt.parseJSON(text); } catch { return verrs(res, [{ field: "", message: "body is not valid JSON" }]); }
   const { row, errors, pw } = validate(t, input, cur, c);
   if (errors.length) return verrs(res, errors);
+  if (!hasId && t.next > 9223372036854775807n) return fail(res, 507, "entity id space exhausted");
   row.id = hasId ? id : t.next;
+  const constraints = constraintErrors(tables, { path: t.ent.path, id: row.id, row });
+  if (constraints.length) return verrs(res, constraints);
   if (!canW(c, t, row)) return fail(res, 403, `not allowed to ${hasId ? "update" : "create"} this ${t.ent.name}`);
   const key = String(row.id), oldPw = auth.pw.get(key);
   if (pw !== null) auth.pw.set(key, hashPw(pw));
@@ -274,9 +283,14 @@ async function api(req, res, parts, c) {
   send(res, 201, out(t, row), undefined, { location: `/api/${t.ent.path}/${row.id}` });
 }
 async function route(req, res, p) {
+  if (p.length === 2 && p[0] === "session" && p[1] === "csrf" && req.method === "GET") {
+    const csrf = protection.issue(req);
+    return send(res, 200, JSON.stringify({ token: csrf.token }), undefined, { "set-cookie": csrf.cookie });
+  }
   if (ACCOUNT && p.length === 1 && p[0] === "session") return session(req, res);
   const c = who(req);
   if (!c) return fail(res, 401, "sign in required");
+  if (!["GET", "HEAD"].includes(req.method) && !protection.valid(req)) return fail(res, 403, "invalid CSRF token");
   if (p.length === 1 && p[0] === "audit" && !tables.has("audit")) {
     if (req.method !== "GET") return fail(res, 405, "method not allowed");
     if (!canAudit(c)) return fail(res, 403, "not allowed to read the audit log");
@@ -323,6 +337,12 @@ async function selfTest() {
     try {
       const headers = body === undefined ? {} : { "content-type": "application/json" };
       if (cookie) headers.cookie = cookie;
+      if (!["GET", "HEAD"].includes(method)) {
+        const csrf = await fetch(base + "session/csrf", { headers: cookie ? { cookie } : {} });
+        const seed = (csrf.headers.get("set-cookie") || "").split(";")[0];
+        headers.cookie = [cookie, seed].filter(Boolean).join("; ");
+        headers["x-csrf-token"] = (await csrf.json()).token;
+      }
       const r = await fetch(base + p, { method, headers, body });
       return { status: r.status, text: await r.text(), type: r.headers.get("content-type") || "", cookie: r.headers.get("set-cookie") || "" };
     } catch (e) { return { status: 0, text: String(e) }; }

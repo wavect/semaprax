@@ -456,6 +456,13 @@ pub(crate) fn type_needs_resource_cleanup(
         if !facts.needs_drop || !visited.insert(ty.clone()) {
             continue;
         }
+        // The sealed stdin reader is compiler-owned and has no user-visible
+        // fields, but it still owns the invocation's reusable input buffer.
+        // Classify its exact nominal type as droppable so inventory and plan
+        // construction retain the canonical lexical drop leaf.
+        if crate::stdin_stream_ops::is_reader(&ty) {
+            return Ok(true);
+        }
         match ty {
             ResolvedType::Bytes
             | ResolvedType::String

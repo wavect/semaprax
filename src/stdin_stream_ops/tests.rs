@@ -273,18 +273,64 @@ permit { process.args.read, process.stderr.write, process.stdin.read, process.st
     assert!(
         matches!(&tail.kind, hir::ResolvedExprKind::Call { callee, .. } if callee.as_str() == EOF_ID)
     );
-    // Borrow-only inspection publishes no operation failure source and never
-    // stages an owned Reader transfer. HIR validation independently replays it.
+    // Borrow-only inspection adds no operation failure source; the opened
+    // Reader still remains in its lexical slot for canonical finalization.
     assert!(run
         .cleanup_plan
         .status_sources
         .iter()
         .all(|source| source.id.expression != tail.id));
+    let reader_slot = run
+        .cleanup_plan
+        .slots
+        .iter()
+        .find(|slot| {
+            crate::stdin_stream_ops::is_reader(&slot.ty)
+                && matches!(&slot.storage, crate::cleanup_plan::StorageId::Value(_))
+        })
+        .expect("the owned Reader must retain its canonical cleanup slot");
+    let crate::cleanup::FieldLivenessShape::Leaf { flag, lifecycle } =
+        &reader_slot.field_liveness_shape
+    else {
+        panic!("the sealed Reader cleanup slot must be a primitive leaf")
+    };
+    assert_eq!(lifecycle.as_str(), DROP_ID);
     hir::validate(&program).unwrap();
     let emitted = crate::codegen::emit_hir_c_with_stdin_stream(&program, "stream.run").unwrap();
     assert!(emitted.contains("spx_slice_u8_v1"));
     assert!(emitted.contains("captured_epoch"));
     assert!(emitted.contains("spx_stdin_stream"));
+    let run_symbol = format!(
+        "spx_decl_{}",
+        "stream.run"
+            .bytes()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>()
+    );
+    let run_start = emitted
+        .find(&format!("static __attribute__((unused)) spx_status_token {run_symbol}("))
+        .expect("native lowering must emit stream.run");
+    let run_end = emitted[run_start..]
+        .find("\n}\n")
+        .map(|end| run_start + end)
+        .expect("stream.run must have a closed C body");
+    let run_c = &emitted[run_start..run_end];
+    let reader_drop = format!(
+        "spx_stdin_stream_drop_v1(spx_ctx, spx_bytes_slot_{});",
+        reader_slot.id.0
+    );
+    let drop_at = run_c
+        .find(&reader_drop)
+        .expect("native lowering must emit the canonical Reader finalizer");
+    assert_eq!(run_c.matches(&reader_drop).count(), 1);
+    let publish_at = run_c
+        .find("*spx_result_out = spx_result;")
+        .expect("native lowering must publish the scalar result");
+    assert!(
+        drop_at < publish_at,
+        "the canonical Reader drop must precede result publication"
+    );
+    assert!(run_c.contains(&format!("if (spx_bytes_live_{})", flag.0)));
 }
 #[test]
 fn guard_calls_participate_in_effect_authority() {

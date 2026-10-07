@@ -948,7 +948,6 @@ Other first-attempt diagnostics and their fixes:
 | `let a: i32 = 5` | `SPX-T232` | Suffix the literal: `let a: i32 = 5i32` |
 | `9223372036854775808` or `-(9223372036854775808)` | `SPX-P003` | The signed minimum is one literal: write `-9223372036854775808`, or `-2147483648i32` for `i32`. Whitespace between the sign and the magnitude is trivia; a parenthesis is not. `-MIN` and `MIN / -1` still fail closed on checked overflow |
 | `"a" + "b"` | `SPX-T250` | `string_concat("a", "b")` |
-| `fn f(t: Task)` where `Task` has a `string` field | `SPX-T309` | Pass the text separately: `fn f(title: string, points: i64)` |
 | `f("abc")` or `f(owned)` for `borrow str` | `SPX-T205` | `let s = "abc"; f(string_as_str(s))` |
 | `point.get()` on a record | `SPX-T203` | Records have no methods; call `get(point)` or use a `class` |
 | `let x = 1; let x = x + 1;` | `SPX-T209` | No shadowing; pick a new name |

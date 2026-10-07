@@ -358,25 +358,37 @@ static void configure(struct spx_stdin_stream_state_v1 *state,
 int main(void) {
     struct scripted_provider first = { .fail_on_read = UINT32_C(1) };
     struct spx_stdin_stream_state_v1 first_state = {0}; configure(&first_state, &first);
-    struct spx_context first_context = { .target_state = &first_state };
+    struct spx_status_entry first_entries[UINT32_C(1)] = {0};
+    struct spx_context first_context = {0};
+    if (!spx_context_init(&first_context, UINT64_C(1), first_entries,
+                          UINT32_C(1), NULL, NULL, &first_state)) return 1;
     uintptr_t reader = (uintptr_t)99;
     if (spx_host_stdin_stream_open_v1(&first_context, &reader) != UINT32_C(1) ||
-        reader != (uintptr_t)0 || first_state.reader_live) return 1;
+        reader != (uintptr_t)0 || first_state.reader_live) return 2;
     spx_stdin_stream_settle_v1(&first_context);
-    if (first.drops != UINT32_C(1) || first.settles != UINT32_C(1)) return 2;
+    if (first.drops != UINT32_C(1) || first.settles != UINT32_C(1) ||
+        first_context.length != UINT32_C(1) ||
+        first_entries[0].status.code != UINT32_C(3) ||
+        strcmp(first_entries[0].status.domain_id, "semaprax.command-input.v1") != 0) return 3;
 
     struct scripted_provider second = { .fail_on_read = UINT32_C(2) };
     struct spx_stdin_stream_state_v1 second_state = {0}; configure(&second_state, &second);
-    struct spx_context second_context = { .target_state = &second_state };
+    struct spx_status_entry second_entries[UINT32_C(1)] = {0};
+    struct spx_context second_context = {0};
+    if (!spx_context_init(&second_context, UINT64_C(1), second_entries,
+                          UINT32_C(1), NULL, NULL, &second_state)) return 4;
     reader = (uintptr_t)0;
     if (spx_host_stdin_stream_open_v1(&second_context, &reader) != SPX_STATUS_SUCCESS ||
-        reader != (uintptr_t)&second_state) return 3;
+        reader != (uintptr_t)&second_state) return 5;
     uintptr_t published = (uintptr_t)99;
     if (spx_host_stdin_stream_next_v1(&second_context, reader, &published) != UINT32_C(1) ||
         published != (uintptr_t)0 || second_state.chunk_length != UINT32_C(0) ||
-        second_state.chunk_bytes[0] != UINT8_C(0)) return 4;
+        second_state.chunk_bytes[0] != UINT8_C(0)) return 6;
     spx_stdin_stream_settle_v1(&second_context);
-    if (second.drops != UINT32_C(1) || second.settles != UINT32_C(1)) return 5;
+    if (second.drops != UINT32_C(1) || second.settles != UINT32_C(1) ||
+        second_context.length != UINT32_C(1) ||
+        second_entries[0].status.code != UINT32_C(3) ||
+        strcmp(second_entries[0].status.domain_id, "semaprax.command-input.v1") != 0) return 7;
     return 0;
 }
 "#,

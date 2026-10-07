@@ -50,9 +50,11 @@ reopen standard input after settlement.
 
 Advancing refills the same bounded buffer and transfers the unique reader
 ownership to its successor state. A chunk view is read-only and borrows that
-state. It expires before the next advance and cannot be stored, returned,
-captured, placed in an aggregate, or allowed to cross a call, callback,
-asynchronous, or invocation-settlement boundary. Source parsing must finish
+state. It expires before the next advance and cannot escape through a return,
+capture, aggregate, retained callback, asynchronous continuation, or invocation
+settlement. Ordinary synchronous helpers may borrow the current chunk within
+the call's lifetime; the reader cannot advance while that loan remains live.
+Source parsing must finish
 with a borrowed chunk before advancing. The checker, interpreter, native
 backend, and Wasm provider must agree on this lifetime rather than relying on
 buffer-layout conventions.
@@ -128,10 +130,14 @@ entrypoint without implying that v1 changed.
 
 ## Candidate implementation files and focused evidence
 
-After the design is accepted, likely compiler/host ownership points are:
+After the exact contract is resolved, likely compiler/host ownership points are:
 
 - `src/command_io_ops.rs` for operation metadata, effects, signatures, and
   closed outcomes;
+- source type resolution and verification, `src/hir/nodes.rs`, HIR validation
+  and semantic-image encoding for the authenticated opaque reader and loans;
+- `src/cleanup_plan/` for reader transfer, live-state joins, exactly-once
+  settlement and independent replay; new runtime state cannot bypass it;
 - `src/byte_data_capacity.rs` and `src/hir/byte_capacity/` for loop-aware
   dynamic read/resource accounting and call-closure rules;
 - `src/interpreter.rs`, `src/interpreter/command_state.rs`, and

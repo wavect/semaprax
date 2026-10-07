@@ -1,14 +1,178 @@
 //! Standalone native provider foundation for bounded streaming command stdin.
 //!
-//! This fragment deliberately does not choose a command profile or access a
-//! process file descriptor. An invocation supplies a synchronous provider
-//! table through its target-state carrier. Profile routing and the compiler's
-//! `StdinReader` value lowering are integrated separately.
+//! The emitted runtime has no process descriptor or filesystem access. An
+//! invocation supplies a synchronous provider table through its target-state
+//! carrier; the separately emitted process adapter binds permitted stdin.
+//! Profile routing and the compiler's `StdinReader` value lowering are
+//! integrated separately.
 
-use super::COutput;
+use super::{backend_error, COutput, NativeOutputProfile};
+use crate::diagnostic::Diagnostic;
+use crate::hir::{self, ResolvedProgram, ResolvedType};
+use std::collections::HashMap;
+use std::fmt::Write as _;
 
 pub(super) fn emit_runtime(output: &mut impl COutput) {
     output.push_str(STDIN_STREAM_RUNTIME_C);
+}
+
+/// Emit the explicitly selected native command profile for bounded stdin
+/// streaming. The public command-I/O runtime remains the source of argv and
+/// output declarations; this profile adds only the streaming reader route.
+pub fn emit_hir_c_with_stdin_stream(
+    program: &ResolvedProgram,
+    command_id: &str,
+) -> Result<String, Diagnostic> {
+    hir::validate(program)?;
+    super::reject_native_rust_for_native(program)?;
+    let required_permits = [
+        crate::command_io_ops::ARGS_READ_EFFECT,
+        crate::command_io_ops::STDERR_WRITE_EFFECT,
+        crate::command_io_ops::STDIN_READ_EFFECT,
+        crate::host_io_ops::STDOUT_WRITE_EFFECT,
+    ];
+    if program.permits.as_slice() != required_permits {
+        return Err(backend_error(
+            "stdin stream command requires the exact canonical command-I/O permit inventory",
+        ));
+    }
+    let command = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == command_id)
+        .ok_or_else(|| {
+            backend_error(format!(
+                "selected stdin stream command `{command_id}` is absent"
+            ))
+        })?;
+    if program
+        .declarations
+        .declaration(&command.id)
+        .is_none_or(|declaration| {
+            declaration.identity_origin != hir::IdentityOrigin::Explicit
+        })
+        || !command.params.is_empty()
+        || command.return_type != ResolvedType::Bool
+    {
+        return Err(backend_error(
+            "selected stdin stream command must be an explicit stable-ID `fn () -> bool`",
+        ));
+    }
+    crate::command_io_ops::validate_operation_profile(
+        program,
+        &command.id,
+        crate::command_io_ops::CommandOperationProfile::StdinStreamV1,
+    )?;
+    super::emit_hir_c_with_labels(
+        program,
+        &HashMap::new(),
+        NativeOutputProfile::StdinStreamCommandIo,
+        Some(&command.id),
+    )
+}
+
+pub(super) fn emit_runner(output: &mut impl COutput, command_symbol: &str) {
+    writeln!(
+        output,
+        r#"int spx_language_command_stream_run_v1(
+    const struct spx_language_command_input_v1 *input,
+    const struct spx_stdin_stream_provider_v1 *provider,
+    struct spx_language_command_result_v1 *result_out
+) {{
+    if (result_out == NULL) return 0;
+    memset(result_out, 0, sizeof(*result_out));
+    if (provider == NULL || provider->open == NULL || provider->read == NULL ||
+        provider->drop == NULL || provider->settle == NULL) return 0;
+    if (input == NULL || input->stdin_snapshot.ptr != NULL ||
+        input->stdin_snapshot.len != UINT64_C(0) ||
+        !spx_language_command_input_is_valid_v1(input)) {{
+        provider->settle(provider->context);
+        return 0;
+    }}
+
+    struct spx_status_entry spx_status_entries[UINT32_C(1)];
+    struct spx_stdin_stream_state_v1 state = {{0}};
+    state.command.input = input;
+    state.provider = *provider;
+    struct spx_context spx_ctx = {{0}};
+    if (!spx_context_init(
+        &spx_ctx,
+        UINT64_C(1),
+        spx_status_entries,
+        UINT32_C(1),
+        NULL,
+        NULL,
+        &state
+    )) {{
+        provider->settle(provider->context);
+        memset(&state, 0, sizeof(state));
+        return 0;
+    }}
+
+    bool matched = false;
+    spx_status_token status = {command_symbol}(&spx_ctx, &matched);
+    if (status != SPX_STATUS_SUCCESS) {{
+        spx_stdin_stream_settle_v1(&spx_ctx);
+        const struct spx_normalized_status *failure =
+            spx_status_resolve(&spx_ctx, status);
+        (void)spx_status_resolve_detail(&spx_ctx, status);
+        if (failure == NULL || failure->domain_id == NULL) {{
+            memset(&state, 0, sizeof(state));
+            memset(result_out, 0, sizeof(*result_out));
+            return 0;
+        }}
+        size_t domain_size = 0;
+        if (!spx_status_domain_size(failure->domain_id, &domain_size) ||
+            domain_size > sizeof(result_out->status_domain)) {{
+            memset(&state, 0, sizeof(state));
+            memset(result_out, 0, sizeof(*result_out));
+            return 0;
+        }}
+        memcpy(result_out->status_domain, failure->domain_id, domain_size);
+        result_out->status_code = failure->code;
+        result_out->status_class = failure->status_class;
+        result_out->status_retryability = failure->retryability;
+        memset(&state, 0, sizeof(state));
+        return 1;
+    }}
+
+    if (state.command.output.stdout_length > SPX_COMMAND_OUTPUT_CAPACITY_V1 ||
+        state.command.output.stderr_length >
+            SPX_COMMAND_OUTPUT_CAPACITY_V1 - state.command.output.stdout_length) {{
+        spx_stdin_stream_settle_v1(&spx_ctx);
+        memset(&state, 0, sizeof(state));
+        memset(result_out, 0, sizeof(*result_out));
+        return 0;
+    }}
+    spx_stdin_stream_settle_v1(&spx_ctx);
+    result_out->semantic_success = true;
+    result_out->matched = matched;
+    if (state.command.output.stdout_length != UINT64_C(0)) {{
+        memcpy(
+            result_out->stdout_bytes,
+            state.command.output.stdout_bytes,
+            (size_t)state.command.output.stdout_length
+        );
+    }}
+    if (state.command.output.stderr_length != UINT64_C(0)) {{
+        memcpy(
+            result_out->stderr_bytes,
+            state.command.output.stderr_bytes,
+            (size_t)state.command.output.stderr_length
+        );
+    }}
+    result_out->stdout_length = state.command.output.stdout_length;
+    result_out->stderr_length = state.command.output.stderr_length;
+    memset(&state, 0, sizeof(state));
+    return 1;
+}}
+"#
+    )
+    .expect("writing native streaming command runner cannot fail");
+}
+
+pub(super) fn emit_process_adapter(output: &mut impl COutput) {
+    process_adapter::emit_process_adapter(output);
 }
 
 const STDIN_STREAM_RUNTIME_C: &str = r#"#define SPX_STDIN_STREAM_CHUNK_CAPACITY_V1 UINT32_C(4096)
@@ -19,11 +183,11 @@ struct spx_stdin_stream_provider_v1 {
     void *context;
     /* open returns only 0 (with a nonzero token) or 3 (with token still zero). */
     uint32_t (*open)(void *context, uintptr_t *provider_token_out);
-    /* read returns only 0 (length 1..4096, or 0 for EOF) or 3 (length
-       untouched). A positive short read is always a non-EOF chunk. */
+    /* read returns only 0 with one of the two closed length/EOF tuples, or 3
+       with both output slots untouched. A positive short read is non-EOF. */
     uint32_t (*read)(void *context, uintptr_t provider_token,
                      uint8_t *buffer, uint32_t capacity,
-                     uint32_t *length_out);
+                     uint32_t *length_out, uint32_t *eof_out);
     /* Cleanup cannot replace the selected command status. */
     void (*drop)(void *context, uintptr_t provider_token);
     void (*settle)(void *context);
@@ -44,6 +208,7 @@ struct spx_stdin_stream_state_v1 {
     bool eof;
     bool in_callback;
     bool poisoned;
+    bool read_failed;
     bool settled;
 };
 
@@ -95,6 +260,7 @@ static uint32_t spx_stdin_stream_read_v1(
     struct spx_stdin_stream_state_v1 *state
 ) {
     uint32_t length = UINT32_MAX;
+    uint32_t eof = UINT32_MAX;
     spx_stdin_stream_advance_generation_v1(state);
     memset(state->chunk_bytes, 0, sizeof(state->chunk_bytes));
     state->chunk_length = UINT32_C(0);
@@ -105,19 +271,23 @@ static uint32_t spx_stdin_stream_read_v1(
         state->provider_token,
         state->chunk_bytes,
         SPX_STDIN_STREAM_CHUNK_CAPACITY_V1,
-        &length
+        &length,
+        &eof
     );
     state->in_callback = false;
     if (outcome == UINT32_C(3)) {
-        if (length != UINT32_MAX) {
+        if (length != UINT32_MAX || eof != UINT32_MAX) {
             state->poisoned = true;
-            spx_runtime_invariant_failure("stdin stream failed read published a length");
+            spx_runtime_invariant_failure("stdin stream failed read published a result");
         }
+        state->read_failed = true;
         memset(state->chunk_bytes, 0, sizeof(state->chunk_bytes));
         return UINT32_C(3);
     }
     if (outcome != UINT32_C(0) || length == UINT32_MAX ||
-        length > SPX_STDIN_STREAM_CHUNK_CAPACITY_V1) {
+        eof > UINT32_C(1) || length > SPX_STDIN_STREAM_CHUNK_CAPACITY_V1 ||
+        (length == UINT32_C(0) && eof != UINT32_C(1)) ||
+        (length != UINT32_C(0) && eof != UINT32_C(0))) {
         state->poisoned = true;
         spx_runtime_invariant_failure("stdin stream provider violated its read protocol");
     }
@@ -186,6 +356,10 @@ static spx_status_token spx_host_stdin_stream_next_v1(
         state->poisoned = true;
         spx_runtime_invariant_failure("stdin stream reader is foreign or not live");
     }
+    if (state->read_failed) {
+        state->poisoned = true;
+        spx_runtime_invariant_failure("stdin stream reader is failed");
+    }
     if (!state->eof && spx_stdin_stream_read_v1(state) != UINT32_C(0)) {
         return spx_command_input_status_v1(spx_ctx, UINT32_C(3));
     }
@@ -205,6 +379,10 @@ static uintptr_t spx_stdin_stream_move_v1(
         state->poisoned = true;
         spx_runtime_invariant_failure("stdin stream owned move source is invalid");
     }
+    if (state->read_failed) {
+        state->poisoned = true;
+        spx_runtime_invariant_failure("stdin stream reader cannot move after read failure");
+    }
     uintptr_t reader = *source;
     *source = (uintptr_t)0;
     return reader;
@@ -220,6 +398,10 @@ static spx_slice_u8_v1 spx_stdin_stream_chunk_v1(
         reader != (uintptr_t)state || !state->provider_token_live) {
         state->poisoned = true;
         spx_runtime_invariant_failure("stdin stream chunk reader is foreign or not live");
+    }
+    if (state->read_failed) {
+        state->poisoned = true;
+        spx_runtime_invariant_failure("stdin stream chunk is unavailable after read failure");
     }
     if (state->chunk_length == UINT32_C(0)) {
         return (spx_slice_u8_v1){ .ptr = NULL, .len = UINT64_C(0) };
@@ -241,6 +423,10 @@ static bool spx_stdin_stream_eof_v1(
         state->poisoned = true;
         spx_runtime_invariant_failure("stdin stream EOF reader is foreign or not live");
     }
+    if (state->read_failed) {
+        state->poisoned = true;
+        spx_runtime_invariant_failure("stdin stream EOF is unavailable after read failure");
+    }
     return state->eof;
 }
 
@@ -256,12 +442,13 @@ static void spx_stdin_stream_drop_v1(
         spx_runtime_invariant_failure("stdin stream drop reader is foreign or not live");
     }
     uintptr_t provider_token = state->provider_token;
-    state->chunk_generation += UINT64_C(1);
+    spx_stdin_stream_advance_generation_v1(state);
     state->reader_live = false;
     state->provider_token_live = false;
     state->provider_token = (uintptr_t)0;
     state->chunk_length = UINT32_C(0);
     state->eof = false;
+    state->read_failed = false;
     memset(state->chunk_bytes, 0, sizeof(state->chunk_bytes));
     state->in_callback = true;
     state->provider.drop(state->provider.context, provider_token);
@@ -283,6 +470,7 @@ static void spx_stdin_stream_settle_v1(struct spx_context *spx_ctx) {
     state->reader_live = false;
     state->chunk_length = UINT32_C(0);
     state->eof = false;
+    state->read_failed = false;
     memset(state->chunk_bytes, 0, sizeof(state->chunk_bytes));
     if (state->provider_token_live) {
         uintptr_t provider_token = state->provider_token;
@@ -300,3 +488,5 @@ static void spx_stdin_stream_settle_v1(struct spx_context *spx_ctx) {
 
 #[cfg(test)]
 mod tests;
+
+mod process_adapter;

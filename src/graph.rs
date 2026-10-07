@@ -58,6 +58,8 @@ mod native_import;
 mod nested_owned;
 #[path = "graph/prelude_binding.rs"]
 mod prelude_binding;
+#[path = "graph/revision_digest.rs"]
+mod revision_digest;
 use nested_owned::{
     graph_schema_includes_loans, graph_schema_includes_modern_composite_facts,
     graph_schema_includes_projected_provenance, rejected_evidence_schema,
@@ -77,8 +79,7 @@ pub(crate) use nested_owned::{
 /// the exact canonical source meaning that a human can review in Git plus the
 /// compiler-owned ordinary prelude that participates in checked meaning.
 pub fn revision(program: &Program) -> String {
-    let source = format::canonical(program);
-    revision_from_canonical_source(&source)
+    revision_digest::revision(program)
 }
 
 pub(crate) fn revision_from_canonical_source(source: &str) -> String {

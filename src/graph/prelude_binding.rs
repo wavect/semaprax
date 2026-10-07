@@ -22,6 +22,14 @@ fn revision_with_prelude(source: &str, prelude_schema: &str, prelude_contract: &
     hasher.update(b"semaprax.graph-revision.v2\0");
     hasher.update((source.len() as u64).to_le_bytes());
     hasher.update(source.as_bytes());
+    finish_revision(hasher, prelude_schema, prelude_contract)
+}
+
+pub(super) fn finish_revision(
+    mut hasher: Sha256,
+    prelude_schema: &str,
+    prelude_contract: &[u8],
+) -> String {
     hasher.update((prelude_schema.len() as u64).to_le_bytes());
     hasher.update(prelude_schema.as_bytes());
     hasher.update((prelude_contract.len() as u64).to_le_bytes());

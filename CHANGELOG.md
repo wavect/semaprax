@@ -5,6 +5,10 @@
   add unsigned UTF-8 String relational operators across source and HIR checking,
   interpreter, native and web projection. Focused regressions are authored;
   verification is deferred until the remaining OPT implementations are integrated.
+- Author streaming Graph revision v2 hashing through a fixed buffer for
+  ordinary AST callers, preserving canonical bytes and selected prelude contracts.
+  Bounded callers keep their existing formatter-work debits and overflow path;
+  byte-oracle, prelude, shadow and stale-source regressions await batch validation.
 
 - Add concrete Copy-scalar variant constructors within admitted loop matches,
   retaining ordinary identity/type/ownership checks and canonical cleanup.

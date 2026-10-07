@@ -687,7 +687,12 @@ assignment, tuples, indexing, `Some(x)` patterns, `struct`/`enum`/`pub`/`const`
 declarations, missing trailing commas, missing or unit result types, valueless
 blocks) without admitting any new syntax or changing a stable code.
 `src/format.rs` is the canonical source projection. Revision digests bind the
-canonical bytes, not incidental whitespace. `src/ast/statement_if.rs` carries
+canonical bytes, not incidental whitespace. `src/graph/revision_digest.rs`
+counts and hashes that projection through the same formatter without retaining
+a source String for ordinary callers; the prelude selector reads the retained
+AST. Active bounded-output callers keep the materialized revision route and
+its exact formatter-work reservations and overflow behavior.
+`src/ast/statement_if.rs` carries
 parser-minted statement syntax provenance on the existing normalized let tree.
 `src/format/statement_if.rs` authenticates that shape and projects the preserved
 statement spelling through the shared iterative formatter, including exact

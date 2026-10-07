@@ -653,6 +653,7 @@ Audience: all documentation readers.
 
 ## Additional bounded contracts and evidence
 
+- [CLI token measurement evidence v1](CLI-TOKEN-MEASUREMENT-EVIDENCE-V1.md)
 - [Cross-language live pilot v1](CROSS-LANGUAGE-LIVE-PILOT-V1.md)
 - [Cross-language pilot Linux scoring host v1](CROSS-LANGUAGE-PILOT-LINUX-HOST-V1.md)
 - [Linux native provider provisioning for the live pilot](CROSS-LANGUAGE-PILOT-LINUX-PROVIDER-V1.md)

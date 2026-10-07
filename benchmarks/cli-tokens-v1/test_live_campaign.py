@@ -9,6 +9,7 @@ import subprocess
 from unittest.mock import patch
 
 import live_campaign
+import measurement_evidence
 
 
 class LiveCampaignTests(unittest.TestCase):
@@ -42,7 +43,7 @@ class LiveCampaignTests(unittest.TestCase):
                 "message": {
                     "id": "turn-1",
                     "model": live_campaign.MODEL,
-                    "usage": {"input_tokens": 100, "output_tokens": 20},
+                    "usage": {"input_tokens": 100, "output_tokens": 20, "thinking_tokens": 3},
                     "content": [{"type": "text", "text": "partial"}],
                 },
             },
@@ -106,6 +107,12 @@ class LiveCampaignTests(unittest.TestCase):
             "baseline_tokens_subtracted": 320,
             "net_input_tokens": -120,
         })
+        self.assertEqual(
+            [row["message_id"] for row in result["turn_usage_by_message"]],
+            ["turn-1", "turn-2"],
+        )
+        self.assertEqual(result["turn_usage_by_message"][0]["usage"]["output_tokens"], 25)
+        self.assertEqual(result["turn_usage_by_message"][0]["usage"]["thinking_tokens"], 3)
 
     def test_stream_usage_preserves_provider_cache_ttls_and_rejects_inconsistent_split(self):
         def read_result(cache_creation: dict[str, int]) -> dict:
@@ -443,6 +450,226 @@ class LiveCampaignTests(unittest.TestCase):
         self.assertEqual(summary["aggregate_model_session_wall_seconds"], 30)
         self.assertEqual(summary["estimated_cost_per_accepted_task_usd"], 0.3)
         self.assertTrue(summary["list_price_estimate_complete"])
+
+    def _measurement_binding(self, root):
+        campaign = root / "campaign.json"
+        results = root / "results.json"
+        transcript = root / "transcripts" / "semaprax-01.jsonl"
+        prompt = "task prompt"
+        campaign.write_text("{}\n", encoding="utf-8")
+        results.write_text("{}\n", encoding="utf-8")
+        transcript.parent.mkdir(parents=True)
+        transcript.write_text("{\"type\":\"assistant\"}\n", encoding="utf-8")
+        return {
+            "campaign_sha256": live_campaign.digest(campaign),
+            "results_sha256": live_campaign.digest(results),
+            "trial_id": "semaprax-01",
+            "arm": "semaprax",
+            "number": 1,
+            "model_id": live_campaign.MODEL,
+            "prompt_sha256": live_campaign.sha_text(prompt),
+            "transcript_sha256": live_campaign.digest(transcript),
+        }
+
+    def _write_receipt(self, root, binding, amount="0.1250", document=b"provider export bytes"):
+        folder = root / "provider-receipts"
+        folder.mkdir(exist_ok=True)
+        document_path = folder / "source.pdf"
+        document_path.write_bytes(document)
+        sidecar = {
+            "schema": measurement_evidence.RECEIPT_SCHEMA,
+            "binding": binding,
+            "provenance": {
+                "provider": "anthropic",
+                "source_kind": "caller_supplied_provider_export",
+                "reference": "invoice-row-7",
+                "document_path": "provider-receipts/source.pdf",
+                "document_sha256": hashlib.sha256(document).hexdigest(),
+            },
+            "billed": {"currency": "USD", "amount_decimal": amount},
+        }
+        path = folder / "semaprax-01.json"
+        path.write_text(json.dumps(sidecar), encoding="utf-8")
+        return path
+
+    def test_receipt_import_binds_exact_trial_bytes_but_never_claims_provider_authentication(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            binding = self._measurement_binding(root)
+            sidecar = self._write_receipt(root, binding)
+            imported = measurement_evidence._receipt(root, sidecar, binding)
+        self.assertEqual(imported["reported_billed_usd"], "0.1250")
+        self.assertEqual(imported["status"], "bound_caller_supplied_origin_unverified")
+        self.assertFalse(imported["provider_origin_verified"])
+        self.assertIsNone(imported["actual_billed_usd"])
+
+    def test_receipt_import_rejects_binding_document_and_decimal_drift(self):
+        for mutation in ("binding", "document", "decimal", "path"):
+            with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                binding = self._measurement_binding(root)
+                sidecar = self._write_receipt(root, binding, amount="0.1250")
+                value = json.loads(sidecar.read_text(encoding="utf-8"))
+                if mutation == "binding":
+                    value["binding"]["results_sha256"] = "0" * 64
+                elif mutation == "document":
+                    (root / "provider-receipts" / "source.pdf").write_bytes(b"changed")
+                elif mutation == "decimal":
+                    value["billed"]["amount_decimal"] = True
+                else:
+                    value["provenance"]["document_path"] = "../outside.pdf"
+                sidecar.write_text(json.dumps(value), encoding="utf-8")
+                with self.assertRaises(ValueError):
+                    measurement_evidence._receipt(root, sidecar, binding)
+
+    def _trace_fixture(self, root, binding, schema_change=False, missing_bucket=False):
+        root.mkdir(parents=True, exist_ok=True)
+        turns = [
+            {"message_id": "turn-1", "usage": {
+                "input_tokens": 10, "cache_creation_input_tokens": 2,
+                "cache_read_input_tokens": 3, "output_tokens": 5,
+            }},
+            {"message_id": "turn-2", "usage": {
+                "input_tokens": 4, "cache_creation_input_tokens": 1,
+                "cache_read_input_tokens": 5, "output_tokens": 7,
+            }},
+        ]
+        rows = []
+        for index, observed in enumerate(turns):
+            composition = {
+                "system_tokens": 2,
+                "tool_schema_tokens": 3,
+                "task_prompt_tokens": 4,
+                "conversation_history_tokens": 6 if index == 0 else 1,
+            }
+            if missing_bucket and index == 1:
+                composition["tool_schema_tokens"] = None
+            # The second turn has smaller explicit composition counts so each
+            # bucket still totals its raw input plus cache counters.
+            if index == 1:
+                composition.update({
+                    "system_tokens": 1,
+                    "tool_schema_tokens": 2,
+                    "task_prompt_tokens": 1,
+                    "conversation_history_tokens": 6,
+                })
+            rows.append({
+                "message_id": observed["message_id"],
+                "request_id": f"provider-request-{index + 1}",
+                "system_prompt_sha256": "1" * 64,
+                "tool_schema_sha256": ("2" if not schema_change or index == 0 else "3") * 64,
+                "task_prompt_sha256": binding["prompt_sha256"],
+                "composition": composition,
+                "thinking_output_tokens": 1 if index == 0 else None,
+            })
+        value = {
+            "schema": measurement_evidence.TRACE_SCHEMA,
+            "binding": binding,
+            "provenance": {
+                "provider": "anthropic",
+                "source_kind": "caller_supplied_request_trace",
+                "reference": "request-dump-1",
+            },
+            "turns": rows,
+        }
+        path = root / "trace.json"
+        path.write_text(json.dumps(value), encoding="utf-8")
+        return path, turns
+
+    def test_request_trace_records_complete_composition_and_raw_counters_separately(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            binding = self._measurement_binding(root)
+            path, turns = self._trace_fixture(root, binding)
+            imported = measurement_evidence._trace(root, path, binding, turns)
+        self.assertEqual(imported["status"], "complete")
+        self.assertEqual(imported["complete_composition_totals"], {
+            "system_tokens": 3, "tool_schema_tokens": 5,
+            "task_prompt_tokens": 5, "conversation_history_tokens": 12,
+            "fixed_harness_context_tokens": 8,
+        })
+        self.assertEqual(imported["turns"][0]["raw_provider_usage"]["cache_read_input_tokens"], 3)
+        self.assertEqual(imported["turns"][0]["thinking_output_tokens_reported_by_trace"], 1)
+        self.assertFalse(imported["provider_origin_verified"])
+
+    def test_request_trace_missing_bucket_and_changed_schema_preserve_raw_but_fail_closed(self):
+        for change, expected in (("missing", "incomplete"), ("schema", "schema_drift")):
+            with self.subTest(change=change), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                binding = self._measurement_binding(root)
+                path, turns = self._trace_fixture(
+                    root, binding, schema_change=change == "schema", missing_bucket=change == "missing",
+                )
+                imported = measurement_evidence._trace(root, path, binding, turns)
+            self.assertEqual(imported["status"], expected)
+            self.assertIsNone(imported["complete_composition_totals"]["system_tokens"])
+            self.assertEqual(imported["turns"][0]["raw_provider_usage"]["output_tokens"], 5)
+            self.assertEqual(imported["turns"][1]["raw_provider_usage"]["cache_creation_input_tokens"], 1)
+
+    def test_request_trace_missing_provider_bucket_keeps_null_and_cannot_complete(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            binding = self._measurement_binding(root)
+            path, turns = self._trace_fixture(root, binding)
+            turns[1]["usage"]["cache_read_input_tokens"] = None
+            imported = measurement_evidence._trace(root, path, binding, turns)
+        self.assertEqual(imported["status"], "incomplete")
+        self.assertIsNone(imported["turns"][1]["raw_provider_usage"]["cache_read_input_tokens"])
+        self.assertIsNone(imported["complete_composition_totals"]["task_prompt_tokens"])
+
+    def test_request_trace_rejects_task_prompt_and_bucket_sum_drift(self):
+        for mutation in ("prompt", "sum"):
+            with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                binding = self._measurement_binding(root)
+                path, turns = self._trace_fixture(root, binding)
+                value = json.loads(path.read_text(encoding="utf-8"))
+                if mutation == "prompt":
+                    value["turns"][0]["task_prompt_sha256"] = "0" * 64
+                else:
+                    value["turns"][0]["composition"]["system_tokens"] += 1
+                path.write_text(json.dumps(value), encoding="utf-8")
+                with self.assertRaises(ValueError):
+                    measurement_evidence._trace(root, path, binding, turns)
+
+    def test_trial_import_uses_optional_conventional_sidecars_and_leaves_absence_unknown(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            binding = self._measurement_binding(root)
+            row = {"status": "accepted", "observed": {"turn_usage_by_message": []}}
+            measurement_evidence.attach_trial(row, root, binding)
+            self.assertEqual(row["provider_receipt_evidence"]["status"], "missing")
+            self.assertIsNone(row["provider_receipt_reported_billed_usd"])
+            self.assertEqual(row["request_context_trace"]["status"], "missing")
+
+            self._write_receipt(root, binding)
+            trace_root = root / "request-context-traces"
+            trace_root.mkdir()
+            trace_binding = binding
+            path, turns = self._trace_fixture(root, trace_binding)
+            (trace_root / "semaprax-01.json").write_bytes(path.read_bytes())
+            row["observed"]["turn_usage_by_message"] = turns
+            measurement_evidence.attach_trial(row, root, binding)
+        self.assertEqual(row["provider_receipt_reported_billed_usd"], "0.1250")
+        self.assertEqual(row["request_context_trace"]["status"], "complete")
+        self.assertIsNone(row["provider_receipt_actual_usd"])
+
+    def test_reported_receipt_cost_requires_five_complete_attempts_and_keeps_actual_null(self):
+        rows = [
+            {"status": "accepted" if index < 2 else "failed",
+             "provider_receipt_reported_billed_usd": f"0.0{index + 1}",
+             "provider_receipt_evidence": {"provider_origin_verified": False},
+             "request_context_trace": {"status": "missing"}}
+            for index in range(5)
+        ]
+        result = measurement_evidence.arm_summary(rows)
+        self.assertTrue(result["provider_receipt_reported_billed_usd_complete"])
+        self.assertEqual(result["provider_receipt_reported_billed_usd_known_subtotal"], "0.15")
+        self.assertEqual(result["reported_receipt_cost_per_accepted_task_usd"], "0.075")
+        self.assertIsNone(result["provider_receipt_actual_usd"])
+        missing = measurement_evidence.arm_summary(rows[:-1])
+        self.assertFalse(missing["provider_receipt_reported_billed_usd_complete"])
+        self.assertIsNone(missing["reported_receipt_cost_per_accepted_task_usd"])
 
     def test_offline_recount_refreshes_only_accounting_from_saved_transcripts(self):
         with tempfile.TemporaryDirectory() as directory:

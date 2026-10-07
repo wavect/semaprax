@@ -293,6 +293,7 @@ def legacy_net_input_metrics(turn_usage: list[dict[str, int | None]]) -> dict[st
 def stream_usage(path: Path, model_preference: str) -> dict[str, Any]:
     """Parse Claude stream JSONL, deduplicate message updates, preserve final totals."""
     usage_by_id: dict[str, dict[str, int | None]] = {}
+    raw_usage_by_id: dict[str, dict[str, int | None]] = {}
     updates: dict[str, int] = {}
     texts: dict[str, str] = {}
     message_models: set[str] = set()
@@ -320,6 +321,18 @@ def stream_usage(path: Path, model_preference: str) -> dict[str, Any]:
                 usage = message.get("usage")
                 if isinstance(identity, str) and isinstance(usage, dict):
                     parsed = _usage_values(usage)
+                    raw_previous = raw_usage_by_id.get(
+                        identity, {name: None for name in (*ALL_USAGE_FIELDS, "thinking_tokens")}
+                    )
+                    raw_usage_by_id[identity] = {
+                        name: parsed[name] if parsed[name] is not None else raw_previous[name]
+                        for name in ALL_USAGE_FIELDS
+                    }
+                    thinking = usage.get("thinking_tokens")
+                    raw_usage_by_id[identity]["thinking_tokens"] = (
+                        thinking if isinstance(thinking, int) and not isinstance(thinking, bool) and thinking >= 0
+                        else raw_previous["thinking_tokens"]
+                    )
                     previous = usage_by_id.get(identity, {name: None for name in USAGE_FIELDS})
                     usage_by_id[identity] = {name: parsed[name] if parsed[name] is not None else previous[name]
                                               for name in USAGE_FIELDS}
@@ -379,6 +392,10 @@ def stream_usage(path: Path, model_preference: str) -> dict[str, Any]:
         "assistant_message_models_observed": sorted(message_models),
         "model_usage_keys_observed": sorted(model_usage_models),
         "turns_with_usage": len(usage_by_id),
+        "turn_usage_by_message": [
+            {"message_id": identity, "usage": values}
+            for identity, values in raw_usage_by_id.items()
+        ],
         "turns_with_usage_definition": "deduplicated assistant message IDs carrying usage; not tool calls or the provider's session turn count",
         "provider_reported_session_turns": provider_turns,
         "legacy_net_input": legacy_net,

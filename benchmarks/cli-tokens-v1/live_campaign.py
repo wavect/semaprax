@@ -23,6 +23,7 @@ from oracle import json_line as oracle_json_line
 from oracle import text as oracle_text
 
 import live_campaign_common as shared
+import measurement_evidence
 
 BENCHMARK = Path(__file__).resolve().parent
 REPO = BENCHMARK.parents[1]
@@ -861,6 +862,7 @@ def summarize(
     rows = []
     for arm in ARMS:
         selected = [row for row in results if row["arm"] == arm]
+        measured_evidence = measurement_evidence.arm_summary(selected, MIN_TRIALS_PER_ARM)
         accepted = sum(row.get("status") == "accepted" for row in selected)
         per_trial_costs = [row.get("list_price_estimate_usd") for row in selected]
         cache_write_pricing = [row.get("list_price_cache_write_pricing") for row in selected]
@@ -944,7 +946,7 @@ def summarize(
                 round(known_cost / accepted, 6) if complete_cost and accepted and known_cost is not None else None
             ),
             "accepted_task_cost_note": "All attempts, including failed and rejected trials, are included in the numerator.",
-            "provider_receipt_actual_usd": None,
+            **measured_evidence,
             "provider_reported_api_equivalent_total_cost_usd_per_attempt": provider_costs,
             "provider_reported_api_equivalent_cost_known_subtotal_usd": (
                 round(sum(known_provider_costs), 6) if known_provider_costs else None
@@ -1087,6 +1089,9 @@ def recount_results(artifacts: Path, expected_round: int | None = None) -> Path:
     if not source_path.is_file() or not calibration_path.is_file():
         raise ValueError("recount requires existing results.json and calibration.json")
     source_results = json.loads(source_path.read_text(encoding="utf-8"))
+    source_results_hash = digest(source_path)
+    campaign_path = artifacts / "campaign.json"
+    campaign_hash = digest(campaign_path) if campaign_path.is_file() else None
     calibration = json.loads(calibration_path.read_text(encoding="utf-8"))
     campaign_meta = source_results.get("campaign")
     campaign_meta = campaign_meta if isinstance(campaign_meta, dict) else {}
@@ -1143,6 +1148,17 @@ def recount_results(artifacts: Path, expected_round: int | None = None) -> Path:
         fallback = f"transcripts/{row.get('arm', 'unknown')}-{int(row.get('number', index + 1)):02d}.jsonl"
         transcript, label = transcript_for(row.get("transcript"), fallback)
         _recount_usage_row(row, transcript, label)
+        observed_models = row.get("observed", {}).get("models_observed", [])
+        measurement_evidence.attach_trial(row, artifacts, {
+            "campaign_sha256": campaign_hash,
+            "results_sha256": source_results_hash,
+            "trial_id": f"{row.get('arm', 'unknown')}-{int(row.get('number', index + 1)):02d}",
+            "arm": row.get("arm"),
+            "number": row.get("number"),
+            "model_id": observed_models[0] if isinstance(observed_models, list) and len(observed_models) == 1 else None,
+            "prompt_sha256": row.get("prompt_sha256"),
+            "transcript_sha256": digest(transcript) if transcript else None,
+        })
         row["post_run_acceptance_scope_assessment"] = acceptance_scope_assessment(
             row, round_number, hashes
         )
@@ -1213,6 +1229,10 @@ def recount_results(artifacts: Path, expected_round: int | None = None) -> Path:
         "source_results_sha256": digest(source_path),
         "recounted_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "usage_source": "saved Claude Code stream-json transcripts",
+        "optional_measurement_evidence_source": (
+            "trial-bound provider receipt and request-context sidecars when present; "
+            "sidecar hashes bind bytes and association but do not verify provider origin"
+        ),
         "provider_receipt_actual_usd": None,
         "transcripts": transcript_records,
         "original_results_path": str(source_path),
@@ -1248,7 +1268,9 @@ def add_common_arguments(parser: argparse.ArgumentParser) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="action", required=True)
-    recount_parser = subparsers.add_parser("recount", help="recompute accounting from saved campaign transcripts")
+    recount_parser = subparsers.add_parser(
+        "recount", help="recompute accounting from transcripts and optional bound evidence sidecars"
+    )
     recount_parser.add_argument("--artifacts", required=True, help="completed campaign artifact directory")
     recount_parser.add_argument("--round", type=int, choices=sorted(ROUND_SEED_SHA256), default=None,
                                 help="require this round to match the recorded campaign metadata")

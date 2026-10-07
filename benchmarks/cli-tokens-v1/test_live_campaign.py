@@ -4,6 +4,8 @@ import tempfile
 import unittest
 from argparse import Namespace
 from pathlib import Path
+import subprocess
+from unittest.mock import patch
 
 import live_campaign
 
@@ -83,8 +85,107 @@ class LiveCampaignTests(unittest.TestCase):
         self.assertEqual(result["usage"]["input_tokens"], 42)
         self.assertEqual(result["usage"]["cache_read_input_tokens"], None)
         self.assertEqual(result["usage"]["cache_creation_input_tokens"], None)
-        self.assertIsNone(result["inherited_context_tokens"])
+        self.assertIsNone(result["fixed_context_tokens_in_this_session"])
         self.assertIsNone(live_campaign.rate_card_estimate(result["usage"]))
+
+    def test_calibration_subtracts_one_prompt_proxy_from_first_turn_input_and_cache(self):
+        first_turn = {
+            "input_tokens": 100,
+            "cache_creation_input_tokens": 20,
+            "cache_read_input_tokens": 30,
+            "output_tokens": 8,
+        }
+        self.assertEqual(live_campaign.input_tokens_total(first_turn), 150)
+        self.assertEqual(live_campaign.inherited_context_proxy(first_turn, 12), 138)
+        self.assertIsNone(live_campaign.inherited_context_proxy({"input_tokens": 100}, 12))
+        self.assertIsNone(live_campaign.inherited_context_proxy(first_turn, None))
+        self.assertIsNone(live_campaign.inherited_context_proxy(first_turn, 151))
+
+    def test_calibration_runner_uses_sparse_checkout_and_removes_clean_worktree(self):
+        repo = live_campaign.REPO
+        commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=repo, text=True, capture_output=True, check=True
+        ).stdout.strip()
+        with tempfile.TemporaryDirectory() as directory:
+            artifacts = Path(directory) / "artifacts"
+            workspace = artifacts / "worktrees" / "calibration"
+            settings = {
+                "model": live_campaign.MODEL,
+                "effort": live_campaign.EFFORT,
+                "timeout_seconds": 30,
+                "max_budget_usd": None,
+                "authored_source_tokenizer": None,
+            }
+
+            def fake_cli(_command, cwd, _env, stream_path, stderr_path, _timeout):
+                self.assertEqual(sorted(
+                    str(path.relative_to(cwd)) for path in cwd.rglob("*")
+                    if path.is_file() and ".git" not in path.parts
+                ), [path.lstrip("/") for path in live_campaign.SPARSE_FILES])
+                events = [
+                    {"type": "assistant", "message": {
+                        "id": "calibration-turn", "model": live_campaign.MODEL,
+                        "usage": {"input_tokens": 100, "cache_creation_input_tokens": 20,
+                                  "cache_read_input_tokens": 30, "output_tokens": 1},
+                        "content": [{"type": "text", "text": "READY"}],
+                    }},
+                    {"type": "result", "subtype": "success"},
+                ]
+                stream_path.write_text("\n".join(json.dumps(event) for event in events) + "\n")
+                stderr_path.write_text("")
+                return {"process_exit_code": 0, "timed_out": False, "elapsed_seconds": 0.01, "failure": None}
+
+            try:
+                with patch.object(live_campaign, "run_claude", side_effect=fake_cli):
+                    row = live_campaign.launch_calibration(
+                        repo, artifacts, commit, settings, Path("/bin/true")
+                    )
+                self.assertEqual(row["status"], "ready")
+                self.assertEqual(row["first_turn_provider_input_plus_cache_tokens"], 150)
+                self.assertIsNone(row["inherited_context_input_tokens_proxy"])
+                self.assertTrue(row["workspace_removed"])
+                self.assertFalse(workspace.exists())
+            finally:
+                if workspace.exists():
+                    subprocess.run(
+                        ["git", "worktree", "remove", "--force", str(workspace)],
+                        cwd=repo, text=True, capture_output=True, check=False,
+                    )
+
+    def test_authored_source_token_proxy_has_pinned_identity_and_excludes_generated_outputs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            package = root / "node_modules" / "@anthropic-ai" / "tokenizer"
+            dependency = root / "node_modules" / "tiktoken"
+            package.mkdir(parents=True)
+            dependency.mkdir(parents=True)
+            (package / "package.json").write_text(json.dumps({"name": "@anthropic-ai/tokenizer", "version": "0.0.4"}))
+            (package / "index.js").write_text("exports.countTokens = text => text.length;\n")
+            (dependency / "package.json").write_text(json.dumps({"version": "1.0.10"}))
+            candidate = root / "candidate"
+            (candidate / "dist").mkdir(parents=True)
+            (candidate / "node_modules" / "library").mkdir(parents=True)
+            (candidate / "acceptance-fixtures").mkdir()
+            (candidate / "main.spx").write_text("abc\n")
+            (candidate / "main.ts").write_text("defg\n")
+            (candidate / "main.js").write_text("generated js\n")
+            (candidate / "build.sh").write_text("hi\n")
+            (candidate / "package.json").write_text("{}\n")
+            (candidate / "compiler.c").write_text("generated c\n")
+            (candidate / "dist" / "output.ts").write_text("generated ts\n")
+            (candidate / "node_modules" / "library" / "index.ts").write_text("dependency\n")
+            (candidate / "acceptance-fixtures" / "expected.ts").write_text("fixture\n")
+            metadata = live_campaign.tokenizer_metadata(root)
+            result = live_campaign.authored_source_metrics(candidate, metadata)
+        self.assertEqual(result["status"], "measured_proxy")
+        self.assertEqual(result["total_tokens"], len("abc\ndefg\nhi\n{}\n"))
+        self.assertEqual([row["path"] for row in result["files"]], [
+            "build.sh", "main.spx", "main.ts", "package.json",
+        ])
+        self.assertEqual(result["tokenizer"]["package"], "@anthropic-ai/tokenizer")
+        self.assertEqual(result["tokenizer"]["version"], "0.0.4")
+        self.assertIn("legacy-Claude tokenizer proxy", result["tokenizer"]["claim"])
+        self.assertEqual(len(result["tokenizer"]["fingerprint_sha256"]), 64)
 
     def test_failures_remain_in_each_arm_denominator(self):
         rows = [
@@ -113,11 +214,25 @@ class LiveCampaignTests(unittest.TestCase):
     def test_summary_includes_failed_attempt_costs_and_keeps_unknown_usage(self):
         rows = [
             {"arm": "semaprax", "number": 1, "status": "accepted", "elapsed_seconds": 10,
-             "list_price_estimate_usd": 0.2, "observed": {"usage": {"input_tokens": 100}, "turns_with_usage": 2}},
+             "list_price_estimate_usd": 0.2, "provider_input_plus_cache_tokens_gross": 150,
+             "provider_input_plus_cache_tokens_after_context_proxy": 100,
+             "authored_source_metrics": {"total_tokens": 75},
+             "observed": {"usage": {"input_tokens": 100}, "turns_with_usage": 2}},
             {"arm": "semaprax", "number": 2, "status": "failed", "elapsed_seconds": 20,
-             "list_price_estimate_usd": 0.1, "observed": {"usage": {"input_tokens": 50}, "turns_with_usage": 1}},
+             "list_price_estimate_usd": 0.1, "provider_input_plus_cache_tokens_gross": None,
+             "provider_input_plus_cache_tokens_after_context_proxy": None,
+             "authored_source_metrics": {"total_tokens": None},
+             "observed": {"usage": {"input_tokens": 50}, "turns_with_usage": 1}},
         ]
-        summary = live_campaign.summarize(rows)["arms"][0]
+        calibration = {"inherited_context_input_tokens_proxy": 50, "list_price_estimate_usd": 0.03}
+        summary = live_campaign.summarize(rows, calibration)
+        arm = summary["arms"][0]
+        self.assertEqual(arm["provider_input_plus_cache_tokens_gross_known_subtotal"], 150)
+        self.assertEqual(arm["provider_input_plus_cache_tokens_after_context_proxy_known_subtotal"], 100)
+        self.assertEqual(arm["authored_source_token_proxy_known_subtotal"], 75)
+        self.assertEqual(summary["campaign_list_price_estimate_including_calibration_usd"], 0.33)
+        self.assertEqual(summary["campaign_estimated_cost_per_accepted_task_including_calibration_usd"], 0.33)
+        summary = arm
         self.assertEqual(summary["provider_usage_totals_known_subtotal"]["input_tokens"], 150)
         self.assertEqual(summary["provider_usage_missing_trial_counts"]["output_tokens"], 2)
         self.assertEqual(summary["aggregate_model_session_wall_seconds"], 30)

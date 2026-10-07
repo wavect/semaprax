@@ -21,7 +21,8 @@ Prepare and review a campaign without launching a model:
 ```sh
 python3 benchmarks/cli-tokens-v1/live_campaign.py plan \
   --base-ref <verified-compiler-commit> \
-  --artifacts /absolute/path/to/loglens-round3
+  --artifacts /absolute/path/to/loglens-round3 \
+  --tokenizer-dir /tmp/semaprax-opt-tokenizer
 ```
 
 After the compiler and task are ready, launch it with the same arguments:
@@ -31,6 +32,7 @@ python3 benchmarks/cli-tokens-v1/live_campaign.py run \
   --base-ref <verified-compiler-commit> \
   --artifacts /absolute/path/to/loglens-round3 \
   --semaprax-bin /absolute/path/to/verified/semaprax \
+  --tokenizer-dir /tmp/semaprax-opt-tokenizer \
   --timeout-seconds 1800
 ```
 
@@ -39,6 +41,17 @@ candidate archive, prompt, transcript, stderr, acceptance result, and the
 updated `results.json`. The runner does not inspect or serialize credentials.
 Claude Code must already be authenticated for the selected account, and that
 account must be entitled to the pinned model.
+
+Before the ten benchmark sessions, `run` makes one matched calibration session
+with the same model, effort, tool set, restricted mode, and sparse checkout. Its
+fixed prompt asks for `READY` without reading files or using tools. Calibration
+usage and its list-price estimate are recorded separately and included in the
+combined campaign cost. The trial summaries preserve exact provider-reported
+input/cache totals and also report a proxy net figure: subtract one inherited
+context estimate per print session. The context estimate subtracts the fixed
+calibration prompt's legacy-tokenizer count from its provider-reported
+first-turn input plus cache counts. The proxy does not subtract the benchmark
+task prompt, and workspace path/runtime context can still vary.
 
 Each trial is an independent Claude Code print session, not a nested subagent
 inside a longer parent session. CLI help confirms `--permission-prompts none`
@@ -51,15 +64,29 @@ stream transcript when present. Missing provider fields remain `null`; the
 collector deduplicates repeated assistant message updates, records any mismatch
 against final result usage, and prefers final result totals when available.
 First-turn usage includes the task and provider-managed context, so the fixed
-inherited context is explicitly marked unmeasured. Output counts are provider
-reported output tokens; visible text bytes are retained separately and are not
-treated as authored tokens. No compatible local tokenizer was found in the
-bounded `/tmp` search. The rate-card amount is a list-price estimate pinned to
+inherited context is estimated from the calibration session, with the raw
+calibration counters retained. Output counts are provider-reported output
+tokens (including thinking when the provider includes it in that counter);
+visible text bytes are retained separately. The optional offline authored
+source count uses `@anthropic-ai/tokenizer@0.0.4`'s bundled Claude BPE, with its
+`tiktoken` dependency versions, Node version, and package fingerprint recorded.
+It counts candidate `.spx`, `.ts`, `.tsx`, scripts, and text manifests, while
+excluding compiler-generated C, binaries, `dist`, `node_modules`, and staged
+acceptance fixtures. Treat it as a legacy-Claude tokenizer proxy, not exact
+current-model or billing tokens. Install it outside the repository with:
+
+```sh
+npm install --prefix /tmp/semaprax-opt-tokenizer --ignore-scripts --no-audit --no-fund @anthropic-ai/tokenizer@0.0.4
+```
+
+This is a measurement dependency only; it is not part of either implementation
+or the compiler build. The rate-card amount is a list-price estimate pinned to
 the date and prices in `webapp-tokens-v2/cost.mjs`; it is not provider-billed
 cost. Actual billed cost stays unknown until a matching provider receipt is
 supplied. The summary includes all attempts, failures included, in its
-estimated cost per accepted task and reports per-trial and aggregate model
-session wall time.
+estimated cost per accepted task, reports the shared calibration cost
+separately and in the combined campaign estimate, and reports per-trial and
+aggregate model-session wall time.
 
 The acceptance runner invokes the arm's `candidate/build.sh` once, then its
 `candidate/run.sh` against the independent oracle over empty and malformed

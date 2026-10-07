@@ -1,6 +1,6 @@
 # Stream Text Command v1
 
-Status: authored additive native profile; central executable gates are pending.
+Status: implemented additive native profile with focused local executable evidence.
 
 Project v25 (`semaprax.project.v25`) selects
 `language-command-io.stream-text.v1`. It retains the exact
@@ -11,12 +11,15 @@ application statuses 0 through 255, checked failure distinct from an application
 result, and invalid process status rejected before transcript publication.
 The private runner/result remain v2; the input and provider remain v1.
 
-This profile adds two existing language surfaces to the streaming application:
+This profile selects existing language surfaces for streaming applications:
 
 - length-delimited native Strings and the five pure operations from
   [Text Toolkit v1](TEXT-TOOLKIT-V1.md): `string_slice`, `string_find`,
   `string_to_i64`, `string_trim`, and `string_byte_at`, with their existing
   UTF-8, offset, sentinel, and `semaprax.text.v1` failure rules;
+- the existing local [String Collections v1](STRING-COLLECTIONS-V1.md) operations
+  under their unchanged capacities and owned-map rules; this does not add Map
+  parameters, results, or record fields;
 - private ordinary helper calls taking owned `string` and returning `string`,
   alongside the existing Copy, named `borrow str`, borrowed byte-slice, and
   independently authenticated sealed Reader forwarding signatures.
@@ -99,7 +102,7 @@ bytes including NUL. Invalid offsets remain checked failures; they do not
 publish partial output. General owned String mutation and allocation-bearing
 while conditions remain outside this addition.
 
-## Owning pending gates
+## Focused local gates
 
 `project::tests::stdin_stream_command::text` covers frozen/table selection,
 exact capability/input refusals, owned String helpers across modules in both
@@ -107,9 +110,12 @@ pure entry and command closures, native Unicode/NUL output, earlier-profile
 `SPX-G174`, and Wasm/npm refusal without artifacts.
 `language::stream_text_command` covers canonical graph round trip, deterministic
 native output, old native Text Toolkit `SPX-B103`, String helper transfers and
-text failure inside a stream loop at native O0/O2, with allocation and provider
+text failure inside a stream loop and local map operations at native O0/O2, with allocation and provider
 settlement balance and failure without transcript publication.
 `codegen::native_emit::output_profile::tests` locks the old runtime selections;
 `hir::workspace_link::stdin_stream::tests` locks owned-only String boundaries
-and refuses forged borrowed or escaping-view signatures. These are authored
-local gates, not hosted or current production evidence.
+and refuses forged borrowed or escaping-view signatures. All six selected unit
+checks and both owning native integration checks passed locally. The native
+helper table anchors optional stream operations so Open/EOF-only and
+Open/Next/EOF-without-Chunk programs compile under `-Werror`. This is local
+evidence, not hosted or production promotion.

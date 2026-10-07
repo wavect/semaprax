@@ -13,6 +13,7 @@ fn keep(text: string) -> string { text }
 fn clone_text(text: borrow str) -> string { string_from_str(text) }
 @id("stream.command")
 fn command() -> i64 uses { process.args.read, process.stdin.read, process.stdout.write } {
+    let map_count = { let mut values = map_new(1usize); values = map_set(values, "count", 3); map_get_or(values, "count", 0) };
     let mut reader = stdin_stream_open();
     let mut total = 0;
     while !stdin_stream_eof(reader) {
@@ -28,7 +29,7 @@ fn command() -> i64 uses { process.args.read, process.stdin.read, process.stdout
     let output = keep("é\u{0}");
     let view = string_as_str(output);
     let written = stdout_write(str_as_bytes(view));
-    if total == 3 { 0 } else { 1 }
+    if total == map_count { 0 } else { 1 }
 }
 @id("app.main") fn main() -> i64 { 0 }
 "#;

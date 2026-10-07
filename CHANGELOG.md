@@ -95,9 +95,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
-- Authored Project v25 `language-command-io.stream-text.v1`: existing streaming
-  input and i64 process result with length-delimited native text operations and
-  private owned String helper boundaries; central gates pending.
+- Add Project v25 `language-command-io.stream-text.v1`: existing streaming
+  input and i64 process result with length-delimited native text/local maps and
+  private owned String helper boundaries. Focused native O0/O2, manifest,
+  boundary/refusal, allocation and provider-settlement checks pass locally.
+  Anchor optional native stream helpers so valid operation subsets build under
+  `-Werror`.
 
 - Admit `string_len(namedString)` in while conditions without cloning the owner, preserving fuel and cleanup across interpreter, native C11, and admitted Core Wasm profiles. Allocating String conditions remain outside this narrow profile.
 

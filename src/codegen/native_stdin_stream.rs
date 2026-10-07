@@ -25,7 +25,12 @@ pub(super) fn emit_command_helper_table(output: &mut impl COutput) {
     (void)&spx_host_args_len_v1;
     (void)&spx_host_arg_utf8_v1;
     (void)&spx_host_stdin_read_v1;
+    (void)&spx_host_stdin_stream_open_v1;
+    (void)&spx_host_stdin_stream_next_v1;
+    (void)&spx_stdin_stream_move_v1;
     (void)&spx_stdin_stream_chunk_v1;
+    (void)&spx_stdin_stream_eof_v1;
+    (void)&spx_stdin_stream_drop_v1;
 }
 
 "#,

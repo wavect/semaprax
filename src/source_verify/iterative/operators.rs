@@ -292,6 +292,36 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 ));
             }
         }
+        // Empty blocks containing only a scalar literal cannot inspect or
+        // mutate any binding. Check both literal values normally, but avoid
+        // copying and joining the complete environment for this identity case.
+        let literal_tail = |branch: &'p Expr| match &branch.kind {
+            ExprKind::Block { statements, tail }
+                if statements.is_empty()
+                    && matches!(tail.kind, ExprKind::Int(_) | ExprKind::Bool(_)) =>
+            {
+                Some(tail.as_ref())
+            }
+            _ => None,
+        };
+        if let (Some(then_tail), Some(else_tail)) =
+            (literal_tail(then_branch), literal_tail(else_branch))
+        {
+            self.frames.push(VerifierFrame::ResumeLiteralIf {
+                expression,
+                then_branch,
+                else_branch,
+            });
+            self.frames.push(VerifierFrame::Enter {
+                expression: else_tail,
+                scope,
+            });
+            self.frames.push(VerifierFrame::Enter {
+                expression: then_tail,
+                scope,
+            });
+            return Ok(());
+        }
         let baseline_names = self.scopes[scope]
             .bindings
             .keys()
@@ -409,6 +439,18 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 }
             }
         }
+        self.finish_if_values(expression, then_branch, else_branch, then_value, else_value);
+        Ok(())
+    }
+
+    pub(super) fn finish_if_values(
+        &mut self,
+        expression: &Expr,
+        then_branch: &Expr,
+        else_branch: &Expr,
+        then_value: Option<CheckedValue>,
+        else_value: Option<CheckedValue>,
+    ) {
         let output = match (then_value, else_value) {
             (Some(then_value), Some(else_value)) => {
                 if then_value.native_unit || else_value.native_unit {
@@ -448,6 +490,5 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             _ => None,
         };
         self.values.push(output);
-        Ok(())
     }
 }

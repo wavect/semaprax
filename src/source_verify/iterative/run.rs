@@ -87,6 +87,21 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     else_branch,
                     scope,
                 } => self.frame_resume_if_condition(expression, then_branch, else_branch, scope)?,
+                VerifierFrame::ResumeLiteralIf {
+                    expression,
+                    then_branch,
+                    else_branch,
+                } => {
+                    let else_value = self.values.pop().unwrap_or(None);
+                    let then_value = self.values.pop().unwrap_or(None);
+                    self.finish_if_values(
+                        expression,
+                        then_branch,
+                        else_branch,
+                        then_value,
+                        else_value,
+                    );
+                }
                 VerifierFrame::ResumeIfThen {
                     expression,
                     else_branch,

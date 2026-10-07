@@ -1,5 +1,10 @@
 # Changelog
 
+- Source checking: avoid environment copies and identity ownership joins for
+  empty `if` branches containing integer or boolean literals. Condition and
+  both branch values still receive ordinary type checks; statementful and
+  ownership-changing branches retain the full join.
+
 - Native String joins: replay the exact nested `if`-to-variant-match handoff,
   preserving branch transfers and ownership liveness. Focused branch-result
   regressions cover statementful tails and nested scalar/variant match arms.

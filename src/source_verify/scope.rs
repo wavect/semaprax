@@ -60,6 +60,11 @@ pub(super) enum VerifierFrame<'a> {
         then_scope: usize,
         baseline_names: Vec<String>,
     },
+    ResumeLiteralIf {
+        expression: &'a Expr,
+        then_branch: &'a Expr,
+        else_branch: &'a Expr,
+    },
     ResumeIfElse {
         expression: &'a Expr,
         then_branch: &'a Expr,

@@ -131,6 +131,68 @@ fn command_available(command: &str) -> bool {
     Command::new(command).arg("--version").output().is_ok()
 }
 
+#[test]
+fn literal_if_values_verify_in_a_large_scope_without_changing_owners() {
+    let mut source = String::from(
+        "module test.literal_ifs;\n@id(\"main\")\nfn main() -> i64 {\nlet text = \"still live\";\n",
+    );
+    for index in 0..1000 {
+        source.push_str(&format!("let n{index} = if true {{ 1 }} else {{ 2 }};\n"));
+    }
+    source.push_str("string_len(text)\n}\n");
+    let program = parse(&source, Path::new("literal-ifs.spx")).unwrap();
+    assert!(verify::verify(&program).is_empty());
+    let canonical = format::canonical(&program);
+    let round = parse(&canonical, Path::new("literal-ifs.spx")).unwrap();
+    assert!(verify::verify(&round).is_empty());
+    assert_eq!(graph::revision(&program), graph::revision(&round));
+}
+
+#[test]
+fn literal_if_keeps_condition_and_branch_type_diagnostic_locations() {
+    for (body, code) in [
+        ("if 1 { 1 } else { 2 }", "SPX-T210"),
+        ("if true { 1 } else { false }", "SPX-T211"),
+    ] {
+        let source = format!(
+            "module test.literal_if_error;\n@id(\"main\")\nfn main() -> i64 {{ {body} }}\n"
+        );
+        let path = Path::new("literal-if-error.spx");
+        let program = parse(&source, path).unwrap();
+        let semaprax::ast::ExprKind::Block { tail, .. } = &program.functions[0].body.kind else {
+            panic!("function body must be a block");
+        };
+        let semaprax::ast::ExprKind::If { condition, .. } = &tail.kind else {
+            panic!("tail must be an if");
+        };
+        let diagnostics = verify::verify(&program);
+        assert_eq!(diagnostics.len(), 1, "{diagnostics:?}");
+        assert_eq!(diagnostics[0].code, code);
+        assert_eq!(diagnostics[0].path.as_deref(), path.to_str());
+        assert_eq!(
+            diagnostics[0].span,
+            Some(if code == "SPX-T210" {
+                condition.span
+            } else {
+                tail.span
+            })
+        );
+    }
+}
+
+#[test]
+fn statementful_literal_tail_branches_still_join_owner_availability() {
+    let source = "module test.branch_owner; @id(\"main\") fn main() -> i64 { let text = \"x\"; let selected = if true { let consumed = string_concat(text, \"y\"); 1 } else { 2 }; string_len(text) }\n";
+    let program = parse(source, Path::new("branch-owner.spx")).unwrap();
+    let diagnostics = verify::verify(&program);
+    assert_eq!(diagnostics.len(), 1, "{diagnostics:?}");
+    assert_eq!(diagnostics[0].code, "SPX-O107");
+    assert_eq!(diagnostics[0].path.as_deref(), Some("branch-owner.spx"));
+    let start = source.rfind("text").unwrap();
+    let span = diagnostics[0].span.unwrap();
+    assert_eq!((span.start, span.end), (start, start + 4));
+}
+
 fn write_source(stem: &str, source: &str) -> std::path::PathBuf {
     let directory = std::env::temp_dir().join(format!(
         "semaprax-statement-if-{}-{stem}-{}",

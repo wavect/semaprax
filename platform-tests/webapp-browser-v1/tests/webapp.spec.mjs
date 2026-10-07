@@ -88,7 +88,7 @@ test("sign in, create and advance a task, filter its list, and export CSV", asyn
   await page.getByLabel("estimate").fill("8");
   await page.getByLabel("spent").fill("1");
   await page.getByRole("button", { name: "Create" }).click();
-  await expect(page.getByRole("heading", { name: "Task 1" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Task Browser smoke task" })).toBeVisible();
 
   await page.getByRole("link", { name: "Edit" }).click();
   await page.getByLabel("status").selectOption("Doing");

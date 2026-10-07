@@ -628,6 +628,15 @@ fn command_line_program_counts_words_in_key_order() {
     assert_eq!(format::canonical(&program), COMMAND);
     let mut fixture = Fixture::new(COMMAND);
     fixture.write("words.txt", "pear\napple\n\n pear \nZoo\napple\npear\n");
+    if cfg!(windows) {
+        // The scoped host filesystem provider is Unix-only (the CLI passes
+        // no provider off Unix), so file reading fails closed on Windows.
+        let (code, stdout, stderr) = run(&fixture, false, &["--", "words.txt"]);
+        assert_eq!((code, stdout.as_str()), (1, ""), "{stderr}");
+        assert!(stderr.contains("file access denied"), "{stderr}");
+        fixture.cleanup();
+        return;
+    }
     let lanes: &[bool] = if command_available("clang") {
         &[false, true]
     } else {

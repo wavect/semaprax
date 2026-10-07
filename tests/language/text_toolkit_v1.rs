@@ -455,6 +455,15 @@ fn command_line_programs_receive_arguments_files_and_exit_status() {
     fixture.write("numbers.txt", "1\n 20 \nx\n300\n");
     fixture.write("negative.txt", "-5\n");
     fixture.write("binary.txt", [0xffu8, b'\n']);
+    if cfg!(windows) {
+        // The scoped host filesystem provider is Unix-only (the CLI passes
+        // no provider off Unix), so file reading fails closed on Windows.
+        let (code, stdout, stderr) = run(&fixture, false, &["--", "numbers.txt"]);
+        assert_eq!((code, stdout.as_str()), (1, ""), "{stderr}");
+        assert!(stderr.contains("file access denied"), "{stderr}");
+        fixture.cleanup();
+        return;
+    }
     let native_lane = command_available("clang");
     let lanes: &[bool] = if native_lane {
         &[false, true]

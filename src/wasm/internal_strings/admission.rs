@@ -214,7 +214,7 @@ fn prepare_profile(
                 return Err(error("general Copy variant guards require the explicit general-loop-match-v1 profile"));
             }
             match &expression.kind {
-                ResolvedExprKind::Float64(_) | ResolvedExprKind::Float32(_) | ResolvedExprKind::Int32(_) if toolkit => {}
+                ResolvedExprKind::Float64(_) | ResolvedExprKind::Float32(_) | ResolvedExprKind::Int32(_) if toolkit || general_guards => {}
                 ResolvedExprKind::Int(_)
                 | ResolvedExprKind::Bool(_)
                 | ResolvedExprKind::Char(_)

@@ -315,6 +315,13 @@ fn guarded_variant_hir_and_cleanup_edges_fail_closed() {
         edge.condition,
         semaprax::cleanup_plan::EdgeCondition::BooleanResult(_, false)
     )));
+    let foreign_value = resolved
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "guards.lazy")
+        .unwrap()
+        .result_id
+        .clone();
     for mutation in 0..4 {
         let mut hostile = resolved.clone();
         let function = hostile
@@ -338,7 +345,7 @@ fn guarded_variant_hir_and_cleanup_edges_fail_closed() {
             3 => {
                 let guard = arms[0].guard.as_mut().unwrap();
                 guard.kind = hir::ResolvedExprKind::Place(hir::Place {
-                    root: hir::ValueId::local(&function.id, "foreign"),
+                    root: foreign_value.clone(),
                     projections: Vec::new(),
                 });
             }

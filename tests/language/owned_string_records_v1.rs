@@ -296,3 +296,61 @@ for(let i=0;i<8;i++) if(instance.exports.semaprax_main()!==40n) throw Error('Str
     std::fs::remove_dir(root).unwrap();
     fixture.cleanup();
 }
+
+#[test]
+fn aggregate_wasm_string_compare_uses_unsigned_utf8_bytes_and_settles_clones() {
+    let source = r#"module test.wasm_string_order;
+@id("marker") record Marker { @id("marker.code") code: i64, }
+@id("app.main") fn main() -> i64 {
+    let marker = Marker { code: 0 };
+    let a = "a\0";
+    let b = "a";
+    let unicode = "é";
+    let ascii = "z";
+    let empty = "";
+    marker.code + if string_compare(a, b) == 1 { 1 } else { 100 }
+        + if string_compare(unicode, ascii) == 1 { 1 } else { 100 }
+        + if string_compare("a", "b") == -1 { 1 } else { 100 }
+        + if string_compare(empty, "") == 0 { 1 } else { 100 }
+}
+"#;
+    let parsed = parse(source, Path::new("wasm-string-order.spx")).unwrap();
+    assert!(verify::verify(&parsed).is_empty());
+    let fixture = Fixture::new(source);
+    let root = fixture.root.join("web");
+    wasm::build_web(&parsed, &root).unwrap();
+    std::fs::write(root.join("probe.mjs"), r#"import {readFile} from 'node:fs/promises';
+import {instantiateBytes} from './semaprax.js';
+const bytes=await readFile('./app.wasm');
+const module=await WebAssembly.compile(bytes);
+const imports=WebAssembly.Module.imports(module);
+if(imports.filter(entry=>entry.name==='spx_string_compare_v2').length!==1) throw Error('comparison must select one optional import');
+const {instance}=await instantiateBytes(bytes,{maxOwnedByteEntries:16});
+for(let i=0;i<8;i++) if(instance.exports.semaprax_main()!==4n) throw Error('bytewise String ordering or settlement changed');
+"#).unwrap();
+    let output = Command::new("node")
+        .arg(root.join("probe.mjs"))
+        .current_dir(&root)
+        .output()
+        .expect("Node is required for the aggregate String comparator gate");
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(output.stdout.is_empty());
+    let names = [
+        "app.wasm",
+        "semaprax.js",
+        "index.html",
+        "package.json",
+        "semaprax.manifest.json",
+        "probe.mjs",
+    ];
+    assert_eq!(std::fs::read_dir(&root).unwrap().count(), names.len());
+    for name in names {
+        std::fs::remove_file(root.join(name)).unwrap();
+    }
+    std::fs::remove_dir(root).unwrap();
+    fixture.cleanup();
+}

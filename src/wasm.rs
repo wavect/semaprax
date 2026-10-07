@@ -973,7 +973,7 @@ fn emit_resolved_module_internal(
     scalar_exports: &[scalar_exports::ScalarExportPlan],
     text_exports: &[text_exports::TextExportPlan],
 ) -> Result<Vec<u8>, Diagnostic> {
-    crate::string_ops::refuse_collections_for_wasm(program)?;
+    aggregate::string_runtime::refuse_unimplemented_collections(program)?;
     let has_public_profile = !scalar_exports.is_empty() || !text_exports.is_empty();
     if crate::list_ops::resolved_program_uses_list(program) {
         return aggregate::list_ops::emit_closed_list(program, has_public_profile);

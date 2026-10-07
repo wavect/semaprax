@@ -66,7 +66,7 @@ use crate::variant_layout::{VariantLayout, VariantLayoutCache, VariantTarget};
 
 mod box_ops;
 mod scalar_shape;
-mod string_runtime;
+pub(super) mod string_runtime;
 mod variant_equality;
 mod vec_owned_payload;
 mod vec_record_payload;
@@ -1457,7 +1457,7 @@ fn emit_byte_exports_profile(
     command_io: Option<&super::command_io::CommandPlan>,
     owned_plans: &[super::owned_data_exports::OwnedDataExportPlan],
 ) -> Result<Vec<u8>, Diagnostic> {
-    crate::string_ops::refuse_collections_for_wasm(program)?;
+    string_runtime::refuse_unimplemented_collections(program)?;
     let uses_owned_buffer = program_uses_owned_buffer(program);
     let private_command = command_io
         .is_some_and(|plan| plan.is_filesystem_command() || plan.is_environment_command())
@@ -2244,7 +2244,7 @@ fn emit_profile_with_scalar_exports(
     host_output: bool,
     scalar_exports: &[super::scalar_exports::ScalarExportPlan],
 ) -> Result<Vec<u8>, Diagnostic> {
-    crate::string_ops::refuse_collections_for_wasm(program)?;
+    string_runtime::refuse_unimplemented_collections(program)?;
     let uses_string_runtime = string_runtime::program_uses_runtime(program);
     let uses_byte_data =
         super::program_uses_byte_data(program) || super::program_uses_strings(program);
@@ -2582,7 +2582,7 @@ fn emit_profile_with_scalar_exports(
                     }
                     + if uses_box { BOX_IMPORT_COUNT } else { 0 }
                     + if uses_string_runtime {
-                        string_runtime::IMPORT_COUNT
+                        string_runtime::import_count(program)
                     } else {
                         0
                     }
@@ -2630,7 +2630,7 @@ fn emit_profile_with_scalar_exports(
             }
             + if uses_box { BOX_IMPORT_COUNT } else { 0 }
             + if uses_string_runtime {
-                string_runtime::IMPORT_COUNT
+                string_runtime::import_count(program)
             } else {
                 0
             },
@@ -2699,6 +2699,7 @@ fn emit_profile_with_scalar_exports(
             unary_checked,
             string_from_char.expect("String runtime from-char type"),
             string_text_binary.expect("String runtime text comparison type"),
+            string_runtime::program_uses_ordering(program),
         );
         let base = SCALAR_IMPORT_COUNT
             + if uses_byte_data { BYTE_IMPORT_COUNT } else { 0 }
@@ -2725,7 +2726,11 @@ fn emit_profile_with_scalar_exports(
                 0
             }
             + if uses_box { BOX_IMPORT_COUNT } else { 0 };
-        string_runtime::insert_function_indexes(&mut function_indexes, base);
+        string_runtime::insert_function_indexes(
+            &mut function_indexes,
+            base,
+            string_runtime::program_uses_ordering(program),
+        );
     }
     section(&mut module, 2, imports);
 
@@ -2870,7 +2875,7 @@ fn emit_profile_with_scalar_exports(
         .and_then(|value| value.checked_add(if uses_box { BOX_IMPORT_COUNT } else { 0 }))
         .and_then(|value| {
             value.checked_add(if uses_string_runtime {
-                string_runtime::IMPORT_COUNT
+                string_runtime::import_count(program)
             } else {
                 0
             })

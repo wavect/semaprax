@@ -356,6 +356,14 @@ function createByteDataRuntime(options = {}) {
     spx_string_from_usize_v1: value => textNumber(value, true),
     spx_string_starts_with_v1: (value, prefix) => beginsWith(stringBytes(value), stringBytes(prefix)),
     spx_string_contains_v1: (value, needle) => contains(stringBytes(value), stringBytes(needle)),
+    spx_string_compare_v2: (left, right) => {
+      const a = stringBytes(left), b = stringBytes(right);
+      const bound = Math.min(a.byteLength, b.byteLength);
+      for (let index = 0; index < bound; index++) {
+        if (a[index] !== b[index]) return a[index] < b[index] ? -1n : 1n;
+      }
+      return a.byteLength === b.byteLength ? 0n : a.byteLength < b.byteLength ? -1n : 1n;
+    },
   });
   return Object.freeze({
     imports: byteImports,

@@ -14,6 +14,69 @@ pub(super) const FROM_I64: u32 = 3;
 pub(super) const FROM_USIZE: u32 = 4;
 pub(super) const STARTS_WITH: u32 = 5;
 pub(super) const CONTAINS: u32 = 6;
+pub(super) const COMPARE: u32 = 7;
+
+pub(super) fn import_count(program: &ResolvedProgram) -> u32 {
+    IMPORT_COUNT + u32::from(program_uses_ordering(program))
+}
+
+pub(super) fn program_uses_ordering(program: &ResolvedProgram) -> bool {
+    let mut pending = Vec::new();
+    for function in program.functions.iter().chain(
+        program
+            .function_instances
+            .iter()
+            .map(|instance| &instance.function),
+    ) {
+        pending.push(&function.body);
+        pending.extend(function.requires.iter().chain(&function.ensures));
+    }
+    while let Some(expression) = pending.pop() {
+        if matches!(&expression.kind, ResolvedExprKind::Call { callee, .. } if callee.as_str() == crate::string_ops::COMPARE_ID)
+            || matches!(&expression.kind, ResolvedExprKind::Binary { op: BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge, left, .. } if left.ty == ResolvedType::String)
+        {
+            return true;
+        }
+        crate::hir::push_resolved_expression_children_in_authored_order(expression, &mut pending);
+    }
+    false
+}
+
+/// The additive aggregate runtime admits comparison; frozen standalone
+/// selectors retain the original refusal walk until their explicit profile
+/// opts into a different import contract.
+pub(in crate::wasm) fn refuse_unimplemented_collections(
+    program: &ResolvedProgram,
+) -> Result<(), Diagnostic> {
+    let mut pending = Vec::new();
+    for function in program.functions.iter().chain(
+        program
+            .function_instances
+            .iter()
+            .map(|instance| &instance.function),
+    ) {
+        pending.push(&function.body);
+        pending.extend(function.requires.iter().chain(&function.ensures));
+    }
+    pending.reverse();
+    while let Some(expression) = pending.pop() {
+        if let ResolvedExprKind::Call { callee, .. } = &expression.kind {
+            if let Some(operation) = crate::string_ops::by_id(callee.as_str()).filter(|operation| {
+                (operation.is_collection() && *operation != crate::string_ops::StringOp::Compare)
+                    || operation.is_conversion()
+            }) {
+                return Err(crate::string_ops::text_toolkit_wasm_refusal(operation));
+            }
+        }
+        if expression.ty == ResolvedType::StringMap {
+            return Err(crate::string_ops::text_toolkit_wasm_refusal(
+                crate::string_ops::StringOp::MapNew,
+            ));
+        }
+        crate::hir::push_resolved_expression_children_in_authored_order(expression, &mut pending);
+    }
+    Ok(())
+}
 
 pub(super) fn requires_runtime(operation: crate::string_ops::StringOp) -> bool {
     matches!(
@@ -25,6 +88,7 @@ pub(super) fn requires_runtime(operation: crate::string_ops::StringOp) -> bool {
             | crate::string_ops::StringOp::FromUsize
             | crate::string_ops::StringOp::StartsWith
             | crate::string_ops::StringOp::Contains
+            | crate::string_ops::StringOp::Compare
     )
 }
 
@@ -54,7 +118,16 @@ fn expression_uses_runtime(expression: &ResolvedExpr) -> bool {
             }
         }
         if let ResolvedExprKind::Binary { op, left, .. } = &expression.kind {
-            if matches!(op, BinaryOp::Eq | BinaryOp::Ne) && left.ty == ResolvedType::String {
+            if matches!(
+                op,
+                BinaryOp::Eq
+                    | BinaryOp::Ne
+                    | BinaryOp::Lt
+                    | BinaryOp::Le
+                    | BinaryOp::Gt
+                    | BinaryOp::Ge
+            ) && left.ty == ResolvedType::String
+            {
                 return true;
             }
         }
@@ -72,6 +145,7 @@ pub(super) fn import_name(offset: u32) -> Option<&'static str> {
         FROM_USIZE => Some("spx_string_from_usize_v1"),
         STARTS_WITH => Some("spx_string_starts_with_v1"),
         CONTAINS => Some("spx_string_contains_v1"),
+        COMPARE => Some("spx_string_compare_v2"),
         _ => None,
     }
 }
@@ -85,6 +159,7 @@ pub(super) fn import_offset(operation: crate::string_ops::StringOp) -> Option<u3
         crate::string_ops::StringOp::FromUsize => Some(FROM_USIZE),
         crate::string_ops::StringOp::StartsWith => Some(STARTS_WITH),
         crate::string_ops::StringOp::Contains => Some(CONTAINS),
+        crate::string_ops::StringOp::Compare => Some(COMPARE),
         _ => None,
     }
 }
@@ -95,11 +170,12 @@ pub(super) fn emit_imports(
     unary: u32,
     from_char: u32,
     text_binary: u32,
+    compare: bool,
 ) {
-    for offset in 0..IMPORT_COUNT {
+    for offset in 0..(IMPORT_COUNT + u32::from(compare)) {
         let ty = if offset == FROM_CHAR {
             from_char
-        } else if offset == CONCAT {
+        } else if offset == CONCAT || offset == COMPARE {
             binary
         } else if offset == STARTS_WITH || offset == CONTAINS {
             text_binary
@@ -115,9 +191,19 @@ pub(super) fn emit_imports(
     }
 }
 
-pub(super) fn insert_function_indexes(indexes: &mut HashMap<FunctionExecutionId, u32>, base: u32) {
-    for operation in crate::string_ops::StringOp::ALL {
+pub(super) fn insert_function_indexes(
+    indexes: &mut HashMap<FunctionExecutionId, u32>,
+    base: u32,
+    compare: bool,
+) {
+    for operation in crate::string_ops::StringOp::ALL
+        .into_iter()
+        .chain(compare.then_some(crate::string_ops::StringOp::Compare))
+    {
         if let Some(offset) = import_offset(operation) {
+            if offset == COMPARE && !compare {
+                continue;
+            }
             indexes.insert(
                 FunctionExecutionId::Monomorphic(DeclarationId::new(operation.id())),
                 base + offset,
@@ -127,6 +213,48 @@ pub(super) fn insert_function_indexes(indexes: &mut HashMap<FunctionExecutionId,
 }
 
 impl Emitter<'_> {
+    pub(super) fn emit_aggregate_string_ordering(
+        &mut self,
+        op: BinaryOp,
+        left: &Value,
+        right: &Value,
+        destination: u32,
+    ) -> Result<(), Diagnostic> {
+        require_type(value_type(left), &ResolvedType::String, "String ordering")?;
+        require_type(value_type(right), &ResolvedType::String, "String ordering")?;
+        if self.standalone_strings {
+            return Err(error(
+                "String ordering requires the additive toolkit profile",
+            ));
+        }
+        let runtime = self
+            .function_indexes
+            .get(&FunctionExecutionId::Monomorphic(DeclarationId::new(
+                crate::string_ops::COMPARE_ID,
+            )))
+            .copied()
+            .ok_or_else(|| error("aggregate String comparison import is not indexed"))?;
+        self.get_scalar(left);
+        self.get_scalar(right);
+        self.output.push(0x10);
+        write_u32(self.output, runtime);
+        self.output.extend([0x42, 0x00]);
+        self.output.push(match op {
+            BinaryOp::Lt => 0x53,
+            BinaryOp::Le => 0x57,
+            BinaryOp::Gt => 0x55,
+            BinaryOp::Ge => 0x59,
+            _ => {
+                return Err(error(
+                    "String ordering helper received a non-ordering operator",
+                ))
+            }
+        });
+        self.output.push(0x21);
+        write_u32(self.output, destination);
+        Ok(())
+    }
+
     pub(super) fn emit_aggregate_string_equality(
         &mut self,
         op: BinaryOp,
@@ -170,7 +298,7 @@ impl Emitter<'_> {
         args: &[ResolvedExpr],
     ) -> Result<Value, Diagnostic> {
         use crate::string_ops::StringOp;
-        if operation.is_wasm_refused() {
+        if operation.is_wasm_refused() && operation != StringOp::Compare {
             return Err(crate::string_ops::text_toolkit_wasm_refusal(operation));
         }
         if args.len() != operation.arity() {
@@ -245,7 +373,8 @@ impl Emitter<'_> {
             | StringOp::LenChars
             | StringOp::FromChar
             | StringOp::FromI64
-            | StringOp::FromUsize => {
+            | StringOp::FromUsize
+            | StringOp::Compare => {
                 for value in &values {
                     self.get_scalar(value);
                 }
@@ -280,5 +409,41 @@ impl Emitter<'_> {
             local: destination,
             ty: expr.ty.clone(),
         })
+    }
+}
+
+#[cfg(test)]
+mod ordering_selection_tests {
+    use super::*;
+    use std::path::Path;
+
+    fn resolved(body: &str) -> ResolvedProgram {
+        let source = format!("module test.string_import_selection;\n@id(\"app.main\") fn main() -> i64 {{ {body} }}\n");
+        let source = crate::parse(&source, Path::new("selection.spx")).unwrap();
+        crate::hir::resolve(&source).unwrap()
+    }
+
+    #[test]
+    fn comparison_is_additive_to_the_frozen_seven_import_group() {
+        let old = resolved("string_len(string_concat(\"a\", \"b\"))");
+        assert_eq!(import_count(&old), IMPORT_COUNT);
+        assert!(!program_uses_ordering(&old));
+        let mut indexes = HashMap::new();
+        insert_function_indexes(&mut indexes, 31, false);
+        assert!(
+            !indexes.contains_key(&FunctionExecutionId::Monomorphic(DeclarationId::new(
+                crate::string_ops::COMPARE_ID
+            )))
+        );
+        let ordering = resolved("string_compare(\"a\\0\", \"a\")");
+        assert_eq!(import_count(&ordering), IMPORT_COUNT + 1);
+        assert!(program_uses_ordering(&ordering));
+        insert_function_indexes(&mut indexes, 31, true);
+        assert_eq!(
+            indexes[&FunctionExecutionId::Monomorphic(DeclarationId::new(
+                crate::string_ops::COMPARE_ID
+            ))],
+            31 + COMPARE
+        );
     }
 }

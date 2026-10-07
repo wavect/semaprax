@@ -3,6 +3,8 @@
 //! Mirrors the iterative verifier so tests can cross-check the frame machine
 //! against a direct recursive reading of the same rules.
 
+mod intrinsic_calls;
+
 use self::calls::{oracle_call, oracle_method_call};
 use self::matching::oracle_match;
 use self::while_oracle::{check_while_statement, reject_while_disallowed_oracle};

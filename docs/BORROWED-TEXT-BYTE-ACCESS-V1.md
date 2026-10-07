@@ -1,6 +1,6 @@
 # Borrowed Text Byte Access v1
 
-Status: authored bounded addition; central executable gates are pending.
+Status: implemented bounded addition with focused local executable evidence.
 
 Audience: language users, agents, and compiler contributors.
 
@@ -74,5 +74,5 @@ and frozen public-text refusal. `language::byte_widening` runs both direct and
 byte-view spellings on identical Unicode/NUL/empty/full-width inputs through
 interpreter, native O0/O2 and Node Wasm, with exact input allocation/drop balance
 and direct loop execution. The source-verifier recursive oracle has its own
-`borrowed_text_byte_at_matches_recursive_oracle` unit control. These pending
-local gates are not hosted evidence or promotion of a broader text profile.
+`borrowed_text_byte_at_matches_recursive_oracle` unit control. These focused
+local gates pass; they are not hosted evidence or promotion of a broader text profile.

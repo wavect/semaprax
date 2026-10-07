@@ -84,7 +84,7 @@ fn borrowed_text_byte_at_preserves_source_and_hir_refusals() {
         ("str_byte_at(\"owned\", 0usize)", "SPX-T205"),
         ("str_byte_at<u8>(text, 0usize)", "SPX-T225"),
     ] {
-        let source=format!("module t; @id(\"t.read\") fn read(text:borrow str)->Option<u8> {{ {body} }} @id(\"app.main\") fn main()->i64 {{ 0 }}");
+        let source=format!("module t; @id(\"t.read\") fn read(text:borrow str)->i64 {{ let ignored = {body}; 0 }} @id(\"app.main\") fn main()->i64 {{ 0 }}");
         let ast = parse(&source, Path::new("invalid.spx")).unwrap();
         assert!(verify::verify(&ast)
             .iter()
@@ -98,7 +98,7 @@ fn borrowed_text_byte_at_preserves_source_and_hir_refusals() {
     assert!(verify::verify(&ast)
         .iter()
         .any(|diagnostic| diagnostic.code == "SPX-S113"));
-    let source="module t; @id(\"t.read\") fn read(text:borrow str,index:usize)->Option<u8> { str_byte_at(text,index) } @id(\"app.main\") fn main()->i64 { 0 }";
+    let source="module t; @id(\"t.read\") fn read(text:borrow str,index:usize)->i64 { let ignored = str_byte_at(text,index); 0 } @id(\"app.main\") fn main()->i64 { 0 }";
     let ast = parse(source, Path::new("hostile.spx")).unwrap();
     for forged in 0..3 {
         let mut program = hir::resolve(&ast).unwrap();
@@ -107,14 +107,17 @@ fn borrowed_text_byte_at_preserves_source_and_hir_refusals() {
             .iter_mut()
             .find(|function| function.id.as_str() == "t.read")
             .unwrap();
-        let hir::ResolvedExprKind::Block { tail, .. } = &mut read.body.kind else {
+        let hir::ResolvedExprKind::Block { statements, .. } = &mut read.body.kind else {
             panic!("block")
+        };
+        let hir::ResolvedStatement::Let { value, .. } = &mut statements[0] else {
+            panic!("read result binding")
         };
         let hir::ResolvedExprKind::Call {
             args,
             type_arguments,
             ..
-        } = &mut tail.kind
+        } = &mut value.kind
         else {
             panic!("call")
         };

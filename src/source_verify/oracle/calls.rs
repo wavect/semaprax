@@ -514,6 +514,22 @@ pub(super) fn oracle_call(
             )
         });
     }
+    if crate::string_ops::by_name(name).is_some() || crate::str_ops::by_name(name).is_some() {
+        return super::intrinsic_calls::check_call(
+            name,
+            type_arguments,
+            args,
+            program,
+            current,
+            expr,
+            variables,
+            functions,
+            types,
+            result_type,
+            allow_moves,
+            diagnostics,
+        );
+    }
     let native_import = program
         .interfaces
         .iter()

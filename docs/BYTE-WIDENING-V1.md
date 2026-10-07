@@ -1,6 +1,6 @@
 # Byte Widening v1
 
-Status: authored bounded addition; central executable gates are pending.
+Status: implemented bounded addition with focused local executable evidence.
 
 Audience: language users, agent authors, and compiler contributors.
 
@@ -85,4 +85,4 @@ Existing Conversions v1 refusal and old internal String profile refusal are
 asserted independently; the explicit Copy profile executes the new operation.
 The `source_verify::iterative_verifier_tests::byte_widening_matches_recursive_oracle`
 unit gate preserves both verifier projections. No hosted evidence
-or completion of all #615 work is claimed by this document.
+or promotion of broader frozen text profiles is claimed by this document.

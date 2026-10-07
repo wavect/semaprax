@@ -12,13 +12,13 @@
 - Borrowed Text Byte Access v1: add direct `str_byte_at(borrow str, usize)`
   with the existing total `Option<u8>` byte-read contract. Native and aggregate
   Wasm share byte-result lowering; borrowed input and full-width bounds remain
-  checked. Central verification is pending.
+  checked. Focused local backend and independent verifier gates pass.
 
 - Byte Widening v1: add exact, allocation-free `i64_from_u8` through the shared
   intrinsic signature and interpreter/native/Core Wasm lowering. The frozen
   Conversions v1 catalog remains separate; focused regressions cover all byte
-  values and the existing borrowed-text byte-view route. Central verification
-  of this addition is pending.
+  values and direct/byte-view borrowed-text reads. Focused local backend and
+  independent verifier gates pass.
 
 - Copy variant guard execution: evaluate nominal guards on the reference
   interpreter before selecting an arm, and provide the explicit additive

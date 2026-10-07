@@ -198,14 +198,17 @@ one JSON request on stdin, emit the exact report plus one newline on stdout,
 and produce the specified status-2 diagnostic for invalid requests. `test.sh`
 must run your own automated tests and fail nonzero on errors. The SEMAPRAX arm
 must use a native Project manifest and the compiler at `{semaprax_bin}` (also
-available as `$SEMAPRAX_BIN`), with the required stdin capability. The
-TypeScript arm must use Node from `PATH` and provide the same stdin interface.
+available as `$SEMAPRAX_BIN`), with Project profile `language-command-io.stream.v1`
+and input `argv-utf8+stdin-stream.v1`. Its streaming operations are documented
+by `$SEMAPRAX_BIN help language`. The TypeScript arm must use Node from `PATH`
+and provide the same stdin interface. Built-in language/compiler/runtime help
+is available to either arm.
 The specification explicitly has no raw-input byte limit for JSON whitespace;
 the hidden acceptance corpus includes a valid request over 65,536 bytes due to
 leading whitespace.
 
 Do not access material outside the public specification and your candidate
-directory. Finish by listing files written and stating whether the implementation
+directory, except built-in language/compiler/runtime help. Finish by listing files written and stating whether the implementation
 is complete.
 """
 

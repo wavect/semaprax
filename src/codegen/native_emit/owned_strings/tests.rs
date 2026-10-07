@@ -232,6 +232,7 @@ fn length_aware_runtime_groups_do_not_grant_provider_carriers() {
             provider_carriers: true,
             include_instances: false,
             reserved_bytes: false,
+            stream_epochs: false,
             command_carriers: false,
         })
     );

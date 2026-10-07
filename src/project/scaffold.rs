@@ -109,15 +109,15 @@ pub const PROJECT_SCAFFOLD_SERVICE_INVENTORY: [&str; PROJECT_SCAFFOLD_SERVICE_FI
     "service.config.json",
     "service-host-adapter-request.json",
 ];
-pub const PROJECT_SCAFFOLD_STDIN_STREAM_TEXT_INVENTORY:
-    [&str; PROJECT_SCAFFOLD_STDIN_STREAM_TEXT_FILE_COUNT] = [
-        "README.md",
-        "AGENTS.md",
-        "semaprax.toml",
-        "src/app.spx",
-        "src/input.spx",
-        "src/tests.spx",
-    ];
+pub const PROJECT_SCAFFOLD_STDIN_STREAM_TEXT_INVENTORY: [&str;
+    PROJECT_SCAFFOLD_STDIN_STREAM_TEXT_FILE_COUNT] = [
+    "README.md",
+    "AGENTS.md",
+    "semaprax.toml",
+    "src/app.spx",
+    "src/input.spx",
+    "src/tests.spx",
+];
 
 /// The exact inventory of one built-in template.
 #[must_use]
@@ -278,9 +278,9 @@ const SERVICE_ADAPTER_REQUEST_FIXTURE: &str =
 const STDIN_STREAM_TEXT_GUIDE: &str = "\n## Streaming command\n\nThis project uses Project v25 profile `language-command-io.stream-text.v1` and\ninput `argv-utf8+stdin-stream.v1`. The manifest selects exactly one stable\n`command` export. Build it with `semaprax build --manifest-path semaprax.toml\n--target native --output app`, then run `./app`. `semaprax doctor --profile`\nreports compiler support; it does not select a Project command. `semaprax run .`\nruns the separate `main` entry. Web, Wasm, and npm targets are not admitted.\n\n`input.spx` opens one reusable 4096-byte reader. Process each borrowed chunk\ninside its block before calling `stdin_stream_next`; a short positive read is a\nchunk, and only a zero-length read is EOF. Its `normalize` helper demonstrates\na private owned-String call across modules.\n";
 const STDIN_STREAM_TEXT_README: &str = "# {{name}}\n\nA native command project that reads standard input incrementally.\n\n```sh\nsemaprax check .\nsemaprax test .\nsemaprax run .\nsemaprax build --manifest-path semaprax.toml --target native --output app\n```\n\nThe generated `command` is selected by the Project manifest. `semaprax run .`\nexecutes the ordinary `main`; run `./app` to execute the streaming command.\nWeb, Wasm, and npm targets are refused for this profile. Read `AGENTS.md` before\nediting the source.\n";
 const STDIN_STREAM_TEXT_MANIFEST: &str = "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"{{name}}\"\nversion = \"0.1.0\"\nprofile = \"language-command-io.stream-text.v1\"\n\n[modules]\nentry = \"{{module}}.app\"\nsources = [\"src/app.spx\", \"src/input.spx\", \"src/tests.spx\"]\ntests = [\"{{module}}.tests\"]\n\n[exports]\nweb = [\"{{name}}.command\"]\n\n[command]\nfunction = \"{{name}}.command\"\ninput = \"argv-utf8+stdin-stream.v1\"\n\n[capabilities]\nrequired = [\"process.args.read\", \"process.stderr.write\", \"process.stdin.read\", \"process.stdout.write\"]\n";
-const STDIN_STREAM_TEXT_APP: &str = "module {{module}}.app;\nuse function @id(\"{{name}}.read_stream\") from {{module}}.input as read_stream;\nuse function @id(\"{{name}}.normalize\") from {{module}}.input as normalize;\npermit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }\n\n@id(\"{{name}}.command\")\nfn command() -> i64 uses { process.stdin.read }\n{\n    let saw_chunk = read_stream();\n    let marker = normalize(\" ready \");\n    if string_len(marker) == 5usize { if saw_chunk { 0 } else { 1 } } else { 1 }\n}\n\n@id(\"{{name}}.app.main\")\nfn main() -> i64\n{\n    let marker = normalize(\" ready \");\n    if string_len(marker) == 5usize { 0 } else { 1 }\n}\n";
-const STDIN_STREAM_TEXT_INPUT: &str = "module {{module}}.input;\npermit { process.stdin.read }\n\n@id(\"{{name}}.read_stream\")\nfn read_stream() -> bool uses { process.stdin.read }\n{\n    let mut reader = stdin_stream_open();\n    let mut saw_chunk = false;\n    while !stdin_stream_eof(reader) {\n        let chunk_size = { let chunk = stdin_stream_chunk(reader); byte_len(chunk) };\n        if chunk_size > 0usize { saw_chunk = true; }\n        reader = stdin_stream_next(reader);\n        0\n    }\n    saw_chunk\n}\n\n@id(\"{{name}}.normalize\")\nfn normalize(text: string) -> string\n{\n    string_trim(text)\n}\n";
-const STDIN_STREAM_TEXT_TESTS: &str = "module {{module}}.tests;\nuse function @id(\"{{name}}.normalize\") from {{module}}.input as normalize;\n\n@id(\"{{name}}.tests.main\")\nfn main() -> i64\n{\n    let marker = normalize(\" ready \");\n    if string_len(marker) == 5usize { 0 } else { 1 }\n}\n";
+const STDIN_STREAM_TEXT_APP: &str = "module {{module}}.app;\nuse function @id(\"{{name}}.read_stream\") from {{module}}.input as read_stream;\nuse function @id(\"{{name}}.normalize\") from {{module}}.input as normalize;\n\npermit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }\n\n@id(\"{{name}}.command\")\nfn command() -> i64\n    uses { process.stdin.read }\n{\n    let saw_chunk = read_stream();\n    let marker = normalize(\" ready \");\n    if string_len(marker) == 5 { if saw_chunk { 0 } else { 1 } } else { 1 }\n}\n\n@id(\"{{name}}.app.main\")\nfn main() -> i64\n{\n    let marker = normalize(\" ready \");\n    if string_len(marker) == 5 { 0 } else { 1 }\n}\n";
+const STDIN_STREAM_TEXT_INPUT: &str = "module {{module}}.input;\n\npermit { process.stdin.read }\n\n@id(\"{{name}}.read_stream\")\nfn read_stream() -> bool\n    uses { process.stdin.read }\n{\n    let mut reader = stdin_stream_open();\n    let mut saw_chunk = false;\n    while !stdin_stream_eof(reader) {\n        let chunk_size = { let chunk = stdin_stream_chunk(reader); byte_len(chunk) };\n        saw_chunk = saw_chunk || chunk_size > 0usize;\n        reader = stdin_stream_next(reader);\n        0\n    }\n    saw_chunk\n}\n\n@id(\"{{name}}.normalize\")\nfn normalize(text: string) -> string\n{\n    string_trim(text)\n}\n";
+const STDIN_STREAM_TEXT_TESTS: &str = "module {{module}}.tests;\nuse function @id(\"{{name}}.normalize\") from {{module}}.input as normalize;\n\n@id(\"{{name}}.tests.main\")\nfn main() -> i64\n{\n    let marker = normalize(\" ready \");\n    if string_len(marker) == 5 { 0 } else { 1 }\n}\n";
 const SERVICE_CONFIGURATION_GUIDE: &str = "\n## Host configuration\n\n`service-config.schema.json` is the closed host-configuration contract and\n`service.config.json` is its credential-free fixture instance. Database, HTTP,\nand telemetry adapters are explicitly `fixture`; endpoints and secret\nreferences are absent. `service-host-adapter-request.json` is the compiler\nrendered, bounded handoff for that fixture and declares an empty capability\nset. A host-mode configuration renders the exact snapshot-store, TLS-serve,\nsecret-resolve, and either signed JSON-event or OTLP/HTTP JSON telemetry\nselection it needs. Only TLS serve, secret resolve, and telemetry emit require\nhost capabilities; the declaration gains none of them, and a separately\nvalidated host must provide and execute every adapter outside Semaprax source.\n";
 const NONCLAIMS: [&str; 4] = [
     "no_filesystem_or_publication_authority",

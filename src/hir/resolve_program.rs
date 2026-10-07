@@ -1107,6 +1107,7 @@ impl Resolver<'_> {
                         if resolved.len() != parameters.len()
                             || (!crate::iterator_ops::is_iter(&instance) && !crate::iterator_ops::is_step(&instance)
                                 && !admitted_vec
+                                && !crate::map_ops::is_typed_collection(&instance)
                                 && !admitted_box
 
                 && !admitted_owned_byte_prelude_instance(&declaration, &resolved)

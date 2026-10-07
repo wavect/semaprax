@@ -64,6 +64,7 @@ impl NativeBytesPlan {
                         crate::cleanup::BYTES_DROP_LIFECYCLE_ID => OwnedLeafKind::Bytes,
                         crate::cleanup::STRING_DROP_LIFECYCLE_ID => OwnedLeafKind::String,
                         crate::string_ops::MAP_DROP_LIFECYCLE_ID => OwnedLeafKind::Map,
+                        crate::map_ops::DROP_ID => OwnedLeafKind::Collection,
                         crate::cleanup::ITER_DROP_LIFECYCLE_ID => OwnedLeafKind::Iter,
                         crate::stdin_stream_ops::DROP_ID if place.projections.is_empty() => {
                             OwnedLeafKind::StdinReader

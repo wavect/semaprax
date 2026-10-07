@@ -95,7 +95,7 @@ fn collect_record_paths(
                 for field in layout.fields.iter().rev() {
                     let mut path = prefix.clone();
                     path.push(field.field.clone());
-                    if matches!(field.ty, ResolvedType::Bytes | ResolvedType::String) {
+                    if matches!(field.ty, ResolvedType::Bytes | ResolvedType::String) || crate::map_ops::is_collection(&field.ty) {
                         pending.push(Frame::Bytes(path));
                     } else if is_exact_record(program, &field.ty)? {
                         pending.push(Frame::Record(field.ty.clone(), path, depth + 1));
@@ -181,7 +181,7 @@ pub(super) fn emit_owned_record_shell(
                     let symbol = c_field_symbol(&field.field);
                     let destination = format!("({destination}).{symbol}");
                     let source = format!("({source}).{symbol}");
-                    if field.ty == ResolvedType::String {
+                    if field.ty == ResolvedType::String || crate::map_ops::is_collection(&field.ty) {
                         pending.push(Frame::String(destination));
                     } else if field.ty == ResolvedType::Bytes {
                         pending.push(Frame::Bytes(destination));

@@ -20,13 +20,20 @@ pub(super) fn check_call(
     allow_moves: bool,
     diagnostics: &mut Vec<Diagnostic>,
 ) -> Option<CheckedValue> {
-    let (params, result): (Vec<Param>, Type) = if let Some(op) = crate::string_ops::by_name(name) {
+    let typed = crate::map_ops::by_generic_name(name, type_arguments);
+    let (params, result): (Vec<Param>, Type) = if let Some(op) = typed {
+        let Some(signature) = op.ast_signature(type_arguments) else {
+            diagnostics.push(error(program, "SPX-T274", "typed collection requires admitted key/value type arguments", expression.span));
+            return None;
+        };
+        signature
+    } else if let Some(op) = crate::string_ops::by_name(name) {
         (crate::string_ops::ast_params(op), op.ast_return_type())
     } else {
         let op = crate::str_ops::by_name(name)?;
         (crate::str_ops::ast_params(op), op.ast_return_type())
     };
-    if !type_arguments.is_empty() {
+    if typed.is_none() && !type_arguments.is_empty() {
         diagnostics.push(error(
             program,
             "SPX-T225",

@@ -264,6 +264,16 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         }
                     }
                     VerifierCallTarget::Native(import)
+                } else if let Some(op) = crate::map_ops::by_generic_name(name, type_arguments) {
+                    let Some((params, return_type)) = op.ast_signature(type_arguments) else {
+                        return Err(error(self.program, "SPX-T274", "typed collection requires admitted key/value type arguments", expression.span));
+                    };
+                    if args.len() != params.len() {
+                        self.diagnostics.push(error(self.program, "SPX-T204", format!("`{name}` expects {} arguments, received {}", params.len(), args.len()), expression.span));
+                    }
+                    VerifierCallTarget::Ordinary(Some(VerifierFunctionSignature::Specialized {
+                        params, return_type, implicit_unique_ownership: false,
+                    }))
                 } else if let Some(op) = crate::string_ops::by_name(name) {
                     // Compiler-owned string operations verify through
                     // the ordinary monomorphic machinery with one
@@ -933,6 +943,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 fields,
                 ..
             } => {
+                if matches!(type_name.as_str(), "Map" | "Set") {
+                    return Err(error(self.program, "SPX-T274", "collections can only be created by map_new/set_new", expression.span));
+                }
                 if type_name == "Iter" {
                     return Err(error(
                         self.program,

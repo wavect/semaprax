@@ -145,10 +145,10 @@ impl Parser {
             parser
                 .error_previous(
                     "SPX-T274",
-                    format!("String Collections v1 admits only `Map<string, i64>`, not `{found}`"),
+                    format!("Map v2 requires string/i64/bool keys and scalar/String values, not `{found}`"),
                 )
                 .with_help(
-                    "write `Map<string, i64>`; other key and value types are not admitted yet",
+                    "write `Map<K, V>` with K string/i64/bool and V string or a scalar",
                 )
         };
         if !self.at(&TokenKind::Lt) {
@@ -162,6 +162,7 @@ impl Parser {
             name: "Map".to_owned(),
             arguments,
         };
+        if crate::map_ops::ast_collection(&found) {return Ok(found)}
         Err(refusal(self, found.to_string()))
     }
 

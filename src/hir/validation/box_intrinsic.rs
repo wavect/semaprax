@@ -4,8 +4,11 @@ pub(super) fn reject_reserved_identities(program: &ResolvedProgram) -> Result<()
     super::vec_intrinsic::reject_reserved_identities(program)?;
     crate::iterator_ops::validate_declarations(program)?;
     crate::list_ops::validate_declarations(program)?;
+    crate::map_ops::validate_declarations(program)?;
     for declaration in program.declarations.declarations() {
-        if crate::list_ops::by_id(declaration.id.as_str()).is_some()
+        if crate::map_ops::by_id(declaration.id.as_str()).is_some()
+            || crate::map_ops::by_name(&declaration.name).is_some()
+            || crate::list_ops::by_id(declaration.id.as_str()).is_some()
             || crate::list_ops::by_name(&declaration.name).is_some()
             || crate::iterator_ops::by_id(declaration.id.as_str()).is_some()
             || crate::iterator_ops::by_name(&declaration.name).is_some()
@@ -22,7 +25,9 @@ pub(super) fn reject_reserved_identities(program: &ResolvedProgram) -> Result<()
         reject_function(function)?;
     }
     for template in &program.function_templates {
-        if crate::list_ops::by_id(template.id.as_str()).is_some()
+        if crate::map_ops::by_id(template.id.as_str()).is_some()
+            || crate::map_ops::by_name(&template.name).is_some()
+            || crate::list_ops::by_id(template.id.as_str()).is_some()
             || crate::list_ops::by_name(&template.name).is_some()
             || crate::iterator_ops::by_id(template.id.as_str()).is_some()
             || crate::iterator_ops::by_name(&template.name).is_some()
@@ -50,7 +55,9 @@ pub(super) fn authenticate_owned_wrapper(
     )
 }
 fn reject_function(function: &ResolvedFunction) -> Result<(), Diagnostic> {
-    if crate::list_ops::by_id(function.id.as_str()).is_some()
+    if crate::map_ops::by_id(function.id.as_str()).is_some()
+        || crate::map_ops::by_name(&function.name).is_some()
+        || crate::list_ops::by_id(function.id.as_str()).is_some()
         || crate::list_ops::by_name(&function.name).is_some()
         || crate::iterator_ops::by_id(function.id.as_str()).is_some()
         || crate::iterator_ops::by_name(&function.name).is_some()
@@ -65,7 +72,8 @@ fn reject_function(function: &ResolvedFunction) -> Result<(), Diagnostic> {
     Ok(())
 }
 pub(super) fn is_call(callee: &DeclarationId, instance: &Option<FunctionInstanceId>) -> bool {
-    (instance.is_none() && callee.as_str() == crate::stdin_stream_ops::EOF_ID)
+    (instance.is_none() && crate::map_ops::by_id(callee.as_str()).is_some())
+        || (instance.is_none() && callee.as_str() == crate::stdin_stream_ops::EOF_ID)
         || super::vec_intrinsic::is_call(callee, instance)
         || (instance.is_none()
             && (crate::box_ops::by_id(callee.as_str()).is_some()
@@ -73,7 +81,8 @@ pub(super) fn is_call(callee: &DeclarationId, instance: &Option<FunctionInstance
         || (instance.is_none() && crate::list_ops::by_id(callee.as_str()).is_some())
 }
 pub(super) fn is_intrinsic_id(callee: &DeclarationId) -> bool {
-    crate::stdin_stream_ops::pure_by_id(callee.as_str()).is_some()
+    crate::map_ops::by_id(callee.as_str()).is_some()
+        || crate::stdin_stream_ops::pure_by_id(callee.as_str()).is_some()
         || crate::list_ops::by_id(callee.as_str()).is_some()
         || crate::iterator_ops::by_id(callee.as_str()).is_some()
         || crate::vec_ops::by_id(callee.as_str()).is_some()
@@ -84,7 +93,8 @@ pub(super) fn is_type(
     declaration: &DeclarationId,
     arguments: &[ResolvedType],
 ) -> bool {
-    (matches!(
+    crate::map_ops::is_typed_collection(&ResolvedType::Nominal{declaration:declaration.clone(),arguments:arguments.to_vec()})
+        || (matches!(
         declaration.as_str(),
         crate::list_ops::LIST_ID | crate::list_ops::STEP_ID
     ) && arguments == [ResolvedType::I64])
@@ -124,6 +134,11 @@ pub(super) fn signature(
     instance: &Option<FunctionInstanceId>,
     args: &[ResolvedExpr],
 ) -> Result<Option<(Vec<ResolvedParam>, ResolvedType)>, Diagnostic> {
+    if let Some(op) = crate::map_ops::by_id(callee.as_str()) {
+        let signature=op.resolved_signature(type_arguments).ok_or_else(||hir_error("invalid typed collection signature"))?;
+        if instance.is_some() || args.len()!=signature.0.len() {return Err(hir_error("invalid typed collection call shape"));}
+        return Ok(Some(signature));
+    }
     if let Some(op) = crate::stdin_stream_ops::pure_by_id(callee.as_str()) {
         if op != crate::stdin_stream_ops::PureOp::Eof
             || instance.is_some()

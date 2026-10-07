@@ -31,7 +31,8 @@ pub(super) fn is_direct_plan_owned(program: &ResolvedProgram, ty: &ResolvedType)
             | ResolvedType::OnceFunction
             | ResolvedType::OnceFunctionI64
             | ResolvedType::OnceFunctionI64Pair
-    ) || is_native_owned_vec_type(program, ty)
+    ) || crate::map_ops::is_typed_collection(ty)
+        || is_native_owned_vec_type(program, ty)
         || crate::stdin_stream_ops::is_reader(ty)
         || crate::cleanup::is_owned_bounded_box_type(ty)
         || crate::iterator_ops::is_iter(ty)
@@ -42,7 +43,9 @@ pub(super) fn c_value_type(
     resource_abi: &native_resource::NativeResourceAbi,
     ty: &ResolvedType,
 ) -> Result<String, Diagnostic> {
-    if crate::stdin_stream_ops::is_reader(ty) {
+    if crate::map_ops::is_typed_collection(ty) {
+        Ok("spx_map_v2 *".to_owned())
+    } else if crate::stdin_stream_ops::is_reader(ty) {
         Ok("uintptr_t".to_owned())
     } else if ty.is_once_function() || ty.is_mut_function() {
         Ok(once::c_type(ty).to_owned())
@@ -83,7 +86,8 @@ pub(super) fn record_declaration_id<'a>(
     else {
         return Ok(None);
     };
-    if crate::stdin_stream_ops::is_reader(ty)
+    if crate::map_ops::is_typed_collection(ty)
+        || crate::stdin_stream_ops::is_reader(ty)
         || crate::list_ops::is_list(ty)
         || crate::iterator_ops::is_iter(ty)
         || is_native_owned_vec_type(program, ty)

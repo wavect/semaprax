@@ -460,7 +460,7 @@ pub(crate) fn type_needs_resource_cleanup(
         // fields, but it still owns the invocation's reusable input buffer.
         // Classify its exact nominal type as droppable so inventory and plan
         // construction retain the canonical lexical drop leaf.
-        if crate::stdin_stream_ops::is_reader(&ty) {
+        if crate::map_ops::is_typed_collection(&ty) || crate::stdin_stream_ops::is_reader(&ty) {
             return Ok(true);
         }
         match ty {

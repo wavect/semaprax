@@ -16,7 +16,7 @@ use crate::string_ops::StringOp;
 /// Whether a value owns String text: a `string`, or a String Collections v1
 /// map, whose keys are length-delimited Strings.
 pub(super) fn owns_text(ty: &ResolvedType) -> bool {
-    matches!(ty, ResolvedType::String | ResolvedType::StringMap)
+    matches!(ty, ResolvedType::String | ResolvedType::StringMap) || crate::map_ops::is_typed_collection(ty)
 }
 
 /// Emit the map helpers when a length-delimited String profile reaches them;
@@ -28,7 +28,7 @@ pub(super) fn emit_runtime(
 ) {
     if strings.length_delimited && program_uses_collections(program, strings.include_instances) {
         output.push_str(RUNTIME_C);
-        if crate::string_ops::program_uses_operation(program, StringOp::MapRemove) {
+        if crate::string_ops::program_uses_operation(program, StringOp::MapRemove) || crate::map_ops::resolved_program_uses(program) {
             output.push_str(REMOVE_RUNTIME_C);
         }
     }

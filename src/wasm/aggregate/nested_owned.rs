@@ -33,7 +33,7 @@ pub(super) fn record_contains_owned_bytes(
     let mut contains = false;
     while let Some(frame) = pending.pop() {
         match frame {
-            Frame::Enter(ResolvedType::Bytes | ResolvedType::String, _) => {
+            Frame::Enter(ty, _) if matches!(ty,ResolvedType::Bytes|ResolvedType::String)||crate::map_ops::is_collection(&ty)=>{
                 contains = true;
                 owned_leaves = owned_leaves
                     .checked_add(1)

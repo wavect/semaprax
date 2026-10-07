@@ -866,6 +866,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     if let Some(op) = crate::byte_ops::by_id(callee.as_str()) {
                         return self.emit_byte_op(op, args, &expr.ty, &expr.id);
                     }
+                    if let Some(op) = crate::map_ops::by_id(callee.as_str()) {
+                        return self.emit_typed_map_op(op, type_arguments, args, &expr.ty, &expr.id);
+                    }
                     if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
                         return self.emit_string_op(op, args, &expr.ty, &expr.id);
                     }

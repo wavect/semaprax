@@ -17,6 +17,7 @@ impl Type {
     /// being misclassified as a user resource.
     pub fn is_uniquely_owned(&self) -> bool {
         self.is_once_function()
+            || crate::map_ops::ast_collection(self)
             || matches!(
                 self,
                 Type::String | Type::Bytes | Type::StringMap | Type::MutFunctionI64

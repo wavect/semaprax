@@ -23,6 +23,7 @@ impl Evaluator<'_> {
             Value::Box(value) => Value::Box(Arc::clone(value)),
             // A borrowed map read aliases the carrier; owning reads move it.
             Value::Map(value) => Value::Map(Arc::clone(value)),
+            Value::Collection(value)=>Value::Collection(Arc::clone(value)),
             Value::String(value) => Value::String(self.materialize_utf8_copy(value)?),
             Value::BorrowedStr(value) => Value::BorrowedStr(value.clone()),
             Value::BorrowedSlice(value) => Value::BorrowedSlice(value.clone()),

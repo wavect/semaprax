@@ -3448,7 +3448,8 @@ impl<'a> HirValidator<'a> {
                             });
                         }
                         ResolvedExprKind::ConstructRecord { record, fields } => {
-                            if record.as_str() == crate::iterator_ops::ITER_ID
+                            if crate::map_ops::is_declaration(record.as_str())
+                                || record.as_str() == crate::iterator_ops::ITER_ID
                                 || record.as_str() == crate::list_ops::LIST_ID
                             {
                                 return Err(hir_error(
@@ -7045,7 +7046,8 @@ impl<'a> HirValidator<'a> {
                 (then_branch.ty.clone(), then_branch.ownership)
             }
             ResolvedExprKind::ConstructRecord { record, fields } => {
-                if record.as_str() == crate::iterator_ops::ITER_ID
+                if crate::map_ops::is_declaration(record.as_str())
+                                || record.as_str() == crate::iterator_ops::ITER_ID
                     || record.as_str() == crate::list_ops::LIST_ID
                 {
                     return Err(hir_error("iterator owner cannot be authored as a record"));

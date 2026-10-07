@@ -227,6 +227,12 @@ pub(super) fn check_declared_type(
             name: name.clone(),
             arguments: arguments.clone(),
         };
+        if matches!(name.as_str(), "Map" | "Set") {
+            if !crate::map_ops::ast_collection(&instance) {
+                diagnostics.push(error(program,"SPX-T274","collection requires admitted key/value arguments",span));
+            }
+            continue;
+        }
         if matches!(name.as_str(), "List" | "ListStep") && !crate::list_ops::ast_is_list(&instance)
         {
             diagnostics.push(error(
@@ -1081,7 +1087,8 @@ pub(super) fn check_ownership_mode(
     if string_record::reject(program, &param.ty, "passed", param.span, types, diagnostics) {
         return;
     }
-    let requires_explicit_mode = string_record::admitted(&param.ty, types)
+    let requires_explicit_mode = crate::map_ops::ast_collection(&param.ty)
+        || string_record::admitted(&param.ty, types)
         || crate::stdin_stream_ops::ast_is_reader(&param.ty)
         || types.is_admitted_iterator(&param.ty)
         || types.contains_resource(&param.ty)

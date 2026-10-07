@@ -396,6 +396,10 @@ impl DeclarationIndex {
                         results.push(facts.clone());
                         continue;
                     }
+                    if crate::map_ops::is_typed_collection(&ty) {
+                        results.push(TypeFacts{copy:false,contains_resource:false,sized:true,needs_drop:true,layout_key:format!("owned:collection:{}",ty.identity_key())});
+                        continue;
+                    }
                     let scalar = match &ty {
                         ResolvedType::Function { .. } => {
                             if !super::function_value::is_signature(&ty) {

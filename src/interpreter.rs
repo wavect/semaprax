@@ -90,6 +90,7 @@ mod semantic_work;
 pub(crate) mod source_command;
 mod string_conditions;
 mod string_operations;
+mod map_collections;
 use api_admission::{
     owned_utf8_api_result_matches, public_api_argument_matches, public_api_parameter_type_matches,
     public_api_result_is_admitted, require_acyclic_public_api_closure,
@@ -2608,7 +2609,8 @@ fn scan_closure(
             ResolvedExprKind::Call {
                 callee, instance, ..
             } => {
-                let intrinsic = crate::string_ops::by_id(callee.as_str()).is_some()
+                let intrinsic = crate::map_ops::by_id(callee.as_str()).is_some()
+                    || crate::string_ops::by_id(callee.as_str()).is_some()
                     || crate::str_ops::by_id(callee.as_str()).is_some()
                     || crate::byte_ops::by_id(callee.as_str()).is_some()
                     || crate::vec_ops::by_id(callee.as_str()).is_some()
@@ -3121,6 +3123,7 @@ enum Value {
     Box(Arc<owned_box::OwnedBoxValue>),
     /// String Collections v1: one uniquely owned `Map<string, i64>`.
     Map(Arc<string_operations::StringMapValue>),
+    Collection(Arc<map_collections::MapValue>),
     String(String),
     BorrowedStr(BorrowedStrValue),
     BorrowedSlice(BorrowedSliceValue),
@@ -3766,6 +3769,7 @@ impl Evaluator<'_> {
             | (Value::Bytes(_), ResolvedType::Bytes)
             | (Value::Map(_), ResolvedType::StringMap)
             | (Value::String(_), ResolvedType::String) => true,
+            (Value::Collection(carrier), expected)=>&carrier.ty==expected,
             (Value::Closure(value), ResolvedType::MutFunctionI64) => value.mutable.is_some(),
             (Value::Variant(carrier), expected) => &carrier.ty == expected,
             (Value::Iter(carrier), expected) => {
@@ -4394,10 +4398,14 @@ impl Evaluator<'_> {
                 if !vec_intrinsic
                     && !(instance.is_none()
                         && crate::iterator_ops::by_id(callee.as_str()).is_some())
+                    && !(instance.is_none() && crate::map_ops::by_id(callee.as_str()).is_some())
                     && !box_intrinsic
                     && instance.is_some() != !type_arguments.is_empty()
                 {
                     return Err(Flow::Guard("generic call identity is incomplete"));
+                }
+                if let Some(op) = crate::map_ops::by_id(callee.as_str()) {
+                    return self.evaluate_typed_map(op,type_arguments,args,environment,depth);
                 }
                 if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
                     // Compiler-owned string operations evaluate in place;

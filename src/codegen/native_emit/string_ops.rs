@@ -153,7 +153,8 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             | crate::string_ops::StringOp::MapHas
             | crate::string_ops::StringOp::MapLen
             | crate::string_ops::StringOp::MapKeyAt
-            | crate::string_ops::StringOp::MapValueAt => {
+            | crate::string_ops::StringOp::MapValueAt
+            | crate::string_ops::StringOp::MapRemove => {
                 self.emit_collection_op(op, &arguments, &temporary, expression)?;
             }
             crate::string_ops::StringOp::FromStr

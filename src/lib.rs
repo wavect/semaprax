@@ -180,6 +180,7 @@ pub(crate) mod iterator_ops;
 pub(crate) mod kernel_zero;
 pub mod lexer;
 mod list_ops;
+mod map_ops;
 #[allow(
     dead_code,
     unused_imports,

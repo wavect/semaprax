@@ -52,6 +52,7 @@ pub(crate) enum AggregateFieldValueKind {
     Copy,
     OwnedBytes,
     OwnedString,
+    OwnedCollection,
     Resource,
     Aggregate,
 }
@@ -230,6 +231,7 @@ enum ValueLayoutKind {
     Scalar,
     OwnedBytes,
     OwnedString,
+    OwnedCollection,
     Resource,
     Record { fields: Vec<AggregateFieldLayout> },
 }
@@ -240,6 +242,7 @@ impl ValueLayoutKind {
             Self::Scalar => AggregateFieldValueKind::Copy,
             Self::OwnedBytes => AggregateFieldValueKind::OwnedBytes,
             Self::OwnedString => AggregateFieldValueKind::OwnedString,
+            Self::OwnedCollection=>AggregateFieldValueKind::OwnedCollection,
             Self::Resource => AggregateFieldValueKind::Resource,
             Self::Record { .. } => AggregateFieldValueKind::Aggregate,
         }
@@ -252,6 +255,9 @@ fn layout_type(
     ty: &ResolvedType,
     visiting: &mut BTreeSet<String>,
 ) -> Result<ValueLayout, Diagnostic> {
+    if crate::map_ops::is_collection(ty) {
+        return Ok(ValueLayout{size:8,align:8,digest:digest_value(target,ty,8,8,&[]),kind:ValueLayoutKind::OwnedCollection});
+    }
     match ty {
         ResolvedType::Unit => Err(layout_error("unit has no aggregate value layout")),
         ResolvedType::I64
@@ -700,7 +706,7 @@ fn collect_record_type(
     ty: &ResolvedType,
     instances: &mut BTreeSet<ResolvedType>,
 ) -> Result<(), Diagnostic> {
-    if crate::list_ops::is_list(ty) || crate::stdin_stream_ops::is_reader(ty) {
+    if crate::map_ops::is_collection(ty) || crate::list_ops::is_list(ty) || crate::stdin_stream_ops::is_reader(ty) {
         return Ok(());
     }
     let ResolvedType::Nominal {

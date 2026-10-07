@@ -246,7 +246,9 @@ fn uses_vec_v3(program: &ResolvedProgram) -> bool {
 }
 
 pub(super) fn schema(program: &ResolvedProgram) -> &'static str {
-    if crate::vec_ops::resolved_program_uses_sort(program) {
+    if crate::map_ops::resolved_program_uses(program) {
+        prelude::SCHEMA_V13
+    } else if crate::vec_ops::resolved_program_uses_sort(program) {
         prelude::SCHEMA_V12
     } else if crate::iterator_ops::resolved_program_uses_record_iterator(program) {
         prelude::SCHEMA_V11
@@ -274,7 +276,9 @@ pub(super) fn schema(program: &ResolvedProgram) -> &'static str {
 }
 
 pub(super) fn digest(program: &ResolvedProgram) -> String {
-    if crate::vec_ops::resolved_program_uses_sort(program) {
+    if crate::map_ops::resolved_program_uses(program) {
+        prelude::digest_text_v13()
+    } else if crate::vec_ops::resolved_program_uses_sort(program) {
         prelude::digest_text_v12()
     } else if crate::iterator_ops::resolved_program_uses_record_iterator(program) {
         prelude::digest_text_v11()

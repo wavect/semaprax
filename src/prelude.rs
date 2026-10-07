@@ -27,6 +27,10 @@ pub(crate) const SCHEMA_V9: &str = "semaprax.prelude.v9";
 pub(crate) const SCHEMA_V10: &str = "semaprax.prelude.v10";
 pub(crate) const SCHEMA_V11: &str = "semaprax.prelude.v11";
 pub(crate) const SCHEMA_V12: &str = "semaprax.prelude.v12";
+pub(crate) const SCHEMA_V13: &str = "semaprax.prelude.v13";
+#[path = "prelude_map.rs"]
+mod collections;
+pub(crate) use collections::{contract_bytes_v13, digest_text_v13};
 #[path = "prelude_sort.rs"]
 mod sorting;
 pub(crate) use sorting::{contract_bytes_v12, digest_text_v12};
@@ -57,6 +61,8 @@ pub(crate) fn declarations() -> &'static [TypeDeclaration] {
             immutable_list(),
             list_step(),
             crate::stdin_stream_ops::declaration(),
+            collections::declaration(false),
+            collections::declaration(true),
         ]
     })
 }
@@ -64,10 +70,12 @@ pub(crate) fn declarations() -> &'static [TypeDeclaration] {
 pub(crate) fn declarations_for_program(
     program: &crate::ast::Program,
 ) -> &'static [TypeDeclaration] {
-    if crate::stdin_stream_ops::program_uses(program)
+    if crate::map_ops::program_uses(program) {
+        declarations()
+    } else if crate::stdin_stream_ops::program_uses(program)
         || crate::source_verify::program_uses_record_iterator(program)
     {
-        declarations()
+        &declarations()[..9]
     } else if crate::list_ops::program_uses_list(program) {
         &declarations()[..8]
     } else if crate::iterator_ops::program_uses_iterator(program) {
@@ -84,14 +92,25 @@ pub(crate) fn declarations_for_program(
 pub(crate) fn is_reserved_type_name(name: &str) -> bool {
     matches!(
         name,
-        "Option" | "Result" | "Vec" | "Iter" | "IterStep" | "List" | "ListStep" | "StdinReader"
+        "Option"
+            | "Result"
+            | "Vec"
+            | "Iter"
+            | "IterStep"
+            | "List"
+            | "ListStep"
+            | "StdinReader"
+            | "Map"
+            | "Set"
     )
 }
 
 pub(crate) fn is_compiler_owned_id(id: &str) -> bool {
     matches!(
         id,
-        crate::stdin_stream_ops::READER_ID
+        crate::map_ops::MAP_ID
+            | crate::map_ops::SET_ID
+            | crate::stdin_stream_ops::READER_ID
             | OPTION_ID
             | OPTION_NONE_ID
             | OPTION_SOME_ID
@@ -663,7 +682,9 @@ pub(crate) fn selected_for_source(source: &str) -> (&'static str, Vec<u8>, Strin
 pub(crate) fn selected_for_program(
     program: &crate::ast::Program,
 ) -> (&'static str, Vec<u8>, String) {
-    if crate::vec_ops::program_uses_sort(program) {
+    if crate::map_ops::program_uses(program) {
+        (SCHEMA_V13, contract_bytes_v13(), digest_text_v13())
+    } else if crate::vec_ops::program_uses_sort(program) {
         (SCHEMA_V12, contract_bytes_v12(), digest_text_v12())
     } else if crate::source_verify::program_uses_record_iterator(program) {
         (SCHEMA_V11, contract_bytes_v11(), digest_text_v11())

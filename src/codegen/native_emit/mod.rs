@@ -47,6 +47,7 @@ mod output_profile;
 mod owned_strings;
 mod scope_anchors;
 mod string_collections;
+mod map_collections;
 mod string_ops;
 mod string_ordering;
 mod string_views;
@@ -541,6 +542,7 @@ fn emit_native_prelude_inner(
         output.push_str(text_toolkit::RUNTIME_C);
     }
     string_collections::emit_runtime(output, program, strings);
+    map_collections::emit_runtime(output, program);
     if needs_borrowed_str {
         // Borrowed text is a distinct length-aware carrier. Keep it behind a
         // reachability gate so every pre-text native projection is byte exact.

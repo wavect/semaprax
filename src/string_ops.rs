@@ -811,6 +811,11 @@ pub(crate) fn is_same_owner_concat_source(value: &crate::ast::Expr, name: &str, 
     let crate::ast::ExprKind::Call { name: callee, .. } = &value.kind else {
         return false;
     };
+    if let crate::ast::ExprKind::Call {type_arguments,..}=&value.kind {
+        if let Some(op)=crate::map_ops::by_generic_name(callee,type_arguments) {
+            return op.reopens() && op.ast_type(type_arguments).as_ref()==Some(ty) && is_same_owner_concat_shape(value,name);
+        }
+    }
     let expected = match by_name(callee) {
         Some(StringOp::Concat) => Type::String,
         Some(op) if op.reopens_map() => Type::StringMap,
@@ -830,9 +835,10 @@ pub(crate) fn is_same_owner_concat_shape(value: &crate::ast::Expr, name: &str) -
     else {
         return false;
     };
-    by_name(callee).is_some_and(StringOp::is_same_owner_reopen)
-        && type_arguments.is_empty()
-        && args.len() == by_name(callee).map_or(0, StringOp::arity)
+    let typed=crate::map_ops::by_generic_name(callee,type_arguments);
+    (typed.is_some_and(|op|op.reopens()&&op.ast_type(type_arguments).is_some())
+        || (type_arguments.is_empty() && by_name(callee).is_some_and(StringOp::is_same_owner_reopen)))
+        && args.len() == typed.map_or_else(||by_name(callee).map_or(0,StringOp::arity),|op|op.arity())
         && matches!(&args[0].kind, crate::ast::ExprKind::Var(source) if source == name)
         && !args[1..]
             .iter()
@@ -862,12 +868,13 @@ pub(crate) fn is_same_owner_concat_hir(value: &crate::hir::ResolvedExpr, owner: 
     matches!(
         &value.kind,
         crate::hir::ResolvedExprKind::Call { callee, type_arguments, instance: None, args }
-            if by_id(callee.as_str()).is_some_and(|op| {
+            if (crate::map_ops::by_id(callee.as_str()).is_some_and(|op| {
+                op.reopens() && op.resolved_signature(type_arguments).is_some_and(|(params,ty)|args.len()==params.len()&&value.ty==ty&&args.iter().zip(params).all(|(arg,param)|arg.ty==param.ty))
+            }) || (type_arguments.is_empty() && by_id(callee.as_str()).is_some_and(|op| {
                 op.is_same_owner_reopen()
                     && args.len() == op.arity()
                     && value.ty == op.return_type()
-            })
-                && type_arguments.is_empty()
+            })))
                 && matches!(
                     &args[0].kind,
                     crate::hir::ResolvedExprKind::Place(place)
@@ -1083,6 +1090,20 @@ pub(crate) fn program_uses_op(program: &crate::hir::ResolvedProgram, op: StringO
             }
         }
         crate::hir::push_resolved_expression_children_in_authored_order(expression, &mut pending);
+    }
+    false
+}
+
+/// Read-only presence query for optional additive helper groups.
+pub(crate) fn program_uses_operation(program: &crate::hir::ResolvedProgram, operation: StringOp) -> bool {
+    let mut pending = Vec::new();
+    for function in program.functions.iter().chain(program.function_instances.iter().map(|i| &i.function)) {
+        pending.push(&function.body);
+        pending.extend(function.requires.iter().chain(&function.ensures));
+    }
+    while let Some(expression) = pending.pop() {
+        if matches!(&expression.kind, crate::hir::ResolvedExprKind::Call {callee,..} if by_id(callee.as_str())==Some(operation)) {return true}
+        crate::hir::push_resolved_expression_children_in_authored_order(expression,&mut pending);
     }
     false
 }

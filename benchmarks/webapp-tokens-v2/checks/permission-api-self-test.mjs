@@ -30,6 +30,11 @@ function options(argv) {
 const { arm, 'base-url': rawBase } = options(process.argv.slice(2));
 const base = new URL(rawBase);
 const apiBase = new URL('/api/', base).href;
+// SEMAPRAX exposes snake_case route slugs for compound entity identities;
+// the TypeScript reference uses each entity name lowercased without separators.
+const routeFor = path => arm === 'semaprax'
+  ? ({ timeentry: 'time_entry', ticketreply: 'ticket_reply' }[path] ?? path)
+  : path;
 
 async function call(method, path, body, cookie) {
   const headers = {};
@@ -78,7 +83,7 @@ async function login(email) {
 
 async function emptyRows(cookie, expectedTeams, expectedMembers) {
   for (const path of ENTITY_PATHS) {
-    const rows = await get(path, cookie);
+    const rows = await get(routeFor(path), cookie);
     assert.ok(Array.isArray(rows), `GET ${path} did not return a row list`);
     const expected = path === 'team' ? expectedTeams : path === 'member' ? expectedMembers : 0;
     assert.equal(rows.length, expected, `fresh database required: ${path} contains ${rows.length} rows`);

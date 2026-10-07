@@ -1,0 +1,58 @@
+external API permission self-test: passed (57 recorded HTTP observations, typescript); distinct Agent owners, own read/update, other-row denial; not browser automation or built-in --self-test
+permission evidence: GET setup 200
+permission evidence: POST setup first admin 201
+permission evidence: POST session permission-admin@example.test 200
+permission evidence: GET team 200
+permission evidence: GET member 200
+permission evidence: GET customer 200
+permission evidence: GET contact 200
+permission evidence: GET project 200
+permission evidence: GET milestone 200
+permission evidence: GET sprint 200
+permission evidence: GET task 200
+permission evidence: GET comment 200
+permission evidence: GET timeentry 200
+permission evidence: GET ticket 200
+permission evidence: GET ticketreply 200
+permission evidence: GET invoice 200
+permission evidence: GET payment 200
+permission evidence: GET vendor 200
+permission evidence: GET expense 200
+permission evidence: GET asset 200
+permission evidence: GET leave 200
+permission evidence: GET document 200
+permission evidence: GET release 200
+permission evidence: GET member 200
+permission evidence: POST member 201
+permission evidence: POST member 201
+permission evidence: POST customer 201
+permission evidence: POST project 201
+permission evidence: POST milestone 201
+permission evidence: POST sprint 201
+permission evidence: POST vendor 201
+permission evidence: POST session permission-agent-a@example.test 200
+permission evidence: POST session permission-agent-b@example.test 200
+permission evidence: POST task 201
+permission evidence: POST expense 201
+permission evidence: POST leave 201
+permission evidence: POST task 201
+permission evidence: POST expense 201
+permission evidence: POST leave 201
+permission evidence: GET task/1 200
+permission evidence: GET expense/1 200
+permission evidence: GET leave/1 200
+permission evidence: GET expense/2 404
+permission evidence: GET task/2 200
+permission evidence: GET leave/2 200
+permission evidence: PUT own Task 200
+permission evidence: PUT own Expense 200
+permission evidence: PUT own Leave 200
+permission evidence: PUT other Agent Task denied 403
+permission evidence: PUT other Agent Expense hidden/denied 404
+permission evidence: PUT other Agent Leave denied 403
+permission evidence: GET task/2 200
+permission evidence: GET expense/2 200
+permission evidence: GET leave/2 200
+permission evidence: GET task/1 200
+permission evidence: GET expense/1 200
+permission evidence: GET leave/1 200

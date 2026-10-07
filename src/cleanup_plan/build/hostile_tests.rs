@@ -191,3 +191,47 @@ fn stream_next_rejects_nonowned_reader_and_legacy_owned_host_argument() {
         }
     }
 }
+
+#[test]
+fn stream_next_independent_inventory_requires_exactly_one_staged_reader_slot() {
+    use crate::cleanup_plan::StorageId;
+    let program = stream_next_program();
+    crate::cleanup_plan::replay::validate_program(&program).unwrap();
+    let function = program
+        .functions
+        .iter()
+        .find(|f| f.id.as_str() == "stream.advance")
+        .unwrap();
+    assert_eq!(
+        function
+            .cleanup_plan
+            .slots
+            .iter()
+            .filter(|slot| matches!(slot.storage, StorageId::CallArgument { .. }))
+            .count(),
+        1
+    );
+    for extra in [false, true] {
+        let mut hostile = program.clone();
+        let function = hostile
+            .functions
+            .iter_mut()
+            .find(|f| f.id.as_str() == "stream.advance")
+            .unwrap();
+        let staged = function.cleanup_plan.slots.last().unwrap().clone();
+        assert!(matches!(staged.storage, StorageId::CallArgument { .. }));
+        if extra {
+            function.cleanup_plan.slots.push(staged);
+        } else {
+            function.cleanup_plan.slots.pop();
+        }
+        let error = crate::cleanup_plan::replay::validate_program(&hostile).unwrap_err();
+        assert_eq!(error.code, "SPX-H006");
+        assert!(
+            error
+                .message
+                .contains("missing or extra call-argument storage"),
+            "{error:?}"
+        );
+    }
+}

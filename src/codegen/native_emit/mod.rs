@@ -179,6 +179,7 @@ fn emit_hir_c_with_options(
         native_host_output::emit_language_command_runtime(&mut output);
         native_command_io::emit_runtime(&mut output);
         super::native_stdin_stream::emit_runtime(&mut output);
+        super::native_stdin_stream::emit_command_helper_table(&mut output);
     } else if output_profile == NativeOutputProfile::LanguageCommandIo {
         native_host_output::emit_language_command_runtime(&mut output);
         native_command_io::emit_runtime(&mut output);

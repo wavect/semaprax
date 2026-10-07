@@ -15,6 +15,21 @@ pub(super) fn emit_runtime(output: &mut impl COutput) {
     output.push_str(STDIN_STREAM_RUNTIME_C);
 }
 
+/// Keep the command helpers warning-clean when a stream root uses only input.
+pub(super) fn emit_command_helper_table(output: &mut impl COutput) {
+    output.push_str(
+        r#"static __attribute__((unused)) void spx_stream_command_table_v1(void) {
+    (void)&spx_host_command_stdout_write_v1;
+    (void)&spx_host_command_stderr_write_v1;
+    (void)&spx_host_args_len_v1;
+    (void)&spx_host_arg_utf8_v1;
+    (void)&spx_host_stdin_read_v1;
+}
+
+"#,
+    );
+}
+
 /// Emit the explicitly selected native command profile for bounded stdin
 /// streaming. The public command-I/O runtime remains the source of argv and
 /// output declarations; this profile adds only the streaming reader route.

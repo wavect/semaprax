@@ -536,21 +536,16 @@ fn owned_parameter_cannot_be_dropped_and_duplicate_transfer_is_rejected() {
 #[test]
 fn whole_owned_results_wrap_once_and_local_callers_move_the_exact_field() {
     let fixture = Fixture::new();
-    for (target, record, field, provider, caller) in [
-        (
+    {
+        let (target, record, field, provider, caller) = (
             "frame.make-owned-bytes",
             "frame.bytes-envelope",
             "frame.bytes-envelope.value",
             "fn make_owned_bytes(input: borrow Slice<u8>) -> BytesEnvelope\n{\n    BytesEnvelope { value: { bytes_copy(input) } }\n}",
             "fn forward_owned_bytes(input: borrow Slice<u8>) -> Bytes\n{\n    ({ let spx_sig_stage_0 = input; make_owned_bytes(spx_sig_stage_0) }).value\n}",
-        ),
-    ] {
+        );
         let root = fixture.candidate();
-        let parameters = if target.ends_with("bytes") {
-            json!([{"from":"input"}])
-        } else {
-            json!([{"from":"value"}])
-        };
+        let parameters = json!([{"from":"input"}]);
         let change = SemanticChange::new(
             root.revision().project_revision(),
             &json!({"kind":"change_function_signature","target":target,"parameters":parameters,

@@ -1,0 +1,686 @@
+{
+  "schema": "semaprax.event-sim.acceptance.v1",
+  "valid": [
+    {
+      "name": "empty",
+      "input": {
+        "servers": [],
+        "patients": []
+      },
+      "expected": {
+        "assignments": [],
+        "metrics": {
+          "patients": 0,
+          "total_wait": 0,
+          "max_wait": 0,
+          "late": 0,
+          "busy_time": 0,
+          "makespan": 0,
+          "peak_queue": 0,
+          "utilization_ppm": 0
+        }
+      }
+    },
+    {
+      "name": "single-exact-deadline",
+      "input": {
+        "servers": [
+          "S1"
+        ],
+        "patients": [
+          {
+            "id": "P1",
+            "arrival": 3,
+            "service": 5,
+            "priority": 2,
+            "deadline": 8
+          }
+        ]
+      },
+      "expected": {
+        "assignments": [
+          {
+            "id": "P1",
+            "server": "S1",
+            "arrival": 3,
+            "start": 3,
+            "finish": 8,
+            "wait": 0,
+            "late": false
+          }
+        ],
+        "metrics": {
+          "patients": 1,
+          "total_wait": 0,
+          "max_wait": 0,
+          "late": 0,
+          "busy_time": 5,
+          "makespan": 8,
+          "peak_queue": 1,
+          "utilization_ppm": 625000
+        }
+      }
+    },
+    {
+      "name": "priority-and-id-ties",
+      "input": {
+        "servers": [
+          "S2",
+          "S1"
+        ],
+        "patients": [
+          {
+            "id": "P2",
+            "arrival": 0,
+            "service": 4,
+            "priority": 1,
+            "deadline": 10
+          },
+          {
+            "id": "P1",
+            "arrival": 0,
+            "service": 2,
+            "priority": 1,
+            "deadline": 3
+          },
+          {
+            "id": "P3",
+            "arrival": 0,
+            "service": 1,
+            "priority": 0,
+            "deadline": 1
+          }
+        ]
+      },
+      "expected": {
+        "assignments": [
+          {
+            "id": "P3",
+            "server": "S1",
+            "arrival": 0,
+            "start": 0,
+            "finish": 1,
+            "wait": 0,
+            "late": false
+          },
+          {
+            "id": "P1",
+            "server": "S2",
+            "arrival": 0,
+            "start": 0,
+            "finish": 2,
+            "wait": 0,
+            "late": false
+          },
+          {
+            "id": "P2",
+            "server": "S1",
+            "arrival": 0,
+            "start": 1,
+            "finish": 5,
+            "wait": 1,
+            "late": false
+          }
+        ],
+        "metrics": {
+          "patients": 3,
+          "total_wait": 1,
+          "max_wait": 1,
+          "late": 0,
+          "busy_time": 7,
+          "makespan": 5,
+          "peak_queue": 3,
+          "utilization_ppm": 700000
+        }
+      }
+    },
+    {
+      "name": "completion-and-arrival-same-time",
+      "input": {
+        "servers": [
+          "S1"
+        ],
+        "patients": [
+          {
+            "id": "A",
+            "arrival": 0,
+            "service": 4,
+            "priority": 4,
+            "deadline": 4
+          },
+          {
+            "id": "B",
+            "arrival": 4,
+            "service": 1,
+            "priority": 0,
+            "deadline": 5
+          }
+        ]
+      },
+      "expected": {
+        "assignments": [
+          {
+            "id": "A",
+            "server": "S1",
+            "arrival": 0,
+            "start": 0,
+            "finish": 4,
+            "wait": 0,
+            "late": false
+          },
+          {
+            "id": "B",
+            "server": "S1",
+            "arrival": 4,
+            "start": 4,
+            "finish": 5,
+            "wait": 0,
+            "late": false
+          }
+        ],
+        "metrics": {
+          "patients": 2,
+          "total_wait": 0,
+          "max_wait": 0,
+          "late": 0,
+          "busy_time": 5,
+          "makespan": 5,
+          "peak_queue": 1,
+          "utilization_ppm": 1000000
+        }
+      }
+    },
+    {
+      "name": "queued-priority-tie",
+      "input": {
+        "servers": [
+          "S1"
+        ],
+        "patients": [
+          {
+            "id": "A",
+            "arrival": 0,
+            "service": 5,
+            "priority": 2,
+            "deadline": 10
+          },
+          {
+            "id": "B",
+            "arrival": 1,
+            "service": 2,
+            "priority": 5,
+            "deadline": 10
+          },
+          {
+            "id": "D",
+            "arrival": 1,
+            "service": 1,
+            "priority": 0,
+            "deadline": 10
+          },
+          {
+            "id": "C",
+            "arrival": 1,
+            "service": 1,
+            "priority": 0,
+            "deadline": 10
+          }
+        ]
+      },
+      "expected": {
+        "assignments": [
+          {
+            "id": "A",
+            "server": "S1",
+            "arrival": 0,
+            "start": 0,
+            "finish": 5,
+            "wait": 0,
+            "late": false
+          },
+          {
+            "id": "C",
+            "server": "S1",
+            "arrival": 1,
+            "start": 5,
+            "finish": 6,
+            "wait": 4,
+            "late": false
+          },
+          {
+            "id": "D",
+            "server": "S1",
+            "arrival": 1,
+            "start": 6,
+            "finish": 7,
+            "wait": 5,
+            "late": false
+          },
+          {
+            "id": "B",
+            "server": "S1",
+            "arrival": 1,
+            "start": 7,
+            "finish": 9,
+            "wait": 6,
+            "late": false
+          }
+        ],
+        "metrics": {
+          "patients": 4,
+          "total_wait": 15,
+          "max_wait": 6,
+          "late": 0,
+          "busy_time": 9,
+          "makespan": 9,
+          "peak_queue": 3,
+          "utilization_ppm": 1000000
+        }
+      }
+    },
+    {
+      "name": "multiple-workers",
+      "input": {
+        "servers": [
+          "S2",
+          "S1"
+        ],
+        "patients": [
+          {
+            "id": "P1",
+            "arrival": 0,
+            "service": 5,
+            "priority": 1,
+            "deadline": 5
+          },
+          {
+            "id": "P2",
+            "arrival": 0,
+            "service": 2,
+            "priority": 1,
+            "deadline": 2
+          },
+          {
+            "id": "P3",
+            "arrival": 0,
+            "service": 3,
+            "priority": 1,
+            "deadline": 3
+          },
+          {
+            "id": "P4",
+            "arrival": 2,
+            "service": 2,
+            "priority": 0,
+            "deadline": 5
+          }
+        ]
+      },
+      "expected": {
+        "assignments": [
+          {
+            "id": "P1",
+            "server": "S1",
+            "arrival": 0,
+            "start": 0,
+            "finish": 5,
+            "wait": 0,
+            "late": false
+          },
+          {
+            "id": "P2",
+            "server": "S2",
+            "arrival": 0,
+            "start": 0,
+            "finish": 2,
+            "wait": 0,
+            "late": false
+          },
+          {
+            "id": "P4",
+            "server": "S2",
+            "arrival": 2,
+            "start": 2,
+            "finish": 4,
+            "wait": 0,
+            "late": false
+          },
+          {
+            "id": "P3",
+            "server": "S2",
+            "arrival": 0,
+            "start": 4,
+            "finish": 7,
+            "wait": 4,
+            "late": true
+          }
+        ],
+        "metrics": {
+          "patients": 4,
+          "total_wait": 4,
+          "max_wait": 4,
+          "late": 1,
+          "busy_time": 12,
+          "makespan": 7,
+          "peak_queue": 3,
+          "utilization_ppm": 857142
+        }
+      }
+    },
+    {
+      "name": "idle-gap-and-late",
+      "input": {
+        "servers": [
+          "S1"
+        ],
+        "patients": [
+          {
+            "id": "morning",
+            "arrival": 2,
+            "service": 3,
+            "priority": 1,
+            "deadline": 4
+          },
+          {
+            "id": "late",
+            "arrival": 12,
+            "service": 4,
+            "priority": 0,
+            "deadline": 14
+          }
+        ]
+      },
+      "expected": {
+        "assignments": [
+          {
+            "id": "morning",
+            "server": "S1",
+            "arrival": 2,
+            "start": 2,
+            "finish": 5,
+            "wait": 0,
+            "late": true
+          },
+          {
+            "id": "late",
+            "server": "S1",
+            "arrival": 12,
+            "start": 12,
+            "finish": 16,
+            "wait": 0,
+            "late": true
+          }
+        ],
+        "metrics": {
+          "patients": 2,
+          "total_wait": 0,
+          "max_wait": 0,
+          "late": 2,
+          "busy_time": 7,
+          "makespan": 16,
+          "peak_queue": 1,
+          "utilization_ppm": 437500
+        }
+      }
+    },
+    {
+      "name": "long-queue-metrics",
+      "input": {
+        "servers": [
+          "S1",
+          "S2",
+          "S3"
+        ],
+        "patients": [
+          {
+            "id": "J01",
+            "arrival": 0,
+            "service": 2,
+            "priority": 1,
+            "deadline": 3
+          },
+          {
+            "id": "J02",
+            "arrival": 0,
+            "service": 3,
+            "priority": 2,
+            "deadline": 4
+          },
+          {
+            "id": "J03",
+            "arrival": 0,
+            "service": 4,
+            "priority": 0,
+            "deadline": 5
+          },
+          {
+            "id": "J04",
+            "arrival": 0,
+            "service": 1,
+            "priority": 1,
+            "deadline": 6
+          },
+          {
+            "id": "J05",
+            "arrival": 0,
+            "service": 2,
+            "priority": 2,
+            "deadline": 7
+          },
+          {
+            "id": "J06",
+            "arrival": 0,
+            "service": 3,
+            "priority": 0,
+            "deadline": 8
+          },
+          {
+            "id": "J07",
+            "arrival": 0,
+            "service": 4,
+            "priority": 1,
+            "deadline": 9
+          },
+          {
+            "id": "J08",
+            "arrival": 0,
+            "service": 1,
+            "priority": 2,
+            "deadline": 10
+          },
+          {
+            "id": "J09",
+            "arrival": 0,
+            "service": 2,
+            "priority": 0,
+            "deadline": 11
+          },
+          {
+            "id": "J10",
+            "arrival": 0,
+            "service": 3,
+            "priority": 1,
+            "deadline": 12
+          },
+          {
+            "id": "J11",
+            "arrival": 0,
+            "service": 4,
+            "priority": 2,
+            "deadline": 13
+          },
+          {
+            "id": "J12",
+            "arrival": 0,
+            "service": 1,
+            "priority": 0,
+            "deadline": 14
+          }
+        ]
+      },
+      "expected": {
+        "assignments": [
+          {
+            "id": "J03",
+            "server": "S1",
+            "arrival": 0,
+            "start": 0,
+            "finish": 4,
+            "wait": 0,
+            "late": false
+          },
+          {
+            "id": "J06",
+            "server": "S2",
+            "arrival": 0,
+            "start": 0,
+            "finish": 3,
+            "wait": 0,
+            "late": false
+          },
+          {
+            "id": "J09",
+            "server": "S3",
+            "arrival": 0,
+            "start": 0,
+            "finish": 2,
+            "wait": 0,
+            "late": false
+          },
+          {
+            "id": "J12",
+            "server": "S3",
+            "arrival": 0,
+            "start": 2,
+            "finish": 3,
+            "wait": 2,
+            "late": false
+          },
+          {
+            "id": "J01",
+            "server": "S2",
+            "arrival": 0,
+            "start": 3,
+            "finish": 5,
+            "wait": 3,
+            "late": true
+          },
+          {
+            "id": "J04",
+            "server": "S3",
+            "arrival": 0,
+            "start": 3,
+            "finish": 4,
+            "wait": 3,
+            "late": false
+          },
+          {
+            "id": "J07",
+            "server": "S1",
+            "arrival": 0,
+            "start": 4,
+            "finish": 8,
+            "wait": 4,
+            "late": false
+          },
+          {
+            "id": "J10",
+            "server": "S3",
+            "arrival": 0,
+            "start": 4,
+            "finish": 7,
+            "wait": 4,
+            "late": false
+          },
+          {
+            "id": "J02",
+            "server": "S2",
+            "arrival": 0,
+            "start": 5,
+            "finish": 8,
+            "wait": 5,
+            "late": true
+          },
+          {
+            "id": "J05",
+            "server": "S3",
+            "arrival": 0,
+            "start": 7,
+            "finish": 9,
+            "wait": 7,
+            "late": true
+          },
+          {
+            "id": "J08",
+            "server": "S1",
+            "arrival": 0,
+            "start": 8,
+            "finish": 9,
+            "wait": 8,
+            "late": false
+          },
+          {
+            "id": "J11",
+            "server": "S2",
+            "arrival": 0,
+            "start": 8,
+            "finish": 12,
+            "wait": 8,
+            "late": false
+          }
+        ],
+        "metrics": {
+          "patients": 12,
+          "total_wait": 44,
+          "max_wait": 8,
+          "late": 3,
+          "busy_time": 30,
+          "makespan": 12,
+          "peak_queue": 12,
+          "utilization_ppm": 833333
+        }
+      }
+    }
+  ],
+  "invalid": [
+    {
+      "name": "patients-without-workers",
+      "input": {
+        "servers": [],
+        "patients": [
+          {
+            "id": "P1",
+            "arrival": 0,
+            "service": 1,
+            "priority": 0,
+            "deadline": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "duplicate-patient-id",
+      "input": {
+        "servers": [
+          "S1"
+        ],
+        "patients": [
+          {
+            "id": "P1",
+            "arrival": 0,
+            "service": 1,
+            "priority": 0,
+            "deadline": 1
+          },
+          {
+            "id": "P1",
+            "arrival": 1,
+            "service": 1,
+            "priority": 0,
+            "deadline": 2
+          }
+        ]
+      }
+    }
+  ]
+}

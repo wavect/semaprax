@@ -346,3 +346,46 @@ fn mr12_rules_only_and_one_candidate_paths_keep_zero_router_calls() {
 
 #[path = "decision_reuse_e2e.rs"]
 mod e2e;
+
+#[test]
+fn sg17_session_cache_binds_both_effective_acceptance_thresholds() {
+    for option_mass in [false, true] {
+        let mut session = SessionDecisions::default();
+        let cfg = rc(RoutingMode::Experimental);
+        let (i, c) = (inputs(RouteSignals::default()), ctx());
+        let mut p = profile("fx-1", &[]);
+        if option_mass {
+            p.min_option_mass = Some(0.8);
+        } else {
+            p.min_confidence = Some(0.8);
+        }
+        let mut inv = V2::by_label("frontier");
+        let (first, _) = go(&mut session, &cfg, &i, &c, &p, &mut inv, &|| i.clone()).unwrap();
+        assert_eq!(first.decision.source, DecisionSource::Provider);
+        let (_, reuse) = go(&mut session, &cfg, &i, &c, &p, &mut inv, &|| i.clone()).unwrap();
+        assert_eq!((reuse.outcome, reuse.router_calls), ("hit", 0));
+        if option_mass {
+            p.min_option_mass = Some(0.95);
+        } else {
+            p.min_confidence = Some(0.95);
+        }
+        let (warm, reuse) = go(&mut session, &cfg, &i, &c, &p, &mut inv, &|| i.clone()).unwrap();
+        let (cold, _) = go(
+            &mut SessionDecisions::default(),
+            &cfg,
+            &i,
+            &c,
+            &p,
+            &mut inv,
+            &|| i.clone(),
+        )
+        .unwrap();
+        assert_eq!(
+            warm.decision.source,
+            DecisionSource::Fallback(FallbackReason::LowConfidence)
+        );
+        assert_eq!(warm.decision.choice, cold.decision.choice);
+        assert_eq!(reuse.router_calls, 1);
+        assert_eq!(inv.seen.len(), 3);
+    }
+}

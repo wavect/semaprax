@@ -186,26 +186,15 @@ fn dedup(v: Vec<String>) -> Vec<String> {
 }
 
 /// `web_exports` of the project manifest: the `.spx` ids that cross into TypeScript.
-fn web_exports(root: &Path) -> Vec<String> {
-    let Ok(text) = std::fs::read_to_string(root.join("semaprax.toml")) else {
-        return vec![];
-    };
-    let Some(at) = text.find("web_exports") else {
-        return vec![];
-    };
-    let rest = &text[at..];
-    let (Some(a), Some(b)) = (rest.find('['), rest.find(']')) else {
-        return vec![];
-    };
-    if b < a {
-        return vec![];
+fn web_exports(root: &Path) -> Result<Vec<String>, String> {
+    let path = root.join("semaprax.toml");
+    if !path.exists() {
+        return Ok(vec![]);
     }
-    rest[a + 1..b]
-        .split('"')
-        .skip(1)
-        .step_by(2)
-        .map(str::to_string)
-        .collect()
+    let text = std::fs::read_to_string(path).map_err(|_| "manifest unreadable".to_string())?;
+    semaprax::project::ProjectManifest::parse(&text)
+        .map(|manifest| manifest.web_exports().to_vec())
+        .map_err(|_| "manifest exports unknown".to_string())
 }
 
 /// Derive the evidence needs of one task and the smallest provider query that
@@ -267,7 +256,13 @@ pub fn plan(
     );
     let interface_change = lower.iter().any(|t| INTERFACE_TERMS.contains(&t.as_str()));
     if interface_change || !needs.foreign.is_empty() {
-        let exported = web_exports(root);
+        let exported = match web_exports(root) {
+            Ok(exports) => exports,
+            Err(unknown) => {
+                needs.unresolved.push(unknown);
+                vec![]
+            }
+        };
         if needs.symbols.iter().any(|s| exported.contains(s)) {
             needs.foreign.push(ForeignNeed {
                 language: "typescript".into(),

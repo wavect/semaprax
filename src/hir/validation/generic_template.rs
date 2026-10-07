@@ -229,15 +229,17 @@ fn admits_ordinary_record_result(
     let owns = *mode == ResolvedMatchMode::Own
         && scrutinee.ownership == OwnershipMode::Own
         && expression.ownership == OwnershipMode::Own
-        && super::super::type_reachability::is_admitted_nested_owned_byte_record(
+        && (super::super::type_reachability::is_admitted_nested_owned_byte_record(
             &program.declarations,
             &scrutinee.ty,
-        )
-        && (expression.ty == ResolvedType::Bytes
+        ) || super::super::owned_text_record::admitted(&scrutinee.ty, &program.declarations))
+        && (matches!(expression.ty, ResolvedType::Bytes | ResolvedType::String)
+            || crate::map_ops::is_collection(&expression.ty)
             || super::super::type_reachability::is_admitted_nested_owned_byte_record(
                 &program.declarations,
                 &expression.ty,
-            ));
+            )
+            || super::super::owned_text_record::admitted(&expression.ty, &program.declarations));
     copy || owns
 }
 

@@ -22,7 +22,12 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         if !self.mutable_bindings.contains(root) || !self.is_copy_value(&value.ty)? {
             return Ok(value);
         }
+        if matches!(&value.ty, ResolvedType::ArrayU8(0)) {
+            return Ok(value);
+        }
         let snapshot = self.temporary(&value.ty)?;
+        // Fixed arrays use struct spx_array_u8_N carriers, so assignment
+        // snapshots both direct arrays and enclosing structs in C11.
         self.line(&format!("{snapshot} = {};", value.code));
         Ok(CValue {
             code: snapshot,
@@ -33,7 +38,10 @@ impl<'a, O: COutput> CEmitter<'a, O> {
     /// A checked Copy scalar, or a record or class whose fields are all such
     /// values (Field Mutation v1 stores into a direct scalar field of one).
     fn is_copy_value(&self, ty: &ResolvedType) -> Result<bool, Diagnostic> {
-        if hir::is_scalar_resolved_type(ty) {
+        if hir::is_scalar_resolved_type(ty) || matches!(ty, ResolvedType::ArrayU8(_)) {
+            return Ok(true);
+        }
+        if self.program.is_payload_free_variant(ty) {
             return Ok(true);
         }
         if record_declaration_id(self.program, ty)?.is_none() {
@@ -46,4 +54,19 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         }
         Ok(true)
     }
+}
+
+/// Complete independent leaf carriers before records embed them by value.
+pub(super) fn emit_independent_variants(
+    output: &mut impl COutput,
+    program: &hir::ResolvedProgram,
+    resource_abi: &crate::codegen::native_resource::NativeResourceAbi,
+    variants: &[&crate::variant_layout::VariantLayout],
+) -> Result<(), Diagnostic> {
+    for variant in variants {
+        if !variant.has_payload() {
+            super::emit_variant_declaration(output, program, resource_abi, variant)?;
+        }
+    }
+    Ok(())
 }

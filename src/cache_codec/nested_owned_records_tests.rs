@@ -24,12 +24,17 @@ fn iterator_cleanup_cache_retains_exact_version_and_replays_owned_payloads() {
         "semaprax.cleanup-plan.v11",
         "semaprax.cleanup-plan.v12",
         "semaprax.cleanup-plan.v13",
+        "semaprax.cleanup-plan.v14",
+        "semaprax.cleanup-plan.v15",
+        "semaprax.cleanup-plan.v16",
     ] {
         let bytes = super::encode(&schema).unwrap();
         assert_eq!(super::decode::<&'static str>(&bytes).unwrap(), schema);
         assert!(static_token(&format!("{schema} ")).is_err());
+        let unknown = super::encode(&format!("{schema}+future")).unwrap();
+        assert!(super::decode::<&'static str>(&unknown).is_err());
     }
-    assert!(static_token("semaprax.cleanup-plan.v14").is_err());
+    assert!(static_token("semaprax.cleanup-plan.v17").is_err());
     let source = crate::check(
         "module iterator.cache; @id(\"main\") fn main()->i64 {let iterator=vec_into_iter<Bytes>(vec_with_capacity<Bytes>(0usize));let step=iter_next<Bytes>(iterator);match own step {IterStep::Done{}=>1,IterStep::Yield{item,rest}=>0,}}",
         "iterator-cache.spx",
@@ -62,6 +67,7 @@ fn iterator_cleanup_cache_retains_exact_version_and_replays_owned_payloads() {
         .iter_mut()
         .find(|function| function.id.as_str() == "cache.main")
         .unwrap();
+    // Pure traversal has no native owner admission and retains the v13 profile.
     assert_eq!(
         record_function.cleanup_plan.schema,
         "semaprax.cleanup-plan.v13"
@@ -73,4 +79,23 @@ fn iterator_cleanup_cache_retains_exact_version_and_replays_owned_payloads() {
         record_bytes
     );
     crate::hir::validate(&record_program).unwrap();
+
+    let string_source = crate::check(
+        "module string.cache; @id(\"cache.string.main\") fn main()->i64 {let mut text=\"old\";text=\"new\";string_len(text)}",
+        "string-replacement-cache.spx",
+    )
+    .unwrap();
+    let mut string_program = crate::hir::resolve(&string_source).unwrap();
+    let string_function = &mut string_program.functions[0];
+    assert_eq!(
+        string_function.cleanup_plan.schema,
+        "semaprax.cleanup-plan.v16"
+    );
+    let string_bytes = super::encode(&string_function.cleanup_plan).unwrap();
+    string_function.cleanup_plan = super::decode(&string_bytes).unwrap();
+    assert_eq!(
+        super::encode(&string_function.cleanup_plan).unwrap(),
+        string_bytes
+    );
+    crate::hir::validate(&string_program).unwrap();
 }

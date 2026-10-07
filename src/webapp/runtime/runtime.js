@@ -22,6 +22,8 @@ export const fromI64 = (n) => n.toString();
 export const unreachable = () => { throw new Trap("unreachable"); };
 export const precondition = (ok) => { if (!ok) throw new Trap("precondition"); return true; };
 
+export const postcondition = (ok) => { if (!ok) throw new Trap("postcondition"); return true; };
+
 // ---- codec ----
 class Raw { constructor(source) { this.source = source; } }
 // JSON.parse that keeps number source text (exact big ints) where the engine supports it.
@@ -66,7 +68,7 @@ export function decodeValue(f, enums, v) {
 }
 // Decode a parsed JSON object into the in-memory row. Returns {row, errors, bad} where bad is the set of failed fields.
 export function decodeRow(ent, enums, input, withId = false) {
-  const row = {}, errors = [], bad = new Set();
+  const row = Object.create(null), errors = [], bad = new Set();
   for (const f of ent.fields) {
     if (!Object.hasOwn(input, f.name) || input[f.name] === null) { errors.push({ field: f.name, message: "is required" }); bad.add(f.name); continue; }
     const [v, m] = decodeValue(f, enums, input[f.name]);
@@ -85,7 +87,7 @@ export const encValue = (f, v, strInts) => {
 };
 // Run computed fields: {name: value | {error: code}}. A throwing field never crashes.
 export function evalComputed(ent, row) {
-  const out = {};
+  const out = Object.create(null);
   for (const c of ent.computed || []) {
     try {
       const v = c.value(row);
@@ -149,7 +151,7 @@ export function synthesizeRow(ent, enums, refs, budget = 20000, opt = {}) {
   const last = fs.length - 1, at = fs.map(() => []);
   for (const r of ent.rules || []) at[Math.max(0, ...(r.fields || []).map((n) => (idx.has(n) ? idx.get(n) : last)))]?.push(r);
   at[Math.max(0, last)].push(...(opt.extra || []));
-  const row = {}; let evals = 0, worst = -1, why = "";
+  const row = Object.create(null); let evals = 0, worst = -1, why = "";
   const go = (d) => {
     if (d > last) return true;
     const f = fs[d];
@@ -173,7 +175,7 @@ export function synthesizeRow(ent, enums, refs, budget = 20000, opt = {}) {
 
 // Computed values as the API sent them (the server is the truth for rollups): {name: value | {error}}.
 export function decodeComputed(ent, enums, o) {
-  const out = {};
+  const out = Object.create(null);
   for (const c of ent.computed || []) {
     const v = o[c.name];
     out[c.name] = v !== null && typeof v === "object" && !(v instanceof Raw) ? { error: String(v.error) } : decodeValue(c, enums, v)[0] ?? { error: "decode" };
@@ -188,14 +190,23 @@ export function keysOf(ent, account) {
   if (!account || account.entity !== ent.path || ks.some((k) => k.fields.length === 1 && k.fields[0] === account.login)) return ks;
   return [...ks, { name: "login", fields: [account.login], value: (r) => r[account.login] }];
 }
-const keyVal = (k, r) => { try { return [k.value(r)]; } catch { return null; } };
-// Key violations of `row` against `others` (an array of rows with ids; the row's own id is skipped).
+const keyVal = (k, r) => {
+  try { return { value: k.value(r) }; }
+  catch (e) { return { error: e instanceof Trap ? e.code : "error" }; }
+};
+// A failed constraint evaluation is never evidence of uniqueness.
 export function keyErrors(keys, row, others, bad = new Set()) {
   const out = [];
   for (const k of keys) {
-    const v = k.fields.some((f) => bad.has(f)) ? null : keyVal(k, row);
-    if (v && others.some((o) => { if (o.id === row.id) return false; const w = keyVal(k, o); return w !== null && w[0] === v[0]; }))
-      out.push({ field: k.fields[0] ?? "", message: k.fields.join(", ") + " must be unique" });
+    if (k.fields.some((f) => bad.has(f))) continue;
+    const v = keyVal(k, row), field = k.fields[0] ?? "";
+    if (v.error) { out.push({ field, message: `key ${k.name} failed: ${v.error}` }); continue; }
+    for (const o of others) {
+      if (o.id === row.id) continue;
+      const w = keyVal(k, o);
+      if (w.error) { out.push({ field, message: `stored key ${k.name} failed: ${w.error}` }); break; }
+      if (w.value === v.value) { out.push({ field, message: k.fields.join(", ") + " must be unique" }); break; }
+    }
   }
   return out;
 }
@@ -215,7 +226,7 @@ export function stepErrors(ent, enums, row, old, bad = new Set()) {
 // Copy of `row` with every rollup of `ent` set. kids(path) -> {ent, rows: iterable}. A failed aggregate
 // (overflow, child computed error) is a property that throws its Trap, so only computed fields reading it fail.
 export function withRollups(ent, row, kids) {
-  const r = { ...row };
+  const r = Object.assign(Object.create(null), row);
   for (const u of ent.rollups || []) {
     try { r[u.name] = rollup(u, row.id, kids(u.child)); }
     catch (e) { const code = e instanceof Trap ? e.code : "error"; Object.defineProperty(r, u.name, { enumerable: true, get() { throw new Trap(code); } }); }

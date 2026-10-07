@@ -229,6 +229,7 @@ struct ValueLayout {
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum ValueLayoutKind {
     Scalar,
+    Variant,
     OwnedBytes,
     OwnedString,
     OwnedCollection,
@@ -244,7 +245,7 @@ impl ValueLayoutKind {
             Self::OwnedString => AggregateFieldValueKind::OwnedString,
             Self::OwnedCollection=>AggregateFieldValueKind::OwnedCollection,
             Self::Resource => AggregateFieldValueKind::Resource,
-            Self::Record { .. } => AggregateFieldValueKind::Aggregate,
+            Self::Record { .. } | Self::Variant => AggregateFieldValueKind::Aggregate,
         }
     }
 }
@@ -436,8 +437,21 @@ fn layout_nominal(
             visiting.remove(&instance_key);
             result
         }
+        ResolvedTypeDeclarationKind::Variant { cases }
+            if arguments.is_empty() && item.type_parameters.is_empty()
+                && cases.iter().all(|case| case.fields.is_empty()) =>
+        {
+            let instance = ResolvedType::Nominal {
+                declaration: declaration.clone(), arguments: Vec::new(),
+            };
+            let layout = crate::variant_layout::VariantLayout::for_type(program, target, &instance)?;
+            Ok(ValueLayout {
+                size: layout.size, align: layout.align, digest: layout.digest(),
+                kind: ValueLayoutKind::Variant,
+            })
+        }
         ResolvedTypeDeclarationKind::Variant { .. } => Err(layout_error(format!(
-            "variant `{declaration}` requires the variant-layout profile"
+            "variant `{declaration}` requires the variant-layout profile; record fields admit only non-generic payload-free variants"
         ))),
     }
 }
@@ -649,7 +663,14 @@ fn layout_record(
         }
 
         let field_ty = crate::hir::substitute_type(&declaration.ty, record, arguments)?;
-        let value = layout_type(program, target, &field_ty, visiting)?;
+        let value = layout_type(program, target, &field_ty, visiting).map_err(|mut error| {
+            error.message = format!(
+                "record `{record}` field `{}`: {}",
+                declaration.id, error.message
+            );
+            error.span = Some(declaration.span);
+            error
+        })?;
         let value_kind = value.kind.field_kind();
         offset = align_up(offset, value.align)?;
         let end = offset

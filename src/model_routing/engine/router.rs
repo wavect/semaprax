@@ -333,15 +333,15 @@ pub fn decide<I: ?Sized + DecisionInvoker>(
         &mut ms,
         cache,
     );
+    // Every completed consultation, including an error, must use current host inputs.
+    let cur = live();
+    let cur_scr = screen(&cur.request, &cur.policy);
+    let mut cur_d = cur.digests(&cur_scr);
+    if prepared.is_some() {
+        cur_d.v2 = cur.prepare_v2(&cur_scr).ok().map(|p| p.digests());
+    }
     let reason = match outcome {
         Ok(c) => {
-            // Revalidate against live state: a valid choice is not a correct one.
-            let cur = live();
-            let cur_scr = screen(&cur.request, &cur.policy);
-            let mut cur_d = cur.digests(&cur_scr);
-            if prepared.is_some() {
-                cur_d.v2 = cur.prepare_v2(&cur_scr).ok().map(|p| p.digests());
-            }
             if cur_d.catalog != digests.catalog
                 || cur_d.policy != digests.policy
                 || cur_d.features != digests.features
@@ -392,10 +392,23 @@ pub fn decide<I: ?Sized + DecisionInvoker>(
                 wire,
             );
         }
-        Err(r) => r,
+        Err(r) => {
+            if cur_d.catalog != digests.catalog
+                || cur_d.policy != digests.policy
+                || cur_d.features != digests.features
+                || cur_d.v2 != digests.v2
+            {
+                let note = "live routing inputs changed during the failed consultation; fallback uses current inputs";
+                wire.note = Some(match wire.note.take() {
+                    Some(previous) => format!("{previous}; {note}"),
+                    None => note.into(),
+                });
+            }
+            r
+        }
     };
     fall_back(
-        inputs, &scr, digests, reason, calls, ms, status, lineage, wire,
+        &cur, &cur_scr, cur_d, reason, calls, ms, status, lineage, wire,
     )
 }
 

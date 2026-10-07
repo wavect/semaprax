@@ -73,6 +73,7 @@ mod mutable_closure;
 mod nested_owned;
 pub(crate) mod network;
 pub(crate) mod process;
+pub mod source_entry;
 use command_state::CommandInputState;
 mod owned_box;
 mod owned_buffer;
@@ -1965,6 +1966,7 @@ fn interpret_with_profile(
                 &arguments,
                 &options_owned,
                 profile,
+                false,
             )
         })
         .map_err(|error| {
@@ -1987,6 +1989,7 @@ fn interpret_on_current_thread(
     arguments: &[String],
     options: &InterpreterOptions,
     profile: SourceProfile,
+    allow_automatic_main: bool,
 ) -> Result<Interpretation, Vec<Diagnostic>> {
     let canonical_source_path = patch::canonical_source_path(source_path)?;
     let snapshot = match profile {
@@ -2003,9 +2006,9 @@ fn interpret_on_current_thread(
         return Err(diagnostics);
     }
     let revision = graph::revision(&program);
-
     let function = select_function(&program, function_token)?;
-    if let Some(reason) = admission(function) {
+    let automatic_main = source_entry::admit_automatic(function, allow_automatic_main);
+    if let Some(reason) = admission_with_entry_policy(function, automatic_main) {
         return Err(vec![selection_error(
             reason,
             format!("function `{}`", function.name),
@@ -2013,10 +2016,7 @@ fn interpret_on_current_thread(
     }
     let parsed_arguments = bind_arguments(function, arguments)?;
 
-    // SPX-AI-021 bounded owning closures: only the interpreter substitutes
-    // `own fn(...)` construction-plus-call with a direct call before
-    // resolving; every other caller keeps refusing it unmodified (see
-    // `hir::closure::desugar_owning_closures`, `docs/CLOSURES-OWNING-V1.md`).
+    // The interpreter's bounded owning-closure lowering remains unchanged.
     let desugared = hir::closure::desugar_owning_closures(&program);
     let resolved = hir::resolve(desugared.as_ref().unwrap_or(&program))?;
     let entry = resolved
@@ -2033,15 +2033,10 @@ fn interpret_on_current_thread(
             )]
         })?;
 
-    // The selected source boundary remains scalar/borrow-only, while its
-    // internal closure may use the verified Useful Data profile. Keeping
-    // these gates separate prevents owned buffers or fixed arrays from
-    // silently becoming CLI values merely because the evaluator can execute
-    // them internally.
-    let admitted = admitted_resolved_functions_with_profile(&resolved, profile);
-
+    // The source boundary remains scalar/borrow-only on both entry routes.
+    let mut admitted = admitted_resolved_functions_with_profile(&resolved, profile);
+    source_entry::include_entry(&mut admitted, entry, automatic_main);
     scan_closure(entry.id.as_str(), &admitted, &resolved)?;
-
     let (evaluated, steps_used, _) = evaluate_resolved_entry(
         entry,
         &parsed_arguments,
@@ -2072,7 +2067,6 @@ fn interpret_on_current_thread(
             }
         },
     };
-
     let digest = source_digest(snapshot.source());
     let path_text = source_path.display().to_string();
     let arguments_json = parsed_arguments
@@ -2089,10 +2083,6 @@ fn interpret_on_current_thread(
         })
         .collect::<Vec<_>>();
     let exhausted = outcome.kind == OUTCOME_FUEL_EXHAUSTED;
-
-    // New-profile rendering charges component quotes/joining, then payload,
-    // then wrapper. Components plus wrapper digest are disjoint output parts:
-    // cumulative work is at most P + 2E <= 3E. Legacy charging stays frozen.
     let render_limit = match profile {
         SourceProfile::Legacy => options.max_bytes,
         SourceProfile::InternalStrings => options.max_bytes.checked_mul(3).ok_or_else(|| {
@@ -2170,10 +2160,13 @@ fn select_function<'a>(program: &'a Program, token: &str) -> Result<&'a Function
         })
 }
 
-/// Closed AST-level admission gate for scalar results and direct scalar or
-/// invocation-borrowed UTF-8 inputs.
+#[cfg(test)]
 fn admission(function: &Function) -> Option<&'static str> {
-    if !function.explicit_id {
+    admission_with_entry_policy(function, false)
+}
+
+fn admission_with_entry_policy(function: &Function, automatic_main: bool) -> Option<&'static str> {
+    if !function.explicit_id && !automatic_main {
         return Some(REASON_AUTOMATIC_IDENTITY);
     }
     if !function.type_parameters.is_empty() {
@@ -2870,6 +2863,7 @@ pub(crate) fn evaluate_resolved_stdout_transcript(
                 .declaration(&function.id)
                 .is_some_and(|declaration| {
                     declaration.identity_origin == hir::IdentityOrigin::Explicit
+                        || source_entry::resolved_main(program, function, entry_id)
                 })
         })
         .filter(|function| {
@@ -4411,7 +4405,7 @@ impl Evaluator<'_> {
                         values.push(self.evaluate(argument, environment, depth)?);
                     }
                     if op.is_owned_buffer_chain() {
-                        return self.evaluate_owned_buffer_operation(op, &values);
+                        return self.evaluate_owned_buffer_operation(op, values);
                     }
                     return match (op, values.as_slice()) {
                         (crate::byte_ops::ByteOp::Len, [Value::BorrowedSlice(value)]) => {

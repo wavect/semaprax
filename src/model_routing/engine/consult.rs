@@ -32,6 +32,14 @@ pub(super) fn consult<I: ?Sized + DecisionInvoker>(
 ) -> Result<Consulted, FallbackReason> {
     use FallbackReason as R;
     let pid = p.profile.provider_id.clone();
+    // Invalid settings must not collide with JSON null in a retained cache scope.
+    if [p.profile.min_confidence, p.profile.min_option_mass]
+        .into_iter()
+        .flatten()
+        .any(|min| !min.is_finite() || !(0.0..=1.0).contains(&min))
+    {
+        return Err(R::LowConfidence);
+    }
     if ctx.router_lineage.contains(&pid) {
         return Err(R::RecursionBlocked);
     }

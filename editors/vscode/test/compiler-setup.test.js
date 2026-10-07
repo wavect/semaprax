@@ -11,7 +11,7 @@ const { spawn } = require('node:child_process');
 const setup = require('../compiler-setup');
 
 const posix = process.platform !== 'win32';
-const IDENTITY = JSON.stringify({ schema: 'semaprax.version.v1', version: '9.9.9', commit: 'abc', maturity: 'beta', rust_min: '1.88' });
+const IDENTITY = JSON.stringify({ schema: 'semaprax.version.v1', version: '9.9.9', commit: 'a'.repeat(40), maturity: 'beta', rust_min: '1.88' });
 const CATALOG = 'SEMAPRAX\n\nUsage:\nsemaprax check [<file>] [--json]\nsemaprax dev <semaprax.toml> --jsonl\nsemaprax serve-workspace-mcp <manifest> <policy>\n';
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'spx compiler Ünï '));
 test.after(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -134,4 +134,18 @@ test('a PATH entry that is a different installation is explained', () => {
   const differ = setup.describeSetup({ selected: '/a/semaprax', trusted: true, probe: good, pathFirst: '/b/semaprax', realpath: value => value });
   assert.match(differ.detail, /PATH resolves to \/b\/semaprax, which is not the selected compiler/);
   assert.doesNotMatch(setup.describeSetup({ selected: '/a/semaprax', trusted: true, probe: good, pathFirst: '/link/semaprax', realpath: () => '/same' }).detail, /PATH resolves/);
+});
+
+ test('CLI null commit identity reaches capability discovery with honest provenance', { skip: !posix }, async () => {
+  const value = { schema: 'semaprax.version.v1', version: '0.9.0', commit: null, maturity: 'beta', rust_min: '1.88' };
+  const file = stub(printf(JSON.stringify(value)), printf(CATALOG));
+  const result = await setup.probeCompiler(spawn, file);
+  assert.equal(result.ok, true);
+  assert.equal(result.identity.commit, null);
+  assert.equal(result.capabilities.check, true);
+  assert.match(setup.describeSetup({ selected: file, trusted: true, probe: result }).detail, /provenance is unknown/);
+  for (const commit of [undefined, '', 'abc', 'A'.repeat(40), 42, {}, 'a'.repeat(41)]) {
+    assert.equal(setup.parseIdentity(JSON.stringify({ ...value, commit })), null);
+  }
+  assert.equal((await setup.probeCompiler(spawn, stub(printf(JSON.stringify(value)), printf('semaprax build x')))).ok, false);
 });

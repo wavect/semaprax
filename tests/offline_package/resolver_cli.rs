@@ -84,7 +84,7 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
         ("semaprax package report <file> [--max-bytes N]\n", ""),
         ("semaprax package lock <subject.json>... [--max-bytes N]\n", ""),
         ("semaprax package resolve <subject.json>... --require <package>:<range> [--require ...] --target <native64|wasm32> [--allow-capability <capability>]... [--max-bytes N]\n", ""),
-        ("semaprax doc <file> [--json]\n", ""),
+        ("semaprax doc <file|project> [--module <source-path>] [--json]\n", ""),
         ("semaprax verify <file> <patch.spatch> <evidence.json>\n", ""),
         ("semaprax verify <root> <patch.wspatch>|<proposal.json> <evidence.json>\n", ""),
         ("semaprax verify <definition.json> <profile.json> <graph.json>\n", ""),

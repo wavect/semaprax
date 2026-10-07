@@ -157,7 +157,17 @@ fn entities_of(
     let mut paths = BTreeMap::new();
     for declaration in &program.types {
         if let TypeDeclarationKind::Record { .. } = declaration.kind {
-            paths.insert(snake(&declaration.name), declaration.name.clone());
+            let path = snake(&declaration.name);
+            if let Some(previous) = paths.insert(path.clone(), declaration.name.clone()) {
+                errors.push(shape_error(
+                    format!(
+                        "records `{previous}` and `{}` share webapp route `{path}`",
+                        declaration.name
+                    ),
+                    declaration.name_span,
+                    "rename one record so its snake_case route is unique",
+                ));
+            }
         }
     }
     let mut entities = Vec::new();
@@ -380,7 +390,19 @@ pub(super) fn build(program: &Program, source: &str) -> Result<Model, Vec<Diagno
             Kind::Valid => translator
                 .rules(function, &bound)
                 .map(|rules| entity.rules.extend(rules)),
-            Kind::Computed if entity.fields.iter().any(|field| field.name == *suffix) => {
+            Kind::Computed if matches!(suffix.as_str(), "id" | "password") => {
+                Err(vec![shape_error(
+                    format!("computed field `{suffix}` is reserved"),
+                    function.name_span,
+                    "rename the function; id and password belong to the runtime",
+                )])
+            }
+            Kind::Computed
+                if entity.fields.iter().any(|field| field.name == *suffix)
+                    || entity.computed.iter().any(|field| {
+                        field.starts_with(&format!("{{ name: {},", translate::js_string(suffix)))
+                    }) =>
+            {
                 Err(vec![shape_error(
                     format!(
                         "computed field `{suffix}` repeats a field of `{}`",

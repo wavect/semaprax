@@ -1803,7 +1803,10 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     // scope exit below so moved bindings are not finalized.
                     let mut value = self.emit_expr(&arm.value)?;
                     self.require_type(&value.ty, &expr.ty, "record match arm result")?;
-                    if aggregate_result || expr.ty == ResolvedType::Bytes {
+                    if aggregate_result
+                        || matches!(expr.ty, ResolvedType::Bytes | ResolvedType::String)
+                        || crate::map_ops::is_collection(&expr.ty)
+                    {
                         self.finish_generic_owned_match_result(expr, &arm.value, &mut value)?;
                     }
                     if *mode == hir::ResolvedMatchMode::Own {

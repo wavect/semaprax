@@ -862,6 +862,7 @@ impl<'a> HirValidator<'a> {
                         } = &field.ty
                         {
                             if !arguments.is_empty()
+                                && !crate::map_ops::is_collection(&field.ty)
                                 && self
                                     .program
                                     .declarations

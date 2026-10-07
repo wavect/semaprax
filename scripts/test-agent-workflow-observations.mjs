@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  MCP_PROTOCOL_VERSION, ToolPayloadObserver, connectMcpWorkflowTransport, observeDirectWorkflowTransport,
+  MCP_PROTOCOL_VERSION, aggregateToolPayloadSession, ToolPayloadObserver, connectMcpWorkflowTransport, observeDirectWorkflowTransport,
 } from '../packages/semaprax-agent-workflow/dist/index.js';
 
 const line = (value) => `${JSON.stringify(value)}\n`;
@@ -155,4 +155,35 @@ test('direct v5 result, application error, malformed and rejected exchanges are 
   assert.equal(outcome.error, boom);
   assert.equal(event.outcome, 'timeout');
   assert.equal(event.status, 'incomplete');
+});
+
+test('SG22 validates JSON imports before summing and retains owned immutable evidence', async () => {
+  const observer = new ToolPayloadObserver({ sessionId: 'imported', measureText: { tokenizer: 'fixture', fingerprint: 'fixture-v1', measureText: () => 100 }, reference: () => ({ kind: 'caller_context', tokenCount: 100 }) });
+  const context = { method: 'query', boundary: 'direct_v5_response', subjectRevision: null, outcome: 'success' };
+  observer.observe(context, 'one'); observer.observe(context, 'two');
+  await observer.drain();
+  const imported = JSON.parse(JSON.stringify(observer.events()));
+  const report = aggregateToolPayloadSession(imported);
+  assert.equal(report.groups[0].actualTokens, 200);
+  assert.equal(aggregateToolPayloadSession([...imported, imported[0]]).events.length, 2);
+  for (const bad of [-90, 0.5, Number.MAX_SAFE_INTEGER + 1, NaN, Infinity, '100']) {
+    assert.throws(() => aggregateToolPayloadSession([imported[0], { ...imported[1], tokens: bad }]));
+    assert.throws(() => aggregateToolPayloadSession([imported[0], { ...imported[1], baselineTokens: bad }]));
+  }
+  for (const patch of [{ eventId: '' }, { sessionId: 'bad\n' }, { attemptSequence: 0 }, { deliverySequence: 0 }, { method: '' }, { boundary: 'invalid' }, { outcome: 'invalid' }, { status: 'invalid' }, { digest: 'sha256:bad' }, { subjectRevision: 'bad' }, { tokenizer: null }, { referenceKind: null }, { bytes: -1 }, { status: 'incomplete' }, { status: 'baseline_unavailable' }]) {
+    assert.throws(() => aggregateToolPayloadSession([{ ...imported[0], ...patch }]), JSON.stringify(patch));
+  }
+  assert.throws(() => aggregateToolPayloadSession([imported[0], { ...imported[0], tokens: 101 }]));
+  imported[0].tokens = 88888;
+  assert.equal(report.events[0].tokens, 100);
+  assert.ok(Object.isFrozen(report.events[0]));
+  const grown = aggregateToolPayloadSession([{ ...report.events[0], tokens: 200 }]);
+  assert.equal(grown.groups[0].signedDeltaTokens, -100);
+  assert.equal(grown.groups[0].weightedReductionFraction, -1);
+  const separate = aggregateToolPayloadSession([report.events[0], { ...report.events[1], tokenizerFingerprint: 'fixture-v2' }]);
+  assert.equal(separate.groups.length, 2);
+  const failed = new ToolPayloadObserver({ sessionId: 'failed' });
+  failed.observe({ ...context, outcome: 'timeout' }, null); await failed.drain();
+  const failure = aggregateToolPayloadSession(JSON.parse(JSON.stringify(failed.events())));
+  assert.equal(failure.coverage.failed, 1); assert.equal(failure.coverage.unpaired, 1); assert.equal(failure.partial, true);
 });

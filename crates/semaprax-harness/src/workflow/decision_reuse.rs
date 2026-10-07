@@ -214,6 +214,7 @@ impl SessionDecisions {
                 "governance": {"mode": g.cfg.mode.as_str(), "pin": g.cfg.project_pin, "allow_remote": g.cfg.user_allow_remote,
                                "cheap_bypass_micros": g.cfg.cheap_bypass_micros, "shadow_max_calls": g.cfg.shadow_max_calls,
                                "provider_mode": p.map(|p| format!("{:?}", p.mode))},
+                "provider_acceptance": p.map(|p| p.profile.scope_json()),
                 "evidence": {"lock": g.lock.map(|l| json!({"key": l.key_digest, "record": l.record_digest})),
                              "registry": g.registry.is_some(), "gate": gate},
             }),

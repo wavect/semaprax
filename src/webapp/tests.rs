@@ -566,7 +566,6 @@ fn row_aware_default_policies_cover_matching_entities_most_specific_first() {
     );
 }
 
-
 #[test]
 fn v3_projects_pairwise_constraints_and_explicit_field_migrations() {
     let source = "module scheduling;
@@ -618,3 +617,4 @@ fn v3_runtime_security_migration_and_cross_row_contracts() {
         assert!(output.status.success(), "{}\n{}", String::from_utf8_lossy(&output.stdout), String::from_utf8_lossy(&output.stderr));
     }
 }
+mod sg_regressions;

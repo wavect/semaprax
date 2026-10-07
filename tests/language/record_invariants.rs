@@ -484,3 +484,94 @@ fn executable_owned_invariants_refuse_before_backend_admission() {
         );
     }
 }
+
+const NESTED: &str = r#"
+module review.nested_invariant;
+@id("review.positive")
+record Positive { @id("review.positive.value") value: i64, }
+    requires value >= 0
+@id("review.wrapper")
+record Wrapper { @id("review.wrapper.value") value: i64, }
+    requires { let nested = Positive { value: value }; nested.value == value }
+@id("app.main")
+fn main() -> i64 { let wrapper = Wrapper { value: -1 }; wrapper.value }
+"#;
+
+#[test]
+fn sg01_nested_invariant_productions_are_checked_before_publication() {
+    for source in [NESTED.to_owned(), NESTED.replace(
+        "let nested = Positive { value: value }; nested.value == value",
+        "let nested = Positive { value: 0 }; let updated = nested with { value: value }; updated.value == value",
+    )] {
+        let updated = source.contains("with {");
+        if !updated {
+            assert_contract_failure(&interpret_main(&source, "nested-invalid"));
+        }
+        if let Some((success, _, stderr)) = run_native(&source, "nested-native") {
+            assert!(!success, "{stderr}");
+            assert!(stderr.contains("review.positive#invariant"), "{stderr}");
+        }
+        if let Some(output) = run_wasm(&source, "nested-wasm") {
+            assert_eq!(output, "contract-failure");
+        }
+        let valid = source.replace("Wrapper { value: -1 }", "Wrapper { value: 1 }");
+        if !updated {
+            assert_eq!(interpret_main(&valid, "nested-valid")["value"], "1");
+        }
+        if let Some((success, output, stderr)) = run_native(&valid, "nested-valid-native") {
+            assert!(success, "{stderr}");
+            assert_eq!(output, "1");
+        }
+        if let Some(output) = run_wasm(&valid, "nested-valid-wasm") {
+            assert_eq!(output, "1");
+        }
+        let functions = graph_functions(&source);
+        assert!(functions["review.wrapper#invariant"]["requires_graph"]
+            .to_string().contains("review.positive#check"));
+        let program = parse(&source, Path::new("nested.spx")).unwrap();
+        let canonical = format::canonical(&program);
+        let reparsed = parse(&canonical, Path::new("nested.spx")).unwrap();
+        assert_eq!(canonical, format::canonical(&reparsed));
+        assert!(graph::to_json(&reparsed).unwrap().contains("review.positive#check"));
+    }
+}
+
+#[test]
+fn sg01_indirect_clause_chain_and_function_contract_enforce_inner_invariants() {
+    let chain = NESTED
+        .replace(
+            "@id(\"app.main\")",
+            r#"
+@id("review.outer")
+record Outer { @id("review.outer.value") value: i64, }
+    requires { let nested = Wrapper { value: value }; nested.value == value }
+@id("app.main")"#,
+        )
+        .replace(
+            "let wrapper = Wrapper { value: -1 }",
+            "let wrapper = Outer { value: -1 }",
+        );
+    let contract = NESTED
+        .replace(
+            "@id(\"app.main\")",
+            r#"
+@id("review.contract")
+fn checked(value: i64) -> i64
+    requires { let nested = Positive { value: value }; nested.value == value }
+{ value }
+@id("app.main")"#,
+        )
+        .replace(
+            "let wrapper = Wrapper { value: -1 }; wrapper.value",
+            "checked(-1)",
+        );
+    for source in [chain, contract] {
+        assert_contract_failure(&interpret_main(&source, "nested-chain"));
+        if let Some((success, _, error)) = run_native(&source, "nested-chain-native") {
+            assert!(!success, "{error}");
+        }
+        if let Some(output) = run_wasm(&source, "nested-chain-wasm") {
+            assert_eq!(output, "contract-failure");
+        }
+    }
+}

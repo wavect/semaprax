@@ -1,0 +1,26 @@
+{
+  "schema": "semaprax.harness-request.v1",
+  "invocation_id": "inv-000002",
+  "project": {
+    "id": "p",
+    "worktree": "w",
+    "revision": "r"
+  },
+  "lock_digest": "l",
+  "capability": {
+    "kind": "context.repository",
+    "version": 1
+  },
+  "operation": "references",
+  "deadline_ms": 60000,
+  "budget": {
+    "max_result_bytes": 1048576,
+    "remaining_calls": 8
+  },
+  "lineage": [],
+  "payload": {
+    "symbol": "target",
+    "max_items": 200,
+    "exhaustive": true
+  }
+}

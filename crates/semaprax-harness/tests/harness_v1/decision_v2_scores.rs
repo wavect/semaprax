@@ -556,3 +556,65 @@ fn hp_mr03_identity_and_usage_fields_cannot_carry_text_or_secrets() {
     c["leak"] = json!("x");
     assert!(CallMetadata::from_json(&c).is_err());
 }
+
+#[test]
+fn sg19_cloudflare_no_network_adapter_composes_with_synthetic_auto_gate() {
+    use std::io::Write;
+    use std::process::{Command, Stdio};
+    let root = crate::support::repo_root();
+    let tests = root.join("packages/semaprax-harness-adapters/systemone/tests");
+    let python = std::env::var("HARNESS_PYTHON").unwrap_or_else(|_| "python3".into());
+    for variant in ["clef", "clef-flash"] {
+        for mode in ["ok", "prefixed_model", "wrong_variant", "no_model"] {
+            let route = format!("@cf/cloudflare/{variant}");
+            let tests = tests.clone();
+            let python = python.clone();
+            let model = route.clone();
+            let mut inv = V2::new(move |payload| {
+                let script = "import json,sys,unittest;sys.path.insert(0,sys.argv[1]);import test_cloudflare as cf; import decision_fixtures as fx;t=unittest.TestCase();r=cf.Run(t,mode=sys.argv[3],model=sys.argv[2]);q=fx.v2_request();q['payload']=json.load(sys.stdin);res=r.invoke(q);t.doCleanups();print(json.dumps(res.get('payload')))";
+                let mut child = Command::new(&python)
+                    .args(["-c", script, tests.to_str().unwrap(), &model, mode])
+                    .stdin(Stdio::piped())
+                    .stdout(Stdio::piped())
+                    .stderr(Stdio::piped())
+                    .spawn()
+                    .unwrap();
+                child
+                    .stdin
+                    .take()
+                    .unwrap()
+                    .write_all(payload.to_string().as_bytes())
+                    .unwrap();
+                let output = child.wait_with_output().unwrap();
+                assert!(
+                    output.status.success(),
+                    "{}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+                serde_json::from_slice(&output.stdout).unwrap()
+            });
+            let mut prof = configured(json!({"model": route}), "synthetic-cf-fixture");
+            prof.provider_id = "com.cloudflare/clef-decision".into();
+            let d = run_with(
+                &inputs(RouteSignals::default()),
+                &mut inv,
+                prof,
+                ProviderMode::Auto,
+                None,
+            );
+            if ["ok", "prefixed_model"].contains(&mode) {
+                assert_eq!(d.source, DecisionSource::Provider);
+                assert_eq!(
+                    d.wire.call.as_ref().unwrap().answering_model.as_deref(),
+                    Some(route.as_str())
+                );
+                assert_eq!(d.wire.call.as_ref().unwrap().usage.input_tokens, Some(212));
+            } else {
+                assert_eq!(
+                    d.source,
+                    DecisionSource::Fallback(FallbackReason::InvalidResult)
+                );
+            }
+        }
+    }
+}

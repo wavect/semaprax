@@ -9,6 +9,8 @@
 //! signatures, ownership modes, effects, contracts, members, and the leading
 //! comments that describe each declaration.
 
+pub mod project;
+
 use std::fmt::Write as _;
 
 use crate::ast::{

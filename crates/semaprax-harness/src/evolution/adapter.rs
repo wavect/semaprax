@@ -59,6 +59,15 @@ impl Adapter for ProcessAdapter {
         deadline: Instant,
         cancel: &Cancel,
     ) -> Result<Value, AdapterError> {
+        if cancel.is_set() {
+            return Err(AdapterError::Cancelled);
+        }
+        if Instant::now() >= deadline {
+            return Err(AdapterError::Timeout);
+        }
+        if self.command.is_empty() {
+            return Err(AdapterError::Unavailable("empty adapter command".into()));
+        }
         // Own process group so a kill also reaches the backend CLI children
         // (a paid model call must not outlive a cancelled or timed-out run).
         // stderr is kept in the isolated workspace for diagnosis, never forwarded.
@@ -82,39 +91,85 @@ impl Adapter for ProcessAdapter {
             .process_group(0)
             .spawn()
             .map_err(|e| AdapterError::Unavailable(format!("{}: {e}", self.command[0])))?;
-        if let Some(mut stdin) = child.stdin.take() {
-            let _ = stdin.write_all(request.to_string().as_bytes());
-        }
+        let mut stdin = child.stdin.take().expect("piped");
         let mut stdout = child.stdout.take().expect("piped");
-        let reader = std::thread::spawn(move || {
-            let mut buf = Vec::new();
-            let _ = (&mut stdout).take(MAX_OUTPUT + 1).read_to_end(&mut buf);
-            buf
+        let bytes = request.to_string().into_bytes();
+        let (write_tx, write_rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let result = stdin.write_all(&bytes);
+            drop(stdin);
+            let _ = write_tx.send(result);
         });
-        let status = loop {
-            match child.try_wait() {
-                Ok(Some(s)) => break s,
-                Ok(None) => {}
-                Err(e) => return Err(AdapterError::Protocol(e.to_string())),
+        let (read_tx, read_rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let mut buf = Vec::new();
+            let result = (&mut stdout).take(MAX_OUTPUT + 1).read_to_end(&mut buf);
+            drop(stdout);
+            let _ = read_tx.send(result.map(|_| buf));
+        });
+        // Never join an I/O worker: inherited pipe descriptors can outlive the
+        // direct child. Supervise both pipes and the whole group to the deadline.
+        let mut status = None;
+        let mut written = false;
+        let mut output = None;
+        let terminal = loop {
+            if cancel.is_set() {
+                break Err(AdapterError::Cancelled);
             }
-            if cancel.is_set() || Instant::now() >= deadline {
-                let cancelled = cancel.is_set();
-                kill_group(&child);
-                let _ = child.kill();
-                let _ = child.wait();
-                let _ = reader.join();
-                return Err(if cancelled {
-                    AdapterError::Cancelled
-                } else {
-                    AdapterError::Timeout
-                });
+            if Instant::now() >= deadline {
+                break Err(AdapterError::Timeout);
             }
-            std::thread::sleep(Duration::from_millis(15));
+            if !written {
+                match write_rx.try_recv() {
+                    Ok(Ok(())) => written = true,
+                    Ok(Err(e)) => {
+                        break Err(AdapterError::Protocol(format!("request write failed: {e}")))
+                    }
+                    Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                        break Err(AdapterError::Protocol("request writer stopped".into()))
+                    }
+                    Err(std::sync::mpsc::TryRecvError::Empty) => {}
+                }
+            }
+            if output.is_none() {
+                match read_rx.try_recv() {
+                    Ok(Ok(buf)) if buf.len() as u64 > MAX_OUTPUT => {
+                        break Err(AdapterError::Protocol("output exceeds 1 MiB".into()))
+                    }
+                    Ok(Ok(buf)) => output = Some(buf),
+                    Ok(Err(e)) => {
+                        break Err(AdapterError::Protocol(format!("output read failed: {e}")))
+                    }
+                    Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                        break Err(AdapterError::Protocol("output reader stopped".into()))
+                    }
+                    Err(std::sync::mpsc::TryRecvError::Empty) => {}
+                }
+            }
+            if status.is_none() {
+                match child.try_wait() {
+                    Ok(s) => status = s,
+                    Err(e) => break Err(AdapterError::Protocol(e.to_string())),
+                }
+            }
+            if written && output.is_some() && status.is_some() {
+                if cancel.is_set() {
+                    break Err(AdapterError::Cancelled);
+                }
+                if Instant::now() >= deadline {
+                    break Err(AdapterError::Timeout);
+                }
+                break Ok(());
+            }
+            std::thread::sleep(Duration::from_millis(5));
         };
-        let out = reader.join().unwrap_or_default();
-        if out.len() as u64 > MAX_OUTPUT {
-            return Err(AdapterError::Protocol("output exceeds 1 MiB".into()));
-        }
+        // Even a successful adapter must not leave backend children alive.
+        kill_group(&child);
+        let _ = child.kill();
+        let _ = child.wait();
+        terminal?;
+        let status = status.expect("completed child");
+        let out = output.expect("completed output");
         let v: Value = serde_json::from_slice(&out)
             .map_err(|e| AdapterError::Protocol(format!("invalid JSON result: {e}")))?;
         if status.code() == Some(69) {

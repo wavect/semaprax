@@ -889,7 +889,7 @@ fn emit_aggregate_declarations(
             .expect("writing to a string cannot fail");
     }
     output.push('\n');
-
+    read_snapshot::emit_independent_variants(output, program, resource_abi, &variants)?;
     let mut visiting = BTreeSet::new();
     let mut emitted = BTreeSet::new();
     for record in &records {
@@ -903,7 +903,7 @@ fn emit_aggregate_declarations(
             &mut emitted,
         )?;
     }
-    for variant in &variants {
+    for variant in variants.iter().filter(|variant| variant.has_payload()) {
         emit_variant_declaration(output, program, resource_abi, variant)?;
     }
     Ok(())

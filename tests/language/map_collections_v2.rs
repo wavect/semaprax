@@ -225,6 +225,38 @@ fn legacy() -> i64 {
     values = map_remove(values, "a");
     map_get_or(values, "b", 0)
 }
+@id("map.take-values")
+fn take_values(collections: own Collections) -> Map<i64, string> {
+    match own collections { Collections { values: values, keys: keys } => values, }
+}
+@id("map.take-keys")
+fn take_keys(collections: own Collections) -> Set<i64> {
+    match own collections { Collections { values: values, keys: keys } => keys, }
+}
+@id("map.unpack-map")
+fn unpack_map() -> i64 {
+    let mut keys = set_new<i64>(1usize); keys = set_insert<i64>(keys, 2);
+    let values = take_values(Collections { values: make_map(), keys: keys });
+    string_len(map_get_or<i64, string>(values, 2, ""))
+}
+@id("map.unpack-set")
+fn unpack_set() -> i64 {
+    let mut keys = set_new<i64>(1usize); keys = set_insert<i64>(keys, 2);
+    let kept = take_keys(Collections { values: make_map(), keys: keys });
+    set_key_at<i64>(kept, 0usize)
+}
+@id("map.legacy-box")
+record LegacyBox { @id("map.legacy-box.values") values: Map<string, i64>, @id("map.legacy-box.label") label: string, }
+@id("map.take-legacy")
+fn take_legacy(boxed: own LegacyBox) -> Map<string, i64> {
+    match own boxed { LegacyBox { values: values, label: label } => values, }
+}
+@id("map.unpack-legacy")
+fn unpack_legacy() -> i64 {
+    let mut values = map_new(1usize); values = map_set(values, "kept", 17);
+    let kept = take_legacy(LegacyBox { values: values, label: "discarded" });
+    map_get_or(kept, "kept", 0)
+}
 @id("app.main")
 fn main() -> i64 { strings() }
 "#;
@@ -245,6 +277,9 @@ const CASES: &[(&str, &str)] = &[
     ("map.capacity", "semaprax.map.v2|3"),
     ("map.staging", "semaprax.arithmetic.v1|1"),
     ("map.legacy", "ok|3"),
+    ("map.unpack-map", "ok|3"),
+    ("map.unpack-set", "ok|2"),
+    ("map.unpack-legacy", "ok|17"),
 ];
 
 #[test]

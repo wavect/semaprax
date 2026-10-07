@@ -981,6 +981,7 @@ fn type_kind_name(value: TypeRecordKind) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
+    include!("sg_tests.rs");
 
     const EXAMPLE: &[u8] = include_bytes!(
         "../../crates/semaprax-rust-api-index/fixtures/protocol-envelope-example.json"

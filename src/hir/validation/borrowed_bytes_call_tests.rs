@@ -6,6 +6,7 @@ module test.borrowed_collection_call_hir;
   @id("collection.words") words: Map<i64,string>,
   @id("collection.keys") keys: Set<i64>,
   @id("collection.title") title: string,
+  @id("collection.old.words") old_words: Map<string,i64>,
 }
 @id("collection.read") fn read(words: borrow Map<i64,string>) -> i64 {
   string_len(map_get_or<i64,string>(words,3,"missing"))
@@ -14,6 +15,15 @@ module test.borrowed_collection_call_hir;
 @id("collection.keys.read") fn keys_read(keys: borrow Set<i64>) -> usize { set_len<i64>(keys) }
 @id("collection.inspect") fn inspect(carrier: borrow Carrier) -> i64 {
   read(carrier.words) + read(carrier.words) + string_len(carrier.title)
+}
+@id("collection.take") fn take(carrier: own Carrier) -> Map<i64,string> {
+  match own carrier { Carrier{words,keys,title,old_words} => words, }
+}
+@id("collection.take.title") fn take_title(carrier: own Carrier) -> string {
+  match own carrier { Carrier{words,keys,title,old_words} => title, }
+}
+@id("collection.take.legacy") fn take_legacy(carrier: own Carrier) -> Map<string,i64> {
+  match own carrier { Carrier{words,keys,title,old_words} => old_words, }
 }
 @id("collection.main") fn main() -> i64 {
   let words0=map_new<i64,string>(1usize);
@@ -26,8 +36,10 @@ module test.borrowed_collection_call_hir;
   let old=map_new(1usize);
   let old_count=legacy(old);
   let old_again=legacy(old);
-  let carrier=Carrier{words:words,keys:keys,title:"tag"};
-  before + after + inspect(carrier) + inspect(carrier)
+  let carrier=Carrier{words:words,keys:keys,title:"tag",old_words:old};
+  let inspected=inspect(carrier)+inspect(carrier);
+  let extracted=take(carrier);
+  before + after + inspected + read(extracted)
 }
 "#;
 

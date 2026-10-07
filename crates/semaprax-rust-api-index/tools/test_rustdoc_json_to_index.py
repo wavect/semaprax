@@ -1,5 +1,8 @@
 """Boundary tests for the production bounded type-closure expander."""
 
+import argparse
+import hashlib
+import json
 import importlib.util
 import pathlib
 import unittest
@@ -103,6 +106,76 @@ class TypeClosureBoundsTests(unittest.TestCase):
         self.assertEqual(row["visibility"], "private")
         self.assertEqual(row["support"], "rejected")
         self.assertEqual(row["reason"], "private")
+
+
+class ActualFormat61Tests(unittest.TestCase):
+    def test_actual_pinned_rustdoc_alias_and_payload_closure(self):
+        fixture = CONVERTER_PATH.parent.parent / "fixtures" / "sg-format61"
+        capture = json.loads((fixture / "capture-results.json").read_text())
+        original = next(row["args"] for row in capture if row["name"] == "full")
+        values = dict(zip(original[2::2], original[3::2]))
+        args = argparse.Namespace(**{key[2:].replace("-", "_"): value for key, value in values.items()})
+        args.source_root = pathlib.Path(args.source_root)
+        args.rustdoc_format_version = int(args.rustdoc_format_version)
+        args.renamed_from = None
+        args.select = []
+        document = json.loads((fixture / "review_index.json").read_text())
+        extractor_digest = "sha256:" + hashlib.sha256(CONVERTER_PATH.read_bytes()).hexdigest()
+        self.assertEqual("sha256:" + hashlib.sha256((fixture / "rust-index-fixture.rs").read_bytes()).hexdigest(), args.source_sha256)
+        envelope = converter.extract(document, args, extractor_digest)
+        index = envelope["index"]
+        items = {row["path"]: row for row in index["items"]}
+        self.assertIn("review_index::public_api::increment", items)
+        increment = items["review_index::public_api::increment"]
+        self.assertEqual(increment["visibility"], "public")
+        self.assertEqual(increment["support"], "supported")
+        self.assertFalse(any("::internal::" in path for path in items))
+        event = items["review_index::make_event"]
+        self.assertEqual(event["reachable_types"], ["review_index::Event", "review_index::Payload"])
+        self.assertTrue(event["closure_complete"])
+        types = {row["path"]: row for row in index["types"]}
+        self.assertEqual(types["review_index::Event"]["references"], ["review_index::Payload"])
+        args.select = ["review_index::public_api::increment", "review_index::make_event"]
+        self.assertEqual(converter.extract(document, args, extractor_digest), envelope)
+
+
+class Format61RegressionTests(unittest.TestCase):
+    """Synthetic format-61 decoder boundaries; these are not rustdoc captures."""
+
+    def test_glob_named_module_alias_traverses_callable_contents(self):
+        def module(children, visibility="default", name=None):
+            return {"name": name, "visibility": visibility, "inner": {"module": {"items": children}}}
+        document = {"root": "root", "index": {
+            "root": module(["internal", "bridge", "root_glob"]),
+            "internal": module(["nested"]),
+            "nested": module(["fn"], "public", "nested"),
+            "fn": {"name": "increment", "visibility": "public", "inner": {"function": {}}},
+            "bridge": module(["alias"]),
+            "alias": {"visibility": "public", "inner": {"use": {"id": "nested", "name": "public_api", "is_glob": False}}},
+            "root_glob": {"visibility": "public", "inner": {"use": {"id": "bridge", "is_glob": True}}},
+        }}
+        exports = converter.module_exports(document, "fixture")
+        self.assertEqual(exports["fn"], {("fixture", "public_api", "increment")})
+        self.assertNotIn("internal", exports)
+        document["index"]["nested"]["inner"]["module"]["items"].append("cycle")
+        document["index"]["cycle"] = {"visibility": "public", "inner": {"use": {"id": "root", "is_glob": True}}}
+        self.assertEqual(converter.module_exports(document, "fixture")["fn"], exports["fn"])
+
+    def test_enum_tuple_named_and_plain_variants_preserve_payload_edges(self):
+        index = {
+            "event": {"name": "Event", "visibility": "public", "inner": {"enum": {"variants": ["tuple", "named", "plain"]}}},
+            "tuple": {"inner": {"variant": {"kind": {"tuple": ["field"]}}}},
+            "named": {"inner": {"variant": {"kind": {"struct": {"fields": ["field"], "has_stripped_fields": False}}}}},
+            "plain": {"inner": {"variant": {"kind": "plain"}}},
+            "field": {"visibility": "default", "inner": {"struct_field": {"resolved_path": {"id": "payload", "path": "Payload", "args": None}}}},
+        }
+        document = {"index": index, "paths": {}}
+        exports = {"event": {("fixture", "Event")}}
+        _, refs = converter.type_record_for_id("event", document, exports, {}, None)
+        self.assertEqual(refs, {"payload"})
+        index["plain"]["inner"]["variant"]["kind"] = {"unknown": []}
+        with self.assertRaisesRegex(converter.InputError, "variant kind"):
+            converter.type_record_for_id("event", document, exports, {}, None)
 
 
 if __name__ == "__main__":

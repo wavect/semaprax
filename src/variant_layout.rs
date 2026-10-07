@@ -236,11 +236,14 @@ impl VariantLayout {
         Ok(())
     }
 
+    pub(crate) fn has_payload(&self) -> bool {
+        self.cases.iter().any(|case| !case.fields.is_empty())
+    }
+
     pub(crate) fn case(&self, case: &DeclarationId) -> Option<&VariantCaseLayout> {
         self.cases.iter().find(|item| item.case == *case)
     }
 
-    #[cfg(any(test, feature = "unstable-wit-component-harness"))]
     pub(crate) const fn digest(&self) -> [u8; 32] {
         self.digest
     }
@@ -550,23 +553,37 @@ fn collect_variant_type(
     ty: &ResolvedType,
     instances: &mut BTreeSet<ResolvedType>,
 ) -> Result<(), Diagnostic> {
-    let ResolvedType::Nominal {
-        declaration,
-        arguments,
-    } = ty
-    else {
-        return Ok(());
-    };
-    for argument in arguments {
-        collect_variant_type(program, argument, instances)?;
-    }
-    let item = program
-        .types
-        .iter()
-        .find(|item| item.id == *declaration)
-        .ok_or_else(|| layout_error(format!("unknown concrete type `{declaration}`")))?;
-    if matches!(item.kind, ResolvedTypeDeclarationKind::Variant { .. }) {
-        instances.insert(ty.clone());
+    let mut pending = vec![ty.clone()];
+    let mut seen = BTreeSet::new();
+    while let Some(ty) = pending.pop() {
+        if !seen.insert(ty.clone()) {
+            continue;
+        }
+        let ResolvedType::Nominal {
+            declaration,
+            arguments,
+        } = &ty
+        else {
+            continue;
+        };
+        pending.extend(arguments.iter().cloned());
+        let item = program
+            .types
+            .iter()
+            .find(|item| item.id == *declaration)
+            .ok_or_else(|| layout_error(format!("unknown concrete type `{declaration}`")))?;
+        match &item.kind {
+            ResolvedTypeDeclarationKind::Variant { .. } => {
+                instances.insert(ty.clone());
+            }
+            ResolvedTypeDeclarationKind::Record { fields }
+            | ResolvedTypeDeclarationKind::Class { fields, .. } => {
+                for field in fields {
+                    pending.push(substitute_type(&field.ty, declaration, arguments)?);
+                }
+            }
+            _ => {}
+        }
     }
     Ok(())
 }

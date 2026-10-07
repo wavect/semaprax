@@ -5,7 +5,7 @@
 use super::binding::{Availability, Binding};
 use super::diagnostics::{error, source_identifier};
 use super::type_table::{
-    TypeTable, effective_record_fields, owned_byte_prelude_instance_is_admitted,
+    effective_record_fields, owned_byte_prelude_instance_is_admitted, TypeTable,
 };
 use crate::ast::{
     Expr, ExprKind, FieldDeclaration, Function, MatchMode, Param, ParamMode, Program,
@@ -1395,6 +1395,7 @@ pub(super) fn ordinary_record_match_result(
     (mode == ParamMode::Value && super::type_table::owned_byte_record_copy_field_is_admitted(ty))
         || (mode == ParamMode::Own
             && (matches!(ty, Type::Bytes | Type::String)
+                || crate::map_ops::ast_collection(ty)
                 || types.is_nested_owned_byte_record(ty)
                 || string_record::admitted(ty, types)))
 }

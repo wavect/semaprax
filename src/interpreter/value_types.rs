@@ -32,7 +32,9 @@ impl Evaluator<'_> {
             | (Value::Bytes(_), ResolvedType::Bytes)
             | (Value::Map(_), ResolvedType::StringMap)
             | (Value::String(_), ResolvedType::String) => true,
-            (Value::Collection(carrier), expected) => &carrier.ty == expected,
+            (Value::Collection(carrier), expected) => {
+                crate::map_ops::is_collection(expected) && &carrier.ty == expected
+            }
             (Value::Closure(value), ResolvedType::MutFunctionI64) => value.mutable.is_some(),
             (Value::Variant(carrier), expected) => &carrier.ty == expected,
             (Value::Iter(carrier), expected) => {
@@ -42,7 +44,7 @@ impl Evaluator<'_> {
             (Value::List(_), expected) => crate::list_ops::is_list(expected),
             (Value::Record(carrier), ResolvedType::Nominal { declaration, .. }) => {
                 &carrier.record == declaration
-                    && (is_admitted_owned_byte_record(self.declarations, ty)
+                    && (record_construction_is_admitted(self.declarations, ty)
                         // Copy Aggregate Variant Payload v1 (see the doc
                         // comment above `value_has_type`).
                         || crate::hir::is_admitted_copy_aggregate_variant_field(

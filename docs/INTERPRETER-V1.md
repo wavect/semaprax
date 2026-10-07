@@ -11,6 +11,13 @@ admitted scalar boundary. This is a deterministic, read-only development aid,
 not target execution, a debugger, JIT/AOT compilation, hot reload, or source
 mutation. The [completion matrix](COMPLETION-MATRIX.md) owns its product status.
 
+Default `semaprax run <file>` selects the verified declaration named `main`
+and forwards its persistent identity to pure, stdout, and source-command
+execution. A renamed helper retaining `app.main` cannot replace that entry.
+The source-run entry seam admits an automatically assigned identity for that
+exact `main`; explicit `interpret --function` and retained-call admission keep
+their explicit-identity requirement. Internal helper admission is unchanged.
+
 ## Command
 
 ```sh

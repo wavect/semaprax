@@ -19,7 +19,6 @@ use std::path::Path;
 const NATIVE_PROVIDER: &str = "semaprax.compiler";
 const MAX_TARGETS: usize = 4;
 const MAX_RESOLUTIONS: usize = 8;
-const MAX_CANDIDATES: usize = 200;
 
 #[derive(Clone, Debug)]
 pub struct BrokerRequest {
@@ -347,7 +346,6 @@ impl Broker {
                 diags,
             ));
         }
-        candidates.truncate(MAX_CANDIDATES);
         dedup_across_providers(&mut candidates);
 
         // 3. Fit under the single byte budget: native first, then whole external items.

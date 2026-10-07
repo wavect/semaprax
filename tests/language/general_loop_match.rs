@@ -96,10 +96,10 @@ const CASES: &[(&str, &str)] = &[
     ("general.or", "ok|12"),
     ("general.lazy", "ok|18"),
     ("general.nested", "ok|4"),
-    ("general.operand-failure", "semaprax.arithmetic.v1|1"),
+    ("general.operand-failure", "semaprax.arithmetic.v1|4"),
     ("general.result", "ok|9"),
     ("general.scalar-result", "ok|12"),
-    ("general.staging-failure", "semaprax.arithmetic.v1|1"),
+    ("general.staging-failure", "semaprax.arithmetic.v1|4"),
     ("general.for", "ok|2"),
 ];
 const WASM_CASES: &[&str] = &[

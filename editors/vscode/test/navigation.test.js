@@ -33,6 +33,7 @@ test('query and doc argument vectors are exact and end with the JSON flag', () =
   assert.deepEqual(queryArguments(at('m.spx'), { calls: 'a.b', calledBy: 'c.d', kind: '' }), ['query', at('m.spx'), '--calls', 'a.b', '--called-by', 'c.d', '--json']);
   assert.deepEqual(queryArguments(at('m.spx'), { kind: 42 }), ['query', at('m.spx'), '--json']);
   assert.deepEqual(docArguments(at('m.spx')), ['doc', at('m.spx')]);
+  assert.deepEqual(docArguments(at('semaprax.toml'), 'src/core.spx'), ['doc', at('semaprax.toml'), '--module', 'src/core.spx']);
 });
 
 test('a query result is accepted only with its schema, and only when every match is well formed', () => {

@@ -304,3 +304,70 @@ fn interpreter_admission_refusal_points_at_the_native_route() {
     assert_eq!((code, stdout.as_str()), (0, "1\n"));
     cleanup(&path);
 }
+
+#[test]
+fn sg03_default_execution_follows_main_name_after_persistent_identity_rename() {
+    for helper in [
+        "fn previous_main() -> i64 { 7 }",
+        "fn previous_main(value: i64) -> i64 { value }",
+    ] {
+        let source = format!("module review.entry;\n@id(\"app.main\") {helper}\n@id(\"review.actual_main\") fn main() -> i64 {{ 42 }}\n");
+        let path = write_temp(&source);
+        let (code, output, error) = cli(&["run", path.to_str().unwrap(), "--json"]);
+        assert_eq!(code, 0, "{error}");
+        assert!(output.contains("review.actual_main"), "{output}");
+        assert!(output.contains("\"value\":\"42\""), "{output}");
+        if helper.contains("()") {
+            let explicit = interpret_case(&path, "app.main", &[]).unwrap();
+            assert!(explicit.contains("\"value\":\"7\""), "{explicit}");
+        }
+        cleanup(&path);
+    }
+}
+
+#[test]
+fn sg03_source_entry_admits_automatic_main_without_widening_explicit_interpretation() {
+    let source = "module review.auto_entry;\nfn main() -> i64 { 42 }\n";
+    let path = write_temp(source);
+    let (code, output, error) = cli(&["run", path.to_str().unwrap(), "--json"]);
+    assert_eq!(code, 0, "{error}");
+    assert!(output.contains("auto:review.auto_entry.main"), "{output}");
+    assert!(output.contains("\"value\":\"42\""), "{output}");
+    let (code, _, error) = cli(&[
+        "interpret",
+        path.to_str().unwrap(),
+        "--function",
+        "auto:review.auto_entry.main",
+    ]);
+    assert_eq!(code, 1, "{error}");
+    assert!(error.contains("automatic_identity"), "{error}");
+    cleanup(&path);
+}
+
+#[test]
+fn sg03_stdout_entry_uses_the_declared_main_when_old_identity_survives() {
+    let source = "module review.stdout_entry;\npermit { process.stdout.write }\n@id(\"app.main\") fn previous_main(value: i64) -> i64 { value }\n@id(\"review.main\") fn main() -> i64 uses { process.stdout.write } { let text = \"hi\"; let view = string_as_str(text); let written = stdout_write(str_as_bytes(view)); if written == 2usize { 0 } else { 1 } }\n";
+    for source in [
+        source.to_owned(),
+        source.replace("@id(\"review.main\") ", ""),
+    ] {
+        let path = write_temp(&source);
+        let (code, output, error) = cli(&["run", path.to_str().unwrap()]);
+        assert_eq!((code, output.as_str()), (0, "hi0\n"), "{error}");
+        cleanup(&path);
+    }
+}
+
+#[test]
+fn sg03_source_command_entry_keeps_declared_main_and_exit_behavior() {
+    let source = "module review.command_entry;\npermit { process.args.read }\n@id(\"app.main\") fn previous_main(value: i64) -> i64 { value }\n@id(\"review.main\") fn main() -> i64 uses { process.args.read } { if args_len() == 1usize { 0 } else { 3 } }\n";
+    for source in [
+        source.to_owned(),
+        source.replace("@id(\"review.main\") ", ""),
+    ] {
+        let path = write_temp(&source);
+        let (code, output, error) = cli(&["run", path.to_str().unwrap(), "--", "one"]);
+        assert_eq!((code, output.as_str()), (0, ""), "{error}");
+        cleanup(&path);
+    }
+}

@@ -45,6 +45,7 @@ pub(super) fn match_result_is_admitted(
         && (hir::is_admitted_nested_owned_byte_record(&program.declarations, &scrutinee.ty)
             || hir::owned_text_record::admitted(&scrutinee.ty, &program.declarations))
         && (matches!(expression.ty, ResolvedType::Bytes | ResolvedType::String)
+            || crate::map_ops::is_collection(&expression.ty)
             || (hir::is_admitted_nested_owned_byte_record(&program.declarations, &expression.ty)
                 || hir::owned_text_record::admitted(&expression.ty, &program.declarations)));
     *mode == hir::ResolvedMatchMode::Own
@@ -91,7 +92,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         for line in preflight.lines().chain(transfers.lines()) {
             self.line(line);
         }
-        if matches!(expression.ty, ResolvedType::Bytes | ResolvedType::String) {
+        if matches!(expression.ty, ResolvedType::Bytes | ResolvedType::String)
+            || crate::map_ops::is_collection(&expression.ty)
+        {
             if let Some(result) = plan.result_at(&expression.id) {
                 value.code = result.to_owned();
             }
@@ -125,9 +128,15 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         if self.bytes_plan.is_none() {
             return Err(backend_error("owned record match has no cleanup plan"));
         }
-        if matches!(expression.ty, ResolvedType::Bytes | ResolvedType::String) {
+        if matches!(expression.ty, ResolvedType::Bytes | ResolvedType::String)
+            || crate::map_ops::is_collection(&expression.ty)
+        {
             let plan = self.bytes_plan.expect("owned match plan checked above");
-            if matches!(arm_value.kind, ResolvedExprKind::Place(_)) {
+            // Own String place reads are producers: their clone already
+            // applied the canonical arm-to-result transfer in emit_expr.
+            if matches!(arm_value.kind, ResolvedExprKind::Place(_))
+                && arm_value.ty != ResolvedType::String
+            {
                 for line in plan.apply_at(&arm_value.id)?.lines() {
                     self.line(line);
                 }

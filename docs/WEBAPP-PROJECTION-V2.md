@@ -47,7 +47,8 @@ whose single reference field names this entity:
   `f64`, with the parameter's type. An `i64` sum is checked.
 
 A child computed field used by a rollup must not take rollups itself, so
-rollups cannot form cycles. `id` and `password` are reserved field names, and
+rollups cannot form cycles. Stored, computed, and synthetic output names must
+be unique. `id` and `password` are reserved stored and computed field names, and
 `Audit` and `Session` are reserved record names.
 
 ## Runtime behavior
@@ -57,7 +58,9 @@ rollups cannot form cycles. `id` and `password` are reserved field names, and
 runtime files implement:
 
 - **Keys:** a duplicate value is a 400 naming the key's fields. The
-  account's sign-in field is always unique.
+  account's sign-in field is always unique. Candidate or stored-row key
+  evaluation failures reject with the field and trap category; undecodable
+  input fields skip their dependent keys.
 - **Workflows:** rows are created in the variant's first case. An update
   that changes the field must pass the step. The UI offers only allowed next
   states.
@@ -77,8 +80,11 @@ runtime files implement:
 - **Permissions:** unreadable rows are absent from lists, CSV, the dashboard,
   and reference selects, and requesting one is 404. A forbidden write is 403.
   A create checks the new row, an update checks the old and the new row, and
-  a delete checks the old row. The UI hides actions the account cannot take.
-- **Audit:** every create, update, and delete is appended to `audit.jsonl`
+  a delete checks the old row. After reading a mutation body the server resolves
+  the current principal and row again, then validates and commits without an
+  intervening await. The UI hides actions the account cannot take.
+- **Audit:** every create, update, and delete is published with its required
+  audit fact in the atomic `state.json` snapshot and mirrored to `audit.jsonl`
   with time, account, entity, id, and the changed fields with old and new
   values. Password changes are logged only as `changed`.
   `GET /api/<entity>/<id>/history` returns one row's entries. `GET /api/audit`
@@ -143,3 +149,13 @@ multi-factor sign-in, distributed protection, hosted evidence, or production cla
   roles.
 - **Negative controls:** while the runtime was developed, removing write,
   read, workflow, or key enforcement each made the self-test fail.
+
+## Focused SG regression gate
+
+`cargo test --locked -p semaprax --lib webapp::tests::sg_regressions`
+checks normalized-route and output-name refusal plus actual compiler-generated
+Node HTTP behavior: scalar postconditions, unique-key failures, prototype-shaped
+field names, paused PUT deletion/workflow/auth races, canonical single-writer
+claims, mirror staging failure rollback, and snapshot restart recovery with
+exactly one history entry. This is local Node/filesystem evidence; it does not
+claim browser, hosted, multi-process coordination or production support.

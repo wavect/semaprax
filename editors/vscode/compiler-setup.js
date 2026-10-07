@@ -59,9 +59,10 @@ function parseIdentity(text) {
   let value;
   try { value = JSON.parse(text); } catch { return null; }
   if (!value || typeof value !== 'object' || Array.isArray(value) || value.schema !== VERSION_SCHEMA) return null;
-  for (const key of ['version', 'commit', 'maturity', 'rust_min']) {
+  for (const key of ['version', 'maturity', 'rust_min']) {
     if (typeof value[key] !== 'string' || !value[key] || CONTROL.test(value[key]) || value[key].length > 128) return null;
   }
+  if (value.commit !== null && (typeof value.commit !== 'string' || !/^[0-9a-f]{40}$/.test(value.commit))) return null;
   return { version: value.version, commit: value.commit, maturity: value.maturity, rustMin: value.rust_min };
 }
 
@@ -149,6 +150,7 @@ function describeSetup(input) {
   if (!probe.ok) return { ...base, state: 'incompatible', text: '$(error) SEMAPRAX: incompatible compiler', detail: `${probe.reason}: ${selected}. Select a current Semaprax compiler.` };
   const { identity, capabilities } = probe;
   const lines = [`Compiler ${identity.version} (${identity.maturity}) at ${selected}. Diagnostics on save are ready.`];
+  lines.push(identity.commit === null ? 'Commit provenance is unknown.' : `Commit: ${identity.commit}.`);
   if (input.pathFirst && !sameFile(input.pathFirst, selected, input.realpath || (value => value))) lines.push(`Note: \`semaprax\` on PATH resolves to ${input.pathFirst}, which is not the selected compiler.`);
   const missing = [];
   if (!capabilities.advancedSessions) missing.push('this compiler does not advertise `serve-workspace-mcp`');

@@ -766,6 +766,43 @@ mod pipeline {
 
     #[test]
     #[ignore = "provisioned: needs SEMAPRAX_COMPILER"]
+    fn sg15_real_when_needed_table_and_frozen_both_forward_boundary() {
+        for table in [false, true] {
+            let w = world();
+            if table {
+                let manifest = semaprax::project::ProjectManifest::parse(
+                    &std::fs::read_to_string(w.project.join("semaprax.toml")).unwrap(),
+                )
+                .unwrap();
+                let sources = manifest
+                    .sources()
+                    .iter()
+                    .map(|p| format!("\"{p}\""))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                let exports = manifest
+                    .web_exports()
+                    .iter()
+                    .map(|p| format!("\"{p}\""))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                write(&w.project, "semaprax.toml", &format!("schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"calculator\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"calculator.app\"\nsources = [{sources}]\ntests = [\"calculator.tests\"]\n\n[exports]\nweb = [{exports}]\n"));
+            }
+            let k = Knobs::default();
+            let mut external = stage(&k, None);
+            let (report, saw) = drive(
+                &w,
+                "rename the parameters in the add signature",
+                ExternalContext::WhenNeeded,
+                &mut external,
+            );
+            assert!(saw, "proposer needs boundary context: {report:?}");
+            assert_eq!(k.queries.load(Ordering::SeqCst), 1);
+        }
+    }
+
+    #[test]
+    #[ignore = "provisioned: needs SEMAPRAX_COMPILER"]
     fn hp_hn13_real_mixed_task_completes_only_because_the_boundary_file_was_retrieved() {
         let w = world();
         install_source_index(&w);
@@ -865,4 +902,44 @@ fn hp_hn13_real_graft_retrieves_the_typescript_boundary_for_a_native_complete_ta
     assert!(ext.contains("web/app.ts"), "{ext}");
     assert!(n.load(Ordering::SeqCst) >= 1);
     assert!(texts(&pk, "compiler-verified").contains("calculator.add"));
+}
+
+#[test]
+fn sg15_table_manifest_and_frozen_inventory_plan_the_same_boundary() {
+    let p = fake_world_project();
+    let manifest = semaprax::project::ProjectManifest::parse(
+        &std::fs::read_to_string(p.join("semaprax.toml")).unwrap(),
+    )
+    .unwrap();
+    let goal = "rename the parameters in the add signature";
+    let frozen = plan_for(&p, goal);
+    let sources = manifest
+        .sources()
+        .iter()
+        .map(|p| format!("\"{p}\""))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let exports = manifest
+        .web_exports()
+        .iter()
+        .map(|p| format!("\"{p}\""))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let table = format!("schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"calculator\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"calculator.app\"\nsources = [{sources}]\ntests = [\"calculator.tests\"]\n\n[exports]\nweb = [{exports}]\n");
+    write(&p, "semaprax.toml", &table);
+    let table_plan = plan_for(&p, goal);
+    assert_eq!(table_plan.needs, frozen.needs);
+    let k = Knobs::default();
+    let mut s = stage(&k, None);
+    let ask = Ask::new(&p);
+    let packet = s
+        .collect_planned(&ask.req(12_000), table_plan.initial.as_ref().unwrap())
+        .unwrap();
+    assert_eq!(k.queries.load(Ordering::SeqCst), 1);
+    assert!(texts(&packet, "external:").contains(MARKER));
+    assert!(plan_for(&p, "make add commute its operands")
+        .initial
+        .is_none());
+    write(&p, "semaprax.toml", "schema = \"unknown\"\n");
+    assert!(!plan_for(&p, goal).needs.unresolved.is_empty());
 }

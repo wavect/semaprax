@@ -185,55 +185,6 @@ fn link_scalar_workspace_impl(
         .drain(..)
         .map(|linked| linked.function)
         .collect::<Vec<_>>();
-    let uses_vec = functions
-        .iter()
-        .chain(
-            parts
-                .iter()
-                .flat_map(|parts| &parts.function_instances)
-                .map(|instance| &instance.function),
-        )
-        .any(|function| {
-            std::iter::once(&function.body)
-                .chain(function.requires.iter())
-                .chain(function.ensures.iter())
-                .any(|expression| {
-                    let mut found = false;
-                    super::visit_resolved_calls(expression, &mut |callee, instance, arguments| {
-                        found |= instance.is_none()
-                            && arguments.len() == 1
-                            && crate::vec_ops::by_id(callee.as_str()).is_some();
-                    });
-                    found
-                })
-        });
-    let uses_box = functions
-        .iter()
-        .chain(
-            parts
-                .iter()
-                .flat_map(|parts| &parts.function_instances)
-                .map(|instance| &instance.function),
-        )
-        .any(resolved_function_uses_box);
-    let uses_iterator = functions
-        .iter()
-        .chain(
-            parts
-                .iter()
-                .flat_map(|parts| &parts.function_instances)
-                .map(|instance| &instance.function),
-        )
-        .any(resolved_function_uses_iterator);
-    let uses_list = functions
-        .iter()
-        .chain(
-            parts
-                .iter()
-                .flat_map(|parts| &parts.function_instances)
-                .map(|instance| &instance.function),
-        )
-        .any(resolved_function_uses_list);
     // Selected native Result owners may occur only inside a scalar body.
     // Retain their compiler-owned Result declaration before rebuilding cleanup.
     let uses_owned_result = parts.as_ref().is_some_and(|parts| {
@@ -252,11 +203,7 @@ fn link_scalar_workspace_impl(
             .flat_map(|parts| &parts.function_templates)
             .any(generic_result::profile);
     let (mut declarations, mut compiler_types) =
-        if uses_vec || uses_box || uses_iterator || uses_list || uses_owned_result {
-            workspace_compiler_prelude_for(uses_vec, uses_box, uses_iterator, uses_list)?
-        } else {
-            (DeclarationIndex::default(), Vec::new())
-        };
+        compiler_prelude::selected_for_scalar(&functions, parts.as_ref(), uses_owned_result)?;
     match &parts {
         Some(parts) => declarations.extend_linked_scalar_data(
             &parts.types,
@@ -299,10 +246,8 @@ fn link_scalar_workspace_impl(
             )
         },
     );
-    if uses_vec || uses_box || uses_iterator || uses_owned_result {
-        compiler_types.extend(types);
-        types = compiler_types;
-    }
+    compiler_types.extend(types);
+    types = compiler_types;
     let has_generic_instances = !function_instances.is_empty();
     if has_generic_instances {
         let mut cleanup_functions = functions.clone();
@@ -517,44 +462,8 @@ pub(crate) fn link_owned_data_api_workspace(
         .drain(..)
         .map(|linked| linked.function)
         .collect::<Vec<_>>();
-    let uses_vec = functions
-        .iter()
-        .chain(
-            parts
-                .function_instances
-                .iter()
-                .map(|instance| &instance.function),
-        )
-        .any(resolved_function_uses_vec);
-    let uses_box = functions
-        .iter()
-        .chain(
-            parts
-                .function_instances
-                .iter()
-                .map(|instance| &instance.function),
-        )
-        .any(resolved_function_uses_box);
-    let uses_iterator = functions
-        .iter()
-        .chain(
-            parts
-                .function_instances
-                .iter()
-                .map(|instance| &instance.function),
-        )
-        .any(resolved_function_uses_iterator);
-    let uses_list = functions
-        .iter()
-        .chain(
-            parts
-                .function_instances
-                .iter()
-                .map(|instance| &instance.function),
-        )
-        .any(resolved_function_uses_list);
     let (mut declarations, mut types) =
-        workspace_compiler_prelude_for(uses_vec, uses_box, uses_iterator, uses_list)?;
+        compiler_prelude::selected_for_owned_data(&functions, &parts)?;
     declarations.extend_linked_owned_data(
         &parts.types,
         &parts.interfaces,

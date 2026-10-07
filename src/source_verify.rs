@@ -62,33 +62,34 @@ pub(crate) use declaration::verify;
 pub(crate) use diagnostics::is_scalar_source_type;
 
 pub(crate) fn program_uses_record_iterator(program: &Program) -> bool {
-    let types = TypeTable::new(program);
-    fn type_uses(types: &TypeTable<'_>, ty: &Type) -> bool {
+    fn type_uses(program: &Program, ty: &Type) -> bool {
         match ty {
             Type::Named { name, arguments } => {
                 (matches!(name.as_str(), "Iter" | "IterStep")
                     && matches!(arguments.as_slice(), [element]
                         if declared_type::owned_record_collection::
-                            is_admitted_owned_record_collection_element(types, element)))
-                    || arguments.iter().any(|argument| type_uses(types, argument))
+                            is_admitted_authored_record_collection_element(program, element)))
+                    || arguments
+                        .iter()
+                        .any(|argument| type_uses(program, argument))
             }
             Type::Function { parameters, result } => {
                 parameters
                     .iter()
-                    .any(|parameter| type_uses(types, parameter))
-                    || type_uses(types, result)
+                    .any(|parameter| type_uses(program, parameter))
+                    || type_uses(program, result)
             }
             _ => false,
         }
     }
     let record_element = |ty: &Type| {
-        declared_type::owned_record_collection::is_admitted_owned_record_collection_element(
-            &types, ty,
+        declared_type::owned_record_collection::is_admitted_authored_record_collection_element(
+            program, ty,
         )
     };
     let function_uses = |function: &Function| {
-        if type_uses(&types, &function.return_type)
-            || function.params.iter().any(|p| type_uses(&types, &p.ty))
+        if type_uses(program, &function.return_type)
+            || function.params.iter().any(|p| type_uses(program, &p.ty))
         {
             return true;
         }

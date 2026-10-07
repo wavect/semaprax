@@ -214,7 +214,12 @@ impl SemanticWorkspaceRevision {
             let (program, _) =
                 crate::parse_with_comments(source.source(), Path::new(source.path()))
                     .map_err(|error| vec![error])?;
-            let (schema, _, _) = crate::prelude::selected_for_program(&program);
+            let (source_schema, _, _) = crate::prelude::selected_for_program(&program);
+            let schema = match source.source_graph_schema() {
+                "semaprax.graph.v66" => crate::prelude::SCHEMA_V11,
+                "semaprax.graph.v65" => crate::prelude::SCHEMA_V10,
+                _ => source_schema,
+            };
             if schema == crate::prelude::SCHEMA_V11
                 || (selected_prelude != crate::prelude::SCHEMA_V11
                     && schema == crate::prelude::SCHEMA_V10)

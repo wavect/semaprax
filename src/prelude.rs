@@ -346,10 +346,7 @@ pub(crate) fn digest_text_v11() -> String {
     )
 }
 pub(crate) fn digest_text_v10() -> String {
-    format!(
-        "sha256:{:x}",
-        crate::digest_hex::LowerHex(Sha256::digest(contract_bytes_v10()))
-    )
+    crate::stdin_stream_ops::digest_text()
 }
 pub(crate) fn digest_text_v9() -> String {
     format!(
@@ -664,11 +661,7 @@ pub(crate) fn selected_for_program(
     if crate::source_verify::program_uses_record_iterator(program) {
         (SCHEMA_V11, contract_bytes_v11(), digest_text_v11())
     } else if crate::stdin_stream_ops::program_uses(program) {
-        (
-            SCHEMA_V10,
-            crate::stdin_stream_ops::contract_bytes(),
-            crate::stdin_stream_ops::digest_text(),
-        )
+        (SCHEMA_V10, contract_bytes_v10(), digest_text_v10())
     } else if crate::list_ops::program_uses_list(program) {
         (SCHEMA_V9, contract_bytes_v9(), digest_text_v9())
     } else if crate::iterator_ops::program_uses_owned_iterator(program) {

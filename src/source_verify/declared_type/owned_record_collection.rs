@@ -35,6 +35,23 @@ pub(in crate::source_verify) fn is_admitted_owned_record_collection_element(
     admits_field_shape(fields)
 }
 
+pub(in crate::source_verify) fn is_admitted_authored_record_collection_element(
+    program: &Program,
+    ty: &Type,
+) -> bool {
+    let Type::Named { name, arguments } = ty else {
+        return false;
+    };
+    if !arguments.is_empty() {
+        return false;
+    }
+    program.types.iter().any(|declaration| {
+        declaration.name == *name
+            && declaration.type_parameters.is_empty()
+            && matches!(&declaration.kind, TypeDeclarationKind::Record { fields } if admits_field_shape(fields))
+    })
+}
+
 pub(in crate::source_verify) fn is_owner_renewal_record(types: &TypeTable<'_>, ty: &Type) -> bool {
     let Type::Named { name, arguments } = ty else {
         return false;

@@ -47,8 +47,8 @@ pub(super) fn module_uses_stream(source: &Program, programs: &[Program]) -> bool
         })
 }
 
-pub(super) fn ids(programs: &[Program]) -> BTreeSet<&'static str> {
-    if uses_record_iterator(programs) || uses_stream(programs) {
+pub(super) fn ids(programs: &[Program], resolved_record_iterator: bool) -> BTreeSet<&'static str> {
+    if resolved_record_iterator || uses_record_iterator(programs) || uses_stream(programs) {
         let mut ids = prelude::all_type_ids_v9()
             .into_iter()
             .collect::<BTreeSet<_>>();
@@ -66,6 +66,30 @@ pub(super) fn ids(programs: &[Program]) -> BTreeSet<&'static str> {
     } else {
         prelude::all_ids_v1().into_iter().collect()
     }
+}
+
+pub(super) fn ids_from_facts(
+    programs: &[Program],
+    facts: &BTreeMap<String, WorkspaceDeclarationFact>,
+) -> BTreeSet<&'static str> {
+    ids(
+        programs,
+        facts.contains_key(crate::stdin_stream_ops::READER_ID),
+    )
+}
+
+pub(super) fn expected_declaration_facts_for_programs(
+    programs: &[Program],
+    resolved_record_iterator: bool,
+) -> Result<BTreeMap<String, WorkspaceDeclarationFact>, Vec<Diagnostic>> {
+    expected_declaration_facts_for(
+        uses_vec(programs),
+        uses_box(programs),
+        uses_iterator(programs),
+        uses_list(programs),
+        uses_stream(programs),
+        resolved_record_iterator,
+    )
 }
 
 pub(super) fn expected_declaration_facts(
@@ -244,6 +268,43 @@ mod tests {
         );
         assert!(expected.contains_key(crate::iterator_ops::ITER_ID));
         assert!(expected.contains_key(crate::stdin_stream_ops::READER_ID));
+    }
+
+    #[test]
+    fn imported_record_iterator_selects_complete_v11_shared_facts() {
+        let build = build_owned(vec![
+            source(
+                "app.spx",
+                r#"module record.app;
+use type @id("record.line") from record.types as Line;
+@id("record.consume") fn consume(values:own Vec<Line>)->i64 {
+ let mut total=0;
+ for own line in vec_into_iter<Line>(values){match own line {Line{left,right,marker}=>{total=total+marker;0},}}
+ total
+}
+@id("app.main") fn main()->i64 {consume(vec_with_capacity<Line>(0usize))}
+"#,
+            ),
+            source(
+                "types.spx",
+                r#"module record.types;
+@id("record.line") record Line {
+ @id("record.line.left") left:Bytes,
+ @id("record.line.right") right:Bytes,
+ @id("record.line.marker") marker:i64,
+}
+@id("types.main") fn main()->i64 {0}
+"#,
+            ),
+        ])
+        .unwrap();
+        for id in [
+            crate::iterator_ops::ITER_ID,
+            crate::list_ops::LIST_ID,
+            crate::stdin_stream_ops::READER_ID,
+        ] {
+            assert!(build.hir.shared_prelude_ids.contains(id), "missing {id}");
+        }
     }
 
     #[test]

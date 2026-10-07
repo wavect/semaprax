@@ -506,16 +506,20 @@ mod tests {
     fn shipped_package_catalog_and_bundled_registry_are_identical() {
         let catalog: serde_json::Value =
             serde_json::from_str(include_str!("../../std/packages.json")).unwrap();
-        let catalog_names = catalog["packages"]
+        let mut catalog_names = catalog["packages"]
             .as_array()
             .unwrap()
             .iter()
             .map(|package| package["module"].as_str().unwrap())
             .collect::<Vec<_>>();
-        let bundled_names = PACKAGES
+        let mut bundled_names = PACKAGES
             .iter()
             .map(|package| package.name)
             .collect::<Vec<_>>();
+        catalog_names.sort_unstable();
+        bundled_names.sort_unstable();
+        assert!(catalog_names.windows(2).all(|pair| pair[0] != pair[1]));
+        assert!(bundled_names.windows(2).all(|pair| pair[0] != pair[1]));
         assert_eq!(bundled_names, catalog_names);
     }
 
@@ -541,9 +545,9 @@ mod tests {
             package("std.encoding.base64").unwrap().dependencies,
             &["std.encoding", "std.io"]
         );
-        assert_eq!(package("std.env.policy").unwrap().dependencies, &[]);
+        assert!(package("std.env.policy").unwrap().dependencies.is_empty());
         assert_eq!(package("std.io.lines").unwrap().dependencies, &["std.io"]);
-        assert_eq!(package("std.net").unwrap().dependencies, &[]);
+        assert!(package("std.net").unwrap().dependencies.is_empty());
         assert_eq!(
             package("std.path.normalize").unwrap().dependencies,
             &["std.path.value"]

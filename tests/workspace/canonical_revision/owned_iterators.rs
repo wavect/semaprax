@@ -33,6 +33,31 @@ const RECORD_SOURCE: &str = r#"module fixture.app;
 @id("fixture.public") fn published()->i64 {0}
 "#;
 
+const IMPORTED_RECORD_SOURCE: &str = r#"module fixture.app;
+use type @id("fixture.line") from fixture.types as Line;
+@id("fixture.consume") fn consume(values:own Vec<Line>)->i64 {
+ let mut total=0;
+ for own line in vec_into_iter<Line>(values){
+  match own line {Line{left,right,marker}=>{total=total+marker;0},}
+ }
+ total
+}
+@id("fixture.main") fn main()->i64 {
+ let values=vec_push<Line>(vec_with_capacity<Line>(1usize),Line{left:bytes_zeroed(1usize),right:bytes_zeroed(2usize),marker:7});
+ if consume(values)==7 {0}else{1}
+}
+@id("fixture.public") fn published()->i64 {0}
+"#;
+
+const IMPORTED_RECORD_PROVIDER: &str = r#"module fixture.types;
+@id("fixture.line") record Line {
+ @id("fixture.line.left") left:Bytes,
+ @id("fixture.line.right") right:Bytes,
+ @id("fixture.line.marker") marker:i64,
+}
+@id("fixture.types.main") fn main()->i64 {0}
+"#;
+
 fn fixture(label: &str, source: &str) -> Fixture {
     let fixture = Fixture::owned_vec(label, false);
     if source.contains("fixture.consume") {
@@ -54,6 +79,23 @@ fn fixture(label: &str, source: &str) -> Fixture {
         canonical
     );
     std::fs::write(path, canonical).unwrap();
+    fixture
+}
+
+fn imported_record_fixture() -> Fixture {
+    let fixture = fixture("imported-record-iterator-root", IMPORTED_RECORD_SOURCE);
+    let path = fixture.0.join("src/types.spx");
+    let parsed = semaprax::parse(IMPORTED_RECORD_PROVIDER, &path).unwrap();
+    std::fs::write(&path, semaprax::format::canonical(&parsed)).unwrap();
+    let manifest = std::fs::read_to_string(fixture.manifest()).unwrap();
+    std::fs::write(
+        fixture.manifest(),
+        manifest.replace(
+            "sources = [\"src/app.spx\", \"src/tests.spx\"]",
+            "sources = [\"src/app.spx\", \"src/tests.spx\", \"src/types.spx\"]",
+        ),
+    )
+    .unwrap();
     fixture
 }
 
@@ -160,6 +202,22 @@ fn record_iterator_workspace_and_program_root_replay_prelude_v11() {
         graph["owned_iterator_payloads"]["cleanup_schema"],
         "semaprax.cleanup-plan.v13"
     );
+    verify_root(
+        &fixture,
+        include_bytes!("../../fixtures/prelude-v11.contract"),
+    );
+}
+
+#[test]
+fn imported_record_iterator_workspace_and_program_root_bind_v11_v66() {
+    let fixture = imported_record_fixture();
+    let revision = fixture.revision();
+    let caller = revision
+        .sources()
+        .iter()
+        .find(|source| source.path() == "src/app.spx")
+        .unwrap();
+    assert_eq!(caller.source_graph_schema(), "semaprax.graph.v66");
     verify_root(
         &fixture,
         include_bytes!("../../fixtures/prelude-v11.contract"),

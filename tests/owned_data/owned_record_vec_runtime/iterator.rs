@@ -197,18 +197,18 @@ fn record_iterator_and_box_import_blocks_compose_in_core_wasm() {
 #[test]
 fn every_copy_scalar_shape_is_admitted_for_manual_next_and_for_own() {
     for (ty, literal, bits) in [
-        ("i64", "11", 11i64),
-        ("i32", "11i32", 11),
-        ("u8", "11u8", 11),
-        ("usize", "11usize", 11),
-        ("char", "'k'", 107),
-        ("f32", "1.5f32", 1.5f32.to_bits().into()),
+        ("i64", "-9223372036854775808", i64::MIN),
+        ("i32", "-2147483648i32", i64::from(i32::MIN)),
+        ("u8", "255u8", 255),
+        ("usize", "65537usize", 65537),
+        ("char", "'𝄞'", i64::from(u32::from('𝄞'))),
+        ("f32", "-1.5f32", i64::from((-1.5f32).to_bits())),
         (
             "f64",
-            "1.5",
-            i64::from_ne_bytes(1.5f64.to_bits().to_ne_bytes()),
+            "-1.5",
+            i64::from_ne_bytes((-1.5f64).to_bits().to_ne_bytes()),
         ),
-        ("bool", "true", 1),
+        ("bool", "false", 0),
     ] {
         let declaration = DECLARATION.replace("quantity: i64", &format!("quantity: {ty}"));
         let body = format!(

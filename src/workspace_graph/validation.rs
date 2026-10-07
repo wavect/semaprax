@@ -47,24 +47,27 @@ pub(super) struct WorkspaceValidationIndex {
     expected_compiler: BTreeMap<String, WorkspaceDeclarationFact>,
     actual: BTreeMap<String, WorkspaceDeclarationFact>,
     modules: BTreeMap<String, ModuleSignatureFacts>,
+    resolved_record_iterator: bool,
 }
 
 impl WorkspaceValidationIndex {
     pub(super) fn new(programs: &[Program]) -> Result<Self, Vec<Diagnostic>> {
         let expected = expected_declaration_facts(programs)?;
+        let resolved_record_iterator = prelude_binding::uses_record_iterator(programs);
         let expected_compiler = prelude_binding::expected_declaration_facts_for(
             prelude_binding::uses_vec(programs),
             prelude_binding::uses_box(programs),
             prelude_binding::uses_iterator(programs),
             prelude_binding::uses_list(programs),
             prelude_binding::uses_stream(programs),
-            prelude_binding::uses_record_iterator(programs),
+            resolved_record_iterator,
         )?;
         Ok(Self {
             expected,
             expected_compiler,
             actual: BTreeMap::new(),
             modules: BTreeMap::new(),
+            resolved_record_iterator,
         })
     }
 
@@ -160,6 +163,14 @@ impl WorkspaceValidationIndex {
         source: &Program,
         programs: &[Program],
     ) -> Result<(), Vec<Diagnostic>> {
+        let resolved_record_iterator =
+            crate::iterator_ops::resolved_program_uses_record_iterator(resolved);
+        if resolved_record_iterator && !self.resolved_record_iterator {
+            self.expected_compiler = prelude_binding::expected_declaration_facts_for(
+                false, false, false, false, false, true,
+            )?;
+            self.resolved_record_iterator = true;
+        }
         let imports_vec_wrapper = owned_generics::program_imports_vec_wrapper(source, programs);
         let imports_box_wrapper = owned_generics::program_imports_box_wrapper(source, programs);
         let expected_module_compiler = prelude_binding::expected_declaration_facts_for(
@@ -168,7 +179,7 @@ impl WorkspaceValidationIndex {
             crate::iterator_ops::program_uses_iterator(source),
             crate::list_ops::program_uses_list(source),
             prelude_binding::module_uses_stream(source, programs),
-            crate::source_verify::program_uses_record_iterator(source),
+            resolved_record_iterator,
         )?;
         let synthetic_main = crate::bounded_output::budgeted_format(format_args!(
             "workspace.synthetic.main.{module}"
@@ -392,7 +403,7 @@ impl WorkspaceValidationIndex {
             .keys()
             .map(String::as_str)
             .collect::<BTreeSet<_>>();
-        if compiler_ids != prelude_binding::ids(programs) {
+        if compiler_ids != prelude_binding::ids(programs, self.resolved_record_iterator) {
             return Err(vec![graph_error(
                 "SPX-G173",
                 "compiler-owned workspace declaration facts disagree with the exact shared prelude",

@@ -267,7 +267,7 @@ pub(super) fn digest(program: &ResolvedProgram) -> String {
     if crate::iterator_ops::resolved_program_uses_record_iterator(program) {
         prelude::digest_text_v11()
     } else if crate::stdin_stream_ops::resolved_program_uses(program) {
-        crate::stdin_stream_ops::digest_text()
+        prelude::digest_text_v10()
     } else if uses_list(program) {
         prelude::digest_text_v9()
     } else if super::owned_iterator::requires(program) {

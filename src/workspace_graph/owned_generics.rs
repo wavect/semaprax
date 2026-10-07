@@ -567,7 +567,8 @@ pub(super) fn close_owned_data_closure(
                 }
                 continue;
             }
-            if crate::map_ops::by_id(callee.as_str()).is_none() && crate::string_ops::by_id(callee.as_str()).is_none()
+            if crate::map_ops::by_id(callee.as_str()).is_none()
+                && crate::string_ops::by_id(callee.as_str()).is_none()
                 && crate::str_ops::by_id(callee.as_str()).is_none()
                 && crate::byte_ops::by_id(callee.as_str()).is_none()
                 && crate::vec_ops::by_id(callee.as_str()).is_none()

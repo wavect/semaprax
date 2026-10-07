@@ -1080,6 +1080,14 @@ pub(super) fn check_function_bodies<'p>(
                     function.span,
                 ).with_help("return an owned `string` instead: a literal, `string_concat`, or `string_from_i64` result is owned"));
             }
+            super::super::declared_type::string_record::reject(
+                program,
+                &function.return_type,
+                "returned",
+                function.span,
+                types,
+                diagnostics,
+            );
             if function.return_type == Type::SliceU8 {
                 diagnostics.push(error(
                     program,

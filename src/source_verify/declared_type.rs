@@ -1066,6 +1066,9 @@ pub(super) fn check_ownership_mode(
         }
         return;
     }
+    if string_record::reject(program, &param.ty, "passed", param.span, types, diagnostics) {
+        return;
+    }
     let requires_explicit_mode = crate::iterator_ops::ast_is_iterator(&param.ty)
         || types.contains_resource(&param.ty)
         || types.contains_owned_bytes(&param.ty)
@@ -1336,6 +1339,7 @@ pub(super) mod generic_collection;
 pub(super) mod generic_result;
 
 pub(super) mod generic_variant;
+pub(super) mod string_record;
 
 pub(super) mod owned_record_collection;
 

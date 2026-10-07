@@ -274,6 +274,15 @@
       ]
     },
     {
+      "code": "SPX-T309",
+      "rows": [
+        {
+          "fix": "Pass the text separately: `fn f(title: string, points: i64)`",
+          "wrote": "`fn f(t: Task)` where `Task` has a `string` field"
+        }
+      ]
+    },
+    {
       "code": "SPX-U101",
       "rows": [
         {

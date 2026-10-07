@@ -118,7 +118,7 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
             "semaprax build [<file>|semaprax.toml|--manifest-path path] [--target native|native-callable|web|wasm|npm] [--profile internal-strings-v1] [--function stable-id] [--export stable-id ...] [-o path]\n",
         ),
         (
-            "semaprax run <file> [--json] [--max-steps N] [--max-bytes N] [--native]\n",
+            "semaprax run <file> [--json] [--max-steps N] [--max-bytes N] [--native] [-- <arg>...]\n",
             "semaprax run <file>\n",
         ),
         (

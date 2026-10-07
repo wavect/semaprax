@@ -130,7 +130,7 @@
       "code": "SPX-T104",
       "rows": [
         {
-          "fix": "`main` returns `i64`; `0` conventionally means success",
+          "fix": "`main` returns `i64`; `0` conventionally means success, and in a command-line program it is the exit status",
           "wrote": "`fn main() -> bool`"
         }
       ]
@@ -156,7 +156,7 @@
           "wrote": "`Some(1)`, `None`"
         },
         {
-          "fix": "`string_len(s)`; no type but a `class` has methods",
+          "fix": "`string_len(s)`, likewise `string_trim(s)`, `string_find(s, x, 0)`, `string_slice(s, a, b)`, `string_to_i64(s)`; no type but a `class` has methods",
           "wrote": "`s.len()` on a `string`"
         }
       ]

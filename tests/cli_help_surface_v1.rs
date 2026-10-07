@@ -33,6 +33,7 @@ const LANGUAGE_TOPICS: &str = concat!(
     "  ownership       Ownership and resources\n",
     "  strings         Strings and bytes\n",
     "  builtins        Compiler-owned functions\n",
+    "  cli             Command-line programs\n",
     "  lists           Lists and iterators\n",
     "  mistakes-code   Habits from other languages: diagnostic examples\n",
     "  mistakes-index  Habits from other languages: diagnostic index\n",

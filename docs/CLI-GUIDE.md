@@ -99,6 +99,10 @@ reference interpreter, not a generated executable. Set `--max-steps` and
 `--max-bytes` to control limits and `--json` for machine-readable results.
 Choose `--native` to run the generated C11 executable. The exact
 `permit { process.stdout.write }` profile uses bounded stdout publication.
+A file that permits `fs.read`, `process.args.read`, or `process.stderr.write`
+is a command-line program: `semaprax run tool.spx -- input.txt` passes the
+arguments after `--`, publishes stdout and stderr after `main` returns, and
+exits with `main`'s result ([Text Toolkit v1](TEXT-TOOLKIT-V1.md)).
 
 Use `fmt <file> --check` to report formatting changes without writing, or
 `fmt <file>` to write canonical source. Both accept a project directory or

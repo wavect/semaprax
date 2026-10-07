@@ -492,9 +492,10 @@ fn main() -> i64
   `--json`, `--max-steps`, and `--max-bytes` are available; `--native`
   explicitly selects the generated C11 route. The exact
   `process.stdout.write` authority automatically selects the bounded stdout
-  transcript interpreter, so the example above prints `banana!0`. `args_len`, `arg_utf8`,
-  `stdin_read`, and `stderr_write` need a project with the
-  `useful-data-command.v1` profile built for the native target.
+  transcript interpreter, so the example above prints `banana!0`. A file that
+  permits `process.args.read`, `fs.read`, or `process.stderr.write` is a
+  command-line program instead (see below). `stdin_read` needs a project with
+  the `useful-data-command.v1` profile built for the native target.
 - `net_connect`, `net_send`, `net_recv`, `net_stream_stdout`, `net_wait`, and
   `net_close` are the effect-gated TCP client operations of
   [Bounded Language Network I/O v1](BOUNDED-LANGUAGE-NETWORK-IO-V1.md); they
@@ -524,6 +525,12 @@ fn main() -> i64
 | `string_from_char` | `(c: char) -> string` |
 | `string_from_i64` | `(value: i64) -> string` canonical decimal text |
 | `string_from_usize` | `(value: usize) -> string` canonical decimal text |
+| `string_slice` | `(s: string, start: i64, end: i64) -> string` byte offsets, on character boundaries |
+| `string_find` | `(s: string, needle: string, from: i64) -> i64` first byte offset at or after `from`, or `-1` |
+| `string_to_i64` | `(s: string) -> Option<i64>` optional `-`, then digits only |
+| `string_trim` | `(s: string) -> string` strips ASCII whitespace at both ends |
+| `string_byte_at` | `(s: string, index: i64) -> i64` the byte, `0..=255` |
+| `file_read_text` | `(path: borrow str) -> string` whole UTF-8 file, at most 64 KiB; needs `fs.read` |
 | `string_as_str` | `(binding: string) -> borrow str` |
 | `str_len_bytes` | `(s: borrow str) -> i64` |
 | `str_is_empty` | `(s: borrow str) -> bool` |
@@ -611,6 +618,79 @@ fn main() -> i64
 string_len(text);` before the loop, `size = string_len(text);` in the body,
 and `while size < 4`. `text = "b";` on a string is `SPX-U105`; append with
 `text = string_concat(text, "b");` or bind a new name.
+
+## Command-line programs
+
+A single file whose `permit` set uses `fs.read`, `process.args.read`, or
+`process.stderr.write` (with or without `process.stdout.write`) is a
+command-line program. `semaprax run lines.spx -- data.txt` (or `--native`,
+or a binary from `build --target native`) passes `data.txt` to `arg_utf8`,
+`main`'s result becomes the exit status (`0..=255`, not printed), and stdout
+and stderr appear after `main` returns. `file_read_text` reads relative paths
+below the current directory. A checked failure, such as a missing file or a
+slice out of range, prints one line to stderr and exits with 1.
+[Text Toolkit v1](TEXT-TOOLKIT-V1.md) owns the rules.
+
+```semaprax
+module app.lines;
+
+permit { fs.read, process.args.read, process.stderr.write, process.stdout.write }
+
+@id("app.usage")
+fn usage() -> i64
+    uses { process.stderr.write }
+{
+    let message = "usage: lines <file>\n";
+    let view = string_as_str(message);
+    let written = stderr_write(str_as_bytes(view));
+    2
+}
+
+@id("app.report")
+fn report() -> i64
+    uses { fs.read, process.args.read, process.stdout.write }
+{
+    let path = arg_utf8(0usize);
+    let text = file_read_text(path);
+    let size = string_len(text);
+    let mut start = 0;
+    let mut lines = 0;
+    let mut sum = 0;
+    while start < size {
+        let found = string_find(text, "\n", start);
+        let end = if found < 0 { size } else { found };
+        let line = string_trim(string_slice(text, start, end));
+        sum = sum + match string_to_i64(line) { Option::Some { value: n } => n, Option::None {} => 0, };
+        lines = lines + 1;
+        start = end + 1;
+        0
+    }
+    let mut out = "lines: ";
+    out = string_concat(out, string_from_i64(lines));
+    out = string_concat(out, "\nsum: ");
+    out = string_concat(out, string_from_i64(sum));
+    out = string_concat(out, "\n");
+    let view = string_as_str(out);
+    let written = stdout_write(str_as_bytes(view));
+    0
+}
+
+@id("app.main")
+fn main() -> i64
+    uses { fs.read, process.args.read, process.stderr.write, process.stdout.write }
+{
+    if args_len() == 1usize { report() } else { usage() }
+}
+```
+
+For a file holding `4`, ` 5 `, `x`, `10` on four lines, `semaprax run
+lines.spx -- nums.txt` prints `lines: 4` and `sum: 19` and exits 0; without an
+argument it prints the usage line to stderr and exits 2. Bind `arg_utf8(i)`
+before passing it on. Match `string_to_i64` directly; in a loop the match must
+be exactly `Option::Some { value }` and `Option::None {}`. Keep each function
+to a few `match`es: every match doubles its cleanup paths (`SPX-H006` past
+65,536). Offsets are byte offsets; `string_byte_at(s, i) == 32` tests a space
+without allocating.
 
 ## Lists and iterators
 
@@ -805,7 +885,7 @@ Other first-attempt diagnostics and their fixes:
 | `point.get()` on a record | `SPX-T203` | Records have no methods; call `get(point)` or use a `class` |
 | `let x = 1; let x = x + 1;` | `SPX-T209` | No shadowing; pick a new name |
 | assignment to an immutable binding | `SPX-U101` | Declare it with `let mut` before assigning |
-| `fn main() -> bool` | `SPX-T104` | `main` returns `i64`; `0` conventionally means success |
+| `fn main() -> bool` | `SPX-T104` | `main` returns `i64`; `0` conventionally means success, and in a command-line program it is the exit status |
 | a second `consume(b)` after `own` | `SPX-O101` | Take `borrow` in the callee or pass a fresh value |
 | `struct`, `enum`, `pub`, `const` | `SPX-P104` | `record`, `variant`, no visibility keyword, a function returning the value |
 | `match x { 0 => 0, _ => 1 }` | `SPX-P106` | Every match arm ends with `,`, including the last; a declaration's last field or case may omit it |
@@ -820,7 +900,7 @@ Other first-attempt diagnostics and their fixes:
 | `fn f()` or `-> ()` | `SPX-P106`, `SPX-P105` | Every function returns `i64` or `bool`; there is no unit |
 | `a[0]` | `SPX-P106` | `byte_get(array_as_slice(a), 0usize)` returns `Option<u8>` |
 | `Some(1)`, `None` | `SPX-T203`, `SPX-T202` | `Option<i64>::Some { value: 1 }`, `Option<i64>::None {}` |
-| `s.len()` on a `string` | `SPX-T203` | `string_len(s)`; no type but a `class` has methods |
+| `s.len()` on a `string` | `SPX-T203` | `string_len(s)`, likewise `string_trim(s)`, `string_find(s, x, 0)`, `string_slice(s, a, b)`, `string_to_i64(s)`; no type but a `class` has methods |
 | `str_as_bytes(text)` or `str_as_bytes(string_as_str(text))` | `SPX-T263`, `SPX-T266` | Bind the view first: `let view = string_as_str(text); str_as_bytes(view)` |
 | `string_as_str("literal")` | `SPX-T266` | Bind the literal, then pass that binding to `string_as_str` |
 | `shape == Shape::Box { width: 1 }` or `option == Option<i64>::None {}` | `SPX-T207` | Only payload-free, non-generic variants compare with `==`; test others with `match shape { Shape::Dot {} => true, _ => false, }` |
@@ -1007,6 +1087,7 @@ dependencies. See [Project Lock v1](PROJECT-LOCK-V1.md) and
   [bounded Vec `for` traversal](OWNED-BOUNDED-VEC-FOR-TRAVERSAL-V1.md),
   [refutable match](REFUTABLE-MATCH-V1.md), [string operations](STRING-OPS-V1.md),
   [owned string loops](OWNED-STRING-LOOPS-V1.md),
+  [text toolkit and command-line programs](TEXT-TOOLKIT-V1.md),
   [owned string views](OWNED-STRING-BORROWED-VIEW-V1.md),
   [indexed byte data](PORTABLE-INDEXED-BYTE-DATA-V1.md),
   [command I/O](BOUNDED-LANGUAGE-COMMAND-IO-V1.md), and

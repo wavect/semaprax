@@ -114,7 +114,7 @@ source diagnostic.
 | Backend | Behavior |
 | --- | --- |
 | Reference interpreter (`run`) | Executes; Rust ownership releases each value. |
-| Native C11 (`run --native`, `build --target native`) | The append applies the plan's transfer into the binding slot; the operand read moves the carrier without `spx_string_clone`. |
+| Native C11 (`run --native`, `build --target native`) | The append applies the plan's transfer into the binding slot; the operand read moves the carrier without `spx_string_clone`. Every String temporary of a body statement, including one with no String binding (`total = total + string_len("ab");`), settles at the end of its iteration. |
 | Core Wasm, `--profile internal-strings-v1` | The operand moves its carrier into the call epoch; the trusted runtime settles its arena after every call, so a leaked or twice-released owner poisons the instance. Numeric text (`string_from_i64`) stays outside this profile (`SPX-W116`), as before. |
 | Legacy scalar Web/Wasm packages | Unchanged; they still refuse String programs (`SPX-W116`). |
 

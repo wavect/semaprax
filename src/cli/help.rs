@@ -223,7 +223,7 @@ static COMMANDS: &[CommandSpec] = &[
     CommandSpec { id: CommandId::New, canonical: "new", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax new <destination> [--name project-name] [--template calculator|library|service]"] },
     CommandSpec { id: CommandId::ProjectScaffold, canonical: "project-scaffold", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax project-scaffold --name project-name [--template calculator|library|service] [--layout frozen|tables]"] },
     CommandSpec { id: CommandId::Build, canonical: "build", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax build <file> [--target native|native-callable|web|wasm] [--profile internal-strings-v1] [--function stable-id] [--export stable-id ...] [-o|--output path] [--json]", "semaprax build [<dir>|semaprax.toml|--manifest-path path] [--target native|web|wasm|npm|oci|rust] [-o|--output path] [--json]"] },
-    CommandSpec { id: CommandId::Run, canonical: "run", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax run <file> [--json] [--max-steps N] [--max-bytes N] [--native]", "semaprax run [<dir>|semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]"] },
+    CommandSpec { id: CommandId::Run, canonical: "run", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax run <file> [--json] [--max-steps N] [--max-bytes N] [--native] [-- <arg>...]", "semaprax run [<dir>|semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]"] },
     CommandSpec { id: CommandId::NetworkRun, canonical: "network-run", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax network-run [<dir>|semaprax.toml|--manifest-path path] --fixture fixture.json [--arg UTF8]... [--stdin path] [--max-steps N]"] },
     CommandSpec { id: CommandId::Test, canonical: "test", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax test [<dir>|semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]"] },
     CommandSpec { id: CommandId::Fmt, canonical: "fmt", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax fmt <file>|<dir>|semaprax.toml [--check]"] },
@@ -380,6 +380,7 @@ const LANGUAGE_TOPICS: &[(&str, &str)] = &[
     ("ownership", "Ownership and resources"),
     ("strings", "Strings and bytes"),
     ("builtins", "Compiler-owned functions"),
+    ("cli", "Command-line programs"),
     ("lists", "Lists and iterators"),
     (
         "mistakes-code",
@@ -1359,7 +1360,7 @@ mod tests {
         assert!(LANGUAGE_REFERENCE.contains("```semaprax\n"));
         assert!(LANGUAGE_REFERENCE.ends_with('\n'));
         let reference_units = semaprax::agent_economics::lexical_tokens(LANGUAGE_REFERENCE);
-        assert_eq!(LANGUAGE_TOPICS.len(), 14);
+        assert_eq!(LANGUAGE_TOPICS.len(), 15);
         for (selector, heading) in LANGUAGE_TOPICS {
             let topic = language_topic(selector).unwrap();
             assert!(topic.starts_with(&format!("## {heading}\n")), "{selector}");

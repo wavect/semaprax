@@ -496,6 +496,21 @@ fn command_line_programs_receive_arguments_files_and_exit_status() {
             assert_eq!(stderr.lines().count(), 1, "{stderr}");
         }
     }
+    // `--json` on the interpreter route publishes one envelope.
+    let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .current_dir(&fixture.root)
+        .args(["run", "source.spx", "--json", "--", "numbers.txt"])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(0));
+    let envelope: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(envelope["schema"], "semaprax.single-file-command.v1");
+    assert_eq!(envelope["outcome"]["value"], "0");
+    assert_eq!(
+        envelope["stdout"],
+        serde_json::to_value(b"lines: 4\ntotal: 321\n".to_vec()).unwrap()
+    );
+    assert_eq!(envelope["stderr"], serde_json::json!([]));
     // Arguments reach only a program that permits the command-line profile.
     let plain =
         Fixture::new("module app.plain;\n\n@id(\"app.main\")\nfn main() -> i64\n{\n    7\n}\n");

@@ -763,6 +763,7 @@ fn owned_string_record_layout_is_independent_of_frozen_byte_layout() {
     assert_eq!(owned_bytes_size_align(AggregateTarget::Wasm32), (8, 8));
 }
 
+#[test]
 fn sg04_record_variant_leaf_layout_authenticates_cases_fields_and_target() {
     let source = r#"
 module test.record_variant_layout;

@@ -123,7 +123,7 @@ pub(super) fn check_expr(
                             format!("use of resource `{name}` after ownership was moved"),
                             expr.span,
                         )
-                        .with_help(hints::moved_resource_help(&binding.ty)),
+                        .with_help(hints::moved_resource_help(&binding.ty, name)),
                     ),
                     Availability::MaybeMoved => diagnostics.push(
                         error(
@@ -134,7 +134,7 @@ pub(super) fn check_expr(
                             ),
                             expr.span,
                         )
-                        .with_help("move the resource on every path or keep it borrowed"),
+                        .with_help(hints::moved_resource_help(&binding.ty, name)),
                     ),
                     Availability::Available => match overlapping_place_state(binding, &[]) {
                         Availability::Moved => diagnostics.push(

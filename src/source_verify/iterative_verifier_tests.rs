@@ -257,6 +257,12 @@ fn generic_inference_v2_frame_machine_matches_recursive_oracle() {
 #[test]
 fn scalar_frame_machine_matches_recursive_oracle() {
     compare_scalar_body(
+        "module t; fn main() -> i64 { let text = \"x\"; let first = string_concat(text, \"y\"); string_len(text) }",
+    );
+    compare_scalar_body(
+        "module t; fn main(flag: bool) -> i64 { let text = \"x\"; let result = if flag { let joined = string_concat(text, \"y\"); 1 } else { 0 }; string_len(text) + result }",
+    );
+    compare_scalar_body(
         "module t; fn main() -> i64 { let values = vec_with_capacity<i64>(1usize); for item in values { let seen = item; 0usize } 0 }",
     );
     compare_scalar_body("module t; fn main() -> i64 { -(1 + true) }");

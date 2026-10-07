@@ -645,18 +645,18 @@ pub(super) fn equality_types_help(
     })
 }
 
-/// A moved resource read again. Strings and byte buffers have no implicit
-/// copy, so the generic "borrow it" advice needs the concrete route.
-pub(super) fn moved_resource_help(ty: &Type) -> &'static str {
+/// A moved or conditionally moved resource read again. Strings and byte
+/// buffers have no implicit copy, so the generic advice needs a concrete route.
+pub(super) fn moved_resource_help(ty: &Type, name: &str) -> String {
     match ty {
-        Type::String => {
-            "`string_concat` and `own` parameters consume a `string`; pass `string_as_str(name)` \
-             to a `borrow str` parameter instead, or build a second string before the first use"
-        }
+        Type::String => format!(
+            "owning calls consume `string`; if an application helper only reads the text, change its parameter to `borrow str` and pass `string_as_str({name})` before the first move; otherwise, provide a distinct owned string at each consuming call"
+        ),
         Type::Bytes => {
             "`own` parameters consume `Bytes`; pass `bytes_as_slice(name)` to a `borrow \
-             Slice<u8>` parameter instead, or copy first with `bytes_copy(bytes_as_slice(name))`"
+             Slice<u8>` parameter instead, or copy first with `bytes_copy(bytes_as_slice(name))"
+                .to_owned()
         }
-        _ => "borrow the resource if the callee does not need ownership",
+        _ => "borrow the resource if the callee does not need ownership".to_owned(),
     }
 }

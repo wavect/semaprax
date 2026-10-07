@@ -79,6 +79,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             )
                             .with_help(crate::source_verify::hints::moved_resource_help(
                                 &binding.ty,
+                                name,
                             )),
                         ),
                         Availability::MaybeMoved => self.diagnostics.push(
@@ -88,7 +89,10 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 format!("resource `{name}` may have been moved on another control-flow path"),
                                 expression.span,
                             )
-                            .with_help("move the resource on every path or keep it borrowed"),
+                            .with_help(crate::source_verify::hints::moved_resource_help(
+                                &binding.ty,
+                                name,
+                            )),
                         ),
                         Availability::Available => match overlapping_place_state(binding, &[]) {
                             Availability::Moved => self.diagnostics.push(

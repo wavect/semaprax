@@ -610,14 +610,40 @@ fn integer_and_mixed_type_mistakes_name_the_types_and_the_conversion() {
 
 #[test]
 fn reusing_a_moved_string_names_the_borrow_route() {
+    let source = "module habit.mv;\n@id(\"app.main\")\nfn main() -> i64\n{\n    let a = \"x\";\n    let b = string_concat(a, \"y\");\n    let c = string_concat(a, \"z\");\n    0\n}\n";
     let diagnostic = only(
-        "module habit.mv;\n@id(\"app.main\")\nfn main() -> i64\n{\n    let a = \"x\";\n    let b = string_concat(a, \"y\");\n    let c = string_concat(a, \"z\");\n    0\n}\n",
+        source,
         "SPX-O101",
     );
+    assert_eq!(diagnostic.message, "use of resource `a` after ownership was moved");
+    assert!(diagnostic.span.is_some(), "{diagnostic}");
     assert!(
-        help(&diagnostic).contains("pass `string_as_str(name)` to a `borrow str` parameter"),
+        help(&diagnostic).contains(
+            "if an application helper only reads the text, change its parameter to `borrow str` and pass `string_as_str(a)` before the first move"
+        ),
         "{diagnostic}"
     );
+    assert!(help(&diagnostic).contains("distinct owned string at each consuming call"));
+}
+
+#[test]
+fn conditionally_moved_string_names_the_same_borrow_route() {
+    let source = "module habit.mv;\n@id(\"app.main\") fn main(flag: bool) -> i64 { let text = \"x\"; let result = if flag { let joined = string_concat(text, \"y\"); 1 } else { 0 }; string_len(text) + result }\n";
+    let diagnostic = only(source, "SPX-O107");
+    assert_eq!(
+        diagnostic.message,
+        "resource `text` may have been moved on another control-flow path"
+    );
+    let span = diagnostic.span.expect("diagnostic keeps the later-use span");
+    let start = source.rfind("text").unwrap();
+    assert_eq!((span.start, span.end), (start, start + "text".len()));
+    assert!(
+        help(&diagnostic).contains(
+            "if an application helper only reads the text, change its parameter to `borrow str` and pass `string_as_str(text)` before the first move"
+        ),
+        "{diagnostic}"
+    );
+    assert!(help(&diagnostic).contains("distinct owned string at each consuming call"));
 }
 
 #[test]

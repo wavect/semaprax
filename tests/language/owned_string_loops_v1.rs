@@ -248,6 +248,22 @@ fn owned_string_loops_round_trip_and_move_the_appended_owner() {
     hir::validate(&resolved).unwrap();
     let read = condition_operand(&mut resolved).id.clone();
     assert!(!graph.contains(&format!("\"kind\":\"initialize\",\"at\":\"{read}\"")));
+    let inactive = semaprax::cleanup_plan::StorageId::Temporary(read.clone());
+    let function = resolved
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "loops.condition_skip")
+        .unwrap();
+    assert_eq!(
+        function
+            .cleanup_plan
+            .regions
+            .iter()
+            .filter(|region| region.slots.contains(&inactive))
+            .count(),
+        1,
+        "the inactive inventory temporary must retain one authenticated region"
+    );
     assert!(graph.contains("\"callee\":\"core.string.len\""));
 }
 

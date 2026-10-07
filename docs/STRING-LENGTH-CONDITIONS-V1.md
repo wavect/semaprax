@@ -25,7 +25,7 @@ while string_len(log) < 1000 {
 
 Each condition reads the current owner, including the generation published
 by the previous body's same-owner append. The inspection creates no String,
-consumes no owner, retains no view, and creates no new cleanup leaf. A false
+consumes no owner, retains no view, and initializes no cleanup leaf. A false
 condition does not enter the body; a checked scalar failure settles the live
 owner through its ordinary failure exit before returning the selected status.
 
@@ -50,8 +50,9 @@ conditions, remain source `SPX-T252` even when the body would be skipped.
 
 The cleanup builder and independent replay derive the same inspected reads
 from typed HIR, rather than accepting attached plan claims. Such a read has
-neither clone initialization nor an owned transfer source. The existing
-acyclic one-iteration loop plan remains sufficient; no condition cleanup
+neither clone initialization nor an owned transfer source. Its inactive
+inventory temporary retains an authenticated lexical region, like the moving
+operand of a same-owner append, and never becomes live. The existing acyclic one-iteration loop plan remains sufficient; no condition cleanup
 region, back-edge, or schema extension is introduced.
 
 The derived identity sets are metadata, like the existing append index. Replay

@@ -18,8 +18,8 @@ impl PlanBuilder<'_> {
             && !self.string_condition_reads.contains(&expression.id)
     }
 
-    /// A moving append operand never initializes its inventory temporary,
-    /// but the slot still belongs to the region a clone would have used.
+    /// An append move or condition inspection never initializes its inventory
+    /// temporary, but that storage still belongs to the clone's lexical region.
     pub(super) fn assign_moved_string_slot(
         &mut self,
         expression: &ResolvedExpr,
@@ -27,7 +27,9 @@ impl PlanBuilder<'_> {
     ) -> Result<(), Diagnostic> {
         // Only a String operand would otherwise have cloned; a moving map
         // reopen operand never had an inventory temporary.
-        if expression.ty == ResolvedType::String && self.string_appends.contains_key(&expression.id)
+        if expression.ty == ResolvedType::String
+            && (self.string_appends.contains_key(&expression.id)
+                || self.string_condition_reads.contains(&expression.id))
         {
             let region = self.blocks[block.0 as usize].region;
             self.expression_slot(expression, region)?;

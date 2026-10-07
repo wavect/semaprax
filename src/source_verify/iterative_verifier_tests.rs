@@ -748,8 +748,11 @@ fn owned_string_loop_admission_matches_recursive_oracle() {
 
 #[test]
 fn named_string_length_conditions_match_recursive_oracle() {
+    // The recursive oracle predates statement mutation and still rejects
+    // Assign unconditionally. Keep this corpus in its non-mutating profile;
+    // physical repeated reads and assignment execute in owned_string_loops_v1.
     for body in [
-        "let text=\"é\"; let mut i=0; while i<2 && string_len(text)==2 { i=i+1; 0 } i",
+        "let text=\"é\"; let i=0; while i<2 && string_len(text)==2 { 0 } i",
         "let text=\"a\"; while string_len(text)<1 { 0 } 0",
         "let text=\"a\"; while { while string_len(text)<1 { 0 } false } { 0 } 7",
         "let text=\"a\"; while { while false { string_len(text) } false } { 0 } 0",

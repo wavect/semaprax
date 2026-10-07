@@ -89,10 +89,10 @@ pub(crate) fn evaluate_resolved_source_command(
 
     let command_input = CommandInputState {
         network: None,
-        filesystem: match files {
-            Some(provider) => Some(filesystem::FileState::new(provider)),
-            None => None,
-        },
+        // A closure, not the bare constructor path: the provider's trait-object
+        // lifetime shortens to the evaluator's only at this call.
+        #[allow(clippy::redundant_closure)]
+        filesystem: files.map(|provider| filesystem::FileState::new(provider)),
         environment: None,
         process: None,
         arguments: arguments

@@ -49,6 +49,7 @@ impl Emitter<'_> {
             .collect::<Vec<_>>();
         let mut completed_variant_destinations = std::collections::BTreeSet::new();
         for transition in &transitions {
+            self.release_replaced_string(transition)?;
             match transition {
                 crate::cleanup_plan::CleanupTransition::Initialize { destination, .. } => {
                     if !self.set_variant_storage_flags_from_value(destination, value)? {

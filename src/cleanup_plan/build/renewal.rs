@@ -163,6 +163,7 @@ impl PlanBuilder<'_> {
             super::super::CLEANUP_PLAN_SCHEMA_V12
                 | super::super::CLEANUP_PLAN_SCHEMA_V13
                 | super::super::CLEANUP_PLAN_SCHEMA_V15
+                | super::super::CLEANUP_PLAN_SCHEMA_V16
         ) || crate::cleanup_plan::renewal_binding(self.function, &value.id).is_none()
         {
             return Ok(());
@@ -171,7 +172,11 @@ impl PlanBuilder<'_> {
             .binding_slot(binding, region)?
             .ok_or_else(|| plan_error("renewal has no owned binding slot"))?;
         let flags = self.flags_under(&place);
-        if flags.len() != 1 || !state.live_order.contains(&flags[0]) || !state.renewals.is_empty() {
+        if flags.len() != 1
+            || !state.live_order.contains(&flags[0])
+            || state.renewals.contains_key(&value.id)
+            || (self.schema != super::super::CLEANUP_PLAN_SCHEMA_V16 && !state.renewals.is_empty())
+        {
             return Err(plan_error(
                 "renewal reservation requires one live unreserved Vec owner",
             ));
@@ -195,6 +200,9 @@ impl PlanBuilder<'_> {
         history: &[LivenessFlagId],
         state: &mut FlowState,
     ) -> Result<(), Diagnostic> {
+        if crate::string_ops::replacement::binding(self.function, at).is_some() {
+            return self.finish_string_replacement(at, destination, history, state);
+        }
         let flags = self.flags_under(destination);
         if flags.len() != 1 {
             return Err(plan_error("renewal destination is not one Vec leaf"));

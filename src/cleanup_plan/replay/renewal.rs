@@ -12,8 +12,14 @@ pub(super) fn validate_binding(
             | CLEANUP_PLAN_SCHEMA_V13
             | CLEANUP_PLAN_SCHEMA_V14
             | CLEANUP_PLAN_SCHEMA_V15
+            | CLEANUP_PLAN_SCHEMA_V16
     ) || (crate::hir::vec_loop_renewal::binding(function, at).is_some()
-        && function.cleanup_plan.schema != CLEANUP_PLAN_SCHEMA_V15)
+        && !matches!(
+            function.cleanup_plan.schema,
+            CLEANUP_PLAN_SCHEMA_V15 | CLEANUP_PLAN_SCHEMA_V16
+        ))
+        || (crate::string_ops::replacement::binding(function, at).is_some()
+            && function.cleanup_plan.schema != CLEANUP_PLAN_SCHEMA_V16)
         || !crate::cleanup_plan::renewal_binding(function, at).is_some_and(|binding| {
             *place == CleanupPlace::whole(StorageId::Value(binding.id.clone()))
         })
@@ -50,7 +56,11 @@ pub(super) fn reserve(
 ) -> Result<(), Diagnostic> {
     validate_binding(function, at, binding)?;
     let flags = validate_place(function, binding, storage, leaves)?;
-    if flags.len() != 1 || !state.live_order.contains(&flags[0]) || !state.renewals.is_empty() {
+    if flags.len() != 1
+        || !state.live_order.contains(&flags[0])
+        || state.renewals.contains_key(at)
+        || (function.cleanup_plan.schema != CLEANUP_PLAN_SCHEMA_V16 && !state.renewals.is_empty())
+    {
         return Err(replay_error(
             function,
             "renewal reservation requires one live unreserved Vec owner",
@@ -80,8 +90,21 @@ pub(super) fn renew(
             "renewal destination is not one Vec leaf",
         ));
     }
+    if crate::string_ops::replacement::binding(function, at).is_some() {
+        let source_flags = validate_place(function, source, storage, leaves)?;
+        if source_flags == flags {
+            return Err(replay_error(
+                function,
+                "String replacement aliases its new owner",
+            ));
+        }
+        state.live_order.retain(|flag| !flags.contains(flag));
+    }
     replay_transfer(function, state, source, destination, storage, leaves)?;
     let flag = flags[0];
+    if crate::string_ops::replacement::binding(function, at).is_some() {
+        return string_replacement::finish(function, flag, &history, state);
+    }
     if !history.contains(&flag)
         || history
             .iter()

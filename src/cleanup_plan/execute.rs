@@ -9,6 +9,7 @@
 mod expression_search;
 mod inventory;
 mod lifecycle;
+mod string_replacement;
 use expression_search::find_expression_by;
 use inventory::collect_leaves;
 use lifecycle::preflight_finalizer_bindings;
@@ -870,6 +871,7 @@ impl<'a> Executor<'a> {
                 source,
                 destination,
             } => {
+                self.release_string_replacement(&at, &destination)?;
                 self.transfer_flags(&source, &destination)?;
                 self.emit(TraceEventKind::Transfer {
                     at,
@@ -1283,7 +1285,14 @@ impl<'a> Executor<'a> {
     }
 
     fn execute_finalizers(&mut self, exit: &ExitTarget) -> Result<(), CleanupExecutionError> {
-        for action in &exit.finalize_in_order {
+        self.execute_finalizer_actions(&exit.finalize_in_order)
+    }
+
+    fn execute_finalizer_actions(
+        &mut self,
+        actions: &[super::FinalizeAction],
+    ) -> Result<(), CleanupExecutionError> {
+        for action in actions {
             let leaf = self
                 .leaves
                 .get(&action.guard_flag)

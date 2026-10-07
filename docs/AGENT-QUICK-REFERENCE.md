@@ -625,6 +625,12 @@ fn main() -> i64
 
 `semaprax run count.spx` prints `42`. Use `string_from_i64` for signed values.
 
+A whole available `let mut` String also accepts a literal, owning named result,
+block, helper call, or branch result: `text = if ready { "yes" } else { "no" };`.
+The old owner is released only after the RHS succeeds. RHS ownership rules
+still consume owning named results, and an active borrowed view prevents the
+replacement. See [Whole String Replacement v1](STRING-REPLACEMENT-V1.md).
+
 String loops allow named reads via `string_len`, `string_is_empty`,
 `string_starts_with`, and `string_contains`
 ([predicates](BORROWED-STRING-PREDICATE-CONDITIONS-V1.md)). Computed String

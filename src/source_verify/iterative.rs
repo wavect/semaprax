@@ -147,6 +147,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             );
             return;
         }
+        self.check_string_replacement_entry(next_statement, block_scope);
         self.note_owned_buffer_reopen(next_statement);
         self.frames.push(VerifierFrame::ResumeBlockStatement {
             expression,

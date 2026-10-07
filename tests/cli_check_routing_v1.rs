@@ -194,12 +194,12 @@ fn source_check_includes_hir_and_cleanup_validation() {
 @id("app.main")
 fn main() -> i64
 {
-    let mut text = "x";
+    let mut text = bytes_zeroed(1usize);
     while false {
-        text = string_concat(text, text);
+        text = bytes_zeroed(2usize);
         false
     }
-    string_len(text)
+    0
 }
 "#;
     fs::write(root.join("hir-invalid.spx"), source).unwrap();

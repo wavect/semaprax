@@ -81,7 +81,7 @@ pub fn emit_module(
     export_ids: &[String],
     options: InternalStringOptions,
 ) -> Result<InternalStringModule, Diagnostic> {
-    emit_selected(program, export_ids, options, false)
+    emit_selected(program, export_ids, options, false, false)
 }
 
 /// Explicit additive Copy Variant String Settlement v1. Public signatures
@@ -91,7 +91,17 @@ pub fn emit_copy_variant_module(
     export_ids: &[String],
     options: InternalStringOptions,
 ) -> Result<InternalStringModule, Diagnostic> {
-    emit_selected(program, export_ids, options, true)
+    emit_selected(program, export_ids, options, true, false)
+}
+
+/// Explicit additive String Replacement v1, including the admitted Copy variant internals.
+/// Earlier standalone selectors retain their exact replacement refusals.
+pub fn emit_string_replacement_module(
+    program: &Program,
+    export_ids: &[String],
+    options: InternalStringOptions,
+) -> Result<InternalStringModule, Diagnostic> {
+    emit_selected(program, export_ids, options, true, true)
 }
 
 fn emit_selected(
@@ -99,6 +109,7 @@ fn emit_selected(
     export_ids: &[String],
     options: InternalStringOptions,
     copy_variants: bool,
+    replacements: bool,
 ) -> Result<InternalStringModule, Diagnostic> {
     let resolved = crate::hir::resolve(program).map_err(|diagnostics| {
         diagnostics
@@ -116,7 +127,9 @@ fn emit_selected(
             "standalone String byte policy exceeds its hard bounds",
         ));
     }
-    let (exports, closure) = if copy_variants {
+    let (exports, closure) = if replacements {
+        admission::prepare_replacements(&resolved, export_ids)?
+    } else if copy_variants {
         admission::prepare_copy_variants(&resolved, export_ids)?
     } else {
         admission::prepare(&resolved, export_ids)?
@@ -141,7 +154,9 @@ fn emit_selected(
         stack_bytes, derived_owner_capacity, options.max_string_bytes, options.max_live_bytes,
         options.max_cumulative_bytes, owners
     );
-    if copy_variants {
+    if replacements {
+        descriptor.insert_str(1, "\"profile\":\"string-replacement-v1\",");
+    } else if copy_variants {
         descriptor.insert_str(1, "\"profile\":\"copy-variants-v1\",");
     }
     for (ordinal, export) in exports.iter().enumerate() {

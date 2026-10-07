@@ -4498,6 +4498,18 @@ impl<'a> HirValidator<'a> {
                     } else if crate::string_ops::is_same_owner_concat_hir(assigned, &binding.id) {
                         scope = assigned_scope;
                         iterator_loops::reopen_string(&mut scope, &binding.id)?;
+                    } else if crate::string_ops::replacement::admitted(binding, assigned) {
+                        if scope
+                            .get(&binding.id)
+                            .is_none_or(|target| target.availability != Availability::Available)
+                        {
+                            return Err(hir_error(
+                                "String replacement starts with an unavailable owner",
+                            ));
+                        }
+                        scope = assigned_scope;
+                        self.mark_value_sources_moved(assigned, &mut scope)?;
+                        string_replacement::reopen(&mut scope, &binding.id)?;
                     }
                     let target = scope.get(&binding.id).cloned();
                     let Some(target) = target else {
@@ -4538,6 +4550,7 @@ impl<'a> HirValidator<'a> {
                             self.require_type(&target.ty, &assigned.ty, "assignment")?;
                             if (target.ownership != OwnershipMode::Value
                                 || !crate::hir::is_scalar_resolved_type(&target.ty))
+                                && !crate::string_ops::replacement::admitted(binding, assigned)
                                 && !crate::vec_ops::is_same_owner_reassignment_hir(
                                     self.program,
                                     assigned,
@@ -6802,6 +6815,15 @@ impl<'a> HirValidator<'a> {
                                 self.buffer_reopen_sites.insert(assigned.id.clone());
                             }
                             let statement_path = format!("{path}.s{index}");
+                            if crate::string_ops::replacement::admitted(binding, assigned)
+                                && block_scope.get(&binding.id).is_none_or(|target| {
+                                    target.availability != Availability::Available
+                                })
+                            {
+                                return Err(hir_error(
+                                    "String replacement starts with an unavailable owner",
+                                ));
+                            }
                             self.validate_expr_recursive_reference(
                                 function,
                                 assigned,
@@ -6821,6 +6843,9 @@ impl<'a> HirValidator<'a> {
                             }
                             if crate::string_ops::is_same_owner_concat_hir(assigned, &binding.id) {
                                 iterator_loops::reopen_string(&mut block_scope, &binding.id)?;
+                            } else if crate::string_ops::replacement::admitted(binding, assigned) {
+                                self.mark_value_sources_moved(assigned, &mut block_scope)?;
+                                string_replacement::reopen(&mut block_scope, &binding.id)?;
                             }
                             let target = block_scope.get(&binding.id).cloned();
                             let Some(target) = target else {
@@ -6865,6 +6890,9 @@ impl<'a> HirValidator<'a> {
                                     self.require_type(&target.ty, &assigned.ty, "assignment")?;
                                     if (target.ownership != OwnershipMode::Value
                                         || !crate::hir::is_scalar_resolved_type(&target.ty))
+                                        && !crate::string_ops::replacement::admitted(
+                                            binding, assigned,
+                                        )
                                         && !crate::vec_ops::is_same_owner_reassignment_hir(
                                             self.program,
                                             assigned,
@@ -8717,4 +8745,5 @@ mod iterative_while_admission_tests;
 
 mod generic_variant;
 mod iterator_loops;
+mod string_replacement;
 mod variant_or;

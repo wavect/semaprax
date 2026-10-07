@@ -80,6 +80,18 @@ pub(in crate::wasm) fn emit(
                 .iter()
                 .map(|exit| exit.finalize_in_order.len()),
         );
+        cleanup_action_counts.push(
+            function
+                .cleanup_plan
+                .blocks
+                .iter()
+                .flat_map(|block| &block.transitions)
+                .filter(|transition| {
+                    matches!(transition, crate::cleanup_plan::CleanupTransition::Renew { at, .. }
+                if crate::string_ops::replacement::binding(function, at).is_some())
+                })
+                .count(),
+        );
         frames.insert(function.id.clone(), plan.frame_size);
         owners.insert(
             function.id.clone(),

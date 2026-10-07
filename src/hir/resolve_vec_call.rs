@@ -67,6 +67,7 @@ pub(super) fn validate_whole_assignment(
         ));
     }
     if (value.ownership != OwnershipMode::Value || !is_scalar_resolved_type(&value.ty))
+        && !crate::string_ops::replacement::admitted(target, value)
         && !scoped_collection_assignment(resolver, execution, target, value)
         && !crate::vec_ops::is_same_owner_reassignment_hir_source(
             resolver.program,

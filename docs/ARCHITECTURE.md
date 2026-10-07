@@ -912,6 +912,18 @@ history algorithms; `src/graph/vec_loop_renewal.rs` composes Graph v66 with all
 preceding admitted facts. [Ordinary Vec Loop Renewal v1](VEC-LOOP-RENEWAL-V1.md)
 owns this additive profile and its executable gate.
 
+`src/string_ops/replacement.rs` derives whole mutable String replacement sites.
+`src/cleanup_plan/build/string_replacement.rs` and the independent
+`src/cleanup_plan/replay/string_replacement.rs` own the v16 history boundary;
+`build/transfer.rs` owns ordinary and replacement transfer construction.
+`src/cleanup_plan/execute/string_replacement.rs`,
+`src/codegen/native_bytes/replacement.rs` and
+`src/wasm/aggregate/string_replacement.rs` consume authenticated guarded release
+and publication actions. `src/hir/validation/string_replacement.rs` restores
+only the target's availability after RHS ownership checking.
+`src/graph/string_replacement.rs` composes Graph v67 without dropping preceding
+facts. [Whole String Replacement v1](STRING-REPLACEMENT-V1.md) owns the contract.
+
 The additive owned-payload iterator is split across
 `src/interpreter/iterator.rs`, which validates the initialized suffix and uses a
 detached-prefix sentinel for the moved slot, and

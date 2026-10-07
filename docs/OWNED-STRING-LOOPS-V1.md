@@ -8,7 +8,7 @@ It widens [Bounded While-Loops v1](WHILE-LOOPS-V1.md) and
 [Explicit Mutation v1](EXPLICIT-MUTATION-V1.md); every shape outside this
 page keeps its earlier diagnostic. The additive
 [Owned String Loops v2](OWNED-STRING-LOOPS-V2.md) admits user String calls
-and Copy-scrutinee matches in loop bodies.
+and Copy-scrutinee matches in loop bodies. [Whole String Replacement v1](STRING-REPLACEMENT-V1.md) separately admits general whole String assignment with a guarded old-owner release.
 
 ## Objective
 
@@ -100,7 +100,9 @@ while size < 1000 {
 }
 ```
 
-## Still refused
+## Frozen v1 boundaries
+
+The first two shapes below are admitted by additive [Whole String Replacement v1](STRING-REPLACEMENT-V1.md), with its separate cleanup and Wasm profile selection.
 
 | Shape | Diagnostic |
 | --- | --- |

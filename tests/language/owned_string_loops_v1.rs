@@ -632,17 +632,27 @@ fn diagnostics(body: &str) -> Vec<semaprax::diagnostic::Diagnostic> {
 
 #[test]
 fn shapes_outside_owned_string_loops_v1_stay_refused() {
-    // Whole replacement and an owner that is not the first operand need a
-    // release at the assignment, which v1 does not lower.
+    // The additive String Replacement v1 profile now checks these formerly
+    // refused source shapes. Frozen standalone Wasm v1 still refuses them.
     for body in [
         "    let mut text = \"x\";\n    text = \"y\";\n    string_len(text)",
         "    let mut text = \"x\";\n    text = string_concat(\"p\", text);\n    0",
     ] {
         let found = diagnostics(body);
-        assert!(
-            found.iter().any(|diagnostic| diagnostic.code == "SPX-U105"
-                && diagnostic.message == "explicit mutation v1 supports only scalar Copy values"),
-            "{found:?}"
+        assert!(found.is_empty(), "{found:?}");
+        let source = format!("module replacement; @id(\"r.main\") fn main()->i64 {{ {body} }}");
+        let program = parse(&source, Path::new("formerly-refused.spx")).unwrap();
+        hir::validate(&hir::resolve(&program).unwrap()).unwrap();
+        let error = emit_module(
+            &program,
+            &["r.main".into()],
+            InternalStringOptions::default(),
+        )
+        .unwrap_err();
+        assert_eq!(error.code, "SPX-W111");
+        assert_eq!(
+            error.message,
+            "whole String replacement requires the explicit string-replacement-v1 profile"
         );
     }
     // A condition re-evaluates outside the per-iteration body region, so it

@@ -65,7 +65,7 @@ impl Emitter<'_> {
         if self.owned_utf8_literals.is_some()
             && matches!(statement, ResolvedStatement::Assign { binding, value, .. }
                 if binding.ty == ResolvedType::String
-                    && !crate::string_ops::is_same_owner_concat_hir(value, &binding.id))
+                    && !crate::string_ops::replacement::admitted(binding, value))
         {
             return Err(error(
                 "string assignment has no admitted WebAssembly lowering",

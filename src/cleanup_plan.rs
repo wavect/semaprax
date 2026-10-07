@@ -56,6 +56,8 @@ pub const CLEANUP_PLAN_SCHEMA_V13: &str = "semaprax.cleanup-plan.v13";
 pub const CLEANUP_PLAN_SCHEMA_V14: &str = "semaprax.cleanup-plan.v14";
 /// Ordinary scalar Vec while updates preserve their reserved cleanup position.
 pub const CLEANUP_PLAN_SCHEMA_V15: &str = "semaprax.cleanup-plan.v15";
+/// Whole String replacement has a guarded release before successful renewal.
+pub const CLEANUP_PLAN_SCHEMA_V16: &str = "semaprax.cleanup-plan.v16";
 
 macro_rules! numeric_id {
     ($name:ident) => {

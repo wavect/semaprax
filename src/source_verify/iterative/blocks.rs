@@ -13,6 +13,26 @@ use crate::source_verify::IterativeVerifier;
 use std::collections::{BTreeSet, HashMap, HashSet};
 
 impl<'a, 'p> IterativeVerifier<'a, 'p> {
+    pub(super) fn check_string_replacement_entry(&mut self, statement: &Statement, scope: usize) {
+        if let Statement::Assign {
+            name,
+            name_span,
+            field: None,
+            ..
+        } = statement
+        {
+            if let Some(binding) = self.scopes[scope].bindings.get(name) {
+                if binding.ty == Type::String && binding.availability != Availability::Available {
+                    self.diagnostics.push(error(
+                        self.program,
+                        "SPX-O101",
+                        "String replacement starts with an unavailable owner",
+                        *name_span,
+                    ));
+                }
+            }
+        }
+    }
     #[allow(clippy::too_many_arguments)]
     pub(super) fn frame_resume_block_statement(
         &mut self,
@@ -314,21 +334,27 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             // admitted owned reopen shapes. The right-hand side
                             // evaluates before publication, so exactly one
                             // generation of the owner is ever live.
-                            let owned_reopen =
-                                crate::vec_ops::is_same_owner_reassignment_source(
+                            let owned_reopen = (binding_ty == crate::ast::Type::String
+                                && actual.as_ref().is_some_and(|v| {
+                                    v.ty == crate::ast::Type::String && v.mode == ParamMode::Own
+                                }))
+                                || crate::vec_ops::is_same_owner_reassignment_source(
                                     self.program,
                                     value,
                                     name,
                                     &binding_ty,
-                                ) || crate::byte_ops::is_same_owner_set_source(
+                                )
+                                || crate::byte_ops::is_same_owner_set_source(
                                     value,
                                     name,
                                     &binding_ty,
-                                ) || crate::string_ops::is_same_owner_concat_source(
+                                )
+                                || crate::string_ops::is_same_owner_concat_source(
                                     value,
                                     name,
                                     &binding_ty,
-                                ) || (crate::stdin_stream_ops::ast_is_reader(&binding_ty)
+                                )
+                                || (crate::stdin_stream_ops::ast_is_reader(&binding_ty)
                                     && crate::stdin_stream_ops::source_next_is_same_owner(
                                         self.program,
                                         name,
@@ -384,6 +410,21 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 }
                             }
                             if mutable && owned_reopen {
+                                if binding_ty == Type::String
+                                    && !crate::string_ops::is_same_owner_concat_source(
+                                        value,
+                                        name,
+                                        &binding_ty,
+                                    )
+                                {
+                                    mark_value_sources_moved(
+                                        self.program,
+                                        value,
+                                        &mut self.scopes[block_scope].bindings,
+                                        self.types,
+                                        self.diagnostics,
+                                    );
+                                }
                                 if let Some(binding) =
                                     self.scopes[block_scope].bindings.get_mut(name.as_str())
                                 {

@@ -17,6 +17,7 @@ use super::native_emit::{c_case_symbol, c_field_symbol};
 mod nested_owned;
 mod owned_leaf;
 mod record_if;
+mod replacement;
 mod scalar_match_scope;
 mod semantic_work;
 mod string_slots;
@@ -430,6 +431,7 @@ impl NativeBytesPlan {
                     ..
                 } => {
                     for (source, destination) in self.transfer_pairs(source, destination)? {
+                        output.push_str(&self.release_replaced_string(transition, destination));
                         output.push_str(&emit_transfer(source, destination, "plan transfer"));
                     }
                 }
@@ -553,61 +555,6 @@ impl NativeBytesPlan {
                     | CleanupTransition::StageCopyResult { .. } => None,
                 })
         })
-    }
-    pub(super) fn transfer_to(
-        &self,
-        storage: &StorageId,
-        at: &ExpressionId,
-    ) -> Result<String, Diagnostic> {
-        let mut matches =
-            self.transitions.get(at).into_iter().flatten().filter_map(
-                |transition| match transition {
-                    CleanupTransition::Transfer {
-                        source,
-                        destination,
-                        ..
-                    }
-                    | CleanupTransition::Renew {
-                        source,
-                        destination,
-                        ..
-                    } => (destination.storage == *storage && destination.projections.is_empty())
-                        .then_some((source, destination)),
-                    _ => None,
-                },
-            );
-        let Some((source, destination)) = matches.next() else {
-            return Err(error(format!(
-                "Bytes destination `{storage:?}` has no canonical transfer"
-            )));
-        };
-        if matches.next().is_some() {
-            return Err(error(format!(
-                "Bytes destination `{storage:?}` has ambiguous transfers"
-            )));
-        }
-        let source = self
-            .slots
-            .get(source)
-            .ok_or_else(|| error("Bytes transfer source is not indexed"))?;
-        let destination = self
-            .slots
-            .get(destination)
-            .ok_or_else(|| error("Bytes transfer destination is not indexed"))?;
-        if source.kind != destination.kind {
-            return Err(error("owned plan transfer changes carrier kind"));
-        }
-        Ok(format!(
-            "if (!{} || {}) spx_runtime_invariant_failure(\"owned plan transfer liveness {} to {}\");\n{} = {};\n{} = false;\n{} = true;\n",
-            source.flag,
-            destination.flag,
-            source.value,
-            destination.value,
-            destination.value,
-            source.kind.move_call(&source.value),
-            source.flag,
-            destination.flag
-        ))
     }
     pub(super) fn transfer_field_at(
         &self,

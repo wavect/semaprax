@@ -12,20 +12,28 @@ pub(super) fn prepare(
     program: &ResolvedProgram,
     ids: &[String],
 ) -> Result<PreparedSelection, Diagnostic> {
-    prepare_profile(program, ids, false)
+    prepare_profile(program, ids, false, false)
 }
 
 pub(super) fn prepare_copy_variants(
     program: &ResolvedProgram,
     ids: &[String],
 ) -> Result<PreparedSelection, Diagnostic> {
-    prepare_profile(program, ids, true)
+    prepare_profile(program, ids, true, false)
+}
+
+pub(super) fn prepare_replacements(
+    program: &ResolvedProgram,
+    ids: &[String],
+) -> Result<PreparedSelection, Diagnostic> {
+    prepare_profile(program, ids, true, true)
 }
 
 fn prepare_profile(
     program: &ResolvedProgram,
     ids: &[String],
     copy_variants: bool,
+    replacements: bool,
 ) -> Result<PreparedSelection, Diagnostic> {
     if !(1..=32).contains(&ids.len()) {
         return Err(error("standalone String selection requires 1..=32 exports"));
@@ -89,6 +97,11 @@ fn prepare_profile(
         .iter()
         .filter(|function| closure.contains(&function.id))
     {
+        if !replacements && crate::string_ops::replacement::requires(function) {
+            return Err(error(
+                "whole String replacement requires the explicit string-replacement-v1 profile",
+            ));
+        }
         if !function.effects.is_empty()
             || !signature_type(&function.return_type, copy_variants)
             || function.params.iter().any(|parameter| {

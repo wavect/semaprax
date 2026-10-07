@@ -1300,12 +1300,6 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                         assigned,
                                         &binding.id,
                                     );
-                                    if matches!(binding.ty, ResolvedType::String) && !string_append
-                                    {
-                                        return Err(backend_error(
-                                            "string assignment has no admitted native lowering",
-                                        ));
-                                    }
                                     // Same-owner replacement: the canonical cleanup plan
                                     // already carries the one transfer that publishes the
                                     // next generation, for `vec_push`, the loop-carried
@@ -1314,6 +1308,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                         || matches!(binding.ty, ResolvedType::Bytes)
                                         || crate::stdin_stream_ops::is_reader(&binding.ty)
                                         || string_append
+                                        || crate::string_ops::replacement::admitted(
+                                            binding, assigned,
+                                        )
                                     {
                                         let plan = self.bytes_plan.ok_or_else(|| {
                                             backend_error(

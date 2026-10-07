@@ -8,7 +8,8 @@ use super::replay_error;
 use crate::cleanup_plan::{
     CLEANUP_PLAN_SCHEMA_V10, CLEANUP_PLAN_SCHEMA_V11, CLEANUP_PLAN_SCHEMA_V12,
     CLEANUP_PLAN_SCHEMA_V13, CLEANUP_PLAN_SCHEMA_V14, CLEANUP_PLAN_SCHEMA_V15,
-    CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
+    CLEANUP_PLAN_SCHEMA_V16, CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8,
+    CLEANUP_PLAN_SCHEMA_V9,
 };
 
 fn nested_schema(schema: &str) -> bool {
@@ -22,6 +23,7 @@ fn nested_schema(schema: &str) -> bool {
             | CLEANUP_PLAN_SCHEMA_V12
             | CLEANUP_PLAN_SCHEMA_V13
             | CLEANUP_PLAN_SCHEMA_V15
+            | CLEANUP_PLAN_SCHEMA_V16
             | CLEANUP_PLAN_SCHEMA_V14
     )
 }
@@ -114,6 +116,7 @@ fn derive(
                             | CLEANUP_PLAN_SCHEMA_V12
                             | CLEANUP_PLAN_SCHEMA_V13
                             | CLEANUP_PLAN_SCHEMA_V15
+                            | CLEANUP_PLAN_SCHEMA_V16
                             | CLEANUP_PLAN_SCHEMA_V14
                     ) {
                         return Err(replay_error(

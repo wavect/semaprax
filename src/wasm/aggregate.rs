@@ -38,6 +38,7 @@ mod owned_strings;
 mod post_transitions;
 mod process_io;
 mod provider_lowering;
+mod string_replacement;
 pub(super) use provider_lowering::{
     lower_public_generic_provider_closure, PUBLIC_GENERIC_PROVIDER_SOURCE_INDEX_MIN,
 };
@@ -4078,7 +4079,11 @@ impl Emitter<'_> {
                         bindings.contains(&destination.storage) == entering
                     }) =>
                 {
-                    Some((source.clone(), destination.clone()))
+                    Some((
+                        source.clone(),
+                        destination.clone(),
+                        self.is_string_replacement(transition),
+                    ))
                 }
                 _ => None,
             })
@@ -4096,7 +4101,7 @@ impl Emitter<'_> {
         };
         let mut initial = BTreeMap::<u32, bool>::new();
         let mut simulated = BTreeMap::<u32, bool>::new();
-        for (source, destination) in transfers {
+        for (source, destination, replacing) in transfers {
             let source_flags = flags_under(&source);
             let destination_flags = flags_under(&destination);
             if source_flags.is_empty() || source_flags.len() != destination_flags.len() {
@@ -4126,6 +4131,9 @@ impl Emitter<'_> {
                 }
             }
             for flag in &destination_flags {
+                if replacing {
+                    continue;
+                }
                 match simulated.get(flag) {
                     Some(true) => {
                         return Err(error(

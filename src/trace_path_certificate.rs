@@ -379,6 +379,7 @@ fn trace_path_schema_is_admitted(schema: &str) -> bool {
             | crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V12
             | crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V13
             | crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V15
+            | crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V16
     )
 }
 

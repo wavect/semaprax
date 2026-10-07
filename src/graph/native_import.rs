@@ -47,10 +47,15 @@ pub(crate) fn selected_schema(
     }
     if functions.iter().any(|function| {
         function.cleanup_plan.schema == crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V14
-            || (function.cleanup_plan.schema == crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V15
-                && function.cleanup_plan.status_sources.iter().any(|source| {
-                    source.id.lane == crate::cleanup_plan::StatusLane::OwnerAdmission
-                }))
+            || (matches!(
+                function.cleanup_plan.schema,
+                crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V15
+                    | crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V16
+            ) && function
+                .cleanup_plan
+                .status_sources
+                .iter()
+                .any(|source| source.id.lane == crate::cleanup_plan::StatusLane::OwnerAdmission))
     }) {
         return Some(OWNER_ADMISSION_SCHEMA);
     }

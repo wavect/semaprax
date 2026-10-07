@@ -26,9 +26,9 @@ use super::{
     ExitContinuation, ExitTarget, StagedCopyResultSource, StatusCase, StatusLane, StatusProducer,
     StatusSource, StatusSourceId, StorageId, CLEANUP_PLAN_SCHEMA_V10, CLEANUP_PLAN_SCHEMA_V11,
     CLEANUP_PLAN_SCHEMA_V12, CLEANUP_PLAN_SCHEMA_V13, CLEANUP_PLAN_SCHEMA_V14,
-    CLEANUP_PLAN_SCHEMA_V15, CLEANUP_PLAN_SCHEMA_V2, CLEANUP_PLAN_SCHEMA_V3,
-    CLEANUP_PLAN_SCHEMA_V4, CLEANUP_PLAN_SCHEMA_V5, CLEANUP_PLAN_SCHEMA_V6, CLEANUP_PLAN_SCHEMA_V7,
-    CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
+    CLEANUP_PLAN_SCHEMA_V15, CLEANUP_PLAN_SCHEMA_V16, CLEANUP_PLAN_SCHEMA_V2,
+    CLEANUP_PLAN_SCHEMA_V3, CLEANUP_PLAN_SCHEMA_V4, CLEANUP_PLAN_SCHEMA_V5, CLEANUP_PLAN_SCHEMA_V6,
+    CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
 };
 mod factored;
 mod leaf_index;
@@ -53,6 +53,7 @@ mod mixed_result_tests;
 mod nested_shape;
 mod path_join;
 mod renewal;
+mod string_replacement;
 mod strings;
 use renewal::validate_join_compatibility;
 use strings::temporary_place;
@@ -2580,6 +2581,7 @@ fn validate_blocks_and_edges(
                             | CLEANUP_PLAN_SCHEMA_V12
                             | CLEANUP_PLAN_SCHEMA_V13
                             | CLEANUP_PLAN_SCHEMA_V15
+                            | CLEANUP_PLAN_SCHEMA_V16
                             | CLEANUP_PLAN_SCHEMA_V14
                     ) && matches!(
                         plan.edges[edge.0 as usize].condition,
@@ -3304,15 +3306,15 @@ fn expression_skeleton(
             }
             Frame::Eval(expression) => {
                 debug_assert!(produced.is_none());
+                if crate::cleanup_plan::renewal_binding(function, &expression.id).is_some() {
+                    push_frame!(frames, Frame::RenewalPrefix(expression));
+                }
                 if strings::owns_clone(expression)
                     && !work.string_owner_moves.contains(&expression.id)
                     && !work.string_condition_reads.contains(&expression.id)
                 {
                     produced = Some(strings::paths(expression, work)?);
                     continue;
-                }
-                if crate::cleanup_plan::renewal_binding(function, &expression.id).is_some() {
-                    push_frame!(frames, Frame::RenewalPrefix(expression));
                 }
 
                 match &expression.kind {

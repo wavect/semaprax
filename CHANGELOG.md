@@ -10,6 +10,10 @@
   retaining ordinary identity/type/ownership checks and canonical cleanup.
   Author interpreter/native/Wasm settlement and refusal controls for repeated
   construction, nested String results, operand/guard failure and Vec traversal.
+- Author Whole String Replacement v1 with CleanupPlan v16/Graph v67, independently
+  replayed guarded old-owner release, consuming RHS calls and branch results,
+  an explicit private Wasm selector and focused settlement/refusal regressions.
+  Consolidated executable verification is pending.
 
 - Complete Project v25 owned-String helper execution in ordinary, named,
   cancellable and prepared tests; add the canonical stdin-stream-text scaffold

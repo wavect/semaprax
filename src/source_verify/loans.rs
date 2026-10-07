@@ -6,7 +6,7 @@ use super::binding::{Availability, Binding, BorrowOrigin, SourceLoan, SourceLoan
 use super::diagnostics::error;
 use super::place::{join_definitely_partial, join_moved_places, source_place, SourcePlace};
 use super::type_table::TypeTable;
-use crate::ast::{Expr, ExprKind, ParamMode, Program, Span, Statement, Type};
+use crate::ast::{Expr, ExprKind, MatchArm, ParamMode, Program, Span, Statement, Type};
 use crate::diagnostic::Diagnostic;
 use std::collections::HashMap;
 
@@ -286,6 +286,14 @@ pub(super) fn mark_value_sources_moved(
             names: Vec<String>,
             then_variables: HashMap<String, Binding>,
         },
+        AfterMatchArm {
+            arms: &'a [MatchArm],
+            index: usize,
+            parent: usize,
+            arm_scope: usize,
+            names: Vec<String>,
+            joined: Option<HashMap<String, Binding>>,
+        },
     }
     let root = std::mem::take(variables);
     let mut scopes = vec![root];
@@ -351,6 +359,22 @@ pub(super) fn mark_value_sources_moved(
                     });
                     frames.push(Frame::Enter(then_branch, then_scope));
                 }
+                ExprKind::Match { arms, .. } => {
+                    if let Some(first) = arms.first() {
+                        let names = scopes[scope].keys().cloned().collect::<Vec<_>>();
+                        let arm_scope = scopes.len();
+                        scopes.push(scopes[scope].clone());
+                        frames.push(Frame::AfterMatchArm {
+                            arms,
+                            index: 0,
+                            parent: scope,
+                            arm_scope,
+                            names,
+                            joined: None,
+                        });
+                        frames.push(Frame::Enter(&first.value, arm_scope));
+                    }
+                }
                 ExprKind::UpdateRecord { .. } | ExprKind::ConstructRecord { .. } => {}
                 _ => {}
             },
@@ -397,6 +421,38 @@ pub(super) fn mark_value_sources_moved(
                                 join_definitely_partial(then_binding, else_binding);
                         }
                     }
+                }
+            }
+            Frame::AfterMatchArm {
+                arms,
+                index,
+                parent,
+                arm_scope,
+                names,
+                mut joined,
+            } => {
+                debug_assert_eq!(arm_scope + 1, scopes.len());
+                let completed = scopes.pop().expect("active match move scope retained");
+                if let Some(current) = joined.as_mut() {
+                    join_conditional(current, &completed, &names);
+                } else {
+                    joined = Some(completed);
+                }
+                let next = index + 1;
+                if let Some(arm) = arms.get(next) {
+                    let arm_scope = scopes.len();
+                    scopes.push(scopes[parent].clone());
+                    frames.push(Frame::AfterMatchArm {
+                        arms,
+                        index: next,
+                        parent,
+                        arm_scope,
+                        names,
+                        joined,
+                    });
+                    frames.push(Frame::Enter(&arm.value, arm_scope));
+                } else if let Some(joined) = joined {
+                    merge_moved(&mut scopes[parent], &joined, &names);
                 }
             }
         }

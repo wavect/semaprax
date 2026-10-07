@@ -86,6 +86,7 @@
 
 pub(crate) mod conditions;
 
+pub(crate) mod replacement;
 use crate::ast::{Param, ParamMode, Span, Type};
 use crate::hir::{OwnershipMode, ResolvedParam, ResolvedType, ValueId};
 

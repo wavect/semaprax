@@ -155,6 +155,7 @@ Audience: all documentation readers.
 - [Refutable match](REFUTABLE-MATCH-V1.md)
 - [String operations](STRING-OPS-V1.md)
 - [Owned String loops](OWNED-STRING-LOOPS-V1.md)
+- [Named String length conditions](STRING-LENGTH-CONDITIONS-V1.md)
 - [Text Toolkit and command-line programs](TEXT-TOOLKIT-V1.md)
 - [String Collections (string-keyed maps)](STRING-COLLECTIONS-V1.md)
 - [IO Cursors v1](IO-CURSORS-V1.md)

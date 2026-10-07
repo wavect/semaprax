@@ -496,10 +496,11 @@ def stream_usage(path: Path) -> dict[str, Any]:
     legacy_net = legacy_net_input_metrics(deduplicated_turn_usage)
     first = next(iter(usage_by_id.values()), {name: None for name in ALL_USAGE_FIELDS})
     final_usage: dict[str, int | None] | None = None
+    provider_result_usage: dict[str, int | None] | None = None
     if isinstance(observed_result, dict):
-        parsed = _usage_values(observed_result.get("usage"))
-        if any(value is not None for value in parsed.values()):
-            final_usage = parsed
+        provider_result_usage = _usage_values(observed_result.get("usage"))
+        if any(value is not None for value in provider_result_usage.values()):
+            final_usage = provider_result_usage
         model_usage = observed_result.get("modelUsage")
         if isinstance(model_usage, dict):
             for concrete_model in (MODEL, *sorted(model_usage)):
@@ -508,6 +509,17 @@ def stream_usage(path: Path) -> dict[str, Any]:
                 if any(value is not None for value in parsed.values()):
                     final_usage = parsed
                     break
+        if final_usage is not None and provider_result_usage is not None:
+            # Claude's modelUsage summary omits the 5m/1h TTL split. Retain
+            # the provider's detailed top-level buckets after selecting its
+            # model-specific totals; inconsistent totals are rejected by the
+            # cache pricing check instead of silently falling back to 5m.
+            for field in (
+                "cache_creation_ephemeral_5m_input_tokens",
+                "cache_creation_ephemeral_1h_input_tokens",
+            ):
+                if provider_result_usage[field] is not None:
+                    final_usage[field] = provider_result_usage[field]
     discrepancies = {}
     if final_usage is not None:
         for name in ALL_USAGE_FIELDS:

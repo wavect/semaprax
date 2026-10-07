@@ -97,6 +97,42 @@ class LiveCampaignTests(unittest.TestCase):
             "net_input_tokens": -120,
         })
 
+    def test_stream_usage_preserves_provider_cache_ttls_and_rejects_inconsistent_split(self):
+        def read_result(cache_creation: dict[str, int]) -> dict:
+            events = [{
+                "type": "result",
+                "usage": {
+                    "input_tokens": 2,
+                    "cache_creation_input_tokens": 1948,
+                    "cache_creation": cache_creation,
+                    "cache_read_input_tokens": 4773,
+                    "output_tokens": 4,
+                },
+                "modelUsage": {live_campaign.MODEL: {
+                    "inputTokens": 2,
+                    "cacheCreationInputTokens": 1948,
+                    "cacheReadInputTokens": 4773,
+                    "outputTokens": 4,
+                }},
+            }]
+            with tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / "stream.jsonl"
+                path.write_text("\n".join(json.dumps(event) for event in events) + "\n")
+                return live_campaign.stream_usage(path)
+
+        consistent = read_result({"ephemeral_5m_input_tokens": 0, "ephemeral_1h_input_tokens": 1948})
+        self.assertEqual(consistent["usage"]["cache_creation_ephemeral_5m_input_tokens"], 0)
+        self.assertEqual(consistent["usage"]["cache_creation_ephemeral_1h_input_tokens"], 1948)
+        estimate = live_campaign.rate_card_estimate_details(consistent["usage"])
+        self.assertEqual(estimate["cache_write_pricing"]["basis"], "provider_ttl_breakdown")
+        self.assertEqual(estimate["usd"], 0.008791)
+
+        inconsistent = read_result({"ephemeral_5m_input_tokens": 0, "ephemeral_1h_input_tokens": 1947})
+        self.assertEqual(inconsistent["usage"]["cache_creation_ephemeral_1h_input_tokens"], 1947)
+        rejected = live_campaign.rate_card_estimate_details(inconsistent["usage"])
+        self.assertEqual(rejected["cache_write_pricing"]["basis"], "inconsistent_provider_ttl_breakdown")
+        self.assertIsNone(rejected["usd"])
+
     def test_missing_usage_fields_remain_unknown_and_model_usage_aliases_parse(self):
         events = [
             {"type": "assistant", "message": {

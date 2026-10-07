@@ -87,9 +87,6 @@ requires str_len_bytes(string_as_str(text)) > 0
 @id("frame.make-bytes-envelope") fn make_bytes_envelope(input: borrow Slice<u8>) -> BytesEnvelope {
     BytesEnvelope { value: bytes_copy(input) }
 }
-@id("frame.make-string-envelope") fn make_string_envelope(value: char) -> StringEnvelope {
-    StringEnvelope { value: string_from_char(value) }
-}
 @id("frame.make-bytes-envelope-wide") fn make_bytes_envelope_wide(input: borrow Slice<u8>) -> BytesEnvelopeWide {
     BytesEnvelopeWide { value: bytes_copy(input), flag: true }
 }
@@ -547,20 +544,6 @@ fn whole_owned_results_wrap_once_and_local_callers_move_the_exact_field() {
             "fn make_owned_bytes(input: borrow Slice<u8>) -> BytesEnvelope\n{\n    BytesEnvelope { value: { bytes_copy(input) } }\n}",
             "fn forward_owned_bytes(input: borrow Slice<u8>) -> Bytes\n{\n    ({ let spx_sig_stage_0 = input; make_owned_bytes(spx_sig_stage_0) }).value\n}",
         ),
-        (
-            "frame.make-owned-string",
-            "frame.string-envelope",
-            "frame.string-envelope.value",
-            "fn make_owned_string(value: char) -> StringEnvelope\n{\n    StringEnvelope { value: { string_from_char(value) } }\n}",
-            "fn forward_owned_string(value: char) -> string\n{\n    ({ let spx_sig_stage_0 = value; make_owned_string(spx_sig_stage_0) }).value\n}",
-        ),
-        (
-            "frame.echo-owned-string",
-            "frame.string-envelope",
-            "frame.string-envelope.value",
-            "fn echo_owned_string(value: string) -> StringEnvelope\n{\n    StringEnvelope { value: { value } }\n}",
-            "fn call_echo_owned_string(value: char) -> string\n{\n    ({ let spx_sig_stage_0 = string_from_char(value); echo_owned_string(spx_sig_stage_0) }).value\n}",
-        ),
     ] {
         let root = fixture.candidate();
         let parameters = if target.ends_with("bytes") {
@@ -592,6 +575,30 @@ fn whole_owned_results_wrap_once_and_local_callers_move_the_exact_field() {
         )
         .unwrap();
         assert_eq!(replay.candidate_digest(), evolved.candidate_digest());
+    }
+    // No backend lays out an owned `string` leaf inside a record (SPX-T309),
+    // so the string-bearing record retains no result-wrapper TypeFacts and
+    // wrapping a whole owned `string` result fails closed with SPX-G495,
+    // leaving the candidate unchanged.
+    for target in ["frame.make-owned-string", "frame.echo-owned-string"] {
+        let root = fixture.candidate();
+        let before = root.to_json();
+        let change = SemanticChange::new(
+            root.revision().project_revision(),
+            &json!({"kind":"change_function_signature","target":target,
+                "parameters":[{"from":"value"}],
+                "wrap_return":{"record":"frame.string-envelope","field":"frame.string-envelope.value"}}),
+        )
+        .unwrap();
+        let errors = match root.apply(root.candidate_digest(), &change) {
+            Ok(_) => panic!("string-bearing result wrapper admitted for {target}"),
+            Err(errors) => errors,
+        };
+        assert!(
+            errors.iter().any(|error| error.code == "SPX-G495"),
+            "{errors:?}"
+        );
+        assert_eq!(root.to_json(), before);
     }
 }
 

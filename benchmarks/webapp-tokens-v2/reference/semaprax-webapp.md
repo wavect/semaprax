@@ -67,6 +67,15 @@ fn order_status(paid: bool) -> string
   `can_write` (or `can_write_<name>`) are defaults; one taking row fields such
   as `member_id: i64` covers every entity with those fields, the most
   specific default winning. Audit history and CSV export are automatic.
+- Cross-account permission evidence: run
+  `checks/permission-api-self-test.mjs --arm semaprax --base-url URL` against
+  a fresh server started with `--setup` and an empty disposable `--data` dir.
+  This is an external API check, separate from the built-in `--self-test`: it
+  signs in two Agent accounts, checks that each can read and update their own
+  Task, Expense, and Leave, confirms the other Agent's Expense is hidden and
+  not writable, and confirms the other Agent's Task and Leave remain readable
+  but not writable. It does not exercise browser UI behavior. The same script
+  supports the TypeScript reference arm with `--arm typescript`.
 - Run `semaprax fmt app.spx && semaprax webapp app.spx -o out && node
   out/server.mjs --self-test` as one command. The self-test exercises every
   feature for every entity and role, prints the observed evidence, and ends

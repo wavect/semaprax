@@ -684,6 +684,7 @@ fn cleanup_pattern_binding_lookup_is_iterative_at_exact_depth() {
                     }],
                 },
                 extends: None,
+                invariants: None,
                 span,
             })
             .collect();

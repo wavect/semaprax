@@ -632,3 +632,16 @@ fn rendered_record_pattern_len(
     write_record_match_pattern(&mut counter, type_name, fields);
     counter.0
 }
+
+pub(super) fn write_expr_measured(
+    output: &mut impl std::fmt::Write,
+    value: &Expr,
+    parent_precedence: u8,
+    lengths: Option<&mut HashMap<(usize, u8), usize>>,
+) {
+    write_format_frames(
+        output,
+        ExprFormatFrame::Expr(value, parent_precedence),
+        lengths,
+    );
+}

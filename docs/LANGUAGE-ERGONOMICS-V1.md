@@ -13,8 +13,9 @@ diagnostic (`SPX-W116`).
 
 Agents writing SEMAPRAX lose edit-check turns on habits the language rejects
 even though their meaning is clear. v1 admits the most frequent of them with
-exact, documented meaning and no change to any existing program's AST, graph,
-cleanup plan, or backend output.
+exact, documented meaning through the existing semantic AST/HIR operations,
+cleanup plans and backend lowering. The separately versioned canonical statement
+projection retains source provenance without introducing semantic operations.
 
 ## Statement `if`
 
@@ -67,15 +68,18 @@ let _if1 = if c { x = x + 1; 0 } else { 0 };
 Because the result is an ordinary value `if`, the condition must be `bool`
 (`SPX-T210`), evaluation order, effects, ownership joins, cleanup plans, both
 source verifiers, the semantic graph, and every backend are exactly those of
-the value form. There is no new AST node, graph schema, or diagnostic.
+the value form. There is no new semantic AST node, HIR statement, graph schema, or diagnostic.
+The canonical source projection retains syntax provenance on the existing let.
 
 ### Canonical form
 
-`fmt` writes the lowered spelling, as it writes `else if` as `else { if … }`:
-`let _if1 = if c { x = x + 1; 0 } else { 0 };`. The sugared source and its
-canonical text have the same graph revision and the same backend output. The
-canonical text parses back to the same program, because the `_if<n>` names it
-contains are then ordinary identifiers that later discards skip.
+The additive [Statement If Canonical Source v1](STATEMENT-IF-CANONICAL-V1.md)
+projection keeps the statement spelling, explicit alternatives and original
+branch values. Parser provenance identifies the generated binding and zero
+nodes; authored lets and explicit `else { 0 }` remain visible. The semantic
+lowering above is unchanged. Canonical source is idempotent, and graph revisions
+bind this canonical spelling. The explicitly authored lowered value discard
+keeps its own source bytes and revision, with equivalent checked behavior.
 
 ### Value `if` is unchanged
 

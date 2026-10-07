@@ -1,12 +1,13 @@
 //! Statement `if`: `if <condition> { <statements> }`, optionally followed by
 //! `else if` and `else` branches, in statement position.
 //!
-//! This is parse-level sugar with an unchanged canonical form, like `else if`.
+//! This is parse-level semantic sugar with parser-minted canonical syntax provenance.
 //! A statement `if` lowers to the value discard agents had to spell by hand,
 //! `let _if1 = if <condition> { <statements>; 0 } else { 0 };`. The binding
 //! is an ordinary immutable `i64` local, because a block admits no shadowing:
 //! each discard takes the next `_if<n>` name that no identifier in the file
-//! already spells, so the canonical text parses back to the same program. A branch that
+//! already spells. Canonical text preserves statement spelling and parses back to
+//! the same normalized program. A branch that
 //! ends without a value receives the `i64` tail `0`, and a missing `else`
 //! becomes `else { 0 }`, so resolution, both verifiers, cleanup plans, the
 //! semantic graph, the interpreter, and native and Wasm code see exactly the
@@ -22,7 +23,7 @@
 
 use std::collections::BTreeSet;
 
-use crate::ast::{Expr, ExprKind, Span, Statement};
+use crate::ast::{BranchTail, Expr, ExprKind, LetSyntax, Span, Statement, StatementIfSyntax};
 use crate::diagnostic::Diagnostic;
 use crate::lexer::TokenKind;
 
@@ -86,6 +87,15 @@ impl Parser {
             .as_ref()
             .is_some_and(|branch| branch.tail.is_some())
             && arms.iter().all(|arm| arm.body.tail.is_some());
+        let tail_kind = |branch: &Branch| match &branch.tail {
+            None => BranchTail::Absent,
+            Some(value) if valued || matches!(value.kind, ExprKind::Int(_)) => BranchTail::Retained,
+            Some(_) => BranchTail::Discarded,
+        };
+        let syntax = LetSyntax::StatementIf(StatementIfSyntax {
+            branches: arms.iter().map(|arm| tail_kind(&arm.body)).collect(),
+            alternative: otherwise.as_ref().map(tail_kind),
+        });
         let expression = self.assemble(arms, otherwise, valued);
         if valued {
             let before = self.cursor;
@@ -97,12 +107,16 @@ impl Parser {
             {
                 return Ok(IfItem::Value(expression));
             }
-            return Ok(IfItem::Statement(self.discard(start, expression, None)));
+            return Ok(IfItem::Statement(
+                self.discard(start, expression, None, syntax),
+            ));
         }
         let end = self
             .take(&TokenKind::Semicolon)
             .then(|| self.previous_span());
-        Ok(IfItem::Statement(self.discard(start, expression, end)))
+        Ok(IfItem::Statement(
+            self.discard(start, expression, end, syntax),
+        ))
     }
 
     fn branch(&mut self, description: &str) -> Result<Branch, Diagnostic> {
@@ -184,7 +198,7 @@ impl Parser {
         let tail = match tail {
             Some(tail) if valued || matches!(tail.kind, ExprKind::Int(_)) => tail,
             Some(value) => {
-                statements.push(self.discard(value.span, value, None));
+                statements.push(self.discard(value.span, value, None, LetSyntax::BranchTail));
                 zero(end)
             }
             None => zero(end),
@@ -198,9 +212,16 @@ impl Parser {
         }
     }
 
-    fn discard(&mut self, start: Span, value: Expr, end: Option<Span>) -> Statement {
+    fn discard(
+        &mut self,
+        start: Span,
+        value: Expr,
+        end: Option<Span>,
+        syntax: LetSyntax,
+    ) -> Statement {
         let span = start.merge(end.unwrap_or(value.span));
         Statement::Let {
+            syntax,
             name: self.discard_name(),
             name_span: start,
             mutable: false,

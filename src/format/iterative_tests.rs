@@ -73,3 +73,61 @@ fn main(value:i64)->i64 {
         "{canonical}"
     );
 }
+
+#[test]
+fn statement_if_measurement_accounts_for_erased_normalization_nodes() {
+    let source="module t; fn main()->i64 { let mut x=0; if true { x=1; x==1 } else if false {x=2;} while x<3 {if true {x=x+1;} 0} x }";
+    let program = crate::parse(source, "statement-if-measured.spx").unwrap();
+    let body = &program.functions[0].body;
+    let lengths = rendered_expr_lengths(body, 0);
+    let mut max_depth = 0usize;
+    let mut pending = vec![(body, 1usize)];
+    while let Some((expression, depth)) = pending.pop() {
+        max_depth = max_depth.max(depth);
+        assert!(
+            lengths
+                .keys()
+                .any(|(id, _)| *id == expression as *const Expr as usize),
+            "unmeasured {:?}",
+            expression.kind
+        );
+        match &expression.kind {
+            ExprKind::Block { statements, tail } => {
+                pending.push((tail.as_ref(), depth + 1));
+                for statement in statements {
+                    for index in 0..statement.child_count() {
+                        pending.push((statement.child(index).unwrap(), depth + 1));
+                    }
+                }
+            }
+            ExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => pending.extend(
+                [
+                    condition.as_ref(),
+                    then_branch.as_ref(),
+                    else_branch.as_ref(),
+                ]
+                .map(|child| (child, depth + 1)),
+            ),
+            ExprKind::Binary { left, right, .. } => {
+                pending.extend([left.as_ref(), right.as_ref()].map(|child| (child, depth + 1)))
+            }
+            ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Var(_) => {}
+            _ => panic!("unexpected fixture expression"),
+        }
+    }
+    assert!(legacy_expr_temporary_bytes(body, 0) > 0);
+    let canonical = crate::format::canonical(&program);
+    let mut bounded = String::new();
+    write_canonical_with_scratch(
+        &program,
+        &mut bounded,
+        private_scratch_capacity(max_depth, 1, 1).unwrap(),
+    );
+    assert_eq!(bounded, canonical);
+    let round = crate::parse(&canonical, "statement-if-measured.spx").unwrap();
+    assert_eq!(canonical, crate::format::canonical(&round));
+}

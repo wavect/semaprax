@@ -611,6 +611,7 @@ impl Constructor<'_> {
         Ok(Expr {
             kind: ExprKind::Block {
                 statements: vec![Statement::Let {
+                    syntax: crate::ast::LetSyntax::Authored,
                     name: name.clone(),
                     name_span: Span::default(),
                     mutable: false,
@@ -758,6 +759,7 @@ impl Constructor<'_> {
                 self.nominal_scope.remove(name);
                 ExprKind::Block {
                     statements: vec![Statement::Let {
+                        syntax: crate::ast::LetSyntax::Authored,
                         name: name.to_owned(),
                         name_span: Span::default(),
                         mutable: false,
@@ -844,6 +846,7 @@ impl Constructor<'_> {
                 let base = self.expression(member(value, "base")?, depth + 2)?;
                 ExprKind::Block {
                     statements: vec![Statement::Let {
+                        syntax: crate::ast::LetSyntax::Authored,
                         name: name.clone(),
                         name_span: Span::default(),
                         mutable: false,
@@ -932,6 +935,7 @@ impl Constructor<'_> {
                 }
                 ExprKind::Block {
                     statements: vec![Statement::Let {
+                        syntax: crate::ast::LetSyntax::Authored,
                         name: name.clone(),
                         name_span: Span::default(),
                         mutable: false,

@@ -607,6 +607,7 @@ fn transcript_many_let_var_queries_borrow_the_growing_root_map() {
         kind: ExprKind::Block {
             statements: (0..256)
                 .map(|index| Statement::Let {
+                    syntax: crate::ast::LetSyntax::Authored,
                     name: format!("alias_{index}"),
                     name_span: span,
                     mutable: false,
@@ -657,6 +658,7 @@ fn source_type_inference_mutates_one_owned_scope_for_many_inferred_lets() {
         kind: ExprKind::Block {
             statements: (0..256)
                 .map(|index| Statement::Let {
+                    syntax: crate::ast::LetSyntax::Authored,
                     name: format!("alias_{index}"),
                     name_span: span,
                     mutable: false,

@@ -5,6 +5,11 @@
   CleanupPlan v15 and Graph v66. Consuming iterator v12/v40 remains frozen;
   focused interpreter/native/Wasm and hostile-proof verification is pending.
 
+- Author preserved canonical statement-if spelling through explicit parser
+  provenance and authenticated normalized-tree formatting. Authored lets and
+  explicit zero alternatives remain distinct; HIR/runtime lowering is unchanged.
+  Focused source/graph/backend and formatter-accounting checks are pending.
+
 - Add native Project v24 streaming commands with explicit `i64` application
   exit statuses (0–255), staged output rejection for invalid results, and
   artifact-free Wasm/npm refusal. Project v23 Bool status mapping remains

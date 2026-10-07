@@ -214,6 +214,7 @@ fn recursive_mutable_and_borrowed_aggregate_subjects_refuse_before_proof() {
         span,
         kind: ExprKind::Block {
             statements: vec![Statement::Let {
+                syntax: semaprax::ast::LetSyntax::Authored,
                 name: "scratch".into(),
                 name_span: span,
                 mutable: true,

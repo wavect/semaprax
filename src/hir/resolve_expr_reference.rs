@@ -809,6 +809,7 @@ impl Resolver<'_> {
                             name_span,
                             mutable,
                             declared: _,
+                            syntax: _,
                             value,
                             span,
                         } => {

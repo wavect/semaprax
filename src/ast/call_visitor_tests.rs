@@ -35,6 +35,7 @@ fn iterative_call_visitors_preserve_preorder_and_authored_child_order() {
                     span,
                     kind: ExprKind::Block {
                         statements: vec![Statement::Let {
+                            syntax: crate::ast::LetSyntax::Authored,
                             name: "value".to_owned(),
                             name_span: span,
                             mutable: false,

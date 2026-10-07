@@ -332,6 +332,7 @@ fn rewrite_assignment(statement: &mut Statement, sites: &Sites) {
         span,
     );
     let local = |name: &str, value: Expr| Statement::Let {
+        syntax: crate::ast::LetSyntax::Authored,
         name: name.to_owned(),
         name_span: span,
         mutable: false,

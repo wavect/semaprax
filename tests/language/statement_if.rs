@@ -4,7 +4,7 @@
 //!
 //! It is parse-level sugar for the value discard
 //! `let _if<n> = if <condition> { <statements>; 0 } else { 0 };`, so the
-//! sugared corpus and its canonical spelling share one AST, one graph, and one
+//! sugared corpus and its canonical spelling share one normalized tree, one graph, and one
 //! result on the reference interpreter, native C, and Core Wasm. A statement
 //! `if` that ends a block that needs a value keeps the diagnostics the value
 //! grammar always produced.
@@ -61,10 +61,47 @@ fn main() -> i64
 }
 "#;
 
-/// What `fmt` writes for [`SUGAR`]: every statement `if` is spelled as the
-/// discarded value `if`, and a discard skips the `_if1` the source already
-/// names.
+/// Canonical source retains statement spelling and explicit branch values.
 const CANONICAL: &str = r#"module test.statement_if;
+
+@id("stmt.tally")
+fn tally(limit: i64) -> i64
+{
+    let mut evens = 0;
+    let mut marks = 0;
+    let mut i = 0;
+    while i < limit {
+        if i % 2 == 0 { evens = evens + 1; }
+        if i == 3 { marks = marks + 100; } else if i == 5 { marks = marks + 1000; } else { marks = marks + 1; }
+        if i > 7 { marks = marks + 5; if marks > 1110 { marks = marks - 1; } }
+        i = i + 1;
+        i < limit
+    }
+    evens * 10000 + marks
+}
+
+@id("stmt.clamp")
+fn clamp(value: i64) -> i64
+{
+    let mut level = value;
+    if level < 0 { level = 0; }
+    if level > 100 { level = 100; } else { }
+    if level == 50 { 7 } else { 8 }
+    let _if1 = 2;
+    if level == 42 { level = level * _if1; }
+    level
+}
+
+@id("main")
+fn main() -> i64
+{
+    tally(10) + clamp(-5) + clamp(500) + clamp(42)
+}
+"#;
+
+/// Explicitly authored old value-discard spelling remains a control for the
+/// same runtime semantics, with its own canonical source revision.
+const LOWERED: &str = r#"module test.statement_if;
 
 @id("stmt.tally")
 fn tally(limit: i64) -> i64
@@ -227,7 +264,7 @@ fn rejection(source: &str) -> semaprax::diagnostic::Diagnostic {
 }
 
 #[test]
-fn statement_if_is_sugar_for_the_canonical_value_discard() {
+fn statement_if_canonical_source_preserves_the_verified_value_discard() {
     let sugar = parse(SUGAR, Path::new("statement-if.spx")).unwrap();
     assert!(verify::verify(&sugar).is_empty());
     assert_eq!(format::canonical(&sugar), CANONICAL);
@@ -269,6 +306,7 @@ fn statement_if_runs_identically_on_the_interpreter_and_native_c() {
     );
     assert_eq!(run(SUGAR, false), MAIN_RESULT.to_string());
     assert_eq!(run(FOR_BODY, false), "2044");
+    assert_eq!(run(LOWERED, false), MAIN_RESULT.to_string());
     if command_available("clang") {
         assert_eq!(run(SUGAR, true), MAIN_RESULT.to_string());
         assert_eq!(run(FOR_BODY, true), "2044");
@@ -303,6 +341,8 @@ fn statement_if_runs_on_core_wasm() {
     let bytes = semaprax::wasm::emit_module(&program).unwrap();
     let canonical = parse(CANONICAL, Path::new("statement-if.spx")).unwrap();
     assert_eq!(bytes, semaprax::wasm::emit_module(&canonical).unwrap());
+    let lowered = parse(LOWERED, Path::new("statement-if.spx")).unwrap();
+    assert_eq!(bytes, semaprax::wasm::emit_module(&lowered).unwrap());
     let path = write_source("wasm", SUGAR);
     let directory = path.parent().unwrap();
     std::fs::write(directory.join("program.wasm"), bytes).unwrap();
@@ -376,7 +416,87 @@ fn a_branch_value_is_discarded_by_its_own_binding() {
     let source = "module t;\n\n@id(\"main\")\nfn main() -> i64\n{\n    let mut x = 1;\n    if x == 1 { x = 2; x == 2 }\n    x\n}\n";
     let program = parse(source, Path::new("statement-if.spx")).unwrap();
     assert!(verify::verify(&program).is_empty());
-    assert!(format::canonical(&program)
-        .contains("let _if2 = if x == 1 { x = 2; let _if1 = x == 2; 0 } else { 0 };"));
+    assert!(format::canonical(&program).contains("if x == 1 { x = 2; x == 2 }"));
     assert_eq!(run(source, false), "2");
+}
+
+#[test]
+fn statement_if_provenance_preserves_authored_names_and_explicit_zero_branches() {
+    let source = r#"module test.statement_if_provenance;
+@id("main") fn main()->i64 {
+ let _if1=if true {0}else{0};
+ let _if2=3;
+ let mut x=0;
+ if true {x=x+1;0}else{0}
+ if true {x=x+1;}else{0}
+ if true {x=x+1;}
+ let value=if false {1}else{2};
+ x+value+_if1+_if2
+}
+"#;
+    let parsed = semaprax::check(source, "statement-if-provenance.spx").unwrap();
+    let canonical = format::canonical(&parsed);
+    assert!(canonical.contains("let _if1 = if true { 0 } else { 0 };"));
+    assert!(canonical.contains("if true { x = x + 1; 0 } else { 0 }"));
+    assert!(canonical.contains("if true { x = x + 1; } else { 0 }"));
+    assert!(canonical.contains("if true { x = x + 1; }\n"));
+    assert!(!canonical.contains("let _if3"));
+    let round = semaprax::check(&canonical, "statement-if-provenance.spx").unwrap();
+    assert_eq!(format::canonical(&round), canonical);
+    assert_eq!(
+        graph::to_json(&parsed).unwrap(),
+        graph::to_json(&round).unwrap()
+    );
+    assert_eq!(run(source, false), "8");
+    if command_available("clang") {
+        assert_eq!(run(source, true), "8");
+    }
+    if command_available("node") {
+        let path = write_source("provenance-wasm", source);
+        let directory = path.parent().unwrap();
+        std::fs::write(
+            directory.join("program.wasm"),
+            semaprax::wasm::emit_module(&parsed).unwrap(),
+        )
+        .unwrap();
+        std::fs::write(directory.join("runner.mjs"), NODE_RUNNER).unwrap();
+        let output = Command::new("node")
+            .arg(directory.join("runner.mjs"))
+            .arg(directory.join("program.wasm"))
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert_eq!(String::from_utf8_lossy(&output.stdout).trim(), "8");
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+}
+
+#[test]
+fn altered_normalization_never_hides_an_authored_else_value() {
+    let mut program = parse(
+        "module t; @id(\"main\") fn main()->i64 {if true {let x=1;} 0}",
+        "statement-if-altered.spx",
+    )
+    .unwrap();
+    let semaprax::ast::ExprKind::Block { statements, .. } = &mut program.functions[0].body.kind
+    else {
+        unreachable!()
+    };
+    let semaprax::ast::Statement::Let { value, .. } = &mut statements[0] else {
+        unreachable!()
+    };
+    let semaprax::ast::ExprKind::If { else_branch, .. } = &mut value.kind else {
+        unreachable!()
+    };
+    let semaprax::ast::ExprKind::Block { tail, .. } = &mut else_branch.kind else {
+        unreachable!()
+    };
+    tail.kind = semaprax::ast::ExprKind::Int(17);
+    let canonical = format::canonical(&program);
+    assert!(canonical.contains("let _if1 = if true { let x = 1; 0 } else { 17 };"));
+    semaprax::check(&canonical, "statement-if-altered.spx").unwrap();
 }

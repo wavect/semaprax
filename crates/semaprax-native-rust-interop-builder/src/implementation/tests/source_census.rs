@@ -222,6 +222,7 @@ fn canonical_formatter_census_admits_shallow_wide_types_and_patterns() {
         kind: crate::ast::ExprKind::Block {
             statements: (0..64)
                 .map(|index| crate::ast::Statement::Let {
+                    syntax: crate::ast::LetSyntax::Authored,
                     name: format!("value_{index}"),
                     name_span: crate::ast::Span::default(),
                     mutable: false,

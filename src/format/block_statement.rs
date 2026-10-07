@@ -11,6 +11,12 @@ pub(super) fn write_block_statement(
     depth: usize,
     placement: &comments::Placement,
 ) {
+    if let Some((value, syntax)) = statement_if::prepare(statement) {
+        write_indent(output, depth);
+        statement_if::write(output, value, syntax);
+        writeln!(output).unwrap();
+        return;
+    }
     match statement {
         Statement::Let {
             name,

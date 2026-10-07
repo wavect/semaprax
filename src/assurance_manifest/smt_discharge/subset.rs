@@ -335,6 +335,7 @@ mod tests {
     fn mutable_let_is_rejected_but_immutable_let_is_not() {
         fn let_statement(mutable: bool) -> Statement {
             Statement::Let {
+                syntax: crate::ast::LetSyntax::Authored,
                 name: "x".to_owned(),
                 name_span: Default::default(),
                 mutable,

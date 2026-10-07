@@ -680,7 +680,12 @@ assignment, tuples, indexing, `Some(x)` patterns, `struct`/`enum`/`pub`/`const`
 declarations, missing trailing commas, missing or unit result types, valueless
 blocks) without admitting any new syntax or changing a stable code.
 `src/format.rs` is the canonical source projection. Revision digests bind the
-canonical bytes, not incidental whitespace.
+canonical bytes, not incidental whitespace. `src/ast/statement_if.rs` carries
+parser-minted statement syntax provenance on the existing normalized let tree.
+`src/format/statement_if.rs` authenticates that shape and projects the preserved
+statement spelling through the shared iterative formatter, including exact
+measurement of omitted normalization nodes. No alternate semantic tree is kept;
+[Statement If Canonical Source v1](STATEMENT-IF-CANONICAL-V1.md) owns the projection.
 
 Source is the canonical Git representation. A managed workspace publishes an
 immutable generated source set for cooperating readers; it does not rewrite the

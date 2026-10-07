@@ -468,6 +468,7 @@ pub(super) fn apply(
                 let name = fresh_name(&mut occupied, &mut generated)?;
                 computed::charge(&mut added_nodes, 2)?;
                 owner_view_statements.push(Statement::Let {
+                    syntax: crate::ast::LetSyntax::Authored,
                     name: name.clone(),
                     name_span: span,
                     mutable: false,
@@ -516,6 +517,7 @@ pub(super) fn apply(
                             computed::substitute(body, &original_params, &stages, &mut occupied)?;
                         let name = fresh_name(&mut occupied, &mut generated)?;
                         defaults.push(Statement::Let {
+                            syntax: crate::ast::LetSyntax::Authored,
                             name: name.clone(),
                             name_span: span,
                             mutable: false,
@@ -540,6 +542,7 @@ pub(super) fn apply(
                 .into_iter()
                 .zip(stages)
                 .map(|(value, name)| Statement::Let {
+                    syntax: crate::ast::LetSyntax::Authored,
                     name,
                     name_span: span,
                     mutable: false,

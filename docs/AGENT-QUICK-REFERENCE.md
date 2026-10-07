@@ -156,9 +156,9 @@ fn main() -> i64
 
 - As a value, `if` always has `else`; `else if` chains are fine (`fmt`
   writes them as `else { if … }`). As a statement, `if c { x = x + 1; }`
-  needs no `else` and no branch value, in loop bodies too; `fmt` writes it
-  as `let _if1 = if c { x = x + 1; 0 } else { 0 };`. The block still ends
-  with its own final expression.
+  needs no `else` and no branch value, in loop bodies too; `fmt` keeps that
+  statement spelling and any explicit `else`. The block still ends with its
+  own final expression.
 - A `while` condition must be `bool` and is checked before every iteration.
   Its body still needs a final expression, but that value is discarded; the
   condition controls repetition. While bodies admit

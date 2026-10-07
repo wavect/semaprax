@@ -51,8 +51,7 @@ mod result_component_v3;
 mod scalar_algebra_component_v5;
 mod scalar_exports;
 mod string_ops_v2_use;
-use string_ops_v2_use::program_uses_numeric_text;
-use string_ops_v2_use::program_uses_string_ops_v2;
+use string_ops_v2_use::{program_uses_numeric_text, program_uses_string_ops_v2};
 /// Call-depth admission for the legacy scalar-core emitter (#293 P2-2).
 mod scalar_call_admission;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]

@@ -124,6 +124,8 @@ mod std_collections_vec_wrappers;
 mod string_branch_results;
 #[path = "language/string_collections_v1.rs"]
 mod string_collections_v1;
+#[path = "language/map_collections_v2.rs"]
+mod map_collections_v2;
 #[path = "language/string_numeric_text.rs"]
 mod string_numeric_text;
 #[path = "language/string_ops_v1.rs"]

@@ -280,6 +280,42 @@ impl Emitter<'_> {
     }
 }
 
+/// A block's direct storage: its `let` bindings and statement values. These
+/// always live in the block's own region and break ties when nested operand
+/// anchors also touch other regions.
+pub(super) fn block_direct_anchors(
+    slots: &HashMap<crate::cleanup_plan::StorageId, ResolvedType>,
+    expression: &ResolvedExpr,
+) -> std::collections::BTreeSet<crate::cleanup_plan::StorageId> {
+    use crate::cleanup_plan::StorageId;
+    let ResolvedExprKind::Block { statements, tail } = &expression.kind else {
+        return std::collections::BTreeSet::new();
+    };
+    let mut anchors = std::collections::BTreeSet::new();
+    // The block's own result slot belongs to its region too.
+    let result = StorageId::Temporary(tail.id.clone());
+    if slots.contains_key(&result) {
+        anchors.insert(result);
+    }
+    for statement in statements {
+        if let ResolvedStatement::Let { binding, .. } = statement {
+            let storage = StorageId::Value(binding.id.clone());
+            if slots.contains_key(&storage) {
+                anchors.insert(storage);
+            }
+        }
+        if let ResolvedStatement::Let { value, .. } | ResolvedStatement::Assign { value, .. } =
+            statement
+        {
+            let storage = StorageId::Temporary(value.id.clone());
+            if slots.contains_key(&storage) {
+                anchors.insert(storage);
+            }
+        }
+    }
+    anchors
+}
+
 /// Slots of this exact lexical Block region, including scalar operand owners.
 /// Nested Blocks own their children; direct HIR If arms share their parent.
 pub(super) fn block_scope_anchors(

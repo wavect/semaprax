@@ -104,7 +104,7 @@ fn field_is_all_zero(header: borrow Slice<u8>, start: usize, length: usize) -> b
     let mut index = start;
     let mut all_zero = end <= total;
     while index < end && all_zero {
-        all_zero = match byte_get(header, index) { Option::Some { value } => value == 48u8, Option::None {} => false, };
+        all_zero = match byte_get(header, index) { Option::Some { value: matched_value } => matched_value == 48u8, Option::None {} => false, };
         index = index + 1usize;
         index < end && all_zero
     }

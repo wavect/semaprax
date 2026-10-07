@@ -213,7 +213,7 @@ fn field_end(view: borrow Slice<u8>, start: usize, delimiter: u8) -> usize
     let mut index = start;
     let mut scanning = index < length;
     while scanning {
-        let found = match byte_get(view, index) { Option::Some { value } => value == delimiter, Option::None {} => true, };
+        let found = match byte_get(view, index) { Option::Some { value: matched_value } => matched_value == delimiter, Option::None {} => true, };
         index = if found { index } else { index + 1usize };
         scanning = !found && index < length;
         scanning
@@ -240,7 +240,7 @@ fn field_count(view: borrow Slice<u8>, delimiter: u8) -> usize
     let mut count = 1usize;
     let mut scanning = index < length;
     while scanning {
-        let found = match byte_get(view, index) { Option::Some { value } => value == delimiter, Option::None {} => false, };
+        let found = match byte_get(view, index) { Option::Some { value: matched_value } => matched_value == delimiter, Option::None {} => false, };
         count = if found { count + 1usize } else { count };
         index = index + 1usize;
         scanning = index < length;

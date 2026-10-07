@@ -44,8 +44,8 @@ fn bytes_equal(left: borrow Slice<u8>, right: borrow Slice<u8>) -> bool
     let mut index = 0usize;
     let mut same = length == byte_len(right);
     while index < length && same {
-        let a = match byte_get(left, index) { Option::Some { value } => value, Option::None {} => 0u8, };
-        let b = match byte_get(right, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let a = match byte_get(left, index) { Option::Some { value: matched_value } => matched_value, Option::None {} => 0u8, };
+        let b = match byte_get(right, index) { Option::Some { value: matched_value } => matched_value, Option::None {} => 0u8, };
         same = a == b;
         index = index + 1usize;
         index < length && same
@@ -95,7 +95,7 @@ fn trimmed_matches(line: borrow Slice<u8>, pos: usize, expected_trimmed: borrow 
     let mut index = 0usize;
     let mut same = end - start == byte_len(expected_trimmed);
     while same && index < end - start {
-        let expected = match byte_get(expected_trimmed, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let expected = match byte_get(expected_trimmed, index) { Option::Some { value: matched_value } => matched_value, Option::None {} => 0u8, };
         same = decoded_byte_at(line, pos, start + index) == expected;
         index = index + 1usize;
         same && index < end - start
@@ -110,7 +110,7 @@ fn decoded_matches(line: borrow Slice<u8>, pos: usize, expected: borrow Slice<u8
     let mut index = 0usize;
     let mut same = total == byte_len(expected);
     while same && index < total {
-        let item = match byte_get(expected, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let item = match byte_get(expected, index) { Option::Some { value: matched_value } => matched_value, Option::None {} => 0u8, };
         same = decoded_byte_at(line, pos, index) == item;
         index = index + 1usize;
         same && index < total
@@ -247,7 +247,7 @@ fn decoded_trim_start(line: borrow Slice<u8>, token: usize) -> usize
     let mut start = 0usize;
     let mut trimming = start < total;
     while trimming {
-        let raw = match byte_get(line, source) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let raw = match byte_get(line, source) { Option::Some { value: matched_value } => matched_value, Option::None {} => 0u8, };
         let value = if raw == 92u8 { dec_code_byte(emit_at(line, source, part)) } else { raw };
         trimming = is_space(value);
         start = if trimming { start + 1usize } else { start };
@@ -268,7 +268,7 @@ fn decoded_trim_end(line: borrow Slice<u8>, token: usize) -> usize
     let mut emitted = 0usize;
     let mut end = 0usize;
     while emitted < total {
-        let raw = match byte_get(line, source) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let raw = match byte_get(line, source) { Option::Some { value: matched_value } => matched_value, Option::None {} => 0u8, };
         let value = if raw == 92u8 { dec_code_byte(emit_at(line, source, part)) } else { raw };
         end = if is_space(value) { end } else { emitted + 1usize };
         let last = part + 1usize >= emit_len(line, source);
@@ -308,7 +308,7 @@ fn escaped_len(line: borrow Slice<u8>, token: usize, start: usize, end: usize) -
     let mut emitted = 0usize;
     let mut total = 0usize;
     while emitted < end {
-        let raw = match byte_get(line, source) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let raw = match byte_get(line, source) { Option::Some { value: matched_value } => matched_value, Option::None {} => 0u8, };
         let value = if raw == 92u8 { dec_code_byte(emit_at(line, source, part)) } else { raw };
         total = if emitted >= start { total + escape_len(value) } else { total };
         let last = part + 1usize >= emit_len(line, source);

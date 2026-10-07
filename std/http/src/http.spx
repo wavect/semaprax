@@ -595,8 +595,8 @@ fn method_equals(method: borrow Slice<u8>, expected: borrow Slice<u8>) -> bool
     let mut index = 0usize;
     let mut same = length == byte_len(expected);
     while index < length && same {
-        let here = match byte_get(method, index) { Option::Some { value } => value, Option::None {} => 0u8, };
-        let there = match byte_get(expected, index) { Option::Some { value } => value, Option::None {} => 1u8, };
+        let here = match byte_get(method, index) { Option::Some { value: matched_value } => matched_value, Option::None {} => 0u8, };
+        let there = match byte_get(expected, index) { Option::Some { value: matched_value } => matched_value, Option::None {} => 1u8, };
         same = here == there;
         index = index + 1usize;
         index < length && same

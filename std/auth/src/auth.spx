@@ -242,8 +242,8 @@ fn ct_bytes_equal(left: borrow Slice<u8>, right: borrow Slice<u8>) -> bool
     let mut index = 0usize;
     let mut mismatches = 0usize;
     while index < limit {
-        let left_byte = match byte_get(left, index) { Option::Some { value } => value, Option::None {} => 0u8, };
-        let right_byte = match byte_get(right, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let left_byte = match byte_get(left, index) { Option::Some { value: matched_value } => matched_value, Option::None {} => 0u8, };
+        let right_byte = match byte_get(right, index) { Option::Some { value: matched_value } => matched_value, Option::None {} => 0u8, };
         mismatches = mismatches + if left_byte == right_byte { 0usize } else { 1usize };
         index = index + 1usize;
         index < limit
@@ -426,7 +426,7 @@ fn token_key_id_is_allowed(key_id: u8, allowed_key_ids: borrow Slice<u8>) -> boo
     let mut index = 0usize;
     let mut found = false;
     while index < length && !found {
-        found = match byte_get(allowed_key_ids, index) { Option::Some { value } => value == key_id, Option::None {} => false, };
+        found = match byte_get(allowed_key_ids, index) { Option::Some { value: matched_value } => matched_value == key_id, Option::None {} => false, };
         index = index + 1usize;
         index < length && !found
     }

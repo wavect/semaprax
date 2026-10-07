@@ -31,8 +31,8 @@ fn equal(left: borrow Slice<u8>, right: borrow Slice<u8>) -> bool
     let mut index = 0usize;
     let mut same = byte_len(left) == byte_len(right);
     while same && index < byte_len(left) {
-        let left_item = match byte_get(left, index) { Option::Some { value } => value, Option::None {} => 0u8, };
-        let right_item = match byte_get(right, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let left_item = match byte_get(left, index) { Option::Some { value: matched_value } => matched_value, Option::None {} => 0u8, };
+        let right_item = match byte_get(right, index) { Option::Some { value: matched_value } => matched_value, Option::None {} => 0u8, };
         same = left_item == right_item;
         index = index + 1usize;
         same

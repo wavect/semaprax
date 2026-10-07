@@ -129,7 +129,7 @@ fn domain_shape_admitted(address: borrow Slice<u8>, start: usize) -> bool
     let mut last_is_dot = false;
     while index < length {
         first_is_dot = match byte_get(address, index) { Option::Some { value } => if index == start { value == 46u8 } else { first_is_dot }, Option::None {} => first_is_dot, };
-        last_is_dot = match byte_get(address, index) { Option::Some { value } => value == 46u8, Option::None {} => last_is_dot, };
+        last_is_dot = match byte_get(address, index) { Option::Some { value: matched_value } => matched_value == 46u8, Option::None {} => last_is_dot, };
         dots = match byte_get(address, index) { Option::Some { value } => if value == 46u8 { dots + 1usize } else { dots }, Option::None {} => dots, };
         index = index + 1usize;
         index < length
@@ -338,7 +338,7 @@ fn filename_admitted(name: borrow Slice<u8>) -> bool
     let mut admitted = length >= 1usize && length <= 128usize;
     let mut previous_dot = false;
     while index < length && admitted {
-        let byte = match byte_get(name, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let byte = match byte_get(name, index) { Option::Some { value: matched_value } => matched_value, Option::None {} => 0u8, };
         let dot = byte == 46u8;
         admitted = filename_byte_admitted(byte) && !(dot && previous_dot) && !(dot && index == 0usize);
         previous_dot = dot;
@@ -369,7 +369,7 @@ fn media_type_admitted(value: borrow Slice<u8>) -> bool
     let mut solidus = 0usize;
     let mut segment = 0usize;
     while index < length && admitted {
-        let byte = match byte_get(value, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let byte = match byte_get(value, index) { Option::Some { value: matched_value } => matched_value, Option::None {} => 0u8, };
         let slash = byte == 47u8;
         admitted = if slash { segment >= 1usize && solidus == 0usize } else { media_type_byte_admitted(byte) };
         solidus = if slash { solidus + 1usize } else { solidus };

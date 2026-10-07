@@ -21,7 +21,7 @@ fn record_count(body: borrow Slice<u8>) -> usize
     let mut count = 0usize;
     let mut at_start = true;
     while index < length {
-        let byte = match byte_get(body, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let byte = match byte_get(body, index) { Option::Some { value: matched_value } => matched_value, Option::None {} => 0u8, };
         count = if at_start { count + 1usize } else { count };
         at_start = byte == 10u8;
         index = index + 1usize;
@@ -39,7 +39,7 @@ fn line_start(body: borrow Slice<u8>, record: usize) -> usize
     let mut seen = 0usize;
     let mut found = record == 0usize;
     while index < length && !found {
-        let byte = match byte_get(body, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let byte = match byte_get(body, index) { Option::Some { value: matched_value } => matched_value, Option::None {} => 0u8, };
         seen = if byte == 10u8 { seen + 1usize } else { seen };
         index = index + 1usize;
         found = seen == record;
@@ -55,7 +55,7 @@ fn line_end(body: borrow Slice<u8>, start: usize) -> usize
     let mut index = start;
     let mut scanning = index < length;
     while scanning {
-        let byte = match byte_get(body, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let byte = match byte_get(body, index) { Option::Some { value: matched_value } => matched_value, Option::None {} => 0u8, };
         index = if byte == 10u8 { index } else { index + 1usize };
         scanning = byte != 10u8 && index < length;
         scanning

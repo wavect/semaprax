@@ -134,7 +134,7 @@ fn listing_entry_end(listing: borrow Slice<u8>, start: usize) -> usize
     let mut index = start;
     let mut scanning = index < limit;
     while scanning {
-        let separator = match byte_get(listing, index) { Option::Some { value } => value == 0u8, Option::None {} => true, };
+        let separator = match byte_get(listing, index) { Option::Some { value: matched_value } => matched_value == 0u8, Option::None {} => true, };
         index = if separator { index } else { index + 1usize };
         scanning = !separator && index < limit;
         scanning
@@ -196,7 +196,7 @@ fn listing_name_clean(listing: borrow Slice<u8>, start: usize, end: usize) -> bo
     let mut index = start;
     let mut clean = true;
     while index < end {
-        let byte = match byte_get(listing, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let byte = match byte_get(listing, index) { Option::Some { value: matched_value } => matched_value, Option::None {} => 0u8, };
         clean = clean && listing_byte_clean(byte);
         index = index + 1usize;
         index < end

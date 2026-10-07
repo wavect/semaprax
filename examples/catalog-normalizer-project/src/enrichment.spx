@@ -33,7 +33,7 @@ fn matches(line: borrow Slice<u8>, token: usize, expected: borrow Slice<u8>) -> 
     let mut index = 0usize;
     let mut same = !is_failure(line, length) && length == byte_len(expected);
     while same && index < length {
-        let byte = match byte_get(expected, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let byte = match byte_get(expected, index) { Option::Some { value: matched_value } => matched_value, Option::None {} => 0u8, };
         same = decoded_byte_at(line, token, index) == byte;
         index = index + 1usize;
         same && index < length

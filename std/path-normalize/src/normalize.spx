@@ -15,7 +15,7 @@ fn seg_end(view: borrow Slice<u8>, length: usize, start: usize) -> usize
     let mut index = start;
     let mut scanning = index < length;
     while scanning {
-        let separator = match byte_get(view, index) { Option::Some { value } => value == 47u8, Option::None {} => true, };
+        let separator = match byte_get(view, index) { Option::Some { value: matched_value } => matched_value == 47u8, Option::None {} => true, };
         index = if separator { index } else { index + 1usize };
         scanning = !separator && index < length;
         scanning
@@ -31,7 +31,7 @@ fn seg_start(view: borrow Slice<u8>, length: usize, from: usize) -> usize
     let mut index = from;
     let mut scanning = index < length;
     while scanning {
-        let separator = match byte_get(view, index) { Option::Some { value } => value == 47u8, Option::None {} => false, };
+        let separator = match byte_get(view, index) { Option::Some { value: matched_value } => matched_value == 47u8, Option::None {} => false, };
         index = if separator { index + 1usize } else { index };
         scanning = separator && index < length;
         scanning

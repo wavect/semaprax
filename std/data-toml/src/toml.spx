@@ -232,7 +232,7 @@ fn value_content_end(record: borrow Slice<u8>, start: usize) -> usize
     let mut literal = false;
     let mut scanning = index < length;
     while scanning {
-        let byte = match byte_get(record, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let byte = match byte_get(record, index) { Option::Some { value: matched_value } => matched_value, Option::None {} => 0u8, };
         let stop = byte == 35u8 && !basic && !literal;
         let state = quote_state(byte, basic, literal);
         basic = state % 2 == 1;

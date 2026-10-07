@@ -17,7 +17,7 @@ fn path_prefix_valid(data: borrow Slice<u8>, length: usize) -> bool
     let mut index = 0usize;
     let mut valid = true;
     while index < length {
-        let byte = match byte_get(data, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let byte = match byte_get(data, index) { Option::Some { value: matched_value } => matched_value, Option::None {} => 0u8, };
         valid = valid && byte != 0u8;
         index = index + 1usize;
         index < length

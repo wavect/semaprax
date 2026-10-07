@@ -70,10 +70,10 @@ fn csv_field_end(record: borrow Slice<u8>, start: usize) -> usize
     let mut end = length;
     let mut scanning = index < length;
     while scanning {
-        let byte = match byte_get(record, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let byte = match byte_get(record, index) { Option::Some { value: matched_value } => matched_value, Option::None {} => 0u8, };
         let quote = byte == 34u8;
         let comma = byte == 44u8;
-        let escaped = if quote && quoted && index + 1usize < length { match byte_get(record, index + 1usize) { Option::Some { value } => value == 34u8, Option::None {} => false, } } else { false };
+        let escaped = if quote && quoted && index + 1usize < length { match byte_get(record, index + 1usize) { Option::Some { value: matched_value } => matched_value == 34u8, Option::None {} => false, } } else { false };
         quoted = if quote && !escaped { !quoted } else { quoted };
         let stop = comma && !quoted;
         end = if stop { index } else { end };

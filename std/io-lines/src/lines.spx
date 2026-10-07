@@ -16,7 +16,7 @@ fn line_end(view: borrow Slice<u8>, start: usize) -> usize
     let mut index = start;
     let mut scanning = index < length;
     while scanning {
-        let terminator = match byte_get(view, index) { Option::Some { value } => value == 10u8, Option::None {} => true, };
+        let terminator = match byte_get(view, index) { Option::Some { value: matched_value } => matched_value == 10u8, Option::None {} => true, };
         index = if terminator { index } else { index + 1usize };
         scanning = !terminator && index < length;
         scanning

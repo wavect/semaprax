@@ -97,7 +97,7 @@ fn argument_is_admissible(argument: borrow Slice<u8>, is_program: bool) -> bool
     let mut valid = !is_program || length >= 1usize;
     let mut scanning = index < length && valid;
     while scanning {
-        let value = match byte_get(argument, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let value = match byte_get(argument, index) { Option::Some { value: matched_value } => matched_value, Option::None {} => 0u8, };
         valid = value != 0u8;
         index = index + 1usize;
         scanning = index < length && valid;
@@ -115,7 +115,7 @@ fn argv_view_count(view: borrow Slice<u8>) -> usize
     let mut count = 0usize;
     let mut scanning = index < length && count < 16usize;
     while scanning {
-        let value = match byte_get(view, index) { Option::Some { value } => value, Option::None {} => 1u8, };
+        let value = match byte_get(view, index) { Option::Some { value: matched_value } => matched_value, Option::None {} => 1u8, };
         count = if value == 0u8 { count + 1usize } else { count };
         index = index + 1usize;
         scanning = index < length && count < 16usize;

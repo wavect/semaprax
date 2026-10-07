@@ -125,7 +125,7 @@ fn value_range_is_valid(view: borrow Slice<u8>, start: usize, end: usize) -> boo
     let mut index = start;
     let mut valid = true;
     while index < end && valid {
-        valid = match byte_get(view, index) { Option::Some { value } => value != 0u8, Option::None {} => false, };
+        valid = match byte_get(view, index) { Option::Some { value: matched_value } => matched_value != 0u8, Option::None {} => false, };
         index = index + 1usize;
         index < end && valid
     }

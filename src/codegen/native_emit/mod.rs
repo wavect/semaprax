@@ -665,7 +665,7 @@ fn program_uses_strings(program: &ResolvedProgram, include_instances: bool) -> b
         ) || matches!(
             &declaration.kind,
             ResolvedTypeDeclarationKind::Record { fields }
-                if fields.iter().any(|field| matches!(field.ty, ResolvedType::String))
+                if fields.iter().any(|field| string_collections::owns_text(&field.ty))
         )
     }) || string_runtime_functions(program, include_instances).any(function_uses_strings)
 }
@@ -684,11 +684,11 @@ fn string_runtime_functions(
 }
 
 fn function_uses_strings(function: &ResolvedFunction) -> bool {
-    if matches!(function.return_type, ResolvedType::String)
+    if string_collections::owns_text(&function.return_type)
         || function
             .params
             .iter()
-            .any(|param| matches!(param.ty, ResolvedType::String))
+            .any(|param| string_collections::owns_text(&param.ty))
     {
         return true;
     }

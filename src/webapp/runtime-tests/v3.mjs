@@ -34,7 +34,7 @@ const bytes = JSON.stringify({ version: 2, schema: stateSchema([oldEntity], {}),
 const state = () => new Map([["item", { ent: entity, rows: new Map(), next: 1n }]]);
 assert.throws(() => loadState(bytes, state(), {}, null, false), /schema changed/);
 const target = state(); assert.equal(loadState(bytes, target, {}, null, true), true);
-assert.deepEqual(target.get("item").rows.get(3n), { id: 3n, start: 42n, label: "new" });
+assert.deepEqual(target.get("item").rows.get(3n), Object.assign(Object.create(null), { id: 3n, start: 42n, label: "new" }));
 assert.equal(target.get("item").next, 100n);
 const failing = state(); failing.get("item").ent = { ...entity, rules: [{ fields: ["start"], text: "limit", test: (r) => r.start < 1n }] };
 assert.throws(() => loadState(bytes, failing, {}, null, true), /constraints fail/);
@@ -45,4 +45,11 @@ const trap = state(); trap.get("item").ent = { ...entity, migrations: [{ field: 
 assert.throws(() => loadState(bytes, trap, {}, null, true), /migration failed/);
 const badId = JSON.stringify({ version: 1, next: { item: "4" }, rows: { item: [{ id: "3", start: "1", label: "x" }, { id: "3", start: "2", label: "y" }] } });
 assert.throws(() => loadState(badId, state(), {}, null, false), /invalid stored row/);
+const protoField = { name: "__proto__", type: "string" };
+const protoBefore = { name: "Proto", path: "proto", fields: [protoField] };
+const protoAfter = { ...protoBefore, fields: [protoField, { name: "marker", type: "string" }], migrations: [{ field: "__proto__", inputs: [protoField], value: (o) => o.__proto__ + "!" }, { field: "marker", inputs: [], value: () => "new" }] };
+const protoBytes = JSON.stringify({ version: 2, schema: stateSchema([protoBefore], {}), next: { proto: "2" }, rows: { proto: [JSON.parse('{"id":"1","__proto__":"text"}')] } });
+const protoTarget = new Map([["proto", { ent: protoAfter, rows: new Map(), next: 1n }]]);
+assert.equal(loadState(protoBytes, protoTarget, {}, null, true), true);
+assert.deepEqual(protoTarget.get("proto").rows.get(1n), Object.assign(Object.create(null), JSON.parse('{"__proto__":"text!","marker":"new"}'), { id: 1n }));
 console.log("v3 runtime contracts passed");

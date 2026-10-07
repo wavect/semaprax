@@ -39,12 +39,12 @@ export function loadState(bytes, tables, enums, account, migrate) {
       const mismatch = table.ent.fields.some((f) => !Object.hasOwn(original, f.name)) || Object.keys(original).some((f) => f !== "id" && !table.ent.fields.some((d) => d.name === f));
       if ((changed || mismatch) && !migrate) throw new Error(`database fields changed in ${path}; restart with --migrate`);
       if (migrate && (changed || mismatch)) {
-        input = { id: original.id };
+        input = Object.assign(Object.create(null), { id: original.id });
         for (const field of table.ent.fields) {
           const steps = (table.ent.migrations || []).filter((m) => m.field === field.name);
           if (steps.length > 1) throw new Error(`duplicate migration for ${path}.${field.name}`);
           if (steps.length) {
-            const migration = steps[0], old = {};
+            const migration = steps[0], old = Object.create(null);
             for (const descriptor of migration.inputs) {
               if (!Object.hasOwn(original, descriptor.name)) throw new Error(`missing migration input ${path}.${descriptor.name}`);
               const historical = source?.fields.find((f) => f.name === descriptor.name);

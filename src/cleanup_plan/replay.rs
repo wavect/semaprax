@@ -4464,18 +4464,6 @@ fn expression_skeleton(
                     )?);
                     continue;
                 }
-                if arms.iter().any(|arm| arm.guard.is_some()) {
-                    produced = Some(guarded_variant::finish(
-                        program,
-                        function,
-                        expression,
-                        scrutinee,
-                        arms,
-                        scrutinee_paths,
-                        work,
-                    )?);
-                    continue;
-                }
                 let is_record =
                     validate_match_skeleton_shape(program, function, expression, scrutinee, arms)?;
                 if is_record {
@@ -5150,6 +5138,20 @@ fn finish_match_arm(
     is_record: bool,
     work: &mut SkeletonWork<'_, '_>,
 ) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
+    if arms[index].guard.is_some() {
+        return guarded_variant::finish_arm(
+            program,
+            function,
+            expression,
+            scrutinee,
+            &arms[index],
+            index + 1 == arms.len(),
+            remaining,
+            arm_paths,
+            results,
+            work,
+        );
+    }
     let mut next_remaining = Vec::new();
     let mode = match &expression.kind {
         ResolvedExprKind::Match { mode, .. } => *mode,

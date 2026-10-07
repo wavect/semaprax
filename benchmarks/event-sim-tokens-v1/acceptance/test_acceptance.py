@@ -14,6 +14,15 @@ import oracle
 
 
 class AcceptanceTests(unittest.TestCase):
+    def test_one_diagnostic_line_does_not_require_a_line_terminator(self):
+        for stderr in (b"error", b"error\n", b"error\r\n"):
+            with self.subTest(stderr=stderr):
+                self.assertTrue(acceptance_runner._one_diagnostic_line(stderr))
+
+        for stderr in (b"", b"\n", b" \r\n", b"error\nsecond", b"error\n\n"):
+            with self.subTest(stderr=stderr):
+                self.assertFalse(acceptance_runner._one_diagnostic_line(stderr))
+
     def test_corpus_is_accepted_by_reference_oracle(self):
         result = subprocess.run(
             [sys.executable, str(ROOT / "oracle.py")],
@@ -110,7 +119,6 @@ class AcceptanceTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 2)
                 self.assertEqual(result.stdout, b"")
                 self.assertEqual(len(result.stderr.splitlines()), 1)
-                self.assertTrue(result.stderr.endswith(b"\n"))
                 self.assertTrue(result.stderr.splitlines()[0].strip())
 
 

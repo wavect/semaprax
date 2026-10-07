@@ -231,6 +231,17 @@ class ShiftSimCampaignTests(unittest.TestCase):
                     evidence_path, repo, evidence["compiler_source_commit"], "a" * 64,
                 )
 
+            invalid_row["stderr_one_diagnostic_line"] = True
+            invalid_row["stderr_ends_with_newline"] = False
+            report_bytes = (json.dumps(report, indent=2) + "\n").encode("utf-8")
+            report_path.write_bytes(report_bytes)
+            evidence["acceptance_report"]["sha256"] = live_campaign.sha_bytes(report_bytes)
+            evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
+            result = live_campaign.validate_qualification_evidence(
+                evidence_path, repo, evidence["compiler_source_commit"], "a" * 64,
+            )
+            self.assertEqual(result["status"], "evidence_gate_passed")
+
     def test_acceptance_report_records_each_case_and_oversized_request(self):
         with tempfile.TemporaryDirectory() as directory:
             report_path = Path(directory) / "acceptance.json"

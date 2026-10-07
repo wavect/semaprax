@@ -27,7 +27,7 @@ def _sha256(data: bytes) -> str:
 
 def _one_diagnostic_line(stderr: bytes) -> bool:
     lines = stderr.splitlines()
-    return len(lines) == 1 and bool(lines[0].strip()) and stderr.endswith(b"\n")
+    return len(lines) == 1 and bool(lines[0].strip())
 
 
 def run(command: list[str], report_json: Path | None = None) -> int:

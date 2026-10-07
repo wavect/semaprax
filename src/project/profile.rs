@@ -39,6 +39,8 @@ pub const PROJECT_PROFILE_USEFUL_DATA_V1: &str = "useful-data.v1";
 pub const PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1: &str = "useful-data-command.v1";
 pub const PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2: &str = "useful-data-command.v2";
 pub const PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1: &str = "language-command-io.v1";
+/// Explicit native command profile with invocation-owned streaming stdin.
+pub const PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V1: &str = "language-command-io.stream.v1";
 pub const PROJECT_PROFILE_LINE_COMMAND_IO_V1: &str = "line-command-io.v1";
 pub const PROJECT_PROFILE_NETWORK_COMMAND_IO_V1: &str = "network-command-io.v1";
 pub const PROJECT_PROFILE_FILESYSTEM_IO_V2: &str = "filesystem-io.v2";
@@ -101,6 +103,8 @@ pub const PROJECT_HTTPS_COMMAND_CAPABILITIES_V1: [&str; 5] = [
 pub const PROJECT_COMMAND_INPUT_V1: &str = "stdin-bytes+one-utf8-arg.v1";
 /// Exact immutable invocation snapshot selected only by Project v6.
 pub const PROJECT_LANGUAGE_COMMAND_INPUT_V1: &str = "argv-utf8+stdin-bytes.v1";
+/// Exact chunked stdin input route selected only by Project v23.
+pub const PROJECT_LANGUAGE_COMMAND_STREAM_INPUT_V1: &str = "argv-utf8+stdin-stream.v1";
 
 /// One exact Project profile selected by the manifest schema. This enum is the
 /// authority passed to project linking and backend preparation; callers must
@@ -114,6 +118,7 @@ pub enum ProjectProfile {
     UsefulDataCommandV1,
     UsefulDataCommandV2,
     LanguageCommandIoV1,
+    StdinStreamCommandIoV1,
     LineCommandIoV1,
     NetworkCommandIoV1,
     HttpsCommandIoV1,
@@ -176,6 +181,7 @@ impl ProjectProfile {
             Self::UsefulDataCommandV1 => Some(PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1),
             Self::UsefulDataCommandV2 => Some(PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2),
             Self::LanguageCommandIoV1 => Some(PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1),
+            Self::StdinStreamCommandIoV1 => Some(PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V1),
             Self::LineCommandIoV1 => Some(PROJECT_PROFILE_LINE_COMMAND_IO_V1),
             Self::NetworkCommandIoV1 => Some(PROJECT_PROFILE_NETWORK_COMMAND_IO_V1),
             Self::EnvironmentIoV1 => Some(PROJECT_PROFILE_ENVIRONMENT_IO_V1),

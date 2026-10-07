@@ -98,14 +98,14 @@ struct fixture_input { unsigned opens, reads, drops, settles; };
 static uint32_t fixture_open(void *context, uintptr_t *token) {
     struct fixture_input *f=context; ++f->opens; *token=1; return 0;
 }
-static uint32_t fixture_read(void *context, uintptr_t token, uint8_t *buffer, uint32_t capacity, uint32_t *length) {
+static uint32_t fixture_read(void *context, uintptr_t token, uint8_t *buffer, uint32_t capacity, uint32_t *length, uint32_t *eof) {
     struct fixture_input *f=context; REQUIRE(token==1 && capacity==4096);
-    ++f->reads; *length=f->reads==1?1:0; if(*length) buffer[0]='x'; return 0;
+    ++f->reads; *eof=f->reads==1?0:1; *length=*eof?0:1; if(*length) buffer[0]='x'; return 0;
 }
-static uint32_t fixture_drop(void *context, uintptr_t token) {
-    struct fixture_input *f=context; REQUIRE(token==1); ++f->drops; return 0;
+static void fixture_drop(void *context, uintptr_t token) {
+    struct fixture_input *f=context; REQUIRE(token==1); ++f->drops;
 }
-static uint32_t fixture_settle(void *context) { ++((struct fixture_input*)context)->settles; return 0; }
+static void fixture_settle(void *context) { ++((struct fixture_input*)context)->settles; }
 int main(void) {
     for(unsigned bad=0;bad<2;++bad) {
         struct fixture_input state={0};

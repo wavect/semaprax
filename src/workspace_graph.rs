@@ -5624,6 +5624,7 @@ fn reconstruct_workspace_declaration_facts(
         uses_box,
         uses_iterator,
         uses_list,
+        prelude_binding::uses_stream(programs),
     )?;
     let mut actual = BTreeMap::new();
     for (module, resolved) in modules {
@@ -5638,6 +5639,7 @@ fn reconstruct_workspace_declaration_facts(
             prelude::program_uses_box(source) || imports_box_wrapper,
             crate::iterator_ops::program_uses_iterator(source),
             crate::list_ops::program_uses_list(source),
+            prelude_binding::module_uses_stream(source, programs),
         )?;
         let direct_targets = source
             .module_uses

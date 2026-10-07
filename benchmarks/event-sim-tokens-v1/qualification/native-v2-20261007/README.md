@@ -1,6 +1,6 @@
 # ShiftSim native v2 qualification evidence
 
-This record qualifies one SEMAPRAX candidate for the campaign's native streaming acceptance gate. It is a single-arm candidate qualification, not a matched comparison or a scored performance result. It does not close issue 611.
+This record qualifies one SEMAPRAX candidate for the campaign's native streaming acceptance gate. It is a single-arm candidate qualification, not a matched comparison or a scored performance result. Comparative outcomes remain pending in the separately scored matched campaign.
 
 The candidate archive from the single-arm preflight was copied to scratch. Its original, unmodified `test.sh` ran with the frozen compiler below, rebuilt `dist/shiftsim`, ran five named Project tests and the candidate fixtures, and exited 0. The rebuilt native executable SHA-256 is `8e9feeaf5db85d91166a585aed4b272b9e2351d912470862fca2b8857b7d30da`. `candidate-test.log` preserves the command output, `candidate-test-run.json` records the result, and `candidate-source-inventory.json` records hashes for 69 candidate files excluding the generated `dist` binary.
 

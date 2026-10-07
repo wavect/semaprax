@@ -3525,7 +3525,8 @@ impl Emitter<'_> {
     }
 
     fn emit_block_scope_cleanup(&mut self, expression: &ResolvedExpr) -> Result<(), Diagnostic> {
-        let anchors = expressions::block_scope_anchors(self.cleanup_plan, expression);
+        let anchors =
+            expressions::block_scope_anchors(&self.plan.cleanup_storage_types, expression);
         if anchors.is_empty() {
             return Ok(());
         }

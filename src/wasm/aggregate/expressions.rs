@@ -283,24 +283,19 @@ impl Emitter<'_> {
 /// Slots of this exact lexical Block region, including scalar operand owners.
 /// Nested Blocks own their children; direct HIR If arms share their parent.
 pub(super) fn block_scope_anchors(
-    plan: &crate::cleanup_plan::CleanupPlan,
+    slots: &HashMap<crate::cleanup_plan::StorageId, ResolvedType>,
     expression: &ResolvedExpr,
 ) -> std::collections::BTreeSet<crate::cleanup_plan::StorageId> {
     use crate::cleanup_plan::StorageId;
     let ResolvedExprKind::Block { statements, tail } = &expression.kind else {
         return std::collections::BTreeSet::new();
     };
-    let slots = plan
-        .regions
-        .iter()
-        .flat_map(|region| &region.slots)
-        .collect::<std::collections::BTreeSet<_>>();
     let mut anchors = std::collections::BTreeSet::new();
     let mut pending = vec![tail.as_ref()];
     for statement in statements {
         if let ResolvedStatement::Let { binding, .. } = statement {
             let storage = StorageId::Value(binding.id.clone());
-            if slots.contains(&storage) {
+            if slots.contains_key(&storage) {
                 anchors.insert(storage);
             }
         }
@@ -314,7 +309,7 @@ pub(super) fn block_scope_anchors(
     }
     while let Some(expression) = pending.pop() {
         let storage = StorageId::Temporary(expression.id.clone());
-        if slots.contains(&storage) {
+        if slots.contains_key(&storage) {
             anchors.insert(storage);
         }
         match &expression.kind {

@@ -371,11 +371,16 @@ def stream_usage(path: Path, model_preference: str) -> dict[str, Any]:
     cost = result_event.get("total_cost_usd") if isinstance(result_event, dict) else None
     if isinstance(cost, bool) or not isinstance(cost, (int, float)) or not math.isfinite(cost) or cost < 0:
         cost = None
+    provider_turns = result_event.get("num_turns") if isinstance(result_event, dict) else None
+    if isinstance(provider_turns, bool) or not isinstance(provider_turns, int) or provider_turns < 0:
+        provider_turns = None
     return {
         "models_observed": sorted(message_models or model_usage_models),
         "assistant_message_models_observed": sorted(message_models),
         "model_usage_keys_observed": sorted(model_usage_models),
         "turns_with_usage": len(usage_by_id),
+        "turns_with_usage_definition": "deduplicated assistant message IDs carrying usage; not tool calls or the provider's session turn count",
+        "provider_reported_session_turns": provider_turns,
         "legacy_net_input": legacy_net,
         "legacy_net_input_definition": (
             "sum of deduplicated per-turn input/cache-write/cache-read minus first-turn input/cache total multiplied by turn count; "

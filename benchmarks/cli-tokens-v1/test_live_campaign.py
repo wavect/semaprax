@@ -12,6 +12,16 @@ import live_campaign
 
 
 class LiveCampaignTests(unittest.TestCase):
+    def test_provider_session_turns_remain_separate_and_unknown_when_invalid(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "stream.jsonl"
+            for supplied, expected in [(0, 0), (7, 7), (None, None), (-1, None),
+                                       (True, None), ("7", None)]:
+                path.write_text(json.dumps({"type": "result", "num_turns": supplied}) + "\n")
+                observed = live_campaign.stream_usage(path)
+                self.assertEqual(observed["provider_reported_session_turns"], expected)
+                self.assertEqual(observed["turns_with_usage"], 0)
+
     def test_claude_command_ends_options_before_prompt(self):
         settings = {
             "model": live_campaign.MODEL,

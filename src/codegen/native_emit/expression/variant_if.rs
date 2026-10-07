@@ -22,7 +22,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             };
             let condition = self.emit_expr(condition)?;
             self.require_type(&condition.ty, &ResolvedType::Bool, "if condition")?;
-            let temporary = if matches!(current.ty, ResolvedType::Bytes) {
+            let temporary = if self.plan_owned_leaf_result(&current.ty) {
                 self.bytes_plan
                     .ok_or_else(|| backend_error("owned Bytes if has no cleanup plan"))?
                     .value(&crate::cleanup_plan::StorageId::Temporary(
@@ -77,6 +77,14 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         Ok(value)
     }
 
+    /// Owned strings share the Bytes leaf carrier whenever the function has a
+    /// cleanup plan: the If's plan slot is its result, and each reached
+    /// branch transfers into it.
+    fn plan_owned_leaf_result(&self, ty: &ResolvedType) -> bool {
+        matches!(ty, ResolvedType::Bytes)
+            || (matches!(ty, ResolvedType::String) && self.bytes_plan.is_some())
+    }
+
     fn assign_branch_result(
         &mut self,
         expr: &ResolvedExpr,
@@ -84,7 +92,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         temporary: &str,
         value: &CValue,
     ) -> Result<(), Diagnostic> {
-        if matches!(expr.ty, ResolvedType::Bytes) {
+        if self.plan_owned_leaf_result(&expr.ty) {
             let plan = self
                 .bytes_plan
                 .ok_or_else(|| backend_error("owned Bytes if has no cleanup plan"))?;

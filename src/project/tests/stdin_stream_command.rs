@@ -23,8 +23,8 @@ fn fixture() -> PathBuf {
         canonical_source(
             "a/app.spx",
             r#"module stream.app;
-permit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
 use function @id("stream.read") from stream.input as read_stream;
+permit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
 @id("stream.command")
 fn command() -> bool uses { process.stdin.read } { read_stream() }
 

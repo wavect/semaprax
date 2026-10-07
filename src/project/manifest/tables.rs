@@ -472,6 +472,7 @@ fn structural_diagnostics(tables: &[Table<'_>], law_layout: bool) -> Vec<Diagnos
         PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1
             | PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2
             | PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1
+            | PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V1
             | PROJECT_PROFILE_LINE_COMMAND_IO_V1
             | PROJECT_PROFILE_NETWORK_COMMAND_IO_V1
             | PROJECT_PROFILE_HTTPS_COMMAND_IO_V1
@@ -514,6 +515,9 @@ fn structural_diagnostics(tables: &[Table<'_>], law_layout: bool) -> Vec<Diagnos
             | PROJECT_PROFILE_LINE_COMMAND_IO_V1
             | PROJECT_PROFILE_NETWORK_COMMAND_IO_V1
             | PROJECT_PROFILE_HTTPS_COMMAND_IO_V1 => Some(PROJECT_LANGUAGE_COMMAND_INPUT_V1),
+            PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V1 => {
+                Some(PROJECT_LANGUAGE_COMMAND_STREAM_INPUT_V1)
+            }
             _ => None,
         };
         let input = table_text(tables, "command", "input");

@@ -405,13 +405,13 @@ pub mod semantic_service_transport;
 pub mod semantic_task_context;
 pub mod semantic_trace;
 pub mod simd_report;
+pub mod source_command;
 #[cfg(feature = "unstable-rust-source-lowering")]
 pub mod stable_rust_lowering;
 pub mod static_protocol;
 pub(crate) mod str_ops;
 pub mod streaming_proposal_decode;
 pub(crate) mod string_ops;
-pub mod source_command;
 pub mod structured_tasks;
 pub mod target_evidence;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]

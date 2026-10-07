@@ -107,12 +107,12 @@ mod string_numeric_text;
 mod string_ops_v1;
 #[path = "language/string_ops_v2.rs"]
 mod string_ops_v2;
-#[path = "language/text_toolkit_v1.rs"]
-mod text_toolkit_v1;
 #[path = "language/string_scalars.rs"]
 mod string_scalars;
 #[path = "language/structural_list_match.rs"]
 mod structural_list_match;
+#[path = "language/text_toolkit_v1.rs"]
+mod text_toolkit_v1;
 #[path = "language/u8_scalars.rs"]
 mod u8_scalars;
 #[path = "language/variants_semantics.rs"]

@@ -161,10 +161,9 @@ fn interpreter_admits_copy_record_construction_projection_and_field_mutation() {
 #[test]
 fn record_shapes_outside_the_copy_profile_keep_their_closed_admission_reason() {
     let path = write_temp(CLOSED_RECORD_FIXTURE);
-    for (token, reason) in [
-        ("case.closed.update", "record_update"),
-        ("case.closed.callee", "unsupported_callee"),
-    ] {
+    // Record update stays outside the interpreter profile with its named
+    // admission reason.
+    for (token, reason) in [("case.closed.update", "record_update")] {
         let errors = interpret_case(&path, token, &[])
             .expect_err("the shape is outside the admitted interpreter profile");
         assert!(
@@ -180,6 +179,13 @@ fn record_shapes_outside_the_copy_profile_keep_their_closed_admission_reason() {
             "{token}: {errors:?}"
         );
     }
+    // A call passing a Copy record is now admitted and evaluates exactly.
+    let envelope = interpret_case(&path, "case.closed.callee", &[])
+        .unwrap_or_else(|errors| panic!("record-argument call must be admitted: {errors:?}"));
+    let payload: serde_json::Value = serde_json::from_str(&envelope).expect("envelope JSON");
+    let outcome = &payload["payload"]["outcome"];
+    assert_eq!(outcome["kind"], "returned", "{envelope}");
+    assert_eq!(outcome["value"], "42", "{envelope}");
     cleanup(&path);
 }
 

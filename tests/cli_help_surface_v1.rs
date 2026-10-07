@@ -86,6 +86,26 @@ fn invoke(arguments: &[&str]) -> (Output, PathBuf) {
 }
 
 #[test]
+fn cli_language_help_documents_run_string_fallback_and_json_schemas() {
+    let (output, working_directory) = invoke(&["help", "language", "cli"]);
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let help = String::from_utf8(output.stdout).unwrap();
+    for detail in [
+        "On the pure single-file interpreter route, `run` tries the ordinary",
+        "If an internal call with an owned",
+        "`string` parameter or result is refused with `SPX-F102`",
+        "`semaprax.interpret.v1`",
+        "`semaprax.interpret.internal-strings.v1`",
+        "Permit-selected command and stdout",
+        "do not use this interpreter fallback.",
+    ] {
+        assert!(help.contains(detail), "missing help detail: {detail}");
+    }
+    std::fs::remove_dir(working_directory).unwrap();
+}
+
+#[test]
 fn standalone_help_is_exact_capability_aware_and_inert() {
     let (empty, empty_dir) = invoke(&[]);
     // Bare `semaprax` is the first contact anyone has with the tool: it prints

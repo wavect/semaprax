@@ -24,6 +24,32 @@ counts using the explicitly identified legacy Claude tokenizer proxy. Raw
 provider usage, the historical net-input convention, list-price estimates, and
 provider-reported API-equivalent costs remain separate in result files.
 
+To author the native candidate before it can qualify a scored comparison, run
+one SEMAPRAX-only preflight. It uses the campaign's pinned prompt and model,
+performs the usual one-turn calibration, builds/tests the candidate, checks the
+independent corpus, and archives the candidate. The recorded campaign kind and
+qualification status make the result explicitly single-arm and unscored:
+
+```sh
+python3 benchmarks/event-sim-tokens-v1/campaign.py preflight \
+  --arm semaprax \
+  --base-ref <verified-compiler-commit> \
+  --artifacts /absolute/path/outside/repository/shiftsim-native-preflight \
+  --semaprax-bin /absolute/path/to/semaprax \
+  --timeout-seconds 1800 \
+  --max-budget-usd <approved-per-session-cap> \
+  --tokenizer-dir /absolute/path/to/offline-tokenizer
+```
+
+The preflight uses only the public SPEC in the agent seed. The acceptance
+corpus and oracle remain in the benchmark checkout, outside its worktree. Its
+source-only archive is at `candidates/semaprax-01`; review it and rebuild it
+with the same compiler binary before generating the detailed qualification
+report below. The preflight's campaign metadata records the full source commit
+and compiler binary hash. Use that exact commit and binary for evidence and the
+later scored campaign. The preflight does not create qualification evidence or
+count as one arm of a matched comparison.
+
 To prepare qualification evidence, run the independent acceptance adapter
 against a native Project candidate using the compiler binary that will be
 pinned in the campaign. It writes a JSON report with one status row per corpus

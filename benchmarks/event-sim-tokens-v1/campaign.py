@@ -289,6 +289,34 @@ def plan(args: argparse.Namespace, semaprax_binary_sha256: str | None = None) ->
     }
 
 
+def single_arm_preflight_plan(
+    args: argparse.Namespace,
+    arm: str,
+    semaprax_binary_sha256: str | None = None,
+) -> dict[str, Any]:
+    """Make a one-trial exploratory plan without relaxing scored-run limits."""
+    if arm not in ARMS:
+        raise ValueError(f"preflight arm must be one of: {', '.join(ARMS)}")
+    plan_args = argparse.Namespace(**vars(args))
+    plan_args.trials_per_arm = MIN_TRIALS_PER_ARM
+    settings = plan(plan_args, semaprax_binary_sha256)
+    settings.update({
+        "campaign_kind": "single_arm_preflight",
+        "trials_per_arm": 1,
+        "attempt_denominator": 1,
+        "arms": [arm],
+        "trial_order": [arm],
+        "qualification": {
+            "status": "preflight_not_qualified",
+            "scored_trials_allowed": False,
+            "blocking_issue": 611,
+            "issue_611_status": "open",
+            "reason": "a single-arm preflight is exploratory and cannot be scored as a matched comparison",
+        },
+    })
+    return settings
+
+
 def run_process(command: list[str], cwd: Path, env: dict[str, str], stdout: Path, stderr: Path,
                 timeout: int) -> dict[str, Any]:
     return common.run_claude(command, cwd, env, stdout, stderr, timeout)
@@ -534,34 +562,42 @@ def summarize(
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="action", required=True)
-    for action in ("plan", "run"):
+    for action in ("plan", "run", "preflight"):
         p = sub.add_parser(action)
         p.add_argument("--repo", default=str(REPO))
         p.add_argument("--base-ref", required=True)
         p.add_argument("--artifacts", required=True)
-        p.add_argument("--trials-per-arm", type=int, default=MIN_TRIALS_PER_ARM)
+        if action != "preflight":
+            p.add_argument("--trials-per-arm", type=int, default=MIN_TRIALS_PER_ARM)
         p.add_argument("--model", default=MODEL)
         p.add_argument("--effort", default=EFFORT)
         p.add_argument("--timeout-seconds", type=int, default=1800)
         p.add_argument("--max-budget-usd", type=float, default=None)
         p.add_argument("--tokenizer-dir", default=None)
-        p.add_argument("--qualification-evidence", default=None,
-                       help="pinned native streaming acceptance evidence; enables scored trials only when valid")
-        if action == "run":
+        if action in ("plan", "run"):
+            p.add_argument("--qualification-evidence", default=None,
+                           help="pinned native streaming acceptance evidence; enables scored trials only when valid")
+        if action in ("run", "preflight"):
             p.add_argument("--semaprax-bin", required=True)
         else:
             p.add_argument("--semaprax-bin", default=None,
                            help="compiler binary to bind when planning evidence-gated scored trials")
+        if action == "preflight":
+            p.add_argument("--arm", choices=ARMS, required=True,
+                           help="run one exploratory trial for this arm; results are never scored")
     args = parser.parse_args()
     try:
         semaprax_bin = None
         binary_hash = None
-        if args.action == "run" or args.semaprax_bin is not None:
+        if args.action in ("run", "preflight") or args.semaprax_bin is not None:
             semaprax_bin = Path(args.semaprax_bin).expanduser().resolve(strict=True)
             if not semaprax_bin.is_file():
                 raise ValueError("semaprax-bin must be a regular file")
             binary_hash = common.digest(semaprax_bin)
-        settings = plan(args, binary_hash)
+        if args.action == "preflight":
+            settings = single_arm_preflight_plan(args, args.arm, binary_hash)
+        else:
+            settings = plan(args, binary_hash)
         if args.action == "plan":
             print(json.dumps(settings, indent=2))
             return 0

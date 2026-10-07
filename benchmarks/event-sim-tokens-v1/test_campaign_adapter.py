@@ -130,6 +130,29 @@ class ShiftSimCampaignTests(unittest.TestCase):
             "typescript", "typescript", "semaprax", "semaprax", "typescript",
         ])
 
+    def test_single_arm_preflight_is_one_unscored_trial_and_keeps_scored_minimum(self):
+        with tempfile.TemporaryDirectory() as directory:
+            args = Namespace(
+                repo=str(live_campaign.REPO), base_ref="HEAD", artifacts=str(Path(directory) / "campaign"),
+                model=live_campaign.MODEL, effort=live_campaign.EFFORT, timeout_seconds=1800,
+                max_budget_usd=None,
+            )
+            settings = live_campaign.single_arm_preflight_plan(args, "semaprax")
+            self.assertEqual(settings["campaign_kind"], "single_arm_preflight")
+            self.assertEqual(settings["trial_order"], ["semaprax"])
+            self.assertEqual(settings["trials_per_arm"], 1)
+            self.assertEqual(settings["attempt_denominator"], 1)
+            self.assertFalse(settings["qualification"]["scored_trials_allowed"])
+            self.assertEqual(settings["qualification"]["issue_611_status"], "open")
+
+            args.artifacts = str(Path(directory) / "short-scored-plan")
+            args.trials_per_arm = live_campaign.MIN_TRIALS_PER_ARM - 1
+            with self.assertRaisesRegex(ValueError, "at least 5 trials per arm"):
+                live_campaign.plan(args)
+
+            with self.assertRaisesRegex(ValueError, "preflight arm"):
+                live_campaign.single_arm_preflight_plan(args, "unknown")
+
     def test_pinned_native_evidence_gates_scored_trials_and_keeps_issue_open(self):
         with tempfile.TemporaryDirectory() as directory:
             evidence_path, evidence, report_path = self._qualification_evidence(Path(directory))

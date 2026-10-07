@@ -37,6 +37,9 @@ typedef struct {
 static __attribute__((unused)) void spx_slice_u8_require_current_epoch(
     spx_slice_u8_v1 value
 ) {
+    if (value.epoch == NULL && value.captured_epoch != UINT64_C(0)) {
+        spx_runtime_invariant_failure("unleased byte slice carries an epoch");
+    }
     if (value.epoch != NULL && *value.epoch != value.captured_epoch) {
         spx_runtime_invariant_failure("borrowed byte slice epoch is stale");
     }
@@ -213,6 +216,11 @@ mod tests {
     #[test]
     fn stream_epoch_is_checked_by_slice_consumers_and_derived_ranges() {
         for body in [
+            r#"int main(void) {
+    spx_slice_u8_v1 view = { .captured_epoch = UINT64_C(1) };
+    (void)spx_byte_len(view);
+    return 0;
+}"#,
             r#"int main(void) {
     uint8_t byte = UINT8_C(7);
     uint64_t epoch = UINT64_C(2);

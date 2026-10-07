@@ -90,7 +90,7 @@ const CASES: &[(&str, &str)] = &[
     ("general.block", "ok|8"),
     ("general.false", "ok|2"),
     ("general.wrong-case", "ok|14"),
-    ("general.failure", "semaprax.arithmetic.v1|1"),
+    ("general.failure", "semaprax.arithmetic.v1|4"),
     ("general.contract", "semaprax.contract.v1|1"),
     ("general.wildcard", "ok|6"),
     ("general.or", "ok|12"),

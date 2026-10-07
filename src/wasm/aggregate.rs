@@ -4897,16 +4897,7 @@ impl Emitter<'_> {
                 arms,
             } => {
                 let aggregate_result = is_aggregate(self.program, &expr.ty)?;
-                if aggregate_result
-                    && !generic_record::match_result_is_admitted(self.program, self.function, expr)
-                    && !crate::hir::generic_variant::match_result(
-                        self.program,
-                        self.function,
-                        *mode,
-                        &expr.ty,
-                        expr.ownership,
-                    )
-                {
+                if aggregate_result && !self.match_result_is_admitted(expr, *mode, &scrutinee.ty) {
                     return Err(error("copy match result must be i64 or bool"));
                 }
                 let scrutinee = if *mode == crate::hir::ResolvedMatchMode::Borrow {

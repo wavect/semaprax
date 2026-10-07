@@ -25,7 +25,7 @@ const CASES: &[(&str, &str)] = &[
     ("condition.lazy", "ok|5"),
     ("condition.block", "ok|3"),
     ("condition.nested", "ok|6"),
-    ("condition.failure", "semaprax.arithmetic.v1|1"),
+    ("condition.failure", "semaprax.arithmetic.v1|4"),
     ("condition.contract", "semaprax.contract.v1|1"),
     ("condition.text-failure", "semaprax.text.v1|1"),
 ];

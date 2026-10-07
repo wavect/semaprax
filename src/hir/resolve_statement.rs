@@ -252,7 +252,10 @@ impl Resolver<'_> {
                     ..
                 } => {
                     let vec_operation = crate::vec_ops::by_name(name);
-                    if !type_arguments.is_empty() && vec_operation.is_none() {
+                    if !type_arguments.is_empty()
+                        && vec_operation.is_none()
+                        && crate::map_ops::by_generic_name(name, type_arguments).is_none()
+                    {
                         return Err(self.error(
                             "SPX-T252",
                             "generic calls are not yet admitted in while bodies",
@@ -294,15 +297,15 @@ impl Resolver<'_> {
                         .iter()
                         .find(|function| function.name == *name);
                     if let Some(declared) = declared {
-                        let scalar_signature = crate::stdin_stream_ops::ast_forward_signature(
-                            declared,
-                        ) || (crate::loop_calls::effects_admitted(
-                            &declared.effects,
-                        ) && crate::loop_calls::ast_result_admitted(
-                            self.program,
-                            &declared.return_type,
-                        ) && declared.params.iter().all(|param| {
-                            crate::loop_calls::ast_param_admitted(
+                        let scalar_signature =
+                            crate::stdin_stream_ops::ast_forward_signature(declared)
+                                || (crate::loop_calls::effects_admitted(&declared.effects)
+                                    && crate::loop_calls::ast_result_admitted(
+                                        self.program,
+                                        &declared.return_type,
+                                    )
+                                    && declared.params.iter().all(|param| {
+                                        crate::loop_calls::ast_param_admitted(
                                 self.program,
                                 param.mode,
                                 &param.ty,
@@ -315,7 +318,7 @@ impl Resolver<'_> {
                                             &ty,
                                         )
                                     }))
-                        }));
+                                    }));
                         if !scalar_signature {
                             return Err(self.error(
                                 "SPX-T252",

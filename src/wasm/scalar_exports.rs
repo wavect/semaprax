@@ -14,6 +14,7 @@ use crate::hir::{
 
 use super::{write_i32, write_u32, ByteOutput, F32, F64, I32, I64};
 
+mod internal_collections;
 mod internal_owned_record;
 
 const MAX_EXPORTS: usize = 32;
@@ -455,6 +456,8 @@ fn validate_function_profile(
     {
         if has_internal_owned_records {
             internal_owned_record::validate_expression(program, expression, &function.id)?;
+        } else if super::aggregate::map_collections::uses(program) {
+            internal_collections::validate_expression(program, expression, &function.id)?;
         } else {
             validate_expression_profile(expression, &function.id, integer_profile)?;
         }

@@ -233,7 +233,7 @@ fn standalone_profile_case(
     let fixture = Fixture::new(source);
     std::fs::write(fixture.root.join("app.wasm"), artifact.wasm_bytes()).unwrap();
     std::fs::write(fixture.root.join("runtime.mjs"), artifact.runtime_source()).unwrap();
-    std::fs::write(fixture.root.join("probe.mjs"), format!("import {{readFile}} from 'node:fs/promises';import {{webcrypto}} from 'node:crypto';globalThis.crypto=webcrypto;import {{instantiate}} from './runtime.mjs';const bytes=await readFile('./app.wasm');const runtime=await instantiate(new Uint8Array(bytes));{probe}")).unwrap();
+    std::fs::write(fixture.root.join("probe.mjs"), format!("import {{readFile}} from 'node:fs/promises';import {{webcrypto}} from 'node:crypto';if(globalThis.crypto===undefined)Object.defineProperty(globalThis,'crypto',{{value:webcrypto}});import {{instantiate}} from './runtime.mjs';const bytes=await readFile('./app.wasm');const runtime=await instantiate(new Uint8Array(bytes));{probe}")).unwrap();
     let output = Command::new("node")
         .arg(fixture.root.join("probe.mjs"))
         .current_dir(&fixture.root)
@@ -257,6 +257,10 @@ module test.standalone_toolkit;
     @id("choice.empty") Empty,
     @id("choice.text") Text { @id("choice.text.value") value: string, @id("choice.text.marker") marker: i64, },
 }
+@id("text-option") variant TextOption {
+    @id("text-option.absent") Absent,
+    @id("text-option.present") Present { @id("text-option.present.value") value: string, },
+}
 @id("make") fn make() -> Choice { Choice::Text { value: "a\u{0}é😀", marker: 2 } }
 @id("borrow") fn measure(value: borrow Choice) -> i64 {
     match borrow value { Choice::Empty {} => 0, Choice::Text { value: text, marker } => string_len(text) + marker, }
@@ -267,7 +271,7 @@ module test.standalone_toolkit;
 @id("app.variants") fn variants() -> i64 {
     let value = make(); let borrowed = measure(value); borrowed + consume(value) + consume(Choice::Empty {})
 }
-@id("app.option") fn option() -> i64 { let value=Option<string>::Some { value:"text" }; match own value { Option::Some { value:text } => string_len(text), Option::None {} => 0, } }
+@id("app.option") fn option() -> i64 { let value=TextOption::Present { value:"text" }; match own value { TextOption::Present { value:text } => string_len(text), TextOption::Absent {} => 0, } }
 @id("app.text") fn text() -> i64 {
     let owned = " \té\r\n"; let trimmed = string_trim(owned);
     let view = string_as_str(trimmed); let copied = string_from_str(view);
@@ -351,6 +355,7 @@ fn standalone_toolkit_file_text_requires_explicit_provider_and_checks_bytes() {
 permit { fs.read }
 @id("app.file") fn file() -> i64 uses { fs.read } { let path="folder/data.txt"; let view=string_as_str(path); let text=file_read_text(view); string_len(text) }
 @id("app.path") fn path() -> i64 uses { fs.read } { let path="../data.txt"; let view=string_as_str(path); string_len(file_read_text(view)) }
+@id("app.main") fn main() -> i64 { 0 }
 "#;
     standalone_case(
         source,

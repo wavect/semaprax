@@ -7047,7 +7047,7 @@ impl<'a> HirValidator<'a> {
             }
             ResolvedExprKind::ConstructRecord { record, fields } => {
                 if crate::map_ops::is_declaration(record.as_str())
-                                || record.as_str() == crate::iterator_ops::ITER_ID
+                    || record.as_str() == crate::iterator_ops::ITER_ID
                     || record.as_str() == crate::list_ops::LIST_ID
                 {
                     return Err(hir_error("iterator owner cannot be authored as a record"));
@@ -8520,6 +8520,11 @@ impl<'a> HirValidator<'a> {
                             && matches!(&argument.kind, ResolvedExprKind::Place(place) if place.projections.is_empty())
                     } else if param.ty == ResolvedType::Bytes {
                         matches!(actual, OwnershipMode::Own | OwnershipMode::Borrow) && exact_place
+                    } else if crate::map_ops::is_collection(&param.ty) {
+                        // Compiler-owned nominal collections are leaves, not
+                        // authored aggregate records; projected and temporary
+                        // readers borrow their carrier without transferring it.
+                        matches!(actual, OwnershipMode::Own | OwnershipMode::Borrow)
                     } else if resolved_type_contains_owned_bytes(self.program, &param.ty) {
                         (vec_intrinsic::is_owned_vec_carrier(self.program, &param.ty)
                             || super::type_reachability::is_admitted_nested_owned_byte_record(

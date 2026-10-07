@@ -2,6 +2,28 @@
 
 use super::*;
 
+#[test]
+fn resolved_while_admits_closed_map_and_set_operations() {
+    let source = r#"
+module test.validation_collection_loop;
+@id("collection.loop") fn main() -> i64 {
+    let mut values=map_new<i64,i64>(2usize);
+    let mut keys=set_new<i64>(2usize);
+    let mut index=0;
+    while index < 2 {
+        values=map_set<i64,i64>(values,index,index);
+        keys=set_insert<i64>(keys,index);
+        index=index+1;
+        0
+    }
+    if map_len<i64,i64>(values)==2usize && set_len<i64>(keys)==2usize {7}else{-1}
+}
+"#;
+    let parsed = crate::check(source, "validation-collection-loop.spx").unwrap();
+    let program = crate::hir::resolve(&parsed).unwrap();
+    crate::hir::validate(&program).unwrap();
+}
+
 const INDEXED_LOOP: &str = r#"
 module test.validation_indexed_depth;
 @id("indexed.deep")

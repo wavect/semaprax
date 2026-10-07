@@ -89,7 +89,7 @@ fn postcondition_failure() -> i64 {
 fn main() -> i64 {
     let item = forward(make());
     let before = measure(item);
-    let updated = update item { title: "wide" };
+    let updated = item with { title: "wide" };
     let after = measure(updated);
     consume(updated) + before + after + string_len(title(make()))
 }
@@ -168,7 +168,7 @@ fn owned_string_record_refusals_and_hostile_hir_remain_compile_time_errors() {
             "SPX-O101",
         ),
         (
-            SOURCE.replace("let updated = update item", "let updated = update make()"),
+            SOURCE.replace("let updated = item with", "let updated = make() with"),
             "SPX-O117",
         ),
     ] {

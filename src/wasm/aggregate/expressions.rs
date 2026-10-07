@@ -2,8 +2,38 @@
 //! temporaries off the host stack while recursively emitting scalar bodies.
 
 use super::*;
+use crate::hir;
 
 impl Emitter<'_> {
+    pub(super) fn match_result_is_admitted(
+        &self,
+        expression: &ResolvedExpr,
+        mode: hir::ResolvedMatchMode,
+        scrutinee: &ResolvedType,
+    ) -> bool {
+        generic_record::match_result_is_admitted(self.program, self.function, expression)
+            || hir::generic_variant::match_result(
+                self.program,
+                self.function,
+                mode,
+                &expression.ty,
+                expression.ownership,
+            )
+            || (mode == hir::ResolvedMatchMode::Value
+                && crate::loop_calls::resolved_match_scrutinee_admitted(
+                    &self.program.declarations,
+                    scrutinee,
+                )
+                && ((expression.ownership == hir::OwnershipMode::Value
+                    && (hir::is_scalar_resolved_type(&expression.ty)
+                        || crate::variant_guards::copy_variant(
+                            &self.program.declarations,
+                            &expression.ty,
+                        )))
+                    || (expression.ty == ResolvedType::String
+                        && expression.ownership == hir::OwnershipMode::Own)))
+    }
+
     pub(super) fn emit_expr_inner(&mut self, expr: &ResolvedExpr) -> Result<Value, Diagnostic> {
         match &expr.kind {
             ResolvedExprKind::Block { statements, tail } => self.emit_block(expr, statements, tail),
@@ -27,7 +57,9 @@ impl Emitter<'_> {
                 scrutinee,
                 arms,
             } if crate::hir::is_refutable_match_scalar(&scrutinee.ty) => {
-                if is_aggregate(self.program, &expr.ty)? {
+                if is_aggregate(self.program, &expr.ty)?
+                    && !crate::variant_guards::copy_variant(&self.program.declarations, &expr.ty)
+                {
                     return Err(error("copy match result must be i64 or bool"));
                 }
                 let scrutinee = self.emit_expr(scrutinee)?;

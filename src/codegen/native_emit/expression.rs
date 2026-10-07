@@ -867,7 +867,13 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                         return self.emit_byte_op(op, args, &expr.ty, &expr.id);
                     }
                     if let Some(op) = crate::map_ops::by_id(callee.as_str()) {
-                        return self.emit_typed_map_op(op, type_arguments, args, &expr.ty, &expr.id);
+                        return self.emit_typed_map_op(
+                            op,
+                            type_arguments,
+                            args,
+                            &expr.ty,
+                            &expr.id,
+                        );
                     }
                     if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
                         return self.emit_string_op(op, args, &expr.ty, &expr.id);
@@ -1672,20 +1678,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 arms,
             } => {
                 let aggregate_result = is_aggregate_type(self.program, &expr.ty)?;
-                if aggregate_result
-                    && !super::generic_record::match_result_is_admitted(
-                        self.program,
-                        self.function,
-                        expr,
-                    )
-                    && !hir::generic_variant::match_result(
-                        self.program,
-                        self.function,
-                        *mode,
-                        &expr.ty,
-                        expr.ownership,
-                    )
-                {
+                if aggregate_result && !self.match_result_is_admitted(expr, *mode, &scrutinee.ty) {
                     return Err(backend_error("copy match arms must produce i64 or bool"));
                 }
                 let source_storage = match &scrutinee.kind {

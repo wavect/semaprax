@@ -1,6 +1,35 @@
 //! Copy only the active tag and Copy payload; canonical plans move owner leaves.
 use super::*;
 impl<'a, O: COutput> CEmitter<'a, O> {
+    pub(super) fn match_result_is_admitted(
+        &self,
+        expression: &ResolvedExpr,
+        mode: hir::ResolvedMatchMode,
+        scrutinee: &ResolvedType,
+    ) -> bool {
+        super::generic_record::match_result_is_admitted(self.program, self.function, expression)
+            || hir::generic_variant::match_result(
+                self.program,
+                self.function,
+                mode,
+                &expression.ty,
+                expression.ownership,
+            )
+            || (mode == hir::ResolvedMatchMode::Value
+                && crate::loop_calls::resolved_match_scrutinee_admitted(
+                    &self.program.declarations,
+                    scrutinee,
+                )
+                && ((expression.ownership == hir::OwnershipMode::Value
+                    && (hir::is_scalar_resolved_type(&expression.ty)
+                        || crate::variant_guards::copy_variant(
+                            &self.program.declarations,
+                            &expression.ty,
+                        )))
+                    || (expression.ty == ResolvedType::String
+                        && expression.ownership == hir::OwnershipMode::Own)))
+    }
+
     pub(super) fn copy_variant_join_carrier(
         &mut self,
         target: &str,

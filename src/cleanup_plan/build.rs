@@ -1670,6 +1670,7 @@ impl<'a> PlanBuilder<'a> {
                     continue;
                 }
             };
+            self.reserve_statement_renewal(statement, current, &mut current_state, root)?;
             let evaluated = self.lower_expr(value, current, current_state, root)?;
             current = evaluated.block;
             current_state = evaluated.state;

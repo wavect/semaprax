@@ -1,5 +1,66 @@
 use super::*;
 
+const COLLECTION_SOURCE: &str = r#"
+module test.borrowed_collection_call_hir;
+@id("collection.carrier") record Carrier {
+  @id("collection.words") words: Map<i64,string>,
+  @id("collection.keys") keys: Set<i64>,
+  @id("collection.title") title: string,
+}
+@id("collection.read") fn read(words: borrow Map<i64,string>) -> i64 {
+  string_len(map_get_or<i64,string>(words,3,"missing"))
+}
+@id("collection.legacy") fn legacy(words: borrow Map<string,i64>) -> usize { map_len(words) }
+@id("collection.keys.read") fn keys_read(keys: borrow Set<i64>) -> usize { set_len<i64>(keys) }
+@id("collection.inspect") fn inspect(carrier: borrow Carrier) -> i64 {
+  read(carrier.words) + read(carrier.words) + string_len(carrier.title)
+}
+@id("collection.main") fn main() -> i64 {
+  let words0=map_new<i64,string>(1usize);
+  let words=map_set<i64,string>(words0,3,"abc");
+  let before=read(words);
+  let after=read(words);
+  let keys=set_new<i64>(1usize);
+  let count=keys_read(keys);
+  let again=keys_read(keys);
+  let old=map_new(1usize);
+  let old_count=legacy(old);
+  let old_again=legacy(old);
+  let carrier=Carrier{words:words,keys:keys,title:"tag"};
+  before + after + inspect(carrier) + inspect(carrier)
+}
+"#;
+
+#[test]
+fn collection_borrow_parameters_and_projected_reads_preserve_owner_availability() {
+    let parsed = crate::check(COLLECTION_SOURCE, "borrowed-collection-call-hir.spx").unwrap();
+    let program = crate::hir::resolve(&parsed).unwrap();
+    for id in [
+        "collection.read",
+        "collection.legacy",
+        "collection.keys.read",
+        "collection.inspect",
+    ] {
+        let function = program
+            .functions
+            .iter()
+            .find(|f| f.id.as_str() == id)
+            .unwrap();
+        assert_eq!(function.params[0].ownership, OwnershipMode::Borrow, "{id}");
+    }
+    crate::hir::validate(&program).unwrap();
+
+    let mut moved = program.clone();
+    moved
+        .functions
+        .iter_mut()
+        .find(|f| f.id.as_str() == "collection.read")
+        .unwrap()
+        .params[0]
+        .ownership = OwnershipMode::Own;
+    assert_eq!(crate::hir::validate(&moved).unwrap_err().code, "SPX-H006");
+}
+
 const SOURCE: &str = r#"
 module test.borrowed_bytes_call_hir;
 @id("packet.type") record Packet {

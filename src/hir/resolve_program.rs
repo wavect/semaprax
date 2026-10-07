@@ -883,11 +883,12 @@ impl Resolver<'_> {
             .map(|(index, param)| {
                 let ty = self.resolve_type(&param.ty, param.span)?;
                 let id = ValueId::parameter(function_scope, index);
-                // `borrow Bytes` is the one admitted synchronous borrowed
-                // owner carrier. Other uniquely-owned values, including
-                // strings and source-value parameters, retain the established
-                // implicit-Own normalization.
-                let ownership = if ty == ResolvedType::Bytes && param.mode == ParamMode::Borrow {
+                // Explicit borrowing preserves synchronous Bytes and closed
+                // collection owners. Other uniquely-owned values, including
+                // strings and source-value parameters, retain implicit Own.
+                let ownership = if param.mode == ParamMode::Borrow
+                    && (ty == ResolvedType::Bytes || crate::map_ops::is_collection(&ty))
+                {
                     OwnershipMode::Borrow
                 } else if ty.is_uniquely_owned() {
                     OwnershipMode::Own

@@ -84,8 +84,10 @@ checks source-verifier parity for success and stable refusals. The existing
 indexed-byte guarded near miss still lacks unguarded `Some` coverage and now
 selects `SPX-M101`; its invalid field/type/effect/ownership controls stay intact.
 
-The complete matched corpus avoids a guard-to-nested-if authoring rewrite for
-sentinel and payload classification loops. That saves source scaffolding and a
-refusal/repair turn; no measured token percentage or runtime speedup is claimed.
+The complete matched corpus accepts guards directly for sentinel and payload
+classification loops, avoiding the former `SPX-T254` refusal/repair turn. The
+required fallback can repeat a case pattern, so fewer source tokens than an
+equivalent nested `if` are not assumed. No measured token percentage or runtime
+speedup is claimed.
 Owning payload guards, general guard calls or blocks, generic-function match
 materialization, and broader aggregate/collection loop support remain open.

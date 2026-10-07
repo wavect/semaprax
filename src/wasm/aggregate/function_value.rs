@@ -405,7 +405,9 @@ pub(super) fn hex_execution_identity(id: &FunctionExecutionId) -> String {
 
 pub(in crate::wasm) fn vec_import_base(program: &ResolvedProgram) -> u32 {
     super::SCALAR_IMPORT_COUNT
-        + if super::super::program_uses_byte_data(program) {
+        + if super::super::program_uses_byte_data(program)
+            || crate::iterator_ops::resolved_program_uses_record_iterator(program)
+        {
             super::BYTE_IMPORT_COUNT
         } else {
             0

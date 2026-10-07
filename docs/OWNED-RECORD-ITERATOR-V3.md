@@ -52,6 +52,9 @@ Prelude v11 binds the added admission, layout, and host protocol. Existing
 scalar and `Bytes` iterator programs keep their prior prelude, cleanup,
 Graph, and generated-byte contracts.
 
+Combining record iteration with ordinary scalar Vec renewal selects CleanupPlan
+v15 and Graph v67, retaining both independently authenticated fact groups.
+
 ## Target layout
 
 Native C11 stores the record in the existing `spx_vec_record_v1` slot. The
@@ -70,6 +73,10 @@ spx_iter_record_next_v3(iter: i64, cursor: i64, out_step: i32,
                         scalar_offset: i32, rest_offset: i32) -> i32
 spx_iter_record_drop_v3(iter: i64, cursor: i64) -> void
 ```
+
+It also selects the existing byte-buffer imports and private byte-memory
+export, even for empty traversal without explicit byte operations, because
+step validation authenticates both byte carriers through that contract.
 
 Offsets are relative to `out_step` and are derived from the independently
 validated canonical variant and record layouts. `next` writes tag 0 and zero

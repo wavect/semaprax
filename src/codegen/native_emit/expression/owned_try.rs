@@ -152,6 +152,9 @@ impl<O: COutput> CEmitter<'_, O> {
                             ty: expr.ty.clone(),
                         });
                     }
+                    let success_result = success_result.ok_or_else(|| {
+                        backend_error("owned Result Ok extraction has no Bytes destination")
+                    })?;
                     return Ok(CValue {
                         code: success_result.to_owned(),
                         ty: expr.ty.clone(),

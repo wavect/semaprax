@@ -582,7 +582,7 @@ impl NativeBytesPlan {
         &self,
         at: &ExpressionId,
         case: &DeclarationId,
-    ) -> Result<(String, &str), Diagnostic> {
+    ) -> Result<(String, Option<&str>), Diagnostic> {
         let transitions = self
             .variant_case_transitions
             .get(&(at.clone(), case.clone()))
@@ -593,8 +593,8 @@ impl NativeBytesPlan {
             .rev()
             .find_map(nested_owned::transition_destination)
             .and_then(|destination| self.slots.get(destination))
-            .ok_or_else(|| error("owned Result success has no Bytes destination"))?;
-        Ok((output, result.value.as_str()))
+            .map(|slot| slot.value.as_str());
+        Ok((output, result))
     }
     pub(super) fn transfer_to(
         &self,

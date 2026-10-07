@@ -2253,14 +2253,15 @@ fn emit_profile_with_scalar_exports(
 ) -> Result<Vec<u8>, Diagnostic> {
     crate::string_ops::refuse_collections_for_wasm(program)?;
     let uses_string_runtime = string_runtime::program_uses_runtime(program);
-    let uses_byte_data =
-        super::program_uses_byte_data(program) || super::program_uses_strings(program);
+    let uses_record_iterator = crate::iterator_ops::resolved_program_uses_record_iterator(program);
+    let uses_byte_data = super::program_uses_byte_data(program)
+        || super::program_uses_strings(program)
+        || uses_record_iterator;
     let uses_owned_buffer = program_uses_owned_buffer(program);
     let uses_vec = super::program_uses_vec(program);
     let uses_extended_vec = super::vec_ops::program_uses_extended_vec(program);
     let uses_vec_record = super::vec_ops::program_uses_record_vec(program);
     let uses_owned_iterator = crate::iterator_ops::resolved_program_uses_owned_iterator(program);
-    let uses_record_iterator = crate::iterator_ops::resolved_program_uses_record_iterator(program);
     let uses_box = super::program_uses_box(program);
     let uses_list = crate::list_ops::resolved_program_uses_list(program);
     target_gates::reject_unsupported_profiles(program)?;

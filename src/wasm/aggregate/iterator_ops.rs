@@ -112,12 +112,21 @@ impl Emitter<'_> {
                     .ok_or_else(|| error("match payload pointer overflows u32"))?,
             };
             let source = value_at(pointer, field.ty.clone(), self.program)?;
+            let borrowed_record_item = mode == crate::hir::ResolvedMatchMode::Borrow
+                && pattern_field.binding.ownership == crate::hir::OwnershipMode::Borrow
+                && case_layout.case.as_str() == crate::iterator_ops::YIELD_ID
+                && pattern_field.field.as_str() == crate::iterator_ops::ITEM_ID
+                && crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
+                    &self.program.declarations,
+                    &field.ty,
+                );
             if mode == crate::hir::ResolvedMatchMode::Borrow
-                && crate::iterator_ops::is_iter(&field.ty)
+                && (crate::iterator_ops::is_iter(&field.ty) || borrowed_record_item)
             {
-                // A borrowed iterator field is an alias into the authenticated
-                // active Step payload. It must not pass through the consuming
-                // iterator move path or clear the loop-carried remainder.
+                // A borrowed iterator field or admitted record item is an alias
+                // into the authenticated active Step payload. It must not pass
+                // through either consuming move path or clear the loop-carried
+                // remainder/item before the owning body match commits it.
                 self.bindings
                     .insert(pattern_field.binding.id.clone(), source);
                 continue;

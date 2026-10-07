@@ -433,8 +433,7 @@ use function @id("reader.finish") from reader.provider as finish;
     let built = build_owned(sources(app, &allocating)).expect("prototype keeps exact signature");
     let refused = built
         .linked_owned_data_api_program_with_roots("reader.app", &[])
-        .err()
-        .expect("real provider allocation remains forbidden under a caller loop");
+        .expect_err("real provider allocation remains forbidden under a caller loop");
     assert!(
         refused
             .iter()

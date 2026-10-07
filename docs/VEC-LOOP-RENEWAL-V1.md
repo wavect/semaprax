@@ -4,6 +4,8 @@ Audience: language, ownership, cleanup, and backend contributors.
 
 Status: implemented additive private profile with focused local interpreter, native O0/O2, Core Wasm and hostile-replay evidence.
 
+Audience: compiler contributors maintaining vector ownership and loop cleanup plans.
+
 This profile admits same-cell renewal of a mutable concrete scalar `Vec<T>`
 inside an ordinary `while` body, including updates inside its `if` branches.
 An untouched second owner no longer changes whether that exact update is

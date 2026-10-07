@@ -126,8 +126,8 @@ binary rejects.
 `semaprax help language <topic|topics>` is the fifth shape. `topics` returns
 the closed stable selector list and its card headings. The exact,
 case-sensitive topic selectors are `workflow`, `module`, `scalars`,
-`control-flow`, `records`, `ownership`, `strings`, `builtins`, `lists`,
-`mistakes-code`, `mistakes-index`, `projects`, and `specifications`. A selector
+`control-flow`, `records`, `ownership`, `strings`, `builtins`, `cli`, `maps`, `lists`,
+`mistakes-code`, `mistakes-index`, `web`, `projects`, and `specifications`. A selector
 returns exactly its complete `##` section, including the heading, from the same
 compiled card; it cannot drift from or reinterpret the compiler-checked
 document. It never includes the next section. No match exits two, emits no
@@ -139,9 +139,9 @@ The topic inventory is capped at 768 bytes. Every topic is capped at 4,600
 bytes and 1,500 repository lexical units and must remain more than five times
 smaller than the full card in both measures. The guarded `scalars` section is
 also capped at 1,024 bytes and 300 units and must remain more than twenty times
-smaller in both measures. The current card is 26,140 bytes and 7,418 units;
-`scalars` is 793 bytes and 296 units, while the topic inventory is 569 bytes
-and 77 units. Scoped help for `help` lists all nine shapes.
+smaller in both measures. The current card is 52,372 bytes and 14,673 units;
+`scalars` is 788 bytes and 293 units, while the topic inventory is 718 bytes
+and 94 units. Scoped help for `help` lists all nine shapes.
 
 ## Standard-library catalog
 

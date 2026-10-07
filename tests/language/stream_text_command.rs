@@ -89,7 +89,7 @@ fn stream_text_native_owned_calls_and_text_failure_settle_at_o0_and_o2() {
     let probe=format!("{}\n#define main spx_process_main\n{generated}\n#undef main\n#undef malloc\n#undef free\n{}", include_str!("../native_owned_utf8_settlement_v1/allocations.c"), PROBE);
     let mut fixture = Fixture::new(SOURCE);
     for optimization in ["-O0", "-O2"] {
-        assert_eq!(fixture.native(&probe, optimization), "ok\n");
+        assert_eq!(fixture.native(&probe, optimization), "ok");
     }
     fixture.cleanup();
 }
@@ -130,6 +130,7 @@ int main(void) {
         }
         REQUIRE(fixture_live==0 && fixture_allocations==fixture_frees);
     }
-    puts("ok"); return 0;
+    /* Keep the probe marker independent of Windows CRT newline translation. */
+    REQUIRE(fwrite("ok", 1, 2, stdout)==2); return 0;
 }
 "#;

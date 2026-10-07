@@ -1976,8 +1976,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                     record_iterator_item::bind(
                                         self,
                                         &staged,
-                                        case,
-                                        &field.field,
+                                        (case, &field.field),
                                         &field.ty,
                                         &pattern_field.binding,
                                         *mode,

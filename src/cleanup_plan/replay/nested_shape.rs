@@ -237,17 +237,17 @@ fn derive(
                                 let nested_record = crate::cleanup::variant_record_field(
                                     program, &container, &case.id, &field.id, &ty,
                                 );
-                                if type_needs_drop(program, function, &ty)? && !nested_record {
-                                    if crate::cleanup::variant_leaf_lifecycle(
+                                if type_needs_drop(program, function, &ty)?
+                                    && !nested_record
+                                    && crate::cleanup::variant_leaf_lifecycle(
                                         program, &container, &case.id, &field.id, &ty,
                                     )
                                     .is_none()
-                                    {
-                                        return Err(replay_error(
-                                            function,
-                                            "variant owner is outside its admitted cleanup profile",
-                                        ));
-                                    }
+                                {
+                                    return Err(replay_error(
+                                        function,
+                                        "variant owner is outside its admitted cleanup profile",
+                                    ));
                                 }
                                 case_fields.push((field.id.clone(), field.index));
                                 entries.push(ty);

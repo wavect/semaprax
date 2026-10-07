@@ -39,6 +39,15 @@
   and aggregate Wasm. Independent source/HIR classifiers, hostile layout/HIR
   controls, source/graph round trips and allocator parity gates are authored;
   verification remains pending for the combined OPT implementation batch.
+- Repair strict lint failures in cleanup replay, native/Wasm record iterator
+  helpers and workspace imports without changing verification or settlement
+  behavior; retain all existing regression assertions.
+
+- Restore bounded CLI language help without changing its topic limits; complete
+  documentation metadata and navigation, and join relocated source into the
+  contracts that audit it. Make the stream-text native probe completion marker
+  independent of host newline translation.
+
 - GAP integer and data corrections: exact named `u8`/`i32` widening and checked
   integer conversions execute on the interpreter, C11 and Core Wasm; byte helpers
   use constant work, and equal-width `i32`/`u8` remainder preserves normalized

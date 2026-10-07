@@ -1,6 +1,6 @@
-use std::process::Command;
 use std::io::Write as _;
 use std::path::PathBuf;
+use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 static NEXT_ID: AtomicU64 = AtomicU64::new(0);
@@ -10,10 +10,7 @@ fn compile_and_run(body: &str, expect_success: bool) {
         return;
     }
     let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
-    let stem = format!(
-        "semaprax-native-stdin-stream-{}-{id}",
-        std::process::id()
-    );
+    let stem = format!("semaprax-native-stdin-stream-{}-{id}", std::process::id());
     let c_path = std::env::temp_dir().join(format!("{stem}.c"));
     let executable = std::env::temp_dir().join(format!("{stem}{}", std::env::consts::EXE_SUFFIX));
     let source = format!("{}\n{}\n{}", C_STUBS, super::STDIN_STREAM_RUNTIME_C, body);
@@ -134,7 +131,8 @@ typedef uint32_t spx_status_token;
 typedef uint32_t spx_status_class;
 typedef uint32_t spx_retryability;
 typedef struct { uint8_t *data; uint64_t len; } spx_str_v1;
-typedef struct { const uint8_t *ptr; uint64_t len; } spx_slice_u8_v1;
+typedef struct { const uint8_t *ptr; uint64_t len;
+    const uint64_t *epoch; uint64_t captured_epoch; } spx_slice_u8_v1;
 struct spx_command_output_staging_v1 {
     uint64_t stdout_length;
     uint64_t stderr_length;
@@ -702,6 +700,17 @@ int main(void) {
     if (spx_language_command_stream_run_v1(&input, &provider, &result) ||
         result.semantic_success || counts.opens != UINT32_C(0) ||
         counts.settles != UINT32_C(1)) return 1;
+    /* A hostile host pointer must be rejected without dereferencing it. */
+    input.stdin_snapshot = (spx_slice_u8_v1){
+        .epoch = (const uint64_t *)(uintptr_t)1
+    };
+    if (spx_language_command_stream_run_v1(&input, &provider, &result) ||
+        result.semantic_success || counts.opens != UINT32_C(0) ||
+        counts.settles != UINT32_C(2)) return 2;
+    input.stdin_snapshot = (spx_slice_u8_v1){ .captured_epoch = UINT64_C(1) };
+    if (spx_language_command_stream_run_v1(&input, &provider, &result) ||
+        result.semantic_success || counts.opens != UINT32_C(0) ||
+        counts.settles != UINT32_C(3)) return 3;
     return 0;
 }
 "#;

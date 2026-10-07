@@ -11,7 +11,11 @@ use crate::diagnostic::Diagnostic;
 use crate::hir;
 
 mod dependency_closure;
+mod profile_names;
 mod scalar_link;
+mod stream_admission;
+pub(super) use profile_names::project_linker_name;
+pub(super) use stream_admission::{stream_parameter_admitted, stream_return_admitted};
 
 pub(super) use dependency_closure::retain_legacy_useful_data_dependency_closure;
 
@@ -1307,6 +1311,7 @@ pub(super) fn project_effects_admitted(
         || (matches!(
             profile,
             crate::project::ProjectProfile::LanguageCommandIoV1
+                | crate::project::ProjectProfile::StdinStreamCommandIoV1
                 | crate::project::ProjectProfile::LineCommandIoV1
         ) && effects.iter().all(|effect| {
             matches!(
@@ -1327,31 +1332,6 @@ pub(super) fn project_effects_admitted(
             }))
 }
 
-pub(super) fn project_linker_name(profile: crate::project::ProjectProfile) -> &'static str {
-    use crate::project::ProjectProfile as P;
-    match profile {
-        P::EnvironmentIoV1 => "Environment I/O v1 linker",
-        P::ProcessIoV1 => "Process I/O v1 linker",
-        P::FilesystemIoV1 | P::FilesystemIoV2 | P::FilesystemIoV3 => "Filesystem I/O v1 linker",
-        P::ScalarV1 => "pure scalar linker",
-        P::UsefulTextConsumerV1 => "Useful Text Consumer linker",
-        P::UsefulDataV1 | P::UsefulDataV2 => "Useful Data linker",
-        P::UsefulDataCommandV1 => "Useful Data Command linker",
-        P::UsefulDataCommandV2 => "Useful Data Command v2 linker",
-        P::LanguageCommandIoV1 => "Language Command I/O v1 linker",
-        P::LineCommandIoV1 => "Line Command I/O v1 linker",
-        P::NetworkCommandIoV1 => "Network Command I/O v1 linker",
-        P::HttpsCommandIoV1 => "HTTPS Command I/O v1 linker",
-        P::OwnedDataApiV1 => "Owned Data API v1 linker",
-        P::FlatOwnedRecordApiV1 => "Flat Owned Record API v1 linker",
-        P::OwnedUtf8ApiV1 => "Owned UTF-8 API v1 linker",
-        P::NestedOwnedRecordApiV1 => "Nested Owned Record API v1 linker",
-        P::PublicGenericWasmProviderV1 => "Public Generic Wasm Provider v1 linker",
-        P::SourceLocalFutureV1 => "Source Local Future v1 linker",
-        P::SourceLocalFutureIndexedRustV1 => "Source Local Future indexed Rust v1 linker",
-    }
-}
-
 /// Whether one retained module's declared permits stay inside the Project
 /// profile's admitted authority.
 pub(super) fn permits_admitted(
@@ -1360,6 +1340,11 @@ pub(super) fn permits_admitted(
     entry_module: &str,
     natives: &ScalarNativeImports,
 ) -> bool {
+    if profile == crate::project::ProjectProfile::StdinStreamCommandIoV1 {
+        return module.permits.iter().all(|permit| {
+            crate::project::PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2.contains(&permit.as_str())
+        });
+    }
     (profile == crate::project::ProjectProfile::EnvironmentIoV1
         && module.permits.iter().all(|effect| {
             crate::project::PROJECT_ENVIRONMENT_CAPABILITIES_V1.contains(&effect.as_str())
@@ -1384,6 +1369,7 @@ pub(super) fn permits_admitted(
         || (matches!(
             profile,
             crate::project::ProjectProfile::LanguageCommandIoV1
+                | crate::project::ProjectProfile::StdinStreamCommandIoV1
                 | crate::project::ProjectProfile::LineCommandIoV1
         ) && module.module == entry_module
             && module.permits

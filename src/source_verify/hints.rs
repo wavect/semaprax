@@ -103,6 +103,11 @@ struct StandardFunction {
 /// Foreign spellings of an operation the language provides under another name.
 fn foreign_function_help(name: &str) -> Option<&'static str> {
     match name {
+        "i64_from_u8" => Some(
+            "`u8` conversion is `std.bytes.byte_to_i64`, not a compiler builtin; inspect it with \
+             `semaprax help library std.bytes.byte_to_i64` and import it in a `useful-data.v1` \
+             project, or declare a byte conversion helper in a single file",
+        ),
         "to_string" | "toString" | "str" | "itoa" | "string" | "String" => Some(
             "render an integer with the compiler-owned `string_from_i64(value)` or \
              `string_from_usize(value)`",

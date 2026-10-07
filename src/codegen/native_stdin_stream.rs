@@ -48,9 +48,7 @@ pub fn emit_hir_c_with_stdin_stream(
     if program
         .declarations
         .declaration(&command.id)
-        .is_none_or(|declaration| {
-            declaration.identity_origin != hir::IdentityOrigin::Explicit
-        })
+        .is_none_or(|declaration| declaration.identity_origin != hir::IdentityOrigin::Explicit)
         || !command.params.is_empty()
         || command.return_type != ResolvedType::Bool
     {
@@ -85,6 +83,8 @@ pub(super) fn emit_runner(output: &mut impl COutput, command_symbol: &str) {
         provider->drop == NULL || provider->settle == NULL) return 0;
     if (input == NULL || input->stdin_snapshot.ptr != NULL ||
         input->stdin_snapshot.len != UINT64_C(0) ||
+        input->stdin_snapshot.epoch != NULL ||
+        input->stdin_snapshot.captured_epoch != UINT64_C(0) ||
         !spx_language_command_input_is_valid_v1(input)) {{
         provider->settle(provider->context);
         return 0;
@@ -404,11 +404,14 @@ static spx_slice_u8_v1 spx_stdin_stream_chunk_v1(
         spx_runtime_invariant_failure("stdin stream chunk is unavailable after read failure");
     }
     if (state->chunk_length == UINT32_C(0)) {
-        return (spx_slice_u8_v1){ .ptr = NULL, .len = UINT64_C(0) };
+        return (spx_slice_u8_v1){ .ptr = NULL, .len = UINT64_C(0),
+            .epoch = &state->chunk_generation, .captured_epoch = state->chunk_generation };
     }
     return (spx_slice_u8_v1){
         .ptr = state->chunk_bytes,
-        .len = (uint64_t)state->chunk_length
+        .len = (uint64_t)state->chunk_length,
+        .epoch = &state->chunk_generation,
+        .captured_epoch = state->chunk_generation
     };
 }
 

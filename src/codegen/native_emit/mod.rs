@@ -167,6 +167,10 @@ fn emit_hir_c_with_options(
     } else if output_profile == NativeOutputProfile::LineCommandIo {
         native_host_output::emit_line_command_runtime(&mut output);
         native_command_io::emit_line_runtime(&mut output);
+    } else if output_profile == NativeOutputProfile::StdinStreamCommandIo {
+        native_host_output::emit_language_command_runtime(&mut output);
+        native_command_io::emit_runtime(&mut output);
+        super::native_stdin_stream::emit_runtime(&mut output);
     } else if output_profile == NativeOutputProfile::LanguageCommandIo {
         native_host_output::emit_language_command_runtime(&mut output);
         native_command_io::emit_runtime(&mut output);
@@ -254,6 +258,9 @@ fn emit_hir_c_with_options(
             process_io::emit_runner(&mut output, symbol);
         } else if output_profile == NativeOutputProfile::EnvironmentCommandIo {
             environment_io::emit_runner(&mut output, symbol);
+        } else if output_profile == NativeOutputProfile::StdinStreamCommandIo {
+            super::native_stdin_stream::emit_runner(&mut output, symbol);
+            super::native_stdin_stream::emit_process_adapter(&mut output);
         } else if output_profile.is_language_command() {
             native_command_io::emit_runner(&mut output, symbol);
             native_command_io::emit_process_adapter(&mut output);
@@ -525,13 +532,19 @@ fn emit_native_prelude_inner(
         });
     }
     if program_uses_byte_data(program) || strings.provider_carriers || strings.command_carriers {
-        if strings.reserved_bytes {
+        if strings.stream_epochs {
+            native_byte_data::emit_stream_epoch_runtime(output);
+        } else if strings.reserved_bytes {
             native_byte_data::emit_reserved_runtime(output);
         } else {
             native_byte_data::emit_runtime(output);
         }
         if program_uses_additive_byte_operations(program) {
-            native_byte_data::emit_additive_operations(output);
+            if strings.stream_epochs {
+                native_byte_data::emit_stream_epoch_additive_operations(output);
+            } else {
+                native_byte_data::emit_additive_operations(output);
+            }
         }
     }
     if native_vec::program_uses_vec(program) || native_iter::program_uses_iterator(program) {
@@ -1033,92 +1046,13 @@ fn emit_variant_declaration(
     Ok(())
 }
 
-use owned_carrier::c_value_type;
+use owned_carrier::{c_value_type, record_declaration_id, variant_declaration_id};
 
 fn is_aggregate_type(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic> {
     Ok(matches!(ty, ResolvedType::ArrayU8(length) if *length != 0)
         || crate::iterator_ops::is_step(ty)
         || record_declaration_id(program, ty)?.is_some()
         || variant_declaration_id(program, ty)?.is_some())
-}
-
-fn record_declaration_id<'a>(
-    program: &ResolvedProgram,
-    ty: &'a ResolvedType,
-) -> Result<Option<&'a DeclarationId>, Diagnostic> {
-    let ResolvedType::Nominal {
-        declaration,
-        arguments,
-    } = ty
-    else {
-        return Ok(None);
-    };
-    if crate::list_ops::is_list(ty)
-        || crate::iterator_ops::is_iter(ty)
-        || is_native_owned_vec_type(program, ty)
-        || crate::cleanup::is_owned_bounded_box_type(ty)
-    {
-        return Ok(None);
-    }
-    let item = program
-        .types
-        .iter()
-        .find(|item| item.id == *declaration)
-        .ok_or_else(|| backend_error(format!("unknown native type `{declaration}`")))?;
-    if !matches!(
-        item.kind,
-        ResolvedTypeDeclarationKind::Record { .. } | ResolvedTypeDeclarationKind::Class { .. }
-    ) {
-        return Ok(None);
-    }
-    if arguments.len() != item.type_parameters.len()
-        || (!arguments.is_empty()
-            && (!matches!(item.kind, ResolvedTypeDeclarationKind::Record { .. })
-                || !generic_record::is_admitted(program, ty)?))
-    {
-        return Err(backend_error(format!(
-            "native record representation requires admitted exact concrete arguments for `{}`",
-            ty.identity_key()
-        )));
-    }
-    Ok(Some(declaration))
-}
-
-fn variant_declaration_id<'a>(
-    program: &ResolvedProgram,
-    ty: &'a ResolvedType,
-) -> Result<Option<&'a DeclarationId>, Diagnostic> {
-    let ResolvedType::Nominal {
-        declaration,
-        arguments,
-    } = ty
-    else {
-        return Ok(None);
-    };
-    let item = program
-        .types
-        .iter()
-        .find(|item| item.id == *declaration)
-        .ok_or_else(|| backend_error(format!("unknown native type `{declaration}`")))?;
-    if !matches!(item.kind, ResolvedTypeDeclarationKind::Variant { .. }) {
-        return Ok(None);
-    }
-    if arguments.len() != item.type_parameters.len()
-        || (!crate::iterator_ops::step_shape(&program.declarations, ty)
-            && !crate::hir::admitted_owned_byte_prelude_instance(declaration, arguments)
-            && !crate::hir::is_admitted_concrete_owned_byte_variant(&program.declarations, ty)
-            && arguments.iter().any(|argument| {
-                !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
-                    && !(declaration.as_str() == crate::prelude::OPTION_ID
-                        && *argument == ResolvedType::U8)
-            }))
-    {
-        return Err(backend_error(format!(
-            "native variant representation requires admitted exact concrete arguments for `{}`",
-            ty.identity_key()
-        )));
-    }
-    Ok(Some(declaration))
 }
 
 pub(super) fn emit_function_prototypes(

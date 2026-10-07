@@ -155,6 +155,19 @@ fn foreign_conversion_and_assert_names_point_at_the_admitted_route() {
 }
 
 #[test]
+fn foreign_byte_conversion_names_the_bounded_library_lookup() {
+    let diagnostic = only(
+        "module habit.byte;\n@id(\"app.main\")\nfn main() -> i64\n{\n    i64_from_u8(65u8)\n}\n",
+        "SPX-T203",
+    );
+    assert_eq!(diagnostic.message, "unknown function `i64_from_u8`");
+    assert!(help(&diagnostic).contains("semaprax help library std.bytes.byte_to_i64"));
+    assert!(help(&diagnostic).contains("useful-data.v1"));
+    assert!(help(&diagnostic).contains("single file"));
+    assert!(help(&diagnostic).len() <= 256);
+}
+
+#[test]
 fn immutable_parameter_names_the_mutable_copy_repair() {
     let diagnostic = only(
         "module habit.param_mut;\n@id(\"habit.bump\")\nfn bump(value: i64) -> i64\n{\n    value = value + 1;\n    value\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    bump(1)\n}\n",

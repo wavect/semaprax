@@ -39,6 +39,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 let expected = crate::command_io_ops::return_type(call.operation);
                 self.require_type(&expr.ty, &expected, "command I/O result")?;
                 match call.operation {
+                    Operation::StdinStreamOpen | Operation::StdinStreamNext => {
+                        self.emit_stdin_stream_host(expr, call)?
+                    }
                     Operation::ProcessRun => self.emit_process_command_expr(expr, call)?,
                     Operation::EnvLen | Operation::EnvNameUtf8 | Operation::EnvValueUtf8 => {
                         if !matches!(

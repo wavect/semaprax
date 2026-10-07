@@ -24,6 +24,8 @@ mod nested_owned;
 mod owned_buffer;
 mod owned_try;
 mod owned_values;
+mod places;
+mod stdin_stream;
 mod unary;
 mod variant_equality;
 mod variant_if;
@@ -617,6 +619,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 self.snapshot_mutable_copy_read(&place.root, value)?
             }
             ResolvedExprKind::BorrowPlace { operation, place } => {
+                if operation.as_str() == crate::stdin_stream_ops::CHUNK_ID {
+                    return self.emit_stdin_stream_chunk(expr, place);
+                }
                 let op = crate::byte_ops::by_id(operation.as_str()).ok_or_else(|| {
                     backend_error(format!(
                         "unknown compiler-owned byte view identity `{operation}`"
@@ -822,6 +827,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 type_arguments,
             } => {
                 if instance.is_none() {
+                    if callee.as_str() == crate::stdin_stream_ops::EOF_ID {
+                        return self.emit_stdin_stream_eof(expr, args, type_arguments);
+                    }
                     if let Some(op) = crate::list_ops::by_id(callee.as_str()) {
                         return self.emit_list_op(expr, op, type_arguments, args);
                     }
@@ -997,7 +1005,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                 "owned call argument was not staged in its canonical epoch",
                             ));
                         }
-                        if crate::iterator_ops::is_iter(expected) {
+                        if crate::stdin_stream_ops::is_reader(expected) {
+                            format!("spx_stdin_stream_move_v1(spx_ctx, &{value})")
+                        } else if crate::iterator_ops::is_iter(expected) {
                             format!("spx_iter_move(spx_ctx, &{value})")
                         } else if crate::cleanup::is_owned_bounded_box_type(expected) {
                             format!("spx_box_move(spx_ctx, &{value})")
@@ -2293,40 +2303,6 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         };
         self.require_type(&value.ty, &expr.ty, "expression")?;
         Ok(value)
-    }
-
-    fn emit_place(&mut self, place: &hir::Place) -> Result<CValue, Diagnostic> {
-        let binding = self.variables.get(&place.root).cloned().ok_or_else(|| {
-            backend_error(format!("resolved value `{}` is not in scope", place.root))
-        })?;
-        let mut code = binding.name;
-        let mut ty = binding.ty;
-        let storage = crate::cleanup_plan::StorageId::Value(place.root.clone());
-        let mut field_path = Vec::with_capacity(place.projections.len());
-        for projection in &place.projections {
-            let PlaceProjection::Field(field) = projection else {
-                return Err(backend_error(
-                    "native variant-field projection is outside executable records v1",
-                ));
-            };
-            let layout = self.record_layout(&ty)?;
-            let field = layout.field(field).cloned().ok_or_else(|| {
-                backend_error(format!(
-                    "native record `{}` has no place field `{field}`",
-                    layout.record
-                ))
-            })?;
-            field_path.push(field.field.clone());
-            code = if matches!(field.ty, ResolvedType::Bytes) {
-                self.generic_projected_bytes_value(&place.root, &storage, &field_path)?
-            } else if field.size == 0 {
-                self.emit_erased_record_field_value(&field.ty)?.code
-            } else {
-                format!("({code}).{}", c_field_symbol(&field.field))
-            };
-            ty = field.ty;
-        }
-        Ok(CValue { code, ty })
     }
 
     pub(super) fn record_layout(&self, ty: &ResolvedType) -> Result<AggregateLayout, Diagnostic> {

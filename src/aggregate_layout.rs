@@ -681,7 +681,7 @@ fn collect_record_type(
     ty: &ResolvedType,
     instances: &mut BTreeSet<ResolvedType>,
 ) -> Result<(), Diagnostic> {
-    if crate::list_ops::is_list(ty) {
+    if crate::list_ops::is_list(ty) || crate::stdin_stream_ops::is_reader(ty) {
         return Ok(());
     }
     let ResolvedType::Nominal {

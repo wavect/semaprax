@@ -11,6 +11,19 @@ pub(super) fn emit_runtime(output: &mut impl super::COutput) {
     output.push_str(BYTE_DATA_DROP_C);
 }
 
+/// Emit the additive Slice carrier used only by the explicit stdin-stream
+/// profile. The default carrier and its frozen projection remain untouched.
+pub(super) fn emit_stream_epoch_runtime(output: &mut impl super::COutput) {
+    stream_epoch::emit_runtime(output);
+}
+
+pub(super) fn emit_stream_epoch_additive_operations(output: &mut impl super::COutput) {
+    output.push_str(BYTE_DATA_ADDITIVE_OPERATIONS_C);
+}
+
+#[path = "native_byte_data/stream_epoch.rs"]
+mod stream_epoch;
+
 /// Emit byte-buffer store helpers introduced after the frozen default runtime.
 ///
 /// These functions depend only on the default byte runtime. Keeping them in a

@@ -67,6 +67,11 @@ fn json_cursors_write_execute_on_all_three_backends() {
     run_cursor_package("std.data.json.write");
 }
 
+#[test]
+fn json_query_projection_executes_on_all_three_backends() {
+    run_cursor_package("std.data.json.query");
+}
+
 fn run_cursor_package(module: &str) {
     super::run_examples_and_conformance(
         super::packages()

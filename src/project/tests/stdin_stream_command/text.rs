@@ -8,23 +8,30 @@ fn manifest() -> String {
             PROJECT_PROFILE_STDIN_STREAM_TEXT_COMMAND_IO_V1,
         )
 }
+fn json_dependency_manifest() -> String {
+    format!(
+        "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"stream-text-json\"\nversion = \"0.1.0\"\nprofile = \"{PROJECT_PROFILE_STDIN_STREAM_TEXT_COMMAND_IO_V1}\"\n\n[modules]\nentry = \"stream.app\"\nsources = [\"a/app.spx\", \"b/input.spx\", \"c/tests.spx\"]\ntests = [\"stream.tests\"]\n\n[exports]\nweb = [\"stream.command\"]\n\n[command]\nfunction = \"stream.command\"\ninput = \"{PROJECT_LANGUAGE_COMMAND_STREAM_INPUT_V1}\"\n\n[capabilities]\nrequired = [\"process.args.read\", \"process.stderr.write\", \"process.stdin.read\", \"process.stdout.write\"]\n\n[dependencies]\nstd.data.json.doc = \"=0.1.0\"\nstd.data.json.query = \"=0.1.0\"\n"
+    )
+}
 fn text_fixture() -> PathBuf {
     let root = exit_fixture();
-    std::fs::write(root.join(MANIFEST_FILE), manifest()).unwrap();
+    std::fs::write(root.join(MANIFEST_FILE), json_dependency_manifest()).unwrap();
     std::fs::write(
         root.join("a/app.spx"),
         canonical_source(
             "a/app.spx",
             r#"module stream.app;
 use function @id("text.cut") from stream.input as cut;
+use function @id("text.json_probe") from stream.input as json_probe;
 permit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
 @id("stream.command") fn command() -> i64 uses { process.stdin.read, process.stdout.write } {
     let reader=stdin_stream_open();
     let empty=stdin_stream_eof(reader);
+    let valid_json=json_probe();
     let text=cut("é\u{0}");
     let raw=string_as_str(text);
     let written=stdout_write(str_as_bytes(raw));
-    if empty { 0 } else { 1 }
+    if empty && valid_json { 0 } else { 1 }
 }
 @id("stream.app.main") fn main()->i64 { let text=cut("abc"); string_len(text)-3 }
 "#,
@@ -36,7 +43,14 @@ permit { process.args.read, process.stderr.write, process.stdin.read, process.st
         canonical_source(
             "b/input.spx",
             r#"module stream.input;
+use function @id("std.data.json.doc.is_document") from std.data.json.doc as is_document;
+use function @id("std.data.json.query.decoded_token_eq") from std.data.json.query as decoded_token_eq;
 @id("text.cut") fn cut(text:string)->string { string_slice(text,0,3) }
+@id("text.json_probe") fn json_probe()->bool {
+    let input=[91u8,34u8,110u8,97u8,92u8,117u8,48u8,48u8,54u8,100u8,101u8,34u8,44u8,34u8,110u8,97u8,109u8,101u8,34u8,93u8];
+    let view=array_as_slice(input);
+    is_document(view) && decoded_token_eq(view,1usize,13usize)
+}
 "#,
         ),
     )
@@ -70,7 +84,14 @@ fn v25_stream_text_exact_manifest_table_and_closed_old_profiles() {
 #[test]
 fn v25_stream_text_links_owned_string_helpers_and_refuses_web_npm() {
     let root = text_fixture();
-    with_authenticated_project(&root.join(MANIFEST_FILE), |_| Ok(())).unwrap();
+    with_authenticated_project(&root.join(MANIFEST_FILE), |snapshot| {
+        let workspace = snapshot.workspace_manifest();
+        assert!(workspace.contains("dependencies/std.data.json.query/0.1.0/query.spx"));
+        assert!(workspace.contains("dependencies/std.data.json.doc/0.1.0/doc.spx"));
+        assert!(workspace.contains("dependencies/std.data.json/0.1.0/json.spx"));
+        Ok(())
+    })
+    .unwrap();
     let before = file_inventory(&root);
     assert_eq!(
         with_authenticated_project(&root.join(MANIFEST_FILE), |s| s

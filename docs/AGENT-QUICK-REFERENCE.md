@@ -1208,6 +1208,9 @@ by `semaprax help library`, lists every `std.*` function with its contract,
 required project profile, and exact `[dependencies]` route. Add the dependency
 to the table manifest and import the function by its `@id` as above; an
 installed compiler supplies the bundled package without a repository checkout.
+For JSON escape expansion and decoded member-name comparison in a v25
+`stream-text` project, use [JSON String Query v1](JSON-STRING-QUERY-V1.md) and
+the `std.data.json.query` catalog entry.
 Bounded Vec uses profile `owned-data-api.v1` and
 `std.collections = "^0.1.0"`. Import `std.collections.vec.*` by stable identity
 with an explicit Copy-scalar type argument. Mutators transfer and return the

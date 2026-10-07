@@ -189,6 +189,7 @@ Audience: all documentation readers.
 - [Ordinary Vec Loop Renewal v1](VEC-LOOP-RENEWAL-V1.md)
 - [Bounded JSON scanner](BOUNDED-JSON-SCANNER-V1.md)
 - [JSON cursor adapters v1](JSON-CURSORS-V1.md)
+- [JSON String Query v1](JSON-STRING-QUERY-V1.md)
 - [Owned Byte Record Algebra](OWNED-BYTE-RECORD-ALGEBRA-V1.md)
 - [Concrete Generic Owned-Byte Records](CONCRETE-GENERIC-OWNED-BYTE-RECORDS-V1.md)
 - [Acyclic Nested Owned-Byte Records](NESTED-OWNED-BYTE-RECORDS-V1.md)

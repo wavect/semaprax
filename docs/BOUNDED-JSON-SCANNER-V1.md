@@ -2,10 +2,10 @@
 
 Audience: language users, tool authors, and standard-library contributors.
 
-Status: partially implemented, across seven sibling packages that share one
-result encoding. Six are pure, allocation-free, and operate on a borrowed byte
-view or Copy scalars; `std.data.json.dec` additionally fills one owned bounded
-byte buffer of fixed capacity inside a single function:
+Status: partially implemented, across eight sibling packages that share one
+result encoding. Seven are pure, allocation-free, and operate on a borrowed
+byte view or Copy scalars; `std.data.json.dec` additionally fills one owned
+bounded byte buffer of fixed capacity inside a single function:
 
 | Package | Admitted scope |
 | --- | --- |
@@ -16,11 +16,12 @@ byte buffer of fixed capacity inside a single function:
 | `std.data.json.digits` | Deterministic **number and literal encoding**: the exact decimal bytes of any `i64` and the literal words |
 | `std.data.json.doc` | **Structural documents**: the object and array grammar, a bounded nesting depth, trailing-byte rejection over a whole document, and a duplicate-key rule over byte-identical member names |
 | `std.data.json.dec` | **Decoded strings**: the exact decoded length of a JSON string, the decoded bytes of each token, and a buffer-backed comparison of the decoded bytes against a caller-supplied slice |
+| `std.data.json.query` | **Useful-data string queries**: borrowed-slice decoded length and pull surface, plus decoded-token equality without Reader/Writer types |
 
 A caller-provided output buffer and an owned document tree are Missing.
 
 This document owns the result encoding and rejection policy shared by all
-seven. [Standard Library v1](STANDARD-LIBRARY-V1.md) owns their status rows and
+eight. [Standard Library v1](STANDARD-LIBRARY-V1.md) owns their status rows and
 the admission limits that shape them.
 
 ## Why a scanner and not a document
@@ -221,15 +222,20 @@ obstacles are gone: Core Wasm executes both operations through the
 admits any `usize` index expression, so an offset a scan discovers can be
 written; and the same-owner replacement `buffer = bytes_set(buffer, index,
 value)` is admitted inside a bounded `while`, with the allocation staying
-outside it. `std.data.json.dec` fills exactly such a buffer from a scan. What
-stands in the way here is the package budget and `SPX-W115`: `std.data.json.doc`
-sits about 1.1 KB under `SPX-G171`, and it carries public web exports, whose
-build admits no owned byte buffer anywhere in the program.
+outside it. `std.data.json.dec` fills exactly such a buffer from a scan. The
+additive `std.data.json.query` projection exposes the same pure escape rules
+through borrowed slices and scalar results, without Reader/Writer declarations.
+What stands in the way of an owned structural key record here is
+the package budget and `SPX-W115`: `std.data.json.doc` sits about 1.1 KB under
+`SPX-G171`, and it carries public web exports, whose build admits no owned byte
+buffer anywhere in the program.
 
 ## Decoding
 
-`std.data.json.dec` expands escapes. It is the only package in this family
-that allocates, and it allocates exactly one buffer, inside one function.
+`std.data.json.dec` provides the Reader/Writer cursor adapter and its earlier
+buffer-backed helpers. `std.data.json.query` reuses the pure escape rules for
+borrowed-slice tokens under `useful-data.v1`; it
+declares no Reader/Writer interface.
 
 `decoded_len(input, start)` is the exact number of bytes the JSON string
 beginning at `start` produces once its escapes are expanded, in this document's
@@ -395,6 +401,5 @@ Two consequences of that measurement shape `std.data.json.doc`:
   coverage those exports require, and the UTF-8 rules cost more again. The
   1.1 KB left after the duplicate-key layer admits neither.
 
-Decoded strings, an output buffer, an owned document tree, and re-checking
-escape and UTF-8 validity inside the document layer still need either a further
-split or that bound raised.
+An owned document tree and re-checking escape and UTF-8 validity inside the
+document layer still need either a further split or that bound raised.

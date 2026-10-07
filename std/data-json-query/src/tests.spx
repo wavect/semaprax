@@ -1,0 +1,63 @@
+module std.data.json.query.tests;
+use function @id("std.data.json.query.byte_code") from std.data.json.query as byte_code;
+use function @id("std.data.json.query.decoded_len") from std.data.json.query as decoded_len;
+use function @id("std.data.json.query.decoded_token_eq") from std.data.json.query as decoded_token_eq;
+use function @id("std.data.json.query.emit_at") from std.data.json.query as emit_at;
+use function @id("std.data.json.query.emit_len") from std.data.json.query as emit_len;
+use function @id("std.data.json.query.scalar_at") from std.data.json.query as scalar_at;
+use function @id("std.data.json.query.scan_string") from std.data.json.query as scan_string;
+use function @id("std.data.json.query.token_end") from std.data.json.query as token_end;
+use function @id("std.data.json.query.utf8_at") from std.data.json.query as utf8_at;
+use function @id("std.data.json.query.utf8_len") from std.data.json.query as utf8_len;
+use function @id("std.data.json.is_failure") from std.data.json as is_failure;
+use function @id("std.data.json.failure_offset") from std.data.json as failure_offset;
+
+@id("std.data.json.query.tests.escaped_names")
+fn escaped_names() -> bool
+{
+    let input = [123u8, 34u8, 110u8, 97u8, 92u8, 117u8, 48u8, 48u8, 54u8, 100u8, 101u8, 34u8, 58u8, 49u8, 44u8, 34u8, 110u8, 97u8, 109u8, 101u8, 34u8, 58u8, 50u8, 125u8];
+    let view = array_as_slice(input);
+    decoded_token_eq(view, 1usize, 15usize) && decoded_len(view, 1usize) == 4usize && decoded_len(view, 15usize) == 4usize
+}
+
+@id("std.data.json.query.tests.unicode_decode")
+fn unicode_decode() -> bool
+{
+    let input = [34u8, 92u8, 117u8, 48u8, 48u8, 101u8, 57u8, 92u8, 117u8, 68u8, 56u8, 51u8, 68u8, 92u8, 117u8, 68u8, 69u8, 48u8, 48u8, 92u8, 110u8, 92u8, 117u8, 48u8, 48u8, 48u8, 48u8, 34u8];
+    let source = array_as_slice(input);
+    decoded_len(source, 0usize) == 8usize && utf8_len(scalar_at(source, 1usize)) == 2usize && emit_at(source, 1usize, 0usize) == 195 && emit_at(source, 1usize, 1usize) == 169 && utf8_len(scalar_at(source, 7usize)) == 4usize && emit_at(source, 7usize, 0usize) == 240 && emit_at(source, 7usize, 1usize) == 159 && emit_at(source, 7usize, 2usize) == 152 && emit_at(source, 7usize, 3usize) == 128 && emit_at(source, 19usize, 0usize) == 10 && emit_at(source, 21usize, 0usize) == 0 && byte_code(255u8) == 255
+}
+
+@id("std.data.json.query.tests.scalar_pull")
+fn scalar_pull() -> bool
+{
+    let raw = [92u8, 117u8, 68u8, 56u8, 51u8, 68u8, 92u8, 117u8, 68u8, 69u8, 48u8, 48u8];
+    let source = array_as_slice(raw);
+    scalar_at(source, 0usize) == 128512 && utf8_len(128512) == 4usize && utf8_at(128512, 0usize) == 240 && utf8_at(128512, 3usize) == 128 && emit_len(source, 0usize) == 4usize && emit_at(source, 0usize, 2usize) == 152
+}
+
+@id("std.data.json.query.tests.invalid_escapes")
+fn invalid_escapes() -> bool
+{
+    let bad_zero = [34u8, 92u8, 48u8, 34u8];
+    let bad_hex = [34u8, 92u8, 117u8, 48u8, 48u8, 71u8, 48u8, 34u8];
+    let high = [34u8, 92u8, 117u8, 68u8, 56u8, 51u8, 68u8, 34u8];
+    let low = [34u8, 92u8, 117u8, 68u8, 69u8, 48u8, 48u8, 34u8];
+    let wrong_pair = [34u8, 92u8, 117u8, 68u8, 56u8, 51u8, 68u8, 92u8, 117u8, 48u8, 48u8, 52u8, 49u8, 34u8];
+    let control = [34u8, 0u8, 34u8];
+    let truncated = [34u8, 97u8];
+    let zero = array_as_slice(bad_zero);
+    let hex = array_as_slice(bad_hex);
+    let lone_high = array_as_slice(high);
+    let lone_low = array_as_slice(low);
+    let pair = array_as_slice(wrong_pair);
+    let raw_control = array_as_slice(control);
+    let short = array_as_slice(truncated);
+    is_failure(zero, decoded_len(zero, 0usize)) && failure_offset(zero, decoded_len(zero, 0usize), 99usize) == 1usize && failure_offset(hex, decoded_len(hex, 0usize), 99usize) == 1usize && failure_offset(lone_high, decoded_len(lone_high, 0usize), 99usize) == 1usize && failure_offset(lone_low, decoded_len(lone_low, 0usize), 99usize) == 1usize && failure_offset(pair, decoded_len(pair, 0usize), 99usize) == 1usize && failure_offset(raw_control, decoded_len(raw_control, 0usize), 99usize) == 1usize && failure_offset(short, decoded_len(short, 0usize), 99usize) == 2usize && !decoded_token_eq(zero, 0usize, 0usize)
+}
+
+@id("std.data.json.query.tests.main")
+fn main() -> i64
+{
+    if escaped_names() && unicode_decode() && scalar_pull() && invalid_escapes() && scan_string(array_as_slice([34u8, 97u8, 34u8]), 0usize, false) == 3usize && token_end(array_as_slice([92u8, 110u8]), 0usize) == 2usize { 0 } else { 1 }
+}

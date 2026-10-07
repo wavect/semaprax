@@ -1,0 +1,17 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "std-data-json-query"
+version = "0.1.0"
+profile = "useful-data.v1"
+
+[modules]
+entry = "std.data.json.query.examples"
+sources = ["src/examples.spx", "src/query.spx", "src/tests.spx"]
+tests = ["std.data.json.query.tests"]
+
+[exports]
+web = ["std.data.json.query.decoded_len", "std.data.json.query.decoded_token_eq"]
+
+[dependencies]
+std.data.json = "=0.1.0"

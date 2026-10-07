@@ -1,5 +1,10 @@
 # Changelog
 
+- Author Ordinary Vec Loop Renewal v1: exact scalar same-cell updates preserve
+  their cleanup position among untouched owners through independently replayed
+  CleanupPlan v15 and Graph v66. Consuming iterator v12/v40 remains frozen;
+  focused interpreter/native/Wasm and hostile-proof verification is pending.
+
 - Add native Project v24 streaming commands with explicit `i64` application
   exit statuses (0–255), staged output rejection for invalid results, and
   artifact-free Wasm/npm refusal. Project v23 Bool status mapping remains

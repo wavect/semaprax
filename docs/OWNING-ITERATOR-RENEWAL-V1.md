@@ -58,3 +58,7 @@ callback failure after staging the output owner. Repeated runs verify exact
 allocation settlement. [Generic Iterator Operations v1](GENERIC-ITERATOR-OPERATIONS-V1.md)
 records the shared corpus and Linux selector. The implemented release corpus
 is hosted green; historical local results retain their original scope.
+
+The separately versioned [Ordinary Vec Loop Renewal v1](VEC-LOOP-RENEWAL-V1.md)
+adds exact same-cell updates in ordinary `while` bodies. It excludes this
+consuming traversal protocol and preserves its frozen v12/v40 selection.

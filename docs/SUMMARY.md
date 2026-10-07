@@ -186,6 +186,7 @@ Audience: all documentation readers.
 - [Owning Iterator Payloads v2](OWNING-ITERATOR-PAYLOADS-V2.md)
 - [Owning Iterator Loops v1](OWNING-ITERATOR-LOOPS-V1.md)
 - [Owning Iterator Renewal v1](OWNING-ITERATOR-RENEWAL-V1.md)
+- [Ordinary Vec Loop Renewal v1](VEC-LOOP-RENEWAL-V1.md)
 - [Bounded JSON scanner](BOUNDED-JSON-SCANNER-V1.md)
 - [JSON cursor adapters v1](JSON-CURSORS-V1.md)
 - [Owned Byte Record Algebra](OWNED-BYTE-RECORD-ALGEBRA-V1.md)

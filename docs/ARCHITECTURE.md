@@ -892,6 +892,14 @@ not select reservations or grant runtime authority. Source and HIR generic
 collection classifiers admit the bounded one- or two-type-parameter operation
 shape; cache encoding retains its exact ordered type vector and renewal facts.
 
+`src/hir/vec_loop_renewal.rs` separately derives direct same-binding scalar Vec
+updates in ordinary `while` bodies, excluding authenticated consuming traversal.
+`src/cleanup_plan/renewal_profile.rs` supplies that exact site identity to build
+and independent replay. CleanupPlan v15 retains the existing reservation and
+history algorithms; `src/graph/vec_loop_renewal.rs` composes Graph v66 with all
+preceding admitted facts. [Ordinary Vec Loop Renewal v1](VEC-LOOP-RENEWAL-V1.md)
+owns this additive profile and its executable gate.
+
 The additive owned-payload iterator is split across
 `src/interpreter/iterator.rs`, which validates the initialized suffix and uses a
 detached-prefix sentinel for the moved slot, and

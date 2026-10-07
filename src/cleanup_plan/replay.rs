@@ -26,8 +26,9 @@ use super::{
     ExitContinuation, ExitTarget, StagedCopyResultSource, StatusCase, StatusLane, StatusProducer,
     StatusSource, StatusSourceId, StorageId, CLEANUP_PLAN_SCHEMA_V10, CLEANUP_PLAN_SCHEMA_V11,
     CLEANUP_PLAN_SCHEMA_V12, CLEANUP_PLAN_SCHEMA_V13, CLEANUP_PLAN_SCHEMA_V14,
-    CLEANUP_PLAN_SCHEMA_V2, CLEANUP_PLAN_SCHEMA_V3, CLEANUP_PLAN_SCHEMA_V4, CLEANUP_PLAN_SCHEMA_V5,
-    CLEANUP_PLAN_SCHEMA_V6, CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
+    CLEANUP_PLAN_SCHEMA_V15, CLEANUP_PLAN_SCHEMA_V2, CLEANUP_PLAN_SCHEMA_V3,
+    CLEANUP_PLAN_SCHEMA_V4, CLEANUP_PLAN_SCHEMA_V5, CLEANUP_PLAN_SCHEMA_V6, CLEANUP_PLAN_SCHEMA_V7,
+    CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
 };
 mod factored;
 mod leaf_index;
@@ -2578,6 +2579,7 @@ fn validate_blocks_and_edges(
                             | CLEANUP_PLAN_SCHEMA_V11
                             | CLEANUP_PLAN_SCHEMA_V12
                             | CLEANUP_PLAN_SCHEMA_V13
+                            | CLEANUP_PLAN_SCHEMA_V15
                             | CLEANUP_PLAN_SCHEMA_V14
                     ) && matches!(
                         plan.edges[edge.0 as usize].condition,
@@ -3309,7 +3311,7 @@ fn expression_skeleton(
                     produced = Some(strings::paths(expression, work)?);
                     continue;
                 }
-                if crate::hir::iterator_loop::renewal_binding(function, &expression.id).is_some() {
+                if crate::cleanup_plan::renewal_binding(function, &expression.id).is_some() {
                     push_frame!(frames, Frame::RenewalPrefix(expression));
                 }
 

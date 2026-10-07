@@ -38,6 +38,7 @@ mod session_protocol_decl;
 mod session_protocol_facet;
 mod session_protocol_follows;
 mod stdin_stream;
+mod vec_loop_renewal;
 mod work_counter;
 pub(crate) use agent_execution::facts as agent_execution_facts;
 use expression::expr_json;
@@ -48,7 +49,7 @@ use generic_instances::legacy_graph_json;
 pub(crate) use generic_instances::to_legacy_hir_json;
 pub use generic_instances::{legacy_context_json, to_legacy_json, verify_json};
 pub(crate) use generic_mapping::requires_v35;
-use stdin_stream::graph_json;
+use vec_loop_renewal::graph_json;
 
 #[path = "graph/native_import.rs"]
 mod native_import;

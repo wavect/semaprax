@@ -17,7 +17,9 @@ mod owner_admission;
 // leave the Copy-scalar profile; every other owned or aggregate value still
 // keeps its existing SPX-T303/T305/T306 refusal.
 mod owned_liveness;
+mod renewal_profile;
 mod replay;
+pub(crate) use renewal_profile::binding as renewal_binding;
 mod validate;
 
 pub(crate) use build::build_plan;
@@ -52,6 +54,8 @@ pub const CLEANUP_PLAN_SCHEMA_V12: &str = "semaprax.cleanup-plan.v12";
 pub const CLEANUP_PLAN_SCHEMA_V13: &str = "semaprax.cleanup-plan.v13";
 /// Native owner admission has an authenticated precommit failure exit.
 pub const CLEANUP_PLAN_SCHEMA_V14: &str = "semaprax.cleanup-plan.v14";
+/// Ordinary scalar Vec while updates preserve their reserved cleanup position.
+pub const CLEANUP_PLAN_SCHEMA_V15: &str = "semaprax.cleanup-plan.v15";
 
 macro_rules! numeric_id {
     ($name:ident) => {

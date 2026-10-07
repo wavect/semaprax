@@ -1312,6 +1312,7 @@ pub(super) fn project_effects_admitted(
             profile,
             crate::project::ProjectProfile::LanguageCommandIoV1
                 | crate::project::ProjectProfile::StdinStreamCommandIoV1
+                | crate::project::ProjectProfile::StdinStreamCommandIoV2
                 | crate::project::ProjectProfile::LineCommandIoV1
         ) && effects.iter().all(|effect| {
             matches!(
@@ -1340,7 +1341,7 @@ pub(super) fn permits_admitted(
     entry_module: &str,
     natives: &ScalarNativeImports,
 ) -> bool {
-    if profile == crate::project::ProjectProfile::StdinStreamCommandIoV1 {
+    if profile.is_stdin_stream() {
         return module.permits.iter().all(|permit| {
             crate::project::PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2.contains(&permit.as_str())
         });
@@ -1370,6 +1371,7 @@ pub(super) fn permits_admitted(
             profile,
             crate::project::ProjectProfile::LanguageCommandIoV1
                 | crate::project::ProjectProfile::StdinStreamCommandIoV1
+                | crate::project::ProjectProfile::StdinStreamCommandIoV2
                 | crate::project::ProjectProfile::LineCommandIoV1
         ) && module.module == entry_module
             && module.permits

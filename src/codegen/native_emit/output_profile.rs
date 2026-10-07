@@ -24,6 +24,7 @@ pub(crate) enum NativeOutputProfile {
     UsefulDataCommand,
     LanguageCommandIo,
     StdinStreamCommandIo,
+    StdinStreamExitCommandIo,
     LineCommandIo,
     /// Bounded Language Network I/O v1: the line-command input/output
     /// machinery plus the closed TCP operation family and its settlement.
@@ -121,7 +122,7 @@ impl NativeOutputProfile {
                 stream_epochs: false,
                 command_carriers: false,
             },
-            Self::StdinStreamCommandIo => StringRuntimeSelection {
+            Self::StdinStreamCommandIo | Self::StdinStreamExitCommandIo => StringRuntimeSelection {
                 stream_epochs: true,
                 command_carriers: true,
                 ..StringRuntimeSelection::FROZEN
@@ -137,6 +138,13 @@ impl NativeOutputProfile {
             | Self::EnvironmentCommandIo
             | Self::ProcessCommandIo => StringRuntimeSelection::FROZEN,
         }
+    }
+
+    pub(super) const fn is_stdin_stream(self) -> bool {
+        matches!(
+            self,
+            Self::StdinStreamCommandIo | Self::StdinStreamExitCommandIo
+        )
     }
 
     pub(super) const fn tracks_present_strings(self) -> bool {
@@ -159,6 +167,7 @@ impl NativeOutputProfile {
                 | Self::UsefulDataCommand
                 | Self::LanguageCommandIo
                 | Self::StdinStreamCommandIo
+                | Self::StdinStreamExitCommandIo
                 | Self::LineCommandIo
                 | Self::NetworkCommandIo
                 | Self::HttpsCommandIo
@@ -175,6 +184,7 @@ impl NativeOutputProfile {
             Self::UsefulDataCommand
                 | Self::LanguageCommandIo
                 | Self::StdinStreamCommandIo
+                | Self::StdinStreamExitCommandIo
                 | Self::LineCommandIo
                 | Self::NetworkCommandIo
                 | Self::HttpsCommandIo
@@ -193,6 +203,7 @@ impl NativeOutputProfile {
             self,
             Self::LanguageCommandIo
                 | Self::StdinStreamCommandIo
+                | Self::StdinStreamExitCommandIo
                 | Self::LineCommandIo
                 | Self::NetworkCommandIo
                 | Self::HttpsCommandIo

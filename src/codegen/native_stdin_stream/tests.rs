@@ -57,6 +57,15 @@ fn compile_and_run(body: &str, expect_success: bool) {
 }
 
 fn compile_runner(command: &str, tail: &str, include_process_adapter: bool) -> Option<PathBuf> {
+    compile_runner_profile(command, tail, include_process_adapter, false)
+}
+
+fn compile_runner_profile(
+    command: &str,
+    tail: &str,
+    include_process_adapter: bool,
+    exit_status: bool,
+) -> Option<PathBuf> {
     if Command::new("clang").arg("--version").output().is_err() {
         return None;
     }
@@ -72,11 +81,19 @@ fn compile_runner(command: &str, tail: &str, include_process_adapter: bool) -> O
     super::emit_runtime(&mut source);
     source.push_str(command);
     source.push('\n');
-    super::emit_runner(&mut source, "test_command");
+    if exit_status {
+        super::exit_status::emit_runner(&mut source, "test_command");
+    } else {
+        super::emit_runner(&mut source, "test_command");
+    }
     source.push_str(tail);
     source.push('\n');
     if include_process_adapter {
-        super::emit_process_adapter(&mut source);
+        if exit_status {
+            super::exit_status::emit_process_adapter(&mut source);
+        } else {
+            super::emit_process_adapter(&mut source);
+        }
     }
     std::fs::write(&c_path, source).unwrap();
     let compiled = Command::new("clang")
@@ -735,4 +752,77 @@ int main(void) {
         String::from_utf8_lossy(&output.stderr)
     );
     let _ = std::fs::remove_file(executable);
+}
+
+#[test]
+fn stream_exit_runner_preserves_read_failure_and_settles_without_publication() {
+    let command = r#"
+static spx_status_token test_command(struct spx_context *context, int64_t *application_status) {
+    struct spx_stdin_stream_state_v1 *state = context->target_state;
+    memcpy(state->command.output.stdout_bytes, "bad", 3u);
+    memcpy(state->command.output.stderr_bytes, "bad", 3u);
+    state->command.output.stdout_length = UINT64_C(3);
+    state->command.output.stderr_length = UINT64_C(3);
+    *application_status = INT64_C(2);
+    uintptr_t reader = (uintptr_t)0;
+    return spx_host_stdin_stream_open_v1(context, &reader);
+}
+"#;
+    let tail = r#"
+struct counts { uint32_t reads; uint32_t drops; uint32_t settles; };
+static uint32_t open_provider(void *opaque, uintptr_t *token_out) {
+    (void)opaque; *token_out = (uintptr_t)1; return UINT32_C(0);
+}
+static uint32_t read_provider(void *opaque, uintptr_t token, uint8_t *buffer,
+    uint32_t capacity, uint32_t *length_out, uint32_t *eof_out) {
+    (void)token; (void)buffer; (void)capacity; (void)length_out; (void)eof_out;
+    ((struct counts *)opaque)->reads += UINT32_C(1);
+    return UINT32_C(3);
+}
+static void drop_provider(void *opaque, uintptr_t token) {
+    (void)token; ((struct counts *)opaque)->drops += UINT32_C(1);
+}
+static void settle_provider(void *opaque) {
+    ((struct counts *)opaque)->settles += UINT32_C(1);
+}
+int main(void) {
+    struct counts counts = {0};
+    struct spx_language_command_input_v1 input = {0};
+    struct spx_language_command_stream_result_v2 result = {0};
+    const struct spx_stdin_stream_provider_v1 provider = {
+        .context = &counts, .open = open_provider, .read = read_provider,
+        .drop = drop_provider, .settle = settle_provider
+    };
+    if (!spx_language_command_stream_run_v2(&input, &provider, &result) ||
+        result.semantic_success || result.application_status != INT64_C(0) ||
+        result.stdout_length != UINT64_C(0) || result.stderr_length != UINT64_C(0) ||
+        strcmp(result.status_domain, "semaprax.command-input.v1") != 0 ||
+        result.status_code != UINT32_C(3) || counts.reads != UINT32_C(1) ||
+        counts.drops != UINT32_C(1) || counts.settles != UINT32_C(1)) return 1;
+    return 0;
+}
+"#;
+    let executable = compile_runner_profile(command, tail, false, true)
+        .expect("clang is required for this test");
+    let output = Command::new(&executable).output().unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let _ = std::fs::remove_file(executable);
+}
+
+#[test]
+fn stream_v1_process_result_remains_bool_only() {
+    for matched in [false, true] {
+        let command = format!("static spx_status_token test_command(struct spx_context *context, bool *matched) {{ (void)context; *matched = {matched}; return SPX_STATUS_SUCCESS; }}\n");
+        let executable =
+            compile_runner(&command, "", true).expect("clang is required for this test");
+        let output = run_with_stdin(&executable, b"");
+        assert_eq!(output.status.code(), Some(if matched { 0 } else { 1 }));
+        assert!(output.stdout.is_empty());
+        assert!(output.stderr.is_empty());
+        let _ = std::fs::remove_file(executable);
+    }
 }

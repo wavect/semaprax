@@ -3,11 +3,11 @@
 use crate::diagnostic::Diagnostic;
 use crate::hir::{self, Place, ResolvedExpr, ResolvedHostCommandCall, ResolvedType};
 
-use super::super::{backend_error, CEmitter, COutput, CValue, NativeOutputProfile};
+use super::super::{backend_error, CEmitter, COutput, CValue};
 
 impl<'a, O: COutput> CEmitter<'a, O> {
     fn require_stdin_stream_profile(&self) -> Result<(), Diagnostic> {
-        if self.output_profile != NativeOutputProfile::StdinStreamCommandIo {
+        if !self.output_profile.is_stdin_stream() {
             return Err(backend_error(
                 "stdin reader requires the explicit native streaming-command profile",
             ));

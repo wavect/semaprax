@@ -24,6 +24,7 @@ pub(crate) fn execute_held(
                     project::ProjectProfile::UsefulDataCommandV2
                         | project::ProjectProfile::LanguageCommandIoV1
                         | project::ProjectProfile::StdinStreamCommandIoV1
+                        | project::ProjectProfile::StdinStreamCommandIoV2
                         | project::ProjectProfile::LineCommandIoV1
                         | project::ProjectProfile::NetworkCommandIoV1
                         | project::ProjectProfile::HttpsCommandIoV1
@@ -32,8 +33,7 @@ pub(crate) fn execute_held(
                     (
                         snapshot.entry_program().entrypoint.as_str().to_owned(),
                         command_id.to_owned(),
-                        snapshot.manifest().project_profile()
-                            == project::ProjectProfile::StdinStreamCommandIoV1,
+                        snapshot.manifest().project_profile().is_stdin_stream(),
                     )
                 })
             } else {

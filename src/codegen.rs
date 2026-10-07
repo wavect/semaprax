@@ -53,7 +53,9 @@ mod native_source_command;
     )
 )]
 mod native_stdin_stream;
-pub use native_stdin_stream::emit_hir_c_with_stdin_stream;
+pub use native_stdin_stream::{
+    emit_hir_c_with_stdin_stream, emit_hir_c_with_stdin_stream_exit_status,
+};
 mod native_trace;
 mod native_trace_runtime;
 mod native_value;

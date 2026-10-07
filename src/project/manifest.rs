@@ -75,6 +75,7 @@ pub const PROJECT_SCHEMA_V21: &str = "semaprax.project.v21";
 pub const PROJECT_SCHEMA_V22: &str = "semaprax.project.v22";
 /// Additive Project Manifest v23 schema for native chunked stdin commands.
 pub const PROJECT_SCHEMA_V23: &str = "semaprax.project.v23";
+pub const PROJECT_SCHEMA_V24: &str = "semaprax.project.v24";
 pub const PROJECT_SCHEMA_V16: &str = "semaprax.project.v16";
 pub const PROJECT_SCHEMA_V15: &str = "semaprax.project.v15";
 pub const PROJECT_SCHEMA_V14: &str = "semaprax.project.v14";
@@ -352,7 +353,7 @@ impl ProjectManifest {
                         parse_array_assignment(lines[10], "tests")?,
                     )
                 }
-                PROJECT_SCHEMA_V6 | PROJECT_SCHEMA_V23 => stream::parse(&lines, &schema)?,
+                PROJECT_SCHEMA_V6 | PROJECT_SCHEMA_V23 | PROJECT_SCHEMA_V24 => stream::parse(&lines, &schema)?,
                 PROJECT_SCHEMA_V7 => {
                     if lines.len() != 12 || lines.last() != Some(&"") {
                         return Err(grammar(
@@ -728,6 +729,7 @@ impl ProjectManifest {
             PROJECT_SCHEMA_V5 => "Project v5",
             PROJECT_SCHEMA_V6 => "Project v6",
             PROJECT_SCHEMA_V23 => "Project v23",
+            PROJECT_SCHEMA_V24 => "Project v24",
             PROJECT_SCHEMA_V7 => "Project v7",
             PROJECT_SCHEMA_V8 => "Project v8",
             PROJECT_SCHEMA_V9 => "Project v9",
@@ -1172,10 +1174,10 @@ impl ProjectManifest {
                 render_array(&self.capabilities),
                 self.test_module,
             )
-        } else if self.schema == PROJECT_SCHEMA_V23 {
-            debug_assert_eq!(self.schema, PROJECT_SCHEMA_V23);
+        } else if matches!(self.schema, PROJECT_SCHEMA_V23 | PROJECT_SCHEMA_V24) {
             format!(
-                "schema = \"{PROJECT_SCHEMA_V23}\"\nname = \"{}\"\nversion = \"{}\"\nprofile = \"{}\"\nentry = \"{}\"\nsources = {}\nweb_exports = {}\ncommand = \"{}\"\ninput = \"{}\"\ncapabilities = {}\ntests = [\"{}\"]\n",
+                "schema = \"{}\"\nname = \"{}\"\nversion = \"{}\"\nprofile = \"{}\"\nentry = \"{}\"\nsources = {}\nweb_exports = {}\ncommand = \"{}\"\ninput = \"{}\"\ncapabilities = {}\ntests = [\"{}\"]\n",
+                self.schema,
                 self.name,
                 self.package_version.as_deref().expect("Project v23 carries a package version"),
                 self.profile.name().expect("Project v23 carries a named profile"),

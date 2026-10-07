@@ -1374,6 +1374,7 @@ impl WorkspaceGraphBuild {
                     profile,
                     crate::project::ProjectProfile::LanguageCommandIoV1
                         | crate::project::ProjectProfile::StdinStreamCommandIoV1
+                        | crate::project::ProjectProfile::StdinStreamCommandIoV2
                         | crate::project::ProjectProfile::LineCommandIoV1
                         | crate::project::ProjectProfile::ProcessIoV1
                 ) || function.effects.is_empty()
@@ -1475,7 +1476,8 @@ impl WorkspaceGraphBuild {
                 )
             }
             crate::project::ProjectProfile::LanguageCommandIoV1
-            | crate::project::ProjectProfile::StdinStreamCommandIoV1 => {
+            | crate::project::ProjectProfile::StdinStreamCommandIoV1
+            | crate::project::ProjectProfile::StdinStreamCommandIoV2 => {
                 // The ordinary project/test entry remains a pure useful-data
                 // closure. `linked_scalar_program_with_roots` below retains
                 // the selected command as a distinct authenticated root.
@@ -1678,14 +1680,17 @@ impl WorkspaceGraphBuild {
                 hir::link_useful_data_command_workspace(base.module, base.entrypoint, functions)
             }
             crate::project::ProjectProfile::LanguageCommandIoV1
-            | crate::project::ProjectProfile::StdinStreamCommandIoV1 => {
+            | crate::project::ProjectProfile::StdinStreamCommandIoV1
+            | crate::project::ProjectProfile::StdinStreamCommandIoV2 => {
                 let [command_id] = additional_roots else {
                     return Err(vec![graph_error(
                         "SPX-G172",
                         "Language Command I/O v1 must select exactly one command identity",
                     )]);
                 };
-                let link = if profile == crate::project::ProjectProfile::StdinStreamCommandIoV1 {
+                let link = if profile == crate::project::ProjectProfile::StdinStreamCommandIoV2 {
+                    hir::link_stdin_stream_exit_command_workspace
+                } else if profile.is_stdin_stream() {
                     hir::link_stdin_stream_command_workspace
                 } else {
                     hir::link_language_command_io_workspace
@@ -1787,6 +1792,7 @@ impl WorkspaceGraphBuild {
             web_roots.profile,
             crate::project::ProjectProfile::LanguageCommandIoV1
                 | crate::project::ProjectProfile::StdinStreamCommandIoV1
+                | crate::project::ProjectProfile::StdinStreamCommandIoV2
                 | crate::project::ProjectProfile::LineCommandIoV1
                 | crate::project::ProjectProfile::ProcessIoV1
         ) {
@@ -2047,7 +2053,8 @@ impl WorkspaceGraphBuild {
                         .get(function.id.as_str())
                         .is_some_and(|fact| fact.owner.is_some());
                 let admitted_parameter = |parameter: &hir::ResolvedParam| match profile {
-                    crate::project::ProjectProfile::StdinStreamCommandIoV1 => {
+                    crate::project::ProjectProfile::StdinStreamCommandIoV1
+                    | crate::project::ProjectProfile::StdinStreamCommandIoV2 => {
                         retained_validation::stream_parameter_admitted(parameter)
                     }
                     crate::project::ProjectProfile::ScalarV1 => {
@@ -2088,7 +2095,8 @@ impl WorkspaceGraphBuild {
                     }
                 };
                 let admitted_return = match profile {
-                    crate::project::ProjectProfile::StdinStreamCommandIoV1 => {
+                    crate::project::ProjectProfile::StdinStreamCommandIoV1
+                    | crate::project::ProjectProfile::StdinStreamCommandIoV2 => {
                         retained_validation::stream_return_admitted(&function.return_type)
                     }
                     crate::project::ProjectProfile::ScalarV1 => {

@@ -15,6 +15,7 @@ pub(in crate::workspace_graph) fn project_linker_name(
         P::UsefulDataCommandV2 => "Useful Data Command v2 linker",
         P::LanguageCommandIoV1 => "Language Command I/O v1 linker",
         P::StdinStreamCommandIoV1 => "Streaming Command I/O v1 linker",
+        P::StdinStreamCommandIoV2 => "Streaming Command I/O v2 linker",
         P::LineCommandIoV1 => "Line Command I/O v1 linker",
         P::NetworkCommandIoV1 => "Network Command I/O v1 linker",
         P::HttpsCommandIoV1 => "HTTPS Command I/O v1 linker",

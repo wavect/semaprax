@@ -113,8 +113,7 @@ fn emit_hir_c_with_options(
     semantic: Option<&NativeSemanticMetering>,
 ) -> Result<String, Diagnostic> {
     hir::validate(program)?;
-    if output_profile != NativeOutputProfile::StdinStreamCommandIo
-        && crate::stdin_stream_ops::resolved_program_uses(program)
+    if !output_profile.is_stdin_stream() && crate::stdin_stream_ops::resolved_program_uses(program)
     {
         return Err(backend_error(
             "stdin reader requires the explicit native streaming-command profile",
@@ -175,7 +174,7 @@ fn emit_hir_c_with_options(
     } else if output_profile == NativeOutputProfile::LineCommandIo {
         native_host_output::emit_line_command_runtime(&mut output);
         native_command_io::emit_line_runtime(&mut output);
-    } else if output_profile == NativeOutputProfile::StdinStreamCommandIo {
+    } else if output_profile.is_stdin_stream() {
         native_host_output::emit_language_command_runtime(&mut output);
         native_command_io::emit_runtime(&mut output);
         super::native_stdin_stream::emit_runtime(&mut output);
@@ -267,9 +266,14 @@ fn emit_hir_c_with_options(
             process_io::emit_runner(&mut output, symbol);
         } else if output_profile == NativeOutputProfile::EnvironmentCommandIo {
             environment_io::emit_runner(&mut output, symbol);
-        } else if output_profile == NativeOutputProfile::StdinStreamCommandIo {
-            super::native_stdin_stream::emit_runner(&mut output, symbol);
-            super::native_stdin_stream::emit_process_adapter(&mut output);
+        } else if output_profile.is_stdin_stream() {
+            if output_profile == NativeOutputProfile::StdinStreamExitCommandIo {
+                super::native_stdin_stream::exit_status::emit_runner(&mut output, symbol);
+                super::native_stdin_stream::exit_status::emit_process_adapter(&mut output);
+            } else {
+                super::native_stdin_stream::emit_runner(&mut output, symbol);
+                super::native_stdin_stream::emit_process_adapter(&mut output);
+            }
         } else if output_profile.is_language_command() {
             native_command_io::emit_runner(&mut output, symbol);
             native_command_io::emit_process_adapter(&mut output);

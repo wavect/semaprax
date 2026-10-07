@@ -10,6 +10,7 @@ use super::{backend_error, COutput, NativeOutputProfile};
 use crate::diagnostic::Diagnostic;
 use crate::hir::{self, ResolvedProgram, ResolvedType};
 use std::collections::HashMap;
+pub(super) mod exit_status;
 
 pub(super) fn emit_runtime(output: &mut impl COutput) {
     output.push_str(STDIN_STREAM_RUNTIME_C);
@@ -36,6 +37,21 @@ pub(super) fn emit_command_helper_table(output: &mut impl COutput) {
 pub fn emit_hir_c_with_stdin_stream(
     program: &ResolvedProgram,
     command_id: &str,
+) -> Result<String, Diagnostic> {
+    emit_profile(program, command_id, false)
+}
+
+pub fn emit_hir_c_with_stdin_stream_exit_status(
+    program: &ResolvedProgram,
+    command_id: &str,
+) -> Result<String, Diagnostic> {
+    emit_profile(program, command_id, true)
+}
+
+fn emit_profile(
+    program: &ResolvedProgram,
+    command_id: &str,
+    exit_status: bool,
 ) -> Result<String, Diagnostic> {
     hir::validate(program)?;
     super::reject_native_rust_for_native(program)?;
@@ -64,11 +80,18 @@ pub fn emit_hir_c_with_stdin_stream(
         .declaration(&command.id)
         .is_none_or(|declaration| declaration.identity_origin != hir::IdentityOrigin::Explicit)
         || !command.params.is_empty()
-        || command.return_type != ResolvedType::Bool
+        || command.return_type
+            != if exit_status {
+                ResolvedType::I64
+            } else {
+                ResolvedType::Bool
+            }
     {
-        return Err(backend_error(
-            "selected stdin stream command must be an explicit stable-ID `fn () -> bool`",
-        ));
+        return Err(backend_error(if exit_status {
+            "selected stdin stream exit command must be an explicit stable-ID `fn () -> i64`"
+        } else {
+            "selected stdin stream command must be an explicit stable-ID `fn () -> bool`"
+        }));
     }
     crate::command_io_ops::validate_operation_profile(
         program,
@@ -78,7 +101,11 @@ pub fn emit_hir_c_with_stdin_stream(
     super::emit_hir_c_with_labels(
         program,
         &HashMap::new(),
-        NativeOutputProfile::StdinStreamCommandIo,
+        if exit_status {
+            NativeOutputProfile::StdinStreamExitCommandIo
+        } else {
+            NativeOutputProfile::StdinStreamCommandIo
+        },
         Some(&command.id),
     )
 }

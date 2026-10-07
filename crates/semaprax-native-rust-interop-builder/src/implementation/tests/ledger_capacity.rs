@@ -240,6 +240,7 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
         include_str!("../../../../../src/cleanup_plan/build/type_shape.rs"),
         include_str!("../../../../../src/cleanup_plan/build/finish_call.rs"),
         include_str!("../../../../../src/cleanup_plan/build/strings.rs"),
+        include_str!("../../../../../src/cleanup_plan/build/guarded_variant.rs"),
     );
     let calls = include_str!("../../../../../src/call_index.rs");
     for (source, expected) in [

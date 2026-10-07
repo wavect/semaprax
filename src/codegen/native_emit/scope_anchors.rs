@@ -121,6 +121,7 @@ mod tests {
         .unwrap();
         let mut program = crate::hir::resolve(&ast).unwrap();
         let function = &mut program.functions[0];
+        let execution = crate::hir::FunctionExecutionId::Monomorphic(function.id.clone());
         let ResolvedExprKind::Block { statements, .. } = &mut function.body.kind else {
             panic!()
         };
@@ -142,15 +143,21 @@ mod tests {
             panic!()
         };
         let mut expected = BTreeSet::new();
-        for branch in [then_branch, else_branch] {
+        for (suffix, branch) in [("then", then_branch), ("else", else_branch)] {
             let ResolvedExprKind::Block { statements, tail } = &branch.kind else {
                 panic!()
             };
             assert!(statements.is_empty());
             *branch = tail.clone();
-            let ResolvedExprKind::Call { args, .. } = &branch.kind else {
+            let path = format!("body.s2.body.s0.value.{suffix}");
+            branch.id = crate::hir::ExpressionId::new(&execution, &path);
+            let ResolvedExprKind::Call { args, .. } = &mut branch.kind else {
                 panic!()
             };
+            for (index, argument) in args.iter_mut().enumerate() {
+                argument.id =
+                    crate::hir::ExpressionId::new(&execution, &format!("{path}.arg.{index}"));
+            }
             expected.insert(StorageId::Temporary(args[0].id.clone()));
         }
         // This admitted HIR shape has no lexical branch Blocks. Rebuild every

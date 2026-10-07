@@ -7,8 +7,7 @@
 //! admitted Copy-scalar field (`i64`, `i32`, `u8`, `usize`, `char`, `f32`,
 //! `f64`, or `bool`), and no other fields. See
 //! `docs/OWNED-RECORD-COLLECTION-ELEMENT-V1.md` for the admitted cleanup and
-//! borrow rules this classifier supports and for why it is not yet wired to
-//! any executable `Vec`/`Box` intrinsic.
+//! borrow rules this classifier supports.
 //!
 //! Field *names* and declaration order are not part of the admission rule;
 //! only the resolved field type multiset is checked. A record with an extra

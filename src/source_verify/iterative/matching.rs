@@ -31,7 +31,12 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         let scrutinee_value = self.values.pop().unwrap_or(None);
         if let Some(value) = &scrutinee_value {
             reject_native_unit_value(self.program, scrutinee, value, self.diagnostics);
-            if self.loop_depth != 0 {
+            let exact_owned_record_item = value.mode == ParamMode::Own
+                && crate::source_verify::declared_type::owned_record_collection::
+                    is_admitted_owned_record_collection_element(self.types, &value.ty)
+                && matches!(&scrutinee.kind, ExprKind::Var(name)
+                    if self.owned_iterator_items.last().is_some_and(|item| item == name));
+            if self.loop_depth != 0 && !exact_owned_record_item {
                 reject_loop_match_scrutinee(
                     self.program,
                     self.types,

@@ -260,6 +260,10 @@ pub(super) fn check_declared_type(
         let admitted_vec = name == "Vec"
             && arguments.len() == 1
             && (crate::vec_ops::ast_vec_element_is_admitted(&arguments[0])
+                || owned_record_collection::is_admitted_owned_record_collection_element(
+                    types,
+                    &arguments[0],
+                )
                 || matches!(&arguments[0], Type::Named { name, arguments }
                     if arguments.is_empty() && parameters.contains(name.as_str())));
         let admitted_box = declaration.stable_id == crate::prelude::BOX_ID

@@ -342,6 +342,7 @@ fn selected_integer_conversion_extends_only_its_standalone_runtime_statuses() {
 @id("s.convert") fn convert(value: i64) -> i64 {
     i64_from_usize(usize_from_i64(value))
 }
+@id("s.main") fn main() -> i64 { convert(0) }
 "#,
     );
     let module = emit_copy_variant_module(

@@ -139,6 +139,7 @@ fn wasm_rejects_hostile_record_step_frames_before_owner_commit() {
 fn wasm_rejects_noncanonical_record_scalar_carriers_before_owner_commit() {
     for (ty, literal, bits, refusal) in [
         ("bool", "true", 1, "record-invalid-bool"),
+        ("u8", "255u8", 255, "record-invalid-u8"),
         ("i32", "-1i32", -1, "record-noncanonical-i32"),
         (
             "f32",

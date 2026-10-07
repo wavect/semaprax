@@ -13,6 +13,23 @@ impl HirValidator<'_> {
     ) -> Result<(), Diagnostic> {
         self.validate_iterator_body(expression, None)
     }
+    fn is_owned_iterator_record_item(
+        &self,
+        expression: &ResolvedExpr,
+        owned_item: Option<&ResolvedBinding>,
+    ) -> bool {
+        owned_item.is_some_and(|item| {
+            item.ownership == OwnershipMode::Own
+                && expression.ownership == OwnershipMode::Own
+                && expression.ty == item.ty
+                && crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
+                    &self.program.declarations,
+                    &item.ty,
+                )
+                && matches!(&expression.kind, ResolvedExprKind::Place(place)
+                    if place.root == item.id && place.projections.is_empty())
+        })
+    }
     fn validate_iterator_body(
         &self,
         expression: &ResolvedExpr,
@@ -66,6 +83,7 @@ impl HirValidator<'_> {
                     if !whole_string
                         && !named_str
                         && !cursor_borrow
+                        && !self.is_owned_iterator_record_item(expression, owned_item)
                         && (!crate::hir::is_scalar_resolved_type(&expression.ty)
                             || expression.ownership != OwnershipMode::Value)
                     {
@@ -421,13 +439,23 @@ impl HirValidator<'_> {
                 // Copy-payload variant binds only Copy values, so it is
                 // cleanup-inert; its arms may yield a `string`, which joins
                 // like any branch result in the body region.
+                // Consuming record traversal also admits `match own` on the
+                // exact protocol item. Ordinary replay transfers its Bytes
+                // leaves into the selected arm and settles them in that region.
                 ResolvedExprKind::Match {
-                    scrutinee, arms, ..
+                    mode,
+                    scrutinee,
+                    arms,
+                    ..
                 } => {
-                    if !crate::loop_calls::resolved_match_scrutinee_admitted(
-                        &self.program.declarations,
-                        &scrutinee.ty,
-                    ) || !crate::loop_calls::resolved_result_admitted(&expression.ty)
+                    let owned_record = *mode == ResolvedMatchMode::Own
+                        && self.is_owned_iterator_record_item(scrutinee, owned_item);
+                    if !(owned_record
+                        || crate::loop_calls::resolved_match_scrutinee_admitted(
+                            &self.program.declarations,
+                            &scrutinee.ty,
+                        ))
+                        || !crate::loop_calls::resolved_result_admitted(&expression.ty)
                     {
                         return Err(hir_error(
                             "while loop match is outside the Copy-scrutinee profile",

@@ -3,6 +3,7 @@
 //! accessor over a borrowed view, with no buffer and no allocation.
 
 use std::path::PathBuf;
+use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use semaprax::interpreter::{self, InterpreterOptions};
@@ -187,6 +188,89 @@ fn main() -> i64
 "#,
     ] {
         fails(main);
+    }
+}
+
+#[test]
+fn base64_decoder_matches_node_buffer_for_the_complete_corpus_and_all_bytes() {
+    let mut corpus = vec![
+        Vec::new(),
+        b"f".to_vec(),
+        b"fo".to_vec(),
+        b"foo".to_vec(),
+        b"foob".to_vec(),
+        b"fooba".to_vec(),
+        b"foobar".to_vec(),
+        vec![0, 255, 16],
+        b"Man".to_vec(),
+    ];
+    corpus.push((0u8..=u8::MAX).collect());
+    let hex = corpus
+        .iter()
+        .map(|bytes| {
+            bytes
+                .iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect::<String>()
+        })
+        .collect::<Vec<_>>();
+    let output = Command::new("node")
+        .arg("-e")
+        .arg(
+            "const values=JSON.parse(process.argv[1]);process.stdout.write(JSON.stringify(values.map(value=>Buffer.from(value,'hex').toString('base64'))));",
+        )
+        .arg(serde_json::to_string(&hex).unwrap())
+        .output()
+        .expect("Node must provide the independent Base64 oracle");
+    assert!(
+        output.status.success(),
+        "Node Base64 oracle failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let encoded: Vec<String> = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(encoded.len(), corpus.len());
+    let array = |bytes: &[u8]| {
+        if bytes.is_empty() {
+            "[0u8; 0]".to_owned()
+        } else {
+            format!(
+                "[{}]",
+                bytes
+                    .iter()
+                    .map(|byte| format!("{byte}u8"))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
+        }
+    };
+    for (case, (expected, encoded)) in corpus.iter().zip(encoded).enumerate() {
+        let failure = case + 1;
+        let encoded = array(encoded.as_bytes());
+        let expected = array(expected);
+        returns(
+            &format!(
+                r#"
+@id("app.main")
+fn main() -> i64
+{{
+    let encoded = {encoded};
+    let expected = {expected};
+    let view = array_as_slice(encoded);
+    let expected_view = array_as_slice(expected);
+    let mut index = 0usize;
+    let mut same = base64_decoded_len(view) == byte_len(expected_view);
+    while same && index < byte_len(expected_view) {{
+        let wanted = match byte_get(expected_view, index) {{ Option::Some {{ value }} => value, Option::None {{}} => 0u8, }};
+        same = base64_decoded_byte(view, index) == wanted;
+        index = index + 1usize;
+        same && index < byte_len(expected_view)
+    }}
+    if same {{ 0 }} else {{ {failure} }}
+}}
+"#
+            ),
+            "0",
+        );
     }
 }
 

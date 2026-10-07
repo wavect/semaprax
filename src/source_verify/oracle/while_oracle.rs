@@ -263,13 +263,19 @@ pub(super) fn reject_while_disallowed_oracle(
                 let scalar_signature = crate::stdin_stream_ops::ast_forward_signature(declared)
                     || (crate::loop_calls::effects_admitted(&declared.effects)
                         && crate::loop_calls::ast_result_admitted(&declared.return_type)
-                        && declared.params.iter().all(|param| {
+                        && declared.params.iter().zip(args).all(|(param, argument)| {
                             crate::loop_calls::ast_param_admitted(param.mode, &param.ty)
                                 || (param.mode == crate::ast::ParamMode::Borrow
                                     && crate::source_verify::declared_type::owned_record_collection::is_owner_renewal_record(
                                         &TypeTable::new(program),
                                         &param.ty,
                                     ))
+                                || (param.mode == crate::ast::ParamMode::Own
+                                    && matches!(&argument.kind, ExprKind::Var(argument_name)
+                                    if super::matching::is_owned_iterator_item(
+                                        argument_name,
+                                        &param.ty,
+                                    )))
                         }));
                 if !scalar_signature {
                     diagnostics.push(error(

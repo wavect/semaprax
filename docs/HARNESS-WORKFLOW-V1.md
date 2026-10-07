@@ -235,7 +235,7 @@ result_dir, expected_revision, compiler)` authenticates the snapshot's complete 
 capture, rejects non-contained or symlinked source/result paths, re-verifies the result and rejects source drift
 (`SPX-HPD115`) before an all-staged-then-rename write. A single admitted step against the project baseline has an ordinary capsule and publishes
 only under the existing apply policy; multi-step and scratch-repair results are not one capsule and are applied only
-through `apply_result` (no CLI verb yet; known gap).
+through the separately authorized `apply_result` / `harness apply` route.
 
 Diagnostics added: 092 unsupported goal, 100 request cannot fit any model, 101 task budget exhausted, 111 session bound,
 112 no progress, 113 cancelled, 114 oracle edit, 115 apply refused (drift), 116 acceptance/done unmet, 117 invalid

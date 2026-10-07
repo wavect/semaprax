@@ -179,6 +179,9 @@ struct IterativeVerifier<'a, 'p> {
     /// How many `while`/`for` conditions or bodies enclose the frame being
     /// checked; Owned String Loops v2 narrows `match` scrutinees there.
     loop_depth: usize,
+    /// Exact owned `for own` item bindings whose record payload may be matched
+    /// inside the active loop body.
+    owned_iterator_items: Vec<String>,
 }
 
 /// Declared in the module root, rather than beside the frame loop, because the
@@ -218,6 +221,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             values: Vec::new(),
             buffer_reopen_sites: std::collections::BTreeSet::new(),
             loop_depth: 0,
+            owned_iterator_items: Vec::new(),
         }
     }
 

@@ -173,15 +173,22 @@ fn oversized_declaration_facet_identifiers_are_refused_before_rendering() {
     let program = program(FIXTURE);
     let options = per_seed_options(1);
     let goal = CompilationGoal::new(vec![CompilationSeed::new("app.goal_a_root", 1, "")]).unwrap();
-    let facets = DeclarationFacets::new()
-        .with_requirement("app.helper_a", "X".repeat(MAX_FACET_IDENTIFIER_BYTES + 1));
-    let error = compile_with_declaration_facets(
-        &program,
-        &goal,
-        &options,
-        generous_budget("byte-v1"),
-        &facets,
-    )
-    .unwrap_err();
-    assert_eq!(error[0].code, "SPX-Z801");
+    let oversized = "X".repeat(MAX_FACET_IDENTIFIER_BYTES + 1);
+    for facets in [
+        DeclarationFacets::new().with_requirement("app.helper_a", oversized.clone()),
+        DeclarationFacets::new().with_requirement(oversized.clone(), "REQ-A"),
+        DeclarationFacets::new().with_test("app.helper_a", oversized.clone()),
+        DeclarationFacets::new().with_test(oversized.clone(), "TEST-A"),
+        DeclarationFacets::new().with_candidate_diff_change(oversized.clone()),
+    ] {
+        let error = compile_with_declaration_facets(
+            &program,
+            &goal,
+            &options,
+            generous_budget("byte-v1"),
+            &facets,
+        )
+        .unwrap_err();
+        assert_eq!(error[0].code, "SPX-Z801");
+    }
 }

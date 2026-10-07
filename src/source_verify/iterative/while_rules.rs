@@ -379,7 +379,10 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 crate::loop_calls::ast_param_admitted(param.mode, &param.ty)
                                     || (param.mode == ParamMode::Borrow
                                         && crate::source_verify::declared_type::owned_record_collection::is_owner_renewal_record(self.types, &param.ty))
-                                    || (param.mode == ParamMode::Own && param.ty == Type::Bytes
+                                    || (param.mode == ParamMode::Own
+                                        && (param.ty == Type::Bytes
+                                            || crate::source_verify::declared_type::owned_record_collection::
+                                                is_admitted_owned_record_collection_element(self.types, &param.ty))
                                         && owned_item.is_some_and(|item| matches!(&argument.kind, ExprKind::Var(name) if name == item)))
                             }));
                         if !scalar_signature {

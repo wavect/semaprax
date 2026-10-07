@@ -14,6 +14,7 @@ mod dependency_closure;
 mod profile_names;
 mod scalar_link;
 mod stream_admission;
+mod type_reference;
 pub(super) use profile_names::project_linker_name;
 pub(super) use stream_admission::{stream_parameter_admitted, stream_return_admitted};
 
@@ -956,6 +957,16 @@ fn collect_resolved_expression_type_sites(
         }
         hir::ResolvedExprKind::Block { statements, tail } => {
             for (index, statement) in statements.iter().enumerate() {
+                let statement_path = format!("{path}.s{index}");
+                if type_reference::collect_authored_for_own(
+                    owner,
+                    statement,
+                    &statement_path,
+                    imported,
+                    out,
+                )? {
+                    continue;
+                }
                 for child_index in 0..statement.child_count() {
                     let segment = if matches!(statement, hir::ResolvedStatement::While { .. }) {
                         if child_index == 0 {

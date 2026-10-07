@@ -218,6 +218,10 @@ fn derive(
                                 replay_error(function, "cleanup visited-field count overflowed")
                             })?;
                         charge_fields(function, budget, count)?;
+                        let container = ResolvedType::Nominal {
+                            declaration: declaration.clone(),
+                            arguments: arguments.clone(),
+                        };
                         let mut meta = Vec::with_capacity(cases.len());
                         let mut entries = Vec::with_capacity(count);
                         for case in cases {
@@ -225,11 +229,10 @@ fn derive(
                             for field in &case.fields {
                                 let ty =
                                     crate::hir::substitute_type(&field.ty, declaration, arguments)?;
-                                if type_needs_drop(program, function, &ty)? {
-                                    let container = ResolvedType::Nominal {
-                                        declaration: declaration.clone(),
-                                        arguments: arguments.clone(),
-                                    };
+                                let nested_record = crate::cleanup::variant_record_field(
+                                    program, &container, &case.id, &field.id, &ty,
+                                );
+                                if type_needs_drop(program, function, &ty)? && !nested_record {
                                     if crate::cleanup::variant_leaf_lifecycle(
                                         program, &container, &case.id, &field.id, &ty,
                                     )

@@ -167,18 +167,16 @@ honestly-scoped slice, matching the precedent `semantic_embedding` set (see
 large issue rather than a broader claim this tranche could not back with
 evidence.
 
-## No cross-seed deduplication
+## Cross-seed deduplication
 
-Two seeds whose closures overlap (for example, two functions that share a
-callee) each compile their own independent context; a shared declaration's
-facts appear once per seed that reaches it, and its token cost is charged
-once per seed reporting it. This module does not merge or deduplicate
-declaration facts across seeds: doing so would require re-deriving the
-single-seed engine's own per-declaration facet rules, which this module is
-designed specifically not to duplicate. A caller that wants the smallest
-possible closure over several related seeds should call the existing
-single-seed engine directly with one shared root, when that shape fits its
-goal.
+Seeds first compile their own independent semantic closures. In deterministic
+seed order, a declaration fact already included by an earlier seed is replaced
+by a small `deduplicated_owner_seed` reference. A seed's own root always remains
+complete. Only included seeds contribute facts to the shared inventory, so an
+omitted seed cannot make a later included seed depend on unavailable content.
+Budget accounting uses the rewritten context, and declaration facets still
+attach to every declaration identity reached by that seed, including an
+identity represented by a deduplication reference.
 
 ## No ambient authority
 
@@ -193,8 +191,8 @@ caller-supplied `&Comments` -- it does not lex or read anything itself.
 ## Evidence
 
 Local, offline unit tests
-(`cargo test --locked -p semaprax --lib semantic_task_context`, 32 tests)
-cover everything below, plus:
+(`cargo test --locked -p semaprax --lib semantic_task_context`) cover the
+behaviors below, including the focused declaration-facet cases, plus:
 
 - Tokenizer algorithm digests differ between `byte-v1` and `lexical-v1`, are
   reported in the bundle, and are deterministic across repeated calls
@@ -281,23 +279,24 @@ process, or contacts a network.
 
 ## Honesty bar
 
-This module claims exactly seven things: an explicit multi-seed goal
+This module claims the bounded behaviors documented above: an explicit multi-seed goal
 representation whose free-text `reason` field is proven inert against
 selection and budget; an explicit and honestly labeled token-accounting unit
 that never reports an approximation as exact and carries its own
-algorithm-identity digest; deterministic whole-seed selection under a real
+algorithm-identity digest; deterministic whole-seed selection and cross-seed
+fact deduplication under a real
 budget enforced -- not advisory -- at an exact boundary; a cache-key digest
 sensitive to every field that determines the rendered output byte-for-byte;
 a working (if unbounded, unevicting, non-persistent) in-memory cache keyed
 by a pre-compile digest and separated by caller-declared access scope; a
 deterministic lexical seed suggestion that never influences selection on its
-own; and a top-level summary of the shared inclusion policy's exposable
-fields. It does not claim natural-language goal *understanding*, cross-seed
-semantic deduplication, real content summarization of an omitted or distant
-item, requirement/test/diagnostic-facing seed integration, cache eviction or
-persistence across process restarts, or an MCP/CLI route for the cache and
-suggestion additions specifically. The compact CLI route below still covers
-goal/budget only.
+own; declaration facets bound to content identity and budget; and a top-level
+summary of the shared inclusion policy's exposable fields. It does not claim
+natural-language goal *understanding*, real content summarization of an omitted
+or distant item, requirement/test/diagnostic-facing seed integration, cache
+eviction or persistence across process restarts, or an MCP/CLI route for the
+cache and suggestion additions specifically. The compact CLI route below still
+covers goal/budget only.
 
 ## Multi-seed CLI selection
 

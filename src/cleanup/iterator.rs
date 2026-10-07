@@ -1,5 +1,23 @@
 //! Exact conditional iterator and selected native Result ownership.
 use crate::hir::{DeclarationId, ResolvedType};
+
+pub(crate) fn variant_record_field(
+    program: &crate::hir::ResolvedProgram,
+    container: &ResolvedType,
+    case: &DeclarationId,
+    field: &DeclarationId,
+    ty: &ResolvedType,
+) -> bool {
+    crate::iterator_ops::step_shape(&program.declarations, container)
+        && case.as_str() == crate::iterator_ops::YIELD_ID
+        && field.as_str() == crate::iterator_ops::ITEM_ID
+        && crate::iterator_ops::element(container) == Some(ty)
+        && crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
+            &program.declarations,
+            ty,
+        )
+}
+
 pub(crate) fn variant_leaf_lifecycle<'a>(
     program: &'a crate::hir::ResolvedProgram,
     container: &ResolvedType,

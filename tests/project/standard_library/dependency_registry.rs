@@ -31,7 +31,7 @@ fn every_issue_619_package_resolves_for_an_ordinary_dependency_consumer() {
             directory: "encoding-base64",
             dependency: "std.encoding.base64",
             profile: "owned-data-api.v1",
-            source: "module consumer.app;\nuse function @id(\"std.encoding.base64.len\") from std.encoding.base64 as base64_len;\n\n@id(\"consumer.main\")\nfn main() -> i64\n{\n    if base64_len(1usize) == 4usize { 0 } else { 1 }\n}\n",
+            source: "module consumer.app;\nuse type @id(\"std.io.writer\") from std.io as Writer;\nuse function @id(\"std.encoding.base64.decode-into\") from std.encoding.base64 as decode_into;\nuse function @id(\"std.encoding.base64.decoded-len\") from std.encoding.base64 as decoded_len;\nuse function @id(\"std.encoding.base64.len\") from std.encoding.base64 as base64_len;\nuse function @id(\"std.io.writer.finish\") from std.io as writer_finish;\n\n@id(\"consumer.main\")\nfn main() -> i64\n{\n    let encoded = [90u8, 109u8, 56u8, 61u8];\n    let view = array_as_slice(encoded);\n    let written = decode_into(view, Writer { data: bytes_zeroed(2usize), position: 0usize });\n    let output = writer_finish(written);\n    let first = match byte_get(bytes_as_slice(output), 0usize) { Option::Some { value } => value, Option::None {} => 0u8, };\n    if base64_len(2usize) == 4usize && decoded_len(view) == 2usize && byte_len(bytes_as_slice(output)) == 2usize && first == 102u8 { 0 } else { 1 }\n}\n",
             transitive: &["std.encoding", "std.io"],
         },
         Case {

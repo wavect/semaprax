@@ -163,22 +163,20 @@ fn record_shapes_outside_the_copy_profile_keep_their_closed_admission_reason() {
     let path = write_temp(CLOSED_RECORD_FIXTURE);
     // Record update stays outside the interpreter profile with its named
     // admission reason.
-    for (token, reason) in [("case.closed.update", "record_update")] {
-        let errors = interpret_case(&path, token, &[])
-            .expect_err("the shape is outside the admitted interpreter profile");
-        assert!(
-            errors
-                .iter()
-                .any(|item| item.code == "SPX-F102" && item.message.contains(reason)),
-            "{token}: {errors:?}"
-        );
-        // Admission, never an evaluator guard: a closed reason names the
-        // shape, an `SPX-F105` guard would be a backend accident.
-        assert!(
-            errors.iter().all(|item| item.code != "SPX-F105"),
-            "{token}: {errors:?}"
-        );
-    }
+    let errors = interpret_case(&path, "case.closed.update", &[])
+        .expect_err("the shape is outside the admitted interpreter profile");
+    assert!(
+        errors
+            .iter()
+            .any(|item| item.code == "SPX-F102" && item.message.contains("record_update")),
+        "case.closed.update: {errors:?}"
+    );
+    // Admission, never an evaluator guard: a closed reason names the shape,
+    // an `SPX-F105` guard would be a backend accident.
+    assert!(
+        errors.iter().all(|item| item.code != "SPX-F105"),
+        "case.closed.update: {errors:?}"
+    );
     // A call passing a Copy record is now admitted and evaluates exactly.
     let envelope = interpret_case(&path, "case.closed.callee", &[])
         .unwrap_or_else(|errors| panic!("record-argument call must be admitted: {errors:?}"));

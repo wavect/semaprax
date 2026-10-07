@@ -348,7 +348,8 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
         "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
         concat!(
             include_str!("../../src/workspace_graph.rs"),
-            include_str!("../../src/workspace_graph/type_names.rs")
+            include_str!("../../src/workspace_graph/type_names.rs"),
+            include_str!("../../src/workspace_graph/shape_identity.rs")
         ),
         include_str!("../../src/workspace_graph/builder_bytes_report.rs"),
         include_str!("../../src/workspace_graph/checked_value_retention.rs"),

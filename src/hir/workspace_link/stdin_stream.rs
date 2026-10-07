@@ -66,7 +66,11 @@ pub(crate) fn link_stdin_stream_exit_command_workspace(
 
 /// Private String boundaries are explicit; no public owned UTF-8 ABI is added.
 pub(crate) fn stream_text_parameter_admitted(parameter: &ResolvedParam) -> bool {
-    (crate::map_ops::is_collection(&parameter.ty) && matches!(parameter.ownership,OwnershipMode::Own|OwnershipMode::Borrow))
+    (crate::map_ops::is_collection(&parameter.ty)
+        && matches!(
+            parameter.ownership,
+            OwnershipMode::Own | OwnershipMode::Borrow
+        ))
         || (parameter.ty == ResolvedType::String && parameter.ownership == OwnershipMode::Own)
         || useful_data_workspace_parameter_admitted(&parameter.ty, parameter.ownership)
         || (crate::stdin_stream_ops::is_reader(&parameter.ty)
@@ -76,7 +80,8 @@ pub(crate) fn stream_text_parameter_admitted(parameter: &ResolvedParam) -> bool 
             ))
 }
 pub(crate) fn stream_text_return_admitted(ty: &ResolvedType) -> bool {
-    crate::map_ops::is_collection(ty) || *ty == ResolvedType::String
+    crate::map_ops::is_collection(ty)
+        || *ty == ResolvedType::String
         || crate::stdin_stream_ops::is_reader(ty)
         || useful_data_workspace_return_admitted(ty)
 }
@@ -163,26 +168,76 @@ mod tests {
 }
 
 /// Additive private transport profile. Exact declaration facts authenticate records.
-pub(crate) fn stream_text_parameter_with_index(parameter:&ResolvedParam,index:&DeclarationIndex)->bool {
-    stream_text_parameter_admitted(parameter) || (matches!(parameter.ownership,OwnershipMode::Own|OwnershipMode::Borrow) && crate::hir::owned_text_record::admitted(&parameter.ty,index))
+pub(crate) fn stream_text_parameter_with_index(
+    parameter: &ResolvedParam,
+    index: &DeclarationIndex,
+) -> bool {
+    stream_text_parameter_admitted(parameter)
+        || (matches!(
+            parameter.ownership,
+            OwnershipMode::Own | OwnershipMode::Borrow
+        ) && crate::hir::owned_text_record::admitted(&parameter.ty, index))
 }
-pub(crate) fn stream_text_return_with_index(ty:&ResolvedType,index:&DeclarationIndex)->bool {
-    stream_text_return_admitted(ty)||crate::hir::owned_text_record::admitted(ty,index)
+pub(crate) fn stream_text_return_with_index(ty: &ResolvedType, index: &DeclarationIndex) -> bool {
+    stream_text_return_admitted(ty) || crate::hir::owned_text_record::admitted(ty, index)
 }
-pub(crate) fn validate_stream_text_program(program:&ResolvedProgram,command:Option<&DeclarationId>)->Result<(),Diagnostic> {
-    if !program.interfaces.is_empty(){return Err(link_error("stream text transport does not admit foreign interfaces"));}
-    if let Some(command)=command {
-        let function=program.functions.iter().find(|f|&f.id==command).ok_or_else(||link_error("stream text command missing"))?;
-        if program.declarations.declaration(&function.id).is_none_or(|d|d.identity_origin!=IdentityOrigin::Explicit)||!function.params.is_empty()||function.return_type!=ResolvedType::I64{return Err(link_error("stream text command requires fn () -> i64"));}
+pub(crate) fn validate_stream_text_program(
+    program: &ResolvedProgram,
+    command: Option<&DeclarationId>,
+) -> Result<(), Diagnostic> {
+    if !program.interfaces.is_empty() {
+        return Err(link_error(
+            "stream text transport does not admit foreign interfaces",
+        ));
+    }
+    if let Some(command) = command {
+        let function = program
+            .functions
+            .iter()
+            .find(|f| &f.id == command)
+            .ok_or_else(|| link_error("stream text command missing"))?;
+        if program
+            .declarations
+            .declaration(&function.id)
+            .is_none_or(|d| d.identity_origin != IdentityOrigin::Explicit)
+            || !function.params.is_empty()
+            || function.return_type != ResolvedType::I64
+        {
+            return Err(link_error("stream text command requires fn () -> i64"));
+        }
     }
     for function in &program.functions {
-        if !stream_text_return_with_index(&function.return_type,&program.declarations) || !function.params.iter().all(|p|stream_text_parameter_with_index(p,&program.declarations))
-            || program.declarations.declaration(&function.id).is_none_or(|d|d.identity_origin!=IdentityOrigin::Explicit)
+        if !stream_text_return_with_index(&function.return_type, &program.declarations)
+            || !function
+                .params
+                .iter()
+                .all(|p| stream_text_parameter_with_index(p, &program.declarations))
+            || program
+                .declarations
+                .declaration(&function.id)
+                .is_none_or(|d| d.identity_origin != IdentityOrigin::Explicit)
             || (command.is_none() && !function.effects.is_empty())
-            || !function.effects.iter().all(|effect|matches!(effect.as_str(),crate::command_io_ops::ARGS_READ_EFFECT|crate::command_io_ops::STDIN_READ_EFFECT|crate::command_io_ops::STDERR_WRITE_EFFECT|crate::host_io_ops::STDOUT_WRITE_EFFECT)) {
-            return Err(link_error("stream text helper requires an explicit admitted signature/effect closure"));
+            || !function.effects.iter().all(|effect| {
+                matches!(
+                    effect.as_str(),
+                    crate::command_io_ops::ARGS_READ_EFFECT
+                        | crate::command_io_ops::STDIN_READ_EFFECT
+                        | crate::command_io_ops::STDERR_WRITE_EFFECT
+                        | crate::host_io_ops::STDOUT_WRITE_EFFECT
+                )
+            })
+        {
+            return Err(link_error(
+                "stream text helper requires an explicit admitted signature/effect closure",
+            ));
         }
-        if crate::stdin_stream_ops::is_reader(&function.return_type)&&!crate::stdin_stream_ops::resolved_forward_signature(function){return Err(link_error("stream text reader result is outside forwarding profile"));}
+        if crate::stdin_stream_ops::is_reader(&function.return_type)
+            && !crate::stdin_stream_ops::resolved_forward_signature(function)
+        {
+            return Err(link_error(
+                "stream text reader result is outside forwarding profile",
+            ));
+        }
     }
     Ok(())
 }

@@ -3657,3 +3657,7 @@ route uses the existing bounded snapshot/recheck/fresh-publication machinery.
 Runtime carrier type checking lives in `interpreter/value_types.rs`; it retains
 independent value/declaration checks and does not authorize source or HIR
 admission. Typed collection evaluation stays in `interpreter/map_collections.rs`.
+
+Retained workspace declaration and owner identity checks live in
+`workspace_graph/shape_identity.rs`; the workspace source-boundary audit joins
+that child with its parent so relocation preserves the checked contract.

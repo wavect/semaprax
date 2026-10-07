@@ -27,6 +27,7 @@ mod project_render;
 mod retained_validation;
 mod retained_vectors;
 mod session_protocol_decl;
+mod shape_identity;
 pub(crate) mod source_callables;
 mod validation;
 use crate::ast::{
@@ -51,6 +52,7 @@ use retained_vectors::{
     filter_owned_vec, filter_owned_vec_accounted, reserve_workspace_module_carrier,
 };
 use sha2::{Digest, Sha256};
+use shape_identity::{require_retained_shape_fact, top_level_declaration};
 mod type_names;
 use type_names::type_contains_name_from;
 
@@ -1182,8 +1184,8 @@ impl WorkspaceGraphBuild {
             return Ok(linked);
         }
         if profile == crate::project::ProjectProfile::StdinStreamTextCommandIoV1 {
-            let mut linked=self.linked_owned_data_api_program_with_roots(entry_module,&[])?;
-            hir::validate_stream_text_program(&linked,None).map_err(|e|vec![e])?;
+            let mut linked = self.linked_owned_data_api_program_with_roots(entry_module, &[])?;
+            hir::validate_stream_text_program(&linked, None).map_err(|e| vec![e])?;
             self.attach_project_agents(&mut linked)?;
             return Ok(linked);
         }
@@ -1541,10 +1543,19 @@ impl WorkspaceGraphBuild {
             return self.linked_owned_data_api_program_with_roots(entry_module, additional_roots);
         }
         if profile == crate::project::ProjectProfile::StdinStreamTextCommandIoV1 {
-            if additional_roots.is_empty(){return self.linked_project_program(entry_module,profile,dependency_anchors);}
-            let [command]=additional_roots else{return Err(vec![graph_error("SPX-G172","stream text command must select exactly one explicit command")]);};
-            let linked=self.linked_owned_data_api_program_with_roots(entry_module,additional_roots)?;
-            hir::validate_stream_text_program(&linked,Some(&hir::DeclarationId::new(command))).map_err(|e|vec![e])?;
+            if additional_roots.is_empty() {
+                return self.linked_project_program(entry_module, profile, dependency_anchors);
+            }
+            let [command] = additional_roots else {
+                return Err(vec![graph_error(
+                    "SPX-G172",
+                    "stream text command must select exactly one explicit command",
+                )]);
+            };
+            let linked =
+                self.linked_owned_data_api_program_with_roots(entry_module, additional_roots)?;
+            hir::validate_stream_text_program(&linked, Some(&hir::DeclarationId::new(command)))
+                .map_err(|e| vec![e])?;
             return Ok(linked);
         }
         let base = self.linked_project_program(entry_module, profile, dependency_anchors)?;
@@ -5978,44 +5989,6 @@ fn validate_retained_declaration_shapes(
         }
     }
     Ok(())
-}
-
-fn require_retained_shape_fact<'a>(
-    facts: &'a BTreeMap<String, WorkspaceDeclarationFact>,
-    module: &WorkspaceResolvedModule,
-    id: &'a str,
-    kind: hir::DeclarationKind,
-    owner: Option<&str>,
-    seen: &mut BTreeSet<&'a str>,
-) -> Result<(), Vec<Diagnostic>> {
-    let fact = facts.get(id);
-    if !fact.is_some_and(|fact| {
-        fact.kind == kind
-            && fact.owner.as_deref() == owner
-            && fact.path.as_deref() == Some(module.path.as_str())
-            && fact.module.as_deref() == Some(module.module.as_str())
-    }) || !seen.insert(id)
-    {
-        return Err(vec![graph_error(
-            "SPX-G173",
-            "retained workspace declaration shape disagrees with authored identity facts",
-        )]);
-    }
-    Ok(())
-}
-
-fn top_level_declaration(
-    index: &hir::DeclarationIndex,
-    declaration: &hir::Declaration,
-) -> hir::DeclarationId {
-    let mut current = declaration;
-    while let Some(owner) = &current.owner {
-        let Some(parent) = index.declaration(owner) else {
-            break;
-        };
-        current = parent;
-    }
-    hir::DeclarationId::new(crate::bounded_output::budgeted_clone(current.id.as_str()))
 }
 
 const PROVIDER_MAIN_HELP: &str = "`entry` in semaprax.toml must name the module that declares `main`; every other listed source is a provider module and declares no `main`";

@@ -123,12 +123,17 @@ fn prepare_profile(
                     .effects
                     .iter()
                     .all(|effect| effect == crate::string_ops::FILE_READ_TEXT_EFFECT)))
-            || !(signature_type(program, &function.return_type, copy_variants, toolkit)
-                || general_guards
-                    && crate::variant_guards::copy_variant(
-                        &program.declarations,
-                        &function.return_type,
-                    ))
+            || !(signature_type(
+                program,
+                &function.return_type,
+                copy_variants,
+                toolkit,
+                general_guards,
+            ) || general_guards
+                && crate::variant_guards::copy_variant(
+                    &program.declarations,
+                    &function.return_type,
+                ))
             || function.params.iter().any(|parameter| {
                 // By-value String source parameters are implicitly Own in
                 // validated HIR; only the internal Copy scalars are Value.
@@ -149,12 +154,17 @@ fn prepare_profile(
                             parameter.ownership,
                             OwnershipMode::Own | OwnershipMode::Borrow
                         ))
-                    || !(signature_type(program, &parameter.ty, copy_variants, toolkit)
-                        || general_guards
-                            && crate::variant_guards::copy_variant(
-                                &program.declarations,
-                                &parameter.ty,
-                            ))
+                    || !(signature_type(
+                        program,
+                        &parameter.ty,
+                        copy_variants,
+                        toolkit,
+                        general_guards,
+                    ) || general_guards
+                        && crate::variant_guards::copy_variant(
+                            &program.declarations,
+                            &parameter.ty,
+                        ))
             })
         {
             return Err(error(
@@ -175,7 +185,15 @@ fn prepare_profile(
                 .ok_or_else(|| {
                     error("standalone String expression inventory exceeds 65536 nodes")
                 })?;
-            if depth > 256 || !expression_type(program, &expression.ty, copy_variants, toolkit) {
+            if depth > 256
+                || !expression_type(
+                    program,
+                    &expression.ty,
+                    copy_variants,
+                    toolkit,
+                    general_guards,
+                )
+            {
                 return Err(error(
                     "standalone String expression depth or type is outside the profile",
                 ));
@@ -315,8 +333,10 @@ fn signature_type(
     ty: &ResolvedType,
     copy_variants: bool,
     toolkit: bool,
+    general_guards: bool,
 ) -> bool {
     internal_type(ty)
+        || general_guards && hir::is_scalar_resolved_type(ty)
         || toolkit
             && (hir::is_scalar_resolved_type(ty)
                 || hir::is_admitted_owned_string_variant(&program.declarations, ty)
@@ -331,8 +351,9 @@ fn expression_type(
     ty: &ResolvedType,
     copy_variants: bool,
     toolkit: bool,
+    general_guards: bool,
 ) -> bool {
-    signature_type(program, ty, copy_variants, toolkit)
+    signature_type(program, ty, copy_variants, toolkit, general_guards)
         || toolkit && hir::is_admitted_owned_string_variant(&program.declarations, ty)
         || copy_variants
             && (matches!(ty, ResolvedType::ArrayU8(_) | ResolvedType::SliceU8)

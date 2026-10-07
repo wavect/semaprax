@@ -165,7 +165,30 @@ fn wasm_checked_text_failures_settle_borrowed_owners_before_status() {
 }
 
 fn standalone_case(source: &str, ids: &[&str], probe: &str) {
-    use wasm::internal_strings::{emit_text_toolkit_module, InternalStringOptions};
+    standalone_profile_case(
+        source,
+        ids,
+        probe,
+        wasm::internal_strings::emit_text_toolkit_module,
+        "semaprax.wasm-text-toolkit.v1",
+    );
+}
+
+fn standalone_profile_case(
+    source: &str,
+    ids: &[&str],
+    probe: &str,
+    emitter: fn(
+        &semaprax::ast::Program,
+        &[String],
+        wasm::internal_strings::InternalStringOptions,
+    ) -> Result<
+        wasm::internal_strings::InternalStringModule,
+        semaprax::diagnostic::Diagnostic,
+    >,
+    schema: &str,
+) {
+    use wasm::internal_strings::InternalStringOptions;
     let program = parse(source, Path::new("standalone-toolkit.spx")).unwrap();
     let diagnostics = verify::verify(&program);
     assert!(diagnostics.is_empty(), "{diagnostics:?}");
@@ -177,16 +200,12 @@ fn standalone_case(source: &str, ids: &[&str], probe: &str) {
         semaprax::graph::to_json(&round_trip).unwrap()
     );
     let ids = ids.iter().map(|id| (*id).to_owned()).collect::<Vec<_>>();
-    let artifact =
-        emit_text_toolkit_module(&program, &ids, InternalStringOptions::default()).unwrap();
-    let repeated =
-        emit_text_toolkit_module(&round_trip, &ids, InternalStringOptions::default()).unwrap();
+    let artifact = emitter(&program, &ids, InternalStringOptions::default()).unwrap();
+    let repeated = emitter(&round_trip, &ids, InternalStringOptions::default()).unwrap();
     assert_eq!(artifact.wasm_bytes(), repeated.wasm_bytes());
     assert_eq!(artifact.descriptor(), repeated.descriptor());
     assert_eq!(artifact.runtime_source(), repeated.runtime_source());
-    assert!(artifact
-        .descriptor()
-        .contains("semaprax.wasm-text-toolkit.v1"));
+    assert!(artifact.descriptor().contains(schema));
     let fixture = Fixture::new(source);
     std::fs::write(fixture.root.join("app.wasm"), artifact.wasm_bytes()).unwrap();
     std::fs::write(fixture.root.join("runtime.mjs"), artifact.runtime_source()).unwrap();
@@ -375,4 +394,37 @@ fn toolkit_web_route_authenticates_descriptor_and_keeps_fresh_publication() {
     }
     std::fs::remove_dir(output).unwrap();
     fixture.cleanup();
+}
+
+#[test]
+fn general_loop_match_scalar_helpers_admit_i32_f32_f64_without_widening_frozen_selectors() {
+    use wasm::internal_strings::{
+        emit_copy_variant_module, emit_general_loop_match_module, emit_module,
+        InternalStringOptions,
+    };
+    let source = r#"module test.general_copy_scalars;
+@id("guard.i32") fn i32_guard(value:i32) -> bool { value+1i32 == -2i32 }
+@id("guard.f32") fn f32_guard(value:f32) -> bool { value+0.25f32 == 1.75f32 }
+@id("guard.f64") fn f64_guard(value:f64) -> bool { value*2.0 == 4.5 }
+@id("app.main") fn main() -> i64 {
+    let mut i=0; let mut sum=0;
+    while i<2 {
+        let choice=Option<i64>::Some { value:i };
+        sum=sum+match choice { Option::Some { value:n } if i32_guard(-3i32) && f32_guard(1.5f32) && f64_guard(2.25) => n, _ => 99, };
+        i=i+1;
+    }
+    sum
+}
+"#;
+    let program = parse(source, Path::new("general-copy-scalars.spx")).unwrap();
+    let ids = ["app.main".to_owned()];
+    for emitter in [emit_module, emit_copy_variant_module] {
+        assert_eq!(
+            emitter(&program, &ids, InternalStringOptions::default())
+                .unwrap_err()
+                .code,
+            "SPX-W111"
+        );
+    }
+    standalone_profile_case(source, &["app.main"], "for(let i=0;i<8;i++){const result=runtime.call('app.main');if(result.kind!=='success'||result.value!==1n)throw Error('general Copy scalar guard changed');}", emit_general_loop_match_module, "semaprax.wasm-internal-strings.v1");
 }

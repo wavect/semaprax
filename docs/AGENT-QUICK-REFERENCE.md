@@ -575,7 +575,7 @@ fn main() -> i64
 | `string_byte_at` | `(s: string, index: i64) -> i64` the byte, `0..=255` |
 | `file_read_text` | `(path: borrow str) -> string` whole UTF-8 file, at most 64 KiB; needs `fs.read` |
 | `string_compare` | `(a: string, b: string) -> i64` `-1`/`0`/`1` in bytewise order |
-| `map_new`, `map_add`, `map_get_or`, … | `Map<string, i64>`; see String-keyed maps below |
+| `map_*`, `set_*` | Owned `Map<K,V>` / `Set<K>`; see String-keyed maps |
 | `string_as_str` | `(binding: string) -> borrow str` |
 | `str_len_bytes` | `(s: borrow str) -> i64` |
 | `str_is_empty` | `(s: borrow str) -> bool` |
@@ -796,7 +796,7 @@ offsets; `string_byte_at(s, i) == 32` tests a space without allocating.
 ## String-keyed maps
 
 `Map<string, i64>` counts or sums by text key. Create it with `let mut counts
-= map_new(capacity);` and change it only with the same-owner updates `counts
+= map_new(capacity);` and update it with `counts
 = map_add(counts, key, delta);` (insert, or add to the value) and `counts =
 map_set(counts, key, value);`, in straight-line code, loop bodies, and `if`
 branches. Entries stay in ascending bytewise key order; visit them by index.
@@ -839,10 +839,24 @@ fn main() -> i64
 }
 ```
 
-- A map is a local binding. Pass it only as the first argument of a `map_*`
-  call; a parameter, result, field, copy (`let other = counts;`), branch
-  result, or temporary map is `SPX-T275`. Only `Map<string, i64>` exists
-  (`SPX-T274`); for a set, use the map's keys and `map_len`.
+- Maps and sets move through explicit `own` parameters, results and bounded
+  monomorphic record fields; `borrow` parameters permit reads. Collections
+  are never Copy. Invariant-bearing or generic records stay outside this profile.
+- `Map<K,V>` keys are `string`, `i64`, `bool`; values are String or any Copy
+  scalar. Generic calls require `<K,V>`: `map_new<i64,string>(8usize)`,
+  `map_set<i64,string>(map,1,"one")`, `map_remove<i64,string>(map,1)`.
+  Generic `map_get_or`, `map_has`, `map_len`, `map_key_at`, `map_value_at`
+  take the same type arguments. `map_add<K,i64>` adds with checked overflow.
+  Calls without type arguments keep the `Map<string,i64>` API, including
+  `map_remove(map,key)`.
+- `Set<K>` uses `set_new<K>(capacity)`, `set_insert<K>(set,key)`,
+  `set_remove<K>(set,key)`, `set_has<K>(set,key)`, `set_len<K>(set)`,
+  `set_key_at<K>(set,index)`. Mutations consume and return the collection;
+  reads borrow it. Missing removal and repeated set insertion succeed.
+- Key order is unsigned UTF-8 bytes, signed `i64`, or `false` before `true`.
+  String keys/values are copied on insertion; String read results are fresh
+  owners. Other typed maps/sets use `semaprax.map.v2` with the same codes.
+  See [String Collections v2](STRING-COLLECTIONS-V2.md).
 - Keys are borrowed; the map copies a key when it inserts it. `while index <
   map_len(counts)` is a valid loop condition.
 - A new key beyond the capacity, an index at or past `map_len`, a capacity
@@ -1049,9 +1063,9 @@ Other first-attempt diagnostics and their fixes:
 | `f("abc")` or `f(owned)` for `borrow str` | `SPX-T205` | `let s = "abc"; f(string_as_str(s))` |
 | `i64_from_f64(3)` or `usize_from_i64(1.5)` | `SPX-T205` | Match input types: `i64_from_f64(3.0)` or `usize_from_i64(1)` |
 | `f64_from_i64(1, 2)` | `SPX-T204` | Pass one argument: `f64_from_i64(1)` |
-| `Map<i64, i64>` or another map instantiation | `SPX-T274` | Use `Map<string, i64>` |
-| a map parameter, result, field, or temporary | `SPX-T275` | Keep the map in a local binding and pass individual keys or values |
-| a function taking or returning a record containing strings | `SPX-T309` | Pass strings separately; keep record fields Copy |
+| Unsupported `Map<f64,i64>` / `Set<f64>` | `SPX-T274` | Keys are `string`, `i64`, `bool`; map values are String or Copy scalars |
+| implicit collection ownership at a helper boundary | `SPX-T275` | Use explicit `own` or `borrow` parameters; owned results move |
+| Unsupported String/collection record profile | `SPX-T309` | Use explicit IDs and monomorphic acyclic records with `own`/`borrow` parameters; no invariants |
 | `point.get()` on a record | `SPX-T203` | Records have no methods; call `get(point)` or use a `class` |
 | `let x = 1; let x = x + 1;` | `SPX-T209` | No shadowing; pick a new name |
 | assignment to an immutable binding | `SPX-U101` | Declare it with `let mut` before assigning |

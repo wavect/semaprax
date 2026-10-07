@@ -853,11 +853,11 @@ pub(crate) fn owned_string_in_condition(
 ) -> Option<Span> {
     use crate::ast::{ExprKind, Statement};
     let mut pending = vec![(condition, true)];
-    while let Some((expression, inspect_length)) = pending.pop() {
+    while let Some((expression, inspect_named_read)) = pending.pop() {
         match &expression.kind {
             ExprKind::String(_) => return Some(expression.span),
             ExprKind::Call { name, args, .. } => {
-                if inspect_length && conditions::source_named_length(expression) {
+                if inspect_named_read && conditions::source_named_read(expression) {
                     continue;
                 }
                 // `map_len` and `map_value_at` borrow their map and allocate
@@ -867,24 +867,24 @@ pub(crate) fn owned_string_in_condition(
                 if !allocation_free && source_call_uses_string(name, uses_string) {
                     return Some(expression.span);
                 }
-                pending.extend(args.iter().rev().map(|arg| (arg, inspect_length)));
+                pending.extend(args.iter().rev().map(|arg| (arg, inspect_named_read)));
             }
-            ExprKind::Unary { value, .. } => pending.push((value, inspect_length)),
+            ExprKind::Unary { value, .. } => pending.push((value, inspect_named_read)),
             ExprKind::Binary { left, right, .. } => {
-                pending.push((right, inspect_length));
-                pending.push((left, inspect_length));
+                pending.push((right, inspect_named_read));
+                pending.push((left, inspect_named_read));
             }
             ExprKind::If {
                 condition,
                 then_branch,
                 else_branch,
             } => {
-                pending.push((else_branch, inspect_length));
-                pending.push((then_branch, inspect_length));
-                pending.push((condition, inspect_length));
+                pending.push((else_branch, inspect_named_read));
+                pending.push((then_branch, inspect_named_read));
+                pending.push((condition, inspect_named_read));
             }
             ExprKind::Block { statements, tail } => {
-                pending.push((tail, inspect_length));
+                pending.push((tail, inspect_named_read));
                 for statement in statements.iter().rev() {
                     if let Statement::While {
                         condition, body, ..
@@ -893,10 +893,12 @@ pub(crate) fn owned_string_in_condition(
                         // An inner body is outside the outer condition's
                         // inspection set, even if it contains another loop.
                         pending.push((body, false));
-                        pending.push((condition, inspect_length));
+                        pending.push((condition, inspect_named_read));
                     } else {
                         pending.extend((0..statement.child_count()).rev().filter_map(|index| {
-                            statement.child(index).map(|child| (child, inspect_length))
+                            statement
+                                .child(index)
+                                .map(|child| (child, inspect_named_read))
                         }));
                     }
                 }
@@ -905,14 +907,14 @@ pub(crate) fn owned_string_in_condition(
                 scrutinee, arms, ..
             } => {
                 for arm in arms.iter().rev() {
-                    pending.push((&arm.value, inspect_length));
+                    pending.push((&arm.value, inspect_named_read));
                     if let Some(guard) = &arm.guard {
-                        pending.push((guard, inspect_length));
+                        pending.push((guard, inspect_named_read));
                     }
                 }
-                pending.push((scrutinee, inspect_length));
+                pending.push((scrutinee, inspect_named_read));
             }
-            ExprKind::Yield { request } => pending.push((request, inspect_length)),
+            ExprKind::Yield { request } => pending.push((request, inspect_named_read)),
             _ => {}
         }
     }

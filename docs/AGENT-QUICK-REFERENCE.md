@@ -625,9 +625,10 @@ fn main() -> i64
 
 `semaprax run count.spx` prints `42`. Use `string_from_i64` for signed values.
 
-Build text in a loop by appending to a `let mut` string. Keep the loop
-condition scalar; a string there is `SPX-T252`
-([Owned String Loops v1](OWNED-STRING-LOOPS-V1.md)):
+String loops allow named reads via `string_len`, `string_is_empty`,
+`string_starts_with`, and `string_contains`
+([predicates](BORROWED-STRING-PREDICATE-CONDITIONS-V1.md)). Computed String
+conditions remain `SPX-T252`:
 
 ```semaprax
 module app.join;

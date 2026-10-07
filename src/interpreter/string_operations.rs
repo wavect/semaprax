@@ -10,21 +10,53 @@ impl Evaluator<'_> {
         depth: usize,
     ) -> Result<Value, Flow> {
         self.charge()?;
-        if op == crate::string_ops::StringOp::Len
-            && args.len() == 1
-            && self.string_condition_reads.contains(&args[0].id)
+        if matches!(
+            op,
+            crate::string_ops::StringOp::Len
+                | crate::string_ops::StringOp::IsEmpty
+                | crate::string_ops::StringOp::StartsWith
+                | crate::string_ops::StringOp::Contains
+        ) && args.len() == op.arity()
+            && args
+                .iter()
+                .all(|argument| self.string_condition_reads.contains(&argument.id))
         {
-            // Preserve the operand's ordinary expression fuel charge without
-            // evaluating an owning Place read (which would allocate a clone).
-            self.begin_expression(&args[0], depth)?;
-            let ResolvedExprKind::Place(place) = &args[0].kind else {
-                return Err(Flow::Guard("String condition inspection is not a place"));
-            };
-            return match environment.get(&place.root) {
-                Some(Value::String(value)) if place.projections.is_empty() => {
-                    Ok(Value::Int(value.len() as i64))
+            // Preserve each operand's ordinary expression charge in order,
+            // but inspect its available owner directly instead of evaluating
+            // an owning Place read (which would clone the String).
+            let mut owners = [None; 2];
+            for (index, argument) in args.iter().enumerate() {
+                if index >= owners.len() {
+                    return Err(Flow::Guard("String condition read has invalid arity"));
                 }
-                _ => Err(Flow::Guard("String condition owner is unavailable")),
+                self.begin_expression(argument, depth)?;
+                let ResolvedExprKind::Place(place) = &argument.kind else {
+                    return Err(Flow::Guard("String condition inspection is not a place"));
+                };
+                let Some(Value::String(value)) = environment.get(&place.root) else {
+                    return Err(Flow::Guard("String condition owner is unavailable"));
+                };
+                if !place.projections.is_empty() {
+                    return Err(Flow::Guard("String condition inspection is not a place"));
+                }
+                owners[index] = Some(value.as_str());
+            }
+            return match op {
+                crate::string_ops::StringOp::Len => owners[0]
+                    .map(|value| Value::Int(value.len() as i64))
+                    .ok_or(Flow::Guard("String condition owner is unavailable")),
+                crate::string_ops::StringOp::IsEmpty => owners[0]
+                    .map(|value| Value::Bool(value.is_empty()))
+                    .ok_or(Flow::Guard("String condition owner is unavailable")),
+                crate::string_ops::StringOp::StartsWith => match (owners[0], owners[1]) {
+                    (Some(value), Some(prefix)) => Ok(Value::Bool(value.starts_with(prefix))),
+                    _ => Err(Flow::Guard("String condition owner is unavailable")),
+                },
+                crate::string_ops::StringOp::Contains => match (owners[0], owners[1]) {
+                    (Some(value), Some(needle)) => Ok(Value::Bool(value.contains(needle))),
+                    _ => Err(Flow::Guard("String condition owner is unavailable")),
+                },
+                _ => unreachable!("condition read operation was filtered above"),
             };
         }
         let mut values = Vec::with_capacity(args.len());

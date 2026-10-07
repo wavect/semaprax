@@ -71,4 +71,45 @@ mod tests {
         assert!(matches!(outcome, Err(Flow::Exhausted)));
         assert_eq!(exhausted_steps, steps - 1);
     }
+
+    #[test]
+    fn named_predicate_conditions_preserve_fuel_without_utf8_materialization() {
+        let source = "module test.condition; @id(\"condition.main\") fn main() -> i64 { let text = \"abc\"; let prefix = \"a\"; let needle = \"b\"; let mut i = 0; while i < 1000 && string_starts_with(text, prefix) && string_contains(text, needle) { i = i + 1; 0 } i }";
+        let program = parse(source, Path::new("condition.spx")).unwrap();
+        assert!(verify::verify(&program).is_empty());
+        let resolved = hir::resolve(&program).unwrap();
+        hir::validate(&resolved).unwrap();
+        let admitted = resolved
+            .functions
+            .iter()
+            .map(|function| (function.id.as_str(), function))
+            .collect();
+        let entry = &resolved.functions[0];
+        let (outcome, steps, _, usage) = evaluate_resolved_entry_with_utf8_budget(
+            entry,
+            &[],
+            &admitted,
+            &resolved,
+            100_000,
+            false,
+            Utf8MaterializationBudget::fixed(),
+        );
+        assert!(matches!(outcome, Ok(Value::Int(1000))));
+        assert_eq!(
+            usage,
+            (3, 5),
+            "only the three initial literals materialize UTF-8"
+        );
+        let (outcome, exhausted_steps, _, _) = evaluate_resolved_entry_with_utf8_budget(
+            entry,
+            &[],
+            &admitted,
+            &resolved,
+            steps - 1,
+            false,
+            Utf8MaterializationBudget::fixed(),
+        );
+        assert!(matches!(outcome, Err(Flow::Exhausted)));
+        assert_eq!(exhausted_steps, steps - 1);
+    }
 }

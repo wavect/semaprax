@@ -1,9 +1,9 @@
-//! Condition-only, allocation-free inspection of a named String owner.
+//! Condition-only, allocation-free inspection of named String owners.
 //!
-//! HIR keeps the reserved `string_len` call and the owner's ordinary Place
-//! type/mode. This derived set changes only that call's synchronous borrowed
-//! inspection: it neither creates a clone nor supplies an owned transfer source.
-//! Full HIR validation separately authenticates binding availability and type.
+//! HIR keeps the reserved String operation and each owner's ordinary Place
+//! type/mode. This derived set changes only the admitted synchronous borrowed
+//! reads: they neither create clones nor supply owned transfer sources. Full
+//! HIR validation separately authenticates binding availability and types.
 
 use std::collections::BTreeSet;
 
@@ -13,14 +13,40 @@ use crate::hir::{
     ResolvedStatement, ResolvedType,
 };
 
-pub(crate) fn source_named_length(expression: &Expr) -> bool {
-    matches!(&expression.kind, ExprKind::Call { name, type_arguments, args }
-        if super::by_name(name) == Some(super::StringOp::Len)
-            && type_arguments.is_empty() && args.len() == 1
-            && matches!(args[0].kind, ExprKind::Var(_)))
+pub(crate) fn source_named_read(expression: &Expr) -> bool {
+    let ExprKind::Call {
+        name,
+        type_arguments,
+        args,
+    } = &expression.kind
+    else {
+        return false;
+    };
+    let Some(op) = super::by_name(name) else {
+        return false;
+    };
+    is_condition_read(op)
+        && type_arguments.is_empty()
+        && args.len() == op.arity()
+        && args.iter().enumerate().all(|(index, argument)| {
+            op.param_types().get(index) == Some(&ResolvedType::String)
+                && op.param_ownership(index) == OwnershipMode::Borrow
+                && matches!(argument.kind, ExprKind::Var(_))
+        })
+        && matches!(op.return_type(), ResolvedType::I64 | ResolvedType::Bool)
 }
 
-fn resolved_operand(expression: &ResolvedExpr) -> Option<&ResolvedExpr> {
+fn is_condition_read(op: super::StringOp) -> bool {
+    matches!(
+        op,
+        super::StringOp::Len
+            | super::StringOp::IsEmpty
+            | super::StringOp::StartsWith
+            | super::StringOp::Contains
+    )
+}
+
+fn resolved_operands(expression: &ResolvedExpr) -> Option<&[ResolvedExpr]> {
     let ResolvedExprKind::Call {
         callee,
         type_arguments,
@@ -30,28 +56,33 @@ fn resolved_operand(expression: &ResolvedExpr) -> Option<&ResolvedExpr> {
     else {
         return None;
     };
-    if callee.as_str() != super::LEN_ID
+    let op = super::by_id(callee.as_str())?;
+    if !is_condition_read(op)
         || !type_arguments.is_empty()
         || instance.is_some()
-        || expression.ty != ResolvedType::I64
+        || expression.ty != op.return_type()
         || expression.ownership != OwnershipMode::Value
-        || args.len() != 1
+        || args.len() != op.arity()
     {
         return None;
     }
-    let argument = &args[0];
-    (argument.ty == ResolvedType::String
-        && argument.ownership == OwnershipMode::Own
-        && matches!(&argument.kind, ResolvedExprKind::Place(place) if place.projections.is_empty()))
-    .then_some(argument)
+    args.iter()
+        .enumerate()
+        .all(|(index, argument)| {
+            op.param_ownership(index) == OwnershipMode::Borrow
+                && argument.ty == ResolvedType::String
+                && argument.ownership == OwnershipMode::Own
+                && matches!(&argument.kind, ResolvedExprKind::Place(place) if place.projections.is_empty())
+        })
+        .then_some(args)
 }
 
 pub(crate) fn condition_reads(condition: &ResolvedExpr) -> BTreeSet<ExpressionId> {
     let mut reads = BTreeSet::new();
     let mut pending = vec![condition];
     while let Some(expression) = pending.pop() {
-        if let Some(argument) = resolved_operand(expression) {
-            reads.insert(argument.id.clone());
+        if let Some(arguments) = resolved_operands(expression) {
+            reads.extend(arguments.iter().map(|argument| argument.id.clone()));
             continue;
         }
         if let ResolvedExprKind::Block { statements, tail } = &expression.kind {

@@ -79,7 +79,11 @@ The additive [Named String Length Conditions v1](STRING-LENGTH-CONDITIONS-V1.md)
 admits `string_len(text)` where `text` is an available whole named String
 binding. It inspects the current owner without allocating a clone, including
 after a same-owner append in the body. Allocating expressions such as
-`string_len("literal")` and other String operations retain `SPX-T252`:
+`string_len("literal")` and String operations outside the named borrowed-read
+profiles retain `SPX-T252`. The additive
+[Borrowed String Predicate Conditions v1](BORROWED-STRING-PREDICATE-CONDITIONS-V1.md)
+also admits exact named-owner calls to `string_is_empty`,
+`string_starts_with`, and `string_contains`:
 
 ```text
 string values are not admitted in while conditions; compute a scalar such as `string_len(text)` in the loop body and test that
@@ -102,7 +106,7 @@ while size < 1000 {
 | --- | --- |
 | Whole replacement `text = "other"` | `SPX-U105` |
 | Owner not the first operand, `text = string_concat("p", text)` | `SPX-U105` |
-| An allocating String expression or a String operation other than named `string_len` in a `while` condition | `SPX-T252` |
+| An allocating String expression or a String operation outside the named length and borrowed-predicate profiles in a `while` condition | `SPX-T252` |
 | Consuming an outer `string` binding inside a loop body (`let t = outer;`, `string_concat(outer, …)`) | `SPX-T252` (ownership changes inside a loop); malformed HIR still fails independently with `SPX-H006` |
 | `yield` in a function whose loop carries a `string` | `SPX-T303` |
 

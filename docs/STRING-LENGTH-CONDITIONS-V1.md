@@ -7,6 +7,11 @@ the first narrow slice of #592; general String evaluation in loop conditions
 remains open. Existing interpreter entry points, native ABI, Wasm profile
 selection, schemas, and capabilities remain unchanged.
 
+This versioned profile remains limited to `string_len`. The separate additive
+[Borrowed String Predicate Conditions v1](BORROWED-STRING-PREDICATE-CONDITIONS-V1.md)
+admits three exact named-owner Boolean reads without widening this profile's
+length rule or enabling general String evaluation in conditions.
+
 ## Admitted shape
 
 `string_len(text)` may occur in a `while` condition when `text` is an
@@ -70,8 +75,8 @@ body entry remain unchanged.
 
 String literals, produced strings, consuming String operations, projected
 owners, blocks yielding a String, other String readers such as
-`string_is_empty`, and String-signature user calls in conditions remain
-`SPX-T252` under this profile. Wrong intrinsic argument types and arity retain
+`string_is_empty` under this length-only profile, and String-signature user
+calls in conditions remain `SPX-T252`. Wrong intrinsic argument types and arity retain
 ordinary type diagnostics. A moved owner is still a compile-time ownership
 error; malformed HIR remains `SPX-H006` before backend evaluation.
 

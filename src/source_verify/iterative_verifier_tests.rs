@@ -769,6 +769,10 @@ fn named_string_length_conditions_match_recursive_oracle() {
         "let text=\"a\"; while string_len({ text })<1 { 0 } 0",
         "let text=0; while string_len(text)<1 { 0 } 0",
         "let text=\"a\"; while string_len(text, 0)<1 { 0 } 0",
+        "let text=\"\"; while string_is_empty(text) { 0 } 0",
+        "let text=\"abc\"; let prefix=\"a\"; let needle=\"b\"; while string_starts_with(text,prefix) && string_contains(text,needle) { 0 } 0",
+        "let text=\"a\"; while string_is_empty(\"a\") { 0 } 0",
+        "let text=\"a\"; let prefix=\"a\"; while string_starts_with(text,string_concat(prefix,\"b\")) { 0 } 0",
         "let text=\"a\"; while match 0 { n if string_len(\"guard\")>n => true, _ => false, } { 0 } 0",
     ] {
         compare_scalar_body(&format!("module t; @id(\"t.main\") fn main()->i64{{{body}}}"));

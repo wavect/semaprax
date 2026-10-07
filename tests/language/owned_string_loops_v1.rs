@@ -184,6 +184,33 @@ fn condition_nested() -> i64
     7
 }
 
+@id("loops.condition_is_empty")
+fn condition_is_empty() -> i64
+{
+    let mut text = "";
+    let mut i = 0;
+    while string_is_empty(text) {
+        text = string_concat(text, "x");
+        i = i + 1;
+        0
+    }
+    i
+}
+
+@id("loops.condition_predicates")
+fn condition_predicates() -> i64
+{
+    let text = "abc";
+    let prefix = "a";
+    let needle = "b";
+    let mut i = 0;
+    while i < 2 && string_starts_with(text, prefix) && string_contains(text, needle) {
+        i = i + 1;
+        0
+    }
+    i
+}
+
 @id("app.main")
 fn main() -> i64
 {
@@ -203,6 +230,8 @@ const CASES: &[(&str, &str)] = &[
     ("loops.condition_stable", "ok|1000"),
     ("loops.condition_skip", "ok|7"),
     ("loops.condition_nested", "ok|7"),
+    ("loops.condition_is_empty", "ok|1"),
+    ("loops.condition_predicates", "ok|2"),
     ("loops.condition_failure", "semaprax.arithmetic.v1|1"),
 ];
 
@@ -217,6 +246,8 @@ const WASM_CASES: &[&str] = &[
     "loops.condition_stable",
     "loops.condition_skip",
     "loops.condition_nested",
+    "loops.condition_is_empty",
+    "loops.condition_predicates",
     "loops.condition_failure",
 ];
 
@@ -265,6 +296,21 @@ fn owned_string_loops_round_trip_and_move_the_appended_owner() {
         "the inactive inventory temporary must retain one authenticated region"
     );
     assert!(graph.contains("\"callee\":\"core.string.len\""));
+    assert!(graph.contains("\"callee\":\"core.string.is_empty\""));
+    assert!(graph.contains("\"callee\":\"core.string.starts_with\""));
+    assert!(graph.contains("\"callee\":\"core.string.contains\""));
+    let predicate_reads = predicate_read_ids(&resolved);
+    assert_eq!(
+        predicate_reads.len(),
+        4,
+        "all named predicate operands are derived reads"
+    );
+    for read in predicate_reads {
+        assert!(
+            !graph.contains(&format!("\"kind\":\"initialize\",\"at\":\"{read}\"")),
+            "a borrowed predicate operand must not initialize a clone: {read}"
+        );
+    }
 }
 
 fn condition_operand(program: &mut hir::ResolvedProgram) -> &mut hir::ResolvedExpr {
@@ -286,6 +332,71 @@ fn condition_operand(program: &mut hir::ResolvedProgram) -> &mut hir::ResolvedEx
         panic!()
     };
     &mut args[0]
+}
+
+fn predicate_condition_mut(program: &mut hir::ResolvedProgram) -> &mut hir::ResolvedExpr {
+    let function = program
+        .functions
+        .iter_mut()
+        .find(|function| function.id.as_str() == "loops.condition_is_empty")
+        .unwrap();
+    let hir::ResolvedExprKind::Block { statements, .. } = &mut function.body.kind else {
+        panic!()
+    };
+    statements
+        .iter_mut()
+        .find_map(|statement| match statement {
+            hir::ResolvedStatement::While { condition, .. } => Some(condition.as_mut()),
+            _ => None,
+        })
+        .unwrap()
+}
+
+fn predicate_read_ids(
+    program: &hir::ResolvedProgram,
+) -> std::collections::BTreeSet<hir::ExpressionId> {
+    let function = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "loops.condition_predicates")
+        .unwrap();
+    let hir::ResolvedExprKind::Block { statements, .. } = &function.body.kind else {
+        panic!()
+    };
+    let condition = statements
+        .iter()
+        .find_map(|statement| match statement {
+            hir::ResolvedStatement::While { condition, .. } => Some(condition.as_ref()),
+            _ => None,
+        })
+        .unwrap();
+    let hir::ResolvedExprKind::Binary { left, right } = &condition.kind else {
+        panic!()
+    };
+    let hir::ResolvedExprKind::Binary { right: starts, .. } = &left.kind else {
+        panic!()
+    };
+    let hir::ResolvedExprKind::Call {
+        args: starts_args, ..
+    } = &starts.kind
+    else {
+        panic!()
+    };
+    let hir::ResolvedExprKind::Call {
+        args: contains_args,
+        ..
+    } = &right.kind
+    else {
+        panic!()
+    };
+    [
+        starts_args[0].id.clone(),
+        starts_args[1].id.clone(),
+        contains_args[0].id.clone(),
+        contains_args[1].id.clone(),
+    ]
+    .into_iter()
+    .collect()
 }
 
 #[test]
@@ -339,6 +450,50 @@ fn string_length_conditions_reject_forged_operands_and_clone_plans() {
     };
     *at = read;
     assert_eq!(hir::validate(&candidate).unwrap_err().code, "SPX-H006");
+}
+
+#[test]
+fn string_predicate_conditions_reject_forged_call_facts() {
+    let program = parse(SOURCE, Path::new("string-predicate-condition-hostile.spx")).unwrap();
+    let resolved = hir::resolve(&program).unwrap();
+    for hostile in 0..6 {
+        let mut candidate = resolved.clone();
+        let condition = predicate_condition_mut(&mut candidate);
+        let hir::ResolvedExprKind::Call {
+            callee,
+            type_arguments,
+            instance,
+            args,
+        } = &mut condition.kind
+        else {
+            panic!()
+        };
+        match hostile {
+            0 => args[0].ownership = hir::OwnershipMode::Borrow,
+            1 => args[0].kind = hir::ResolvedExprKind::String("forged".to_owned()),
+            2 => {
+                let hir::ResolvedExprKind::Place(place) = &mut args[0].kind else {
+                    panic!()
+                };
+                place
+                    .projections
+                    .push(hir::PlaceProjection::Field(hir::DeclarationId::new(
+                        "foreign.field",
+                    )));
+            }
+            3 => {
+                args.pop();
+            }
+            4 => condition.ty = hir::ResolvedType::I64,
+            _ => *callee = hir::DeclarationId::new("core.string.len"),
+        };
+        let _ = (type_arguments, instance);
+        assert_eq!(hir::validate(&candidate).unwrap_err().code, "SPX-H006");
+        assert_eq!(
+            semaprax::codegen::emit_hir_c(&candidate).unwrap_err().code,
+            "SPX-H006"
+        );
+    }
 }
 
 #[test]
@@ -400,6 +555,7 @@ fn native_string_loops_settle_every_allocation_on_every_exit() {
     }}
     REQUIRE(fixture_live==0 && fixture_allocations==fixture_frees);
     if(strcmp("{id}","loops.condition_stable")==0) REQUIRE(fixture_allocations-before==1);
+    if(strcmp("{id}","loops.condition_predicates")==0) REQUIRE(fixture_allocations-before==3);
 }}
 "#
         ));
@@ -526,13 +682,28 @@ fn string_length_conditions_keep_allocating_and_consuming_shapes_refused() {
         "string_len(\"a\") < 2",
         "string_len(string_concat(text, \"b\")) < 2",
         "string_len({ text }) < 2",
-        "string_is_empty(text)",
         "match 0 { n if string_len(\"guard\") > n => true, _ => false, }",
         "{ while false { string_len(text) } false }",
         "{ while false { while string_len(text) < 1 { 0 } 0 } false }",
     ] {
         let found = diagnostics(&format!(
             "    let text = \"a\";\n    while {condition} {{ 0 }}\n    0"
+        ));
+        assert!(found.iter().any(|diagnostic| diagnostic.code == "SPX-T252"
+            && diagnostic.message == "string values are not admitted in while conditions; compute a scalar such as `string_len(text)` in the loop body and test that"), "{condition}: {found:?}");
+    }
+}
+
+#[test]
+fn string_predicate_conditions_keep_allocating_shapes_refused() {
+    for condition in [
+        "string_is_empty(\"a\")",
+        "string_is_empty(string_concat(text, \"b\"))",
+        "string_starts_with(text, string_concat(prefix, \"b\"))",
+        "string_contains(text, { needle })",
+    ] {
+        let found = diagnostics(&format!(
+            "    let text = \"abc\";\n    let prefix = \"a\";\n    let needle = \"b\";\n    while {condition} {{ 0 }}\n    0"
         ));
         assert!(found.iter().any(|diagnostic| diagnostic.code == "SPX-T252"
             && diagnostic.message == "string values are not admitted in while conditions; compute a scalar such as `string_len(text)` in the loop body and test that"), "{condition}: {found:?}");

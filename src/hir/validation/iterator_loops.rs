@@ -415,8 +415,8 @@ impl HirValidator<'_> {
             }
             self.validate_iterator_body(protocol.authored_body, protocol.owned_item)
         } else {
-            // A condition creates no String owner. Exact named length reads
-            // inspect a carrier; ordinary HIR replay authenticates the place.
+            // A condition creates no String owner. Exact named borrowed reads
+            // inspect carriers; ordinary HIR replay authenticates each place.
             let reads = crate::string_ops::conditions::condition_reads(condition);
             let mut pending = vec![condition];
             while let Some(expression) = pending.pop() {

@@ -30,6 +30,7 @@ issue 611 or assert that it has been closed. See
 Earlier Project v23 / `language-command-io.stream.v1` preflights and evidence
 remain historical and cannot qualify a v2 scored campaign. Qualification
 evidence uses a distinct v2 schema, so a prior v1 route or report is refused.
+The frozen native-v2 candidate qualification is recorded in [`qualification/native-v2-20261007/README.md`](qualification/native-v2-20261007/README.md), with its per-case report and portable evidence envelope. It only gates a future matched campaign; it is not a comparative result.
 
 The corpus is invoked through a command adapter that reads one request from
 stdin and writes one report to stdout. Example after an arm has been authored:

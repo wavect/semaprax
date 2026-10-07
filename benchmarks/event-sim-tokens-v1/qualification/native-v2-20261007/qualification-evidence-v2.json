@@ -1,0 +1,21 @@
+{
+  "schema": "semaprax.event-sim-qualification-evidence.v2",
+  "compiler_source_commit": "1e0e988218b51ad626881b87c83c553fc7cddf37",
+  "compiler_binary_sha256": "1e5b4b0e5bd1c3e27cd09e72c47e8853ac39d035732c8a087c20ec4d663c183e",
+  "spec_sha256": "5a8631fc59f55d145bfabb62c8edd3f86164114e3d27b69422031b664b529e00",
+  "acceptance_corpus_sha256": "3c285999cfcf6a905e885d636ac55ba0ccb0f5999ef5b20ac3a8c17a2e023587",
+  "native_project_route": {
+    "project_schema": "semaprax.project.v24",
+    "project_profile": "language-command-io.stream.v2",
+    "input_route": "argv-utf8+stdin-stream.v1",
+    "command_result_type": "i64",
+    "process_status_range": [
+      0,
+      255
+    ]
+  },
+  "acceptance_report": {
+    "path": "acceptance-report.json",
+    "sha256": "6d2edb5c32701c57d8f4b8c2c065c2e0bbd2951c1db88598c2dcda62c88dc1af"
+  }
+}

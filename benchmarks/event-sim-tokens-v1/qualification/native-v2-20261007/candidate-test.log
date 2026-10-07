@@ -1,0 +1,4 @@
+verified project shiftsim (sha256:7461af608fb2c25db89b0c80f533fdbe4b3feebd753f9c26078368f0cbfad5d2)
+built project native executable dist/shiftsim
+project tests passed (5 named cases)
+all tests passed

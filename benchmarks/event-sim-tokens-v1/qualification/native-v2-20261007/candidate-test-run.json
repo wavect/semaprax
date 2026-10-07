@@ -1,0 +1,15 @@
+{
+  "schema": "shiftsim.native-candidate-test-run.v1",
+  "result": "passed",
+  "command": "SEMAPRAX_BIN=/Users/kevin/.codex/benchmark-binaries/semaprax-1e0e98821 ./test.sh",
+  "script": "unmodified test.sh from archived SEMAPRAX candidate, copied to scratch; build.sh rebuilt dist/shiftsim during this run",
+  "exit_code": 0,
+  "test_log_sha256": "c5c775334254dd6734d5a08709696453bb2082e7c7d5cc08fda47804b2d19e2d",
+  "test_log": "candidate-test.log",
+  "candidate_binary_sha256": "8e9feeaf5db85d91166a585aed4b272b9e2351d912470862fca2b8857b7d30da",
+  "candidate_source_inventory": "candidate-source-inventory.json",
+  "candidate_source_inventory_sha256": "7a415695b2c7897610279274dea1cd8b7bfd8c6da9131a9d2f68ba049e796bc7",
+  "candidate_source_file_count_excluding_dist": 69,
+  "frozen_compiler_source_commit": "1e0e988218b51ad626881b87c83c553fc7cddf37",
+  "frozen_compiler_binary_sha256": "1e5b4b0e5bd1c3e27cd09e72c47e8853ac39d035732c8a087c20ec4d663c183e"
+}

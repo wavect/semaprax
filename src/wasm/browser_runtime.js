@@ -223,7 +223,7 @@ function createByteDataRuntime(options = {}) {
   // recoverable semantic failure past the compiler's cleanup transitions.
   const toolkitOutput = (offset, size = 8) => {
     const bytes = memory();
-    if (!Number.isInteger(offset) || offset < 0 || offset % 8 !== 0 || offset > 65536 - size) {
+    if (!Number.isInteger(offset) || offset < 65536 || offset % 8 !== 0 || offset > 131072 - size) {
       throw new Error("SEMAPRAX checked text output slot invariant");
     }
     return new DataView(bytes.buffer, offset, size);

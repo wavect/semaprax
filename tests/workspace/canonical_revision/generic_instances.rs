@@ -843,6 +843,74 @@ fn changed_success_result_program_root_replays_typed_residual_reconstruction() {
 }
 
 #[test]
+fn integer_conversion_program_root_replays_exact_compiler_operations() {
+    let fixture = Fixture::owned_vec("integer-conversion-root", false);
+    let source = r#"module fixture.app;
+@id("fixture.main") fn main()->i64 {
+ let byte=255u8;
+ let signed=-1i32;
+ let index=9223372036854775807usize;
+ let widened_byte=i64_from_u8(byte);
+ let widened_signed=i64_from_i32(signed);
+ let widened_index=usize_from_u8(byte);
+ let checked_signed=i64_from_usize(index);
+ let checked_index=usize_from_i64(checked_signed);
+ widened_byte+widened_signed+i64_from_usize(widened_index)+i64_from_usize(checked_index)
+}
+@id("fixture.public") fn published()->i64 {0}
+"#;
+    let path = fixture.0.join("src/app.spx");
+    let parsed = semaprax::parse(source, &path).unwrap();
+    std::fs::write(&path, semaprax::format::canonical(&parsed)).unwrap();
+    let manifest = semaprax::project::ProjectManifest::parse(
+        &std::fs::read_to_string(fixture.manifest()).unwrap(),
+    )
+    .unwrap();
+    let sources = manifest
+        .sources()
+        .iter()
+        .map(|source_path| {
+            semaprax::project::ProjectFrontendSource::new(
+                source_path.as_str(),
+                &std::fs::read_to_string(fixture.0.join(source_path.as_str())).unwrap(),
+            )
+            .unwrap()
+        })
+        .collect::<Vec<_>>();
+    let mut cache = semaprax::project::ProjectFrontendCache::new_with_semantic_cache();
+    let cold = cache.build(&manifest, &sources).unwrap();
+    let cold_graph = cold.revision().semantic_graph().to_owned();
+    let warm = cache.build(&manifest, &sources).unwrap();
+    let work: Value = serde_json::from_str(warm.to_json()).unwrap();
+    assert_eq!(work["work"]["modules_parsed"], 0);
+    assert_eq!(warm.revision().semantic_graph(), cold_graph);
+    let workspace = warm.revision().canonical_workspace_revision().unwrap();
+    let semantic = semaprax::graph::to_json(&parsed).unwrap();
+    for identity in [
+        "core.num.i64_from_u8",
+        "core.num.i64_from_i32",
+        "core.num.usize_from_u8",
+        "core.num.i64_from_usize",
+        "core.num.usize_from_i64",
+    ] {
+        assert!(
+            semantic.contains(identity),
+            "missing {identity}: {semantic}"
+        );
+    }
+    let root = workspace.program_root().unwrap();
+    assert_eq!(
+        ProgramRoot::replay(
+            &workspace,
+            root.program_root_digest(),
+            root.to_json().as_bytes()
+        )
+        .unwrap(),
+        root
+    );
+}
+
+#[test]
 fn explicit_forwarding_program_root_binds_v35_symbolic_mapping() {
     let fixture = Fixture::owned_vec("explicit-forwarding-root", false);
     let text = r#"module fixture.app;

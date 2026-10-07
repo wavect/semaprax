@@ -299,4 +299,26 @@ fn integer_profile_types_and_forged_results_fail_closed() {
     };
     args[0].ty = hir::ResolvedType::I64;
     assert!(hir::validate(&forged_operand).is_err());
+
+    let remainder = checked_program(
+        r#"module test.forged_remainder;
+@id("numeric.remainder") fn remainder() -> i64 { let value = 7i32 % 2i32; 0 }
+@id("app.main") fn main() -> i64 { remainder() }
+"#,
+    );
+    let mut forged_remainder = hir::resolve(&remainder).unwrap();
+    let function = forged_remainder
+        .functions
+        .iter_mut()
+        .find(|function| function.id.as_str() == "numeric.remainder")
+        .unwrap();
+    let hir::ResolvedExprKind::Block { statements, .. } = &mut function.body.kind else {
+        panic!("block expected")
+    };
+    let hir::ResolvedStatement::Let { binding, value, .. } = &mut statements[0] else {
+        panic!("let expected")
+    };
+    binding.ty = hir::ResolvedType::U8;
+    value.ty = hir::ResolvedType::U8;
+    assert!(hir::validate(&forged_remainder).is_err());
 }

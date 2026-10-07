@@ -156,6 +156,7 @@ Audience: all documentation readers.
 - [Copy variant guards](COPY-VARIANT-GUARDS-V1.md)
 - [String operations](STRING-OPS-V1.md)
 - [Owned String loops](OWNED-STRING-LOOPS-V1.md)
+- [Owned String loops v2](OWNED-STRING-LOOPS-V2.md)
 - [Named String length conditions](STRING-LENGTH-CONDITIONS-V1.md)
 - [Text Toolkit and command-line programs](TEXT-TOOLKIT-V1.md)
 - [String Collections (string-keyed maps)](STRING-COLLECTIONS-V1.md)

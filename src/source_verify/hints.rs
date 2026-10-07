@@ -332,7 +332,11 @@ pub(super) fn argument_view_help(name: &str, expected: &Type, actual: &Type) -> 
             "`{name}` takes a `str` view; borrow the owned string first: \
              `{name}(string_as_str(binding))`, binding a literal with `let` before that"
         ),
-        (Type::SliceU8, Type::String | Type::Str | Type::Bytes | Type::ArrayU8(_)) => format!(
+        (Type::SliceU8, Type::String) => format!(
+            "`{name}` takes `borrow Slice<u8>`; bind a literal first, then both views: \
+             `let view = string_as_str(text); let bytes = str_as_bytes(view); {name}(bytes)`"
+        ),
+        (Type::SliceU8, Type::Str | Type::Bytes | Type::ArrayU8(_)) => format!(
             "`{name}` takes `borrow Slice<u8>`; produce one with `str_as_bytes(view)`, \
              `array_as_slice(array)`, or `bytes_as_slice(bytes)`"
         ),

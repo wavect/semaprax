@@ -321,6 +321,33 @@ fn owned_bytes_into_a_slice_parameter_names_the_views() {
 }
 
 #[test]
+fn owned_string_into_a_slice_parameter_names_both_borrowed_views() {
+    let diagnostic = only(
+        "module habit.slice_string;\n@id(\"habit.f\")\nfn f(v: borrow Slice<u8>) -> usize\n{\n    byte_len(v)\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    let text = \"abc\";\n    f(text)\n}\n",
+        "SPX-T205",
+    );
+    assert_eq!(diagnostic.span.map(|span| span.line), Some(11));
+    assert_eq!(
+        diagnostic.message,
+        "argument `v` to `f` expects Slice<u8>, received string"
+    );
+    let hint = help(&diagnostic);
+    assert!(
+        hint.contains(
+            "let view = string_as_str(text); let bytes = str_as_bytes(view); f(bytes)"
+        ),
+        "{diagnostic}"
+    );
+    assert!(hint.len() <= 256, "hint is {} bytes: {hint}", hint.len());
+}
+
+#[test]
+fn named_string_views_are_admitted_for_a_slice_parameter() {
+    let source = "module habit.slice_string;\n@id(\"habit.f\")\nfn f(v: borrow Slice<u8>) -> usize\n{\n    byte_len(v)\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    let text = \"abc\";\n    let view = string_as_str(text);\n    let bytes = str_as_bytes(view);\n    let n = f(bytes);\n    0\n}\n";
+    assert!(diagnostics(source).is_empty());
+}
+
+#[test]
 fn scalar_argument_mismatch_gets_no_view_hint() {
     let diagnostic = only(
         "module habit.scalar;\n@id(\"habit.f\")\nfn f(v: i64) -> i64\n{\n    v\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    f(true)\n}\n",

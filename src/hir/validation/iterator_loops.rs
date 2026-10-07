@@ -291,9 +291,9 @@ impl HirValidator<'_> {
                         continue;
                     }
                     let scalar_signature = crate::loop_calls::effects_admitted(&target.effects)
-                        && crate::loop_calls::resolved_result_admitted(&target.return_type)
+                        && crate::loop_calls::resolved_result_admitted(&self.program.declarations, &target.return_type)
                         && target.params.iter().zip(args).all(|(param, argument)| {
-                            crate::loop_calls::resolved_param_admitted(param.ownership, &param.ty)
+                            crate::loop_calls::resolved_param_admitted(&self.program.declarations, param.ownership, &param.ty)
                                 || (param.ownership == OwnershipMode::Own && param.ty == ResolvedType::Bytes
                                     && argument.ownership == OwnershipMode::Own && argument.ty == ResolvedType::Bytes
                                     && owned_item.is_some_and(|item| matches!(&argument.kind, ResolvedExprKind::Place(place) if place.root == item.id && place.projections.is_empty())))
@@ -375,8 +375,10 @@ impl HirValidator<'_> {
                     if !crate::loop_calls::resolved_match_scrutinee_admitted(
                         &self.program.declarations,
                         &scrutinee.ty,
-                    ) || !crate::loop_calls::resolved_result_admitted(&expression.ty)
-                    {
+                    ) || !crate::loop_calls::resolved_result_admitted(
+                        &self.program.declarations,
+                        &expression.ty,
+                    ) {
                         return Err(hir_error(
                             "while loop match is outside the Copy-scrutinee profile",
                         ));

@@ -156,6 +156,7 @@ Audience: all documentation readers.
 - [Record invariants](RECORD-INVARIANTS-V1.md)
 - [Refutable match](REFUTABLE-MATCH-V1.md)
 - [Copy variant guards](COPY-VARIANT-GUARDS-V1.md)
+- [General loop matches](GENERAL-LOOP-MATCH-V1.md)
 - [String operations](STRING-OPS-V1.md)
 - [Owned String loops](OWNED-STRING-LOOPS-V1.md)
 - [Owned String loops v2](OWNED-STRING-LOOPS-V2.md)

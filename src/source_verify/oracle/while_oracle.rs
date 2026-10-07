@@ -271,9 +271,9 @@ pub(super) fn reject_while_disallowed_oracle(
             if let Some(declared) = functions.get(name.as_str()) {
                 let scalar_signature = crate::stdin_stream_ops::ast_forward_signature(declared)
                     || (crate::loop_calls::effects_admitted(&declared.effects)
-                        && crate::loop_calls::ast_result_admitted(&declared.return_type)
+                        && crate::loop_calls::ast_result_admitted(program, &declared.return_type)
                         && declared.params.iter().all(|param| {
-                            crate::loop_calls::ast_param_admitted(param.mode, &param.ty)
+                            crate::loop_calls::ast_param_admitted(program, param.mode, &param.ty)
                         }));
                 if !scalar_signature {
                     diagnostics.push(error(

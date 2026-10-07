@@ -1018,7 +1018,12 @@ authenticate every guard and binding. `cleanup_plan/build/guarded_variant.rs`
 derives Boolean guard edges; `cleanup_plan/replay/guarded_variant.rs` independently
 derives case/Boolean observations and bounded census work. Native and aggregate
 Wasm guard helpers own target selection after binding, including linear Wasm
-fallthrough. [Copy Variant Guards v1](COPY-VARIANT-GUARDS-V1.md) owns this addition.
+fallthrough. [Copy Variant Guards v1](COPY-VARIANT-GUARDS-V1.md) owns the frozen scalar
+profile; [General Loop Match v1](GENERAL-LOOP-MATCH-V1.md) owns ordinary guard
+regions and private Copy helper/result boundaries.
+`hir/validation/variant_guard_state.rs` independently compares surrounding
+ownership facts before selection/fallthrough. Native guard anchors come from
+exact plan carrier membership and emit canonical region exits.
 
 `src/string_ops/conditions.rs` derives the narrow named String length inspection
 set from typed while conditions for cleanup construction, independent replay,
@@ -1331,7 +1336,10 @@ module and checked mint lowering, reusing the private String owner cells and
 common status epilogue. The explicit `emit_copy_variant_module` additive profile reuses this module
 and arena with selected Copy-variant layouts and checked fixed-array byte
 reads; `internal_strings/admission.rs` keeps its admission separate from the
-older nominal-free entry. `interpreter/guarded_variants.rs` owns actual
+older nominal-free entry. The separately selected
+`emit_general_loop_match_module` adds ordinary checked guards and private Copy
+variant helper/match results; earlier selected profiles remain closed.
+`interpreter/guarded_variants.rs` owns actual
 Copy-payload binding, guard evaluation and authored fallthrough on the
 reference evaluator. The existing aggregate entry points explicitly leave
 that mode off. Generated modules pass structural validation before return.

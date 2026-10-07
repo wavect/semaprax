@@ -30,6 +30,9 @@ pub(super) fn reject_aggregate_match_result(
     value: &CheckedValue,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
+    if value.mode == ParamMode::Value && crate::loop_calls::ast_copy_variant(program, &value.ty) {
+        return;
+    }
     if !matches!(
         value.ty,
         Type::I64

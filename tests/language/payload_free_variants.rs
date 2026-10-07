@@ -528,11 +528,9 @@ fn rejected_or_patterns_keep_stable_diagnostics() {
             ],
         ),
         (
+            // General Loop Match v1 admits guarded payload-free case-or patterns.
             "Shape::Dot {} | Shape::Empty {} if code > 1 => 0, _ => 1,",
-            vec![format!(
-                "SPX-T254 guards and literal/or/binding patterns require a Copy-scalar \
-                 scrutinee (i64/i32/u8/char/bool) | {help}"
-            )],
+            Vec::new(),
         ),
     ];
     for (arms, expected) in cases {

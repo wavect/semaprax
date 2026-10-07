@@ -362,9 +362,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     // established unresolved-value diagnostic fires instead.
                     if let Some(declared) = self.functions.get(name.as_str()) {
                         let scalar_signature = crate::stdin_stream_ops::ast_forward_signature(declared) || ( crate::loop_calls::effects_admitted(&declared.effects)
-                            && crate::loop_calls::ast_result_admitted(&declared.return_type)
+                            && crate::loop_calls::ast_result_admitted(self.program, &declared.return_type)
                             && declared.params.iter().zip(args).all(|(param, argument)| {
-                                crate::loop_calls::ast_param_admitted(param.mode, &param.ty)
+                                crate::loop_calls::ast_param_admitted(self.program, param.mode, &param.ty)
                                     || (param.mode == ParamMode::Own && param.ty == Type::Bytes
                                         && owned_item.is_some_and(|item| matches!(&argument.kind, ExprKind::Var(name) if name == item)))
                             }));

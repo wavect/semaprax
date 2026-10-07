@@ -21,7 +21,11 @@ use super::Resolver;
 pub(super) fn has_scalar_only_syntax(arms: &[MatchArm], copy_variant_guards: bool) -> bool {
     arms.iter().any(|arm| {
         (arm.guard.is_some()
-            && !(copy_variant_guards && matches!(arm.pattern, MatchPattern::Variant { .. })))
+            && !(copy_variant_guards
+                && (matches!(
+                    arm.pattern,
+                    MatchPattern::Variant { .. } | MatchPattern::Wildcard { .. }
+                ) || arm.pattern.is_variant_or())))
             || matches!(
                 &arm.pattern,
                 MatchPattern::Literal { .. } | MatchPattern::Binding { .. }

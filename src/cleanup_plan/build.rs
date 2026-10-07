@@ -3865,6 +3865,12 @@ impl<'a> PlanBuilder<'a> {
                             };
                             let edge = self.new_edge(decision, arm_entry, condition)?;
                             self.terminate(decision, CleanupTerminator::Goto(edge))?;
+                        } else if matches!(arm.pattern, ResolvedMatchPattern::Wildcard)
+                            && arm.guard.is_some()
+                        {
+                            let edge = self.new_edge(decision, arm_entry, EdgeCondition::Always)?;
+                            self.terminate(decision, CleanupTerminator::Goto(edge))?;
+                            decision = self.new_block(active_region)?;
                         } else {
                             let cases = arm.pattern.variant_cases().ok_or_else(|| {
                                 plan_error("wildcard match arm must be the final exhaustive arm")
@@ -3912,11 +3918,13 @@ impl<'a> PlanBuilder<'a> {
                             branch_state.clone()
                         };
                         if let Some(guard) = &arm.guard {
+                            let (guard_entry, guard_region) =
+                                self.begin_variant_guard(guard, arm_entry, active_region)?;
                             let lowered = self.lower_expr_iterative(
                                 guard,
-                                arm_entry,
+                                guard_entry,
                                 arm_state.clone(),
-                                active_region,
+                                guard_region.unwrap_or(active_region),
                             )?;
                             arm_entry = self.finish_variant_guard(
                                 guard,
@@ -3924,6 +3932,7 @@ impl<'a> PlanBuilder<'a> {
                                 &branch_state,
                                 decision,
                                 active_region,
+                                guard_region,
                             )?;
                         }
                         frames.push(Frame::MatchAfterArm {
@@ -5985,6 +5994,10 @@ impl<'a> PlanBuilder<'a> {
                 };
                 let edge = self.new_edge(decision, arm_entry, condition)?;
                 self.terminate(decision, CleanupTerminator::Goto(edge))?;
+            } else if matches!(arm.pattern, ResolvedMatchPattern::Wildcard) && arm.guard.is_some() {
+                let edge = self.new_edge(decision, arm_entry, EdgeCondition::Always)?;
+                self.terminate(decision, CleanupTerminator::Goto(edge))?;
+                decision = self.new_block(region)?;
             } else {
                 let cases = arm.pattern.variant_cases().ok_or_else(|| {
                     plan_error("wildcard match arm must be the final exhaustive arm")
@@ -6033,14 +6046,22 @@ impl<'a> PlanBuilder<'a> {
                 branch_state.clone()
             };
             if let Some(guard) = &arm.guard {
+                let (guard_entry, guard_region) =
+                    self.begin_variant_guard(guard, arm_entry, region)?;
                 let lowered = self.lower_expr_recursive_reference(
                     guard,
-                    arm_entry,
+                    guard_entry,
                     arm_state.clone(),
-                    region,
+                    guard_region.unwrap_or(region),
                 )?;
-                arm_entry =
-                    self.finish_variant_guard(guard, lowered, &branch_state, decision, region)?;
+                arm_entry = self.finish_variant_guard(
+                    guard,
+                    lowered,
+                    &branch_state,
+                    decision,
+                    region,
+                    guard_region,
+                )?;
             }
             let mut result = self.lower_expr_recursive_reference(
                 &arm.value,

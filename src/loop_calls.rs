@@ -11,15 +11,17 @@
 //! outer binding still changes ownership
 //! liveness inside the loop and keeps its existing diagnostic.
 
-use crate::ast::{ParamMode, Type};
+use crate::ast::{ParamMode, Program, Type, TypeDeclarationKind};
 use crate::hir::{OwnershipMode, ResolvedType};
 use crate::source_verify::is_scalar_source_type;
 
-/// One source parameter a loop-body call admits: a Copy scalar, a borrowed
+/// One source parameter a loop-body call admits: a Copy scalar or flat Copy variant, a borrowed
 /// byte slice or named `str`, or an owned `string` the call consumes.
-pub(crate) fn ast_param_admitted(mode: ParamMode, ty: &Type) -> bool {
+pub(crate) fn ast_param_admitted(program: &Program, mode: ParamMode, ty: &Type) -> bool {
     match mode {
-        ParamMode::Value => is_scalar_source_type(ty) || *ty == Type::String,
+        ParamMode::Value => {
+            ast_copy_variant(program, ty) || is_scalar_source_type(ty) || *ty == Type::String
+        }
         ParamMode::Own => *ty == Type::String,
         ParamMode::Borrow => matches!(ty, Type::SliceU8 | Type::Str),
         ParamMode::Shared => false,
@@ -40,16 +42,22 @@ pub(crate) fn effects_admitted(effects: &[String]) -> bool {
     })
 }
 
-/// One source result a loop-body call admits: a Copy scalar or a new `string`.
-pub(crate) fn ast_result_admitted(ty: &Type) -> bool {
-    is_scalar_source_type(ty) || *ty == Type::String
+/// One source result a loop-body call admits: a Copy scalar, flat Copy variant or new `string`.
+pub(crate) fn ast_result_admitted(program: &Program, ty: &Type) -> bool {
+    is_scalar_source_type(ty) || *ty == Type::String || ast_copy_variant(program, ty)
 }
 
 /// The resolved twin of [`ast_param_admitted`].
-pub(crate) fn resolved_param_admitted(ownership: OwnershipMode, ty: &ResolvedType) -> bool {
+pub(crate) fn resolved_param_admitted(
+    declarations: &crate::hir::DeclarationIndex,
+    ownership: OwnershipMode,
+    ty: &ResolvedType,
+) -> bool {
     match ownership {
         OwnershipMode::Value => {
-            crate::hir::is_scalar_resolved_type(ty) || *ty == ResolvedType::String
+            crate::hir::is_scalar_resolved_type(ty)
+                || *ty == ResolvedType::String
+                || resolved_match_scrutinee_admitted(declarations, ty)
         }
         OwnershipMode::Own => *ty == ResolvedType::String,
         OwnershipMode::Borrow => matches!(ty, ResolvedType::SliceU8 | ResolvedType::Str),
@@ -58,8 +66,13 @@ pub(crate) fn resolved_param_admitted(ownership: OwnershipMode, ty: &ResolvedTyp
 }
 
 /// The resolved twin of [`ast_result_admitted`].
-pub(crate) fn resolved_result_admitted(ty: &ResolvedType) -> bool {
-    crate::hir::is_scalar_resolved_type(ty) || *ty == ResolvedType::String
+pub(crate) fn resolved_result_admitted(
+    declarations: &crate::hir::DeclarationIndex,
+    ty: &ResolvedType,
+) -> bool {
+    crate::hir::is_scalar_resolved_type(ty)
+        || *ty == ResolvedType::String
+        || resolved_match_scrutinee_admitted(declarations, ty)
 }
 
 /// Owned String Loops v2: a `match` in a loop body is cleanup-inert when its
@@ -98,4 +111,47 @@ pub(crate) fn match_scrutinee_refusal(ty: &str) -> String {
     format!(
         "a match in a loop body needs a Copy scalar or a variant with only Copy scalar payloads; this one matches `{ty}`, so match it before the loop"
     )
+}
+
+/// Exact source twin of the flat concrete Copy-payload variant classifier.
+/// Only direct scalar fields or direct concrete scalar type arguments qualify.
+pub(crate) fn ast_copy_variant(program: &Program, ty: &Type) -> bool {
+    let Type::Named { name, arguments } = ty else {
+        return false;
+    };
+    let Some(declaration) = program
+        .types
+        .iter()
+        .chain(crate::prelude::declarations_for_program(program))
+        .find(|d| d.name == *name)
+    else {
+        return false;
+    };
+    let TypeDeclarationKind::Variant { cases } = &declaration.kind else {
+        return false;
+    };
+    if arguments.len() != declaration.type_parameters.len() {
+        return false;
+    }
+    cases.iter().all(|case| {
+        case.fields.iter().all(|field| {
+            if is_scalar_source_type(&field.ty) {
+                return true;
+            }
+            let Type::Named {
+                name,
+                arguments: nested,
+            } = &field.ty
+            else {
+                return false;
+            };
+            nested.is_empty()
+                && declaration
+                    .type_parameters
+                    .iter()
+                    .position(|parameter| parameter.name == *name)
+                    .and_then(|index| arguments.get(index))
+                    .is_some_and(is_scalar_source_type)
+        })
+    })
 }

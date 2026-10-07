@@ -15,6 +15,15 @@
   Bounded callers keep their existing formatter-work debits and overflow path;
   byte-oracle, prelude, shadow and stale-source regressions await batch validation.
 
+- Author General Loop Match v1: private Copy variant helper and match-result
+  boundaries, ordinary checked case/wildcard/or guards, canonical temporary
+  settlement before selection/fallthrough, independent replay and an explicit
+  private Wasm selector. Focused all-engine/hostile verification is pending.
+
+- Author Whole String Replacement v1 with CleanupPlan v16/Graph v67, independently
+  replayed guarded old-owner release, consuming RHS calls and branch results,
+  an explicit private Wasm selector and focused settlement/refusal regressions.
+  Consolidated executable verification is pending.
 - Add concrete Copy-scalar variant constructors within admitted loop matches,
   retaining ordinary identity/type/ownership checks and canonical cleanup.
   Author interpreter/native/Wasm settlement and refusal controls for repeated

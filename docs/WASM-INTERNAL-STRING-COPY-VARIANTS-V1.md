@@ -52,6 +52,11 @@ HIR validation and independent cleanup replay precede admission. Malformed
 source guards retain their source diagnostics; malformed HIR remains
 `SPX-H006`, and unsupported selected profile shapes remain `SPX-W111`.
 
+The explicit [General Loop Match v1](GENERAL-LOOP-MATCH-V1.md) selector adds
+ordinary guard trees, private Copy variant helper signatures and Copy variant
+match results. This frozen selector retains `SPX-W111` for those extended
+selected shapes; prior admitted artifacts retain exact bytes.
+
 ## Lowering and settlement
 
 Variant layouts are derived and independently validated from the selected

@@ -81,7 +81,7 @@ pub fn emit_module(
     export_ids: &[String],
     options: InternalStringOptions,
 ) -> Result<InternalStringModule, Diagnostic> {
-    emit_selected(program, export_ids, options, false, false)
+    emit_selected(program, export_ids, options, false, false, false)
 }
 
 /// Explicit additive Copy Variant String Settlement v1. Public signatures
@@ -91,7 +91,7 @@ pub fn emit_copy_variant_module(
     export_ids: &[String],
     options: InternalStringOptions,
 ) -> Result<InternalStringModule, Diagnostic> {
-    emit_selected(program, export_ids, options, true, false)
+    emit_selected(program, export_ids, options, true, false, false)
 }
 
 /// Explicit additive String Replacement v1, including the admitted Copy variant internals.
@@ -101,7 +101,17 @@ pub fn emit_string_replacement_module(
     export_ids: &[String],
     options: InternalStringOptions,
 ) -> Result<InternalStringModule, Diagnostic> {
-    emit_selected(program, export_ids, options, true, true)
+    emit_selected(program, export_ids, options, true, true, false)
+}
+
+/// Explicit additive general Loop Match v1: ordinary Boolean Copy-variant
+/// guards, private Copy helper boundaries and checked String replacement.
+pub fn emit_general_loop_match_module(
+    program: &Program,
+    export_ids: &[String],
+    options: InternalStringOptions,
+) -> Result<InternalStringModule, Diagnostic> {
+    emit_selected(program, export_ids, options, true, true, true)
 }
 
 fn emit_selected(
@@ -110,6 +120,7 @@ fn emit_selected(
     options: InternalStringOptions,
     copy_variants: bool,
     replacements: bool,
+    general_guards: bool,
 ) -> Result<InternalStringModule, Diagnostic> {
     let resolved = crate::hir::resolve(program).map_err(|diagnostics| {
         diagnostics
@@ -127,7 +138,9 @@ fn emit_selected(
             "standalone String byte policy exceeds its hard bounds",
         ));
     }
-    let (exports, closure) = if replacements {
+    let (exports, closure) = if general_guards {
+        admission::prepare_general_loop_matches(&resolved, export_ids)?
+    } else if replacements {
         admission::prepare_replacements(&resolved, export_ids)?
     } else if copy_variants {
         admission::prepare_copy_variants(&resolved, export_ids)?
@@ -154,7 +167,9 @@ fn emit_selected(
         stack_bytes, derived_owner_capacity, options.max_string_bytes, options.max_live_bytes,
         options.max_cumulative_bytes, owners
     );
-    if replacements {
+    if general_guards {
+        descriptor.insert_str(1, "\"profile\":\"general-loop-match-v1\",");
+    } else if replacements {
         descriptor.insert_str(1, "\"profile\":\"string-replacement-v1\",");
     } else if copy_variants {
         descriptor.insert_str(1, "\"profile\":\"copy-variants-v1\",");

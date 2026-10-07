@@ -18,7 +18,7 @@ pub(super) fn copy_variant(types: &TypeTable<'_>, ty: &Type) -> bool {
     })
 }
 
-pub(super) fn guard_shape(guard: &Expr, bindings: &HashMap<String, Binding>) -> bool {
+pub(super) fn scalar_guard_shape(guard: &Expr, bindings: &HashMap<String, Binding>) -> bool {
     let mut pending = vec![guard];
     while let Some(expression) = pending.pop() {
         match &expression.kind {
@@ -45,6 +45,47 @@ pub(super) fn guard_shape(guard: &Expr, bindings: &HashMap<String, Binding>) -> 
     true
 }
 
+pub(super) fn guard_shape(guard: &Expr, bindings: &HashMap<String, Binding>) -> bool {
+    if scalar_guard_shape(guard, bindings) {
+        return true;
+    }
+    let mut pending = vec![guard];
+    while let Some(expression) = pending.pop() {
+        if matches!(
+            expression.kind,
+            ExprKind::Closure { .. } | ExprKind::Yield { .. } | ExprKind::Try { .. }
+        ) {
+            return false;
+        }
+        if matches!(&expression.kind, ExprKind::Call {name,..} if bindings.get(name).is_some_and(|binding| matches!(binding.ty,Type::Function {..} | Type::OnceFunction | Type::OnceFunctionI64 | Type::OnceFunctionI64Pair | Type::MutFunctionI64)))
+        {
+            return false;
+        }
+        if matches!(&expression.kind,ExprKind::Block{statements,..} if statements.iter().any(|s| matches!(s,crate::ast::Statement::Unsafe{..})))
+        {
+            return false;
+        }
+        let mut index = 0;
+        while let Some(child) = expression.child(index) {
+            pending.push(child);
+            index += 1;
+        }
+    }
+    true
+}
+pub(super) fn ownership_unchanged(
+    before: &HashMap<String, Binding>,
+    after: &HashMap<String, Binding>,
+) -> bool {
+    before.iter().all(|(name, binding)| {
+        after.get(name).is_some_and(|other| {
+            binding.availability == other.availability
+                && binding.moved_places == other.moved_places
+                && binding.definitely_partial == other.definitely_partial
+        })
+    })
+}
+
 pub(super) fn admission(
     types: &TypeTable<'_>,
     ty: &Type,
@@ -53,5 +94,8 @@ pub(super) fn admission(
 ) -> bool {
     mode == MatchMode::Value
         && copy_variant(types, ty)
-        && matches!(pattern, MatchPattern::Variant { .. })
+        && matches!(
+            pattern,
+            MatchPattern::Variant { .. } | MatchPattern::Wildcard { .. } | MatchPattern::Or { .. }
+        )
 }

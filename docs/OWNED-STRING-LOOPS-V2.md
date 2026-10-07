@@ -9,8 +9,8 @@ own local evidence; they do not establish hosted or public ABI support.
 ## User calls in loop bodies
 
 A `while` or `for` body may call a monomorphic user function
-whose result is a Copy scalar or `string`, and whose parameters are Copy
-scalars, named borrowed byte slices or `str` views, or consumed strings. The
+whose result is a Copy scalar, flat Copy variant or `string`, and whose parameters are Copy
+scalars or flat Copy variants, named borrowed byte slices or `str` views, or consumed strings. The
 closed read-only effects `process.args.read`, `fs.read`, and
 `process.environment.read` are admitted when ordinarily declared and permitted;
 other effectful user calls stay refused. Body-local Strings stage
@@ -56,7 +56,10 @@ while i < 4 {
 [Copy Variant Guards v1](COPY-VARIANT-GUARDS-V1.md) adds scalar-operator guards
 on exact cases of these Copy-payload variants. Guarded cases contribute no
 coverage: exhaustive unguarded fallback remains required (`SPX-M101`). Calls,
-blocks, guarded wildcards/or-patterns and owned payload guards retain `SPX-T254`. Owned or borrowed non-Copy
+blocks and guarded wildcards/or-patterns are authored by
+[General Loop Match v1](GENERAL-LOOP-MATCH-V1.md), including private Copy
+variant helper parameters/results and Copy variant arm results. Owned payload
+guards retain `SPX-T254`. Owned or borrowed non-Copy
 scrutinees, including `Option<string>`, remain
 `SPX-T252`. [Loop Copy Variant Construction v1](LOOP-COPY-VARIANT-CONSTRUCTION-V1.md)
 adds direct concrete Copy-scalar variant construction in bodies and otherwise

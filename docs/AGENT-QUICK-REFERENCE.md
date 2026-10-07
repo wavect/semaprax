@@ -163,17 +163,17 @@ fn main() -> i64
   Its body still needs a final expression, but that value is discarded; the
   condition controls repetition. While bodies admit
   Copy-scalar operations, user calls with declared read-only input effects
-  taking Copy scalars, borrowed byte slices or named `str` views, or consumed
-  strings and returning a scalar or string, matches over Copy
+  taking Copy scalars or flat Copy variants, borrowed byte slices or named `str` views, or consumed
+  strings and returning a scalar, flat Copy variant or string, matches over Copy
   scalars or variants with only Copy scalar payloads,
   and string literals and `string_*` calls (each iteration releases its own
-  strings). Match arms may yield strings. Concrete variants with only Copy
+  strings). Match arms may yield strings or flat Copy variants. Concrete variants with only Copy
   scalar payloads may be constructed there, including direct match scrutinees;
   record/non-Copy variant construction, other aggregate-returning calls, and
   surrounding ownership changes are `SPX-T252`. Conditions settle temporary
-  Strings before each Boolean decision ([condition lifetime](STRING-CONDITION-LIFETIMES-V1.md)). Exact variant-case guards admit scalar
-  literals/bindings/operators and require exhaustive unguarded fallback coverage
-  ([guard profile](COPY-VARIANT-GUARDS-V1.md)).
+  Strings before each Boolean decision ([condition lifetime](STRING-CONDITION-LIFETIMES-V1.md)). Copy variant guards admit ordinary checked bool calls/blocks and
+  case/wildcard/or patterns, require exhaustive unguarded fallback, and cannot
+  consume an outer owner ([guard profile](GENERAL-LOOP-MATCH-V1.md)).
 - Bindings are immutable unless `let mut`. Assignment is a statement:
   `x = x + 1;` or `point.x = 5;`. Parameters are immutable. A `let mut`
   string can be replaced by a same-typed RHS; the completed RHS becomes its

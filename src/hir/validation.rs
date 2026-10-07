@@ -5351,7 +5351,7 @@ impl<'a> HirValidator<'a> {
                                         "resolved match has an unreachable wildcard",
                                     ));
                                 }
-                                wildcard_seen = true;
+                                wildcard_seen = arm.guard.is_none();
                             }
                             ResolvedMatchPattern::Variant {
                                 variant: pattern_variant,
@@ -5451,14 +5451,18 @@ impl<'a> HirValidator<'a> {
                                 ))
                             }
                             ResolvedMatchPattern::Or(alternatives) => {
+                                let mut candidate = covered.clone();
                                 variant_or::cover_variant_or_pattern(
                                     alternatives,
                                     &variant,
                                     &cases,
                                     *mode,
                                     wildcard_seen,
-                                    &mut covered,
+                                    &mut candidate,
                                 )?;
+                                if arm.guard.is_none() {
+                                    covered = candidate;
+                                }
                             }
                             ResolvedMatchPattern::Literal(_) | ResolvedMatchPattern::Binding(_) => {
                                 return Err(hir_error(
@@ -5475,7 +5479,7 @@ impl<'a> HirValidator<'a> {
                                 &arm.pattern,
                                 guard,
                             ) {
-                                return Err(hir_error("resolved Copy variant guard is outside its scalar operator profile"));
+                                return Err(hir_error("resolved Copy variant guard is outside its ordinary Boolean profile"));
                             }
                             self.validate_expr_iterative(
                                 function,
@@ -5488,6 +5492,7 @@ impl<'a> HirValidator<'a> {
                             if guard.ty != ResolvedType::Bool {
                                 return Err(hir_error("resolved match guard is not bool"));
                             }
+                            variant_guard_state::unchanged(&outer, &arm_scope)?;
                         }
                         frames.push(Frame::VariantMatchAfterArm {
                             expression,
@@ -7654,7 +7659,7 @@ impl<'a> HirValidator<'a> {
                                     "resolved match has an unreachable wildcard",
                                 ));
                             }
-                            wildcard_seen = true;
+                            wildcard_seen = arm.guard.is_none();
                         }
                         ResolvedMatchPattern::Variant {
                             variant: pattern_variant,
@@ -7754,14 +7759,18 @@ impl<'a> HirValidator<'a> {
                             ));
                         }
                         ResolvedMatchPattern::Or(alternatives) => {
+                            let mut candidate = covered.clone();
                             variant_or::cover_variant_or_pattern(
                                 alternatives,
                                 variant,
                                 &cases,
                                 *mode,
                                 wildcard_seen,
-                                &mut covered,
+                                &mut candidate,
                             )?;
+                            if arm.guard.is_none() {
+                                covered = candidate;
+                            }
                         }
                         ResolvedMatchPattern::Literal(_) | ResolvedMatchPattern::Binding(_) => {
                             return Err(hir_error(
@@ -7777,7 +7786,7 @@ impl<'a> HirValidator<'a> {
                             &arm.pattern,
                             guard,
                         ) {
-                            return Err(hir_error("resolved Copy variant guard is outside its scalar operator profile"));
+                            return Err(hir_error("resolved Copy variant guard is outside its ordinary Boolean profile"));
                         }
                         self.validate_expr_recursive_reference(
                             function,
@@ -7790,6 +7799,7 @@ impl<'a> HirValidator<'a> {
                         if guard.ty != ResolvedType::Bool {
                             return Err(hir_error("resolved match guard is not bool"));
                         }
+                        variant_guard_state::unchanged(scope, &arm_scope)?;
                     }
                     self.validate_expr_recursive_reference(
                         function,
@@ -8772,4 +8782,5 @@ mod iterative_while_admission_tests;
 mod generic_variant;
 mod iterator_loops;
 mod string_replacement;
+mod variant_guard_state;
 mod variant_or;

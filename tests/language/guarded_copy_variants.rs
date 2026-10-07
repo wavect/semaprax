@@ -423,7 +423,6 @@ fn guarded_variants_preserve_fallback_and_profile_diagnostics() {
     for (source, code) in [
         (missing, "SPX-M101"),
         (&wrong_type, "SPX-T256"),
-        (&unsupported, "SPX-T254"),
         (&unreachable, "SPX-M102"),
         (owned, "SPX-T254"),
     ] {
@@ -440,6 +439,19 @@ fn guarded_variants_preserve_fallback_and_profile_diagnostics() {
         );
         assert!(hir::resolve(&program).is_err());
     }
+    let program = parse(&unsupported, Path::new("general-guard-profile.spx")).unwrap();
+    assert!(verify::verify(&program).is_empty());
+    hir::resolve(&program).unwrap();
+    assert_eq!(
+        emit_copy_variant_module(
+            &program,
+            &["t.main".into()],
+            InternalStringOptions::default()
+        )
+        .unwrap_err()
+        .code,
+        "SPX-W111"
+    );
 }
 
 fn first_match(expression: &mut hir::ResolvedExpr) -> &mut hir::ResolvedExpr {
@@ -605,7 +617,6 @@ fn loop_copy_construction_preserves_closed_source_and_wasm_boundaries() {
         ("let x=Option<i64>::Some { value: { @audit(\"loop\") unsafe { 0 } 0 } }; 0", "SPX-T252"),
         ("let x=Option<i64>::Some { value: 1 }; match x { Option::Some { wrong: n } => n, Option::None {} => 0, }", "SPX-M104"),
         ("match (Option<i64>::Some { value: 1 }) { Option::Some { value: n } if n>0 => n, Option::None {} => 0, }", "SPX-M101"),
-        ("match (Option<i64>::Some { value: 1 }) { Option::Some { value: n } if { true } => n, Option::Some { value: n } => n, Option::None {} => 0, }", "SPX-T254"),
     ] {
         let source = format!("{prefix}{body} }} 0 }}");
         let program = parse(&source, Path::new("loop-construction-refusal.spx")).unwrap();

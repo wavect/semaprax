@@ -341,7 +341,8 @@ pub(super) fn resolved_data_parameter_is_admitted(
         }
         // A Copy variant (payload-free or Copy payloads) passes by value.
         (ty @ ResolvedType::Nominal { .. }, hir::OwnershipMode::Value)
-            if is_admitted_copy_aggregate_variant(declarations, ty) =>
+            if is_admitted_copy_aggregate_variant(declarations, ty)
+                || super::variant_admission::is_admitted_copy_scalar_variant(declarations, ty) =>
         {
             true
         }
@@ -386,6 +387,7 @@ pub(super) fn resolved_data_result_is_admitted(
         || owned_vec::is_collection_type(ty)
         || is_admitted_owned_byte_record(declarations, ty)
         || is_admitted_owned_variant(declarations, ty)
+        || super::variant_admission::is_admitted_copy_scalar_variant(declarations, ty)
         || matches!(ty, ResolvedType::Nominal { declaration, .. }
             if declarations.declaration(declaration).is_some_and(|item| {
                 matches!(item.kind, hir::DeclarationKind::Class | hir::DeclarationKind::Record)

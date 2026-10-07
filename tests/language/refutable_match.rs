@@ -47,8 +47,9 @@ fn scalar_match_retains_owned_string_arm_result_classification() {
 #[test]
 fn nominal_aggregate_valued_match_is_rejected_before_backend_lowering() {
     let source = r#"module test.aggregate_match;
-@id("match.wrap") fn wrap(value: i64) -> Option<i64> {
-    match value { 0 => Option<i64>::None {}, _ => Option<i64>::Some { value: value }, }
+@id("match.pair") record Pair { @id("match.pair.value") value:i64, }
+@id("match.wrap") fn wrap(value: i64) -> Pair {
+    match value { 0 => Pair {value:0}, _ => Pair {value:value}, }
 }
 @id("app.main") fn main() -> i64 { 0 }
 "#;

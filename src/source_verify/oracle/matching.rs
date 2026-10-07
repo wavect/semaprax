@@ -595,7 +595,7 @@ pub(super) fn oracle_match(
                         *span,
                     ));
                 }
-                wildcard_seen = true;
+                wildcard_seen = arm.guard.is_none();
             }
             MatchPattern::Variant {
                 type_name,
@@ -738,6 +738,7 @@ pub(super) fn oracle_match(
                 *span,
             )),
             MatchPattern::Or { alternatives, span } => {
+                let mut candidate_coverage = covered.clone();
                 let context = VariantOrContext {
                     variant_name: variant_name.as_deref(),
                     declared_cases,
@@ -749,9 +750,12 @@ pub(super) fn oracle_match(
                     alternatives,
                     *span,
                     &context,
-                    &mut |case| covered.insert(case),
+                    &mut |case| candidate_coverage.insert(case),
                     diagnostics,
                 );
+                if arm.guard.is_none() {
+                    covered = candidate_coverage;
+                }
             }
             MatchPattern::Literal { span, .. } | MatchPattern::Binding { span, .. } => {
                 diagnostics.push(
@@ -771,7 +775,7 @@ pub(super) fn oracle_match(
                 diagnostics.push(error(
                     program,
                     "SPX-T254",
-                    "Copy variant guards require scalar literals, bindings, and operators",
+                    "Copy variant guards require an ordinary Boolean expression without yield, closure, unsafe or residual propagation",
                     guard.span,
                 ));
             }
@@ -794,6 +798,15 @@ pub(super) fn oracle_match(
                         guard.span,
                     ));
                 }
+            }
+            if !crate::source_verify::variant_guards::ownership_unchanged(variables, &arm_variables)
+            {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T254",
+                    "Copy variant guard changes surrounding ownership",
+                    guard.span,
+                ));
             }
         }
         let arm_value = check_expr(

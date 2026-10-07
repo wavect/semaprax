@@ -85,6 +85,7 @@ impl Emitter<'_> {
                     "variant match guard",
                 )?;
                 self.get_scalar(&flag);
+                self.emit_scalar_match_guard_cleanup(guard, guard)?;
                 self.output.extend([0x45, 0x0d, 0x00]); // false -> reject
             }
             let value = self.emit_expr(&arm.value)?;

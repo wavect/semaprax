@@ -2,7 +2,7 @@
 
 Audience: language users and compiler contributors.
 
-Status: Partial — this is a narrow addition to the general loop-match work
+Status: Frozen narrow profile — this is a narrow addition to the general loop-match work
 in #589. It does not complete arbitrary aggregate or ownership-changing guards.
 The executable gate is `tests/language/guarded_copy_variants.rs`.
 
@@ -16,7 +16,9 @@ exact case and bind its payload fields under the ordinary pattern rules.
 A guard is a bool expression built from scalar literals, available scalar
 bindings, and unary/binary operators. Lazy `&&` and `||` keep their ordinary
 short-circuit behavior. Calls, blocks, aggregate projections and owned values
-are outside this guard profile (`SPX-T254`); a scalar guard of the wrong result
+are outside this frozen guard profile; [General Loop Match v1](GENERAL-LOOP-MATCH-V1.md)
+adds ordinary checked guards and an explicit standalone Wasm selector. Within
+this profile those extended selected shapes are `SPX-W111`; a scalar guard of the wrong result
 type is `SPX-T256`. Owned or borrowed payload matches retain their refusals.
 The separate scalar-scrutinee guard profile remains unchanged.
 
@@ -94,5 +96,7 @@ classification loops, avoiding the former `SPX-T254` refusal/repair turn. The
 required fallback can repeat a case pattern, so fewer source tokens than an
 equivalent nested `if` are not assumed. No measured token percentage or runtime
 speedup is claimed.
-Owning payload guards, general guard calls or blocks, generic-function match
-materialization, and broader aggregate/collection loop support remain open.
+Owning payload guards, generic-function match materialization and broader
+aggregate/collection loop support remain open. Ordinary checked calls/blocks,
+guarded wildcard/or patterns and private Copy helper/result boundaries are
+authored by [General Loop Match v1](GENERAL-LOOP-MATCH-V1.md).

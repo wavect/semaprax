@@ -5597,10 +5597,18 @@ impl Emitter<'_> {
         else {
             return Err(error("scalar match scrutinee is not scalar storage"));
         };
-        let destination = Value::Scalar {
-            local: self.plan.expr_scalar(expr)?,
-            ty: expr.ty.clone(),
-        };
+        let destination =
+            if crate::variant_guards::copy_variant(&self.program.declarations, &expr.ty) {
+                Value::Aggregate {
+                    pointer: self.plan.expr_pointer(expr)?,
+                    ty: expr.ty.clone(),
+                }
+            } else {
+                Value::Scalar {
+                    local: self.plan.expr_scalar(expr)?,
+                    ty: expr.ty.clone(),
+                }
+            };
         // block $done (void): selecting any arm jumps here after storing.
         self.output.extend([0x02, 0x40]);
         self.control_depth += 1;

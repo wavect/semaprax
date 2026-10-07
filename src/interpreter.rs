@@ -2363,9 +2363,9 @@ fn variant_pattern_is_admitted(
         // cases; it binds nothing, so no owned payload can hide behind it.
         if matches!(arm.pattern, hir::ResolvedMatchPattern::Wildcard)
             && mode == hir::ResolvedMatchMode::Value
-            && index + 1 == arms.len()
+            && (arm.guard.is_some() || index + 1 == arms.len())
         {
-            wildcard = true;
+            wildcard = arm.guard.is_none();
             continue;
         }
         let Some(patterns) = nested_owned::arm_case_patterns(&arm.pattern) else {

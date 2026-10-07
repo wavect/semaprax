@@ -163,7 +163,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         *span,
                     ));
                 }
-                state.wildcard_seen = true;
+                state.wildcard_seen = arm.guard.is_none();
             }
             MatchPattern::Variant {
                 type_name,
@@ -295,7 +295,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     mode: state.mode,
                     wildcard_seen: state.wildcard_seen,
                 };
-                let covered = &mut state.covered;
+                let mut covered = state.covered.clone();
                 check_variant_or_pattern(
                     self.program,
                     alternatives,
@@ -304,6 +304,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     &mut |case| covered.insert(case.to_owned()),
                     self.diagnostics,
                 );
+                if arm.guard.is_none() {
+                    state.covered = covered;
+                }
             }
             MatchPattern::Literal { span, .. } | MatchPattern::Binding { span, .. } => {
                 self.diagnostics.push(
@@ -326,7 +329,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 self.diagnostics.push(error(
                     self.program,
                     "SPX-T254",
-                    "Copy variant guards require scalar literals, bindings, and operators",
+                    "Copy variant guards require an ordinary Boolean expression without yield, closure, unsafe or residual propagation",
                     guard.span,
                 ));
             }
@@ -367,6 +370,17 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         arm.guard.as_ref().expect("guard retained").span,
                     ));
                 }
+            }
+            if !crate::source_verify::variant_guards::ownership_unchanged(
+                &state.baseline,
+                &self.scopes[arm_scope].bindings,
+            ) {
+                self.diagnostics.push(error(
+                    self.program,
+                    "SPX-T254",
+                    "Copy variant guard changes surrounding ownership",
+                    arm.guard.as_ref().expect("guard retained").span,
+                ));
             }
             state.guard_pending = false;
             self.frames

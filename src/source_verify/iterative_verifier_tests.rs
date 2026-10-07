@@ -835,3 +835,19 @@ fn loop_copy_construction_matches_recursive_oracle() {
         compare_scalar_body(&format!("module t; @id(\"t.main\") fn main()->i64 {{ while false {{ {body} }} 0 }}"));
     }
 }
+
+#[test]
+fn general_loop_match_guards_match_recursive_oracle() {
+    let prefix="module t; @id(\"t.positive\") fn positive(n:i64)->bool { n>=0 } @id(\"t.choose\") fn choose(n:i64)->Option<i64> { Option<i64>::Some {value:n} } @id(\"t.read\") fn read(choice:Option<i64>)->i64 { match choice { Option::Some {value:n} => n, _ => 0, } } ";
+    for arms in [
+        "Option::Some {value:n} if positive(n) => n, _ => 0,",
+        "Option::Some {value:n} if { let text=string_concat(\"a\",\"b\"); string_len(text)>0 } => n, _ => 0,",
+        "_ if positive(1) => 1, Option::Some {value:n} => n, Option::None {} => 0,",
+        "_ if positive(1) => 1,",
+        "Option::Some {value:n} if positive(n) => n, Option::None {} => 0,",
+        "Option::Some {value:n} if { 1 } => n, _ => 0,",
+    ] {
+        compare_scalar_body(&format!("{prefix}@id(\"t.main\") fn main()->i64 {{ while false {{ let selected=choose(1); let ignored=read(selected); match selected {{ {arms} }} }} 0 }}"));
+    }
+    compare_scalar_body("module t; @id(\"t.inspect\") fn inspect(text:own string)->bool {string_len(text)>0} @id(\"t.main\") fn main()->i64 { let held=\"x\"; let selected=Option<i64>::Some {value:1}; match selected { _ if inspect(held) => 1, _ => 0, } }");
+}

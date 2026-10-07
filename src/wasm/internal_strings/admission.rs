@@ -12,21 +12,28 @@ pub(super) fn prepare(
     program: &ResolvedProgram,
     ids: &[String],
 ) -> Result<PreparedSelection, Diagnostic> {
-    prepare_profile(program, ids, false, false)
+    prepare_profile(program, ids, false, false, false)
 }
 
 pub(super) fn prepare_copy_variants(
     program: &ResolvedProgram,
     ids: &[String],
 ) -> Result<PreparedSelection, Diagnostic> {
-    prepare_profile(program, ids, true, false)
+    prepare_profile(program, ids, true, false, false)
 }
 
 pub(super) fn prepare_replacements(
     program: &ResolvedProgram,
     ids: &[String],
 ) -> Result<PreparedSelection, Diagnostic> {
-    prepare_profile(program, ids, true, true)
+    prepare_profile(program, ids, true, true, false)
+}
+
+pub(super) fn prepare_general_loop_matches(
+    program: &ResolvedProgram,
+    ids: &[String],
+) -> Result<PreparedSelection, Diagnostic> {
+    prepare_profile(program, ids, true, true, true)
 }
 
 fn prepare_profile(
@@ -34,6 +41,7 @@ fn prepare_profile(
     ids: &[String],
     copy_variants: bool,
     replacements: bool,
+    general_guards: bool,
 ) -> Result<PreparedSelection, Diagnostic> {
     if !(1..=32).contains(&ids.len()) {
         return Err(error("standalone String selection requires 1..=32 exports"));
@@ -103,7 +111,12 @@ fn prepare_profile(
             ));
         }
         if !function.effects.is_empty()
-            || !signature_type(&function.return_type, copy_variants)
+            || !(signature_type(&function.return_type, copy_variants)
+                || general_guards
+                    && crate::variant_guards::copy_variant(
+                        &program.declarations,
+                        &function.return_type,
+                    ))
             || function.params.iter().any(|parameter| {
                 // By-value String source parameters are implicitly Own in
                 // validated HIR; only the internal Copy scalars are Value.
@@ -112,7 +125,13 @@ fn prepare_profile(
                 } else {
                     OwnershipMode::Value
                 };
-                parameter.ownership != ownership || !signature_type(&parameter.ty, copy_variants)
+                parameter.ownership != ownership
+                    || !(signature_type(&parameter.ty, copy_variants)
+                        || general_guards
+                            && crate::variant_guards::copy_variant(
+                                &program.declarations,
+                                &parameter.ty,
+                            ))
             })
         {
             return Err(error(
@@ -137,6 +156,21 @@ fn prepare_profile(
                 return Err(error(
                     "standalone String expression depth or type is outside the profile",
                 ));
+            }
+            if copy_variants
+                && !general_guards
+                && matches!(expression.kind, ResolvedExprKind::Match { .. })
+                && crate::variant_guards::copy_variant(&program.declarations, &expression.ty)
+            {
+                return Err(error(
+                    "Copy variant match results require the explicit general-loop-match-v1 profile",
+                ));
+            }
+            if copy_variants
+                && !general_guards
+                && matches!(&expression.kind, ResolvedExprKind::Match {scrutinee,arms,..} if crate::variant_guards::copy_variant(&program.declarations,&scrutinee.ty) && arms.iter().any(|arm| arm.guard.as_ref().is_some_and(|guard| !crate::variant_guards::scalar_guard_shape(guard) || !matches!(arm.pattern,hir::ResolvedMatchPattern::Variant {..}))))
+            {
+                return Err(error("general Copy variant guards require the explicit general-loop-match-v1 profile"));
             }
             match &expression.kind {
                 ResolvedExprKind::Int(_)

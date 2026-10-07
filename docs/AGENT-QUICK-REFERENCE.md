@@ -1056,7 +1056,7 @@ Other first-attempt diagnostics and their fixes:
 | `i64_from_f64(3)` or `usize_from_i64(1.5)` | `SPX-T205` | Match input types: `i64_from_f64(3.0)` or `usize_from_i64(1)` |
 | `f64_from_i64(1, 2)` | `SPX-T204` | Pass one argument: `f64_from_i64(1)` |
 | Unsupported `Map<f64,i64>` / `Set<f64>` | `SPX-T274` | Keys are `string`, `i64`, `bool`; map values are String or Copy scalars |
-| implicit collection ownership at a helper boundary | `SPX-T275` | Use explicit `own` or `borrow` parameters; owned results move |
+| implicit collection ownership at a helper boundary | `SPX-O001` | Use explicit `own` or `borrow` parameters; owned results move |
 | Unsupported String/collection record profile | `SPX-T309` | Use explicit IDs and monomorphic acyclic records with `own`/`borrow` parameters; no invariants |
 | `point.get()` on a record | `SPX-T203` | Records have no methods; call `get(point)` or use a `class` |
 | `let x = 1; let x = x + 1;` | `SPX-T209` | No shadowing; pick a new name |

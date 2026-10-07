@@ -23,6 +23,14 @@ pub(super) fn admits_owned_match_result(
     scrutinee: &ResolvedExpr,
     arms: &[ResolvedMatchArm],
 ) -> bool {
+    // Twin of the builder's owned `string` join: every arm yields one owned
+    // `string` leaf, whatever the scrutinee.
+    if expression.ty == ResolvedType::String && expression.ownership == OwnershipMode::Own {
+        return !arms.is_empty()
+            && arms.iter().all(|arm| {
+                arm.value.ty == ResolvedType::String && arm.value.ownership == OwnershipMode::Own
+            });
+    }
     if let ResolvedExprKind::Match { mode, .. } = expression.kind {
         if crate::hir::generic_variant::match_result(
             program,

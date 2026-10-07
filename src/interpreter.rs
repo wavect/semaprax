@@ -2219,8 +2219,9 @@ use nested_owned::{
 
 mod variant_admission;
 use variant_admission::{
-    is_admitted_fieldless_variant, is_admitted_owned_byte_variant, is_admitted_owned_variant,
-    is_option_u8, option_i64_match_is_admitted, option_u8_pattern_is_admitted,
+    is_admitted_copy_aggregate_variant, is_admitted_fieldless_variant,
+    is_admitted_owned_byte_variant, is_admitted_owned_variant, is_option_u8,
+    option_i64_match_is_admitted, option_u8_pattern_is_admitted,
 };
 
 fn concrete_variant_case_fields(
@@ -2337,9 +2338,19 @@ fn variant_pattern_is_admitted(
     };
     let mut seen_cases = BTreeSet::new();
     let mut seen_bindings = BTreeSet::new();
-    for arm in arms {
+    let mut wildcard = false;
+    for (index, arm) in arms.iter().enumerate() {
         if arm.guard.is_some() {
             return false;
+        }
+        // A Value-mode match may end in one `_` arm covering the remaining
+        // cases; it binds nothing, so no owned payload can hide behind it.
+        if matches!(arm.pattern, hir::ResolvedMatchPattern::Wildcard)
+            && mode == hir::ResolvedMatchMode::Value
+            && index + 1 == arms.len()
+        {
+            wildcard = true;
+            continue;
         }
         let Some(patterns) = nested_owned::arm_case_patterns(&arm.pattern) else {
             return false;
@@ -2394,10 +2405,11 @@ fn variant_pattern_is_admitted(
             }
         }
     }
-    seen_cases.len() == declared_cases.len()
-        && declared_cases
-            .iter()
-            .all(|case| seen_cases.contains(&case.id))
+    wildcard
+        || (seen_cases.len() == declared_cases.len()
+            && declared_cases
+                .iter()
+                .all(|case| seen_cases.contains(&case.id)))
 }
 
 fn bind_arguments(
@@ -2529,7 +2541,10 @@ fn scan_closure(
                 let owned_record_result = generic_owned::match_result_is_admitted(
                     program, function, expression, scrutinee, arms,
                 );
-                let owned_byte_variant = is_admitted_resolved_scalar(&expression.ty)
+                // A `string` arm result is an independent value: each arm
+                // builds its own, exactly as for a scalar result.
+                let owned_byte_variant = (is_admitted_resolved_scalar(&expression.ty)
+                    || expression.ty == ResolvedType::String)
                     && variant_pattern_is_admitted(declarations, *mode, &scrutinee.ty, arms);
                 let agg = nested_owned::bc_match(declarations, *mode, &scrutinee.ty, arms);
                 if (!scalar
@@ -4749,6 +4764,23 @@ impl Evaluator<'_> {
                         return Err(Flow::Guard(
                             "owned byte variant runtime carrier disagrees with its scrutinee",
                         ));
+                    }
+                    // A trailing `_` arm of a Value-mode match selects every
+                    // case no earlier arm named; it binds nothing.
+                    if let Some(arm) = arms.iter().find(|arm| {
+                        matches!(arm.pattern, hir::ResolvedMatchPattern::Wildcard)
+                            || nested_owned::arm_case_patterns(&arm.pattern).is_some_and(|patterns| {
+                                patterns.iter().any(|pattern| matches!(pattern, hir::ResolvedMatchPattern::Variant { case, .. } if case == &variant.case))
+                            })
+                    }) {
+                        if matches!(arm.pattern, hir::ResolvedMatchPattern::Wildcard) {
+                            if *mode != hir::ResolvedMatchMode::Value {
+                                return Err(Flow::Guard(
+                                    "variant wildcard arm reached a non-value match",
+                                ));
+                            }
+                            return self.evaluate(&arm.value, environment, depth);
+                        }
                     }
                     let (arm, pattern) = arms
                         .iter()

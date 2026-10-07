@@ -165,6 +165,20 @@ pub(super) fn prepare(
                     && arms
                         .iter()
                         .all(|arm| arm.pattern_is_literal_or_irrefutable()) => {}
+                ResolvedExprKind::Match { scrutinee, .. }
+                    if !matches!(
+                        scrutinee.ty,
+                        ResolvedType::I64 | ResolvedType::Bool | ResolvedType::Char
+                    ) =>
+                {
+                    return Err(error(
+                        "standalone String profile matches only `i64`, `bool`, or `char` scrutinees",
+                    )
+                    .with_help(
+                        "run a variant or record `match` on the reference interpreter or native C11, \
+                         or match an `i64` code in the exported Wasm function",
+                    ))
+                }
                 _ => {
                     return Err(error(
                         "standalone String expression is outside the closed profile",

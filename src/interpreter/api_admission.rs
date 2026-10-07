@@ -339,6 +339,12 @@ pub(super) fn resolved_data_parameter_is_admitted(
         {
             true
         }
+        // A Copy variant (payload-free or Copy payloads) passes by value.
+        (ty @ ResolvedType::Nominal { .. }, hir::OwnershipMode::Value)
+            if is_admitted_copy_aggregate_variant(declarations, ty) =>
+        {
+            true
+        }
         (
             ResolvedType::OnceFunction
             | ResolvedType::OnceFunctionI64

@@ -2035,7 +2035,11 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                         // An owned place needs its arm-to-join transfer here.
                         // Producers replay that same transition in `emit_expr`;
                         // replaying it again would move from a dead source.
-                        if matches!(arm.value.kind, ResolvedExprKind::Place(_)) {
+                        // An owning `string` place read is such a producer:
+                        // its clone already applied the arm transfer.
+                        if matches!(arm.value.kind, ResolvedExprKind::Place(_))
+                            && arm.value.ty != ResolvedType::String
+                        {
                             let transitions = self
                                 .bytes_plan
                                 .expect("checked above")

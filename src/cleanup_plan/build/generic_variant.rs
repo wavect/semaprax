@@ -1,4 +1,5 @@
-//! Canonical owned-result join for an exact authored generic variant match.
+//! Canonical owned-result join for an owning `match`: an exact authored
+//! generic variant template, or any `match` whose arms yield `string`.
 use super::*;
 
 pub(super) fn destination(
@@ -11,6 +12,11 @@ pub(super) fn destination(
     };
     if expression.ownership != OwnershipMode::Own {
         return Ok(None);
+    }
+    // An owned `string` arm result is one uniquely owned leaf whatever the
+    // scrutinee: each reached arm transfers it into this join slot.
+    if expression.ty == ResolvedType::String {
+        return builder.expression_slot(expression, region);
     }
     if !crate::hir::generic_variant::match_result(
         builder.program,

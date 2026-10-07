@@ -89,10 +89,9 @@ Types must match: `n: usize` needs `n < 5usize` (`SPX-T208`). Join strings
 with `string_concat`. No `as`; use `f64_from_i64`, `i64_from_f64` (truncates),
 `usize_from_i64`, or `i64_from_usize`.
 
-For `u8` to `i64`, a `useful-data.v1` project imports
-`std.bytes.byte_to_i64`; inspect its signature with
-`semaprax help library std.bytes.byte_to_i64`. Single files need a declared
-helper. `i64_from_u8` is not a compiler-owned function (`SPX-T203`).
+Convert `u8` in `useful-data.v1` with `std.bytes.byte_to_i64`:
+`semaprax help library std.bytes.byte_to_i64`. Single files need their own
+helper; `i64_from_u8` is unknown (`SPX-T203`).
 
 ## Control flow, mutation, contracts, effects
 

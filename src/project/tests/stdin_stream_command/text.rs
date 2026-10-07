@@ -1,5 +1,6 @@
 //! Versioned selection and private String helper admission over two modules.
 use super::*;
+#[path = "text/collections.rs"]
 mod collections;
 fn manifest() -> String {
     exit_manifest()

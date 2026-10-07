@@ -45,6 +45,7 @@ mod field_mutation;
 mod floating_point_scalars;
 #[path = "language/foreign_syntax_hints.rs"]
 mod foreign_syntax_hints;
+#[path = "language/general_loop_match.rs"]
 mod general_loop_match;
 #[path = "language/generic_argument_inference.rs"]
 mod generic_argument_inference;

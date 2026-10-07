@@ -347,7 +347,7 @@ fn map_set_v2_unsupported_shapes_and_wrong_operands_have_stable_diagnostics() {
         let program = parse(&source, Path::new("map-refused.spx")).unwrap();
         let diagnostics = verify::verify(&program);
         assert_eq!(
-            diagnostics.first().map(|d| d.code.as_str()),
+            diagnostics.first().map(|d| d.code),
             Some(expected),
             "{body}: {diagnostics:?}"
         );

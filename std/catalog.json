@@ -1716,6 +1716,18 @@
           "kind": "function",
           "name": "clear",
           "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn sort<T>(values: own Vec<T>) -> Vec<T>"
+          ],
+          "id": "std.collections.vec.sort",
+          "kind": "function",
+          "name": "sort",
+          "requires": 0
         }
       ],
       "dependency": "std.collections = \"^0.1.0\"",

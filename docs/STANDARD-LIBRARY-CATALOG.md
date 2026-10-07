@@ -1096,6 +1096,12 @@ fn set<T>(values: own Vec<T>, index: usize, value: T) -> Vec<T>
 fn clear<T>(values: own Vec<T>) -> Vec<T>
 ```
 
+### `std.collections.vec.sort`
+
+```semaprax
+fn sort<T>(values: own Vec<T>) -> Vec<T>
+```
+
 ## `std.core`
 
 Package `std/core`, tier `core`, status partial. Required project profile: `scalar`. Dependency: `std.core = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.

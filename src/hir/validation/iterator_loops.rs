@@ -349,8 +349,18 @@ impl HirValidator<'_> {
                 ResolvedExprKind::ConstructRecord { .. } => {
                     return Err(hir_error("while loops cannot construct records"));
                 }
-                ResolvedExprKind::ConstructVariant { .. } => {
-                    return Err(hir_error("while loops cannot construct variants"));
+                ResolvedExprKind::ConstructVariant { fields, .. } => {
+                    if expression.ownership != OwnershipMode::Value
+                        || !crate::variant_guards::copy_variant(
+                            &self.program.declarations,
+                            &expression.ty,
+                        )
+                    {
+                        return Err(hir_error(
+                            "while loop variant construction requires Copy scalar payloads",
+                        ));
+                    }
+                    pending.extend(fields.iter().rev().map(|field| &field.value));
                 }
                 ResolvedExprKind::UpdateRecord { .. } => {
                     return Err(hir_error("while loops cannot update records"));

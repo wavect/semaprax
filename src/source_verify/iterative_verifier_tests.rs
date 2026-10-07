@@ -819,3 +819,15 @@ fn borrowed_text_byte_at_matches_recursive_oracle() {
         "module t; fn main(text:borrow str)->Option<u8> { str_byte_at<u8>(text,0usize) }",
     ] { compare_scalar_body(source); }
 }
+
+#[test]
+fn loop_copy_construction_matches_recursive_oracle() {
+    for body in [
+        "let x=Option<i64>::Some { value: 1 }; match x { Option::Some { value: n } => n, Option::None {} => 0, }",
+        "match (Option<i64>::Some { value: 1 }) { Option::Some { value: n } if n>0 => n, Option::Some { value: n } => n, Option::None {} => 0, }",
+        "let x=Option<string>::None {}; 0",
+        "match (Option<i64>::Some { value: 1 }) { Option::Some { wrong: n } => n, Option::None {} => 0, }",
+    ] {
+        compare_scalar_body(&format!("module t; @id(\"t.main\") fn main()->i64 {{ while false {{ {body} }} 0 }}"));
+    }
+}

@@ -1226,7 +1226,7 @@ pub(super) fn check_expr(
                             mark_value_sources_moved(program, values, &mut scope, types, diagnostics);
                         }
                         let baseline = scope.clone();
-                        let _ = reject_while_disallowed_oracle(program, body, functions, diagnostics);
+                        let _ = reject_while_disallowed_oracle(program, body, functions, types, diagnostics);
                         let item_inserted = !scope.contains_key(item);
                         if !item_inserted {
                             diagnostics.push(error(program, "SPX-T209", format!("loop item `{item}` shadows an existing value"), *item_span));
@@ -1279,7 +1279,7 @@ pub(super) fn check_expr(
                             ).with_help(crate::source_verify::hints::IMMUTABLE_TRAVERSAL_HELP));
                         }
                         let source_name = source.map(str::to_owned);
-                        let _ = reject_while_disallowed_oracle(program, body, functions, diagnostics);
+                        let _ = reject_while_disallowed_oracle(program, body, functions, types, diagnostics);
                         let item_inserted = !scope.contains_key(item);
                         if !item_inserted {
                             diagnostics.push(error(

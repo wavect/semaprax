@@ -57,7 +57,9 @@ on exact cases of these Copy-payload variants. Guarded cases contribute no
 coverage: exhaustive unguarded fallback remains required (`SPX-M101`). Calls,
 blocks, guarded wildcards/or-patterns and owned payload guards retain `SPX-T254`. Owned or borrowed non-Copy
 scrutinees, including `Option<string>`, remain
-`SPX-T252`. Variant construction inside an iteration, records, postfix `?`,
+`SPX-T252`. [Loop Copy Variant Construction v1](LOOP-COPY-VARIANT-CONSTRUCTION-V1.md)
+adds direct concrete Copy-scalar variant construction in bodies and otherwise
+admitted conditions. Other variant construction, records, postfix `?`,
 generic calls outside an existing admitted intrinsic, and write-effect user calls
 retain their refusals. This widening changes no graph or CleanupPlan schema:
 ordinary match decisions and per-iteration cleanup facts retain their existing

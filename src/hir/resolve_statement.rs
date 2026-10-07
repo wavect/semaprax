@@ -348,12 +348,33 @@ impl Resolver<'_> {
                         expression.span,
                     ));
                 }
-                ExprKind::ConstructVariant { .. } => {
-                    return Err(self.error(
-                        "SPX-T252",
-                        "variant construction is not yet admitted in while bodies",
-                        expression.span,
-                    ));
+                ExprKind::ConstructVariant {
+                    type_name,
+                    type_arguments,
+                    fields,
+                    ..
+                } => {
+                    let ty = Type::Named {
+                        name: type_name.clone(),
+                        arguments: type_arguments.clone(),
+                    };
+                    let resolved = self.resolve_type(&ty, expression.span)?;
+                    if !crate::loop_calls::resolved_match_scrutinee_admitted(
+                        &self.declarations,
+                        &resolved,
+                    ) {
+                        return Err(self.error(
+                            "SPX-T252",
+                            "variant construction in a loop requires only Copy scalar payloads",
+                            expression.span,
+                        ));
+                    }
+                    pending.extend(
+                        fields
+                            .iter()
+                            .rev()
+                            .map(|field| Item::Expression(&field.value)),
+                    );
                 }
                 ExprKind::UpdateRecord { .. } => {
                     return Err(self.error(

@@ -976,7 +976,9 @@ classifier with `src/loop_calls.rs`; constructor and pattern replay still
 authenticate identities, inventories and ownership independently.
 
 `src/source_verify/variant_guards.rs` and `src/variant_guards.rs` classify the
-ownership-neutral Copy-variant guard profile. Resolver and HIR validation still
+ownership-neutral Copy-variant guard and loop-constructor payload profiles.
+The iterative source scan and recursive oracle share the source classifier;
+resolver and independent loop admission use the resolved classifier. Resolver and HIR validation still
 authenticate every guard and binding. `cleanup_plan/build/guarded_variant.rs`
 derives Boolean guard edges; `cleanup_plan/replay/guarded_variant.rs` independently
 derives case/Boolean observations and bounded census work. Native and aggregate

@@ -83,7 +83,10 @@ with allocation/free accounting, and this explicit String-settling Wasm entry
 with repeated calls. It covers false/true fallthrough, wrong-case skipped
 failure, lazy operands, Result payloads, fixed-array sentinel lookup including
 one-past-end None, empty-array Len/Get, indices above u32 and signed i64,
-maximum usize, String result reuse, and checked guard failure.
+maximum usize, String result reuse, and checked guard failure. The additive
+[loop construction gate](LOOP-COPY-VARIANT-CONSTRUCTION-V1.md) also covers
+Copy constructors inside loops, operand temporaries, nested String results and
+selected failures; Vec traversal keeps its exact `SPX-W111` profile refusal.
 
 The same harness asserts the old entry's exact `SPX-W111` refusal, the new
 profile marker, request-order determinism, unselected owned-declaration

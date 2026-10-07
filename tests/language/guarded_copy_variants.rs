@@ -98,6 +98,112 @@ module test.guarded_copy_variants;
     };
     string_len(kept) + string_len(text)
 }
+@id("guards.constructed") fn constructed() -> i64 {
+    let mut i = 0;
+    let mut total = 0;
+    let mut out = "";
+    while i < 3 {
+        let selected = Option<i64>::Some { value: i };
+        let piece = match selected {
+            Option::Some { value: n } if n == 1 => "ab",
+            Option::Some { value: n } => "x",
+            Option::None {} => "bad",
+        };
+        total = total + match selected { Option::Some { value: n } => n, Option::None {} => 1000, };
+        out = string_concat(out, piece);
+        i = i + 1;
+        0
+    }
+    string_len(out) * 10 + total
+}
+@id("guards.constructed-nested") fn constructed_nested() -> i64 {
+    let mut i = 0;
+    let mut total = 0;
+    while i < 2 {
+        let mut j = 0;
+        while j < 2 {
+            let piece = match (Result<bool, i64>::Err { error: i + j }) {
+                Result::Ok { value: yes } => "bad",
+                Result::Err { error: n } if n == 0 => "z",
+                Result::Err { error: n } => "qq",
+            };
+            total = total + string_len(piece);
+            j = j + 1;
+            0
+        }
+        i = i + 1;
+        0
+    }
+    total
+}
+@id("guards.constructed-inspect") fn constructed_inspect() -> i64 {
+    let mut i = 0;
+    let mut total = 0;
+    while i < 3 {
+        let piece = match (Option<i64>::Some { value: string_len("abc") }) {
+            Option::Some { value: n } if n == 3 => "x",
+            Option::Some { value: n } => "bad",
+            Option::None {} => "bad",
+        };
+        total = total + string_len(piece);
+        i = i + 1;
+        0
+    }
+    total
+}
+@id("guards.constructed-condition") fn constructed_condition() -> i64 {
+    let mut i = 0;
+    while match (Option<i64>::Some { value: i }) { Option::Some { value: n } => n < 3, Option::None {} => false, } {
+        i = i + 1;
+        0
+    }
+    i
+}
+@id("guards.constructed-failure") fn constructed_failure() -> i64 {
+    let mut out = "kept";
+    let mut i = 0;
+    while i < 3 {
+        let local = "iteration";
+        let piece = match (Option<i64>::Some { value: i }) {
+            Option::Some { value: n } if n == 1 && n / 0 == 1 => "bad",
+            Option::Some { value: n } => "x",
+            Option::None {} => "bad",
+        };
+        out = string_concat(out, piece);
+        i = i + 1;
+        0
+    }
+    string_len(out)
+}
+@id("guards.constructed-operand-failure") fn constructed_operand_failure() -> i64 {
+    let kept = "kept";
+    while true {
+        let piece = match (Option<i64>::Some { value: 1 / 0 }) {
+            Option::Some { value: n } => "bad",
+            Option::None {} => "bad",
+        };
+        0
+    }
+    string_len(kept)
+}
+@id("guards.constructed-for") fn constructed_for() -> i64 {
+    let mut values = vec_with_capacity<i64>(2usize);
+    values = vec_push<i64>(values, 1);
+    values = vec_push<i64>(values, 3);
+    let mut out = "";
+    let mut total = 0;
+    for item in values {
+        let piece = match (Option<i64>::Some { value: item }) {
+            Option::Some { value: n } if n == 1 => "a",
+            Option::Some { value: n } => "b",
+            Option::None {} => "bad",
+        };
+        total = total + item;
+        out = string_concat(out, piece);
+        0
+    }
+    total + string_len(out)
+}
 @id("app.main") fn main() -> i64 { looped() }
 "#;
 const CASES: &[(&str, &str)] = &[
@@ -108,6 +214,16 @@ const CASES: &[(&str, &str)] = &[
     ("guards.indexed", "ok|2"),
     ("guards.failure", "semaprax.arithmetic.v1|1"),
     ("guards.index_bounds", "ok|7"),
+    ("guards.constructed", "ok|43"),
+    ("guards.constructed-nested", "ok|7"),
+    ("guards.constructed-inspect", "ok|3"),
+    ("guards.constructed-condition", "ok|3"),
+    ("guards.constructed-failure", "semaprax.arithmetic.v1|1"),
+    (
+        "guards.constructed-operand-failure",
+        "semaprax.arithmetic.v1|1",
+    ),
+    ("guards.constructed-for", "ok|6"),
 ];
 const WASM_CASES: &[&str] = &[
     "guards.loop",
@@ -117,6 +233,12 @@ const WASM_CASES: &[&str] = &[
     "guards.indexed",
     "guards.failure",
     "guards.index_bounds",
+    "guards.constructed",
+    "guards.constructed-nested",
+    "guards.constructed-inspect",
+    "guards.constructed-condition",
+    "guards.constructed-failure",
+    "guards.constructed-operand-failure",
 ];
 
 fn command_available(command: &str) -> bool {
@@ -179,8 +301,17 @@ fn guarded_copy_variants_native_settlement() {
     }
     let program = parse(SOURCE, Path::new("guarded-copy-variants-native.spx")).unwrap();
     let generated = semaprax::codegen::emit_c(&program).unwrap();
+    let calloc_observer = r#"
+static void *fixture_calloc(size_t n, size_t size) {
+    REQUIRE(n != 0 && size != 0 && n <= SIZE_MAX / size);
+    void *pointer = fixture_malloc(n * size);
+    memset(pointer, 0, n * size);
+    return pointer;
+}
+#define calloc fixture_calloc
+"#;
     let mut probe = format!(
-        "{}\n{}\n{generated}\n#undef malloc\n#undef free\nint main(void) {{\nREQUIRE(fixture_binary_stdout());\nstruct spx_status_entry entries[32]; struct spx_context context={{0}}; REQUIRE(spx_context_init(&context,19,entries,32,NULL,NULL,NULL));\n",
+        "{}\n{}\n{calloc_observer}\n{generated}\n#undef malloc\n#undef free\n#undef calloc\nint main(void) {{\nREQUIRE(fixture_binary_stdout());\nstruct spx_status_entry entries[32]; struct spx_context context={{0}}; REQUIRE(spx_context_init(&context,19,entries,32,NULL,NULL,NULL));\n",
         include_str!("../support/native_fixture_stdio.c"),
         include_str!("../native_owned_utf8_settlement_v1/allocations.c")
     );
@@ -190,18 +321,26 @@ fn guarded_copy_variants_native_settlement() {
             .bytes()
             .map(|byte| format!("{byte:02x}"))
             .collect::<String>();
+        let validation = if let Some(value) = observation.strip_prefix("ok|") {
+            format!("REQUIRE(token==0 && value==INT64_C({value}));")
+        } else {
+            let (domain, code) = observation.rsplit_once('|').unwrap();
+            format!("REQUIRE(token!=0); const struct spx_normalized_status *selected=spx_status_resolve(&context,token); REQUIRE(selected!=NULL && selected->code=={code} && strcmp(selected->domain_id,\"{domain}\")==0);")
+        };
         probe.push_str(&format!(
-            r#"{{
+            r#"for (int repeat=0; repeat<3; ++repeat) {{
     int64_t value=INT64_MIN;
     spx_status_token token=spx_decl_{symbol}(&context,&value);
-    if(token==0) {{ (void)printf("{id}|ok|%lld\n",(long long)value); }}
+    if(token==0) {{ if(repeat==0) (void)printf("{id}|ok|%lld\n",(long long)value); }}
     else {{
         REQUIRE(value==INT64_MIN);
         const struct spx_normalized_status *status=spx_status_resolve(&context,token);
         REQUIRE(status!=NULL);
-        (void)printf("{id}|%s|%u\n",status->domain_id,(unsigned)status->code);
+        if(repeat==0) (void)printf("{id}|%s|%u\n",status->domain_id,(unsigned)status->code);
     }}
+    {validation}
     REQUIRE(fixture_live==0 && fixture_allocations==fixture_frees);
+    for (uint32_t slot=0; slot<SPX_VEC_AUTHORITY_CAPACITY; ++slot) REQUIRE(!context.vec_authority[slot].live);
 }}
 "#
         ));
@@ -456,4 +595,113 @@ fn copy_variant_wasm_profile_is_explicit_and_closed() {
             .code,
         "SPX-T256"
     );
+}
+
+#[test]
+fn loop_copy_construction_preserves_closed_source_and_wasm_boundaries() {
+    let prefix = "module t; permit { unsafe } @id(\"t.main\") fn main()->i64 { while false { ";
+    for (body, code) in [
+        ("let x=Option<string>::None {}; 0", "SPX-T252"),
+        ("let x=Option<i64>::Some { value: { @audit(\"loop\") unsafe { 0 } 0 } }; 0", "SPX-T252"),
+        ("let x=Option<i64>::Some { value: 1 }; match x { Option::Some { wrong: n } => n, Option::None {} => 0, }", "SPX-M104"),
+        ("match (Option<i64>::Some { value: 1 }) { Option::Some { value: n } if n>0 => n, Option::None {} => 0, }", "SPX-M101"),
+        ("match (Option<i64>::Some { value: 1 }) { Option::Some { value: n } if { true } => n, Option::Some { value: n } => n, Option::None {} => 0, }", "SPX-T254"),
+    ] {
+        let source = format!("{prefix}{body} }} 0 }}");
+        let program = parse(&source, Path::new("loop-construction-refusal.spx")).unwrap();
+        let diagnostics = verify::verify(&program);
+        let diagnostic = diagnostics.iter().find(|d| d.code == code).unwrap_or_else(|| panic!("expected {code}: {diagnostics:?}"));
+        assert!(diagnostic.span.is_some());
+        assert_eq!(diagnostic.path.as_deref(), Some("loop-construction-refusal.spx"));
+        assert!(hir::resolve(&program).is_err());
+    }
+    let program = parse(SOURCE, Path::new("loop-construction-profile.spx")).unwrap();
+    assert_eq!(
+        emit_copy_variant_module(
+            &program,
+            &["guards.constructed-for".into()],
+            InternalStringOptions::default()
+        )
+        .unwrap_err()
+        .code,
+        "SPX-W111"
+    );
+    assert_eq!(
+        emit_module(
+            &program,
+            &["guards.constructed".into()],
+            InternalStringOptions::default()
+        )
+        .unwrap_err()
+        .code,
+        "SPX-W111"
+    );
+}
+
+fn loop_constructor_mut(program: &mut hir::ResolvedProgram) -> &mut hir::ResolvedExpr {
+    let function = program
+        .functions
+        .iter_mut()
+        .find(|f| f.id.as_str() == "guards.constructed")
+        .unwrap();
+    let hir::ResolvedExprKind::Block { statements, .. } = &mut function.body.kind else {
+        panic!("function block")
+    };
+    let body = statements
+        .iter_mut()
+        .find_map(|s| match s {
+            hir::ResolvedStatement::While { body, .. } => Some(body),
+            _ => None,
+        })
+        .unwrap();
+    let hir::ResolvedExprKind::Block { statements, .. } = &mut body.kind else {
+        panic!("loop block")
+    };
+    let hir::ResolvedStatement::Let { value, .. } = &mut statements[0] else {
+        panic!("constructor let")
+    };
+    value
+}
+
+#[test]
+fn loop_copy_construction_rejects_forged_hir_types_owners_and_members() {
+    let program =
+        hir::resolve(&parse(SOURCE, Path::new("loop-construction-hostile.spx")).unwrap()).unwrap();
+    for mutation in 0..5 {
+        let mut hostile = program.clone();
+        let value = loop_constructor_mut(&mut hostile);
+        match mutation {
+            0 => value.ownership = hir::OwnershipMode::Own,
+            1 => {
+                let hir::ResolvedType::Nominal { arguments, .. } = &mut value.ty else {
+                    unreachable!()
+                };
+                arguments[0] = hir::ResolvedType::String;
+            }
+            2 => {
+                let hir::ResolvedExprKind::ConstructVariant { case, .. } = &mut value.kind else {
+                    unreachable!()
+                };
+                *case = hir::DeclarationId::new("core.option.none");
+            }
+            3 => {
+                let hir::ResolvedExprKind::ConstructVariant { fields, .. } = &mut value.kind else {
+                    unreachable!()
+                };
+                fields[0].field = hir::DeclarationId::new("foreign.field");
+            }
+            4 => {
+                let hir::ResolvedExprKind::ConstructVariant { fields, .. } = &mut value.kind else {
+                    unreachable!()
+                };
+                fields[0].value.ownership = hir::OwnershipMode::Own;
+            }
+            _ => unreachable!(),
+        }
+        assert_eq!(
+            hir::validate(&hostile).unwrap_err().code,
+            "SPX-H006",
+            "mutation {mutation}"
+        );
+    }
 }

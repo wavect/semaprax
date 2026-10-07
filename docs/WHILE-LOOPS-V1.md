@@ -86,6 +86,8 @@ profile.
 [Owned String Loops v2](OWNED-STRING-LOOPS-V2.md) additionally admits user
 String calls and matches over Copy scalars or variants with only Copy scalar
 payloads, with ordinary exhaustiveness and guard checks.
+[Loop Copy Variant Construction v1](LOOP-COPY-VARIANT-CONSTRUCTION-V1.md)
+additionally admits concrete Copy-scalar constructors within those loops.
 
 This restriction means admitted loops contribute **zero** new cleanup slots,
 transitions, or finalizers: the CleanupPlan v2/v3 schema set, the plan

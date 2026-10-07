@@ -167,9 +167,10 @@ fn main() -> i64
   strings and returning a scalar or string, matches over Copy
   scalars or variants with only Copy scalar payloads,
   and string literals and `string_*` calls (each iteration releases its own
-  strings). Match arms may yield strings; record/variant
-  construction, other aggregate-returning calls, and any string value in the
-  condition are `SPX-T252`. Exact variant-case guards admit scalar
+  strings). Match arms may yield strings. Concrete variants with only Copy
+  scalar payloads may be constructed there, including direct match scrutinees;
+  record/non-Copy variant construction, other aggregate-returning calls, and
+  allocating String conditions are `SPX-T252`. Exact variant-case guards admit scalar
   literals/bindings/operators and require exhaustive unguarded fallback coverage
   ([guard profile](COPY-VARIANT-GUARDS-V1.md)).
 - Bindings are immutable unless `let mut`. Assignment is a statement:

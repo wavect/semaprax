@@ -159,6 +159,7 @@ Audience: all documentation readers.
 - [String operations](STRING-OPS-V1.md)
 - [Owned String loops](OWNED-STRING-LOOPS-V1.md)
 - [Owned String loops v2](OWNED-STRING-LOOPS-V2.md)
+- [Loop Copy variant construction](LOOP-COPY-VARIANT-CONSTRUCTION-V1.md)
 - [Named String length conditions](STRING-LENGTH-CONDITIONS-V1.md)
 - [Text Toolkit and command-line programs](TEXT-TOOLKIT-V1.md)
 - [String Collections (string-keyed maps)](STRING-COLLECTIONS-V1.md)

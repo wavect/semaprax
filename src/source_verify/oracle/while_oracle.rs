@@ -50,8 +50,8 @@ pub(super) fn check_while_statement(
             span,
         ));
     }
-    let _ = reject_while_disallowed_oracle(program, condition, functions, diagnostics);
-    let _ = reject_while_disallowed_oracle(program, body, functions, diagnostics);
+    let _ = reject_while_disallowed_oracle(program, condition, functions, types, diagnostics);
+    let _ = reject_while_disallowed_oracle(program, body, functions, types, diagnostics);
     let baseline = variables.clone();
     let condition_value = super::matching::in_loop(|| {
         check_expr(
@@ -120,6 +120,7 @@ pub(super) fn reject_while_disallowed_oracle(
     program: &Program,
     expression: &Expr,
     functions: &HashMap<&str, &Function>,
+    types: &TypeTable<'_>,
     diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<(), ()> {
     match &expression.kind {
@@ -156,11 +157,12 @@ pub(super) fn reject_while_disallowed_oracle(
         // per-iteration body region.
         ExprKind::String(_) => Ok(()),
         ExprKind::Unary { value, .. } => {
-            reject_while_disallowed_oracle(program, value, functions, diagnostics)
+            reject_while_disallowed_oracle(program, value, functions, types, diagnostics)
         }
         ExprKind::Binary { left, right, .. } => {
-            let left = reject_while_disallowed_oracle(program, left, functions, diagnostics);
-            let right = reject_while_disallowed_oracle(program, right, functions, diagnostics);
+            let left = reject_while_disallowed_oracle(program, left, functions, types, diagnostics);
+            let right =
+                reject_while_disallowed_oracle(program, right, functions, types, diagnostics);
             left.and(right)
         }
         ExprKind::If {
@@ -169,10 +171,11 @@ pub(super) fn reject_while_disallowed_oracle(
             else_branch,
         } => {
             let condition =
-                reject_while_disallowed_oracle(program, condition, functions, diagnostics);
-            let then = reject_while_disallowed_oracle(program, then_branch, functions, diagnostics);
+                reject_while_disallowed_oracle(program, condition, functions, types, diagnostics);
+            let then =
+                reject_while_disallowed_oracle(program, then_branch, functions, types, diagnostics);
             let else_branch =
-                reject_while_disallowed_oracle(program, else_branch, functions, diagnostics);
+                reject_while_disallowed_oracle(program, else_branch, functions, types, diagnostics);
             condition.and(then).and(else_branch)
         }
         ExprKind::Block { statements, tail } => {
@@ -182,6 +185,7 @@ pub(super) fn reject_while_disallowed_oracle(
                     program,
                     statement,
                     functions,
+                    types,
                     diagnostics,
                 );
                 result?;
@@ -190,6 +194,7 @@ pub(super) fn reject_while_disallowed_oracle(
                 program,
                 tail,
                 functions,
+                types,
                 diagnostics,
             ))
         }
@@ -280,7 +285,13 @@ pub(super) fn reject_while_disallowed_oracle(
             }
             let mut result = Ok(());
             for argument in args {
-                result = reject_while_disallowed_oracle(program, argument, functions, diagnostics);
+                result = reject_while_disallowed_oracle(
+                    program,
+                    argument,
+                    functions,
+                    types,
+                    diagnostics,
+                );
                 result?;
             }
             result
@@ -312,14 +323,35 @@ pub(super) fn reject_while_disallowed_oracle(
             ));
             Err(())
         }
-        ExprKind::ConstructVariant { .. } => {
-            diagnostics.push(error(
-                program,
-                "SPX-T252",
-                "variant construction is not yet admitted in while bodies",
-                expression.span,
-            ));
-            Err(())
+        ExprKind::ConstructVariant {
+            type_name,
+            type_arguments,
+            fields,
+            ..
+        } => {
+            let ty = Type::Named {
+                name: type_name.clone(),
+                arguments: type_arguments.clone(),
+            };
+            if !crate::source_verify::variant_guards::copy_variant(types, &ty) {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T252",
+                    "variant construction in a loop requires only Copy scalar payloads",
+                    expression.span,
+                ));
+                return Err(());
+            }
+            for field in fields {
+                reject_while_disallowed_oracle(
+                    program,
+                    &field.value,
+                    functions,
+                    types,
+                    diagnostics,
+                )?;
+            }
+            Ok(())
         }
         ExprKind::UpdateRecord { .. } => {
             diagnostics.push(error(
@@ -335,24 +367,34 @@ pub(super) fn reject_while_disallowed_oracle(
         ExprKind::Match {
             scrutinee, arms, ..
         } => {
-            reject_while_disallowed_oracle(program, scrutinee, functions, diagnostics)?;
+            reject_while_disallowed_oracle(program, scrutinee, functions, types, diagnostics)?;
             let mut result = Ok(());
             for arm in arms {
                 result = match &arm.guard {
                     Some(guard) => {
-                        let guard =
-                            reject_while_disallowed_oracle(program, guard, functions, diagnostics);
+                        let guard = reject_while_disallowed_oracle(
+                            program,
+                            guard,
+                            functions,
+                            types,
+                            diagnostics,
+                        );
                         let value = reject_while_disallowed_oracle(
                             program,
                             &arm.value,
                             functions,
+                            types,
                             diagnostics,
                         );
                         guard.and(value)
                     }
-                    None => {
-                        reject_while_disallowed_oracle(program, &arm.value, functions, diagnostics)
-                    }
+                    None => reject_while_disallowed_oracle(
+                        program,
+                        &arm.value,
+                        functions,
+                        types,
+                        diagnostics,
+                    ),
                 };
                 result?;
             }
@@ -370,7 +412,7 @@ pub(super) fn reject_while_disallowed_oracle(
         // Resumable Effects control profile (issue #296): the parser admits a
         // direct statement-value `yield`; its request is an ordinary operand.
         ExprKind::Yield { request } => {
-            reject_while_disallowed_oracle(program, request, functions, diagnostics)
+            reject_while_disallowed_oracle(program, request, functions, types, diagnostics)
         }
     }
 }
@@ -380,11 +422,12 @@ pub(super) fn reject_while_disallowed_statement_oracle(
     program: &Program,
     statement: &Statement,
     functions: &HashMap<&str, &Function>,
+    types: &TypeTable<'_>,
     diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<(), ()> {
     match statement {
         Statement::Let { value, .. } | Statement::Assign { value, .. } => {
-            reject_while_disallowed_oracle(program, value, functions, diagnostics)
+            reject_while_disallowed_oracle(program, value, functions, types, diagnostics)
         }
         Statement::Unsafe { span, .. } => {
             diagnostics.push(error(
@@ -399,8 +442,8 @@ pub(super) fn reject_while_disallowed_statement_oracle(
             condition, body, ..
         } => {
             let condition =
-                reject_while_disallowed_oracle(program, condition, functions, diagnostics);
-            let body = reject_while_disallowed_oracle(program, body, functions, diagnostics);
+                reject_while_disallowed_oracle(program, condition, functions, types, diagnostics);
+            let body = reject_while_disallowed_oracle(program, body, functions, types, diagnostics);
             condition.and(body)
         }
         Statement::For { span, .. } | Statement::ForOwn { span, .. } => {

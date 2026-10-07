@@ -116,6 +116,10 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 args: &'a [Expr],
                 next: usize,
             },
+            FieldsNext {
+                fields: &'a [crate::ast::FieldInitializer],
+                next: usize,
+            },
             MatchNext {
                 arms: &'a [crate::ast::MatchArm],
                 next: usize,
@@ -201,6 +205,22 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             next: next + 1,
                         });
                         frames.push(Frame::Expression(argument));
+                    } else {
+                        results.push(Ok(()));
+                    }
+                    continue;
+                }
+                Frame::FieldsNext { fields, next } => {
+                    if next != 0 && results.pop().is_none_or(|result| result.is_err()) {
+                        results.push(Err(()));
+                        continue;
+                    }
+                    if let Some(field) = fields.get(next) {
+                        frames.push(Frame::FieldsNext {
+                            fields,
+                            next: next + 1,
+                        });
+                        frames.push(Frame::Expression(&field.value));
                     } else {
                         results.push(Ok(()));
                     }
@@ -415,14 +435,27 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     ));
                     results.push(Err(()));
                 }
-                ExprKind::ConstructVariant { .. } => {
-                    self.diagnostics.push(error(
-                        self.program,
-                        "SPX-T252",
-                        "variant construction is not yet admitted in while bodies",
-                        expression.span,
-                    ));
-                    results.push(Err(()));
+                ExprKind::ConstructVariant {
+                    type_name,
+                    type_arguments,
+                    fields,
+                    ..
+                } => {
+                    let ty = Type::Named {
+                        name: type_name.clone(),
+                        arguments: type_arguments.clone(),
+                    };
+                    if crate::source_verify::variant_guards::copy_variant(self.types, &ty) {
+                        frames.push(Frame::FieldsNext { fields, next: 0 });
+                    } else {
+                        self.diagnostics.push(error(
+                            self.program,
+                            "SPX-T252",
+                            "variant construction in a loop requires only Copy scalar payloads",
+                            expression.span,
+                        ));
+                        results.push(Err(()));
+                    }
                 }
                 ExprKind::UpdateRecord { .. } => {
                     self.diagnostics.push(error(

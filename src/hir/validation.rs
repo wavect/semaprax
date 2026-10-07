@@ -7,6 +7,7 @@ use super::workspace_link::native_owner::admitted_ri06_regex_result as regex_res
 use super::*;
 use crate::loan_plan::{LoanCause, LoanId, LoanPointPhase};
 
+mod borrowed_argument;
 mod borrowed_str;
 mod box_intrinsic;
 mod branch_merge;
@@ -23,28 +24,13 @@ mod type_profiles;
 mod unsafe_scan;
 mod vec_intrinsic;
 pub(crate) use type_profiles::resolved_type_contains_owned_bytes;
+use borrowed_argument::{hir_diagnostic_at_span, hir_error_at_span};
 use type_profiles::{
     generic_instance_arguments_are_admitted, resolved_type_is_flat_owned_byte_variant,
     resolved_type_is_flat_owned_string_variant, template_contains_nested_owned_record_type,
     template_has_owned_record_slot, template_ownership, validate_nested_update_base_shape,
 };
 use unsafe_scan::contains_unsafe_boundary;
-
-fn hir_diagnostic_at_span(mut diagnostic: Diagnostic, span: crate::ast::Span) -> Diagnostic {
-    if diagnostic.code == "SPX-H006"
-        && diagnostic.span.is_none()
-        && span.start < span.end
-        && span.line != 0
-        && span.column != 0
-    {
-        diagnostic.span = Some(span);
-    }
-    diagnostic
-}
-
-fn hir_error_at_span(span: crate::ast::Span, message: impl Into<String>) -> Diagnostic {
-    hir_diagnostic_at_span(hir_error(message), span)
-}
 
 /// Validate resolved meaning without consulting attached cleanup metadata.
 /// Independent cleanup-plan replayers use this boundary to avoid circularly
@@ -8159,62 +8145,6 @@ impl<'a> HirValidator<'a> {
         Ok((ty, ownership))
     }
 
-    fn validate_byte_view_place(
-        &self,
-        operation: crate::byte_ops::ByteOp,
-        place: &Place,
-        span: crate::ast::Span,
-        scope: &BTreeMap<ValueId, ValidationBinding>,
-    ) -> Result<(), Diagnostic> {
-        let binding = scope
-            .get(&place.root)
-            .ok_or_else(|| hir_error_at_span(span, "borrowed view root is out of scope"))?;
-        if Self::place_availability(binding, &place.projections) != Availability::Available {
-            return Err(hir_error_at_span(
-                span,
-                "borrowed view place is moved or conditionally moved",
-            ));
-        }
-        let (place_ty, place_ownership) = self
-            .resolve_place(place, binding)
-            .map_err(|diagnostic| hir_diagnostic_at_span(diagnostic, span))?;
-        if place.projections.is_empty() {
-            if !operation.accepts_resolved(0, &place_ty) {
-                return Err(hir_error_at_span(
-                    span,
-                    "borrowed view root has the wrong storage type",
-                ));
-            }
-            return Ok(());
-        }
-        if operation == crate::byte_ops::ByteOp::StringAsStr {
-            return Err(hir_error_at_span(
-                span,
-                "owned String view requires one unprojected named storage root",
-            ));
-        }
-        if operation != crate::byte_ops::ByteOp::BytesAsSlice
-            || place.projections.is_empty()
-            || place
-                .projections
-                .iter()
-                .any(|projection| !matches!(projection, PlaceProjection::Field(_)))
-            || binding.ownership != OwnershipMode::Own
-            || !super::type_reachability::is_admitted_nested_owned_byte_record(
-                &self.program.declarations,
-                &binding.ty,
-            )
-            || place_ty != ResolvedType::Bytes
-            || place_ownership != OwnershipMode::Own
-        {
-            return Err(hir_error_at_span(
-                span,
-                "projected byte view is outside the exact nested owned-Bytes field profile",
-            ));
-        }
-        Ok(())
-    }
-
     fn field_type_for_type(
         &self,
         ty: &ResolvedType,
@@ -8561,99 +8491,6 @@ impl<'a> HirValidator<'a> {
                 ),
             ))
         }
-    }
-
-    fn validate_borrowed_bytes_call_argument(
-        &self,
-        call: &ResolvedExpr,
-        argument: &ResolvedExpr,
-        parameter: &ResolvedParam,
-        parameter_index: usize,
-        scope: &BTreeMap<ValueId, ValidationBinding>,
-    ) -> Result<(), Diagnostic> {
-        if parameter.ty != ResolvedType::Bytes || parameter.ownership != OwnershipMode::Borrow {
-            return Ok(());
-        }
-        let ResolvedExprKind::Call {
-            type_arguments,
-            instance,
-            ..
-        } = &call.kind
-        else {
-            return Err(hir_error_at_span(
-                call.span,
-                "borrowed Bytes argument is not attached to an exact call",
-            ));
-        };
-        if instance.is_some() || !type_arguments.is_empty() {
-            return Err(hir_error_at_span(
-                call.span,
-                "borrowed Bytes calls must be monomorphic source-defined calls",
-            ));
-        }
-        let ResolvedExprKind::Place(place) = &argument.kind else {
-            return Err(hir_error_at_span(
-                argument.span,
-                "borrowed Bytes call argument is not an exact storage place",
-            ));
-        };
-        let binding = scope
-            .get(&place.root)
-            .ok_or_else(|| {
-                hir_error_at_span(argument.span, "borrowed Bytes call root is out of scope")
-            })?;
-        if Self::place_availability(binding, &place.projections) != Availability::Available {
-            return Err(hir_error_at_span(
-                argument.span,
-                "borrowed Bytes call place is moved or conditionally moved",
-            ));
-        }
-        let (place_ty, place_ownership) = self
-            .resolve_place(place, binding)
-            .map_err(|diagnostic| hir_diagnostic_at_span(diagnostic, argument.span))?;
-        if place_ty != ResolvedType::Bytes || argument.ty != ResolvedType::Bytes {
-            return Err(hir_error_at_span(
-                argument.span,
-                "borrowed Bytes call place has the wrong storage type",
-            ));
-        }
-        let admitted = if place.projections.is_empty() {
-            matches!(place_ownership, OwnershipMode::Own | OwnershipMode::Borrow)
-        } else {
-            !place.projections.is_empty()
-                && place
-                    .projections
-                    .iter()
-                    .all(|projection| matches!(projection, PlaceProjection::Field(_)))
-                && binding.ownership == OwnershipMode::Own
-                && place_ownership == OwnershipMode::Own
-                && super::type_reachability::is_admitted_nested_owned_byte_record(
-                    &self.program.declarations,
-                    &binding.ty,
-                )
-        };
-        if !admitted {
-            return Err(hir_error_at_span(
-                argument.span,
-                "borrowed Bytes call is outside the exact named or nested owned-field profile",
-            ));
-        }
-        if binding.ownership == OwnershipMode::Own {
-            let argument = u16::try_from(parameter_index)
-                .map_err(|_| {
-                    hir_error_at_span(call.span, "borrowed Bytes argument index overflows")
-                })?;
-            if !self
-                .canonical_loan_ids
-                .contains_key(&(call.id.clone(), LoanCause::BorrowedCall { argument }))
-            {
-                return Err(hir_error_at_span(
-                    call.span,
-                    "borrowed Bytes call lacks its canonical shared-loan identity",
-                ));
-            }
-        }
-        Ok(())
     }
 
     /// Class Inheritance v1: independent re-derivation of the upcast

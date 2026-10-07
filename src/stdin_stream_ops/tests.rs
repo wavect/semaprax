@@ -308,7 +308,9 @@ permit { process.args.read, process.stderr.write, process.stdin.read, process.st
             .collect::<String>()
     );
     let run_signature = emitted
-        .find(&format!("static __attribute__((unused)) spx_status_token {run_symbol}("))
+        .find(&format!(
+            "static __attribute__((unused)) spx_status_token {run_symbol}("
+        ))
         .expect("native lowering must emit stream.run");
     let run_body = emitted[run_signature..]
         .find(") {")

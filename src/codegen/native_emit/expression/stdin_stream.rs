@@ -123,6 +123,12 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             }
         }
         self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
+        if call.operation == hir::ResolvedHostCommandOperation::StdinStreamNext {
+            // The successful host call consumed the canonical staged argument.
+            // Failure leaves that epoch live for the caller's cleanup plan.
+            let (_, flag, _) = plan.call_argument(&expr.id, 0)?;
+            self.line(&format!("{flag} = false;"));
+        }
         for line in plan.apply_at(&expr.id)?.lines() {
             self.line(line);
         }

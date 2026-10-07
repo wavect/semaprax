@@ -179,7 +179,7 @@ fn commitment_shape_admitted(commitment: borrow Slice<u8>) -> bool
     let mut index = 0usize;
     let mut admitted = length == 0usize || length == 64usize;
     while index < length && admitted {
-        admitted = match byte_get(commitment, index) { Option::Some { value: matched_value } => matched_value >= 48u8 && value <= 57u8 || value >= 97u8 && value <= 102u8, Option::None {} => false, };
+        admitted = match byte_get(commitment, index) { Option::Some { value: matched_value } => matched_value >= 48u8 && matched_value <= 57u8 || matched_value >= 97u8 && matched_value <= 102u8, Option::None {} => false, };
         index = index + 1usize;
         index < length && admitted
     }

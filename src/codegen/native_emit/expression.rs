@@ -2032,6 +2032,27 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     let value = self.emit_expr(&arm.value)?;
                     self.require_type(&value.ty, &expr.ty, "match arm result")?;
                     if is_direct_plan_owned(self.program, &expr.ty) {
+                        if expr.ty == ResolvedType::String
+                            && matches!(arm.value.kind, ResolvedExprKind::If { .. })
+                        {
+                            // The If settled its selected branch into its own
+                            // result slot. Replay only that slot's handoff to
+                            // this match, not the already applied branch joins.
+                            let transitions =
+                                self.bytes_plan.expect("checked above").transfer_field_at(
+                                    &arm.value.id,
+                                    &value.code,
+                                    &crate::cleanup_plan::CleanupPlace {
+                                        storage: crate::cleanup_plan::StorageId::Temporary(
+                                            expr.id.clone(),
+                                        ),
+                                        projections: Vec::new(),
+                                    },
+                                )?;
+                            for line in transitions.lines() {
+                                self.line(line);
+                            }
+                        }
                         // An owned place needs its arm-to-join transfer here.
                         // Producers replay that same transition in `emit_expr`;
                         // replaying it again would move from a dead source.

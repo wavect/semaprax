@@ -269,7 +269,7 @@ fn run_executes_string_branch_results_on_both_routes() {
             "native={native}: {}",
             String::from_utf8_lossy(&output.stderr)
         );
-        assert_eq!(String::from_utf8_lossy(&output.stdout), "975\n");
+        assert_eq!(String::from_utf8_lossy(&output.stdout), "2323\n");
     }
     fixture.cleanup();
 }

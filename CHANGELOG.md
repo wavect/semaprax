@@ -1,5 +1,9 @@
 # Changelog
 
+- Native String joins: replay the exact nested `if`-to-variant-match handoff,
+  preserving branch transfers and ownership liveness. Focused branch-result
+  regressions cover statementful tails and nested scalar/variant match arms.
+
 - Loop input: repeated `args_len`/`arg_utf8`, named immutable String/`str`
   views and user helpers with declared argument, filesystem or environment
   read effects are admitted in loop bodies. Existing capability checks,

@@ -85,6 +85,16 @@ admitted-closure renderer and is not redirected through this correction.
 
 ## Authored evidence and remaining gaps
 
+The String branch-result regression corpus also covers a statementful function
+body ending in a String `if`, an `if` inside a variant-match arm, and nested
+`if` values inside scalar-match arms. Native emission moves the selected `if`
+result into its enclosing variant-match join through the exact canonical
+handoff; it does not replay the already completed branch transfers. The
+`tests/language/string_branch_results.rs` gate checks both selected paths,
+interpreter results, source/graph round trips, CLI execution, and balanced
+native allocations at O0/O2. Its separate Wasm cases retain their admitted
+scalar boundary and stable variant-profile refusal.
+
 Loop fixtures retain existing Copy-only loop admission. Ordinary native
 condition/body cases use scalar-signature helpers that allocate and settle
 one String inside each call; direct String storage in a loop remains

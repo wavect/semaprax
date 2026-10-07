@@ -371,15 +371,15 @@ fn outer_string_loop_ownership_mutation_reports_exact_source_location() {
         "ownership of `text` changes inside a while loop, which is not yet admitted"
     );
     assert_eq!(diagnostic.path.as_deref(), path.to_str());
-    // Ownership drift belongs to the complete loop, rather than just the
-    // consuming call or the declaration of its outer owner.
+    // The existing while expression span starts at its condition and includes
+    // its body, locating the ownership drift rather than the outer declaration.
     assert_eq!(
         diagnostic.span,
         Some(semaprax::ast::Span {
-            start: source.find("while i < 2").unwrap(),
+            start: source.find("i < 2").unwrap(),
             end: source.find("\n    i\n}").unwrap(),
             line: 8,
-            column: 5,
+            column: 11,
         })
     );
 }

@@ -15,8 +15,8 @@ use semaprax::wasm::internal_strings::{emit_module, InternalStringOptions};
 use semaprax::{format, graph, hir, parse, verify};
 use serde_json::Value;
 
-#[path = "../interpreter_internal_strings_v1/support.rs"]
-mod support;
+// Loaded once by the owned-string-loops module; a second `mod` would duplicate it.
+use super::owned_string_loops_v1::support;
 use support::Fixture;
 
 const SOURCE: &str = r#"
@@ -399,8 +399,7 @@ fn core_wasm_refuses_string_collections_with_one_stable_diagnostic() {
         &["coll.compare".to_owned()],
         InternalStringOptions::default(),
     )
-    .err()
-    .expect("String Collections v1 is not lowered to Core Wasm");
+    .expect_err("String Collections v1 is not lowered to Core Wasm");
     assert_eq!(error.code, "SPX-W116");
     assert_eq!(
         error.message,
@@ -410,7 +409,7 @@ fn core_wasm_refuses_string_collections_with_one_stable_diagnostic() {
         semaprax::wasm::emit_module(&program),
         semaprax::wasm::emit_module_with_scalar_exports(&program, &["coll.compare".to_owned()]),
     ] {
-        assert_eq!(lane.err().expect("every lane refuses").code, "SPX-W116");
+        assert_eq!(lane.expect_err("every lane refuses").code, "SPX-W116");
     }
 }
 

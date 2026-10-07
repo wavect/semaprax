@@ -28,7 +28,7 @@ pub(super) fn default_expr_expanded_cost(
             Ok(ExpandedDefaultCost {
                 bytes: 2 * std::mem::size_of::<Expr>()
                     + name.len()
-                    + arguments.len() * std::mem::size_of::<Type>(),
+                    + std::mem::size_of_val(arguments),
                 string_bytes: name.len(),
                 identity_slots: 9 + arguments.len(),
             })
@@ -217,7 +217,7 @@ pub(super) fn default_expr(
         ty if allow_owned && crate::map_ops::ast_collection(ty) => {
             let (name, arguments) = collection_constructor(ty);
             reserve_builder_structure(
-                std::mem::size_of::<Expr>() + arguments.len() * std::mem::size_of::<Type>(),
+                std::mem::size_of::<Expr>() + std::mem::size_of_val(arguments),
             )?;
             ExprKind::Call {
                 name: crate::bounded_output::budgeted_clone(name),

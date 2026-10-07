@@ -5966,3 +5966,8 @@ public support through a release tag.
 The detailed 0.3.5, 0.2.0, and 0.1.0 history is preserved in the [changelog archive](docs/CHANGELOG-ARCHIVE.md).
 
 - R20 private actual Step successor: fixed same-hold cleanup/transfer/Transition ACKs, actual ordered release receipts and compiler-empty Complete origin; cumulative/public/terminal/recovery acceptance remains pending.
+
+- Authored additive Wasm Text Toolkit v1 with checked pure text operations,
+  borrowed String conversion, numeric conversion/comparison, owned String
+  variant transport/matching, explicit file-read provider authority, and a
+  digest-bound standalone Web route. Combined executable gates remain pending.

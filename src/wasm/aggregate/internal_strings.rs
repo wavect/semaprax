@@ -38,6 +38,7 @@ pub(in crate::wasm) fn emit(
     closure: &BTreeSet<DeclarationId>,
     owner_limit: Option<u32>,
     copy_variants: bool,
+    toolkit: bool,
 ) -> Result<(Vec<u8>, u32, u32), Diagnostic> {
     let functions = closure
         .iter()
@@ -154,12 +155,56 @@ pub(in crate::wasm) fn emit(
             &mut type_indexes,
         ));
     }
+    let mut selected = program.clone();
+    selected
+        .functions
+        .retain(|function| closure.contains(&function.id));
+    selected.function_instances.clear();
+    let toolkit_types = if toolkit {
+        text_toolkit::import_types(&selected, &mut types, &mut type_indexes)
+    } else {
+        Vec::new()
+    };
+    let toolkit_extra_types = if toolkit {
+        vec![
+            intern_type(
+                Signature {
+                    params: vec![I64],
+                    results: vec![I64],
+                },
+                &mut types,
+                &mut type_indexes,
+            ),
+            intern_type(
+                Signature {
+                    params: vec![I64, I64],
+                    results: vec![I64],
+                },
+                &mut types,
+                &mut type_indexes,
+            ),
+        ]
+    } else {
+        Vec::new()
+    };
+    let selected_import_count = IMPORT_COUNT
+        + if toolkit {
+            3 + toolkit_types.len() as u32
+        } else {
+            0
+        };
     let mut function_types = Vec::new();
     for function in &functions {
         let mut params = function
             .params
             .iter()
-            .map(|parameter| scalar_wasm_type(program, &parameter.ty))
+            .map(|parameter| {
+                if is_aggregate(program, &parameter.ty)? {
+                    Ok(I32)
+                } else {
+                    scalar_wasm_type(program, &parameter.ty)
+                }
+            })
             .collect::<Result<Vec<_>, _>>()?;
         params.push(I32);
         function_types.push(intern_type(
@@ -185,16 +230,37 @@ pub(in crate::wasm) fn emit(
             &mut type_indexes,
         ));
     }
-    let function_indexes = functions
+    let mut function_indexes = functions
         .iter()
         .enumerate()
         .map(|(index, function)| {
             (
                 FunctionExecutionId::Monomorphic(function.id.clone()),
-                IMPORT_COUNT + index as u32,
+                selected_import_count + index as u32,
             )
         })
         .collect::<HashMap<_, _>>();
+    if toolkit {
+        for (offset, operation) in [
+            crate::string_ops::StringOp::FromI64,
+            crate::string_ops::StringOp::FromUsize,
+            crate::string_ops::StringOp::Compare,
+        ]
+        .iter()
+        .enumerate()
+        {
+            function_indexes.insert(
+                FunctionExecutionId::Monomorphic(DeclarationId::new(operation.id())),
+                IMPORT_COUNT + offset as u32,
+            );
+        }
+        for (offset, (operation, _)) in toolkit_types.iter().enumerate() {
+            function_indexes.insert(
+                FunctionExecutionId::Monomorphic(DeclarationId::new(operation.id())),
+                IMPORT_COUNT + 3 + offset as u32,
+            );
+        }
+    }
     let mut module = b"\0asm\x01\0\0\0".to_vec();
     let mut section_bytes = Vec::new();
     write_u32(&mut section_bytes, types.len() as u32);
@@ -205,9 +271,26 @@ pub(in crate::wasm) fn emit(
     }
     section(&mut module, 1, section_bytes);
     let mut section_bytes = Vec::new();
-    write_u32(&mut section_bytes, IMPORT_COUNT);
+    write_u32(&mut section_bytes, selected_import_count);
     for ((name, _, _), ty) in imports.iter().zip(import_types) {
         function_import(&mut section_bytes, "semaprax.internal-strings.v1", name, ty);
+    }
+    if toolkit {
+        for (name, ty) in [
+            ("from_i64", toolkit_extra_types[0]),
+            ("from_usize", toolkit_extra_types[0]),
+            ("compare", toolkit_extra_types[1]),
+        ] {
+            function_import(&mut section_bytes, "semaprax.internal-strings.v1", name, ty);
+        }
+        for (operation, ty) in &toolkit_types {
+            function_import(
+                &mut section_bytes,
+                "semaprax.internal-strings.v1",
+                text_toolkit::import_name(*operation),
+                *ty,
+            );
+        }
     }
     section(&mut module, 2, section_bytes);
     let mut section_bytes = Vec::new();
@@ -232,7 +315,7 @@ pub(in crate::wasm) fn emit(
         export_section.push(0);
         write_u32(
             &mut export_section,
-            IMPORT_COUNT + functions.len() as u32 + ordinal as u32,
+            selected_import_count + functions.len() as u32 + ordinal as u32,
         );
     }
     section(&mut module, 7, export_section);
@@ -377,7 +460,27 @@ impl Emitter<'_> {
         args: &[ResolvedExpr],
     ) -> Result<Value, Diagnostic> {
         use crate::string_ops::StringOp;
-        if operation.is_wasm_refused() {
+        if self
+            .function_indexes
+            .contains_key(&FunctionExecutionId::Monomorphic(DeclarationId::new(
+                crate::string_ops::COMPARE_ID,
+            )))
+        {
+            if text_toolkit::admitted(operation) {
+                return self.emit_checked_text_operation(expr, operation, args);
+            }
+            if conversions::admitted(operation) {
+                return self.emit_scalar_conversion(expr, operation, args);
+            }
+        }
+        if operation.is_wasm_refused()
+            && !(operation == StringOp::Compare
+                && self
+                    .function_indexes
+                    .contains_key(&FunctionExecutionId::Monomorphic(DeclarationId::new(
+                        operation.id(),
+                    ))))
+        {
             return Err(crate::string_ops::text_toolkit_wasm_refusal(operation));
         }
         if args.len() != operation.arity() {
@@ -443,6 +546,16 @@ impl Emitter<'_> {
             StringOp::LenChars => 5,
             StringOp::StartsWith => 7,
             StringOp::Contains => 8,
+            StringOp::FromI64 | StringOp::FromUsize | StringOp::Compare
+                if self
+                    .function_indexes
+                    .contains_key(&FunctionExecutionId::Monomorphic(DeclarationId::new(
+                        operation.id(),
+                    ))) =>
+            {
+                self.function_indexes
+                    [&FunctionExecutionId::Monomorphic(DeclarationId::new(operation.id()))]
+            }
             StringOp::FromI64
             | StringOp::FromUsize
             | StringOp::Slice

@@ -16,7 +16,7 @@ pub(super) fn admitted(operation: StringOp) -> bool {
     OPERATIONS.contains(&operation)
 }
 
-pub(super) fn selected(program: &ResolvedProgram) -> Vec<StringOp> {
+pub(in crate::wasm) fn selected(program: &ResolvedProgram) -> Vec<StringOp> {
     let mut found = BTreeSet::new();
     let mut pending = Vec::new();
     for function in program
@@ -65,7 +65,7 @@ pub(super) fn import_types(
         .collect()
 }
 
-pub(super) fn import_name(operation: StringOp) -> &'static str {
+pub(in crate::wasm) fn import_name(operation: StringOp) -> &'static str {
     match operation {
         StringOp::Slice => "spx_string_slice_v2",
         StringOp::Find => "spx_string_find_v2",
@@ -208,6 +208,9 @@ impl Emitter<'_> {
             let local = self.plan.expr_scalar(expression)?;
             self.output.push(0x21);
             write_u32(self.output, local);
+            if self.standalone_strings && expression.ty == ResolvedType::String {
+                self.string_capacity_guard(local)?;
+            }
             Ok(Value::Scalar {
                 local,
                 ty: expression.ty.clone(),

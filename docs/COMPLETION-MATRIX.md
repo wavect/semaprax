@@ -447,3 +447,10 @@ simulators/devices. Declare platform-specific implementations rather than
 claiming false portability. No current narrow prototype satisfies this final
 gate. The v0.4.0 hosted-green release advances bounded slices; it does not
 complete the mature product.
+
+Wasm Text Toolkit v1 implementation and pending combined verification are
+specified in [WASM-TEXT-TOOLKIT-V1.md](WASM-TEXT-TOOLKIT-V1.md). Its executable
+gates are `--test language wasm_text_toolkit_v1` and
+`--lib wasm::internal_strings::tests::toolkit`; existing frozen-profile refusal
+and host-accounting gates remain required. This note records authored coverage,
+not a verified completion status.

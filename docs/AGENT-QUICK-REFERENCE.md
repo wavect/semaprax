@@ -476,10 +476,9 @@ fn main() -> i64
 }
 ```
 
-- A `string` literal or `string_concat` result is owned. Borrow it with
-  `string_as_str(binding)`; the argument must be a plain `let` binding, not a
-  literal or call (`SPX-T266`). Pass the `str` view to `borrow str`
-  parameters and to `str_as_bytes`.
+- Literals and `string_concat` results are owned. `string_as_str(binding)`
+  borrows a plain `let` binding; literals and calls are `SPX-T266`. Pass the
+  view to `borrow str` parameters or `str_as_bytes`.
 - Byte functions take `borrow Slice<u8>`. Get one from `str_as_bytes(view)`,
   `array_as_slice(array_binding)`, or `bytes_as_slice(bytes_binding)`.
 - Build an owned bounded byte buffer as one write-once expression:
@@ -606,12 +605,11 @@ fn main() -> i64
 
 Reserved names: redefining `string_len` is `SPX-S113`.
 
-Box operations allocate uniquely; an authored `record Box<T>` alone stays inline.
-Owned payloads, public generic ABI, regions, arenas and shared ownership remain
-outside [Owned Bounded Box v1](OWNED-BOUNDED-BOX-V1.md).
+Boxes allocate uniquely; authored `record Box<T>` stays inline. Owned payloads,
+public generic ABI, regions, arenas and shared ownership remain outside
+[Box v1](OWNED-BOUNDED-BOX-V1.md).
 
-To print a computed integer from one file, render it, borrow the resulting
-string, and write its bytes:
+To print an integer, render it, borrow the string, and write its bytes:
 
 ```semaprax
 module app.print_count;
@@ -630,18 +628,16 @@ fn main() -> i64
 }
 ```
 
-`semaprax run count.spx` prints `42`. Use `string_from_i64` for signed values.
+`semaprax run count.spx` prints `42`; signed values use `string_from_i64`.
 
-A whole available `let mut` String also accepts a literal, owning named result,
-block, helper call, or branch result: `text = if ready { "yes" } else { "no" };`.
-The old owner is released only after the RHS succeeds. RHS ownership rules
-still consume owning named results, and an active borrowed view prevents the
-replacement. See [Whole String Replacement v1](STRING-REPLACEMENT-V1.md).
+[Whole `let mut` String replacement](STRING-REPLACEMENT-V1.md) accepts
+literals, owning names, blocks, helpers and branches; old owners settle after
+RHS success. Owning names move; active views prevent replacement.
 
-String loops allow named reads via `string_len`, `string_is_empty`,
-`string_starts_with`, and `string_contains`
-([predicates](BORROWED-STRING-PREDICATE-CONDITIONS-V1.md)). Computed String
-conditions also admit temporary Strings with per-iteration cleanup:
+Conditions inspect named owners via `string_len`, `string_is_empty`,
+`string_starts_with` and `string_contains`
+([predicates](BORROWED-STRING-PREDICATE-CONDITIONS-V1.md)). They also admit
+computed String temporaries. An append loop:
 
 ```semaprax
 module app.join;
@@ -666,12 +662,10 @@ fn main() -> i64
 }
 ```
 
-`semaprax run join.spx` prints `0,1,2,3,4`. `while string_len(text) < 4` is
-admitted for an available named String owner: the condition reads its current
-byte length without allocating. Literals, produced Strings, nested blocks and
-String-returning helpers in a condition settle their temporaries before both
-Boolean outcomes. Consuming an enclosing owner is `SPX-T252`; keep it available
-for the next iteration. Mutable Strings also accept `text = "b";`.
+`semaprax run join.spx` prints `0,1,2,3,4`. `while string_len(text) < 4`
+reads its available owner's byte length without allocation. Condition
+literals, blocks and String helpers settle before either Boolean outcome.
+Consuming an enclosing owner is `SPX-T252`.
 
 ## Command-line programs
 

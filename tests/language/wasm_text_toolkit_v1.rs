@@ -163,3 +163,204 @@ fn wasm_checked_text_failures_settle_borrowed_owners_before_status() {
         wasm_case(body, &format!("let caught=false;try{{instance.exports.semaprax_main();}}catch(error){{const status=semanticStatus(error);if(status===null||status.domain_id!=='semaprax.text.v1'||status.code!=={code})throw error;caught=true;}}if(!caught)throw Error('text failure missing');"));
     }
 }
+
+fn standalone_case(source: &str, ids: &[&str], probe: &str) {
+    use wasm::internal_strings::{emit_text_toolkit_module, InternalStringOptions};
+    let program = parse(source, Path::new("standalone-toolkit.spx")).unwrap();
+    let diagnostics = verify::verify(&program);
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    let canonical = semaprax::format::canonical(&program);
+    let round_trip = parse(&canonical, Path::new("standalone-toolkit-roundtrip.spx")).unwrap();
+    assert_eq!(semaprax::format::canonical(&round_trip), canonical);
+    assert_eq!(
+        semaprax::graph::to_json(&program).unwrap(),
+        semaprax::graph::to_json(&round_trip).unwrap()
+    );
+    let ids = ids.iter().map(|id| (*id).to_owned()).collect::<Vec<_>>();
+    let artifact =
+        emit_text_toolkit_module(&program, &ids, InternalStringOptions::default()).unwrap();
+    let repeated =
+        emit_text_toolkit_module(&round_trip, &ids, InternalStringOptions::default()).unwrap();
+    assert_eq!(artifact.wasm_bytes(), repeated.wasm_bytes());
+    assert_eq!(artifact.descriptor(), repeated.descriptor());
+    assert_eq!(artifact.runtime_source(), repeated.runtime_source());
+    assert!(artifact
+        .descriptor()
+        .contains("semaprax.wasm-text-toolkit.v1"));
+    let fixture = Fixture::new(source);
+    std::fs::write(fixture.root.join("app.wasm"), artifact.wasm_bytes()).unwrap();
+    std::fs::write(fixture.root.join("runtime.mjs"), artifact.runtime_source()).unwrap();
+    std::fs::write(fixture.root.join("probe.mjs"), format!("import {{readFile}} from 'node:fs/promises';import {{webcrypto}} from 'node:crypto';globalThis.crypto=webcrypto;import {{instantiate}} from './runtime.mjs';const bytes=await readFile('./app.wasm');const runtime=await instantiate(new Uint8Array(bytes));{probe}")).unwrap();
+    let output = Command::new("node")
+        .arg(fixture.root.join("probe.mjs"))
+        .current_dir(&fixture.root)
+        .output()
+        .expect("Node is required for standalone toolkit settlement");
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(output.stdout.is_empty());
+    for name in ["app.wasm", "runtime.mjs", "probe.mjs"] {
+        std::fs::remove_file(fixture.root.join(name)).unwrap();
+    }
+    fixture.cleanup();
+}
+
+const STANDALONE: &str = r#"
+module test.standalone_toolkit;
+@id("choice") variant Choice {
+    @id("choice.empty") Empty,
+    @id("choice.text") Text { @id("choice.text.value") value: string, @id("choice.text.marker") marker: i64, },
+}
+@id("make") fn make() -> Choice { Choice::Text { value: "a\u{0}é😀", marker: 2 } }
+@id("borrow") fn measure(value: borrow Choice) -> i64 {
+    match borrow value { Choice::Empty {} => 0, Choice::Text { value: text, marker } => string_len(text) + marker, }
+}
+@id("consume") fn consume(value: own Choice) -> i64 {
+    match own value { Choice::Empty {} => 0, Choice::Text { value: text, marker } => string_len(string_slice(text, 2, 4)) + marker, }
+}
+@id("app.variants") fn variants() -> i64 {
+    let value = make(); let borrowed = measure(value); borrowed + consume(value)
+}
+@id("app.text") fn text() -> i64 {
+    let owned = " \té\r\n"; let trimmed = string_trim(owned);
+    let view = string_as_str(trimmed); let copied = string_from_str(view);
+    let number = match string_to_i64("-9223372036854775808") { Option::Some { value: n } => if n == -9223372036854775808 { 10 } else { 0 }, Option::None {} => 0, };
+    string_byte_at(copied, 0) + string_find(copied, "", 1) + number
+}
+@id("app.ordering") fn ordering() -> bool {
+    "a" < "a\u{0}" && "a\u{0}" <= "a\u{0}" && "😀" > "\u{e000}" && "é" >= "z"
+}
+@id("app.failed") fn failed() -> i64 { let value = make(); let borrowed = measure(value); string_len(string_slice("é", 1, 2)) + borrowed }
+@id("app.convert") fn convert() -> i64 { let owned = "held"; i64_from_f64(f64_from_i64(9007199254740993)) + string_len(owned) }
+"#;
+
+#[test]
+fn standalone_toolkit_transports_owned_variants_and_checked_text_with_bounded_settlement() {
+    standalone_case(
+        STANDALONE,
+        &[
+            "app.variants",
+            "app.text",
+            "app.ordering",
+            "app.failed",
+            "app.convert",
+        ],
+        r#"
+for(let i=0;i<8;i++){
+  for(const [id,value] of [['app.variants',14n],['app.text',206n],['app.ordering',true],['app.convert',9007199254740996n]]){
+    const result=runtime.call(id);if(result.kind!=='success'||result.value!==value)throw Error('toolkit value '+id);
+  }
+  const failed=runtime.call('app.failed');if(failed.kind!=='failure'||failed.domain!=='semaprax.text.v1'||failed.code!==2)throw Error('toolkit failure changed');
+}
+const altered=new Uint8Array(bytes);altered[altered.length-1]^=1;
+let rejected=false;try{await instantiate(altered)}catch{rejected=true}if(!rejected)throw Error('forged artifact accepted');
+"#,
+    );
+}
+
+#[test]
+fn standalone_toolkit_condition_temporaries_settle_before_both_bool_outcomes() {
+    let source = r#"module test.toolkit_condition;
+@id("app.loop") fn looped() -> i64 { let mut i=0; while i<3 && string_len(string_concat("a",string_from_i64(i)))>0 { i=i+1; } i }
+@id("app.false") fn empty() -> i64 { let mut i=0; while string_len(string_trim(" \t"))>0 { i=i+1; } i }
+@id("app.lazy") fn lazy() -> i64 { let mut i=0; while false && string_len(string_slice("é",1,2))>0 { i=i+1; } i }
+@id("app.text_failure") fn text_failure() -> i64 { let mut i=0; while string_len(string_slice(string_concat("é","x"),1,2))>0 { i=i+1; } i }
+@id("app.arithmetic_failure") fn arithmetic_failure() -> i64 { let mut i=0; while string_len(string_concat("held",""))>0 && 9223372036854775807+1>0 { i=i+1; } i }
+"#;
+    standalone_case(
+        source,
+        &[
+            "app.loop",
+            "app.false",
+            "app.lazy",
+            "app.text_failure",
+            "app.arithmetic_failure",
+        ],
+        r#"
+for(let i=0;i<8;i++){
+ for(const [id,value] of [['app.loop',3n],['app.false',0n],['app.lazy',0n]]){const result=runtime.call(id);if(result.kind!=='success'||result.value!==value)throw Error('condition value changed')}
+ for(const [id,domain,code] of [['app.text_failure','semaprax.text.v1',2],['app.arithmetic_failure','semaprax.arithmetic.v1',1]]){const result=runtime.call(id);if(result.kind!=='failure'||result.domain!==domain||result.code!==code)throw Error('condition failure changed')}
+}
+"#,
+    );
+}
+
+#[test]
+fn standalone_toolkit_file_text_requires_explicit_provider_and_checks_bytes() {
+    let source = r#"module test.toolkit_files;
+permit { fs.read }
+@id("app.file") fn file() -> i64 uses { fs.read } { let path="folder/data.txt"; let view=string_as_str(path); let text=file_read_text(view); string_len(text) }
+@id("app.path") fn path() -> i64 uses { fs.read } { let path="../data.txt"; let view=string_as_str(path); string_len(file_read_text(view)) }
+"#;
+    standalone_case(
+        source,
+        &["app.file", "app.path"],
+        r#"
+for(let i=0;i<8;i++){const result=runtime.call('app.file');if(result.kind!=='failure'||result.domain!=='semaprax.filesystem.v1'||result.code!==6)throw Error('ambient file authority acquired')}
+let calls=0;
+const provider=await instantiate(new Uint8Array(bytes),{fileReadText:{read(path,maximum){calls++;if(new TextDecoder().decode(path)!=='folder/data.txt'||maximum!==65536)throw Error('provider request changed');return {ok:true,bytes:new Uint8Array([97,0,195,169])}}}});
+for(let i=0;i<8;i++){const result=provider.call('app.file');if(result.kind!=='success'||result.value!==4n)throw Error('file text changed')}
+const badPath=provider.call('app.path');if(badPath.kind!=='failure'||badPath.domain!=='semaprax.filesystem.v1'||badPath.code!==1||calls!==8)throw Error('invalid path reached provider');
+const invalid=await instantiate(new Uint8Array(bytes),{fileReadText:{read(){return {ok:true,bytes:new Uint8Array([192,128])}}}});
+for(let i=0;i<8;i++){const result=invalid.call('app.file');if(result.kind!=='failure'||result.domain!=='semaprax.text.v1'||result.code!==3)throw Error('invalid UTF8 file accepted')}
+const oversized=await instantiate(new Uint8Array(bytes),{fileReadText:{read(){return {ok:true,bytes:new Uint8Array(65537)}}}});
+const large=oversized.call('app.file');if(large.kind!=='failure'||large.domain!=='semaprax.filesystem.v1'||large.code!==4)throw Error('file bound changed');
+const forged=await instantiate(new Uint8Array(bytes),{fileReadText:{read(){return {ok:false,code:99}}}});
+let rejected=false;try{forged.call('app.file')}catch{rejected=true}if(!rejected)throw Error('forged provider status accepted');
+let poisoned=false;try{forged.call('app.file')}catch{poisoned=true}if(!poisoned)throw Error('forged provider status did not poison instance');
+"#,
+    );
+}
+
+#[test]
+fn toolkit_web_route_authenticates_descriptor_and_keeps_fresh_publication() {
+    let source = r#"module test.toolkit_web;
+@id("app.main") fn main() -> i64 { string_len(string_trim(" é ")) }
+"#;
+    let fixture = Fixture::new(source);
+    let output = fixture.root.join("web");
+    wasm::internal_strings::build_toolkit_web_from_source(
+        &fixture.source,
+        &output,
+        &["app.main".to_owned()],
+    )
+    .unwrap();
+    let descriptor =
+        std::fs::read_to_string(output.join("semaprax.internal-strings.json")).unwrap();
+    let manifest = std::fs::read_to_string(output.join("semaprax.manifest.json")).unwrap();
+    assert!(descriptor.contains("semaprax.wasm-text-toolkit.v1"));
+    assert!(manifest.contains("semaprax.web-text-toolkit.v1"));
+    assert!(manifest.contains("\"capabilities\":[]"));
+    let declarations = std::fs::read_to_string(output.join("semaprax.d.ts")).unwrap();
+    assert!(declarations.contains("semaprax.text.v1"));
+    assert!(declarations.contains("fileReadText?"));
+    let files = [
+        "app.wasm",
+        "semaprax.js",
+        "semaprax.d.ts",
+        "semaprax.internal-strings.json",
+        "semaprax.manifest.json",
+        "package.json",
+        "index.html",
+        "app.js",
+    ];
+    assert_eq!(std::fs::read_dir(&output).unwrap().count(), files.len());
+    assert!(wasm::internal_strings::build_toolkit_web_from_source(
+        &fixture.source,
+        &output,
+        &["app.main".to_owned()]
+    )
+    .is_err());
+    assert_eq!(
+        std::fs::read_to_string(output.join("semaprax.internal-strings.json")).unwrap(),
+        descriptor
+    );
+    for file in files {
+        std::fs::remove_file(output.join(file)).unwrap();
+    }
+    std::fs::remove_dir(output).unwrap();
+    fixture.cleanup();
+}

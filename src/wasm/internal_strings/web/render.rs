@@ -18,9 +18,12 @@ pub(super) fn artifacts(
     module: &InternalStringModule,
 ) -> Result<Vec<(&'static str, Vec<u8>)>, Diagnostic> {
     let declarations = declarations(module.descriptor())?;
+    let facts: serde_json::Value = serde_json::from_str(module.descriptor())
+        .map_err(|_| super::super::error("invalid emitted descriptor"))?;
+    let toolkit = facts["profile"] == "text-toolkit-v1";
     // Only compiler-derived hexadecimal and decimal constants enter this
     // executable template. Source names and stable identities never do.
-    let app = include_str!("app.js")
+    let mut app = include_str!("app.js")
         .replace(
             "__DESCRIPTOR_DIGEST__",
             &digest(module.descriptor().as_bytes())[7..],
@@ -29,6 +32,11 @@ pub(super) fn artifacts(
             "__DESCRIPTOR_BYTES__",
             &module.descriptor().len().to_string(),
         );
+    if toolkit {
+        app = app.replace("['schema','runtime_schema'", "['profile','capabilities','schema','runtime_schema'")
+            .replace("value.schema!=='semaprax.wasm-internal-strings.v1'", "value.profile!=='text-toolkit-v1'||!Array.isArray(value.capabilities)||value.capabilities.length>1||value.capabilities.some(effect=>effect!=='fs.read')||value.schema!=='semaprax.wasm-text-toolkit.v1'")
+            .replace("value.runtime_schema!=='semaprax.wasm-internal-strings.runtime.v1'", "value.runtime_schema!=='semaprax.wasm-text-toolkit.runtime.v1'");
+    }
     let mut files = vec![
         ("app.wasm", module.wasm_bytes().to_vec()),
         ("semaprax.js", module.runtime_source().as_bytes().to_vec()),
@@ -54,7 +62,20 @@ pub(super) fn artifacts(
         })
         .collect::<Vec<_>>()
         .join(",");
-    let manifest = format!("{{\"schema\":\"semaprax.web-internal-strings.v1\",\"module\":{},\"source_digest\":{},\"graph_revision\":{},\"compiler_schema\":{},\"runtime_schema\":{},\"capabilities\":[],\"artifacts\":[{}]}}\n", quote_json(module_name), quote_json(&digest(source.as_bytes())), quote_json(revision), quote_json(SCHEMA), quote_json(RUNTIME_SCHEMA), rows);
+    let manifest = format!("{{\"schema\":\"semaprax.web-internal-strings.v1\",\"module\":{},\"source_digest\":{},\"graph_revision\":{},\"compiler_schema\":{},\"runtime_schema\":{},\"capabilities\":[],\"artifacts\":[{}]}}\n", quote_json(module_name), quote_json(&digest(source.as_bytes())), quote_json(revision), quote_json(if toolkit { super::super::TOOLKIT_SCHEMA } else { SCHEMA }), quote_json(if toolkit { super::super::TOOLKIT_RUNTIME_SCHEMA } else { RUNTIME_SCHEMA }), rows);
+    let manifest = if toolkit {
+        manifest
+            .replace(
+                "\"schema\":\"semaprax.web-internal-strings.v1\"",
+                "\"schema\":\"semaprax.web-text-toolkit.v1\"",
+            )
+            .replace(
+                "\"capabilities\":[]",
+                &format!("\"capabilities\":{}", facts["capabilities"]),
+            )
+    } else {
+        manifest
+    };
     files.insert(4, ("semaprax.manifest.json", manifest.into_bytes()));
     Ok(files)
 }
@@ -90,6 +111,12 @@ fn declarations(descriptor: &str) -> Result<String, Diagnostic> {
         text.push_str(&format!("): StringOutcome<{}>;\n", scalar(result)?));
     }
     text.push_str("}\nexport declare function instantiate(bytes: Uint8Array): Promise<Readonly<StringFacade>>;\n");
+    if value["profile"] == "text-toolkit-v1" {
+        text = text.replace("export interface StringFacade", "export type ToolkitFailure = Readonly<{kind: 'failure'; domain: 'semaprax.text.v1'; code: 1|2|3}> | Readonly<{kind: 'failure'; domain: 'semaprax.convert.v1'; code: 1|2}> | Readonly<{kind: 'failure'; domain: 'semaprax.filesystem.v1'; code: 1|2|3|4|5|6|7}>;\nexport interface StringFacade")
+            .replace("StringOutcome<bigint>;", "StringOutcome<bigint> | ToolkitFailure;")
+            .replace("StringOutcome<boolean>;", "StringOutcome<boolean> | ToolkitFailure;")
+            .replace("instantiate(bytes: Uint8Array)", "instantiate(bytes: Uint8Array, options?: Readonly<{fileReadText?: Readonly<{read(path: Uint8Array, maximum: number): Readonly<{ok: true; bytes: Uint8Array}> | Readonly<{ok: false; code: 1|2|3|4|5|6|7}>}>}>)");
+    }
     Ok(text)
 }
 

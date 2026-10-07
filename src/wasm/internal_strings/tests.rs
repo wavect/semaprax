@@ -1,6 +1,9 @@
 use super::*;
 use std::path::Path;
 
+#[path = "tests/toolkit.rs"]
+mod toolkit;
+
 #[path = "tests/nesting.rs"]
 mod nesting;
 #[path = "tests/work_bounds.rs"]

@@ -557,12 +557,12 @@ pub(crate) fn parse_with_capabilities(
         }
     });
     if let Some(profile) = &profile {
-        if profile != "internal-strings-v1"
+        if !matches!(profile.as_str(), "internal-strings-v1" | "text-toolkit-v1")
             || !matches!(&input, BuildInput::Source(_))
             || !matches!(target.as_str(), "web" | "wasm")
             || !(1..=32).contains(&exports.len())
         {
-            eprintln!("--profile internal-strings-v1 requires a source file, --target web or wasm, and 1..=32 --export selections");
+            eprintln!("--profile {profile} requires a source file, --target web or wasm, and 1..=32 --export selections");
             return Err(2);
         }
     }

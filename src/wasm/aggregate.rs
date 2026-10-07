@@ -6971,13 +6971,22 @@ impl Emitter<'_> {
                     "String view root",
                 )?;
                 if self.standalone_strings {
-                    return Err(error(
-                        "standalone internal-String profile does not admit borrowed str views",
-                    ));
+                    if !self
+                        .function_indexes
+                        .contains_key(&FunctionExecutionId::Monomorphic(DeclarationId::new(
+                            crate::string_ops::COMPARE_ID,
+                        )))
+                    {
+                        return Err(error(
+                            "standalone internal-String profile does not admit borrowed str views",
+                        ));
+                    }
+                    self.get_scalar(&source);
+                } else {
+                    self.get_scalar(&source);
+                    self.output.push(0x10);
+                    write_u32(self.output, BYTE_AS_SLICE_IMPORT);
                 }
-                self.get_scalar(&source);
-                self.output.push(0x10);
-                write_u32(self.output, BYTE_AS_SLICE_IMPORT);
             }
             _ => return Err(error("borrowed view root disagrees with its operation")),
         }

@@ -12,28 +12,34 @@ pub(super) fn prepare(
     program: &ResolvedProgram,
     ids: &[String],
 ) -> Result<PreparedSelection, Diagnostic> {
-    prepare_profile(program, ids, false, false, false)
+    prepare_profile(program, ids, false, false, false, false)
 }
 
 pub(super) fn prepare_copy_variants(
     program: &ResolvedProgram,
     ids: &[String],
 ) -> Result<PreparedSelection, Diagnostic> {
-    prepare_profile(program, ids, true, false, false)
+    prepare_profile(program, ids, true, false, false, false)
 }
 
 pub(super) fn prepare_replacements(
     program: &ResolvedProgram,
     ids: &[String],
 ) -> Result<PreparedSelection, Diagnostic> {
-    prepare_profile(program, ids, true, true, false)
+    prepare_profile(program, ids, true, true, false, false)
 }
-
 pub(super) fn prepare_general_loop_matches(
     program: &ResolvedProgram,
     ids: &[String],
 ) -> Result<PreparedSelection, Diagnostic> {
-    prepare_profile(program, ids, true, true, true)
+    prepare_profile(program, ids, true, true, true, false)
+}
+
+pub(super) fn prepare_toolkit(
+    program: &ResolvedProgram,
+    ids: &[String],
+) -> Result<PreparedSelection, Diagnostic> {
+    prepare_profile(program, ids, true, true, true, true)
 }
 
 fn prepare_profile(
@@ -42,6 +48,7 @@ fn prepare_profile(
     copy_variants: bool,
     replacements: bool,
     general_guards: bool,
+    toolkit: bool,
 ) -> Result<PreparedSelection, Diagnostic> {
     if !(1..=32).contains(&ids.len()) {
         return Err(error("standalone String selection requires 1..=32 exports"));
@@ -110,8 +117,13 @@ fn prepare_profile(
                 "whole String replacement requires the explicit string-replacement-v1 profile",
             ));
         }
-        if !function.effects.is_empty()
-            || !(signature_type(&function.return_type, copy_variants)
+        if (!function.effects.is_empty()
+            && !(toolkit
+                && function
+                    .effects
+                    .iter()
+                    .all(|effect| effect == crate::string_ops::FILE_READ_TEXT_EFFECT)))
+            || !(signature_type(program, &function.return_type, copy_variants, toolkit)
                 || general_guards
                     && crate::variant_guards::copy_variant(
                         &program.declarations,
@@ -122,11 +134,22 @@ fn prepare_profile(
                 // validated HIR; only the internal Copy scalars are Value.
                 let ownership = if parameter.ty == ResolvedType::String {
                     OwnershipMode::Own
+                } else if toolkit && parameter.ty == ResolvedType::Str {
+                    OwnershipMode::Borrow
                 } else {
                     OwnershipMode::Value
                 };
-                parameter.ownership != ownership
-                    || !(signature_type(&parameter.ty, copy_variants)
+                !(parameter.ownership == ownership
+                    || toolkit
+                        && hir::is_admitted_owned_string_variant(
+                            &program.declarations,
+                            &parameter.ty,
+                        )
+                        && matches!(
+                            parameter.ownership,
+                            OwnershipMode::Own | OwnershipMode::Borrow
+                        ))
+                    || !(signature_type(program, &parameter.ty, copy_variants, toolkit)
                         || general_guards
                             && crate::variant_guards::copy_variant(
                                 &program.declarations,
@@ -152,7 +175,7 @@ fn prepare_profile(
                 .ok_or_else(|| {
                     error("standalone String expression inventory exceeds 65536 nodes")
                 })?;
-            if depth > 256 || !expression_type(program, &expression.ty, copy_variants) {
+            if depth > 256 || !expression_type(program, &expression.ty, copy_variants, toolkit) {
                 return Err(error(
                     "standalone String expression depth or type is outside the profile",
                 ));
@@ -173,6 +196,7 @@ fn prepare_profile(
                 return Err(error("general Copy variant guards require the explicit general-loop-match-v1 profile"));
             }
             match &expression.kind {
+                ResolvedExprKind::Float64(_) | ResolvedExprKind::Float32(_) | ResolvedExprKind::Int32(_) if toolkit => {}
                 ResolvedExprKind::Int(_)
                 | ResolvedExprKind::Bool(_)
                 | ResolvedExprKind::Char(_)
@@ -184,8 +208,11 @@ fn prepare_profile(
                 | ResolvedExprKind::ArrayU8(_)
                 | ResolvedExprKind::RepeatArrayU8 { .. }
                     if copy_variants => {}
+                ResolvedExprKind::ConstructRecord { .. } if toolkit && hir::is_admitted_copy_aggregate_variant_field(&program.declarations, &expression.ty) => {}
                 ResolvedExprKind::ConstructVariant { .. }
-                    if copy_variants && crate::variant_guards::copy_variant(&program.declarations, &expression.ty) => {}
+                    if copy_variants && (crate::variant_guards::copy_variant(&program.declarations, &expression.ty) || toolkit && hir::is_admitted_owned_string_variant(&program.declarations, &expression.ty)) => {}
+                ResolvedExprKind::BorrowPlace { operation, place }
+                    if toolkit && operation.as_str() == crate::byte_ops::STRING_AS_STR_ID && place.projections.is_empty() => {}
                 ResolvedExprKind::BorrowPlace { operation, place }
                     if copy_variants && operation.as_str() == crate::byte_ops::ARRAY_AS_SLICE_ID && place.projections.is_empty() => {}
                 ResolvedExprKind::String(value) => {
@@ -201,7 +228,7 @@ fn prepare_profile(
                             })?;
                     }
                 }
-                ResolvedExprKind::Place(place) if place.projections.is_empty() => {}
+                ResolvedExprKind::Place(place) if place.projections.is_empty() || toolkit && place.projections.iter().all(|projection| matches!(projection, hir::PlaceProjection::Field(_))) => {}
                 ResolvedExprKind::Call {
                     callee,
                     instance,
@@ -213,6 +240,10 @@ fn prepare_profile(
                         || crate::string_ops::by_id(callee.as_str()).is_some()
                         || copy_variants && matches!(crate::byte_ops::by_id(callee.as_str()), Some(crate::byte_ops::ByteOp::Len | crate::byte_ops::ByteOp::Get))) => {}
                 ResolvedExprKind::Block { statements, .. } => {
+                    if !toolkit && statements.iter().any(|statement| matches!(statement,
+                        ResolvedStatement::While { condition, .. } if condition_allocates_string(condition))) {
+                        return Err(error("String condition temporaries require text-toolkit-v1"));
+                    }
                     if statements.iter().any(|statement| {
                         matches!(
                             statement,
@@ -237,6 +268,8 @@ fn prepare_profile(
                     && arms
                         .iter()
                         .all(|arm| arm.pattern_is_literal_or_irrefutable()) => {}
+                ResolvedExprKind::Match { scrutinee, .. }
+                    if toolkit && hir::is_admitted_owned_string_variant(&program.declarations, &scrutinee.ty) => {}
                 ResolvedExprKind::Match { scrutinee, mode, .. }
                     if copy_variants && *mode == hir::ResolvedMatchMode::Value && crate::variant_guards::copy_variant(&program.declarations, &scrutinee.ty) => {}
                 ResolvedExprKind::Match { scrutinee, .. }
@@ -277,13 +310,47 @@ fn internal_type(ty: &ResolvedType) -> bool {
     )
 }
 
-fn signature_type(ty: &ResolvedType, copy_variants: bool) -> bool {
-    internal_type(ty) || copy_variants && matches!(ty, ResolvedType::U8 | ResolvedType::Usize)
+fn signature_type(
+    program: &ResolvedProgram,
+    ty: &ResolvedType,
+    copy_variants: bool,
+    toolkit: bool,
+) -> bool {
+    internal_type(ty)
+        || toolkit
+            && (hir::is_scalar_resolved_type(ty)
+                || hir::is_admitted_owned_string_variant(&program.declarations, ty)
+                || crate::variant_guards::copy_variant(&program.declarations, ty)
+                || hir::is_admitted_copy_aggregate_variant_field(&program.declarations, ty))
+        || toolkit && matches!(ty, ResolvedType::F64 | ResolvedType::Str)
+        || copy_variants && matches!(ty, ResolvedType::U8 | ResolvedType::Usize)
 }
 
-fn expression_type(program: &ResolvedProgram, ty: &ResolvedType, copy_variants: bool) -> bool {
-    signature_type(ty, copy_variants)
+fn expression_type(
+    program: &ResolvedProgram,
+    ty: &ResolvedType,
+    copy_variants: bool,
+    toolkit: bool,
+) -> bool {
+    signature_type(program, ty, copy_variants, toolkit)
+        || toolkit && hir::is_admitted_owned_string_variant(&program.declarations, ty)
         || copy_variants
             && (matches!(ty, ResolvedType::ArrayU8(_) | ResolvedType::SliceU8)
                 || crate::variant_guards::copy_variant(&program.declarations, ty))
+}
+
+fn condition_allocates_string(condition: &hir::ResolvedExpr) -> bool {
+    let mut pending = vec![condition];
+    while let Some(expression) = pending.pop() {
+        if expression.ty == ResolvedType::String
+            && matches!(
+                expression.kind,
+                ResolvedExprKind::String(_) | ResolvedExprKind::Call { .. }
+            )
+        {
+            return true;
+        }
+        hir::push_resolved_expression_children_in_authored_order(expression, &mut pending);
+    }
+    false
 }

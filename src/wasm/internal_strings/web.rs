@@ -22,11 +22,29 @@ pub fn build_web_from_source(
     build(source, output, export_ids, || {})
 }
 
+pub fn build_toolkit_web_from_source(
+    source: &Path,
+    output: &Path,
+    export_ids: &[String],
+) -> Result<(), Vec<Diagnostic>> {
+    build_profile(source, output, export_ids, || {}, true)
+}
+
 fn build(
     source: &Path,
     output: &Path,
     export_ids: &[String],
     before_recheck: impl FnOnce(),
+) -> Result<(), Vec<Diagnostic>> {
+    build_profile(source, output, export_ids, before_recheck, false)
+}
+
+fn build_profile(
+    source: &Path,
+    output: &Path,
+    export_ids: &[String],
+    before_recheck: impl FnOnce(),
+    toolkit: bool,
 ) -> Result<(), Vec<Diagnostic>> {
     let canonical = crate::patch::canonical_source_path(source)?;
     let snapshot =
@@ -37,7 +55,12 @@ fn build(
         return Err(diagnostics);
     }
     let revision = crate::graph::revision(&program);
-    let module = emit_module(&program, export_ids, InternalStringOptions::default())
+    let emitter = if toolkit {
+        super::emit_text_toolkit_module
+    } else {
+        emit_module
+    };
+    let module = emitter(&program, export_ids, InternalStringOptions::default())
         .map_err(|error| vec![error])?;
     bounded(module.descriptor().len(), DESCRIPTOR_LIMIT, "descriptor")
         .map_err(|error| vec![error])?;

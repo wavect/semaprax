@@ -34,10 +34,17 @@ pub(super) fn required_path(args: &[String], index: usize) -> Result<PathBuf, u8
 }
 
 pub(super) fn build_source(options: &cli::build::BuildOptions, input: &Path) -> Result<(), u8> {
-    if options.profile.as_deref() == Some("internal-strings-v1") {
+    if matches!(
+        options.profile.as_deref(),
+        Some("internal-strings-v1" | "text-toolkit-v1")
+    ) {
         let output = options.output.as_deref().expect("source output");
-        wasm::internal_strings::build_web_from_source(input, output, &options.exports)
-            .map_err(|errors| report(&errors, options.json))?;
+        let builder = if options.profile.as_deref() == Some("text-toolkit-v1") {
+            wasm::internal_strings::build_toolkit_web_from_source
+        } else {
+            wasm::internal_strings::build_web_from_source
+        };
+        builder(input, output, &options.exports).map_err(|errors| report(&errors, options.json))?;
         report_source_build_success(options, "internal String web package", output, None);
         return Ok(());
     }

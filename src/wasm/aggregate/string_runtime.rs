@@ -227,11 +227,6 @@ impl Emitter<'_> {
     ) -> Result<(), Diagnostic> {
         require_type(value_type(left), &ResolvedType::String, "String ordering")?;
         require_type(value_type(right), &ResolvedType::String, "String ordering")?;
-        if self.standalone_strings {
-            return Err(error(
-                "String ordering requires the additive toolkit profile",
-            ));
-        }
         let runtime = self
             .function_indexes
             .get(&FunctionExecutionId::Monomorphic(DeclarationId::new(

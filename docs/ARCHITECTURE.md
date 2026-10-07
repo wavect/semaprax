@@ -3647,3 +3647,9 @@ The embedded `security.mjs` owns bounded sign-in budgets and session-bound CSRF,
 and `state.mjs` stages migration and pairwise candidate constraints before
 publication. These generated host modules use the existing operator-selected
 server/data authority; they grant no compiler authority. Verification pending.
+The additive [Wasm Text Toolkit v1](WASM-TEXT-TOOLKIT-V1.md) is owned by
+`wasm/aggregate/text_toolkit.rs`, the explicit `wasm/internal_strings` selector,
+and its `runtime/toolkit.js` host extension. Checked output/status transport
+reuses canonical cleanup replay; the standalone opaque-token and aggregate
+owned-byte arenas remain separate trust boundaries. The toolkit Web source
+route uses the existing bounded snapshot/recheck/fresh-publication machinery.

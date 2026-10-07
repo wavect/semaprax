@@ -257,10 +257,16 @@ function createByteDataRuntime(options = {}) {
       if (!Number.isInteger(result.code) || result.code < 1 || result.code > 7) throw new TypeError("SEMAPRAX file text provider status invariant");
       return 64 + result.code;
     }
-    if (!(result.bytes instanceof Uint8Array)) throw new TypeError("SEMAPRAX file text provider bytes invariant");
-    if (result.bytes.length > 65536) return 68;
-    if (!validUtf8(result.bytes)) return 25;
-    output.setBigInt64(0, allocate(result.bytes), true);
+    const supplied = result.bytes;
+    if (!(supplied instanceof Uint8Array) || Object.getPrototypeOf(supplied) !== Uint8Array.prototype
+        || Object.getPrototypeOf(supplied.buffer) !== ArrayBuffer.prototype || supplied.buffer.resizable === true) {
+      throw new TypeError("SEMAPRAX file text provider bytes invariant");
+    }
+    new DataView(supplied.buffer, supplied.byteOffset, 0); // Reject detached provider views.
+    if (supplied.length > 65536) return 68;
+    const snapshot = new Uint8Array(supplied);
+    if (!validUtf8(snapshot)) return 25;
+    output.setBigInt64(0, allocate(snapshot), true);
     return 0;
   };
   const byteImports = Object.freeze({

@@ -5,7 +5,7 @@
 mod admission;
 mod runtime;
 mod web;
-pub use web::build_web_from_source;
+pub use web::{build_toolkit_web_from_source, build_web_from_source};
 #[cfg(test)]
 mod tests;
 
@@ -21,6 +21,8 @@ use sha2::{Digest as _, Sha256};
 pub const SCHEMA: &str = "semaprax.wasm-internal-strings.v1";
 /// Identity of the bound trusted JavaScript runtime.
 pub const RUNTIME_SCHEMA: &str = "semaprax.wasm-internal-strings.runtime.v1";
+pub const TOOLKIT_SCHEMA: &str = "semaprax.wasm-text-toolkit.v1";
+pub const TOOLKIT_RUNTIME_SCHEMA: &str = "semaprax.wasm-text-toolkit.runtime.v1";
 
 /// Generation-time String arena policy. Limits cannot be widened by JavaScript.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -81,7 +83,7 @@ pub fn emit_module(
     export_ids: &[String],
     options: InternalStringOptions,
 ) -> Result<InternalStringModule, Diagnostic> {
-    emit_selected(program, export_ids, options, false, false, false)
+    emit_selected(program, export_ids, options, false, false, false, false)
 }
 
 /// Explicit additive Copy Variant String Settlement v1. Public signatures
@@ -91,7 +93,7 @@ pub fn emit_copy_variant_module(
     export_ids: &[String],
     options: InternalStringOptions,
 ) -> Result<InternalStringModule, Diagnostic> {
-    emit_selected(program, export_ids, options, true, false, false)
+    emit_selected(program, export_ids, options, true, false, false, false)
 }
 
 /// Explicit additive String Replacement v1, including the admitted Copy variant internals.
@@ -101,7 +103,7 @@ pub fn emit_string_replacement_module(
     export_ids: &[String],
     options: InternalStringOptions,
 ) -> Result<InternalStringModule, Diagnostic> {
-    emit_selected(program, export_ids, options, true, true, false)
+    emit_selected(program, export_ids, options, true, true, false, false)
 }
 
 /// Explicit additive general Loop Match v1: ordinary Boolean Copy-variant
@@ -111,7 +113,17 @@ pub fn emit_general_loop_match_module(
     export_ids: &[String],
     options: InternalStringOptions,
 ) -> Result<InternalStringModule, Diagnostic> {
-    emit_selected(program, export_ids, options, true, true, true)
+    emit_selected(program, export_ids, options, true, true, true, false)
+}
+
+/// Explicit additive checked Text Toolkit and owned String variant profile.
+/// The digest-bound runtime accepts only a caller-supplied file provider.
+pub fn emit_text_toolkit_module(
+    program: &Program,
+    export_ids: &[String],
+    options: InternalStringOptions,
+) -> Result<InternalStringModule, Diagnostic> {
+    emit_selected(program, export_ids, options, true, true, true, true)
 }
 
 fn emit_selected(
@@ -121,6 +133,7 @@ fn emit_selected(
     copy_variants: bool,
     replacements: bool,
     general_guards: bool,
+    toolkit: bool,
 ) -> Result<InternalStringModule, Diagnostic> {
     let resolved = crate::hir::resolve(program).map_err(|diagnostics| {
         diagnostics
@@ -129,7 +142,11 @@ fn emit_selected(
             .unwrap_or_else(|| error("standalone String HIR resolution failed"))
     })?;
     crate::hir::validate(&resolved)?;
-    crate::string_ops::refuse_collections_for_wasm(&resolved)?;
+    if toolkit {
+        super::aggregate::string_runtime::refuse_unimplemented_collections(&resolved)?;
+    } else {
+        crate::string_ops::refuse_collections_for_wasm(&resolved)?;
+    }
     if options.max_string_bytes > 65_536
         || options.max_live_bytes > 16_777_216
         || options.max_cumulative_bytes > 67_108_864
@@ -138,7 +155,9 @@ fn emit_selected(
             "standalone String byte policy exceeds its hard bounds",
         ));
     }
-    let (exports, closure) = if general_guards {
+    let (exports, closure) = if toolkit {
+        admission::prepare_toolkit(&resolved, export_ids)?
+    } else if general_guards {
         admission::prepare_general_loop_matches(&resolved, export_ids)?
     } else if replacements {
         admission::prepare_replacements(&resolved, export_ids)?
@@ -153,6 +172,7 @@ fn emit_selected(
         &closure,
         options.max_live_owners,
         copy_variants,
+        toolkit,
     )?;
     let owners = options.max_live_owners.unwrap_or(derived_owner_capacity);
     if owners == 0 || owners > derived_owner_capacity {
@@ -163,11 +183,27 @@ fn emit_selected(
     let wasm_sha256 = format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(&wasm)));
     let mut descriptor = format!(
         "{{\"schema\":{},\"runtime_schema\":{},\"wasm_sha256\":{},\"wasm_bytes\":{},\"memory_pages\":4,\"result_offset\":65536,\"literal_offset\":196608,\"stack_bytes\":{},\"derived_owner_capacity\":{},\"limits\":{{\"max_string_bytes\":{},\"max_live_bytes\":{},\"max_cumulative_bytes\":{},\"max_live_owners\":{}}},\"exports\":[",
-        quote_json(SCHEMA), quote_json(RUNTIME_SCHEMA), quote_json(&wasm_sha256), wasm.len(),
+        quote_json(if toolkit { TOOLKIT_SCHEMA } else { SCHEMA }), quote_json(if toolkit { TOOLKIT_RUNTIME_SCHEMA } else { RUNTIME_SCHEMA }), quote_json(&wasm_sha256), wasm.len(),
         stack_bytes, derived_owner_capacity, options.max_string_bytes, options.max_live_bytes,
         options.max_cumulative_bytes, owners
     );
-    if general_guards {
+    if toolkit {
+        let capabilities = if resolved.functions.iter().any(|function| {
+            closure.contains(&function.id)
+                && function
+                    .effects
+                    .iter()
+                    .any(|effect| effect == crate::string_ops::FILE_READ_TEXT_EFFECT)
+        }) {
+            "[\"fs.read\"]"
+        } else {
+            "[]"
+        };
+        descriptor.insert_str(
+            1,
+            &format!("\"profile\":\"text-toolkit-v1\",\"capabilities\":{capabilities},"),
+        );
+    } else if general_guards {
         descriptor.insert_str(1, "\"profile\":\"general-loop-match-v1\",");
     } else if replacements {
         descriptor.insert_str(1, "\"profile\":\"string-replacement-v1\",");
@@ -211,12 +247,16 @@ fn emit_selected(
                 .chain(std::iter::once(&function.body))
         })
         .any(crate::wasm::numeric_conversions::expression_uses_integer_conversion);
-    let runtime = runtime::render(
-        &descriptor,
-        &wasm_sha256,
-        wasm.len(),
-        uses_integer_conversion,
-    );
+    let runtime = if toolkit {
+        runtime::render_toolkit(&descriptor, &wasm_sha256, wasm.len(), &resolved, &closure)
+    } else {
+        runtime::render(
+            &descriptor,
+            &wasm_sha256,
+            wasm.len(),
+            uses_integer_conversion,
+        )
+    };
     Ok(InternalStringModule {
         wasm,
         descriptor,

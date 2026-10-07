@@ -93,6 +93,7 @@ pub(in crate::implementation) fn type_identity_metrics(
                     ResolvedType::Bytes => Some(leaf("bytes".len())),
                     ResolvedType::Str => Some(leaf("str".len())),
                     ResolvedType::SliceU8 => Some(leaf("slice-u8".len())),
+                    ResolvedType::StringMap => Some(leaf("map:string:i64:v1".len())),
                     ResolvedType::TypeParameter { owner, index } => {
                         let owner_bytes = owner.as_str().len();
                         let root_bytes = "parameter:"
@@ -240,7 +241,8 @@ pub(in crate::implementation) fn fingerprint_type_identity(
                 | ResolvedType::String
                 | ResolvedType::Bytes
                 | ResolvedType::Str
-                | ResolvedType::SliceU8 => {
+                | ResolvedType::SliceU8
+                | ResolvedType::StringMap => {
                     let text = match ty {
                         ResolvedType::Unit => "unit",
                         ResolvedType::I64 => "i64",
@@ -255,6 +257,7 @@ pub(in crate::implementation) fn fingerprint_type_identity(
                         ResolvedType::Bytes => "bytes",
                         ResolvedType::Str => "str",
                         ResolvedType::SliceU8 => "slice-u8",
+                        ResolvedType::StringMap => "map:string:i64:v1",
                         _ => unreachable!(),
                     };
                     let mut key = String::with_capacity(text.len());

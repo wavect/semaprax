@@ -424,6 +424,10 @@ fn ast_type_identity_key_len(program: &Program, root: &crate::ast::Type) -> Opti
                 results[result_len] = "slice-u8".len();
                 result_len = result_len.checked_add(1)?;
             }
+            Frame::Enter(crate::ast::Type::StringMap) => {
+                results[result_len] = "map:string:i64:v1".len();
+                result_len = result_len.checked_add(1)?;
+            }
             Frame::Enter(
                 crate::ast::Type::Function { .. }
                 | crate::ast::Type::OnceFunction

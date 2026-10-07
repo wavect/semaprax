@@ -19,6 +19,7 @@ fn hir_type_owned_capacity(ty: &ResolvedType) -> Option<usize> {
         | ResolvedType::Bytes
         | ResolvedType::Str
         | ResolvedType::SliceU8
+        | ResolvedType::StringMap
         | ResolvedType::OnceFunction
         | ResolvedType::OnceFunctionI64
         | ResolvedType::OnceFunctionI64Pair

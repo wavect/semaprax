@@ -30,6 +30,13 @@ canonical structural inventory and runtime cleanup order. Immutable updates
 select CleanupPlan v9 or a validated later composition. Failure selection stays
 sticky; postconditions and non-result cleanup precede result publication.
 
+Graph v69 composes exact bounded owned String-record storage with ordinary
+authenticated loans. It retains the complete HIR and LoanPlan replay boundary,
+the existing ordered cleanup facts and loan origins, and an authority-free
+`semaprax.owned-text-record-loans.v1` selector. Frozen Graph v26–31 and the
+legacy/evidence renderers continue refusing non-projected-Bytes loan composition.
+Native-import composition gains no new admission through this profile.
+
 The physical private leaf carrier is eight bytes aligned to eight: a native
 String pointer or an aggregate Wasm owned UTF-8 token. Native owned shells keep
 those fields inert while canonical plan locals hold live owners. Borrowed

@@ -10,10 +10,10 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use crate::ast::{ModuleUseKind, Program, TypeDeclarationKind};
 use crate::diagnostic::Diagnostic;
-use crate::{hir, prelude};
+use crate::hir;
 
 use super::{
-    graph_error, owned_generics, prelude_binding, reserve_builder_structure, top_level_declaration,
+    graph_error, prelude_binding, reserve_builder_structure, top_level_declaration,
     WorkspaceDeclarationFact,
 };
 
@@ -54,12 +54,8 @@ impl WorkspaceValidationIndex {
     pub(super) fn new(programs: &[Program]) -> Result<Self, Vec<Diagnostic>> {
         let expected = expected_declaration_facts(programs)?;
         let resolved_record_iterator = prelude_binding::uses_record_iterator(programs);
-        let expected_compiler = prelude_binding::expected_declaration_facts_for(
-            prelude_binding::uses_vec(programs),
-            prelude_binding::uses_box(programs),
-            prelude_binding::uses_iterator(programs),
-            prelude_binding::uses_list(programs),
-            prelude_binding::uses_stream(programs),
+        let expected_compiler = prelude_binding::expected_declaration_facts_for_programs(
+            programs,
             resolved_record_iterator,
         )?;
         Ok(Self {
@@ -166,19 +162,13 @@ impl WorkspaceValidationIndex {
         let resolved_record_iterator =
             crate::iterator_ops::resolved_program_uses_record_iterator(resolved);
         if resolved_record_iterator && !self.resolved_record_iterator {
-            self.expected_compiler = prelude_binding::expected_declaration_facts_for(
-                false, false, false, false, false, true,
-            )?;
+            self.expected_compiler =
+                prelude_binding::expected_declaration_facts_for_programs(programs, true)?;
             self.resolved_record_iterator = true;
         }
-        let imports_vec_wrapper = owned_generics::program_imports_vec_wrapper(source, programs);
-        let imports_box_wrapper = owned_generics::program_imports_box_wrapper(source, programs);
-        let expected_module_compiler = prelude_binding::expected_declaration_facts_for(
-            prelude::program_uses_vec(source) || imports_vec_wrapper,
-            prelude::program_uses_box(source) || imports_box_wrapper,
-            crate::iterator_ops::program_uses_iterator(source),
-            crate::list_ops::program_uses_list(source),
-            prelude_binding::module_uses_stream(source, programs),
+        let expected_module_compiler = prelude_binding::expected_module_declaration_facts(
+            source,
+            programs,
             resolved_record_iterator,
         )?;
         let synthetic_main = crate::bounded_output::budgeted_format(format_args!(

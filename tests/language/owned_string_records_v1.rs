@@ -268,7 +268,7 @@ fn owned_string_records_wasm_release_every_leaf_between_entry_calls() {
     std::fs::write(root.join("probe.mjs"), r#"import {readFile} from 'node:fs/promises';
 import {instantiateBytes} from './semaprax.js';
 const {instance}=await instantiateBytes(await readFile('./app.wasm'),{maxOwnedByteEntries:16});
-for(let i=0;i<8;i++) if(instance.exports.semaprax_main()!==40n) throw Error('String record result or settlement changed');
+for(let i=0;i<8;i++) { const actual=instance.exports.semaprax_main(); if(actual!==40n) throw Error(`String record result or settlement changed: expected 40, received ${actual}`); }
 "#).unwrap();
     let output = Command::new("node")
         .arg(root.join("probe.mjs"))

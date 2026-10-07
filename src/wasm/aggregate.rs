@@ -5553,7 +5553,14 @@ impl Emitter<'_> {
                 ty: expr.ty.clone(),
             }
         };
-        self.copy_value(&destination, source, "expression materialization")?;
+        if expr.ownership == crate::hir::OwnershipMode::Borrow
+            && (matches!(expr.ty, ResolvedType::Bytes | ResolvedType::String)
+                || crate::map_ops::is_collection(&expr.ty))
+        {
+            self.copy_borrowed_scalar_alias(&destination, source)?;
+        } else {
+            self.copy_value(&destination, source, "expression materialization")?;
+        }
         Ok(destination)
     }
 

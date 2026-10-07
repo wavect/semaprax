@@ -816,3 +816,59 @@ module test.record_variant_layout;
     assert!(error.message.contains("row.status"), "{error}");
     assert!(error.span.is_some());
 }
+
+#[test]
+fn internal_collection_record_layout_authenticates_owning_leaves_on_both_targets() {
+    let source = r#"module test.collection_record_layout;
+@id("carrier") record Carrier {
+    @id("carrier.map") values: Map<i64, string>,
+    @id("carrier.set") keys: Set<i64>,
+    @id("carrier.legacy") legacy: Map<string, i64>,
+    @id("carrier.text") text: string,
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let program =
+        hir::resolve(&parse(source, Path::new("collection-record-layout.spx")).unwrap()).unwrap();
+    let ty = ResolvedType::Nominal {
+        declaration: DeclarationId::new("carrier"),
+        arguments: Vec::new(),
+    };
+    // The additive internal carrier admission never extends the frozen concrete
+    // Byte-record classifier, even though every collection has an eight-byte ABI.
+    assert!(!concrete_layout_instance_is_admitted(&program, &ty));
+    for target in [AggregateTarget::Native64, AggregateTarget::Wasm32] {
+        let layout = AggregateLayout::for_type(&program, target, &ty).unwrap();
+        assert_eq!((layout.size, layout.align), (32, 8));
+        for (index, field) in layout.fields.iter().enumerate() {
+            assert_eq!(
+                (field.offset, field.size, field.align),
+                (index as u32 * 8, 8, 8)
+            );
+            assert_eq!(
+                field.value_kind,
+                if index == 3 {
+                    AggregateFieldValueKind::OwnedString
+                } else {
+                    AggregateFieldValueKind::OwnedCollection
+                }
+            );
+        }
+        layout.validate(&program).unwrap();
+        for kind in [
+            AggregateFieldValueKind::Copy,
+            AggregateFieldValueKind::OwnedBytes,
+            AggregateFieldValueKind::OwnedString,
+        ] {
+            let mut forged = layout.clone();
+            forged.fields[0].value_kind = kind;
+            assert!(forged.validate(&program).is_err());
+        }
+        let mut forged = layout.clone();
+        forged.fields[0].ty = forged.fields[1].ty.clone();
+        assert!(forged.validate(&program).is_err());
+        let mut forged = layout;
+        forged.fields[0].nested_digest = [0; 32];
+        assert!(forged.validate(&program).is_err());
+    }
+}

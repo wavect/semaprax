@@ -1734,7 +1734,8 @@ fn collect_expression_statuses(
                     continue;
                 }
                 if instance.is_none()
-                    && (crate::map_ops::by_id(callee.as_str()).is_some() || crate::string_ops::by_id(callee.as_str()).is_some()
+                    && (crate::map_ops::by_id(callee.as_str()).is_some()
+                        || crate::string_ops::by_id(callee.as_str()).is_some()
                         || crate::str_ops::by_id(callee.as_str()).is_some()
                         || crate::vec_ops::by_id(callee.as_str()).is_some()
                         || crate::iterator_ops::by_id(callee.as_str()).is_some()
@@ -1742,8 +1743,7 @@ fn collect_expression_statuses(
                         || crate::box_ops::by_id(callee.as_str()).is_some()
                         || crate::byte_ops::by_id(callee.as_str()).is_some())
                 {
-                    // String and bounded Vec operations and the one fallible
-                    // byte operation project like ordinary propagated calls.
+                    // Closed String/collection/byte operations project like ordinary propagated calls.
                 } else if program
                     .resolve_call_target(callee, instance.as_ref())
                     .is_none()
@@ -2765,6 +2765,7 @@ fn validate_exits(
                         ResolvedType::Nominal { .. }
                             | ResolvedType::Bytes
                             | ResolvedType::String
+                            | ResolvedType::StringMap
                             | ResolvedType::OnceFunction
                             | ResolvedType::OnceFunctionI64
                             | ResolvedType::OnceFunctionI64Pair
@@ -3294,9 +3295,7 @@ fn expression_skeleton(
         Ok(None)
     }
 
-    // The semantic depth ceiling excludes the function-body block.  The
-    // continuation machine also holds the currently evaluated child beside
-    // that block and the 512 authored expression ancestors.
+    // Depth excludes the body block; the machine retains its evaluated child, that block, and 512 expression ancestors.
     let mut frames = Vec::with_capacity(515);
     push_frame!(frames, Frame::Eval(expression));
     let mut produced: Option<Vec<ExprSkeletonPath>> = None;
@@ -3487,8 +3486,10 @@ fn expression_skeleton(
                             .is_none()
                             .then(|| crate::box_ops::by_id(callee.as_str()))
                             .flatten();
-                        let params = if instance.is_none() && crate::map_ops::by_id(callee.as_str()).is_some() {
-                            resolved_call_params(program,function,callee,None,type_arguments)?
+                        let params = if instance.is_none()
+                            && crate::map_ops::by_id(callee.as_str()).is_some()
+                        {
+                            resolved_call_params(program, function, callee, None, type_arguments)?
                         } else if let Some(op) = string_intrinsic {
                             crate::string_ops::resolved_params(op)
                         } else if let Some(op) = str_intrinsic {

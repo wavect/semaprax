@@ -123,6 +123,7 @@ pub(super) fn pre_filesystem_graph_json(
         && !nested_owned::requires_generic_result_schema(program)
         && !generic_mapping::requires_v35(&program.function_templates)
         && !hir::function_value::requires_function_values(program)
+        && !super::owned_text_record_loans::requires(program)
     {
         if super::filesystem::requires(program)
             || super::environment::requires(program)

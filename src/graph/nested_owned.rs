@@ -1,4 +1,6 @@
-pub(crate) use super::string_replacement::{graph_schema, graph_schema_from_parts_and_instances};
+pub(crate) use super::owned_text_record_loans::{
+    graph_schema, graph_schema_from_parts_and_instances,
+};
 use crate::cleanup::FieldLivenessShape;
 use crate::cleanup_plan::{
     StorageId, CLEANUP_PLAN_SCHEMA_V10, CLEANUP_PLAN_SCHEMA_V11, CLEANUP_PLAN_SCHEMA_V12,
@@ -419,7 +421,8 @@ pub(super) fn pre_filesystem_graph_schema(
             !program.function_instances.is_empty()
                 || requires_generic_result_schema(program)
                 || super::generic_mapping::requires_v35(&program.function_templates)
-                || crate::hir::function_value::requires_function_values(program),
+                || crate::hir::function_value::requires_function_values(program)
+                || super::owned_text_record_loans::requires(program),
         )?;
         return Ok(iterator_schema);
     }
@@ -432,6 +435,7 @@ pub(super) fn pre_filesystem_graph_schema(
     if program.function_instances.is_empty()
         && !requires_generic_result_schema(program)
         && !super::generic_mapping::requires_v35(&program.function_templates)
+        && !super::owned_text_record_loans::requires(program)
     {
         return legacy_graph_schema(program);
     }
@@ -463,7 +467,8 @@ pub(super) fn generic_payload_schema(
         !program.function_instances.is_empty()
             || requires_generic_result_schema(program)
             || super::generic_mapping::requires_v35(&program.function_templates)
-            || crate::hir::function_value::requires_function_values(program),
+            || crate::hir::function_value::requires_function_values(program)
+            || super::owned_text_record_loans::requires(program),
     )
 }
 
@@ -570,6 +575,7 @@ pub(super) fn graph_schema_includes_modern_composite_facts(schema: &str) -> bool
             | "semaprax.graph.v66"
             | "semaprax.graph.v67"
             | "semaprax.graph.v68"
+            | "semaprax.graph.v69"
     )
 }
 
@@ -602,6 +608,7 @@ pub(super) fn graph_schema_includes_loans(schema: &str) -> bool {
             | "semaprax.graph.v66"
             | "semaprax.graph.v67"
             | "semaprax.graph.v68"
+            | "semaprax.graph.v69"
     )
 }
 
@@ -632,11 +639,13 @@ pub(super) fn graph_schema_includes_projected_provenance(schema: &str) -> bool {
             | "semaprax.graph.v66"
             | "semaprax.graph.v67"
             | "semaprax.graph.v68"
+            | "semaprax.graph.v69"
     )
 }
 
 pub(super) fn rejected_evidence_schema(schema: &str) -> Option<Diagnostic> {
     let message = match schema {
+        "semaprax.graph.v69" => "owned-text record loans select `semaprax.graph.v69`, which is outside this evidence flow's admission",
         "semaprax.graph.v68" => "String replacement selects `semaprax.graph.v68`, which is outside this evidence flow's admission",
         "semaprax.graph.v67" => "owned-record iteration selects `semaprax.graph.v67`, which is outside this evidence flow's admission",
         "semaprax.graph.v66" => "ordinary Vec renewal selects `semaprax.graph.v66`, which is outside this evidence flow's admission",

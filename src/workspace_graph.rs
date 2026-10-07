@@ -5673,14 +5673,9 @@ fn reconstruct_workspace_declaration_facts(
             .iter()
             .find(|program| program.module == *module)
             .expect("resolved workspace module belongs to authenticated source");
-        let imports_vec_wrapper = owned_generics::program_imports_vec_wrapper(source, programs);
-        let imports_box_wrapper = owned_generics::program_imports_box_wrapper(source, programs);
-        let expected_module_compiler = prelude_binding::expected_declaration_facts_for(
-            prelude::program_uses_vec(source) || imports_vec_wrapper,
-            prelude::program_uses_box(source) || imports_box_wrapper,
-            crate::iterator_ops::program_uses_iterator(source),
-            crate::list_ops::program_uses_list(source),
-            prelude_binding::module_uses_stream(source, programs),
+        let expected_module_compiler = prelude_binding::expected_module_declaration_facts(
+            source,
+            programs,
             module_uses_record_iterator,
         )?;
         let direct_targets = source

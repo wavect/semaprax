@@ -100,7 +100,13 @@ impl AggregateLayout {
         };
         let nested_generic_profile =
             !arguments.is_empty() || contains_concrete_generic_record_descendant(program, instance);
-        if nested_generic_profile && !concrete_layout_instance_is_admitted(program, instance) {
+        let owned_text_profile =
+            crate::hir::owned_text_record::contains_string(instance, &program.declarations);
+        if (owned_text_profile && !bounded_layout_instance_is_admitted(program, instance, true))
+            || (!owned_text_profile
+                && nested_generic_profile
+                && !concrete_layout_instance_is_admitted(program, instance))
+        {
             return Err(layout_error(format!(
                 "record `{record}` has invalid concrete arguments"
             )));
@@ -243,7 +249,7 @@ impl ValueLayoutKind {
             Self::Scalar => AggregateFieldValueKind::Copy,
             Self::OwnedBytes => AggregateFieldValueKind::OwnedBytes,
             Self::OwnedString => AggregateFieldValueKind::OwnedString,
-            Self::OwnedCollection=>AggregateFieldValueKind::OwnedCollection,
+            Self::OwnedCollection => AggregateFieldValueKind::OwnedCollection,
             Self::Resource => AggregateFieldValueKind::Resource,
             Self::Record { .. } | Self::Variant => AggregateFieldValueKind::Aggregate,
         }
@@ -257,7 +263,12 @@ fn layout_type(
     visiting: &mut BTreeSet<String>,
 ) -> Result<ValueLayout, Diagnostic> {
     if crate::map_ops::is_collection(ty) {
-        return Ok(ValueLayout{size:8,align:8,digest:digest_value(target,ty,8,8,&[]),kind:ValueLayoutKind::OwnedCollection});
+        return Ok(ValueLayout {
+            size: 8,
+            align: 8,
+            digest: digest_value(target, ty, 8, 8, &[]),
+            kind: ValueLayoutKind::OwnedCollection,
+        });
     }
     match ty {
         ResolvedType::Unit => Err(layout_error("unit has no aggregate value layout")),
@@ -471,6 +482,10 @@ fn contains_concrete_generic_record_descendant(
     let mut pending = vec![root.clone()];
     let mut visited = BTreeSet::new();
     while let Some(ty) = pending.pop() {
+        // Authenticated collection atoms are owning leaves, not generic record descendants.
+        if crate::map_ops::is_collection(&ty) {
+            continue;
+        }
         let ResolvedType::Nominal {
             declaration,
             arguments,
@@ -520,6 +535,16 @@ fn concrete_layout_instance_is_admitted(
     program: &ResolvedProgram,
     instance: &ResolvedType,
 ) -> bool {
+    bounded_layout_instance_is_admitted(program, instance, false)
+}
+
+// The additive internal text/collection profile retains a separate record-only
+// admission path. The existing concrete Byte profile remains unchanged.
+fn bounded_layout_instance_is_admitted(
+    program: &ResolvedProgram,
+    instance: &ResolvedType,
+    owned_text: bool,
+) -> bool {
     enum Frame<'a> {
         Type(ResolvedType, usize),
         Fields(
@@ -539,9 +564,24 @@ fn concrete_layout_instance_is_admitted(
 
     while let Some(frame) = pending.pop() {
         match frame {
+            Frame::Type(ty, _)
+                if owned_text
+                    && (ty == ResolvedType::String || crate::map_ops::is_collection(&ty)) =>
+            {
+                owned_leaves += 1;
+                if owned_leaves > crate::cleanup::MAX_CLEANUP_OWNED_LEAVES {
+                    return false;
+                }
+            }
             Frame::Type(ResolvedType::Bytes, _) => {
                 owned_leaves += 1;
-                if owned_leaves > MAX_CONCRETE_ARGUMENT_OWNED_LEAVES {
+                if owned_leaves
+                    > if owned_text {
+                        crate::cleanup::MAX_CLEANUP_OWNED_LEAVES
+                    } else {
+                        MAX_CONCRETE_ARGUMENT_OWNED_LEAVES
+                    }
+                {
                     return false;
                 }
             }
@@ -563,7 +603,13 @@ fn concrete_layout_instance_is_admitted(
                 },
                 depth,
             ) => {
-                if depth > MAX_CONCRETE_ARGUMENT_RECORD_DEPTH {
+                if depth
+                    > if owned_text {
+                        crate::cleanup::MAX_CLEANUP_SHAPE_DEPTH
+                    } else {
+                        MAX_CONCRETE_ARGUMENT_RECORD_DEPTH
+                    }
+                {
                     return false;
                 }
                 let Ok(item) = unique_type(program, &declaration) else {
@@ -572,7 +618,17 @@ fn concrete_layout_instance_is_admitted(
                 let ResolvedTypeDeclarationKind::Record { fields } = &item.kind else {
                     return false;
                 };
-                if arguments.len() != item.type_parameters.len() {
+                if arguments.len() != item.type_parameters.len()
+                    || (owned_text
+                        && (!arguments.is_empty()
+                            || !item.type_parameters.is_empty()
+                            || program
+                                .declarations
+                                .declaration(&DeclarationId::new(format!(
+                                    "{declaration}#invariant"
+                                )))
+                                .is_some()))
+                {
                     return false;
                 }
                 let identity = ResolvedType::Nominal {
@@ -606,7 +662,13 @@ fn concrete_layout_instance_is_admitted(
                     continue;
                 };
                 visited_fields += 1;
-                if visited_fields > MAX_CONCRETE_ARGUMENT_FIELDS {
+                if visited_fields
+                    > if owned_text {
+                        crate::cleanup::MAX_CLEANUP_VISITED_FIELDS
+                    } else {
+                        MAX_CONCRETE_ARGUMENT_FIELDS
+                    }
+                {
                     return false;
                 }
                 pending.push(Frame::Fields(
@@ -727,7 +789,10 @@ fn collect_record_type(
     ty: &ResolvedType,
     instances: &mut BTreeSet<ResolvedType>,
 ) -> Result<(), Diagnostic> {
-    if crate::map_ops::is_collection(ty) || crate::list_ops::is_list(ty) || crate::stdin_stream_ops::is_reader(ty) {
+    if crate::map_ops::is_collection(ty)
+        || crate::list_ops::is_list(ty)
+        || crate::stdin_stream_ops::is_reader(ty)
+    {
         return Ok(());
     }
     let ResolvedType::Nominal {

@@ -48,6 +48,17 @@ pub(super) fn module_uses_stream(source: &Program, programs: &[Program]) -> bool
 }
 
 pub(super) fn ids(programs: &[Program], resolved_record_iterator: bool) -> BTreeSet<&'static str> {
+    if programs.iter().any(crate::map_ops::program_uses) {
+        let mut ids = prelude::all_type_ids_v9()
+            .into_iter()
+            .collect::<BTreeSet<_>>();
+        ids.extend([
+            crate::stdin_stream_ops::READER_ID,
+            crate::map_ops::MAP_ID,
+            crate::map_ops::SET_ID,
+        ]);
+        return ids;
+    }
     if resolved_record_iterator || uses_record_iterator(programs) || uses_stream(programs) {
         let mut ids = prelude::all_type_ids_v9()
             .into_iter()
@@ -88,8 +99,14 @@ pub(super) fn expected_declaration_facts_for_programs(
         uses_iterator(programs),
         uses_list(programs),
         uses_stream(programs),
-        resolved_record_iterator,
+        resolved_record_iterator || programs.iter().any(crate::map_ops::program_uses),
     )
+    .and_then(|mut facts| {
+        if programs.iter().any(crate::map_ops::program_uses) {
+            insert_collection_facts(&mut facts)?;
+        }
+        Ok(facts)
+    })
 }
 
 pub(super) fn expected_declaration_facts(
@@ -100,6 +117,7 @@ pub(super) fn expected_declaration_facts(
     let mut facts = BTreeMap::new();
     for declaration in prelude::declarations().iter().filter(|declaration| {
         declaration.stable_id != crate::stdin_stream_ops::READER_ID
+            && !crate::map_ops::is_declaration(&declaration.stable_id)
             && declaration.stable_id != prelude::BOX_ID
             && (include_vec || declaration.stable_id != prelude::VEC_ID)
             && (include_iterator
@@ -159,6 +177,39 @@ pub(super) fn expected_declaration_facts(
     }
     Ok(facts)
 }
+
+fn insert_collection_facts(
+    facts: &mut BTreeMap<String, WorkspaceDeclarationFact>,
+) -> Result<(), Vec<Diagnostic>> {
+    for id in [crate::map_ops::MAP_ID, crate::map_ops::SET_ID] {
+        insert_expected_compiler_declaration(facts, id, hir::DeclarationKind::Record, None)?;
+    }
+    Ok(())
+}
+
+pub(super) fn expected_module_declaration_facts(
+    source: &Program,
+    programs: &[Program],
+    record_iterator: bool,
+) -> Result<BTreeMap<String, WorkspaceDeclarationFact>, Vec<Diagnostic>> {
+    let collections = collection_selection::module_uses(source, programs);
+    let mut facts = expected_declaration_facts_for(
+        prelude::program_uses_vec(source)
+            || owned_generics::program_imports_vec_wrapper(source, programs),
+        prelude::program_uses_box(source)
+            || owned_generics::program_imports_box_wrapper(source, programs),
+        crate::iterator_ops::program_uses_iterator(source),
+        crate::list_ops::program_uses_list(source),
+        module_uses_stream(source, programs),
+        record_iterator || collections,
+    )?;
+    if collections {
+        insert_collection_facts(&mut facts)?;
+    }
+    Ok(facts)
+}
+
+mod collection_selection;
 
 pub(super) fn expected_declaration_facts_for(
     include_vec: bool,

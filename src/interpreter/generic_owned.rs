@@ -13,6 +13,18 @@ pub(super) fn match_result_is_admitted(
     arms: &[ResolvedMatchArm],
 ) -> bool {
     if let ResolvedExprKind::Match { mode, .. } = &expression.kind {
+        if *mode == hir::ResolvedMatchMode::Value
+            && expression.ownership == OwnershipMode::Value
+            && scrutinee.ownership == OwnershipMode::Value
+            && crate::variant_guards::copy_variant(&program.declarations, &expression.ty)
+            && super::variant_admission::is_admitted_copy_scalar_variant(
+                &program.declarations,
+                &scrutinee.ty,
+            )
+            && super::variant_pattern_is_admitted(&program.declarations, *mode, &scrutinee.ty, arms)
+        {
+            return true;
+        }
         if hir::generic_variant::match_result(
             program,
             function,
@@ -47,6 +59,7 @@ pub(super) fn match_result_is_admitted(
         && (hir::is_admitted_nested_owned_byte_record(&program.declarations, &scrutinee.ty)
             || hir::owned_text_record::admitted(&scrutinee.ty, &program.declarations))
         && (matches!(expression.ty, ResolvedType::Bytes | ResolvedType::String)
+            || crate::map_ops::is_collection(&expression.ty)
             || (hir::is_admitted_nested_owned_byte_record(&program.declarations, &expression.ty)
                 || hir::owned_text_record::admitted(&expression.ty, &program.declarations)))
         && arm.guard.is_none()

@@ -1552,9 +1552,9 @@ impl WorkspaceGraphBuild {
                     "stream text command must select exactly one explicit command",
                 )]);
             };
-            let linked =
+            let mut linked =
                 self.linked_owned_data_api_program_with_roots(entry_module, additional_roots)?;
-            retained_validation::text_command_program(&linked, command).map_err(|e| vec![e])?;
+            retained_validation::text_command_program(&mut linked, command).map_err(|e| vec![e])?;
             return Ok(linked);
         }
         let base = self.linked_project_program(entry_module, profile, dependency_anchors)?;

@@ -79,6 +79,13 @@ fn v25_collections_transport_executes_retained_and_native_routes() {
     let output = root.with_extension("collections-v25-native");
     with_authenticated_project(&root.join(MANIFEST_FILE), |snapshot| {
         let options = ProjectExecutionOptions::default();
+        assert_eq!(
+            snapshot.public_api_program().permits,
+            PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2
+                .iter()
+                .map(|effect| (*effect).to_owned())
+                .collect::<Vec<_>>()
+        );
         assert!(snapshot.execute_entry(&options)?.command_succeeded());
         let test = snapshot.execute_test(&options)?;
         assert!(test.command_succeeded());

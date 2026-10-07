@@ -64,7 +64,7 @@ pub(in crate::workspace_graph) fn text_project_shape(
         })
 }
 pub(in crate::workspace_graph) fn text_command_program(
-    program: &hir::ResolvedProgram,
+    program: &mut hir::ResolvedProgram,
     command: &str,
 ) -> Result<(), crate::diagnostic::Diagnostic> {
     let command = hir::DeclarationId::new(command);
@@ -73,5 +73,12 @@ pub(in crate::workspace_graph) fn text_command_program(
         program,
         &command,
         crate::command_io_ops::CommandOperationProfile::StdinStreamV1,
-    )
+    )?;
+    // The authenticated Project command adapter owns the full declared
+    // capability inventory, including adapter effects unused by its body.
+    program.permits = crate::project::PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2
+        .iter()
+        .map(|effect| (*effect).to_owned())
+        .collect();
+    hir::validate(program)
 }

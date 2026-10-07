@@ -95,6 +95,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Authored Project v25 `language-command-io.stream-text.v1`: existing streaming
+  input and i64 process result with length-delimited native text operations and
+  private owned String helper boundaries; central gates pending.
+
 - Admit `string_len(namedString)` in while conditions without cloning the owner, preserving fuel and cleanup across interpreter, native C11, and admitted Core Wasm profiles. Allocating String conditions remain outside this narrow profile.
 
 ## 0.9.0 — 2026-10-06

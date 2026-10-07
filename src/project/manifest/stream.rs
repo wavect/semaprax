@@ -2,12 +2,13 @@
 
 use super::{
     ProjectProfile, PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2, PROJECT_LANGUAGE_COMMAND_INPUT_V1,
-    PROJECT_SCHEMA_V23, PROJECT_SCHEMA_V24, PROJECT_SCHEMA_V6,
+    PROJECT_SCHEMA_V23, PROJECT_SCHEMA_V24, PROJECT_SCHEMA_V25, PROJECT_SCHEMA_V6,
 };
 use crate::diagnostic::Diagnostic;
 use crate::project::profile::{
     PROJECT_LANGUAGE_COMMAND_STREAM_INPUT_V1, PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1,
     PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V1, PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V2,
+    PROJECT_PROFILE_STDIN_STREAM_TEXT_COMMAND_IO_V1,
 };
 
 pub(super) type ParsedCommandManifest = (
@@ -49,6 +50,13 @@ pub(super) fn parse(
             ProjectProfile::StdinStreamCommandIoV2,
             PROJECT_LANGUAGE_COMMAND_STREAM_INPUT_V1,
             "Project v24",
+        ),
+        PROJECT_SCHEMA_V25 => (
+            PROJECT_SCHEMA_V25,
+            PROJECT_PROFILE_STDIN_STREAM_TEXT_COMMAND_IO_V1,
+            ProjectProfile::StdinStreamTextCommandIoV1,
+            PROJECT_LANGUAGE_COMMAND_STREAM_INPUT_V1,
+            "Project v25",
         ),
         _ => unreachable!("only the frozen command input schemas use this parser"),
     };

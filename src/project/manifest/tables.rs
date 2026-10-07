@@ -28,7 +28,7 @@ use super::{
 use super::{
     PROJECT_SCHEMA_V14, PROJECT_SCHEMA_V15, PROJECT_SCHEMA_V16, PROJECT_SCHEMA_V19,
     PROJECT_SCHEMA_V20, PROJECT_SCHEMA_V21, PROJECT_SCHEMA_V22, PROJECT_SCHEMA_V23,
-    PROJECT_SCHEMA_V24,
+    PROJECT_SCHEMA_V24, PROJECT_SCHEMA_V25,
 };
 use crate::diagnostic::Diagnostic;
 use crate::package_range;
@@ -45,8 +45,9 @@ use crate::project::profile::{
     PROJECT_PROFILE_PUBLIC_GENERIC_WASM_PROVIDER_V1,
     PROJECT_PROFILE_SOURCE_LOCAL_FUTURE_INDEXED_RUST_V1, PROJECT_PROFILE_SOURCE_LOCAL_FUTURE_V1,
     PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V1, PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V2,
-    PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2,
-    PROJECT_PROFILE_USEFUL_DATA_V1, PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
+    PROJECT_PROFILE_STDIN_STREAM_TEXT_COMMAND_IO_V1, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1,
+    PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2, PROJECT_PROFILE_USEFUL_DATA_V1,
+    PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
 };
 use crate::project::profile::{
     PROJECT_FILESYSTEM_CAPABILITIES_V1, PROJECT_PROFILE_FILESYSTEM_IO_V1,
@@ -475,6 +476,7 @@ fn structural_diagnostics(tables: &[Table<'_>], law_layout: bool) -> Vec<Diagnos
             | PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1
             | PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V1
             | PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V2
+            | PROJECT_PROFILE_STDIN_STREAM_TEXT_COMMAND_IO_V1
             | PROJECT_PROFILE_LINE_COMMAND_IO_V1
             | PROJECT_PROFILE_NETWORK_COMMAND_IO_V1
             | PROJECT_PROFILE_HTTPS_COMMAND_IO_V1
@@ -518,7 +520,8 @@ fn structural_diagnostics(tables: &[Table<'_>], law_layout: bool) -> Vec<Diagnos
             | PROJECT_PROFILE_NETWORK_COMMAND_IO_V1
             | PROJECT_PROFILE_HTTPS_COMMAND_IO_V1 => Some(PROJECT_LANGUAGE_COMMAND_INPUT_V1),
             PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V1
-            | PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V2 => {
+            | PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V2
+            | PROJECT_PROFILE_STDIN_STREAM_TEXT_COMMAND_IO_V1 => {
                 Some(PROJECT_LANGUAGE_COMMAND_STREAM_INPUT_V1)
             }
             _ => None,
@@ -799,8 +802,12 @@ fn lower_profile(
                 Some(PROJECT_LANGUAGE_COMMAND_INPUT_V1),
                 &PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2,
             ),
-            ProjectProfile::StdinStreamCommandIoV1 | ProjectProfile::StdinStreamCommandIoV2 => (
-                if profile == ProjectProfile::StdinStreamCommandIoV2 {
+            ProjectProfile::StdinStreamCommandIoV1
+            | ProjectProfile::StdinStreamCommandIoV2
+            | ProjectProfile::StdinStreamTextCommandIoV1 => (
+                if profile == ProjectProfile::StdinStreamTextCommandIoV1 {
+                    PROJECT_SCHEMA_V25
+                } else if profile == ProjectProfile::StdinStreamCommandIoV2 {
                     PROJECT_SCHEMA_V24
                 } else {
                     PROJECT_SCHEMA_V23
@@ -1447,6 +1454,9 @@ fn profile_by_name(name: &str) -> Option<ProjectProfile> {
         PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1 => ProjectProfile::LanguageCommandIoV1,
         PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V1 => ProjectProfile::StdinStreamCommandIoV1,
         PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V2 => ProjectProfile::StdinStreamCommandIoV2,
+        PROJECT_PROFILE_STDIN_STREAM_TEXT_COMMAND_IO_V1 => {
+            ProjectProfile::StdinStreamTextCommandIoV1
+        }
         PROJECT_PROFILE_LINE_COMMAND_IO_V1 => ProjectProfile::LineCommandIoV1,
         PROJECT_PROFILE_OWNED_DATA_API_V1 => ProjectProfile::OwnedDataApiV1,
         PROJECT_PROFILE_FLAT_OWNED_RECORD_API_V1 => ProjectProfile::FlatOwnedRecordApiV1,

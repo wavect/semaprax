@@ -455,6 +455,7 @@ impl ProjectRevision {
                 ProjectProfile::LanguageCommandIoV1 => "v6",
                 ProjectProfile::StdinStreamCommandIoV1 => "v23",
                 ProjectProfile::StdinStreamCommandIoV2 => "v24",
+                ProjectProfile::StdinStreamTextCommandIoV1 => "v25",
                 ProjectProfile::LineCommandIoV1 => "v7",
                 ProjectProfile::OwnedDataApiV1 => "v8",
                 ProjectProfile::FlatOwnedRecordApiV1 => "v9",

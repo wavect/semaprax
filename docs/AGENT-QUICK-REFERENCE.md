@@ -1248,6 +1248,11 @@ output and produce the generic adapter diagnostic with status 2. Project v23
 keeps its Bool status 0/1 mapping. [Streaming command exit status
 v1](BOUNDED-STDIN-COMMAND-EXIT-V1.md) owns selection and the verification boundary.
 
+For owned String helpers and `string_slice`/`string_trim` in a streaming native
+project, select Project v25 `language-command-io.stream-text.v1` with the same
+input and i64 command. [Stream Text Command v1](STREAM-TEXT-COMMAND-V1.md) owns
+its limits; v23/v24 retain their older text/helper refusals.
+
 - [RFC 0001](RFC-0001.md): language and toolchain contract.
 - [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md): records, variants, generics,
   matching, `Option`, `Result`.

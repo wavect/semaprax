@@ -38,21 +38,42 @@ pub fn emit_hir_c_with_stdin_stream(
     program: &ResolvedProgram,
     command_id: &str,
 ) -> Result<String, Diagnostic> {
-    emit_profile(program, command_id, false)
+    emit_profile(
+        program,
+        command_id,
+        NativeOutputProfile::StdinStreamCommandIo,
+    )
 }
 
 pub fn emit_hir_c_with_stdin_stream_exit_status(
     program: &ResolvedProgram,
     command_id: &str,
 ) -> Result<String, Diagnostic> {
-    emit_profile(program, command_id, true)
+    emit_profile(
+        program,
+        command_id,
+        NativeOutputProfile::StdinStreamExitCommandIo,
+    )
+}
+
+/// Project v25: private owned String helpers and length-delimited text operations.
+pub fn emit_hir_c_with_stdin_stream_text(
+    program: &ResolvedProgram,
+    command_id: &str,
+) -> Result<String, Diagnostic> {
+    emit_profile(
+        program,
+        command_id,
+        NativeOutputProfile::StdinStreamTextCommandIo,
+    )
 }
 
 fn emit_profile(
     program: &ResolvedProgram,
     command_id: &str,
-    exit_status: bool,
+    output_profile: NativeOutputProfile,
 ) -> Result<String, Diagnostic> {
+    let exit_status = output_profile != NativeOutputProfile::StdinStreamCommandIo;
     hir::validate(program)?;
     super::reject_native_rust_for_native(program)?;
     let required_permits = [
@@ -98,16 +119,7 @@ fn emit_profile(
         &command.id,
         crate::command_io_ops::CommandOperationProfile::StdinStreamV1,
     )?;
-    super::emit_hir_c_with_labels(
-        program,
-        &HashMap::new(),
-        if exit_status {
-            NativeOutputProfile::StdinStreamExitCommandIo
-        } else {
-            NativeOutputProfile::StdinStreamCommandIo
-        },
-        Some(&command.id),
-    )
+    super::emit_hir_c_with_labels(program, &HashMap::new(), output_profile, Some(&command.id))
 }
 
 pub(super) fn emit_runner(output: &mut impl COutput, command_symbol: &str) {

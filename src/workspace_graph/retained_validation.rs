@@ -15,7 +15,9 @@ mod profile_names;
 mod scalar_link;
 mod stream_admission;
 pub(super) use profile_names::project_linker_name;
-pub(super) use stream_admission::{stream_parameter_admitted, stream_return_admitted};
+pub(super) use stream_admission::{
+    command_link, entry_link, stream_parameter_admitted, stream_return_admitted,
+};
 
 pub(super) use dependency_closure::retain_legacy_useful_data_dependency_closure;
 
@@ -1313,6 +1315,7 @@ pub(super) fn project_effects_admitted(
             crate::project::ProjectProfile::LanguageCommandIoV1
                 | crate::project::ProjectProfile::StdinStreamCommandIoV1
                 | crate::project::ProjectProfile::StdinStreamCommandIoV2
+                | crate::project::ProjectProfile::StdinStreamTextCommandIoV1
                 | crate::project::ProjectProfile::LineCommandIoV1
         ) && effects.iter().all(|effect| {
             matches!(
@@ -1372,6 +1375,7 @@ pub(super) fn permits_admitted(
             crate::project::ProjectProfile::LanguageCommandIoV1
                 | crate::project::ProjectProfile::StdinStreamCommandIoV1
                 | crate::project::ProjectProfile::StdinStreamCommandIoV2
+                | crate::project::ProjectProfile::StdinStreamTextCommandIoV1
                 | crate::project::ProjectProfile::LineCommandIoV1
         ) && module.module == entry_module
             && module.permits

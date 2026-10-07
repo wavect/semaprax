@@ -673,3 +673,5 @@ Audience: all documentation readers.
 - [ADR 0006: Bootstrap rich Rust interop through generated C-compatible shims](decisions/0006-rust-rich-interop-bootstrap-boundary.md)
 - [ADR 0008: Hold RI-14 stable Rust-source lowering at an executable evidence gate](decisions/0008-ri-14-stable-rust-source-evidence.md)
 - [Kernel-0 accepted-profile receipts, 2 October 2026](evidence/kernel-zero-f99c76dc2/README.md)
+
+- [Stream Text Command v1](STREAM-TEXT-COMMAND-V1.md)

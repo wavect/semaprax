@@ -1297,11 +1297,9 @@ impl WorkspaceGraphBuild {
                 types.extend(module.types.iter().cloned());
             }
             for function in &module.functions {
-                // A dependency member leaves the established v1 inventory when
-                // its signature leaves the profile, and equally when its body
-                // names an authored type. The linker below retains no authored
-                // type declaration at all, so a body-only mention would
-                // otherwise be linked against a type that is no longer there.
+                // A dependency leaves v1 if its signature or body names an
+                // authored type. The linker retains no authored declarations,
+                // including a type mentioned only in the body.
                 if dependency_fallback
                     && (!hir::useful_data_workspace_return_admitted(&function.return_type)
                         || function.params.iter().any(|parameter| {
@@ -1364,17 +1362,14 @@ impl WorkspaceGraphBuild {
                     }
                     entrypoints.push((function.id.clone(), fact.origin, function.span));
                 }
-                // Project v6 has two deliberately distinct roots: the ordinary
-                // pure `main` closure and the manifest-selected effectful
-                // command closure. Build the former without effectful authored
-                // functions; `linked_scalar_program_with_roots` independently
-                // adds the exact stable-ID command and its callees before using
-                // the language-command linker.
+                // Keep pure main and the selected command as distinct roots;
+                // the command linker independently retains its exact closure.
                 if !matches!(
                     profile,
                     crate::project::ProjectProfile::LanguageCommandIoV1
                         | crate::project::ProjectProfile::StdinStreamCommandIoV1
                         | crate::project::ProjectProfile::StdinStreamCommandIoV2
+                        | crate::project::ProjectProfile::StdinStreamTextCommandIoV1
                         | crate::project::ProjectProfile::LineCommandIoV1
                         | crate::project::ProjectProfile::ProcessIoV1
                 ) || function.effects.is_empty()
@@ -1477,11 +1472,15 @@ impl WorkspaceGraphBuild {
             }
             crate::project::ProjectProfile::LanguageCommandIoV1
             | crate::project::ProjectProfile::StdinStreamCommandIoV1
-            | crate::project::ProjectProfile::StdinStreamCommandIoV2 => {
-                // The ordinary project/test entry remains a pure useful-data
-                // closure. `linked_scalar_program_with_roots` below retains
-                // the selected command as a distinct authenticated root.
-                hir::link_useful_data_workspace(entry_module.to_owned(), entrypoint, functions)
+            | crate::project::ProjectProfile::StdinStreamCommandIoV2
+            | crate::project::ProjectProfile::StdinStreamTextCommandIoV1 => {
+                // The selected command is retained separately from this pure entry.
+                retained_validation::entry_link(
+                    profile,
+                    entry_module.to_owned(),
+                    entrypoint,
+                    functions,
+                )
             }
             crate::project::ProjectProfile::LineCommandIoV1 => {
                 hir::link_useful_data_workspace(entry_module.to_owned(), entrypoint, functions)
@@ -1681,21 +1680,16 @@ impl WorkspaceGraphBuild {
             }
             crate::project::ProjectProfile::LanguageCommandIoV1
             | crate::project::ProjectProfile::StdinStreamCommandIoV1
-            | crate::project::ProjectProfile::StdinStreamCommandIoV2 => {
+            | crate::project::ProjectProfile::StdinStreamCommandIoV2
+            | crate::project::ProjectProfile::StdinStreamTextCommandIoV1 => {
                 let [command_id] = additional_roots else {
                     return Err(vec![graph_error(
                         "SPX-G172",
                         "Language Command I/O v1 must select exactly one command identity",
                     )]);
                 };
-                let link = if profile == crate::project::ProjectProfile::StdinStreamCommandIoV2 {
-                    hir::link_stdin_stream_exit_command_workspace
-                } else if profile.is_stdin_stream() {
-                    hir::link_stdin_stream_command_workspace
-                } else {
-                    hir::link_language_command_io_workspace
-                };
-                link(
+                retained_validation::command_link(
+                    profile,
                     base.module,
                     base.entrypoint,
                     hir::DeclarationId::new(command_id.clone()),
@@ -1793,6 +1787,7 @@ impl WorkspaceGraphBuild {
             crate::project::ProjectProfile::LanguageCommandIoV1
                 | crate::project::ProjectProfile::StdinStreamCommandIoV1
                 | crate::project::ProjectProfile::StdinStreamCommandIoV2
+                | crate::project::ProjectProfile::StdinStreamTextCommandIoV1
                 | crate::project::ProjectProfile::LineCommandIoV1
                 | crate::project::ProjectProfile::ProcessIoV1
         ) {
@@ -1820,7 +1815,8 @@ impl WorkspaceGraphBuild {
                 .get(command.id.as_str())
                 .is_some_and(|fact| fact.origin == hir::IdentityOrigin::Explicit);
             let (return_type, signature) = match web_roots.profile {
-                crate::project::ProjectProfile::StdinStreamCommandIoV2 => {
+                crate::project::ProjectProfile::StdinStreamCommandIoV2
+                | crate::project::ProjectProfile::StdinStreamTextCommandIoV1 => {
                     (hir::ResolvedType::I64, "i64")
                 }
                 _ => (hir::ResolvedType::Bool, "bool"),
@@ -2056,6 +2052,9 @@ impl WorkspaceGraphBuild {
                         .get(function.id.as_str())
                         .is_some_and(|fact| fact.owner.is_some());
                 let admitted_parameter = |parameter: &hir::ResolvedParam| match profile {
+                    crate::project::ProjectProfile::StdinStreamTextCommandIoV1 => {
+                        hir::stream_text_parameter_admitted(parameter)
+                    }
                     crate::project::ProjectProfile::StdinStreamCommandIoV1
                     | crate::project::ProjectProfile::StdinStreamCommandIoV2 => {
                         retained_validation::stream_parameter_admitted(parameter)
@@ -2098,6 +2097,9 @@ impl WorkspaceGraphBuild {
                     }
                 };
                 let admitted_return = match profile {
+                    crate::project::ProjectProfile::StdinStreamTextCommandIoV1 => {
+                        hir::stream_text_return_admitted(&function.return_type)
+                    }
                     crate::project::ProjectProfile::StdinStreamCommandIoV1
                     | crate::project::ProjectProfile::StdinStreamCommandIoV2 => {
                         retained_validation::stream_return_admitted(&function.return_type)

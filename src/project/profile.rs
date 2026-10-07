@@ -41,6 +41,8 @@ pub const PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2: &str = "useful-data-command.v2
 pub const PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1: &str = "language-command-io.v1";
 /// Explicit native command profile with invocation-owned streaming stdin.
 pub const PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V1: &str = "language-command-io.stream.v1";
+pub const PROJECT_PROFILE_STDIN_STREAM_TEXT_COMMAND_IO_V1: &str =
+    "language-command-io.stream-text.v1";
 pub const PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V2: &str = "language-command-io.stream.v2";
 pub const PROJECT_PROFILE_LINE_COMMAND_IO_V1: &str = "line-command-io.v1";
 pub const PROJECT_PROFILE_NETWORK_COMMAND_IO_V1: &str = "network-command-io.v1";
@@ -121,6 +123,7 @@ pub enum ProjectProfile {
     LanguageCommandIoV1,
     StdinStreamCommandIoV1,
     StdinStreamCommandIoV2,
+    StdinStreamTextCommandIoV1,
     LineCommandIoV1,
     NetworkCommandIoV1,
     HttpsCommandIoV1,
@@ -142,7 +145,9 @@ impl ProjectProfile {
     pub const fn is_stdin_stream(self) -> bool {
         matches!(
             self,
-            Self::StdinStreamCommandIoV1 | Self::StdinStreamCommandIoV2
+            Self::StdinStreamCommandIoV1
+                | Self::StdinStreamCommandIoV2
+                | Self::StdinStreamTextCommandIoV1
         )
     }
     pub(crate) const fn is_filesystem(self) -> bool {
@@ -191,6 +196,9 @@ impl ProjectProfile {
             Self::LanguageCommandIoV1 => Some(PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1),
             Self::StdinStreamCommandIoV1 => Some(PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V1),
             Self::StdinStreamCommandIoV2 => Some(PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V2),
+            Self::StdinStreamTextCommandIoV1 => {
+                Some(PROJECT_PROFILE_STDIN_STREAM_TEXT_COMMAND_IO_V1)
+            }
             Self::LineCommandIoV1 => Some(PROJECT_PROFILE_LINE_COMMAND_IO_V1),
             Self::NetworkCommandIoV1 => Some(PROJECT_PROFILE_NETWORK_COMMAND_IO_V1),
             Self::EnvironmentIoV1 => Some(PROJECT_PROFILE_ENVIRONMENT_IO_V1),

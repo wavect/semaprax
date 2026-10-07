@@ -25,6 +25,7 @@ pub(crate) fn execute_held(
                         | project::ProjectProfile::LanguageCommandIoV1
                         | project::ProjectProfile::StdinStreamCommandIoV1
                         | project::ProjectProfile::StdinStreamCommandIoV2
+                        | project::ProjectProfile::StdinStreamTextCommandIoV1
                         | project::ProjectProfile::LineCommandIoV1
                         | project::ProjectProfile::NetworkCommandIoV1
                         | project::ProjectProfile::HttpsCommandIoV1

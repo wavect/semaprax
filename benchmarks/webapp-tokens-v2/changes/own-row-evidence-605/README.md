@@ -15,6 +15,29 @@ The binary reported `{"schema":"semaprax.version.v1","version":"0.9.0","commit":
 The frozen binary's own hash is recorded because its version record has no
 commit identity.
 
+## Fresh built-in self-test after the own-row fixture change
+
+On 2026-10-07, the generated SEMAPRAX server passed its built-in
+`--self-test`. This run used source commit
+`c21be4e71b0071d6322464ce4fc3b941d84f9b40` and the freshly built compiler at
+`target/debug/semaprax` (SHA-256
+`294b0347e9f2692394aef96658330ebfcedd9d4728ad846a24e5a03699815d79`). The
+source module SHA-256 remains
+`93b7c95f058b12d09b4799c15a36a1ebfe1cab38a5a595a2381618c112da4bc9`. The
+generated `server.mjs` SHA-256 is
+`f2d7b503b6061a8fc90a79d385ae909c03f71c16fb3b463bac6ed2ac640abc48`.
+
+The output is in
+[semaprax-builtin-selftest-current.log](semaprax-builtin-selftest-current.log)
+(SHA-256
+`017d336be5b98161397d3f5db24508bc14921c43b24c9ddb81998efafb7212f8`). It
+reports 28 own-row fixtures. The Agent own-account row line includes writes
+to Task, Expense, and Leave; the other-account Agent line denies Task,
+Expense, and Leave writes, hides Expense, and reports no writes. This is
+generated-server self-test evidence, not browser UI or external HTTP API
+evidence. The older self-test transcript and external API logs above are
+preserved unchanged.
+
 The TypeScript arm used Node `v24.3.0` and npm `11.4.2`; it ran the checked-in
 server directly with a fresh empty data directory. The server SHA-256 was
 `dd6d5c02df14d55e64d0a90ed7d7e1a218bbd4c6e7c7002c63bcbc00f5383232`, and the

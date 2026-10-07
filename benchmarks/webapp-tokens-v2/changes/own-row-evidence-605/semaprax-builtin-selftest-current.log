@@ -1,0 +1,26 @@
+self-test ok: 20 entities, 47 rules, 24 computed, 7 keys, 5 workflows, 9 rollups, accounts (4 roles) (create, read, list, update, validate, 404, key, workflow, audit, csv, rollup, 409, persist, auth, permissions, delete)
+crud: POST Team 201 #1, GET 200, list 200, PUT 200, DELETE 204, GET #1001 404
+validate: POST {} Team 400 [name: is required, description: is required]
+rule: Team 400 "string_len(name) >= 2 && string_len(name) <= 60"
+key: duplicate Member.email 400
+workflow: Task.status Todo->Review 400, Todo->Doing 200
+rollup: Team #1 count_member=1
+reference: DELETE Team #1 409 (Member.team_id), missing Member.team_id 400
+audit: Team #1 history 2 entries (create, update)
+csv: Team 2 lines, header id,name,description,members
+persist: 20 rows identical after restart
+auth: no session 401, wrong password 401, sign-in 200, sign-out then 401
+permissions: 4 roles x 20 entities plus 28 own-row fixtures agree with schema; e.g. Manager PUT Team #1 403, Agent list Invoice hides #1
+  Admin on own-account rows: hidden: none; denied writes: none; writes: Task Comment TimeEntry Ticket TicketReply Expense Leave
+  Admin on other-account rows: hidden: none; denied writes: none; writes: Task Comment TimeEntry Ticket TicketReply Expense Leave
+  Admin on unowned rows: hidden: none; denied writes: none; writes: Team Member Customer Contact Project Milestone Sprint Invoice Payment Vendor Asset Document Release
+  Manager on own-account rows: hidden: none; denied writes: none; writes: Task Comment TimeEntry Ticket TicketReply Expense Leave
+  Manager on other-account rows: hidden: none; denied writes: none; writes: Task Comment TimeEntry Ticket TicketReply Expense Leave
+  Manager on unowned rows: hidden: none; denied writes: Team Member; writes: Customer Contact Project Milestone Sprint Invoice Payment Vendor Asset Document Release
+  Agent on own-account rows: hidden: none; denied writes: none; writes: Task Comment TimeEntry Ticket TicketReply Expense Leave
+  Agent on other-account rows: hidden: Expense; denied writes: Task Comment TimeEntry Ticket TicketReply Leave; writes: none
+  Agent on unowned rows: hidden: Invoice Payment; denied writes: Team Member Customer Contact Project Milestone Sprint Vendor Asset Document Release; writes: none
+  Viewer on own-account rows: hidden: Expense; denied writes: Task Comment TimeEntry Ticket TicketReply Leave; writes: none
+  Viewer on other-account rows: hidden: Expense; denied writes: Task Comment TimeEntry Ticket TicketReply Leave; writes: none
+  Viewer on unowned rows: hidden: Invoice Payment; denied writes: Team Member Customer Contact Project Milestone Sprint Vendor Asset Document Release; writes: none
+cleanup: test server stopped, no process left running, temporary data removed

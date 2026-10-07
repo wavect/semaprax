@@ -19,6 +19,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import live_campaign_common as common
 
 BENCHMARK = Path(__file__).resolve().parent
+sys.path.insert(0, str(BENCHMARK))
+from corpus_io import ESCAPED_KEYS_AND_IDENTIFIERS, render_request
+
 REPO = BENCHMARK.parents[1]
 MODEL = "claude-sonnet-5-5"
 EFFORT = "medium"
@@ -54,14 +57,7 @@ def blob_at_commit(repo: Path, commit: str, relative: str) -> bytes:
 
 
 def acceptance_case_request(case: dict[str, Any], kind: str) -> bytes:
-    if kind == "valid":
-        whitespace = case.get("leading_whitespace_bytes", 0)
-        if type(whitespace) is not int or whitespace < 0:
-            raise ValueError("acceptance case whitespace count is malformed")
-        request = json.dumps(case["input"], ensure_ascii=False, separators=(",", ":")) + "\n"
-        return (" " * whitespace + request).encode("utf-8")
-    request = json.dumps(case["input"], separators=(",", ":")) + "\n"
-    return request.encode("utf-8")
+    return render_request(case, kind)
 
 
 def validate_qualification_evidence(
@@ -138,19 +134,35 @@ def validate_qualification_evidence(
         expected_exit = 0 if kind == "valid" else 2
         if (not isinstance(row, dict) or row.get("name") != case.get("name")
                 or row.get("kind") != kind or row.get("status") != "passed"
+                or row.get("input_encoding") != case.get("request_encoding", "compact")
                 or row.get("input_bytes") != len(request) or row.get("input_sha256") != sha_bytes(request)
                 or row.get("expected_exit_code") != expected_exit or row.get("exit_code") != expected_exit
                 or row.get("stdout_sha256") != sha_bytes(expected_output)
                 or row.get("expected_stdout_sha256") != sha_bytes(expected_output)):
             raise ValueError(f"qualification acceptance case did not pass exactly: {case.get('name')}")
-        if kind == "invalid" and row.get("stderr_nonempty") is not True:
-            raise ValueError(f"qualification invalid case lacks its required diagnostic: {case.get('name')}")
+        if kind == "invalid" and row.get("stderr_one_diagnostic_line") is not True:
+            raise ValueError(f"qualification invalid case lacks exactly one diagnostic line: {case.get('name')}")
     if report.get("valid_cases") != len(corpus["valid"]) or report.get("invalid_cases") != len(corpus["invalid"]):
         raise ValueError("qualification acceptance report case counts do not match the pinned corpus")
-    large = next((row for row in rows if row.get("name") == "large-leading-whitespace"), None)
-    if (large is None or large.get("leading_whitespace_bytes") != 65_537
-            or large.get("input_bytes", 0) <= 65_536):
+    rows_by_name = {row.get("name"): row for row in rows if isinstance(row, dict)}
+    large_whitespace = rows_by_name.get("large-leading-whitespace")
+    compact_max = rows_by_name.get("max-cardinality-compact")
+    escaped_max = rows_by_name.get("max-cardinality-escaped-keys-and-ids")
+    cases_by_name = {case["name"]: case for case in corpus["valid"]}
+    compact_case = cases_by_name.get("max-cardinality-compact")
+    escaped_case = cases_by_name.get("max-cardinality-escaped-keys-and-ids")
+    if (large_whitespace is None or large_whitespace.get("leading_whitespace_bytes") != 65_537
+            or large_whitespace.get("input_bytes", 0) <= 65_536):
         raise ValueError("qualification evidence must pass the >65,536-byte whitespace case")
+    if (compact_max is None or compact_max.get("input_bytes", 65_537) > 65_536
+            or escaped_max is None or escaped_max.get("input_encoding") != ESCAPED_KEYS_AND_IDENTIFIERS
+            or escaped_max.get("input_bytes", 0) <= 65_536
+            or compact_case is None or escaped_case is None
+            or compact_case.get("input") != escaped_case.get("input")
+            or len(compact_case.get("input", {}).get("servers", [])) != 8
+            or len(compact_case.get("input", {}).get("patients", [])) != 256
+            or compact_max.get("expected_stdout_sha256") != escaped_max.get("expected_stdout_sha256")):
+        raise ValueError("qualification evidence must pass escaped and compact maximum-cardinality requests")
 
     return {
         "status": "evidence_gate_passed",

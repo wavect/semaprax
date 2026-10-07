@@ -13,9 +13,13 @@ five trials per arm. Without `--qualification-evidence`, every result remains
 preflight-only and must not be presented as a scored comparison. A supplied
 evidence file enables scored trials only after the campaign verifies the exact
 SPEC and corpus hashes, compiler source commit and binary hash, native Project
-stream route, and every per-case result. The oversized-whitespace case must
-pass with 65,537 leading spaces. The gate is campaign evidence; it does not
-close issue 611 or assert that issue has been closed.
+stream route, and every per-case result. Both over-64-KiB valid cases must
+pass: 65,537 leading spaces and maximum cardinality with escaped JSON keys and
+identifiers. The compact maximum-cardinality control must remain at or below
+65,536 bytes. Both invalid capacity cases (9 servers and 257 patients) must
+exit 2, emit no stdout, and write exactly one diagnostic line to stderr. The
+gate is campaign evidence; it does not close issue 611 or assert that issue has
+been closed.
 
 The optional `--max-budget-usd` sets the CLI's per-session budget cap, so it
 applies separately to the calibration and each trial. `--timeout-seconds`
@@ -84,8 +88,8 @@ report; `acceptance_corpus_sha256` and `spec_sha256` must match the selected
 }
 ```
 
-The campaign checks the report against the pinned corpus, verifies all 11
-per-case pass results and the actual oversized request length, and rechecks the
+The campaign checks the report against the pinned corpus, verifies every
+per-case pass result and both actual oversized request lengths, and rechecks the
 compiler binary hash before it dispatches any model session. Evidence is copied
 into the external campaign artifacts for later review.
 

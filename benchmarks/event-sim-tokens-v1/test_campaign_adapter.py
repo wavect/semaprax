@@ -10,6 +10,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 HERE = Path(__file__).resolve().parent
+CORPUS = json.loads((HERE / "acceptance" / "corpus.json").read_text(encoding="utf-8"))
+CORPUS_CASES = CORPUS["valid"] + CORPUS["invalid"]
 sys.path.insert(0, str(HERE.parent))
 import live_campaign_common as common
 import campaign as live_campaign
@@ -17,7 +19,20 @@ import campaign as live_campaign
 
 class ShiftSimCampaignTests(unittest.TestCase):
     def _qualification_evidence(self, root: Path):
-        repo = live_campaign.REPO
+        repo = root / "pinned-source"
+        repo.mkdir()
+        pinned_paths = [live_campaign.SPEC_RELATIVE, live_campaign.CORPUS_RELATIVE]
+        for relative in pinned_paths:
+            destination = repo / relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes((live_campaign.REPO / relative).read_bytes())
+        subprocess.run(["git", "init", "--quiet", str(repo)], check=True, capture_output=True)
+        subprocess.run(["git", "add", *pinned_paths], cwd=repo, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "-c", "user.name=Benchmark Test", "-c", "user.email=test@example.invalid",
+             "-c", "commit.gpgsign=false", "commit", "--quiet", "-m", "Pinned acceptance inputs"],
+            cwd=repo, check=True, capture_output=True,
+        )
         commit = live_campaign.resolve_commit(repo, "HEAD")
         spec = live_campaign.blob_at_commit(repo, commit, live_campaign.SPEC_RELATIVE)
         corpus_bytes = live_campaign.blob_at_commit(repo, commit, live_campaign.CORPUS_RELATIVE)
@@ -32,6 +47,7 @@ class ShiftSimCampaignTests(unittest.TestCase):
                 )
                 rows.append({
                     "name": case["name"], "kind": kind, "status": "passed",
+                    "input_encoding": case.get("request_encoding", "compact"),
                     "input_bytes": len(request), "input_sha256": live_campaign.sha_bytes(request),
                     "leading_whitespace_bytes": case.get("leading_whitespace_bytes", 0),
                     "expected_exit_code": 0 if kind == "valid" else 2,
@@ -39,6 +55,7 @@ class ShiftSimCampaignTests(unittest.TestCase):
                     "stdout_sha256": live_campaign.sha_bytes(expected),
                     "expected_stdout_sha256": live_campaign.sha_bytes(expected),
                     "stderr_nonempty": kind == "invalid",
+                    "stderr_one_diagnostic_line": kind == "invalid",
                 })
         report = {
             "schema": live_campaign.ACCEPTANCE_REPORT_SCHEMA,
@@ -65,7 +82,7 @@ class ShiftSimCampaignTests(unittest.TestCase):
         }
         evidence_path = root / "qualification-evidence.json"
         evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
-        return evidence_path, evidence, report_path
+        return evidence_path, evidence, report_path, repo
 
     def _run_trial_with_spec_edit(self, root: Path, edit_stage: str):
         spec_text = "# Frozen public spec\n"
@@ -156,21 +173,25 @@ class ShiftSimCampaignTests(unittest.TestCase):
 
     def test_pinned_native_evidence_gates_scored_trials_and_keeps_issue_open(self):
         with tempfile.TemporaryDirectory() as directory:
-            evidence_path, evidence, report_path = self._qualification_evidence(Path(directory))
+            evidence_path, evidence, report_path, repo = self._qualification_evidence(Path(directory))
             result = live_campaign.validate_qualification_evidence(
-                evidence_path, live_campaign.REPO, evidence["compiler_source_commit"], "a" * 64,
+                evidence_path, repo, evidence["compiler_source_commit"], "a" * 64,
             )
             self.assertEqual(result["status"], "evidence_gate_passed")
             self.assertTrue(result["scored_trials_allowed"])
             self.assertIn("open", result["issue_611_status"])
-            self.assertEqual(result["acceptance_cases_passed"], 11)
-            self.assertGreater(
-                json.loads(report_path.read_text(encoding="utf-8"))["cases"][1]["input_bytes"], 65_536
-            )
+            corpus = json.loads((HERE / "acceptance" / "corpus.json").read_text(encoding="utf-8"))
+            expected_case_count = sum(len(corpus[kind]) for kind in ("valid", "invalid"))
+            self.assertEqual(result["acceptance_cases_passed"], expected_case_count)
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+            report_rows = {row["name"]: row for row in report["cases"]}
+            for name in ("large-leading-whitespace", "max-cardinality-escaped-keys-and-ids"):
+                self.assertGreater(report_rows[name]["input_bytes"], 65_536)
+            self.assertLessEqual(report_rows["max-cardinality-compact"]["input_bytes"], 65_536)
 
             with self.assertRaisesRegex(ValueError, "binary hash"):
                 live_campaign.validate_qualification_evidence(
-                    evidence_path, live_campaign.REPO, evidence["compiler_source_commit"], "b" * 64,
+                    evidence_path, repo, evidence["compiler_source_commit"], "b" * 64,
                 )
 
             for key, value in (
@@ -183,7 +204,7 @@ class ShiftSimCampaignTests(unittest.TestCase):
                 evidence_path.write_text(json.dumps(changed), encoding="utf-8")
                 with self.assertRaises(ValueError, msg=f"{key} must be bound"):
                     live_campaign.validate_qualification_evidence(
-                        evidence_path, live_campaign.REPO, evidence["compiler_source_commit"], "a" * 64,
+                        evidence_path, repo, evidence["compiler_source_commit"], "a" * 64,
                     )
 
             evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
@@ -195,7 +216,19 @@ class ShiftSimCampaignTests(unittest.TestCase):
             evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "large-leading-whitespace"):
                 live_campaign.validate_qualification_evidence(
-                    evidence_path, live_campaign.REPO, evidence["compiler_source_commit"], "a" * 64,
+                    evidence_path, repo, evidence["compiler_source_commit"], "a" * 64,
+                )
+
+            report["cases"][1]["status"] = "passed"
+            invalid_row = next(row for row in report["cases"] if row["name"] == "nine-servers-exceeds-capacity")
+            invalid_row["stderr_one_diagnostic_line"] = False
+            report_bytes = (json.dumps(report, indent=2) + "\n").encode("utf-8")
+            report_path.write_bytes(report_bytes)
+            evidence["acceptance_report"]["sha256"] = live_campaign.sha_bytes(report_bytes)
+            evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "exactly one diagnostic line"):
+                live_campaign.validate_qualification_evidence(
+                    evidence_path, repo, evidence["compiler_source_commit"], "a" * 64,
                 )
 
     def test_acceptance_report_records_each_case_and_oversized_request(self):
@@ -211,11 +244,24 @@ class ShiftSimCampaignTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             report = json.loads(report_path.read_text(encoding="utf-8"))
             self.assertEqual(report["status"], "passed")
-            self.assertEqual(len(report["cases"]), 11)
+            self.assertEqual(len(report["cases"]), len(CORPUS_CASES))
             oversized = next(row for row in report["cases"] if row["name"] == "large-leading-whitespace")
             self.assertEqual(oversized["status"], "passed")
             self.assertEqual(oversized["leading_whitespace_bytes"], 65_537)
             self.assertGreater(oversized["input_bytes"], 65_536)
+            escaped = next(row for row in report["cases"] if row["name"] == "max-cardinality-escaped-keys-and-ids")
+            compact = next(row for row in report["cases"] if row["name"] == "max-cardinality-compact")
+            self.assertEqual(escaped["status"], "passed")
+            self.assertEqual(escaped["input_encoding"], live_campaign.ESCAPED_KEYS_AND_IDENTIFIERS)
+            self.assertGreater(escaped["input_bytes"], 65_536)
+            self.assertLessEqual(compact["input_bytes"], 65_536)
+            self.assertEqual(escaped["expected_stdout_sha256"], compact["expected_stdout_sha256"])
+            for name in ("nine-servers-exceeds-capacity", "257-patients-exceeds-capacity"):
+                invalid = next(row for row in report["cases"] if row["name"] == name)
+                self.assertEqual(invalid["expected_exit_code"], 2)
+                self.assertEqual(invalid["exit_code"], 2)
+                self.assertEqual(invalid["stdout_sha256"], live_campaign.sha_bytes(b""))
+                self.assertEqual(invalid["stderr_one_diagnostic_line"], True)
 
     def test_seed_history_exposes_only_public_spec_not_acceptance_oracle(self):
         source = live_campaign.REPO

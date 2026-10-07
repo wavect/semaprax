@@ -8,14 +8,20 @@ and TeamDesk browser application.
 
 `SPEC.md` freezes the behavior. Both language arms receive the same task prompt
 and the same specification. `acceptance/corpus.json` is the shared test corpus;
-`oracle.py` generates its expected reports. Live results belong in
-`results-live.json` after matched runs are collected.
+`oracle.py` generates its expected reports. It currently contains 11 valid and
+4 invalid cases. Live results belong in `results-live.json` after matched runs
+are collected.
 
 The campaign defaults to preflight-only reporting. A scored run requires a
 reviewed qualification-evidence JSON file that binds the exact SPEC and
 acceptance corpus hashes, compiler source commit and binary hash, native
-streaming Project route, and a hashed per-case acceptance report with all 11
-cases passing, including the request with 65,537 leading whitespace bytes.
+streaming Project route, and a hashed per-case acceptance report with every
+corpus case passing. The corpus includes both 65,537 leading whitespace bytes
+and a maximum-cardinality request with legally escaped JSON keys and
+identifiers; the latter is over 65,536 bytes without whitespace. Compact
+maximum-cardinality input remains under the old byte boundary, and 9-server and
+257-patient requests must fail with status 2, empty stdout, and exactly one
+diagnostic line.
 Passing this evidence gate only allows a scored campaign; it does not close
 issue 611 or assert that it has been closed. See
 [`LIVE-CAMPAIGN.md`](LIVE-CAMPAIGN.md) for the evidence format and commands.
@@ -29,5 +35,6 @@ python3 benchmarks/event-sim-tokens-v1/acceptance/run.py \
 ```
 
 Replace the command array with the executable for the arm under test. The
-runner also checks the two invalid-request cases and requires status 2 with no
-stdout. It does not compile either arm or call a model.
+runner also checks all four invalid-request cases and requires status 2, empty
+stdout, and exactly one diagnostic line on stderr. It does not compile either
+arm or call a model.

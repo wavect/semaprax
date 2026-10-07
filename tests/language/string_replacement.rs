@@ -285,7 +285,6 @@ fn string_replacement_preserves_closed_boundaries() {
         ("let mut text=\"x\"; let next=\"y\"; text=next; string_len(next)", "SPX-O101"),
         ("let mut text=\"x\"; let next=\"y\"; text=match 0 { 0 => next, _ => \"z\", }; string_len(next)", "SPX-O101"),
         ("let mut text=\"x\"; let view=string_as_str(text); text=\"y\"; string_len(string_from_str(view))", "SPX-T265"),
-        ("let mut text=\"x\"; while string_len(\"temp\")>0 { text=\"y\"; 0 } 0", "SPX-T252"),
     ] {
         let source=format!("module refused; @id(\"r.main\") fn main()->i64 {{ {body} }}");
         let program=parse(&source,Path::new("replacement-refused.spx")).unwrap();

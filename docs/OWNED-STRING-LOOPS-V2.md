@@ -35,8 +35,9 @@ unreachable-arm, field-type, identity, and ownership checks.
 
 Arms may return a Copy scalar or `string`. A String result joins and settles
 in the per-iteration region, including on a failing guard or arm. A scalar
-match may also form a `while` condition if the entire condition satisfies the
-existing restriction against String values.
+match may also form a `while` condition under the separate additive
+[String Condition Lifetimes v1](STRING-CONDITION-LIFETIMES-V1.md) rules;
+condition temporaries settle before the Boolean selection.
 
 ```text
 let selected = Option<i64>::Some { value: 7 };

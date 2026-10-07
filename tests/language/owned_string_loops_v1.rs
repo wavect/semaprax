@@ -655,21 +655,15 @@ fn shapes_outside_owned_string_loops_v1_stay_refused() {
             "whole String replacement requires the explicit string-replacement-v1 profile"
         );
     }
-    // A condition re-evaluates outside the per-iteration body region, so it
-    // may create no String; named length inspection is allocation-free.
+    // Allocating conditions now have a per-iteration child region.
     for condition in [
         "string_len(string_concat(\"a\", \"b\")) < 9",
         "i < string_len(\"abc\")",
     ] {
         let found = diagnostics(&format!(
-            "    let text = \"x\";\n    let mut i = 0;\n    while {condition} {{\n        i = i + 1;\n        0\n    }}\n    i"
+            "let text=\"x\"; let mut i=0; while {condition} {{i=i+1;0}} i"
         ));
-        assert_eq!(found.len(), 1, "{found:?}");
-        assert_eq!(found[0].code, "SPX-T252");
-        assert_eq!(
-            found[0].message,
-            "string values are not admitted in while conditions; compute a scalar such as `string_len(text)` in the loop body and test that"
-        );
+        assert!(found.is_empty(), "{found:?}");
     }
     // Consuming an outer String inside the body changes loop-carried
     // ownership. The source verifier checks every while body as an ordinary
@@ -687,36 +681,34 @@ fn shapes_outside_owned_string_loops_v1_stay_refused() {
 }
 
 #[test]
-fn string_length_conditions_keep_allocating_and_consuming_shapes_refused() {
+fn string_conditions_allocate_only_inside_their_iteration_region() {
     for condition in [
         "string_len(\"a\") < 2",
-        "string_len(string_concat(text, \"b\")) < 2",
-        "string_len({ text }) < 2",
         "match 0 { n if string_len(\"guard\") > n => true, _ => false, }",
         "{ while false { string_len(text) } false }",
         "{ while false { while string_len(text) < 1 { 0 } 0 } false }",
-    ] {
-        let found = diagnostics(&format!(
-            "    let text = \"a\";\n    while {condition} {{ 0 }}\n    0"
-        ));
-        assert!(found.iter().any(|diagnostic| diagnostic.code == "SPX-T252"
-            && diagnostic.message == "string values are not admitted in while conditions; compute a scalar such as `string_len(text)` in the loop body and test that"), "{condition}: {found:?}");
-    }
-}
-
-#[test]
-fn string_predicate_conditions_keep_allocating_shapes_refused() {
-    for condition in [
         "string_is_empty(\"a\")",
-        "string_is_empty(string_concat(text, \"b\"))",
-        "string_starts_with(text, string_concat(prefix, \"b\"))",
-        "string_contains(text, { needle })",
+        "string_starts_with(text, string_concat(\"a\", \"b\"))",
+        "string_contains(text, string_concat(\"b\", \"c\"))",
     ] {
-        let found = diagnostics(&format!(
-            "    let text = \"abc\";\n    let prefix = \"a\";\n    let needle = \"b\";\n    while {condition} {{ 0 }}\n    0"
-        ));
-        assert!(found.iter().any(|diagnostic| diagnostic.code == "SPX-T252"
-            && diagnostic.message == "string values are not admitted in while conditions; compute a scalar such as `string_len(text)` in the loop body and test that"), "{condition}: {found:?}");
+        let source = format!(
+            "module condition; fn main()->i64 {{let text=\"abc\"; while {condition} {{0}} 0}}"
+        );
+        let program = parse(&source, Path::new("condition.spx")).unwrap();
+        let found = verify::verify(&program);
+        assert!(found.is_empty(), "{condition}: {found:?}");
+        hir::validate(&hir::resolve(&program).unwrap()).unwrap();
+    }
+    for condition in [
+        "string_len(string_concat(text, \"b\")) < 2",
+        "string_len({ text }) < 2",
+    ] {
+        let found = diagnostics(&format!("let text=\"a\"; while {condition} {{0}} 0"));
+        assert!(
+            found.iter().any(|d| d.code == "SPX-T252"
+                && d.message == "ownership of `text` changes inside a while condition"),
+            "{condition}: {found:?}"
+        );
     }
 }
 

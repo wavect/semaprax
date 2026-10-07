@@ -76,24 +76,8 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
     /// while loops, monomorphic calls to scalar-value functions, exact
     /// read-only `byte_len`/`byte_get`, and one guard-free direct
     /// `byte_get`/`Option<u8>` match. Every other construct is rejected
-    /// fail-closed so loop cleanup stays edge-free.
-    /// Owned String Loops v1: a `while` condition creates no owned String.
-    pub(super) fn reject_owned_string_condition(&mut self, condition: &'p Expr) {
-        let functions = &self.functions;
-        if let Some(span) = crate::string_ops::owned_string_in_condition(condition, &|name| {
-            functions.get(name).is_some_and(|function| {
-                function.return_type == Type::String
-                    || function.params.iter().any(|param| param.ty == Type::String)
-            })
-        }) {
-            self.diagnostics.push(error(
-                self.program,
-                "SPX-T252",
-                crate::string_ops::OWNED_STRING_CONDITION_MESSAGE,
-                span,
-            ));
-        }
-    }
+    /// fail-closed outside the admitted per-iteration lifetime profile.
+    /// Computed String conditions have a separate per-iteration cleanup region.
 
     pub(super) fn reject_while_disallowed(&mut self, expression: &'p Expr) -> Result<(), ()> {
         self.reject_iterator_body(expression, None)

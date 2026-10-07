@@ -267,6 +267,7 @@ impl Emitter<'_> {
         self.control_depth += 2;
         let condition_value = self.emit_expr(condition)?;
         self.require_scalar(&condition_value, &ResolvedType::Bool, "while condition")?;
+        self.emit_scalar_match_guard_cleanup(condition, condition)?;
         self.get_scalar(&condition_value);
         self.output.push(0x45); // i32.eqz
         self.output.extend([0x0d, 0x01]); // br_if 1 -> $exit on false

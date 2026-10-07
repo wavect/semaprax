@@ -2367,6 +2367,7 @@ impl<'a> HirValidator<'a> {
                 outer_ids: Vec<ValueId>,
                 path: String,
                 body: &'e ResolvedExpr,
+                entry: BTreeMap<ValueId, ValidationBinding>,
             },
             BlockAfterWhileBody {
                 expression: &'e ResolvedExpr,
@@ -4218,6 +4219,7 @@ impl<'a> HirValidator<'a> {
                                     outer_ids,
                                     path: path.clone(),
                                     body,
+                                    entry: scope.clone(),
                                 });
                                 let enabled = publication.enabled;
                                 publication.enabled = false;
@@ -4273,6 +4275,7 @@ impl<'a> HirValidator<'a> {
                     outer_ids,
                     path,
                     body,
+                    entry,
                 } => {
                     // The condition validated like any expression; it must be
                     // exactly `bool` because it re-evaluates before every
@@ -4281,6 +4284,9 @@ impl<'a> HirValidator<'a> {
                     let ResolvedStatement::While { condition, .. } = &statements[index] else {
                         unreachable!("while condition frame resumes at a while statement")
                     };
+                    if scope != entry {
+                        return Err(hir_error("while condition changes ownership liveness"));
+                    }
                     if condition.ty != ResolvedType::Bool {
                         return Err(hir_error("`while` condition must be bool"));
                     }
@@ -6977,6 +6983,11 @@ impl<'a> HirValidator<'a> {
                             )?;
                             if condition.ty != ResolvedType::Bool {
                                 return Err(hir_error("`while` condition must be bool"));
+                            }
+                            if block_scope != entry_scope {
+                                return Err(hir_error(
+                                    "while condition changes ownership liveness",
+                                ));
                             }
                             self.validate_expr_recursive_reference(
                                 function,

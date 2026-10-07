@@ -86,6 +86,8 @@ pub(super) enum VerifierFrame<'a> {
     },
     ResumeWhileCondition {
         condition: &'a Expr,
+        block_scope: usize,
+        baseline_bindings: HashMap<String, Binding>,
     },
     ResumeWhileBody {
         expression: &'a Expr,
@@ -479,6 +481,17 @@ pub(super) fn verifier_frame_owned_capacity(frame: &VerifierFrame<'_>) -> usize 
         VerifierFrame::ResumeBlockStatement { outer_names, .. }
         | VerifierFrame::ResumeBlockTail { outer_names, .. }
         | VerifierFrame::ResumeRecordMatchArm { outer_names, .. } => strings(outer_names),
+        VerifierFrame::ResumeWhileCondition {
+            baseline_bindings, ..
+        } => baseline_bindings
+            .capacity()
+            .saturating_mul(std::mem::size_of::<(String, Binding)>())
+            .saturating_add(
+                baseline_bindings
+                    .iter()
+                    .map(|(name, binding)| name.capacity() + binding_owned_capacity(binding))
+                    .sum::<usize>(),
+            ),
         VerifierFrame::ResumeWhileBody {
             outer_names,
             baseline_names,

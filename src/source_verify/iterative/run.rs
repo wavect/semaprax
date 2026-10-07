@@ -151,8 +151,12 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     index,
                     outer_names,
                 )?,
-                VerifierFrame::ResumeWhileCondition { condition, .. } => {
-                    self.frame_resume_while_condition(condition)?
+                VerifierFrame::ResumeWhileCondition {
+                    condition,
+                    block_scope,
+                    baseline_bindings,
+                } => {
+                    self.frame_resume_while_condition(condition, block_scope, baseline_bindings)?
                 }
                 VerifierFrame::ResumeWhileBody {
                     expression,

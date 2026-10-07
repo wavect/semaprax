@@ -7,34 +7,10 @@
 
 use std::collections::BTreeSet;
 
-use crate::ast::{Expr, ExprKind};
 use crate::hir::{
     ExpressionId, OwnershipMode, ResolvedExpr, ResolvedExprKind, ResolvedFunction,
     ResolvedStatement, ResolvedType,
 };
-
-pub(crate) fn source_named_read(expression: &Expr) -> bool {
-    let ExprKind::Call {
-        name,
-        type_arguments,
-        args,
-    } = &expression.kind
-    else {
-        return false;
-    };
-    let Some(op) = super::by_name(name) else {
-        return false;
-    };
-    is_condition_read(op)
-        && type_arguments.is_empty()
-        && args.len() == op.arity()
-        && args.iter().enumerate().all(|(index, argument)| {
-            op.param_types().get(index) == Some(&ResolvedType::String)
-                && op.param_ownership(index) == OwnershipMode::Borrow
-                && matches!(argument.kind, ExprKind::Var(_))
-        })
-        && matches!(op.return_type(), ResolvedType::I64 | ResolvedType::Bool)
-}
 
 fn is_condition_read(op: super::StringOp) -> bool {
     matches!(
@@ -119,4 +95,18 @@ pub(crate) fn function_reads(function: &ResolvedFunction) -> BTreeSet<Expression
         pending.extend(crate::interpreter::trace_child_expressions(expression));
     }
     reads
+}
+
+/// A condition needs its own lifetime if it creates String storage beyond
+/// authenticated allocation-free reads. Independently derived from core HIR.
+pub(crate) fn needs_cleanup(condition: &ResolvedExpr) -> bool {
+    let reads = condition_reads(condition);
+    let mut pending = vec![condition];
+    while let Some(expression) = pending.pop() {
+        if expression.ty == ResolvedType::String && !reads.contains(&expression.id) {
+            return true;
+        }
+        crate::hir::push_resolved_expression_children_in_authored_order(expression, &mut pending);
+    }
+    false
 }

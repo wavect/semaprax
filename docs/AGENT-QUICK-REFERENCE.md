@@ -170,13 +170,14 @@ fn main() -> i64
   strings). Match arms may yield strings. Concrete variants with only Copy
   scalar payloads may be constructed there, including direct match scrutinees;
   record/non-Copy variant construction, other aggregate-returning calls, and
-  allocating String conditions are `SPX-T252`. Exact variant-case guards admit scalar
+  surrounding ownership changes are `SPX-T252`. Conditions settle temporary
+  Strings before each Boolean decision ([condition lifetime](STRING-CONDITION-LIFETIMES-V1.md)). Exact variant-case guards admit scalar
   literals/bindings/operators and require exhaustive unguarded fallback coverage
   ([guard profile](COPY-VARIANT-GUARDS-V1.md)).
 - Bindings are immutable unless `let mut`. Assignment is a statement:
   `x = x + 1;` or `point.x = 5;`. Parameters are immutable. A `let mut`
-  string grows only by the append `text = string_concat(text, more);`, which
-  moves the old text into the call; other string reassignment is `SPX-U105`.
+  string can be replaced by a same-typed RHS; the completed RHS becomes its
+  new owner after the old owner is released ([replacement](STRING-REPLACEMENT-V1.md)).
 - Contracts are `requires`/`ensures` lines between the signature and the body;
   `result` names the return value. They are checked at run time.
 - Effects: the module lists `permit { … }`, and every function that performs
@@ -634,7 +635,7 @@ replacement. See [Whole String Replacement v1](STRING-REPLACEMENT-V1.md).
 String loops allow named reads via `string_len`, `string_is_empty`,
 `string_starts_with`, and `string_contains`
 ([predicates](BORROWED-STRING-PREDICATE-CONDITIONS-V1.md)). Computed String
-conditions remain `SPX-T252`:
+conditions also admit temporary Strings with per-iteration cleanup:
 
 ```semaprax
 module app.join;
@@ -661,10 +662,10 @@ fn main() -> i64
 
 `semaprax run join.spx` prints `0,1,2,3,4`. `while string_len(text) < 4` is
 admitted for an available named String owner: the condition reads its current
-byte length without allocating. String literals and produced strings in
-conditions retain `SPX-T252`; for those, compute a scalar in the body and test
-that scalar on the next iteration. `text = "b";` on a string is `SPX-U105`; append with
-`text = string_concat(text, "b");` or bind a new name.
+byte length without allocating. Literals, produced Strings, nested blocks and
+String-returning helpers in a condition settle their temporaries before both
+Boolean outcomes. Consuming an enclosing owner is `SPX-T252`; keep it available
+for the next iteration. Mutable Strings also accept `text = "b";`.
 
 ## Command-line programs
 

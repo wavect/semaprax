@@ -37,19 +37,6 @@ pub(super) fn check_while_statement(
             condition.span,
         ));
     }
-    if let Some(span) = crate::string_ops::owned_string_in_condition(condition, &|name| {
-        functions.get(name).is_some_and(|function| {
-            function.return_type == Type::String
-                || function.params.iter().any(|param| param.ty == Type::String)
-        })
-    }) {
-        diagnostics.push(error(
-            program,
-            "SPX-T252",
-            crate::string_ops::OWNED_STRING_CONDITION_MESSAGE,
-            span,
-        ));
-    }
     let _ = reject_while_disallowed_oracle(program, condition, functions, types, diagnostics);
     let _ = reject_while_disallowed_oracle(program, body, functions, types, diagnostics);
     let baseline = variables.clone();
@@ -74,6 +61,23 @@ pub(super) fn check_while_statement(
                 program,
                 "SPX-T251",
                 "`while` condition must be bool",
+                condition.span,
+            ));
+        }
+    }
+    let mut names = baseline.keys().collect::<Vec<_>>();
+    names.sort();
+    for name in names {
+        let before = &baseline[name];
+        if variables.get(name).is_none_or(|now| {
+            now.availability != before.availability
+                || now.moved_places != before.moved_places
+                || now.definitely_partial != before.definitely_partial
+        }) {
+            diagnostics.push(error(
+                program,
+                "SPX-T252",
+                format!("ownership of `{name}` changes inside a while condition"),
                 condition.span,
             ));
         }

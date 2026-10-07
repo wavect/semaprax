@@ -916,6 +916,13 @@ not select reservations or grant runtime authority. Source and HIR generic
 collection classifiers admit the bounded one- or two-type-parameter operation
 shape; cache encoding retains its exact ordered type vector and renewal facts.
 
+`src/cleanup_plan/build/while_condition.rs` derives optional condition child
+regions, settles them before both Boolean outcomes and checks entry-state
+preservation. String condition read classification remains in
+`src/string_ops/conditions.rs`; independent source/HIR loop validation checks
+surrounding ownership before body evaluation. Native and aggregate Wasm use
+the canonical scoped Boolean exit hooks for condition temporaries.
+
 `src/hir/vec_loop_renewal.rs` separately derives direct same-binding scalar Vec
 updates in ordinary `while` bodies, excluding authenticated consuming traversal.
 `src/cleanup_plan/renewal_profile.rs` supplies that exact site identity to build

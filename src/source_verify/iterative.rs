@@ -188,7 +188,6 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 condition.span,
             ));
         }
-        self.reject_owned_string_condition(condition);
         self.loop_depth += 1;
         let _ = self.reject_while_disallowed(condition);
         let _ = self.reject_while_disallowed(body);
@@ -208,7 +207,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             outer_names,
             statement_span: condition.span.merge(body.span),
             baseline_names,
-            baseline_bindings,
+            baseline_bindings: baseline_bindings.clone(),
         });
         // The body is an ordinary block in the loop's scope: it verifies
         // with its own child scope after the condition, and
@@ -217,8 +216,11 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             expression: body,
             scope: block_scope,
         });
-        self.frames
-            .push(VerifierFrame::ResumeWhileCondition { condition });
+        self.frames.push(VerifierFrame::ResumeWhileCondition {
+            condition,
+            block_scope,
+            baseline_bindings,
+        });
         self.frames.push(VerifierFrame::Enter {
             expression: condition,
             scope: block_scope,

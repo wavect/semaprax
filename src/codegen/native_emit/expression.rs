@@ -1386,13 +1386,14 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             // straight-line failures.
                             self.line("for (;;) {");
                             self.indent += 1;
-                            let condition = self.emit_expr(condition)?;
+                            let condition_value = self.emit_expr(condition)?;
                             self.require_type(
-                                &condition.ty,
+                                &condition_value.ty,
                                 &ResolvedType::Bool,
                                 "while condition",
                             )?;
-                            self.line(&format!("if (!({})) break;", condition.code));
+                            self.emit_scalar_match_guard_scope_exit(condition)?;
+                            self.line(&format!("if (!({})) break;", condition_value.code));
                             self.semantic_charge();
                             let body_value = self.emit_expr(body)?;
                             if matches!(body_value.ty, ResolvedType::String) {

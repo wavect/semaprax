@@ -3,7 +3,9 @@
 Audience: language users and compiler contributors.
 
 Status: bounded additive source profile; current-head verification pending.
-This is an additional narrow slice of #592. The existing named length profile,
+This is the allocation-free slice of #592. The additive
+[String Condition Lifetimes v1](STRING-CONDITION-LIFETIMES-V1.md) also authors
+computed conditions with their own per-iteration cleanup region. The existing named length profile,
 loop syntax, cleanup-plan schema, interpreter entry points, native ABI, Wasm
 profile selection, and capabilities remain unchanged.
 
@@ -56,21 +58,18 @@ borrowed operations over the current String carriers. No loop back-edge,
 condition cleanup region, ownership transition, public ABI, or schema change is
 introduced.
 
-## Still refused
+## Composition
 
-String literals, computed or projected String operands, String-producing or
-consuming operations, arbitrary user functions with String parameters, and
-other String operations in conditions remain `SPX-T252`. In particular, this
-profile does not permit `string_concat`, `string_slice`, or `string_trim` in a
-condition. Such expressions need a distinct cleanup region that settles
-before both Boolean outcomes and before the next condition evaluation. The
-existing named String length profile remains the only admitted length form:
-`string_len` must likewise take one direct named String Place.
+Computed String operands use the separate additive
+[String Condition Lifetimes v1](STRING-CONDITION-LIFETIMES-V1.md) region;
+this named-read profile continues to allocate no condition storage. Consuming
+an enclosing owner is rejected before the body with `SPX-T252`. The broader
+profile does not grant new effects or admit otherwise unsupported loop shapes.
 
 Wrong intrinsic types and arities retain their ordinary source diagnostics;
 malformed typed HIR fails independently with `SPX-H006`. An owner may be read
-again after a same-owner append, but moving or replacing an outer owner in a
-loop remains refused by the existing loop ownership rules.
+again after a same-owner append or valid whole replacement. Consuming an outer
+owner without restoring its canonical loop state remains refused.
 
 ## Focused gate
 

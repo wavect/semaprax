@@ -179,7 +179,10 @@ mod function_values_generic;
 #[path = "language/stream_text_command.rs"]
 mod stream_text_command;
 
-#[path = "language/string_ordering.rs"]
-mod string_ordering;
 #[path = "language/owned_string_records_v1.rs"]
 mod owned_string_records_v1;
+#[path = "language/string_ordering.rs"]
+mod string_ordering;
+
+#[path = "language/string_conditions.rs"]
+mod string_conditions;

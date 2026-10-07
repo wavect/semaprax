@@ -1,5 +1,10 @@
 # Changelog
 
+- Author per-iteration String condition lifetimes: condition-local owners settle
+  before both Boolean outcomes, failures keep their ordinary sticky status,
+  and source/HIR admission rejects surrounding ownership drift before the body.
+  Named reads retain their allocation-free path. Focused verification is pending.
+
 - Author Copy-scalar `vec_sort<T>` with an allocation-free native heapsort,
   interpreter total ordering and an additive authenticated Wasm host operation;
   add unsigned UTF-8 String relational operators across source and HIR checking,

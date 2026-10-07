@@ -161,6 +161,8 @@ Audience: all documentation readers.
 - [Owned String loops v2](OWNED-STRING-LOOPS-V2.md)
 - [Loop Copy variant construction](LOOP-COPY-VARIANT-CONSTRUCTION-V1.md)
 - [Whole String replacement v1](STRING-REPLACEMENT-V1.md)
+- [String condition lifetimes](STRING-CONDITION-LIFETIMES-V1.md)
+- [Copy scalar sort](COPY-SCALAR-SORT-V1.md)
 - [Named String length conditions](STRING-LENGTH-CONDITIONS-V1.md)
 - [Borrowed String predicate conditions](BORROWED-STRING-PREDICATE-CONDITIONS-V1.md)
 - [Text Toolkit and command-line programs](TEXT-TOOLKIT-V1.md)

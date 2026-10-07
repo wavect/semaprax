@@ -47,6 +47,7 @@ mod string_replacement;
 mod strings;
 mod transfer;
 mod type_shape;
+mod while_condition;
 const UNRESOLVED_EXIT: ExitTargetId = ExitTargetId(u32::MAX);
 #[cfg(test)]
 const CLEANUP_EVAL_RESULT_SIZE_CEILING: usize = 192;
@@ -1407,62 +1408,6 @@ impl<'a> PlanBuilder<'a> {
             ExitContinuation::ReturnFailure { source },
         )?;
         Ok(())
-    }
-
-    /// Linearize one admitted iteration: a scalar condition (including exact
-    /// named String length inspection) branches to the body or continuation.
-    /// Body cleanup must restore entry ownership, so every physical iteration
-    /// repeats the same checked lifecycle without a CleanupPlan back-edge.
-    fn lower_while(
-        &mut self,
-        condition: &ResolvedExpr,
-        body: &ResolvedExpr,
-        block: BlockId,
-        state: FlowState,
-        region: CleanupRegionId,
-    ) -> Result<EvalResult, Diagnostic> {
-        let entry_state = state.clone();
-        let evaluated_condition = self.lower_expr(condition, block, state, region)?;
-        if evaluated_condition.owned_source.is_some() {
-            return Err(plan_error(
-                "while condition owns a value, which no admitted program can express",
-            ));
-        }
-        let body_entry = self.new_block(region)?;
-        let after = self.new_block(region)?;
-        let true_edge = self.new_edge(
-            evaluated_condition.block,
-            body_entry,
-            EdgeCondition::BooleanResult(condition.id.clone(), true),
-        )?;
-        let false_edge = self.new_edge(
-            evaluated_condition.block,
-            after,
-            EdgeCondition::BooleanResult(condition.id.clone(), false),
-        )?;
-        self.terminate(
-            evaluated_condition.block,
-            CleanupTerminator::Branch(vec![true_edge, false_edge]),
-        )?;
-
-        // The body is an ordinary checked block; lowering it once yields the
-        // exact per-iteration ownership events of any iteration count.
-        let evaluated_body =
-            self.lower_expr(body, body_entry, evaluated_condition.state.clone(), region)?;
-        if evaluated_body.state != evaluated_condition.state
-            || evaluated_body.owned_source.is_some()
-        {
-            return Err(plan_error(
-                "while loop body changes owned liveness, which the Bounded While-Loops v1 admission profile forbids",
-            ));
-        }
-        let join_edge = self.new_edge(evaluated_body.block, after, EdgeCondition::Always)?;
-        self.terminate(evaluated_body.block, CleanupTerminator::Goto(join_edge))?;
-        Ok(EvalResult {
-            block: after,
-            state: entry_state,
-            owned_source: None,
-        })
     }
 
     fn split_status(

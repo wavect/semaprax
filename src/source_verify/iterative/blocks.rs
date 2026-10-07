@@ -502,6 +502,8 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
     pub(super) fn frame_resume_while_condition(
         &mut self,
         condition: &'p Expr,
+        block_scope: usize,
+        baseline: HashMap<String, Binding>,
     ) -> Result<(), Diagnostic> {
         // The condition is re-evaluated before every iteration and
         // must be exactly `bool`.
@@ -514,6 +516,27 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     self.program,
                     "SPX-T251",
                     "`while` condition must be bool",
+                    condition.span,
+                ));
+            }
+        }
+        let mut names = baseline.keys().collect::<Vec<_>>();
+        names.sort();
+        for name in names {
+            let before = &baseline[name];
+            if self.scopes[block_scope]
+                .bindings
+                .get(name)
+                .is_none_or(|now| {
+                    now.availability != before.availability
+                        || now.moved_places != before.moved_places
+                        || now.definitely_partial != before.definitely_partial
+                })
+            {
+                self.diagnostics.push(error(
+                    self.program,
+                    "SPX-T252",
+                    format!("ownership of `{name}` changes inside a while condition"),
                     condition.span,
                 ));
             }

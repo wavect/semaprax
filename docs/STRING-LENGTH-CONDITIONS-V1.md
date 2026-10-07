@@ -3,8 +3,9 @@
 Audience: language users and compiler contributors.
 
 Status: bounded additive source profile, gated by the tests below. This is
-the first narrow slice of #592; general String evaluation in loop conditions
-remains open. Existing interpreter entry points, native ABI, Wasm profile
+the allocation-free slice of #592. The additive
+[String Condition Lifetimes v1](STRING-CONDITION-LIFETIMES-V1.md) authors
+general admitted String evaluation with a separate condition region. Existing interpreter entry points, native ABI, Wasm profile
 selection, schemas, and capabilities remain unchanged.
 
 This versioned profile remains limited to `string_len`. The separate additive
@@ -50,8 +51,8 @@ The set comes only from actual while-condition trees; body reads and ordinary
 straight-line calls retain their existing clone behavior.
 If a condition block contains a nested while statement, its condition may use
 this inspection, but its body is outside the outer condition's derived read
-set. String operations in that nested body, including further nested loop
-conditions, remain source `SPX-T252` even when the body would be skipped.
+set. The additive condition lifetime profile settles String storage in those
+nested bodies and conditions using their own canonical regions.
 
 The cleanup builder and independent replay derive the same inspected reads
 from typed HIR, rather than accepting attached plan claims. Such a read has

@@ -30,6 +30,8 @@ use super::{
     CLEANUP_PLAN_SCHEMA_V6, CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
 };
 mod factored;
+mod leaf_index;
+use leaf_index::Leaves;
 mod path_summary;
 mod skeleton_bound;
 mod skeleton_work;
@@ -1882,9 +1884,7 @@ fn validate_slots(function: &ResolvedFunction) -> Result<BTreeSet<StorageId>, Di
     Ok(storage)
 }
 
-fn collect_leaves(
-    function: &ResolvedFunction,
-) -> Result<BTreeMap<LivenessFlagId, Leaf>, Diagnostic> {
+fn collect_leaves(function: &ResolvedFunction) -> Result<Leaves, Diagnostic> {
     let mut leaves = BTreeMap::new();
     let mut places = BTreeSet::new();
     for slot in &function.cleanup_plan.slots {
@@ -1905,7 +1905,7 @@ fn collect_leaves(
             ));
         }
     }
-    Ok(leaves)
+    Ok(Leaves::new(leaves))
 }
 
 fn collect_shape(
@@ -2212,7 +2212,7 @@ fn validate_regions(
 fn validate_entry(
     function: &ResolvedFunction,
     storage: &BTreeSet<StorageId>,
-    leaves: &BTreeMap<LivenessFlagId, Leaf>,
+    leaves: &Leaves,
 ) -> Result<(), Diagnostic> {
     let plan = &function.cleanup_plan;
     if usize::try_from(plan.entry.0)
@@ -2239,7 +2239,7 @@ fn validate_blocks_and_edges(
     function: &ResolvedFunction,
     expressions: &BTreeMap<ExpressionId, Option<CallFact>>,
     storage: &BTreeSet<StorageId>,
-    leaves: &BTreeMap<LivenessFlagId, Leaf>,
+    leaves: &Leaves,
 ) -> Result<(), Diagnostic> {
     let plan = &function.cleanup_plan;
     let statuses = plan
@@ -2630,7 +2630,7 @@ fn validate_exits(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
     storage: &BTreeSet<StorageId>,
-    leaves: &BTreeMap<LivenessFlagId, Leaf>,
+    leaves: &Leaves,
 ) -> Result<(), Diagnostic> {
     let plan = &function.cleanup_plan;
     let statuses = plan
@@ -6625,7 +6625,7 @@ fn execute_replay_transition(
     transition: &CleanupTransition,
     state: &mut PathState,
     storage: &BTreeSet<StorageId>,
-    leaves: &BTreeMap<LivenessFlagId, Leaf>,
+    leaves: &Leaves,
 ) -> Result<(), Diagnostic> {
     if state.published {
         return Err(replay_error(
@@ -6897,7 +6897,7 @@ fn replay_transfer(
     source: &CleanupPlace,
     destination: &CleanupPlace,
     storage: &BTreeSet<StorageId>,
-    leaves: &BTreeMap<LivenessFlagId, Leaf>,
+    leaves: &Leaves,
 ) -> Result<(), Diagnostic> {
     let source_flags = validate_place(function, source, storage, leaves)?;
     let destination_flags = validate_place(function, destination, storage, leaves)?;
@@ -6990,7 +6990,7 @@ fn materialize_constructed_variant(
     source: &CleanupPlace,
     variant: &DeclarationId,
     storage: &BTreeSet<StorageId>,
-    leaves: &BTreeMap<LivenessFlagId, Leaf>,
+    leaves: &Leaves,
 ) -> Result<(), Diagnostic> {
     let StorageId::Temporary(expression) = &source.storage else {
         return Err(replay_error(
@@ -7109,7 +7109,7 @@ fn transfer_mapping(
     function: &ResolvedFunction,
     source: &CleanupPlace,
     destination: &CleanupPlace,
-    leaves: &BTreeMap<LivenessFlagId, Leaf>,
+    leaves: &Leaves,
 ) -> Result<BTreeMap<LivenessFlagId, LivenessFlagId>, Diagnostic> {
     let mut mapping = BTreeMap::new();
     let mut destinations = BTreeSet::new();
@@ -7217,7 +7217,7 @@ fn replay_exit(
     mut state: PathState,
     storage_regions: &BTreeMap<StorageId, CleanupRegionId>,
     storage: &BTreeSet<StorageId>,
-    leaves: &BTreeMap<LivenessFlagId, Leaf>,
+    leaves: &Leaves,
 ) -> Result<Option<(EdgeId, PathState)>, Diagnostic> {
     if state.published {
         return Err(replay_error(function, "cleanup exit follows publication"));
@@ -7776,7 +7776,7 @@ fn validate_place(
     function: &ResolvedFunction,
     place: &CleanupPlace,
     storage: &BTreeSet<StorageId>,
-    leaves: &BTreeMap<LivenessFlagId, Leaf>,
+    leaves: &Leaves,
 ) -> Result<Vec<LivenessFlagId>, Diagnostic> {
     if !storage.contains(&place.storage) {
         return Err(replay_error(
@@ -7784,14 +7784,7 @@ fn validate_place(
             "cleanup place references unknown storage",
         ));
     }
-    let under = leaves
-        .iter()
-        .filter_map(|(flag, leaf)| {
-            (leaf.place.storage == place.storage
-                && leaf.place.projections.starts_with(&place.projections))
-            .then_some(*flag)
-        })
-        .collect::<Vec<_>>();
+    let under = leaves.under(place);
     if under.is_empty() {
         return Err(replay_error(
             function,

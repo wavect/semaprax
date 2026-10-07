@@ -40,7 +40,7 @@ pub(super) fn reserve(
     binding: &CleanupPlace,
     state: &mut PathState,
     storage: &BTreeSet<StorageId>,
-    leaves: &BTreeMap<LivenessFlagId, Leaf>,
+    leaves: &Leaves,
 ) -> Result<(), Diagnostic> {
     validate_binding(function, at, binding)?;
     let flags = validate_place(function, binding, storage, leaves)?;
@@ -60,7 +60,7 @@ pub(super) fn renew(
     destination: &CleanupPlace,
     state: &mut PathState,
     storage: &BTreeSet<StorageId>,
-    leaves: &BTreeMap<LivenessFlagId, Leaf>,
+    leaves: &Leaves,
 ) -> Result<(), Diagnostic> {
     validate_binding(function, at, destination)?;
     let history = state

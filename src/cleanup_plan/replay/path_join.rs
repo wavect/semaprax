@@ -6,7 +6,7 @@ pub(super) fn validate_path_states(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
     storage: &BTreeSet<StorageId>,
-    leaves: &BTreeMap<LivenessFlagId, Leaf>,
+    leaves: &Leaves,
     budget: &mut ReplayBudget,
 ) -> Result<(), Diagnostic> {
     let plan = &function.cleanup_plan;

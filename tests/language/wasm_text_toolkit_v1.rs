@@ -16,7 +16,7 @@ fn wasm_case(body: &str, expected: &str) {
         r#"import {{readFile}} from 'node:fs/promises';
 import {{instantiateBytes,semanticStatus}} from './semaprax.js';
 const bytes=await readFile('./app.wasm');
-const {{instance}}=await instantiateBytes(bytes,{{maxOwnedByteEntries:2}});
+const {{instance}}=await instantiateBytes(bytes,{{maxOwnedByteEntries:4}});
 for(let i=0;i<8;i++) {{ {expected} }}
 "#
     );
@@ -222,8 +222,9 @@ module test.standalone_toolkit;
     match own value { Choice::Empty {} => 0, Choice::Text { value: text, marker } => string_len(string_slice(text, 2, 4)) + marker, }
 }
 @id("app.variants") fn variants() -> i64 {
-    let value = make(); let borrowed = measure(value); borrowed + consume(value)
+    let value = make(); let borrowed = measure(value); borrowed + consume(value) + consume(Choice::Empty {})
 }
+@id("app.option") fn option() -> i64 { let value=Option<string>::Some { value:"text" }; match own value { Option::Some { value:text } => string_len(text), Option::None {} => 0, } }
 @id("app.text") fn text() -> i64 {
     let owned = " \té\r\n"; let trimmed = string_trim(owned);
     let view = string_as_str(trimmed); let copied = string_from_str(view);
@@ -235,6 +236,13 @@ module test.standalone_toolkit;
 }
 @id("app.failed") fn failed() -> i64 { let value = make(); let borrowed = measure(value); string_len(string_slice("é", 1, 2)) + borrowed }
 @id("app.convert") fn convert() -> i64 { let owned = "held"; i64_from_f64(f64_from_i64(9007199254740993)) + string_len(owned) }
+@id("app.integer") fn integer() -> i64 { let owned = "held"; i64_from_i32(-3i32) + i64_from_usize(usize_from_u8(255u8)) + string_len(owned) }
+@id("app.replace") fn replace() -> i64 { let mut value=""; let mut i=0; while i<3 { value=string_concat(value,string_from_i64(i)); i=i+1; } string_len(value) }
+@id("app.guard") fn guarded() -> i64 {
+    let mut i=0; let mut sum=0;
+    while i<3 { let choice=Option<i64>::Some { value:i }; sum=sum+match choice { Option::Some { value:n } if string_len(string_trim(" x "))>0 => n, _ => 99, }; i=i+1; }
+    sum
+}
 "#;
 
 #[test]
@@ -247,10 +255,14 @@ fn standalone_toolkit_transports_owned_variants_and_checked_text_with_bounded_se
             "app.ordering",
             "app.failed",
             "app.convert",
+            "app.option",
+            "app.integer",
+            "app.replace",
+            "app.guard",
         ],
         r#"
 for(let i=0;i<8;i++){
-  for(const [id,value] of [['app.variants',14n],['app.text',206n],['app.ordering',true],['app.convert',9007199254740996n]]){
+  for(const [id,value] of [['app.variants',14n],['app.text',206n],['app.ordering',true],['app.convert',9007199254740996n],['app.option',4n],['app.integer',256n],['app.replace',3n],['app.guard',3n]]){
     const result=runtime.call(id);if(result.kind!=='success'||result.value!==value)throw Error('toolkit value '+id);
   }
   const failed=runtime.call('app.failed');if(failed.kind!=='failure'||failed.domain!=='semaprax.text.v1'||failed.code!==2)throw Error('toolkit failure changed');

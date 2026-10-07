@@ -63,3 +63,32 @@ fn toolkit_runtime_source_authenticates_exact_optional_import_tail() {
         .sum::<u32>();
     assert_eq!(imports, 14);
 }
+
+#[test]
+fn toolkit_owned_variant_layout_rejects_copy_and_byte_carrier_forgeries() {
+    use crate::variant_layout::{VariantFieldValueKind, VariantLayout, VariantTarget};
+    let resolved = crate::hir::resolve(&program(SOURCE)).unwrap();
+    for target in [VariantTarget::Native64, VariantTarget::Wasm32] {
+        let layout =
+            VariantLayout::for_variant(&resolved, target, &DeclarationId::new("choice")).unwrap();
+        assert_eq!(
+            layout.cases[1].fields[0].value_kind,
+            VariantFieldValueKind::OwnedString
+        );
+        assert_eq!(
+            (
+                layout.cases[1].fields[0].size,
+                layout.cases[1].fields[0].align
+            ),
+            (8, 8)
+        );
+        for kind in [
+            VariantFieldValueKind::Copy,
+            VariantFieldValueKind::OwnedBytes,
+        ] {
+            let mut forged = layout.clone();
+            forged.cases[1].fields[0].value_kind = kind;
+            assert!(forged.validate(&resolved).is_err());
+        }
+    }
+}

@@ -269,7 +269,7 @@ fn prepare_profile(
                         .iter()
                         .all(|arm| arm.pattern_is_literal_or_irrefutable()) => {}
                 ResolvedExprKind::Match { scrutinee, .. }
-                    if toolkit && hir::is_admitted_owned_string_variant(&program.declarations, &scrutinee.ty) => {}
+                    if toolkit && (hir::is_admitted_owned_string_variant(&program.declarations, &scrutinee.ty) || hir::is_admitted_copy_aggregate_variant_field(&program.declarations, &scrutinee.ty)) => {}
                 ResolvedExprKind::Match { scrutinee, mode, .. }
                     if copy_variants && *mode == hir::ResolvedMatchMode::Value && crate::variant_guards::copy_variant(&program.declarations, &scrutinee.ty) => {}
                 ResolvedExprKind::Match { scrutinee, .. }

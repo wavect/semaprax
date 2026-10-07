@@ -66,6 +66,7 @@ pub(in crate::wasm) fn refuse_unimplemented_collections(
             if let Some(operation) = crate::string_ops::by_id(callee.as_str()).filter(|operation| {
                 (operation.is_collection() && *operation != crate::string_ops::StringOp::Compare)
                     || (operation.is_conversion()
+                        && !operation.is_integer_conversion()
                         && !conversions::admitted(*operation)
                         && !text_toolkit::admitted(*operation))
             }) {

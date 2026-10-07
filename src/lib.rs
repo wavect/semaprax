@@ -411,6 +411,7 @@ pub mod static_protocol;
 pub(crate) mod str_ops;
 pub mod streaming_proposal_decode;
 pub(crate) mod string_ops;
+pub mod source_command;
 pub mod structured_tasks;
 pub mod target_evidence;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]

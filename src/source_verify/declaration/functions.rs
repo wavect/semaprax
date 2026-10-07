@@ -1298,6 +1298,16 @@ pub(super) fn check_function_bodies<'p>(
                 &function_value_targets,
             ) {
                 let span = function.body.span;
+                if let Some(effect) = crate::string_ops::by_name(&callee)
+                    .and_then(crate::string_ops::StringOp::effect)
+                {
+                    if !declared.contains(effect) {
+                        diagnostics.push(crate::source_verify::hints::missing_effect(
+                            program, &callee, effect, function, span,
+                        ));
+                    }
+                    continue;
+                }
                 if let Some(op) = crate::host_io_ops::by_name(&callee) {
                     if !declared.contains(op.effect()) {
                         diagnostics.push(crate::source_verify::hints::missing_effect(

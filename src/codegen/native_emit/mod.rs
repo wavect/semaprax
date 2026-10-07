@@ -3,7 +3,7 @@ pub(crate) mod public_generic_bridge;
 use super::{
     backend_error, c_i32, c_i64, native_box, native_byte_data, native_bytes, native_command,
     native_command_io, native_host_output, native_iter, native_resource, native_runtime,
-    native_vec, resource_lowering_gate, COutput, NATIVE_SCALAR_RUNTIME_C,
+    native_source_command, native_vec, resource_lowering_gate, COutput, NATIVE_SCALAR_RUNTIME_C,
 };
 #[cfg(test)]
 use super::{
@@ -42,9 +42,11 @@ mod nested_owned;
 mod network_io;
 mod output_profile;
 mod owned_strings;
+mod scope_anchors;
 mod string_ops;
 mod string_views;
 mod symbols;
+mod text_toolkit;
 #[cfg(test)]
 use compiler::write_and_compile_c_with_runner;
 pub(super) use compiler::{
@@ -162,6 +164,8 @@ fn emit_hir_c_with_options(
     } else if output_profile == NativeOutputProfile::LanguageCommandIo {
         native_host_output::emit_language_command_runtime(&mut output);
         native_command_io::emit_runtime(&mut output);
+    } else if output_profile == NativeOutputProfile::SourceCommand {
+        native_source_command::emit_runtime(&mut output, program);
     } else if output_profile.supports_stdout_transcript() {
         native_host_output::emit_runtime(&mut output);
     }
@@ -268,6 +272,10 @@ fn emit_hir_c_with_options(
             .symbol;
         if output_profile == NativeOutputProfile::StdoutTranscript {
             native_host_output::emit_root_wrapper(&mut output, symbol);
+            return Ok(output.into_string());
+        }
+        if output_profile == NativeOutputProfile::SourceCommand {
+            native_source_command::emit_process_adapter(&mut output, symbol);
             return Ok(output.into_string());
         }
         write!(
@@ -430,8 +438,9 @@ fn emit_native_prelude_inner(
     command_carriers: bool,
     strings: StringRuntimeSelection,
 ) {
-    let needs_borrowed_str =
-        command_carriers || program_uses_borrowed_str(program, strings.include_instances);
+    let needs_borrowed_str = command_carriers
+        || strings.command_carriers
+        || program_uses_borrowed_str(program, strings.include_instances);
     native_runtime::emit_status_runtime_for_profile(
         output,
         needs_borrowed_str || program_uses_byte_data(program) || strings.provider_carriers,
@@ -491,6 +500,11 @@ fn emit_native_prelude_inner(
     if program_uses_numeric_text(program, strings.include_instances) {
         output.push_str(NATIVE_NUMERIC_TEXT_RUNTIME_C);
     }
+    if strings.length_delimited
+        && text_toolkit::program_uses_text_toolkit(program, strings.include_instances)
+    {
+        output.push_str(text_toolkit::RUNTIME_C);
+    }
     if needs_borrowed_str {
         // Borrowed text is a distinct length-aware carrier. Keep it behind a
         // reachability gate so every pre-text native projection is byte exact.
@@ -503,7 +517,7 @@ fn emit_native_prelude_inner(
             string_views::TERMINATED_RUNTIME_C
         });
     }
-    if program_uses_byte_data(program) || strings.provider_carriers {
+    if program_uses_byte_data(program) || strings.provider_carriers || strings.command_carriers {
         if strings.reserved_bytes {
             native_byte_data::emit_reserved_runtime(output);
         } else {
@@ -2374,6 +2388,8 @@ struct CEmitter<'a, O: COutput> {
     try_target_enabled: bool,
     /// Owned String Loops v1 same-owner append operands that move, not clone.
     string_owner_moves: BTreeSet<hir::ExpressionId>,
+    /// `while` bodies, whose nested String temporaries settle per iteration.
+    loop_bodies: BTreeSet<hir::ExpressionId>,
     next_local: usize,
     indent: usize,
 }
@@ -2406,6 +2422,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             owned_strings: track_strings.then(owned_strings::OwnedStrings::default),
             try_target_enabled: false,
             string_owner_moves: crate::string_ops::same_owner_concat_operands(function),
+            loop_bodies: scope_anchors::while_bodies(function),
             next_local: 0,
             indent: 1,
         }

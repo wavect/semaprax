@@ -16,6 +16,11 @@ pub(crate) enum NativeOutputProfile {
     /// Private checked Bytes body with a bridge-owned invocation reservation.
     ReservedBytesProvider,
     StdoutTranscript,
+    /// Single-file command-line program (Text Toolkit v1): an ordinary
+    /// `fn main() -> i64` whose result is the process exit status, with argv,
+    /// two staged output channels, and `file_read_text` below the invocation
+    /// directory, all supplied by the generated process adapter.
+    SourceCommand,
     UsefulDataCommand,
     LanguageCommandIo,
     LineCommandIo,
@@ -44,6 +49,9 @@ pub(super) struct StringRuntimeSelection {
     pub(super) provider_carriers: bool,
     pub(super) include_instances: bool,
     pub(super) reserved_bytes: bool,
+    /// The single-file command profile always carries borrowed text and byte
+    /// slices, which its argument and output adapters use.
+    pub(super) command_carriers: bool,
 }
 
 impl StringRuntimeSelection {
@@ -52,6 +60,7 @@ impl StringRuntimeSelection {
         provider_carriers: false,
         include_instances: false,
         reserved_bytes: false,
+        command_carriers: false,
     };
 }
 
@@ -81,19 +90,29 @@ impl NativeOutputProfile {
                     provider_carriers: false,
                     include_instances: true,
                     reserved_bytes: false,
+                    command_carriers: false,
                 }
             }
+            Self::SourceCommand => StringRuntimeSelection {
+                length_delimited: true,
+                provider_carriers: false,
+                include_instances: true,
+                reserved_bytes: false,
+                command_carriers: true,
+            },
             Self::OwnedUtf8Provider => StringRuntimeSelection {
                 length_delimited: true,
                 provider_carriers: true,
                 include_instances: false,
                 reserved_bytes: false,
+                command_carriers: false,
             },
             Self::ReservedBytesProvider => StringRuntimeSelection {
                 length_delimited: true,
                 provider_carriers: true,
                 include_instances: false,
                 reserved_bytes: true,
+                command_carriers: false,
             },
             Self::UsefulDataCommand
             | Self::LanguageCommandIo
@@ -111,7 +130,7 @@ impl NativeOutputProfile {
     pub(super) const fn tracks_present_strings(self) -> bool {
         matches!(
             self,
-            Self::Legacy | Self::StdoutTranscript | Self::OwnedDataProvider
+            Self::Legacy | Self::StdoutTranscript | Self::SourceCommand | Self::OwnedDataProvider
         )
     }
 
@@ -124,6 +143,7 @@ impl NativeOutputProfile {
         matches!(
             self,
             Self::StdoutTranscript
+                | Self::SourceCommand
                 | Self::UsefulDataCommand
                 | Self::LanguageCommandIo
                 | Self::LineCommandIo
@@ -163,6 +183,7 @@ impl NativeOutputProfile {
                 | Self::HttpsCommandIo
                 | Self::EnvironmentCommandIo
                 | Self::ProcessCommandIo
+                | Self::SourceCommand
         )
     }
 }

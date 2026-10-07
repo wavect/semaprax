@@ -25,6 +25,7 @@ impl Evaluator<'_> {
             Value::BorrowedStr(value) => Value::BorrowedStr(value.clone()),
             Value::BorrowedSlice(value) => Value::BorrowedSlice(value.clone()),
             Value::OptionU8(value) => Value::OptionU8(*value),
+            Value::OptionI64(value) => Value::OptionI64(*value),
             // Aggregate aliases preserve the existing authenticated-borrow
             // semantics; Arc cloning does not duplicate any nested payload.
             Value::Record(value) => Value::Record(Arc::clone(value)),

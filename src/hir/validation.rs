@@ -6314,7 +6314,7 @@ impl<'a> HirValidator<'a> {
                     (
                         crate::string_ops::resolved_params(op),
                         op.return_type(),
-                        Vec::new(),
+                        op.effect().into_iter().map(str::to_owned).collect(),
                     )
                 } else if let Some(op) = str_intrinsic {
                     if args.len() != op.arity() {

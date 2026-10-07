@@ -137,6 +137,14 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 let value = &arguments[0].code;
                 self.line(&format!("{temporary} = spx_string_from_usize({value});"));
             }
+            crate::string_ops::StringOp::Slice
+            | crate::string_ops::StringOp::Find
+            | crate::string_ops::StringOp::ToI64
+            | crate::string_ops::StringOp::Trim
+            | crate::string_ops::StringOp::ByteAt
+            | crate::string_ops::StringOp::FileReadText => {
+                self.emit_text_toolkit_op(op, &arguments, &temporary)?;
+            }
         }
         let code = if is_direct_plan_owned(self.program, &op.return_type()) {
             self.apply_owned_plan_at_value(

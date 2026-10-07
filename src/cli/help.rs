@@ -996,21 +996,35 @@ pub(crate) fn canonical_command_names() -> std::collections::BTreeSet<&'static s
 
 pub(crate) fn usage_recovery_hint(args: &[String], private: bool) -> Option<String> {
     let command = args.first()?;
-    if command == "help"
-        || args[1..]
-            .iter()
-            .any(|argument| matches!(argument.as_str(), "--help" | "-h"))
-        || selected(command, private).is_none()
-    {
+    if command == "help" || requests_help(&args[1..]) || selected(command, private).is_none() {
         return None;
     }
     Some(format!("hint: run `semaprax {command} --help` for usage\n"))
 }
+/// Whether operands ask for help. Operands after `--` belong to a program
+/// that `run` executes, so they are never help flags.
+pub(crate) fn requests_help(operands: &[String]) -> bool {
+    operands
+        .iter()
+        .take_while(|argument| argument.as_str() != "--")
+        .any(|argument| matches!(argument.as_str(), "--help" | "-h"))
+}
+
+/// Set when the exit status is a single-file command-line program's own
+/// result, which is never a CLI usage error and so never earns the hint.
+static PROGRAM_EXIT_STATUS: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
+
+pub(crate) fn mark_program_exit_status() {
+    PROGRAM_EXIT_STATUS.store(true, std::sync::atomic::Ordering::SeqCst);
+}
+
 pub(crate) fn finish(outcome: Result<(), u8>, recovery_hint: Option<String>) -> ExitCode {
     match outcome {
         Ok(()) => ExitCode::SUCCESS,
         Err(code) => {
-            if let (2, Some(hint)) = (code, recovery_hint) {
+            let program = PROGRAM_EXIT_STATUS.load(std::sync::atomic::Ordering::SeqCst);
+            if let (2, Some(hint), false) = (code, recovery_hint, program) {
                 eprint!("{hint}");
             }
             ExitCode::from(code)

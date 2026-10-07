@@ -134,7 +134,26 @@ pub(super) fn is_option_u8(ty: &ResolvedType) -> bool {
     )
 }
 
+/// Text Toolkit v1: a match whose scrutinee is the direct `string_to_i64`
+/// call and whose arms are the guard-free `Some { value }` / `None {}` cases.
+pub(super) fn option_i64_match_is_admitted(
+    scrutinee: &crate::hir::ResolvedExpr,
+    arms: &[crate::hir::ResolvedMatchArm],
+) -> bool {
+    crate::string_ops::is_to_i64_call_hir(scrutinee)
+        && arms.iter().all(|arm| {
+            arm.guard.is_none() && option_pattern_is_admitted(&arm.pattern, &ResolvedType::I64)
+        })
+}
+
 pub(super) fn option_u8_pattern_is_admitted(pattern: &crate::hir::ResolvedMatchPattern) -> bool {
+    option_pattern_is_admitted(pattern, &ResolvedType::U8)
+}
+
+fn option_pattern_is_admitted(
+    pattern: &crate::hir::ResolvedMatchPattern,
+    payload: &ResolvedType,
+) -> bool {
     let crate::hir::ResolvedMatchPattern::Variant {
         variant,
         case,
@@ -150,5 +169,5 @@ pub(super) fn option_u8_pattern_is_admitted(pattern: &crate::hir::ResolvedMatchP
         || (case.as_str() == crate::prelude::OPTION_SOME_ID
             && fields.len() == 1
             && fields[0].field.as_str() == crate::prelude::OPTION_SOME_VALUE_ID
-            && fields[0].binding.ty == ResolvedType::U8)
+            && fields[0].binding.ty == *payload)
 }

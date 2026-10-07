@@ -131,10 +131,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
     if args.len() == 2 && matches!(args[1].as_str(), "--help" | "-h") {
         return print_scoped_help(command, host.is_some());
     }
-    if args[1..]
-        .iter()
-        .any(|argument| matches!(argument.as_str(), "--help" | "-h"))
-    {
+    if cli::help::requests_help(&args[1..]) {
         eprintln!("help flags are admitted only as the sole operand of a command");
         return Err(2);
     }
@@ -747,7 +744,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             let options = cli::execution::parse_run(&args[1..])?;
             match &options.input {
                 cli::execution::ExecutionInput::Source(path) if options.native => {
-                    run_native_source(path)
+                    run_native_source(path, &options.arguments)
                 }
                 cli::execution::ExecutionInput::Source(path) => {
                     run_interpreted_source(path, &options)

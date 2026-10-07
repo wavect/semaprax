@@ -87,6 +87,8 @@ mod resumable_entry;
 pub mod retained_call;
 mod scalar_profile;
 mod semantic_work;
+pub(crate) mod source_command;
+mod string_operations;
 use api_admission::{
     owned_utf8_api_result_matches, public_api_argument_matches, public_api_parameter_type_matches,
     public_api_result_is_admitted, require_acyclic_public_api_closure,
@@ -2218,7 +2220,7 @@ use nested_owned::{
 mod variant_admission;
 use variant_admission::{
     is_admitted_fieldless_variant, is_admitted_owned_byte_variant, is_admitted_owned_variant,
-    is_option_u8, option_u8_pattern_is_admitted,
+    is_option_u8, option_i64_match_is_admitted, option_u8_pattern_is_admitted,
 };
 
 fn concrete_variant_case_fields(
@@ -2505,10 +2507,11 @@ fn scan_closure(
                 let patterns_admitted = arms
                     .iter()
                     .all(|arm| arm.pattern_is_literal_or_irrefutable());
-                let option_u8 = is_option_u8(&scrutinee.ty)
+                let option_u8 = (is_option_u8(&scrutinee.ty)
                     && arms
                         .iter()
-                        .all(|arm| option_u8_pattern_is_admitted(&arm.pattern));
+                        .all(|arm| option_u8_pattern_is_admitted(&arm.pattern)))
+                    || option_i64_match_is_admitted(scrutinee, arms);
                 let owned_byte_record = is_admitted_owned_byte_record(declarations, &scrutinee.ty)
                     && matches!(
                         mode,
@@ -3080,6 +3083,8 @@ enum Value {
     BorrowedStr(BorrowedStrValue),
     BorrowedSlice(BorrowedSliceValue),
     OptionU8(Option<u8>),
+    /// The `string_to_i64` result; no other producer reaches the interpreter.
+    OptionI64(Option<i64>),
     /// Private, monomorphic flat-record carrier. Field lookup is exclusively
     /// by authenticated declaration identity; source display names never
     /// participate in runtime selection.
@@ -4351,84 +4356,7 @@ impl Evaluator<'_> {
                 if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
                     // Compiler-owned string operations evaluate in place;
                     // their byte semantics match the native and Wasm backends.
-                    self.charge()?;
-                    let mut values = Vec::with_capacity(args.len());
-                    for argument in args {
-                        values.push(self.evaluate(argument, environment, depth)?);
-                    }
-                    return match op {
-                        crate::string_ops::StringOp::Len => match values.first() {
-                            Some(Value::String(value)) => Ok(Value::Int(value.len() as i64)),
-                            _ => Err(Flow::Guard("ill-typed string operation operand")),
-                        },
-                        crate::string_ops::StringOp::IsEmpty => match values.first() {
-                            Some(Value::String(value)) => Ok(Value::Bool(value.is_empty())),
-                            _ => Err(Flow::Guard("ill-typed string operation operand")),
-                        },
-                        crate::string_ops::StringOp::Concat => {
-                            match (values.first(), values.get(1)) {
-                                (Some(Value::String(left)), Some(Value::String(right))) => {
-                                    let length = left.len().checked_add(right.len()).ok_or(
-                                        Flow::Utf8MaterializationLimitExceeded {
-                                            attempted_materializations: u64::MAX,
-                                            attempted_bytes: u64::MAX,
-                                        },
-                                    )?;
-                                    self.charge_utf8_materialization(length)?;
-                                    let mut result = String::with_capacity(length);
-                                    result.push_str(left);
-                                    result.push_str(right);
-                                    Ok(Value::String(result))
-                                }
-                                _ => Err(Flow::Guard("ill-typed string operation operand")),
-                            }
-                        }
-                        crate::string_ops::StringOp::StartsWith => {
-                            match (values.first(), values.get(1)) {
-                                (Some(Value::String(value)), Some(Value::String(prefix))) => {
-                                    Ok(Value::Bool(value.starts_with(prefix.as_str())))
-                                }
-                                _ => Err(Flow::Guard("ill-typed string operation operand")),
-                            }
-                        }
-                        crate::string_ops::StringOp::Contains => {
-                            match (values.first(), values.get(1)) {
-                                (Some(Value::String(value)), Some(Value::String(needle))) => {
-                                    Ok(Value::Bool(value.contains(needle.as_str())))
-                                }
-                                _ => Err(Flow::Guard("ill-typed string operation operand")),
-                            }
-                        }
-                        crate::string_ops::StringOp::LenChars => match values.first() {
-                            Some(Value::String(value)) => {
-                                Ok(Value::Int(value.chars().count() as i64))
-                            }
-                            _ => Err(Flow::Guard("ill-typed string operation operand")),
-                        },
-                        crate::string_ops::StringOp::FromChar => match values.first() {
-                            Some(Value::Char(scalar)) => match char::from_u32(*scalar) {
-                                Some(value) => {
-                                    let mut bytes = [0u8; 4];
-                                    let value = value.encode_utf8(&mut bytes);
-                                    Ok(Value::String(self.materialize_utf8_copy(value)?))
-                                }
-                                None => Err(Flow::Guard("ill-typed string operation operand")),
-                            },
-                            _ => Err(Flow::Guard("ill-typed string operation operand")),
-                        },
-                        crate::string_ops::StringOp::FromI64 => match values.first() {
-                            Some(Value::Int(value)) => Ok(Value::String(
-                                self.materialize_utf8_copy(&value.to_string())?,
-                            )),
-                            _ => Err(Flow::Guard("ill-typed string operation operand")),
-                        },
-                        crate::string_ops::StringOp::FromUsize => match values.first() {
-                            Some(Value::Usize(value)) => Ok(Value::String(
-                                self.materialize_utf8_copy(&value.to_string())?,
-                            )),
-                            _ => Err(Flow::Guard("ill-typed string operation operand")),
-                        },
-                    };
+                    return self.evaluate_string_op(op, args, environment, depth);
                 }
                 if let Some(op) = crate::str_ops::by_id(callee.as_str()) {
                     self.charge()?;
@@ -4985,6 +4913,21 @@ impl Evaluator<'_> {
                                     true
                                 }
                                 (Value::OptionU8(_), _) => false,
+                                (Value::OptionI64(None), crate::prelude::OPTION_NONE_ID)
+                                    if fields.is_empty() =>
+                                {
+                                    true
+                                }
+                                (Value::OptionI64(Some(value)), crate::prelude::OPTION_SOME_ID)
+                                    if fields.len() == 1
+                                        && fields[0].field.as_str()
+                                            == crate::prelude::OPTION_SOME_VALUE_ID =>
+                                {
+                                    aggregate_bindings
+                                        .push((fields[0].binding.id.clone(), Value::Int(*value)));
+                                    true
+                                }
+                                (Value::OptionI64(_), _) => false,
                                 _ => {
                                     return Err(Flow::Guard(
                                         "variant pattern has non-variant value",

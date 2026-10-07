@@ -1452,37 +1452,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     self.apply_owned_plan_at_value(&expr.id, &tail)?;
                 }
                 if let Some(plan) = self.bytes_plan {
-                    let anchors = statements
-                        .iter()
-                        .flat_map(|statement| {
-                            let mut anchors = Vec::with_capacity(2);
-                            if let ResolvedStatement::Let { binding, .. } = statement {
-                                let storage =
-                                    crate::cleanup_plan::StorageId::Value(binding.id.clone());
-                                if is_direct_plan_owned(self.program, &binding.ty)
-                                    || plan.has_projected_leaves(&storage)
-                                {
-                                    anchors.push(storage);
-                                }
-                            }
-                            let value = match statement {
-                                ResolvedStatement::Let { value, .. }
-                                | ResolvedStatement::Assign { value, .. } => Some(value),
-                                ResolvedStatement::Unsafe { body, .. } => Some(body.as_ref()),
-                                ResolvedStatement::While { .. } => None,
-                            };
-                            if let Some(value) = value {
-                                let storage =
-                                    crate::cleanup_plan::StorageId::Temporary(value.id.clone());
-                                if is_direct_plan_owned(self.program, &value.ty)
-                                    || plan.has_projected_leaves(&storage)
-                                {
-                                    anchors.push(storage);
-                                }
-                            }
-                            anchors
-                        })
-                        .collect::<BTreeSet<_>>();
+                    let loop_body = self.loop_bodies.contains(&expr.id);
+                    let anchors =
+                        super::scope_anchors::block_anchors(self.program, plan, expr, loop_body);
                     let cleanup = plan.scope_exit(&anchors)?;
                     for line in cleanup.lines() {
                         self.line(line);

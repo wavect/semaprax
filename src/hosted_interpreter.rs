@@ -212,3 +212,34 @@ pub fn execute_process_command(
         stderr,
     })
 }
+
+/// Settled result of a single-file command-line program
+/// (`docs/TEXT-TOOLKIT-V1.md`). Both transcripts are empty unless `main`
+/// returned; the returned value is the program's exit status.
+#[derive(Clone, Debug)]
+pub struct HostedSourceCommand {
+    pub evaluation: crate::interpreter::ResolvedEvaluation,
+    pub stdout: Vec<u8>,
+    pub stderr: Vec<u8>,
+}
+
+/// Execute a single-file command-line program's `fn main() -> i64` against
+/// caller-owned arguments and an optional explicitly supplied read-only file
+/// provider. Without a provider, `file_read_text` reports
+/// `AUTHORITY_DENIED`. The provider settles before anything is published.
+pub fn execute_source_command(
+    program: &ResolvedProgram,
+    entry_id: &str,
+    arguments: &[String],
+    files: Option<&mut dyn crate::filesystem_provider::FileProvider>,
+    max_steps: usize,
+) -> Result<HostedSourceCommand, Vec<Diagnostic>> {
+    let settled = crate::interpreter::source_command::evaluate_resolved_source_command(
+        program, entry_id, arguments, files, max_steps,
+    )?;
+    Ok(HostedSourceCommand {
+        evaluation: settled.evaluation,
+        stdout: settled.stdout,
+        stderr: settled.stderr,
+    })
+}

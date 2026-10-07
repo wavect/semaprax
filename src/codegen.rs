@@ -44,6 +44,7 @@ mod native_runtime;
 mod native_scalar_runtime;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
 mod native_settlement_derivation;
+mod native_source_command;
 mod native_trace;
 mod native_trace_runtime;
 mod native_value;
@@ -160,6 +161,18 @@ pub fn emit_c_with_stdout_transcript(program: &Program) -> Result<String, Diagno
         NativeOutputProfile::StdoutTranscript,
         None,
     )
+}
+
+/// Resolve source and emit a single-file command-line program
+/// (`docs/TEXT-TOOLKIT-V1.md`): a process whose `main` receives argv, stages
+/// stdout and stderr, reads text files below the invocation directory when it
+/// permits `fs.read`, and exits with `main`'s result.
+pub fn emit_c_with_source_command(program: &Program) -> Result<String, Diagnostic> {
+    let resolved = hir::resolve(program).map_err(first_backend_diagnostic)?;
+    crate::source_command::validate_authority(&resolved)?;
+    reject_native_rust_for_native(&resolved)?;
+    let labels = contract_labels(program, &resolved);
+    emit_hir_c_with_labels(&resolved, &labels, NativeOutputProfile::SourceCommand, None)
 }
 
 /// Resolve source and emit the closed native Useful Data Command process.

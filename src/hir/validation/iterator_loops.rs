@@ -53,6 +53,7 @@ impl HirValidator<'_> {
                     };
                     self.validate_indexed_byte_option_match_arm(
                         expression,
+                        scrutinee,
                         arm,
                         &mut some_seen,
                         &mut none_seen,
@@ -393,6 +394,15 @@ impl HirValidator<'_> {
             ));
         };
         let operation = crate::byte_ops::by_id(callee.as_str());
+        // Text Toolkit v1: `string_to_i64` is the second compiler-owned
+        // scalar `Option` producer; its borrowed String operand is an ordinary
+        // per-iteration temporary like any other loop-body String read.
+        if crate::string_ops::is_to_i64_call_hir(scrutinee)
+            && args[0].ty == ResolvedType::String
+            && scrutinee.ownership == OwnershipMode::Value
+        {
+            return self.validate_while_option_identities(arms);
+        }
         if operation != Some(crate::byte_ops::ByteOp::Get)
             || instance.is_some()
             || !type_arguments.is_empty()
@@ -408,6 +418,13 @@ impl HirValidator<'_> {
                 "while loop byte match scrutinee is not the exact compiler-owned byte_get result",
             ));
         }
+        self.validate_while_option_identities(arms)
+    }
+
+    fn validate_while_option_identities(
+        &self,
+        arms: &[ResolvedMatchArm],
+    ) -> Result<(), Diagnostic> {
         for id in [
             crate::prelude::OPTION_ID,
             crate::prelude::OPTION_SOME_ID,
@@ -440,6 +457,7 @@ impl HirValidator<'_> {
     fn validate_indexed_byte_option_match_arm(
         &self,
         expression: &ResolvedExpr,
+        scrutinee: &ResolvedExpr,
         arm: &ResolvedMatchArm,
         some_seen: &mut bool,
         none_seen: &mut bool,
@@ -473,7 +491,12 @@ impl HirValidator<'_> {
                 if !*some_seen
                     && fields.len() == 1
                     && fields[0].field.as_str() == crate::prelude::OPTION_SOME_VALUE_ID
-                    && fields[0].binding.ty == ResolvedType::U8
+                    && fields[0].binding.ty
+                        == if crate::string_ops::is_to_i64_call_hir(scrutinee) {
+                            ResolvedType::I64
+                        } else {
+                            ResolvedType::U8
+                        }
                     && fields[0].binding.ownership == OwnershipMode::Value =>
             {
                 *some_seen = true;

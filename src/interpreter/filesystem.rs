@@ -201,6 +201,25 @@ impl Evaluator<'_> {
             _ => Err(Flow::Guard("ill-typed filesystem operation")),
         }
     }
+
+    /// Text Toolkit v1 `file_read_text`: the same reservation, path grammar,
+    /// per-file bound, and provider as `file_read`, with the whole path view
+    /// as its logical extent. Absent authority is `AUTHORITY_DENIED`.
+    pub(super) fn read_file_text(&mut self, path: &[u8]) -> Result<Vec<u8>, Flow> {
+        let max = crate::string_ops::MAX_FILE_TEXT_BYTES;
+        let state = self
+            .command_input
+            .as_mut()
+            .and_then(|input| input.filesystem.as_mut())
+            .ok_or_else(|| failure(FileFailure::AuthorityDenied))?;
+        state.reserve(max)?;
+        crate::filesystem_provider::validate_path(path).map_err(failure)?;
+        let bytes = state.provider.read(path, max as usize).map_err(failure)?;
+        if bytes.len() as u64 > max {
+            return Err(failure(FileFailure::CapacityExceeded));
+        }
+        Ok(bytes)
+    }
 }
 
 #[cfg(test)]

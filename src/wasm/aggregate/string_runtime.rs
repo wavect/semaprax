@@ -85,7 +85,7 @@ pub(super) fn import_offset(operation: crate::string_ops::StringOp) -> Option<u3
         crate::string_ops::StringOp::FromUsize => Some(FROM_USIZE),
         crate::string_ops::StringOp::StartsWith => Some(STARTS_WITH),
         crate::string_ops::StringOp::Contains => Some(CONTAINS),
-        crate::string_ops::StringOp::Len | crate::string_ops::StringOp::IsEmpty => None,
+        _ => None,
     }
 }
 
@@ -170,6 +170,9 @@ impl Emitter<'_> {
         args: &[ResolvedExpr],
     ) -> Result<Value, Diagnostic> {
         use crate::string_ops::StringOp;
+        if operation.is_text_toolkit() {
+            return Err(crate::string_ops::text_toolkit_wasm_refusal(operation));
+        }
         if args.len() != operation.arity() {
             return Err(error("String operation arity disagrees with resolved HIR"));
         }
@@ -260,6 +263,7 @@ impl Emitter<'_> {
                 self.output.push(0x10);
                 write_u32(self.output, runtime);
             }
+            _ => return Err(crate::string_ops::text_toolkit_wasm_refusal(operation)),
         }
         self.output.push(0x21);
         write_u32(self.output, destination);

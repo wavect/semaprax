@@ -426,10 +426,30 @@ pub(crate) fn by_id(id: &str) -> Option<ByteOp> {
     }
 }
 
+/// The reserved spelling of a compiler-owned scalar `Option` producer a while
+/// body may match: `byte_get` (Indexed Byte Loop v2) or `string_to_i64`
+/// (Text Toolkit v1).
+fn while_option_producer(
+    name: &str,
+    type_arguments: &[Type],
+    args: &[Expr],
+) -> Option<&'static str> {
+    if !type_arguments.is_empty() {
+        return None;
+    }
+    if by_name(name) == Some(ByteOp::Get) && args.len() == ByteOp::Get.arity() {
+        return Some(GET_NAME);
+    }
+    (crate::string_ops::by_name(name) == Some(crate::string_ops::StringOp::ToI64)
+        && args.len() == 1)
+        .then_some(crate::string_ops::TO_I64_NAME)
+}
+
 /// Indexed Byte Loop v2 source-shape gate. This deliberately recognizes only
-/// the reserved `byte_get` spelling and the complete, guard-free `Option<u8>`
-/// case inventory. Resolution and hostile-HIR validation then authenticate the
-/// corresponding compiler-owned identities and concrete types.
+/// the reserved `byte_get` (and Text Toolkit v1 `string_to_i64`) spelling and
+/// the complete, guard-free `Option` case inventory. Resolution and
+/// hostile-HIR validation then authenticate the corresponding compiler-owned
+/// identities and concrete types.
 pub(crate) fn is_indexed_byte_option_match_source(expression: &Expr) -> bool {
     let ExprKind::Match {
         scrutinee, arms, ..
@@ -445,11 +465,7 @@ pub(crate) fn is_indexed_byte_option_match_source(expression: &Expr) -> bool {
     else {
         return false;
     };
-    if by_name(name) != Some(ByteOp::Get)
-        || !type_arguments.is_empty()
-        || args.len() != ByteOp::Get.arity()
-        || arms.len() != 2
-    {
+    if while_option_producer(name, type_arguments, args).is_none() || arms.len() != 2 {
         return false;
     }
 
@@ -510,14 +526,13 @@ pub(crate) fn while_body_match_refusal(expression: &Expr) -> String {
     else {
         return GENERIC.to_owned();
     };
-    if by_name(name) != Some(ByteOp::Get)
-        || !type_arguments.is_empty()
-        || args.len() != ByteOp::Get.arity()
-    {
+    let Some(producer) = while_option_producer(name, type_arguments, args) else {
         return GENERIC.to_owned();
-    }
-    let admitted = "a `byte_get` match in a while body must be exactly two unguarded arms, \
-                    `Option::Some { value }` and `Option::None {}`";
+    };
+    let admitted = format!(
+        "a `{producer}` match in a while body must be exactly two unguarded arms, \
+         `Option::Some {{ value }}` and `Option::None {{}}`"
+    );
     if arms.len() != 2 {
         return format!("{admitted}; this one has {} arm(s)", arms.len());
     }

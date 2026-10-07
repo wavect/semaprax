@@ -3584,6 +3584,9 @@ fn emit_expr(
                     return Ok(());
                 }
                 if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
+                    if op.is_text_toolkit() {
+                        return Err(crate::string_ops::text_toolkit_wasm_refusal(op));
+                    }
                     // Compiler-owned string operations lower through their
                     // dedicated host imports; borrowed reads leave the input
                     // handle owned by the caller and concatenation hands both
@@ -3620,6 +3623,7 @@ fn emit_expr(
                         crate::string_ops::StringOp::FromUsize => {
                             call_import(output, layout.string_numeric_text_base + 1);
                         }
+                        _ => unreachable!("Text Toolkit v1 was refused above"),
                     }
                     return Ok(());
                 }

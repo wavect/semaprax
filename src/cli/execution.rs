@@ -17,6 +17,9 @@ pub(crate) struct ExecutionOptions {
     pub(crate) max_steps: Option<usize>,
     pub(crate) max_bytes: Option<usize>,
     pub(crate) native: bool,
+    /// Program arguments after `--`, passed to a single-file command-line
+    /// program (`docs/TEXT-TOOLKIT-V1.md`).
+    pub(crate) arguments: Vec<String>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -134,10 +137,15 @@ fn parse(args: &[String], command: &str, allow_source: bool) -> Result<Execution
     let mut max_steps = None;
     let mut max_bytes = None;
     let mut native = false;
+    let mut arguments = Vec::new();
     let mut index = 0;
     while index < args.len() {
         let argument = args[index].as_str();
         match argument {
+            "--" if allow_source => {
+                arguments = args[index + 1..].to_vec();
+                break;
+            }
             "--json" if !json => {
                 json = true;
                 index += 1;
@@ -222,6 +230,12 @@ fn parse(args: &[String], command: &str, allow_source: bool) -> Result<Execution
         eprintln!("run option `--native` requires a single .spx source file");
         return Err(2);
     }
+    if !arguments.is_empty() && !matches!(input, ExecutionInput::Source(_)) {
+        eprintln!(
+            "{command} passes program arguments after `--` only to a single .spx source file"
+        );
+        return Err(2);
+    }
     if native && (json || max_steps.is_some() || max_bytes.is_some()) {
         eprintln!(
             "native single-file run cannot combine `--native` with interpreter output or capacity options"
@@ -234,6 +248,7 @@ fn parse(args: &[String], command: &str, allow_source: bool) -> Result<Execution
         max_steps,
         max_bytes,
         native,
+        arguments,
     })
 }
 
@@ -305,6 +320,7 @@ mod tests {
                 max_steps: None,
                 max_bytes: None,
                 native: false,
+                arguments: Vec::new(),
             }
         );
         assert_eq!(
@@ -315,6 +331,7 @@ mod tests {
                 max_steps: None,
                 max_bytes: None,
                 native: false,
+                arguments: Vec::new(),
             }
         );
         assert_eq!(
@@ -336,6 +353,7 @@ mod tests {
                 max_steps: Some(4096),
                 max_bytes: Some(65536),
                 native: false,
+                arguments: Vec::new(),
             }
         );
         assert_eq!(
@@ -354,9 +372,31 @@ mod tests {
                 max_steps: Some(4096),
                 max_bytes: Some(65536),
                 native: false,
+                arguments: Vec::new(),
             }
         );
         assert!(parse_run(&strings(&["legacy.spx", "--native", "--json"])).is_err());
+    }
+
+    #[test]
+    fn run_passes_arguments_after_the_separator_to_a_source_file() {
+        let options = parse_run(&strings(&[
+            "loglens.spx",
+            "--native",
+            "--",
+            "sample.log",
+            "--top",
+            "3",
+        ]))
+        .unwrap();
+        assert!(options.native);
+        assert_eq!(options.arguments, strings(&["sample.log", "--top", "3"]));
+        assert!(parse_run(&strings(&["loglens.spx", "--"]))
+            .unwrap()
+            .arguments
+            .is_empty());
+        assert!(parse_run(&strings(&["--", "sample.log"])).is_err());
+        assert!(parse_test(&strings(&["--", "sample.log"])).is_err());
     }
 
     #[test]
@@ -371,6 +411,7 @@ mod tests {
                 max_steps: Some(1),
                 native: false,
                 max_bytes: None,
+                arguments: Vec::new(),
             }
         );
         assert!(parse_test(&strings(&["legacy.spx"])).is_err());

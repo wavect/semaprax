@@ -355,6 +355,9 @@ impl Emitter<'_> {
         args: &[ResolvedExpr],
     ) -> Result<Value, Diagnostic> {
         use crate::string_ops::StringOp;
+        if operation.is_text_toolkit() {
+            return Err(crate::string_ops::text_toolkit_wasm_refusal(operation));
+        }
         if args.len() != operation.arity() {
             return Err(error("standalone String operation arity disagrees"));
         }
@@ -410,7 +413,14 @@ impl Emitter<'_> {
             StringOp::LenChars => 5,
             StringOp::StartsWith => 7,
             StringOp::Contains => 8,
-            StringOp::FromI64 | StringOp::FromUsize => {
+            StringOp::FromI64
+            | StringOp::FromUsize
+            | StringOp::Slice
+            | StringOp::Find
+            | StringOp::ToI64
+            | StringOp::Trim
+            | StringOp::ByteAt
+            | StringOp::FileReadText => {
                 return Err(Diagnostic::io(
                     "SPX-W116",
                     "numeric-to-text operations require the scalar Core-Wasm string lane",

@@ -144,6 +144,13 @@ fn boolean_branch_expression(
 }
 
 impl NativeBytesPlan {
+    /// Whether `storage` is a finalizable slot of some lexical region.
+    pub(in crate::codegen) fn is_region_slot(&self, storage: &StorageId) -> bool {
+        self.scope_exits
+            .iter()
+            .any(|scope| scope.storage.contains(storage))
+    }
+
     pub(in crate::codegen) fn scope_exit(
         &self,
         anchors: &BTreeSet<StorageId>,

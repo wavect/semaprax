@@ -50,8 +50,12 @@ pub(super) fn build_source(options: &cli::build::BuildOptions, input: &Path) -> 
         "native" => {
             let mut destination = cli::build::SourceNativeOutput::prepare(output)
                 .map_err(|error| report(&[error], options.json))?;
-            let c_source =
-                codegen::emit_c(&program).map_err(|error| report(&[error], options.json))?;
+            let c_source = if semaprax::source_command::selects(&program.permits) {
+                codegen::emit_c_with_source_command(&program)
+            } else {
+                codegen::emit_c(&program)
+            }
+            .map_err(|error| report(&[error], options.json))?;
             let leaf = format!("program{}", std::env::consts::EXE_SUFFIX);
             let mut scratch = native_scratch::Scratch::create(&leaf, None).map_err(|error| {
                 report(
@@ -138,10 +142,19 @@ pub(super) fn report_source_build_success(
     }
 }
 
-pub(super) fn run_native_source(path: &Path) -> Result<(), u8> {
+pub(super) fn run_native_source(path: &Path, arguments: &[String]) -> Result<(), u8> {
     // Source rejection cannot acquire scratch or cleanup authority.
     let program = checked(path)?;
-    let c_source = codegen::emit_c(&program).map_err(|error| report(&[error], false))?;
+    let command = semaprax::source_command::selects(&program.permits);
+    if !command && !arguments.is_empty() {
+        return Err(refuse_program_arguments());
+    }
+    let c_source = if command {
+        codegen::emit_c_with_source_command(&program)
+    } else {
+        codegen::emit_c(&program)
+    }
+    .map_err(|error| report(&[error], false))?;
     let leaf = format!("program{}", std::env::consts::EXE_SUFFIX);
     let mut scratch = native_scratch::Scratch::create(&leaf, None).map_err(|error| {
         report(
@@ -163,10 +176,22 @@ pub(super) fn run_native_source(path: &Path) -> Result<(), u8> {
             false,
         )
     })?;
-    let status = Command::new(scratch.path()).status().map_err(|error| {
-        eprintln!("cannot run {}: {error}", scratch.path().display());
-        1
-    })?;
+    let status = Command::new(scratch.path())
+        .args(arguments)
+        .status()
+        .map_err(|error| {
+            eprintln!("cannot run {}: {error}", scratch.path().display());
+            1
+        })?;
+    if command {
+        // A command-line program's exit status is its own result.
+        let _ = scratch.cleanup();
+        cli::help::mark_program_exit_status();
+        return match child_result_code(&status) {
+            0 => Ok(()),
+            code => Err(code),
+        };
+    }
     if !status.success() {
         return Err(child_result_code(&status));
     }
@@ -207,6 +232,13 @@ pub(super) fn run_interpreted_source(
             .find(|function| function.name == "main")
             .map_or_else(|| "app.main".to_owned(), |main| main.stable_id.clone())
     };
+    if semaprax::source_command::selects(&program.permits) {
+        let resolved = hir::resolve(&program).map_err(|errors| report(&errors, options.json))?;
+        return run_source_command(&resolved, &entry, options, &interpreter_options);
+    }
+    if !options.arguments.is_empty() {
+        return Err(refuse_program_arguments());
+    }
     if program.permits == ["process.stdout.write"] {
         let resolved = hir::resolve(&program).map_err(|errors| report(&errors, options.json))?;
         let hosted = hosted_interpreter::execute_stdout_transcript(
@@ -225,6 +257,162 @@ pub(super) fn run_interpreted_source(
         return interpretation.returned.then_some(()).ok_or(1);
     }
     publish_interpretation(&interpretation.envelope)
+}
+
+fn refuse_program_arguments() -> u8 {
+    eprintln!(
+        "run passes arguments after `--` only to a command-line program; add `process.args.read` to the module permits and read them with `args_len()` and `arg_utf8(i)`"
+    );
+    2
+}
+
+/// Single-file command-line programs (`docs/TEXT-TOOLKIT-V1.md`): argv after
+/// `--`, read-only file text below the current directory when the module
+/// permits `fs.read`, both staged channels, and `main`'s result as the exit
+/// status.
+fn run_source_command(
+    program: &semaprax::hir::ResolvedProgram,
+    entry: &str,
+    options: &cli::execution::ExecutionOptions,
+    interpreter_options: &interpreter::InterpreterOptions,
+) -> Result<(), u8> {
+    use interpreter::ResolvedEvaluationOutcome;
+
+    #[cfg(unix)]
+    let mut files = program
+        .permits
+        .iter()
+        .any(|permit| permit == "fs.read")
+        .then(|| {
+            std::env::current_dir().ok().and_then(|root| {
+                semaprax::filesystem_provider::ScopedFileProvider::open(
+                    root,
+                    semaprax::filesystem_provider::FileAccess::ReadOnly,
+                )
+                .ok()
+            })
+        })
+        .flatten();
+    #[cfg(unix)]
+    let provider = files
+        .as_mut()
+        .map(|files| files as &mut dyn semaprax::filesystem_provider::FileProvider);
+    #[cfg(not(unix))]
+    let provider = None;
+    let hosted = hosted_interpreter::execute_source_command(
+        program,
+        entry,
+        &options.arguments,
+        provider,
+        interpreter_options.max_steps,
+    )
+    .map_err(|errors| report(&errors, options.json))?;
+    let exit = match &hosted.evaluation.outcome {
+        ResolvedEvaluationOutcome::ReturnedI64(value) => {
+            if !semaprax::source_command::EXIT_STATUS_RANGE.contains(value) {
+                return Err(report(
+                    &[Diagnostic::io(
+                        "SPX-F116",
+                        format!(
+                            "command-line program `main` returned {value}, outside the exit status range 0..=255"
+                        ),
+                    )],
+                    options.json,
+                ));
+            }
+            Some(*value as u8)
+        }
+        _ => None,
+    };
+    if options.json {
+        let outcome = match &hosted.evaluation.outcome {
+            ResolvedEvaluationOutcome::ReturnedI64(value) => {
+                format!("{{\"kind\":\"returned\",\"type\":\"i64\",\"value\":\"{value}\"}}")
+            }
+            ResolvedEvaluationOutcome::LanguageFailure(status) => {
+                format!("{{\"kind\":\"failed\",\"status\":{}}}", status.to_json())
+            }
+            ResolvedEvaluationOutcome::FuelExhausted => "{\"kind\":\"fuel_exhausted\"}".to_owned(),
+            ResolvedEvaluationOutcome::CallDepthExceeded => {
+                "{\"kind\":\"call_depth_exceeded\"}".to_owned()
+            }
+            ResolvedEvaluationOutcome::GuardError(detail) => {
+                return Err(report(&[Diagnostic::io("SPX-F105", detail)], true));
+            }
+        };
+        let envelope = format!(
+            "{{\"schema\":\"semaprax.single-file-command.v1\",\"fuel\":{{\"steps_used\":{},\"max_steps\":{}}},\"outcome\":{outcome},\"stdout\":{},\"stderr\":{}}}",
+            hosted.evaluation.steps_used,
+            hosted.evaluation.max_steps,
+            serde_json::to_string(&hosted.stdout).expect("bytes serialize"),
+            serde_json::to_string(&hosted.stderr).expect("bytes serialize"),
+        );
+        if envelope.len() > interpreter_options.max_bytes {
+            return Err(report(
+                &[Diagnostic::io(
+                    "SPX-F104",
+                    "single-file run output exceeds the max-bytes budget; refusing to truncate",
+                )],
+                true,
+            ));
+        }
+        println!("{envelope}");
+    }
+    match (exit, hosted.evaluation.outcome) {
+        (Some(code), _) => {
+            if !options.json {
+                let written = std::io::stderr()
+                    .write_all(&hosted.stderr)
+                    .and_then(|()| std::io::stdout().write_all(&hosted.stdout))
+                    .and_then(|()| std::io::stdout().flush());
+                written.map_err(|error| {
+                    report(
+                        &[Diagnostic::io(
+                            "SPX-I101",
+                            format!("cannot write program output: {error}"),
+                        )],
+                        false,
+                    )
+                })?;
+            }
+            cli::help::mark_program_exit_status();
+            match code {
+                0 => Ok(()),
+                code => Err(code),
+            }
+        }
+        (None, ResolvedEvaluationOutcome::LanguageFailure(status)) => {
+            if !options.json {
+                eprintln!(
+                    "single-file execution failed with language status {}{}",
+                    status.to_json(),
+                    status_meaning(status.domain_id(), u64::from(status.code()))
+                );
+            }
+            Err(1)
+        }
+        (None, ResolvedEvaluationOutcome::FuelExhausted) => {
+            if !options.json {
+                eprintln!("single-file execution exhausted its step budget");
+            }
+            Err(1)
+        }
+        (None, ResolvedEvaluationOutcome::CallDepthExceeded) => {
+            if !options.json {
+                eprintln!(
+                    "single-file execution exceeded the {}-frame call-depth limit",
+                    interpreter::MAX_CALL_DEPTH
+                );
+            }
+            Err(1)
+        }
+        (None, ResolvedEvaluationOutcome::GuardError(detail)) => {
+            Err(report(&[Diagnostic::io("SPX-F105", detail)], options.json))
+        }
+        (None, ResolvedEvaluationOutcome::ReturnedI64(_)) => {
+            unreachable!("returned values map to an exit status")
+        }
+    }
 }
 
 pub(super) fn run_network_project(options: &cli::execution::NetworkRunOptions) -> Result<(), u8> {
@@ -594,6 +782,15 @@ fn status_meaning(domain: &str, code: u64) -> &'static str {
         ("semaprax.vec.v1", 2) => " (vector index out of bounds)",
         ("semaprax.vec.v1", 3) => " (vector allocation failure)",
         ("semaprax.box.v1", 1) => " (box allocation failure)",
+        ("semaprax.text.v1", 1) => " (text offset or index out of range)",
+        ("semaprax.text.v1", 2) => " (text slice bound splits a UTF-8 character)",
+        ("semaprax.text.v1", 3) => " (file text is not valid UTF-8)",
+        ("semaprax.filesystem.v1", 1) => " (invalid relative file path)",
+        ("semaprax.filesystem.v1", 2) => " (file not found)",
+        ("semaprax.filesystem.v1", 4) => " (file exceeds the 65536-byte limit)",
+        ("semaprax.filesystem.v1", 5) => " (file I/O failure)",
+        ("semaprax.filesystem.v1", 6) => " (file access denied)",
+        ("semaprax.filesystem.v1", 7) => " (not a regular file)",
         _ => "",
     }
 }

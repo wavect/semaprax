@@ -312,6 +312,9 @@ fn program_uses_byte_data(program: &ResolvedProgram) -> bool {
         pending.extend(function.requires.iter().chain(&function.ensures));
     }
     while let Some(expression) = pending.pop() {
+        // A record or variant value with a direct `Bytes` leaf needs the byte
+        // runtime for its cleanup even when no expression is itself `Bytes`:
+        // scope exit drops the payload through the `spx_bytes_drop` import.
         if matches!(
             expression.ty,
             ResolvedType::SliceU8 | ResolvedType::Bytes | ResolvedType::ArrayU8(_)
@@ -320,7 +323,8 @@ fn program_uses_byte_data(program: &ResolvedProgram) -> bool {
             ResolvedExprKind::ArrayU8(_)
                 | ResolvedExprKind::RepeatArrayU8 { .. }
                 | ResolvedExprKind::BorrowPlace { .. }
-        ) {
+        ) || crate::hir::yield_aggregate::has_bytes_leaf(&program.declarations, &expression.ty)
+        {
             return true;
         }
         if let ResolvedExprKind::Call { callee, .. } = &expression.kind {

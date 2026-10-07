@@ -100,7 +100,10 @@ pub(in crate::source_verify) fn admitted(root: &Type, types: &TypeTable<'_>) -> 
                 let Some(declaration) = types.declaration(&name) else {
                     return false;
                 };
-                if !arguments.is_empty() || !declaration.type_parameters.is_empty() {
+                if !arguments.is_empty()
+                    || !declaration.type_parameters.is_empty()
+                    || !declaration.invariants().is_empty()
+                {
                     return false;
                 }
                 let TypeDeclarationKind::Record { fields: declared } = &declaration.kind else {

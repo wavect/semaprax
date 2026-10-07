@@ -46,7 +46,12 @@ pub(crate) fn admitted(root: &ResolvedType, declarations: &DeclarationIndex) -> 
                 else {
                     unreachable!()
                 };
-                if !arguments.is_empty()
+                if declarations
+                    .declaration(&super::DeclarationId::new(format!(
+                        "{declaration}#invariant"
+                    )))
+                    .is_some()
+                    || !arguments.is_empty()
                     || declarations
                         .type_parameters(declaration)
                         .is_none_or(|p| !p.is_empty())

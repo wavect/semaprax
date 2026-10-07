@@ -50,3 +50,11 @@ so the stable SPX-T309 boundary remains exercised rather than removed.
 The broader #599 request remains open until the authored gate runs and any
 remaining requested record shapes are implemented. Map transport and expanded
 Wasm Text Toolkit profiles have separate owners and are not implied here.
+
+Invariant-bearing records remain outside this private executable profile.
+Their clauses remain available to graph/schema/webapp projections, while
+String-record parameter/result/layout admission refuses them until production
+checks preserve their owned values. Source classification checks authored
+clauses; independent HIR classification checks the reserved synthesized
+`<record-id>#invariant` declaration. This avoids silently executing an
+unenforced invariant when the new layout is selected.

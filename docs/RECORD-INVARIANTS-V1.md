@@ -56,8 +56,10 @@ Wasm (`spx_contract_fail`). The semantic graph carries the clauses as the
 `requires_graph` of the `#invariant` function node, and `semaprax doc` lists
 them as the record's `Invariants`.
 
-A record that holds an owned `string` has no executable value layout on any
-backend in this release, so it gets `Name#invariant` without `Name#check`: its
+The additive [Owned String Records v1](OWNED-STRING-RECORDS-V1.md) executable
+layout excludes invariant-bearing records until an ownership-preserving
+production check is implemented. Such a record gets `Name#invariant` without
+`Name#check`: its
 clauses verify, format, reach the graph, and become validation rules in
 `semaprax webapp`, which enforces them in the browser and on the server.
 

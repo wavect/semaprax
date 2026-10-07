@@ -25,8 +25,8 @@
 //! evaluates before any field of the record is read.
 //!
 //! Only Copy records are routed through `Name#check`: a record holding an
-//! owned `string` has no executable value layout on any backend and cannot be
-//! passed by value, so its clauses are carried by `Name#invariant` alone,
+//! owned `string` remains outside the executable record layout when it carries
+//! invariants, so its clauses are carried by `Name#invariant` alone,
 //! where the graph and every later lowering see them.
 //!
 //! The rewrite runs on a clone of the verified program after one resolution

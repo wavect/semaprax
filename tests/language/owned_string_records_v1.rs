@@ -354,3 +354,20 @@ for(let i=0;i<8;i++) if(instance.exports.semaprax_main()!==4n) throw Error('byte
     std::fs::remove_dir(root).unwrap();
     fixture.cleanup();
 }
+
+#[test]
+fn owned_string_record_layout_cannot_silently_drop_record_invariants() {
+    let declaration = r#"module invariant.record; @id("packet") record Packet {@id("packet.label") label:string,@id("packet.quantity") quantity:i64,} requires quantity>0"#;
+    let schema = format!("{declaration} @id(\"main\") fn main()->i64{{0}}");
+    let ast = semaprax::parse(&schema, "invariant-schema.spx").unwrap();
+    assert!(semaprax::verify::verify(&ast).is_empty());
+    let document = semaprax::graph::to_json(&ast).unwrap();
+    assert!(document.contains("packet#invariant"));
+    let executable =
+        format!("{declaration} fn pass(value:own Packet)->Packet{{value}} fn main()->i64{{0}}");
+    let ast = semaprax::parse(&executable, "invariant-executable.spx").unwrap();
+    assert!(semaprax::verify::verify(&ast)
+        .iter()
+        .any(|error| error.code == "SPX-T309"));
+    assert!(semaprax::hir::resolve(&ast).is_err());
+}

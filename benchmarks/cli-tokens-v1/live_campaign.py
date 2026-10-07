@@ -668,7 +668,10 @@ def claude_command(settings: dict[str, Any], prompt: str) -> list[str]:
     ]
     if settings.get("max_budget_usd") is not None:
         command.extend(["--max-budget-usd", str(settings["max_budget_usd"])])
-    command.append(prompt)
+    # --allowedTools accepts a variable-length option list in Claude Code.
+    # End option parsing explicitly so the positional prompt cannot be
+    # consumed as another tool name.
+    command.extend(["--", prompt])
     return command
 
 

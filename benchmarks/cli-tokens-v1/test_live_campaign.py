@@ -12,6 +12,19 @@ import live_campaign
 
 
 class LiveCampaignTests(unittest.TestCase):
+    def test_claude_command_ends_options_before_prompt(self):
+        settings = {
+            "model": live_campaign.MODEL,
+            "effort": live_campaign.EFFORT,
+            "max_budget_usd": 3.5,
+        }
+        prompt = "Implement the benchmark application."
+        command = live_campaign.claude_command(settings, prompt)
+        self.assertEqual(command[-2:], ["--", prompt])
+        self.assertLess(command.index("--allowedTools"), command.index("--"))
+        self.assertEqual(command[command.index("--allowedTools") + 1], "Bash,Read,Edit,Write,Glob,Grep")
+        self.assertEqual(command[command.index("--max-budget-usd") + 1], "3.5")
+
     def test_stream_usage_keeps_observed_model_and_deduplicates_message_updates(self):
         events = [
             {

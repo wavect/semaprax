@@ -18,6 +18,7 @@ pub(in crate::wasm) use function_value::{
     box_import_base, program_uses_owned_buffer, vec_import_base,
 };
 use function_value::{executable_functions, hex_execution_identity, program_uses_byte_range};
+pub(super) mod conversions;
 mod filesystem_checked;
 mod filesystem_ops;
 mod filesystem_v2;

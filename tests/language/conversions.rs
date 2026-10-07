@@ -278,14 +278,11 @@ fn run_executes_conversions_and_reports_a_failure_on_both_routes() {
 }
 
 #[test]
-fn core_wasm_refuses_conversions_with_one_stable_diagnostic() {
+fn additive_aggregate_wasm_admits_numeric_conversions_and_frozen_string_profile_refuses() {
     let program = parse(SOURCE, Path::new("conversions-wasm.spx")).unwrap();
-    let error = semaprax::wasm::emit_module(&program).expect_err("scalar Core Wasm lane");
-    assert_eq!(error.code, "SPX-W116", "{}", error.message);
-    assert_eq!(
-        error.message,
-        "Conversions v1 operation `f64_from_i64` is not lowered to Core Wasm; run it on the reference interpreter or native C11"
-    );
+    let bytes =
+        semaprax::wasm::emit_module(&program).expect("additive aggregate numeric conversion lane");
+    assert_eq!(bytes, semaprax::wasm::emit_module(&program).unwrap());
     let error = emit_module(
         &program,
         &["conv.sizes".to_owned()],

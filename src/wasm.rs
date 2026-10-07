@@ -975,6 +975,7 @@ fn emit_resolved_module_internal(
 ) -> Result<Vec<u8>, Diagnostic> {
     aggregate::string_runtime::refuse_unimplemented_collections(program)?;
     let has_public_profile = !scalar_exports.is_empty() || !text_exports.is_empty();
+    aggregate::conversions::validate_public_profile(program, has_public_profile)?;
     if crate::list_ops::resolved_program_uses_list(program) {
         return aggregate::list_ops::emit_closed_list(program, has_public_profile);
     }
@@ -1026,6 +1027,7 @@ fn emit_resolved_module_internal(
         || program_uses_byte_data(program)
         || program_uses_vec(program)
         || program_uses_box(program)
+        || aggregate::conversions::program_uses_numeric(program)
     {
         if has_public_profile {
             if !scalar_exports.is_empty()

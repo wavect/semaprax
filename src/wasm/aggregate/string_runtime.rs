@@ -63,7 +63,7 @@ pub(in crate::wasm) fn refuse_unimplemented_collections(
         if let ResolvedExprKind::Call { callee, .. } = &expression.kind {
             if let Some(operation) = crate::string_ops::by_id(callee.as_str()).filter(|operation| {
                 (operation.is_collection() && *operation != crate::string_ops::StringOp::Compare)
-                    || operation.is_conversion()
+                    || (operation.is_conversion() && !conversions::admitted(*operation))
             }) {
                 return Err(crate::string_ops::text_toolkit_wasm_refusal(operation));
             }
@@ -298,6 +298,9 @@ impl Emitter<'_> {
         args: &[ResolvedExpr],
     ) -> Result<Value, Diagnostic> {
         use crate::string_ops::StringOp;
+        if conversions::admitted(operation) {
+            return self.emit_scalar_conversion(expr, operation, args);
+        }
         if operation.is_wasm_refused() && operation != StringOp::Compare {
             return Err(crate::string_ops::text_toolkit_wasm_refusal(operation));
         }

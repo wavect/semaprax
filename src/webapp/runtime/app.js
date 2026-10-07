@@ -110,7 +110,7 @@ function listView(e) {
       rows.length ? null : h("p", { class: "mut" }, "No rows."),
       h("div", { class: "bar" }, h("button", { disabled: S.page === 0, onclick: go(-1) }, "‹ Prev"),
         h("span", {}, `Page ${S.page + 1} of ${pages} · ${rows.length} rows`),
-        h("button", { disabled: S.page >= pages - 1, onclick: go(1) }, "Next ›")));
+        h("button", { disabled: S.page >= pages - 1, onclick: go(1) }, "Next ›"))));
   };
   const reset = () => { S.page = 0; draw(); };
   const bar = h("div", { class: "bar" },

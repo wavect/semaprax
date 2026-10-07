@@ -86,7 +86,26 @@ fn main() -> i64
 - `Bytes`, `Slice<u8>`: no literal; owned bytes and borrowed byte view.
 
 Operators do not mix types. If `n` is `usize`, `n < 5` fails with `SPX-T208`;
-write `n < 5usize`. Use `string_concat`, not `+`, for strings.
+write `n < 5usize`. Use `string_concat`, not `+`, for strings. There is no
+`as`; convert with `f64_from_i64`, `i64_from_f64` (truncates toward zero),
+`usize_from_i64`, and `i64_from_usize`. A value out of range (or NaN) fails
+with `semaprax.convert.v1` like an overflow. Core Wasm refuses them
+(`SPX-W116`).
+
+```semaprax
+module app.convert;
+
+@id("app.main")
+fn main() -> i64
+{
+    let total = 10;
+    let count = 4usize;
+    let average = f64_from_i64(total) / f64_from_i64(i64_from_usize(count));
+    i64_from_f64(average * 10.0)
+}
+```
+
+`semaprax run convert.spx` prints `25`.
 
 ## Control flow, mutation, contracts, effects
 
@@ -698,7 +717,9 @@ fn main() -> i64
 For a file holding `4`, ` 5 `, `x`, `10` on four lines, `semaprax run
 lines.spx -- nums.txt` prints `lines: 4` and `sum: 19` and exits 0; without an
 argument it prints the usage line to stderr and exits 2. Bind `arg_utf8(i)`
-before passing it on. Match `string_to_i64` directly; in a loop the match must
+before passing it on. To compare an argument, copy it into a `string`: `let
+raw = arg_utf8(1usize); let flag = string_from_str(raw);` and then
+`flag == "--top"`. Match `string_to_i64` directly; in a loop the match must
 be exactly `Option::Some { value }` and `Option::None {}`. A function may hold
 many independent `if`s, `&&`/`||` operands, and `match`es. Offsets are byte
 offsets; `string_byte_at(s, i) == 32` tests a space without allocating.
@@ -962,7 +983,7 @@ Other first-attempt diagnostics and their fixes:
 | `x += 1;` | `SPX-P201` | `x = x + 1;` |
 | `c ? a : b` | `SPX-P106` | `if c { a } else { b }` |
 | `break`, `continue` | `SPX-P106` | Put the exit test in the `while` condition |
-| `x as i64` | `SPX-P106` | No casts or numeric conversions; keep one integer type and suffix literals |
+| `x as i64` | `SPX-P106` | `f64_from_i64(x)`, `i64_from_f64(x)` (truncates), `usize_from_i64(x)`, `i64_from_usize(x)`; out of range fails. Otherwise keep one integer type and suffix literals |
 | a Rust or JavaScript closure | `SPX-P201` | `fn(x: i64) -> i64 { x + 1 }` |
 | `use std::io;` | `SPX-G170` | Compiler-owned functions need no import; projects import one declaration with `use function @id("…") from module as name;` |
 | `f()?` in `main` | `SPX-T218` | Only a function returning `Result` propagates; `match` the result in `main` |

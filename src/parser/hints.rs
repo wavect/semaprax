@@ -57,9 +57,10 @@ const CONDITION_ASSIGN_HELP: &str =
     "comparison is `==`; a single `=` is assignment, which is a statement and never a condition";
 const TERNARY_HELP: &str =
     "there is no `? :` operator; `if` is an expression: `if <condition> { a } else { b }`";
-const CAST_HELP: &str =
-    "there are no casts or numeric conversions; keep a computation in one integer \
-                         type and suffix literals to match it, such as `5i32` or `5usize`";
+const CAST_HELP: &str = "there is no `as`; convert with `f64_from_i64(x)`, `i64_from_f64(x)` \
+                         (truncates toward zero), `usize_from_i64(x)`, or `i64_from_usize(x)`, \
+                         which fail on a value out of range; between other integer types keep one \
+                         type and suffix literals, such as `5i32` or `5usize`";
 const BREAK_HELP: &str = "there is no `break` or `continue`; put the exit test in the `while` \
                           condition, for example with a `let mut done = false;` flag";
 /// `|x| …` or `|| …` where an expression was expected: closure syntax.

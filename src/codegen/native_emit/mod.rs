@@ -675,7 +675,7 @@ fn program_uses_string_ops(program: &ResolvedProgram, include_instances: bool) -
     }
     while let Some(expression) = pending.pop() {
         if let ResolvedExprKind::Call { callee, .. } = &expression.kind {
-            if crate::string_ops::by_id(callee.as_str()).is_some() {
+            if crate::string_ops::by_id(callee.as_str()).is_some_and(|op| op.touches_string()) {
                 return true;
             }
         }

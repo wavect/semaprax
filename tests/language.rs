@@ -31,6 +31,8 @@ mod class_inheritance;
 mod collection_law_pack;
 #[path = "language/control_flow.rs"]
 mod control_flow;
+#[path = "language/conversions.rs"]
+mod conversions;
 #[path = "language/explicit_mutation.rs"]
 mod explicit_mutation;
 #[path = "language/field_mutation.rs"]

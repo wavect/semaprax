@@ -33,6 +33,9 @@ impl Evaluator<'_> {
         if op.is_collection() {
             return self.evaluate_collection(op, values);
         }
+        if op.is_conversion() {
+            return self.evaluate_conversion(op, &values);
+        }
         match op {
             crate::string_ops::StringOp::Len => match values.first() {
                 Some(Value::String(value)) => Ok(Value::Int(value.len() as i64)),
@@ -250,6 +253,55 @@ impl Evaluator<'_> {
             _ => Err(Flow::Guard("ill-typed String Collections operand")),
         }
     }
+}
+
+impl Evaluator<'_> {
+    /// Conversions v1. Every failure is the checked `semaprax.convert.v1`
+    /// status the native backend selects too.
+    fn evaluate_conversion(
+        &mut self,
+        op: crate::string_ops::StringOp,
+        values: &[Value],
+    ) -> Result<Value, Flow> {
+        use crate::string_ops::{StringOp, CONVERT_NAN_CODE, CONVERT_OUT_OF_RANGE_CODE};
+        match (op, values) {
+            (StringOp::FromStr, [Value::BorrowedStr(text)]) => {
+                Ok(Value::String(self.materialize_utf8_copy(text)?))
+            }
+            // Rust's `as` rounds to nearest, ties to even, like C and Wasm.
+            (StringOp::F64FromI64, [Value::Int(value)]) => Ok(Value::Float64(*value as f64)),
+            (StringOp::I64FromF64, [Value::Float64(value)]) => {
+                if value.is_nan() {
+                    Err(convert_failure(CONVERT_NAN_CODE))
+                } else if *value >= -9_223_372_036_854_775_808.0
+                    && *value < 9_223_372_036_854_775_808.0
+                {
+                    Ok(Value::Int(value.trunc() as i64))
+                } else {
+                    Err(convert_failure(CONVERT_OUT_OF_RANGE_CODE))
+                }
+            }
+            (StringOp::UsizeFromI64, [Value::Int(value)]) => u64::try_from(*value)
+                .map(Value::Usize)
+                .map_err(|_| convert_failure(CONVERT_OUT_OF_RANGE_CODE)),
+            (StringOp::I64FromUsize, [Value::Usize(value)]) => i64::try_from(*value)
+                .map(Value::Int)
+                .map_err(|_| convert_failure(CONVERT_OUT_OF_RANGE_CODE)),
+            _ => Err(Flow::Guard("ill-typed conversion operand")),
+        }
+    }
+}
+
+fn convert_failure(code: u32) -> Flow {
+    Flow::Failure(
+        NormalizedStatus::try_new(
+            crate::string_ops::CONVERT_STATUS_DOMAIN,
+            code,
+            StatusClass::Adapter,
+            Retryability::Known(false),
+        )
+        .expect("compiler-owned conversion status table is valid"),
+    )
 }
 
 fn map_failure(code: u32) -> Flow {

@@ -4,6 +4,10 @@ Audience: language users, agent authors, and compiler contributors.
 
 Status: Partial. Statement `if` is parse-level sugar and runs wherever a
 value `if` runs: the reference interpreter, native C11, and Core Wasm.
+Conversions v1 (numeric conversions and `string_from_str`) runs on the
+reference interpreter and native C11 (`run`, `run --native`,
+`build --target native`); every Core Wasm lane refuses it with one stable
+diagnostic (`SPX-W116`).
 
 ## Objective
 
@@ -92,6 +96,80 @@ block, the diagnostic is the one the value grammar always produced for that
 text: `SPX-P104` (``expected `else` ``) for `if c { 42 }`, and `SPX-P203`
 with a help naming both fixes for `if c { x = 1; }`. Expression statements
 inside a branch (`f(x);`) stay `SPX-P106`.
+
+## Conversions v1
+
+There are no casts: `x as f64` stays `SPX-P106`, and its help names the
+functions below. They are compiler-owned and reserved like the `string_*`
+names (declaring one is `SPX-S113`); each call resolves to an ordinary
+monomorphic call with the stable identity below, so no prelude byte, graph
+schema version, or earlier program's projection changes.
+
+| Function | Stable identity | Signature |
+| --- | --- | --- |
+| `f64_from_i64` | `core.num.f64_from_i64` | `(value: i64) -> f64` |
+| `i64_from_f64` | `core.num.i64_from_f64` | `(value: f64) -> i64` |
+| `usize_from_i64` | `core.num.usize_from_i64` | `(value: i64) -> usize` |
+| `i64_from_usize` | `core.num.i64_from_usize` | `(value: usize) -> i64` |
+| `string_from_str` | `core.string.from_str` | `(s: borrow str) -> string` |
+
+### Numeric semantics
+
+- `f64_from_i64` returns the `f64` nearest to `value`, ties to even. It is
+  exact for every magnitude up to 2^53 and never fails. C's `(double)`, the
+  interpreter's Rust `as f64`, and IEEE-754 round-to-nearest agree on it.
+- `i64_from_f64` truncates toward zero (`-2.75` gives `-2`). NaN fails with
+  `semaprax.convert.v1` code 2; a value outside `[-2^63, 2^63)` fails with
+  code 1. `9223372036854775807.0` is `2^63` as an `f64`, so it fails.
+- `usize_from_i64` fails with code 1 for a negative value.
+- `i64_from_usize` fails with code 1 above `9223372036854775807`.
+- Every other value converts exactly.
+
+A failure is the checked status of a failing operation, exactly like a
+checked arithmetic overflow: it propagates out of the function, runs the
+enclosing cleanup, and `semaprax run` prints one stderr line such as
+`semaprax.convert.v1/1 (conversion out of range)` and exits 1. The status
+class is `adapter` and the status is not retryable.
+
+The conversions take and return Copy scalars, so they are admitted wherever a
+scalar call is: in expressions, contracts, `while` conditions, and loop
+bodies.
+
+```text
+let average = f64_from_i64(total) / f64_from_i64(count);
+let rounded = i64_from_f64(average * 10.0);
+let mut index = 0usize;
+while index < usize_from_i64(limit) {
+    sum = sum + i64_from_usize(index);
+    index = index + 1usize;
+    0
+}
+```
+
+### `string_from_str`
+
+`string_from_str(s)` copies a borrowed `str` view into a new owned `string`,
+so text that arrives as a view (a command-line argument from `arg_utf8`, or a
+`borrow str` parameter) can be compared, stored, and passed to every
+`string_*` operation. Owned strings compare by content with `==` and `!=`:
+
+```text
+let raw = arg_utf8(0usize);
+let flag = string_from_str(raw);
+let top = if flag == "--top" { 1 } else { 0 };
+```
+
+The copy is an ordinary owned temporary: it is released on every exit, and
+the allocation-counting native harness observes no leak. The borrowed view
+is not consumed.
+
+### Backends
+
+The reference interpreter and native C11 implement the family; native C
+inlines each numeric conversion and its range checks without a runtime
+helper. Every Core Wasm lane refuses the family up front with
+`SPX-W116`: "Conversions v1 operation `f64_from_i64` is not lowered to Core
+Wasm; run it on the reference interpreter or native C11".
 
 ## Evidence
 

@@ -156,6 +156,13 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             | crate::string_ops::StringOp::MapValueAt => {
                 self.emit_collection_op(op, &arguments, &temporary, expression)?;
             }
+            crate::string_ops::StringOp::FromStr
+            | crate::string_ops::StringOp::F64FromI64
+            | crate::string_ops::StringOp::I64FromF64
+            | crate::string_ops::StringOp::UsizeFromI64
+            | crate::string_ops::StringOp::I64FromUsize => {
+                self.emit_conversion_op(op, &arguments[0].code, &temporary)?;
+            }
         }
         let code = if is_direct_plan_owned(self.program, &op.return_type()) {
             self.apply_owned_plan_at_value(
@@ -178,5 +185,68 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             code,
             ty: op.return_type(),
         })
+    }
+
+    /// Conversions v1 (`docs/LANGUAGE-ERGONOMICS-V1.md`). A checked operand
+    /// is copied into a fresh local so it is read exactly once; a value the
+    /// target type cannot hold records the checked `semaprax.convert.v1`
+    /// status and leaves the result slot unwritten.
+    fn emit_conversion_op(
+        &mut self,
+        op: crate::string_ops::StringOp,
+        operand: &str,
+        temporary: &str,
+    ) -> Result<(), Diagnostic> {
+        use crate::string_ops::{StringOp, CONVERT_NAN_CODE, CONVERT_OUT_OF_RANGE_CODE};
+        let (input_type, target) = match op {
+            StringOp::FromStr => {
+                self.line(&format!(
+                    "{temporary} = spx_string_from_literal((const char *)({operand}).data, ({operand}).len);"
+                ));
+                return Ok(());
+            }
+            StringOp::F64FromI64 => {
+                // C converts to the nearest double, ties to even, under the
+                // default rounding mode the runtime never changes.
+                self.line(&format!("{temporary} = (double)({operand});"));
+                return Ok(());
+            }
+            StringOp::I64FromF64 => (ResolvedType::F64, "int64_t"),
+            StringOp::UsizeFromI64 => (ResolvedType::I64, "uint64_t"),
+            StringOp::I64FromUsize => (ResolvedType::Usize, "int64_t"),
+            _ => {
+                return Err(super::backend_error(
+                    "operation is not a Conversions v1 call",
+                ))
+            }
+        };
+        let input = self.temporary(&input_type)?;
+        self.line(&format!("{input} = {operand};"));
+        let failures = match op {
+            StringOp::I64FromF64 => vec![
+                (format!("{input} != {input}"), CONVERT_NAN_CODE),
+                (
+                    format!(
+                        "!({input} >= -9223372036854775808.0 && {input} < 9223372036854775808.0)"
+                    ),
+                    CONVERT_OUT_OF_RANGE_CODE,
+                ),
+            ],
+            StringOp::UsizeFromI64 => {
+                vec![(format!("{input} < INT64_C(0)"), CONVERT_OUT_OF_RANGE_CODE)]
+            }
+            _ => vec![(
+                format!("{input} > (uint64_t)INT64_MAX"),
+                CONVERT_OUT_OF_RANGE_CODE,
+            )],
+        };
+        for (condition, code) in failures {
+            self.line(&format!(
+                "if ({condition}) {{ if (!spx_status_record_adapter(spx_ctx, \"{}\", UINT32_C({code}), SPX_STATUS_CLASS_ADAPTER, SPX_RETRYABILITY_FALSE, &spx_status)) spx_runtime_invariant_failure(\"conversion status could not be recorded\"); goto spx_epilogue; }}",
+                crate::string_ops::CONVERT_STATUS_DOMAIN
+            ));
+        }
+        self.line(&format!("{temporary} = ({target}){input};"));
+        Ok(())
     }
 }

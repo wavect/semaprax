@@ -794,6 +794,8 @@ fn status_meaning(domain: &str, code: u64) -> &'static str {
         ("semaprax.text.v1", 1) => " (text offset or index out of range)",
         ("semaprax.text.v1", 2) => " (text slice bound splits a UTF-8 character)",
         ("semaprax.text.v1", 3) => " (file text is not valid UTF-8)",
+        ("semaprax.convert.v1", 1) => " (conversion out of range)",
+        ("semaprax.convert.v1", 2) => " (conversion of NaN)",
         ("semaprax.filesystem.v1", 1) => " (invalid relative file path)",
         ("semaprax.filesystem.v1", 2) => " (file not found)",
         ("semaprax.filesystem.v1", 4) => " (file exceeds the 65536-byte limit)",

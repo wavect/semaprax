@@ -63,6 +63,22 @@
 //!   borrow the map.
 //!
 //! Map failures select the checked `semaprax.map.v1` status.
+//!
+//! Conversions v1 (`docs/LANGUAGE-ERGONOMICS-V1.md`, its own backend group)
+//! adds the scalar conversions and the borrowed-to-owned text copy. The
+//! numeric conversions carry `core.num.*` identities; they share this
+//! intrinsic table only for dispatch and touch no string value:
+//!
+//! - `f64_from_i64(value: i64) -> f64` rounds to nearest, ties to even (exact
+//!   for every magnitude up to 2^53).
+//! - `i64_from_f64(value: f64) -> i64` truncates toward zero.
+//! - `usize_from_i64(value: i64) -> usize` and
+//!   `i64_from_usize(value: usize) -> i64` copy the value exactly.
+//! - `string_from_str(s: borrow str) -> string` copies a borrowed view into a
+//!   new owned string.
+//!
+//! A value the target type cannot hold selects the checked
+//! `semaprax.convert.v1` status: code 1 for out of range, code 2 for NaN.
 
 use crate::ast::{Param, ParamMode, Span, Type};
 use crate::hir::{OwnershipMode, ResolvedParam, ResolvedType, ValueId};
@@ -93,6 +109,11 @@ pub(crate) const MAP_HAS_NAME: &str = "map_has";
 pub(crate) const MAP_LEN_NAME: &str = "map_len";
 pub(crate) const MAP_KEY_AT_NAME: &str = "map_key_at";
 pub(crate) const MAP_VALUE_AT_NAME: &str = "map_value_at";
+pub(crate) const FROM_STR_NAME: &str = "string_from_str";
+pub(crate) const F64_FROM_I64_NAME: &str = "f64_from_i64";
+pub(crate) const I64_FROM_F64_NAME: &str = "i64_from_f64";
+pub(crate) const USIZE_FROM_I64_NAME: &str = "usize_from_i64";
+pub(crate) const I64_FROM_USIZE_NAME: &str = "i64_from_usize";
 
 pub(crate) const LEN_ID: &str = "core.string.len";
 pub(crate) const CONCAT_ID: &str = "core.string.concat";
@@ -118,6 +139,18 @@ pub(crate) const MAP_HAS_ID: &str = "core.map.has";
 pub(crate) const MAP_LEN_ID: &str = "core.map.len";
 pub(crate) const MAP_KEY_AT_ID: &str = "core.map.key_at";
 pub(crate) const MAP_VALUE_AT_ID: &str = "core.map.value_at";
+pub(crate) const FROM_STR_ID: &str = "core.string.from_str";
+pub(crate) const F64_FROM_I64_ID: &str = "core.num.f64_from_i64";
+pub(crate) const I64_FROM_F64_ID: &str = "core.num.i64_from_f64";
+pub(crate) const USIZE_FROM_I64_ID: &str = "core.num.usize_from_i64";
+pub(crate) const I64_FROM_USIZE_ID: &str = "core.num.i64_from_usize";
+
+/// The checked status domain of Conversions v1.
+pub(crate) const CONVERT_STATUS_DOMAIN: &str = "semaprax.convert.v1";
+/// The value lies outside the target type's range.
+pub(crate) const CONVERT_OUT_OF_RANGE_CODE: u32 = 1;
+/// `i64_from_f64` received NaN.
+pub(crate) const CONVERT_NAN_CODE: u32 = 2;
 
 /// The checked status domain of String Collections v1 maps.
 pub(crate) const MAP_STATUS_DOMAIN: &str = "semaprax.map.v1";
@@ -200,6 +233,16 @@ pub(crate) enum StringOp {
     MapKeyAt,
     /// Borrowed value at an ascending-order index.
     MapValueAt,
+    /// Copy of a borrowed `str` view into a new owned string.
+    FromStr,
+    /// `i64` to the nearest `f64`, ties to even.
+    F64FromI64,
+    /// Checked `f64` to `i64`, truncating toward zero.
+    I64FromF64,
+    /// Checked `i64` to `usize`.
+    UsizeFromI64,
+    /// Checked `usize` to `i64`.
+    I64FromUsize,
 }
 
 impl StringOp {
@@ -241,6 +284,16 @@ impl StringOp {
         Self::MapValueAt,
     ];
 
+    /// Conversions v1 operations, outside the frozen [`Self::ALL`] catalog
+    /// and their own backend group.
+    pub(crate) const CONVERSIONS: [Self; 5] = [
+        Self::FromStr,
+        Self::F64FromI64,
+        Self::I64FromF64,
+        Self::UsizeFromI64,
+        Self::I64FromUsize,
+    ];
+
     pub(crate) fn name(self) -> &'static str {
         match self {
             StringOp::Len => LEN_NAME,
@@ -267,6 +320,11 @@ impl StringOp {
             StringOp::MapLen => MAP_LEN_NAME,
             StringOp::MapKeyAt => MAP_KEY_AT_NAME,
             StringOp::MapValueAt => MAP_VALUE_AT_NAME,
+            StringOp::FromStr => FROM_STR_NAME,
+            StringOp::F64FromI64 => F64_FROM_I64_NAME,
+            StringOp::I64FromF64 => I64_FROM_F64_NAME,
+            StringOp::UsizeFromI64 => USIZE_FROM_I64_NAME,
+            StringOp::I64FromUsize => I64_FROM_USIZE_NAME,
         }
     }
 
@@ -296,6 +354,11 @@ impl StringOp {
             StringOp::MapLen => MAP_LEN_ID,
             StringOp::MapKeyAt => MAP_KEY_AT_ID,
             StringOp::MapValueAt => MAP_VALUE_AT_ID,
+            StringOp::FromStr => FROM_STR_ID,
+            StringOp::F64FromI64 => F64_FROM_I64_ID,
+            StringOp::I64FromF64 => I64_FROM_F64_ID,
+            StringOp::UsizeFromI64 => USIZE_FROM_I64_ID,
+            StringOp::I64FromUsize => I64_FROM_USIZE_ID,
         }
     }
 
@@ -326,6 +389,11 @@ impl StringOp {
             StringOp::MapHas => &["map", "key"],
             StringOp::MapLen => &["map"],
             StringOp::MapKeyAt | StringOp::MapValueAt => &["map", "index"],
+            StringOp::FromStr => &["s"],
+            StringOp::F64FromI64
+            | StringOp::I64FromF64
+            | StringOp::UsizeFromI64
+            | StringOp::I64FromUsize => &["value"],
         }
     }
 
@@ -361,6 +429,10 @@ impl StringOp {
             StringOp::MapKeyAt | StringOp::MapValueAt => {
                 &[ResolvedType::StringMap, ResolvedType::Usize]
             }
+            StringOp::FromStr => &[ResolvedType::Str],
+            StringOp::F64FromI64 | StringOp::UsizeFromI64 => &[ResolvedType::I64],
+            StringOp::I64FromF64 => &[ResolvedType::F64],
+            StringOp::I64FromUsize => &[ResolvedType::Usize],
         }
     }
 
@@ -376,9 +448,9 @@ impl StringOp {
     /// copied.
     pub(crate) fn param_ownership(self, index: usize) -> OwnershipMode {
         match self.param_types().get(index) {
-            Some(ResolvedType::Char | ResolvedType::I64 | ResolvedType::Usize) => {
-                OwnershipMode::Value
-            }
+            Some(
+                ResolvedType::Char | ResolvedType::I64 | ResolvedType::Usize | ResolvedType::F64,
+            ) => OwnershipMode::Value,
             _ if self.consumes_arguments() => OwnershipMode::Own,
             _ if index == 0 && self.reopens_map() => OwnershipMode::Own,
             _ => OwnershipMode::Borrow,
@@ -396,10 +468,27 @@ impl StringOp {
         Self::COLLECTIONS.contains(&self)
     }
 
-    /// Operations no Core Wasm lane lowers: Text Toolkit v1 and String
-    /// Collections v1.
+    /// Conversions v1 forms a sixth optional backend group.
+    pub(crate) fn is_conversion(self) -> bool {
+        Self::CONVERSIONS.contains(&self)
+    }
+
+    /// Whether the operation reads or produces a String value. The numeric
+    /// conversions do not, so they never select a String runtime.
+    pub(crate) fn touches_string(self) -> bool {
+        !matches!(
+            self,
+            StringOp::F64FromI64
+                | StringOp::I64FromF64
+                | StringOp::UsizeFromI64
+                | StringOp::I64FromUsize
+        )
+    }
+
+    /// Operations no Core Wasm lane lowers: Text Toolkit v1, String
+    /// Collections v1, and Conversions v1.
     pub(crate) fn is_wasm_refused(self) -> bool {
-        self.is_text_toolkit() || self.is_collection()
+        self.is_text_toolkit() || self.is_collection() || self.is_conversion()
     }
 
     /// Whether the operation belongs to the breadth-v2 wave. Its native
@@ -436,7 +525,11 @@ impl StringOp {
             | StringOp::ByteAt
             | StringOp::Compare
             | StringOp::MapGetOr
-            | StringOp::MapValueAt => ResolvedType::I64,
+            | StringOp::MapValueAt
+            | StringOp::I64FromF64
+            | StringOp::I64FromUsize => ResolvedType::I64,
+            StringOp::F64FromI64 => ResolvedType::F64,
+            StringOp::UsizeFromI64 => ResolvedType::Usize,
             StringOp::MapNew | StringOp::MapAdd | StringOp::MapSet => ResolvedType::StringMap,
             StringOp::MapLen => ResolvedType::Usize,
             StringOp::MapHas => ResolvedType::Bool,
@@ -447,7 +540,8 @@ impl StringOp {
             | StringOp::FromUsize
             | StringOp::Slice
             | StringOp::Trim
-            | StringOp::FileReadText => ResolvedType::String,
+            | StringOp::FileReadText
+            | StringOp::FromStr => ResolvedType::String,
             StringOp::IsEmpty | StringOp::StartsWith | StringOp::Contains => ResolvedType::Bool,
             StringOp::ToI64 => option_i64(),
         }
@@ -461,7 +555,11 @@ impl StringOp {
             | StringOp::ByteAt
             | StringOp::Compare
             | StringOp::MapGetOr
-            | StringOp::MapValueAt => Type::I64,
+            | StringOp::MapValueAt
+            | StringOp::I64FromF64
+            | StringOp::I64FromUsize => Type::I64,
+            StringOp::F64FromI64 => Type::F64,
+            StringOp::UsizeFromI64 => Type::Usize,
             StringOp::MapNew | StringOp::MapAdd | StringOp::MapSet => Type::StringMap,
             StringOp::MapLen => Type::Usize,
             StringOp::MapHas => Type::Bool,
@@ -472,7 +570,8 @@ impl StringOp {
             | StringOp::FromUsize
             | StringOp::Slice
             | StringOp::Trim
-            | StringOp::FileReadText => Type::String,
+            | StringOp::FileReadText
+            | StringOp::FromStr => Type::String,
             StringOp::IsEmpty | StringOp::StartsWith | StringOp::Contains => Type::Bool,
             StringOp::ToI64 => Type::Named {
                 name: "Option".to_owned(),
@@ -531,6 +630,11 @@ pub(crate) fn by_name(name: &str) -> Option<StringOp> {
         MAP_LEN_NAME => Some(StringOp::MapLen),
         MAP_KEY_AT_NAME => Some(StringOp::MapKeyAt),
         MAP_VALUE_AT_NAME => Some(StringOp::MapValueAt),
+        FROM_STR_NAME => Some(StringOp::FromStr),
+        F64_FROM_I64_NAME => Some(StringOp::F64FromI64),
+        I64_FROM_F64_NAME => Some(StringOp::I64FromF64),
+        USIZE_FROM_I64_NAME => Some(StringOp::UsizeFromI64),
+        I64_FROM_USIZE_NAME => Some(StringOp::I64FromUsize),
         _ => None,
     }
 }
@@ -562,6 +666,11 @@ pub(crate) fn by_id(id: &str) -> Option<StringOp> {
         MAP_LEN_ID => Some(StringOp::MapLen),
         MAP_KEY_AT_ID => Some(StringOp::MapKeyAt),
         MAP_VALUE_AT_ID => Some(StringOp::MapValueAt),
+        FROM_STR_ID => Some(StringOp::FromStr),
+        F64_FROM_I64_ID => Some(StringOp::F64FromI64),
+        I64_FROM_F64_ID => Some(StringOp::I64FromF64),
+        USIZE_FROM_I64_ID => Some(StringOp::UsizeFromI64),
+        I64_FROM_USIZE_ID => Some(StringOp::I64FromUsize),
         _ => None,
     }
 }
@@ -606,6 +715,7 @@ pub(crate) fn ast_params(op: StringOp) -> Vec<Param> {
                 ResolvedType::Char => Type::Char,
                 ResolvedType::I64 => Type::I64,
                 ResolvedType::Usize => Type::Usize,
+                ResolvedType::F64 => Type::F64,
                 ResolvedType::Str => Type::Str,
                 ResolvedType::StringMap => Type::StringMap,
                 _ => Type::String,
@@ -699,10 +809,11 @@ pub(crate) fn is_same_owner_concat_hir(value: &crate::hir::ResolvedExpr, owner: 
 }
 
 /// Whether a source call touches an owned `string`: every compiler-owned
-/// String operation (producers allocate; readers read a cloned operand), or a
-/// declared function with a `string` parameter or result.
+/// String operation (producers allocate; readers read a cloned operand) but
+/// the numeric conversions, or a declared function with a `string` parameter
+/// or result.
 pub(crate) fn source_call_uses_string(name: &str, uses_string: &dyn Fn(&str) -> bool) -> bool {
-    by_name(name).is_some() || uses_string(name)
+    by_name(name).is_some_and(StringOp::touches_string) || uses_string(name)
 }
 
 /// Owned String Loops v1 keeps every `while` condition free of owned String
@@ -841,6 +952,8 @@ pub(crate) fn text_toolkit_wasm_refusal(op: StringOp) -> crate::diagnostic::Diag
             "{} operation `{}` is not lowered to Core Wasm; run it on the reference interpreter or native C11",
             if op.is_collection() {
                 "String Collections v1"
+            } else if op.is_conversion() {
+                "Conversions v1"
             } else {
                 "Text Toolkit v1"
             },
@@ -849,9 +962,9 @@ pub(crate) fn text_toolkit_wasm_refusal(op: StringOp) -> crate::diagnostic::Diag
     )
 }
 
-/// Every Core Wasm lane refuses String Collections v1 up front with the one
-/// stable `SPX-W116` diagnostic, naming the first collection operation in
-/// authored order, before any lane-specific admission can report a less
+/// Every Core Wasm lane refuses String Collections v1 and Conversions v1 up
+/// front with the one stable `SPX-W116` diagnostic, naming the first such
+/// operation in authored order, before any lane-specific admission can report a less
 /// specific profile error.
 pub(crate) fn refuse_collections_for_wasm(
     program: &crate::hir::ResolvedProgram,
@@ -869,7 +982,9 @@ pub(crate) fn refuse_collections_for_wasm(
     pending.reverse();
     while let Some(expression) = pending.pop() {
         if let crate::hir::ResolvedExprKind::Call { callee, .. } = &expression.kind {
-            if let Some(op) = by_id(callee.as_str()).filter(|op| op.is_collection()) {
+            if let Some(op) =
+                by_id(callee.as_str()).filter(|op| op.is_collection() || op.is_conversion())
+            {
                 return Err(text_toolkit_wasm_refusal(op));
             }
         }

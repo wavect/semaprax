@@ -453,7 +453,7 @@ fn operators_and_statements_from_other_languages_name_the_admitted_form() {
         (
             "    let x = 1i32;\n    x as i64",
             "SPX-P106",
-            "no casts or numeric conversions",
+            "convert with `f64_from_i64(x)`, `i64_from_f64(x)`",
         ),
         (
             "    let a = true and false;\n    0",

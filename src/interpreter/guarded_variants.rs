@@ -8,7 +8,7 @@ impl Evaluator<'_> {
         scrutinee: &ResolvedExpr,
         arms: &[hir::ResolvedMatchArm],
         variant: &OwnedVariantValue,
-        environment: &mut Vec<(ValueId, Value)>,
+        environment: &mut Environment,
         depth: usize,
     ) -> Result<Value, Flow> {
         if !crate::variant_guards::copy_variant(self.declarations, &scrutinee.ty)

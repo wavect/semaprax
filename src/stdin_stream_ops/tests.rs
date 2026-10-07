@@ -321,3 +321,20 @@ permit { process.stdin.read }
     *operation = DeclarationId::new(crate::byte_ops::BYTES_AS_SLICE_ID);
     assert_eq!(hir::validate(&program).unwrap_err().code, "SPX-H006");
 }
+
+#[test]
+fn legacy_native_profile_refuses_forwarding_only_reader_signatures() {
+    let parsed = ast(r#"module test.reader_profile_boundary;
+@id("stream.forward") fn forward(reader: own StdinReader) -> StdinReader { reader }
+@id("app.main") fn main() -> i64 { 0 }
+"#);
+    let program = hir::resolve(&parsed).unwrap();
+    assert!(
+        analysis::derive(&program).unwrap()[&DeclarationId::new("stream.forward")]
+            .forwarding_parameter
+            .is_some()
+    );
+    let refusal = crate::codegen::emit_hir_c(&program).unwrap_err();
+    assert_eq!(refusal.code, "SPX-B107");
+    assert!(refusal.message.contains("streaming"));
+}

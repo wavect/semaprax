@@ -51,6 +51,9 @@ AUTHORED_EXCLUDED_DIRS = {
     ".semaprax", ".spx-cache", "__pycache__", "acceptance-fixtures", "build",
     "coverage", "dist", "generated", "gen", "node_modules", "out", "target",
 }
+ARCHIVE_EXCLUDED_DIRS = {
+    "node_modules", ".cache", "__pycache__", ".pytest_cache",
+}
 SPARSE_FILES = (
     "/benchmarks/cli-tokens-v1/SPEC.md",
     "/benchmarks/cli-tokens-v1/sample.log",
@@ -78,6 +81,30 @@ def digest(path: Path) -> str:
         for chunk in iter(lambda: source.read(1024 * 1024), b""):
             value.update(chunk)
     return value.hexdigest()
+
+
+def archive_candidate(candidate: Path, archive: Path) -> tuple[dict[str, str], list[str]]:
+    """Copy a rebuildable candidate while excluding only known dependency/cache dirs."""
+    excluded_paths: list[str] = []
+
+    def ignore(directory: str, names: list[str]) -> set[str]:
+        ignored = set()
+        for name in names:
+            path = Path(directory) / name
+            if name in ARCHIVE_EXCLUDED_DIRS and (path.is_dir() or path.is_symlink()):
+                excluded_paths.append(path.relative_to(candidate).as_posix())
+                ignored.add(name)
+        return ignored
+
+    if candidate.exists():
+        shutil.copytree(candidate, archive, ignore=ignore)
+    else:
+        archive.mkdir(parents=True)
+    files_sha256 = {
+        str(path.relative_to(archive)): digest(path)
+        for path in sorted(archive.rglob("*")) if path.is_file()
+    }
+    return files_sha256, sorted(excluded_paths)
 
 
 def tokenizer_metadata(tokenizer_dir: str | Path | None) -> dict[str, Any] | None:
@@ -981,9 +1008,9 @@ def launch_trial(
         "Raw provider-reported input and cache counters. These include repeated system/tool context on every turn "
         "and task/tool history; the separate one-turn calibration diagnostic is not subtracted."
     )
-    # Archive candidate source and generated outputs before deleting the
-    # disposable sparse checkout. Any write outside the advertised candidate
-    # directory keeps the checkout for inspection.
+    # Archive candidate files, excluding only known dependency and cache dirs,
+    # before deleting the disposable sparse checkout. Any write outside the
+    # advertised candidate directory keeps the checkout for inspection.
     status = subprocess.run(
         ["git", "status", "--porcelain", "--untracked-files=all"],
         cwd=workspace, text=True, capture_output=True, check=False,
@@ -997,21 +1024,19 @@ def launch_trial(
         return row
     archive = artifacts / "candidates" / label
     archive.parent.mkdir(parents=True, exist_ok=True)
-    if candidate.exists():
-        shutil.copytree(candidate, archive)
-    else:
-        archive.mkdir()
-    archived_files = {}
-    for path in sorted(archive.rglob("*")):
-        if path.is_file():
-            archived_files[str(path.relative_to(archive))] = digest(path)
+    archived_files, excluded_paths = archive_candidate(candidate, archive)
     save_json(archive.parent / f"{label}.manifest.json", {
         "trial": label,
+        "archive_kind": "rebuildable candidate archive with dependency/cache directories excluded",
+        "runnable_without_build": False,
+        "excluded_directory_names": sorted(ARCHIVE_EXCLUDED_DIRS),
+        "excluded_paths": excluded_paths,
         "files_sha256": archived_files,
         "candidate_archive": str(archive),
     })
     row["candidate_archive"] = str(archive)
     row["candidate_files_sha256"] = archived_files
+    row["candidate_archive_excluded_paths"] = excluded_paths
     removed = subprocess.run(
         ["git", "worktree", "remove", "--force", str(workspace)],
         cwd=repo, text=True, capture_output=True, check=False,

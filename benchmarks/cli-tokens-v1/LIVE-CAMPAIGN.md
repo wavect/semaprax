@@ -41,7 +41,13 @@ python3 benchmarks/cli-tokens-v1/live_campaign.py run \
 
 The `run` command requires an empty, new artifact directory. It preserves each
 candidate archive, prompt, transcript, stderr, acceptance result, and the
-updated `results.json`. The runner does not inspect or serialize credentials.
+updated `results.json`. Candidate archives preserve files and record their
+SHA-256 hashes while omitting only `node_modules`, `.cache`, `__pycache__`, and
+`.pytest_cache`; each manifest lists the actual omitted paths. Build/run
+scripts and lockfiles are retained. Dependencies and build outputs must be
+reinstalled or regenerated as needed before using an archive; it is not
+guaranteed runnable as archived.
+The runner does not inspect or serialize credentials.
 Claude Code must already be authenticated for the selected account, and that
 account must be entitled to the pinned model.
 

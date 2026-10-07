@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 import tempfile
@@ -395,6 +396,44 @@ sys.stdout.write(json_line(report) if as_json else text(report))
         self.assertTrue(result["accepted"], result)
         self.assertEqual(len(result["checks"]), 32)
         self.assertTrue(all(row["status"] == "passed" for row in result["checks"]))
+
+    def test_candidate_archive_excludes_only_known_caches_and_hashes_preserved_files(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            candidate = root / "candidate"
+            archive = root / "archive"
+            (candidate / "nested" / "node_modules" / "pkg").mkdir(parents=True)
+            (candidate / ".cache" / "compiler").mkdir(parents=True)
+            (candidate / "__pycache__").mkdir()
+            (candidate / ".pytest_cache" / "v" / "cache").mkdir(parents=True)
+            (candidate / "target").mkdir()
+            (candidate / "dist").mkdir()
+            (candidate / "generated").mkdir()
+            authored = {
+                "main.spx": "fn main() {}\n",
+                "build.sh": "#!/bin/sh\n",
+                "run.sh": "#!/bin/sh\n",
+                "pnpm-lock.yaml": "lockfileVersion: '9.0'\n",
+                "manual.wasm": "handwritten binary payload\n",
+                "parser.rs": "// authored implementation\n",
+                "target/keep.rs": "// preserve until provenance is known\n",
+                "dist/keep.ts": "// do not drop by directory name alone\n",
+                "generated/keep.spx": "// generated-looking path, retain safely\n",
+            }
+            for relative, content in authored.items():
+                path = candidate / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(content, encoding="utf-8")
+            (candidate / "nested" / "node_modules" / "pkg" / "index.js").write_text("dependency\n")
+            (candidate / ".cache" / "compiler" / "artifact").write_text("cache\n")
+            (candidate / "__pycache__" / "module.pyc").write_text("cache\n")
+            (candidate / ".pytest_cache" / "v" / "cache" / "nodeids").write_text("cache\n")
+
+            file_hashes, excluded = live_campaign.archive_candidate(candidate, archive)
+
+        self.assertEqual(excluded, [".cache", ".pytest_cache", "__pycache__", "nested/node_modules"])
+        self.assertEqual(set(file_hashes), set(authored))
+        self.assertEqual(file_hashes["main.spx"], hashlib.sha256(authored["main.spx"].encode()).hexdigest())
 
 
 if __name__ == "__main__":

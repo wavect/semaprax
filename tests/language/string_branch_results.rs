@@ -64,6 +64,19 @@ fn if_argument() -> i64
     string_len(s) * 10 + string_len(t)
 }
 
+@id("branch.if_block_tail")
+fn if_block_tail(flag: bool) -> string
+{
+    let scratch = string_concat("scope", "");
+    if flag { "a" } else { string_concat("b", "b") }
+}
+
+@id("branch.if_block_tail_case")
+fn if_block_tail_case() -> i64
+{
+    string_len(if_block_tail(true)) * 10 + string_len(if_block_tail(false))
+}
+
 @id("branch.action")
 fn action(severity: Severity) -> string
 {
@@ -93,10 +106,34 @@ fn match_argument() -> i64
     string_len(match severity { Severity::Critical {} => "page", _ => "watch", }) * 100 + string_len(string_concat(match n { 1 => "a", _ => "bb", }, match severity { Severity::Minor {} => "c", Severity::Critical {} => "dd", }))
 }
 
+@id("branch.match_variant_if")
+fn match_variant_if(severity: Severity, flag: bool) -> string
+{
+    match severity { Severity::Critical {} => if flag { "a" } else { string_concat("b", "b") }, _ => "ccc", }
+}
+
+@id("branch.match_variant_if_case")
+fn match_variant_if_case() -> i64
+{
+    string_len(match_variant_if(Severity::Critical {}, true)) * 100 + string_len(match_variant_if(Severity::Critical {}, false)) * 10 + string_len(match_variant_if(Severity::Minor {}, false))
+}
+
 @id("branch.label")
 fn label(n: i64) -> string
 {
     match n { 0 => "zero", 1 => "one", _ => "many", }
+}
+
+@id("branch.match_scalar_if")
+fn match_scalar_if(n: i64, flag: bool) -> string
+{
+    match n { 0 => if flag { "a" } else { "bb" }, _ => if flag { string_concat("c", "") } else { "ddd" }, }
+}
+
+@id("branch.match_scalar_if_case")
+fn match_scalar_if_case() -> i64
+{
+    string_len(match_scalar_if(0, true)) * 1000 + string_len(match_scalar_if(0, false)) * 100 + string_len(match_scalar_if(1, true)) * 10 + string_len(match_scalar_if(1, false))
 }
 
 @id("branch.match_scalar")
@@ -121,7 +158,7 @@ fn string_parameter() -> i64
 @id("branch.main")
 fn main() -> i64
 {
-    if_bindings() + if_literals() + if_argument() + match_variant_call() + match_variant_let() + match_argument() + match_scalar() + string_parameter()
+    if_bindings() + if_literals() + if_argument() + if_block_tail_case() + match_variant_call() + match_variant_let() + match_argument() + match_variant_if_case() + match_scalar() + match_scalar_if_case() + string_parameter()
 }
 "#;
 
@@ -130,12 +167,15 @@ const CASES: &[(&str, &str)] = &[
     ("branch.if_bindings", "ok|32"),
     ("branch.if_literals", "ok|23"),
     ("branch.if_argument", "ok|22"),
+    ("branch.if_block_tail_case", "ok|12"),
     ("branch.match_variant_call", "ok|45"),
     ("branch.match_variant_let", "ok|4"),
     ("branch.match_argument", "ok|404"),
+    ("branch.match_variant_if_case", "ok|123"),
     ("branch.match_scalar", "ok|434"),
+    ("branch.match_scalar_if_case", "ok|1213"),
     ("branch.string_parameter", "ok|11"),
-    ("branch.main", "ok|975"),
+    ("branch.main", "ok|2323"),
 ];
 
 /// The String-settling Core Wasm profile carries only `i64`, `bool`, `char`,

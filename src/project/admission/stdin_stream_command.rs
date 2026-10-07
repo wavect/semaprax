@@ -16,7 +16,10 @@ pub(super) fn admit(program: &ResolvedProgram, command: &str) -> Result<(), Diag
                 "Project v23 selected stream command is absent from the linked program",
             )
         })?;
-    if !function.type_parameters.is_empty()
+    if program
+        .declarations
+        .type_parameters(&function.id)
+        .is_some_and(|parameters| !parameters.is_empty())
         || !function.params.is_empty()
         || function.return_type != ResolvedType::Bool
     {

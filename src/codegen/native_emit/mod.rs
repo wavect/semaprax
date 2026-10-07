@@ -113,6 +113,13 @@ fn emit_hir_c_with_options(
     semantic: Option<&NativeSemanticMetering>,
 ) -> Result<String, Diagnostic> {
     hir::validate(program)?;
+    if output_profile != NativeOutputProfile::StdinStreamCommandIo
+        && crate::stdin_stream_ops::resolved_program_uses(program)
+    {
+        return Err(backend_error(
+            "stdin reader requires the explicit native streaming-command profile",
+        ));
+    }
     if program.types.iter().any(|declaration| {
         matches!(
             declaration.kind,

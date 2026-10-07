@@ -89,7 +89,8 @@ class ShiftSimCampaignTests(unittest.TestCase):
                 (workspace / "benchmarks/event-sim-tokens-v1/SPEC.md").write_text("# Changed spec\n")
             return {"timed_out": False, "process_exit_code": 0, "elapsed_seconds": 0.1}
 
-        def check_program(_candidate, _timeout, _env):
+        def check_program(_candidate, _timeout, _env, qualification_mode):
+            self.assertEqual(qualification_mode, "preflight_only")
             if edit_stage == "during_acceptance":
                 (workspace / "benchmarks/event-sim-tokens-v1/SPEC.md").write_text("# Changed spec\n")
             return {"accepted": True}

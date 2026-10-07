@@ -10,7 +10,6 @@ use super::{backend_error, COutput, NativeOutputProfile};
 use crate::diagnostic::Diagnostic;
 use crate::hir::{self, ResolvedProgram, ResolvedType};
 use std::collections::HashMap;
-use std::fmt::Write as _;
 
 pub(super) fn emit_runtime(output: &mut impl COutput) {
     output.push_str(STDIN_STREAM_RUNTIME_C);

@@ -12,8 +12,8 @@ use crate::source_verify::declared_type::{
 };
 use crate::source_verify::diagnostics::error;
 use crate::source_verify::type_table::{
-    classify_nested_owned_byte_record, owned_byte_record_copy_field_is_admitted,
-    NestedOwnedRecordAdmission, TypeTable,
+    NestedOwnedRecordAdmission, TypeTable, classify_nested_owned_byte_record,
+    owned_byte_record_copy_field_is_admitted,
 };
 use std::collections::{HashMap, HashSet};
 
@@ -577,11 +577,12 @@ pub(super) fn check_declared_fields<'p>(
                                 types.declaration(name).map(|item| &item.kind),
                                 Some(TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Class { .. })
                             )
-                ) && !(types.contains_owned_bytes(&field.ty)
-                    && matches!(
-                        classify_nested_owned_byte_record(types, &field.ty),
-                        NestedOwnedRecordAdmission::Admitted
-                    ))
+                ) && !crate::map_ops::ast_collection(&field.ty)
+                    && !(types.contains_owned_bytes(&field.ty)
+                        && matches!(
+                            classify_nested_owned_byte_record(types, &field.ty),
+                            NestedOwnedRecordAdmission::Admitted
+                        ))
                 {
                     diagnostics.push(error(
                         program,

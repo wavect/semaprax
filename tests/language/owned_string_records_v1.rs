@@ -22,7 +22,7 @@ record Task {
 
 @id("task.make")
 fn make() -> Task {
-    Task { title: "a\0é", label: "x", points: 7 }
+    Task { title: "a\u{0}é", label: "x", points: 7 }
 }
 
 @id("task.measure")
@@ -303,7 +303,7 @@ fn aggregate_wasm_string_compare_uses_unsigned_utf8_bytes_and_settles_clones() {
 @id("marker") record Marker { @id("marker.code") code: i64, }
 @id("app.main") fn main() -> i64 {
     let marker = Marker { code: 0 };
-    let a = "a\0";
+    let a = "a\u{0}";
     let b = "a";
     let unicode = "é";
     let ascii = "z";

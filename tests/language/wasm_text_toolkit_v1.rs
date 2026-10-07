@@ -12,12 +12,36 @@ fn wasm_case(body: &str, expected: &str) {
     let fixture = Fixture::new(&source);
     let root = fixture.root.join("web");
     wasm::build_web(&program, &root).unwrap();
+    // The first text fixture peaks at six canonical owners: text, its slice
+    // argument clone, piece, its byte-at argument clone, the find text clone,
+    // and the needle literal. Own String reads clone even for borrowed builtin
+    // parameters, and CleanupPlan retains them until the lexical scope ends.
+    // Instrument only the fixture host ledger to assert zero live owners after
+    // every entry independently of the exact six-entry quota.
+    let runtime_path = root.join("semaprax.js");
+    let runtime = std::fs::read_to_string(&runtime_path).unwrap();
+    assert_eq!(runtime.matches("entries.set(token, owned);").count(), 1);
+    assert_eq!(runtime.matches("entries.delete(decoded.token);").count(), 1);
+    let runtime = runtime
+        .replace(
+            "entries.set(token, owned);",
+            "entries.set(token, owned); globalThis.__toolkitLiveOwners++;",
+        )
+        .replace(
+            "entries.delete(decoded.token);",
+            "entries.delete(decoded.token); globalThis.__toolkitLiveOwners--;",
+        );
+    std::fs::write(runtime_path, runtime).unwrap();
     let probe = format!(
         r#"import {{readFile}} from 'node:fs/promises';
 import {{instantiateBytes,semanticStatus}} from './semaprax.js';
 const bytes=await readFile('./app.wasm');
-const {{instance}}=await instantiateBytes(bytes,{{maxOwnedByteEntries:4}});
-for(let i=0;i<8;i++) {{ {expected} }}
+globalThis.__toolkitLiveOwners=0;
+const {{instance}}=await instantiateBytes(bytes,{{maxOwnedByteEntries:6}});
+for(let i=0;i<8;i++) {{
+  {expected}
+  if(globalThis.__toolkitLiveOwners!==0) throw Error('checked text owner leak');
+}}
 "#
     );
     std::fs::write(root.join("probe.mjs"), probe).unwrap();
@@ -256,12 +280,13 @@ module test.standalone_toolkit;
 @id("app.failed") fn failed() -> i64 { let value = make(); let borrowed = measure(value); string_len(string_slice("é", 1, 2)) + borrowed }
 @id("app.convert") fn convert() -> i64 { let owned = "held"; i64_from_f64(f64_from_i64(9007199254740993)) + string_len(owned) }
 @id("app.integer") fn integer() -> i64 { let owned = "held"; i64_from_i32(-3i32) + i64_from_usize(usize_from_u8(255u8)) + string_len(owned) }
-@id("app.replace") fn replace() -> i64 { let mut value=""; let mut i=0; while i<3 { value=string_concat(value,string_from_i64(i)); i=i+1; } string_len(value) }
+@id("app.replace") fn replace() -> i64 { let mut value=""; let mut i=0; while i<3 { value=string_concat(value,string_from_i64(i)); i=i+1; 0 } string_len(value) }
 @id("app.guard") fn guarded() -> i64 {
     let mut i=0; let mut sum=0;
-    while i<3 { let choice=Option<i64>::Some { value:i }; sum=sum+match choice { Option::Some { value:n } if string_len(string_trim(" x "))>0 => n, _ => 99, }; i=i+1; }
+    while i<3 { let choice=Option<i64>::Some { value:i }; sum=sum+match choice { Option::Some { value:n } if string_len(string_trim(" x "))>0 => n, _ => 99, }; i=i+1; 0 }
     sum
 }
+@id("app.main") fn main() -> i64 { 0 }
 "#;
 
 #[test]
@@ -295,11 +320,12 @@ let rejected=false;try{await instantiate(altered)}catch{rejected=true}if(!reject
 #[test]
 fn standalone_toolkit_condition_temporaries_settle_before_both_bool_outcomes() {
     let source = r#"module test.toolkit_condition;
-@id("app.loop") fn looped() -> i64 { let mut i=0; while i<3 && string_len(string_concat("a",string_from_i64(i)))>0 { i=i+1; } i }
-@id("app.false") fn empty() -> i64 { let mut i=0; while string_len(string_trim(" \t"))>0 { i=i+1; } i }
-@id("app.lazy") fn lazy() -> i64 { let mut i=0; while false && string_len(string_slice("é",1,2))>0 { i=i+1; } i }
-@id("app.text_failure") fn text_failure() -> i64 { let mut i=0; while string_len(string_slice(string_concat("é","x"),1,2))>0 { i=i+1; } i }
-@id("app.arithmetic_failure") fn arithmetic_failure() -> i64 { let mut i=0; while string_len(string_concat("held",""))>0 && 9223372036854775807+1>0 { i=i+1; } i }
+@id("app.loop") fn looped() -> i64 { let mut i=0; while i<3 && string_len(string_concat("a",string_from_i64(i)))>0 { i=i+1; 0 } i }
+@id("app.false") fn empty() -> i64 { let mut i=0; while string_len(string_trim(" \t"))>0 { i=i+1; 0 } i }
+@id("app.lazy") fn lazy() -> i64 { let mut i=0; while false && string_len(string_slice("é",1,2))>0 { i=i+1; 0 } i }
+@id("app.text_failure") fn text_failure() -> i64 { let mut i=0; while string_len(string_slice(string_concat("é","x"),1,2))>0 { i=i+1; 0 } i }
+@id("app.arithmetic_failure") fn arithmetic_failure() -> i64 { let mut i=0; while string_len(string_concat("held",""))>0 && 9223372036854775807+1>0 { i=i+1; 0 } i }
+@id("app.main") fn main() -> i64 { 0 }
 "#;
     standalone_case(
         source,
@@ -412,6 +438,7 @@ fn general_loop_match_scalar_helpers_admit_i32_f32_f64_without_widening_frozen_s
         let choice=Option<i64>::Some { value:i };
         sum=sum+match choice { Option::Some { value:n } if i32_guard(-3i32) && f32_guard(1.5f32) && f64_guard(2.25) => n, _ => 99, };
         i=i+1;
+        0
     }
     sum
 }

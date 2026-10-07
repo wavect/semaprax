@@ -17,8 +17,8 @@ module test.general_loop_match;
 @id("helper.read") fn consume_choice(choice:Option<i64>)->i64 { match choice { Option::Some {value:n} => n, Option::None {} => 10, } }
 @id("helper.positive") fn positive(value:i64)->bool { value>=0 }
 @id("helper.required") fn requires_positive(value:i64)->bool requires value>0 { true }
-@id("helper.pair") fn pair(first:own string,second:i64)->bool { string_len(first)>second }
-@id("helper.text") fn nonempty(text:own string)->bool { string_len(text)>0 }
+@id("helper.pair") fn pair(first:string,second:i64)->bool { string_len(first)>second }
+@id("helper.text") fn nonempty(text:string)->bool { string_len(text)>0 }
 @id("general.boundary") fn call_boundary()->i64 {
  let mut index=0; let mut total=0;
  while index<4 { let choice=make_choice(index); total=total+consume_choice(choice); index=index+1; 0 } total
@@ -79,9 +79,10 @@ module test.general_loop_match;
  while false || true { let number=match choice { Option::Some {value:n} if pair(string_concat("first","!"),1/0) => n, _ => 0, }; let unused=number; 0 } string_len(held)
 }
 @id("general.for") fn for_case()->i64 {
- let mut values=vec_with_capacity<i64>(2usize); values=vec_push<i64>(values,0); values=vec_push<i64>(values,2); let mut total=0;
- for value in values { total=total+match make_choice(value) { Option::Some {value:n} if positive(n) => n, _ => 0, }; 0 } total
+ let mut values=vec_with_capacity<i64>(2usize); values=vec_push<i64>(values,0); values=vec_push<i64>(values,2); let finished=values; let mut total=0;
+ for value in finished { total=total+match make_choice(value) { Option::Some {value:n} if positive(n) => n, _ => 0, }; 0 } total
 }
+@id("app.main") fn main()->i64 { 0 }
 "#;
 const CASES: &[(&str, &str)] = &[
     ("general.boundary", "ok|22"),
@@ -281,7 +282,7 @@ for(const id of {}){{
 #[test]
 fn general_loop_match_preserves_stable_source_refusals() {
     let prefix =
-        "module t; @id(\"t.inspect\") fn inspect(text:own string)->bool { string_len(text)>0 } ";
+        "module t; @id(\"t.inspect\") fn inspect(text:string)->bool { string_len(text)>0 } ";
     for (body,code) in [
         ("let choice=Option<i64>::Some {value:1}; match choice { _ if true => 1, }", "SPX-M101"),
         ("let choice=Option<i64>::Some {value:1}; match choice { Option::Some {value:n} if n => n, _ => 0, }", "SPX-T256"),

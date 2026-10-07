@@ -110,12 +110,24 @@ fn all_copy_scalar_sorts_preserve_owners_and_agree_across_engines() {
 #[test]
 fn sort_rejects_owned_payloads_wrong_arity_and_reuse_after_move() {
     for (text, code) in [
-        ("module t; fn main()->i64 { let v=vec_with_capacity<Bytes>(0usize); let x=vec_sort<Bytes>(v); 0 }", "SPX-T281"),
-        ("module t; fn main()->i64 { let v=vec_with_capacity<i64>(0usize); let x=vec_sort<i64>(v,1); 0 }", "SPX-T204"),
-        ("module t; fn main()->i64 { let v=vec_with_capacity<i64>(0usize); let x=vec_sort<i64>(v); let n=vec_len<i64>(v); 0 }", "SPX-O101"),
+        (
+            "module t; fn main()->i64 { let v=vec_with_capacity<Bytes>(0usize); let x=vec_sort<Bytes>(v); 0 }",
+            "SPX-T281",
+        ),
+        (
+            "module t; fn main()->i64 { let v=vec_with_capacity<i64>(0usize); let x=vec_sort<i64>(v,1); 0 }",
+            "SPX-T281",
+        ),
+        (
+            "module t; fn main()->i64 { let v=vec_with_capacity<i64>(0usize); let x=vec_sort<i64>(v); let n=vec_len<i64>(v); 0 }",
+            "SPX-O101",
+        ),
     ] {
         let program = parse(text, "sort-negative.spx").unwrap();
         let diagnostics = verify::verify(&program);
-        assert!(diagnostics.iter().any(|error| error.code == code), "{text}: {diagnostics:?}");
+        assert!(
+            diagnostics.iter().any(|error| error.code == code),
+            "{text}: {diagnostics:?}"
+        );
     }
 }

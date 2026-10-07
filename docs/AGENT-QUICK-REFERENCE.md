@@ -444,6 +444,10 @@ fn main() -> i64
 
 ## Strings and bytes
 
+`text: string` already transfers ownership. Do not write `own string`
+(`SPX-O002`). A helper that only reads text takes `text: borrow str`; pass
+`string_as_str(text)` before any consuming call.
+
 ```semaprax
 module app.bytes;
 

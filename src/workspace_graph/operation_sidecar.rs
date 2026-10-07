@@ -1,7 +1,5 @@
-//! Bounded AST/HIR occurrence proof for Semantic Workspace Operations.
-//!
-//! This module derives authenticated, canonically ordered rename/alias facts.
-//! It has no filesystem, locking, staging, publication, or runtime authority.
+//! Bounded, authenticated AST/HIR rename/alias facts with no filesystem, locking,
+//! staging, publication, or runtime authority.
 
 use std::collections::BTreeMap;
 
@@ -1739,12 +1737,14 @@ fn push_bound_operation_occurrence(
             return Err(operation_sidecar_disagreement());
         }
     } else if !(family == ModuleUseKind::Type
-        && matches!(
-            target_id,
-            crate::prelude::OPTION_ID | crate::prelude::RESULT_ID
-        )
+        && (crate::map_ops::is_declaration(target_id)
+            || matches!(
+                target_id,
+                crate::prelude::OPTION_ID | crate::prelude::RESULT_ID
+            ))
         || family == ModuleUseKind::Function
-            && (crate::byte_ops::by_id(target_id).is_some()
+            && (crate::map_ops::by_id(target_id).is_some()
+                || crate::byte_ops::by_id(target_id).is_some()
                 || crate::string_ops::by_id(target_id).is_some()
                 || crate::str_ops::by_id(target_id).is_some()
                 || crate::host_io_ops::by_id(target_id).is_some()))

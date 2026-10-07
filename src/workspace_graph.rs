@@ -1554,8 +1554,7 @@ impl WorkspaceGraphBuild {
             };
             let linked =
                 self.linked_owned_data_api_program_with_roots(entry_module, additional_roots)?;
-            hir::validate_stream_text_program(&linked, Some(&hir::DeclarationId::new(command)))
-                .map_err(|e| vec![e])?;
+            retained_validation::text_command_program(&linked, command).map_err(|e| vec![e])?;
             return Ok(linked);
         }
         let base = self.linked_project_program(entry_module, profile, dependency_anchors)?;
@@ -2009,6 +2008,8 @@ impl WorkspaceGraphBuild {
             let permits_admitted =
                 retained_validation::permits_admitted(profile, module, entry_module, &natives);
             let project_shape_admitted = profile.is_owned_api()
+                || (profile == crate::project::ProjectProfile::StdinStreamTextCommandIoV1
+                    && retained_validation::text_project_shape(module))
                 || matches!(profile, crate::project::ProjectProfile::ScalarV1)
                 || (module.types.is_empty()
                     && module.interfaces.is_empty()
@@ -2056,12 +2057,14 @@ impl WorkspaceGraphBuild {
                 )
                 .with_help(PROVIDER_MAIN_HELP)]);
             }
-            // Project v8 target admission is reachability-gated. Irrelevant
+            // Owned-data and v25 text admission are reachability-gated. Irrelevant
             // verified functions receive no runtime or target authority and
             // therefore cannot broaden or spuriously reject the exact union
             // linked below. The retained closure is independently checked by
             // the owned-data linker and canonical descriptor.
-            if profile.is_owned_api() {
+            if profile.is_owned_api()
+                || profile == crate::project::ProjectProfile::StdinStreamTextCommandIoV1
+            {
                 continue;
             }
             for function in &module.functions {
@@ -5456,6 +5459,9 @@ fn validate_imported_type(
         .with_help(
             "construct and update the record through functions of its own module",
         )]);
+    }
+    if owned_function_import::text_record_import(caller, target, authored, programs) {
+        return Ok(());
     }
     let generic_owned_record = generic_type_import::template_is_admitted(ty);
     if !generic_owned_record

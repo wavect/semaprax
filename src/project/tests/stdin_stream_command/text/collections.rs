@@ -109,3 +109,37 @@ fn v25_collections_transport_executes_retained_and_native_routes() {
     let _ = std::fs::remove_file(output);
     let _ = std::fs::remove_dir_all(root);
 }
+
+#[test]
+fn collection_transport_does_not_widen_v24_or_public_scalar_profiles() {
+    let root = collection_fixture();
+    with_authenticated_project(&root.join(MANIFEST_FILE), |_| Ok(())).unwrap();
+    std::fs::write(root.join(MANIFEST_FILE), exit_manifest()).unwrap();
+    let errors = with_authenticated_project(&root.join(MANIFEST_FILE), |_| Ok(())).unwrap_err();
+    assert!(errors.iter().any(|error| error.code == "SPX-G172"
+        && error
+            .message
+            .contains("declarations outside the selected project linker profile")));
+
+    // Remove the unrelated command capabilities so scalar admission reaches the
+    // collection signatures themselves, rather than refusing ambient effects.
+    let app = format!(
+        r#"module stream.app;
+use function @id("labels.make") from stream.input as make;
+use function @id("labels.cut") from stream.input as cut;
+use function @id("labels.read") from stream.input as read;
+use function @id("labels.roundtrip") from stream.input as roundtrip;
+@id("stream.app.main") fn main()->i64 {{{BODY}}}
+"#
+    );
+    std::fs::write(root.join("a/app.spx"), canonical_source("a/app.spx", &app)).unwrap();
+    let scalar = "schema = \"semaprax.project.v1\"\nname = \"collection-scalar-refusal\"\nentry = \"stream.app\"\nsources = [\"a/app.spx\", \"b/input.spx\", \"c/tests.spx\"]\nweb_exports = [\"labels.make\"]\ntests = [\"stream.tests\"]\n";
+    ProjectManifest::parse(scalar).unwrap();
+    std::fs::write(root.join(MANIFEST_FILE), scalar).unwrap();
+    let errors = with_authenticated_project(&root.join(MANIFEST_FILE), |_| Ok(())).unwrap_err();
+    assert!(errors.iter().any(|error| error.code == "SPX-G174"
+        && error
+            .message
+            .contains("signature outside the selected profile")));
+    let _ = std::fs::remove_dir_all(root);
+}

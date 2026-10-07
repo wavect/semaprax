@@ -815,7 +815,7 @@ pub fn emit_resolved_module_with_scalar_exports(
     program: &ResolvedProgram,
     export_ids: &[String],
 ) -> Result<Vec<u8>, Diagnostic> {
-    crate::string_ops::refuse_collections_for_wasm(program)?;
+    aggregate::map_collections::validate_scalar_route(program)?;
     let plans = scalar_exports::prepare(program, export_ids)?;
     emit_resolved_module_internal(program, &plans, &[])
 }
@@ -832,7 +832,7 @@ pub(crate) fn emit_resolved_package_scalar_exports(
     program: &ResolvedProgram,
     export_ids: &[String],
 ) -> Result<(Vec<u8>, Vec<PackageScalarExportFact>), Diagnostic> {
-    crate::string_ops::refuse_collections_for_wasm(program)?;
+    aggregate::map_collections::validate_scalar_route(program)?;
     let plans = scalar_exports::prepare(program, export_ids)?;
     let facts = plans
         .iter()

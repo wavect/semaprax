@@ -11,8 +11,8 @@ use std::process::Command;
 
 const SOURCE: &str = r#"
 module test.string_replacement;
-@id("helper.rebuild") fn rebuild(input: own string) -> string { string_concat(input, "!") }
-@id("helper.reject") fn reject(input: own string) -> string requires string_len(input) < 2 { input }
+@id("helper.rebuild") fn rebuild(input: string) -> string { string_concat(input, "!") }
+@id("helper.reject") fn reject(input: string) -> string requires string_len(input) < 2 { input }
 @id("replace.literal") fn literal() -> i64 { let mut text="old"; text="é\u{0}x"; string_len(text) }
 @id("replace.named") fn named() -> i64 { let mut text="old"; let next="new"; let before=string_len(next); text=next; string_len(text)+before }
 @id("replace.branch") fn branch() -> i64 {
@@ -51,6 +51,7 @@ module test.string_replacement;
 @id("replace.contract") fn contract() -> i64 { let mut text="old"; text=reject(text); string_len(text) }
 @id("replace.text-failure") fn text_failure() -> i64 { let mut text="old"; text=string_slice(text,0,99); string_len(text) }
 @id("replace.legacy") fn legacy() -> i64 { let mut text="a"; text=string_concat(text,"b"); string_len(text) }
+@id("app.main") fn main() -> i64 { 0 }
 "#;
 const CASES: &[(&str, &str)] = &[
     ("replace.literal", "ok|4"),
@@ -283,7 +284,7 @@ fn string_replacement_preserves_closed_boundaries() {
         ("let mut text=\"x\"; text=1; 0", "SPX-U102"),
         ("let mut bytes=bytes_zeroed(1usize); bytes=bytes_zeroed(2usize); 0", "SPX-U105"),
         ("let mut text=\"x\"; let next=\"y\"; text=next; string_len(next)", "SPX-O101"),
-        ("let mut text=\"x\"; let next=\"y\"; text=match 0 { 0 => next, _ => \"z\", }; string_len(next)", "SPX-O101"),
+        ("let mut text=\"x\"; let next=\"y\"; text=match 0 { 0 => next, _ => \"z\", }; string_len(next)", "SPX-O107"),
         ("let mut text=\"x\"; let view=string_as_str(text); text=\"y\"; string_len(string_from_str(view))", "SPX-T265"),
     ] {
         let source=format!("module refused; @id(\"r.main\") fn main()->i64 {{ {body} }}");

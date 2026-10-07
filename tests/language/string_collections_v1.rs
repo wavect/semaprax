@@ -394,12 +394,19 @@ fn native_string_collections_settle_every_allocation_on_every_exit() {
 #[test]
 fn core_wasm_emits_string_collections() {
     let program = parse(SOURCE, Path::new("string-collections-wasm.spx")).unwrap();
-    emit_module(
+    let frozen = emit_module(
         &program,
         &["coll.compare".to_owned()],
         InternalStringOptions::default(),
     )
-    .expect("String Collections v1 is lowered to Core Wasm");
+    .expect_err("the original standalone selector retains its refusal");
+    assert_eq!(frozen.code, "SPX-W116");
+    semaprax::wasm::internal_strings::emit_text_toolkit_module(
+        &program,
+        &["coll.compare".to_owned()],
+        InternalStringOptions::default(),
+    )
+    .expect("the additive toolkit selector lowers String comparison");
     for lane in [
         semaprax::wasm::emit_module(&program),
         semaprax::wasm::emit_module_with_scalar_exports(&program, &["coll.compare".to_owned()]),
@@ -486,14 +493,14 @@ fn misplaced_maps_have_stable_diagnostics() {
         .0,
         "SPX-O101"
     );
-    // The operations are monomorphic and exactly typed.
+    // Explicit collection operations require the exact type argument count.
     assert_eq!(
         first_code(
             "",
-            "    let m = map_new(3usize);\n    let n = map_len<string, i64>(m);\n    0"
+            "    let m = map_new(3usize);\n    let n = map_len<string, i64, bool>(m);\n    0"
         )
         .0,
-        "SPX-T225"
+        "SPX-T274"
     );
     assert_eq!(
         first_code("", "    let m = map_new(3usize);\n    map_get_or(m, \"a\")").0,
@@ -503,11 +510,12 @@ fn misplaced_maps_have_stable_diagnostics() {
         first_code("", "    let m = map_new(3);\n    0").0,
         "SPX-T205"
     );
-    // A while condition may read `map_len`, but not allocate a key.
+    // A while condition may allocate its key, but cannot consume an outer map.
+    assert!(diagnostics("", "    let mut m = map_new(3usize);\n    while !map_has(m, \"a\") {\n        m = map_add(m, \"a\", 1);\n        0\n    }\n    0").is_empty());
     assert_eq!(
         first_code(
             "",
-            "    let mut m = map_new(3usize);\n    while !map_has(m, \"a\") {\n        m = map_add(m, \"a\", 1);\n        0\n    }\n    0"
+            "    let mut m = map_new(3usize);\n    while map_len(map_remove(m, \"a\")) > 0usize {\n        0\n    }\n    0"
         )
         .0,
         "SPX-T252"

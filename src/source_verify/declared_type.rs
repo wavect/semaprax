@@ -5,7 +5,7 @@
 use super::binding::{Availability, Binding};
 use super::diagnostics::{error, source_identifier};
 use super::type_table::{
-    effective_record_fields, owned_byte_prelude_instance_is_admitted, TypeTable,
+    TypeTable, effective_record_fields, owned_byte_prelude_instance_is_admitted,
 };
 use crate::ast::{
     Expr, ExprKind, FieldDeclaration, Function, MatchMode, Param, ParamMode, Program,
@@ -229,7 +229,12 @@ pub(super) fn check_declared_type(
         };
         if matches!(name.as_str(), "Map" | "Set") {
             if !crate::map_ops::ast_collection(&instance) {
-                diagnostics.push(error(program,"SPX-T274","collection requires admitted key/value arguments",span));
+                diagnostics.push(error(
+                    program,
+                    "SPX-T274",
+                    "collection requires admitted key/value arguments",
+                    span,
+                ));
             }
             continue;
         }
@@ -1110,6 +1115,18 @@ pub(super) fn check_ownership_mode(
                 param.name, param.ty
             )),
         ),
+        (false, mode) if mode != ParamMode::Value && param.ty == Type::String => diagnostics.push(
+            error(
+                program,
+                "SPX-O002",
+                "string parameters own their input implicitly; an explicit ownership mode is not admitted",
+                param.span,
+            )
+            .with_help(format!(
+                "use `{}: string` to transfer ownership; for a read-only helper, use `{}: borrow str` and pass `string_as_str(text)`",
+                param.name, param.name
+            )),
+        ),
         (false, mode) if mode != ParamMode::Value => diagnostics.push(error(
             program,
             "SPX-O002",
@@ -1285,7 +1302,10 @@ pub(super) fn check_record_pattern(
                 });
                 match &field.pattern {
                     RecordMatchFieldPattern::Binding { name, span } => {
-                        if exact_recursive && types.record_fields(&field_ty).is_some() {
+                        if exact_recursive
+                            && !crate::map_ops::ast_collection(&field_ty)
+                            && types.record_fields(&field_ty).is_some()
+                        {
                             diagnostics.push(error(
                                 program,
                                 "SPX-O117",

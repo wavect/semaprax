@@ -18,6 +18,7 @@ mod type_reference;
 pub(super) use profile_names::project_linker_name;
 pub(super) use stream_admission::{
     command_link, entry_link, stream_parameter_admitted, stream_return_admitted,
+    text_command_program, text_project_shape,
 };
 
 pub(super) use dependency_closure::{

@@ -17,6 +17,7 @@ module test.string_conditions;
 @id("condition.failure") fn failure()->i64 {let held="owner";while string_len(string_concat("a","b"))>0 && 1/0==0 {0} string_len(held)}
 @id("condition.contract") fn contract()->i64 {let held="owner";let mut i=0;while i<3 && string_len(checked(i))>0 {i=i+1;0} i+string_len(held)}
 @id("condition.text-failure") fn text_failure()->i64 {let held="owner";while string_len(string_slice(string_concat("a","b"),0,9))>0 {0} string_len(held)}
+@id("app.main") fn main() -> i64 { 0 }
 "#;
 const CASES: &[(&str, &str)] = &[
     ("condition.repeat", "ok|405"),
@@ -73,7 +74,7 @@ fn string_conditions_roundtrip_and_reject_missing_scope_finalizers() {
 }
 #[test]
 fn string_condition_cannot_consume_an_enclosing_owner() {
-    let source="module negative; fn consume(value:own string)->bool {string_len(value)>0} fn main()->i64 {let value=\"x\";while consume(value){0} 0}";
+    let source="module negative; fn consume(value:string)->bool {string_len(value)>0} fn main()->i64 {let value=\"x\";while consume(value){0} 0}";
     let ast = parse(source, Path::new("condition-negative.spx")).unwrap();
     let errors = verify::verify(&ast);
     assert!(

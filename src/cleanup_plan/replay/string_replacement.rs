@@ -66,12 +66,13 @@ mod tests {
 
     const SOURCE: &str = r#"
 module test.string_replacement_replay;
-@id("renew.helper") fn rebuild(text: own string) -> string { string_concat(text,"!") }
+@id("renew.helper") fn rebuild(text: string) -> string { string_concat(text,"!") }
 @id("renew.literal") fn literal() -> i64 { let mut text="old"; let held="held"; text="new"; string_len(text)+string_len(held) }
 @id("renew.call") fn called() -> i64 { let mut text="a"; text=rebuild(text); string_len(text) }
 @id("renew.branch") fn branched() -> i64 { let mut text="a"; text=if true { rebuild(text) } else { "new" }; string_len(text) }
 @id("renew.nested") fn nested() -> i64 { let mut text="a"; let mut other="b"; text={ text="x"; other="y"; string_concat(text,"!") }; string_len(text)+string_len(other) }
 @id("renew.loop") fn repeated() -> i64 { let mut text="a"; let held="held"; let mut i=0; while i<3 { text=if i==1 { rebuild(text) } else { "b" }; i=i+1; 0 } string_len(text)+string_len(held) }
+@id("app.main") fn main() -> i64 { 0 }
 "#;
 
     #[test]

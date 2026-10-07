@@ -12,9 +12,9 @@ use super::expr_nodes::{
 use super::ids::{DeclarationId, FunctionExecutionId, ValueId};
 use super::monomorphize::substitute_type;
 use super::nodes::{
-    resolver_admits_flat_owned_byte_variant, resolver_admits_flat_owned_string_variant,
     DeclarationKind, OwnershipMode, ResolvedBinding, ResolvedFieldDeclaration, ResolvedMatchMode,
-    ResolvedType,
+    ResolvedType, resolver_admits_flat_owned_byte_variant,
+    resolver_admits_flat_owned_string_variant,
 };
 use super::{Binding, Resolver};
 
@@ -250,6 +250,7 @@ impl Resolver<'_> {
                     match &field.pattern {
                         crate::ast::RecordMatchFieldPattern::Binding { name, span } => {
                             if exact_recursive
+                                && !crate::map_ops::is_collection(&field_ty)
                                 && matches!(
                                     &field_ty,
                                     ResolvedType::Nominal { declaration, .. }

@@ -23,6 +23,16 @@ pub(super) fn default_expr_expanded_cost(
     allow_owned: bool,
 ) -> Result<ExpandedDefaultCost, Vec<Diagnostic>> {
     match ty {
+        ty if allow_owned && crate::map_ops::ast_collection(ty) => {
+            let (name, arguments) = collection_constructor(ty);
+            Ok(ExpandedDefaultCost {
+                bytes: 2 * std::mem::size_of::<Expr>()
+                    + name.len()
+                    + arguments.len() * std::mem::size_of::<Type>(),
+                string_bytes: name.len(),
+                identity_slots: 9 + arguments.len(),
+            })
+        }
         Type::I64
         | Type::I32
         | Type::Char
@@ -204,6 +214,20 @@ pub(super) fn default_expr(
     reserve_builder_structure(std::mem::size_of::<Expr>())?;
     let span = Span::default();
     let kind = match ty {
+        ty if allow_owned && crate::map_ops::ast_collection(ty) => {
+            let (name, arguments) = collection_constructor(ty);
+            reserve_builder_structure(
+                std::mem::size_of::<Expr>() + arguments.len() * std::mem::size_of::<Type>(),
+            )?;
+            ExprKind::Call {
+                name: crate::bounded_output::budgeted_clone(name),
+                type_arguments: arguments.to_vec(),
+                args: vec![Expr {
+                    kind: ExprKind::Usize(0),
+                    span,
+                }],
+            }
+        }
         Type::I64 => ExprKind::Int(0),
         Type::I32 => ExprKind::Int32(0),
         Type::Char => ExprKind::Char(0),
@@ -318,4 +342,15 @@ pub(super) fn default_expr(
         }
     };
     Ok(Expr { kind, span })
+}
+
+// Closed atoms require no type-name rewriting or aggregate default construction.
+fn collection_constructor(ty: &Type) -> (&'static str, &[Type]) {
+    match ty {
+        Type::StringMap => ("map_new", &[]),
+        Type::Named { name, arguments } => {
+            (if name == "Set" { "set_new" } else { "map_new" }, arguments)
+        }
+        _ => unreachable!("admitted collection default"),
+    }
 }

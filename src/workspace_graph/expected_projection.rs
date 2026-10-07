@@ -524,7 +524,7 @@ pub(super) fn rewrite_type_runtime_cost(
     programs: &[Program],
     cost: &mut StructuralCost,
 ) -> Result<(), Vec<Diagnostic>> {
-    if crate::stdin_stream_ops::ast_is_reader(ty) {
+    if crate::stdin_stream_ops::ast_is_reader(ty) || crate::map_ops::ast_collection(ty) {
         return Ok(());
     }
     let Type::Named { name, arguments } = ty else {
@@ -894,7 +894,7 @@ pub(super) fn rewrite_type(
     caller: &Program,
     programs: &[Program],
 ) -> Result<(), Vec<Diagnostic>> {
-    if crate::stdin_stream_ops::ast_is_reader(ty) {
+    if crate::stdin_stream_ops::ast_is_reader(ty) || crate::map_ops::ast_collection(ty) {
         return Ok(());
     }
     let Type::Named { name, arguments } = ty else {

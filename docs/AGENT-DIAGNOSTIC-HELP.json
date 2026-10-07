@@ -19,6 +19,15 @@
       ]
     },
     {
+      "code": "SPX-O001",
+      "rows": [
+        {
+          "fix": "Use explicit `own` or `borrow` parameters; owned results move",
+          "wrote": "implicit collection ownership at a helper boundary"
+        }
+      ]
+    },
+    {
       "code": "SPX-O101",
       "rows": [
         {
@@ -281,17 +290,8 @@
       "code": "SPX-T274",
       "rows": [
         {
-          "fix": "Use `Map<string, i64>`",
-          "wrote": "`Map<i64, i64>` or another map instantiation"
-        }
-      ]
-    },
-    {
-      "code": "SPX-T275",
-      "rows": [
-        {
-          "fix": "Keep the map in a local binding and pass individual keys or values",
-          "wrote": "a map parameter, result, field, or temporary"
+          "fix": "Keys are `string`, `i64`, `bool`; map values are String or Copy scalars",
+          "wrote": "Unsupported `Map<f64,i64>` / `Set<f64>`"
         }
       ]
     },
@@ -308,8 +308,8 @@
       "code": "SPX-T309",
       "rows": [
         {
-          "fix": "Pass strings separately; keep record fields Copy",
-          "wrote": "a function taking or returning a record containing strings"
+          "fix": "Use explicit IDs and monomorphic acyclic records with `own`/`borrow` parameters; no invariants",
+          "wrote": "Unsupported String/collection record profile"
         }
       ]
     },

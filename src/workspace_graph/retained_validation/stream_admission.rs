@@ -49,3 +49,29 @@ pub(in crate::workspace_graph) fn entry_link(
     };
     link(module, entrypoint, functions)
 }
+
+/// The additive private text profile admits only monomorphic record schemas.
+/// Exact field ownership, shape bounds and invariants are rederived by the linked HIR profile.
+pub(in crate::workspace_graph) fn text_project_shape(
+    module: &super::WorkspaceResolvedModule,
+) -> bool {
+    module.interfaces.is_empty()
+        && module.function_templates.is_empty()
+        && module.function_instances.is_empty()
+        && module.types.iter().all(|ty| {
+            ty.type_parameters.is_empty()
+                && matches!(ty.kind, hir::ResolvedTypeDeclarationKind::Record { .. })
+        })
+}
+pub(in crate::workspace_graph) fn text_command_program(
+    program: &hir::ResolvedProgram,
+    command: &str,
+) -> Result<(), crate::diagnostic::Diagnostic> {
+    let command = hir::DeclarationId::new(command);
+    hir::validate_stream_text_program(program, Some(&command))?;
+    crate::command_io_ops::validate_operation_profile(
+        program,
+        &command,
+        crate::command_io_ops::CommandOperationProfile::StdinStreamV1,
+    )
+}

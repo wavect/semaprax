@@ -66,11 +66,13 @@ pub(crate) fn link_stdin_stream_exit_command_workspace(
 
 /// Private String boundaries are explicit; no public owned UTF-8 ABI is added.
 pub(crate) fn stream_text_parameter_admitted(parameter: &ResolvedParam) -> bool {
-    (crate::map_ops::is_collection(&parameter.ty)
-        && matches!(
-            parameter.ownership,
-            OwnershipMode::Own | OwnershipMode::Borrow
-        ))
+    (super::super::is_scalar_resolved_type(&parameter.ty)
+        && parameter.ownership == OwnershipMode::Value)
+        || (crate::map_ops::is_collection(&parameter.ty)
+            && matches!(
+                parameter.ownership,
+                OwnershipMode::Own | OwnershipMode::Borrow
+            ))
         || (parameter.ty == ResolvedType::String && parameter.ownership == OwnershipMode::Own)
         || useful_data_workspace_parameter_admitted(&parameter.ty, parameter.ownership)
         || (crate::stdin_stream_ops::is_reader(&parameter.ty)
@@ -80,7 +82,8 @@ pub(crate) fn stream_text_parameter_admitted(parameter: &ResolvedParam) -> bool 
             ))
 }
 pub(crate) fn stream_text_return_admitted(ty: &ResolvedType) -> bool {
-    crate::map_ops::is_collection(ty)
+    super::super::is_scalar_resolved_type(ty)
+        || crate::map_ops::is_collection(ty)
         || *ty == ResolvedType::String
         || crate::stdin_stream_ops::is_reader(ty)
         || useful_data_workspace_return_admitted(ty)

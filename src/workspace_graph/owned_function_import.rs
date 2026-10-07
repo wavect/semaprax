@@ -1,6 +1,7 @@
 //! Internal ordinary calls over explicitly imported resource-free byte records.
 //! Public Project descriptors and scalar linker signatures remain independent.
 use super::*;
+mod text_collections;
 
 pub(super) fn admitted(
     caller: &Program,
@@ -8,6 +9,9 @@ pub(super) fn admitted(
     authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
     programs: &[Program],
 ) -> bool {
+    if text_collections::admitted(caller, target, authored, programs) {
+        return true;
+    }
     let Some(function) = target.function else {
         return false;
     };
@@ -51,6 +55,14 @@ pub(super) fn admitted(
                 || (matches!(parameter.mode, ParamMode::Own | ParamMode::Borrow)
                     && record(&parameter.ty))
         })
+}
+pub(super) fn text_record_import(
+    caller: &Program,
+    target: &AuthoredDeclaration<'_>,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    programs: &[Program],
+) -> bool {
+    text_collections::record_import(caller, target, authored, programs)
 }
 /// A closed fieldless variant is a Copy result: it carries only its case tag.
 /// Keep the existing direct type-import requirement and exclude payload and

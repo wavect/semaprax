@@ -39,6 +39,15 @@ pub(in crate::wasm) fn uses(program: &ResolvedProgram) -> bool {
                 })
     })
 }
+/// Map bodies use the additive aggregate adapter behind the established
+/// scalar-only boundary; programs without collections retain frozen refusal.
+pub(in crate::wasm) fn validate_scalar_route(program: &ResolvedProgram) -> Result<(), Diagnostic> {
+    if uses(program) {
+        string_runtime::refuse_unimplemented_collections(program)
+    } else {
+        crate::string_ops::refuse_collections_for_wasm(program)
+    }
+}
 pub(super) fn import_types(
     program: &ResolvedProgram,
     types: &mut Vec<Signature>,

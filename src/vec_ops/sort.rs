@@ -1,18 +1,19 @@
 //! Reachability of the additive Copy-scalar sorting operation.
 pub(crate) fn program_uses_sort(program: &crate::ast::Program) -> bool {
     let uses = |function: &crate::ast::Function| {
-        function
-            .requires
-            .iter()
-            .chain(std::iter::once(&function.body))
-            .chain(&function.ensures)
-            .any(|root| {
-                let mut found = false;
-                root.visit_calls(&mut |name, _| found |= name == super::SORT_NAME);
-                found
-            })
+        function.stable_id == super::wrapper_id(super::VecOp::Sort)
+            || function
+                .requires
+                .iter()
+                .chain(std::iter::once(&function.body))
+                .chain(&function.ensures)
+                .any(|root| {
+                    let mut found = false;
+                    root.visit_calls(&mut |name, _| found |= name == super::SORT_NAME);
+                    found
+                })
     };
-    program.functions.iter().any(uses) || program.types.iter().any(|declaration| {
+    program.module_uses.iter().any(|binding| binding.kind == crate::ast::ModuleUseKind::Function && binding.target_module == super::MODULE && binding.persistent_id == super::wrapper_id(super::VecOp::Sort)) || program.functions.iter().any(uses) || program.types.iter().any(|declaration| {
         matches!(&declaration.kind, crate::ast::TypeDeclarationKind::Class { methods, .. } if methods.iter().any(uses))
     })
 }
@@ -27,6 +28,7 @@ pub(crate) fn resolved_program_uses_sort(program: &crate::hir::ResolvedProgram) 
                 let mut found = false;
                 crate::hir::visit_resolved_calls(root, &mut |callee, _, _| {
                     found |= callee.as_str() == super::SORT_ID
+                        || callee.as_str() == super::wrapper_id(super::VecOp::Sort)
                 });
                 found
             })
@@ -46,6 +48,7 @@ pub(crate) fn resolved_program_uses_sort(program: &crate::hir::ResolvedProgram) 
                     let mut found = false;
                     crate::hir::visit_resolved_calls(root, &mut |callee, _, _| {
                         found |= callee.as_str() == super::SORT_ID
+                            || callee.as_str() == super::wrapper_id(super::VecOp::Sort)
                     });
                     found
                 })

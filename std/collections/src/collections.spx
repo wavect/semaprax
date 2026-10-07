@@ -47,3 +47,9 @@ fn clear<T>(values: own Vec<T>) -> Vec<T>
 {
     vec_clear<T>(values)
 }
+
+@id("std.collections.vec.sort")
+fn sort<T>(values: own Vec<T>) -> Vec<T>
+{
+    vec_sort<T>(values)
+}

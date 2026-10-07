@@ -43,6 +43,10 @@ arguments, and an i64 Value result. Full HIR replay independently checks the
 binding's authenticated type, scope, availability, and expression identities.
 The set comes only from actual while-condition trees; body reads and ordinary
 straight-line calls retain their existing clone behavior.
+If a condition block contains a nested while statement, its condition may use
+this inspection, but its body is outside the outer condition's derived read
+set. String operations in that nested body, including further nested loop
+conditions, remain source `SPX-T252` even when the body would be skipped.
 
 The cleanup builder and independent replay derive the same inspected reads
 from typed HIR, rather than accepting attached plan claims. Such a read has

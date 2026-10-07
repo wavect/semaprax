@@ -751,6 +751,9 @@ fn named_string_length_conditions_match_recursive_oracle() {
     for body in [
         "let text=\"é\"; let mut i=0; while i<2 && string_len(text)==2 { i=i+1; 0 } i",
         "let text=\"a\"; while string_len(text)<1 { 0 } 0",
+        "let text=\"a\"; while { while string_len(text)<1 { 0 } false } { 0 } 7",
+        "let text=\"a\"; while { while false { string_len(text) } false } { 0 } 0",
+        "let text=\"a\"; while { while false { while string_len(text)<1 { 0 } 0 } false } { 0 } 0",
         "let text=\"a\"; while string_len(\"literal\")<1 { 0 } 0",
         "let text=\"a\"; while string_len({ text })<1 { 0 } 0",
         "let text=0; while string_len(text)<1 { 0 } 0",

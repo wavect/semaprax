@@ -176,6 +176,14 @@ fn condition_failure() -> i64
     0
 }
 
+@id("loops.condition_nested")
+fn condition_nested() -> i64
+{
+    let text = "a";
+    while { while string_len(text) < 1 { 0 } false } { 0 }
+    7
+}
+
 @id("app.main")
 fn main() -> i64
 {
@@ -194,6 +202,7 @@ const CASES: &[(&str, &str)] = &[
     ("loops.condition_grow", "ok|64"),
     ("loops.condition_stable", "ok|1000"),
     ("loops.condition_skip", "ok|7"),
+    ("loops.condition_nested", "ok|7"),
     ("loops.condition_failure", "semaprax.arithmetic.v1|1"),
 ];
 
@@ -207,6 +216,7 @@ const WASM_CASES: &[&str] = &[
     "loops.condition_grow",
     "loops.condition_stable",
     "loops.condition_skip",
+    "loops.condition_nested",
     "loops.condition_failure",
 ];
 
@@ -502,6 +512,8 @@ fn string_length_conditions_keep_allocating_and_consuming_shapes_refused() {
         "string_len({ text }) < 2",
         "string_is_empty(text)",
         "match 0 { n if string_len(\"guard\") > n => true, _ => false, }",
+        "{ while false { string_len(text) } false }",
+        "{ while false { while string_len(text) < 1 { 0 } 0 } false }",
     ] {
         let found = diagnostics(&format!(
             "    let text = \"a\";\n    while {condition} {{ 0 }}\n    0"

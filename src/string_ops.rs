@@ -830,12 +830,12 @@ pub(crate) fn owned_string_in_condition(
     uses_string: &dyn Fn(&str) -> bool,
 ) -> Option<Span> {
     use crate::ast::{ExprKind, Statement};
-    let mut pending = vec![condition];
-    while let Some(expression) = pending.pop() {
+    let mut pending = vec![(condition, true)];
+    while let Some((expression, inspect_length)) = pending.pop() {
         match &expression.kind {
             ExprKind::String(_) => return Some(expression.span),
             ExprKind::Call { name, args, .. } => {
-                if conditions::source_named_length(expression) {
+                if inspect_length && conditions::source_named_length(expression) {
                     continue;
                 }
                 // `map_len` and `map_value_at` borrow their map and allocate
@@ -845,31 +845,37 @@ pub(crate) fn owned_string_in_condition(
                 if !allocation_free && source_call_uses_string(name, uses_string) {
                     return Some(expression.span);
                 }
-                pending.extend(args.iter().rev());
+                pending.extend(args.iter().rev().map(|arg| (arg, inspect_length)));
             }
-            ExprKind::Unary { value, .. } => pending.push(value),
+            ExprKind::Unary { value, .. } => pending.push((value, inspect_length)),
             ExprKind::Binary { left, right, .. } => {
-                pending.push(right);
-                pending.push(left);
+                pending.push((right, inspect_length));
+                pending.push((left, inspect_length));
             }
             ExprKind::If {
                 condition,
                 then_branch,
                 else_branch,
             } => {
-                pending.push(else_branch);
-                pending.push(then_branch);
-                pending.push(condition);
+                pending.push((else_branch, inspect_length));
+                pending.push((then_branch, inspect_length));
+                pending.push((condition, inspect_length));
             }
             ExprKind::Block { statements, tail } => {
-                pending.push(tail);
+                pending.push((tail, inspect_length));
                 for statement in statements.iter().rev() {
-                    if matches!(statement, Statement::Let { .. } | Statement::Assign { .. }) {
-                        pending.extend(
-                            (0..statement.child_count())
-                                .rev()
-                                .filter_map(|index| statement.child(index)),
-                        );
+                    if let Statement::While {
+                        condition, body, ..
+                    } = statement
+                    {
+                        // An inner body is outside the outer condition's
+                        // inspection set, even if it contains another loop.
+                        pending.push((body, false));
+                        pending.push((condition, inspect_length));
+                    } else {
+                        pending.extend((0..statement.child_count()).rev().filter_map(|index| {
+                            statement.child(index).map(|child| (child, inspect_length))
+                        }));
                     }
                 }
             }
@@ -877,14 +883,14 @@ pub(crate) fn owned_string_in_condition(
                 scrutinee, arms, ..
             } => {
                 for arm in arms.iter().rev() {
-                    pending.push(&arm.value);
+                    pending.push((&arm.value, inspect_length));
                     if let Some(guard) = &arm.guard {
-                        pending.push(guard);
+                        pending.push((guard, inspect_length));
                     }
                 }
-                pending.push(scrutinee);
+                pending.push((scrutinee, inspect_length));
             }
-            ExprKind::Yield { request } => pending.push(request),
+            ExprKind::Yield { request } => pending.push((request, inspect_length)),
             _ => {}
         }
     }

@@ -680,23 +680,28 @@ positive read is a chunk. Process every borrowed chunk before renewing its owner
 
 ```semaprax
 module app.stream_count;
+
 permit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
+
 @id("app.count")
-fn count() -> bool uses { process.stdin.read } {
+fn count() -> bool
+    uses { process.stdin.read }
+{
     let mut reader = stdin_stream_open();
     let mut total = 0usize;
     while !stdin_stream_eof(reader) {
-        let ignored = {
-            let chunk = stdin_stream_chunk(reader);
-            total = total + byte_len(chunk);
-            0
-        };
+        let ignored = { let chunk = stdin_stream_chunk(reader); total = total + byte_len(chunk); 0 };
         reader = stdin_stream_next(reader);
         0
     }
     total >= 0usize
 }
-@id("app.main") fn main() -> i64 { 0 }
+
+@id("app.main")
+fn main() -> i64
+{
+    0
+}
 ```
 
 Open/Next require `process.stdin.read`; Eof/Chunk are pure named-reader

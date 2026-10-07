@@ -148,6 +148,24 @@ fn measure(text: string) -> i64
     string_len(text)
 }
 
+@id("branch.if_user_argument")
+fn if_user_argument() -> i64
+{
+    measure(if true { "a" } else { "bb" }) * 10 + measure(if false { "c" } else { "ddd" })
+}
+
+@id("branch.match_owned_if")
+fn match_owned_if(selected: own Option<string>, flag: bool) -> string
+{
+    match own selected { Option::Some { value: text } => if flag { text } else { string_concat("pre", text) }, Option::None {} => "none", }
+}
+
+@id("branch.match_owned_if_case")
+fn match_owned_if_case() -> i64
+{
+    string_len(match_owned_if(Option<string>::Some { value: "x" }, true)) * 100 + string_len(match_owned_if(Option<string>::Some { value: "x" }, false)) * 10 + string_len(match_owned_if(Option<string>::None {}, true))
+}
+
 @id("branch.string_parameter")
 fn string_parameter() -> i64
 {
@@ -174,6 +192,8 @@ const CASES: &[(&str, &str)] = &[
     ("branch.match_variant_if_case", "ok|123"),
     ("branch.match_scalar", "ok|434"),
     ("branch.match_scalar_if_case", "ok|1213"),
+    ("branch.if_user_argument", "ok|13"),
+    ("branch.match_owned_if_case", "ok|144"),
     ("branch.string_parameter", "ok|11"),
     ("branch.main", "ok|2323"),
 ];

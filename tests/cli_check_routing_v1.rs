@@ -206,7 +206,18 @@ fn main() -> i64
     let checked = cli(&root, &["hir-invalid.spx", "--json"]);
     assert_eq!(checked.status.code(), Some(1));
     assert!(checked.stderr.is_empty());
-    let diagnostic: serde_json::Value = serde_json::from_slice(&checked.stdout).unwrap();
-    assert_eq!(diagnostic["code"], "SPX-U105");
-    assert_eq!(diagnostic["location"]["line"], 7);
+    // The self-concat also fails ownership (SPX-O101), so check reports one
+    // JSON diagnostic per line; the HIR validation finding must be among them.
+    let stdout = String::from_utf8(checked.stdout).unwrap();
+    let diagnostics: Vec<serde_json::Value> = stdout
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+    assert!(
+        diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic["code"] == "SPX-U105"
+                && diagnostic["location"]["line"] == 7),
+        "{stdout}"
+    );
 }

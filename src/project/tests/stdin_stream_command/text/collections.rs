@@ -54,8 +54,8 @@ permit {{ process.args.read, process.stderr.write, process.stdin.read, process.s
     map_get_or<i64,string>(labels,-1,"missing")
 }
 @id("labels.relay") fn relay(bag:own Bag)->Bag {bag}
-@id("labels.roundtrip") fn roundtrip(labels:own Map<i64,string>)->Map<i64,string> {
-    let bag=Bag{labels:labels,title:"bag"};
+@id("labels.roundtrip") fn roundtrip(incoming:own Map<i64,string>)->Map<i64,string> {
+    let bag=Bag{labels:incoming,title:"bag"};
     let moved=relay(bag);
     match own moved {Bag{labels,title}=>labels,}
 }

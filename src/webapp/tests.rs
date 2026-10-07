@@ -252,6 +252,59 @@ fn the_generated_benchmark_app_passes_its_own_self_test() {
     );
 }
 
+#[test]
+fn v2_self_test_reports_owned_and_foreign_row_permissions() {
+    if std::process::Command::new("node")
+        .arg("--version")
+        .output()
+        .is_err()
+    {
+        eprintln!("node is not installed; the generated self-test is not exercised");
+        return;
+    }
+    let source = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("benchmarks/webapp-tokens-v2/semaprax/teamdesk.spx");
+    let projection = generate(&source).unwrap();
+    let out = write_temp("selftest-v2-own-rows", "").with_file_name("out");
+    let _ = std::fs::remove_dir_all(&out);
+    write(&out, &projection).unwrap();
+    let run = std::process::Command::new("node")
+        .arg(out.join("server.mjs"))
+        .arg("--self-test")
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&run.stdout);
+    assert!(
+        run.status.success(),
+        "{stdout}{}",
+        String::from_utf8_lossy(&run.stderr)
+    );
+    assert!(
+        stdout.contains(
+            "permissions: 4 roles x 20 entities plus 28 own-row fixtures agree with schema"
+        ),
+        "{stdout}"
+    );
+    let agent_own = stdout
+        .lines()
+        .find(|line| line.starts_with("  Agent on own-account rows:"))
+        .unwrap_or_else(|| panic!("missing Agent own-row evidence: {stdout}"));
+    assert!(
+        agent_own.contains("writes: Task Comment TimeEntry Ticket TicketReply Expense Leave"),
+        "{agent_own}"
+    );
+    let agent_foreign = stdout
+        .lines()
+        .find(|line| line.starts_with("  Agent on other-account rows:"))
+        .unwrap_or_else(|| panic!("missing Agent foreign-row evidence: {stdout}"));
+    assert!(agent_foreign.contains("hidden: Expense"), "{agent_foreign}");
+    assert!(
+        agent_foreign.contains("denied writes: Task Comment TimeEntry Ticket TicketReply Leave"),
+        "{agent_foreign}"
+    );
+    assert!(agent_foreign.contains("writes: none"), "{agent_foreign}");
+}
+
 const V2: &str = "module m;
 
 variant Role { Admin, Agent, }

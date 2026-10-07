@@ -382,7 +382,9 @@ def stream_usage(path: Path) -> dict[str, Any]:
             if isinstance(model_usage, dict):
                 model_usage_models.update(str(model) for model in model_usage)
 
-    totals = _sum_usage(list(usage_by_id.values()))
+    deduplicated_turn_usage = list(usage_by_id.values())
+    totals = _sum_usage(deduplicated_turn_usage)
+    legacy_net = legacy_net_input_metrics(deduplicated_turn_usage)
     first = next(iter(usage_by_id.values()), {name: None for name in USAGE_FIELDS})
     final_usage: dict[str, int | None] | None = None
     if isinstance(observed_result, dict):
@@ -413,6 +415,11 @@ def stream_usage(path: Path) -> dict[str, Any]:
         "assistant_message_models_observed": sorted(message_models),
         "model_usage_keys_observed": sorted(model_usage_models),
         "turns_with_usage": len(usage_by_id),
+        "legacy_net_input": legacy_net,
+        "legacy_net_input_definition": (
+            "sum of deduplicated per-turn input/cache-write/cache-read minus first-turn input/cache total multiplied by turn count; "
+            "reproduces historical operational convention, not task-only model input"
+        ),
         "usage": totals,
         "usage_totals_source": "final_result_with_per_turn_fallback" if final_usage else "per_turn_deduplicated",
         "usage_updates_per_message": updates_per_id,
@@ -450,6 +457,31 @@ def input_tokens_total(usage: dict[str, int | None]) -> int | None:
     fields = USAGE_FIELDS[:3]
     values = [usage.get(field) for field in fields]
     return sum(values) if all(value is not None for value in values) else None
+
+
+def legacy_net_input_metrics(turn_usage: list[dict[str, int | None]]) -> dict[str, int | None]:
+    """Reproduce prior reports: subtract first-turn input/cache once per turn."""
+    baseline = input_tokens_total(turn_usage[0]) if turn_usage else None
+    required_fields = USAGE_FIELDS[:3]
+    complete = bool(turn_usage) and all(
+        all(turn.get(field) is not None for field in required_fields)
+        for turn in turn_usage
+    )
+    per_turn_sum = (
+        sum(sum(turn[field] for field in required_fields) for turn in turn_usage)
+        if complete else None
+    )
+    baseline_subtotal = baseline * len(turn_usage) if baseline is not None else None
+    net = (
+        per_turn_sum - baseline_subtotal
+        if per_turn_sum is not None and baseline_subtotal is not None else None
+    )
+    return {
+        "first_turn_input_plus_cache_tokens": baseline,
+        "per_turn_input_plus_cache_tokens_sum": per_turn_sum,
+        "baseline_tokens_subtracted": baseline_subtotal,
+        "net_input_tokens": net,
+    }
 
 
 def observed_model_matches(observed: Any, expected_observed_id: Any) -> bool:
@@ -853,6 +885,12 @@ def launch_trial(
             "error": str(error),
         }
     row["provider_input_plus_cache_tokens_raw"] = input_tokens_total(usage.get("usage", {}))
+    legacy_net = usage.get("legacy_net_input", {})
+    row["legacy_net_input_tokens"] = legacy_net.get("net_input_tokens")
+    row["legacy_net_first_turn_input_plus_cache_tokens"] = legacy_net.get(
+        "first_turn_input_plus_cache_tokens"
+    )
+    row["legacy_net_baseline_tokens_subtracted"] = legacy_net.get("baseline_tokens_subtracted")
     row["input_usage_note"] = (
         "Raw provider-reported input and cache counters. These include repeated system/tool context on every turn "
         "and task/tool history; the separate one-turn calibration diagnostic is not subtracted."
@@ -918,6 +956,11 @@ def summarize(
             usage_missing[field] = len(values) - len(known)
         elapsed = [row.get("elapsed_seconds") for row in selected if row.get("elapsed_seconds") is not None]
         gross_input = [row.get("provider_input_plus_cache_tokens_raw") for row in selected]
+        legacy_net = [row.get("legacy_net_input_tokens") for row in selected]
+        legacy_baseline = [
+            row.get("legacy_net_first_turn_input_plus_cache_tokens") for row in selected
+        ]
+        legacy_subtracted = [row.get("legacy_net_baseline_tokens_subtracted") for row in selected]
         authored = [row.get("final_candidate_source_metrics", {}).get("total_tokens") for row in selected]
         complete_cost = len(per_trial_costs) == len(selected) and all(value is not None for value in per_trial_costs)
         calibration_tokens = (
@@ -941,6 +984,18 @@ def summarize(
                 if any(value is not None for value in gross_input) else None
             ),
             "provider_input_plus_cache_tokens_raw_incomplete_trials": sum(value is None for value in gross_input),
+            "legacy_net_input_tokens_per_trial": legacy_net,
+            "legacy_net_input_tokens_known_subtotal": (
+                sum(value for value in legacy_net if value is not None)
+                if any(value is not None for value in legacy_net) else None
+            ),
+            "legacy_net_input_tokens_incomplete_trials": sum(value is None for value in legacy_net),
+            "legacy_net_first_turn_input_plus_cache_tokens_per_trial": legacy_baseline,
+            "legacy_net_baseline_tokens_subtracted_per_trial": legacy_subtracted,
+            "legacy_net_input_definition": (
+                "deduplicated per-turn input + cache-write + cache-read sum minus first-turn input + cache total times turn count; "
+                "first-turn baseline includes the task prompt and harness context"
+            ),
             "one_turn_calibration_context_input_tokens_proxy": calibration_tokens,
             "context_baseline_applied_to_trial_totals": False,
             "context_accounting_note": (

@@ -68,8 +68,16 @@ collector deduplicates repeated assistant message updates, records any mismatch
 against final result usage, and prefers final result totals when available.
 Raw per-trial input/cache counters remain authoritative. These counters include
 repeated system and tool context on every turn, along with the benchmark task
-and accumulated tool history; the summary does not claim a task-only or net
-input count. Calibration usage is reported separately. Output counts are provider-reported output
+and accumulated tool history. For comparison with earlier benchmark reports,
+the runner also emits `legacy_net_input_tokens`, computed as the sum of
+deduplicated per-turn input, cache-write, and cache-read counts minus the
+first-turn input-plus-cache total multiplied by the number of turns. It reports
+the first-turn baseline and subtracted subtotal separately; if any required
+per-turn field is missing, the legacy metric is `null`. The first turn includes
+the task prompt and harness context, so this operational convention is not
+task-only model input and may be negative. It does not alter raw usage or
+list-price estimates. The calibration diagnostic is separate and is never
+subtracted here. Output counts are provider-reported output
 tokens (including thinking when the provider includes it in that counter);
 visible text bytes are retained separately. The optional offline authored
 source count is a snapshot of final candidate files and uses

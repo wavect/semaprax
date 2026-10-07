@@ -7,13 +7,20 @@ outputs come from a seeded oracle (`oracle.py`, which benchmark agents may not
 read): `loglens sample.log` must print [expected.txt](expected.txt), and
 `loglens sample.log --top 3 --json` must print [expected.json](expected.json).
 
+Historical “net” values below use the earlier operational convention: sum each
+turn's provider input, cache-write, and cache-read counts, then subtract the
+first turn's input-plus-cache count once per turn. The first-turn baseline
+includes the task prompt as well as harness context. These values are not
+task-only model input or an upper bound; the live campaign labels this metric
+`legacy_net_input_tokens` and reports raw provider usage separately.
+
 ## Round 1 (baseline, `f106fcebe`)
 
 | | TypeScript (Node, no deps) | SEMAPRAX |
 | --- | ---: | ---: |
 | Completed | yes, all tests pass | **no** |
 | Turns | 6 | 76 |
-| Net task input | 104,540 | 4,363,904 |
+| Legacy net input tokens | 104,540 | 4,363,904 |
 | Estimated cost (lower bound) | $0.20 | $1.94 |
 | Authored tokens | 1,540 | (a 749-byte stub) |
 
@@ -42,7 +49,7 @@ acceptance collector in [LIVE-CAMPAIGN.md](LIVE-CAMPAIGN.md).
 | --- | ---: | ---: | ---: |
 | Completed | yes | **yes** | **yes** |
 | Turns | 6 | 19 | 27 |
-| Net task input | 104,540 | 839,703 | 1,360,111 |
+| Legacy net input tokens | 104,540 | 839,703 | 1,360,111 |
 | Estimated cost | $0.20 | $0.65 | $0.88 |
 | Authored tokens | 1,540 | 4,252 | 4,307 |
 

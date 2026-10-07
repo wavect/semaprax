@@ -41,7 +41,8 @@ class LiveCampaignTests(unittest.TestCase):
                 "message": {
                     "id": "turn-2",
                     "model": live_campaign.MODEL,
-                    "usage": {"input_tokens": 40, "output_tokens": 10},
+                    "usage": {"input_tokens": 40, "cache_creation_input_tokens": 0,
+                              "cache_read_input_tokens": 0, "output_tokens": 10},
                     "content": [],
                 },
             },
@@ -67,6 +68,12 @@ class LiveCampaignTests(unittest.TestCase):
             "per_turn_sum": 35, "final_result": 34,
         })
         self.assertEqual(result["usage"]["output_tokens"], 34)
+        self.assertEqual(result["legacy_net_input"], {
+            "first_turn_input_plus_cache_tokens": 160,
+            "per_turn_input_plus_cache_tokens_sum": 200,
+            "baseline_tokens_subtracted": 320,
+            "net_input_tokens": -120,
+        })
 
     def test_missing_usage_fields_remain_unknown_and_model_usage_aliases_parse(self):
         events = [
@@ -100,6 +107,42 @@ class LiveCampaignTests(unittest.TestCase):
         self.assertIsNone(live_campaign.one_turn_context_proxy({"input_tokens": 100}, 12))
         self.assertIsNone(live_campaign.one_turn_context_proxy(first_turn, None))
         self.assertIsNone(live_campaign.one_turn_context_proxy(first_turn, 151))
+
+    def test_legacy_net_input_reproduces_first_turn_subtraction_and_preserves_negative(self):
+        first = {
+            "input_tokens": 100, "cache_creation_input_tokens": 20,
+            "cache_read_input_tokens": 30, "output_tokens": 4,
+        }
+        second = {
+            "input_tokens": 120, "cache_creation_input_tokens": 10,
+            "cache_read_input_tokens": 40, "output_tokens": 5,
+        }
+        result = live_campaign.legacy_net_input_metrics([first, second])
+        self.assertEqual(result, {
+            "first_turn_input_plus_cache_tokens": 150,
+            "per_turn_input_plus_cache_tokens_sum": 320,
+            "baseline_tokens_subtracted": 300,
+            "net_input_tokens": 20,
+        })
+        lower_second_turn = {**second, "input_tokens": 10, "cache_creation_input_tokens": 0,
+                             "cache_read_input_tokens": 0}
+        negative = live_campaign.legacy_net_input_metrics([first, lower_second_turn])
+        self.assertEqual(negative["net_input_tokens"], -140)
+
+    def test_legacy_net_input_is_unknown_when_any_turn_bucket_is_missing(self):
+        first = {
+            "input_tokens": 100, "cache_creation_input_tokens": 20,
+            "cache_read_input_tokens": 30, "output_tokens": 4,
+        }
+        second = {
+            "input_tokens": 120, "cache_creation_input_tokens": 10,
+            "cache_read_input_tokens": None, "output_tokens": 5,
+        }
+        result = live_campaign.legacy_net_input_metrics([first, second])
+        self.assertEqual(result["first_turn_input_plus_cache_tokens"], 150)
+        self.assertIsNone(result["per_turn_input_plus_cache_tokens_sum"])
+        self.assertEqual(result["baseline_tokens_subtracted"], 300)
+        self.assertIsNone(result["net_input_tokens"])
 
     def test_model_identity_uses_observed_message_id_not_requested_alias_or_usage_key(self):
         dated_model = "claude-sonnet-4-5-20260929"
@@ -234,10 +277,15 @@ class LiveCampaignTests(unittest.TestCase):
         rows = [
             {"arm": "semaprax", "number": 1, "status": "accepted", "elapsed_seconds": 10,
              "list_price_estimate_usd": 0.2, "provider_input_plus_cache_tokens_raw": 150,
+             "legacy_net_input_tokens": 20, "legacy_net_first_turn_input_plus_cache_tokens": 150,
+             "legacy_net_baseline_tokens_subtracted": 300,
              "final_candidate_source_metrics": {"total_tokens": 75},
              "observed": {"usage": {"input_tokens": 100}, "turns_with_usage": 2}},
             {"arm": "semaprax", "number": 2, "status": "failed", "elapsed_seconds": 20,
              "list_price_estimate_usd": 0.1, "provider_input_plus_cache_tokens_raw": None,
+             "legacy_net_input_tokens": None,
+             "legacy_net_first_turn_input_plus_cache_tokens": None,
+             "legacy_net_baseline_tokens_subtracted": None,
              "final_candidate_source_metrics": {"total_tokens": None},
              "observed": {"usage": {"input_tokens": 50}, "turns_with_usage": 1}},
         ]
@@ -245,6 +293,9 @@ class LiveCampaignTests(unittest.TestCase):
         summary = live_campaign.summarize(rows, calibration)
         arm = summary["arms"][0]
         self.assertEqual(arm["provider_input_plus_cache_tokens_raw_known_subtotal"], 150)
+        self.assertEqual(arm["legacy_net_input_tokens_per_trial"], [20, None])
+        self.assertEqual(arm["legacy_net_input_tokens_known_subtotal"], 20)
+        self.assertEqual(arm["legacy_net_input_tokens_incomplete_trials"], 1)
         self.assertFalse(arm["context_baseline_applied_to_trial_totals"])
         self.assertNotIn("provider_input_plus_cache_tokens_after_context_proxy_known_subtotal", arm)
         self.assertEqual(arm["final_candidate_source_token_proxy_known_subtotal"], 75)

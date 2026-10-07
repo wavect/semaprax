@@ -4,6 +4,8 @@ Audience: language users, parser contributors, and formatter contributors.
 
 Status: implemented source projection with focused local source/graph, interpreter, native, Core Wasm and formatter/cache accounting evidence.
 
+Audience: compiler contributors maintaining canonical source and cache projections.
+
 Canonical formatting preserves an authored statement `if`, its `else if`
 chain, its explicit `else`, and its original branch values. It does not print
 the generated discard binding, missing-else branch, or generated zero tails.

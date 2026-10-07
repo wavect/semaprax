@@ -205,12 +205,14 @@ fn constructed_owned_byte_cases_balance_allocation_at_o0_and_o2() {
     let program = parse(source, Path::new("constructed-owned-byte-native.spx")).unwrap();
     let generated = codegen::emit_c(&program).unwrap();
     let tracked = format!(
-        "#include <stddef.h>\nstatic void *spx_test_malloc(size_t);\nstatic void spx_test_free(void *);\n{}",
+        "#include <stddef.h>\nstatic void *spx_test_malloc(size_t);\nstatic void *spx_test_calloc(size_t, size_t);\nstatic void spx_test_free(void *);\n{}",
         generated
             .replace("malloc((size_t)value.len)", "spx_test_malloc((size_t)value.len)")
+            .replace("calloc((size_t)count, sizeof(uint8_t))", "spx_test_calloc((size_t)count, sizeof(uint8_t))")
             .replace("free(value->ptr)", "spx_test_free(value->ptr)")
     );
     assert!(tracked.contains("spx_test_malloc((size_t)value.len)"));
+    assert!(tracked.contains("spx_test_calloc((size_t)count, sizeof(uint8_t))"));
     assert!(tracked.contains("spx_test_free(value->ptr)"));
     let probe = format!(
         r#"
@@ -218,6 +220,13 @@ static uint32_t spx_allocated = UINT32_C(0);
 static uint32_t spx_freed = UINT32_C(0);
 static void *spx_test_malloc(size_t size) {{
     void *value = malloc(size);
+    if (value == NULL) abort();
+    ++spx_allocated;
+    return value;
+}}
+/* bytes_zeroed uses calloc; count its allocation just like bytes_copy's malloc. */
+static void *spx_test_calloc(size_t count, size_t size) {{
+    void *value = calloc(count, size);
     if (value == NULL) abort();
     ++spx_allocated;
     return value;

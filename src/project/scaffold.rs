@@ -37,6 +37,9 @@ pub const PROJECT_SCAFFOLD_SCHEMA: &str = "semaprax.project-scaffold.v2";
 /// manifest layout. The v2 schema is frozen to the v1 manifest bytes; a table
 /// manifest is a distinct capsule so no v2 byte or digest changes.
 pub const PROJECT_SCAFFOLD_SCHEMA_V3: &str = "semaprax.project-scaffold.v3";
+/// Capsule schema for the Project v25 native stream-text template. Its
+/// `project_schema` identifies v25 while v3 remains frozen to Project v1.
+pub const PROJECT_SCAFFOLD_SCHEMA_V4: &str = "semaprax.project-scaffold.v4";
 pub const PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR: &str = "calculator";
 pub const PROJECT_SCAFFOLD_TEMPLATE_LIBRARY: &str = "library";
 /// A multi-user service composed from bounded bundled standard-library decision
@@ -47,15 +50,21 @@ pub const PROJECT_SCAFFOLD_TEMPLATE_LIBRARY: &str = "library";
 /// in, so [`derive_project_scaffold_v1_with_layout`] refuses the
 /// `Frozen`/`service` pairing before rendering anything.
 pub const PROJECT_SCAFFOLD_TEMPLATE_SERVICE: &str = "service";
-pub const PROJECT_SCAFFOLD_TEMPLATES: [&str; 3] = [
+/// A native Project v25 command that consumes arbitrarily long standard input
+/// through the bounded reusable stream reader and may pass owned Strings to
+/// private module helpers.
+pub const PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_TEXT: &str = "stdin-stream-text";
+pub const PROJECT_SCAFFOLD_TEMPLATES: [&str; 4] = [
     PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR,
     PROJECT_SCAFFOLD_TEMPLATE_LIBRARY,
     PROJECT_SCAFFOLD_TEMPLATE_SERVICE,
+    PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_TEXT,
 ];
 pub const PROJECT_SCAFFOLD_FILE_COUNT: usize = 5;
 pub const PROJECT_SCAFFOLD_TABLES_FILE_COUNT: usize = 6;
 pub const PROJECT_SCAFFOLD_LIBRARY_FILE_COUNT: usize = 6;
 pub const PROJECT_SCAFFOLD_SERVICE_FILE_COUNT: usize = 9;
+pub const PROJECT_SCAFFOLD_STDIN_STREAM_TEXT_FILE_COUNT: usize = 6;
 pub const MAX_PROJECT_SCAFFOLD_NAME_BYTES: usize = 64;
 pub const MAX_PROJECT_SCAFFOLD_DESCRIPTOR_BYTES: usize = 65_536;
 
@@ -100,6 +109,15 @@ pub const PROJECT_SCAFFOLD_SERVICE_INVENTORY: [&str; PROJECT_SCAFFOLD_SERVICE_FI
     "service.config.json",
     "service-host-adapter-request.json",
 ];
+pub const PROJECT_SCAFFOLD_STDIN_STREAM_TEXT_INVENTORY:
+    [&str; PROJECT_SCAFFOLD_STDIN_STREAM_TEXT_FILE_COUNT] = [
+        "README.md",
+        "AGENTS.md",
+        "semaprax.toml",
+        "src/app.spx",
+        "src/input.spx",
+        "src/tests.spx",
+    ];
 
 /// The exact inventory of one built-in template.
 #[must_use]
@@ -108,6 +126,8 @@ pub fn project_scaffold_inventory(template: &str) -> &'static [&'static str] {
         &PROJECT_SCAFFOLD_LIBRARY_INVENTORY
     } else if template == PROJECT_SCAFFOLD_TEMPLATE_SERVICE {
         &PROJECT_SCAFFOLD_SERVICE_INVENTORY
+    } else if template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_TEXT {
+        &PROJECT_SCAFFOLD_STDIN_STREAM_TEXT_INVENTORY
     } else {
         &PROJECT_SCAFFOLD_INVENTORY
     }
@@ -123,6 +143,8 @@ pub fn project_scaffold_inventory_with_layout(
         &PROJECT_SCAFFOLD_LIBRARY_INVENTORY
     } else if template == PROJECT_SCAFFOLD_TEMPLATE_SERVICE {
         &PROJECT_SCAFFOLD_SERVICE_INVENTORY
+    } else if template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_TEXT {
+        &PROJECT_SCAFFOLD_STDIN_STREAM_TEXT_INVENTORY
     } else if layout == ScaffoldLayout::Tables {
         &PROJECT_SCAFFOLD_TABLES_INVENTORY
     } else {
@@ -132,13 +154,15 @@ pub fn project_scaffold_inventory_with_layout(
 
 const DIGEST_DOMAIN: &[u8] = b"semaprax.project-scaffold.digest.v2\0";
 const DIGEST_DOMAIN_V3: &[u8] = b"semaprax.project-scaffold.digest.v3\0";
+const DIGEST_DOMAIN_V4: &[u8] = b"semaprax.project-scaffold.digest.v4\0";
 
 /// Which `semaprax.toml` layout a scaffold emits. `Frozen` is the frozen
 /// `semaprax.project.v1` line layout under capsule schema v2 (byte-identical to
 /// the shipped default); `Tables` is the extensible `semaprax.manifest.v1`
-/// table layout under capsule schema v3. Both lower to the same Project v1
-/// contract. The calculator table layout also demonstrates a stable-ID import
-/// from a separate `core` module; the frozen v2 inventory remains unchanged.
+/// table layout under capsule schema v3 for Project-v1 templates. The
+/// `stdin-stream-text` template uses additive capsule v4 to identify its
+/// Project-v25 manifest. The calculator table layout also demonstrates a
+/// stable-ID import from a separate `core` module; frozen v2 inventory stays.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ScaffoldLayout {
     Frozen,
@@ -163,7 +187,7 @@ impl ScaffoldLayout {
     fn from_schema(schema: &str) -> Option<Self> {
         match schema {
             PROJECT_SCAFFOLD_SCHEMA => Some(Self::Frozen),
-            PROJECT_SCAFFOLD_SCHEMA_V3 => Some(Self::Tables),
+            PROJECT_SCAFFOLD_SCHEMA_V3 | PROJECT_SCAFFOLD_SCHEMA_V4 => Some(Self::Tables),
             _ => None,
         }
     }
@@ -251,6 +275,12 @@ const SERVICE_CONFIG_FIXTURE: &str =
     include_str!("../../examples/task-service-project/service.config.json");
 const SERVICE_ADAPTER_REQUEST_FIXTURE: &str =
     include_str!("../../examples/task-service-project/service-host-adapter-request.json");
+const STDIN_STREAM_TEXT_GUIDE: &str = "\n## Streaming command\n\nThis project uses Project v25 profile `language-command-io.stream-text.v1` and\ninput `argv-utf8+stdin-stream.v1`. The manifest selects exactly one stable\n`command` export. Build it with `semaprax build --manifest-path semaprax.toml\n--target native --output app`, then run `./app`. `semaprax doctor --profile`\nreports compiler support; it does not select a Project command. `semaprax run .`\nruns the separate `main` entry. Web, Wasm, and npm targets are not admitted.\n\n`input.spx` opens one reusable 4096-byte reader. Process each borrowed chunk\ninside its block before calling `stdin_stream_next`; a short positive read is a\nchunk, and only a zero-length read is EOF. Its `normalize` helper demonstrates\na private owned-String call across modules.\n";
+const STDIN_STREAM_TEXT_README: &str = "# {{name}}\n\nA native command project that reads standard input incrementally.\n\n```sh\nsemaprax check .\nsemaprax test .\nsemaprax run .\nsemaprax build --manifest-path semaprax.toml --target native --output app\n```\n\nThe generated `command` is selected by the Project manifest. `semaprax run .`\nexecutes the ordinary `main`; run `./app` to execute the streaming command.\nWeb, Wasm, and npm targets are refused for this profile. Read `AGENTS.md` before\nediting the source.\n";
+const STDIN_STREAM_TEXT_MANIFEST: &str = "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"{{name}}\"\nversion = \"0.1.0\"\nprofile = \"language-command-io.stream-text.v1\"\n\n[modules]\nentry = \"{{module}}.app\"\nsources = [\"src/app.spx\", \"src/input.spx\", \"src/tests.spx\"]\ntests = [\"{{module}}.tests\"]\n\n[exports]\nweb = [\"{{name}}.command\"]\n\n[command]\nfunction = \"{{name}}.command\"\ninput = \"argv-utf8+stdin-stream.v1\"\n\n[capabilities]\nrequired = [\"process.args.read\", \"process.stderr.write\", \"process.stdin.read\", \"process.stdout.write\"]\n";
+const STDIN_STREAM_TEXT_APP: &str = "module {{module}}.app;\nuse function @id(\"{{name}}.read_stream\") from {{module}}.input as read_stream;\nuse function @id(\"{{name}}.normalize\") from {{module}}.input as normalize;\npermit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }\n\n@id(\"{{name}}.command\")\nfn command() -> i64 uses { process.stdin.read }\n{\n    let saw_chunk = read_stream();\n    let marker = normalize(\" ready \");\n    if string_len(marker) == 5usize { if saw_chunk { 0 } else { 1 } } else { 1 }\n}\n\n@id(\"{{name}}.app.main\")\nfn main() -> i64\n{\n    let marker = normalize(\" ready \");\n    if string_len(marker) == 5usize { 0 } else { 1 }\n}\n";
+const STDIN_STREAM_TEXT_INPUT: &str = "module {{module}}.input;\npermit { process.stdin.read }\n\n@id(\"{{name}}.read_stream\")\nfn read_stream() -> bool uses { process.stdin.read }\n{\n    let mut reader = stdin_stream_open();\n    let mut saw_chunk = false;\n    while !stdin_stream_eof(reader) {\n        let chunk_size = { let chunk = stdin_stream_chunk(reader); byte_len(chunk) };\n        if chunk_size > 0usize { saw_chunk = true; }\n        reader = stdin_stream_next(reader);\n        0\n    }\n    saw_chunk\n}\n\n@id(\"{{name}}.normalize\")\nfn normalize(text: string) -> string\n{\n    string_trim(text)\n}\n";
+const STDIN_STREAM_TEXT_TESTS: &str = "module {{module}}.tests;\nuse function @id(\"{{name}}.normalize\") from {{module}}.input as normalize;\n\n@id(\"{{name}}.tests.main\")\nfn main() -> i64\n{\n    let marker = normalize(\" ready \");\n    if string_len(marker) == 5usize { 0 } else { 1 }\n}\n";
 const SERVICE_CONFIGURATION_GUIDE: &str = "\n## Host configuration\n\n`service-config.schema.json` is the closed host-configuration contract and\n`service.config.json` is its credential-free fixture instance. Database, HTTP,\nand telemetry adapters are explicitly `fixture`; endpoints and secret\nreferences are absent. `service-host-adapter-request.json` is the compiler\nrendered, bounded handoff for that fixture and declares an empty capability\nset. A host-mode configuration renders the exact snapshot-store, TLS-serve,\nsecret-resolve, and either signed JSON-event or OTLP/HTTP JSON telemetry\nselection it needs. Only TLS serve, secret resolve, and telemetry emit require\nhost capabilities; the declaration gains none of them, and a separately\nvalidated host must provide and execute every adapter outside Semaprax source.\n";
 const NONCLAIMS: [&str; 4] = [
     "no_filesystem_or_publication_authority",
@@ -293,6 +323,8 @@ impl ProjectScaffoldFileV1 {
 pub struct ProjectScaffoldV1 {
     template: &'static str,
     layout: ScaffoldLayout,
+    schema: &'static str,
+    project_schema: &'static str,
     project_name: String,
     files: Vec<ProjectScaffoldFileV1>,
     digest: String,
@@ -301,7 +333,7 @@ pub struct ProjectScaffoldV1 {
 impl ProjectScaffoldV1 {
     #[must_use]
     pub const fn schema(&self) -> &'static str {
-        self.layout.schema()
+        self.schema
     }
 
     #[must_use]
@@ -311,7 +343,7 @@ impl ProjectScaffoldV1 {
 
     #[must_use]
     pub const fn project_schema(&self) -> &'static str {
-        PROJECT_SCHEMA
+        self.project_schema
     }
 
     #[must_use]
@@ -346,9 +378,9 @@ pub fn derive_project_scaffold_v1(
 
 /// Derive a scaffold in the chosen manifest layout. `Frozen` is byte-identical
 /// to [`derive_project_scaffold_v1`]; `Tables` uses the extensible
-/// `semaprax.manifest.v1` layout and renders under capsule schema v3. Its
-/// calculator also demonstrates a cross-module stable-ID import. Both lower
-/// to the same Project v1 contract.
+/// `semaprax.manifest.v1` layout and renders under capsule schema v3, except
+/// the Project-v25 stream-text template, which uses capsule schema v4. The
+/// calculator also demonstrates a cross-module stable-ID import.
 pub fn derive_project_scaffold_v1_with_layout(
     project_name: &str,
     template: &str,
@@ -357,9 +389,15 @@ pub fn derive_project_scaffold_v1_with_layout(
     let template = validate_template(template)?;
     validate_project_name(project_name)?;
     let is_service = template == PROJECT_SCAFFOLD_TEMPLATE_SERVICE;
+    let is_stdin_stream_text = template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_TEXT;
     if is_service && layout == ScaffoldLayout::Frozen {
         return Err(scaffold_error(
             "the service template declares a [dependencies] table, so it needs the tables manifest layout; the frozen semaprax.project.v1 layout has no such table",
+        ));
+    }
+    if is_stdin_stream_text && layout == ScaffoldLayout::Frozen {
+        return Err(scaffold_error(
+            "the stdin-stream-text template uses the [package], [command], and [capabilities] tables, so it needs the tables manifest layout",
         ));
     }
     let module = project_name.replace('-', "_");
@@ -373,7 +411,9 @@ pub fn derive_project_scaffold_v1_with_layout(
             ));
         }
     }
-    let manifest = if is_service {
+    let manifest = if is_stdin_stream_text {
+        STDIN_STREAM_TEXT_MANIFEST
+    } else if is_service {
         SERVICE_MANIFEST_TABLES
     } else {
         match (template == PROJECT_SCAFFOLD_TEMPLATE_LIBRARY, layout) {
@@ -383,7 +423,16 @@ pub fn derive_project_scaffold_v1_with_layout(
             (false, ScaffoldLayout::Tables) => MANIFEST_TABLES,
         }
     };
-    let sources: Vec<&str> = if is_service {
+    let sources: Vec<&str> = if is_stdin_stream_text {
+        vec![
+            STDIN_STREAM_TEXT_README,
+            AGENTS,
+            manifest,
+            STDIN_STREAM_TEXT_APP,
+            STDIN_STREAM_TEXT_INPUT,
+            STDIN_STREAM_TEXT_TESTS,
+        ]
+    } else if is_service {
         vec![
             SERVICE_README,
             AGENTS,
@@ -435,6 +484,9 @@ pub fn derive_project_scaffold_v1_with_layout(
             if *path == "AGENTS.md" && is_service {
                 combined.push_str(SERVICE_DEPENDENCY_GUIDE);
             }
+            if *path == "AGENTS.md" && is_stdin_stream_text {
+                combined.push_str(STDIN_STREAM_TEXT_GUIDE);
+            }
             if *path == "README.md" && is_service {
                 combined.push_str(SERVICE_CONFIGURATION_GUIDE);
             }
@@ -456,11 +508,17 @@ pub fn derive_project_scaffold_v1_with_layout(
     let mut artifact = ProjectScaffoldV1 {
         template,
         layout,
+        schema: capsule_schema(template, layout),
+        project_schema: project_schema(template),
         project_name: project_name.to_owned(),
         files,
         digest: String::new(),
     };
-    artifact.digest = artifact_digest(layout, &render_descriptor_without_digest(&artifact));
+    artifact.digest = artifact_digest(
+        template,
+        layout,
+        &render_descriptor_without_digest(&artifact),
+    );
     if artifact.canonical_bytes().len() > MAX_PROJECT_SCAFFOLD_DESCRIPTOR_BYTES {
         return Err(capacity(
             "project scaffold descriptor exceeds its exact byte limit",
@@ -495,10 +553,12 @@ pub fn replay_project_scaffold_v1(
         .as_object()
         .filter(|root| {
             root.len() == 8
-                && root.get("schema").and_then(Value::as_str) == Some(layout.schema())
+                && root.get("schema").and_then(Value::as_str)
+                    == Some(capsule_schema(template, layout))
                 && root.get("digest").and_then(Value::as_str).is_some()
                 && root.get("template").and_then(Value::as_str) == Some(template)
-                && root.get("project_schema").and_then(Value::as_str) == Some(PROJECT_SCHEMA)
+                && root.get("project_schema").and_then(Value::as_str)
+                    == Some(project_schema(template))
                 && root.get("project_name").and_then(Value::as_str).is_some()
                 && root.get("files").and_then(Value::as_array).is_some()
                 && root.get("limits").and_then(Value::as_object).is_some()
@@ -608,7 +668,7 @@ fn render_descriptor(artifact: &ProjectScaffoldV1) -> String {
     let body = render_descriptor_tail(artifact);
     format!(
         "{{\"schema\":{},\"digest\":{},{}",
-        quote_json(artifact.layout.schema()),
+        quote_json(artifact.schema()),
         quote_json(&artifact.digest),
         &body[1..]
     )
@@ -618,7 +678,7 @@ fn render_descriptor_without_digest(artifact: &ProjectScaffoldV1) -> String {
     let body = render_descriptor_tail(artifact);
     format!(
         "{{\"schema\":{},{}",
-        quote_json(artifact.layout.schema()),
+        quote_json(artifact.schema()),
         &body[1..]
     )
 }
@@ -646,7 +706,7 @@ fn render_descriptor_tail(artifact: &ProjectScaffoldV1) -> String {
     format!(
         "{{\"template\":{},\"project_schema\":{},\"project_name\":{},\"files\":[{}],\"limits\":{{\"descriptor_bytes\":{},\"files\":{},\"project_name_bytes\":{}}},\"nonclaims\":[{}]}}",
         quote_json(artifact.template),
-        quote_json(PROJECT_SCHEMA),
+        quote_json(artifact.project_schema()),
         quote_json(&artifact.project_name),
         files,
         MAX_PROJECT_SCAFFOLD_DESCRIPTOR_BYTES,
@@ -656,9 +716,33 @@ fn render_descriptor_tail(artifact: &ProjectScaffoldV1) -> String {
     )
 }
 
-fn artifact_digest(layout: ScaffoldLayout, canonical_without_digest: &str) -> String {
+fn capsule_schema(template: &str, layout: ScaffoldLayout) -> &'static str {
+    if template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_TEXT {
+        PROJECT_SCAFFOLD_SCHEMA_V4
+    } else {
+        layout.schema()
+    }
+}
+
+fn project_schema(template: &str) -> &'static str {
+    if template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_TEXT {
+        super::PROJECT_SCHEMA_V25
+    } else {
+        PROJECT_SCHEMA
+    }
+}
+
+fn artifact_digest(
+    template: &str,
+    layout: ScaffoldLayout,
+    canonical_without_digest: &str,
+) -> String {
     let mut hash = Sha256::new();
-    hash.update(layout.digest_domain());
+    hash.update(if template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_TEXT {
+        DIGEST_DOMAIN_V4
+    } else {
+        layout.digest_domain()
+    });
     hash.update((canonical_without_digest.len() as u64).to_le_bytes());
     hash.update(canonical_without_digest.as_bytes());
     format!("sha256:{:x}", crate::digest_hex::LowerHex(hash.finalize()))

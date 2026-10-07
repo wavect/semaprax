@@ -1222,8 +1222,10 @@ smaller than the 22,076-byte, 6,662-unit full catalog.
 [Package Manifest v1](PACKAGE-MANIFEST-V1.md) owns the table layout,
 [Project Manifest v1](PROJECT-MANIFEST-V1.md) the frozen one,
 [examples/calculator-project](../examples/calculator-project/semaprax.toml) is
-the committed instance, and `semaprax project-scaffold --name <name>` prints a
-complete scaffold to stdout without writing files.
+the committed instance. `semaprax new <dir> --template stdin-stream-text` creates
+a Project v25 streaming command; `doctor --profile` reports support but does
+not select the Project profile. `project-scaffold` accepts the same template
+and chooses the required tables layout.
 
 `semaprax lock semaprax.toml --write` pins the project to a deterministic
 `semaprax.lock` (identity, source digests, interface digest, targets,

@@ -65,7 +65,13 @@ pub(super) fn parse(arguments: &[String]) -> Result<(&str, &str, project::Scaffo
     Ok((
         name,
         template.unwrap_or(project::PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR),
-        layout.unwrap_or(project::ScaffoldLayout::Frozen),
+        layout.unwrap_or_else(|| {
+            if template == Some(project::PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_TEXT) {
+                project::ScaffoldLayout::Tables
+            } else {
+                project::ScaffoldLayout::Frozen
+            }
+        }),
     ))
 }
 
@@ -97,6 +103,9 @@ mod tests {
         for template in project::PROJECT_SCAFFOLD_TEMPLATES {
             let arguments = argv(&["--name", "demo", "--template", template]);
             assert_eq!(parse(&arguments).unwrap().1, template);
+            if template == project::PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_TEXT {
+                assert_eq!(parse(&arguments).unwrap().2, project::ScaffoldLayout::Tables);
+            }
         }
         for (spelling, expected) in [
             ("frozen", project::ScaffoldLayout::Frozen),

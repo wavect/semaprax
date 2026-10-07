@@ -27,8 +27,8 @@ grants no filesystem, network, or process authority.
 ## Command
 
 ```text
-semaprax new <destination> [--name project-name] [--template calculator|library|service]
-semaprax project-scaffold --name <name> [--template calculator|library|service] [--layout frozen|tables]
+semaprax new <destination> [--name project-name] [--template calculator|library|service|stdin-stream-text]
+semaprax project-scaffold --name <name> [--template calculator|library|service|stdin-stream-text] [--layout frozen|tables]
 ```
 
 The service template requires the table manifest layout because it declares

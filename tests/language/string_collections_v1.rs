@@ -255,23 +255,6 @@ fn condition() -> i64
     i
 }
 
-@id("coll.for_loop")
-fn for_loop() -> i64
-{
-    let mut building = vec_with_capacity<i64>(4usize);
-    building = vec_push<i64>(building, 3);
-    building = vec_push<i64>(building, 1);
-    building = vec_push<i64>(building, 3);
-    let values = building;
-    let mut counts = map_new(8usize);
-    for item in values {
-        counts = map_add(counts, string_from_i64(item), 1);
-        0
-    }
-    let size = map_len(counts);
-    if size == 2usize { map_get_or(counts, "3", 0) } else { -1 }
-}
-
 @id("app.main")
 fn main() -> i64
 {
@@ -298,7 +281,6 @@ const CASES: &[(&str, &str)] = &[
     ("coll.overflow", "semaprax.map.v1|4"),
     ("coll.underflow", "semaprax.map.v1|4"),
     ("coll.condition", "ok|5"),
-    ("coll.for_loop", "ok|2"),
 ];
 
 fn command_available(command: &str) -> bool {
@@ -656,6 +638,50 @@ fn command_line_program_counts_words_in_key_order() {
         assert_eq!(
             run(&fixture, native, &["--", "words.txt"]),
             (0, "Zoo 1\napple 2\npear 3\n".to_owned(), String::new()),
+            "native={native}"
+        );
+    }
+    fixture.cleanup();
+}
+
+/// A map update inside `for` traversal. The bounded Vec allocates through
+/// `calloc`, outside the allocation-counting harness, so this case runs
+/// through `semaprax run` on both lanes instead.
+const FOR_SOURCE: &str = r#"module test.for_map;
+
+@id("app.main")
+fn main() -> i64
+{
+    let mut building = vec_with_capacity<i64>(4usize);
+    building = vec_push<i64>(building, 3);
+    building = vec_push<i64>(building, 1);
+    building = vec_push<i64>(building, 3);
+    let values = building;
+    let mut counts = map_new(8usize);
+    for item in values {
+        counts = map_add(counts, string_from_i64(item), 1);
+        0
+    }
+    let size = map_len(counts);
+    if size == 2usize { map_get_or(counts, "3", 0) } else { -1 }
+}
+"#;
+
+#[test]
+fn map_updates_inside_for_traversal() {
+    let program = parse(FOR_SOURCE, Path::new("for-map.spx")).unwrap();
+    assert!(verify::verify(&program).is_empty());
+    assert_eq!(format::canonical(&program), FOR_SOURCE);
+    let fixture = Fixture::new(FOR_SOURCE);
+    let lanes: &[bool] = if command_available("clang") {
+        &[false, true]
+    } else {
+        &[false]
+    };
+    for &native in lanes {
+        assert_eq!(
+            run(&fixture, native, &[]),
+            (0, "2\n".to_owned(), String::new()),
             "native={native}"
         );
     }

@@ -153,6 +153,7 @@ Audience: all documentation readers.
 - [Language ergonomics (statement `if`)](LANGUAGE-ERGONOMICS-V1.md)
 - [Record invariants](RECORD-INVARIANTS-V1.md)
 - [Refutable match](REFUTABLE-MATCH-V1.md)
+- [Copy variant guards](COPY-VARIANT-GUARDS-V1.md)
 - [String operations](STRING-OPS-V1.md)
 - [Owned String loops](OWNED-STRING-LOOPS-V1.md)
 - [Named String length conditions](STRING-LENGTH-CONDITIONS-V1.md)

@@ -14,9 +14,9 @@ use crate::diagnostic::Diagnostic;
 /// Help attached to every refutable-construct rejection over a record or
 /// variant scrutinee, naming the forms that are admitted there.
 pub(super) const AGGREGATE_REFUTABLE_HELP: &str =
-    "over a record or variant scrutinee, arms admit case patterns, `_`, and `|` between \
-     payload-free cases of the scrutinee's variant (`Status::Todo {} | Status::Doing {} => ...`); \
-     literal patterns, bindings, and guards need an i64/i32/u8/char/bool scrutinee";
+    "records/variants admit case patterns and `_`; `|` joins payload-free cases. \
+     Exact Copy-payload cases also admit scalar-operator guards with unguarded fallbacks. \
+     Literal/binding patterns and broader guards require scalar scrutinees";
 
 /// The scrutinee facts and arm-sequence state one or-pattern arm is checked
 /// against.
